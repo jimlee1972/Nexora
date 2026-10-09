@@ -553,7 +553,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and saved memory traces remain open.
+file itself. Arbitrary capture import and GPU timing remain open. Process-memory traces use their own schema.
 
 Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
 sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
@@ -564,7 +564,7 @@ full double precision; availability flags are false and each GPU/memory value is
 when a caller's FrameSample contains those fields. Export borrows samples only for the synchronous
 call and leaves CSV unchanged. `gpu_timing_available` and `memory_measurement_available` are false;
 each `samples` entry has `frame`, `frame_processing_wall_ms`, `gpu_ms` and `memory_bytes`.
-Arbitrary capture import, measured GPU data and saved process-memory traces remain open.
+Arbitrary capture import and measured GPU data remain open. Process-memory traces use their own schema.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
@@ -817,3 +817,42 @@ Per-frame reference inspection copies only bounded opaque metadata prefixes and 
 versions/type-name collisions reject assignment. Scene container and stable C/Zig
 schemas stay unchanged. Multi-selection, reference removal, textures, shader graphs, Game View
 materials and the shipped-game/cook consumer remain separate work.
+
+## Process-memory capture persistence
+
+`ProfileSession::MemorySamples` borrows an authoring-thread-only bounded history of real process
+RSS / working-set observations. Capacity is `min(frame_capacity, 600)`; capacity zero disables
+history while retaining latest/peak observations. Fixed storage keeps the noexcept OS sampler free
+of allocations. Each attempt records its increasing sequence, elapsed milliseconds from the first
+observation since Clear, and optional resident bytes. Failed reads record unavailable, zero remains
+a valid byte count, and pause gaps remain in elapsed time. Evictions increment a saturating separate
+memory dropped count. Clear resets both histories and origins without resuming Capture. Process
+history survives project switches and detachment. UI drawing consumes spans immediately and holds
+no borrow between calls.
+
+`ExportProcessMemoryJson` atomically writes `.nexora/process-memory.json` under the project writer
+lease. Its independent schema 1 identifies source `NexoraEditor`, metric `process_resident_memory`,
+scope `current_process_including_shared_resident_pages`, byte units, millisecond time units and
+`first_observation_since_clear` origin. `export_project_uuid` identifies the destination project,
+not ownership of process allocations or where each observation was taken. Sample count is numeric;
+sequence, resident byte and dropped counts use lossless decimal strings. Unavailable resident values
+are JSON null. No OS absolute timestamp, path, GPU data or allocator ownership is persisted.
+
+Export requires 1–600 ordered nonzero sequence IDs and strictly increasing finite nonnegative
+elapsed times. Empty/invalid histories, closed/read-only/recovery projects, unsafe metadata or
+nonregular/aliased destinations reject before publication. Occupied staging and failed replacement
+preserve the previous file and unrelated staging. `ImportProcessMemoryJson` synchronously reads
+at most 128 KiB into a separate owning `ProcessMemoryCapture`; read-only observers may import.
+The bounded nonrecursive reader requires this exact schema, metadata, current export-project UUID,
+count and sample order. Unknown/duplicate/missing fields, corruption, overflow and trailing data
+reject without changing source files, a live session or the caller's previous capture. Equivalent
+ASCII JSON escapes and reordered fields are accepted. Filesystem checks follow the serialized
+host-thread model; concurrent filesystem substitution is outside this contract.
+
+The optional GUI supplies independent Export memory / Import memory / Clear memory import controls.
+The application performs all IO and transfers validated owning data. Imported process history stays
+separate from live memory and wall-time imports; failed publication preserves it, live Clear does
+not erase it, and root/UUID changes or detachment clear it and pending requests. The plot uses elapsed
+time horizontally, breaks lines at unavailable attempts and shows MiB as 1,048,576 bytes. Graphical
+controls follow project access and modal/recovery/close gates. Existing schema-1 wall-time CSV/JSON
+readers/writers are unchanged; GPU timing, arbitrary captures and physical-host acceptance remain open.

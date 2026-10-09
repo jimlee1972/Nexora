@@ -148,10 +148,29 @@ bool ProfileSession::Add(FrameSample sample) {
   return true;
 }
 
+bool ValidateProcessMemorySamples(std::span<const ProcessMemorySample> samples) noexcept {
+  if (samples.empty() || samples.size() > ProfileSession::kMaximumMemorySamples)
+    return false;
+  std::uint64_t previous_sequence = 0;
+  double previous_elapsed = -1;
+  for (const auto &sample : samples) {
+    if (sample.sequence == 0 || sample.sequence <= previous_sequence ||
+        !std::isfinite(sample.elapsed_ms) || sample.elapsed_ms < 0 ||
+        sample.elapsed_ms <= previous_elapsed)
+      return false;
+    previous_sequence = sample.sequence;
+    previous_elapsed = sample.elapsed_ms;
+  }
+  return true;
+}
+
 void ProfileSession::Clear() noexcept {
   samples_.clear();
   dropped_ = 0;
   memory_ = {};
+  memory_sample_count_ = 0;
+  memory_dropped_ = 0;
+  memory_origin_.reset();
   next_memory_sample_.reset();
   last_memory_sample_.reset();
 }
@@ -174,6 +193,25 @@ bool ProfileSession::SampleProcessMemory(std::chrono::steady_clock::time_point n
       ++memory_.successful_samples;
     memory_.observed_peak_bytes =
         std::max(memory_.observed_peak_bytes.value_or(0), *memory_.resident_bytes);
+  }
+  if (!memory_origin_)
+    memory_origin_ = now;
+  const auto capacity = std::min(capacity_, kMaximumMemorySamples);
+  // Convert before subtraction so even clock endpoints cannot overflow signed durations.
+  const double elapsed =
+      std::chrono::duration<double, std::milli>(now.time_since_epoch()).count() -
+      std::chrono::duration<double, std::milli>(memory_origin_->time_since_epoch()).count();
+  if (capacity && (memory_sample_count_ == 0 ||
+                   (memory_.attempts > memory_samples_[memory_sample_count_ - 1].sequence &&
+                    elapsed > memory_samples_[memory_sample_count_ - 1].elapsed_ms))) {
+    if (memory_sample_count_ == capacity) {
+      std::move(memory_samples_.begin() + 1, memory_samples_.begin() + memory_sample_count_,
+                memory_samples_.begin());
+      --memory_sample_count_;
+      if (memory_dropped_ != std::numeric_limits<std::uint64_t>::max())
+        ++memory_dropped_;
+    }
+    memory_samples_[memory_sample_count_++] = {memory_.attempts, elapsed, memory_.resident_bytes};
   }
   return true;
 }

@@ -119,6 +119,10 @@ struct EditorImGuiHost::State final {
   std::optional<PlayTransformReview> play_apply_requested;
   std::optional<std::array<float, 2>> play_apply_position;
   std::optional<std::array<float, 2>> play_apply_confirm_position;
+  bool memory_export_requested = false;
+  bool memory_import_requested = false;
+  std::optional<ProcessMemoryCapture> imported_memory;
+  std::array<std::optional<std::array<float, 2>>, 3> memory_control_positions{};
   bool profile_export_requested = false;
   bool profile_json_export_requested = false;
   bool profile_csv_import_requested = false;
@@ -3874,6 +3878,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
+  state_->memory_control_positions = {};
   state_->profile_export_position.reset();
   state_->profile_json_export_position.reset();
   state_->profile_csv_import_position.reset();
@@ -3887,6 +3892,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
+    state_->imported_memory.reset();
+    state_->memory_export_requested = false;
+    state_->memory_import_requested = false;
     state_->imported_profile.reset();
     state_->profile_csv_import_requested = false;
     state_->profile_json_import_requested = false;
@@ -4749,12 +4757,36 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::array{(clear_min.x + clear_max.x) * 0.5F, (clear_min.y + clear_max.y) * 0.5F};
       ImGui::EndDisabled();
       ImGui::EndDisabled();
+      const auto memory_position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->memory_control_positions[index] =
+            std::array{(low.x + high.x) * 0.5F, (low.y + high.y) * 0.5F};
+      };
+      ImGui::BeginDisabled(!workspace || !workspace->Writable() || interaction_blocked ||
+                           state_->close_prompt_requested || profile->MemorySamples().empty());
+      if (ImGui::Button("Export memory"))
+        state_->memory_export_requested = true;
+      memory_position(0);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
+      if (ImGui::Button("Import memory"))
+        state_->memory_import_requested = true;
+      memory_position(1);
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_memory);
+      if (ImGui::Button("Clear memory import"))
+        state_->imported_memory.reset();
+      memory_position(2);
+      ImGui::EndDisabled();
+      ImGui::EndDisabled();
       if (!state_->profile_export_status.empty())
         ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
       ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
                   static_cast<unsigned long long>(profile->DroppedCount()));
       ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
-      ImGui::TextDisabled("GPU time is not instrumented. Saved captures contain wall timing only.");
+      ImGui::TextDisabled(
+          "GPU time is not instrumented. Memory is saved as a separate process trace.");
       ImGui::SeparatorText("Process resident memory (live)");
       const auto memory = state_->profile_memory;
       if (memory.resident_bytes)
@@ -4768,6 +4800,67 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::TextDisabled(
           "250 ms sampling; Capture pauses observations; Clear resets observed peak.");
       ImGui::TextDisabled("Process-wide across projects; excludes GPU/allocator accounting.");
+      const auto memory_plot = [](std::span<const ProcessMemorySample> history,
+                                  std::uint64_t dropped, const char *label) {
+        ImGui::Text("%zu memory attempts retained | %llu older attempts dropped", history.size(),
+                    static_cast<unsigned long long>(dropped));
+        if (history.empty())
+          return;
+        std::optional<double> retained_peak;
+        std::size_t unavailable = 0;
+        for (const auto &sample : history) {
+          if (sample.resident_bytes)
+            retained_peak =
+                std::max(retained_peak.value_or(0), static_cast<double>(*sample.resident_bytes));
+          else
+            ++unavailable;
+        }
+        ImGui::Text("%.0f ms since first observation | %zu unavailable attempts",
+                    history.back().elapsed_ms, unavailable);
+        if (retained_peak)
+          ImGui::Text("%s | peak in retained samples %.2f MiB", label,
+                      *retained_peak / (1024 * 1024));
+        else
+          ImGui::TextDisabled("%s | retained peak unavailable", label);
+        const double maximum = std::max(1.0, retained_peak.value_or(0));
+        ImGui::TextDisabled(
+            "Horizontal axis: elapsed time, including pause gaps. Missing reads break the line.");
+        ImGui::PushID(label);
+        const auto low = ImGui::GetCursorScreenPos();
+        const ImVec2 size(std::max(1.0F, ImGui::GetContentRegionAvail().x), 90);
+        ImGui::InvisibleButton("memory-plot", size);
+        auto *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(low, ImVec2(low.x + size.x, low.y + size.y),
+                            ImGui::GetColorU32(ImGuiCol_FrameBg));
+        const double first = history.front().elapsed_ms;
+        const double range = std::max(1.0, history.back().elapsed_ms - first);
+        std::optional<ImVec2> previous;
+        for (const auto &sample : history) {
+          if (!sample.resident_bytes) {
+            previous.reset();
+            continue;
+          }
+          const ImVec2 point(
+              low.x + static_cast<float>((sample.elapsed_ms - first) / range) * (size.x - 1),
+              low.y +
+                  (1 - static_cast<float>(static_cast<double>(*sample.resident_bytes) / maximum)) *
+                      (size.y - 1));
+          if (previous)
+            draw->AddLine(*previous, point, ImGui::GetColorU32(ImGuiCol_PlotLines));
+          draw->AddCircleFilled(point, 2, ImGui::GetColorU32(ImGuiCol_PlotLines));
+          previous = point;
+        }
+        ImGui::PopID();
+      };
+      memory_plot(profile->MemorySamples(), profile->MemoryDroppedCount(), "Resident memory (MiB)");
+      if (state_->imported_memory) {
+        ImGui::SeparatorText("Imported process memory (static)");
+        ImGui::TextDisabled("Process-wide trace; project identity denotes export destination, not "
+                            "allocation ownership.");
+        memory_plot(state_->imported_memory->samples,
+                    state_->imported_memory->older_samples_dropped,
+                    "Imported resident memory (MiB)");
+      }
       const auto plot = [](std::span<const FrameSample> values_to_plot, const char *label) {
         if (values_to_plot.empty())
           return;
@@ -5228,6 +5321,18 @@ bool EditorImGuiHost::SetImportedProfileCapture(FrameProcessingCapture capture) 
     previous = sample.frame;
   }
   state_->imported_profile = std::move(capture);
+  return true;
+}
+bool EditorImGuiHost::TakeMemoryExportRequest() noexcept {
+  return std::exchange(state_->memory_export_requested, false);
+}
+bool EditorImGuiHost::TakeMemoryImportRequest() noexcept {
+  return std::exchange(state_->memory_import_requested, false);
+}
+bool EditorImGuiHost::SetImportedMemoryCapture(ProcessMemoryCapture capture) {
+  if (state_->profile_project_root.empty() || !ValidateProcessMemorySamples(capture.samples))
+    return false;
+  state_->imported_memory = std::move(capture);
   return true;
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
@@ -5986,6 +6091,17 @@ EditorImGuiTestAccess::ProfileCapturePosition(const EditorImGuiHost &host) noexc
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileClearPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_clear_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::MemoryControlPosition(const EditorImGuiHost &host,
+                                             std::size_t control) noexcept {
+  return control < host.state_->memory_control_positions.size()
+             ? host.state_->memory_control_positions[control]
+             : std::nullopt;
+}
+const ProcessMemoryCapture *
+EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_memory ? &*host.state_->imported_memory : nullptr;
 }
 ProcessMemoryObservation
 EditorImGuiTestAccess::ProfileMemory(const EditorImGuiHost &host) noexcept {

@@ -101,6 +101,10 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProfileClearPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static ProcessMemoryObservation ProfileMemory(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  MemoryControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static const ProcessMemoryCapture *
+  ImportedMemoryCapture(const EditorImGuiHost &host) noexcept;
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;

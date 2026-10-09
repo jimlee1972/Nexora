@@ -140,3 +140,12 @@ target_link_libraries(NexoraMaterialCatalogTests PRIVATE Nexora::Editor Nexora::
 nexora_apply_defaults(NexoraMaterialCatalogTests)
 add_test(NAME editor.material_catalog COMMAND NexoraMaterialCatalogTests)
 endif()
+
+add_executable(NexoraProcessMemoryCaptureTests ProcessMemoryCaptureTests.cpp)
+target_link_libraries(NexoraProcessMemoryCaptureTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraProcessMemoryCaptureTests)
+add_test(NAME editor.process_memory_capture COMMAND NexoraProcessMemoryCaptureTests)
+add_test(NAME editor.process_memory_json_schema
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ProcessMemoryJsonTests.py" "$<TARGET_FILE:NexoraProcessMemoryCaptureTests>")
+add_test(NAME editor.process_memory_json_schema_optimized
+  COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/ProcessMemoryJsonTests.py" "$<TARGET_FILE:NexoraProcessMemoryCaptureTests>")

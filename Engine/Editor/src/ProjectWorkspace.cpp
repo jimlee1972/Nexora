@@ -2,6 +2,7 @@
 #include "FrameProcessingJson.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "ProcessMemoryJson.h"
 
 #include <algorithm>
 #include <array>
@@ -867,6 +868,99 @@ ProjectWorkspace::ImportEditorFrameProcessingJson(std::string *error) const {
   auto capture = detail::FrameProcessingJsonReader(bytes).Read(project_.id.ToString());
   if (!capture)
     return fail("invalid or unsupported frame processing JSON schema, project or samples");
+  return capture;
+}
+
+bool ProjectWorkspace::ExportProcessMemoryJson(std::span<const ProcessMemorySample> samples,
+                                               std::uint64_t dropped_samples, std::string *error) {
+  if (error)
+    error->clear();
+  if (!EnsureWritable(access_, error))
+    return false;
+  if (root_.empty() || HasRecoveryJournal() || !ValidateProcessMemorySamples(samples)) {
+    if (error)
+      *error = "memory export requires 1-600 ordered samples and resolved project recovery";
+    return false;
+  }
+  std::error_code ec;
+  const auto metadata = std::filesystem::symlink_status(root_ / ".nexora", ec);
+  if (ec || !std::filesystem::is_directory(metadata)) {
+    if (error)
+      *error = "memory export metadata directory is unavailable or unsafe";
+    return false;
+  }
+  const auto destination =
+      std::filesystem::symlink_status(root_ / ".nexora/process-memory.json", ec);
+  if ((ec && ec != std::errc::no_such_file_or_directory) ||
+      (!ec && std::filesystem::exists(destination) &&
+       !std::filesystem::is_regular_file(destination))) {
+    if (error)
+      *error = "memory export destination is not a regular file";
+    return false;
+  }
+  std::ostringstream json;
+  json.imbue(std::locale::classic());
+  json << std::setprecision(std::numeric_limits<double>::max_digits10);
+  json << "{\n  \"schema\": 1,\n  \"source\": \"NexoraEditor\",\n"
+          "  \"metric\": \"process_resident_memory\",\n"
+          "  \"scope\": \"current_process_including_shared_resident_pages\",\n"
+          "  \"unit\": \"bytes\",\n  \"export_project_uuid\": \""
+       << project_.id.ToString() << "\",\n  \"sample_count\": " << samples.size()
+       << ",\n  \"older_samples_dropped\": \"" << dropped_samples
+       << "\",\n  \"time_unit\": \"milliseconds\",\n"
+          "  \"time_origin\": \"first_observation_since_clear\",\n  \"samples\": [\n";
+  for (std::size_t index = 0; index < samples.size(); ++index) {
+    const auto &sample = samples[index];
+    json << "    {\"sequence\": \"" << sample.sequence
+         << "\", \"elapsed_ms\": " << sample.elapsed_ms << ", \"resident_bytes\": ";
+    if (sample.resident_bytes)
+      json << '"' << *sample.resident_bytes << '"';
+    else
+      json << "null";
+    json << "}" << (index + 1 == samples.size() ? "\n" : ",\n");
+  }
+  json << "  ]\n}\n";
+  return AtomicWrite(root_ / ".nexora/process-memory.json", json.str(), error);
+}
+
+std::optional<ProcessMemoryCapture>
+ProjectWorkspace::ImportProcessMemoryJson(std::string *error) const {
+  if (error)
+    error->clear();
+  const auto fail = [&](std::string_view message) -> std::optional<ProcessMemoryCapture> {
+    if (error)
+      *error = message;
+    return std::nullopt;
+  };
+  if (root_.empty() || HasRecoveryJournal())
+    return fail("JSON import requires an open project with resolved recovery");
+  std::error_code ec;
+  const auto metadata = std::filesystem::symlink_status(root_ / ".nexora", ec);
+  if (ec || !std::filesystem::is_directory(metadata))
+    return fail("JSON import metadata directory is unavailable or unsafe");
+  const auto path = root_ / ".nexora/process-memory.json";
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec || !std::filesystem::is_regular_file(status))
+    return fail("process memory JSON is missing, unavailable or unsafe");
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail("could not read process memory JSON");
+  std::string bytes;
+  std::array<char, 4096> buffer{};
+  while (input) {
+    const auto requested =
+        std::min(buffer.size(), kMaximumProcessMemoryJsonBytes - bytes.size() + 1);
+    input.read(buffer.data(), static_cast<std::streamsize>(requested));
+    const auto count = static_cast<std::size_t>(input.gcount());
+    if (count > kMaximumProcessMemoryJsonBytes - bytes.size())
+      return fail("process memory JSON exceeds the byte limit");
+    bytes.append(buffer.data(), count);
+  }
+  if (input.bad() || bytes.empty())
+    return fail("process memory JSON is unreadable or empty");
+  auto capture = detail::ProcessMemoryJsonReader(bytes).Read(project_.id.ToString());
+  if (!capture)
+    return fail("invalid or unsupported process memory JSON schema, project or samples");
   return capture;
 }
 

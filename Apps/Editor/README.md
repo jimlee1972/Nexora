@@ -656,3 +656,11 @@ Presentation fences retain submitted storage. Geometry is still converted/upload
 persistent per-asset GPU caching is open. This is scalar opaque Scene material assignment, not
 texture/shader-graph editing, Game View materials, shipping asset cooking or full physical/multi-DPI
 Scene View acceptance. See [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md).
+
+The Profiler memory controls save/load a separate `.nexora/process-memory.json` trace through the
+current ProjectWorkspace on the application thread. Both requests are consumed independently of
+wall-time controls and results enter the bounded Console. Export includes the process-wide history
+across project switches; the stored UUID denotes only the export destination. Import publishes a
+validated owning static snapshot and preserves live capture on failure/success. The UI plots elapsed
+time with pause gaps and unavailable reads, and reports memory-history evictions separately. No
+capture is written automatically; wall-time CSV/JSON files and GPU availability remain unchanged.
