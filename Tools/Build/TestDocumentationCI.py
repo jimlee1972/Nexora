@@ -149,7 +149,7 @@ class DocumentationCITests(unittest.TestCase):
         self.assertEqual(len(ci.ROADMAP_LANGUAGE_PAIRS), len(set(ci.ROADMAP_LANGUAGE_PAIRS.values())))
         for language in ("en", "zh-TW"):
             for path in (root / "Roadmap" / language).rglob("*.md"):
-                relative = str(path.relative_to(root))
+                relative = path.relative_to(root).as_posix()
                 counterpart = ci.roadmap_counterpart(relative)
                 self.assertTrue((root / counterpart).exists(), relative)
                 self.assertEqual(ci.roadmap_counterpart(counterpart), relative)

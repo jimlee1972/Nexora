@@ -80,8 +80,16 @@ def record(executable, output, backend, quality):
             require(bounds[2] <= user32.GetSystemMetrics(0) and bounds[3] <= user32.GetSystemMetrics(1),
                     'Client does not fit on the primary desktop')
             fps = 10
-            writer = cv2.VideoWriter(str(video_path), cv2.VideoWriter_fourcc(*'mp4v'), fps, (1280, 720))
+            writer = cv2.VideoWriter(str(video_path), cv2.CAP_MSMF,
+                                     cv2.VideoWriter_fourcc(*'H264'), fps, (1280, 720))
+            codec = 'H264'
+            if not writer.isOpened():
+                writer.release()
+                writer = cv2.VideoWriter(str(video_path), cv2.VideoWriter_fourcc(*'mp4v'),
+                                         fps, (1280, 720))
+                codec = 'MPEG4'
             require(writer.isOpened(), 'MP4 encoder unavailable')
+            encoder_backend = writer.getBackendName()
             started = time.monotonic()
             frames = captures = 0
             shots = [5, 30, 55, 80, 95]
@@ -133,6 +141,7 @@ def record(executable, output, backend, quality):
                           wall_seconds=wall, tour_seconds=100, fps=fps, frames=frames,
                           capture_samples=captures, duplicated_frames=frames-captures,
                           decoded_frames=decoded, duration_seconds=frames/fps,
+                          video_codec=codec, encoder_backend=encoder_backend,
                           device_identity=native.get('device_identity'), software_rasterizer=False,
                           executable_sha256=binary_hash, video_sha256=sha256(video_path),
                           report_sha256=sha256(report), overlay_frames=0)
