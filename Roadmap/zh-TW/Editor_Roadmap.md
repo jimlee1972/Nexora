@@ -762,6 +762,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
+  欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
+  空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。
+  Mutation fixture 現以真實 workspace recovery journal 為 seed，每筆輸入重設有效 project
+  metadata，並實際執行 writable recovery；拒絕 journal 時保留 committed bytes、live documents
+  與來源資料。完整 migration／crash／target-host 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
+
 - ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
   1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；
   重複 revoke／enable 不會恢復舊 event。Contract tests 涵蓋精確上限、損壞文字、飽和與
