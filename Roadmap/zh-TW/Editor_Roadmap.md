@@ -866,6 +866,13 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Graphical Hierarchy 改以 explicit work storage 走訪 deep expanded scene，保留
+  parent-first／sibling order；expansion pruning 一次索引 current generation key，name-only
+  saved-state metadata 省去重複 World lookup。這是 bounded-by-input correctness foundation；
+  真正 100,000-node ImGui fixture 在 3D-preview layout 驗證 deep／flat order、clipping、
+  navigation、collapse、filter、replacement 與 1x／2x；overview pose traversal 另行驗收。
+  完整 frame／memory budget、production asset scale、soak 與實體 host 驗收仍待完成。
+
 - ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
   欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
   空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。

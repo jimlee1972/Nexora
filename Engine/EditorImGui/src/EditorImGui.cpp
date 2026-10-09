@@ -611,19 +611,27 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
     children[parent].push_back(&node);
   }
 
-  const auto append = [&](auto &&self, runtime::Id parent, std::uint32_t depth) -> void {
-    const auto group = children.find(parent);
-    if (group == children.end())
-      return;
-    for (const auto *node : group->second) {
-      const auto child_group = children.find(node->id);
-      const bool has_children = child_group != children.end() && !child_group->second.empty();
-      rows.push_back({node, depth, has_children});
-      if (has_children && expanded.contains(node->id))
-        self(self, node->id, depth + 1);
-    }
+  // Borrowed nodes live for this synchronous call. Reverse pushes preserve exact sibling order;
+  // explicit work storage grows with input, so a valid deep tree cannot exhaust the native stack.
+  struct Pending final {
+    const SceneDocument::NodeView *node;
+    std::uint32_t depth;
   };
-  append(append, 0, 0);
+  std::vector<Pending> pending;
+  pending.reserve(nodes.size());
+  if (const auto roots = children.find(0); roots != children.end())
+    for (const auto *node : std::views::reverse(roots->second))
+      pending.push_back({node, 0});
+  while (!pending.empty()) {
+    const auto current = pending.back();
+    pending.pop_back();
+    const auto group = children.find(current.node->id);
+    const bool has_children = group != children.end() && !group->second.empty();
+    rows.push_back({current.node, current.depth, has_children});
+    if (has_children && expanded.contains(current.node->id))
+      for (const auto *node : std::views::reverse(group->second))
+        pending.push_back({node, current.depth + 1});
+  }
   return rows;
 }
 
@@ -756,9 +764,16 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
       state.hierarchy_rename_target.reset();
   }
   const auto nodes = scene->Nodes();
-  std::erase_if(state.hierarchy_expanded, [scene](const auto key) {
-    return key.document_generation != scene->Generation() || scene->Key(key.id) != key;
-  });
+  if (!state.hierarchy_expanded.empty()) {
+    std::unordered_map<runtime::Id, SceneDocument::NodeKey> current_keys;
+    current_keys.reserve(nodes.size());
+    for (const auto &node : nodes)
+      current_keys.emplace(node.id, node.Key());
+    std::erase_if(state.hierarchy_expanded, [&](const auto key) {
+      const auto current = current_keys.find(key.id);
+      return current == current_keys.end() || current->second != key;
+    });
+  }
   if (state.hierarchy_selection_anchor &&
       scene->Key(state.hierarchy_selection_anchor->id) != state.hierarchy_selection_anchor)
     state.hierarchy_selection_anchor.reset();
@@ -6446,6 +6461,23 @@ void EditorImGuiTestAccess::QueueHierarchyExpansion(EditorImGuiHost &host,
                                                     SceneDocument::NodeKey entity,
                                                     bool expanded) noexcept {
   host.state_->hierarchy_expansion_request = std::pair{entity, expanded};
+}
+
+void EditorImGuiTestAccess::SetHierarchyExpanded(EditorImGuiHost &host,
+                                                 std::span<const SceneDocument::NodeKey> keys) {
+  host.state_->hierarchy_expanded.assign(keys.begin(), keys.end());
+}
+
+std::vector<EditorHierarchyTestRow>
+EditorImGuiTestAccess::HierarchyRows(const EditorImGuiHost &host, const SceneDocument &document) {
+  const auto nodes = document.Nodes();
+  const auto rows = BuildHierarchyRows(*host.state_, nodes,
+                                       std::string_view(host.state_->hierarchy_filter.data()));
+  std::vector<EditorHierarchyTestRow> result;
+  result.reserve(rows.size());
+  for (const auto &row : rows)
+    result.push_back({row.node->Key(), row.depth, row.has_children});
+  return result;
 }
 
 void EditorImGuiTestAccess::QueueHierarchyRename(EditorImGuiHost &host,

@@ -894,6 +894,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Graphical hierarchy traversal now uses explicit work storage rather than native recursion,
+    preserving parent-first/sibling order for deep expanded scenes. Expansion pruning indexes current
+    generation keys once, and name-only saved-state metadata avoids repeated World lookup.
+    Real 100,000-node ImGui fixtures cover deep/flat order, clipping, navigation, collapse, filter
+    and replacement at 1x/2x in the 3D-preview layout; overview pose traversal is a separate gate.
+    These are bounded-by-input correctness foundations; complete frame/memory budgets, production
+    asset scale, soak and physical-host acceptance remain open.
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
     fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
     Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation
