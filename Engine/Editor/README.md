@@ -241,7 +241,9 @@ into renderer or platform internals.
   and does not change dirty state, selection or history. `SavePrepared` revalidates generation and
   all serializable content (including opaque bytes and authored Euler turns) before any file IO;
   only successful atomic single-file replacement advances the clean baseline. Ordinary `Save`
-  uses the same path. Both calls are serialized by the authoring host; the snapshot can be copied
+  uses the same path. Its optional written-bytes result owns exactly the prepared bytes after
+  successful publication and is empty on failure; the owning result is allocated before IO.
+  Both calls are serialized by the authoring host; the snapshot can be copied
   or retained without World borrows, but submission still requires the live owning document.
   Callers retain workspace writer/recovery and destination-path responsibilities. This is save-all
   staging groundwork: no multi-file commit, crash journal, additive tabs or fsync durability is added.

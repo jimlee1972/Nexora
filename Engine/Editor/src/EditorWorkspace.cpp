@@ -1451,10 +1451,16 @@ bool SceneDocument::Save(const std::filesystem::path &path, std::string *written
   if (written_bytes)
     written_bytes->clear();
   const auto prepared = PrepareSave();
-  if (!prepared || !SavePrepared(path, *prepared))
+  if (!prepared)
+    return false;
+  // Allocate the optional owning result before IO; publication uses the same frozen bytes.
+  std::string output;
+  if (written_bytes)
+    output = prepared->Bytes();
+  if (!SavePrepared(path, *prepared))
     return false;
   if (written_bytes)
-    *written_bytes = prepared->Bytes();
+    *written_bytes = std::move(output);
   return true;
 }
 bool SceneDocument::NewScene() {

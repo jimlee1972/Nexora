@@ -119,6 +119,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 包含全部 18 個 selected CI job。實體顯示器、已安裝 IME 與 visual-legibility／glyph coverage
 仍待驗收，ED-M0 至 ED-M7 維持未打勾。
 
+- ✅ Scene-file 驗收 fixture 現於 atomic overwrite 前釋放已讀完的 destination reader，
+  保留全部 SaveAs／New continuation 斷言。多次原生啟動的 Linux workflow 整體預算調為
+  120 秒，每一步的 10 秒期限維持原樣。最終 graphical Linux gate 通過 178/178；更新後的
+  hosted Windows 驗證仍待完成，實體主機驗收保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
+
 ### ED-M1 — Project 與 Asset workspace
 
 - ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，

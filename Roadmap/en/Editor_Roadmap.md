@@ -119,6 +119,12 @@ satisfy this milestone.
 includes all 18 selected CI jobs. Physical display, installed IME and visual-legibility/glyph
 coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
+- ✅ Scene-file acceptance fixtures release the consumed destination reader before atomic
+  overwrite, retaining every SaveAs/New continuation assertion. The multi-launch Linux workflow
+  now has a 120-second total budget with unchanged 10-second per-step deadlines. Final graphical
+  Linux gate passes 178/178; updated hosted Windows verification remains pending and physical-host
+  acceptance stays open. [Evidence](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md).
+
 ### ED-M1 — Project and asset workspace
 
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the

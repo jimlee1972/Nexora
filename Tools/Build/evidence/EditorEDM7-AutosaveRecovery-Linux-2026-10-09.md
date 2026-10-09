@@ -2,7 +2,8 @@
 
 Beads slice: `nexora-0ua.2.1`. Base: `3b730fc57d40a8f57d94065e838edc510c566534` (latest origin/main at validation).
 Host: Linux x86_64, GNU C++ 14.2.0, C++20, Ninja, Development Modular.
-Graphical Editor shell OFF; existing Slang and Zig features ON. Native Vulkan tests use software
+Default acceptance used graphical Editor shell OFF; final delivery also validates shell ON.
+Existing Slang and Zig features remain ON. Native Vulkan tests use software
 Vulkan/Xvfb. No physical display, Windows/macOS, installed IME or screen-reader acceptance is claimed.
 
 ## Delivered behavior
@@ -25,7 +26,24 @@ combined `PrepareSave` with `Save(path, written_bytes)`, and lost `CaptureRuntim
 This branch restores the existing class and capture implementation from the previously delivered
 PreparedSave/owning-capture commits, retaining the exact written-bytes Save overload required by
 external-save confirmation. It introduces no new schema, class contract or module dependency.
-The independent `nexora-6if` task remains owned by its current assignee; this slice does not close it.
+The final source aligns byte-for-byte with the three relevant source files from upstream integration
+repair `5ddd9baac289e602821e4cc06df2e1e1ef1b28b3`: EditorWorkspace header/source and Runtime
+ProjectPackage. Save allocates the optional owning output before publication; the Runtime endian
+rejection uses `if constexpr` for MSVC. The independent `nexora-6if`/`nexora-pb3` tasks retain their
+current assignee; this slice does not close them.
+
+## Desktop fixture repair (Beads `nexora-nqn.6`)
+
+Initial PR450 head `5c85acdcf99ae920de68b29733300d39baf4d067` hosted checks exposed:
+
+- Linux desktop job `113694086154`: `editor.linux_scene_files` exceeded its 60-second whole-script
+  timeout. Its multi-launch workflow now has 120 seconds; individual predicate waits retain their
+  10-second deadlines and all assertions remain unchanged. Final local run: PASS, 38.03 seconds.
+- Windows desktop jobs `113694086138` and `113693968940`: the untitled overwrite fixture kept its
+  consumed `ifstream` open across destination replacement. Closing that fixture reader before
+  publication preserves the original-byte assertion and the actual SaveAs/New continuation path.
+  Final Linux `editor.scene_file_input`: PASS, 0.56 seconds. Updated hosted Windows CI remains
+  required; this local evidence does not claim a Windows run.
 
 ## Validation
 
@@ -38,6 +56,11 @@ All commands source `/workspace/.nexora/env.sh` for the already installed toolch
 | `ctest --preset linux-development` | PASS, 124/124, zero skipped, 149.05 s |
 | `cmake --preset linux-shipping` | PASS, Monolithic Minimal |
 | `cmake --build --preset linux-shipping` | PASS, 74 steps; final incremental gate PASS |
+| `cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON` | PASS |
+| `cmake --build --preset linux-development` (graphical ON, aligned final source) | PASS |
+| `ctest --preset linux-development` (graphical ON, aligned final source) | PASS, 178/178, zero skipped, 335.01 s |
+| `cmake --preset linux-shipping` (aligned final source) | PASS |
+| `cmake --build --preset linux-shipping` (aligned final source) | PASS, 7 incremental steps |
 | `git diff --check` | PASS |
 
 The full suite includes `editor.autosave_journal`, `editor.parser_robustness` (17 parsers × 2,000
@@ -48,7 +71,10 @@ Editor; it is not an Editor Shipping execution claim. No sanitizer run is claime
 Local logs are in `/workspace/work/nexora-editor/`: `configure-accepted.log`, `build-accepted.log`,
 `tests-accepted.log`, `shipping-configure.log`, `shipping-build.log`, `shipping-final-build.log`.
 The first base build failure is retained in `build.log`; the missing capture link failure is in
-`build-repair.log`. Superseded gate logs are not acceptance evidence.
+`build-repair.log`. Final graphical/aligned delivery logs are `delivery-configure.log`, `delivery-build.log`,
+`delivery-tests.log`, `delivery-shipping-configure.log`, `delivery-shipping-build.log`.
+The earlier graphical supporting run passed 178/178 in 335.64 seconds on the initial PR head.
+Superseded/interrupted gate logs are not acceptance evidence.
 
 ## Source identity
 
@@ -57,8 +83,11 @@ The first base build failure is retained in `build.log`; the missing capture lin
 | `Engine/Editor/src/SceneAuthoring.cpp` | `53b68f286aff0dae9fffe7b6471ef96ecaec3de1714e699799c4b46c04cf9be7` |
 | `Tests/Editor/AutosaveJournalTests.cpp` | `f6bc636d879f0452a57d41ee120ca0a1b734d7b1c25adadf7239d6d11ad28f77` |
 | `Tests/Editor/ParserRobustnessTests.cpp` | `7129bee2e28055e11e04a284032a31ee7f0b8d42951b49773fbeb52f2dcd271f` |
-| `Engine/Editor/include/Nexora/Editor/EditorWorkspace.h` | `a32d47e88cfef7edc343c44c9c8240420f571ea2995f4e86aa68a5507c44d006` |
-| `Engine/Editor/src/EditorWorkspace.cpp` | `5fe8425ecf0b67dfc3f687d468bd7e830c608e1a7aded10e36157203c20d6e01` |
+| `Engine/Editor/include/Nexora/Editor/EditorWorkspace.h` | `ac39bb621e3efef684b2f1e3292e8cc8e30819e858b62c4824c355842a5609c7` |
+| `Engine/Editor/src/EditorWorkspace.cpp` | `eda3ea10aff4e0f0a20edb0b27060d61f1e6f5b596a520f9acdf6ec39d9b586e` |
+| `Engine/Runtime/src/ProjectPackage.cpp` | `fe62ff1188bbde7aa218c77cbf1d05c312e897f50012da6dc5bc38d929e3f46e` |
+| `Tests/EditorImGui/SceneFileTests.cpp` | `e1808bbbdb9c1cda1fa3391fc85df0f51dfa72d5842183384eccd60ab52496d6` |
+| `Tests/EditorImGui/CMakeLists.txt` | `9e2efbeed6e442c709f1c5a8d96e46a399847a80f9ed5ed4d10f5d632ffa236f` |
 
 ## Scope and remaining gates
 
