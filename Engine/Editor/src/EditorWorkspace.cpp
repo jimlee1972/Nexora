@@ -1325,10 +1325,79 @@ bool SceneDocument::Dirty() const {
   return !signature || *signature != saved_signature_ || *opaque_dirty_;
 }
 
-bool SceneDocument::Save(const std::filesystem::path &path) const { return Save(path, nullptr); }
-bool SceneDocument::Save(const std::filesystem::path &path, std::string *written_bytes) const {
-  if (written_bytes)
-    written_bytes->clear();
+std::optional<SceneDocument::RuntimeSceneCapture>
+SceneDocument::CaptureRuntimeScene(std::string *error) const {
+  if (error)
+    error->clear();
+  const auto reject = [&](const char *message) -> std::optional<RuntimeSceneCapture> {
+    if (error)
+      *error = message;
+    return std::nullopt;
+  };
+  if (world_.Kind() != runtime::WorldKind::Editor)
+    return reject("Runtime scene capture requires an Editor World.");
+  const auto *scene = world_.FindScene(scene_);
+  if (!scene || !scene_ || scene->state == runtime::SceneState::Unloading ||
+      scene->state == runtime::SceneState::Unloaded)
+    return reject("Runtime scene capture requires a live scene that is not unloading.");
+  // The entity count is checked before serialization, indexing, or copying any payload.
+  if (scene->entities.size() > kMaximumRuntimeCaptureEntities)
+    return reject("Runtime scene capture exceeds the 100000-entity limit.");
+  if (!document_generation_ || nodes_.size() > scene->entities.size())
+    return reject("Runtime scene capture has invalid document or tracked-node identities.");
+
+  std::unordered_set<runtime::Id> live_ids;
+  live_ids.reserve(scene->entities.size());
+  for (const auto &entity : scene->entities)
+    if (!entity.id || !live_ids.insert(entity.id).second)
+      return reject("Runtime scene capture has a zero or duplicate Runtime entity ID.");
+
+  std::unordered_map<runtime::Id, const Node *> metadata;
+  metadata.reserve(nodes_.size());
+  std::size_t record_count = 0, payload_bytes = 0;
+  for (const auto &node : nodes_) {
+    if (!node.id || !node.generation || !live_ids.contains(node.id) ||
+        !metadata.emplace(node.id, &node).second)
+      return reject(
+          "Runtime scene capture has a missing, foreign, zero or duplicate tracked node.");
+    if (node.opaque.size() > UnknownComponentStore::kMaximumComponentsPerEntity ||
+        node.opaque.size() > UnknownComponentStore::kMaximumComponents - record_count)
+      return reject(
+          "Runtime scene capture exceeds the opaque record limits (64/entity, 4096 total).");
+    record_count += node.opaque.size();
+    std::unordered_set<runtime::TypeId> types;
+    types.reserve(node.opaque.size());
+    for (const auto &component : node.opaque) {
+      if (!component.type || !types.insert(component.type).second || component.type_name.empty() ||
+          component.type_name.size() > UnknownComponentStore::kMaximumNameBytes ||
+          component.type_name.find_first_of("\r\n") != std::string::npos ||
+          component.type_name.find('\0') != std::string::npos)
+        return reject(
+            "Runtime scene capture has invalid opaque type IDs or names (256 bytes maximum).");
+      if (component.data.size() > UnknownComponentStore::kMaximumComponentBytes)
+        return reject("Runtime scene capture exceeds the 1 MiB opaque component limit.");
+      const auto required = component.type_name.size() + component.data.size();
+      if (required > UnknownComponentStore::kMaximumPayloadBytes - payload_bytes)
+        return reject("Runtime scene capture exceeds the 16 MiB opaque names/payload limit.");
+      payload_bytes += required;
+    }
+  }
+
+  auto snapshot = world_.SaveScene(scene_, kMaximumRuntimeCaptureBytes);
+  if (!snapshot)
+    return reject("Runtime scene capture serialization failed or exceeds the 64 MiB byte limit.");
+  RuntimeSceneCapture result{scene_, document_generation_, std::move(*snapshot), {}};
+  result.nodes.reserve(nodes_.size());
+  for (const auto &entity : scene->entities)
+    if (const auto found = metadata.find(entity.id); found != metadata.end()) {
+      const auto &node = *found->second;
+      result.nodes.push_back({{node.id, node.generation, document_generation_}, node.opaque});
+      std::ranges::sort(result.nodes.back().opaque, {}, &OpaqueComponent::type);
+    }
+  return result;
+}
+
+std::optional<SceneDocument::PreparedSave> SceneDocument::PrepareSave() const {
   const auto signature = StateSignature();
   if (!signature)
     return std::nullopt;
@@ -1374,14 +1443,19 @@ bool SceneDocument::SavePrepared(const std::filesystem::path &path,
   saved_signature_ = *signature;
   saved_opaque_records_ = prepared.opaque_records_;
   opaque_dirty_ = false;
-  if (written_bytes)
-    *written_bytes = std::move(output);
   return true;
 }
 
-bool SceneDocument::Save(const std::filesystem::path &path) const {
+bool SceneDocument::Save(const std::filesystem::path &path) const { return Save(path, nullptr); }
+bool SceneDocument::Save(const std::filesystem::path &path, std::string *written_bytes) const {
+  if (written_bytes)
+    written_bytes->clear();
   const auto prepared = PrepareSave();
-  return prepared && SavePrepared(path, *prepared);
+  if (!prepared || !SavePrepared(path, *prepared))
+    return false;
+  if (written_bytes)
+    *written_bytes = prepared->Bytes();
+  return true;
 }
 bool SceneDocument::NewScene() {
   const auto *current = world_.FindScene(scene_);

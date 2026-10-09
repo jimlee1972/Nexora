@@ -222,6 +222,22 @@ public:
       return {id, entity_generation, document_generation};
     }
   };
+  // Owns the serialized scene and its clean-baseline identity, without borrowing Runtime state.
+  // Only SceneDocument can prepare it; readers cannot alter its bytes or validation metadata.
+  class PreparedSave final {
+  public:
+    [[nodiscard]] const std::string &Bytes() const noexcept { return bytes_; }
+    [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
+
+  private:
+    friend class SceneDocument;
+    PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
+                 std::string opaque_records)
+        : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
+          opaque_records_(std::move(opaque_records)) {}
+    std::uint64_t generation_{};
+    std::string bytes_, signature_, opaque_records_;
+  };
   // Owning Runtime bytes and Editor-owned opaque metadata; names/Euler hints are authoring data
   // and are intentionally absent. Runtime entities without a tracked Editor node stay in the
   // snapshot without fabricated metadata. Nodes follow Runtime storage order, opaque types sort
