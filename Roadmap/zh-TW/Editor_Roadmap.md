@@ -657,6 +657,14 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Scene save 現先準備 owning、immutable 的 byte／content／generation snapshot，不做 IO、
+  不改 dirty baseline 或 history。延後的單檔 publication 在 IO 前重驗 live generation 與
+  serializable content，涵蓋 opaque bytes 及 authored Euler turns；僅替換成功後才將 snapshot
+  標為 clean。一般 Save 共用此路徑。測試涵蓋 stale rejection、Undo／Redo、staging failure、
+  ownership 與 save／reopen。Coordinated multi-file publication、additive tabs 及完整 ED-M4
+  仍保持 open。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md)。
+
 - ✅ Additive scene 的初始 dependency 現於 graph mutation 前拒絕 zero／self／missing ID，
   並與 dependency replacement 一致地正規化重複 edge。獨立 portable 測試確認 admission
   拒絕後保留 owned／reference descriptor 與 deterministic load order，並驗證 cycle rollback
