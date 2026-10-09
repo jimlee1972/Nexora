@@ -182,7 +182,12 @@ jobs:
           ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -N -R '^editor\.static_project_export_(job|ui)$|^editor\.linux_static_project_export$' | grep -q 'Total Tests: 3'
       - name: Editor tests (includes the Xvfb display acceptance)
-        run: ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-tests.log
+        # The deep hierarchy test must be present in the graphical configuration.
+        # Full Editor execution below retains all existing navigation controls.
+        # Keep this separate from Xvfb discovery, since it is a portable ImGui test.
+        run: |
+          ctest --preset linux-development -N -R '^editor\.deep_hierarchy$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-tests.log
       - name: Require and verify standalone native ProjectPlayer
         run: |
           ctest --preset linux-development -N -R '^runtime\.(native_static_view|linux_native_static_player)$' | grep -q 'Total Tests: 2'

@@ -51,6 +51,12 @@ struct EditorImGuiTestState final {
   bool selector_root_active = false;
 };
 
+struct EditorHierarchyTestRow final {
+  SceneDocument::NodeKey key;
+  std::uint32_t depth{};
+  bool has_children{};
+};
+
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
@@ -170,6 +176,10 @@ public:
   static void QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept;
   static void QueueHierarchyExpansion(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       bool expanded) noexcept;
+  static void SetHierarchyExpanded(EditorImGuiHost &host,
+                                   std::span<const SceneDocument::NodeKey> keys);
+  [[nodiscard]] static std::vector<EditorHierarchyTestRow>
+  HierarchyRows(const EditorImGuiHost &host, const SceneDocument &document);
   static void QueueHierarchyRename(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::string name);
   static void QueueInspectorTransform(EditorImGuiHost &host, SceneDocument::NodeKey entity,

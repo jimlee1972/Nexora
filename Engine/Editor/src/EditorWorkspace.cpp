@@ -1301,6 +1301,10 @@ std::optional<std::string> SceneDocument::StateSignature() const {
   metadata << std::setprecision(std::numeric_limits<double>::max_digits10);
   for (const auto *node : ordered_nodes) {
     metadata << "node " << node->id << ' ' << node->name.size() << ':' << node->name << '\n';
+    // Name-only metadata needs no live entity lookup. Preserve the existing opaque/hint checks
+    // without scanning the complete World once per ordinary node in a large authoring scene.
+    if (node->opaque.empty() && !node->euler_hint)
+      continue;
     const auto *entity = world_.FindEntity(node->id);
     if (!node->opaque.empty() &&
         (!entity || std::ranges::find(scene->entities, node->id, &runtime::Entity::id) ==

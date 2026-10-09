@@ -32,8 +32,16 @@ production retains ImGui's native platform defaults.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
   present them. The Hierarchy owns only presentation state: its filter, generation-keyed expansion
   and selection anchor/cursor, rename buffer/modal, and pending one-frame UI requests. It builds
-  parent-aware visible rows and clips their submission with `ImGuiListClipper`; plain/Ctrl/Shift
-  selection routes through `SceneDocument::Select`, rename routes through `SceneDocument::Rename`,
+  parent-aware visible rows and clips their submission with `ImGuiListClipper`. Hierarchy
+  traversal uses an explicit work vector, preserving parent-first and sibling order without native
+  recursion even for a deep expanded chain. Expansion pruning indexes the current generation-keyed
+  nodes once instead of performing a complete document lookup per expanded row. These changes do
+  not introduce a cached authoring snapshot or certify a per-frame performance budget.
+  Real 100,000-node fixtures exercise a 99,998-node expanded chain at 1x/2x and a flat hierarchy,
+  exact order/depth, clipped widgets, Home/End, collapse, filtering and document replacement in the
+  3D-preview layout. Native GPU submission and top-down overview pose traversal are separate gates.
+  Plain/Ctrl/Shift selection routes through `SceneDocument::Select`, rename routes through
+  `SceneDocument::Rename`,
   and sibling reorder or drag/drop reparenting routes through `SceneDocument::Move`. Stale entity or
   document generations, cycle rejection, and undo remain in Editor Core. The application owns the
   document and its `World`.

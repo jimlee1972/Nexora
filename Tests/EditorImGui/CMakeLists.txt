@@ -5,6 +5,13 @@ target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
+add_executable(NexoraDeepHierarchyTests DeepHierarchyTests.cpp)
+target_include_directories(NexoraDeepHierarchyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraDeepHierarchyTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraDeepHierarchyTests)
+add_test(NAME editor.deep_hierarchy COMMAND NexoraDeepHierarchyTests)
+set_tests_properties(editor.deep_hierarchy PROPERTIES TIMEOUT 180)
+
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
 target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)
