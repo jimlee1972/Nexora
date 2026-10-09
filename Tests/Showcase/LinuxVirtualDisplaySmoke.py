@@ -73,7 +73,7 @@ def start_xvfb(xvfb: str, screen: str, timeout: float = 10.0):
     """
     read_fd, write_fd = os.pipe()
     server = subprocess.Popen(
-        [xvfb, "-displayfd", str(write_fd), "-screen", "0", screen, "-nolisten", "tcp"],
+        [xvfb, "-displayfd", str(write_fd), "-screen", "0", screen, "-nolisten", "tcp", "-noreset"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.PIPE,
         text=True,

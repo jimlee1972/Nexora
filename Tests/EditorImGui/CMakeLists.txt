@@ -158,6 +158,13 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_xvfb_lifetime
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxXvfbLifetime.py"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --editor-helper "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDisplayAcceptance.py"
+      --showcase-helper "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py")
+  set_tests_properties(editor.linux_xvfb_lifetime PROPERTIES TIMEOUT 40
+    LABELS "virtual-display")
   add_test(
     NAME editor.linux_scene_files
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneFiles.py"
