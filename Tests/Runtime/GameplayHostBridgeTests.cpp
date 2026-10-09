@@ -155,7 +155,7 @@ int Run() {
   Require(log_service.CrashRingSnapshot().size() == 1,
           "an out-of-range log level must be dropped rather than misinterpreted");
   const char embedded_nul[]{'a', 0, 'b'};
-  const char invalid_utf8[]{char(0xc0), char(0xaf)};
+  const char invalid_utf8[]{'\xc0', '\xaf'};
   logging_host.log(logging_host.context, 1, embedded_nul, sizeof(embedded_nul));
   logging_host.log(logging_host.context, 1, invalid_utf8, sizeof(invalid_utf8));
   logging_host.log(logging_host.context, 1, nullptr, 1);

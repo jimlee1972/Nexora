@@ -132,7 +132,7 @@ int main() {
                 logs[0].category == "Gameplay" && logs[0].source == "Gameplay worker" &&
                 logs[0].timestamp_nanoseconds != 0 && destination.DroppedCount() == 0,
             "real Core/gameplay severity, source, time or text mapping failed");
-    const char invalid_utf8[]{char(0xc0), char(0xaf)};
+    const char invalid_utf8[]{'\xc0', '\xaf'};
     const char nul[]{'a', 0, 'b'};
     const std::string over(editor::preview::PlayGameplayModule::kMaximumLogMessageBytes + 1, 'x');
     api.log(api.context, 256, "invalid level", 13);

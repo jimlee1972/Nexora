@@ -50,6 +50,11 @@ gate passed **9/9**, no skips, in **11.81 seconds**, including the added concurr
 After integrating accepted PRs #453/#454, the final serial Development configure/build/test gate
 passed **194/194**, no skips, in **355.57 seconds**. Minimal Shipping configure/build passed.
 `git diff --check` and the combined native fixture's Python syntax check passed.
+The first hosted Windows build exposed MSVC C4310 in two malformed UTF-8 test arrays.
+Using byte character literals preserves the exact rejected payload without integer-to-char casts
+or warning suppression. The targeted gate passed **2/2** in **0.01 seconds**; the complete serial
+Development configure/build/test gate then passed **194/194**, no skips, in **359.66 seconds**.
+Production code and fixture assertions were unchanged by this portability correction.
 
 Portable tests cover exact/over byte and pending limits, sequence exhaustion, saturation, disabled
 ingress, compact ownership, four concurrent producers, incremental copies, repeated Start/Stop and
