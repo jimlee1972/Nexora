@@ -6,6 +6,8 @@
 #include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
 #include "MaterialScenePreview.h"
+#include "Nexora/Editor/AdditiveSceneComposition.h"
+#include "Nexora/Editor/AdditiveSceneSession.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -770,8 +772,53 @@ int RunGraphical(std::optional<ProjectState> project,
     std::cerr << "failed to activate the editor scene\n";
     return 1;
   }
-  nexora::editor::SceneDocument scene(world, scene_id);
-  std::unique_ptr<nexora::editor::SceneFileSession> scene_files;
+  nexora::editor::SceneDocument primary_scene(world, scene_id);
+  std::unique_ptr<nexora::editor::SceneFileSession> primary_scene_files;
+  std::unique_ptr<nexora::editor::AdditiveSceneSession> scene_documents;
+  std::unique_ptr<nexora::editor::AdditiveSceneComposition> scene_composition;
+  bool composition_restore_blocked = false;
+  std::string composition_restore_error;
+  // The presentation host borrows the active document for selection/view state. Source mutation
+  // requires scene_authoring_allowed(), in addition to the ImGui reference controls.
+  const auto active_scene = [&]() -> nexora::editor::SceneDocument & {
+    if (scene_documents)
+      if (const auto id = scene_documents->Active())
+        if (const auto *document = scene_documents->Document(*id))
+          return *const_cast<nexora::editor::SceneDocument *>(document);
+    return primary_scene;
+  };
+  const auto active_files = [&]() -> nexora::editor::SceneFileSession * {
+    if (scene_documents)
+      if (const auto id = scene_documents->Active())
+        if (const auto *files = scene_documents->Files(*id))
+          return const_cast<nexora::editor::SceneFileSession *>(files);
+    return primary_scene_files.get();
+  };
+  const auto scene_authoring_allowed = [&] {
+    if (!project || !project->workspace.Writable() || composition_restore_blocked)
+      return false;
+    if (!scene_documents)
+      return !project->workspace.HasRecoveryJournal();
+    const auto id = scene_documents->Active();
+    return id && scene_documents->EditableDocument(*id);
+  };
+  const auto initialize_scene_documents = [&] {
+    if (!project || !primary_scene_files || project->workspace.HasRecoveryJournal() ||
+        project->workspace.HasExternalChange())
+      return;
+    auto candidate =
+        std::make_unique<nexora::editor::AdditiveSceneSession>(project->workspace, world);
+    if (candidate->Attach(primary_scene, *primary_scene_files)) {
+      auto composition = std::make_unique<nexora::editor::AdditiveSceneComposition>(*candidate);
+      composition_restore_error.clear();
+      composition_restore_blocked = composition->Restore(&composition_restore_error) ==
+                                    nexora::editor::SceneCompositionStatus::Rejected;
+      scene_documents = std::move(candidate);
+      scene_composition = std::move(composition);
+      if (composition_restore_blocked)
+        std::cerr << "saved scene set could not be restored: " << composition_restore_error << '\n';
+    }
+  };
   struct SceneViews final {
     nexora::editor::imgui::SceneOverviewCamera overview;
     nexora::editor::imgui::NativeSceneOrbit orbit;
@@ -828,12 +875,12 @@ int RunGraphical(std::optional<ProjectState> project,
                : std::filesystem::path(".nexora/scenes/views") / relative;
   };
   const auto overview_path = [&](const nexora::editor::ProjectWorkspace &workspace) {
-    auto path = workspace.Root() / view_base(*scene_files->CurrentPath());
+    auto path = workspace.Root() / view_base(*active_files()->CurrentPath());
     path.replace_extension(".overview.camera");
     return path;
   };
   const auto preview_camera_path = [&](const nexora::editor::ProjectWorkspace &workspace) {
-    auto path = workspace.Root() / view_base(*scene_files->CurrentPath());
+    auto path = workspace.Root() / view_base(*active_files()->CurrentPath());
     path.replace_extension(".preview.camera");
     return path;
   };
@@ -845,7 +892,7 @@ int RunGraphical(std::optional<ProjectState> project,
     static_cast<void>(ui.SetNativeSceneOrbit({}));
     overview_load_failed = false;
     preview_camera_load_failed = false;
-    const auto current_path = scene_files ? scene_files->CurrentPath() : std::nullopt;
+    const auto current_path = active_files() ? active_files()->CurrentPath() : std::nullopt;
     if (!current_path)
       return;
     if (const auto retained = retained_scene_views.find(*current_path);
@@ -856,7 +903,7 @@ int RunGraphical(std::optional<ProjectState> project,
       preview_camera_load_failed = retained->second.preview_failed;
       return;
     }
-    nexora::editor::SceneFileSession view_scope(project->workspace, scene);
+    nexora::editor::SceneFileSession view_scope(project->workspace, active_scene());
     if (!view_scope.BindCurrent(view_base(*current_path))) {
       overview_load_failed = preview_camera_load_failed = true;
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
@@ -901,11 +948,22 @@ int RunGraphical(std::optional<ProjectState> project,
     }
   };
   const auto open_scene = [&] {
+    scene_composition.reset();
+    scene_documents.reset();
+    composition_restore_blocked = false;
+    composition_restore_error.clear();
     retained_scene_views.clear();
-    scene_files = std::make_unique<nexora::editor::SceneFileSession>(project->workspace, scene);
-    const auto restored = scene_files->RestoreStartup(scene_files->Token());
+    primary_scene_files =
+        std::make_unique<nexora::editor::SceneFileSession>(project->workspace, primary_scene);
+    std::string bootstrap_error;
+    const auto bootstrap = nexora::editor::AdditiveSceneComposition::BootstrapScene(
+        project->workspace, &bootstrap_error);
+    const auto restored = bootstrap
+                              ? active_files()->Open(active_files()->Token(), *bootstrap, true)
+                              : active_files()->RestoreStartup(active_files()->Token());
     if (restored.Applied()) {
       scene_load_failed = false;
+      initialize_scene_documents();
       log(nexora::runtime::RuntimeLogSeverity::Info, "Scene", "Restored last scene.");
       load_scene_views();
       return;
@@ -918,14 +976,14 @@ int RunGraphical(std::optional<ProjectState> project,
     const auto path = project->workspace.Root() / initial_path;
     std::error_code error;
     const bool exists = std::filesystem::exists(path, error);
-    const bool bound = scene_files->BindCurrent(std::filesystem::path(initial_path));
+    const bool bound = active_files()->BindCurrent(std::filesystem::path(initial_path));
     const bool loaded =
         !error && bound &&
-        (!exists ||
-         scene_files->Open(scene_files->Token(), std::filesystem::path(initial_path), true)
-             .Applied());
+        (!exists || active_files()
+                        ->Open(active_files()->Token(), std::filesystem::path(initial_path), true)
+                        .Applied());
     if (!loaded) {
-      static_cast<void>(scene_files->BindCurrent(std::filesystem::path(initial_path), true));
+      static_cast<void>(active_files()->BindCurrent(std::filesystem::path(initial_path), true));
       scene_load_failed = true;
       const auto encoded = path.generic_u8string();
       const auto message =
@@ -935,10 +993,11 @@ int RunGraphical(std::optional<ProjectState> project,
       return;
     }
     scene_load_failed = false;
-    if (!exists && scene.Nodes().empty())
-      scene.Create("Scene Root");
+    if (!exists && active_scene().Nodes().empty())
+      active_scene().Create("Scene Root");
     log(nexora::runtime::RuntimeLogSeverity::Info, "Scene",
         exists ? "Opened saved scene." : "Created starter scene.");
+    initialize_scene_documents();
     load_scene_views();
   };
   if (project)
@@ -951,7 +1010,7 @@ int RunGraphical(std::optional<ProjectState> project,
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
   std::string selector_result = project ? "bypassed" : "none";
   const auto publish_saved_scene = [&] {
-    const auto relative = scene_files->CurrentPath();
+    const auto relative = active_files()->CurrentPath();
     if (!relative || *relative->begin() != "Content")
       return;
     const auto asset_path = relative->lexically_relative("Content");
@@ -984,30 +1043,46 @@ int RunGraphical(std::optional<ProjectState> project,
     }
   };
   const auto remember_scene = [&] {
-    if (!project || !project->workspace.Writable() || !scene_files || !scene_files->CurrentPath())
+    if (!project || !project->workspace.Writable() || !active_files() ||
+        !active_files()->CurrentPath())
       return;
-    const auto remembered = scene_files->RememberCurrent(scene_files->Token());
+    const auto remembered = active_files()->RememberCurrent(active_files()->Token());
     if (!remembered.Applied()) {
       std::cerr << "scene startup settings were not saved: " << remembered.message << '\n';
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", remembered.message);
     }
   };
+  const auto publish_all_saved_scenes = [&] {
+    if (!scene_documents) {
+      publish_saved_scene();
+      return;
+    }
+    const auto active = scene_documents->Active();
+    const auto original = active && scene_documents->Files(*active)
+                              ? std::optional(scene_documents->Files(*active)->Token())
+                              : std::nullopt;
+    for (const auto &row : scene_documents->Snapshot())
+      if (row.owned && scene_documents->Select(row.id, row.token))
+        publish_saved_scene();
+    if (active && original)
+      static_cast<void>(scene_documents->Select(*active, *original));
+  };
   nexora::editor::SceneFileToken content_location_token{};
   std::optional<std::filesystem::path> content_location_path;
   std::uint64_t content_location_revision = std::numeric_limits<std::uint64_t>::max();
   const auto refresh_scene_location = [&](bool force = false) {
-    if (!project || !scene_files || scene_load_failed)
+    if (!project || !active_files() || scene_load_failed)
       return;
-    const auto token = scene_files->Token();
-    const auto old_path = scene_files->CurrentPath();
+    const auto token = active_files()->Token();
+    const auto old_path = active_files()->CurrentPath();
     const auto revision = content.Browser().Revision();
     if (!force && token == content_location_token && old_path == content_location_path &&
         revision == content_location_revision)
       return;
     content_location_token = token;
     content_location_revision = revision;
-    const auto result = scene_files->SynchronizeContent(token, content);
-    content_location_path = scene_files->CurrentPath();
+    const auto result = active_files()->SynchronizeContent(token, content);
+    content_location_path = active_files()->CurrentPath();
     if (!result.Applied()) {
       ui.SetSceneSaveResult(result.message, false);
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene", result.message);
@@ -1028,25 +1103,25 @@ int RunGraphical(std::optional<ProjectState> project,
       log(nexora::runtime::RuntimeLogSeverity::Error, "Scene", "Save blocked by failed load.");
       return false;
     }
-    if (!project || !project->workspace.Writable()) {
+    if (!scene_authoring_allowed()) {
       ui.SetSceneSaveResult("Scene is read-only. Reopen the project for writing.", false);
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
           "Save blocked by read-only access.");
       return false;
     }
-    if (!scene_files)
+    if (!active_files())
       return false;
-    const auto saved = scene_files->Save(scene_files->Token());
+    const auto saved = active_files()->Save(active_files()->Token());
     if (saved.status == nexora::editor::SceneFileStatus::NeedsPath) {
       ui.RequestSceneSaveAs(close_after_save);
       return false;
     }
     if (saved.status == nexora::editor::SceneFileStatus::NeedsOverwrite) {
       nexora::editor::imgui::SceneFileRequest request{
-          nexora::editor::imgui::SceneFileAction::SaveAs, scene_files->Token(),
-          *scene_files->CurrentPath()};
+          nexora::editor::imgui::SceneFileAction::SaveAs, active_files()->Token(),
+          *active_files()->CurrentPath()};
       request.close_after_save = close_after_save;
-      if (!PrepareSceneOverwriteRequest(request, saved, scene_files->CurrentPath()))
+      if (!PrepareSceneOverwriteRequest(request, saved, active_files()->CurrentPath()))
         return false;
       ui.SetSceneSaveResult(saved.message, false);
       ui.RequestSceneOverwrite(std::move(request));
@@ -1063,12 +1138,142 @@ int RunGraphical(std::optional<ProjectState> project,
     log(nexora::runtime::RuntimeLogSeverity::Info, "Scene", "Scene saved.");
     return true;
   };
+  const auto has_unsaved_owned_scenes = [&] {
+    if (!scene_documents)
+      return primary_scene.Dirty();
+    const auto rows = scene_documents->Snapshot();
+    return std::ranges::any_of(rows, [](const auto &row) { return row.owned && row.dirty; });
+  };
+  const auto update_scene_tabs = [&] {
+    std::vector<nexora::editor::imgui::SceneTabItem> tabs;
+    if (scene_documents) {
+      for (const auto &row : scene_documents->Snapshot()) {
+        std::string label = "Scene " + std::to_string(row.id);
+        if (row.path) {
+          const auto bytes = row.path->filename().generic_u8string();
+          label.assign(bytes.begin(), bytes.end());
+        } else if (const auto *record = world.FindScene(row.id)) {
+          label = record->name;
+        }
+        for (char &byte : label)
+          if (static_cast<unsigned char>(byte) < 32 || byte == 127)
+            byte = '?';
+        if (label.size() > 256) {
+          label.resize(256);
+          while (!label.empty() && !nexora::foundation::IsValidUtf8(label))
+            label.pop_back();
+        }
+        if (label.empty() || !nexora::foundation::IsValidUtf8(label))
+          label = "Scene " + std::to_string(row.id);
+        tabs.push_back({row.id, row.token, std::move(label), row.path, row.owned, row.dirty,
+                        row.id != scene_id, composition_restore_blocked});
+      }
+    }
+    static_cast<void>(ui.SetSceneTabs(tabs,
+                                      scene_documents ? scene_documents->Active().value_or(0) : 0,
+                                      static_export.Busy() || composition_restore_blocked));
+    if (composition_restore_blocked)
+      ui.SetSceneTabStatus(
+          "Cannot restore the saved scene set. Repair missing/conflicting sources or "
+          "saved scene settings, then reopen the project. " +
+              composition_restore_error,
+          false);
+  };
+  const auto synchronize_all_scenes = [&] {
+    if (!scene_documents)
+      return;
+    for (const auto &row : scene_documents->Snapshot()) {
+      const auto *files = scene_documents->Files(row.id);
+      if (!files)
+        continue;
+      auto *view_files = const_cast<nexora::editor::SceneFileSession *>(files);
+      const auto previous = files->CurrentPath();
+      static_cast<void>(view_files->SynchronizeContent(row.token, content));
+      if (previous && files->CurrentPath() && previous != files->CurrentPath()) {
+        if (const auto found = retained_scene_views.find(*previous);
+            found != retained_scene_views.end()) {
+          retained_scene_views[*files->CurrentPath()] = found->second;
+          retained_scene_views.erase(*previous);
+        }
+      }
+    }
+  };
+  const auto save_as_active = [&](nexora::editor::SceneFileToken token,
+                                  const std::filesystem::path &path, bool replace,
+                                  std::optional<nexora::editor::SceneOverwriteToken> overwrite) {
+    if (!scene_authoring_allowed() || !active_files())
+      return nexora::editor::SceneFileResult{nexora::editor::SceneFileStatus::Rejected,
+                                             "This scene is a read-only reference."};
+    if (scene_documents)
+      return scene_documents->SaveAs(*scene_documents->Active(), token, path, replace, overwrite);
+    return active_files()->SaveAs(token, path, replace, overwrite);
+  };
+  const auto destination_open_elsewhere = [&](const std::filesystem::path &path) {
+    if (!scene_documents)
+      return false;
+    const auto portable_key = [](const std::filesystem::path &value) {
+      const auto bytes = value.lexically_normal().generic_u8string();
+      std::string key(bytes.begin(), bytes.end());
+      std::ranges::transform(key, key.begin(), [](unsigned char byte) {
+        return static_cast<char>(byte >= 'A' && byte <= 'Z' ? byte + 32 : byte);
+      });
+      return key;
+    };
+    for (const auto &row : scene_documents->Snapshot()) {
+      if (row.id == scene_documents->Active() || !row.path)
+        continue;
+      std::error_code error;
+      if (portable_key(path) == portable_key(*row.path) ||
+          std::filesystem::equivalent(project->workspace.Root() / path,
+                                      project->workspace.Root() / *row.path, error))
+        return true;
+    }
+    return false;
+  };
+  const auto save_all_and_exit = [&] {
+    if (composition_restore_blocked) {
+      ui.SetSceneSaveResult("Resolve the saved scene set before saving source files.", false);
+      return false;
+    }
+    if (!scene_documents)
+      return save_scene(true);
+    if (static_export.Busy()) {
+      ui.SetSceneSaveResult("Wait for or cancel the project export before saving and exiting.",
+                            false);
+      return false;
+    }
+    if (play.State() != nexora::runtime::PlayState::Stopped) {
+      gameplay.Unload();
+      static_cast<void>(play.Stop());
+      play_meshes.reset();
+      play_materials.reset();
+      ui.SetNativeGameStatus({});
+    }
+    for (const auto &row : scene_documents->Snapshot()) {
+      if (row.owned && !row.path) {
+        if (!scene_documents->Select(row.id, row.token))
+          return false;
+        load_scene_views();
+        ui.SetSceneFileContext(active_files()->Token(), active_files()->CurrentPath(),
+                               active_files()->SaveBlocked());
+        update_scene_tabs();
+        ui.RequestSceneSaveAs(true);
+        return false;
+      }
+    }
+    synchronize_all_scenes();
+    const auto saved = scene_documents->SaveAll();
+    if (saved.Published())
+      publish_all_saved_scenes();
+    ui.SetSceneSaveResult(saved.message, saved.Published());
+    return saved.Published();
+  };
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
     console_ingress.Poll();
     const auto begin_frame_status = created.surface->BeginFrame();
     if (created.surface->CloseRequested()) {
-      if (project && scene.Dirty() && created.surface->CancelCloseRequest()) {
+      if (project && has_unsaved_owned_scenes() && created.surface->CancelCloseRequest()) {
         ui.RequestCloseConfirmation();
         continue;
       }
@@ -1170,13 +1375,96 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
     if (project) {
+      if (!scene_documents)
+        initialize_scene_documents();
       refresh_scene_location();
-      if (scene_files)
-        ui.SetSceneFileContext(scene_files->Token(), scene_files->CurrentPath(),
-                               scene_load_failed || scene_files->SaveBlocked());
+      if (active_files())
+        ui.SetSceneFileContext(active_files()->Token(), active_files()->CurrentPath(),
+                               scene_load_failed || active_files()->SaveBlocked());
       ui.SetStaticExportStatus(static_export.Snapshot(), static_export.Busy());
-      ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
-                          &console, &play, &profile, &meshes, &materials);
+      update_scene_tabs();
+      ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
+                          &imports, &console, &play, &profile, &meshes, &materials);
+      if (auto request = ui.TakeSceneTabRequest()) {
+        std::string error;
+        bool applied = false;
+        const bool current = scene_documents && active_files() && !composition_restore_blocked &&
+                             request->source == active_files()->Token() &&
+                             play.State() == nexora::runtime::PlayState::Stopped &&
+                             !static_export.Busy() && !project->workspace.HasRecoveryJournal() &&
+                             !project->workspace.HasExternalChange();
+        if (!current) {
+          error = "Scene action is stale, or Play/export/recovery is active.";
+        } else {
+          const auto old_path = active_files()->CurrentPath();
+          if (old_path)
+            retained_scene_views[*old_path] = {ui.GetSceneOverviewCamera(),
+                                               ui.GetNativeSceneOrbit(), overview_load_failed,
+                                               preview_camera_load_failed};
+          using TabAction = nexora::editor::imgui::SceneTabAction;
+          switch (request->action) {
+          case TabAction::Select:
+            applied = scene_documents->Select(request->target, request->target_token, &error);
+            break;
+          case TabAction::New:
+            applied = scene_documents->New("Untitled", &error).has_value();
+            break;
+          case TabAction::OpenOwned:
+          case TabAction::OpenReference:
+            applied = scene_documents
+                          ->Open(request->path, request->action == TabAction::OpenOwned, {}, &error)
+                          .has_value();
+            break;
+          case TabAction::Close:
+            if (request->target == scene_id) {
+              error = "The primary scene stays open for the project session.";
+              break;
+            }
+            if (!scene_documents->Files(request->target) ||
+                scene_documents->Files(request->target)->Token() != request->target_token) {
+              error = "Close action belongs to an expired document.";
+              break;
+            }
+            if (request->save_before_close) {
+              synchronize_all_scenes();
+              const auto saved = scene_documents->SaveAll();
+              if (!saved.Published()) {
+                error = saved.message;
+                break;
+              }
+              publish_all_saved_scenes();
+            }
+            applied = scene_documents->Remove(request->target, request->target_token,
+                                              request->discard_dirty, &error);
+            break;
+          case TabAction::SaveAll: {
+            synchronize_all_scenes();
+            const auto saved = scene_documents->SaveAll();
+            applied = saved.Published();
+            if (applied)
+              publish_all_saved_scenes();
+            error = saved.message;
+            break;
+          }
+          }
+          if (applied) {
+            native_scene_meshes.reset();
+            native_scene_drag_axis.reset();
+            native_scene_drag_plane.reset();
+            native_scene_drag_rotate = false;
+            native_scene_drag_scale_axis.reset();
+            native_scene_viewport_reported.reset();
+            scene_load_failed = false;
+            load_scene_views();
+            if (active_files())
+              ui.SetSceneFileContext(active_files()->Token(), active_files()->CurrentPath(),
+                                     active_files()->SaveBlocked());
+            update_scene_tabs();
+          }
+        }
+        ui.SetSceneTabStatus(applied ? (error.empty() ? "Scene action completed." : error) : error,
+                             applied);
+      }
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
         load_input_settings(project->workspace);
       refresh_scene_location();
@@ -1280,8 +1568,8 @@ int RunGraphical(std::optional<ProjectState> project,
       if (auto review = ui.TakePlayApplyRequest()) {
         std::string error;
         const auto status =
-            project->workspace.Writable() && !project->workspace.HasRecoveryJournal()
-                ? nexora::editor::ApplyReviewedPlayTransforms(scene, play, *review, &error)
+            scene_authoring_allowed() && !project->workspace.HasRecoveryJournal()
+                ? nexora::editor::ApplyReviewedPlayTransforms(active_scene(), play, *review, &error)
                 : nexora::editor::PlayTransformApplyStatus::Failed;
         if (status == nexora::editor::PlayTransformApplyStatus::Applied) {
           gameplay.Unload();
@@ -1304,7 +1592,7 @@ int RunGraphical(std::optional<ProjectState> project,
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start: {
         auto frozen_materials = nexora::editor::preview::FreezeGameMaterials(
-            scene, materials, content.Browser().ProjectGeneration());
+            active_scene(), materials, content.Browser().ProjectGeneration());
         if (!frozen_materials) {
           ui.SetGameplayStatus(
               "Play material snapshot is unavailable; refresh the project assets.");
@@ -1398,7 +1686,8 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       // Commit this frame's native authoring input before Save or Save-and-exit.
       if (const auto viewport = ui.NativeScenePreviewViewport()) {
-        native_scene_meshes = PrepareNativeSceneMeshes(scene, meshes, content, project_generation);
+        native_scene_meshes =
+            PrepareNativeSceneMeshes(active_scene(), meshes, content, project_generation);
         const std::array geometry_counts{native_scene_meshes->entities.size(),
                                          native_scene_meshes->geometry.vertices.size(),
                                          native_scene_meshes->geometry.indices.size()};
@@ -1419,9 +1708,9 @@ int RunGraphical(std::optional<ProjectState> project,
         }
         if (const auto request = ui.NativeScenePick()) {
           const auto hit = PickNativeSceneProxy(
-              scene, *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), *request,
-              ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(), ui.GetNativeSceneTool(),
-              *native_scene_meshes);
+              active_scene(), *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(),
+              *request, ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
+              ui.GetNativeSceneTool(), *native_scene_meshes);
           native_scene_drag_axis = request->additive ? std::nullopt : hit.axis;
           native_scene_drag_plane = request->additive ? std::nullopt : hit.plane;
           native_scene_drag_rotate =
@@ -1434,29 +1723,31 @@ int RunGraphical(std::optional<ProjectState> project,
           if (hit.entity) {
             std::vector<nexora::runtime::Id> selection;
             const bool already_selected =
-                std::find(scene.Selection().begin(), scene.Selection().end(), *hit.entity) !=
-                scene.Selection().end();
+                std::find(active_scene().Selection().begin(), active_scene().Selection().end(),
+                          *hit.entity) != active_scene().Selection().end();
             if (request->additive || already_selected)
-              selection.assign(scene.Selection().begin(), scene.Selection().end());
+              selection.assign(active_scene().Selection().begin(),
+                               active_scene().Selection().end());
             const auto existing = std::find(selection.begin(), selection.end(), *hit.entity);
             if (existing == selection.end())
               selection.push_back(*hit.entity);
             else if (request->additive)
               selection.erase(existing);
-            static_cast<void>(scene.Select(selection));
+            static_cast<void>(active_scene().Select(selection));
           } else if (!hit.axis && !hit.plane && !request->additive) {
-            static_cast<void>(scene.Select(std::span<const nexora::runtime::Id>{}));
+            static_cast<void>(active_scene().Select(std::span<const nexora::runtime::Id>{}));
           }
         }
-        if (const auto drag = ui.NativeSceneDrag(); drag && !scene.Selection().empty()) {
-          const auto pose = NativeSceneGizmoFrame(scene, ui.NativeSceneCenterPivot());
+        if (const auto drag = ui.NativeSceneDrag();
+            drag && scene_authoring_allowed() && !active_scene().Selection().empty()) {
+          const auto pose = NativeSceneGizmoFrame(active_scene(), ui.NativeSceneCenterPivot());
           if (pose) {
             std::vector<nexora::editor::SceneDocument::NodeKey> keys;
-            for (const auto id : scene.Selection()) {
-              if (const auto key = scene.Key(id))
+            for (const auto id : active_scene().Selection()) {
+              if (const auto key = active_scene().Key(id))
                 keys.push_back(*key);
             }
-            if (keys.size() == scene.Selection().size()) {
+            if (keys.size() == active_scene().Selection().size()) {
               if (native_scene_drag_scale_axis && native_scene_drag_axis) {
                 const auto factor =
                     *native_scene_drag_scale_axis == 3
@@ -1477,8 +1768,8 @@ int RunGraphical(std::optional<ProjectState> project,
                       scale.factors.z = snapped;
                     else
                       scale.factors = {snapped, snapped, snapped};
-                    NativeSceneOperationPivot(scene, ui.NativeSceneCenterPivot(), scale);
-                    static_cast<void>(scene.ApplySelectionGizmo(keys, scale));
+                    NativeSceneOperationPivot(active_scene(), ui.NativeSceneCenterPivot(), scale);
+                    static_cast<void>(active_scene().ApplySelectionGizmo(keys, scale));
                   }
                 }
               } else if (native_scene_drag_rotate && native_scene_drag_axis) {
@@ -1492,8 +1783,9 @@ int RunGraphical(std::optional<ProjectState> project,
                     rotation.kind = nexora::editor::GizmoOperation::Kind::Rotate;
                     rotation.axis = *native_scene_drag_axis;
                     rotation.angle = snapped;
-                    NativeSceneOperationPivot(scene, ui.NativeSceneCenterPivot(), rotation);
-                    static_cast<void>(scene.ApplySelectionGizmo(keys, rotation));
+                    NativeSceneOperationPivot(active_scene(), ui.NativeSceneCenterPivot(),
+                                              rotation);
+                    static_cast<void>(active_scene().ApplySelectionGizmo(keys, rotation));
                   }
                 }
               } else if (ui.GetNativeSceneTool() == nexora::editor::imgui::NativeSceneTool::Move) {
@@ -1501,8 +1793,8 @@ int RunGraphical(std::optional<ProjectState> project,
                     *viewport, ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), *drag, *pose,
                     native_scene_drag_axis, native_scene_drag_plane);
                 if (delta)
-                  static_cast<void>(
-                      scene.TranslateSelection(keys, (*delta)[0], (*delta)[1], (*delta)[2]));
+                  static_cast<void>(active_scene().TranslateSelection(keys, (*delta)[0],
+                                                                      (*delta)[1], (*delta)[2]));
               }
             }
           }
@@ -1511,64 +1803,71 @@ int RunGraphical(std::optional<ProjectState> project,
           native_scene_drag_rotate = false;
           native_scene_drag_scale_axis.reset();
         }
-        if (const auto request = ui.TakeNativeSceneSelectAllRequest(); request && scene_files) {
-          const auto candidates = NativeSceneProxyCandidates(scene, &*native_scene_meshes);
+        if (const auto request = ui.TakeNativeSceneSelectAllRequest(); request && active_files()) {
+          const auto candidates = NativeSceneProxyCandidates(active_scene(), &*native_scene_meshes);
           static_cast<void>(nexora::editor::preview::SelectNativeSceneCandidates(
-              scene, scene_files->Token(), *request, candidates));
+              active_scene(), active_files()->Token(), *request, candidates));
         }
         if (const auto request = ui.TakeNativeSceneFrameAllRequest();
-            request && scene_files && *request == scene_files->Token()) {
-          const auto candidates = NativeSceneProxyCandidates(scene, &*native_scene_meshes);
+            request && active_files() && *request == active_files()->Token()) {
+          const auto candidates = NativeSceneProxyCandidates(active_scene(), &*native_scene_meshes);
           static_cast<void>(ui.ApplyNativeSceneFrameAll(*request, candidates));
         }
       }
       if (ui.TakeSceneSaveRequest())
         static_cast<void>(save_scene());
-      if (auto request = ui.TakeSceneFileRequest(); request && scene_files) {
+      if (auto request = ui.TakeSceneFileRequest(); request && active_files()) {
         using FileStatus = nexora::editor::SceneFileStatus;
         using FileAction = nexora::editor::imgui::SceneFileAction;
         nexora::editor::SceneFileResult file_result;
-        bool can_apply = request->action == FileAction::SaveAs ||
-                         play.State() == nexora::runtime::PlayState::Stopped;
-        const auto old_path = scene_files->CurrentPath();
+        const bool reading = request->action == FileAction::Open && !request->save_current;
+        bool can_apply = (reading || scene_authoring_allowed()) &&
+                         request->token == active_files()->Token() &&
+                         (request->action == FileAction::SaveAs ||
+                          play.State() == nexora::runtime::PlayState::Stopped) &&
+                         !static_export.Busy();
+        if (request->action == FileAction::Open && destination_open_elsewhere(request->path))
+          can_apply = false;
+        const auto old_path = active_files()->CurrentPath();
         const SceneViews old_views{ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(),
                                    overview_load_failed, preview_camera_load_failed};
-        const bool retain_views = old_path && !scene_load_failed && !scene_files->SaveBlocked();
+        const bool retain_views = old_path && !scene_load_failed && !active_files()->SaveBlocked();
         if (!can_apply)
-          file_result = {FileStatus::Rejected, "Stop Play before changing scenes."};
+          file_result = {
+              FileStatus::Rejected,
+              "Scene action is stale, read-only, busy, or its destination is already open."};
         if (can_apply && request->save_current) {
-          file_result =
-              request->save_path
-                  ? scene_files->SaveAs(request->token, *request->save_path,
-                                        request->replace_existing, request->overwrite_token)
-                  : scene_files->Save(request->token, request->overwrite_token);
+          file_result = request->save_path
+                            ? save_as_active(request->token, *request->save_path,
+                                             request->replace_existing, request->overwrite_token)
+                            : active_files()->Save(request->token, request->overwrite_token);
           can_apply = file_result.Applied();
           if (can_apply) {
             publish_saved_scene();
             remember_scene();
             scene_load_failed = false;
-            if (const auto saved_path = scene_files->CurrentPath())
+            if (const auto saved_path = active_files()->CurrentPath())
               retained_scene_views[*saved_path] = old_views;
           }
         }
         if (can_apply) {
           switch (request->action) {
           case FileAction::New:
-            file_result = scene_files->New(request->token, request->discard_unsaved);
+            file_result = active_files()->New(request->token, request->discard_unsaved);
             break;
           case FileAction::Open:
             file_result =
-                scene_files->Open(request->token, request->path, request->discard_unsaved);
+                active_files()->Open(request->token, request->path, request->discard_unsaved);
             break;
           case FileAction::SaveAs:
-            file_result = scene_files->SaveAs(request->token, request->path,
-                                              request->replace_existing, request->overwrite_token);
+            file_result = save_as_active(request->token, request->path, request->replace_existing,
+                                         request->overwrite_token);
             break;
           }
         }
         if (file_result.status == FileStatus::NeedsOverwrite) {
           ui.SetSceneSaveResult(file_result.message, false);
-          if (PrepareSceneOverwriteRequest(*request, file_result, scene_files->CurrentPath()))
+          if (PrepareSceneOverwriteRequest(*request, file_result, active_files()->CurrentPath()))
             ui.RequestSceneOverwrite(std::move(*request));
         } else if (file_result.status == FileStatus::NeedsUnsavedChoice)
           ui.RequestSceneUnsavedChoice(std::move(*request));
@@ -1588,7 +1887,7 @@ int RunGraphical(std::optional<ProjectState> project,
             if (request->action != FileAction::SaveAs)
               load_scene_views();
             if (request->close_after_save)
-              exit_requested = true;
+              exit_requested = save_all_and_exit();
           } else if (request->close_after_save) {
             ui.RequestSceneSaveAs(true, request->path);
           }
@@ -1596,10 +1895,7 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       const auto close_choice = ui.TakeCloseChoice();
       if (close_choice == nexora::editor::imgui::CloseChoice::SaveAndExit) {
-        if (scene_files && !scene_files->CurrentPath())
-          ui.RequestSceneSaveAs(true);
-        else
-          exit_requested = save_scene(true);
+        exit_requested = save_all_and_exit();
       } else if (close_choice == nexora::editor::imgui::CloseChoice::DiscardAndExit)
         exit_requested = true;
       if (const auto choice = ui.TakeRecoveryChoice();
@@ -1612,19 +1908,19 @@ int RunGraphical(std::optional<ProjectState> project,
           accepted = static_export.Cancel();
           if (!accepted)
             error = "No pending StaticView export to cancel.";
-        } else if (scene_files && request->token == scene_files->Token() &&
-                   scene_files->CurrentPath() && !scene_load_failed &&
-                   !scene_files->SaveBlocked() &&
+        } else if (active_files() && request->token == active_files()->Token() &&
+                   active_files()->CurrentPath() && !scene_load_failed &&
+                   !active_files()->SaveBlocked() &&
                    play.State() == nexora::runtime::PlayState::Stopped && !exit_requested &&
                    recovery_choice == nexora::editor::imgui::RecoveryChoice::None) {
           nexora::runtime::AssetUuid scene_asset;
           for (const auto &item : content.Browser().Items())
-            if (item.type == ".scene" && item.path == *scene_files->CurrentPath()) {
+            if (item.type == ".scene" && item.path == *active_files()->CurrentPath()) {
               scene_asset = item.id;
               break;
             }
-          accepted = static_export.Start(project->workspace, scene, content, meshes, materials,
-                                         scene_asset, &error);
+          accepted = static_export.Start(project->workspace, active_scene(), content, meshes,
+                                         materials, scene_asset, &error);
         } else {
           error = "StaticView export request is stale or authoring is blocked.";
         }
@@ -1637,7 +1933,7 @@ int RunGraphical(std::optional<ProjectState> project,
           ui.SetStaticExportStatus(static_export.Snapshot(), static_export.Busy());
         }
       }
-      if (static_export.Poll(project->workspace, scene, content, meshes, materials)) {
+      if (static_export.Poll(project->workspace, active_scene(), content, meshes, materials)) {
         const auto status = static_export.Snapshot();
         ui.SetStaticExportStatus(status, false);
         log(status.phase == nexora::editor::StaticExportPhase::Published
@@ -1703,8 +1999,9 @@ int RunGraphical(std::optional<ProjectState> project,
         std::optional<std::array<double, 3>> drag_preview;
         std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview;
         std::optional<std::pair<std::size_t, double>> scale_preview;
-        if (const auto drag = ui.NativeSceneDragPreview(); drag && !scene.Selection().empty()) {
-          const auto pose = NativeSceneGizmoFrame(scene, ui.NativeSceneCenterPivot());
+        if (const auto drag = ui.NativeSceneDragPreview();
+            drag && !active_scene().Selection().empty()) {
+          const auto pose = NativeSceneGizmoFrame(active_scene(), ui.NativeSceneCenterPivot());
           if (pose) {
             if (native_scene_drag_scale_axis && native_scene_drag_axis) {
               const auto factor =
@@ -1731,7 +2028,7 @@ int RunGraphical(std::optional<ProjectState> project,
           }
         }
         const auto scene_status = DrawNativeScenePreview(
-            *created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
+            *created.surface, active_scene(), *viewport, ui.GetSceneOverviewCamera(),
             ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
             ui.GetNativeSceneTool(), drag_preview, rotation_preview, scale_preview,
             *native_scene_meshes, materials, project_generation);
@@ -1823,13 +2120,13 @@ int RunGraphical(std::optional<ProjectState> project,
   if (project && project->workspace.Writable() &&
       !project->workspace.SaveEditorLayout(ui.SaveLayout(), &layout_error))
     std::cerr << layout_error << '\n';
-  if (scene_files && scene_files->CurrentPath() && !scene_load_failed)
-    retained_scene_views[*scene_files->CurrentPath()] = {
+  if (active_files() && active_files()->CurrentPath() && !scene_load_failed)
+    retained_scene_views[*active_files()->CurrentPath()] = {
         ui.GetSceneOverviewCamera(), ui.GetNativeSceneOrbit(), overview_load_failed,
         preview_camera_load_failed};
   if (project && project->workspace.Writable())
     for (const auto &[relative, saved_views] : retained_scene_views) {
-      nexora::editor::SceneFileSession scope(project->workspace, scene);
+      nexora::editor::SceneFileSession scope(project->workspace, active_scene());
       const auto metadata = view_base(relative);
       if (!scope.BindCurrent(metadata) ||
           (saved_views.overview_failed && saved_views.preview_failed))
@@ -1877,6 +2174,12 @@ int RunGraphical(std::optional<ProjectState> project,
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
+  if (result == 0 && project && project->workspace.Writable() && scene_composition &&
+      !composition_restore_blocked) {
+    std::string error;
+    if (!scene_composition->Save(&error))
+      std::cerr << "scene set was not saved: " << error << '\n';
+  }
   core_logs.Stop();
   console_ingress.Poll();
   const auto console_records = console.Snapshot();
@@ -1913,6 +2216,9 @@ int RunGraphical(std::optional<ProjectState> project,
   else
     std::cerr << "unavailable";
   std::cerr << '\n';
+  const auto remaining_documents = scene_documents
+                                       ? scene_documents->Snapshot()
+                                       : std::vector<nexora::editor::AdditiveDocumentView>{};
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
             << " presented=" << diagnostics.presentedFrames
             << " ui_draws=" << diagnostics.nativeUiDrawCalls
@@ -1933,8 +2239,11 @@ int RunGraphical(std::optional<ProjectState> project,
                     ? "required"
                     : "current")
             << " recents=" << recent_projects.Entries().size()
-            << " scene_nodes=" << scene.Nodes().size()
-            << " scene_selected=" << scene.Selection().size()
+            << " scene_nodes=" << active_scene().Nodes().size()
+            << " scene_selected=" << active_scene().Selection().size()
+            << " scene_documents=" << remaining_documents.size() << " scene_references="
+            << std::ranges::count(remaining_documents, false,
+                                  &nexora::editor::AdditiveDocumentView::owned)
             << " pie_ticks=" << play.Stats().fixed_ticks
             << " pie_steps=" << play.Stats().manual_steps << '\n';
   if (created.surface->DrainAndDestroy() != Nexora::Presentation::SurfaceStatus::Ready)

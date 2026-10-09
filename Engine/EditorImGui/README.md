@@ -14,6 +14,25 @@ production retains ImGui's native platform defaults.
 
 ## Ownership and lifetime
 
+- `SetSceneTabs` copies at most sixteen current document identities/tokens, labels, destinations,
+  ownership and dirty indicators. Invalid or mixed-project metadata preserves the previous copy.
+  Tab source/target replacement cancels pending gestures, Inspector drafts and stale requests.
+  `TakeSceneTabRequest` transfers one owning Select/New/Open/Close/Save All intent; widgets perform
+  no scene IO or membership changes. The application rechecks both source and target tokens, stops
+  Play and drains export readers before changing document owners. Reference tabs disable source
+  editing, Save and Play Apply; the application's source mutation paths independently enforce this.
+  Dirty Close offers Save All, explicit Discard and Cancel. Unnamed owned documents require Save As
+  before Save All. Export/recovery and other modal operations block tab actions. Controls wrap in
+  narrow panels and use logical coordinates at both 1x and 2x DPI.
+  Ctrl+Alt+N adds a scene, Ctrl+Alt+O opens an owned scene, Ctrl+Alt+Shift+O opens a reference,
+  Ctrl+Alt+S saves all owned scenes, Ctrl+Alt+W closes the current additive scene, and
+  Ctrl+Alt+PageUp/PageDown selects the previous/next document. Enter submits the focused path chooser.
+  These shortcuts obey the same busy, permission, modal and text-input gates as the buttons.
+  A host may freeze owned source editing with the copied `read_only` field when the saved scene
+  set cannot be restored. The application starts from the persisted load-order bootstrap, restores
+  all named memberships/roles and active selection, and preserves invalid metadata/source versions.
+  Metadata is saved after Play/export shutdown, with exact source/metadata baseline checks; unnamed
+  or unresolved sets preserve the previous saved composition and report the reason.
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
   State ownership also releases the previous context on move assignment, clearing backend/IME
   borrows before destruction and preserving another current context. Move between frames;

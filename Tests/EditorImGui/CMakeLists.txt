@@ -19,6 +19,12 @@ nexora_apply_defaults(NexoraOverviewPoseTests)
 add_test(NAME editor.overview_pose_snapshot COMMAND NexoraOverviewPoseTests)
 set_tests_properties(editor.overview_pose_snapshot PROPERTIES TIMEOUT 180)
 
+add_executable(NexoraSceneTabTests SceneTabTests.cpp)
+target_include_directories(NexoraSceneTabTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSceneTabTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneTabTests)
+add_test(NAME editor.scene_tabs COMMAND NexoraSceneTabTests)
+
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
 target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)
@@ -209,6 +215,12 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProcessMemory.py"
             --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}")
   set_tests_properties(editor.linux_process_memory PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_native_scene_tabs
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeSceneTabs.py"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_scene_tabs PROPERTIES TIMEOUT 90)
   add_test(
     NAME editor.linux_native_scene_preview
     COMMAND "${Python3_EXECUTABLE}"

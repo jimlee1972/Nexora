@@ -341,6 +341,16 @@ struct EditorImGuiHost::State final {
   bool scene_save_requested = false;
   std::string scene_save_message;
   bool scene_save_success = false;
+  std::vector<SceneTabItem> scene_tabs;
+  std::uint64_t scene_tab_active{};
+  SceneFileToken scene_tab_source{};
+  bool scene_tabs_busy{}, scene_tab_popup_pending{};
+  int scene_tab_dialog{}; // 1: owned path, 2: reference path, 3: close choice.
+  std::optional<SceneTabRequest> scene_tab_close, scene_tab_output;
+  std::array<char, 1024> scene_tab_path{};
+  std::string scene_tab_status;
+  std::array<std::optional<std::array<float, 2>>, 11> scene_tab_controls{};
+  std::unordered_map<std::uint64_t, std::array<float, 2>> scene_tab_positions;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 1024> content_rename{};
@@ -2057,6 +2067,223 @@ bool ResetInspectorComponent(StateT &state, SceneDocument &scene,
   else
     state.inspector_error = "Reset rejected because entity generations are stale.";
   return reset;
+}
+
+template <typename StateT> void CaptureSceneTabControl(StateT &state, std::size_t control) {
+  const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+  state.scene_tab_controls[control] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+}
+template <typename StateT> void EmitSceneTab(StateT &state, SceneTabRequest request) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  state.scene_tab_status.clear();
+  state.scene_tab_output = std::move(request);
+}
+template <typename StateT> void DrawSceneTabs(StateT &state, bool allowed, bool writable) {
+  state.scene_tab_controls = {};
+  state.scene_tab_positions.clear();
+  if (state.scene_tabs.empty())
+    return;
+  const auto active =
+      std::ranges::find(state.scene_tabs, state.scene_tab_active, &SceneTabItem::id);
+  if (active == state.scene_tabs.end())
+    return;
+  const bool idle =
+      allowed && !state.scene_tabs_busy && !state.scene_tab_output && !state.scene_tab_dialog;
+  const bool named = std::ranges::all_of(
+      state.scene_tabs, [](const auto &item) { return !item.owned || item.path.has_value(); });
+  const auto begin_close = [&] {
+    SceneTabRequest request{SceneTabAction::Close, state.scene_tab_source, active->id,
+                            active->token};
+    if (active->dirty) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      state.scene_tab_close = request;
+      state.scene_tab_dialog = 3;
+      state.scene_tab_popup_pending = true;
+      state.scene_tab_status.clear();
+    } else
+      EmitSceneTab(state, std::move(request));
+  };
+  if (idle && !ImGui::GetIO().WantTextInput) {
+    const auto route = ImGuiInputFlags_RouteGlobal;
+    if (writable && state.scene_tabs.size() < 16 &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_N, route))
+      EmitSceneTab(state, {SceneTabAction::New, state.scene_tab_source});
+    else if (writable && named && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_S, route))
+      EmitSceneTab(state, {SceneTabAction::SaveAll, state.scene_tab_source});
+    else if (state.scene_tabs.size() < 16 &&
+             (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiMod_Shift | ImGuiKey_O, route) ||
+              ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_O, route))) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      state.scene_tab_path = {};
+      state.scene_tab_dialog = ImGui::GetIO().KeyShift ? 2 : 1;
+      state.scene_tab_popup_pending = true;
+      state.scene_tab_status.clear();
+    } else if (active->closeable &&
+               ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_W, route)) {
+      begin_close();
+    } else {
+      const bool previous = ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_PageUp, route);
+      const bool next = ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_PageDown, route);
+      if ((previous || next) && state.scene_tabs.size() > 1) {
+        const auto index = static_cast<std::size_t>(active - state.scene_tabs.begin());
+        const auto target_index =
+            previous ? (index + state.scene_tabs.size() - 1) % state.scene_tabs.size()
+                     : (index + 1) % state.scene_tabs.size();
+        const auto &target = state.scene_tabs[target_index];
+        EmitSceneTab(state,
+                     {SceneTabAction::Select, state.scene_tab_source, target.id, target.token});
+      }
+    }
+  }
+  ImGui::BeginDisabled(!idle || state.scene_tab_output || state.scene_tab_dialog);
+  if (ImGui::BeginTabBar("Scene documents")) {
+    for (const auto &item : state.scene_tabs) {
+      const auto label = item.label + (item.dirty ? " *" : "") +
+                         (item.owned ? "" : " [reference]") + "###scene-document-" +
+                         std::to_string(item.id);
+      const bool visible = ImGui::BeginTabItem(
+          label.c_str(), nullptr,
+          item.id == state.scene_tab_active ? ImGuiTabItemFlags_SetSelected : 0);
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state.scene_tab_positions[item.id] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      if (ImGui::IsItemClicked() && item.id != state.scene_tab_active)
+        EmitSceneTab(state, {SceneTabAction::Select, state.scene_tab_source, item.id, item.token});
+      if (visible)
+        ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
+  ImGui::BeginDisabled(!writable || state.scene_tabs.size() >= 16);
+  if (ImGui::Button("New additive"))
+    EmitSceneTab(state, {SceneTabAction::New, state.scene_tab_source});
+  CaptureSceneTabControl(state, 0);
+  ImGui::EndDisabled();
+  const auto continue_row = [](const char *label) {
+    const auto &style = ImGui::GetStyle();
+    const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+    if (ImGui::GetItemRectMax().x + style.ItemSpacing.x + ImGui::CalcTextSize(label).x +
+            2 * style.FramePadding.x <=
+        right)
+      ImGui::SameLine();
+  };
+  for (int reference = 0; reference != 2; ++reference) {
+    continue_row(reference ? "Open reference..." : "Open additive...");
+    ImGui::BeginDisabled(state.scene_tabs.size() >= 16);
+    if (ImGui::Button(reference ? "Open reference..." : "Open additive...")) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      state.scene_tab_path = {};
+      state.scene_tab_dialog = reference ? 2 : 1;
+      state.scene_tab_popup_pending = true;
+      state.scene_tab_status.clear();
+    }
+    CaptureSceneTabControl(state, static_cast<std::size_t>(reference + 1));
+    ImGui::EndDisabled();
+  }
+  continue_row("Save All");
+  ImGui::BeginDisabled(!writable || !named);
+  if (ImGui::Button("Save All"))
+    EmitSceneTab(state, {SceneTabAction::SaveAll, state.scene_tab_source});
+  CaptureSceneTabControl(state, 3);
+  ImGui::EndDisabled();
+  continue_row("Close scene");
+  ImGui::BeginDisabled(!active->closeable);
+  if (ImGui::Button("Close scene"))
+    begin_close();
+  CaptureSceneTabControl(state, 4);
+  ImGui::EndDisabled();
+  ImGui::EndDisabled();
+  if (active->read_only)
+    ImGui::TextDisabled("Read-only scene: resolve the saved scene set before editing.");
+  else if (!active->owned)
+    ImGui::TextDisabled("Reference scene: editing and file writes disabled.");
+  if (!state.scene_tab_status.empty())
+    ImGui::TextWrapped("%s", state.scene_tab_status.c_str());
+  ImGui::Separator();
+}
+
+template <typename StateT> void DrawSceneTabDialog(StateT &state, bool writable, bool cancel) {
+  if (cancel) {
+    state.scene_tab_dialog = 0;
+    state.scene_tab_close.reset();
+    state.scene_tab_output.reset();
+    state.scene_tab_popup_pending = false;
+  }
+  const bool opening = state.scene_tab_popup_pending;
+  if (opening) {
+    ImGui::OpenPopup("Scene documents###editor.scene-tabs");
+    state.scene_tab_popup_pending = false;
+  }
+  const auto size = ImGui::GetMainViewport()->WorkSize;
+  ImGui::SetNextWindowSize({std::max(1.0F, std::min(600.0F, size.x - 24)), 0}, ImGuiCond_Always);
+  if (!ImGui::BeginPopupModal("Scene documents###editor.scene-tabs", nullptr,
+                              ImGuiWindowFlags_AlwaysAutoResize))
+    return;
+  if (!state.scene_tab_dialog) {
+    ImGui::CloseCurrentPopup();
+    ImGui::EndPopup();
+    return;
+  }
+  const bool closing = state.scene_tab_dialog == 3;
+  ImGui::BeginDisabled(state.scene_tabs_busy || state.scene_tab_output.has_value());
+  if (closing && state.scene_tab_close) {
+    ImGui::TextWrapped("This scene has unsaved changes. Save the owned scenes before closing, "
+                       "discard this scene's changes, or keep it open.");
+    const auto target =
+        std::ranges::find(state.scene_tabs, state.scene_tab_close->target, &SceneTabItem::id);
+    ImGui::BeginDisabled(!writable || target == state.scene_tabs.end() || !target->owned);
+    if (ImGui::Button("Save all and close")) {
+      auto request = *state.scene_tab_close;
+      request.save_before_close = true;
+      EmitSceneTab(state, std::move(request));
+    }
+    CaptureSceneTabControl(state, 8);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Discard and close")) {
+      auto request = *state.scene_tab_close;
+      request.discard_dirty = true;
+      EmitSceneTab(state, std::move(request));
+    }
+    CaptureSceneTabControl(state, 9);
+  } else {
+    ImGui::TextUnformatted(state.scene_tab_dialog == 2 ? "Open an inspection-only reference scene."
+                                                       : "Open another scene in this project.");
+    if (opening)
+      ImGui::SetKeyboardFocusHere();
+    const bool submitted =
+        ImGui::InputText("Relative .scene path", state.scene_tab_path.data(),
+                         state.scene_tab_path.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+    CaptureSceneTabControl(state, 5);
+    if (ImGui::Button("Open") || submitted) {
+      const std::string text(state.scene_tab_path.data());
+      if (text.empty() || !foundation::IsValidUtf8(text))
+        state.scene_tab_status = "Choose a valid project-relative scene path.";
+      else {
+        SceneTabRequest request{state.scene_tab_dialog == 2 ? SceneTabAction::OpenReference
+                                                            : SceneTabAction::OpenOwned,
+                                state.scene_tab_source};
+        request.path = std::filesystem::path(std::u8string(text.begin(), text.end()));
+        EmitSceneTab(state, std::move(request));
+      }
+    }
+    CaptureSceneTabControl(state, 6);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+    state.scene_tab_dialog = 0;
+    state.scene_tab_close.reset();
+    ImGui::CloseCurrentPopup();
+  }
+  CaptureSceneTabControl(state, closing ? 10 : 7);
+  ImGui::EndDisabled();
+  if (!state.scene_tab_status.empty())
+    ImGui::TextWrapped("%s", state.scene_tab_status.c_str());
+  ImGui::EndPopup();
 }
 
 template <typename StateT> void CaptureSceneFileControl(StateT &state, std::size_t control) {
@@ -4040,9 +4267,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_file_token.document_generation == scene->Generation();
   const bool file_external_block = recovery_available || state_->play_apply_open ||
                                    close_confirmation_open || state_->game_input_binding_open;
-  const bool writable = workspace && workspace->Writable();
-  const bool file_busy =
-      state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output;
+  const auto active_tab =
+      std::ranges::find(state_->scene_tabs, state_->scene_tab_active, &SceneTabItem::id);
+  const bool tab_context_valid = file_context_valid && active_tab != state_->scene_tabs.end() &&
+                                 active_tab->token == state_->scene_file_token;
+  const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
+  const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
+  const bool writable = workspace && workspace->Writable() && !reference_scene;
+  const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
+                         state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
@@ -4092,7 +4325,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                           scene->Dirty() ? " *" : "");
     ImGui::EndMainMenuBar();
   }
-  if (file_context_valid && state_->app_focused && !file_external_block &&
+  if (file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
       state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
       !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
     if (writable && !game_running &&
@@ -4106,12 +4339,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
   }
   const bool external_modal_open =
-      file_external_block || state_->scene_file_dialog != State::FileDialog::None ||
+      file_external_block || tab_modal || state_->scene_file_dialog != State::FileDialog::None ||
       state_->scene_file_output || ImGui::IsPopupOpen("Scene file###editor.scene-file");
   if (!content)
     state_->content_rename_target.reset();
-  const bool rename_editable = (!workspace || workspace->Writable()) && !external_modal_open &&
-                               !state_->content_rename_target;
+  const bool rename_editable = !reference_scene && (!workspace || workspace->Writable()) &&
+                               !external_modal_open && !state_->content_rename_target;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
   const bool interaction_blocked =
       external_modal_open || rename_open || state_->content_rename_target;
@@ -4241,6 +4474,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
+    DrawSceneTabs(*state_,
+                  tab_context_valid && !file_external_block && !game_running &&
+                      state_->scene_file_dialog == State::FileDialog::None &&
+                      !state_->scene_file_output && !state_->content_rename_target,
+                  workspace && workspace->Writable());
     if (workspace && !workspace->Writable())
       ImGui::TextDisabled("Read-only project: scene editing disabled.");
     ImGui::BeginDisabled(scene == nullptr || !scene_editable);
@@ -4588,8 +4826,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + apply_width;
         if (same_line_end <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x)
           ImGui::SameLine();
-        ImGui::BeginDisabled(scene == nullptr || workspace == nullptr || !workspace->Writable() ||
-                             interaction_blocked || state_->close_prompt_requested);
+        ImGui::BeginDisabled(scene == nullptr || !writable || interaction_blocked ||
+                             state_->close_prompt_requested);
         if (ImGui::Button("Apply Changes")) {
           state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
           state_->play_apply_open = true;
@@ -5290,8 +5528,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
       ImGui::EndChild();
       ImGui::BeginDisabled(conflicts || review.diffs.empty() ||
-                           play->State() != runtime::PlayState::Paused || !workspace ||
-                           !workspace->Writable() || state_->close_prompt_requested);
+                           play->State() != runtime::PlayState::Paused || !workspace || !writable ||
+                           state_->close_prompt_requested);
       if (ImGui::Button("Apply and Stop")) {
         state_->play_apply_requested = state_->play_apply_review;
         state_->play_apply_open = false;
@@ -5344,7 +5582,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_file_close_popup = false;
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextUnformatted("Save scene changes before closing?");
+      ImGui::TextUnformatted(state_->scene_tabs.empty()
+                                 ? "Save scene changes before closing?"
+                                 : "Save all owned scene changes before closing?");
       if (ImGui::Button("Save and Exit"))
         state_->close_choice = CloseChoice::SaveAndExit;
       ImGui::SameLine();
@@ -5365,6 +5605,74 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       recovery_available || state_->play_apply_open || !file_context_valid ||
           (close_confirmation_open && !state_->scene_file_close_popup &&
            !state_->scene_file_intent.value_or(SceneFileRequest{}).close_after_save));
+  DrawSceneTabDialog(*state_, workspace && workspace->Writable(),
+                     !tab_context_valid || recovery_available || state_->play_apply_open ||
+                         close_confirmation_open || game_running ||
+                         state_->scene_file_dialog != State::FileDialog::None ||
+                         state_->scene_file_output || state_->game_input_binding_open);
+}
+
+bool EditorImGuiHost::SetSceneTabs(std::span<const SceneTabItem> items, std::uint64_t active,
+                                   bool busy) {
+  if (items.size() > 16 || (items.empty() && active))
+    return false;
+  const auto selected = std::ranges::find(items, active, &SceneTabItem::id);
+  if (!items.empty() && selected == items.end())
+    return false;
+  std::unordered_set<std::uint64_t> ids, generations;
+  for (const auto &item : items) {
+    if (!item.id || !item.token.document_generation || item.token.project == foundation::Uuid{} ||
+        item.token.project != selected->token.project || !ids.insert(item.id).second ||
+        !generations.insert(item.token.document_generation).second || item.label.empty() ||
+        item.label.size() > 256 || !foundation::IsValidUtf8(item.label) ||
+        std::ranges::any_of(item.label, [](unsigned char c) { return c < 32 || c == 127; }))
+      return false;
+    if (item.path) {
+      const auto bytes = item.path->generic_u8string();
+      if (bytes.empty() || bytes.size() >= 1024 ||
+          !foundation::IsValidUtf8(
+              std::string_view(reinterpret_cast<const char *>(bytes.data()), bytes.size())))
+        return false;
+    }
+  }
+  std::vector<SceneTabItem> next(items.begin(), items.end());
+  const auto source = items.empty() ? SceneFileToken{} : selected->token;
+  const auto live_target = [&](const std::optional<SceneTabRequest> &request) {
+    if (!request || !request->target)
+      return true;
+    const auto target = std::ranges::find(items, request->target, &SceneTabItem::id);
+    return target != items.end() && target->token == request->target_token;
+  };
+  if (source != state_->scene_tab_source || !live_target(state_->scene_tab_close) ||
+      !live_target(state_->scene_tab_output)) {
+    CancelSceneGestures(*state_);
+    CancelInspectorDrafts(*state_);
+    state_->scene_tab_dialog = 0;
+    state_->scene_tab_close.reset();
+    state_->scene_tab_output.reset();
+    state_->scene_tab_popup_pending = false;
+    state_->scene_tab_path = {};
+    state_->scene_tab_status.clear();
+    state_->scene_save_requested = false;
+  }
+  state_->scene_tabs = std::move(next);
+  state_->scene_tab_active = active;
+  state_->scene_tab_source = source;
+  state_->scene_tabs_busy = busy;
+  return true;
+}
+std::optional<SceneTabRequest> EditorImGuiHost::TakeSceneTabRequest() {
+  return std::exchange(state_->scene_tab_output, std::nullopt);
+}
+void EditorImGuiHost::SetSceneTabStatus(std::string message, bool success) {
+  state_->scene_tab_status = message.size() <= 4096 && foundation::IsValidUtf8(message)
+                                 ? std::move(message)
+                                 : "The scene action returned an invalid diagnostic.";
+  if (success) {
+    state_->scene_tab_dialog = 0;
+    state_->scene_tab_close.reset();
+    state_->scene_tab_popup_pending = false;
+  }
 }
 
 bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
@@ -6466,6 +6774,27 @@ void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, SceneDocum
                                                std::optional<SceneDocument::NodeKey> parent,
                                                std::size_t index) noexcept {
   host.state_->hierarchy_move_request = {entity, parent, index};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneTabPosition(const EditorImGuiHost &host, std::uint64_t id) {
+  const auto at = host.state_->scene_tab_positions.find(id);
+  return at == host.state_->scene_tab_positions.end() ? std::nullopt : std::optional(at->second);
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneTabControl(const EditorImGuiHost &host, std::size_t control) {
+  return control < host.state_->scene_tab_controls.size() ? host.state_->scene_tab_controls[control]
+                                                          : std::nullopt;
+}
+void EditorImGuiTestAccess::SetSceneTabPath(EditorImGuiHost &host, std::string_view text) {
+  Activate(host.state_->context);
+  ImGui::ClearActiveID();
+  host.state_->scene_tab_path = {};
+  std::copy_n(text.begin(), std::min(text.size(), host.state_->scene_tab_path.size() - 1),
+              host.state_->scene_tab_path.begin());
+}
+std::vector<SceneTabItem> EditorImGuiTestAccess::SceneTabs(const EditorImGuiHost &host) {
+  return host.state_->scene_tabs;
 }
 
 std::string_view EditorImGuiTestAccess::SceneFileText(const EditorImGuiHost &host) noexcept {
