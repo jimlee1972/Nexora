@@ -9,6 +9,7 @@ endif()
 option(NEXORA_ENABLE_ZIG_GAMEPLAY "Build the Zig gameplay ABI sample and NexoraShowcase" OFF)
 option(NEXORA_BUILD_SHOWCASE "Build the V1 visual showcase (requires Zig gameplay and Window Presentation)" ${NEXORA_ENABLE_ZIG_GAMEPLAY})
 option(NEXORA_BUILD_PROJECT_PLAYER "Build the Runtime-only static project package verifier" OFF)
+option(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE "Enable native StaticView rendering in ProjectPlayer" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)
 option(NEXORA_ENABLE_NATIVE_BACKENDS "Build the platform RHI backends" ON)
@@ -99,6 +100,11 @@ if(NEXORA_ENABLE_EDITOR AND (NOT NEXORA_ENABLE_EDITOR_SDK OR NOT NEXORA_ENABLE_A
 endif()
 if(NEXORA_BUILD_PROJECT_PLAYER AND (NOT NEXORA_ENABLE_ASSET_PIPELINE OR NEXORA_HEADLESS))
   message(FATAL_ERROR "NEXORA_BUILD_PROJECT_PLAYER requires the Runtime asset pipeline and a non-headless build")
+endif()
+if(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE AND
+   (NOT NEXORA_BUILD_PROJECT_PLAYER OR NOT NEXORA_ENABLE_WINDOW_PRESENTATION OR
+    NOT NEXORA_ENABLE_SCENE_RENDERING OR NEXORA_HEADLESS))
+  message(FATAL_ERROR "Native ProjectPlayer requires ProjectPlayer, Window Presentation and scene rendering")
 endif()
 if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL AND
    (NOT NEXORA_ENABLE_EDITOR OR NOT NEXORA_ENABLE_WINDOW_PRESENTATION))
