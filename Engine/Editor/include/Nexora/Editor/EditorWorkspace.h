@@ -240,6 +240,21 @@ public:
   };
   static constexpr std::size_t kMaximumRuntimeCaptureEntities = 100'000;
   static constexpr std::size_t kMaximumRuntimeCaptureBytes = 64 * 1024 * 1024;
+  // Owning, immutable preparation for deferred single-file publication.
+  class PreparedSave final {
+  public:
+    [[nodiscard]] const std::string &Bytes() const noexcept { return bytes_; }
+    [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
+
+  private:
+    friend class SceneDocument;
+    PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
+                 std::string opaque_records)
+        : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
+          opaque_records_(std::move(opaque_records)) {}
+    std::uint64_t generation_{};
+    std::string bytes_, signature_, opaque_records_;
+  };
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);

@@ -1,0 +1,20 @@
+Preset CMake variables:
+
+  BUILD_TESTING="ON"
+  CMAKE_CONFIGURATION_TYPES="Debug;Development;Shipping"
+  CMAKE_CXX_STANDARD="20"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  NEXORA_ENABLE_NATIVE_BACKENDS="ON"
+  NEXORA_ENABLE_VULKAN_BACKEND="OFF"
+  NEXORA_ENABLE_ZIG_GAMEPLAY="ON"
+  NEXORA_LINK_MODE="Modular"
+  NEXORA_SHIPPING_PROFILE="Full"
+
+Preset environment variables:
+
+  PATH="<task-local toolchain environment>"
+
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.19045.
+-- Configuring done (4.7s)
+-- Generating done (7.7s)
+-- Build files have been written to: G:/proj/Nexora/build/windows-showcase-development

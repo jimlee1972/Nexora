@@ -1,5 +1,9 @@
 # Nexora Presentation contract (WP-M4)
 
+DX12 surface diagnostics report the selected presentation mode used by `Present`: VSync uses
+sync interval 1; Immediate uses 0 and requests tearing when the DXGI factory supports it.
+This observation does not guarantee a display refresh rate or exclude compositor pacing.
+
 `SurfaceDiagnostics::device` copies the selected native device's UTF-8 name and observed IDs/driver
 version into bounded value storage. It allocates no memory, owns no native handle, follows the
 existing diagnostics render-thread contract, and survives resize and drain. Vulkan supplies

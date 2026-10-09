@@ -1,5 +1,7 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ Windows 最新主線整合後 Development configure/build 與完整 113/113 CTest 通過（296.04 秒），涵蓋原生 DX12 PBR、prepared／外部 scene save 及 owning Runtime capture。整合修復恢復既有 API，並如實回報 DX12 呈現模式。Linux CI 與同版 Windows Shipping、實體美術、品質預算及影片驗收仍待完成；VIS 維持 5/7。[整合證據](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/integration/acceptance.md)。
+
 Windows 本機續作（2026-10-09）：已修正生成的 Slang→HLSL 儲存觸發 MSVC C2026，shader
 位元組保持一致。完整 Development build 與 DX12 原生 PBR 重測通過；第一輪 95/99 CTest
 的四個失敗經標準 LF、VS/Ninja 環境與不受遮擋的 capture 修正後均通過指定重測。

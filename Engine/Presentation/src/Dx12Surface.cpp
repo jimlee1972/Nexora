@@ -111,6 +111,8 @@ public:
       return;
     commands_->Close();
     valid_ = CreateSwapchain(width_, height_) && CreateUiResources() && CreateSceneResources();
+    if (valid_)
+      diagnostics_.negotiatedPresentMode = mode_;
   }
   ~Dx12Surface() override { DrainAndDestroy(); }
   std::thread::id RenderThread() const noexcept override { return renderThread_; }

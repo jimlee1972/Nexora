@@ -296,6 +296,7 @@ int main() {
   assert(diagnostics.acquiredFrames == 4);
   assert(diagnostics.presentedFrames == 4);
   assert(diagnostics.resizeGenerations == 1);
+  assert(diagnostics.negotiatedPresentMode == Presentation::PresentMode::Immediate);
   assert(diagnostics.device.name[0] != '\0');
   assert(diagnostics.device.name.back() == '\0');
   assert(diagnostics.device.deviceIdsAvailable);

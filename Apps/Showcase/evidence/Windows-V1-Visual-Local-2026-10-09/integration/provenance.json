@@ -1,0 +1,21 @@
+{
+  "source_base": "577189ae61294078da18f62ffa304570b3c70320",
+  "canonical_source_sha256": {
+    "Engine/Editor/include/Nexora/Editor/EditorWorkspace.h": "ac39bb621e3efef684b2f1e3292e8cc8e30819e858b62c4824c355842a5609c7",
+    "Engine/Editor/src/EditorWorkspace.cpp": "eda3ea10aff4e0f0a20edb0b27060d61f1e6f5b596a520f9acdf6ec39d9b586e",
+    "Engine/Runtime/src/ProjectPackage.cpp": "fe62ff1188bbde7aa218c77cbf1d05c312e897f50012da6dc5bc38d929e3f46e",
+    "Engine/Presentation/src/Dx12Surface.cpp": "48484989e029a19e834ed6d6e2591310c4cfc0ac316215befa30a5a52d93ea83",
+    "Tests/WindowPresentation/WindowPresentationTests.cpp": "f2d93240903871096f4f685ed4452f7471399fde510e78c3f66613f4c5b04cf1"
+  },
+  "windows_development": {
+    "configure": "PASS",
+    "build": "PASS",
+    "ctest": "113/113 PASS",
+    "seconds": 296.04
+  },
+  "capture_restored_from": "88394c37",
+  "capture_implementation_byte_identical": true,
+  "shipping": "REBUILD_PENDING_AFTER_DIAGNOSTICS_FIX",
+  "linux": "PENDING_CI",
+  "log_normalization": "Trailing whitespace stripped; PATH redacted. Original logs retained locally under build/v1-windows-local-2026-10-09."
+}

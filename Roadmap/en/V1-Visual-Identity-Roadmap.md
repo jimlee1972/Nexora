@@ -1,5 +1,7 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+✅ Windows current-main Development configure/build and full 113/113 CTest pass (296.04 s), including native DX12 PBR, prepared/external scene save and owning Runtime capture. Integrated source restores admitted APIs and accurately reports DX12 presentation mode. Linux CI and final same-version Windows Shipping, physical art, quality budgets and video remain pending; VIS stays 5/7. [Integration evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/integration/acceptance.md).
+
 Windows local continuation (2026-10-09): MSVC C2026 in generated Slang-to-HLSL storage is repaired
 without changing shader bytes. Full Development build and DX12 native PBR recheck pass; the initial
 95/99 CTest run's four failures all pass focused rechecks after canonical-LF, VS/Ninja environment

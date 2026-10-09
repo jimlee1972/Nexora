@@ -97,7 +97,7 @@ std::optional<LoadedStaticProject> LoadStaticProjectPackage(const StaticProjectP
                                                             std::string *error) {
   if (error)
     error->clear();
-  if (std::endian::native != std::endian::little)
+  if constexpr (std::endian::native != std::endian::little)
     return Fail<LoadedStaticProject>(error, "NXAB static packages require a little-endian host");
   if (!Nonzero(package.project) || !Nonzero(package.scene) || package.assets.empty() ||
       package.assets.size() > kMaximumProjectPackageAssets)
