@@ -714,7 +714,8 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   base／local／remote revision 的 stable object／field 差異。Missing／empty value、sibling order、
   known Runtime field、authored Euler turn 與完整 unknown payload 維持區別；unresolved conflict
   及容量拒絕保留 live data／history。實際 legacy、component、source／opaque／aggregate 邊界與
-  4,096 entity 測試通過。欄位選擇僅供檢視提示；graphical provider／conflict presentation 與有效
+  4,096 entity 測試通過，亦驗證等價 quaternion 正負號及 ingestion 前 authoring-node 上限。
+  欄位選擇僅供檢視提示；graphical provider／conflict presentation 與有效
   merge publication 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md)。
 
