@@ -156,6 +156,9 @@ public:
   [[nodiscard]] bool TakeMemoryExportRequest() noexcept;
   [[nodiscard]] bool TakeMemoryImportRequest() noexcept;
   bool SetImportedMemoryCapture(ProcessMemoryCapture capture);
+  [[nodiscard]] bool TakeGpuExportRequest() noexcept;
+  [[nodiscard]] bool TakeGpuImportRequest() noexcept;
+  bool SetImportedGpuCapture(GpuTimingCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);

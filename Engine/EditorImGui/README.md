@@ -448,7 +448,7 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import and GPU trace persistence remain open; process-memory traces use a separate schema.
+file itself. Arbitrary capture import remains open; native GPU and process-memory traces use separate schemas.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
@@ -903,3 +903,13 @@ with pause and Clear semantics enforced by the owner. Source/domain changes clea
 stream; project changes/detachment retain its process-surface history. Detaching the profile owner
 clears copied display values. CPU plotting remains ahead of the separate GPU/memory sections, and
 wall-time file imports retain their explicit unavailable GPU fields. The GUI never polls the device.
+
+Export GPU / Import GPU / Clear GPU import act on a separate owning `GpuTimingCapture`. The first
+two emit independent one-shot requests and perform no IO in widgets. Publication validates the
+source and 1–600 ordered copied optional timings, retaining the prior static capture on rejection.
+Static plots label backend/software status, command-buffer scope, milliseconds, native submission
+axis, retained peak and dropped samples. Null breaks the plot and an all-null capture displays
+unavailable; zero remains measured. Static clear and live Clear are independent, as are wall/RSS
+imports. Project root/UUID changes and detachment clear static state and pending requests while
+live surface history remains. Export requires a writable/resolved project and nonempty live GPU
+history; read-only import is permitted. Modal/recovery/close/no-project gates suppress requests.

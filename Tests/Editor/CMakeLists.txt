@@ -154,3 +154,11 @@ add_executable(NexoraGpuProfileTests GpuProfileTests.cpp)
 target_link_libraries(NexoraGpuProfileTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraGpuProfileTests)
 add_test(NAME editor.gpu_profile COMMAND NexoraGpuProfileTests)
+add_executable(NexoraGpuTimingCaptureTests GpuTimingCaptureTests.cpp)
+target_link_libraries(NexoraGpuTimingCaptureTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraGpuTimingCaptureTests)
+add_test(NAME editor.gpu_timing_capture COMMAND NexoraGpuTimingCaptureTests)
+add_test(NAME editor.gpu_timing_json
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/GpuTimingJsonTests.py" "$<TARGET_FILE:NexoraGpuTimingCaptureTests>")
+add_test(NAME editor.gpu_timing_json_optimized
+  COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/GpuTimingJsonTests.py" "$<TARGET_FILE:NexoraGpuTimingCaptureTests>")

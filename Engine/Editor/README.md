@@ -553,7 +553,8 @@ cells because this wall-time format excludes live RSS observations. Export requi
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import and GPU trace persistence remain open. Process-memory traces use their own schema.
+file itself. Arbitrary capture import remains open; native GPU and process-memory traces use
+separate schemas.
 
 Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
 sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
@@ -855,7 +856,7 @@ separate from live memory and wall-time imports; failed publication preserves it
 not erase it, and root/UUID changes or detachment clear it and pending requests. The plot uses elapsed
 time horizontally, breaks lines at unavailable attempts and shows MiB as 1,048,576 bytes. Graphical
 controls follow project access and modal/recovery/close gates. Existing schema-1 wall-time CSV/JSON
-readers/writers are unchanged; GPU trace persistence, arbitrary captures and physical-host acceptance remain open.
+readers/writers are unchanged; Arbitrary captures and physical-host acceptance remain open; GPU traces use a separate schema.
 
 ## Completed native GPU profile history
 
@@ -876,5 +877,43 @@ before drawing Clear/Capture. GPU history is surface/process-wide across project
 separate from wall-time frames and process RSS, and the GUI retains only copied scalar observations.
 The plot's horizontal axis is native submission ID and missing timings break its line. Native
 sources, software status, delayed completion, milliseconds and observed peak are explicit. Existing
-CSV/JSON wall-time captures remain schema-compatible and still contain no native GPU values. GPU
-trace persistence/import, per-pass tools and physical timing calibration remain open.
+CSV/JSON wall-time captures remain schema-compatible and still contain no native GPU values.
+GPU trace persistence/import uses its own schema; per-pass tools and physical timing calibration
+remain open.
+
+## Native GPU capture interchange
+
+`GpuTimingCapture` owns one ordered native surface stream with its Vulkan timestamp, DX12 timestamp
+or Metal command-buffer source, software-device flag, up to 600 copied samples and independent
+dropped count. `ValidateGpuTimingSamples` is shared by export, the reader and static GUI publication.
+It rejects unavailable/unknown sources, empty/oversized histories, zero/nonincreasing submission
+IDs and negative/nonfinite durations. A known source may contain only unavailable results; measured
+zero is distinct from null. Source/domain changes start new live histories, so files do not mix
+devices. Native surface domain IDs and platform handles are never serialized.
+
+`ExportGpuTimingJson` explicitly writes `.nexora/gpu-timing.json` under the project writer lease
+and resolved recovery. Schema 1 identifies `NexoraEditor`, `completed_gpu_timing`, native
+command-buffer scope, milliseconds, source/software status and the native completed-submission
+axis. `export_project_uuid` identifies only the export destination: the retained process-surface
+history may include observations from other projects. Submission/drop IDs use lossless decimal
+strings; optional timings are finite JSON numbers or null. No CPU time, RSS, absolute timestamp,
+path, display latency or per-pass attribution is inferred. Locale-independent double precision is
+preserved. Invalid input, occupied staging, unsafe metadata/destinations and replacement failures
+preserve the previous file and unrelated staging.
+
+`ImportGpuTimingJson` synchronously reads at most 128 KiB into an owning capture; read-only observers
+may import, while closed/recovery projects and nonregular/aliased paths reject. The shared bounded
+ASCII schema-token reader has no recursion, DOM or unknown-value skipping. All three profiler JSON
+schemas retain their distinct field contracts; reordered fields and equivalent ASCII escapes are
+accepted, but unknown/duplicate/missing fields, wrong source/scope/unit/project, invalid samples and
+trailing data reject without mutating files or caller state. IO remains externally serialized on the
+host thread, with concurrent filesystem substitution outside the contract.
+
+The GUI's GPU actions are independent one-shot requests consumed by the application owner. Static
+import success/failure and Clear GPU import leave live GPU/CPU/RSS and other static imports intact;
+live Clear leaves static captures intact. Project root/UUID changes or detachment clear static GPU
+state and pending requests. Plots use native submission IDs, break at unavailable samples and label
+source/software, scope, units and retained peak. Read-only/modal/recovery/close gates match existing
+profiler actions. No capture is saved implicitly. These additive rebuild-required C++ APIs change
+no module dependencies or stable C/Gameplay ABI. Physical GPU calibration, per-pass analysis and
+third-party capture adapters remain open.
