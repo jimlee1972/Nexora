@@ -78,6 +78,9 @@ and opaque limits, geometry accounting and a functional 100,000-entity World. Op
 optimized `editor.static_project_export_cli` tests feed the generated production artifact to the
 standalone player from a Unicode path, verify its report and unchanged bytes, and repeat cooking
 from independent owning captures. [Delivery evidence](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)
-records executed gates. Native player rendering, gameplay compilation, GUI export/publication,
-deployment/signing and the complete ED-M6 milestone remain open. Existing NXAB still limits this
+records executed gates. The optional [native Project Player](../../Apps/ProjectPlayer/README.md)
+now renders admitted StaticView packages using the production native presentation path, with
+[executed Linux acceptance](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md).
+Gameplay compilation, GUI export/publication, deployment/signing and the complete ED-M6 milestone
+remain open. Existing NXAB still limits this
 package to little-endian hosts; FNV integrity is not authenticity.

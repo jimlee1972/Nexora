@@ -775,6 +775,15 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Optional native ProjectPlayer now draws actual owning StaticView package assets through
+    bounded public NativePBR geometry/material/affine admission, without Editor, SDK, source content
+    or Showcase. Authored camera/light selection, resized projection and native close/drain are
+    explicit; unsupported/budget failures never draw a truncated subset or report success.
+    Real CPU fixtures prove exact instance/palette/shared-geometry budgets and mirror/shear ownership;
+    Linux Xvfb verifies red/green material pixels, resize, close and exactly four successful presents.
+    Verification-only/feature-off builds remain supported. Gameplay, build/deploy/publication UI,
+    physical display and other-platform native pixel acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md).
   - ✅ Build export prerequisites now provide a bounded owning Runtime scene capture. The shared
     schema-3 writer caps output before appending; the Editor captures all Runtime entities plus
     tracked NodeKeys and full unknown metadata without IO or history changes. Entity/output and
