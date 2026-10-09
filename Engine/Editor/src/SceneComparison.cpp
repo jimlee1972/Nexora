@@ -53,7 +53,7 @@ std::optional<Fields> Read(std::optional<std::string_view> source, std::string *
   runtime::World world;
   const auto id = world.LoadScene("Comparison");
   SceneDocument document(world, id);
-  if (!document.ReloadBytes(*source)) {
+  if (!document.ReloadBytes(*source, SceneComparison::kMaximumEntities)) {
     Fail(error, "Scene comparison source is corrupt or has an unsupported schema.");
     return std::nullopt;
   }
@@ -79,10 +79,19 @@ std::optional<Fields> Read(std::optional<std::string_view> source, std::string *
             snapshot.Put(prefix + "parent", std::to_string(entity.parent)) &&
             snapshot.Put(prefix + "sibling/index", std::to_string(siblings[entity.parent]++));
     const auto &t = entity.transform;
+    // q and -q encode the same rotation. Choose a deterministic hemisphere, including w == 0.
+    double sign = 1;
+    for (const auto value : {t.qw, t.qx, t.qy, t.qz})
+      if (value != 0) {
+        sign = value < 0 ? -1 : 1;
+        break;
+      }
     const std::pair<const char *, double> transform[] = {
-        {"position/x", t.x},  {"position/y", t.y},  {"position/z", t.z},  {"rotation/x", t.qx},
-        {"rotation/y", t.qy}, {"rotation/z", t.qz}, {"rotation/w", t.qw}, {"scale/x", t.sx},
-        {"scale/y", t.sy},    {"scale/z", t.sz}};
+        {"position/x", t.x},         {"position/y", t.y},
+        {"position/z", t.z},         {"rotation/x", sign * t.qx},
+        {"rotation/y", sign * t.qy}, {"rotation/z", sign * t.qz},
+        {"rotation/w", sign * t.qw}, {"scale/x", t.sx},
+        {"scale/y", t.sy},           {"scale/z", t.sz}};
     for (const auto &[field, value] : transform)
       valid = valid && put_number(prefix + "transform/" + field, value);
     // Presence and stored fields are both retained, including currently disabled component data.

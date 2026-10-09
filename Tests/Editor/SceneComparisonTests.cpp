@@ -88,6 +88,46 @@ void Run() {
   const auto unchanged = editor::CompareSceneRevisions(base, base, base);
   Require(unchanged && unchanged->rows.empty() && !unchanged->conflicts,
           "Unchanged sources fabricated differences");
+  // Real Runtime revisions with opposite quaternion signs retain identical semantic rotation.
+  runtime::World rotation_world;
+  const auto rotation_scene = rotation_world.LoadScene("Rotation");
+  editor::SceneDocument rotation_document(rotation_world, rotation_scene);
+  const auto rotation_entity = rotation_world.CreateEntity(rotation_scene).id;
+  for (const auto &rotation : {runtime::Transform{}, runtime::Transform{.qx = 1, .qw = 0},
+                               runtime::Transform{.qy = .6, .qw = .8}}) {
+    runtime::WorldCommandBuffer positive_commands;
+    positive_commands.SetTransform(rotation_entity, rotation);
+    Require(positive_commands.Apply(rotation_world), "Positive rotation fixture failed");
+    const auto positive = Bytes(rotation_document);
+    auto negative_rotation = rotation;
+    negative_rotation.qx = -rotation.qx;
+    negative_rotation.qy = -rotation.qy;
+    negative_rotation.qz = -rotation.qz;
+    negative_rotation.qw = -rotation.qw;
+    runtime::WorldCommandBuffer negative_commands;
+    negative_commands.SetTransform(rotation_entity, negative_rotation);
+    Require(negative_commands.Apply(rotation_world), "Negative rotation fixture failed");
+    const auto negative = Bytes(rotation_document);
+    Require(positive != negative, "Quaternion fixtures must contain different actual bytes");
+    const auto equivalent = editor::CompareSceneRevisions(positive, negative, positive);
+    Require(equivalent && equivalent->rows.empty() && !equivalent->conflicts,
+            "Equivalent quaternion signs fabricated changes/conflicts");
+  }
+  // Under-8-MiB legacy input must reject its 4097th node before hierarchy validation.
+  std::string excessive_nodes = "NEXORA_EDITOR_SCENE 1\n";
+  for (std::size_t i = 1; i <= 20000; ++i)
+    excessive_nodes += "node " + std::to_string(i) + ' ' + std::to_string(i - 1) + " Deep\n";
+  excessive_nodes += "world\nNEXORA_SCENE 2 \"Empty\" 0 0\n";
+  Require(excessive_nodes.size() < editor::SceneComparison::kMaximumSourceBytes &&
+              !editor::CompareSceneRevisions(excessive_nodes, base, base) &&
+              !editor::CompareSceneRevisions(base, excessive_nodes, base) &&
+              !editor::CompareSceneRevisions(base, base, excessive_nodes),
+          "Oversized legacy authoring chain reached comparison ingestion");
+  const auto bounded_generation = document.Generation();
+  const auto bounded_bytes = Bytes(document);
+  Require(!document.ReloadBytes(excessive_nodes, editor::SceneComparison::kMaximumEntities) &&
+              document.Generation() == bounded_generation && Bytes(document) == bounded_bytes,
+          "Bounded parser rejection changed the live document");
   const auto shared = editor::CompareSceneRevisions(base, local, local);
   Require(shared && !shared->conflicts &&
               std::ranges::all_of(shared->rows,
