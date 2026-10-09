@@ -258,9 +258,12 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
              return;
            }
            if (!imported.error.empty()) {
-             implementation->FinishFailed(
-                 operation, imported.read_failed ? "reimport.read_failed" : "reimport.mesh_failed",
-                 imported.error, source, request.asset);
+             implementation->FinishFailed(operation,
+                                          imported.read_failed ? "reimport.read_failed"
+                                          : request.type == ".nmaterial"
+                                              ? "reimport.material_failed"
+                                              : "reimport.mesh_failed",
+                                          imported.error, source, request.asset);
              return;
            }
            implementation->Progress(operation, ImportStage::Staging, 2, 4);
@@ -272,7 +275,8 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
                                  std::move(request.dependencies),
                                  {},
                                  false,
-                                 std::move(imported.mesh)};
+                                 std::move(imported.mesh),
+                                 std::move(imported.material)};
            if (token.IsCancellationRequested()) {
              implementation->FinishCancelled(operation);
              return;

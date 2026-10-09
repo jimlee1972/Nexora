@@ -210,6 +210,22 @@ reservation is capped at a small constant, so a hostile snapshot cannot make the
 reserve memory proportional to a claimed count.
 Double-precision world transforms provide the large-coordinate foundation.
 
+`World::SaveScene(scene, max_bytes)` synchronously returns an owning snapshot only when its complete
+serialized output fits the caller's byte cap. Missing, unloading/unloaded scenes, stream failures
+and exceeded caps return `nullopt`, never partial bytes. The writer checks remaining capacity before
+each append and preflights the escaped quoted scene-name size before invoking `std::quoted`, which
+may allocate a formatter-owned temporary. The cap bounds logical output bytes, not string capacity,
+total formatter/allocator memory or process RSS. Callers apply their own entity/count and metadata
+budgets; Runtime does not impose the Editor capture's 100,000-entity or 64-MiB policy.
+
+The legacy `SaveScene(scene)` delegates with the maximum `size_t` cap to the same production
+serializer. Both paths preserve schema 3, classic locale, 17-digit numeric precision, quoted names,
+entity storage order and full-width IDs; this overload adds no persistence migration. Serialization
+is read-only, performs no IO/publication, and requires serialized access on the World's owning
+thread like other World calls. Returned bytes retain no scene/entity borrow and survive mutation or
+destruction of the source World. Successful serialization grants no Editor workspace access,
+recovery or publication authority and does not establish an authoring revision.
+
 `runtime::Transform` is one component holding a position, a rotation stored as a unit quaternion
 (`qx, qy, qz, qw`, identity by default), and a per-axis scale (`sx, sy, sz`, one by default), following
 the Unity and Unreal convention of a single transform with possibly non-uniform scale. Euler angles
@@ -446,6 +462,23 @@ cross-compilation, and device execution remain required follow-up gates.
 Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI smoke matrix also
 runs `zig build-obj` for `aarch64-linux-android` and `aarch64-ios`; these checks validate object
 generation only and do not claim Android NDK or iOS SDK linking, packaging, or runtime execution.
+
+## Cooked static-project consumption
+
+The asset-pipeline feature now provides owning [cooked mesh, scalar PBR and scene codecs](CookedSceneAssets.md)
+and the [StaticView project package consumer](ProjectPackage.md). Public schema-1 payloads use explicit
+little-endian fields; the existing NXAB envelope requires a little-endian host. The loader validates
+bounded framing, hashes, full UUID/dependency closure and mesh resource collisions, then constructs
+an isolated Play World with owning typed resources and exact hierarchy matrices. Unknown component
+bytes remain preserved and inactive. Failed candidates publish no replacement.
+
+Calls are synchronous; inputs are borrowed only during each call and callers serialize mutations.
+Returned resource ownership survives package replacement. Allocation exceptions propagate; invalid
+input returns an error. The optional `NEXORA_BUILD_PROJECT_PLAYER` executable consumes real files
+through `--verify-package`, without Editor or source assets. Static verification does not imply native
+rendering, gameplay loading or application build success. Editor capture, cancellation, generation
+checks and output publication remain the export coordinator's responsibility. See
+[ADR-0006](../../Roadmap/en/ADR-0006-Cooked-Static-Projects.md).
 
 ## V1-M5 asset, cooker, bundle, and residency pipeline
 

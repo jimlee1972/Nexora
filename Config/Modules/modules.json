@@ -92,6 +92,13 @@
       ]
     },
     {
+      "name": "ProjectPlayer",
+      "feature": "NEXORA_BUILD_PROJECT_PLAYER",
+      "dependencies": [
+        "Runtime"
+      ]
+    },
+    {
       "name": "DedicatedServer",
       "feature": "NEXORA_ENABLE_DEDICATED_SERVER",
       "dependencies": [
@@ -102,6 +109,7 @@
       "name": "Editor",
       "feature": "NEXORA_ENABLE_EDITOR",
       "dependencies": [
+        "Renderer",
         "Core",
         "Foundation",
         "Runtime"

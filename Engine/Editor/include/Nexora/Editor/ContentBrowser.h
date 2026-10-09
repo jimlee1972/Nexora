@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/MaterialImport.h"
 #include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Runtime/AssetPipeline.h"
 
@@ -27,6 +28,8 @@ struct ContentItem final {
   ThumbnailState thumbnail{ThumbnailState::Loading};
   // Owning immutable geometry, preserved across model/Undo copies.
   std::shared_ptr<const MeshGeometry> mesh{};
+  // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
+  std::shared_ptr<const MaterialAsset> material{};
 };
 
 struct Breadcrumb final {
@@ -72,7 +75,8 @@ public:
   bool Undo();
   bool PublishArtifact(runtime::AssetUuid id, std::string artifact_hash, ThumbnailState thumbnail,
                        std::string *error = nullptr,
-                       std::shared_ptr<const MeshGeometry> mesh = nullptr);
+                       std::shared_ptr<const MeshGeometry> mesh = nullptr,
+                       std::shared_ptr<const MaterialAsset> material = nullptr);
 
 private:
   bool Commit(std::vector<ContentItem> next, std::string *error);
@@ -125,6 +129,8 @@ struct ReimportResult final {
   std::string diagnostic;
   bool cancelled{};
   std::shared_ptr<const MeshGeometry> mesh{};
+  // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
+  std::shared_ptr<const MaterialAsset> material{};
 };
 
 class NEXORA_EDITOR_API ReimportTransaction final {

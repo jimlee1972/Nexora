@@ -115,6 +115,10 @@ public:
   // unloading scenes and entity-ID collisions with other scenes. Only target entity borrows expire.
   [[nodiscard]] bool ReplaceSceneSnapshot(Id scene, std::string_view snapshot);
   [[nodiscard]] std::optional<std::string> SaveScene(Id scene) const;
+  // Uses the same schema-3 serializer, rejecting before appending beyond max_bytes. Returns no
+  // partial snapshot on overflow or stream failure. Bounds logical output bytes, not allocator/
+  // formatting temporary memory. Both overloads are synchronous and mutate no World state.
+  [[nodiscard]] std::optional<std::string> SaveScene(Id scene, std::size_t max_bytes) const;
   bool Activate(Id scene);
   bool RequestUnload(Id scene);
   void EndFrame();

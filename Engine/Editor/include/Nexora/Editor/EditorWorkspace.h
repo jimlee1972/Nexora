@@ -3,6 +3,7 @@
 #include "Nexora/Editor/Api.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/MaterialImport.h"
 #include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -161,6 +162,8 @@ struct AssetEntry final {
   // Immutable CPU geometry for successfully imported triangulated .obj assets; owning across
   // workspace copies. GPU residency and reimport publication are separate contracts.
   std::shared_ptr<const MeshGeometry> mesh{};
+  // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
+  std::shared_ptr<const MaterialAsset> material{};
 };
 
 class NEXORA_EDITOR_API AssetWorkspace final {
@@ -169,7 +172,8 @@ public:
   using Progress = std::function<void(std::size_t, std::size_t)>;
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
-  // OBJ parsing retains its bounded source/geometry policy; live publication is caller-owned.
+  // OBJ/material parsing retains its bounded source/payload policy; live publication is
+  // caller-owned.
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
@@ -218,6 +222,24 @@ public:
       return {id, entity_generation, document_generation};
     }
   };
+  // Owning Runtime bytes and Editor-owned opaque metadata; names/Euler hints are authoring data
+  // and are intentionally absent. Runtime entities without a tracked Editor node stay in the
+  // snapshot without fabricated metadata. Nodes follow Runtime storage order, opaque types sort
+  // ascending, and all keys retain the captured document identity (not an authoring revision).
+  struct RuntimeSceneCapture final {
+    struct NodeMetadata final {
+      NodeKey key;
+      std::vector<OpaqueComponent> opaque;
+      bool operator==(const NodeMetadata &) const = default;
+    };
+    runtime::Id scene{};
+    std::uint64_t document_generation{};
+    std::string runtime_snapshot;
+    std::vector<NodeMetadata> nodes;
+    bool operator==(const RuntimeSceneCapture &) const = default;
+  };
+  static constexpr std::size_t kMaximumRuntimeCaptureEntities = 100'000;
+  static constexpr std::size_t kMaximumRuntimeCaptureBytes = 64 * 1024 * 1024;
   SceneDocument(runtime::World &world, runtime::Id scene);
   // Creates a node; with a parent the new entity starts at the parent's origin (identity local).
   runtime::Id Create(std::string name, runtime::Id parent = 0);
@@ -311,6 +333,11 @@ public:
   bool DeleteSelection();
   bool Undo();
   bool Redo();
+  // Serialized authoring-thread calls. Prepare performs no IO or baseline/history mutation.
+  [[nodiscard]] std::optional<PreparedSave> PrepareSave() const;
+  // Rejects changed document generation or content before IO; advances the baseline only after
+  // successful single-file publication. Caller owns workspace access and destination policy.
+  bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
   bool Save(const std::filesystem::path &path) const;
   // Clears written_bytes before attempting IO; on success it owns exactly the bytes this Save
   // published, including authoring metadata, independent of subsequent external file changes.
@@ -321,6 +348,12 @@ public:
   // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.
   bool NewScene();
   bool Reload(const std::filesystem::path &path);
+  // Authoring-thread, synchronous capture of a live Editor World scene. Preflights identities,
+  // opaque metadata and bounds before serialization/copy; serialization uses World authority
+  // with the byte cap. No IO, World borrow in the result, or history/selection/baseline mutation.
+  // A rejected capture returns no partial value and an actionable error when requested.
+  [[nodiscard]] std::optional<RuntimeSceneCapture>
+  CaptureRuntimeScene(std::string *error = nullptr) const;
   // Compares the live, serializable scene with the last successful Save or Reload.
   [[nodiscard]] bool Dirty() const;
   [[nodiscard]] std::span<const runtime::Id> Selection() const noexcept { return selection_; }

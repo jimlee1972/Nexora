@@ -83,8 +83,9 @@ Vulkan now retains bounded upload capacity in completed frame slots for Scene/Ga
 Steady or smaller draws reuse allocation while copying fresh vertices, indices and instances.
 Growing an upload commits replacement only after allocation/binding succeeds; resize and shutdown
 wait for GPU work before releasing it. Native call-tracing/pixel tests cover reuse and failure paths.
-Authored geometry uses exact sheared world matrices; material shader execution, persistent per-asset
-GPU caching and full Scene View acceptance remain open.
+Authored geometry uses exact sheared world matrices. [Scalar opaque PBR materials](#authored-scalar-pbr-scene-materials)
+now execute in Scene View; complete texture/shader workflows, persistent per-asset GPU caching and
+full Scene View acceptance remain open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
 Frame selected centers on selected forests in X/Y/Z, using exact world-transformed mesh bounds
 and rotated proxy bounds, including descendants once. The narrower horizontal/vertical viewport
@@ -637,3 +638,21 @@ restored profile, and native/deferred input forwarding uses it through the exist
 There is no automatic shutdown save or gameplay-library load caused by reading bindings. Linux
 Xvfb checks actual remapped B movement, rejected old D input and read-only process reopen with
 unchanged settings/scene bytes. Expanded devices/users and physical-host acceptance remain open.
+
+### Authored scalar PBR Scene materials
+
+The application publishes a generation-scoped material catalog alongside its mesh catalog after
+activation and successful Content changes. Inspector single-object assignment persists a versioned
+UUID reference through document Undo/Redo and save/reopen, preserving legacy shader IDs. Valid
+`.nmaterial` scalar assets produce actual per-batch Presentation PBR slots in Scene View. A palette
+reserves neutral fallback slot zero and at most 63 unique authored UUIDs; unresolved/over-budget
+references remain stored. Authored slots use white instance tint so selection does not recolor the
+material; ground, proxies and gizmos retain their existing tint. With no resolved materials the
+existing Lambert preview stays active. Geometry tangents come from Renderer, including OBJ assets
+with no usable UVs, while the submitted world matrix retains shear/mirroring.
+
+Every draw owns its temporary palette and converted geometry until `DrawScene` returns; native
+Presentation fences retain submitted storage. Geometry is still converted/uploaded per frame:
+persistent per-asset GPU caching is open. This is scalar opaque Scene material assignment, not
+texture/shader-graph editing, Game View materials, shipping asset cooking or full physical/multi-DPI
+Scene View acceptance. See [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md).
