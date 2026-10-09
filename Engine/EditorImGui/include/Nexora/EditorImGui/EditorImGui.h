@@ -7,6 +7,7 @@
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/ProjectContent.h"
+#include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -202,6 +203,9 @@ public:
   bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);
   [[nodiscard]] std::optional<SceneTabRequest> TakeSceneTabRequest();
   void SetSceneTabStatus(std::string message, bool success);
+  [[nodiscard]] std::optional<SceneFileToken> TakeSceneComparisonRequest();
+  [[nodiscard]] bool TakeSceneComparisonCancelRequest() noexcept;
+  void SetSceneComparisonStatus(SceneComparisonSnapshot snapshot, bool busy);
   void RequestSceneSaveAs(bool close_after_save = false,
                           std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);

@@ -203,6 +203,11 @@ jobs:
       - name: Require graphical diagnostic privacy acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.(diagnostic_privacy|linux_diagnostic_privacy)$' | grep -q 'Total Tests: 2'
+      - name: Require graphical semantic comparison acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_job$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_ui$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.linux_scene_comparison$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
         # The deep hierarchy test must be present in the graphical configuration.
         # Full Editor execution below retains all existing navigation controls.

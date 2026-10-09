@@ -61,6 +61,7 @@ public:
   SceneFileResult RememberCurrent(SceneFileToken token);
 
 private:
+  friend class SceneComparisonJob;
   friend class SceneSaveBatch;
   friend class AdditiveSceneSession;
   friend class AdditiveSceneComposition;
