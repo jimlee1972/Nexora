@@ -54,6 +54,12 @@ Earlier focused Runtime tie/real V3/Game/material/scene/dynamic-native checks pa
 native Python syntax and `git diff --check` pass. Existing SceneFiles, recovery, GPU/RSS profiling,
 Console, Game material/input, Shader and Showcase gates remain present and pass.
 
+After the owning StaticView producer PR #458 was accepted as `953d74d7`, this branch was rebased
+onto that main and configured/built again with the same graphical/Slang/Zig/Showcase flags. The
+complete integrated gate passed **200/200, zero skips, 369.69 seconds**, including the newly accepted
+static producer contract. Minimal Shipping passed the 8-step incremental integration rebuild.
+These final results supersede the pre-integration full-suite counts above for the final branch.
+
 ```bash
 cmake --preset linux-development -B build/linux-physics-off \
   -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON \
