@@ -748,6 +748,14 @@ creates property widgets; unknown components retain raw data instead of being si
     including missing baselines, byte-identical hard-link replacement and growth after size preflight.
     Graphical integration and full ED-M4 remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md).
+
+  - ✅ Read-only semantic scene comparison now owns stable object/field differences across actual
+    base/local/remote revisions using the production parser/migration. Missing/empty values, sibling
+    order, known Runtime fields, authored Euler turns and exact unknown payloads remain distinct;
+    unresolved conflicts and resource rejection preserve live data/history. Real legacy, component,
+    source/opaque/aggregate bounds and 4,096-entity tests pass. Per-field choices are inspection hints;
+    graphical provider/conflict presentation and valid merge publication remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.

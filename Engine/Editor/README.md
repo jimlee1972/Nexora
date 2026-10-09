@@ -1048,3 +1048,6 @@ publish source data. Graphical conflict/provider and reviewed merge publication 
 acceptance work. ReloadBytes is a rebuild-required C++ API with the same successful replacement,
 generation/history and failed-reload preservation contract as file Reload; file Reload moves its
 existing owning buffer into the parser, avoiding an extra full source copy.
+
+Actual contract, capacity, legacy and history preservation results are recorded in
+[Linux comparison evidence](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md).
