@@ -878,6 +878,7 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證
   reversed storage、1x／2x、untracked ancestor、reload 與 corruption rejection。
   完整 frame／memory budget、production asset scale 與 soak 仍待完成。
+  [Linux contract 證據](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md)。
 
 - ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
   欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。

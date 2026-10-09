@@ -41,7 +41,7 @@ fallback, unreachable navigation, animation looping, audio voice limits, media b
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
 
-## World object identity exhaustion
+## Owning scene world poses
 
 `World::SceneWorldPoses` resolves a whole scene's hierarchy into an owning, storage-order vector
 of IDs, composed TRS and exact affine matrices. An indexed iterative parent walk visits each
@@ -53,6 +53,8 @@ snapshot. Empty live scenes succeed. Returned observations remain independent of
 Rotation/component-wise scale retain the scalar WorldTransform approximation under shear; origins
 and matrices remain affine-exact. This additive public C++ API requires consumer rebuilds and
 does not change scene schemas or the stable C/Zig ABI.
+
+## World object identity exhaustion
 
 Scene/entity allocation uses monotonically increasing IDs 1 through `UINT64_MAX - 1`;
 `UINT64_MAX` is the exhausted allocation watermark. LoadScene/CreateEntity throw overflow_error

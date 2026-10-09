@@ -907,6 +907,7 @@ creates property widgets; unknown components retain raw data instead of being si
     and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and
     deep/flat ImGui fixtures cover reversed storage, 1x/2x, untracked ancestors, reload and corruption
     rejection. Full frame/memory budgets, production asset scale and soak remain open.
+    [Linux contract evidence](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md).
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
     fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
     Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation
