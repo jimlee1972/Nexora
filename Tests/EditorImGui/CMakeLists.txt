@@ -11,6 +11,12 @@ target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraConsoleDisplayTests)
 add_test(NAME editor.console_display COMMAND NexoraConsoleDisplayTests)
 
+add_executable(NexoraProcessMemoryDisplayTests ProcessMemoryDisplayTests.cpp)
+target_include_directories(NexoraProcessMemoryDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraProcessMemoryDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraProcessMemoryDisplayTests)
+add_test(NAME editor.process_memory_display COMMAND NexoraProcessMemoryDisplayTests)
+
 add_executable(NexoraEditorContextLifetimeTests ContextLifetimeTests.cpp)
 target_link_libraries(NexoraEditorContextLifetimeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraEditorContextLifetimeTests)
@@ -133,6 +139,10 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
   # Recovery relaunches the real Editor twice; a busy CI host can exceed 60 seconds
   # even when every bounded startup and recovery assertion succeeds.
   set_tests_properties(editor.linux_display_acceptance PROPERTIES TIMEOUT 90)
+  add_test(NAME editor.linux_process_memory
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProcessMemory.py"
+            --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}")
+  set_tests_properties(editor.linux_process_memory PROPERTIES TIMEOUT 45)
   add_test(
     NAME editor.linux_native_scene_preview
     COMMAND "${Python3_EXECUTABLE}"
@@ -310,7 +320,7 @@ nexora_apply_defaults(NexoraKeyboardRenameTests)
 add_test(NAME editor.keyboard_rename_lifecycle COMMAND NexoraKeyboardRenameTests)
 
 add_executable(NexoraSceneFileInputTests SceneFileTests.cpp)
-target_include_directories(NexoraSceneFileInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_include_directories(NexoraSceneFileInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraSceneFileInputTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraSceneFileInputTests)
 add_test(NAME editor.scene_file_input COMMAND NexoraSceneFileInputTests)
@@ -351,3 +361,9 @@ target_include_directories(NexoraHierarchyNavigationTests PRIVATE "${PROJECT_SOU
 target_link_libraries(NexoraHierarchyNavigationTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraHierarchyNavigationTests)
 add_test(NAME editor.hierarchy_keyboard_navigation COMMAND NexoraHierarchyNavigationTests)
+
+add_executable(NexoraMaterialInspectorTests MaterialInspectorTests.cpp)
+target_include_directories(NexoraMaterialInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraMaterialInspectorTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraMaterialInspectorTests)
+add_test(NAME editor.material_inspector COMMAND NexoraMaterialInspectorTests)

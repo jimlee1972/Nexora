@@ -132,6 +132,9 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> profile_csv_import_position;
   std::optional<std::array<float, 2>> profile_json_import_position;
   std::optional<std::array<float, 2>> profile_import_clear_position;
+  std::optional<std::array<float, 2>> profile_capture_position;
+  std::optional<std::array<float, 2>> profile_clear_position;
+  ProcessMemoryObservation profile_memory;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
   std::uint64_t gameplay_project_generation{};
@@ -298,6 +301,14 @@ struct EditorImGuiHost::State final {
     std::uint64_t generation{};
   };
   std::optional<InspectorMeshRequest> inspector_mesh_request;
+  struct InspectorMaterialRequest final {
+    SceneDocument::NodeKey entity;
+    runtime::AssetUuid asset;
+    std::uint64_t generation{};
+  };
+  std::optional<InspectorMaterialRequest> inspector_material_request;
+  std::string inspector_material_label;
+  std::array<std::optional<std::array<float, 2>>, 2> inspector_material_positions{};
   std::string inspector_mesh_label;
   std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
   std::uint32_t inspector_selection = 0;
@@ -397,7 +408,7 @@ template <typename StateT> void CancelInspectorDrafts(StateT &state) {
       std::ranges::any_of(state.inspector_camera_active, [](bool active) { return active; }) ||
       state.inspector_light_active || state.inspector_transform_request ||
       state.inspector_euler_request || state.inspector_camera_request ||
-      state.inspector_light_request)
+      state.inspector_light_request || state.inspector_material_request)
     ++state.inspector_draft_generation;
   state.inspector_transform_selection.clear();
   state.inspector_euler_selection.clear();
@@ -410,6 +421,7 @@ template <typename StateT> void CancelInspectorDrafts(StateT &state) {
   state.inspector_light_active = false;
   state.inspector_camera_request.reset();
   state.inspector_light_request.reset();
+  state.inspector_material_request.reset();
 }
 
 void ApplyTheme() {
@@ -2269,13 +2281,16 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
-                   const MeshAssetCatalog *meshes, bool editable, bool copy_allowed) {
+                   const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
+                   bool editable, bool copy_allowed) {
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
   state.inspector_camera_presence_mixed = state.inspector_light_presence_mixed = false;
   state.inspector_camera_mixed = {};
   state.inspector_light_mixed = false;
+  state.inspector_material_label.clear();
+  state.inspector_material_positions = {};
   state.inspector_mesh_label.clear();
   state.inspector_mesh_positions = {};
   state.inspector_reset_positions = {};
@@ -2292,6 +2307,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   if (scene == nullptr || scene->Selection().empty()) {
     CancelInspectorDrafts(state);
     state.inspector_mesh_request.reset();
+    state.inspector_material_request.reset();
     state.inspector_camera_request.reset();
     state.inspector_light_request.reset();
     ImGui::TextUnformatted("Select an entity to inspect it.");
@@ -2322,14 +2338,28 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     constexpr std::array names{"Transform", "Camera", "Light"};
     ImGui::TextDisabled("Copied values: %s", names[state.inspector_component_clipboard->index()]);
   }
+  std::optional<runtime::AssetUuid> material_reference;
+  bool has_material_reference = false;
   for (const auto key : keys)
-    if (auto info = scene->InspectOpaqueComponents(key))
+    if (auto info = scene->InspectOpaqueComponents(key)) {
+      for (const auto &component : *info) {
+        const auto reference = ReadMaterialAssetReference(component);
+        if (keys.size() == 1 && (component.type == kMaterialAssetReferenceType ||
+                                 component.type_name == kMaterialAssetReferenceName)) {
+          has_material_reference = true;
+          material_reference = reference;
+        }
+      }
       state.inspector_opaque_info.insert(state.inspector_opaque_info.end(),
                                          std::make_move_iterator(info->begin()),
                                          std::make_move_iterator(info->end()));
+    }
+  std::erase_if(state.inspector_opaque_info,
+                [](const auto &info) { return ReadMaterialAssetReference(info).has_value(); });
   if (!state.inspector_opaque_info.empty() &&
-      ImGui::CollapsingHeader("Missing plugin components", ImGuiTreeNodeFlags_DefaultOpen)) {
-    ImGui::TextWrapped("Read-only: component data is preserved. Install its plugin to edit it.");
+      ImGui::CollapsingHeader("Unavailable component data", ImGuiTreeNodeFlags_DefaultOpen)) {
+    ImGui::TextWrapped("Read-only: component data is preserved. Restore a compatible plugin or "
+                       "Editor version to edit it.");
     ImGui::BeginChild("##opaque-components", {0, 140}, ImGuiChildFlags_Borders,
                       ImGuiWindowFlags_HorizontalScrollbar);
     ImGuiListClipper clipper;
@@ -2822,6 +2852,71 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     if (!valid || !scene->SetMeshRenderers(request->entities, components))
       state.inspector_error =
           "Mesh edit rejected because its selection, asset, project or entity is unavailable.";
+    else
+      state.inspector_error.clear();
+  }
+  ImGui::SeparatorText("Material asset");
+  if (keys.size() != 1) {
+    state.inspector_material_label = "Single selection required";
+    ImGui::TextDisabled("Select one Mesh Renderer to assign a material asset.");
+  } else if (!scene->MeshRenderer(keys.front())) {
+    state.inspector_material_label = "No Mesh Renderer";
+    ImGui::TextDisabled("Add a Mesh Renderer before assigning a material asset.");
+  } else {
+    const auto key = keys.front();
+    const auto generation = content ? content->Browser().ProjectGeneration() : 0;
+    const auto reference = material_reference;
+    const auto resolved =
+        reference && materials ? materials->ResolveAsset(*reference, generation) : std::nullopt;
+    const auto *item = resolved && content ? content->Browser().Find(*reference) : nullptr;
+    const bool has_reference = has_material_reference;
+    state.inspector_material_label = item            ? PathLabel(item->path)
+                                     : reference     ? "Missing material"
+                                     : has_reference ? "Unsupported material reference"
+                                                     : "Unassigned";
+    ImGui::BeginDisabled(!editable || !content || !content->Writable() || !materials);
+    const bool open = ImGui::BeginCombo("Material###editor.inspector.material.asset",
+                                        state.inspector_material_label.c_str());
+    const auto combo_min = ImGui::GetItemRectMin();
+    const auto combo_max = ImGui::GetItemRectMax();
+    state.inspector_material_positions[0] =
+        std::array{(combo_min.x + combo_max.x) * 0.5F, (combo_min.y + combo_max.y) * 0.5F};
+    if (open) {
+      if (content && materials)
+        for (const auto &candidate : content->Browser().Items()) {
+          if (!candidate.material || !materials->ResolveAsset(candidate.id, generation))
+            continue;
+          const auto identity = candidate.id.ToString();
+          ImGui::PushID(identity.c_str());
+          if (ImGui::Selectable(PathLabel(candidate.path).c_str(),
+                                reference && *reference == candidate.id))
+            state.inspector_material_request =
+                typename StateT::InspectorMaterialRequest{key, candidate.id, generation};
+          if (!state.inspector_material_positions[1]) {
+            const auto min = ImGui::GetItemRectMin();
+            const auto max = ImGui::GetItemRectMax();
+            state.inspector_material_positions[1] =
+                std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+          }
+          ImGui::PopID();
+        }
+      ImGui::EndCombo();
+    }
+    ImGui::EndDisabled();
+    if (has_reference && !item)
+      ImGui::TextWrapped(
+          "The material reference is unavailable or unsupported. Its data is preserved.");
+  }
+  if (state.inspector_material_request) {
+    const auto request = std::exchange(state.inspector_material_request, std::nullopt);
+    const bool valid =
+        editable && content && materials && keys.size() == 1 && request->entity == keys.front();
+    if (valid)
+      CancelSceneGestures(state);
+    if (!valid || !AssignMaterialAsset(*scene, request->entity, request->asset, request->generation,
+                                       *content, *materials, editable))
+      state.inspector_error = "Material edit rejected because its selection, asset, access or "
+                              "generation is unavailable.";
     else
       state.inspector_error.clear();
   }
@@ -3749,7 +3844,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        RecentProjectStore *recent_projects,
                                        AssetImportQueue *imports, runtime::RuntimeConsole *console,
                                        runtime::PlaySession *play, ProfileSession *profile,
-                                       const MeshAssetCatalog *meshes) {
+                                       const MeshAssetCatalog *meshes,
+                                       const MaterialAssetCatalog *materials) {
   Activate(state_->context);
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
@@ -3783,6 +3879,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_csv_import_position.reset();
   state_->profile_json_import_position.reset();
   state_->profile_import_clear_position.reset();
+  state_->profile_capture_position.reset();
+  state_->profile_clear_position.reset();
+  state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
@@ -4023,7 +4122,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         DrawPlayEntityInspector(*selected);
       }
     } else {
-      DrawInspector(*state_, scene, content, meshes, scene_editable, !interaction_blocked);
+      DrawInspector(*state_, scene, content, meshes, materials, scene_editable,
+                    !interaction_blocked);
     }
   } else {
     CancelInspectorDrafts(*state_);
@@ -4597,9 +4697,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       bool capturing = profile->Capturing();
       if (ImGui::Checkbox("Capture", &capturing))
         profile->SetCapturing(capturing);
+      const auto capture_min = ImGui::GetItemRectMin(), capture_max = ImGui::GetItemRectMax();
+      state_->profile_capture_position = std::array{(capture_min.x + capture_max.x) * 0.5F,
+                                                    (capture_min.y + capture_max.y) * 0.5F};
       ImGui::SameLine();
       if (ImGui::Button("Clear"))
         profile->Clear();
+      const auto memory_clear_min = ImGui::GetItemRectMin(),
+                 memory_clear_max = ImGui::GetItemRectMax();
+      state_->profile_clear_position = std::array{(memory_clear_min.x + memory_clear_max.x) * 0.5F,
+                                                  (memory_clear_min.y + memory_clear_max.y) * 0.5F};
+      state_->profile_memory = profile->ProcessMemory();
       const auto samples = profile->Samples();
       ImGui::SameLine();
       ImGui::BeginDisabled(samples.empty() || !workspace || !workspace->Writable() ||
@@ -4646,7 +4754,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::Text("%zu frames retained | %llu older frames dropped", samples.size(),
                   static_cast<unsigned long long>(profile->DroppedCount()));
       ImGui::TextDisabled("Editor frame processing: wall time after BeginFrame, before Present.");
-      ImGui::TextDisabled("GPU time and process memory are not instrumented.");
+      ImGui::TextDisabled("GPU time is not instrumented. Saved captures contain wall timing only.");
+      ImGui::SeparatorText("Process resident memory (live)");
+      const auto memory = state_->profile_memory;
+      if (memory.resident_bytes)
+        ImGui::Text("Latest %llu bytes", static_cast<unsigned long long>(*memory.resident_bytes));
+      else
+        ImGui::TextDisabled("Latest unavailable: no successful current observation.");
+      if (memory.observed_peak_bytes)
+        ImGui::Text("Observed peak %llu bytes",
+                    static_cast<unsigned long long>(*memory.observed_peak_bytes));
+      ImGui::TextDisabled("Current process RSS / working set, including shared resident pages.");
+      ImGui::TextDisabled(
+          "250 ms sampling; Capture pauses observations; Clear resets observed peak.");
+      ImGui::TextDisabled("Process-wide across projects; excludes GPU/allocator accounting.");
       const auto plot = [](std::span<const FrameSample> values_to_plot, const char *label) {
         if (values_to_plot.empty())
           return;
@@ -5003,6 +5124,11 @@ void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
   state_->scene_file_popup_pending = true;
 }
 void EditorImGuiHost::RequestSceneOverwrite(SceneFileRequest request) {
+  Activate(state_->context);
+  CancelSceneGestures(*state_);
+  CancelInspectorDrafts(*state_);
+  ImGui::ClearActiveID();
+  state_->scene_file_close_popup = request.close_after_save;
   state_->scene_file_intent = std::move(request);
   state_->scene_file_dialog = State::FileDialog::Overwrite;
   state_->scene_file_popup_pending = true;
@@ -5854,6 +5980,18 @@ EditorImGuiTestAccess::ProfileExportPosition(const EditorImGuiHost &host) noexce
   return host.state_->profile_export_position;
 }
 std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileCapturePosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_capture_position;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProfileClearPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_clear_position;
+}
+ProcessMemoryObservation
+EditorImGuiTestAccess::ProfileMemory(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_memory;
+}
+std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_json_export_position;
 }
@@ -6075,6 +6213,25 @@ void EditorImGuiTestAccess::QueueInspectorMeshes(EditorImGuiHost &host,
 }
 std::string_view EditorImGuiTestAccess::InspectorMeshLabel(const EditorImGuiHost &host) noexcept {
   return host.state_->inspector_mesh_label;
+}
+
+void EditorImGuiTestAccess::QueueInspectorMaterial(EditorImGuiHost &host,
+                                                   SceneDocument::NodeKey entity,
+                                                   runtime::AssetUuid asset,
+                                                   std::uint64_t generation) noexcept {
+  host.state_->inspector_material_request =
+      EditorImGuiHost::State::InspectorMaterialRequest{entity, asset, generation};
+}
+std::string_view
+EditorImGuiTestAccess::InspectorMaterialLabel(const EditorImGuiHost &host) noexcept {
+  return host.state_->inspector_material_label;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::InspectorMaterialPosition(const EditorImGuiHost &host,
+                                                 std::size_t control) noexcept {
+  return control < host.state_->inspector_material_positions.size()
+             ? host.state_->inspector_material_positions[control]
+             : std::nullopt;
 }
 
 void EditorImGuiTestAccess::FocusInspector(EditorImGuiHost &host) noexcept {

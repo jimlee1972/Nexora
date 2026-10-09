@@ -791,7 +791,7 @@ struct RoomSession::State final {
       const float y =
           0.8F + std::fmod(static_cast<float>(courtyardSeconds) * 0.6F + i * 0.113F, 3.5F);
       const float r = 0.75F + static_cast<float>(i % 7) * 0.08F;
-      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.025F, 0.05F, -yaw);
+      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.015F, 0.03F, -yaw);
     }
     if (indices.size() > first)
       batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 7});
@@ -1107,6 +1107,7 @@ struct RoomSession::State final {
                                                      {0.62F, 2.02F},
                                                      {0, 1.91F}}};
     Lathe({0, 0, 0.45F}, basin);
+    finish(0);
     for (unsigned rib = 0; rib < 12; ++rib) {
       const float angle = rib * 2 * math::kPi / 12;
       const auto point = [&](float r, float y) {
@@ -1116,7 +1117,7 @@ struct RoomSession::State final {
       Segment(point(0.39F, 1.3F), point(0.47F, 1.72F), 0.04F);
       Segment(point(0.47F, 1.72F), point(0.73F, 1.91F), 0.045F);
     }
-    finish(0);
+    finish(1);
     // Original shallow stone relief around the middle pedestal tier.
     for (unsigned ornament = 0; ornament < 16; ++ornament) {
       const float angle = 2 * math::kPi * ornament / 16;
@@ -1149,7 +1150,7 @@ struct RoomSession::State final {
       RingStone(a + 0.008F, b - 0.008F);
       finish(0);
       if (i % 4 == 0) {
-        RingStone(a - 0.035F, a + 0.035F, 0.265F, 0.275F);
+        RingStone(a - 0.075F, a + 0.075F, 0.265F, 0.275F);
         for (const float rivetRadius : {1.5F, 1.82F})
           DeviceRivet({rivetRadius * std::cos(a), 2.9F + rivetRadius * std::sin(a), 0.276F});
         finish(1);
@@ -1292,6 +1293,7 @@ struct RoomSession::State final {
     finish(0);
     std::size_t shrubStemRange = 0;
     for (const float x : {-3.5F, 3.5F}) {
+      const auto vesselFirst = vertices.size();
       const std::array<std::array<float, 2>, 10> vessel{{{0, 0},
                                                          {0.22F, 0},
                                                          {0.36F, 0.15F},
@@ -1332,6 +1334,11 @@ struct RoomSession::State final {
           Segment(points[edge], points[(edge + 1) % points.size()], 0.008F);
       }
       finish(17);
+      for (std::size_t v = vesselFirst; v < vertices.size(); ++v) {
+        vertices[v].position[0] += x < 0 ? -1.2F : 0.5F;
+        vertices[v].position[1] += 0.13F;
+        vertices[v].position[2] -= 2.5F;
+      }
       for (unsigned i = 0; i < (8U << courtyardQuality); ++i) {
         const float z = -3.0F + i * (2.88F / (8U << courtyardQuality));
         Segment({x, 0.02F, z}, {x, 0.62F, z}, 0.012F);
@@ -1748,11 +1755,11 @@ struct RoomSession::State final {
     // keep the upper attachment fixed while the existing shared wind bends each leaf.
     for (const float x : {-9.0F, 7.5F})
       for (const float z : {-7.0F, -1.0F, 5.0F})
-        for (unsigned vine = 0; vine < 6; ++vine)
-          for (unsigned leaf = 0; leaf < 7; ++leaf) {
-            const float angle = vine * 2 * math::kPi / 6 + 0.13F * std::sin(leaf * 1.7F + vine);
+        for (unsigned vine = 0; vine < 10; ++vine)
+          for (unsigned leaf = 0; leaf < 12; ++leaf) {
+            const float angle = vine * 2 * math::kPi / 10 + 0.13F * std::sin(leaf * 1.7F + vine);
             const float height = 0.28F + ((vine + leaf) % 3) * 0.03F;
-            LeafQuad({x + 0.59F * std::cos(angle), 5.4F - leaf * 0.62F - height,
+            LeafQuad({x + 0.59F * std::cos(angle), 5.4F - leaf * 0.36F - height,
                       z + 0.59F * std::sin(angle)},
                      0.17F, height, angle - math::kPi * 0.5F);
             for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
@@ -3062,7 +3069,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     sky.unlit = s.courtyardPbr;
     sky.castsShadow = false;
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    sky.emission = {1, 1, 1};
+    sky.emission = {0.65F, 0.65F, 0.65F};
     sky.emissionTextureId = 18;
 #endif
     s.materials.push_back(sky);
@@ -3463,7 +3470,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 2.4F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.8F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;

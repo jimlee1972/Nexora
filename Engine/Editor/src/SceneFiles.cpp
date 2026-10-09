@@ -4,11 +4,21 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <fstream>
+#include <limits>
 #include <system_error>
 
 namespace nexora::editor {
 namespace {
+std::atomic<std::uint64_t> next_session_id{1};
+std::uint64_t NextSessionId() noexcept {
+  auto id = next_session_id.load(std::memory_order_relaxed);
+  while (id != std::numeric_limits<std::uint64_t>::max())
+    if (next_session_id.compare_exchange_weak(id, id + 1, std::memory_order_relaxed))
+      return id;
+  return 0;
+}
 SceneFileResult Rejected(std::string message) {
   return {SceneFileStatus::Rejected, std::move(message)};
 }
@@ -36,7 +46,39 @@ bool Inside(const std::filesystem::path &root, const std::filesystem::path &path
 } // namespace
 SceneFileSession::SceneFileSession(const ProjectWorkspace &workspace, SceneDocument &document)
     : workspace_(workspace), document_(document), root_(workspace.Root()),
-      project_(workspace.Project().id), generation_(document.Generation()) {}
+      project_(workspace.Project().id), generation_(document.Generation()),
+      session_id_(NextSessionId()) {}
+std::optional<SceneFileSession::DiskSnapshot>
+SceneFileSession::ReadDisk(const std::filesystem::path &path) {
+  std::error_code error;
+  const auto status = std::filesystem::symlink_status(path, error);
+  if (error == std::errc::no_such_file_or_directory ||
+      (!error && status.type() == std::filesystem::file_type::not_found))
+    return DiskSnapshot{};
+  if (error || !std::filesystem::is_regular_file(status))
+    return std::nullopt;
+  const auto size = std::filesystem::file_size(path, error);
+  if (error || size > kMaximumDiskBaselineBytes)
+    return std::nullopt;
+  std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return std::nullopt;
+  DiskSnapshot snapshot{true, std::string(static_cast<std::size_t>(size), '\0')};
+  input.read(snapshot.bytes.data(), static_cast<std::streamsize>(snapshot.bytes.size()));
+  if (input.bad() || static_cast<std::size_t>(input.gcount()) != snapshot.bytes.size() ||
+      input.peek() != std::char_traits<char>::eof() || !input.eof())
+    return std::nullopt;
+  return snapshot;
+}
+SceneFileResult SceneFileSession::RequireOverwrite(SceneFileToken token,
+                                                   const std::filesystem::path &path,
+                                                   DiskSnapshot snapshot, std::string message) {
+  if (!session_id_ || overwrite_revision_ == std::numeric_limits<std::uint64_t>::max())
+    return Rejected("Replacement confirmation is unavailable. Reopen the scene session.");
+  const SceneOverwriteToken confirmation{session_id_, ++overwrite_revision_};
+  pending_overwrite_ = PendingOverwrite{token, path, confirmation, std::move(snapshot)};
+  return {SceneFileStatus::NeedsOverwrite, std::move(message), confirmation};
+}
 SceneFileToken SceneFileSession::Token() const noexcept { return {project_, generation_}; }
 std::optional<std::filesystem::path> SceneFileSession::CurrentPath() const { return current_; }
 bool SceneFileSession::Live(SceneFileToken token) const noexcept {
@@ -70,11 +112,16 @@ bool SceneFileSession::BindCurrent(std::filesystem::path relative, bool save_blo
   const auto path = Resolve(relative);
   if (!Live(Token()) || !path)
     return false;
+  auto baseline = ReadDisk(*path);
+  if (!baseline && !save_blocked)
+    return false;
   current_ = path->lexically_relative(root_);
   save_blocked_ = save_blocked;
   content_asset_.reset();
   content_blocked_ = false;
   content_relocated_ = false;
+  disk_baseline_ = std::move(baseline);
+  pending_overwrite_.reset();
   return true;
 }
 SceneFileResult SceneFileSession::New(SceneFileToken token, bool discard_unsaved) {
@@ -90,6 +137,8 @@ SceneFileResult SceneFileSession::New(SceneFileToken token, bool discard_unsaved
   content_asset_.reset();
   content_blocked_ = false;
   content_relocated_ = false;
+  disk_baseline_.reset();
+  pending_overwrite_.reset();
   return {SceneFileStatus::Applied, "New unsaved scene."};
 }
 SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesystem::path &relative,
@@ -101,6 +150,9 @@ SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesyst
     return Rejected("Choose a relative .scene file inside this project.");
   if (document_.Dirty() && !discard_unsaved)
     return {SceneFileStatus::NeedsUnsavedChoice, "Save or discard the current scene first."};
+  auto baseline = ReadDisk(*path);
+  if (!baseline || !baseline->exists)
+    return Rejected("Scene source is unavailable or exceeds the 64 MiB disk comparison limit.");
   if (!document_.Reload(*path))
     return Rejected("Scene could not be opened. The current scene is unchanged.");
   generation_ = document_.Generation();
@@ -109,35 +161,63 @@ SceneFileResult SceneFileSession::Open(SceneFileToken token, const std::filesyst
   content_asset_.reset();
   content_blocked_ = false;
   content_relocated_ = false;
+  disk_baseline_ = std::move(baseline);
+  pending_overwrite_.reset();
   return {SceneFileStatus::Applied, "Scene opened."};
 }
-SceneFileResult SceneFileSession::Save(SceneFileToken token) {
-  if (!Live(token) || !workspace_.Writable())
-    return Rejected("Save is unavailable for this document or read-only project.");
+SceneFileResult SceneFileSession::Save(SceneFileToken token,
+                                       std::optional<SceneOverwriteToken> overwrite_token) {
+  if (!Live(token) || !workspace_.Writable() || workspace_.HasRecoveryJournal())
+    return Rejected("Save is unavailable for a stale document, read-only project, or pending "
+                    "workspace recovery.");
   if (SaveBlocked())
     return Rejected("The current scene file is unavailable. Use New, Open or Save As.");
   if (!current_)
     return {SceneFileStatus::NeedsPath, "Choose a scene filename with Save As."};
-  return SaveAs(token, *current_);
+  return SaveAs(token, *current_, overwrite_token.has_value(), overwrite_token);
 }
 SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
                                          const std::filesystem::path &relative,
-                                         bool replace_existing) {
-  if (!Live(token) || !workspace_.Writable())
-    return Rejected("Save As is unavailable for this document or read-only project.");
+                                         bool replace_existing,
+                                         std::optional<SceneOverwriteToken> overwrite_token) {
+  if (!Live(token) || !workspace_.Writable() || workspace_.HasRecoveryJournal())
+    return Rejected("Save As is unavailable for a stale document, read-only project, or pending "
+                    "workspace recovery.");
   const auto path = Resolve(relative);
   if (!path)
     return Rejected("Choose a relative .scene filename inside this project.");
-  std::error_code error;
-  const bool exists = std::filesystem::exists(*path, error);
-  if (error || (exists && !std::filesystem::is_regular_file(*path, error)) || error)
-    return Rejected("The scene destination is not an accessible file.");
-  if (exists && !replace_existing &&
-      (SaveBlocked() || !current_ || *current_ != path->lexically_relative(root_)))
-    return {SceneFileStatus::NeedsOverwrite, "The destination exists. Confirm replacement first."};
+  auto disk = ReadDisk(*path);
+  if (!disk)
+    return Rejected("The scene destination is unavailable or exceeds the 64 MiB comparison limit.");
   const bool reset_content =
       SaveBlocked() || !current_ || *current_ != path->lexically_relative(root_);
-  if (!document_.Save(*path))
+  if (overwrite_token) {
+    if (!replace_existing || !pending_overwrite_ || pending_overwrite_->token != *overwrite_token ||
+        pending_overwrite_->document != token || pending_overwrite_->path != *path)
+      return Rejected("Replacement confirmation is stale. Save again to review the destination.");
+    if (pending_overwrite_->snapshot.exists && !disk->exists)
+      return Rejected(
+          "The confirmed scene source disappeared. Use Open or a different Save As destination.");
+    if (pending_overwrite_->snapshot != *disk)
+      return RequireOverwrite(
+          token, *path, std::move(*disk),
+          "The destination changed again. Review and confirm replacement again.");
+  } else if (!replace_existing) {
+    if (!reset_content) {
+      if (!disk_baseline_ || (disk_baseline_->exists && !disk->exists))
+        return Rejected("The current scene source is missing or unverified. Use Open or Save As.");
+      if (*disk_baseline_ != *disk)
+        return RequireOverwrite(
+            token, *path, std::move(*disk),
+            "The scene changed outside the Editor. Cancel to keep both versions, "
+            "or explicitly replace the disk version with your current scene.");
+    } else if (disk->exists)
+      return RequireOverwrite(token, *path, std::move(*disk),
+                              "The destination exists. Confirm replacement first.");
+  }
+  disk.reset(); // Release comparison scratch before the document's bounded serialization.
+  std::string published_bytes;
+  if (!document_.Save(*path, &published_bytes))
     return Rejected("Scene could not be saved. Check the project directory.");
   current_ = path->lexically_relative(root_);
   save_blocked_ = false;
@@ -146,6 +226,8 @@ SceneFileResult SceneFileSession::SaveAs(SceneFileToken token,
     content_relocated_ = false;
   }
   content_blocked_ = false;
+  pending_overwrite_.reset();
+  disk_baseline_ = DiskSnapshot{true, std::move(published_bytes)};
   return {SceneFileStatus::Applied, "Scene saved."};
 }
 SceneFileResult SceneFileSession::SynchronizeContent(SceneFileToken token,
@@ -181,6 +263,8 @@ SceneFileResult SceneFileSession::SynchronizeContent(SceneFileToken token,
   content_asset_ = item->id;
   content_generation_ = browser.ProjectGeneration();
   content_relocated_ |= *current_ != item->path;
+  if (*current_ != item->path)
+    pending_overwrite_.reset();
   current_ = item->path;
   content_blocked_ = false;
   return {SceneFileStatus::Applied, {}};

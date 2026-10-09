@@ -4,6 +4,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "GameViewPreview.h"
+#include "MaterialScenePreview.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
@@ -16,6 +17,7 @@
 #include "Nexora/Runtime/EditorSdk.h"
 #include "PlayGameplayModule.h"
 #include "PlayInputForwarding.h"
+#include "SceneFileContinuation.h"
 #include "SceneMeshPreview.h"
 #include "SceneMovePlanes.h"
 #include "ScenePreviewCandidates.h"
@@ -528,8 +530,15 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     nexora::editor::imgui::NativeSceneOrbit orbit, bool local_axes, bool center_pivot,
     nexora::editor::imgui::NativeSceneTool tool, std::optional<std::array<double, 3>> drag_preview,
     std::optional<std::pair<nexora::editor::ViewportVector, double>> rotation_preview,
-    std::optional<std::pair<std::size_t, double>> scale_preview, const NativeSceneMeshes &meshes) {
+    std::optional<std::pair<std::size_t, double>> scale_preview, const NativeSceneMeshes &meshes,
+    const nexora::editor::MaterialAssetCatalog &materials, std::uint64_t generation) {
   const auto candidates = NativeSceneProxyCandidates(scene, &meshes);
+  std::vector<nexora::runtime::Id> material_entities;
+  for (const auto &candidate : candidates)
+    if (meshes.entities.contains(candidate.entity))
+      material_entities.push_back(candidate.entity);
+  const auto palette = nexora::editor::preview::PrepareMaterialPalette(scene, materials, generation,
+                                                                       material_entities);
   const auto handles =
       tool == nexora::editor::imgui::NativeSceneTool::Select ? std::vector<NativeSceneAxisHandle>{}
       : tool == nexora::editor::imgui::NativeSceneTool::Rotate
@@ -588,7 +597,12 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   ground.color[1] = 0.28F;
   ground.color[2] = 0.34F;
   instances.push_back(ground);
-  std::vector<std::pair<std::uint64_t, Nexora::Presentation::SceneInstance>> authored_instances;
+  struct AuthoredInstance {
+    std::uint64_t resource;
+    nexora::runtime::Id entity;
+    Nexora::Presentation::SceneInstance instance;
+  };
+  std::vector<AuthoredInstance> authored_instances;
   for (const auto &candidate : candidates) {
     const auto pose = preview ? std::optional{preview->at(candidate.entity)}
                               : scene.WorldTransform(candidate.entity);
@@ -617,7 +631,9 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
       if (!exact)
         continue;
       std::ranges::copy(instance.color, exact->color);
-      authored_instances.emplace_back(authored->second.resource, *exact);
+      if (palette.entities.at(candidate.entity) != 0)
+        std::fill(std::begin(exact->color), std::end(exact->color), 1.0F);
+      authored_instances.push_back({authored->second.resource, candidate.entity, *exact});
     } else {
       instances.push_back(instance);
     }
@@ -631,10 +647,11 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
   }
   std::vector<Nexora::Presentation::SceneMeshBatch> batches;
   batches.push_back({0, 36, 0, static_cast<std::uint32_t>(instances.size())});
-  for (const auto &[resource, instance] : authored_instances) {
+  for (const auto &[resource, entity, instance] : authored_instances) {
     const auto range = meshes.ranges.at(resource);
-    batches.push_back(
-        {range.firstIndex, range.indexCount, static_cast<std::uint32_t>(instances.size()), 1});
+    batches.push_back({range.firstIndex, range.indexCount,
+                       static_cast<std::uint32_t>(instances.size()), 1,
+                       palette.entities.at(entity)});
     instances.push_back(instance);
   }
   const nexora::math::Vector3 target{static_cast<float>(camera.x),
@@ -648,7 +665,16 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
                        0.85F, static_cast<float>(viewport.width) / viewport.height, 0.1F, 500.0F) *
                    nexora::math::LookAt(eye, target);
   Nexora::Presentation::SceneDrawData draw{};
-  draw.vertices = meshes.geometry.vertices;
+  std::optional<nexora::editor::preview::Geometry> lit_geometry;
+  if (palette.authored) {
+    lit_geometry = meshes.geometry;
+    if (!nexora::editor::preview::PrepareMaterialTangents(*lit_geometry))
+      return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
+    draw.pbr = true;
+    draw.materials = palette.materials;
+    draw.cameraPosition = {eye.x, eye.y, eye.z};
+  }
+  draw.vertices = lit_geometry ? lit_geometry->vertices : meshes.geometry.vertices;
   draw.indices = meshes.geometry.indices;
   draw.batches = batches;
   draw.instances = instances;
@@ -726,6 +752,9 @@ int RunGraphical(std::optional<ProjectState> project,
     load_gameplay_settings(project->workspace);
   }
   nexora::editor::MeshAssetCatalog meshes;
+  nexora::editor::MaterialAssetCatalog materials;
+  if (project && !materials.PublishContent(content.Browser(), &layout_error))
+    std::cerr << "material catalog warning: " << layout_error << '\n';
   if (project && !meshes.PublishContent(content.Browser(), &layout_error))
     std::cerr << "mesh catalog warning: " << layout_error << '\n';
   std::uint64_t mesh_content_revision = content.Browser().Revision();
@@ -880,9 +909,11 @@ int RunGraphical(std::optional<ProjectState> project,
     if (!loaded) {
       static_cast<void>(scene_files->BindCurrent(std::filesystem::path(initial_path), true));
       scene_load_failed = true;
-      ui.SetSceneSaveResult("Scene could not be loaded: " + path.string(), false);
-      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene",
-          "Scene could not be loaded: " + path.string());
+      const auto encoded = path.generic_u8string();
+      const auto message =
+          "Scene could not be loaded: " + std::string(encoded.begin(), encoded.end());
+      ui.SetSceneSaveResult(message, false);
+      log(nexora::runtime::RuntimeLogSeverity::Error, "Scene", message);
       return;
     }
     scene_load_failed = false;
@@ -972,7 +1003,7 @@ int RunGraphical(std::optional<ProjectState> project,
       remember_scene();
     }
   };
-  const auto save_scene = [&] {
+  const auto save_scene = [&](bool close_after_save = false) {
     refresh_scene_location(true);
     if (scene_load_failed) {
       ui.SetSceneSaveResult("Scene load failed. Resolve the scene file before saving.", false);
@@ -989,7 +1020,18 @@ int RunGraphical(std::optional<ProjectState> project,
       return false;
     const auto saved = scene_files->Save(scene_files->Token());
     if (saved.status == nexora::editor::SceneFileStatus::NeedsPath) {
-      ui.RequestSceneSaveAs();
+      ui.RequestSceneSaveAs(close_after_save);
+      return false;
+    }
+    if (saved.status == nexora::editor::SceneFileStatus::NeedsOverwrite) {
+      nexora::editor::imgui::SceneFileRequest request{
+          nexora::editor::imgui::SceneFileAction::SaveAs, scene_files->Token(),
+          *scene_files->CurrentPath()};
+      request.close_after_save = close_after_save;
+      if (!PrepareSceneOverwriteRequest(request, saved, scene_files->CurrentPath()))
+        return false;
+      ui.SetSceneSaveResult(saved.message, false);
+      ui.RequestSceneOverwrite(std::move(request));
       return false;
     }
     if (!saved.Applied()) {
@@ -1073,6 +1115,8 @@ int RunGraphical(std::optional<ProjectState> project,
             const bool was_created = pending_project->created;
             project = std::move(pending_project->candidate);
             content = std::move(candidate_content);
+            if (!materials.PublishContent(content.Browser(), &selector_error))
+              std::cerr << "material catalog warning: " << selector_error << '\n';
             if (!meshes.PublishContent(content.Browser(), &selector_error))
               std::cerr << "mesh catalog warning: " << selector_error << '\n';
             pending_project.reset();
@@ -1094,7 +1138,7 @@ int RunGraphical(std::optional<ProjectState> project,
         ui.SetSceneFileContext(scene_files->Token(), scene_files->CurrentPath(),
                                scene_load_failed || scene_files->SaveBlocked());
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
-                          &console, &play, &profile, &meshes);
+                          &console, &play, &profile, &meshes, &materials);
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
         load_input_settings(project->workspace);
       refresh_scene_location();
@@ -1252,6 +1296,8 @@ int RunGraphical(std::optional<ProjectState> project,
       if (mesh_content_revision != content.Browser().Revision() ||
           mesh_content_generation != content.Browser().ProjectGeneration()) {
         std::string mesh_error;
+        if (!materials.PublishContent(content.Browser(), &mesh_error))
+          log(nexora::runtime::RuntimeLogSeverity::Error, "Content", mesh_error);
         if (!meshes.PublishContent(content.Browser(), &mesh_error))
           log(nexora::runtime::RuntimeLogSeverity::Error, "Content", mesh_error);
         mesh_content_revision = content.Browser().Revision();
@@ -1398,10 +1444,11 @@ int RunGraphical(std::optional<ProjectState> project,
         if (!can_apply)
           file_result = {FileStatus::Rejected, "Stop Play before changing scenes."};
         if (can_apply && request->save_current) {
-          file_result = request->save_path
-                            ? scene_files->SaveAs(request->token, *request->save_path,
-                                                  request->replace_existing)
-                            : scene_files->Save(request->token);
+          file_result =
+              request->save_path
+                  ? scene_files->SaveAs(request->token, *request->save_path,
+                                        request->replace_existing, request->overwrite_token)
+                  : scene_files->Save(request->token, request->overwrite_token);
           can_apply = file_result.Applied();
           if (can_apply) {
             publish_saved_scene();
@@ -1421,14 +1468,16 @@ int RunGraphical(std::optional<ProjectState> project,
                 scene_files->Open(request->token, request->path, request->discard_unsaved);
             break;
           case FileAction::SaveAs:
-            file_result =
-                scene_files->SaveAs(request->token, request->path, request->replace_existing);
+            file_result = scene_files->SaveAs(request->token, request->path,
+                                              request->replace_existing, request->overwrite_token);
             break;
           }
         }
-        if (file_result.status == FileStatus::NeedsOverwrite)
-          ui.RequestSceneOverwrite(std::move(*request));
-        else if (file_result.status == FileStatus::NeedsUnsavedChoice)
+        if (file_result.status == FileStatus::NeedsOverwrite) {
+          ui.SetSceneSaveResult(file_result.message, false);
+          if (PrepareSceneOverwriteRequest(*request, file_result, scene_files->CurrentPath()))
+            ui.RequestSceneOverwrite(std::move(*request));
+        } else if (file_result.status == FileStatus::NeedsUnsavedChoice)
           ui.RequestSceneUnsavedChoice(std::move(*request));
         else {
           ui.SetSceneSaveResult(file_result.message, file_result.Applied());
@@ -1457,7 +1506,7 @@ int RunGraphical(std::optional<ProjectState> project,
         if (scene_files && !scene_files->CurrentPath())
           ui.RequestSceneSaveAs(true);
         else
-          exit_requested = save_scene();
+          exit_requested = save_scene(true);
       } else if (close_choice == nexora::editor::imgui::CloseChoice::DiscardAndExit)
         exit_requested = true;
       if (const auto choice = ui.TakeRecoveryChoice();
@@ -1552,7 +1601,7 @@ int RunGraphical(std::optional<ProjectState> project,
             *created.surface, scene, *viewport, ui.GetSceneOverviewCamera(),
             ui.GetNativeSceneOrbit(), ui.NativeSceneLocalAxes(), ui.NativeSceneCenterPivot(),
             ui.GetNativeSceneTool(), drag_preview, rotation_preview, scale_preview,
-            *native_scene_meshes);
+            *native_scene_meshes, materials, project_generation);
         ui.SetNativeScenePreviewAvailable(scene_status !=
                                           Nexora::Presentation::SurfaceStatus::Unsupported);
         if (scene_status == Nexora::Presentation::SurfaceStatus::Ready &&
@@ -1620,6 +1669,9 @@ int RunGraphical(std::optional<ProjectState> project,
         {static_cast<std::uint64_t>(frames) + 1,
          std::chrono::duration<double, std::milli>(frame_processed - frame_started).count(), 0.0,
          0}));
+    // OS observation belongs to the application, after a successfully presented frame. The
+    // owner throttles reads independently of frame rate; drawing widgets only copies its result.
+    static_cast<void>(profile.SampleProcessMemory(std::chrono::steady_clock::now()));
     ++frames;
   }
   if (result == 0 && project && project->workspace.Writable() &&
@@ -1685,6 +1737,20 @@ int RunGraphical(std::optional<ProjectState> project,
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
   const auto diagnostics = created.surface->Diagnostics();
+  const auto process_memory = profile.ProcessMemory();
+  std::cerr << "process memory evidence: scope=current_process_resident_set unit=bytes attempts="
+            << process_memory.attempts << " successful=" << process_memory.successful_samples
+            << " latest=";
+  if (process_memory.resident_bytes)
+    std::cerr << *process_memory.resident_bytes;
+  else
+    std::cerr << "unavailable";
+  std::cerr << " observed_peak=";
+  if (process_memory.observed_peak_bytes)
+    std::cerr << *process_memory.observed_peak_bytes;
+  else
+    std::cerr << "unavailable";
+  std::cerr << '\n';
   std::cerr << "graphical evidence: acquired=" << diagnostics.acquiredFrames
             << " presented=" << diagnostics.presentedFrames
             << " ui_draws=" << diagnostics.nativeUiDrawCalls

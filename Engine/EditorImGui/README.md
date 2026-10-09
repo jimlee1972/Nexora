@@ -174,7 +174,12 @@ production retains ImGui's native platform defaults.
   recovery journal awaits a choice.
 - The docked Profiler reads an application-owned bounded `ProfileSession`. It can pause and clear
   capture, plots retained Editor frame processing times, and reports the latest, average, peak, and
-  evicted-frame count. GPU time and memory remain explicitly unavailable until instrumented.
+  evicted-frame count. It also copies the owner's optional current process resident bytes and
+  observed peak; widgets perform no OS reads. Capture pauses observations, Clear resets the peak
+  and sample window, and a failed latest read displays unavailable while retaining the prior peak.
+  Memory scope is process-wide RSS / working set including shared resident pages, across project
+  changes; it is not GPU/allocator accounting. GPU time remains explicitly unavailable. Schema-1
+  wall-time exports/imports do not include the live memory observation.
 - Profiler Import CSV emits an independent one-shot request; the application reads the current
   project's `.nexora/frame-processing.csv` on the authoring thread and transfers a validated owning
   wall-time snapshot to the host. The imported static trace is displayed separately from live
@@ -439,11 +444,11 @@ commands and before adding the current frame; the call borrows them synchronousl
 serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
 before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
 columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
-cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+cells because this wall-time format excludes live RSS observations. Export requires 1-600 strictly increasing nonzero
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
 
 Export JSON emits an independent one-shot request consumed through `TakeProfileJsonExportRequest`;
 the CSV request API retains its behavior. Both buttons share empty-sample, write-access and modal
@@ -766,6 +771,16 @@ permit Open but disable New/Save/Save As; running Play disables New/Open. Recove
 block new file actions. The application independently rechecks policy and token before I/O. These
 are single-active-document controls; additive scene tabs and a native OS picker remain open.
 
+Ordinary Ctrl+S, Save before New/Open, and Save and Exit route an externally changed managed scene
+through the same Replace/Cancel modal and show the owning conflict reason. Requests retain the
+session's scalar overwrite confirmation; the application passes it back for exact disk revision
+revalidation. A disk change while the modal is open reopens confirmation, retaining the New/Open
+destination or close-after-save continuation. Cancel keeps both scene versions; successful persistence
+alone permits continuation/exit. Replacement dialogs cancel gestures/Inspector drafts and obey the
+existing project/document, read-only and recovery gates. The UI performs no source reads or writes.
+Real ImGui control tests cover these continuations and stale/read-only rejection at 1x and 2x;
+physical desktop crash/source-control-provider acceptance remains open.
+
 The Content panel's Open scene button, focused Enter, scene-row double-click and context Open scene
 copy the native asset path into that same owning file request. A single click only selects. Button/
 Enter require one selected `.scene`; non-scene or multiple selections do not activate. Content Open
@@ -851,3 +866,18 @@ during activation, cancelling old drafts/requests. The application loads project
 defaults for missing state and reports preserved corrupt settings. If startup recovery blocks
 loading, it retries once after recovery resolution. `SetGameInputBindingsStatus` reports save/load
 results. Widgets perform no IO and do not persist during ordinary shutdown.
+
+## Scalar material assignment
+
+`DrawProductShell` borrows an application-owned `MaterialAssetCatalog` for the current frame.
+A single selected Mesh Renderer offers valid typed `.nmaterial` assets; multiple selections state
+that assignment requires one object. UI requests own the complete entity key, asset UUID and
+project generation and pass through `AssignMaterialAsset` on the authoring thread. Live permissions,
+selection, component presence, generations and Content/catalog payload identity are rechecked
+before one Undo. The host does not perform filesystem/GPU work or retain borrowed asset pointers.
+Missing or unsupported UUID references remain visible and saved; unknown versions cannot be
+replaced by this host. Focus loss, hidden Inspector, read-only/modal gates discard queued material
+drafts; reopening a gate cannot revive an abandoned request. Inspector reads owning bounded opaque
+metadata instead of copying unrelated plugin payloads. Valid Editor-owned schema-1 references are excluded from missing-plugin
+inspection, while unknown payloads remain inspectable. Legacy shader IDs stay unchanged. Texture,
+graph, multi-selection and Game View material editing remain open.

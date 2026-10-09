@@ -1,0 +1,6 @@
+add_executable(NexoraProjectPlayer main.cpp)
+target_link_libraries(NexoraProjectPlayer PRIVATE Nexora::Runtime)
+if(MINGW)
+  target_link_options(NexoraProjectPlayer PRIVATE -municode)
+endif()
+nexora_apply_defaults(NexoraProjectPlayer)

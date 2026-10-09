@@ -5,6 +5,7 @@ add_library(NexoraCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/Log.cpp
   src/Memory.cpp
   src/Platform.cpp
+  src/ProcessMemory.cpp
   src/RemoteDiagnostics.cpp
   src/Services.cpp
   src/TaskGraph.cpp

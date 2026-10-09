@@ -224,6 +224,7 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   std::vector<AssetEntry> entries;
   entries.reserve(files.size());
   std::size_t mesh_bytes{};
+  std::size_t material_count{};
   for (std::size_t index = 0; index < files.size(); ++index) {
     const auto relative = PathUtf8(std::filesystem::relative(files[index], root, ec));
     if (ec) {
@@ -299,8 +300,17 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
       } else {
         entry.state = ImportState::Imported;
       }
-      if (entry.state == ImportState::Imported)
-        entry.artifact_hash = std::move(imported.artifact_hash);
+      if (entry.state == ImportState::Imported) {
+        if (imported.material && material_count == kMaximumWorkspaceMaterials) {
+          entry.state = ImportState::Failed;
+          entry.error = "Workspace scalar PBR materials exceed the 4096 asset budget.";
+        } else {
+          entry.artifact_hash = std::move(imported.artifact_hash);
+          if (imported.material)
+            ++material_count;
+          entry.material = std::move(imported.material);
+        }
+      }
     }
     entries.push_back(std::move(entry));
     if (progress)
@@ -1315,16 +1325,19 @@ bool SceneDocument::Dirty() const {
   return !signature || *signature != saved_signature_ || *opaque_dirty_;
 }
 
-bool SceneDocument::Save(const std::filesystem::path &path) const {
+bool SceneDocument::Save(const std::filesystem::path &path) const { return Save(path, nullptr); }
+bool SceneDocument::Save(const std::filesystem::path &path, std::string *written_bytes) const {
+  if (written_bytes)
+    written_bytes->clear();
   const auto signature = StateSignature();
   if (!signature)
-    return false;
+    return std::nullopt;
   const auto snapshot = world_.SaveScene(scene_);
   if (!snapshot)
-    return false;
+    return std::nullopt;
   const auto opaque = CaptureOpaque(nodes_);
   if (!opaque)
-    return false;
+    return std::nullopt;
   const auto opaque_records = OpaqueRecords(*opaque);
   std::string output =
       opaque_records.empty() ? "NEXORA_EDITOR_SCENE 2\n" : "NEXORA_EDITOR_SCENE 3\n";
@@ -1343,12 +1356,32 @@ bool SceneDocument::Save(const std::filesystem::path &path) const {
   }
   output += hints.str() + opaque_records;
   output += "world\n" + *snapshot;
-  if (output.size() > kMaximumSceneFileBytes || !AtomicWrite(path, output, nullptr))
+  if (output.size() > kMaximumSceneFileBytes)
+    return std::nullopt;
+  return PreparedSave{document_generation_, std::move(output), *signature, opaque_records};
+}
+
+bool SceneDocument::SavePrepared(const std::filesystem::path &path,
+                                 const PreparedSave &prepared) const {
+  if (prepared.generation_ != document_generation_)
+    return false;
+  const auto signature = StateSignature();
+  const auto opaque = CaptureOpaque(nodes_);
+  if (!signature || *signature != prepared.signature_ || !opaque ||
+      OpaqueRecords(*opaque) != prepared.opaque_records_ ||
+      !AtomicWrite(path, prepared.bytes_, nullptr))
     return false;
   saved_signature_ = *signature;
-  saved_opaque_records_ = opaque_records;
+  saved_opaque_records_ = prepared.opaque_records_;
   opaque_dirty_ = false;
+  if (written_bytes)
+    *written_bytes = std::move(output);
   return true;
+}
+
+bool SceneDocument::Save(const std::filesystem::path &path) const {
+  const auto prepared = PrepareSave();
+  return prepared && SavePrepared(path, *prepared);
 }
 bool SceneDocument::NewScene() {
   const auto *current = world_.FindScene(scene_);

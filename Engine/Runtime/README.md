@@ -210,6 +210,22 @@ reservation is capped at a small constant, so a hostile snapshot cannot make the
 reserve memory proportional to a claimed count.
 Double-precision world transforms provide the large-coordinate foundation.
 
+`World::SaveScene(scene, max_bytes)` synchronously returns an owning snapshot only when its complete
+serialized output fits the caller's byte cap. Missing, unloading/unloaded scenes, stream failures
+and exceeded caps return `nullopt`, never partial bytes. The writer checks remaining capacity before
+each append and preflights the escaped quoted scene-name size before invoking `std::quoted`, which
+may allocate a formatter-owned temporary. The cap bounds logical output bytes, not string capacity,
+total formatter/allocator memory or process RSS. Callers apply their own entity/count and metadata
+budgets; Runtime does not impose the Editor capture's 100,000-entity or 64-MiB policy.
+
+The legacy `SaveScene(scene)` delegates with the maximum `size_t` cap to the same production
+serializer. Both paths preserve schema 3, classic locale, 17-digit numeric precision, quoted names,
+entity storage order and full-width IDs; this overload adds no persistence migration. Serialization
+is read-only, performs no IO/publication, and requires serialized access on the World's owning
+thread like other World calls. Returned bytes retain no scene/entity borrow and survive mutation or
+destruction of the source World. Successful serialization grants no Editor workspace access,
+recovery or publication authority and does not establish an authoring revision.
+
 `runtime::Transform` is one component holding a position, a rotation stored as a unit quaternion
 (`qx, qy, qz, qw`, identity by default), and a per-axis scale (`sx, sy, sz`, one by default), following
 the Unity and Unreal convention of a single transform with possibly non-uniform scale. Euler angles
@@ -447,6 +463,23 @@ Desktop CI builds the same module on Linux, Windows, and macOS. A separate CI sm
 runs `zig build-obj` for `aarch64-linux-android` and `aarch64-ios`; these checks validate object
 generation only and do not claim Android NDK or iOS SDK linking, packaging, or runtime execution.
 
+## Cooked static-project consumption
+
+The asset-pipeline feature now provides owning [cooked mesh, scalar PBR and scene codecs](CookedSceneAssets.md)
+and the [StaticView project package consumer](ProjectPackage.md). Public schema-1 payloads use explicit
+little-endian fields; the existing NXAB envelope requires a little-endian host. The loader validates
+bounded framing, hashes, full UUID/dependency closure and mesh resource collisions, then constructs
+an isolated Play World with owning typed resources and exact hierarchy matrices. Unknown component
+bytes remain preserved and inactive. Failed candidates publish no replacement.
+
+Calls are synchronous; inputs are borrowed only during each call and callers serialize mutations.
+Returned resource ownership survives package replacement. Allocation exceptions propagate; invalid
+input returns an error. The optional `NEXORA_BUILD_PROJECT_PLAYER` executable consumes real files
+through `--verify-package`, without Editor or source assets. Static verification does not imply native
+rendering, gameplay loading or application build success. Editor capture, cancellation, generation
+checks and output publication remain the export coordinator's responsibility. See
+[ADR-0006](../../Roadmap/en/ADR-0006-Cooked-Static-Projects.md).
+
 ## V1-M5 asset, cooker, bundle, and residency pipeline
 
 `AssetPipeline.h` is the public, platform-neutral content contract. Authoring identities are
@@ -596,12 +629,40 @@ parent), the entire apply is rejected without
 partial mutation and the conflict remains visible through `LastApplyBackStatus`. The Play World and update callback are released
 before `Stop` returns, including after conflicts and contained update failures.
 
-`RuntimeConsole` is a bounded, mutex-protected multi-producer ingress for owning structured records
-(sequence, severity, category, timestamp, source, and message). Old records are evicted in sequence
-order and the cumulative dropped count is observable. `PlaySession::Inspect` similarly returns an
-owning, stable-ID-sorted entity/component snapshot with both local and world poses rather than
-pointers into relocatable World storage. It includes copied parent/scene state and optional
-Camera/Light/Mesh payloads; these remain valid after component mutation/removal and Stop.
+`RuntimeConsole` is a mutex-protected multi-producer ingress for owning structured records
+(sequence, severity, category, timestamp, source, and message). The requested record capacity is
+clamped to 4,096; zero disables admission. Category, source and message have respective limits of
+256, 1,024 and 16,384 **UTF-8 bytes**, inclusive. Empty strings are valid. All fields reject embedded
+NUL, truncated/overlong encodings, surrogate encodings and scalars above U+10FFFF; other valid
+Unicode scalars, including newlines/tabs and other non-NUL controls, are preserved without
+normalization. Severity must be one of Trace/Info/Warning/Error/Fatal. Caller timestamps are copied
+without imposing a clock policy; caller sequences are ignored.
+
+A malformed/oversized record, disabled capacity or exhausted sequence returns false, increments the
+saturating cumulative dropped count, and preserves accepted history and the next accepted sequence.
+An accepted record receives a strictly increasing sequence starting at one and evicts the oldest
+record only after successful ownership publication; that eviction also increments dropped count.
+UINT64_MAX is admitted once, after which the sequence is exhausted permanently and future pushes
+reject without evicting the final retained history. Dropped count saturates at UINT64_MAX, never
+wraps, and includes both admission rejections and capacity evictions. The ingress has no reset API.
+
+Accepted strings are rebuilt from their validated bytes to release producer-provided oversized
+reserve allocations. At maximum capacity, retained text totals at most 72,351,744 bytes (69 MiB),
+plus record/container/string allocator overhead; one extra bounded record exists during an eviction
+transaction. `Push` takes an owning value, so callers still own budgeting the input allocation before
+admission. Allocation failure propagates the standard allocation exception with history and counters
+unchanged; it is not an admission rejection. `Snapshot` returns an owning sequence-ordered copy and
+never exposes producer-invalidated storage; callers own the number/lifetime of such copies. Calls
+are synchronous, safe across concurrent producers/snapshot readers, and perform no I/O or log-route
+registration. Complete Runtime/build routing and native debugger integration remain separate ED-M3
+work. The dedicated `runtime.console_record_admission` gate covers byte/Unicode/severity admission,
+producer reserve compaction, rejected-history preservation, capacity clamping, concurrent owning
+snapshots, exact drops, and production-transaction counter exhaustion.
+
+`PlaySession::Inspect` similarly returns an owning, stable-ID-sorted entity/component snapshot with
+both local and world poses rather than pointers into relocatable World storage. It includes copied
+parent/scene state and optional Camera/Light/Mesh payloads; these remain valid after component
+mutation/removal and Stop.
 `ReportRuntimeFailure` lets embedding per-frame callbacks use the same failure policy as fixed ticks:
 pause the owned clone, release input, record `RuntimeFailure`, and increment the crash count once per
 reported failure. It rejects reports without an active clone and does not perform World rollback.

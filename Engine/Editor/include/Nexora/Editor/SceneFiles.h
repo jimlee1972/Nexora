@@ -12,9 +12,14 @@ struct SceneFileToken final {
 };
 
 enum class SceneFileStatus { Applied, NeedsPath, NeedsUnsavedChoice, NeedsOverwrite, Rejected };
+struct SceneOverwriteToken final {
+  std::uint64_t session{}, revision{};
+  bool operator==(const SceneOverwriteToken &) const = default;
+};
 struct SceneFileResult final {
   SceneFileStatus status{SceneFileStatus::Rejected};
   std::string message;
+  std::optional<SceneOverwriteToken> overwrite_token{};
   [[nodiscard]] bool Applied() const noexcept { return status == SceneFileStatus::Applied; }
 };
 
@@ -22,7 +27,10 @@ struct SceneFileResult final {
 // serialized on the authoring thread. Paths/results/tokens returned here own their values.
 class NEXORA_EDITOR_API SceneFileSession final {
 public:
+  static constexpr std::size_t kMaximumDiskBaselineBytes = 64 * 1024 * 1024;
   SceneFileSession(const ProjectWorkspace &workspace, SceneDocument &document);
+  SceneFileSession(const SceneFileSession &) = delete;
+  SceneFileSession &operator=(const SceneFileSession &) = delete;
   [[nodiscard]] SceneFileToken Token() const noexcept;
   [[nodiscard]] std::optional<std::filesystem::path> CurrentPath() const;
   [[nodiscard]] bool SaveBlocked() const noexcept { return save_blocked_ || content_blocked_; }
@@ -32,9 +40,13 @@ public:
   SceneFileResult New(SceneFileToken token, bool discard_unsaved = false);
   SceneFileResult Open(SceneFileToken token, const std::filesystem::path &relative_path,
                        bool discard_unsaved = false);
-  SceneFileResult Save(SceneFileToken token);
+  SceneFileResult Save(SceneFileToken token,
+                       std::optional<SceneOverwriteToken> overwrite_token = std::nullopt);
+  // replace_existing without an overwrite token is an explicit caller-owned replacement policy.
+  // Interactive callers must pass the NeedsOverwrite token to recheck the confirmed bytes.
   SceneFileResult SaveAs(SceneFileToken token, const std::filesystem::path &relative_path,
-                         bool replace_existing = false);
+                         bool replace_existing = false,
+                         std::optional<SceneOverwriteToken> overwrite_token = std::nullopt);
   // Associate a loaded Content scene before browser mutations, then call after mutations. Tracks
   // its stable asset UUID through rename/move/Undo without changing the document or its history.
   // Missing, stale or unsafe tracked assets block ordinary Save until restored or explicitly
@@ -49,6 +61,20 @@ public:
   SceneFileResult RememberCurrent(SceneFileToken token);
 
 private:
+  struct DiskSnapshot final {
+    bool exists{};
+    std::string bytes;
+    bool operator==(const DiskSnapshot &) const = default;
+  };
+  struct PendingOverwrite final {
+    SceneFileToken document;
+    std::filesystem::path path;
+    SceneOverwriteToken token;
+    DiskSnapshot snapshot;
+  };
+  [[nodiscard]] static std::optional<DiskSnapshot> ReadDisk(const std::filesystem::path &path);
+  SceneFileResult RequireOverwrite(SceneFileToken token, const std::filesystem::path &path,
+                                   DiskSnapshot snapshot, std::string message);
   [[nodiscard]] bool Live(SceneFileToken token) const noexcept;
   [[nodiscard]] std::optional<std::filesystem::path>
   Resolve(const std::filesystem::path &relative_path) const;
@@ -65,6 +91,9 @@ private:
   std::uint64_t content_generation_{};
   bool content_blocked_{}, content_relocated_{};
   bool startup_checked_{}, startup_blocked_{};
+  std::optional<DiskSnapshot> disk_baseline_;
+  std::optional<PendingOverwrite> pending_overwrite_;
+  std::uint64_t session_id_{}, overwrite_revision_{};
 };
 
 } // namespace nexora::editor

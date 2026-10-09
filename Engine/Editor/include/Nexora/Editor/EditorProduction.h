@@ -2,6 +2,7 @@
 
 #include "Nexora/Editor/Api.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -72,6 +73,14 @@ struct FrameProcessingCapture final {
   std::uint64_t older_frames_dropped{};
 };
 
+// Copied process-wide observations, separate from the schema-1 wall-time capture.
+struct ProcessMemoryObservation final {
+  std::optional<std::uint64_t> resident_bytes;
+  std::optional<std::uint64_t> observed_peak_bytes;
+  std::uint64_t attempts{};
+  std::uint64_t successful_samples{};
+};
+
 class NEXORA_EDITOR_API ProfileSession final {
 public:
   explicit ProfileSession(std::size_t capacity = 600) : capacity_(capacity) {}
@@ -82,12 +91,22 @@ public:
   [[nodiscard]] std::uint64_t DroppedCount() const noexcept { return dropped_; }
   [[nodiscard]] std::span<const FrameSample> Samples() const noexcept { return samples_; }
   [[nodiscard]] std::optional<FrameSample> Peak() const noexcept;
+  using ProcessMemoryReader = std::optional<std::uint64_t> (*)() noexcept;
+  static constexpr auto kProcessMemorySampleInterval = std::chrono::milliseconds(250);
+  // Application authoring thread only. The default reader observes the real current process;
+  // widgets never call it. Failed reads publish unavailable while retaining observed peak.
+  bool SampleProcessMemory(std::chrono::steady_clock::time_point now,
+                           ProcessMemoryReader reader = nullptr) noexcept;
+  [[nodiscard]] ProcessMemoryObservation ProcessMemory() const noexcept { return memory_; }
 
 private:
   std::size_t capacity_{};
   std::uint64_t dropped_{};
   bool capturing_{true};
   std::vector<FrameSample> samples_;
+  ProcessMemoryObservation memory_;
+  std::optional<std::chrono::steady_clock::time_point> next_memory_sample_;
+  std::optional<std::chrono::steady_clock::time_point> last_memory_sample_;
 };
 
 struct NEXORA_EDITOR_API ExtensionPolicy final {

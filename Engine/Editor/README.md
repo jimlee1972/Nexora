@@ -236,26 +236,63 @@ into renderer or platform internals.
   commit the whole batch as one Runtime Undo step; equal-value batches preserve Redo.
   Unresolved resource IDs are retained in scene persistence, and Undo can return to the saved clean
   baseline. These synchronous authoring APIs do not perform asset lookup, I/O, residency, or GPU work.
+  `PrepareSave` owns immutable serialized scene bytes plus document generation, content signature
+  and opaque baseline, bounded by the existing 64 MiB scene-file limit. Preparation performs no IO
+  and does not change dirty state, selection or history. `SavePrepared` revalidates generation and
+  all serializable content (including opaque bytes and authored Euler turns) before any file IO;
+  only successful atomic single-file replacement advances the clean baseline. Ordinary `Save`
+  uses the same path. Both calls are serialized by the authoring host; the snapshot can be copied
+  or retained without World borrows, but submission still requires the live owning document.
+  Callers retain workspace writer/recovery and destination-path responsibilities. This is save-all
+  staging groundwork: no multi-file commit, crash journal, additive tabs or fsync durability is added.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
-  from references, and rejects cycles or unsafe removal atomically. Migration dry-runs never mutate
-  source text; autosave writers and readers share a 64 MiB payload limit. Oversized writes are
-  rejected before filesystem mutation, occupied temporary paths are preserved, and failed
+  from references, and rejects cycles or unsafe removal atomically. Initial dependencies must refer
+  to already admitted scenes; zero, self, missing dependencies and duplicate scene IDs reject before
+  mutation. Initial and replacement dependencies are sorted and deduplicated, preserving deterministic
+  load order and reverse-order removal after a rejected edit. Descriptors do not open documents or
+  publish files; additive tabs and coordinated multi-document save remain separate host workflows.
+  This validation changes no serialization schema, class layout or module linkage. Migration
+  dry-runs never mutate source text; autosave writers and readers share a 64 MiB payload limit.
+  Oversized writes are rejected before filesystem mutation, occupied temporary paths are preserved, and failed
   writes/replacements clean only this attempt's temporary file while retaining the destination.
   The schema-1 header uses the classic locale regardless of the process locale. Calls are
   serialized by the authoring host; concurrent writers are not supported. Bounded autosave
   recovery rejects corruption without changing the caller's revision; stable-path three-way
   records retain unresolved base/local/remote values without coupling conflicts to a source-control provider.
 - Inspector adapters borrow reflection metadata and expose differing multi-selection values as an
-  explicit mixed state. Unknown component stores own opaque bytes and replace their state only
+  explicit mixed state. `InspectorPropertyAdapter::ApplyBatch` prepares one owning request for up to
+  100,000 unique nonzero entity IDs and calls one transaction writer. Empty/duplicate/oversized
+  selections, read-only or stale component/field/type metadata, ambiguous fields and nonfinite
+  scalar values reject before the writer runs. The authoring owner revalidates live entity/document
+  generations, workspace permissions and component-specific value types, then commits all targets
+  as one Undo transaction or returns false without changing state/history. Deferred consumers copy
+  the request and repeat those live checks at commit; the adapter does not own the World or undo
+  stack. Legacy `Apply` remains a single-target callback API; multi-target calls now reject instead
+  of allowing a later failure to leave earlier targets modified. C++ consumers must use `ApplyBatch`
+  for multi-selection; this adds no stable C/Zig wire or persistence-schema change.
+  Unknown component stores own opaque bytes and replace their state only
   after a complete payload validates, so unavailable plugins do not silently discard authoring
   data.
 - `ProfileSession` retains a bounded, monotonic frame history. Invalid or out-of-order samples are
   rejected; capacity evictions increment a dropped count. Capture can be paused and cleared without
   changing project files. The graphical host currently supplies Editor frame processing wall time
-  after BeginFrame and before Present; GPU timing and process memory are not instrumented.
+  after BeginFrame and before Present; GPU timing remains uninstrumented.
+  `SampleProcessMemory` is a separate application-thread observation, throttled to one real Core
+  OS read per 250 ms using a monotonic clock. `ProcessMemory()` returns a copied optional current
+  process RSS / working-set byte count, observed peak since Clear, and attempt/success counters.
+  A failed read publishes unavailable for the latest value while preserving the historical peak;
+  no previous success masquerades as a fresh measurement. Capture pauses both wall-frame ingestion
+  and memory reads while preserving observations. Clear resets both histories and the sample timer,
+  retains the pause state, and allows an immediate observation once capturing resumes. Clock
+  rollback/same-timestamp calls do not sample. Counters saturate and the timer handles the clock's
+  upper boundary. Memory observations are process-wide across project changes and detachment,
+  including shared resident pages, rather than scene/GPU/allocator usage or an OS lifetime peak.
+  Widgets copy the observation and never call the reader. The optional injected function-pointer
+  reader supports deterministic owner-contract tests; the application uses the real default.
+  `FrameSample` and schema-1 wall-time CSV/JSON capture remain separate and contain no RSS samples.
   `ProjectWorkspace::ImportEditorFrameProcessingCsv` reads the project's exported CSV synchronously
   into an owning `FrameProcessingCapture`, without changing files, workspace state or a live
   session. Read-only observers may import; closed/recovery-pending projects, aliased metadata/leaf
@@ -301,6 +338,38 @@ into renderer or platform internals.
   DEL reject on every host. UTF-8
   paths are parsed as native UTF-8 instead of a system code page. Valid escaped control text remains
   supported in profile/checksum metadata; existing exact duplicate-artifact checks remain in force.
+
+## Owning Runtime scene capture
+
+`SceneDocument::CaptureRuntimeScene` synchronously returns an owning `RuntimeSceneCapture` from a
+live, non-unloading Editor World scene. `runtime_snapshot` contains every Runtime entity and its
+components, including entities without an Editor node, and preserves the exact bytes from
+`World::SaveScene(scene, max_bytes)`. `nodes` contains only the document's tracked NodeKeys and their
+complete opaque type names/payloads; tracked nodes with no opaque data still retain their keys.
+Nodes follow Runtime entity storage order and each node's opaque records sort by unique type ID.
+Editor node names and authored Euler hints are excluded. The constructor does not adopt existing
+Runtime entities or invent Editor metadata.
+
+The capture owns all strings/vectors and survives later edits, New/Reload, and destruction of the
+document and World. Scene ID, document generation and NodeKey generations identify the captured
+objects; they are not an authoring revision and do not prove that captured content is still current.
+Default equality compares the complete owning data. Consumers must perform their own current-state
+comparison and access/recovery checks before publishing a result.
+
+Capture checks the 100,000 Runtime entity limit before serialization, then preflights nonzero/unique
+identities, tracked-node membership in this scene and opaque metadata before copying payloads.
+Runtime output is capped at 64 MiB. Opaque limits are 4096 records total, 64 per entity, 1 MiB per
+payload, 256 bytes per nonempty type name and 16 MiB total raw type-name bytes plus payload bytes.
+Names containing CR, LF or NUL reject; legacy non-UTF-8 names retain their original bytes. Invalid
+identities, missing/foreign nodes, lifecycle/kind failures and exceeded budgets return no partial
+capture and an actionable optional error. These are logical data/output limits, not allocator or
+process-RSS bounds.
+
+Calls are serialized with all World/document authoring access on the owning thread; the operation
+is not thread-safe. Capture performs no IO and does not change selection, clipboard, Undo/Redo,
+dirty state or the saved baseline. It does not authorize publication, workspace write access or
+recovery decisions. The owning result may be transferred to a worker without retaining World
+borrows, but that worker gains no authority to mutate or publish to the source document.
 
 ## Threading, errors, and deferred work
 
@@ -470,11 +539,11 @@ commands and before adding the current frame; the call borrows them synchronousl
 serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
 before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
 columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
-cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+cells because this wall-time format excludes live RSS observations. Export requires 1-600 strictly increasing nonzero
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and saved memory traces remain open.
 
 Profiler Export JSON writes the companion `.nexora/frame-processing.json` under the same writer,
 sample-validation, recovery and atomic-replacement rules. Schema 1 records source `NexoraEditor`,
@@ -485,7 +554,7 @@ full double precision; availability flags are false and each GPU/memory value is
 when a caller's FrameSample contains those fields. Export borrows samples only for the synchronous
 call and leaves CSV unchanged. `gpu_timing_available` and `memory_measurement_available` are false;
 each `samples` entry has `frame`, `frame_processing_wall_ms`, `gpu_ms` and `memory_bytes`.
-Schema/capture import and measured GPU/memory data remain open.
+Arbitrary capture import, measured GPU data and saved process-memory traces remain open.
 
 Game Apply Changes is an explicit transform-only review. Opening it emits Pause when needed and
 releases Game input. The modal owns original/Editor/Play transforms and session/document/entity
@@ -593,6 +662,48 @@ without truncating/removing them, and replaces with native Windows replace or PO
 never deletes the original destination to retry. This checks paths at operation time; it does not
 lock against concurrent external filesystem edits.
 
+`SceneDocument::Save(path, written_bytes)` clears a supplied output string before serialization and
+IO. Only after successful atomic replacement does it move the exact serialized bytes, including
+opaque components and authored Euler hints, into that caller-owned string. Failure leaves it empty
+and preserves document dirty state, selection, generation and history. The original `Save(path)`
+delegates to the same serializer without requesting bytes. All calls remain serialized on the
+authoring thread; the returned bytes describe the Editor's publication even if an external writer
+subsequently changes the file.
+
+Ordinary Save and unconfirmed Save As to the current association compare the actual source bytes
+against an owning disk baseline. File size or restored modification time cannot hide a changed
+revision. Bind/Open/successful Save establish the baseline; failed Bind/Open leave the live good
+association and document intact. Bind is an explicit bootstrap association of a document the caller
+has already loaded or created: a missing-at-bind destination permits its first Save, but deleting an
+existing associated source rejects ordinary Save. New clears the baseline. Content relocation through
+the same asset UUID keeps it, so a renamed externally edited source still conflicts at its new path.
+Source bytes are read only during file operations, never during frame polling or Content
+synchronization; existing path-scope and regular-file metadata checks remain in those operations.
+
+`NeedsOverwrite` carries an owning scalar `SceneOverwriteToken`; the session retains the exact
+reviewed bytes, project/document token and resolved destination. Interactive replacement must pass
+that token to Save or Save As. A second disk revision returns a fresh confirmation without writing;
+old/replayed tokens, another destination/session, Bind/New/Open and relocation cannot reuse approval.
+Read-only access and pending workspace recovery are rechecked before Save, including confirmed Save.
+Existing `SaveAs(..., true)` without a confirmation remains an explicit caller-owned destructive
+replacement policy; it is not suitable for delayed interactive approval. Cancel does not discard
+either version. Unreadable/nonregular/oversized destinations fail closed. A confirmed source that
+disappears also rejects. Every successful scene write establishes its baseline directly from the
+exact bytes published by `SceneDocument::Save`, never from a post-save reread that could adopt
+another writer's revision.
+An external edit after successful Save therefore requires review on the next ordinary Save.
+
+Each retained baseline and pending replacement owns at most 64 MiB; both together retain at most
+128 MiB of source bytes. One bounded comparison/read snapshot or published output adds at most
+64 MiB (192 MiB total source-byte peak, excluding string allocator overhead and SceneDocument
+serialization/World data).
+Comparison scratch is released before serialization; the published output string moves into the
+baseline after pending bytes are released, with no additional copy or reread.
+The session is noncopyable; all operations remain serialized on its owning authoring thread. Exact
+comparison is an operation-time check, not a file lock or guarantee against a concurrent change
+between check and replacement. C++ Editor/EditorImGui consumers rebuild for the new optional
+confirmation arguments and result/request fields; stable C/Zig and scene formats are unchanged.
+
 `SceneFileSession::SynchronizeContent` borrows the current same-root Content session for one
 authoring-thread call. Bind before Content mutations; refresh after them. A loaded Content scene
 tracks its asset UUID and project generation through rename, move and Content Undo. Only an existing
@@ -667,3 +778,32 @@ directories and aliases preserve unrelated data and the last-good destination th
 atomic replacement helper. Explicit valid saves may replace corrupt settings, while reads and
 ordinary shutdown never rewrite them. Settings are independent from scene content and journals;
 these additive APIs change no existing class layout, module dependencies or gameplay C ABI.
+
+## Scalar PBR material assets
+
+`.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
+from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
+for the source grammar, numeric bounds and persistent UUID-reference bytes. Indexing and reimport
+own immutable `MaterialAsset` snapshots. Workers only stage; live publication rechecks source,
+project and dependency revisions. Cancellation, invalid/unsupported source and stale results keep
+the previous artifact. Content Undo retains the latest successful material reimport, just as it
+retains mesh reimports. Sources are limited to 64 KiB and workspaces to 4096 typed materials.
+
+`MaterialAssetCatalog` is externally serialized on the authoring thread and publishes atomically.
+Canonical scalar fields and their exact derived Renderer schema are validated together, rejecting
+unsupported shader/profile/features and contradictory reflected parameters. It borrows Content only
+for the call and returns owning snapshots; every lookup checks the current
+nonzero project generation. Import/catalog operations perform no native GPU work. Its direct
+Renderer dependency uses the shared material-validation policy; application drawing uses Renderer
+tangent generation and existing Presentation PBR bindings.
+
+`AssignMaterialAsset` requires one selected live Mesh Renderer, writable Content, an editable host,
+live entity/document/project generations and the same owning typed payload in catalog and Content.
+It commits one `SceneDocument::SetOpaqueComponent` Undo. Identical assignments preserve Redo.
+The Editor-owned `editor.material.asset` component stores a versioned UUID independently of the
+unchanged legacy shader ID; missing resources and unsupported component versions retain all bytes.
+Per-frame reference inspection copies only bounded opaque metadata prefixes and requires exact
+17-byte length/version, including when unrelated plugins retain large payloads. Unsupported
+versions/type-name collisions reject assignment. Scene container and stable C/Zig
+schemas stay unchanged. Multi-selection, reference removal, textures, shader graphs, Game View
+materials and the shipped-game/cook consumer remain separate work.

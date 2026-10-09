@@ -8,6 +8,7 @@
 #include <locale>
 #include <set>
 #include <sstream>
+#include <unordered_set>
 #include <utility>
 
 #if defined(_WIN32)
@@ -20,6 +21,32 @@
 namespace nexora::editor {
 namespace {
 constexpr std::uint64_t MaxAutosavePayloadBytes = 64 * 1024 * 1024;
+
+std::optional<InspectorEditBatch>
+PrepareInspectorBatch(const runtime::ReflectionRegistry &reflection,
+                      std::span<const runtime::Id> entities, const InspectorProperty &property,
+                      const InspectorValue &value) {
+  if (entities.empty() || entities.size() > InspectorPropertyAdapter::kMaximumBatchEntities ||
+      property.read_only)
+    return std::nullopt;
+  const auto *type = reflection.FindById(property.component_type);
+  if (!type || type->name != property.component_name)
+    return std::nullopt;
+  const auto field =
+      std::ranges::find(type->fields, property.property_name, &runtime::FieldDescriptor::name);
+  if (field == type->fields.end() || field->type != property.value_type ||
+      std::ranges::count(type->fields, property.property_name, &runtime::FieldDescriptor::name) !=
+          1)
+    return std::nullopt;
+  if (const auto *number = std::get_if<double>(&value); number && !std::isfinite(*number))
+    return std::nullopt;
+  std::unordered_set<runtime::Id> unique;
+  unique.reserve(entities.size());
+  for (const auto entity : entities)
+    if (entity == 0 || !unique.insert(entity).second)
+      return std::nullopt;
+  return InspectorEditBatch{{entities.begin(), entities.end()}, property, value};
+}
 
 void Error(std::string *error, std::string message) {
   if (error)
@@ -74,16 +101,23 @@ InspectorPropertyAdapter::Inspect(std::span<const runtime::Id> entities,
 bool InspectorPropertyAdapter::Apply(std::span<const runtime::Id> entities,
                                      const InspectorProperty &property, const InspectorValue &value,
                                      const Write &write) const {
-  const auto *type = reflection_.FindById(property.component_type);
-  if (!type || property.read_only || !write)
+  if (entities.size() != 1 || !write)
     return false;
-  const auto field =
-      std::ranges::find(type->fields, property.property_name, &runtime::FieldDescriptor::name);
-  if (field == type->fields.end())
+  const auto request = PrepareInspectorBatch(reflection_, entities, property, value);
+  if (!request)
     return false;
-  return std::ranges::all_of(entities, [&](const auto entity) {
-    return write(entity, property.component_type, property.property_name, value);
-  });
+  return write(request->entities.front(), request->property.component_type,
+               request->property.property_name, request->value);
+}
+
+bool InspectorPropertyAdapter::ApplyBatch(std::span<const runtime::Id> entities,
+                                          const InspectorProperty &property,
+                                          const InspectorValue &value,
+                                          const WriteBatch &write) const {
+  if (!write)
+    return false;
+  const auto request = PrepareInspectorBatch(reflection_, entities, property, value);
+  return request && write(*request);
 }
 
 UnknownComponentStore::UnknownComponentStore(UnknownComponentStore &&other) noexcept
@@ -333,7 +367,16 @@ bool UndoRedoHistory::Redo() {
 }
 
 bool AdditiveSceneGraph::Add(AdditiveScene scene) {
-  return scene.id && !scene.path.empty() && scenes_.emplace(scene.id, std::move(scene)).second;
+  if (!scene.id || scene.path.empty() || scenes_.contains(scene.id) ||
+      std::ranges::any_of(scene.dependencies, [&](const auto dependency) {
+        return dependency == scene.id || !scenes_.contains(dependency);
+      }))
+    return false;
+  std::ranges::sort(scene.dependencies);
+  scene.dependencies.erase(std::unique(scene.dependencies.begin(), scene.dependencies.end()),
+                           scene.dependencies.end());
+  // Existing scenes cannot depend on this new ID, so validated edges preserve acyclicity.
+  return scenes_.emplace(scene.id, std::move(scene)).second;
 }
 const AdditiveScene *AdditiveSceneGraph::Find(SceneDocumentId id) const noexcept {
   const auto found = scenes_.find(id);

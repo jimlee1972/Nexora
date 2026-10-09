@@ -55,3 +55,15 @@ Windows / macOS / Android / iOS 的 preset 在雲端跑不了（缺 MSVC、Xcode
 - 動手前先讀相關的 README 與 roadmap 文件，不要從檔名猜架構。
 - 大範圍重構先提計畫，不要一次改幾十個檔案再回報。
 - 遇到需要裝新相依、改 CI、或動 build 系統的情況，先講清楚再做。
+
+## Beads 跨任務同步
+
+每個 task 開始時先執行 `bd dolt pull`，確認同步成功後再執行 `bd prime`；
+讀取 task graph 前再 pull。任何 checkout 沒有本機資料庫時（包括已存在的 clone），
+先依 .agents/skills/beads/SKILL.md 驗證 `refs/dolt/data` 並安全執行 `bd bootstrap`；
+不可 `bd init`、force 或覆蓋共享歷史。
+變更任務、相依或共享記憶後執行 `bd dolt push`。
+本 GitHub repo 是 public，推送到 `refs/dolt/data` 的 Beads 任務與共享記憶也會公開；
+不可放 secrets、個人私密資訊或私下筆記。
+只提交設定與整合檔案，不提交 embedded Dolt database、runtime data 或機器設定。
+`DOLT_ROOT_PATH` 與 `BEADS_DIR` 必須位於 repo 外，每個 task 各自使用可寫目錄。

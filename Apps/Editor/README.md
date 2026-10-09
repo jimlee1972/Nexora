@@ -37,7 +37,7 @@ Windows target-host evidence for ED-M0 is recorded with `Tools/Editor/RecordEdit
 It runs a bounded real-window smoke automatically, then asks the person at the machine for the
 per-monitor DPI, IME composition/candidate and keyboard-only recovery rows. Unanswered or
 not-performed rows are recorded as `blocked`, and the overall status is `PASS` only when every row
-passes on a machine with at least two monitors. The script itself has not been run on a Windows host
+passes on a machine with at least two monitors running at different scales. The script itself has not been run on a Windows host
 yet, so it is not evidence; only a recorded `evidence.json` from a real run is.
 
 The Development desktop CI matrix enables the graphical shell on Linux, Windows/DX12, and
@@ -83,8 +83,9 @@ Vulkan now retains bounded upload capacity in completed frame slots for Scene/Ga
 Steady or smaller draws reuse allocation while copying fresh vertices, indices and instances.
 Growing an upload commits replacement only after allocation/binding succeeds; resize and shutdown
 wait for GPU work before releasing it. Native call-tracing/pixel tests cover reuse and failure paths.
-Authored geometry uses exact sheared world matrices; material shader execution, persistent per-asset
-GPU caching and full Scene View acceptance remain open.
+Authored geometry uses exact sheared world matrices. [Scalar opaque PBR materials](#authored-scalar-pbr-scene-materials)
+now execute in Scene View; complete texture/shader workflows, persistent per-asset GPU caching and
+full Scene View acceptance remain open.
 Right drag orbits the preview camera, middle drag pans its X/Z target, the wheel zooms, and F or
 Frame selected centers on selected forests in X/Y/Z, using exact world-transformed mesh bounds
 and rotated proxy bounds, including descendants once. The narrower horizontal/vertical viewport
@@ -294,7 +295,15 @@ Undoing entity creation removes stale node metadata and selection; Redo restores
 stable entity ID. New scene edits discard the redo branch.
 The docked Profiler shows a bounded history of Editor frame processing wall time measured after
 BeginFrame and before Present. Capture can be paused or cleared; the panel reports evicted frames
-and labels GPU timing and process memory as unavailable.
+and labels GPU timing as unavailable. After a successful Present, the application separately calls
+`ProfileSession::SampleProcessMemory` to observe real current process RSS / working-set bytes at
+most once per 250 ms. The Profiler displays a copied latest optional value and observed peak since
+Clear, in bytes, including shared resident pages. A read failure makes latest unavailable and
+preserves the historical peak. Capture pauses memory observations as well as wall-frame ingestion;
+Clear resets observations and sampling time without resuming paused capture. The next capturing
+frame may sample immediately. Scope remains process-wide across project switches/detachment and
+does not measure GPU memory or allocator ownership. The bounded shutdown diagnostic reports
+scope/unit, attempt/success counts and latest/peak, without paths or project data.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.
@@ -408,11 +417,11 @@ commands and before adding the current frame; the call borrows them synchronousl
 serialized CSV data. `cpu_ms` at this call is Editor frame processing wall time after BeginFrame and
 before Present, not whole-frame CPU utilization. CSV uses locale-independent full double precision,
 columns `frame,frame_processing_wall_ms,older_frames_dropped,gpu_ms,memory_bytes`, and empty GPU/memory
-cells because those measurements are unavailable. Export requires 1-600 strictly increasing nonzero
+cells because this wall-time format excludes live RSS observations. Export requires 1-600 strictly increasing nonzero
 frame IDs with finite nonnegative wall times. Empty/invalid/read-only/recovery exports fail without
 replacing the last good file. UI emits a one-shot request, disables export without samples/write
 access or during recovery/close confirmation, and shows the application's result; UI never writes a
-file itself. Arbitrary capture import, GPU timing and memory instrumentation remain open.
+file itself. Arbitrary capture import, GPU timing and saved process-memory traces remain open.
 
 Profiler Import CSV reads `.nexora/frame-processing.csv` through the workspace owner and displays a
 separate static wall-time snapshot. The file is bounded to 128 KiB/600 ordered samples; malformed,
@@ -629,3 +638,21 @@ restored profile, and native/deferred input forwarding uses it through the exist
 There is no automatic shutdown save or gameplay-library load caused by reading bindings. Linux
 Xvfb checks actual remapped B movement, rejected old D input and read-only process reopen with
 unchanged settings/scene bytes. Expanded devices/users and physical-host acceptance remain open.
+
+### Authored scalar PBR Scene materials
+
+The application publishes a generation-scoped material catalog alongside its mesh catalog after
+activation and successful Content changes. Inspector single-object assignment persists a versioned
+UUID reference through document Undo/Redo and save/reopen, preserving legacy shader IDs. Valid
+`.nmaterial` scalar assets produce actual per-batch Presentation PBR slots in Scene View. A palette
+reserves neutral fallback slot zero and at most 63 unique authored UUIDs; unresolved/over-budget
+references remain stored. Authored slots use white instance tint so selection does not recolor the
+material; ground, proxies and gizmos retain their existing tint. With no resolved materials the
+existing Lambert preview stays active. Geometry tangents come from Renderer, including OBJ assets
+with no usable UVs, while the submitted world matrix retains shear/mirroring.
+
+Every draw owns its temporary palette and converted geometry until `DrawScene` returns; native
+Presentation fences retain submitted storage. Geometry is still converted/uploaded per frame:
+persistent per-asset GPU caching is open. This is scalar opaque Scene material assignment, not
+texture/shader-graph editing, Game View materials, shipping asset cooking or full physical/multi-DPI
+Scene View acceptance. See [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md).

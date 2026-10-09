@@ -1,0 +1,76 @@
+[1/76] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/BuildInfo.cpp.o
+[2/76] Building CXX object Engine/Foundation/CMakeFiles/NexoraFoundation.dir/src/DataAbi.cpp.o
+[3/76] Linking CXX static library Engine/Foundation/libNexoraFoundation.a
+[4/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Engine.cpp.o
+[5/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/JobSystem.cpp.o
+[6/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Log.cpp.o
+[7/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Memory.cpp.o
+[8/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Platform.cpp.o
+[9/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/RemoteDiagnostics.cpp.o
+[10/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Services.cpp.o
+[11/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/TaskGraph.cpp.o
+[12/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Time.cpp.o
+[13/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Timer.cpp.o
+[14/76] Building CXX object Engine/Core/CMakeFiles/NexoraCore.dir/src/Vfs.cpp.o
+[15/76] Linking CXX static library Engine/Core/libNexoraCore.a
+[16/76] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/ShaderReflection.cpp.o
+[17/76] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/ValidationDevice.cpp.o
+[18/76] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/DeviceFactory.cpp.o
+[19/76] Building CXX object Engine/RHI/CMakeFiles/NexoraRHI.dir/src/VulkanDevice.cpp.o
+[20/76] Building CXX object Engine/Window/CMakeFiles/NexoraWindow.dir/src/Window.cpp.o
+[21/76] Building CXX object Engine/Window/CMakeFiles/NexoraWindow.dir/src/X11Window.cpp.o
+[22/76] Linking CXX static library Engine/RHI/libNexoraRHI.a
+[23/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/FramePipeline.cpp.o
+[24/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/GPUDrivenPipeline.cpp.o
+[25/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/GPUScene.cpp.o
+[26/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/Material.cpp.o
+[27/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/PipelineCache.cpp.o
+[28/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/RenderGraph.cpp.o
+[29/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/SceneFrame.cpp.o
+[30/76] Building CXX object Engine/Renderer/CMakeFiles/NexoraRenderer.dir/src/MeshTangents.cpp.o
+[31/76] Building CXX object Engine/AI/CMakeFiles/NexoraAI.dir/src/AI.cpp.o
+[32/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Dormancy.cpp.o
+[33/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/EntityMapping.cpp.o
+[34/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Prediction.cpp.o
+[35/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Replication.cpp.o
+[36/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/ServerRuntime.cpp.o
+[37/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/SocketProvider.cpp.o
+[38/76] Building CXX object Engine/Network/CMakeFiles/NexoraNetwork.dir/src/Transport.cpp.o
+[39/76] Linking CXX static library Engine/Window/libNexoraWindow.a
+[40/76] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/Presentation.cpp.o
+[41/76] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/RenderSurface.cpp.o
+[42/76] Building CXX object Engine/Presentation/CMakeFiles/NexoraPresentation.dir/src/VulkanSurface.cpp.o
+[43/76] Linking CXX static library Engine/Renderer/libNexoraRenderer.a
+[44/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/InputUi.cpp.o
+[45/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayModuleHost.cpp.o
+[46/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameWorld.cpp.o
+[47/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayHostBridge.cpp.o
+[48/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/ShaderRuntime.cpp.o
+[49/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/RenderSync.cpp.o
+[50/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Runtime.cpp.o
+[51/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplaySimulation.cpp.o
+[52/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/AssetPipeline.cpp.o
+[53/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/BundleMount.cpp.o
+[54/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Presentation.cpp.o
+[55/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/PresentationV2.cpp.o
+[56/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/LargeWorld.cpp.o
+[57/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Platform.cpp.o
+[58/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/Shipping.cpp.o
+[59/76] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/HardeningV2.cpp.o
+[60/76] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcaseProbes.dir/ShowcaseProbes.cpp.o
+[61/76] Linking CXX static library Engine/AI/libNexoraAI.a
+[62/76] Linking CXX static library Engine/Network/libNexoraNetwork.a
+[63/76] Linking CXX static library Engine/Presentation/libNexoraPresentation.a
+[64/76] Linking CXX static library Engine/Runtime/libNexoraRuntime.a
+[65/76] Building CXX object Engine/AIIntegration/CMakeFiles/NexoraAIIntegration.dir/src/IntentAdapter.cpp.o
+[66/76] Building CXX object Apps/Host/CMakeFiles/NexoraHost.dir/main.cpp.o
+[67/76] Building CXX object Apps/DedicatedServer/CMakeFiles/NexoraDedicatedServer.dir/main.cpp.o
+[68/76] Linking CXX static library Apps/Showcase/libNexoraShowcaseProbes.a
+[69/76] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/main.cpp.o
+[70/76] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcaseRooms.cpp.o
+[71/76] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/ShowcasePerformance.cpp.o
+[72/76] Linking CXX executable Samples/Api/NexoraApiFoundationSample
+[73/76] Linking CXX static library Engine/AIIntegration/libNexoraAIIntegration.a
+[74/76] Linking CXX executable Apps/Host/NexoraHost
+[75/76] Linking CXX executable Apps/DedicatedServer/NexoraDedicatedServer
+[76/76] Linking CXX executable Apps/Showcase/NexoraShowcase

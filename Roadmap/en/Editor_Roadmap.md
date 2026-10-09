@@ -28,11 +28,11 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | --- | --- | :---: |
 | ED-M0 shell foundations | Standalone process, optional ImGui host, stable panels, initial docking, input/DPI/IME forwarding, live Hierarchy, recovery modal, retained native GPU rendering, project layout persistence, and recovery failure contracts exist. Linux virtual-display recovery now verifies SIGKILL with a durable seeded journal, unchanged committed workspace, writer-lease reacquisition, and keyboard-only Recover/Discard; physical-display Linux and Windows DPI/IME host evidence remain open; a bounded Windows/DX12 developer-host shell smoke is recorded. | [ ] |
 | ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, runs cancellable background import/reimport with bounded progress and structured diagnostics, shows dependency cycles, and presents blocking reload/keep/compare conflict UX; physical-display/Windows workflow acceptance remains open. | [ ] |
-| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Full authored-mesh Scene View, the complete reflected Inspector, material shader workflows, camera authoring, and missing-plugin restoration remain open. Bounded read-only opaque component inspection and persistence are implemented. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
+| ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Scalar opaque PBR material assets now import/reimport and support single-object Inspector assignment with persistent UUID references, Undo/save/reopen and real native Scene View palettes. Full authored-mesh Scene View, the complete reflected Inspector, complete material/shader workflows, camera authoring, and missing-plugin restoration remain open. Bounded read-only opaque component inspection and persistence are implemented. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View is implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts. CSV and schema-1 JSON export/import are available. Build/deploy/log, GPU/memory profiling, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available. Build/deploy/log, GPU profiling, saved memory traces, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
 
 The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
@@ -229,6 +229,28 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Scalar opaque PBR `.nmaterial` assets now import/reimport as bounded immutable typed data,
+  with 64 KiB sources, 4096-asset/Content Undo budgets and canonical Renderer-schema validation.
+  Single-object Inspector assignment uses a versioned owning opaque UUID reference, one Undo and
+  save/reopen while preserving legacy shader IDs. Bounded reference inspection, cancellation,
+  stale/read-only/missing/unsupported guards, and actual 1x/2x dropdown clicks are covered.
+  Scene View submits deduplicated native PBR palettes with Renderer tangents; Vulkan pixels verify
+  independent materials, reimport color changes, rejected versions and Undo/reopen. Texture/shader
+  editing, Game View materials, persistent GPU caching and full ED-M2 acceptance remain open.
+  Contract: [ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md). Evidence:
+  [Linux acceptance](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/acceptance.md).
+  [Main integration gates](../../Tools/Build/evidence/EditorEDM2-ScalarMaterials-Linux-2026-10-08/integration.md).
+
+- ✅ Reflected Inspector writes now prepare one owning, bounded `InspectorEditBatch` and invoke
+  one transaction callback. Empty/duplicate/oversized targets, stale or ambiguous field metadata,
+  read-only properties and nonfinite scalar values reject before mutation. The legacy per-entity
+  callback accepts only one target; multi-selection uses `ApplyBatch`, with live generation,
+  permission and value-type validation owned by the authoring transaction. A real `SceneDocument`
+  test covers one-step multi-target Undo/Redo, failed later-target rejection with Redo preservation,
+  opaque-data retention and the 100k-target boundary. Complete reflected widgets, plugin restoration
+  and ED-M2 target-host acceptance remain open. Evidence:
+  [`EditorEDM2-InspectorAtomicBatch-2026-10-08.md`](../../Tools/Build/evidence/EditorEDM2-InspectorAtomicBatch-2026-10-08.md).
+
 - ✅ Hierarchy Up/Down and Home/End navigate all visible tree/filter rows with repeat, clamped
   endpoints, Shift anchored ranges and clipper reveal. Plain Right expands/enters children;
   Left collapses/returns to the visible parent. Read-only inspection preserves World/history;
@@ -407,7 +429,8 @@ creates property widgets; unknown components retain raw data instead of being si
   tests cover range rollback, geometry/coordinate budgets, mirrored/rotated picking and silhouette
   misses; Xvfb distinct triangle/quad assets verify picking, Center scale/rotation, preview/release
   pixels, and one-step Undo. Missing/deleted/oversized assets retain references and warn while using
-  proxies. Persistent per-asset GPU caching, material shaders and full Scene View acceptance remain open.
+  proxies. Scalar opaque PBR assets are now supported ([ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md));
+  persistent per-asset GPU caching, complete texture/shader workflows and full Scene View acceptance remain open.
 
 - ✅ The Inspector now assigns imported OBJ mesh assets and removes MeshRenderer for single and
   mixed multi-selection as one atomic generation-safe Undo/Redo operation. Each entity retains its
@@ -557,7 +580,8 @@ creates property widgets; unknown components retain raw data instead of being si
   its node across Scene, Hierarchy, and Inspector; Ctrl-click toggles. Proxy instances now show
   composed world rotation and scale; a conservative bound filters candidates before an exact
   rotated-box pick, including translation handles. Authored meshes now use exact sheared matrices;
-  material shaders remain open. Selected
+  scalar opaque PBR assets now execute in Scene View ([ADR-0005](ADR-0005-Editor-Scalar-PBR-Materials.md)).
+  Complete texture/shader workflows remain open. Selected
   proxies show colored X/Y/Z translation handles in world or local space; Local axes uses
   the first selected node's world rotation, and picking a handle captures its axis for the drag. Dragging previews selected roots and descendants in world X/Z, along world Y with
   Shift-drag, or along the picked handle, then commits one undoable move on release. Escape cancels;
@@ -609,6 +633,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable debugging prerequisite adds structured bounded Console records, owning runtime
     inspection snapshots, debugger boundary/pause reasons, contained update recovery, and deterministic
     all-or-nothing transform conflict detection.
+  - ✅ Runtime Console admission now clamps capacity to 4,096 records and enforces 256 B category,
+    1 KiB source and 16 KiB message budgets with valid NUL-free UTF-8 and known severity. Rejections
+    preserve accepted history/sequences; drops saturate and sequence exhaustion cannot wrap.
+    Owning compaction releases oversized producer reserves. Exact-limit/Unicode/malformed input,
+    counter exhaustion and four-producer snapshot tests cover the portable boundary; complete log
+    routing and native debugger acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConsoleAdmission-Linux-2026-10-08.md).
   - ✅ Console Pause display retains an owning snapshot while producers continue admission/eviction;
     Clear view hides every current sequence without deleting ingress or resetting cumulative drops.
     Resume shows newer retained logs, and filters still work while paused. Window pointer/button tests
@@ -662,6 +693,20 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Scene saves now prepare an owning immutable byte/content/generation snapshot without IO,
+    dirty-baseline or history changes. Deferred single-file publication revalidates live generation
+    and serializable content, including opaque bytes and authored Euler turns, before IO; only a
+    successful replacement marks the snapshot clean. Ordinary Save shares this path. Tests cover
+    stale rejection, Undo/Redo, staging failure, ownership and save/reopen. Coordinated multi-file
+    publication, additive tabs and full ED-M4 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md).
+
+  - ✅ Initial additive-scene dependencies now reject zero, self and missing IDs before graph
+    mutation and normalize repeated edges consistently with dependency replacement. Dedicated
+    portable tests preserve owned/reference descriptors and deterministic load order after rejected
+    admission, verify cycle rollback and safe reverse-order removal. Additive tabs, coordinated
+    save-all and full ED-M4 acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md).
   - ✅ Autosave writes enforce the same 64 MiB payload budget as recovery before touching files,
     retain last-good journals and occupied temporary paths, and clean failed replacement staging.
     Portable tests cover the exact limit, oversized rejection, binary/empty payloads, locale-independent
@@ -671,11 +716,35 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable additive-scene ownership/dependency ordering, migration dry-run, atomic bounded
     autosave/corrupt recovery, and stable-path three-way conflict records are implemented and tested.
   - Open: graphical workflows and source-control-provider UI integration.
+  - ✅ Managed ordinary scene Save compares a bounded owning exact-byte disk baseline, including
+    same-size edits with restored modification times. External changes require Replace/Cancel with
+    a session/path/document-bound confirmation that rechecks disk revisions before writing. Ctrl+S,
+    Save before New/Open and Save and Exit share this graphical workflow; failures retain scene,
+    history and disk versions. Portable 64 MiB/lifecycle/Content relocation tests and 1x/2x ImGui
+    control tests cover the supporting slice. Full prefab/additive/migration/crash and source-control
+    acceptance remain open; see [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
   - ✅ Portable capability registry enforces stable tool IDs and honest implemented/read-only/
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Build export prerequisites now provide a bounded owning Runtime scene capture. The shared
+    schema-3 writer caps output before appending; the Editor captures all Runtime entities plus
+    tracked NodeKeys and full unknown metadata without IO or history changes. Entity/output and
+    opaque name/payload budgets, exact wire compatibility, lifetime, tracked subsets and real
+    Undo/Redo boundaries are tested. Generations identify objects rather than authoring revisions;
+    export publication, native player and graphical build flows remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-OwningSceneCapture-Linux-2026-10-08.md).
+
+  - ✅ Runtime-owned schema-1 mesh/scalar PBR/scene codecs and a bounded StaticView package now
+    resolve real cooked assets into an isolated World without Editor or source content. The optional
+    `NexoraProjectPlayer --verify-package` consumes actual files and reports inactive components.
+    Full UUIDs, legacy shader IDs, opaque bytes and exact hierarchy matrices are preserved;
+    corruption, unsupported schemas, unresolved dependencies and resource collisions reject.
+    [ADR-0006](ADR-0006-Cooked-Static-Projects.md) records the compatibility/ownership decision.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-CookedStaticProject-Linux-2026-10-08.md)
+    covers Development, Monolithic Shipping and real CLI consumption. Editor export, native player
+    rendering, gameplay compilation and Build/deploy/log workflows remain open.
   - ✅ Profiler Import JSON reads the exported schema-1 wall-time capture into an owning static
     trace, checking project UUID, source/scope/unit, ordered lossless frame/drop values and unavailable
     GPU/memory. The bounded nonrecursive reader rejects duplicate/unknown/missing fields, corruption,
@@ -698,8 +767,16 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Portable build frontend validates and atomically writes target/configuration/command and
     checksummed artifact manifests; bounded monotonic CPU/GPU/memory frame capture is implemented.
   - ✅ The graphical Profiler shows a live, bounded Editor frame processing wall-time trace with
-    pause/clear, latest/average/peak, and evicted-frame count. GPU time and memory are labelled
-    unavailable until instrumented.
+    pause/clear, latest/average/peak, and evicted-frame count. GPU time remains labelled unavailable.
+  - ✅ The application now samples real current process RSS / working-set bytes at most once per
+    250 ms, and the Profiler reads copied optional latest/observed-peak values. Capture pauses OS
+    observations, Clear resets peak/timer without resuming pause, and failed reads show unavailable
+    while retaining the observed peak. Process-wide scope includes shared resident pages across
+    project changes; it is neither GPU nor allocator usage. Linux native allocation/touch, actual
+    24-frame graphical process, owner throttle/failure, and 1x/2x pointer/ownership/reset tests are
+    covered. Schema-1 wall-time captures remain separate; saved memory traces and Windows/macOS
+    host validation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-LiveProcessMemory-Linux-2026-10-08.md).
   - ✅ Profiler Export JSON now writes a schema-1 companion with source/scope/unit/project metadata,
     sample count, full double precision and lossless decimal-string uint64 frame/drop values.
     Unmeasured GPU/memory remain explicitly unavailable/null. Independent one-shot CSV/JSON controls
@@ -709,7 +786,7 @@ creates property widgets; unknown components retain raw data instead of being si
     full double precision and an evicted-frame count. GPU/memory cells stay empty. The synchronous
     writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
-  - Open: graphical build frontend, remote deployment/logs, GPU/memory profiling, arbitrary capture import,
+  - Open: graphical build frontend, remote deployment/logs, GPU profiling, saved memory traces, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ Portable telemetry consent now releases all retained events on opt-out and bounds the
