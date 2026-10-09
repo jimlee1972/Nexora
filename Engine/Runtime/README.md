@@ -608,8 +608,9 @@ Nonzero shutdown, other quiescence results, or unexpected callback exceptions pr
 are idempotent, unknown IDs report `Missing`, and `UnloadAll()` requests shutdown once per entry.
 
 The host destructor requests/polls once and deliberately leaves legacy, failed and still-pending
-native mappings resident until process restart. Their small callback contexts are pinned with no
-registry/World borrow; the Runtime providing host code must also survive until restart. There is
+native mappings resident until process restart. Registration callbacks/contexts are valid only
+during their registration call; revoked providers release normally instead of forming unreachable
+self-owned cycles. The Runtime providing host code must also survive until restart. There is
 no forced unload, in-flight service tracking, permission sandbox, signature verification or arbitrary
 native crash isolation. Native plugins must obey the no-throw C boundary and truthful quiescence
 contract; containing a C++ exception does not make untrusted in-process code safe.

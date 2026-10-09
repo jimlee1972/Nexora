@@ -24,7 +24,9 @@ POSIX 保留 native byte。Public C++ SDK layout 變更需重編 consumer；新�
 
 合約採合作式、序列化且不可重入；不自動排空既有 borrowed service，不提供 sandbox、signature
 verification 或 native crash isolation。外掛必須真實回報 quiescence，且 registration 前不得啟動工作。
-Restart pin 上限依每個 host 的 admission budget 計算，非 process-global 上限；Runtime code 必須
+Registration callback／context 僅在 registration call 期間有效。Host 析構後正常釋放已撤銷的
+provider context；只保留不安全卸載的 native mapping，不建立無法回收的 provider 自我參照。
+Mapping 上限依每個 host 的 admission budget 計算，非 process-global 上限；Runtime code 必須
 存活至 restart。
 
 ExamplePlugin 實作此 lifecycle。真實 compiled module 驗證 background work、native unload event、

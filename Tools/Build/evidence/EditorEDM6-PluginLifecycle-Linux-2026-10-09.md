@@ -14,7 +14,8 @@ pointer after synchronous registration. Manual services remain caller-owned.
 
 Disable revokes visibility before requesting shutdown. Native unload requires actual acknowledged
 quiescence. Pending/legacy/rejected shutdown mappings remain resident until restart, including host
-destruction; small callback contexts are intentionally pinned without a registry/World borrow.
+destruction; revoked provider contexts release normally, and the unclosed OS loader mappings remain.
+Registration callback contexts are valid only for their synchronous registration call.
 Callers drain their borrowed services/jobs first; owner-thread calls are serialized and nonreentrant.
 There is no automatic in-flight service tracking, forced unload, sandbox, signature verification or
 arbitrary native crash isolation. Native callbacks must obey the cooperative no-throw contract.
@@ -78,3 +79,18 @@ MSVC assumes C linkage functions do not throw under the repository exception fla
 test export noexcept(false) explicitly preserves the mode-11 registration-exception rollback proof
 without suppressing warnings or changing the production C ABI. The complete graphical gate passes
 again: **205/205**, zero skips, **404.16s**, plus Minimal Shipping and Full SDK tests **3/3 in 0.02s**.
+
+The hosted Windows functional fixture exposed text-mode CRLF in its event journal. Writing that
+journal in binary mode gives the existing complete-line native-unload assertions the same bytes
+on every platform. No shutdown, quiescence, revocation or unload assertion was removed.
+
+Hosted Linux LeakSanitizer identified three unreachable provider self-cycles on restart-required
+paths. Registration contexts are already call-scoped by the public ABI, so revoked providers now
+release normally; unsafe native library mappings remain resident in the OS loader until restart.
+A real legacy-host destruction fixture checks copied-registry revocation, preserved manual
+services, re-registration and absence of forced native unload.
+
+Final corrected-source verification: reduced SDK ASan/UBSan with leak detection enabled **3/3 in
+0.14s**; complete graphical gate **205/205**, zero skips, **399.53s**; Minimal Shipping rebuild
+passes; Full Monolithic Shipping SDK tests **3/3 in 0.02s**. Sanitizer suppression, warning
+suppression and forced unloading are not used.

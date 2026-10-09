@@ -168,6 +168,23 @@ void VerifyServiceBoundary(const std::string &path) {
               !registry.Find(name),
           "exact-boundary services survived native unload");
 }
+void VerifyRevokedHostDestruction(const std::string &path, const std::filesystem::path &journal) {
+  ServiceRegistry registry, copied;
+  int manual = 9;
+  Require(registry.Register("manual", &manual), "destruction manual-service fixture failed");
+  {
+    PluginHost host(kAbi);
+    Require(host.Load(path, &registry).loaded && registry.Find("fixture.marker"),
+            "destruction legacy-service fixture failed");
+    copied = registry;
+  }
+  Require(!registry.Find("fixture.marker") && !copied.Find("fixture.marker") &&
+              registry.Size() == 1 && copied.Size() == 1 && copied.Find("manual") == &manual &&
+              !HasEvent(journal, 3, "native-unload") &&
+              registry.Register("fixture.marker", &manual) &&
+              copied.Register("fixture.marker", &manual),
+          "destroyed host left provider visibility or forced legacy native unload");
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -201,6 +218,7 @@ int main(int argc, char **argv) {
     for (int mode = 3; mode <= 12; ++mode)
       VerifyFailure(paths[mode - 1], mode, journal);
     VerifyServiceBoundary(paths[12]);
+    VerifyRevokedHostDestruction(paths[2], journal);
     VerifyFailure(paths[13], 14, journal);
     VerifyBudgets(paths[0]);
     Require(!HasEvent(journal, 3, "native-unload") && !HasEvent(journal, 9, "native-unload") &&

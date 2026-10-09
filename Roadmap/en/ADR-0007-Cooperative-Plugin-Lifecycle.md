@@ -26,8 +26,11 @@ layout changes require rebuilding consumers; the C ABI additions preserve legacy
 
 The contract is cooperative, serialized and nonreentrant. It provides neither automatic draining of
 already borrowed services nor a sandbox, signature verification or native crash isolation. Truthful
-quiescence and no activation before registration are mandatory plugin obligations. Restart pins are
-bounded per host admission budget, not a process-global limit; Runtime code must survive until restart.
+quiescence and no activation before registration are mandatory plugin obligations. Registration
+callbacks/contexts are valid only during the registration call. Revoked provider contexts release
+normally after host destruction; only unsafe native mappings remain resident, without unreachable
+self-owned provider cycles. Retained mappings are bounded per host admission budget, not a
+process-global limit; Runtime code must survive until restart.
 
 The ExamplePlugin implements the lifecycle. Real compiled modules exercise background work, native
 unload events, copies, Unicode paths, rejection, rollback and exact service/admission bounds; a C

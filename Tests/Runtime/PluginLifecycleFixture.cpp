@@ -23,7 +23,7 @@ void Event(const char *event) noexcept {
       return;
     std::ofstream output(
         std::filesystem::path{std::u8string(path, path + std::char_traits<char>::length(path))},
-        std::ios::app);
+        std::ios::app | std::ios::binary);
     output << kMode << ' ' << event << '\n';
   } catch (...) {
   }

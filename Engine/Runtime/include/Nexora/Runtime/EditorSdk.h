@@ -63,7 +63,6 @@ private:
     std::size_t attempts{}, registrations{};
     ServiceRegistry *registering_registry{}; // Borrowed only during the registration call.
     std::weak_ptr<Provider> self;
-    std::shared_ptr<Provider> restart_pin; // Intentional bounded pin when native unload is unsafe.
   };
   struct Entry final {
     void *service{};

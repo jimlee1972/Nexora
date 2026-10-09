@@ -111,13 +111,12 @@ const TypeDescriptor *ReflectionRegistry::FindById(TypeId id) const {
 PluginHost::~PluginHost() {
   UnloadAll();
   PollShutdown();
-  // Never force-unload legacy or non-quiescent native code. Pin its bounded callback context too;
-  // it retains no registry/World borrow. OS process restart reclaims the native mapping.
+  // Never force-unload legacy or non-quiescent native code. Registration contexts are call-scoped,
+  // so release the revoked provider normally; the OS loader retains each unclosed native mapping.
   for (auto &entry : entries_)
     if (entry.handle) {
       entry.provider->active = entry.provider->publishing = false;
       entry.provider->registering_registry = nullptr;
-      entry.provider->restart_pin = entry.provider;
     }
 }
 
