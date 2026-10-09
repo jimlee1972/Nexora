@@ -1,5 +1,6 @@
 include(NexoraTarget)
 add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
+  src/AdditiveSceneSession.cpp
   src/AssetImport.cpp
   src/ContentBrowser.cpp
   src/EditorProduction.cpp

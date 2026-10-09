@@ -285,6 +285,25 @@ write failure leaves original scene files and dirty baselines unchanged.
   selection, opaque metadata, Euler turns and Undo/Redo. Graphical additive tabs and composition
   are separate host workflows. This rebuild-required C++ API does not change scene or gameplay C ABI.
   [Linux acceptance](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
+- `AdditiveSceneSession` borrows one current project and Editor World and owns up to sixteen
+  coexisting documents/file sessions; it can attach an externally owned primary document. Admission
+  and active switches retain each document's selection, generation, opaque metadata and Undo/Redo.
+  Owning snapshots follow deterministic dependency order; missing/cyclic dependencies and removal
+  of required documents reject atomically. Paths are distinct, including ASCII case collisions and
+  existing filesystem aliases. The owner Save As entry rechecks collisions against every other
+  open document/reference before writing; trusted hosts use it instead of bypassing membership
+  through borrowed file sessions. Unloading/unloaded scenes reject attachment and stale access.
+  Existing global entity IDs must not collide: rejection preserves
+  other scenes and unknown payloads without silent ID rewriting. Inspection-only references expose
+  const document/file views and are excluded from Save All. Mutable borrows require owned documents,
+  a current writer and resolved recovery/external workspace state; these are cooperative host checks,
+  not a native-code sandbox. Unnamed owned documents require Save As before coordinated publication.
+  The host serializes calls, stops Play and drains readers before membership changes or Save All.
+  Document/file borrows survive other admission/switches but expire on removal/destruction. Owned
+  owners destroy histories/file sessions before releasing their Editor scene records, preserving the
+  monotonic ID watermark. Detaching a borrowed primary changes membership only; its original owner
+  remains responsible for document/World lifecycle. Graphical tabs and persisted composition require
+  separate host integration. This C++ API requires a rebuild and changes no scene/gameplay schema.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Initial dependencies must refer
   to already admitted scenes; zero, self, missing dependencies and duplicate scene IDs reject before

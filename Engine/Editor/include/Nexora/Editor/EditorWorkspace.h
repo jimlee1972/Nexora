@@ -402,6 +402,7 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  friend class AdditiveSceneSession;
   enum class BuiltinEntity { Empty, Camera, Light };
   friend class SceneSaveBatch;
   runtime::Id CreateBuiltin(std::string name, runtime::Id parent, BuiltinEntity kind);
