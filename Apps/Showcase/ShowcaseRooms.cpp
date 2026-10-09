@@ -791,7 +791,7 @@ struct RoomSession::State final {
       const float y =
           0.8F + std::fmod(static_cast<float>(courtyardSeconds) * 0.6F + i * 0.113F, 3.5F);
       const float r = 0.75F + static_cast<float>(i % 7) * 0.08F;
-      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.025F, 0.05F, -yaw);
+      LeafQuad({std::cos(phase) * r, y, std::sin(phase) * r}, 0.015F, 0.03F, -yaw);
     }
     if (indices.size() > first)
       batches.push_back({first, static_cast<std::uint32_t>(indices.size() - first), 0, 1, 7});
@@ -3470,7 +3470,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 2.4F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.8F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;

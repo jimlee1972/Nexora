@@ -1,0 +1,35 @@
+{
+  "wide": {
+    "changed_bounds": [
+      0,
+      0,
+      1280,
+      720
+    ],
+    "changed_pixels": 769558,
+    "baseline": "VIS-Crystal-Mote-Scale-Linux-2026-10-08/integration/native-art/wide.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "close": {
+    "changed_bounds": [
+      0,
+      0,
+      1280,
+      720
+    ],
+    "changed_pixels": 789805,
+    "baseline": "VIS-Crystal-Mote-Scale-Linux-2026-10-08/integration/native-art/close.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  },
+  "motion": {
+    "changed_bounds": [
+      0,
+      0,
+      1280,
+      720
+    ],
+    "changed_pixels": 752705,
+    "baseline": "VIS-Crystal-Mote-Scale-Linux-2026-10-08/integration/native-art/motion.png",
+    "source": "native Shipping fixed paused activated shot; no screenshot edits"
+  }
+}

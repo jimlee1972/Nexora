@@ -1,0 +1,140 @@
+{
+  "source_freeze": "1dd920094dc339ddc90ce5955543447355d056ef",
+  "source_scope": "local production freeze; connector publication must preserve complete Git tree and hashes",
+  "source_sha256": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "c670ab11252602136abd2b6fc2d77cc950c8bd16aad43c498cbb66ff6d2b3eec"
+  },
+  "recording": {
+    "scope": "Linux Xvfb actual Vulkan application/video; software GPU is not target hardware",
+    "command": [
+      "/workspace/Nexora-vis-courtyard-fill/build/linux-showcase-shipping/package/NexoraShowcase-Shipping/bin/NexoraShowcase",
+      "--tour=visual",
+      "--backend=vulkan",
+      "--clean-view",
+      "--vsync=off",
+      "--no-reload",
+      "--gameplay-module=static",
+      "--report=/tmp/ibl-fill-balance-shipping-tour/tour.json",
+      "--quality=standard"
+    ],
+    "build": {
+      "engine_version": "0.1.0",
+      "build_id": "1dd920094dc3",
+      "abi_version": 1,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic"
+    },
+    "wall_seconds": 101.31964428798528,
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "width": 1280,
+          "height": 720
+        }
+      ],
+      "format": {
+        "duration": "101.200000"
+      }
+    },
+    "software_rasterizer": true,
+    "physical_display_verified": false,
+    "executable_sha256": "45585c2994cf102ee6753038228eaf16f1af87a4cc8c94680d820b392d30fa25",
+    "video_sha256": "9196e6802e48edf68fd3dec02a4ba910e2b0acc659c5ad6b353fc566e5079a53",
+    "tour_seconds": 100,
+    "overlay_frames": 0
+  },
+  "workspace_package_sha256": "29134b77889b915321813311d949d5eb699f9a327169f80c3bf60eb200f7264e",
+  "reference_parity_accepted": false,
+  "physical_display_verified": false,
+  "native_comparison_checks": {
+    "planar_reflection": {
+      "changed_bounds": [
+        246,
+        623,
+        1143,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "wind": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    },
+    "screen_space_occlusion": {
+      "changed_bounds": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "restored_exact_pixels": true
+    }
+  },
+  "environment_payload_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/Source/ivy.png": "f9a50e5e5a0d1221a75270e8ecef56bea1389e50f0b7c1a12159d8a997796f76",
+    "Content/Showcase/Courtyard/Hero/Source/ivy-single-leaf.png": "24c080af5fd521fc7bcb97a66987e1ea2a7ad6a2d0f5483cd32036100c9ddf29",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"
+  },
+  "scene_counts": {
+    "geometry_vertex_count": 62557,
+    "geometry_index_count": 142488,
+    "geometry_batch_count": 395,
+    "geometry_material_count": 48,
+    "foliage_quad_count": 4041
+  },
+  "device_identity": {
+    "name": "llvmpipe (LLVM 19.1.7, 256 bits)",
+    "vendor_id": 65541,
+    "device_id": 0,
+    "driver_version": "1",
+    "driver_version_format": "vulkan.raw"
+  },
+  "verified_unchanged_assets_sha256": {
+    "Content/Showcase/Courtyard/Hero/Source/golden-sky.png": "371474ba4912d3dca79ea0250a5f096e4bdf665439ac43dff3ffb3869b93361d",
+    "Content/Showcase/Courtyard/Hero/sky.rgba": "92213f530783dc8b6e7cea9f3a233ffd9f6068ff54331294d729bc758facaf5a",
+    "Content/Showcase/Courtyard/Environment/diffuse.rgba16f": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18",
+    "Content/Showcase/Courtyard/Environment/specular.rgba16f": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9",
+    "Content/Showcase/Courtyard/Environment/brdf.rgba16f": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2",
+    "Apps/Showcase/CourtyardHero.h": "3e049d584d51d53f38caf304d57cb93a3f7c5e01600a13f273d812a7a6d5bf8c",
+    "Apps/Showcase/CourtyardEnvironment.h": "bb916416ad176ef1841fa43a23d858bd2276cd694340e4dd871ab10500eb324d"
+  },
+  "unchanged_open_sky_native_region": {
+    "shot": "wide",
+    "region": [
+      500,
+      0,
+      600,
+      60
+    ],
+    "pixel_exact": true
+  },
+  "stone_shadow_native_rgb8_means": {
+    "region": [
+      115,
+      215,
+      165,
+      275
+    ],
+    "baseline": [
+      111.04633333333334,
+      78.14366666666666,
+      44.672666666666665
+    ],
+    "candidate": [
+      88.654,
+      56.534666666666666,
+      23.357666666666667
+    ]
+  }
+}
