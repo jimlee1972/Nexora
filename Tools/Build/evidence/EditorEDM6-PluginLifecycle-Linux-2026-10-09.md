@@ -94,3 +94,9 @@ Final corrected-source verification: reduced SDK ASan/UBSan with leak detection 
 0.14s**; complete graphical gate **205/205**, zero skips, **399.53s**; Minimal Shipping rebuild
 passes; Full Monolithic Shipping SDK tests **3/3 in 0.02s**. Sanitizer suppression, warning
 suppression and forced unloading are not used.
+
+After Native ProjectPlayer PR #461 was accepted as 16c2c980, this source was rebased onto that
+main and enabled NEXORA_ENABLE_PROJECT_PLAYER_NATIVE alongside the full graphical configuration.
+The combined gate passed **207/207**, zero skips, **404.00s**, including real native static-player
+acceptance. Minimal Shipping rebuild and Full Monolithic Shipping SDK tests **3/3 in 0.02s** pass.
+Both delivered supporting Roadmap entries are preserved; full milestones remain 0/8.
