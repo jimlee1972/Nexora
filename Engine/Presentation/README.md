@@ -805,3 +805,29 @@ describe this separate dependency for discarded depth attachments.
 再開始新的色彩寫入。折射快照維持 shader-readable layout，到 `CaptureRefraction` 才同步複製。
 場景／HDR／陰影的 external render-pass 相依性涵蓋 early 與 late 深度附件讀寫，保護隱式
 layout transition 與 clear；fence 保護 CPU 資源生命週期，device 相依性保護重複影像存取。
+
+## Completed-slot DX12 offscreen target reuse
+
+After `Acquire` waits the existing swapchain-slot fence, a complete offscreen scene target set can
+be reused only when dimensions, HDR format, shadow resolution and reflection/refraction requirements
+match. The set includes scene/reflection/refraction colors and shadow color/depth; main depth and
+upload capacity retain their existing storage. Private per-slot state records color COPY_SOURCE or
+PIXEL_SHADER_RESOURCE after composite, and shadow/reflection shader-readable states after their
+passes. Reuse records the required transitions back to RENDER_TARGET before clears. Refraction
+remains shader-readable until the existing synchronized opaque-copy transitions.
+
+RTV/DSV/SRV views and material bindings refresh from the current submission; no public handle or
+borrowed descriptor lifetime changes. Invalid input retains validation behavior, partial recording
+never publishes a reusable set, incompatible/direct draws reset the completed slot, and resize
+resets all sets after the existing drain. Teardown also releases every set after its drain. Storage
+remains bounded to the existing maximum three slots, with no extra wait and every draw/effect/clear
+retained. Native pixel, source-CI and fixed-artifact performance acceptance for this DX12 revision
+are pending; Vulkan repair source `5aa60d5c` has separate evidence.
+
+既有 `Acquire` 等待 swapchain 槽 fence 完成後，才可重用完整且尺寸、HDR 格式、陰影解析度、
+鏡面／折射需求一致的 offscreen 場景目標。每槽追蹤 composite 後的 COPY_SOURCE／
+PIXEL_SHADER_RESOURCE，以及陰影／鏡面完成後的 shader-readable 狀態；再次 clear 前記錄
+回到 RENDER_TARGET 的 transition，折射仍沿用既有 opaque copy 同步。view 與材質綁定
+使用本次提交資料，部分失敗不發布可重用集合；需求改變／直接繪製釋放完成槽，resize／
+teardown 在既有 drain 後釋放。最多三槽、不新增等待、保留所有繪製與效果；本次 DX12
+原生像素、來源 CI 與固定執行檔效能尚待驗證。Vulkan 修正版另有 `5aa60d5c` 證據。

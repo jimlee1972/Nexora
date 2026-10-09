@@ -17,13 +17,13 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
-#include <optional>
 #include <cstring>
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <dxgi1_6.h>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 #include <windows.h>
@@ -536,6 +536,19 @@ public:
       return SurfaceStatus::DeviceLost;
     const bool refraction = HasSceneRefraction(drawData);
     const bool reflection = drawData.planarReflection.has_value();
+    const auto shadowResolution = drawData.shadow ? drawData.shadow->resolution : 0U;
+    auto &targets = sceneTargetStates_[frame_];
+    // Acquire already waited this swapchain slot's fence. Retain only complete compatible
+    // offscreen resources; all views and material bindings still describe this submission.
+    const bool reuseTargets =
+        drawData.offscreen && targets.reusable && targets.hdr == drawData.hdr &&
+        targets.width == width_ && targets.height == height_ &&
+        targets.shadowResolution == shadowResolution && targets.hasReflection == reflection &&
+        targets.hasRefraction == refraction;
+    if (!reuseTargets)
+      ResetSceneTargets(frame_);
+    // A failed partial recording must never publish an incomplete target set for later reuse.
+    targets.reusable = false;
     D3D12_CPU_DESCRIPTOR_HANDLE reflectionRtv{};
     const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
@@ -555,10 +568,14 @@ public:
       clear.Color[1] = 0.045F;
       clear.Color[2] = 0.09F;
       clear.Color[3] = drawData.hdr ? 65504.0F : 1.0F;
-      if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+      if (!reuseTargets &&
+          FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
                                                   D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
                                                   IID_PPV_ARGS(&sceneColors_[frame_]))))
         return SurfaceStatus::DeviceLost;
+      if (reuseTargets)
+        TransitionSceneTarget(sceneColors_[frame_].Get(), targets.colorState,
+                              D3D12_RESOURCE_STATE_RENDER_TARGET);
       rtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += SIZE_T(frame_) * increment_;
       device_->CreateRenderTargetView(sceneColors_[frame_].Get(), nullptr, rtv);
@@ -574,10 +591,10 @@ public:
       }
       if (refraction) {
         descriptor.Flags = D3D12_RESOURCE_FLAG_NONE;
-        if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
-                                                    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-                                                    nullptr,
-                                                    IID_PPV_ARGS(&refractionColors_[frame_]))))
+        if (!reuseTargets && FAILED(device_->CreateCommittedResource(
+                                 &heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+                                 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, nullptr,
+                                 IID_PPV_ARGS(&refractionColors_[frame_]))))
           return SurfaceStatus::DeviceLost;
         auto snapshotHandle = uiDescriptors_->GetCPUDescriptorHandleForHeapStart();
         snapshotHandle.ptr += SIZE_T(2 * kMaximumFrames + frame_) * uiDescriptorIncrement_;
@@ -591,10 +608,14 @@ public:
       }
       if (reflection) {
         descriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-        if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+        if (!reuseTargets &&
+            FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
                                                     D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
                                                     IID_PPV_ARGS(&reflectionColors_[frame_]))))
           return SurfaceStatus::DeviceLost;
+        if (reuseTargets)
+          TransitionSceneTarget(reflectionColors_[frame_].Get(), targets.reflectionState,
+                                D3D12_RESOURCE_STATE_RENDER_TARGET);
         reflectionRtv = sceneRtvHeap_->GetCPUDescriptorHandleForHeapStart();
         reflectionRtv.ptr += SIZE_T(2 * frames_ + frame_) * increment_;
         device_->CreateRenderTargetView(reflectionColors_[frame_].Get(), nullptr, reflectionRtv);
@@ -611,9 +632,9 @@ public:
       }
       commands_->ClearRenderTargetView(rtv, clear.Color, 0, nullptr);
     }
-    if (drawData.shadow &&
-        !RecordShadow(drawData, geometryBase, base + shadowOffset, vertexBytes.size(),
-                      indexBytes.size(), instanceOffset, instances.size(), base, materialStride))
+    if (drawData.shadow && !RecordShadow(drawData, geometryBase, base + shadowOffset,
+                                         vertexBytes.size(), indexBytes.size(), instanceOffset,
+                                         instances.size(), base, materialStride, reuseTargets))
       return SurfaceStatus::DeviceLost;
     auto dsv = dsvHeap_->GetCPUDescriptorHandleForHeapStart();
     dsv.ptr += SIZE_T(frame_) * dsvIncrement_;
@@ -661,6 +682,7 @@ public:
             reflectionColors_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
             D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
         commands_->ResourceBarrier(1, &barrier);
+        targets.reflectionState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
       }
       const auto sceneRtv = mirrorPass ? reflectionRtv : rtv;
       commands_->OMSetRenderTargets(1, &sceneRtv, FALSE, &dsv);
@@ -765,6 +787,13 @@ public:
       ++diagnostics_.sceneShadowPasses;
     }
     sceneDrawn_ = true;
+    targets.reusable = drawData.offscreen;
+    targets.hdr = drawData.hdr;
+    targets.width = width_;
+    targets.height = height_;
+    targets.shadowResolution = shadowResolution;
+    targets.hasReflection = reflection;
+    targets.hasRefraction = refraction;
     sceneOffscreen_ = drawData.offscreen;
     sceneHdr_ = drawData.hdr;
     sceneExposure_ = drawData.exposure;
@@ -791,6 +820,7 @@ public:
                                D3D12_RESOURCE_STATE_RENDER_TARGET,
                                D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
       commands_->ResourceBarrier(1, &transition);
+      sceneTargetStates_[frame_].colorState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
       auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
       rtv.ptr += SIZE_T(frame_) * increment_;
       commands_->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -829,6 +859,7 @@ public:
     barriers[1].Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                               D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST};
     commands_->ResourceBarrier(2, barriers);
+    sceneTargetStates_[frame_].colorState = D3D12_RESOURCE_STATE_COPY_SOURCE;
     commands_->CopyResource(buffers_[frame_].Get(), sceneColors_[frame_].Get());
     barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
     barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -853,16 +884,8 @@ public:
     gpuQueries_.Reset();
     gpuReadback_.Reset();
     acquired_ = false;
-    for (auto &color : reflectionColors_)
-      color.Reset();
-    for (auto &color : refractionColors_)
-      color.Reset();
-    for (auto &color : sceneColors_)
-      color.Reset();
-    for (auto &color : shadowColors_)
-      color.Reset();
-    for (auto &depth : shadowDepths_)
-      depth.Reset();
+    for (UINT slot = 0; slot < frames_; ++slot)
+      ResetSceneTargets(slot);
     sceneRtvHeap_.Reset();
     for (auto &b : buffers_)
       b.Reset();
@@ -1305,10 +1328,29 @@ private:
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&tonePipeline_)));
   }
+  void ResetSceneTargets(UINT slot) {
+    reflectionColors_[slot].Reset();
+    refractionColors_[slot].Reset();
+    sceneColors_[slot].Reset();
+    shadowColors_[slot].Reset();
+    shadowDepths_[slot].Reset();
+    sceneTargetStates_[slot] = {};
+  }
+  void TransitionSceneTarget(ID3D12Resource *resource, D3D12_RESOURCE_STATES &state,
+                             D3D12_RESOURCE_STATES next) {
+    if (state == next)
+      return;
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition = {resource, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, state, next};
+    commands_->ResourceBarrier(1, &barrier);
+    state = next;
+  }
   bool RecordShadow(const SceneDrawData &draw, D3D12_GPU_VIRTUAL_ADDRESS geometry,
                     D3D12_GPU_VIRTUAL_ADDRESS constants, std::size_t vertexSize,
                     std::size_t indexSize, std::size_t instanceOffset, std::size_t instanceCount,
-                    D3D12_GPU_VIRTUAL_ADDRESS materials, std::size_t materialStride) {
+                    D3D12_GPU_VIRTUAL_ADDRESS materials, std::size_t materialStride,
+                    bool reuseTargets) {
     const auto resolution = draw.shadow->resolution;
     D3D12_RESOURCE_DESC descriptor{};
     descriptor.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -1323,15 +1365,20 @@ private:
     D3D12_CLEAR_VALUE clear{};
     clear.Format = DXGI_FORMAT_R32_FLOAT;
     clear.Color[0] = 1;
-    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+    if (!reuseTargets &&
+        FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
                                                 D3D12_RESOURCE_STATE_RENDER_TARGET, &clear,
                                                 IID_PPV_ARGS(&shadowColors_[frame_]))))
       return false;
+    if (reuseTargets)
+      TransitionSceneTarget(shadowColors_[frame_].Get(), sceneTargetStates_[frame_].shadowState,
+                            D3D12_RESOURCE_STATE_RENDER_TARGET);
     descriptor.Format = DXGI_FORMAT_D32_FLOAT;
     descriptor.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
     clear.Format = DXGI_FORMAT_D32_FLOAT;
     clear.DepthStencil = {1, 0};
-    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
+    if (!reuseTargets &&
+        FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &descriptor,
                                                 D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear,
                                                 IID_PPV_ARGS(&shadowDepths_[frame_]))))
       return false;
@@ -1400,6 +1447,7 @@ private:
                           D3D12_RESOURCE_STATE_RENDER_TARGET,
                           D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
     commands_->ResourceBarrier(1, &barrier);
+    sceneTargetStates_[frame_].shadowState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     return true;
   }
   bool EnsureSceneUpload(std::size_t required) {
@@ -1646,8 +1694,10 @@ private:
     queue_->Signal(fence_.Get(), ++fenceValue_);
     fence_->SetEventOnCompletion(fenceValue_, event_);
     WaitForSingleObject(event_, INFINITE);
-    for (UINT slot = 0; slot < frames_; ++slot)
+    for (UINT slot = 0; slot < frames_; ++slot) {
       CollectGpuTiming(slot);
+      ResetSceneTargets(slot);
+    }
     for (auto &b : buffers_)
       b.Reset();
     auto hr = swapchain_->ResizeBuffers(frames_, w, h, DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -1694,6 +1744,14 @@ private:
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneColors_, refractionColors_,
       reflectionColors_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> shadowColors_, shadowDepths_;
+  struct SceneTargetState {
+    bool reusable{}, hdr{}, hasReflection{}, hasRefraction{};
+    std::uint32_t width{}, height{}, shadowResolution{};
+    D3D12_RESOURCE_STATES colorState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    D3D12_RESOURCE_STATES reflectionState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    D3D12_RESOURCE_STATES shadowState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  };
+  std::array<SceneTargetState, kMaximumFrames> sceneTargetStates_{};
   ComPtr<ID3D12PipelineState> shadowPipeline_;
   ComPtr<ID3D12DescriptorHeap> uiDescriptors_;
   ComPtr<ID3D12RootSignature> uiRootSignature_;

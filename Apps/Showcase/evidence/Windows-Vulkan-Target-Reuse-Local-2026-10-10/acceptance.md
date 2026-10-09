@@ -138,3 +138,53 @@ with two CTest workers and unchanged test/child timeouts. Configure and the full
 also pass. Main `bac7247be152` is integrated at `19ee80df805f` before the synchronization patch.
 The complete logs and patch source hashes are retained in `synchronization-repair/`; these Windows
 results do not certify the still-pending repaired exact-source Linux synchronization gate.
+
+## Committed synchronization-repair Shipping measurements
+
+Source `5aa60d5cc8a05931f2afb57ec7ede03af6d8b46c`, executable SHA-256
+`fab09a2c7fddc1354015145db6a68dd9b0d5488f7f38cfea82b1470016371b46`, passes Shipping
+package/isolated-headless checks and all 18 original strict default quality reports. Full raw reports,
+four default/opt-in completed-GPU comparisons and four unpaused 1,200-frame Standard/UI comparisons
+are retained under `synchronization-repair/`. No local build/CTest/Beads synchronization/recorder
+overlaps the native measurements. Background desktop activity is not controlled; lower throughput
+and all outliers are retained without attributing a cause from unaligned observations.
+
+| Quality | DX12 FPS, all three runs | Vulkan FPS, all three runs |
+| --- | --- | --- |
+| Basic | 84.25 / 85.62 / 76.44 | 130.87 / 140.13 / 142.41 |
+| Standard | 55.16 / 54.29 / 51.71 | 122.25 / 119.92 / 116.48 |
+| High | 50.84 / 54.55 / 46.35 | 118.53 / 119.07 / 117.94 |
+
+Standard p99: DX12 22.37 / 23.70 / 27.76 ms; Vulkan 11.08 / 11.61 / 14.38 ms. High DX12's
+53.81 ms p99 is retained. Opt-in GPU mean is 7.53 ms DX12 and 7.98 ms Vulkan; their wall p99
+26.29 and 19.61 ms is also retained. All opt-in native runs produce 1,138 unique completed GPU
+samples, while default/headless reports retain null timing.
+
+| Standard unpaused UI/animation (1,200 native and UI frames each) | FPS | Wall p99 ms |
+| --- | --- | --- |
+| DX12, requested vsync off | 52.00 | 27.47 |
+| DX12, requested vsync on | 51.95 | 30.80 |
+| Vulkan, requested vsync off | 119.55 | 11.90 |
+| Vulkan, requested vsync on | 59.73 | 24.88 |
+
+These are actual requested-presentation runs, not a recorded-video frame rate. Paced Vulkan's
+p99 still exceeds 16.7 ms, and DX12 retains its per-draw target allocation path. Overall hardware
+budget and final concept-art acceptance remain **open**. Repaired exact-head hosted Build 2092
+([37974114417](https://github.com/jimlee1972/Nexora/actions/runs/37974114417)) is queued/in progress;
+local FPS and pixels do not replace its Linux synchronization validation.
+
+Repaired exact-source Build 2092's Linux Xvfb display job passes both Editor core/synchronization
+and native Vulkan RHI/scene validation (job `113968173296`, steps 11/12). This clears the actual
+0fd292cc synchronization regression for source `5aa60d5c`. Other full-suite/contract jobs remain
+queued or in progress; no overall CI completion or Codex Cloud execution is claimed.
+
+The immutable repaired `5aa60d5c` Shipping copy (same `fab09a2c...371b46` SHA above) also passes
+`accept-v1.ps1 -Backend vulkan -ExpectedBuildId 5aa60d5cc8a0 -PhysicalDisplay -CompleteGuidedTour`:
+**74 captures, 51 verified manifest entries, observed 210.013-second engineering tour**,
+no issues/fallback/software renderer, enabled/paused at step 6. Actual monitor availability uses
+the existing operator attestation; clean-host acceptance remains false. The full acceptance,
+launch/progress reports and six selected captures are retained in
+`synchronization-repair/committed-vulkan-physical/`. This verifies repaired-source engineering
+interaction/display behavior, not final concept-art approval or a new hardware-budget certification.
+The isolated runnable copy is `build/v1-windows-local-2026-10-10/native-demo-vulkan-5aa60d5c/`;
+its sibling `run-vulkan-demo-5aa60d5c.cmd` selects Standard Vulkan with requested vsync on.

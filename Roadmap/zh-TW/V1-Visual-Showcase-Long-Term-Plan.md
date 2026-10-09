@@ -1,5 +1,13 @@
 # Nexora V1 可視化展示 Demo 長期規劃
 
+✅ DX12 完成槽目標重用通過完整初始化 Windows configure／build／CTest 125/125（444.81 秒），包含兩套門檻不變的原生 PBR 測試。保留先前狀態 transition、有界槽所有權與全部效果；精確來源 hosted CI、Shipping／即時／垂直同步／動畫效能仍待驗證。最終 VIS-M6／美術驗收維持未完成。[證據](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md)。
+
+✅ 同步修正 Shipping `5aa60d5c` 通過 GTX 960 實體螢幕互動／完整導覽：74 張截圖、51 項校驗碼、實際 210.013 秒，無 fallback／software／issues。同來源 Linux Xvfb 核心／原生同步驗證亦通過；其餘 CI 仍待完成。最終概念圖一致性與硬體預算維持未完成。
+
+DX12 完成槽目標重用由 `nexora-82p.16` 持續處理，保留明確的先前狀態 transition 與原有場景／效果／像素門檻。最新原生 Player main `16c2c980` 已整合於 `bba5db85`。DX12 來源與效能仍待驗證，不代表 VIS-M6 完成。
+
+已提交的同步修正版 Shipping `5aa60d5c` 通過封裝／headless 與全部 18 份 GTX 960 品質報告：Vulkan Standard 116.48–122.25 FPS，DX12 51.71–55.16 FPS。未暫停 Standard／UI 的 Vulkan 關閉垂直同步為 119.55 FPS、開啟為 59.73（保留 paced p99 24.88 ms）；DX12 仍約 52 FPS。修正版 hosted 同步 CI 排隊／執行中，來源驗證、最終概念圖一致性與整體幀時間預算維持未完成。
+
 ✅ 整合最新 main 的 Vulkan 同步修正通過完整 Windows configure／build／CTest 125/125（482.59 秒），包含兩套門檻不變的原生 PBR 像素測試。以兩個 CTest worker 重跑先前逾時項目，未改變任何時間限制。修正版精確來源的 Linux 同步 CI、新版 Shipping／垂直同步／動畫效能仍待驗證；最終美術與硬體驗收維持未完成。
 
 目標重用來源 `0fd292cc` 未通過 hosted Linux Xvfb 同步驗證（run [37968144564](https://github.com/jimlee1972/Nexora/actions/runs/37968144564)）：取樣色彩影像 `WRITE_AFTER_READ`、重用深度 `WRITE_AFTER_WRITE`。Windows 像素／實體顯示／效能結果仍是該候選版的局部觀測；修正重用屏障與 early／late 深度相依性期間，來源驗收與合併維持未完成，VIS 維持 5/7。

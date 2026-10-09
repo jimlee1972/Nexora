@@ -1,5 +1,13 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
+✅ DX12 completed-slot target reuse passes complete initialized Windows configure/build/CTest 125/125 (444.81 s), including both unchanged native PBR fixtures. Recorded prior-state transitions, bounded slot ownership and every effect remain; exact-source hosted CI and Shipping/immediate/paced/live throughput are still pending. Final VIS-M6/visual acceptance stays open. [Evidence](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md).
+
+✅ Repaired Shipping `5aa60d5c` passes GTX 960 physical-monitor interaction/full-tour acceptance: 74 captures, 51 checksums, observed 210.013 seconds and no fallback/software/issues. Its exact-source Linux Xvfb core/native synchronization validation also passes; other CI jobs remain pending. Final concept parity and hardware budgets remain open.
+
+DX12 completed-slot target reuse is in progress under `nexora-82p.16`, retaining explicit prior-state transitions and original scene/effect/pixel budgets. Latest native Player main `16c2c980` is integrated at `bba5db85`. DX12 source and performance validation are pending; this does not complete VIS-M6.
+
+Committed synchronization-repair Shipping `5aa60d5c` passes package/headless and all 18 GTX 960 quality reports: Vulkan Standard 116.48–122.25 FPS, DX12 51.71–55.16 FPS. Unpaused Standard/UI is 119.55 FPS Vulkan with vsync off and 59.73 with vsync on (paced p99 24.88 ms retained); DX12 remains about 52 FPS. Corrected-source hosted synchronization CI is queued/in progress. Source validation, final concept parity and overall frame-time budget remain open.
+
 ✅ The integrated-main Vulkan synchronization repair passes complete Windows configure/build/CTest 125/125 (482.59 s), including both unchanged native PBR pixel fixtures. Two CTest workers avoid the earlier memory-wrapper timeouts without changing any limits. Repaired exact-source Linux synchronization CI and new Shipping/paced/live performance remain pending; final art and hardware acceptance stay open.
 
 Target-reuse source `0fd292cc` fails hosted Linux Xvfb synchronization validation (run [37968144564](https://github.com/jimlee1972/Nexora/actions/runs/37968144564)): sampled-color `WRITE_AFTER_READ` and reused-depth `WRITE_AFTER_WRITE`. Windows pixel/physical/performance results remain scoped observations; source acceptance and merge are withheld while reuse barriers and early/late depth dependencies are repaired. VIS remains 5/7.

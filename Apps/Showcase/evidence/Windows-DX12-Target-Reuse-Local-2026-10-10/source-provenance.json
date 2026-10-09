@@ -1,0 +1,13 @@
+{
+  "integrated_base": "bba5db85bbf54fb5135ffab50bb5d5b03d84f488",
+  "remote_main": "16c2c980",
+  "source_sha256": {
+    "Engine/Presentation/src/Dx12Surface.cpp": "1b6c74cd57cd9aeefcf139ba3602dc02f2e36fc6727d24576a777b940ca824aa",
+    "Engine/Presentation/src/VulkanSurface.cpp": "ecd1a49938550d0edd8006a8f3b918b4854c3b7dfc8f4af9be3d21e1baf8575f"
+  },
+  "tests_passed": 125,
+  "tests_failed": 0,
+  "ctest_workers": 2,
+  "ctest_wall_seconds": 444.81,
+  "scope": "DX12 complete compatible target-reuse source patch; unchanged pixel/geometry/effect gates; not final hardware or art acceptance"
+}
