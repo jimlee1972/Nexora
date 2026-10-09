@@ -45,6 +45,11 @@ void VerifyInvalidMetadata() {
   Reject([](auto &d) { d.title = std::string("title\0hidden", 12); });
   Reject([](auto &d) { d.reason.assign(1025, 'a'); });
   Reject([](auto &d) { d.reason = std::string(1, static_cast<char>(0xFF)); });
+  for (unsigned int codepoint = 0x80; codepoint <= 0x9F; ++codepoint) {
+    const std::string control{static_cast<char>(0xC2), static_cast<char>(codepoint)};
+    Reject([&](auto &d) { d.title = "Title" + control + "suffix"; });
+    Reject([&](auto &d) { d.reason = "Reason" + control + "suffix"; });
+  }
   Reject([](auto &d) { d.state = CapabilityState::ReadOnly; });
   Reject([](auto &d) { d.state = CapabilityState::Unavailable; });
   Reject([](auto &d) { d.document_types = {"one", "one"}; });
@@ -155,6 +160,10 @@ void VerifyFallbackAndCompatibility() {
   Require(SpecializedToolRegistry::Validate(unicode), "exact UTF-8 title byte budget rejected");
   unicode.title.push_back('x');
   Require(!SpecializedToolRegistry::Validate(unicode), "UTF-8 title byte overflow accepted");
+  unicode.title = "Unicode \xC2\xA0 \xC3\x80 \xF0\x9F\x9A\x80";
+  unicode.reason = "Reason \xC2\xB5 \xC3\x9F \xF0\x9F\x9A\x80";
+  Require(SpecializedToolRegistry::Validate(unicode),
+          "Ordinary Unicode continuation bytes were mistaken for C1 code points");
 }
 } // namespace
 int main() {

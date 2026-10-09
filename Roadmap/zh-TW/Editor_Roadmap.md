@@ -745,6 +745,7 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
   保留既有 registry；owning snapshot 可跨 removal。這些宣告不授權、不執行 plugin allocation
   policy，也不代表 production graphical workflow 已驗收；reference plugin 與
   edit／preview／save／unload 驗收仍待完成。
+  [Linux contract 證據](../../Tools/Build/evidence/EditorEDM5-ToolCapabilities-Linux-2026-10-09.md)。
 
 ### ED-M6 — Build、profile 與 extensibility
 
@@ -871,6 +872,11 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   與 plugin manager。
 
 ### ED-M7 — Production hardening
+
+- ✅ Linux native center-gesture acceptance 在原有 deadline 內觀察 committed bytes 時只重送
+  Save，保留精確 transform／saved-byte 與單步 Undo 斷言；實體 input／display 及整體
+  synthetic-input 穩定度仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-NativeSaveObservation-Linux-2026-10-09.md)。
 
 - ✅ Graphical Hierarchy 改以 explicit work storage 走訪 deep expanded scene，保留
   parent-first／sibling order；expansion pruning 一次索引 current generation key，name-only

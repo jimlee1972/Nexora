@@ -331,7 +331,8 @@ into renderer or platform internals.
   Schema/interface version one now owns a provider ID, declared operation permissions,
   document/contribution IDs and document/preview/pending-operation budgets. Stable IDs use lowercase
   ASCII letters, digits, dot, hyphen and underscore, starting with a letter; displayed titles and
-  diagnostics are bounded UTF-8 without control characters. Discovery is limited to 128 tools,
+  diagnostics are bounded UTF-8 without C0, DEL or Unicode C1 control characters. Ordinary
+  non-ASCII continuation bytes retain their code-point meaning. Discovery is limited to 128 tools,
   128-byte IDs, 256-byte titles, 1024-byte reasons, 16 document IDs and 16 contribution IDs, and
   4096 total text bytes per descriptor. Document/preview declarations are positive and at most
   16 MiB/128 MiB; pending operations are 1..64. Invalid versions, states, permissions, duplicate IDs

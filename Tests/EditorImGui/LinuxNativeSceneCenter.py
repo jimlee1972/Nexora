@@ -133,7 +133,10 @@ def main():
         def save_changed(previous):
             send("key", "--delay", "80", "ctrl+s")
             deadline = time.monotonic() + 5
+            # Observe the owner's committed bytes within the original deadline. Repeat only
+            # Save, as undo_and_save does; never replay the gesture or issue another Undo.
             while time.monotonic() < deadline and scene_file.read_text() == previous:
+                send("key", "--delay", "80", "ctrl+s")
                 time.sleep(0.05)
             result = scene_file.read_text()
             if result == previous:

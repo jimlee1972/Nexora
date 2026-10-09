@@ -931,3 +931,10 @@ unavailable; zero remains measured. Static clear and live Clear are independent,
 imports. Project root/UUID changes and detachment clear static state and pending requests while
 live surface history remains. Export requires a writable/resolved project and nonempty live GPU
 history; read-only import is permitted. Modal/recovery/close/no-project gates suppress requests.
+
+## Linux native saved-byte observation
+
+The native center-gesture acceptance helper repeats only Save while observing committed bytes
+within the existing five-second deadline. Gestures and Undo are not replayed, and exact saved-byte
+and one-step Undo assertions are retained. The helper performs no production input change and
+does not certify physical display/input or every synthetic-input timing path.

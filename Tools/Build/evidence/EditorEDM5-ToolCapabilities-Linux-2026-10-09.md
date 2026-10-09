@@ -2,7 +2,7 @@
 
 The discovery registry now validates complete owning schema/interface-one metadata before
 publication. Provider/capability/document/contribution IDs have bounded stable ASCII syntax;
-displayed UTF-8 titles and diagnostics reject control characters. Non-implemented states require
+displayed UTF-8 titles and diagnostics reject C0, DEL and Unicode C1 control characters. Non-implemented states require
 diagnostics. Known declared permissions and positive bounded document/preview/operation budgets
 are explicit. Declaration grants no permission and enforces no native allocation policy.
 
@@ -20,6 +20,8 @@ Public C++ consumers rebuild; C/Zig gameplay ABI and full Editor milestone count
 Actual contract tests cover unknown versions/states/permission bits, invalid/oversized UTF-8 and
 IDs, missing diagnostics, duplicate document/contribution names, exact individual/total/resource/
 registry limits, sorted lookup, removal/capacity reuse and copied fallback observations.
+Every U+0080..U+009F code point is rejected in both title and reason with registry preservation;
+positive NBSP, accented characters and supplementary-plane text remain accepted.
 Both retained Xvfb helpers and their default-reset negative control are included; scene-file
 acceptance explicitly restores Scene focus after Open without dropping edit/save/Undo assertions.
 
@@ -37,5 +39,22 @@ GCC 14.2/CMake 3.31.6/Ninja/Slang 2026.18/Zig/Xvfb/Mesa software Vulkan were use
 417-step graphical build passed. Focused new metadata plus existing preview tests passed **2/2
 in 0.06s**. Full graphical/native gate passed **207/207**, zero skips, **401.24s**. Minimal Shipping
 passed its **74-step** build. Touched C++ formatting and diff checks pass. Linux display CI
-requires the metadata test to be registered. Fresh hosted CI remains required before merge.
+requires the metadata test to be registered. That initial result predates the following main integration and review fixes.
 This does not certify physical display behavior, production specialized-tool acceptance or full ED-M5.
+
+## Latest main integration and review validation
+
+The final implementation was rebased onto accepted main `ceb409da50a4900c9fedfc476db33f18ed03600a`,
+including deep hierarchy and static export. The 267-step incremental graphical/native build passed.
+Focused capability plus native preview/center/authored-mesh acceptance passed **4/4 in 74.52s**.
+The complete graphical/native gate passed **213/213**, zero skips, **470.61s**. Minimal Shipping
+passed its five-step incremental build. Exact commands above were repeated with the same options.
+
+An earlier C1-review gate on the preceding base passed 211/212 and failed the existing native
+authored-mesh center test because saved bytes remained unchanged. No assertion or time limit was
+relaxed. The center helper now repeats only Save while observing committed bytes inside its original
+five-second deadline, following the retained Undo observer pattern; it never replays a gesture or
+Undo. The latest focused and full results include this change. This establishes the tested behavior
+without attributing all synthetic input failures to a proven common cause.
+[Native save observation evidence](EditorEDM7-NativeSaveObservation-Linux-2026-10-09.md).
+Fresh hosted CI for the final head remains required before merge.

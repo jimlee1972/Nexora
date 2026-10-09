@@ -68,8 +68,21 @@ bool SpecializedToolRegistry::Validate(const ToolDescriptor &descriptor, std::st
            });
   };
   const auto text = [](std::string_view value, std::size_t limit) {
-    return value.size() <= limit && foundation::IsValidUtf8(value) &&
-           std::ranges::none_of(value, [](unsigned char c) { return c < 0x20 || c == 0x7F; });
+    if (value.size() > limit || !foundation::IsValidUtf8(value))
+      return false;
+    for (std::size_t i = 0; i < value.size(); ++i) {
+      const auto byte = static_cast<unsigned char>(value[i]);
+      if (byte < 0x20 || byte == 0x7F)
+        return false;
+      // Valid UTF-8 encodes U+0080..U+009F as C2 80..9F. Check that complete code-point
+      // encoding, not continuation bytes alone, so ordinary non-ASCII titles remain valid.
+      if (byte == 0xC2 && i + 1 < value.size()) {
+        const auto continuation = static_cast<unsigned char>(value[i + 1]);
+        if (continuation >= 0x80 && continuation <= 0x9F)
+          return false;
+      }
+    }
+    return true;
   };
   if (descriptor.schema_version != 1 || descriptor.interface_version != 1)
     return fail("unsupported tool descriptor or interface version");
