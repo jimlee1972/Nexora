@@ -63,6 +63,7 @@ public:
 private:
   friend class SceneSaveBatch;
   friend class AdditiveSceneSession;
+  friend class AdditiveSceneComposition;
   struct DiskSnapshot final {
     bool exists{};
     std::string bytes;
