@@ -84,3 +84,12 @@ Touched C++ clang-format, Python syntax and git diff checks pass.
 Existing Windows/macOS/Linux desktop CI enables this path and CPU tests; Linux display CI requires
 both native tests to be registered and actually runs/retains their logs. Full milestone count/root
 README stay unchanged; compilation, gameplay, graphical Build/deploy and physical acceptance stay open.
+
+Enabling the producer/Player CLI integration on Windows exposed a previously narrow-argv fixture:
+editor.static_project_export_cli and its optimized variant could not write their Chinese filename.
+The existing producer fixture now uses a shared runner with Windows wmain native-wide paths and
+MinGW -municode; Unicode fixture paths and all exact-boundary producer assertions remain enabled.
+The repaired source passes full graphical Development again: **205/205**, zero skips, **402.62s**.
+Minimal Shipping rebuild passes; Full Monolithic native Shipping rebuild passes and its actual
+CLI/native admission/pixels/resize/close/drain tests pass **3/3 in 4.47s**. Fresh hosted Windows
+acceptance remains required before merging the repaired head.
