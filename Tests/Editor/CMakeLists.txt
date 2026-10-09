@@ -27,6 +27,11 @@ target_link_libraries(NexoraPreparedSceneSaveTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPreparedSceneSaveTests)
 add_test(NAME editor.prepared_scene_save COMMAND NexoraPreparedSceneSaveTests)
 
+add_executable(NexoraSceneComparisonTests SceneComparisonTests.cpp)
+target_link_libraries(NexoraSceneComparisonTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraSceneComparisonTests)
+add_test(NAME editor.semantic_scene_comparison COMMAND NexoraSceneComparisonTests)
+
 add_executable(NexoraSceneSaveBatchTests SceneSaveBatchTests.cpp)
 target_link_libraries(NexoraSceneSaveBatchTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraSceneSaveBatchTests)

@@ -1524,7 +1524,15 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   }
   if (!file.eof())
     return false;
-  std::istringstream input(std::move(staged_file));
+  return ReloadOwnedBytes(std::move(staged_file));
+}
+bool SceneDocument::ReloadBytes(std::string_view bytes) {
+  if (bytes.size() > kMaximumSceneFileBytes)
+    return false;
+  return ReloadOwnedBytes(std::string(bytes));
+}
+bool SceneDocument::ReloadOwnedBytes(std::string bytes) {
+  std::istringstream input{std::move(bytes)};
   std::string line, world_data;
   struct LoadedNode final {
     runtime::Id id{}, parent{};

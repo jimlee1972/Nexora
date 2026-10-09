@@ -1023,3 +1023,28 @@ source/software, scope, units and retained peak. Read-only/modal/recovery/close 
 profiler actions. No capture is saved implicitly. These additive rebuild-required C++ APIs change
 no module dependencies or stable C/Gameplay ABI. Physical GPU calibration, per-pass analysis and
 third-party capture adapters remain open.
+
+## Semantic scene revision comparison
+
+`CompareSceneRevisions` accepts synchronous base/local/remote byte views and returns owning changed
+rows keyed by stable entity IDs and fields. An absent whole source is `nullopt`, distinct from an
+empty present file or an existing empty field. `SceneDocument::ReloadBytes` and ordinary file Reload
+share one versioned parser and legacy migration; comparison uses only isolated temporary Worlds.
+Runtime entity presence, parent/sibling order, local TRS, camera/light/mesh fields, tracked names,
+authored Euler turns and opaque type names/exact hexadecimal payloads remain inspectable. Generation
+IDs, selection and Undo history are not persistent source fields. Unknown payloads are never loaded
+as plugins or interpreted as a future schema.
+
+Each source is limited to 8 MiB and 4,096 entities; a value to 64 KiB (32 KiB opaque binary), a
+semantic snapshot to 4 MiB, and the final result to 131,072 rows/16 MiB. Limits measure logical
+source/field bytes, not process RSS or the parser's bounded temporary allocations. Invalid, unsafe
+display text, unsupported or over-budget revisions reject without partial output, IO or caller
+document/baseline/history mutation. Output sorts stable paths and owns every optional value after
+the input views expire. Callers supply project/revision provenance and serialize borrowed access.
+
+Shared/local/remote choices are per-field inspection hints. Deletion versus editing remains an
+explicit unresolved conflict. They do not certify a structurally valid merged scene and do not
+publish source data. Graphical conflict/provider and reviewed merge publication remain separate
+acceptance work. ReloadBytes is a rebuild-required C++ API with the same successful replacement,
+generation/history and failed-reload preservation contract as file Reload; file Reload moves its
+existing owning buffer into the parser, avoiding an extra full source copy.
