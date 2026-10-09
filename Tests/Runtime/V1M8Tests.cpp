@@ -16,6 +16,15 @@ int main() {
   const RaycastRequest rays[]{{{0, 2, 0}, {0, -1, 0}, 10}, {{0, 2, 0}, {1, 0, 0}, 1}};
   const auto hits = physics.RaycastBatch(rays);
   Require(hits[0] && hits[0]->body == 1 && !hits[1], "batch query failed");
+  for (const auto reverse : {false, true}) {
+    PhysicsWorld tied;
+    const PhysicsBody lower{3, {-1, -1, -1}, {1, 1, 1}}, higher{9, {-1, -1, -1}, {1, 1, 1}};
+    Require(tied.AddBody(reverse ? lower : higher) && tied.AddBody(reverse ? higher : lower),
+            "tie fixture bodies failed");
+    const auto nearest = tied.Raycast({{0, 0, 3}, {0, 0, -1}, 10});
+    Require(nearest && nearest->body == 3 && nearest->distance == 2,
+            "equal-distance nearest hit depends on unordered body admission");
+  }
 
   CharacterState state{{0, 0.1, 0}, {}, CharacterGroundState::OnGround};
   CharacterController controller;

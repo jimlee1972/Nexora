@@ -210,7 +210,13 @@ private:
     host.despawn_entity = [](void *context, std::uint64_t entity) -> int32_t {
       return Self(context).scenes_.Despawn(entity);
     };
-    // Physics, asset resolution, debug drawing and diagnostics callbacks remain unavailable.
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+    host.raycast = [](void *context, const NexoraRaycastRequest *request,
+                      NexoraRaycastHit *hit) -> int32_t {
+      return Self(context).scenes_.Raycast(request, hit);
+    };
+#endif
+    // Asset resolution, debug drawing and diagnostics callbacks remain unavailable.
     return host;
   }
   runtime::World *world_{};

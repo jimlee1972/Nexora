@@ -74,8 +74,9 @@ int main() {
       Require(host.capabilities == (NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR |
                                     NEXORA_GAMEPLAY_CAPABILITY_SCENE_API) &&
                   host.load_scene && host.activate_scene && host.spawn_entity &&
-                  host.despawn_entity && !host.raycast && !host.resolve_asset &&
-                  !host.debug_draw_line && !host.get_diagnostics,
+                  host.despawn_entity &&
+                  (static_cast<bool>(host.raycast) == (NEXORA_GAMEPLAY_SIMULATION_ENABLED != 0)) &&
+                  !host.resolve_asset && !host.debug_draw_line && !host.get_diagnostics,
               "host advertised unavailable services");
       const std::string name = "Play 世界";
       Require(host.load_scene(host.context, name.data(), static_cast<uint32_t>(name.size()), 1,
@@ -164,10 +165,15 @@ int main() {
       }
       wire = Descriptor();
       wire.components |= NEXORA_SPAWN_PHYSICS;
-      Require(host.spawn_entity(host.context, owned_scene, &wire, &unchanged) ==
-                      NEXORA_GAMEPLAY_ERROR_UNSUPPORTED &&
+#if NEXORA_GAMEPLAY_SIMULATION_ENABLED
+      wire.bounds_minimum.x = std::numeric_limits<double>::quiet_NaN();
+      constexpr auto physics_error = NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+#else
+      constexpr auto physics_error = NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+#endif
+      Require(host.spawn_entity(host.context, owned_scene, &wire, &unchanged) == physics_error &&
                   unchanged == 999 && play.PlayWorld()->SaveScene(owned_scene) == retained,
-              "unsupported physics published a partial entity");
+              "invalid or unsupported physics published a partial entity");
       stopped = destroyed = false;
       module.Unload();
       Require(stopped && destroyed &&

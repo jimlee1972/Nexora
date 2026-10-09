@@ -653,13 +653,23 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   optional FixedUpdate 在 tick／Step 執行，Update 每個 playing frame 執行一次。有界訊息進入
   Console，失敗會拒絕 Start／暫停 Play，Stop／視窗關閉會先卸載再銷毀 clone。Static lifecycle
   測試與 Xvfb 真實動態 library 已驗證 mesh 移動、Pause／Step／Stop、Editor 場景未變動。
-  host 現也提供下述有界 Scene API；physics、擴充 input 裝置與 hot reload 仍待完成。
+  host 現也提供下述有界 Scene API 與 optional CPU collider query；rigid-body integration、
+  擴充 input 裝置與 hot reload 仍待完成。
 - ✅ 真正的 Play V3 host 現可載入／啟用空的記憶體 scene，並在隔離 clone 生成／刪除
   已驗證的 Camera／Light／Mesh entity。UTF-8 名稱、descriptor 值與 lifetime admission 配額
   皆有界；拒絕操作會保留 output 與 World 資料。原子刪除包含 descendants，Stop／Destroy
   callback 仍可使用服務，新 binding 重設配額。World ID 耗盡會拒絕配置，不會回繞。
   Portable 與真正 Xvfb 動態模組測試涵蓋重複 Play lifecycle、Editor bytes 未變動。
-  Physics 與其他 optional callback 仍不可用。[Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md)。
+  Optional CPU Physics query 詳列於下方；其他 optional callback 仍不可用。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md)。
+- ✅ Optional Play Physics spawn 現擁有最多 256 個 live local AABB binding，提供真正 CPU
+  PhysicsWorld raycast 的 copied result。八個角點透過目前 affine matrix 保留 inherited
+  rotation／mirror／shear；排除 inactive／stale／unloading entry，同距離命中選較小 entity ID。
+  Despawn cascade 清除 binding，但 lifetime spawn quota 仍消耗。Invalid／miss／overflow
+  失敗保留 output，Stop／Destroy 期間仍可使用服務。真正 V3、simulation-OFF 與 dynamic
+  native Game fixture 涵蓋 query、Editor 資料未變動；詳見
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md)。
+  Rigid-body／backend stepping、authored collider import 與完整 gameplay／input 仍待完成。
 - ✅ 點擊 playing Game canvas 現可透過複製的 gameplay input snapshot 路由 user-zero
   WASD／方向鍵位移與 Space／滑鼠／Shift／Ctrl 按鈕。Escape、pointer 離開、隱藏 Game、
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring

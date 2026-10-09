@@ -169,11 +169,18 @@ gate, supporting dedicated/headless builds without Animation, Audio, VFX, or Med
 
 ## V1-M8 gameplay simulation
 
+Equal-distance `PhysicsWorld::Raycast` hits select the lower body ID, independent of unordered
+insertion; batch queries share this policy. The optional Editor Play embedding binds bounded
+owning local collider bounds to entity IDs, prepares conservative AABBs from current exact affine
+World matrices and returns copied V3 hits. This application adapter performs CPU queries without
+rigid-body stepping or a Jolt/backend acceptance claim; see
+[Play collider contract](../../Apps/Editor/README.md#play-cpu-collider-queries).
+
 `GameplaySimulation.h` is the public, backend-neutral boundary for Physics → Character → Navigation → AI. `PhysicsWorld` provides authoritative immediate and batch queries without exposing Jolt types. The standard motor owns desired locomotion, gravity, root motion, and external velocity; `CharacterController` owns collision resolution, ground snap, stepping, crouch clearance, and teleport semantics. Every result reports requested and actual motion separately. The portable motor position is a feet origin; ground snap sweeps downward from above the previous/candidate feet to the contact plane, avoiding the zero-distance inside-AABB ray that previously let gravity penetrate the floor. Centered rendering capsules add half their current height to this origin. Objects are synchronous and caller-owned; none are thread-safe.
 
 `Move()`/`Teleport()` also take a caller-supplied `ground_ready`/`destination_ready` readiness flag and report `CharacterGroundState::StreamingPending` when it is false: locomotion, gravity accrual, and ground snap/step evaluation are all suspended and the character holds its current position instead of free-falling through geometry that has not streamed in, per the V1-M10 large-world streaming contract. This header stays independent of `LargeWorld.h` by design (either can be stripped without the other), so the readiness flag is the full extent of the contract here; a caller that wants the M10 `StreamingManager` to drive it is expected to pin the character's cells with `SetOccupied()` and query `Status(cell)->residency == Residency::Full` itself — declaring the character a high-priority streaming source and any automatic bridging between the two systems is gameplay/application-layer wiring this foundation does not provide.
 
-`NavigationWorld` owns streamed tiles and invalidates paths by generation when a tile unloads. It only returns a desired velocity and never receives a `World` or writable `Transform`. The AI foundation uses fixed typed blackboard slots, a compact shared behavior program with per-tick deterministic traces, and a stimulus query with an explicit work/result budget. Configure with `-DNEXORA_ENABLE_GAMEPLAY_SIMULATION=OFF` to strip this implementation and run the feature-strip gate. The enabled test validates batched physics queries, ground/wall resolution, teleport, streaming-pending hold/resume, cross-tile navigation and stale-path invalidation, blackboard typing, behavior execution, and perception budgets.
+`NavigationWorld` owns streamed tiles and invalidates paths by generation when a tile unloads. It only returns a desired velocity and never receives a `World` or writable `Transform`. The AI foundation uses fixed typed blackboard slots, a compact shared behavior program with per-tick deterministic traces, and a stimulus query with an explicit work/result budget. Configure with `-DNEXORA_ENABLE_GAMEPLAY_SIMULATION=OFF -DNEXORA_ENABLE_AI_RUNTIME_BRIDGE=OFF` to strip this implementation and run the feature-strip gate. The enabled test validates batched physics queries, ground/wall resolution, teleport, streaming-pending hold/resume, cross-tile navigation and stale-path invalidation, blackboard typing, behavior execution, and perception budgets.
 
 V2-M7's optional `NexoraAIIntegration::IntentAdapter` is a higher-level module that maps AI desired
 XZ direction and speed into Runtime's requested horizontal motion. It rejects non-finite direction
@@ -389,8 +396,9 @@ mesh renderers of a `World`'s active scenes into a `renderer::GPUScene`, one GPU
   `RenderSceneFrame`, whose evidence counts every mesh renderer.
 
 Limits: `PlaySession` apply-back copies transforms only and reports a conflict for an entity whose
-parent changed during play; physics does not consume entity transforms yet (rendering does, through
-`RenderSceneSync`).
+parent changed during play. Core PhysicsWorld does not infer entity transforms automatically;
+the optional Editor Play collider adapter prepares current exact World matrices explicitly.
+Rendering consumes transforms through `RenderSceneSync`.
 
 Gameplay modules reach the hierarchy through component wires in `nexora/nexora.h`, read and written
 with `read_component`/`write_component`:

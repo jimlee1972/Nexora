@@ -692,14 +692,24 @@ creates property widgets; unknown components retain raw data instead of being si
     frame. Bounded messages reach Console, failures reject Start/pause Play, and Stop/window shutdown
     unload before clone destruction. Static lifecycle tests and a real Xvfb dynamic library verify
     mesh movement, Pause/Step/Stop, and an unchanged authored scene. This initial component-oriented
-    host now also provides the bounded Scene API below; physics, expanded input devices and hot reload remain open.
+    host now also provides the bounded Scene API and optional CPU collider queries below;
+    rigid-body integration, expanded input devices and hot reload remain open.
   - ✅ The actual Play V3 host now loads/activates empty in-memory scenes and spawns/despawns
     validated Camera/Light/Mesh entities in the isolated clone. UTF-8 names, descriptor values and
     lifetime admission quotas are bounded; outputs and World data survive rejected operations.
     Atomic deletion cascades, Stop/Destroy callbacks retain service access, and new bindings reset
     quotas. World allocation rejects ID exhaustion without wrapping. Portable and actual dynamic
-    Xvfb fixtures preserve Editor bytes across repeated Play lifecycles. Physics and other optional
-    callbacks remain unavailable. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
+    Xvfb fixtures preserve Editor bytes across repeated Play lifecycles. Optional CPU Physics
+    queries are described below; other optional callbacks remain unavailable.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
+  - ✅ Optional Play Physics spawn now owns at most 256 live local AABB bindings and exposes
+    copied real CPU PhysicsWorld raycast results. Eight current affine-transformed corners preserve
+    inherited rotation/mirror/shear, inactive/stale/unloading entries are excluded, and equal hits
+    select the lower entity ID. Despawn cascades prune bindings; lifetime spawn quotas remain
+    consumed. Invalid/miss/overflow failures preserve outputs, including Stop/Destroy lifetime.
+    Actual V3, simulation-OFF and dynamic native Game fixtures cover queries and unchanged Editor
+    data. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md).
+    Rigid-body/backend stepping, authored collider import and full gameplay/input remain open.
   - ✅ Clicking the playing Game canvas now routes user-zero held WASD/arrow movement and
     Space/mouse/Shift/Ctrl buttons through copied gameplay input snapshots. Escape, pointer exit,
     hidden Game, Pause/Stop, prompts, and native blur clear capture and held state. Captured keys
