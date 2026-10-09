@@ -248,7 +248,8 @@ VertexOutput_0 pbrVertexMain(VertexInput_0 input_0)
 }
 
 )NEXORA_PBR";
-inline constexpr char scene_pbr_hlsl_frag[] = R"NEXORA_PBR(
+inline constexpr char scene_pbr_hlsl_frag[] =
+R"NEXORA_PBR(
 #pragma pack_matrix(column_major)
 #ifdef SLANG_HLSL_ENABLE_NVAPI
 #include "nvHLSLExtns.h"
@@ -350,7 +351,8 @@ SamplerState diffuseEnvironment_sampler_0 : register(s4);
 
 
 #line 1188
-Texture2D<float4 > specularEnvironment_texture_0 : register(t5);
+Texture2D<float4 > specularEnvironment_textu)NEXORA_PBR"
+R"NEXORA_PBR(re_0 : register(t5);
 
 
 #line 1188
@@ -461,7 +463,8 @@ bool reflectionMask_0(float3 renderedPosition_0)
     {
 
 #line 208
-        if((material_0.reflection_0.w) > 1.5f)
+        if((material_0.reflection_0.w) > 1.)NEXORA_PBR"
+R"NEXORA_PBR(5f)
         {
 
 #line 208
@@ -581,7 +584,8 @@ float4 sampleBaseMap_0(VertexOutput_0 input_0)
 
 
 #line 19 "Shaders/Nexora/Common/Vegetation.slang"
-float NexoraEvaluateVegetationAlpha_0(float alpha_0, float cutoff_0)
+float)NEXORA_PBR"
+R"NEXORA_PBR( NexoraEvaluateVegetationAlpha_0(float alpha_0, float cutoff_0)
 {
     return step(saturate(cutoff_0), saturate(alpha_0));
 }
@@ -679,7 +683,8 @@ float4 outputSceneColor_0(float3 color_3, float3 worldPosition_1)
 }
 
 
-#line 83
+#lin)NEXORA_PBR"
+R"NEXORA_PBR(e 83
 float3 geometryDirection_0(float3 value_1)
 {
     float _S12 = max(max(abs(value_1.x), abs(value_1.y)), abs(value_1.z));
@@ -816,7 +821,8 @@ float3 sampleWorldNormal_0(float3 position_2, float3 normal_2, float3 weight_2)
 #line 146
     float2 _S17 = frac(position_2.zy);
 
-#line 146
+#line 14)NEXORA_PBR"
+R"NEXORA_PBR(6
     ;
 
 #line 146
@@ -878,7 +884,8 @@ float NexoraEvaluatePcf4_0(float receiverDepth_1, float4 shadowDepths_0, float b
 
 
 #line 162 "Engine/Presentation/shaders/scene_pbr.slang"
-float shadowVisibility_0(float3 position_3, float3 normal_3, float3 light_0)
+float shadow)NEXORA_PBR"
+R"NEXORA_PBR(Visibility_0(float3 position_3, float3 normal_3, float3 light_0)
 {
 
 #line 163
@@ -969,7 +976,8 @@ float shadowVisibility_0(float3 position_3, float3 normal_3, float3 light_0)
     }
 
 #line 169
-    float2 step_0 = (float2)(material_0.shadowSettings_0.z * 0.5f);
+    float2 step_0 = (float2)(material_0.shadowSettings_0.z)NEXORA_PBR"
+R"NEXORA_PBR( * 0.5f);
 
     float _S22 = step_0.x;
 
@@ -1028,7 +1036,8 @@ float3 NexoraEvaluateDirectBrdf_0(float3 normal_4, float3 viewDirection_0, float
 
     float3 n_0 = NexoraSafeNormalize_0(normal_4);
     float3 v_0 = NexoraSafeNormalize_0(viewDirection_0);
-    float3 l_0 = NexoraSafeNormalize_0(lightDirection_1);
+    )NEXORA_PBR"
+R"NEXORA_PBR(float3 l_0 = NexoraSafeNormalize_0(lightDirection_1);
     float3 h_0 = NexoraSafeNormalize_0(v_0 + l_0);
     float nDotV_1 = NexoraSaturateDot_0(n_0, v_0);
     float nDotL_1 = NexoraSaturateDot_0(n_0, l_0);
@@ -1100,7 +1109,8 @@ struct NexoraPbrEnvironment_0
 float3 NexoraEvaluatePbrIbl_0(float3 normal_5, float3 viewDirection_1, float3 baseColor_3, float metallic_2, float roughness_4, float ao_0, NexoraPbrEnvironment_0 environment_1)
 {
 
-#line 51
+#line)NEXORA_PBR"
+R"NEXORA_PBR( 51
     float metal_1 = saturate(metallic_2);
     float3 albedo_1 = saturate(baseColor_3);
 
@@ -1154,7 +1164,8 @@ float3 NexoraApplyShadowTint_0(float3 lighting_1, float shadowVisibility_1, floa
 
 
 #line 24 "Shaders/Nexora/Common/Vegetation.slang"
-float3 NexoraEvaluateVegetationTransmission_0(float3 normal_6, float3 lightDirection_2, float3 transmissionColor_0, float thickness_0, float shadowFactor_1)
+float3 NexoraEvaluateVegetationTransmission_0(float3 normal_6, float3 )NEXORA_PBR"
+R"NEXORA_PBR(lightDirection_2, float3 transmissionColor_0, float thickness_0, float shadowFactor_1)
 {
 
 #line 31
@@ -1245,7 +1256,8 @@ float4 pbrFragmentMain(VertexOutput_0 input_1) : SV_TARGET
 
 #line 233
     }
-    else
+    e)NEXORA_PBR"
+R"NEXORA_PBR(lse
     {
 
 #line 233
@@ -1373,7 +1385,8 @@ float4 pbrFragmentMain(VertexOutput_0 input_1) : SV_TARGET
 
 #line 250
     float3 orm_0;
-    if((material_0.worldMapping_0.x) > 0.0f)
+    if((material_0.world)NEXORA_PBR"
+R"NEXORA_PBR(Mapping_0.x) > 0.0f)
     {
 
 #line 252
@@ -1480,7 +1493,8 @@ float4 pbrFragmentMain(VertexOutput_0 input_1) : SV_TARGET
     {
 
 #line 271
-        float3 n_3 = geometryDirection_0(surface_0.normal_8);
+ )NEXORA_PBR"
+R"NEXORA_PBR(       float3 n_3 = geometryDirection_0(surface_0.normal_8);
         float roughness_6 = saturate(surface_0.roughness_5);
         environment_2.diffuseIrradiance_0 = diffuseEnvironment_texture_0.SampleLevel(diffuseEnvironment_sampler_0, environmentUv_0(n_3), 0.0f).xyz * material_0.environment_0.x;
 
@@ -1530,7 +1544,8 @@ float4 pbrFragmentMain(VertexOutput_0 input_1) : SV_TARGET
     }
 
 #line 294
-    float3 _S49 = NexoraEvaluateVegetationTransmission_0(surface_0.normal_8, light_1, material_0.transmission_0.xyz * scene_0.lightColor_0.xyz, material_0.vegetation_0.w, 1.0f - visibility_0);
+    float3 _S49 = NexoraEvaluateVegetationTransmission_0(surface_0.normal_8, )NEXORA_PBR"
+R"NEXORA_PBR(light_1, material_0.transmission_0.xyz * scene_0.lightColor_0.xyz, material_0.vegetation_0.w, 1.0f - visibility_0);
 
     float3 _S50 = float3((int3)int(0));
 
@@ -1630,7 +1645,8 @@ float4 pbrFragmentMain(VertexOutput_0 input_1) : SV_TARGET
         {
 
 #line 313
-            bent_0[int(1)] = - bent_0.y;
+            be)NEXORA_PBR"
+R"NEXORA_PBR(nt_0[int(1)] = - bent_0.y;
 
 #line 313
             incident_0[int(1)] = - incident_0.y;
@@ -1668,7 +1684,8 @@ float4 pbrFragmentMain(VertexOutput_0 input_1) : SV_TARGET
         {
 
 #line 317
-            shift_0 = (bentClip_0.xy / _S53 - straightClip_0.xy / straightClip_0.w) * float2(0.5f, -0.5f);
+            shift_0 = (bentClip_0.xy / _S53 - straightClip_0.xy / str)NEXORA_PBR"
+R"NEXORA_PBR(aightClip_0.w) * float2(0.5f, -0.5f);
 
 #line 317
         }

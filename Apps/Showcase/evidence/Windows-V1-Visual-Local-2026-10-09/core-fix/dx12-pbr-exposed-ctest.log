@@ -1,0 +1,12 @@
+Test project G:/proj/Nexora/build/windows-showcase-development
+    Start 46: window_presentation.dx12_pbr
+1/1 Test #46: window_presentation.dx12_pbr .....   Passed    4.64 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Label Time Summary:
+dx12              =   4.64 sec*proc (1 test)
+native-display    =   4.64 sec*proc (1 test)
+showcase          =   4.64 sec*proc (1 test)
+
+Total Test time (real) =   4.70 sec

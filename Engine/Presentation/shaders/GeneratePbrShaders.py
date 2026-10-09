@@ -8,6 +8,20 @@ import subprocess
 import tempfile
 
 
+def embed_hlsl_source(name: str, source: str) -> str:
+    # MSVC limits an individual literal to 16 KiB. Concatenation preserves the
+    # exact compiler output, including its leading newline and final NUL.
+    source = '\n' + source
+    if ')NEXORA_PBR"' in source:
+        raise ValueError('Generated source contains the raw-string delimiter')
+    if len(source.encode('utf-8')) <= 8192:
+        return f'inline constexpr char {name}[] = R"NEXORA_PBR({source})NEXORA_PBR";\n'
+    # 2048 Unicode characters occupy at most 8192 UTF-8 bytes.
+    chunks = [source[start:start + 2048] for start in range(0, len(source), 2048)]
+    literals = '\n'.join(f'R"NEXORA_PBR({chunk})NEXORA_PBR"' for chunk in chunks)
+    return f'inline constexpr char {name}[] =\n{literals};\n'
+
+
 def generate(compiler: str, check: bool) -> None:
     root = Path(__file__).resolve().parents[3]
     shaders = root / 'Engine/Presentation/shaders'
@@ -44,7 +58,10 @@ def generate(compiler: str, check: bool) -> None:
                     # Source diagnostics are reproducible repository-relative compiler paths.
                     if ')NEXORA_PBR"' in source:
                         raise SystemExit('Generated source contains the raw-string delimiter')
-                    text += f'inline constexpr char {name}[] = R"NEXORA_PBR(\n{source})NEXORA_PBR";\n'
+                    if target == 'hlsl':
+                        text += embed_hlsl_source(name, source)
+                    else:
+                        text += f'inline constexpr char {name}[] = R"NEXORA_PBR(\n{source})NEXORA_PBR";\n'
             text += '} // namespace Nexora::Presentation\n// clang-format on\n'
             path = root / f'Engine/Presentation/src/ScenePbr{label}Shaders.h'
             if check:

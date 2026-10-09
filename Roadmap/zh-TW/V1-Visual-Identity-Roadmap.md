@@ -1,5 +1,11 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+Windows 本機續作（2026-10-09）：已修正生成的 Slang→HLSL 儲存觸發 MSVC C2026，shader
+位元組保持一致。完整 Development build 與 DX12 原生 PBR 重測通過；第一輪 95/99 CTest
+的四個失敗經標準 LF、VS/Ninja 環境與不受遮擋的 capture 修正後均通過指定重測。
+Linux 完整 gate、同版實體 DX12/Vulkan 最終美術、效能及導覽交付仍在進行；VIS 維持 5/7。
+[證據](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/core-fix/acceptance.md)。
+
 ✅ 原創青銅的基色倍率由 (0.8,0.65,0.4) 調為 (1.0,0.95,0.85)，讓來源金色／銅綠與金屬高光更清楚。金屬度 1、粗糙度 0.4、貼圖、法線、光照、HDR 發光、幾何與反射材質繼承皆維持原值。完整 Linux configure/build 與 109/109 測試通過（137.43 秒，core/sync 驗證）；凍結 Shipping 原生操作、風／反射／遮蔽精確還原與真正 100 秒動畫導覽通過（實際 100.95 秒）。來源凍結 `9d7298bed7ccaff24609ae2184753f574948960b`；證據：`Apps/Showcase/evidence/VIS-Bronze-Color-Balance-Linux-2026-10-08/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。
 
 ✅ 磨損地磚發布版本保留已合併的 Editor／Animation／Runtime 主分支整合。完整 Linux configure/build 與 109/109 測試通過（134.89 秒，core/sync 驗證），Full Monolithic Shipping configure/build 通過。凍結 Showcase Shipping 原生操作、風／反射／遮蔽精確還原與真正 100 秒動畫導覽通過（實際 100.88 秒）；三個固定原生鏡位的 PNG 與前一個地磚候選版本逐位元組一致。來源凍結 `da9243961d1352176349aa48f0ed22fd98924f50`；證據：`Apps/Showcase/evidence/VIS-Paving-Worn-Edges-Linux-2026-10-08/integration/`。參考圖一致性與實體目標驗收仍未完成（VIS 5/7）。

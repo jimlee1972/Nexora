@@ -73,6 +73,10 @@ if(APPLE)
     LABELS "showcase;metal;native-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
 endif()
 
+add_test(NAME window_presentation.hlsl_embedding
+  COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tests/WindowPresentation/EmbeddedHlslTests.py")
+
 if(NEXORA_ENABLE_SLANG AND NEXORA_SLANGC_EXECUTABLE)
   add_test(NAME window_presentation.pbr_shader_generation
     COMMAND "${Python3_EXECUTABLE}"

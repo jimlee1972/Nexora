@@ -1,5 +1,12 @@
 # Nexora V1 Visual Identity Showcase Roadmap
 
+Windows local continuation (2026-10-09): MSVC C2026 in generated Slang-to-HLSL storage is repaired
+without changing shader bytes. Full Development build and DX12 native PBR recheck pass; the initial
+95/99 CTest run's four failures all pass focused rechecks after canonical-LF, VS/Ninja environment
+and unobscured capture corrections. Linux full gate, final same-version physical DX12/Vulkan art,
+performance and tour delivery remain in progress; VIS stays 5/7.
+[Evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/core-fix/acceptance.md).
+
 ✅ Authored bronze uses base-color multiplier (1.0,0.95,0.85) instead of (0.8,0.65,0.4), revealing source gold/patina and metallic highlights. Metallic=1, roughness=0.4, textures, normals, lighting, HDR emission, geometry and reflected material inheritance retain their original values. Full Linux configure/build and 109/109 tests pass (137.43 s, core/sync validation); frozen Shipping native acceptance, exact wind/reflection/occlusion restoration and a real 100-second animated tour pass (100.95 s wall time). Freeze `9d7298bed7ccaff24609ae2184753f574948960b`; evidence: `Apps/Showcase/evidence/VIS-Bronze-Color-Balance-Linux-2026-10-08/`. Reference parity and physical target acceptance remain open (VIS 5/7).
 
 ✅ Worn-paving release preserves accepted Editor/Animation/Runtime main integration. Full Linux configure/build and 109/109 tests pass (134.89 s, core/sync validation); Full Monolithic Shipping configure/build passes. Frozen Showcase Shipping native acceptance, exact wind/reflection/occlusion restoration and a real 100-second animated tour pass (100.88 s wall time). All three fixed native art images remain byte-identical to the preceding paving candidate. Freeze `da9243961d1352176349aa48f0ed22fd98924f50`; evidence: `Apps/Showcase/evidence/VIS-Paving-Worn-Edges-Linux-2026-10-08/integration/`. Reference parity and physical target acceptance remain open (VIS 5/7).

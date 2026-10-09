@@ -64,6 +64,10 @@ std::array<Rgb, 9> Read(
     std::uint64_t *sceneHash = nullptr, unsigned *intermediate = nullptr) {
 #if defined(_WIN32)
   (void)display;
+  // This reads desktop pixels, so the native client must stay above other apps
+  // even when a background CTest process cannot acquire foreground activation.
+  Require(SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW),
+          "PBR client could not be exposed for capture");
   POINT origin{};
   Require(ClientToScreen(window, &origin), "PBR client origin unavailable");
   auto source = GetDC(nullptr);
