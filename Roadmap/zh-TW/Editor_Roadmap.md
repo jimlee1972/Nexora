@@ -705,7 +705,8 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   ownership／reference role、deterministic dependency load order 與 active selection。
   Restore 先 stage 完整 candidate 並於 membership 替換前重驗 source／metadata revision；
   invalid、missing、colliding、external change 或 interruption 均保留 primary 與全部原檔。
-  實際 16 文件、read-only、late change 與 aggregate budget 測試通過。Graphical integration
+  實際 16 文件、read-only、late change 與 aggregate budget 測試通過，亦涵蓋 missing baseline、
+  同位元組 hard-link 替換與 size preflight 後增長。Graphical integration
   與完整 ED-M4 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md)。
 

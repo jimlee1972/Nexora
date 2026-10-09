@@ -744,7 +744,8 @@ creates property widgets; unknown components retain raw data instead of being si
     ownership/reference roles, deterministic dependency load order and active selection. Restore
     stages the complete candidate and rechecks source/metadata revisions before replacing membership;
     invalid, missing, colliding, externally changed or interrupted input preserves the primary and
-    every original. Genuine sixteen-document, read-only, late-change and aggregate-budget tests pass.
+    every original. Genuine sixteen-document, read-only, late-change and aggregate-budget tests pass,
+    including missing baselines, byte-identical hard-link replacement and growth after size preflight.
     Graphical integration and full ED-M4 remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases

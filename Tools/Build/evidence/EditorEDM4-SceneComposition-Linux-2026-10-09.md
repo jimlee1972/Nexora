@@ -10,6 +10,9 @@ and opaque source bytes are preserved. No unknown references are rewritten.
 Restore requires one clean borrowed bootstrap. All source sizes are checked before candidate
 admission, with a 64 MiB per-file and 128 MiB aggregate logical payload limit (not total RSS).
 Every additional source and dependency loads into a candidate before publishing membership.
+Actual retained disk baselines are counted after every admission and again before publication;
+size preflight alone cannot authorize a source that grows while being read. Save and final Restore
+require existing sources and recheck distinct destinations, including byte-identical hard links.
 Immediately before publication the metadata, current project scope and every exact source baseline
 revalidate. Missing/corrupt sources, foreign metadata, aliases/case collisions, invalid/forward/cyclic
 or repeated dependency indexes, source identity collisions, late modifications and interruptions
@@ -40,6 +43,17 @@ passed **1/1 in 0.05s**. The final source-baseline focused build passed eight in
 zero skips; minimal Shipping completed 74 steps. Integration onto the published owner head
 **928055a7c23198f53f2f46f4f4b3b8166bdd9936** changed only the owner's accepted evidence/documentation,
 with no additional functional source change.
+
+Three automated review findings were reproduced and corrected: a named missing baseline cannot
+produce an unrestorable composition; byte-identical external hard-link replacement cannot bypass
+destination distinction at Save or final Restore; and growth after size preflight cannot bypass the
+128 MiB aggregate limit. Real valid sources grow to 45 MiB each after preflight (135 MiB aggregate)
+and reject while preserving primary membership/token/content, metadata and every grown source.
+Missing-source and actual hard-link fixtures also verify rejection, repair and successful retries.
+The corrected focused gate passed **1/1 in 6.62s** after 15 build steps. Final review build completed
+237 steps, full Linux passed **218/218 in 503.42s**, zero skips, and minimal Shipping completed five
+incremental steps. Functional review correction is **b4a5ac38**; subsequent evidence changes do not
+change its source.
 
 An integrated graphical candidate independently passed actual 1x/2x ImGui controls **1/1 in 0.11s**
 and actual Editor X11 **1/1 in 21.81s**. The native driver authors two independent dirty documents,
