@@ -32,6 +32,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <optional>
 #include <cstring>
 #include <limits>
 #include <unordered_map>
@@ -785,35 +786,40 @@ public:
           begin.renderPass = sceneHdrLoadRenderPass_;
           vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
         }
+        std::optional<std::uint32_t> boundMaterial;
         for (const auto &batch : batches) {
           const auto material = ResolveSceneMaterial(data, batch.materialIndex);
           const bool transparent = material.opacity < 1;
           if (material.opacity == 0 || transparent != (phase == 1) ||
               (material.reflectionRole == SceneReflectionRole::ReflectedGeometry) != mirrorPass)
             continue;
-          vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            transparent
-                                ? sceneHdrBlendPipeline_
-                                : (data.hdr ? sceneHdrPipeline_
-                                            : (data.pbr ? scenePbrPipeline_ : scenePipeline_)));
-          const bool refractive = material.refractionIndex > 1 && material.refractionThickness > 0;
-          const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
-          const float coverage[]{backgroundCoverage * material.transparencyTint[0],
-                                 backgroundCoverage * material.transparencyTint[1],
-                                 backgroundCoverage * material.transparencyTint[2], 1};
-          vkCmdSetBlendConstants(frame.commands, coverage);
+          if (boundMaterial != batch.materialIndex) {
+            vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              transparent
+                                  ? sceneHdrBlendPipeline_
+                                  : (data.hdr ? sceneHdrPipeline_
+                                              : (data.pbr ? scenePbrPipeline_ : scenePipeline_)));
+            const bool refractive =
+                material.refractionIndex > 1 && material.refractionThickness > 0;
+            const float backgroundCoverage = refractive ? 0 : 1 - material.opacity;
+            const float coverage[]{backgroundCoverage * material.transparencyTint[0],
+                                   backgroundCoverage * material.transparencyTint[1],
+                                   backgroundCoverage * material.transparencyTint[2], 1};
+            vkCmdSetBlendConstants(frame.commands, coverage);
 
-          std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
-          const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
-          const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
-                                       : VK_SHADER_STAGE_VERTEX_BIT;
-          vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
-                             constants.data());
-          const auto id = material.textureId ? material.textureId : UINT64_MAX;
-          const auto descriptor = data.pbr ? frame.pbrDescriptors[batch.materialIndex]
-                                           : sceneTextures_.at(id).descriptor;
-          vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                  0, 1, &descriptor, 0, nullptr);
+            std::copy(material.baseColor.begin(), material.baseColor.end(), constants.begin() + 24);
+            const auto pipelineLayout = data.pbr ? scenePbrPipelineLayout_ : scenePipelineLayout_;
+            const auto stages = data.pbr ? VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+                                         : VK_SHADER_STAGE_VERTEX_BIT;
+            vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
+                               constants.data());
+            const auto id = material.textureId ? material.textureId : UINT64_MAX;
+            const auto descriptor = data.pbr ? frame.pbrDescriptors[batch.materialIndex]
+                                             : sceneTextures_.at(id).descriptor;
+            vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                    0, 1, &descriptor, 0, nullptr);
+            boundMaterial = batch.materialIndex;
+          }
           vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex,
                            0, batch.firstInstance);
         }
@@ -1830,13 +1836,17 @@ private:
                                static_cast<std::uint32_t>(instances.size()), 0};
     const auto batches =
         data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
+    std::optional<std::uint32_t> boundMaterial;
     for (const auto &batch : batches) {
       if (!ResolveSceneMaterial(data, batch.materialIndex).castsShadow)
         continue;
       diagnostics_.sceneShadowInstances += batch.instanceCount;
-      vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              scenePbrPipelineLayout_, 0, 1,
-                              &frame.pbrDescriptors[batch.materialIndex], 0, nullptr);
+      if (boundMaterial != batch.materialIndex) {
+        vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                scenePbrPipelineLayout_, 0, 1,
+                                &frame.pbrDescriptors[batch.materialIndex], 0, nullptr);
+        boundMaterial = batch.materialIndex;
+      }
       vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
                        batch.firstInstance);
     }

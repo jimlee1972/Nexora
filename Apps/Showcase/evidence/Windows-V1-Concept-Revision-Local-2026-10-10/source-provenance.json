@@ -1,0 +1,13 @@
+{
+  "schema": "nexora.showcase.local-source-evidence.v1",
+  "base_commit": "ab7b4f32c14e261e01045cc2acf1ae3bb45083fd",
+  "executable_sha256": "e4fa862aaf143c457d6b301dab7c77eae7c416ea46a335b9983cbedb1443b8a4",
+  "sources": {
+    "Apps/Showcase/ShowcaseRooms.cpp": "7bfbaffd574efb76d3e90d9cd198d945a8a0eb3e826adea2315338affc539b7e",
+    "Engine/Presentation/src/Dx12Surface.cpp": "52fe20d48e53dbd1ef6c6e2ad15d9afb3b5593e6bbd9cbe4569f2162287bcb3d",
+    "Engine/Presentation/src/VulkanSurface.cpp": "e9b7539cee9322c52cb921e2da7bcbdb0d1591644616b208f7f22de6af2405d9",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "457a63cda9557469393199af30fb8c066f5948f1d29269089341a70898d4cade"
+  },
+  "final_art_accepted": false,
+  "hardware_budget_accepted": false
+}

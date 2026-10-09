@@ -1,5 +1,9 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+✅ 全面庭院美術候選已通過本機 Windows Development configure/build/CTest 122/122（249.24 秒），維持相同幾何預算，並驗證 DX12／Vulkan 原生固定鏡位。已修改構圖、風化石材、青銅、晶體、植被及日落光照；最終概念圖一致性與穩定硬體幀時間仍未驗收。證據：`Apps/Showcase/evidence/Windows-V1-Concept-Revision-Local-2026-10-10/`。
+
+Windows 目標主機續作：Shipping 最佳化、有限值驗證及相鄰材質綁定共用已改善量測吞吐，但保留的 Standard 異常結果 p99 仍達 DX12 149.83 ms／Vulkan 419.94 ms；穩定 60 FPS 尚未驗收。整合基線 `ab7b4f32` 已通過全部 18 項 hosted CI 工作及本機 Windows 122/122；全面概念圖美術修改與同版原生量測／最終審核仍待完成。證據：`Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/`。VIS 維持 5/7。
+
 ✅ 有限值驗證候選通過完整 Windows Development configure／build 與 113/113 CTest（211.00 秒），包含 binary32 分類／拒絕案例與原生 DX12 PBR。最終 Linux CI、實體美術及效能驗收仍未完成。
 
 Windows GTX 960 效能調查（2026-10-09）：相同場景的 DX12／Vulkan、三品質各三次矩陣，保留明確 Shipping 編譯最佳化前後的資料。原生 MSVC 建置與共 36 次收集皆成功，但最佳化候選仍未達暫定 60 FPS 目標。操作者要求整體美術接近已核准概念圖；最終美術、效能預算及同版交付仍未驗收（VIS 5/7）。 [Performance evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md).

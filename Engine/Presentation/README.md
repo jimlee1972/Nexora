@@ -750,3 +750,20 @@ errors and invalid intervals remain unavailable. Neither adapter adds a completi
 These extend rebuild-required C++ descriptors/diagnostics; the stable C/Gameplay ABI and module
 relationships are unchanged. Linux virtual-display/query failure/lifetime tests provide cloud evidence;
 Windows/macOS hosted compilation and physical GPU timing calibration are separate gates.
+
+## Adjacent native material bindings
+
+DX12 and Vulkan retain the last emitted material slot only within one scene phase or shadow
+pass. Adjacent batches with the same slot reuse pipeline, blend, constant and texture bindings;
+every indexed draw remains in its original order with its original ranges. Each scene phase,
+mirror pass, shadow pass and DrawScene call starts with an empty cache. The cache borrows no
+caller storage and cannot survive a command list or descriptor generation. Validation and
+native capability rejection still complete before recording. The shared native image fixture
+splits a receiver into adjacent same-material draws followed by different materials while
+retaining its existing pixel checks.
+
+DX12／Vulkan 僅在單一場景 phase 或陰影 pass 記住上一筆已提交的材質槽，相鄰同材質 batch
+共用 pipeline、blend、常數及貼圖綁定；每筆 indexed draw 的順序與範圍皆保留。每個 phase、
+鏡像、陰影 pass 及 DrawScene 呼叫都清空快取；不保留呼叫者資料或跨 command list／貼圖世代
+共用狀態。原有描述驗證與原生能力拒絕仍先於命令錄製。原生影像 fixture 將接收面拆成相鄰
+同材質繪製後再切換材質，維持既有像素驗收。

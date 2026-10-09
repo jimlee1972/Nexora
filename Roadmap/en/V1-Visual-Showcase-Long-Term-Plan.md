@@ -1,5 +1,9 @@
 # Nexora V1 Visual Showcase Demo Long-Term Plan
 
+✅ The comprehensive Windows courtyard candidate passes local Development configure/build/CTest 122/122 (249.24 s), with the same geometry budgets and verified native DX12/Vulkan fixed views. Composition, weathering, bronze, crystal, foliage and sunset balance are revised; final concept parity and stable hardware frame-time acceptance remain open. Evidence: `Apps/Showcase/evidence/Windows-V1-Concept-Revision-Local-2026-10-10/`.
+
+Windows target continuation: native Shipping optimization, finite validation and adjacent material binding reuse improve measured throughput, but retained Standard outliers reach 149.83 ms DX12 and 419.94 ms Vulkan p99. Stable 60 FPS is not accepted. The integrated `ab7b4f32` base passes all 18 hosted CI jobs and local Windows 122/122; the comprehensive concept-art revision and its final native measurements/review remain pending. Evidence: `Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/`. VIS stays 5/7.
+
 Windows target-host continuation (2026-10-09): GTX 960 native DX12/Vulkan quality matrices now expose insufficient and variable frame rates. Shipping compiler optimization and exact finite-value validation are under regression validation; the operator requests all courtyard art aspects approach the approved concept. Final visual/performance acceptance remains open. [Measured baseline](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md).
 
 > **Progress: Linux, Windows CI and local developer-GPU visual slices verified; complete V1 acceptance remains open.**

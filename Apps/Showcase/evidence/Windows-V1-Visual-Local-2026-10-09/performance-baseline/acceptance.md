@@ -94,8 +94,39 @@ Selected fixed art, occlusion comparison and completion PNGs are retained in
 `vulkan-observed-native/`, with reports. The complete 74-image local run remains at
 `build/v1-windows-local-2026-10-09/finite-validation-vulkan-observed/`.
 This gate validates real native display and interactions; it does not accept the rejected art
-or the insufficient/variable frame-time budget. The matching DX12 physical run is in progress.
+or the insufficient/variable frame-time budget. The matching DX12 physical run also passes: 51 checksums, 74 screenshots,
+observed tour 210.007 seconds at step 6, enabled and paused. Its selected evidence is
+retained in `dx12-observed-native/`. Both reports use the same frozen finite-validation package.
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File <package>/accept-v1.ps1 -EvidenceDirectory <evidence> -Backend vulkan -PhysicalDisplay -CompleteGuidedTour -ExpectedBuildId e3eb383b4df7
 ```
+
+## Adjacent material command reuse
+
+The next frozen package uses base `ab7b4f32c14e261e01045cc2acf1ae3bb45083fd` plus the two
+native adapter hashes in `material-bindings-provenance.json`. Scene art is unchanged in this
+matrix. All 18 raw reports pass the existing validator: three processes per Basic/Standard/High
+on each backend, 360 actual frames, 60 discarded warmup frames and 300 samples. No draw is
+removed or reordered. The complete Windows gate passes 122/122 in 227.56 seconds; the subsequently
+added image-equivalent split-receiver fixture is included in the following art gate, not that
+already-completed run.
+
+| Quality | DX12 FPS, all three runs | Vulkan FPS, all three runs |
+| --- | --- | --- |
+| Basic | 105.19 / 96.17 / 85.87 | 67.27 / 65.50 / 65.28 |
+| Standard | 36.04 / 62.58 / 62.46 | 39.52 / 35.29 / 15.67 |
+| High | 60.31 / 58.96 / 59.98 | 39.77 / 39.88 / 38.69 |
+
+The slow DX12 Standard run has p99 149.83 ms; the slow Vulkan Standard run has p99 419.94 ms.
+These runs are retained. Two averages above 60 FPS do not establish stable 16.7 ms frame times.
+CPU cost, GPU completion timing and intermittent stalls still require investigation. GPU timestamps
+remain unavailable in these default Showcase measurements. Neither art nor performance is accepted.
+
+The integrated base commit's GitHub Actions run
+[37952110749](https://github.com/jimlee1972/Nexora/actions/runs/37952110749) completes all 18 jobs
+successfully, including exact Linux Development configure/build/CTest, Shipping build-contract,
+Windows graphical Editor and DX12 package, Windows Vulkan software-runner package and Xvfb Editor.
+This is hosted CI evidence for that immutable base, not a Linux Codex Cloud run or evidence for the
+uncommitted art revision. Local Windows at that base passes 122/122 in 219.02 seconds and the dual
+native Shipping package gate. The earlier failing CI run remains historical evidence.

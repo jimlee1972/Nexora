@@ -469,6 +469,13 @@ int main(int argc, char **argv) {
                 "PBR extent failed");
       }
       static_cast<void>(windows->PumpEvents());
+      // Split the opaque receiver without changing its coverage. This exercises adjacent
+      // equal material bindings followed by two different materials on both native backends.
+      std::array<SceneMeshBatch, 4> splitReceiver{};
+      if (frame == 26) {
+        splitReceiver = {{{0, 3, 0, 1, 0}, {3, 3, 0, 1, 0}, {6, 3, 0, 1, 2}, {9, 3, 0, 1, 1}}};
+        draw.batches = splitReceiver;
+      }
       Require(surface->Acquire() == SurfaceStatus::Ready, "PBR acquire failed");
       if (frame == 0) {
         materials[0].normalTextureId = 987;
