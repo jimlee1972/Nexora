@@ -14,6 +14,33 @@ In Shipping, public `Mount` rejects arbitrary host roots. Engine bootstrap alone
 
 Typical success paths are `RandomStream replay; replay.Restore(stream.Save())`, checking the optional returned by `Configuration::Get`, waiting for a submitted `JobHandle`, and retaining an `EventBus` subscription until publishers have joined. Explicit failure paths include `RandomStream::Restore` returning `false` for a different algorithm version, `Configuration::Set` returning `false` for an empty key, a job reaching `Failed` and rethrowing its captured callback exception from `Wait`, and `Unsubscribe` returning `false` for a stale handle. Jobs own their callback captures through terminal status, run on worker threads, capture exceptions, and observe cancellation before execution. `AsyncLogService` takes ownership of submitted strings; `Flush` waits for already accepted records and `Stop` drains them.
 
+## Bounded asynchronous log observation
+
+`AsyncLogService` owns compact, NUL-free valid UTF-8 category/message strings. Category and message
+limits are 256 bytes and 16 KiB, inclusive; empty strings remain valid. Pending and crash-ring
+capacities clamp to 4,096 records each. The ring must be nonzero; pending zero disables admission.
+Invalid levels/text, full or disabled pending ingress, stopped traffic and exhausted sequence space
+reject without evicting accepted pending records, and increment a saturating rejection count.
+Embeddings use `ReportRejected` for raw wire data rejected before allocating an owning record.
+`Write` accepts owning strings, so callers budget the allocation before its admission. Accepted
+strings release excessive producer reserve. The maximum pending/ring text payload is bounded by
+both capacities; caller-owned snapshot copies have their own lifetime and memory cost.
+
+Accepted records receive monotonic sequence IDs starting at one. UINT64_MAX is accepted once and
+IDs are never reused, including across Start/Stop. `SnapshotSince(cursor)` copies consumed retained
+records newer than the cursor, plus consumed/rejected watermarks, without flushing or waiting for
+new producer traffic. A gap between an observer cursor and the next retained accepted sequence
+identifies unread ring eviction; eviction of already-observed records is not additional observer
+loss. `CrashRingSnapshot` retains its owning compatibility view. The record/header additions require
+C++ consumers to rebuild; stable C/Gameplay ABI layouts stay unchanged.
+
+`Flush` waits for the accepted watermark present at its call, rather than for ongoing producer
+traffic to stop. Stop drains accepted records, joins the worker, publishes stopped state under the
+same mutex as Write and releases pending deque storage. The bounded crash ring and sequence/rejection
+watermarks survive restart. Owner-thread lifecycle calls are serialized; Write, ReportRejected,
+Flush and snapshots support concurrent producers/readers. All callers finish before destruction.
+No UI callbacks, Runtime/Editor references or higher-module dependencies are stored in Core.
+
 ## Lifecycle
 
 `Engine::Initialize` starts logging, workers, and the `content` and `temp` VFS mounts. `Engine::Shutdown` drains jobs before destroying VFS state, then drains logging. Both shutdown and destruction are idempotent. `EngineServices` is a non-owning view valid only between initialization and shutdown.

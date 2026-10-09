@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+#include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
 #include "MaterialScenePreview.h"
 #include "Nexora/Editor/EditorProduction.h"
@@ -776,7 +777,10 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   std::unordered_map<std::filesystem::path, SceneViews> retained_scene_views;
   nexora::runtime::PlaySession play(world);
+  nexora::core::AsyncLogService core_logs{1024};
+  core_logs.Start();
   nexora::runtime::RuntimeConsole console{1024};
+  nexora::editor::preview::CoreConsoleIngress console_ingress{core_logs, console, "NexoraEditor"};
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
@@ -791,20 +795,30 @@ int RunGraphical(std::optional<ProjectState> project,
   std::optional<std::size_t> native_scene_drag_scale_axis;
   const auto log = [&](nexora::runtime::RuntimeLogSeverity severity, std::string category,
                        std::string message) {
-    const auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                               std::chrono::system_clock::now().time_since_epoch())
-                               .count();
-    static_cast<void>(
-        console.Push({0, severity, std::move(category), static_cast<std::uint64_t>(timestamp),
-                      "NexoraEditor", std::move(message)}));
+    auto level = nexora::core::LogLevel::Info;
+    switch (severity) {
+    case nexora::runtime::RuntimeLogSeverity::Trace:
+      level = nexora::core::LogLevel::Trace;
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Info:
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Warning:
+      level = nexora::core::LogLevel::Warning;
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Error:
+      level = nexora::core::LogLevel::Error;
+      break;
+    case nexora::runtime::RuntimeLogSeverity::Fatal:
+      level = nexora::core::LogLevel::Fatal;
+      break;
+    }
+    core_logs.Write(level, std::move(category), std::move(message));
   };
   nexora::editor::preview::PlayGameplayModule gameplay(
       [&](std::uint32_t level, std::string message) {
-        const auto severity = level >= 3   ? nexora::runtime::RuntimeLogSeverity::Error
-                              : level == 2 ? nexora::runtime::RuntimeLogSeverity::Warning
-                                           : nexora::runtime::RuntimeLogSeverity::Info;
-        log(severity, "Gameplay", std::move(message));
-      });
+        core_logs.Write(static_cast<nexora::core::LogLevel>(level), "Gameplay", std::move(message));
+      },
+      [&] { core_logs.ReportRejected(); });
   log(nexora::runtime::RuntimeLogSeverity::Info, "Editor", "Graphical session started.");
   const auto view_base = [](const std::filesystem::path &relative) {
     return relative == ".nexora/scenes/Main.scene"
@@ -1049,6 +1063,7 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
+    console_ingress.Poll();
     const auto begin_frame_status = created.surface->BeginFrame();
     if (created.surface->CloseRequested()) {
       if (project && scene.Dirty() && created.surface->CancelCloseRequest()) {
@@ -1816,6 +1831,15 @@ int RunGraphical(std::optional<ProjectState> project,
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
+  core_logs.Stop();
+  console_ingress.Poll();
+  const auto console_records = console.Snapshot();
+  std::cerr << "console producer evidence: source=core_async_log forwarded="
+            << console_ingress.ForwardedCount() << " retained=" << console_records.size()
+            << " dropped=" << console.DroppedCount() << " gameplay_retained="
+            << std::ranges::count(console_records, std::string("Gameplay"),
+                                  &nexora::runtime::RuntimeLogRecord::category)
+            << '\n';
   const auto diagnostics = created.surface->Diagnostics();
   const auto gpu_timing = profile.GpuTiming();
   std::cout << "GPU timing evidence: scope=native_command_buffer_interval unit=milliseconds source="

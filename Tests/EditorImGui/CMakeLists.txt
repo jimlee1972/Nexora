@@ -6,7 +6,7 @@ nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
-target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraConsoleDisplayTests)
 add_test(NAME editor.console_display COMMAND NexoraConsoleDisplayTests)
@@ -94,6 +94,12 @@ target_include_directories(NexoraPlayGameplayModuleTests PRIVATE "${PROJECT_SOUR
 target_link_libraries(NexoraPlayGameplayModuleTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayGameplayModuleTests)
 add_test(NAME editor.play_gameplay_module COMMAND NexoraPlayGameplayModuleTests)
+
+add_executable(NexoraCoreConsoleIngressTests CoreConsoleIngressTests.cpp)
+target_include_directories(NexoraCoreConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraCoreConsoleIngressTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraCoreConsoleIngressTests)
+add_test(NAME editor.core_console_ingress COMMAND NexoraCoreConsoleIngressTests)
 
 add_library(NexoraPlayGameplayFixture MODULE PlayGameplayFixture.cpp)
 target_link_libraries(NexoraPlayGameplayFixture PRIVATE Nexora::Foundation)

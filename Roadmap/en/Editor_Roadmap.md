@@ -659,6 +659,13 @@ creates property widgets; unknown components retain raw data instead of being si
     Resume shows newer retained logs, and filters still work while paused. Window pointer/button tests
     at 1x/2x DPI cover background-producer eviction, source/null rebinding and 32 control cycles.
     Broader runtime/build log routing and full ED-M3 target acceptance remain open.
+  - ✅ The graphical Console now receives owning sequenced observations from a real bounded Core
+    async producer, including Editor and V3 Play logs. Pending/ring/text budgets, UTF-8/raw-wire
+    rejection, monotonic restart-safe cursors and exactly-once upstream loss accounting keep
+    worker traffic independent of UI Pause/filter/Clear. Four-producer, teardown, byte/sequence
+    boundary and actual 1x/2x control tests cover the path; native Game fixtures verify Core and
+    gameplay retained records at shutdown. Full Runtime/build producers and debugger/IDE remain
+    open. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md).
   - ✅ A docked Console now displays bounded Runtime records with text/severity filtering, source,
     timestamps, and dropped-record count; the Editor feeds startup and scene open/save diagnostics.
   - ✅ A docked Game panel now controls an isolated PlaySession through Play/Stop, Pause/Resume,

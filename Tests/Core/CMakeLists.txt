@@ -4,6 +4,12 @@ target_link_libraries(NexoraCoreTests PRIVATE Nexora::Core)
 nexora_apply_defaults(NexoraCoreTests)
 add_test(NAME core.runtime COMMAND NexoraCoreTests)
 
+add_executable(NexoraAsyncLogStreamTests AsyncLogStreamTests.cpp)
+target_include_directories(NexoraAsyncLogStreamTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/Core/src")
+target_link_libraries(NexoraAsyncLogStreamTests PRIVATE Nexora::Core)
+nexora_apply_defaults(NexoraAsyncLogStreamTests)
+add_test(NAME core.async_log_stream COMMAND NexoraAsyncLogStreamTests)
+
 add_executable(NexoraProcessMemoryTests ProcessMemoryTests.cpp)
 target_include_directories(NexoraProcessMemoryTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/Core/src")
 target_link_libraries(NexoraProcessMemoryTests PRIVATE Nexora::Core)

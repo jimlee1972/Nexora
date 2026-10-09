@@ -170,6 +170,14 @@ def main():
         captured += stderr
         if editor.returncode != 0 or b'pie_steps=1' not in captured:
             raise RuntimeError(f'Game View shutdown/step failed: {captured!r}')
+        producer = re.search(rb'console producer evidence: source=core_async_log '
+                             rb'forwarded=(\d+) retained=(\d+) dropped=(\d+) '
+                             rb'gameplay_retained=(\d+)', captured)
+        if not producer:
+            raise RuntimeError('Native Game shutdown did not report the real Core Console producer')
+        forwarded, retained, dropped, gameplay = map(int, producer.groups())
+        if forwarded < 1 or retained < 1 or dropped != 0 or (args.module and gameplay < 1):
+            raise RuntimeError('Native Core/gameplay producer did not reach bounded Console records')
         editor = None
         if args.materials:
             retained_source = material_path.read_bytes()
