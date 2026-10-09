@@ -1,5 +1,8 @@
 #include "Nexora/Foundation/GameplayABI.h"
 #include <cstdint>
+#if defined(NEXORA_FIXTURE_SCENES)
+#include <cstdio>
+#endif
 
 namespace {
 constexpr std::uint64_t TransformType() {
@@ -31,6 +34,24 @@ int32_t Create(void **state, const NexoraGameplayHostV3 *host) {
 }
 int32_t Start(void *opaque) {
   auto &host = static_cast<State *>(opaque)->host;
+#if defined(NEXORA_FIXTURE_SCENES)
+  if (!(host.capabilities & NEXORA_GAMEPLAY_CAPABILITY_SCENE_API) || !host.load_scene ||
+      !host.activate_scene || !host.spawn_entity || !host.despawn_entity)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  std::uint64_t scene{}, entity{};
+  NexoraEntitySpawnDescriptor descriptor{};
+  descriptor.struct_size = sizeof(descriptor);
+  descriptor.components = NEXORA_SPAWN_LIGHT;
+  descriptor.position = {1, 2, 3};
+  descriptor.light_intensity = 2.5F;
+  constexpr char name[] = "Dynamic Play scene";
+  if (host.load_scene(host.context, name, sizeof(name) - 1, 0, &scene) != NEXORA_GAMEPLAY_OK ||
+      host.activate_scene(host.context, scene) != NEXORA_GAMEPLAY_OK ||
+      host.spawn_entity(host.context, scene, &descriptor, &entity) != NEXORA_GAMEPLAY_OK ||
+      host.despawn_entity(host.context, entity) != NEXORA_GAMEPLAY_OK)
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+  std::fprintf(stderr, "play scene fixture evidence: loaded=1 activated=1 spawned=1 despawned=1\n");
+#endif
   const char message[] = "Editor gameplay fixture started";
   host.log(host.context, 1, message, sizeof(message) - 1);
   return NEXORA_GAMEPLAY_OK;

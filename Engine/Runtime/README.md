@@ -41,6 +41,18 @@ fallback, unreachable navigation, animation looping, audio voice limits, media b
 seek invalidation. Platform SDK adapters and production authoring tools remain future work and
 must preserve these interfaces rather than bypassing their lifecycle checks.
 
+## World object identity exhaustion
+
+Scene/entity allocation uses monotonically increasing IDs 1 through `UINT64_MAX - 1`;
+`UINT64_MAX` is the exhausted allocation watermark. LoadScene/CreateEntity throw overflow_error
+before mutation when exhausted, and increment the watermark only after successful vector insertion.
+LoadSceneSnapshot rejects exhausted admission and reserved-max entity IDs without publication.
+Near-limit valid snapshots, Save and replacement of existing objects remain supported; CloneForPlay
+preserves the watermark. Existing mesh/shader resource IDs still accept full uint64 values. Calls
+remain synchronous on the World owner thread, and normal successful insertion still expires vector
+borrows. `runtime.world_identity_exhaustion` covers the last allocation, repeated failed creation,
+import/replacement and owning clone behavior without changing serialized schemas or stable C ABI.
+
 ## V1-M12 shipping, packaging, and hardening
 
 `Shipping.h` is the platform-neutral delivery contract. `Packager` creates an owning,

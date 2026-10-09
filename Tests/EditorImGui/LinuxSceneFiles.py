@@ -172,6 +172,11 @@ def main():
         for relative, destination, baseline in ((".nexora/scenes/Main.scene", main_scene, original),
                                                 ("Content/Copy.scene", copy, copied)):
             path_dialog("ctrl+o", relative)
+            # Open is deferred until after widgets. Observe the production startup association
+            # before emitting a new authoring command, retaining the live edit/save/Undo proof.
+            wait_until(lambda: metadata.is_file() and
+                       metadata.read_bytes().endswith(f"scene={relative}\n".encode("utf-8")),
+                       f"Open did not acknowledge its adopted scene path: {relative}", process)
             send("key", "--clearmodifiers", "ctrl+shift+n")
             send("key", "--clearmodifiers", "ctrl+s")
             wait_until(lambda: destination.read_bytes().count(b"node ") ==
