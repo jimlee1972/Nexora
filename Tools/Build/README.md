@@ -31,6 +31,14 @@ required workflow checks left pending by an omitted run.
 
 ## Local validation
 
+For the exact cloud Editor branches listed in `editor-ci-cleanup.cjs`, change detection cancels
+only queued/running `build.yml` runs from superseded heads in this repository. It rereads the
+branch before each cancellation and stops when the head changes. Current-head push and PR runs,
+main, foreign repositories and unlisted branches remain eligible for their complete CI gates.
+Cleanup errors are warnings; they never override build acceptance. The existing actions-write
+permission and legacy ED-M0 allowlist remain unchanged. Run the eight guard cases locally with
+`node Tools/Build/tests/editor-ci-cleanup.test.cjs`.
+
 ```bash
 python3 -m pip install --requirement Tools/Build/documentation-requirements.txt
 python3 Tools/Build/TestDocumentationCI.py
@@ -45,6 +53,12 @@ their strict cleanup. Production repositories, user/global Git settings, routing
 cleanup error handling are unchanged; cleanup failures still fail the tests.
 
 ## 繁體中文
+
+`editor-ci-cleanup.cjs` 只對明列的本次雲端 Editor branch 清理本 repo 舊 head 的 queued／running
+`build.yml` run。每次取消前重新讀取 branch；head 推進即停止。當前 head 的 push／PR run、main、
+其他 repo 與未列 branch 均保留完整 CI。清理失敗僅回報 warning，不取代驗收；既有 actions-write
+permission 與 ED-M0 清單維持原樣。可執行 `node Tools/Build/tests/editor-ci-cleanup.test.cjs`
+驗證八個 guard case。
 
 `Build` 對 push 與 PR 持續啟動。先使用完整 Git diff 判斷範圍，驗證變動的 Markdown，再選擇
 純文件或完整建置／測試／封裝。純 `.md` 可走文件路線，但 `.github/`、`Tests/`、`Content/`、
