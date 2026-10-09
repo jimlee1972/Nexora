@@ -214,6 +214,10 @@ into renderer or platform internals.
   clipboard. Like Paste, the entire initialized forest is one Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
   drawn at their actual world position without exposing mutable Runtime entity storage.
+  `WorldPoses` owns a bulk current-scene observation, filters it to tracked document nodes in
+  World storage order, and retains the effect of untracked ancestors. It uses no persistent cache
+  or retained Runtime pointers, authors nothing and consumes no history. Owner-thread calls remain
+  serialized; invalid Runtime hierarchy/affine composition rejects the complete observation.
   `WorldMatrix` returns an owning exact affine matrix for a live document node, including shear;
   missing or foreign nodes return no matrix.
   `TranslateSelectionXZ` and `TranslateSelection` validate generation-keyed targets, filter

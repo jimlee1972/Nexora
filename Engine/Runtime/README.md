@@ -43,6 +43,17 @@ must preserve these interfaces rather than bypassing their lifecycle checks.
 
 ## World object identity exhaustion
 
+`World::SceneWorldPoses` resolves a whole scene's hierarchy into an owning, storage-order vector
+of IDs, composed TRS and exact affine matrices. An indexed iterative parent walk visits each
+entity once with expected O(n) work/storage, including reversed storage and deep chains. It
+retains no World pointers and performs no writes, cache publication, callbacks or IO. Owner-thread
+calls must be serialized with World mutation. Missing/unloading/unloaded scenes, zero/duplicate IDs,
+missing parents, cycles, invalid transforms and non-finite affine composition reject the complete
+snapshot. Empty live scenes succeed. Returned observations remain independent of later mutation.
+Rotation/component-wise scale retain the scalar WorldTransform approximation under shear; origins
+and matrices remain affine-exact. This additive public C++ API requires consumer rebuilds and
+does not change scene schemas or the stable C/Zig ABI.
+
 Scene/entity allocation uses monotonically increasing IDs 1 through `UINT64_MAX - 1`;
 `UINT64_MAX` is the exhausted allocation watermark. LoadScene/CreateEntity throw overflow_error
 before mutation when exhausted, and increment the watermark only after successful vector insertion.

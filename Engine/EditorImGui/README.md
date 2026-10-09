@@ -60,6 +60,12 @@ production retains ImGui's native platform defaults.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
   authoring overview; native OBJ geometry submission is application-owned and full Scene View acceptance remains open.
+  Overview markers resolve one owning `SceneDocument::WorldPoses` snapshot per draw, rather than
+  performing a complete parent-chain lookup per node. Frame all/multiple-selection framing uses
+  the same bulk observation. Prospective drag ancestry is memoized once across tracked nodes;
+  untracked ancestors still affect committed poses, but do not become selectable document nodes.
+  Corrupt/non-finite scene poses publish no markers. No pose snapshot or Runtime pointer persists
+  across frames; draw geometry and dirty-state serialization still scale with authored input.
   `SceneCanvasViewport()` exposes its visible, clipped canvas rectangle in framebuffer pixels
   after each frame's dock layout and DPI scale. It is empty when the panel is not drawn and is
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for

@@ -1023,6 +1023,17 @@ SceneDocument::WorldMatrix(runtime::Id entity) const noexcept {
     return std::nullopt;
   return world_.WorldMatrix(entity);
 }
+std::optional<std::vector<runtime::SceneWorldPose>> SceneDocument::WorldPoses() const {
+  auto poses = world_.SceneWorldPoses(scene_);
+  if (!poses)
+    return std::nullopt;
+  std::unordered_set<runtime::Id> tracked;
+  tracked.reserve(nodes_.size());
+  for (const auto &node : nodes_)
+    tracked.insert(node.id);
+  std::erase_if(*poses, [&](const auto &pose) { return !tracked.contains(pose.id); });
+  return poses;
+}
 bool SceneDocument::CopySelection() {
   const auto *scene = world_.FindScene(scene_);
   if (!scene || selection_.empty())

@@ -530,6 +530,57 @@ std::optional<TransformMatrix> World::WorldMatrix(Id entity) const {
   return result;
 }
 
+std::optional<std::vector<SceneWorldPose>> World::SceneWorldPoses(Id scene_id) const {
+  const auto *scene = FindScene(scene_id);
+  if (!scene || scene->state == SceneState::Unloading || scene->state == SceneState::Unloaded)
+    return std::nullopt;
+  const auto &entities = scene->entities;
+  std::unordered_map<Id, std::size_t> indexed;
+  indexed.reserve(entities.size());
+  for (std::size_t i = 0; i < entities.size(); ++i)
+    if (!entities[i].id || !indexed.emplace(entities[i].id, i).second ||
+        !IsValidTransform(entities[i].transform))
+      return std::nullopt;
+  enum class Mark : unsigned char { Unseen, Walking, Ready };
+  std::vector<Mark> marks(entities.size(), Mark::Unseen);
+  std::vector<SceneWorldPose> result(entities.size());
+  std::vector<std::size_t> path;
+  path.reserve(entities.size());
+  for (std::size_t first = 0; first < entities.size(); ++first) {
+    path.clear();
+    auto current = first;
+    while (marks[current] != Mark::Ready) {
+      if (marks[current] == Mark::Walking)
+        return std::nullopt;
+      marks[current] = Mark::Walking;
+      path.push_back(current);
+      if (entities[current].parent == 0)
+        break;
+      const auto parent = indexed.find(entities[current].parent);
+      if (parent == indexed.end())
+        return std::nullopt;
+      current = parent->second;
+    }
+    for (auto at = path.rbegin(); at != path.rend(); ++at) {
+      const auto &entity = entities[*at];
+      auto pose = entity.transform;
+      auto matrix = ToMatrix(pose);
+      if (entity.parent) {
+        const auto &parent = result[indexed.at(entity.parent)];
+        pose = ComposeTransforms(parent.transform, pose);
+        matrix = MultiplyMatrices(parent.matrix, matrix);
+      }
+      pose = WithPosition(pose, matrix[12], matrix[13], matrix[14]);
+      if (!IsValidTransform(pose) ||
+          !std::ranges::all_of(matrix, [](double value) { return std::isfinite(value); }))
+        return std::nullopt;
+      result[*at] = {entity.id, pose, matrix};
+      marks[*at] = Mark::Ready;
+    }
+  }
+  return result;
+}
+
 std::size_t World::ActiveSceneCount() const {
   return static_cast<std::size_t>(
       std::count_if(scenes_.begin(), scenes_.end(),

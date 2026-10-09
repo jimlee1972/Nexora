@@ -12,6 +12,13 @@ nexora_apply_defaults(NexoraDeepHierarchyTests)
 add_test(NAME editor.deep_hierarchy COMMAND NexoraDeepHierarchyTests)
 set_tests_properties(editor.deep_hierarchy PROPERTIES TIMEOUT 180)
 
+add_executable(NexoraOverviewPoseTests OverviewPoseTests.cpp)
+target_include_directories(NexoraOverviewPoseTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraOverviewPoseTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraOverviewPoseTests)
+add_test(NAME editor.overview_pose_snapshot COMMAND NexoraOverviewPoseTests)
+set_tests_properties(editor.overview_pose_snapshot PROPERTIES TIMEOUT 180)
+
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
 target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)
