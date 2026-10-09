@@ -217,4 +217,26 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ProjectPlayerCli.py"
         "$<TARGET_FILE:NexoraProjectPackageTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
   endif()
+  if(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
+    add_executable(NexoraNativeProjectPlayerTests NativeProjectPlayerTests.cpp)
+    target_include_directories(NexoraNativeProjectPlayerTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/ProjectPlayer")
+    target_link_libraries(NexoraNativeProjectPlayerTests PRIVATE Nexora::Runtime Nexora::Presentation)
+    if(MINGW)
+      target_link_options(NexoraNativeProjectPlayerTests PRIVATE -municode)
+    endif()
+    nexora_apply_defaults(NexoraNativeProjectPlayerTests)
+    add_test(NAME runtime.native_static_view COMMAND NexoraNativeProjectPlayerTests)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+      find_program(NEXORA_PLAYER_XVFB Xvfb)
+      find_program(NEXORA_PLAYER_XDOTOOL xdotool)
+      if(NEXORA_PLAYER_XVFB AND NEXORA_PLAYER_XDOTOOL)
+        add_test(NAME runtime.linux_native_static_player
+          COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/NativeProjectPlayerLinux.py"
+            --fixture "$<TARGET_FILE:NexoraNativeProjectPlayerTests>"
+            --player "$<TARGET_FILE:NexoraProjectPlayer>"
+            --xvfb "${NEXORA_PLAYER_XVFB}" --xdotool "${NEXORA_PLAYER_XDOTOOL}")
+        set_tests_properties(runtime.linux_native_static_player PROPERTIES TIMEOUT 60 LABELS "vulkan;virtual-display")
+      endif()
+    endif()
+  endif()
 endif()

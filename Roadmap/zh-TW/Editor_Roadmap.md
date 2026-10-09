@@ -744,6 +744,15 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ 可選 native ProjectPlayer 現以有界 public NativePBR geometry／material／affine admission
+  繪出真實 owning StaticView package asset，不依賴 Editor、SDK、source content 或 Showcase。
+  明確選取 authored camera／light，依 resize 重算 projection，並執行 native close／drain；
+  unsupported／budget failure 不截斷 scene 或回報假成功。真實 CPU fixture 驗證精確 instance／
+  palette／shared-geometry 上限與 mirror／shear ownership；Linux Xvfb 驗證紅／綠材質像素、
+  resize、close 及正好四次成功 present。保留 verification-only／feature-off build。
+  Gameplay、build／deploy／publication UI、實體 display 及其他平台 native pixel 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md)。
+
 - ✅ Build export 前置現提供有界 owning Runtime scene capture。共用 schema-3 writer
   在 append 前限制輸出；Editor 複製完整 Runtime 實體、tracked NodeKey 與完整未知 metadata，
   不做 IO 或改變 history。測試涵蓋 entity／output 與 opaque name／payload budgets、exact

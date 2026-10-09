@@ -52,7 +52,10 @@ valid after replacing or destroying the loaded package. `WorldView`, `SceneData`
 return read-only borrows that expire when the owning `LoadedStaticProject` is moved or destroyed;
 copy a render item to retain its matrix and shared asset ownership. These are renderer-ready data, not GPU
 handles, uploads or a native pixel acceptance result. Renderer adapters use the public cooked
-schemas; native palette/upload limits must still be checked by the later player backend.
+schemas; native palette/upload limits remain the adapter's responsibility. The optional standalone
+[native ProjectPlayer](../../Apps/ProjectPlayer/README.md) applies bounded NativePBR admission and
+draws these assets without Editor/source content. The loader remains pure data resolution and
+does not execute gameplay, admit GPU resources or certify native pixels.
 
 The full saved `MaterialComponent::shader` integer is preserved. A bound scalar PBR material
 explicitly supplies StaticView material semantics without changing that legacy ID. Without a

@@ -137,7 +137,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }} -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }} -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - name: Require the graphical Editor contract
         shell: bash
@@ -197,7 +197,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers libx11-dev xvfb xdotool glslang-tools
-      - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
+      - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
       - run: cmake --build --preset linux-development
       - name: Require the display acceptance to be registered
         # The test is only registered when Xvfb and xdotool are found; fail loudly instead of
@@ -206,6 +206,10 @@ jobs:
           ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
         run: ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-tests.log
+      - name: Require and verify standalone native ProjectPlayer
+        run: |
+          ctest --preset linux-development -N -R '^runtime\.(native_static_view|linux_native_static_player)$' | grep -q 'Total Tests: 2'
+          ctest --preset linux-development -R '^runtime\.(native_static_view|linux_native_static_player|static_project_player_cli)$' -V --output-log build/linux-development/native-player-tests.log
       - name: Editor core and synchronization validation (Xvfb)
         env:
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
@@ -235,6 +239,7 @@ jobs:
             build/linux-development/editor-tests.log
             build/linux-development/editor-validation.log
             build/linux-development/native-validation.log
+            build/linux-development/native-player-tests.log
             build/linux-development/Testing/Temporary/LastTest*.log
           if-no-files-found: warn
 

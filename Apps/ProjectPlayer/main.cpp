@@ -1,11 +1,18 @@
 #include "Nexora/Runtime/ProjectPackage.h"
+#if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+#include "NativePlayer.h"
+#endif
 
 #include <algorithm>
+#include <exception>
 #include <iostream>
+#include <type_traits>
 
 namespace {
 int Usage() {
-  std::cerr << "Usage: NexoraProjectPlayer --verify-package PACKAGE\n";
+  std::cerr << "Usage: NexoraProjectPlayer --verify-package PACKAGE\n"
+               "       NexoraProjectPlayer --run-package PACKAGE [--frames=N] "
+               "[--backend=automatic|vulkan|dx12|metal]\n";
   return 2;
 }
 
@@ -58,19 +65,86 @@ int Run(const std::filesystem::path &path) {
             << loaded->InactiveComponentCount() - reported_inactive << "}\n";
   return 0;
 }
+
+template <typename Char>
+bool EqualAscii(std::basic_string_view<Char> value, std::string_view ascii) {
+  return value.size() == ascii.size() &&
+         std::equal(value.begin(), value.end(), ascii.begin(),
+                    [](Char left, char right) { return left == static_cast<Char>(right); });
+}
+template <typename Char> std::filesystem::path ArgumentPath(const Char *argument) {
+  if constexpr (std::is_same_v<Char, wchar_t>)
+    return std::filesystem::path(argument);
+  else
+    return std::filesystem::path(
+        std::u8string(argument, argument + std::char_traits<Char>::length(argument)));
+}
+template <typename Char> int Dispatch(int argc, Char **argv) try {
+  if (argc < 3)
+    return Usage();
+  const std::basic_string_view<Char> mode(argv[1]);
+  if (EqualAscii(mode, "--verify-package"))
+    return argc == 3 ? Run(ArgumentPath(argv[2])) : Usage();
+  if (!EqualAscii(mode, "--run-package"))
+    return Usage();
+#if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+  nexora::player::NativeOptions options;
+  bool has_frames{}, has_backend{};
+  for (int index = 3; index < argc; ++index) {
+    const std::basic_string_view<Char> value(argv[index]);
+    if (value.size() > 9 && EqualAscii(value.substr(0, 9), "--frames=")) {
+      if (has_frames)
+        return Usage();
+      has_frames = true;
+      std::uint32_t frames{};
+      for (const auto digit : value.substr(9)) {
+        if (digit < static_cast<Char>('0') || digit > static_cast<Char>('9'))
+          return Usage();
+        frames = frames * 10 + static_cast<std::uint32_t>(digit - static_cast<Char>('0'));
+        if (frames > 1000000)
+          return Usage();
+      }
+      if (!frames)
+        return Usage();
+      options.maximum_frames = frames;
+    } else if (value.size() > 10 && EqualAscii(value.substr(0, 10), "--backend=")) {
+      if (has_backend)
+        return Usage();
+      has_backend = true;
+      const auto name = value.substr(10);
+      using Nexora::Presentation::SurfaceBackend;
+      if (EqualAscii(name, "automatic"))
+        options.backend = SurfaceBackend::Automatic;
+      else if (EqualAscii(name, "vulkan"))
+        options.backend = SurfaceBackend::Vulkan;
+      else if (EqualAscii(name, "dx12"))
+        options.backend = SurfaceBackend::Dx12;
+      else if (EqualAscii(name, "metal"))
+        options.backend = SurfaceBackend::Metal;
+      else
+        return Usage();
+    } else
+      return Usage();
+  }
+  std::string error;
+  const auto project = nexora::runtime::ReadStaticProjectPackage(ArgumentPath(argv[2]), &error);
+  if (!project) {
+    std::cerr << "Static project loading failed: " << error << '\n';
+    return 1;
+  }
+  return nexora::player::RunNative(*project, options);
+#else
+  std::cerr << "Native ProjectPlayer rendering is unavailable in this build\n";
+  return 2;
+#endif
+} catch (const std::exception &error) {
+  std::cerr << "ProjectPlayer failed: " << error.what() << '\n';
+  return 1;
+}
 } // namespace
 
 #if defined(_WIN32)
-int wmain(int argc, wchar_t **argv) {
-  if (argc != 3 || std::wstring_view(argv[1]) != L"--verify-package")
-    return Usage();
-  return Run(std::filesystem::path(argv[2]));
-}
+int wmain(int argc, wchar_t **argv) { return Dispatch(argc, argv); }
 #else
-int main(int argc, char **argv) {
-  if (argc != 3 || std::string_view(argv[1]) != "--verify-package")
-    return Usage();
-  return Run(std::filesystem::path(
-      std::u8string(argv[2], argv[2] + std::char_traits<char>::length(argv[2]))));
-}
+int main(int argc, char **argv) { return Dispatch(argc, argv); }
 #endif

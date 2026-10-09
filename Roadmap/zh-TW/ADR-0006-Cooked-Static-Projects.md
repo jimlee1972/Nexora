@@ -34,9 +34,11 @@ codec／cooker／package validation，不查找 source 或執行 publication；�
 Scene text 與 inactive opaque bytes 保持原樣。
 
 實際 CLI 可在移除 source content 後驗證 owning package，明確回報 StaticView 與 inactive
-component。原生視窗 rendering、gameplay loading、compile、deploy 與 signing 尚未接上。
-Current-state／stale／cancel 檢查、atomic publication、native resource admission
-及 Build／deploy／log UI 是後續工作。
+component。Verification 不開啟原生視窗。可選 native StaticView 現對 public NativePBR geometry／
+material／affine instance 執行有界 admission，選取 authored camera／light，並完成真實
+draw／present／resize／drain，不依賴 Editor 或 source content。Gameplay loading、compile、deploy
+與 signing 仍未接上；current-state／stale／cancel 檢查、atomic publication 及 Build／deploy／log UI
+是後續工作。
 
 所有完整 ED milestone 保持未勾選。交付須通過完整 Linux Development、Monolithic Shipping、
 optional-feature stripping 與實際 CLI consumption；命令與結果寫入交付證據。

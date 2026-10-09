@@ -34,9 +34,11 @@ unsupported reserved bindings, missing assets and nonzero legacy shaders without
 reject. The scene text and inactive opaque bytes remain unchanged.
 
 The real CLI can verify an owning package after source content is removed. It reports StaticView
-and inactive components explicitly. It does not render a native window, load gameplay, compile,
-deploy or sign an application. Current-state/stale/cancel checks, atomic publication,
-native resource admission and Build/deploy/log UI are dependent work.
+and inactive components explicitly. Verification opens no native window. Optional native StaticView
+now admits bounded public NativePBR geometry/material/affine instances, selects authored camera/light
+and performs actual draw/present/resize/drain without Editor or source content. Gameplay, compilation,
+deploy and signing remain open. Current-state/stale/cancel checks, atomic publication and
+Build/deploy/log UI are dependent work.
 
 Keep every full ED milestone unmarked. Delivery requires full Linux Development, Monolithic Shipping,
 optional-feature stripping and actual CLI consumption; commands/results belong in delivery evidence.

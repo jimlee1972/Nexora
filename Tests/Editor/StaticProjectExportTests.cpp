@@ -294,25 +294,22 @@ void VerifyLargeAndOpaqueLimits() {
 #endif
 } // namespace
 
-int main(int argc, char **argv) {
+int RunFixture(const std::filesystem::path &destination = {}) {
   try {
 #if NEXORA_ASSET_PIPELINE_ENABLED
     const auto input = Fixture();
     const auto bytes = VerifyRoundtrip(input);
     VerifyRejection(input);
     VerifyLargeAndOpaqueLimits();
-    if (argc == 3 && std::string_view(argv[1]) == "--write-package") {
-      std::ofstream output(std::filesystem::path(argv[2]), std::ios::binary | std::ios::trunc);
+    if (!destination.empty()) {
+      std::ofstream output(destination, std::ios::binary | std::ios::trunc);
       output.write(reinterpret_cast<const char *>(bytes.data()),
                    static_cast<std::streamsize>(bytes.size()));
       output.close();
       Require(!output.fail(), "production-package fixture output failed");
-    } else {
-      Require(argc == 1, "invalid fixture arguments");
     }
 #else
-    static_cast<void>(argc);
-    static_cast<void>(argv);
+    static_cast<void>(destination);
     std::string error;
     Require(!editor::CookStaticProject({}, &error) && !error.empty(),
             "feature-stripped producer returned bytes or omitted its diagnostic");
@@ -324,3 +321,20 @@ int main(int argc, char **argv) {
     return 1;
   }
 }
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) {
+  if (argc == 1)
+    return RunFixture();
+  return argc == 3 && std::wstring_view(argv[1]) == L"--write-package"
+             ? RunFixture(std::filesystem::path(argv[2]))
+             : 2;
+}
+#else
+int main(int argc, char **argv) {
+  if (argc == 1)
+    return RunFixture();
+  return argc == 3 && std::string_view(argv[1]) == "--write-package"
+             ? RunFixture(std::filesystem::path(argv[2]))
+             : 2;
+}
+#endif
