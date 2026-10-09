@@ -701,10 +701,17 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
+  drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
+  reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle
+  與 unloading／unloaded publication 均安全拒絕。實際 16 文件、admission 拒絕時的 lifecycle
+  與獨立 reopen 測試通過。Graphical tab、persisted composition 與完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneSession-Linux-2026-10-09.md)。
+
 - ✅ Authoring SDK 現可 stage／重驗有界 immutable Save All batch，僅在全部 named scene
   file 發布並驗證後承認 baseline。中斷時復原精確原檔或保留 gated recovery data，
   不覆寫 foreign／corrupt input；實際多文件／16 文件、rollback、restart、初始 metadata 寫入失敗與最後目錄 cleanup retry
-  測試通過。圖形化 additive ownership／tabs、persisted composition 與完整 ED-M4 仍待完成。
+  測試通過。圖形化 additive tabs、persisted composition 與完整 ED-M4 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md)。
 
 - ✅ Scene save 現先準備 owning、immutable 的 byte／content／generation snapshot，不做 IO、

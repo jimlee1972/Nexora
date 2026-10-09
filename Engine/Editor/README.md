@@ -285,6 +285,8 @@ write failure leaves original scene files and dirty baselines unchanged.
   selection, opaque metadata, Euler turns and Undo/Redo. Graphical additive tabs and composition
   are separate host workflows. This rebuild-required C++ API does not change scene or gameplay C ABI.
   [Linux acceptance](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
+- Linux ownership/lifecycle acceptance is recorded in
+  [the additive session evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneSession-Linux-2026-10-09.md).
 - `AdditiveSceneSession` borrows one current project and Editor World and owns up to sixteen
   coexisting documents/file sessions; it can attach an externally owned primary document. Admission
   and active switches retain each document's selection, generation, opaque metadata and Undo/Redo.
