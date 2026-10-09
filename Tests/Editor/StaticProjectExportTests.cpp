@@ -180,7 +180,7 @@ void VerifyRejection(const editor::StaticProjectExportInput &valid) {
     if (mutation == 3)
       reference.data.push_back(0);
     if (mutation == 4)
-      std::fill(reference.data.begin() + 1, reference.data.end(), 0);
+      std::fill(reference.data.begin() + 1, reference.data.end(), std::uint8_t{0});
     if (mutation == 5)
       records.erase(records.begin() + 1); // Nonzero legacy shader cannot silently become neutral.
     reject(bad);

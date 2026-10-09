@@ -52,6 +52,14 @@ Game/materials/input/scene services, Console, recovery, profiler, file save and 
 present and pass. Earlier focused validation before the additional exact-limit cases passed
 3/3 in 32.37 seconds; the final full suite above contains the final implementation and limit cases.
 
+Initial hosted Windows Development builds rejected the fixture's generic `std::fill(..., 0)` with
+MSVC C4244 under `/WX`: template deduction retained `int` when assigning to `uint8_t`. The fixture
+now supplies `std::uint8_t{0}`, preserving the same invalid zero-UUID bytes and every assertion,
+without warning suppression or production changes. Focused producer/normal/optimized CLI tests
+passed **3/3 in 40.20 seconds**. The final complete graphical gate then passed again:
+**201/201, zero skips, 399.40 seconds**. Shipping results below remain applicable to the unchanged
+production implementation. Hosted CI for the corrected commit is assessed separately before merge.
+
 ```bash
 cmake --preset linux-shipping
 cmake --build --preset linux-shipping -j 4
