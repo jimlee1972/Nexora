@@ -177,6 +177,9 @@ def main():
             wait_until(lambda: metadata.is_file() and
                        metadata.read_bytes().endswith(f"scene={relative}\n".encode("utf-8")),
                        f"Open did not acknowledge its adopted scene path: {relative}", process)
+            # The path field owned text input. Restore Scene focus before authoring shortcuts;
+            # Ctrl+Shift+N is deliberately disabled while ImGui still wants text input.
+            send("mousemove", "--window", window, "500", "220", "click", "1")
             send("key", "--clearmodifiers", "ctrl+shift+n")
             send("key", "--clearmodifiers", "ctrl+s")
             wait_until(lambda: destination.read_bytes().count(b"node ") ==

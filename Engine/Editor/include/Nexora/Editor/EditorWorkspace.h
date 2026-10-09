@@ -364,6 +364,8 @@ public:
   bool Redo();
   // Serialized authoring-thread calls. Prepare performs no IO or baseline/history mutation.
   [[nodiscard]] std::optional<PreparedSave> PrepareSave() const;
+  // Current authoring content/generation check without IO or saved-baseline/history mutation.
+  [[nodiscard]] bool MatchesPreparedSave(const PreparedSave &prepared) const;
   // Rejects changed document generation or content before IO; advances the baseline only after
   // successful single-file publication. Caller owns workspace access and destination policy.
   bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;

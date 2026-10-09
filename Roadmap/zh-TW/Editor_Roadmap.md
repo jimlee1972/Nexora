@@ -786,8 +786,16 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   capture 的 deterministic bytes、真實 10 萬 entities、精確 geometry／opaque 上限與
   standalone ProjectPlayer consumption；詳見 [producer contract](../../Engine/Editor/StaticProjectExport.md)
   與 [Linux 證據](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)。
-  Current-state／recovery／cancellation 授權、atomic publication、圖形化 export、原生
-  player rendering 與完整 Build／deploy／log 驗收仍待完成。
+  下列獨立 coordinator 已加入 current-state／cancellation 檢查與圖形化 publication；
+  原生 player rendering 與完整 Build／deploy／log 驗收屬於其他 supporting slice。
+- ✅ 圖形化 Build 選單現透過單一背景 Core job 匯出 owning StaticView package。實際
+  cook／Runtime verification、分段 staging／readback 完成後，authoring thread 重新檢查
+  project／document／Content／catalog／recovery／access／cancellation，才 atomic publish。
+  Ready 狀態提供實際 bytes／checksum 與可重現的 ProjectPlayer verification command。
+  取消、過期場景／專案／資產、cook 失敗及不安全／占用輸出均保留先前套件與 authoring
+  Undo／baseline。真實 core 與 1x／2x UI → worker → Runtime 測試涵蓋此資料套件 slice；
+  executable compilation、manifest、remote deploy／signing 與完整 ED-M6 仍待完成。
+  [Coordinator 契約](../../Engine/Editor/StaticProjectExport.md#graphical-staticview-export-coordinator)。
 
 - ✅ Editor 現明確啟用真實 completed native GPU timing：Vulkan／DX12 timestamp query
   與 Metal command-buffer timing 在既有 completion point 發布 copied source／submission／

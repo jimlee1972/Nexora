@@ -10,6 +10,7 @@
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Math/Math.h"
@@ -703,6 +704,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::core::JobSystem import_jobs{1};
   import_jobs.Start();
   nexora::editor::AssetImportQueue imports{import_jobs};
+  nexora::editor::StaticProjectExportJob static_export{import_jobs};
   nexora::editor::ProjectContentSession content;
   struct PendingProject final {
     ProjectState candidate;
@@ -1172,6 +1174,7 @@ int RunGraphical(std::optional<ProjectState> project,
       if (scene_files)
         ui.SetSceneFileContext(scene_files->Token(), scene_files->CurrentPath(),
                                scene_load_failed || scene_files->SaveBlocked());
+      ui.SetStaticExportStatus(static_export.Snapshot(), static_export.Busy());
       ui.DrawProductShell(shell, &scene, &project->workspace, &content, &recent_projects, &imports,
                           &console, &play, &profile, &meshes, &materials);
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
@@ -1602,6 +1605,46 @@ int RunGraphical(std::optional<ProjectState> project,
       if (const auto choice = ui.TakeRecoveryChoice();
           choice != nexora::editor::imgui::RecoveryChoice::None)
         recovery_choice = choice;
+      if (auto request = ui.TakeStaticExportRequest()) {
+        std::string error;
+        bool accepted = false;
+        if (request->cancel) {
+          accepted = static_export.Cancel();
+          if (!accepted)
+            error = "No pending StaticView export to cancel.";
+        } else if (scene_files && request->token == scene_files->Token() &&
+                   scene_files->CurrentPath() && !scene_load_failed &&
+                   !scene_files->SaveBlocked() &&
+                   play.State() == nexora::runtime::PlayState::Stopped && !exit_requested &&
+                   recovery_choice == nexora::editor::imgui::RecoveryChoice::None) {
+          nexora::runtime::AssetUuid scene_asset;
+          for (const auto &item : content.Browser().Items())
+            if (item.type == ".scene" && item.path == *scene_files->CurrentPath()) {
+              scene_asset = item.id;
+              break;
+            }
+          accepted = static_export.Start(project->workspace, scene, content, meshes, materials,
+                                         scene_asset, &error);
+        } else {
+          error = "StaticView export request is stale or authoring is blocked.";
+        }
+        if (!accepted) {
+          ui.SetStaticExportStatus(
+              {0, nexora::editor::StaticExportPhase::Failed, error, {}, {}, {}, 0, {}, 0},
+              static_export.Busy());
+          log(nexora::runtime::RuntimeLogSeverity::Error, "Export", error);
+        } else {
+          ui.SetStaticExportStatus(static_export.Snapshot(), static_export.Busy());
+        }
+      }
+      if (static_export.Poll(project->workspace, scene, content, meshes, materials)) {
+        const auto status = static_export.Snapshot();
+        ui.SetStaticExportStatus(status, false);
+        log(status.phase == nexora::editor::StaticExportPhase::Published
+                ? nexora::runtime::RuntimeLogSeverity::Info
+                : nexora::runtime::RuntimeLogSeverity::Warning,
+            "Export", status.message);
+      }
     } else {
       ui.DrawProjectSelector(&recent_projects, selector_access);
       if (ui.TakeProjectSelectorCancel() && pending_project) {
@@ -1828,6 +1871,9 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
 
+  static_cast<void>(static_export.Cancel());
+  imports.Shutdown();
+  static_export.Shutdown();
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());

@@ -158,6 +158,13 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_xvfb_lifetime
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxXvfbLifetime.py"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --editor-helper "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDisplayAcceptance.py"
+      --showcase-helper "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py")
+  set_tests_properties(editor.linux_xvfb_lifetime PROPERTIES TIMEOUT 40
+    LABELS "virtual-display")
   add_test(
     NAME editor.linux_scene_files
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneFiles.py"
@@ -166,6 +173,14 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   # This workflow includes several native launches; individual waits still fail after 10 seconds.
   set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 120)
+  if(NEXORA_BUILD_PROJECT_PLAYER)
+    add_test(NAME editor.linux_static_project_export
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxStaticProjectExport.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --player "$<TARGET_FILE:NexoraProjectPlayer>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_static_project_export PROPERTIES TIMEOUT 60
+      LABELS "vulkan;virtual-display")
+  endif()
   add_test(
     NAME editor.linux_display_acceptance
     COMMAND "${Python3_EXECUTABLE}"
@@ -446,3 +461,9 @@ target_link_libraries(NexoraGpuCaptureDisplayTests PRIVATE Nexora::EditorImGui)
 target_include_directories(NexoraGpuCaptureDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 nexora_apply_defaults(NexoraGpuCaptureDisplayTests)
 add_test(NAME editor.gpu_capture_display COMMAND NexoraGpuCaptureDisplayTests)
+add_executable(NexoraStaticProjectExportUiTests StaticProjectExportTests.cpp)
+target_link_libraries(NexoraStaticProjectExportUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraStaticProjectExportUiTests PRIVATE ../../Engine/EditorImGui/src)
+nexora_apply_defaults(NexoraStaticProjectExportUiTests)
+add_test(NAME editor.static_project_export_ui COMMAND NexoraStaticProjectExportUiTests)
+set_tests_properties(editor.static_project_export_ui PROPERTIES TIMEOUT 60)

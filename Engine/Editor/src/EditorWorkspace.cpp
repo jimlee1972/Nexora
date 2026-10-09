@@ -1430,6 +1430,15 @@ std::optional<SceneDocument::PreparedSave> SceneDocument::PrepareSave() const {
   return PreparedSave{document_generation_, std::move(output), *signature, opaque_records};
 }
 
+bool SceneDocument::MatchesPreparedSave(const PreparedSave &prepared) const {
+  if (prepared.generation_ != document_generation_)
+    return false;
+  const auto signature = StateSignature();
+  const auto opaque = CaptureOpaque(nodes_);
+  return signature && *signature == prepared.signature_ && opaque &&
+         OpaqueRecords(*opaque) == prepared.opaque_records_;
+}
+
 bool SceneDocument::SavePrepared(const std::filesystem::path &path,
                                  const PreparedSave &prepared) const {
   if (prepared.generation_ != document_generation_)

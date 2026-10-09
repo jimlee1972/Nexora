@@ -53,6 +53,9 @@ struct EditorImGuiTestState final {
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  StaticExportPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static StaticExportSnapshot StaticExportStatus(const EditorImGuiHost &);
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   // Deterministic event batches default to portable Ctrl semantics; production OS policy is
