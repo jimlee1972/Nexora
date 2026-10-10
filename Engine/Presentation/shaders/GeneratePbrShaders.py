@@ -8,6 +8,29 @@ import subprocess
 import tempfile
 
 
+# MSVC rejects a single string literal longer than 16380 bytes (C2026). Adjacent literals are
+# concatenated, so long sources are emitted as several raw-string pieces split at line boundaries.
+RAW_STRING_PIECE_LIMIT = 12000
+
+
+def emit_raw_string(name, source):
+    pieces, current, size = [], [], 0
+    for line in source.splitlines(keepends=True):
+        line_size = len(line.encode('utf-8'))
+        if line_size > RAW_STRING_PIECE_LIMIT:
+            raise SystemExit(f'Generated source line exceeds the string piece limit: {name}')
+        if current and size + line_size > RAW_STRING_PIECE_LIMIT:
+            pieces.append(''.join(current))
+            current, size = [], 0
+        current.append(line)
+        size += line_size
+    pieces.append(''.join(current))
+    text = f'inline constexpr char {name}[] = R"NEXORA_PBR(\n{pieces[0]})NEXORA_PBR"'
+    for piece in pieces[1:]:
+        text += f'\n    R"NEXORA_PBR({piece})NEXORA_PBR"'
+    return text + ';\n'
+
+
 def generate(compiler: str, check: bool) -> None:
     root = Path(__file__).resolve().parents[3]
     shaders = root / 'Engine/Presentation/shaders'
@@ -44,7 +67,7 @@ def generate(compiler: str, check: bool) -> None:
                     # Source diagnostics are reproducible repository-relative compiler paths.
                     if ')NEXORA_PBR"' in source:
                         raise SystemExit('Generated source contains the raw-string delimiter')
-                    text += f'inline constexpr char {name}[] = R"NEXORA_PBR(\n{source})NEXORA_PBR";\n'
+                    text += emit_raw_string(name, source)
             text += '} // namespace Nexora::Presentation\n// clang-format on\n'
             path = root / f'Engine/Presentation/src/ScenePbr{label}Shaders.h'
             if check:
