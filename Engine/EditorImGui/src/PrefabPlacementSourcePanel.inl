@@ -8,6 +8,12 @@ void DrawPrefabPlacementSource(StateT &state, const SceneDocument *scene,
     state.prefab_source_request.reset();
     state.prefab_source_report.reset();
     state.prefab_override_report.reset();
+    state.prefab_rebase_report.reset();
+    state.prefab_rebase_request.reset();
+    state.prefab_rebase_consent.reset();
+    state.prefab_rebase_choices.clear();
+    state.prefab_rebase_error.clear();
+    state.prefab_rebase_confirm = state.prefab_rebase_popup = false;
     state.prefab_override_consent.reset();
     state.prefab_override_selected.clear();
     state.prefab_override_request.reset();
