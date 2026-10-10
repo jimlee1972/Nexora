@@ -1,6 +1,7 @@
 #pragma once
 #include "Nexora/Editor/ReflectedInspector.h"
 
+#include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
@@ -171,6 +172,10 @@ public:
   // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
   bool SetReflectedInspector(const ReflectedInspector &catalog);
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
+  // Frame-only model borrow; configuration and sanitized output are owning presentation state.
+  // Scope changes revoke pending work. Run requires explicit user action and caller permission.
+  void DrawBuildProcess(BuildProcess &process, std::uint64_t scope,
+                        const std::filesystem::path &root, bool allow_start);
   void DrawProductShell(
       ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
       ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,

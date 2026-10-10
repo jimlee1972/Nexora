@@ -25,6 +25,7 @@
 #include <ranges>
 #include <span>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -145,6 +146,13 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 4> scene_comparison_positions{};
   std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
+  bool build_console_open{};
+  std::uint64_t build_console_scope{};
+  std::array<char, 4096> build_executable{}, build_cwd{};
+  std::vector<std::array<char, 2048>> build_arguments;
+  BuildProcessSnapshot build_console_status;
+  std::string build_console_error, build_console_output;
+  std::array<std::optional<std::array<float, 2>>, 7> build_console_positions{};
   bool profile_json_export_requested = false;
   bool profile_csv_import_requested = false;
   bool profile_json_import_requested = false;
@@ -4628,6 +4636,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::MenuItem("Cancel StaticView export", nullptr, false, state_->static_export_busy))
         state_->static_export_request = StaticExportRequest{state_->scene_file_token, true};
       capture_position(2);
+      ImGui::Separator();
+      ImGui::MenuItem("Process console", "Ctrl+Alt+B", &state_->build_console_open);
       ImGui::EndMenu();
     } else {
       const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
@@ -6790,6 +6800,8 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
   Activate(state_->context);
   state_->surface = &surface;
 }
+
+#include "BuildProcessPanel.inl"
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);

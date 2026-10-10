@@ -12,6 +12,31 @@ Synthetic contract fixtures explicitly choose Ctrl shortcut semantics and disabl
 The shared undo/redo contract also runs with macOS behaviors and physical Cmd/Super events;
 production retains ImGui's native platform defaults.
 
+## Local build process console
+
+`DrawBuildProcess` borrows the real BuildProcess only for its serialized frame call. The host
+owns session-only executable/cwd fields and at most 256 discrete argument fields (2,047 bytes
+each); the runner independently enforces its aggregate 32 KiB command budget. No shell command
+is assembled. The visible escaped-byte preview describes the exact argv and working directory,
+with clipped argument/preview rows; it is not a shell command to paste. The application supplies
+current project scope and permission. Read-only, missing, recovery/external-change, Play and
+failed-composition states disable Run. Scope replacement clears configuration/display and cancels
+old work. Revoked permission cancels active work. No document/world pointer reaches workers.
+
+Build > Process console and Ctrl+Alt+B open the panel. Within the focused panel Ctrl+Enter runs
+and Ctrl+Shift+Enter cancels; disabled widgets and keyboard use the same admission gates.
+Execution uses the user's program, scripts and inherited environment, not a sandbox. Configuration,
+argv and logs are never persisted or sent to diagnostics. The built-in capture retains a 16 KiB raw
+merged stdout/stderr tail and a dropped-byte counter. Display escapes non-ASCII, NUL and control
+bytes to valid ASCII, preventing malformed UTF-8/terminal controls from reaching widget text.
+
+Snapshots distinguish queued/running/finalizing, actual unsigned exit code, failed/cancelled/stale
+and unsupported. Exit zero explicitly leaves artifacts unverified; this panel never reports build
+or deployment success. Artifact validation, serialized target profiles and authenticated remote
+workflows are separate. The application cancels the process before draining other models on the
+shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
+existing module dependencies and stable C ABI are unchanged.
+
 ## Ownership and lifetime
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
