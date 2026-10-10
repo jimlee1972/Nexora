@@ -28,3 +28,12 @@ and never loads native code or rewrites schemas. Runtime/World/plugin object bor
 
 This delivers fixed portable layouts, not arbitrary native C++ object restoration or dynamic arrays.
 Physical display/input/DPI acceptance remains separate. Complete milestone progress stays **0/8**.
+
+## Exported constant portability correction
+
+Hosted Windows compilation at `407606866b4fa24afc9475cdc7c8d4e30010007f` rejected multi-declarator
+`constexpr` members of the DLL-exported inspector class with MSVC C2487. Each unchanged constant
+now has its own declaration. Linux Development rebuilt successfully; the complete graphical/native
+suite passed **232/232**, zero skips, **583.29 s**. Minimal Monolithic Shipping rebuilt successfully.
+Windows verification is delegated to the new exact-head hosted jobs; the Linux run is not a Windows
+execution claim. No property limits, ABI functions or authoring behavior changed.

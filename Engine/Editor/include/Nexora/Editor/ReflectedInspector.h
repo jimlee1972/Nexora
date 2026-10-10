@@ -56,9 +56,12 @@ struct ReflectedObservation final {
 };
 class NEXORA_EDITOR_API ReflectedInspector final {
 public:
-  static constexpr std::size_t kMaximumTypes = 64, kMaximumFields = 64, kMaximumElements = 32,
-                               kMaximumTargets = 256, kMaximumObservationBytes = 1024 * 1024,
-                               kMaximumSchemaBytes = 256 * 1024;
+  static constexpr std::size_t kMaximumTypes = 64;
+  static constexpr std::size_t kMaximumFields = 64;
+  static constexpr std::size_t kMaximumElements = 32;
+  static constexpr std::size_t kMaximumTargets = 256;
+  static constexpr std::size_t kMaximumObservationBytes = 1024 * 1024;
+  static constexpr std::size_t kMaximumSchemaBytes = 256 * 1024;
   // Copies a validated complete catalog. Rejects preserve the previous catalog/revision.
   bool SetComponents(std::vector<ReflectedComponent> components);
   [[nodiscard]] const std::vector<ReflectedComponent> &Components() const noexcept {
