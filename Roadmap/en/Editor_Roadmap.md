@@ -1050,6 +1050,7 @@ creates property widgets; unknown components retain raw data instead of being si
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
     and plugin manager.
+  - Native signed-manager input spans slow software frames; eight complete consecutive workflows pass.
   - ✅ Settings / Ctrl+Alt+E now opens a project-scoped signed package manager with explicit session
     publisher keys and capability policy, verified owning review, immutable installation, native
     enable/disable, revocation, restart-required state and protected removal. Real 1x/2x widgets and
