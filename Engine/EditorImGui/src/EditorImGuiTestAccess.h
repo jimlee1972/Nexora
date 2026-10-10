@@ -76,6 +76,8 @@ public:
   StaticExportPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static StaticExportSnapshot StaticExportStatus(const EditorImGuiHost &);
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProjectUpgradePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   // Deterministic event batches default to portable Ctrl semantics; production OS policy is
   // untouched.

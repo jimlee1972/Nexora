@@ -945,6 +945,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ The native project browser now offers an owning no-write upgrade preview in both access
+    modes, showing captured schema/UUID, source/workspace counts and recovery evidence locations.
+    Busy and typed-root changes clear stale intake/results; explicit Open reinspects ordinary
+    writer access and source state. Real 1x/2x widgets and Linux native legacy/current/unsupported
+    flows preserve source/backup bytes and existing Create/close guards. Broader migration/recovery
+    and physical-host acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md).
   - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
     inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.
     Physical input/display and general synthetic-input stability remain open.

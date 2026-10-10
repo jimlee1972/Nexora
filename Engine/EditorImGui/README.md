@@ -252,6 +252,16 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   unavailable GPU/memory fields. No retained workspace/sample borrow or live-session mutation is
   introduced. Statistics use an incremental mean so finite large samples do not overflow a sum.
   CSV has no project/device provenance and is labelled accordingly; JSON import verifies project identity.
+- The project selector provides Preview upgrade and Ctrl+Alt+M in both read-write and read-only
+  browser modes. Intake is owning and one-shot; busy import blocks preview and Create/Open.
+  The application calls the read-only Core preview, then publishes only an owning summary bound
+  to the typed requested root. UUID/schema, bounded descriptor/workspace counts, canonical root
+  and printable UTF-8 labels are checked before replacing the previous accepted summary.
+  Root edits, a new selection and busy status clear captured results and stale requests.
+  The panel displays the captured schema/identity and backup/report locations; inspection acquires
+  no writer lease and writes no project files. Explicit Open rechecks the source and access through
+  the ordinary workspace activation path. The summary neither authorizes writes nor certifies a
+  completed upgrade. Existing Create name validation and read-only gates remain enforced.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
