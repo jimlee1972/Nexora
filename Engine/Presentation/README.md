@@ -821,13 +821,17 @@ borrowed descriptor lifetime changes. Invalid input retains validation behavior,
 never publishes a reusable set, incompatible/direct draws reset the completed slot, and resize
 resets all sets after the existing drain. Teardown also releases every set after its drain. Storage
 remains bounded to the existing maximum three slots, with no extra wait and every draw/effect/clear
-retained. Native pixel, source-CI and fixed-artifact performance acceptance for this DX12 revision
-are pending; Vulkan repair source `5aa60d5c` has separate evidence.
+retained. Both unchanged native pixel fixtures pass full Windows 125/125 validation; exact-source `7c4534b8`
+passes all 18 hosted CI jobs. GTX 960 unpaused Standard/UI reaches 133.43 FPS DX12 and 126.30 FPS
+Vulkan; requested vsync on reaches approximately 60 FPS, with p99 18.04 / 18.24 ms retained. Overall
+hardware-budget and final art acceptance remain open. Evidence: `Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md`.
 
 既有 `Acquire` 等待 swapchain 槽 fence 完成後，才可重用完整且尺寸、HDR 格式、陰影解析度、
 鏡面／折射需求一致的 offscreen 場景目標。每槽追蹤 composite 後的 COPY_SOURCE／
 PIXEL_SHADER_RESOURCE，以及陰影／鏡面完成後的 shader-readable 狀態；再次 clear 前記錄
 回到 RENDER_TARGET 的 transition，折射仍沿用既有 opaque copy 同步。view 與材質綁定
 使用本次提交資料，部分失敗不發布可重用集合；需求改變／直接繪製釋放完成槽，resize／
-teardown 在既有 drain 後釋放。最多三槽、不新增等待、保留所有繪製與效果；本次 DX12
-原生像素、來源 CI 與固定執行檔效能尚待驗證。Vulkan 修正版另有 `5aa60d5c` 證據。
+teardown 在既有 drain 後釋放。最多三槽、不新增等待、保留所有繪製與效果。Windows
+完整 125/125 與同來源 `7c4534b8` hosted CI 全部 18 項通過；GTX 960 未暫停 Standard／UI
+為 DX12 133.43 FPS、Vulkan 126.30 FPS，requested vsync on 均約 60 FPS，保留 p99
+18.04／18.24 ms。整體硬體預算與最終美術仍未完成；證據見上述路徑。
