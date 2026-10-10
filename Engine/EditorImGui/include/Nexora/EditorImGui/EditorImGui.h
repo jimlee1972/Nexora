@@ -36,7 +36,7 @@ inline constexpr std::size_t kMaximumNativeSceneFrameCandidates = 3999;
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
 enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
-enum class ProjectSelectorAction : std::uint8_t { Open, Create };
+enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
 enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
 struct SceneTabItem final {
@@ -76,6 +76,15 @@ struct SceneFileRequest final {
 struct StaticExportRequest final {
   SceneFileToken token;
   bool cancel{};
+};
+
+struct ProjectUpgradeObservation final {
+  std::filesystem::path requested_root, canonical_root;
+  foundation::Uuid project;
+  std::string name;
+  std::uint32_t from{}, to{};
+  std::size_t source_bytes{}, documents{};
+  bool required{};
 };
 
 struct ProjectSelectorRequest final {
@@ -154,6 +163,9 @@ public:
   [[nodiscard]] std::string_view ProjectSelectorError() const noexcept;
   // Serialized owner call; model is borrowed only for this frame. Scope changes revoke consent.
   void DrawDiagnosticPrivacy(TelemetryConsent &diagnostics, foundation::Uuid project);
+  bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
+  [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
+
   void DrawProductShell(
       ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
       ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,

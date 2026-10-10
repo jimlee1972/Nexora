@@ -912,6 +912,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ Native project browser 現提供兩種 access mode 的 owning no-write upgrade preview，
+  顯示 captured schema／UUID、source／workspace count 與 recovery evidence 位置。
+  Busy 或 typed root 變更會清除 stale intake／result；明確 Open 仍重新檢查 writer access
+  與來源狀態。實際 1x／2x widget 與 Linux native legacy／current／unsupported 流程保留
+  source／backup bytes 與既有 Create／close guard；更完整 migration／recovery 與實體 host
+  驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md)。
+
 - ✅ Linux native center-gesture acceptance 在原有 deadline 內觀察 committed bytes 時只重送
   Save，保留精確 transform／saved-byte 與單步 Undo 斷言；實體 input／display 及整體
   synthetic-input 穩定度仍待完成。

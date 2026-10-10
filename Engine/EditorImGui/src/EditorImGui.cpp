@@ -388,6 +388,8 @@ struct EditorImGuiHost::State final {
   std::array<char, 1024> selector_root{};
   std::array<char, 256> selector_name{};
   std::optional<ProjectSelectorRequest> selector_request;
+  std::optional<ProjectUpgradeObservation> selector_upgrade;
+  std::array<std::optional<std::array<float, 2>>, 4> selector_upgrade_positions;
   bool selector_cancel_requested = false;
   std::string selector_error;
   std::string selector_status;
@@ -493,7 +495,8 @@ std::string PathLabel(const std::filesystem::path &path) {
 }
 
 std::optional<std::filesystem::path> PathFromLabel(std::string_view label) {
-  if (label.empty())
+  if (label.empty() || !foundation::IsValidUtf8(label) ||
+      label.find('\0') != std::string_view::npos)
     return std::nullopt;
   try {
     std::u8string encoded;
@@ -518,6 +521,7 @@ void QueueProjectSelection(StateT &state, ProjectSelectorAction action,
     state.selector_error = "Enter a project name before creating it.";
     return;
   }
+  state.selector_upgrade.reset();
   state.selector_error.clear();
   state.selector_request = {action, root, std::move(name), access};
 }
@@ -4029,6 +4033,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
                                           ProjectAccess default_access) {
   Activate(state_->context);
   state_->selector_visible = true;
+  state_->selector_upgrade_positions = {};
   state_->selector_recent_projects =
       recent_projects == nullptr
           ? 0
@@ -4056,18 +4061,34 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   const bool focus_root = state_->selector_focus_root && state_->app_focused;
   if (focus_root)
     ImGui::SetWindowFocus();
-  ImGui::InputText("Project root", state_->selector_root.data(), state_->selector_root.size());
+  if (ImGui::InputText("Project root", state_->selector_root.data(),
+                       state_->selector_root.size())) {
+    state_->selector_upgrade.reset();
+    state_->selector_request.reset();
+  }
   if (focus_root) {
     ImGui::FocusItem();
     ImGui::ActivateItemByID(ImGui::GetItemID());
     state_->selector_focus_root = false;
   }
   state_->selector_root_active = ImGui::IsItemActive();
+  state_->selector_upgrade_positions[0] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
   ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
   ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
+  state_->selector_upgrade_positions[3] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
   ImGui::Checkbox("Open read-only", &state_->selector_read_only);
+  state_->selector_upgrade_positions[2] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
 
   const auto typed_root = PathFromLabel(state_->selector_root.data());
+  if (state_->selector_upgrade &&
+      (!typed_root || *typed_root != state_->selector_upgrade->requested_root))
+    state_->selector_upgrade.reset();
   // BeginDisabled does not suppress key chords, so gate the shortcuts on the same conditions that
   // disable their buttons: no new request while an import runs, and no Create when read-only.
   const bool open_requested =
@@ -4094,11 +4115,44 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
       state_->selector_error = "Project root must be non-empty valid UTF-8.";
   }
   ImGui::EndDisabled();
+  ImGui::SameLine();
+  const bool preview_clicked = ImGui::Button("Preview upgrade (Ctrl+Alt+M)");
+  state_->selector_upgrade_positions[1] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+  const bool preview_requested =
+      preview_clicked || (!state_->selector_busy &&
+                          ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_M));
+  if (preview_requested) {
+    if (typed_root)
+      QueueProjectSelection(*state_, ProjectSelectorAction::Preview, *typed_root, {},
+                            state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                       : ProjectAccess::ReadWrite);
+    else
+      state_->selector_error = "Project root must be non-empty valid UTF-8.";
+  }
   if (state_->selector_read_only)
     ImGui::TextDisabled("Creating a project requires read-write access.");
   if (!state_->selector_error.empty())
     ImGui::TextWrapped("%s", state_->selector_error.c_str());
 
+  if (const auto &preview = state_->selector_upgrade) {
+    ImGui::SeparatorText("Captured project upgrade preview");
+    ImGui::TextWrapped("%s", preview->name.c_str());
+    ImGui::Text("Schema: %u -> %u (%s)", preview->from, preview->to,
+                preview->required ? "upgrade required" : "current");
+    ImGui::Text("Project UUID: %s", preview->project.ToString().c_str());
+    ImGui::Text("Descriptor: %zu bytes; workspace: %zu documents", preview->source_bytes,
+                preview->documents);
+    ImGui::TextWrapped("Root: %s", PathLabel(preview->canonical_root).c_str());
+    if (preview->required)
+      ImGui::TextWrapped(
+          "Read-write Open retains the exact original at .nexora/project-upgrade.schema1.backup "
+          "and a plan report at .nexora/project-upgrade.schema1.report before upgrading. "
+          "Read-only Open leaves the project unchanged.");
+    ImGui::TextWrapped(
+        "Preview wrote no files. Open checks the current source and writer access again.");
+  }
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
     ImGui::TextUnformatted("No recent projects.");
@@ -4127,6 +4181,13 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
 std::optional<ProjectSelectorRequest> EditorImGuiHost::TakeProjectSelectorRequest() {
   auto request = std::move(state_->selector_request);
   state_->selector_request.reset();
+  if (state_->selector_busy)
+    return std::nullopt;
+  if (request && request->action == ProjectSelectorAction::Preview) {
+    const auto current = PathFromLabel(state_->selector_root.data());
+    if (!current || *current != request->root)
+      return std::nullopt;
+  }
   return request;
 }
 
@@ -4143,6 +4204,10 @@ void EditorImGuiHost::SetProjectSelectorError(std::string error) {
 void EditorImGuiHost::SetProjectSelectorStatus(std::string status, bool busy) {
   state_->selector_status = std::move(status);
   state_->selector_busy = busy;
+  if (busy) {
+    state_->selector_upgrade.reset();
+    state_->selector_request.reset();
+  }
 }
 
 std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
@@ -4211,6 +4276,47 @@ void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
                           state_->diagnostic_excluded_events);
   }
   ImGui::End();
+}
+
+bool EditorImGuiHost::SetProjectUpgradePreview(
+    std::optional<ProjectUpgradeObservation> observation) {
+  if (!observation) {
+    state_->selector_upgrade.reset();
+    return true;
+  }
+  const auto &value = *observation;
+  const auto safe = [](std::string_view text, std::size_t maximum) {
+    if (text.empty() || text.size() > maximum || !foundation::IsValidUtf8(text) ||
+        std::ranges::any_of(text, [](unsigned char c) { return c < 32 || c == 127; }))
+      return false;
+    for (std::size_t i = 0; i + 1 < text.size(); ++i)
+      if (static_cast<unsigned char>(text[i]) == 0xc2 &&
+          static_cast<unsigned char>(text[i + 1]) >= 0x80 &&
+          static_cast<unsigned char>(text[i + 1]) <= 0x9f)
+        return false;
+    return true;
+  };
+  const auto current = PathFromLabel(state_->selector_root.data());
+  if (state_->selector_busy || !current || *current != value.requested_root ||
+      value.project.IsNil() || (value.from != 1 && value.from != 2) || value.to != 2 ||
+      value.required != (value.from == 1) || !value.source_bytes ||
+      value.source_bytes > ProjectWorkspace::kMaximumProjectDescriptorBytes ||
+      value.documents > ProjectWorkspace::kMaximumDocuments || !safe(value.name, 1024) ||
+      !value.canonical_root.is_absolute() || value.canonical_root.native().size() > 4096 ||
+      value.requested_root.native().size() > 1024)
+    return false;
+  try {
+    if (!safe(PathLabel(value.canonical_root), 4096) ||
+        !safe(PathLabel(value.requested_root), 1024))
+      return false;
+  } catch (const std::exception &) {
+    return false;
+  }
+  state_->selector_upgrade = std::move(observation);
+  return true;
+}
+std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview() const {
+  return state_->selector_upgrade;
 }
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
@@ -6542,6 +6648,14 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->app_focused,
           host.state_->selector_focus_root,
           host.state_->selector_root_active};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProjectUpgradePosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->selector_upgrade_positions.size()
+             ? host.state_->selector_upgrade_positions[control]
+             : std::nullopt;
 }
 
 std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHost &host) noexcept {

@@ -191,6 +191,7 @@ jobs:
       - name: Require project-upgrade evidence acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.project_upgrade_evidence$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.(project_upgrade_ui|linux_project_upgrade)$' | grep -q 'Total Tests: 2'
       - name: Require additive document-owner acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.additive_scene_session$' | grep -q 'Total Tests: 1'

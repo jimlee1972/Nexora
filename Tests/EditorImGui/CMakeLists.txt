@@ -3,6 +3,11 @@ target_include_directories(NexoraDiagnosticPrivacyTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraDiagnosticPrivacyTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraDiagnosticPrivacyTests)
 add_test(NAME editor.diagnostic_privacy COMMAND NexoraDiagnosticPrivacyTests)
+add_executable(NexoraProjectUpgradeUiTests ProjectUpgradeTests.cpp)
+target_include_directories(NexoraProjectUpgradeUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraProjectUpgradeUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraProjectUpgradeUiTests)
+add_test(NAME editor.project_upgrade_ui COMMAND NexoraProjectUpgradeUiTests)
 
 add_executable(NexoraEditorImGuiTests EditorImGuiTests.cpp)
 target_include_directories(NexoraEditorImGuiTests
@@ -189,6 +194,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
       --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_diagnostic_privacy PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_project_upgrade
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProjectUpgrade.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_project_upgrade PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
   add_test(NAME editor.linux_xvfb_lifetime
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxXvfbLifetime.py"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}"

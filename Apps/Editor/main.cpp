@@ -1956,6 +1956,32 @@ int RunGraphical(std::optional<ProjectState> project,
       if (auto request = ui.TakeProjectSelectorRequest()) {
         if (pending_project) {
           ui.SetProjectSelectorError("A project import is already running.");
+        } else if (request->action == nexora::editor::imgui::ProjectSelectorAction::Preview) {
+          std::string preview_error;
+          const auto preview =
+              nexora::editor::ProjectWorkspace::PreviewUpgrade(request->root, &preview_error);
+          if (preview &&
+              ui.SetProjectUpgradePreview(nexora::editor::imgui::ProjectUpgradeObservation{
+                  request->root, preview->root, preview->project.id, preview->project.name,
+                  preview->project.schema_version,
+                  nexora::editor::ProjectDescriptor::kSchemaVersion,
+                  preview->original_descriptor.size(), preview->documents.size(),
+                  preview->state == nexora::editor::ProjectUpgradeState::Required})) {
+            ui.SetProjectSelectorError({});
+            std::cerr << "project upgrade preview ready from=" << preview->project.schema_version
+                      << " required="
+                      << (preview->state == nexora::editor::ProjectUpgradeState::Required)
+                      << " documents=" << preview->documents.size() << '\n';
+          } else {
+            static_cast<void>(ui.SetProjectUpgradePreview(std::nullopt));
+            ui.SetProjectSelectorError(preview_error.empty()
+                                           ? "Project preview is stale or cannot be displayed."
+                                           : std::move(preview_error));
+            std::cerr << "project upgrade preview failed\n";
+          }
+        } else if (request->action != nexora::editor::imgui::ProjectSelectorAction::Open &&
+                   request->action != nexora::editor::imgui::ProjectSelectorAction::Create) {
+          ui.SetProjectSelectorError("Unsupported project request.");
         } else {
           ProjectState candidate;
           std::string selector_error;
