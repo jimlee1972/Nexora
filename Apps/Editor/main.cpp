@@ -11,6 +11,7 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PrefabPlacementInspection.h"
+#include "Nexora/Editor/PrefabPlacementOverrides.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -850,6 +851,9 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   std::unordered_map<std::filesystem::path, SceneViews> retained_scene_views;
   nexora::runtime::PlaySession play(world);
+  std::optional<nexora::editor::PrefabPlacementOverrideReview> prefab_instance_review;
+  std::optional<nexora::editor::imgui::PrefabPlacementSourceRequest> prefab_instance_scope;
+  std::uint64_t prefab_instance_review_serial{};
   nexora::core::AsyncLogService core_logs{1024};
   core_logs.Start();
   nexora::runtime::RuntimeConsole console{1024};
@@ -1401,8 +1405,12 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
-    if (!project)
+    if (!project) {
       ui.SetPrefabPlacementSourceContext({}, false);
+      ui.SetPrefabPlacementOverrideContext(false);
+      prefab_instance_review.reset();
+      prefab_instance_scope.reset();
+    }
     if (project) {
       if (!scene_documents)
         initialize_scene_documents();
@@ -1429,6 +1437,17 @@ int RunGraphical(std::optional<ProjectState> project,
           !exit_requested && !composition_restore_blocked &&
           !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
       ui.SetPrefabPlacementSourceContext(project->workspace.Root(), source_inspection_allowed);
+      if (prefab_instance_scope &&
+          (prefab_instance_scope->root != project->workspace.Root() || !active_files() ||
+           prefab_instance_scope->source != active_files()->Token() ||
+           active_scene().Key(prefab_instance_scope->node.id) != prefab_instance_scope->node ||
+           active_scene().Selection().size() != 1 ||
+           active_scene().Selection().front() != prefab_instance_scope->node.id)) {
+        prefab_instance_review.reset();
+        prefab_instance_scope.reset();
+      }
+      ui.SetPrefabPlacementOverrideContext(source_inspection_allowed && scene_authoring_allowed() &&
+                                           active_files() && !active_files()->SaveBlocked());
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
       if (const auto request = ui.TakePrefabPlacementSourceRequest()) {
@@ -1454,6 +1473,75 @@ int RunGraphical(std::optional<ProjectState> project,
                         << " retained=" << inspected->Source().revision
                         << " published=" << inspected->PublishedRevision().value_or(0) << '\n';
           }
+        }
+      }
+      if (const auto request = ui.TakePrefabPlacementOverrideRequest()) {
+        using Action = nexora::editor::imgui::PrefabPlacementOverrideAction;
+        using Overrides = nexora::editor::PrefabPlacementOverrides;
+        const auto &scope = request->scope;
+        const auto selection = active_scene().Selection();
+        bool current = source_inspection_allowed && active_files() &&
+                       scope.root == project->workspace.Root() &&
+                       scope.source == active_files()->Token() && selection.size() == 1 &&
+                       selection.front() == scope.node.id &&
+                       active_scene().Key(scope.node.id) == scope.node;
+        const auto placements = active_scene().PrefabPlacements();
+        const auto placement = std::ranges::find(
+            placements, scope.instance, &nexora::editor::SceneDocument::PrefabPlacement::instance);
+        if (placement == placements.end())
+          current = false;
+        else {
+          const auto node =
+              std::ranges::find(placement->nodes, scope.node.id,
+                                &nexora::editor::SceneDocument::PrefabPlacementNode::target);
+          current =
+              current &&
+              scope.retained ==
+                  nexora::editor::PrefabRevisionReference{placement->source, placement->revision} &&
+              node != placement->nodes.end() && node->source_node == scope.source_node &&
+              std::ranges::equal(node->scope, scope.scope);
+        }
+        std::string error;
+        if (request->action == Action::Review) {
+          prefab_instance_review.reset();
+          prefab_instance_scope.reset();
+          auto reviewed =
+              current ? Overrides::Prepare(project->workspace, active_scene(), scope.node, &error)
+                      : std::nullopt;
+          if (reviewed &&
+              prefab_instance_review_serial != std::numeric_limits<std::uint64_t>::max()) {
+            nexora::editor::imgui::PrefabPlacementOverrideReport report{
+                scope,
+                ++prefab_instance_review_serial,
+                reviewed->PublishedRevision(),
+                {reviewed->Rows().begin(), reviewed->Rows().end()}};
+            if (ui.SetPrefabPlacementOverrideReport(std::move(report))) {
+              std::cerr << "prefab instance reviewed rows=" << reviewed->Rows().size()
+                        << " retained=" << reviewed->Source().revision
+                        << " published=" << reviewed->PublishedRevision().value_or(0) << '\n';
+              prefab_instance_scope = scope;
+              prefab_instance_review = std::move(reviewed);
+            } else
+              error = "Prefab review scope changed before display.";
+          } else if (error.empty())
+            error = "Prefab review is stale, unavailable or exceeds its budget.";
+        } else {
+          const bool authorized = current && scene_authoring_allowed() && active_files() &&
+                                  !active_files()->SaveBlocked() && prefab_instance_scope &&
+                                  *prefab_instance_scope == scope && prefab_instance_review &&
+                                  request->review == prefab_instance_review_serial;
+          if (authorized && Overrides::Revert(project->workspace, active_scene(),
+                                              *prefab_instance_review, true, &error)) {
+            std::cerr << "prefab instance reverted retained=" << scope.retained.revision << '\n';
+            ui.SetPrefabPlacementOverrideError({});
+          } else if (error.empty())
+            error = "Prefab revert lost current review or authoring authorization.";
+          prefab_instance_review.reset();
+          prefab_instance_scope.reset();
+        }
+        if (!error.empty()) {
+          ui.SetPrefabPlacementOverrideError(error);
+          std::cerr << "prefab instance action rejected: " << error << '\n';
         }
       }
       if (ui.TakeReflectedMetadataReloadRequest())

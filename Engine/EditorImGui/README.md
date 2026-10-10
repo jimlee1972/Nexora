@@ -39,6 +39,27 @@ existing module dependencies and stable C ABI are unchanged.
 
 ## Ownership and lifetime
 
+`Review overrides` in a bound scene Inspector emits an owning project/document/selection/source
+scope. The application explicitly prepares and retains an immutable `PrefabPlacementOverrideReview`
+and publishes only a bounded copied row report with a session review serial. Drawing performs no
+source IO and does not authorize writes. Clipped rows show scoped retained/local property values and
+source revision; tooltips expose stable node/field UUIDs and every nested instance scope. Control
+bytes are escaped; long values visibly indicate display truncation while the owning report remains
+complete. Captured values and published revision are observations that require explicit refresh.
+
+`Revert instance properties` requires writable current authoring scope and an explicit modal
+confirmation; Cancel or Escape leaves the review and document untouched. Structural rows disable
+the action. The application repeats current document, selected key, placement identity, stopped
+Play, export/recovery/external-change and writer policy, checks the exact retained review serial,
+then delegates complete source/target revalidation to Core Revert. Stale/missing/changed inputs
+reject and clear the old report instead of applying stale displayed values. Read-only scopes may
+review, but do not emit Revert. Scope replacement, hidden Inspector, focus/permission revocation
+and unrelated file/tab/close/rename modals cancel pending intents and consent. All work is serialized
+on the authoring thread. UI and application own copied data; no World/document pointer escapes a
+frame call. Successful Revert is one Core Undo/Redo and does not write source or scene files;
+ordinary Scene Save persists it. The immutable review retains no authoring authority. Targeted
+revert, structural reconciliation, apply-to-source and source rebase remain separate work.
+
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
 Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
 Clear retained events. Initial/project UUID/nil-scope changes revoke consent and release the queue;
