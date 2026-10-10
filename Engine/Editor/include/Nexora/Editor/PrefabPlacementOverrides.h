@@ -44,5 +44,10 @@ public:
           std::string *error = nullptr);
   [[nodiscard]] static bool Matches(const ProjectWorkspace &, const SceneDocument &,
                                     const PrefabPlacementOverrideReview &);
+  // Restores the whole instance's supported source properties as one Undo/Redo transaction.
+  // Current writer and explicit host authoring authority are required. Structural rows reject.
+  static bool Revert(const ProjectWorkspace &, SceneDocument &,
+                     const PrefabPlacementOverrideReview &, bool authorized,
+                     std::string *error = nullptr);
 };
 } // namespace nexora::editor
