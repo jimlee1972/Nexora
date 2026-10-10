@@ -736,6 +736,11 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   historical revision access 與 override/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
 
+- ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
+  closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
+  不占住 future revision。Graphical rebase／nested materialization 與 power-loss journal 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
+
 - ✅ Prefab document save integration 已驗證：confirmed wrapped publication 只更新 owning saved
   baseline，保留 generation、selection、clipboard 與 Undo／Redo；重查 current source／project 及
   expected asset revision。Graphical isolation 仍待完成。
