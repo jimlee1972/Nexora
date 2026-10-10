@@ -40,3 +40,21 @@ hints, not a structurally validated merged source. Graphical diff/revert/apply/r
 and transactional publication remain separate work. Public C++ consumers rebuild;
 stable C/Gameplay ABI and module graph are unchanged. Full Editor milestones remain
 **0/8**. Exact current-head hosted checks are required before merge.
+
+## Accepted native-input Main integration
+
+Only the stable comparison feature is replayed onto accepted Main
+`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79` (PR 500 native frame admission), retaining
+accepted PrefabDocumentSession and Content index budgets. The replayed feature is
+`4e42604557dd3b4081c68e0f3cfb6a78599edb88`; earlier unpublished replays and the old
+hosted-green conflicted head do not authorize this integration.
+
+Fresh full graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer Development
+configure/build passed **314 steps** and **241/241 in 590.08 s**, zero skips. The actual
+stable comparison fixture repeated successfully in **0.02 s**. Minimal Monolithic
+Shipping reconfiguration/build passed **5 steps**, proving minimal profile/link
+compatibility without Editor. Pinned Dear ImGui/Vulkan local cache overrides are
+unchanged. No property publication or public contract is added by the replay.
+Documentation tests passed **16/16 in 0.901 s** and changed-document links passed;
+fresh published-head hosted checks and
+an independently clean current Main merge remain mandatory. Full milestones remain **0/8**.
