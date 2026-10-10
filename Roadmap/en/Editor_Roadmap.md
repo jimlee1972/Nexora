@@ -757,6 +757,12 @@ creates property widgets; unknown components retain raw data instead of being si
     source refresh and read-only reopen preserve scene/history/files; full Linux 245/245 and
     Minimal Shipping pass. Live instance override/revert/apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md).
+  - ✅ Owning live prefab instance property review compares exact retained nested sources with
+    scoped stable node/field identities, preserves authored Euler and unknown bytes, and marks
+    hierarchy changes structural. Read-only review and stale/missing/over-budget rejection preserve
+    files and Undo/Redo; full Linux 243/243 and Minimal Shipping pass. Graphical override review
+    and atomic instance revert/apply/rebase follow separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md).
   - ✅ Persistent placement source inspection owns retained/current revision and scoped-node
     observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass.
     Instance override/rebase follow separately.

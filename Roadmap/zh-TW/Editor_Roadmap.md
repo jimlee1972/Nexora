@@ -716,6 +716,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md)。
 
+- ✅ Owning live prefab instance property review 以 scoped stable node／field identity 比對
+  exact retained nested source，保留 authored Euler 與未知 bytes，並將 hierarchy 變更標為
+  structural。唯讀檢視及 stale／missing／over-budget 拒絕保留 files 與 Undo／Redo；完整 Linux
+  243/243 與 Minimal Shipping 通過。Graphical override review 與 atomic instance
+  revert／apply／rebase 另行完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md)。
+
 - ✅ Persistent placement source inspection 持有 retained／current revision 與 scoped-node
   observation，包含 unresolved source status；完整 Linux 243/243 與 Minimal Shipping 通過，
   instance override／rebase 另行完成。
