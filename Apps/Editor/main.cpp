@@ -702,6 +702,19 @@ int RunGraphical(std::optional<ProjectState> project,
   }
   nexora::editor::imgui::EditorImGuiHost ui;
   nexora::editor::TelemetryConsent local_diagnostics;
+  std::optional<nexora::foundation::Uuid> reflected_project;
+  std::filesystem::path reflected_root;
+  const auto load_reflected_metadata = [&](const nexora::editor::ProjectWorkspace &workspace) {
+    std::string error;
+    const auto metadata = nexora::editor::ReflectedInspector::LoadProject(workspace.Root(), &error);
+    // Invalid replacement metadata revokes interpretation; it never reuses an old format.
+    static_cast<void>(
+        ui.SetReflectedInspector(metadata.value_or(nexora::editor::ReflectedInspector{})));
+    reflected_project = workspace.Project().id;
+    reflected_root = workspace.Root();
+    if (!metadata)
+      std::cerr << "Inspector reflection metadata rejected; component bytes preserved.\n";
+  };
   std::cerr << "diagnostic privacy: enabled=0 retained=0 storage=none transport=none\n";
   ui.SetNativeScenePreview(native_scene_preview);
   if (initial_gameplay_library)
@@ -1385,6 +1398,9 @@ int RunGraphical(std::optional<ProjectState> project,
     if (project) {
       if (!scene_documents)
         initialize_scene_documents();
+      if (reflected_project != project->workspace.Project().id ||
+          reflected_root != project->workspace.Root())
+        load_reflected_metadata(project->workspace);
       refresh_scene_location();
       if (active_files())
         ui.SetSceneFileContext(active_files()->Token(), active_files()->CurrentPath(),
@@ -1402,6 +1418,8 @@ int RunGraphical(std::optional<ProjectState> project,
       update_scene_tabs();
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
+      if (ui.TakeReflectedMetadataReloadRequest())
+        load_reflected_metadata(project->workspace);
       if (auto request = ui.TakeSceneTabRequest()) {
         std::string error;
         bool applied = false;
@@ -1979,6 +1997,11 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     } else {
       ui.DrawProjectSelector(&recent_projects, selector_access);
+      if (reflected_project) {
+        reflected_project.reset();
+        reflected_root.clear();
+        static_cast<void>(ui.SetReflectedInspector(nexora::editor::ReflectedInspector{}));
+      }
       if (ui.TakeProjectSelectorCancel() && pending_project) {
         static_cast<void>(imports.Cancel(pending_project->import));
         ui.SetProjectSelectorStatus("Cancelling project import", true);

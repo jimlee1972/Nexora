@@ -213,6 +213,9 @@ jobs:
       - name: Require bounded build-process acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.bounded_build_process$' | grep -q 'Total Tests: 1'
+      - name: Require reflected Inspector transactions and graphical acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(reflected_inspector|reflected_inspector_ui|linux_reflected_inspector)$' | grep -q 'Total Tests: 3'
       - name: Editor tests (includes the Xvfb display acceptance)
         # The deep hierarchy test must be present in the graphical configuration.
         # Full Editor execution below retains all existing navigation controls.

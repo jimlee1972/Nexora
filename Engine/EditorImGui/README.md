@@ -1014,3 +1014,20 @@ request resurrection. Keyboard and 1x/2x real controls are covered by
 [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 Automatic semantic merge, source-control authentication and physical screen-reader acceptance
 remain open.
+
+## Reflected component Inspector
+
+`SetReflectedInspector` copies a validated owning Editor catalog. The Inspector renders compatible
+opaque component fields before built-in Transform controls, retaining unknown/incompatible data in
+the read-only section. Actual Boolean, enum and flag controls and typed scalar/vector/color/reference
+inputs support mixed multi-selection. Numeric text stays in an owning draft until Enter; activation
+freezes exact source observations, and commit rechecks current selection, catalog and source bytes.
+Generation/catalog/draft IDs and existing focus/authority cancellation prevent stale input revival.
+Read-only, recovery, Play and close gates disable authoring. Each successful field edit records one
+atomic document Undo/Redo entry, preserving padding and unrelated values.
+
+Reload property metadata emits a one-shot request; the native application performs the bounded read
+after the UI frame and replaces the catalog. Project detachment clears interpretation. GUI code owns
+no native plugin objects and performs no metadata writes or native code loading. Fixed arrays and
+flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
+observations are private to test builds and expose no ImGui type across the public module boundary.

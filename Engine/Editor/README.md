@@ -1154,3 +1154,35 @@ fabricated exit code; native nonzero exits, signals, incomplete output, cancella
 owner scope cannot publish success. Exited means only actual code zero; independently verified
 artifacts, target manifest, checksums and reproducible build publication remain host obligations.
 The API changes no stable C/Gameplay ABI or module graph; public C++ consumers must rebuild.
+## Reflected opaque-property authoring
+
+`ReflectedInspector` owns a validated catalog and Runtime reflection descriptors. It interprets
+explicit portable wire layouts in retained opaque components, never offsets into native plugin
+objects. Catalogs allow 64 types, 64 fields/type, 32 fixed elements/field and 32 enum/flag choices.
+Names/paths/labels are bounded UTF-8, ranges cannot overlap, expanded property paths are unique,
+and schema text is capped at 256 KiB. Boolean uses one byte; integers, enums, flags, entity IDs
+and finite binary64 lanes use little-endian eight-byte values. Asset UUIDs use two little-endian
+64-bit words; colors have four finite lanes in [0,1]. Unknown padding and other components remain
+unchanged. Nested structs use flattened paths; arrays have fixed declared lengths.
+
+`Inspect` returns an owning observation of metadata, generation keys, exact source component
+bytes and mixed values for at most 256 targets/1 MiB. `Apply` checks current catalog revision,
+selection, complete source bytes, validated values and caller-supplied current authoring authority
+before publishing. The owner serializes access; observations retain no World, document or plugin
+borrows. `SceneDocument::ApplyOpaqueComponents` stages and validates all replacements together,
+then records one atomic Undo/Redo entry. Rejections and no-op edits preserve source/history.
+Application/UI callers continue to enforce project writer, recovery and Play authority.
+
+Optional project metadata is read from `.nexora/inspector.reflection`; missing means an empty
+catalog. Files must be regular, non-symlink and single-linked; actual reads stop at 256 KiB + 1.
+The LF header is `NXEDITORREFLECTION 1`, followed by `type <id> "name" <bytes> <field-count>`,
+`field "path" <kind> <offset> <elements> <choice-count>` and, where declared,
+`choice <uint64-value> "label"` records. Kinds are bool/int64/uint64/double/enum/flags,
+vector2/vector3/vector4/color/entity_reference/asset_reference. Unsigned counts reject signed
+tokens/overflow; malformed versions, trailing records and invalid layouts reject the whole catalog.
+This is cooperating-project metadata validation, not hostile filesystem race isolation.
+
+Project activation and explicit metadata reload replace interpretation; failures clear the active
+catalog and preserve scene bytes. The host never rewrites metadata. Dynamic arrays, arbitrary
+native plugin object restoration and runtime execution are outside this slice. Public C++
+consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.

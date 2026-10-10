@@ -14,6 +14,7 @@
 #include <limits>
 #include <locale>
 #include <ranges>
+#include <set>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -996,6 +997,43 @@ std::optional<std::vector<OpaqueComponent>> SceneDocument::OpaqueComponents(Node
     return std::nullopt;
   return std::ranges::find(nodes_, entity.id, &Node::id)->opaque;
 }
+bool SceneDocument::ApplyOpaqueComponents(std::span<const OpaqueComponentEdit> edits) {
+  if (edits.empty() || edits.size() > UnknownComponentStore::kMaximumComponents)
+    return false;
+  auto store = CaptureOpaque(nodes_);
+  if (!store)
+    return false;
+  std::set<std::pair<runtime::Id, runtime::TypeId>> unique;
+  bool changed = false;
+  for (const auto &edit : edits) {
+    if (Key(edit.entity.id) != edit.entity || edit.expected.type != edit.replacement.type ||
+        edit.expected.type_name != edit.replacement.type_name ||
+        !unique.emplace(edit.entity.id, edit.expected.type).second)
+      return false;
+    const auto components = store->Find(edit.entity.id);
+    const auto current = std::ranges::find(components, edit.expected.type, &OpaqueComponent::type);
+    if (current == components.end() || *current != edit.expected ||
+        !store->Set(edit.entity.id, edit.replacement))
+      return false;
+    changed |= edit.expected != edit.replacement;
+  }
+  if (!changed)
+    return true;
+  auto staged_nodes = nodes_;
+  UndoEntry entry;
+  entry.kind = UndoEntry::Kind::OpaqueBatch;
+  std::unordered_set<runtime::Id> captured;
+  for (const auto &edit : edits) {
+    auto &node = *std::ranges::find(staged_nodes, edit.entity.id, &Node::id);
+    if (captured.insert(edit.entity.id).second)
+      entry.previous_opaque_batch.emplace_back(edit.entity, node.opaque);
+    *std::ranges::find(node.opaque, edit.replacement.type, &OpaqueComponent::type) =
+        edit.replacement;
+  }
+  PushUndo(std::move(entry));
+  nodes_.swap(staged_nodes);
+  return true;
+}
 std::optional<std::vector<OpaqueComponentInfo>>
 SceneDocument::InspectOpaqueComponents(NodeKey entity) const {
   if (Key(entity.id) != entity)
@@ -1228,6 +1266,14 @@ bool SceneDocument::Undo() {
       std::erase_if(selection_,
                     [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });
     }
+  } else if (entry.kind == UndoEntry::Kind::OpaqueBatch) {
+    for (const auto &[key, components] : entry.previous_opaque_batch)
+      if (Key(key.id) != key)
+        return false;
+    auto staged_nodes = nodes_;
+    for (const auto &[key, components] : entry.previous_opaque_batch)
+      std::ranges::find(staged_nodes, key.id, &Node::id)->opaque = components;
+    nodes_.swap(staged_nodes);
   } else {
     const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);
     if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
@@ -1249,7 +1295,11 @@ bool SceneDocument::Redo() {
   auto &entry = redo_.back();
   if (entry.kind == UndoEntry::Kind::Runtime && !editor_.Redo())
     return false;
-  if (entry.kind != UndoEntry::Kind::Runtime) {
+  if (entry.kind == UndoEntry::Kind::OpaqueBatch) {
+    for (const auto &[key, components] : entry.previous_opaque_batch)
+      if (Key(key.id) != key)
+        return false;
+  } else if (entry.kind != UndoEntry::Kind::Runtime) {
     const auto found = std::ranges::find(nodes_, entry.entity.id, &Node::id);
     if (entry.entity.document_generation != document_generation_ || found == nodes_.end() ||
         found->generation != entry.entity.entity_generation)
