@@ -120,6 +120,31 @@ void Run() {
           !inspector.Apply(scene, *observation, 6, std::array<double, 4>{2, 0, 0, 0}, true) &&
           scene.OpaqueComponents(keys[0]) == original,
       "invalid/unauthorized edit mutated source");
+  auto flags_a = scene.OpaqueComponents(keys[0])->front();
+  auto flags_b = scene.OpaqueComponents(keys[1])->front();
+  flags_a.data[32] = 1;
+  flags_b.data[32] = 2;
+  Require(scene.SetOpaqueComponent(keys[0], flags_a) && scene.SetOpaqueComponent(keys[1], flags_b),
+          "Mixed flag fixture failed");
+  const auto flags = inspector.Inspect(scene, keys, schema.type);
+  Require(flags && flags->properties[4].mixed &&
+              inspector.ApplyFlag(scene, *flags, 4, 2, true, true) &&
+              scene.OpaqueComponents(keys[0])->front().data[32] == 3 &&
+              scene.OpaqueComponents(keys[1])->front().data[32] == 2 && scene.Undo() &&
+              scene.OpaqueComponents(keys[0])->front() == flags_a &&
+              scene.OpaqueComponents(keys[1])->front() == flags_b && scene.Redo() && scene.Undo(),
+          "Mixed flags copied other targets' bits or lost atomic replay");
+  Require(inspector.ApplyFlag(scene, *flags, 4, 1, false, true) &&
+              scene.OpaqueComponents(keys[0])->front().data[32] == 0 &&
+              scene.OpaqueComponents(keys[1])->front() == flags_b && scene.Undo() &&
+              !inspector.ApplyFlag(scene, *flags, 4, 0, true, true) &&
+              !inspector.ApplyFlag(scene, *flags, 4, 4, true, true) &&
+              !inspector.ApplyFlag(scene, *flags, 4, 3, true, true) &&
+              !inspector.ApplyFlag(scene, *flags, 0, 1, true, true) &&
+              !inspector.ApplyFlag(scene, *flags, 4, 1, true, false) && scene.Undo() &&
+              scene.Undo() && scene.OpaqueComponents(keys[0]) == original,
+          "Flag clear or invalid bit changed unrelated source/history");
+  observation = inspector.Inspect(scene, keys, schema.type);
   auto stale = *observation;
   stale.sources[0].second.data[0] ^= 1;
   Require(scene.OpaqueComponents(keys[0]) == original &&

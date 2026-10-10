@@ -114,6 +114,7 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
         state.reflected_mixed.emplace_back(property.path, property.mixed);
         auto value = property.value;
         bool changed = false;
+        std::optional<std::pair<std::uint64_t, bool>> flag_edit;
         ImGui::SetNextItemWidth(180);
         ImGui::BeginDisabled(!editable);
         constexpr auto commit = ImGuiInputTextFlags_EnterReturnsTrue;
@@ -147,7 +148,7 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
             for (const auto &choice : property.choices) {
               bool enabled = (number & choice.value) != 0;
               if (ImGui::Checkbox(choice.label.c_str(), &enabled)) {
-                number = enabled ? number | choice.value : number & ~choice.value;
+                flag_edit = std::pair{choice.value, enabled};
                 changed = true;
               }
               const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
@@ -191,13 +192,16 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
             property.path, std::array{(begin.x + end.x) * .5F, (begin.y + end.y) * .5F});
         ImGui::EndDisabled();
         if (changed) {
-          if (state.reflected_inspector.Apply(
-                  scene,
-                  state.reflected_pending && state.reflected_pending_path == property.path &&
-                          state.reflected_pending->component.type == component.type
-                      ? *state.reflected_pending
-                      : *observation,
-                  index, value, editable)) {
+          const auto &source = state.reflected_pending &&
+                                       state.reflected_pending_path == property.path &&
+                                       state.reflected_pending->component.type == component.type
+                                   ? *state.reflected_pending
+                                   : *observation;
+          const bool accepted =
+              flag_edit ? state.reflected_inspector.ApplyFlag(
+                              scene, source, index, flag_edit->first, flag_edit->second, editable)
+                        : state.reflected_inspector.Apply(scene, source, index, value, editable);
+          if (accepted) {
             state.inspector_error.clear();
             published = true;
           } else

@@ -1025,6 +1025,7 @@ freezes exact source observations, and commit rechecks current selection, catalo
 Generation/catalog/draft IDs and existing focus/authority cancellation prevent stale input revival.
 Read-only, recovery, Play and close gates disable authoring. Each successful field edit records one
 atomic document Undo/Redo entry, preserving padding and unrelated values.
+Flags checkbox clicks submit a bit operation, preserving each selected entity's other flags.
 
 Reload property metadata emits a one-shot request; the native application performs the bounded read
 after the UI frame and replaces the catalog. Project detachment clears interpretation. GUI code owns

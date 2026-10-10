@@ -71,12 +71,17 @@ public:
   // The authoring caller supplies current access/Play/recovery authority; false always rejects.
   bool Apply(SceneDocument &, const ReflectedObservation &, std::size_t property,
              const ReflectedValue &, bool authorized) const;
+  // Flags checkbox operation: preserve every target's other bits in one validated batch.
+  bool ApplyFlag(SceneDocument &, const ReflectedObservation &, std::size_t property,
+                 std::uint64_t bit, bool enabled, bool authorized) const;
   // Optional project metadata: .nexora/inspector.reflection. Missing means empty catalog.
   // Bounded regular, nonaliased read; malformed input returns no catalog and never mutates sources.
   [[nodiscard]] static std::optional<ReflectedInspector>
   LoadProject(const std::filesystem::path &root, std::string *error = nullptr);
 
 private:
+  bool ApplyEdit(SceneDocument &, const ReflectedObservation &, std::size_t, const ReflectedValue &,
+                 bool, std::optional<std::uint64_t> flag_bit) const;
   std::uint64_t revision_{1};
   std::vector<ReflectedComponent> components_;
   runtime::ReflectionRegistry reflection_;

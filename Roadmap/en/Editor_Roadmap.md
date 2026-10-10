@@ -436,7 +436,8 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ The graphical Inspector now interprets bounded, explicit reflection metadata for opaque
   components: Boolean, signed/unsigned scalars, enum/flags, vectors/colors, full-width entity/asset
   references, fixed arrays and flattened nested paths. Mixed selection commits one exact-source,
-  generation-checked atomic Undo/Redo batch; unknown bytes survive save/reopen. Project metadata
+  generation-checked atomic Undo/Redo batch; Flags clicks preserve each target's other bits.
+  Unknown bytes survive save/reopen. Project metadata
   reload revokes stale drafts; read-only and corrupt metadata preserve sources. Real controls at
   1x/2x and native Vulkan edit/save/restart are accepted in
   [the Linux evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md).

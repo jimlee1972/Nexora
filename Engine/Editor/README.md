@@ -1172,6 +1172,9 @@ before publishing. The owner serializes access; observations retain no World, do
 borrows. `SceneDocument::ApplyOpaqueComponents` stages and validates all replacements together,
 then records one atomic Undo/Redo entry. Rejections and no-op edits preserve source/history.
 Application/UI callers continue to enforce project writer, recovery and Play authority.
+`ApplyFlag` sets or clears only a declared checkbox bit in each target's original mask;
+mixed values never copy unrelated bits from the first selection. It shares the same complete
+observation revalidation and atomic Undo/Redo path as ordinary property replacement.
 
 Optional project metadata is read from `.nexora/inspector.reflection`; missing means an empty
 catalog. Files must be regular, non-symlink and single-linked; actual reads stop at 256 KiB + 1.

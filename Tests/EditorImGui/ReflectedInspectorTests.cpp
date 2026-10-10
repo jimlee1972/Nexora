@@ -223,6 +223,59 @@ void Run(float scale) {
                     editor::ReflectedValue{std::uint64_t{0}},
             "actual enum/flags selection and Undo failed");
   }
+  editor::OpaqueComponent flags_a{303, "Mixed.Flags", std::vector<std::uint8_t>(16)};
+  flags_a.data[0] = 1;
+  flags_a.data[14] = 255;
+  auto flags_b = flags_a;
+  flags_b.data[0] = 2;
+  Require(scene.SetOpaqueComponent(keys[0], flags_a) &&
+              scene.SetOpaqueComponent(keys[1], flags_b) && scene.Select(keys) &&
+              metadata.SetComponents({{303,
+                                       "Mixed.Flags",
+                                       16,
+                                       {{"permissions",
+                                         editor::ReflectedKind::Flags,
+                                         0,
+                                         1,
+                                         {{1, "Read"}, {2, "Write"}}}}}}) &&
+              ui.SetReflectedInspector(metadata),
+          "Mixed flags controls fixture failed");
+  draw();
+  draw();
+  const auto choose_flag = [&](std::string_view label) {
+    click("permissions");
+    const auto point = Access::ReflectedChoicePosition(ui, "permissions", label);
+    Require(point.has_value(), "Mixed flags popup choice absent");
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * scale);
+    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{pointer, button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    key(Nexora::Window::Key::Escape);
+  };
+  const auto masks = [&] {
+    return std::array{scene.OpaqueComponents(keys[0])->back().data[0],
+                      scene.OpaqueComponents(keys[1])->back().data[0]};
+  };
+  choose_flag("Write");
+  Require(masks() == std::array<std::uint8_t, 2>{3, 2} && scene.Undo() &&
+              masks() == std::array<std::uint8_t, 2>{1, 2} && scene.Redo(),
+          "Mixed flags click copied another entity's unrelated bits");
+  draw();
+  choose_flag("Read");
+  Require(masks() == std::array<std::uint8_t, 2>{2, 2} && scene.Undo() &&
+              masks() == std::array<std::uint8_t, 2>{3, 2} && scene.Undo() &&
+              masks() == std::array<std::uint8_t, 2>{1, 2} &&
+              scene.OpaqueComponents(keys[0])->back().data[14] == 255 &&
+              scene.OpaqueComponents(keys[1])->back().data[14] == 255,
+          "Mixed flags clear lost unrelated flags/padding or one-step Undo");
   Require(scene.Select(std::span<const runtime::Id>{}), "deselect failed");
   draw();
   Require(!Access::ReflectedPropertyPosition(ui, "enabled"), "deselection retained old controls");

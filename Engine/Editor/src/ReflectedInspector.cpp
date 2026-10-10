@@ -277,6 +277,16 @@ ReflectedInspector::Inspect(const SceneDocument &scene,
 bool ReflectedInspector::Apply(SceneDocument &scene, const ReflectedObservation &observation,
                                std::size_t property, const ReflectedValue &value,
                                bool authorized) const {
+  return ApplyEdit(scene, observation, property, value, authorized, {});
+}
+bool ReflectedInspector::ApplyFlag(SceneDocument &scene, const ReflectedObservation &observation,
+                                   std::size_t property, std::uint64_t bit, bool enabled,
+                                   bool authorized) const {
+  return ApplyEdit(scene, observation, property, std::uint64_t{enabled ? bit : 0}, authorized, bit);
+}
+bool ReflectedInspector::ApplyEdit(SceneDocument &scene, const ReflectedObservation &observation,
+                                   std::size_t property, const ReflectedValue &value,
+                                   bool authorized, std::optional<std::uint64_t> flag_bit) const {
   if (!authorized || observation.catalog_revision != revision_ || observation.sources.empty() ||
       observation.sources.size() > kMaximumTargets ||
       observation.sources.size() != scene.Selection().size())
@@ -296,10 +306,23 @@ bool ReflectedInspector::Apply(SceneDocument &scene, const ReflectedObservation 
       observation.properties[property].kind != fresh->properties[property].kind ||
       !Allowed(fresh->properties[property], value))
     return false;
+  const auto &field = fresh->properties[property];
+  if (flag_bit && (field.kind != ReflectedKind::Flags ||
+                   !std::ranges::any_of(field.choices, [&](const auto &choice) {
+                     return choice.value == *flag_bit;
+                   })))
+    return false;
   std::vector<SceneDocument::OpaqueComponentEdit> edits;
   for (const auto &[key, expected] : fresh->sources) {
     auto replacement = expected;
-    Encode(fresh->properties[property], value, replacement.data);
+    if (flag_bit) {
+      const auto current = Read64(expected.data, field.offset);
+      Encode(field,
+             std::uint64_t{std::get<std::uint64_t>(value) ? current | *flag_bit
+                                                          : current & ~*flag_bit},
+             replacement.data);
+    } else
+      Encode(field, value, replacement.data);
     edits.push_back({key, expected, std::move(replacement)});
   }
   return scene.ApplyOpaqueComponents(edits);

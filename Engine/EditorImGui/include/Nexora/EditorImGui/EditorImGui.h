@@ -168,7 +168,6 @@ public:
   bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
   [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
 
-
   // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
   bool SetReflectedInspector(const ReflectedInspector &catalog);
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
