@@ -56,6 +56,15 @@ struct ProjectDescriptor final {
 enum class ProjectAccess : std::uint8_t { ReadWrite, ReadOnly };
 enum class ProjectUpgradeState : std::uint8_t { Current, Applied, Required };
 
+// Owning read-only inspection. The proposed descriptor is a plan, not publication authority.
+struct ProjectUpgradePreview final {
+  std::filesystem::path root;
+  ProjectDescriptor project;
+  ProjectUpgradeState state{ProjectUpgradeState::Current};
+  std::vector<std::string> documents;
+  std::string original_descriptor, proposed_descriptor;
+};
+
 class NEXORA_EDITOR_API ProjectWorkspace final {
 public:
   static constexpr std::size_t kMaximumDocuments = 4096;
@@ -66,6 +75,10 @@ public:
   static constexpr std::size_t kMaximumProcessMemoryJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumGpuTimingJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumPlayInputSettingsBytes = 1024;
+  static constexpr std::size_t kMaximumProjectDescriptorBytes = 4096;
+  // No writer lease, directory creation or file writes. A read-write Open always reinspects.
+  [[nodiscard]] static std::optional<ProjectUpgradePreview>
+  PreviewUpgrade(const std::filesystem::path &root, std::string *error = nullptr);
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;

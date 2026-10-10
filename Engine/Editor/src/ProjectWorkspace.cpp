@@ -122,18 +122,45 @@ std::string ProjectContents(const ProjectDescriptor &project) {
   return "schema=2\nuuid=" + project.id.ToString() + "\nname=" + project.name + "\n";
 }
 
-bool ReadProjectDescriptor(const std::filesystem::path &path, ProjectDescriptor &project,
-                           bool &legacy, std::string *error) {
+std::optional<std::string> ReadDescriptorBytes(const std::filesystem::path &path,
+                                               std::string *error, bool distinct = false) {
+  const auto fail = [&]() -> std::optional<std::string> {
+    if (error)
+      *error = "project descriptor/upgrade evidence is unavailable, unsafe or too large";
+    return std::nullopt;
+  };
   std::error_code ec;
   const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec || !std::filesystem::is_regular_file(status))
+    return fail();
   const auto size = std::filesystem::file_size(path, ec);
-  if (ec || std::filesystem::is_symlink(status) || !std::filesystem::is_regular_file(status) ||
-      size > 4096) {
-    if (error)
-      *error = "project descriptor is unavailable, unsafe, or too large";
-    return false;
+  if (ec || size > ProjectWorkspace::kMaximumProjectDescriptorBytes)
+    return fail();
+  if (distinct) {
+    const auto links = std::filesystem::hard_link_count(path, ec);
+    if (ec || links != 1)
+      return fail();
   }
   std::ifstream input(path, std::ios::binary);
+  if (!input)
+    return fail();
+  std::array<char, ProjectWorkspace::kMaximumProjectDescriptorBytes + 1> buffer{};
+  input.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+  const auto count = static_cast<std::size_t>(input.gcount());
+  if (input.bad() || count > ProjectWorkspace::kMaximumProjectDescriptorBytes ||
+      (!input.eof() && input.fail()))
+    return fail();
+  return std::string(buffer.data(), count);
+}
+
+bool ReadProjectDescriptor(const std::filesystem::path &path, ProjectDescriptor &project,
+                           bool &legacy, std::string *error, std::string &original) {
+  const auto bytes = ReadDescriptorBytes(path, error);
+  if (!bytes)
+    return false;
+  original = *bytes;
+  std::istringstream input(original);
+  input.imbue(std::locale::classic());
   std::vector<std::string> lines;
   for (std::string line; std::getline(input, line);) {
     StripCarriageReturn(line);
@@ -416,6 +443,77 @@ struct ProjectWorkspace::LockState final {
   }
 };
 
+std::optional<ProjectUpgradePreview>
+ProjectWorkspace::PreviewUpgrade(const std::filesystem::path &root, std::string *error) {
+  if (error)
+    error->clear();
+  std::error_code ec;
+  ProjectUpgradePreview preview;
+  preview.root = std::filesystem::canonical(root, ec);
+  if (ec || !std::filesystem::is_directory(preview.root, ec)) {
+    if (error)
+      *error = "project root is unavailable";
+    return std::nullopt;
+  }
+  bool legacy{};
+  if (!ReadProjectDescriptor(preview.root / "project.nexora", preview.project, legacy, error,
+                             preview.original_descriptor) ||
+      !ReadWorkspace(preview.root / ".nexora/workspace", preview.documents, error))
+    return std::nullopt;
+  if (legacy) {
+    preview.project.id = DerivedProjectId(preview.root, preview.project.name);
+    preview.state = ProjectUpgradeState::Required;
+    preview.proposed_descriptor = ProjectContents(preview.project);
+  } else
+    preview.proposed_descriptor = preview.original_descriptor;
+  return preview;
+}
+
+namespace {
+bool UpgradeEvidenceMatches(const std::filesystem::path &path, std::string_view expected,
+                            std::string *error) {
+  const auto bytes = ReadDescriptorBytes(path, error, true);
+  if (bytes && *bytes == expected)
+    return true;
+  if (error && bytes)
+    *error = "foreign project upgrade backup/report was retained";
+  return false;
+}
+bool RetainUpgradeEvidence(const std::filesystem::path &path, std::string_view expected,
+                           std::string *error) {
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  if (ec == std::errc::no_such_file_or_directory ||
+      (!ec && status.type() == std::filesystem::file_type::not_found))
+    return AtomicWrite(path, expected, error);
+  return UpgradeEvidenceMatches(path, expected, error);
+}
+bool PublishProjectUpgrade(const ProjectUpgradePreview &preview, std::string *error) {
+  const auto source = preview.root / "project.nexora";
+  const auto backup = preview.root / ".nexora/project-upgrade.schema1.backup";
+  const auto report = preview.root / ".nexora/project-upgrade.schema1.report";
+  const auto plan = "NXPROJECTUPGRADE1\nfrom=1\nto=2\nuuid=" + preview.project.id.ToString() +
+                    "\nsource-bytes=" + std::to_string(preview.original_descriptor.size()) +
+                    "\npublication=plan-only\n";
+  const auto source_matches = [&] {
+    const auto bytes = ReadDescriptorBytes(source, error);
+    if (bytes && *bytes == preview.original_descriptor)
+      return true;
+    if (error && bytes)
+      *error = "project descriptor changed during upgrade; all versions were retained";
+    return false;
+  };
+  // Evidence is durable across ordinary process restart. Never claim fsync/power-loss atomicity.
+  // A prepared report describes the plan, not a successful descriptor publication.
+  if (!source_matches() || !RetainUpgradeEvidence(backup, preview.original_descriptor, error) ||
+      !source_matches() || !RetainUpgradeEvidence(report, plan, error) ||
+      !UpgradeEvidenceMatches(backup, preview.original_descriptor, error) ||
+      !UpgradeEvidenceMatches(report, plan, error) || !source_matches())
+    return false;
+  return AtomicWrite(source, preview.proposed_descriptor, error);
+}
+} // namespace
+
 ProjectWorkspace::ProjectWorkspace() = default;
 ProjectWorkspace::~ProjectWorkspace() = default;
 ProjectWorkspace::ProjectWorkspace(ProjectWorkspace &&other) noexcept { *this = std::move(other); }
@@ -524,24 +622,17 @@ bool ProjectWorkspace::Open(const std::filesystem::path &root, ProjectAccess acc
     if (!lock)
       return false;
   }
-  ProjectDescriptor project;
-  bool legacy = false;
-  if (!ReadProjectDescriptor(canonical_root / "project.nexora", project, legacy, error))
+  const auto preview = PreviewUpgrade(canonical_root, error);
+  if (!preview)
     return false;
-  project.id = legacy ? DerivedProjectId(canonical_root, project.name) : project.id;
-  auto upgrade = ProjectUpgradeState::Current;
-  std::vector<std::string> documents;
-  if (!ReadWorkspace(canonical_root / ".nexora/workspace", documents, error))
-    return false;
-  if (legacy) {
-    if (access == ProjectAccess::ReadWrite) {
-      project.schema_version = ProjectDescriptor::kSchemaVersion;
-      if (!AtomicWrite(canonical_root / "project.nexora", ProjectContents(project), error))
-        return false;
-      upgrade = ProjectUpgradeState::Applied;
-    } else {
-      upgrade = ProjectUpgradeState::Required;
-    }
+  auto project = preview->project;
+  auto documents = preview->documents;
+  auto upgrade = preview->state;
+  if (upgrade == ProjectUpgradeState::Required && access == ProjectAccess::ReadWrite) {
+    if (!PublishProjectUpgrade(*preview, error))
+      return false;
+    project.schema_version = ProjectDescriptor::kSchemaVersion;
+    upgrade = ProjectUpgradeState::Applied;
   }
   auto write_time = std::filesystem::last_write_time(canonical_root / ".nexora/workspace", ec);
   if (ec)
