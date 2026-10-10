@@ -7,6 +7,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ContentBrowser.cpp
   src/EditorProduction.cpp
   src/ExtensionTrust.cpp
+  src/SignedExtensionHost.cpp
   src/ProjectContent.cpp
   src/ProjectWorkspace.cpp
   src/ProjectInputBindings.cpp

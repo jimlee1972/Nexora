@@ -178,8 +178,8 @@ jobs:
       - name: Require real cryptographic signature verification
         run: |
           grep -q '^NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE:INTERNAL=ON$' build/linux-development/CMakeCache.txt
-          ctest --preset linux-development -N -R '^(cryptography\.ed25519_sha256|editor\.extension_signature_trust)$' | grep -q 'Total Tests: 2'
-          ctest --preset linux-development -R '^(cryptography\.ed25519_sha256|editor\.extension_signature_trust)$' --output-on-failure
+          ctest --preset linux-development -N -R '^(cryptography\.ed25519_sha256|editor\.(extension_signature_trust|signed_extension_admission))$' | grep -q 'Total Tests: 3'
+          ctest --preset linux-development -R '^(cryptography\.ed25519_sha256|editor\.(extension_signature_trust|signed_extension_admission))$' --output-on-failure
       - name: Require the display acceptance to be registered
         # The test is only registered when Xvfb and xdotool are found; fail loudly instead of
         # silently skipping it if either goes missing.
