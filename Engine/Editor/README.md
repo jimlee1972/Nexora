@@ -96,6 +96,25 @@ sources may still be referenced by variants/nested graphs. The archive/current w
 ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
 override/rebase, nested materialization, journaling and retention policy remain separate work.
 
+## Stable prefab revision comparison
+
+`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
+node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
+Official scene parsing and bounded field snapshots retain component presence/stored values,
+authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
+instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
+are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
+Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
+
+The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
+4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
+opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
+Sources and authoring owners serialize during capture; results borrow no asset/document/World.
+The comparison performs no file IO, interpretation of unavailable native components, live mutation,
+Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
+separate structural validation before any future revert/apply/rebase. Graphical bindings and
+transactional override publication remain separate work; public C++ consumers rebuild.
+
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`
