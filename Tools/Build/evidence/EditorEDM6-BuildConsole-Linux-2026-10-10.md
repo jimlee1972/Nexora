@@ -7,7 +7,7 @@ This support feature does not accept the full ED-M6 milestone.
 
 Full Linux Development with graphical Editor, Slang, Zig gameplay, Showcase and native
 ProjectPlayer enabled: configure/build succeeded; `ctest --preset linux-development` passed
-225/225 in 546.51 seconds, zero skips. Minimal `linux-shipping` configure/build passed, 74
+232/232 in 578.74 seconds, zero skips. Minimal `linux-shipping` configure/build passed, 5
 build steps. Shipping disables Editor and does not execute this graphical panel.
 
 ```sh
@@ -45,3 +45,14 @@ the runner; shutdown cancels before joining workers. This is not a process sandb
 No compiler/toolchain discovery, target matrix, build artifact verification, reproducible manifest,
 remote deployment, debugger or extension installation is accepted here. Hosted checks at the final
 published head are independently required before merge. Root roadmap milestones remain 0/8.
+
+## Main integration and modal authority
+
+Rebased the single graphical feature commit onto accepted bounded-process main
+`94fc8431b99fa84e91db805e5e8c51cb7b0f479b`, preserving diagnostic privacy, project upgrade
+and semantic comparison controls/acceptance. The widgets also independently block Run on pending
+Play commands, close/recovery/file/tab/rename/input modals and lost focus; blocked authority cancels
+running work. Actual 1x/2x tests verify that requesting close confirmation cannot start another
+child even when the caller passes allow_start=true. The final full suite includes native
+build-console acceptance (7.54 s). No process/argv/tail or native fixture behavior changed in
+the rebase. Artifact verification and remote build/deployment remain open.

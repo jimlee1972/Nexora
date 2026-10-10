@@ -1057,3 +1057,9 @@ after the UI frame and replaces the catalog. Project detachment clears interpret
 no native plugin objects and performs no metadata writes or native code loading. Fixed arrays and
 flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
 observations are private to test builds and expose no ImGui type across the public module boundary.
+
+## Build process interaction guards
+
+Build-process Run also independently checks current focus, queued Play/close decisions and
+recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
+confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.

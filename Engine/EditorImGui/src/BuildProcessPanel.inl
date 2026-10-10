@@ -45,6 +45,13 @@ void EditorImGuiHost::DrawBuildProcess(BuildProcess &process, std::uint64_t scop
                                        const std::filesystem::path &root, bool allow_start) {
   ImGui::SetCurrentContext(state_->context);
   auto &state = *state_;
+  allow_start = allow_start && state.app_focused && !state.build_console_interaction_blocked &&
+                state.play_command == PlayCommand::None && !state.close_prompt_requested &&
+                state.close_choice == CloseChoice::None &&
+                state.scene_file_dialog == State::FileDialog::None && !state.scene_file_output &&
+                !state.scene_tab_dialog && !state.scene_tab_output &&
+                !state.hierarchy_rename_target && !state.content_rename_target &&
+                !state.game_input_binding_open;
   state.build_console_positions = {};
   if (state.build_console_scope != scope) {
     static_cast<void>(process.Cancel());

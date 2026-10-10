@@ -199,6 +199,14 @@ void Run(float scale, const std::filesystem::path &executable) {
     finish();
     Require(Access::BuildStatus(ui).phase == Phase::Cancelled,
             "Revoked project authority left process running");
+    allowed = true;
+    command({"--args"});
+    const auto closed_operation = process.Snapshot().operation;
+    ui.RequestCloseConfirmation();
+    draw();
+    click(4);
+    Require(process.Snapshot().operation == closed_operation && !process.Busy(),
+            "Close confirmation launched a new child process");
     process.Shutdown();
     jobs.Stop();
     std::ifstream input(marker);

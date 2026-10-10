@@ -148,6 +148,7 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
   std::uint64_t build_console_scope{};
+  bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
   std::vector<std::array<char, 2048>> build_arguments;
   BuildProcessSnapshot build_console_status;
@@ -4593,6 +4594,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                  active_tab->token == state_->scene_file_token;
   const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
   const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
+  state_->build_console_interaction_blocked = file_external_block || tab_modal;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
