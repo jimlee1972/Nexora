@@ -191,6 +191,9 @@ jobs:
       - name: Require additive document-owner acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.additive_scene_session$' | grep -q 'Total Tests: 1'
+      - name: Require semantic scene comparison acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
         # The deep hierarchy test must be present in the graphical configuration.
         # Full Editor execution below retains all existing navigation controls.

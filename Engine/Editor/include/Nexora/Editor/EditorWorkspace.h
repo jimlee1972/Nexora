@@ -384,6 +384,11 @@ public:
   // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.
   bool NewScene();
   bool Reload(const std::filesystem::path &path);
+  // Reuses the versioned file parser for an already bounded owning/caller-held byte revision.
+  // No filesystem IO; success/rejection has the same atomic replacement/history contract as Reload.
+  bool ReloadBytes(std::string_view bytes);
+  // Rejects excess authoring nodes during ingestion, before legacy hierarchy validation/migration.
+  bool ReloadBytes(std::string_view bytes, std::size_t maximum_nodes);
   // Authoring-thread, synchronous capture of a live Editor World scene. Preflights identities,
   // opaque metadata and bounds before serialization/copy; serialization uses World authority
   // with the byte cap. No IO, World borrow in the result, or history/selection/baseline mutation.
@@ -405,6 +410,7 @@ private:
   friend class AdditiveSceneSession;
   enum class BuiltinEntity { Empty, Camera, Light };
   friend class SceneSaveBatch;
+  bool ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes = std::nullopt);
   runtime::Id CreateBuiltin(std::string name, runtime::Id parent, BuiltinEntity kind);
   runtime::Id AdoptCreatedEntity(runtime::Id entity, std::string name);
   [[nodiscard]] std::optional<std::vector<std::pair<NodeKey, runtime::Transform>>>

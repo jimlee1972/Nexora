@@ -1524,7 +1524,20 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   }
   if (!file.eof())
     return false;
-  std::istringstream input(std::move(staged_file));
+  return ReloadOwnedBytes(std::move(staged_file));
+}
+bool SceneDocument::ReloadBytes(std::string_view bytes) {
+  if (bytes.size() > kMaximumSceneFileBytes)
+    return false;
+  return ReloadOwnedBytes(std::string(bytes));
+}
+bool SceneDocument::ReloadBytes(std::string_view bytes, std::size_t maximum_nodes) {
+  if (bytes.size() > kMaximumSceneFileBytes)
+    return false;
+  return ReloadOwnedBytes(std::string(bytes), maximum_nodes);
+}
+bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes) {
+  std::istringstream input{std::move(bytes)};
   std::string line, world_data;
   struct LoadedNode final {
     runtime::Id id{}, parent{};
@@ -1570,6 +1583,8 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
     }
     if (!line.starts_with("node "))
       return false;
+    if (maximum_nodes && loaded.size() >= *maximum_nodes)
+      return false;
     std::istringstream parser(line.substr(5));
     LoadedNode node;
     // Save writes exactly one space before the name, so consume only that one: skipping all
@@ -1594,19 +1609,30 @@ bool SceneDocument::Reload(const std::filesystem::path &path) {
   // From world snapshot version 3 on, the snapshot is authoritative for the hierarchy and the
   // node-line parent column is informational (a node may legitimately have a parent entity that is
   // not a node), so only legacy files, whose migration uses that column, validate it.
-  for (const auto &node : loaded) {
-    if (version >= 3)
-      break;
-    if (node.parent && !ids.contains(node.parent))
-      return false;
-    std::unordered_set<runtime::Id> ancestors;
-    for (auto parent = node.parent; parent;) {
-      if (!ancestors.insert(parent).second)
+  if (version < 3) {
+    std::unordered_map<runtime::Id, std::size_t> indexed;
+    for (std::size_t i = 0; i < loaded.size(); ++i) {
+      if (loaded[i].parent && !ids.contains(loaded[i].parent))
         return false;
-      const auto found = std::ranges::find(loaded, parent, &LoadedNode::id);
-      if (found == loaded.end())
-        return false;
-      parent = found->parent;
+      indexed.emplace(loaded[i].id, i);
+    }
+    // Each node/edge is visited once, including adversarial deep legacy parent chains.
+    std::vector<unsigned char> state(loaded.size());
+    std::vector<std::size_t> chain;
+    for (std::size_t i = 0; i < loaded.size(); ++i) {
+      chain.clear();
+      for (auto id = loaded[i].id; id;) {
+        const auto index = indexed.at(id);
+        if (state[index] == 2)
+          break;
+        if (state[index] == 1)
+          return false;
+        state[index] = 1;
+        chain.push_back(index);
+        id = loaded[index].parent;
+      }
+      for (const auto index : chain)
+        state[index] = 2;
     }
   }
   // Before snapshot version 3 the hierarchy existed only in these node lines and never moved
