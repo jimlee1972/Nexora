@@ -46,3 +46,23 @@ and supplies project writer/recovery/Play authority. Structural additions/deleti
 prefab field selection and graphical revert/rebase remain separate work. Public C++
 consumers rebuild; stable C/Gameplay ABI/module graph are unchanged. Full Editor
 milestones remain **0/8**. Current-head hosted checks remain required before merge.
+
+## Accepted native-input Main integration
+
+Only the atomic snapshot code and its evidence replay onto accepted Main
+`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79` (PR 500 native frame admission), retaining
+accepted PrefabDocumentSession and Content index budgets. The replayed feature head is
+`c7b4be7e76b565f01204e31462fbc744d4585b20`; previous green/conflicted and unpublished
+intermediate heads do not authorize the new integration.
+
+Fresh full graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer Development
+configure/build passed **313 steps** and **241/241 in 590.36 s**, zero skips. The atomic
+snapshot fixture repeated successfully in **0.01 s**. Minimal Monolithic Shipping
+reconfiguration/build passed **5 steps**, excluding Editor and proving minimal
+profile/link compatibility only. Pinned ImGui/Vulkan cache overrides are unchanged.
+Documentation tests passed **16/16 in 0.765 s** and changed-document links passed.
+Published current-head hosted checks and
+an independently clean current Main remain mandatory before ordinary squash merge.
+The separately tracked latent in-memory Euler preservation fix remains its own
+placement/source-rebase dependency scope; no expanded latent-hint acceptance is
+claimed by this canonical snapshot gate. Full Editor milestones remain **0/8**.
