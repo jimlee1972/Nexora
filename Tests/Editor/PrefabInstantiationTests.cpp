@@ -201,6 +201,10 @@ void Run(bool bound) {
           "Scene file publication rejected owning bindings");
   std::ifstream file(temporary / "Content/Bound.scene", std::ios::binary);
   const std::string saved{std::istreambuf_iterator<char>(file), {}};
+  // Windows readers do not share deletion: release the destination before the
+  // later coordinated atomic replacement, while retaining its owning bytes.
+  file.close();
+  Require(!file.fail(), "Bound saved scene reader did not close successfully");
   runtime::World reopened_world;
   editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Reopen"));
   Require(reopened.ReloadBytes(saved) && !reopened.Dirty() &&
@@ -244,10 +248,13 @@ void Run(bool bound) {
   Require(target.Rename(seed_key, "Batch edit"), "Bound batch edit failed");
   editor::SceneSaveBatch batch(workspace);
   const std::array sessions{&files};
-  Require(batch.Prepare(sessions) && batch.Publish().Published() && !target.Dirty() &&
-              std::ranges::equal(target.PrefabPlacements(), repeated_bindings) && target.Undo() &&
-              target.PrepareSave()->Bytes() == saved,
-          "Coordinated Scene Save All lost bindings or consumed Undo");
+  Require(batch.Prepare(sessions), "Bound Scene Save All preparation failed");
+  Require(batch.Publish().Published(), "Bound Scene Save All publication failed");
+  Require(!target.Dirty(), "Bound Scene Save All did not advance the saved baseline");
+  Require(std::ranges::equal(target.PrefabPlacements(), repeated_bindings),
+          "Bound Scene Save All lost placement metadata");
+  Require(target.Undo(), "Bound Scene Save All consumed Undo");
+  Require(target.PrepareSave()->Bytes() == saved, "Bound Scene Save All Undo changed exact bytes");
   Require(reopened.NewScene() && reopened.PrefabPlacements().empty() &&
               reopened.ReloadBytes(saved) &&
               std::ranges::equal(reopened.PrefabPlacements(), repeated_bindings),
