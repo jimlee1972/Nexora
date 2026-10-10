@@ -805,6 +805,11 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   Structural change 與 graphical prefab revert/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
 
+- ✅ 未變更的 atomic snapshot rotation group 現保留暫存的 authored Euler 圈數。
+  Ordinary snapshot、placement revision transaction 及實際 source-name rebase 保留精確 history；
+  明確 quaternion 變更及 authored record 移除仍會生效。
+  [角度證據](../../Tools/Build/evidence/EditorEDM4-SnapshotEulerHints-Linux-2026-10-10.md)。
+
 - ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
   revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。
   實際 rename／Undo／save／reopen、scoped repeated placement、cycle／stale／budget 拒絕及

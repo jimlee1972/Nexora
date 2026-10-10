@@ -209,6 +209,12 @@ current PreparedSave and requires the exact existing entity/node ID set, scene n
 It stages names, authored Euler and unavailable opaque data while preserving current generation
 keys. The existing Runtime atomic snapshot replacement applies hierarchy/order/TRS and complete
 component presence/stored values. It performs no IO, creation/deletion or saved-baseline change.
+Unchanged rotation groups retain an existing in-memory Euler hint when both the exact Runtime
+quaternion and canonical Euler records are unchanged. This includes latent authored turns whose
+saved quaternion currently differs from Runtime and is therefore omitted by PrepareSave. Explicit
+quaternion changes or Euler-record insertion/removal use the candidate metadata. Complete history
+retains the resulting hints; a no-op preserves Redo. This does not persist a latent hint while its
+quaternion differs from Runtime or change the scene codec.
 Selection and user clipboard/cut state remain intact. Callers serialize owners and enforce current
 project writer, recovery and Play authority; false authorization rejects before mutation.
 

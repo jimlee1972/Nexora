@@ -835,6 +835,10 @@ creates property widgets; unknown components retain raw data instead of being si
     hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
     clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
+  - ✅ Unchanged atomic snapshot rotation groups now conserve latent in-memory authored Euler
+    turns. Ordinary snapshots, placement revision transactions and actual source-name rebases
+    preserve exact history; explicit quaternion changes and authored-record removal are honored.
+    [Hint evidence](../../Tools/Build/evidence/EditorEDM4-SnapshotEulerHints-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
