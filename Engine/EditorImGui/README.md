@@ -1058,6 +1058,22 @@ no native plugin objects and performs no metadata writes or native code loading.
 flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
 observations are private to test builds and expose no ImGui type across the public module boundary.
 
+## Persistent prefab instance source inspection
+
+The Inspector shows source identity and retained revision only for a single selected bound scene
+node. `Inspect source` emits an owning project/root/file/node/placement/scoped-source request;
+drawing performs no file IO or scene mutation. Read-only/reference scenes can inspect. The host
+rechecks current scope and stopped Play/modal/export/recovery policy before resolving the exact
+retained source closure. The UI keeps only a small owning display report, never a source/document
+borrow or write capability. Available/unresolved and current publication are explicitly labeled
+as captured facts; the user requests inspection again to refresh filesystem observations.
+
+Changed project/file/document/node/binding selection clears pending request and prior report.
+Blocked interaction clears pending inspection; hidden/Play Inspector frames cannot consume an
+old click. Scope-invalid, over-budget or inconsistent reports reject without replacing the prior
+display. Local ordinary property changes do not fabricate source values or imply live source
+validity. Instance override/revert/apply/rebase remain separate authoring operations.
+
 ## Build process interaction guards
 
 Build-process Run also independently checks current focus, queued Play/close decisions and

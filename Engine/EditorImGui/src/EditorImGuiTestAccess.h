@@ -169,6 +169,10 @@ public:
   HierarchyRowPosition(const EditorImGuiHost &host, SceneDocument::NodeKey key) noexcept;
   static void FocusScene(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static const PrefabPlacementSourceReport *
+  PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   NativeSceneToolPosition(const EditorImGuiHost &host, NativeSceneTool tool) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFramePosition(const EditorImGuiHost &host) noexcept;
