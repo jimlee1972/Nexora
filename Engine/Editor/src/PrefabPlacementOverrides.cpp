@@ -83,6 +83,51 @@ RuntimePropertyRecords(std::string_view snapshot) {
   }
   return records;
 }
+std::optional<std::string> SelectedRuntimeProperties(std::string_view retained,
+                                                     std::string_view local,
+                                                     const std::set<std::string> &groups) {
+  const auto split = [](std::string_view value) -> std::optional<std::array<std::string_view, 19>> {
+    std::array<std::string_view, 19> tokens;
+    for (std::size_t i = 0; i < tokens.size(); ++i) {
+      const auto end = value.find(' ');
+      if (value.empty() || (i + 1 == tokens.size()) != (end == value.npos))
+        return {};
+      tokens[i] = value.substr(0, end);
+      if (tokens[i].empty())
+        return {};
+      if (end != value.npos)
+        value.remove_prefix(end + 1);
+    }
+    return tokens;
+  };
+  const auto source = split(retained);
+  auto destination = split(local);
+  if (!source || !destination)
+    return {};
+  const auto copy = [&](std::initializer_list<std::size_t> indices) {
+    for (const auto index : indices)
+      (*destination)[index] = (*source)[index];
+  };
+  if (groups.contains("transform.position"))
+    copy({0, 1, 2});
+  if (groups.contains("transform.rotation"))
+    copy({3, 4, 5, 6});
+  if (groups.contains("transform.scale"))
+    copy({7, 8, 9});
+  if (groups.contains("camera"))
+    copy({10, 13, 14, 15});
+  if (groups.contains("light"))
+    copy({11, 16});
+  if (groups.contains("mesh"))
+    copy({12, 17, 18});
+  std::string result;
+  for (const auto token : *destination) {
+    if (!result.empty())
+      result += ' ';
+    result += token;
+  }
+  return result;
+}
 } // namespace
 
 std::optional<PrefabPlacementOverrideReview>
@@ -190,6 +235,19 @@ bool PrefabPlacementOverrides::Matches(const ProjectWorkspace &workspace,
 bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDocument &target,
                                       const PrefabPlacementOverrideReview &review, bool authorized,
                                       std::string *error) {
+  return RevertProperties(workspace, target, review, std::nullopt, authorized, error);
+}
+bool PrefabPlacementOverrides::RevertSelected(const ProjectWorkspace &workspace,
+                                              SceneDocument &target,
+                                              const PrefabPlacementOverrideReview &review,
+                                              std::span<const std::size_t> rows, bool authorized,
+                                              std::string *error) {
+  return RevertProperties(workspace, target, review, rows, authorized, error);
+}
+bool PrefabPlacementOverrides::RevertProperties(
+    const ProjectWorkspace &workspace, SceneDocument &target,
+    const PrefabPlacementOverrideReview &review,
+    std::optional<std::span<const std::size_t>> selected, bool authorized, std::string *error) {
   if (error)
     error->clear();
   const auto fail = [&](const char *message) {
@@ -202,7 +260,24 @@ bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDo
     return fail("Prefab property revert requires a current review and writer authorization.");
   if (std::ranges::any_of(review.rows_, &PrefabPlacementOverrideRow::structural))
     return fail("Prefab property revert does not reconcile structural hierarchy changes.");
-  if (review.rows_.empty())
+  std::map<runtime::Id, std::set<std::string>> selected_groups;
+  if (selected) {
+    if (selected->size() > kMaximumRows)
+      return fail("Prefab selected property rows exceed their budget.");
+    std::set<std::size_t> unique;
+    for (const auto index : *selected) {
+      if (index >= review.rows_.size() || !unique.insert(index).second)
+        return fail("Prefab selected property row is absent or duplicated.");
+      const auto &row = review.rows_[index];
+      const auto group = Property(row.field);
+      if (group != "name" && group != "transform.position" && group != "transform.rotation" &&
+          group != "transform.scale" && group != "camera" && group != "light" && group != "mesh" &&
+          !group.starts_with("opaque/"))
+        return fail("Prefab selected property group is unsupported.");
+      selected_groups[row.target.id].insert(group);
+    }
+  }
+  if (review.rows_.empty() || (selected && selected->empty()))
     return true; // Preserve pending Redo and the saved baseline for a semantic no-op.
   const auto &inspection = review.inspection_;
   if (!inspection.graph_)
@@ -243,12 +318,48 @@ bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDo
         !staged_properties->contains(live->target))
       return fail("Prefab scoped source-to-live identity is unavailable.");
     auto &destination = *staged_nodes.at(live->target);
-    const auto generation = destination.generation;
-    destination = *authoring->second;
-    destination.id = live->target;
-    destination.generation = generation;
-    staged_properties->at(live->target) = source_properties->at(node.target.id);
+    if (!selected) {
+      const auto generation = destination.generation;
+      destination = *authoring->second;
+      destination.id = live->target;
+      destination.generation = generation;
+      staged_properties->at(live->target) = source_properties->at(node.target.id);
+    } else if (const auto found = selected_groups.find(live->target);
+               found != selected_groups.end()) {
+      const auto &groups = found->second;
+      if (groups.contains("name"))
+        destination.name = authoring->second->name;
+      if (groups.contains("transform.rotation"))
+        destination.euler_hint = authoring->second->euler_hint;
+      for (const auto &group : groups)
+        if (group.starts_with("opaque/")) {
+          std::uint64_t type{};
+          const auto text = std::string_view(group).substr(7);
+          const auto parsed = std::from_chars(text.data(), text.data() + text.size(), type);
+          if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || !type)
+            return fail("Prefab opaque property identity is invalid.");
+          const auto original = std::ranges::find(authoring->second->opaque, type,
+                                                  [](const auto &value) { return value.type; });
+          const auto current = std::ranges::find(destination.opaque, type,
+                                                 [](const auto &value) { return value.type; });
+          if (original == authoring->second->opaque.end())
+            std::erase_if(destination.opaque,
+                          [&](const auto &value) { return value.type == type; });
+          else if (current == destination.opaque.end())
+            destination.opaque.push_back(*original);
+          else
+            *current = *original;
+        }
+      const auto properties = SelectedRuntimeProperties(
+          source_properties->at(node.target.id), staged_properties->at(live->target), groups);
+      if (!properties)
+        return fail("Prefab selected runtime property schema is unavailable.");
+      staged_properties->at(live->target) = *properties;
+      selected_groups.erase(found);
+    }
   }
+  if (!selected_groups.empty())
+    return fail("Prefab selected scoped node is absent from the retained mapping.");
   std::string next_runtime = staged_runtime->substr(0, staged_runtime->find('\n') + 1);
   const auto *staged_scene = staged_world.FindScene(staged.scene_);
   if (!staged_scene)
