@@ -52,7 +52,8 @@ struct SignedExtensionLoadResult final {
 // Existing PluginHost remains a trusted low-level loader; Editor package admissions use this host.
 class NEXORA_EDITOR_API SignedExtensionHost final {
 public:
-  static constexpr std::size_t kMaximumManifestBytes = 16 * 1024, kMaximumDependencies = 64;
+  static constexpr std::size_t kMaximumManifestBytes = 16 * 1024;
+  static constexpr std::size_t kMaximumDependencies = 64;
   static constexpr std::uint32_t kKnownPermissions = 0x3f;
   SignedExtensionHost(ExtensionTrust &trust, std::uint32_t engine_abi);
   ~SignedExtensionHost();
