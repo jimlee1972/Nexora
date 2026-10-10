@@ -20,7 +20,8 @@ scene bytes, 16 MiB asset bytes, 4096 nodes, 64 fields/node and 32768 fields/ass
 return no partial asset and never mutate live documents or their history.
 
 Resolve stages an owning unique-asset revision archive, instance scopes and expanded node count.
-Each input asset UUID identifies one exact revision; conflicting revision requirements reject.
+Each input asset UUID/revision pair identifies one exact source; duplicate pairs reject. Distinct
+revisions of the same UUID may coexist in one closure and retain their separate exact references.
 Missing/stale sources, duplicate identities, invalid attachments, base/nested cycles or budgets
 reject the whole result. Base dependency closure does not become a second live instance; repeated
 nested placements have separate instance scopes. Shared base closure is memoized to avoid exponential
@@ -52,6 +53,28 @@ clipboard and all existing Undo/Redo stay intact. Failure leaves the old saved b
 publication followed by a late source/scope change retains the file but does not acknowledge the
 changed document. The serialized host handles that explicit error. This is an authoring save helper,
 not a graphical isolation session, nested materializer or multi-file crash journal.
+
+Before replacing the current wrapped source, Publish retains its exact committed previous bytes at
+`.nexora/prefabs/revisions/<asset-uuid>/<revision>.nxprefab`. An occupied archive entry must already
+equal those bytes; mismatching, corrupt, aliased, multiply linked and foreign staging paths reject
+without advancing the current source. Current source bytes and workspace authority are rechecked
+after retention. If the final current-file publication fails, the retained old committed revision
+is harmless and no uncommitted future version occupies the next revision identity. An unchanged
+retained entry requires no replacement write. Initial publication still writes only the current file.
+
+`LoadRevision` returns owning validated archived data or, only when the archive entry/ordinary
+parents are absent, the matching current revision. Existing invalid archive evidence never falls
+back to a current source. `ResolveProject` gathers at most 64 exact sources / 64 MiB encoded bytes,
+then performs the same cycle/depth/instance/node checks as Resolve; inspection-only read-only scopes
+work. These are logical data budgets, not a bound on total process memory. History directories are
+ordinary nonsymlink directories; each file keeps the existing 16 MiB and single-link read bounds.
+Calls serialize with all project publication and owners; returned graphs borrow no files/documents.
+
+History is retained when a committed revision is superseded, so previously overwritten legacy
+revisions cannot be reconstructed. No automatic pruning or total disk quota is introduced: retained
+sources may still be referenced by variants/nested graphs. The archive/current writes form an
+ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
+override/rebase, nested materialization, journaling and retention policy remain separate work.
 
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
