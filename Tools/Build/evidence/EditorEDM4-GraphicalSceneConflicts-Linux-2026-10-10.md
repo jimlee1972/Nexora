@@ -54,7 +54,7 @@ cmake --build --preset linux-shipping -j4
 ~~~
 
 GCC 14.2, CMake 3.31.6, Ninja, Slang 2026.18, Zig, Xvfb/xdotool and software Mesa Vulkan were used.
-Focused selection includes editor.scene_comparison_job, editor.scene_comparison_ui and the
+Focused selection includes editor.semantic_scene_comparison_job, editor.semantic_scene_comparison_ui and the
 native scene-comparison/additive-tabs registrations. Hosted exact-head checks and accepted
 dependency integration remain required before merge; Linux does not establish physical-host or
 local Windows/macOS acceptance. Automatic semantic merge, provider authentication and broader
