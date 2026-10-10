@@ -773,6 +773,11 @@ creates property widgets; unknown components retain raw data instead of being si
     only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
     Current source/project and expected asset revision are rechecked; graphical isolation remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md).
+
+  - ✅ Stable prefab three-way comparison is validated: node/field UUID paths, stable parent
+    references, unknown payloads and nested metadata remain independent of serialized Runtime IDs.
+    Graphical override/revert/apply/rebase and structurally validated publication remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
