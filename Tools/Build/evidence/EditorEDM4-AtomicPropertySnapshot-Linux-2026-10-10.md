@@ -66,3 +66,19 @@ an independently clean current Main remain mandatory before ordinary squash merg
 The separately tracked latent in-memory Euler preservation fix remains its own
 placement/source-rebase dependency scope; no expanded latent-hint acceptance is
 claimed by this canonical snapshot gate. Full Editor milestones remain **0/8**.
+
+## Stable comparison and native Save Main integration
+
+The same three own feature/evidence commits replay onto accepted Main
+`89bb06ec2ff30f081702599f83107ed13d707e99`, including accepted stable UUID comparison
+and native project-upgrade/Scene Preview input fixes. README and both Roadmaps retain
+all Main and snapshot contracts. Replayed pre-evidence head is
+`692a006dd1a2ce058b4ce9679056493a221a6423`; old current-head checks are historical.
+
+Fresh complete graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer configure
+and build passed **356 steps**, followed by **242/242 in 593.90 s**, zero skips.
+Minimal Monolithic Shipping configure/build passed **14 steps**, rebuilding Runtime
+and AI dependencies with Editor excluded; this is minimal profile/link compatibility.
+No product-code or assertion changes were needed for the replay. The separate latent
+Euler preservation dependency remains open. Fresh published-head hosted CI and a clean
+current-Main guard are required before ordinary squash merge. Full milestones remain **0/8**.
