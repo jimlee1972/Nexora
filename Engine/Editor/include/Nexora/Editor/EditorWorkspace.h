@@ -383,6 +383,16 @@ public:
   // The next successful Paste preserves root names, then the retained snapshot becomes a copy.
   bool CutSelection();
   bool Paste();
+  struct ImportedForestNode final {
+    runtime::Id source{};
+    NodeKey target;
+  };
+  static constexpr std::size_t kMaximumImportedForestNodes = 4096;
+  static constexpr std::size_t kMaximumImportedForestBytes = 8 * 1024 * 1024;
+  // Parses a complete owning source revision, then clones its ordered forest as one Undo.
+  // Authority/current document observation are rechecked; no file IO or user clipboard changes.
+  [[nodiscard]] std::optional<std::vector<ImportedForestNode>>
+  ImportForestBytes(const PreparedSave &expected, std::string_view source, bool authorized);
   // Duplicates the current selection without replacing the user's copied clipboard.
   bool DuplicateSelection();
   // Deletes selected subtrees as one atomic Undo; selected descendants are not deleted twice.

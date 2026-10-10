@@ -717,6 +717,12 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   與 override diff／revert／apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md)。
 
+- ✅ Scene forest import 現使用 official bounded parsing、owning source-to-generation identity map
+  與 document-safe 單次 Undo／Redo，保留 exact name、sibling order、component 與 Copy／Cut
+  clipboard。實際 stale／corrupt／permission／budget 拒絕及 save／reopen 通過；persistent prefab
+  binding 及圖形化操作仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicForestImport-Linux-2026-10-10.md)。
+
 - ✅ 原生 graphical Editor 現透過有界 scene tab 編輯獨立 owned／reference document，
   提供 dirty close 選擇、coordinated Save All 與跨文件的 window close 保護。Named role／load order／
   active selection 可在兩種 access mode 重開；完整 restore 失敗會 freeze authoring 並保留全部原檔。
