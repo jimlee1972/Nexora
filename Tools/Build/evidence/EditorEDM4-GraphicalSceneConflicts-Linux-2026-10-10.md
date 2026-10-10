@@ -77,3 +77,14 @@ verification and all comparison assertions remain enabled. The rebuilt focused
 editor.semantic_scene_comparison_job passed 1/1 in 0.02s on Linux. Production code
 is unchanged from the full 224/224 gate above. Fresh published-head Windows checks
 remain required; Linux does not prove Windows file-sharing behavior.
+
+## Accepted upgrade-core integration
+
+The final branch replays only comparison work onto accepted main
+374a0a3809ae53d57c01a4e6fda85f5fe30fcfce. The module README retains both upgrade
+and comparison contracts. Application, comparison coordinator/widgets and all
+comparison fixture source are unchanged from the Windows-lease-corrected head.
+Fresh actual coordinator, 1x/2x UI and native comparison acceptance passed
+**3/3 in 7.33s** (native 7.27s) after integration; the earlier full 224/224
+Development and Shipping gates remain recorded above. Fresh hosted exact-head
+checks must validate the accepted-Core integration before merge.
