@@ -56,7 +56,8 @@ enum class PrefabIsolationAction : std::uint8_t {
   ApplyToSource,
   ReviewRebase,
   ResolveRebase,
-  Rebase
+  Rebase,
+  Instantiate
 };
 struct PrefabIsolationObservation final {
   foundation::Uuid project, asset;
@@ -64,6 +65,7 @@ struct PrefabIsolationObservation final {
   SceneFileToken source;
   bool open{}, dirty{}, writable{};
   std::optional<PrefabRevisionReference> base{};
+  bool scene_writable{};
   friend bool operator==(const PrefabIsolationObservation &,
                          const PrefabIsolationObservation &) = default;
 };

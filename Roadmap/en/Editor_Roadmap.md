@@ -751,6 +751,10 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Graphical saved-prefab scene instantiation passes actual 1x/2x scope/role/dirty and
+    native Save/reopen/one Undo/Redo/read-only gates, full Linux 251/251 and Minimal Shipping.
+    Structural live-instance override/rebase remains open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalScenePrefabInstantiation-Linux-2026-10-10.md).
   - ✅ Graphical same-identity source rebase has actual conflict choices, Prepare and separate
     confirmation; 1x/2x and native properties/reference Undo/Redo/Save/reopen and read-only gates
     pass. Full Linux integration passes (248/248); structural/live-instance workflows remain open.

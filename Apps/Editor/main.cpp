@@ -29,6 +29,7 @@
 #endif
 
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -2123,6 +2124,8 @@ int RunGraphical(std::optional<ProjectState> project,
         if (active_files())
           value.source = active_files()->Token();
         value.writable = project->workspace.Writable();
+        value.scene_writable =
+            scene_authoring_allowed() && active_files() && !active_files()->SaveBlocked();
         return value;
       };
       const bool allowed =
@@ -2140,7 +2143,8 @@ int RunGraphical(std::optional<ProjectState> project,
                           expected.owner_generation == current.owner_generation &&
                           expected.document_generation == current.document_generation &&
                           expected.asset == current.asset && expected.source == current.source &&
-                          expected.revision == current.revision && expected.base == current.base;
+                          expected.revision == current.revision && expected.base == current.base &&
+                          expected.scene_writable == current.scene_writable;
         std::string error;
         bool applied = false;
         if (!live) {
@@ -2158,6 +2162,38 @@ int RunGraphical(std::optional<ProjectState> project,
             else
               error = "The active scene cannot authorize prefab creation.";
             break;
+          case Action::Instantiate: {
+            if (!current.scene_writable || current.dirty || !current.revision ||
+                request->target != current.asset || !scene_authoring_allowed()) {
+              error = "Save the prefab and select a writable active scene before instantiating.";
+              break;
+            }
+            auto prepared = nexora::editor::ProjectPrefabPlacement::Prepare(
+                project->workspace, current.asset, active_scene(), &error);
+            if (!prepared || prepared->Source().revision != current.revision) {
+              if (prepared)
+                error =
+                    "Published prefab changed; reopen its current version before instantiating.";
+              break;
+            }
+            nexora::foundation::Uuid instance;
+            try {
+              std::random_device random;
+              instance = {(static_cast<std::uint64_t>(random()) << 32) | random(),
+                          (static_cast<std::uint64_t>(random()) << 32) | random()};
+            } catch (const std::exception &) {
+              error = "Placement identity could not be generated; preserve the scene.";
+              break;
+            }
+            if (scene_authoring_allowed() && active_files() &&
+                active_files()->Token() == expected.source)
+              applied = nexora::editor::ProjectPrefabPlacement::Instantiate(
+                            project->workspace, active_scene(), *prepared, instance, true, &error)
+                            .has_value();
+            else
+              error = "The active scene cannot authorize prefab placement.";
+            break;
+          }
           case Action::Open:
             applied = prefab_documents->Open(request->target, request->discard_dirty, &error);
             break;
