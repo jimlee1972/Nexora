@@ -51,3 +51,15 @@ graphical Linux Development gate passed **241/241**, zero skips, **620.96 s**,
 after 320 build steps; minimal Shipping built successfully (5 steps). This is
 dependent-tree integration evidence, not a separate full run of the admission-only
 tree. Published-head hosted checks remain independently required.
+
+## Fresh accepted Main admission integration
+
+The four owned admission commits were replayed onto accepted Main
+`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79`; its accepted native pointer readiness
+changes supersede the earlier duplicated pointer commit. No prerequisite branch
+was merged. Graphical Development rebuilt **218 steps**, and full CTest passed
+**241/241 in 583.49 s**, zero skips. Real signed admission repeated successfully
+in **0.07 s**. Minimal Monolithic Shipping passed **5 steps**, with Editor excluded
+as expected. This is the admission feature itself, rather than only its dependent
+manager composition. Contracts and bilingual supporting roadmap scope remain unchanged.
+Fresh published-head hosted checks and clean current Main are still required.
