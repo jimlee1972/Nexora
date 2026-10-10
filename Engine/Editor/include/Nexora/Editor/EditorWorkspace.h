@@ -469,6 +469,7 @@ public:
 private:
   friend class AdditiveSceneSession;
   friend class PrefabAssets;
+  friend class PrefabPlacementOverrides;
   enum class BuiltinEntity { Empty, Camera, Light };
   friend class SceneSaveBatch;
   bool ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes = std::nullopt);

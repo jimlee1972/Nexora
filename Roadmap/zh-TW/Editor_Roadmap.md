@@ -709,11 +709,19 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Atomic live instance property revert 在一筆 Undo／Redo 中還原 exact retained nested
+  source，包含 dormant component values、authored Euler 與未知 bytes。Current writer、明確
+  authorization 及 exact source／target 再驗證拒絕 stale／唯讀／structural input；來源升版、
+  files 不變及 saved baseline／Scene Save／reopen 通過，完整 Linux 243/243 與 Minimal Shipping
+  通過。Graphical instance revert、targeted revert、structural reconciliation 與 source
+  apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md)。
+
 - ✅ Owning live prefab instance property review 以 scoped stable node／field identity 比對
   exact retained nested source，保留 authored Euler 與未知 bytes，並將 hierarchy 變更標為
   structural。唯讀檢視及 stale／missing／over-budget 拒絕保留 files 與 Undo／Redo；完整 Linux
-  243/243 與 Minimal Shipping 通過。Graphical override review 與 atomic instance
-  revert／apply／rebase 另行完成。
+  243/243 與 Minimal Shipping 通過。Graphical override review 與 instance
+  apply／rebase 另行完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md)。
 
 - ✅ Persistent placement source inspection 持有 retained／current revision 與 scoped-node
