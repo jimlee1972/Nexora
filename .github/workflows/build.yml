@@ -209,6 +209,10 @@ jobs:
           ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_job$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_ui$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -N -R '^editor\.linux_scene_comparison$' | grep -q 'Total Tests: 1'
+
+      - name: Require bounded build-process acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.bounded_build_process$' | grep -q 'Total Tests: 1'
       - name: Editor tests (includes the Xvfb display acceptance)
         # The deep hierarchy test must be present in the graphical configuration.
         # Full Editor execution below retains all existing navigation controls.
