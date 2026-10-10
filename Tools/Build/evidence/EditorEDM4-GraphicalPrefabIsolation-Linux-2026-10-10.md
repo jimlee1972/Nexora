@@ -1,18 +1,25 @@
 # ED-M4 graphical prefab isolation — Linux, 2026-10-10
 
-Beads: `nexora-pmb.1.6`. Source builds on isolated owner
-`0a0f62881856713cbdc2f7b6b4639ac5156cbe04`, document save and stable asset foundation.
+Beads: `nexora-pmb.1.6` and `nexora-pmb.2.7`. The final integration builds on
+accepted Main owner `e89c43e57e5052d24e835bcf9a71c5d28f75f79f`.
 
-Graphical Linux Development configure/build succeeded (240 steps in the preceding
-final source rebuild; the full gate's build required no further work).
-**239/239** tests passed, zero skips, **622.38 s**.
-Minimal Monolithic Shipping configure/build succeeded (5 steps), with Editor stripped.
-The final focused graph/owner/native gate passed **3/3** in **21.65 s**;
-native isolation took **20.43 s**. The full gate additionally ran the GUI control test.
+Graphical Linux Development configure/build succeeded. **242/242** tests passed,
+zero skips, **648.72 s**. The full gate includes native prefab isolation (**20.33 s**),
+actual 1x/2x prefab controls (**0.09 s**) and native additive tabs (**51.23 s**).
+Three independent cold native additive-tab runs passed in **51.29 / 51.14 / 51.05 s**.
+Minimal Monolithic Shipping configure/build succeeded (74 steps), with Editor stripped.
+Documentation validation and its 16-test regression suite pass.
+
+The additive-tab harness sends each physical modifier and main-key down/up transition
+across rendered frames. This avoids compact chord modifier loss in ImGui's trickled
+queue on the busy software-rendered host. It retains one-shot close/Undo, exact source
+bytes, owned/reference membership, Save All, restart and read-only assertions; no
+production input behavior or test timeout changes. A preceding failed full run is
+excluded from this accepted gate.
 
 ```sh
 cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON \
-  -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON \
+  -DNEXORA_ENABLE_CRYPTOGRAPHY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON \
   -DNEXORA_BUILD_SHOWCASE=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON \
   -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
 cmake --build --preset linux-development -j4

@@ -727,7 +727,8 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 - ✅ Graphical prefab isolation 已驗證：create/open/variant/save/reopen 使用獨立 native document，
   提供 hierarchy、name/position edit、Undo／Redo 與 dirty-close 保護；read-only inspection 保留
-  project files。Nested materialization 與 override/rebase 仍待完成。
+  project files。Accepted owner 整合通過完整 Linux 242/242 與 Minimal Shipping；逐鍵 native
+  shortcut 保留精確 additive ownership 驗證。Nested materialization 與 override/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md)。
 
 - ✅ Prefab isolation owner 已驗證：project-scoped create/open/variant/save/reopen 使用獨立 World

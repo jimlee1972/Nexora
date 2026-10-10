@@ -770,7 +770,9 @@ creates property widgets; unknown components retain raw data instead of being si
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
   - ✅ Graphical prefab isolation is validated: create/open/variant/save/reopen use a separate
     native document, with hierarchy, name/position edits, Undo/Redo and dirty-close protection.
-    Read-only inspection preserves project files. Nested materialization and override/rebase remain open.
+    Read-only inspection preserves project files. Accepted-owner integration passes full Linux
+    242/242 and Minimal Shipping; phased native shortcuts retain exact additive ownership assertions.
+    Nested materialization and override/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md).
   - ✅ Prefab isolation owner is validated: project-scoped create/open/variant/save/reopen use a
     separate World and document, retaining unknown bytes and original scene history. Dirty replacement,
