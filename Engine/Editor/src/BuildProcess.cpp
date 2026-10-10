@@ -103,7 +103,16 @@ bool BuildProcess::Start(BuildProcessRequest request, std::string *error) {
   };
   if (impl.stopped || Busy() || impl.next == std::numeric_limits<std::uint64_t>::max())
     return reject("Build process is busy, stopped or exhausted.");
-  const auto executable = Utf8(request.executable), directory = Utf8(request.working_directory);
+  if (request.executable.native().size() > kMaximumCommandBytes ||
+      request.working_directory.native().size() > kMaximumCommandBytes)
+    return reject("Build process paths exceed the command budget.");
+  std::string executable, directory;
+  try {
+    executable = Utf8(request.executable);
+    directory = Utf8(request.working_directory);
+  } catch (const std::exception &) {
+    return reject("Build process paths cannot be represented as UTF-8.");
+  }
   if (!request.scope || !request.executable.is_absolute() ||
       !request.working_directory.is_absolute() || executable.empty() || directory.empty() ||
       !Text(executable) || !Text(directory) || request.arguments.size() > kMaximumArguments ||

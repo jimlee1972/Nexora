@@ -78,6 +78,15 @@ void Run(const std::filesystem::path &fixture) {
   Require(process.Snapshot().phase == Phase::Failed && process.Snapshot().exit_code == 7 &&
               process.Snapshot().output.find("ACTUAL_NONZERO_EXIT") != std::string::npos,
           "Nonzero process was reported as success");
+  request.arguments = {"--native-failure"};
+  Require(process.Start(request), "Native failure fixture did not launch");
+  Finish(process, 42);
+  Require(process.Snapshot().phase == Phase::Failed, "Native failure showed success");
+#if defined(_WIN32)
+  Require(process.Snapshot().exit_code == 0xc0000005u, "Windows exit status was truncated");
+#else
+  Require(!process.Snapshot().exit_code, "Signalled process fabricated a normal exit code");
+#endif
   request.arguments = {"--flood"};
   Require(process.Start(request), "Flood fixture did not launch");
   Finish(process, 42);
@@ -161,6 +170,14 @@ void Run(const std::filesystem::path &fixture) {
   invalid = request;
   invalid.output_capacity = editor::BuildProcess::kMaximumOutputBytes + 1;
   Require(!process.Start(invalid), "Output-capacity overflow admitted");
+  invalid = request;
+  invalid.arguments = {std::string(editor::BuildProcess::kMaximumCommandBytes, 'x')};
+  Require(!process.Start(invalid), "Command-byte overflow admitted");
+#if defined(_WIN32)
+  invalid = request;
+  invalid.executable = std::filesystem::path(std::wstring(L"C:\\") + wchar_t(0xd800));
+  Require(!process.Start(invalid), "Invalid native Unicode path admitted");
+#endif
   request.arguments = {"--sleep"};
   Require(process.Start(request), "Shutdown fixture did not launch");
   Output(process, "READY");

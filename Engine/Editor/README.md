@@ -1117,3 +1117,28 @@ sources or replacement confirmation. Inspectable differences do not certify a va
 covers actual controls and source isolation. Reviewed merge publication and provider integration
 remain open. These additive C++ APIs require rebuild and change no stable C/Gameplay ABI or module
 dependency.
+
+## Bounded scoped build processes
+
+`BuildProcess` owns one direct executable/working-directory/UTF-8 argv request on its referenced
+Core JobSystem. Owner calls are serialized; the JobSystem outlives the runner and shutdown
+cancels/drains before destruction. Workers retain no document/workspace borrows. Absolute native
+paths, at most 256 arguments and 32 KiB executable/argv bytes reject invalid admission before
+changing the previous observation. There is no shell expansion. The child inherits the host
+environment; the caller authorizes its executable and project scripts. This is not a sandbox.
+
+POSIX creates a new managed process group through posix_spawn; hosts must retain ordinary SIGCHLD
+wait policy and must not externally reap runner-owned children or change that policy while active.
+The direct child remains unreaped until cleanup, reserving process-group identity. Windows starts
+suspended, assigns a kill-on-close Job Object before execution and restricts inherited handles to
+its output pipe and null stdin. Cancellation, exceptional cleanup and shutdown stop managed
+descendants and join the direct child/worker. Deliberately detached POSIX groups are outside this
+cooperative policy. Mobile platforms without a backend explicitly report Unsupported.
+
+Merged stdout/stderr retains a raw byte tail, default 64 KiB and maximum 256 KiB, with exact dropped
+byte accounting; it is neither UTF-8 display text nor a redacted log. Callers sanitize/redact before
+display or persistence. The API persists no commands, output or environment. Failed launch has no
+fabricated exit code; native nonzero exits, signals, incomplete output, cancellation and stale
+owner scope cannot publish success. Exited means only actual code zero; independently verified
+artifacts, target manifest, checksums and reproducible build publication remain host obligations.
+The API changes no stable C/Gameplay ABI or module graph; public C++ consumers must rebuild.

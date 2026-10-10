@@ -43,6 +43,7 @@ struct BuildProcessSnapshot final {
 // Exited means code zero, never verified artifacts/build/deployment success. Poll checks scope.
 // Cancellation/shutdown stop the managed process group/job and drain the direct child/worker.
 // Commands, output and environment are not persisted by this API. Child environment is inherited.
+// POSIX hosts must retain normal SIGCHLD wait policy and never externally reap owned children.
 class NEXORA_EDITOR_API BuildProcess final {
 public:
   static constexpr std::size_t kMaximumArguments = 256;

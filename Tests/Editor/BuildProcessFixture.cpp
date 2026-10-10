@@ -51,6 +51,14 @@ int Run(const std::vector<std::string> &arguments) {
     std::this_thread::sleep_for(std::chrono::seconds(20));
     return 0;
   }
+  if (mode == "--native-failure") {
+#if defined(_WIN32)
+    ExitProcess(0xc0000005u);
+#else
+    std::raise(SIGTERM);
+#endif
+    return 4;
+  }
   if (mode == "--tree") {
 #if defined(_WIN32)
     std::wstring executable(32768, L'\0');
