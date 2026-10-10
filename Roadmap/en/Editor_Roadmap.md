@@ -751,11 +751,18 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Atomic live instance property revert restores the exact retained nested source, including
+    dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
+    explicit authorization and exact source/target revalidation reject stale/read-only/structural
+    inputs. Source advancement, unchanged files and saved-baseline/Scene Save/reopen pass;
+    full Linux 243/243 and Minimal Shipping pass. Graphical instance revert, targeted revert,
+    structural reconciliation and source apply/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md).
   - ✅ Owning live prefab instance property review compares exact retained nested sources with
     scoped stable node/field identities, preserves authored Euler and unknown bytes, and marks
     hierarchy changes structural. Read-only review and stale/missing/over-budget rejection preserve
     files and Undo/Redo; full Linux 243/243 and Minimal Shipping pass. Graphical override review
-    and atomic instance revert/apply/rebase follow separately.
+    and instance apply/rebase follow separately.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md).
   - ✅ Persistent placement source inspection owns retained/current revision and scoped-node
     observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass. Graphical

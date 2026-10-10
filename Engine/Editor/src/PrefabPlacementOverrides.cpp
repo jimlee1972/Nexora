@@ -54,6 +54,35 @@ std::optional<std::string> Value(const Fields &fields, const std::string &name) 
   const auto found = fields.find(name);
   return found == fields.end() ? std::nullopt : std::optional(found->second);
 }
+std::optional<std::map<runtime::Id, std::string>>
+RuntimePropertyRecords(std::string_view snapshot) {
+  // Consume only bounded canonical version-3 output produced by World::SaveScene here.
+  // ID/parent remain target-owned; the suffix owns every stored property and presence flag.
+  if (!snapshot.starts_with("NEXORA_SCENE 3 "))
+    return {};
+  auto cursor = snapshot.find('\n');
+  if (cursor == snapshot.npos)
+    return {};
+  ++cursor;
+  std::map<runtime::Id, std::string> records;
+  while (cursor < snapshot.size()) {
+    const auto end = snapshot.find('\n', cursor);
+    if (end == snapshot.npos)
+      return {};
+    const auto line = snapshot.substr(cursor, end - cursor);
+    const auto first = line.find(' ');
+    const auto second = first == line.npos ? line.npos : line.find(' ', first + 1);
+    if (second == line.npos || second + 1 == line.size())
+      return {};
+    runtime::Id id{};
+    const auto parsed = std::from_chars(line.data(), line.data() + first, id);
+    if (parsed.ec != std::errc{} || parsed.ptr != line.data() + first || !id ||
+        !records.emplace(id, line.substr(second + 1)).second)
+      return {};
+    cursor = end + 1;
+  }
+  return records;
+}
 } // namespace
 
 std::optional<PrefabPlacementOverrideReview>
@@ -157,5 +186,89 @@ bool PrefabPlacementOverrides::Matches(const ProjectWorkspace &workspace,
                                        const SceneDocument &target,
                                        const PrefabPlacementOverrideReview &review) {
   return PrefabPlacementInspector::Matches(workspace, target, review.inspection_);
+}
+bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDocument &target,
+                                      const PrefabPlacementOverrideReview &review, bool authorized,
+                                      std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
+    return false;
+  };
+  if (!authorized || !workspace.Writable() || target.world_.Kind() != runtime::WorldKind::Editor ||
+      !Matches(workspace, target, review))
+    return fail("Prefab property revert requires a current review and writer authorization.");
+  if (std::ranges::any_of(review.rows_, &PrefabPlacementOverrideRow::structural))
+    return fail("Prefab property revert does not reconcile structural hierarchy changes.");
+  if (review.rows_.empty())
+    return true; // Preserve pending Redo and the saved baseline for a semantic no-op.
+  const auto &inspection = review.inspection_;
+  if (!inspection.graph_)
+    return fail("Prefab retained source closure is unavailable.");
+  runtime::World source_world, staged_world;
+  SceneDocument source(source_world, source_world.LoadScene("Prefab revert source"));
+  SceneDocument staged(staged_world, staged_world.LoadScene("Prefab revert target"));
+  const auto empty = source.PrepareSave();
+  if (!empty || !staged.ReloadBytes(inspection.expected_.Bytes(), 4096))
+    return fail("Prefab property revert staging failed.");
+  const auto mapping = PrefabAssets::Instantiate(inspection.Source(), inspection.graph_->assets,
+                                                 source, *empty, true);
+  if (!mapping || mapping->size() != inspection.placement_.nodes.size())
+    return fail("Prefab retained source materialization failed.");
+  std::map<runtime::Id, SceneDocument::Node *> staged_nodes;
+  std::map<runtime::Id, const SceneDocument::Node *> source_nodes;
+  for (auto &node : staged.nodes_)
+    staged_nodes.emplace(node.id, &node);
+  for (const auto &node : source.nodes_)
+    source_nodes.emplace(node.id, &node);
+  const auto source_runtime =
+      source_world.SaveScene(source.scene_, SceneComparison::kMaximumSourceBytes);
+  const auto staged_runtime =
+      staged_world.SaveScene(staged.scene_, SceneComparison::kMaximumSourceBytes);
+  if (!source_runtime || !staged_runtime)
+    return fail("Prefab property runtime snapshots exceed their byte budget.");
+  const auto source_properties = RuntimePropertyRecords(*source_runtime);
+  auto staged_properties = RuntimePropertyRecords(*staged_runtime);
+  if (!source_properties || !staged_properties)
+    return fail("Prefab property runtime snapshot schema is unavailable.");
+  for (const auto &node : *mapping) {
+    const auto live = std::ranges::find_if(inspection.placement_.nodes, [&](const auto &value) {
+      return value.scope == node.scope && value.source_node == node.node;
+    });
+    const auto authoring = source_nodes.find(node.target.id);
+    if (live == inspection.placement_.nodes.end() || authoring == source_nodes.end() ||
+        !staged_nodes.contains(live->target) || !source_properties->contains(node.target.id) ||
+        !staged_properties->contains(live->target))
+      return fail("Prefab scoped source-to-live identity is unavailable.");
+    auto &destination = *staged_nodes.at(live->target);
+    const auto generation = destination.generation;
+    destination = *authoring->second;
+    destination.id = live->target;
+    destination.generation = generation;
+    staged_properties->at(live->target) = source_properties->at(node.target.id);
+  }
+  std::string next_runtime = staged_runtime->substr(0, staged_runtime->find('\n') + 1);
+  const auto *staged_scene = staged_world.FindScene(staged.scene_);
+  if (!staged_scene)
+    return fail("Prefab staging scene is unavailable.");
+  for (const auto &entity : staged_scene->entities) {
+    const auto line = std::to_string(entity.id) + ' ' + std::to_string(entity.parent) + ' ' +
+                      staged_properties->at(entity.id) + '\n';
+    if (line.size() > SceneComparison::kMaximumSourceBytes - next_runtime.size())
+      return fail("Prefab property runtime snapshot exceeds its byte budget.");
+    next_runtime += line;
+  }
+  if (!staged_world.ReplaceSceneSnapshot(staged.scene_, next_runtime))
+    return fail("Prefab property staging rejected source component values.");
+  staged.opaque_dirty_.reset();
+  const auto prepared = staged.PrepareSave();
+  if (!prepared || prepared->Bytes().size() > SceneComparison::kMaximumSourceBytes || !authorized ||
+      !workspace.Writable() || !Matches(workspace, target, review))
+    return fail("Prefab project, source closure or target changed before revert.");
+  if (!target.ApplyPropertySnapshot(inspection.expected_, prepared->Bytes(), authorized))
+    return fail("Prefab property revert could not publish its atomic transaction.");
+  return true;
 }
 } // namespace nexora::editor
