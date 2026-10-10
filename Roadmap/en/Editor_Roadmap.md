@@ -756,6 +756,12 @@ creates property widgets; unknown components retain raw data instead of being si
     readonly/recovery/external-change/staging protection pass. Graphical isolation, instance
     materialization and override diff/revert/apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md).
+
+  - ✅ Scene forest import now uses official bounded parsing, owning source-to-generation identity
+    maps and one document-safe Undo/Redo with exact names, sibling order, components and retained
+    Copy/Cut clipboard. Actual stale/corrupt/permission/budget rejection and save/reopen pass.
+    Persistent prefab binding and graphical workflows remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicForestImport-Linux-2026-10-10.md).
   - ✅ The native graphical Editor now edits independent owned/reference documents through bounded
     scene tabs, dirty-close decisions, coordinated Save All and aggregate window-close protection.
     Persisted named roles/load order/active selection reopen in both access modes; failed complete
