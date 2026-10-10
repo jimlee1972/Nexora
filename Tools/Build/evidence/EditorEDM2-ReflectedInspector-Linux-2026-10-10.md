@@ -60,3 +60,28 @@ graphical Development rebuilt the native host and fixture (44 incremental steps)
 eight consecutive actual Xvfb/lavapipe runs passed, **129.01 s** total. This is
 a test-only correction (Beads `nexora-owg.2.4`); runtime behavior is unchanged.
 Fresh hosted checks are required before acceptance.
+
+## Presented control and shortcut readiness
+
+Beads `nexora-owg.2.5`: hosted signed head `80afa48f` still missed its first Boolean
+gesture despite an identical script passing both PR493 display matrices. A cold Xvfb
+readback inspected the actual 1600x1200 default-theme controls and established distinct
+normal/hover/held/released pixels. The initial source-selection click is the real Scene
+Select all control; the prior Hierarchy comment was inaccurate. Readback now bounds
+first presentation, selected reflected control, and each writable Boolean input phase.
+No edit is retried or supplied through a test-only model path.
+
+The first observed native run passed **11.44s**. A subsequent one-thread/cache-disabled
+attempt edited correctly but missed its Undo shortcut; that failed attempt remains
+excluded. Modifier and primary-key press/release now occur separately. Eight final
+cold `LP_NUM_THREADS=1 MESA_SHADER_CACHE_DISABLE=true` Xvfb/Vulkan runs passed
+**134.62s** total, including exact edit, Undo/Redo, Save/reopen, read-only restart,
+corrupt metadata rejection and compatible restoration. Vulkan diagnostics remain fatal.
+
+Full graphical Development **239/239 passed, zero skipped, 598.60s**; minimal
+Shipping configure/build passed (five incremental steps).
+Logs: `extension-trust/frame-ready-{first-tests,final-repeat-1..8,full-*,shipping-*}.log`
+in the execution work area. Diagnostic screenshot probes are observations, not acceptance;
+an intentionally edited unsaved probe hit the expected close prompt and was cleaned up.
+The fix changes Linux test input synchronization only. Fresh accepted-main integration
+and hosted CI are required; full Editor milestones remain **0/8**.

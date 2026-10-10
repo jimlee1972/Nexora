@@ -1058,6 +1058,13 @@ no native plugin objects and performs no metadata writes or native code loading.
 flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
 observations are private to test builds and expose no ImGui type across the public module boundary.
 
+The native reflected fixture observes presented X11 pixels in its fixed default-theme layout before
+selecting the source. Writable Boolean gestures wait for actual hover, held and released frames;
+shortcut modifiers and primary keys have separate press/release delivery. Readback never retries an
+edit or supplies synthetic model state. Bounded readiness failure reports observed colors, releases
+held input and retains every exact source/history/read-only/metadata and Vulkan assertion. This is
+Linux test synchronization, not a renderer or runtime behavior change.
+
 ## Build process interaction guards
 
 Build-process Run also independently checks current focus, queued Play/close decisions and

@@ -422,6 +422,8 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正 1x／2x 控制項及原生 Vulkan 編輯／保存／重開的驗收見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md)。
   Native pointer delivery 在慢速 frame 間保留 down／up；連續八次實際執行通過。
+  Presented X11 control／hover／held／released readiness 與獨立 shortcut-key phase 亦通過
+  八次冷啟動、單執行緒軟體渲染的原生流程（134.62s）；完整 239 項 graphical Development 測試與 Shipping build 皆通過。
   Dynamic array、原生外掛還原及完整 ED-M2 驗收仍待完成。
 
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
