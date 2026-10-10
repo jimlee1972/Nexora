@@ -54,3 +54,18 @@ The current main Inspector and real native build-console tests run in this
 **241/241** gate; Shipping remains successful (5 steps). Documentation-only
 admission integration evidence does not change the validated runtime paths.
 Published-head hosted checks are independently required before merge.
+
+## Hosted native input synchronization correction
+
+Hosted jobs `114178847271` and `114178847260` on `82f07194` failed actual
+installation/selection assertions. A captured native window showed that Ctrl+Alt+E
+had not opened Extensions. Preserve all assertions; the test now spaces modifier/key
+transitions by 100 ms, separates movement/down/up, and settles the selection layout.
+The rebuilt native host/fixture on main `64b20ea7` and signed admission `317b2abd`
+passed eight consecutive complete Xvfb/lavapipe runs, **202.48 s** total. Each run
+checks immutable reviewed installation without autoexecution, explicit enable,
+cooperative disable/reload, publisher revocation and read-only restart without
+implicit trust or execution. Failure cleanup uses bounded process waits. This
+changes only native test synchronization; it does not weaken permissions, trust,
+source preservation, lifecycle or Vulkan validation assertions. New hosted checks
+on the corrected head are required; the older failed head cannot merge.
