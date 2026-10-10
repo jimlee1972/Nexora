@@ -17,6 +17,11 @@ add_test(NAME editor.prefab_document_isolation COMMAND NexoraPrefabDocumentSessi
 set_tests_properties(editor.prefab_document_isolation PROPERTIES TIMEOUT 60)
 
 add_executable(NexoraPrefabRevisionTests PrefabRevisionTests.cpp)
+add_executable(NexoraPrefabInstantiationTests PrefabInstantiationTests.cpp)
+target_link_libraries(NexoraPrefabInstantiationTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPrefabInstantiationTests)
+add_test(NAME editor.prefab_nested_materialization COMMAND NexoraPrefabInstantiationTests)
+set_tests_properties(editor.prefab_nested_materialization PROPERTIES TIMEOUT 60)
 target_link_libraries(NexoraPrefabRevisionTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPrefabRevisionTests)
 add_test(NAME editor.prefab_revision_history COMMAND NexoraPrefabRevisionTests)

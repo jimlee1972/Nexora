@@ -758,10 +758,14 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   scope/revision 與 reentrant identity callback 都拒絕；graphical binding、nested materialization、
   historical revision access 與 override/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
+- ✅ Nested prefab materialization 已驗證：exact revision closure 先在 live document 外組合，
+  保留 scoped identity／local transform／unknown bytes，再以一次 Undo／Redo transaction 匯入。
+  Persistent instance metadata 與 graphical override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md)。
 
 - ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
   closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
-  不占住 future revision。Graphical rebase／nested materialization 與 power-loss journal 仍待完成。
+  不占住 future revision。Graphical rebase、persistent instance metadata 與 power-loss journal 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
 
 - ✅ Prefab document save integration 已驗證：confirmed wrapped publication 只更新 owning saved
@@ -787,7 +791,7 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 - ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
   revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。
   實際 rename／Undo／save／reopen、scoped repeated placement、cycle／stale／budget 拒絕及
-  readonly／recovery／external-change／staging 保護皆通過。Graphical isolation、instance materialization
+  readonly／recovery／external-change／staging 保護皆通過。Graphical isolation、persistent instance metadata
   與 override diff／revert／apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md)。
 
