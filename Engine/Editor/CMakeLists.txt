@@ -3,6 +3,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/AdditiveSceneSession.cpp
   src/AdditiveSceneComposition.cpp
   src/AssetImport.cpp
+  src/BuildProcess.cpp
   src/ContentBrowser.cpp
   src/EditorProduction.cpp
   src/ProjectContent.cpp

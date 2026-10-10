@@ -1,3 +1,6 @@
+#if !defined(_GNU_SOURCE) && defined(__linux__)
+#define _GNU_SOURCE
+#endif
 #if defined(_WIN32)
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -26,6 +29,7 @@
 
 #if !defined(_WIN32) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IPHONE)
 #define NEXORA_SHADER_PROCESS_SPAWN 1
+#include "ProcessLaunch.h"
 #include <cerrno>
 #include <fcntl.h>
 #include <spawn.h>
@@ -149,13 +153,13 @@ int RunProcess(const std::vector<std::string> &arguments, std::string &output) {
   output.clear();
   if (arguments.empty())
     return -1;
+  std::unique_lock launch{detail::ProcessLaunchMutex()};
   int pipe_fds[2]{-1, -1};
-  if (pipe(pipe_fds) != 0) {
+  if (detail::ProcessOutputPipe(pipe_fds) != 0) {
     output = "unable to create the shader compiler output pipe";
     return -1;
   }
-  // Keep the parent's read end out of any other process spawned concurrently.
-  fcntl(pipe_fds[0], F_SETFD, FD_CLOEXEC);
+  // Both endpoints are protected before a cooperating built-in launcher can spawn.
 
   posix_spawn_file_actions_t actions;
   posix_spawn_file_actions_init(&actions);
@@ -174,6 +178,7 @@ int RunProcess(const std::vector<std::string> &arguments, std::string &output) {
       posix_spawnp(&child, argv.front(), &actions, nullptr, argv.data(), ProcessEnvironment());
   posix_spawn_file_actions_destroy(&actions);
   close(pipe_fds[1]);
+  launch.unlock();
   if (spawn_error != 0) {
     close(pipe_fds[0]);
     output = "unable to launch " + arguments.front() + ": " + std::strerror(spawn_error);

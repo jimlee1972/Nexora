@@ -798,6 +798,15 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ Build prerequisite 現以 native argv 直接執行真實 scoped owning process，提供有界
+  merged output／dropped count 與精確 launch／exit／cancellation state。實際 child fixture 涵蓋
+  Unicode／特殊字元、nonzero／signal failure、flood limit、queued／running cancellation、
+  managed descendant、shutdown 與 stale scope。已完成 worker outcome 拒絕 late cancellation；
+  真實 child 驗證不會繼承無關 host descriptor。Zero exit 不代表 artifact 或 build success；
+  graphical toolchain、verified manifest 及 deploy／log 整合仍待完成。Raw output 必須由 caller
+  在 display／persistence 前 sanitize／redact。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-BuildProcess-Linux-2026-10-10.md)。
+
 - ✅ 可選 native ProjectPlayer 現以有界 public NativePBR geometry／material／affine admission
   繪出真實 owning StaticView package asset，不依賴 Editor、SDK、source content 或 Showcase。
   明確選取 authored camera／light，依 resize 重算 projection，並執行 native close／drain；
