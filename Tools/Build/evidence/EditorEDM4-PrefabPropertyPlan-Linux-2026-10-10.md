@@ -35,3 +35,15 @@ and document observations before an atomic property transaction. Graphical rever
 field selection, structural reconciliation and reference rebase remain open.
 Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged. Full Editor
 milestones remain **0/8**; current hosted checks are required before merge.
+
+## Fresh accepted Main integration
+
+Only the property-plan feature was replayed onto accepted Main
+`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79`. The newer owning prefab document
+session, its tests and contracts remain present; no prerequisite branch was merged.
+Graphical Development rebuilt **208 steps**, and full CTest passed **241/241 in
+589.79 s**, zero skips. The property-plan fixture repeated successfully in **0.01 s**.
+Minimal Monolithic Shipping passed **5 steps**, proving profile/link compatibility;
+Editor is excluded from this Shipping profile. Existing contract and bilingual
+supporting roadmap scope remain unchanged; complete graphical milestones stay **0/8**.
+Fresh published-head hosted checks and a clean current Main remain required.
