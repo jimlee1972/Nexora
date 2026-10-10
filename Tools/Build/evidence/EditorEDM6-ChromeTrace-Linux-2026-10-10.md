@@ -45,3 +45,15 @@ unavailable. This parser supports a documented bounded Chrome subset, not arbitr
 binary capture formats. No IO in widgets, no native loads, no implicit telemetry or
 transmission. Bounds are logical, not a total allocator-memory quota. Public C++
 consumers rebuild; stable C/Gameplay ABI unchanged. Full milestones remain **0/8**.
+
+## Latest accepted Main integration
+
+Only the owned Chrome trace feature was replayed onto accepted Main
+`4e4c2984d1339cb80af83ff40a6735b6497cf6dd`; no parent/foundation branch was merged.
+Graphical Development rebuilt **316 steps**, and full CTest passed **242/242 in
+594.19 s**, zero skips. The Chrome CPU trace fixture repeated in **0.10 s**.
+Minimal Monolithic Shipping passed **5 steps**, with Editor excluded. This remains
+bounded external CPU trace import/inspection; native GPU clock calibration, memory
+provider acceptance and physical platform checks remain separate. Contracts and
+bilingual supporting roadmap scope remain unchanged, with complete milestones **0/8**.
+Fresh current-head hosted checks and clean current Main remain mandatory.
