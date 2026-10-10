@@ -94,3 +94,8 @@ editor.linux_scene_files. Dropping temporary foundation branch commits changes d
 the tested functional source is identical. Linux CI requires both tab and native driver registrations.
 Accepted composition integration and fresh exact-head hosted checks remain required before merge.
 No local Windows/macOS or physical display result is inferred from Linux. Full ED-M4 stays open.
+
+Accepted semantic SDK integration onto main33ccd7b2 retained both test registrations and module
+sections. All application/Engine/test functional files are byte-identical to the jointly tested
+f5affe3f foundation of the 224/224 graphical-conflict integration (545.80s); only documentation and
+registration ordering differ. No tab behavior changed. Fresh rebased-head hosted checks are required.
