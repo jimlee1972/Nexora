@@ -216,6 +216,10 @@ jobs:
       - name: Require bounded build-process acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.bounded_build_process$' | grep -q 'Total Tests: 1'
+      - name: Require stable prefab persistence and dependency acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.prefab_asset_graph$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -R '^editor\.prefab_asset_graph$' --output-on-failure
       - name: Require reflected Inspector transactions and graphical acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.(reflected_inspector|reflected_inspector_ui|linux_reflected_inspector)$' | grep -q 'Total Tests: 3'
