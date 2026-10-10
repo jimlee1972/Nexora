@@ -69,8 +69,8 @@ int Run(const std::vector<std::string> &arguments) {
     ExitProcess(0xc0000005u);
 #else
     std::raise(SIGTERM);
-#endif
     return 4;
+#endif
   }
   if (mode == "--tree") {
 #if defined(_WIN32)

@@ -81,3 +81,12 @@ Final integration replays only this process feature onto accepted additive-tab m
 BuildProcess, private pipe/spawn helper, shader launcher and fixture/test source are unchanged
 from the recorded final 220/220 gate; workflow and module documentation retain both features.
 Fresh final-head hosted checks, including corrected macOS/Windows compilation, remain mandatory.
+
+## Final Windows fixture compiler correction
+
+Hosted MSVC /WX diagnosed unreachable code after the Windows fixture's noreturn
+ExitProcess call. The POSIX fallback return now remains exclusively in its POSIX branch;
+Windows keeps its exact 0xc0000005 termination and no test assertion was weakened.
+The corrected fixture and process test rebuilt successfully on Linux; focused
+editor.bounded_build_process passed 1/1 in 0.52s. Production code is unchanged from
+the full 220/220 gate above. Fresh published-head Windows checks remain required.
