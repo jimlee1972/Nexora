@@ -7,6 +7,10 @@ void DrawPrefabPlacementSource(StateT &state, const SceneDocument *scene,
     state.prefab_source_scope.reset();
     state.prefab_source_request.reset();
     state.prefab_source_report.reset();
+    state.prefab_override_report.reset();
+    state.prefab_override_request.reset();
+    state.prefab_override_error.clear();
+    state.prefab_override_confirm = state.prefab_override_popup = false;
   };
   if (!scene || scene->Selection().size() != 1 || !state.scene_file_context ||
       state.scene_file_token.project.IsNil() || state.prefab_source_root.empty() ||
