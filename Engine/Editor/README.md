@@ -48,9 +48,9 @@ write failure leaves original scene files and dirty baselines unchanged.
   read-write access) one OS-held writer lease on `.nexora/editor.lock`. A second writer fails with
   the owning process ID while any number of explicit read-only observers may coexist. The lock file
   is metadata, not the lease: the kernel releases the actual lock on normal close or process death.
-  Schema-1 descriptors remain readable; a read-write open atomically upgrades them to schema 2 and
-  persists their derived UUID, while a read-only open reports `Required` without changing the
-  project. A read-write open of a schema-1 project that predates the `.nexora` directory creates it,
+  Schema-1 descriptors remain readable; a read-write open retains an exact descriptor backup and
+  immutable plan report before atomically upgrading to schema 2 and persisting the derived UUID.
+  A read-only open reports `Required` without changing the project. A read-write open of a schema-1 project that predates the `.nexora` directory creates it,
   but only for a root that already holds a project descriptor. All project-owned writes reject
   read-only workspaces. Workspace files are atomically replaced (the temporary file is flushed and
   checked before it replaces the old one), a recovery journal is written before the primary
@@ -1069,3 +1069,31 @@ observation initializes before bootstrap. Stable entity identity/opaque referenc
 The Scene canvas/Hierarchy display the active document. See
 [Linux graphical evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneTabs-Linux-2026-10-09.md)
 for actual controls, source isolation, reference policy, failure/reopen and legacy compatibility.
+
+## Supported project upgrade inspection and retained originals
+
+`ProjectWorkspace::PreviewUpgrade` synchronously reads supported schema-1/2 descriptor and bounded
+workspace data into an owning plan without acquiring a writer lease, creating directories or
+writing files. Its copied original retains exact CRLF/UTF-8 bytes; legacy identity derives from the
+canonical root/name exactly as ordinary Open. Proposed bytes describe a plan, not publication
+authority. Current-schema preview preserves original bytes. Unsupported/corrupt inputs reject.
+Descriptor reading retains at most 4 KiB and checks actual read bytes, so post-stat growth cannot
+cause an unbounded line allocation. Workspace limits remain 4,096 paths of at most 1,024 bytes.
+
+Read-write Open reinspects under its existing OS-held cooperating-writer lease. Before a legacy
+descriptor replacement, `.nexora/project-upgrade.schema1.backup` retains exact original bytes and
+`.nexora/project-upgrade.schema1.report` records the immutable schema/UUID/byte-count plan. The
+report explicitly says plan-only and is not evidence that publication succeeded. Preexisting
+matching dedicated regular evidence supports retry; foreign/corrupt, symlink/hard-link aliases and
+occupied staging reject without deletion or replacement. Source bytes revalidate before/between
+evidence writes and before descriptor publication. Preparation or replacement failure retains the
+source and any successfully prepared evidence; repairing occupied staging permits retry. Successful
+reopen retains backup/report and stable UUID without rewriting current-schema descriptors.
+
+Preview and Open calls remain synchronous owner operations; plans survive caller/file changes but
+never grant later write authority. Failed Open preserves prior in-memory state and its writer
+lease. Source scenes and workspace/layout bytes are not migrated by this descriptor slice. The
+cooperating-writer policy does not promise hostile concurrent-filesystem isolation, power-loss
+durability, all-file atomic replacement or cancellation of a synchronous call. Broader graphical
+migration/recovery remains separate work. Public C++ consumers rebuild; stable C/Gameplay ABI and
+module dependencies are unchanged.

@@ -188,6 +188,9 @@ jobs:
       - name: Require persisted additive composition acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.additive_scene_composition$' | grep -q 'Total Tests: 1'
+      - name: Require project-upgrade evidence acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.project_upgrade_evidence$' | grep -q 'Total Tests: 1'
       - name: Require additive document-owner acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.additive_scene_session$' | grep -q 'Total Tests: 1'

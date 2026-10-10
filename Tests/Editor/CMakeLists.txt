@@ -3,6 +3,11 @@ target_link_libraries(NexoraEditorShaderTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorShaderTests)
 add_test(NAME editor.shader_authoring_contracts COMMAND NexoraEditorShaderTests)
 
+add_executable(NexoraProjectUpgradeTests ProjectUpgradeTests.cpp)
+target_link_libraries(NexoraProjectUpgradeTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraProjectUpgradeTests)
+add_test(NAME editor.project_upgrade_evidence COMMAND NexoraProjectUpgradeTests)
+
 add_executable(NexoraEditorTests EditorTests.cpp)
 target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)

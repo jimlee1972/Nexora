@@ -955,6 +955,14 @@ creates property widgets; unknown components retain raw data instead of being si
     deep/flat ImGui fixtures cover reversed storage, 1x/2x, untracked ancestors, reload and corruption
     rejection. Full frame/memory budgets, production asset scale and soak remain open.
     [Linux contract evidence](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md).
+  - ✅ Supported project descriptor upgrades now offer owning no-write schema-1/2 dry-runs.
+    Read-write Open retains exact original bytes and an immutable plan-only report before source
+    replacement, rejects foreign/corrupt/aliased evidence and occupied staging, and revalidates
+    source revisions. Actual Unicode/CRLF, read-only, failure/retry/reopen and prior-live-writer
+    fixtures preserve stable UUIDs, workspace bytes and last-good backups. Descriptor reads cap
+    actual bytes before line parsing, including post-stat growth. Graphical/scene migration and
+    broader crash/cancellation acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ProjectUpgrade-Linux-2026-10-10.md).
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
     fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
     Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation
