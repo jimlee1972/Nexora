@@ -239,6 +239,9 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   並在焦點／write loss、隱藏 Content、
   外部 modal 或 stale asset scope 時取消。真正 1×／2× Unicode／gate 測試及 Linux Xvfb
   F2／Enter 後的 Scene Save／Undo／重啟驗證流程；實體 IME 與完整圖形驗收仍待完成。
+- ✅ Linux 原生 project-upgrade 驗收現以明確 keydown／keyup 階段送出一次鍵盤操作。
+  三次冷啟動及受影響的 252 項圖形套件保留精確升級／backup／report、唯讀檔案保護
+  與 Vulkan 檢查。[輸入證據](../../Tools/Build/evidence/EditorEDM0-ProjectUpgradeInput-Linux-2026-10-10.md)。
 - 待辦：實體顯示／Windows 新 project 全流程驗收。
 
 ### ED-M2 — Scene authoring core
