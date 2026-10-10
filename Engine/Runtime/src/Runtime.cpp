@@ -759,13 +759,13 @@ bool WorldCommandBuffer::Apply(World &world) {
       } else if (command.kind == Command::Kind::SiblingIndex) {
         MoveToSiblingIndex(*scene, command.entity, command.sibling_index);
       } else if (command.kind == Command::Kind::Camera) {
-        found->camera = command.camera.has_value();
+        found->camera = command.camera.has_value() && command.component_present;
         found->camera_data = command.camera.value_or(CameraComponent{});
       } else if (command.kind == Command::Kind::Light) {
-        found->light = command.light.has_value();
+        found->light = command.light.has_value() && command.component_present;
         found->light_data = command.light.value_or(LightComponent{});
       } else if (command.kind == Command::Kind::MeshRenderer) {
-        found->mesh_renderer = command.mesh.has_value();
+        found->mesh_renderer = command.mesh.has_value() && command.component_present;
         found->mesh_data = command.mesh.value_or(MeshComponent{});
       } else {
         const auto doomed = target.Subtree(command.entity);

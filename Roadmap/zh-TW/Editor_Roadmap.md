@@ -403,6 +403,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   modal gate。Portable 與 1x／2x 真正 UI 輸入測試涵蓋 metadata-only Undo、mixed presence、
   無關 payload 保留及 save／reload。完整 reflected Inspector 與 target-host 驗收仍待完成。
 
+- ✅ Camera／Light／Mesh presence-edit Undo 現還原原本 flag 與全部 stored value，包含
+  nondefault inactive lens／intensity 及完整寬度 mesh／shader reference。Mixed batch 每種元件
+  反覆 40 次 Undo／Redo 都保留精確 bytes；no-op／invalid／stale input 保留 history，失敗 replay
+  保留 cursor。完整 Linux 240/240 與 Minimal Shipping 通過。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM2-DormantComponentHistory-Linux-2026-10-10.md)。
+
 - ✅ Camera／Light Inspector 現支援多選及 mixed presence／value。Mixed component 的 Enable
   會補到缺少的 entity 並保留現有值；Enter 只套用編輯欄位，以 generation-checked 原子交易
   完成單步 Undo／Redo。無效／過期／重複 batch 與唯讀／復原寫入會整批拒絕。真實鍵盤測試

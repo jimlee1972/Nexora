@@ -422,6 +422,12 @@ creates property widgets; unknown components retain raw data instead of being si
   input tests cover metadata-only Undo, mixed presence, unrelated payloads and save/reload.
   Complete reflected Inspector and target-host acceptance remain open.
 
+- ✅ Camera/Light/Mesh presence-edit Undo now restores both the original flag and every stored
+  value, including nondefault inactive lens/intensity and full-width mesh/shader references.
+  Mixed batches retain exact bytes across 40 Undo/Redo cycles per component; no-op/invalid/stale
+  inputs preserve history and failed replay retains its cursor. Full Linux 240/240 and Minimal
+  Shipping pass. [Linux evidence](../../Tools/Build/evidence/EditorEDM2-DormantComponentHistory-Linux-2026-10-10.md).
+
 - ✅ Camera and Light Inspector fields now support multi-selection with mixed presence/value states.
   Enabling a mixed component adds it to missing entities while preserving existing values; Enter applies
   only the edited field as one generation-checked atomic Undo/Redo transaction. Invalid/stale/duplicate
