@@ -177,8 +177,15 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ Import queue admission 現預設最多保留 64 個 operation，可設定容量，滿額回傳可重試錯誤。
   Queued job 與尚未取走的完成／失敗／取消 result 都保留名額，直到取走結果。
   `editor.preview_contract` 涵蓋混合 request、queued／失敗／取消、100 次滿額拒絕、
-  100 次取走後重新提交及 shutdown。此項限制 operation 數量；任意 project index 的 bytes
-  及實體 workflow gate 仍待完成。
+  100 次取走後重新提交及 shutdown。此項限制 operation 數量；project index 本身由下一項限制，
+  實體 workflow gate 仍待完成。
+
+- ✅ `AssetWorkspace::ImportTree` 現將單一 Content index 限制為 262,144 個檔案（不含 ".meta"
+  sidecar），每條專案相對路徑最多 1024 UTF-8 bytes，可透過 `AssetIndexLimits` 調整。兩項限制都在
+  列舉階段、寫入任何 identity sidecar 之前檢查：超限的目錄樹會以可操作的錯誤失敗、保留先前的 index、
+  不留下半成品 sidecar，列舉也會提早停止而不是讓記憶體無限成長。`editor.asset_source` 涵蓋剛好在
+  上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。單一 entry 的診斷
+  文字、縮圖與實體 workflow gate 仍待完成。
 
 - ✅ 一般資產 indexing 及同步／背景 reimport 現以 8 KiB read chunk 串流計算 binary source hash，
   不再保留整個來源檔案。讀取中取消不發布 partial hash；空檔案、embedded NUL、完整 chunk

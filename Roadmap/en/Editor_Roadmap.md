@@ -178,7 +178,16 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   capacity and retryable full-queue error. Queued jobs and unconsumed completed/failed/cancelled
   results retain their slot until consumption. `editor.preview_contract` covers mixed request
   kinds, queued/failure/cancel paths, 100 rejected retries, 100 readmission cycles and shutdown.
-  This bounds operation count; arbitrary project-index bytes and physical workflow gates remain open.
+  This bounds operation count; the project index itself is bounded by the next item, and physical
+  workflow gates remain open.
+
+- ✅ `AssetWorkspace::ImportTree` now bounds one Content index at 262,144 files (".meta" sidecars
+  excluded) and 1024 UTF-8 bytes per project-relative path, adjustable through `AssetIndexLimits`.
+  Both limits are enforced while enumerating, before any identity sidecar is written: an oversized
+  tree fails with an actionable error, keeps the previous index and creates no partial sidecars,
+  and enumeration stops instead of growing memory. `editor.asset_source` covers exact-limit
+  acceptance, over-limit rejection with index preservation, and sidecar-free rejection in writable
+  mode. Per-entry diagnostic text, thumbnails and physical workflow gates remain open.
 
 - ✅ Ordinary asset indexing and synchronous/background reimport now stream binary source hashes
   through an 8 KiB read chunk instead of retaining whole files. Mid-file cancellation publishes no
