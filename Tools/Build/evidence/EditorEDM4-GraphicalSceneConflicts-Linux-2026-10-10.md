@@ -59,3 +59,11 @@ native scene-comparison/additive-tabs registrations. Hosted exact-head checks an
 dependency integration remain required before merge; Linux does not establish physical-host or
 local Windows/macOS acceptance. Automatic semantic merge, provider authentication and broader
 prefab/migration/crash workflows remain open. The full Editor milestone count remains **0/8**.
+
+## Accepted dependency integration
+
+The final feature branch replays only the graphical comparison work onto accepted main
+9d799cd28a6628085b04ae50077614e3da33f11c (SDK PR 470 plus tabs PR 471).
+Application, Engine and test source is byte-identical to the full integrated 224/224 gate
+recorded above; only documentation and required-test workflow context changed during rebase.
+Fresh hosted checks on the published head remain required.
