@@ -48,3 +48,15 @@ remain intact. Eight consecutive focused runs passed (**103.66 s** total).
 The complete graphical Development suite with Cryptography enabled and accepted
 Inspector/build-console integration passed **237/237**, zero skips, **591.45 s**;
 minimal Shipping built successfully. Hosted checks on the new commit are required.
+
+## Slow-frame pointer delivery correction
+
+Hosted PR484 on `317b2abde35eae5cffde028f4e0d157d50d7f08c` still missed the first
+Boolean edit under the runner software-rendering schedule. The native test now
+delivers movement, mouse down and mouse up separately, with a settled Inspector
+layout after source selection. No edit/source/Undo/Redo/read-only assertion or
+validation rule was removed. On main `64b20ea7b2fc4250af4900f6c1ace17001170464`,
+graphical Development rebuilt the native host and fixture (44 incremental steps);
+eight consecutive actual Xvfb/lavapipe runs passed, **129.01 s** total. This is
+a test-only correction (Beads `nexora-owg.2.4`); runtime behavior is unchanged.
+Fresh hosted checks are required before acceptance.
