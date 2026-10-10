@@ -16,6 +16,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/PrefabComparison.cpp
 
   src/PrefabPropertyPlan.cpp
+  src/TargetedPrefabPropertyPlan.cpp
   src/PlayApply.cpp
   src/EditorWorkspace.cpp
   src/PropertySnapshot.cpp

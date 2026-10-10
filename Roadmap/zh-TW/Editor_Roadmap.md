@@ -714,6 +714,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 Targeted field、source apply、structural binding 與 reference rebase 仍待完成。
 [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyReview-Linux-2026-10-10.md)。
 
+✅ Targeted stable-field prefab property candidate 已驗證：明確 node／field identity selection
+保留未選取的值、inactive stored component 與 unknown bytes。Graphical selection、source apply、
+structural reconciliation 與 reference rebase 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md)。
+
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
 - ✅ Graphical prefab isolation 已驗證：create/open/variant/save/reopen 使用獨立 native document，

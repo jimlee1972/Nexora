@@ -785,6 +785,10 @@ creates property widgets; unknown components retain raw data instead of being si
     clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
 
+  - ✅ Targeted stable-field prefab property candidates are validated: explicit node/field
+    identity selection preserves unselected values, inactive stored components and unknown bytes.
+    Graphical selection, source apply, structural reconciliation and reference rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md).
   - ✅ Identity-remapped prefab property candidates are validated: exact stable node sets retain
     target entity/scene identity while restoring complete source properties and unknown data.
     Structural edits, graphical revert/targeted fields and reference rebase remain open.
