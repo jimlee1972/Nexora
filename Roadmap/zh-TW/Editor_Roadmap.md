@@ -931,6 +931,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   完整 frame／memory budget、production asset scale 與 soak 仍待完成。
   [Linux contract 證據](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md)。
 
+- ✅ 支援的 project descriptor upgrade 現提供 owning、無寫入的 schema-1／2 dry-run。
+  Read-write Open 於替換來源前保留精確原始 bytes 與 immutable plan-only report；拒絕 foreign／
+  corrupt／aliased evidence 及 occupied staging，並重驗 source revision。實際 Unicode／CRLF、
+  read-only、failure／retry／reopen 與 prior-live-writer fixture 保留穩定 UUID、workspace bytes
+  及 last-good backup。Descriptor reader 於 line parsing 前限制實際 bytes，包含 stat 後增長；
+  graphical／scene migration 及更完整 crash／cancellation 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-ProjectUpgrade-Linux-2026-10-10.md)。
+
 - ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
   欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
   空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。
