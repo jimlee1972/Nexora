@@ -1,4 +1,5 @@
 #include "Nexora/Editor/BuildProcess.h"
+#include "Nexora/Foundation/Types.h"
 
 #include <chrono>
 #include <future>
@@ -79,8 +80,23 @@ void Run(const std::filesystem::path &fixture) {
     Require(snapshot.output.find(std::to_string(request.arguments[i].size()) + ':' +
                                  request.arguments[i] + '\n') != std::string::npos,
             "Unicode/empty/metacharacter argument was not reproduced exactly");
-  const auto cwd = std::filesystem::canonical(directory).generic_u8string();
-  Require(snapshot.output.find("CWD=" + std::string(cwd.begin(), cwd.end())) != std::string::npos &&
+  const auto cwd_begin = snapshot.output.find("CWD=");
+  const auto cwd_end = cwd_begin == std::string::npos ? std::string::npos
+                                                      : snapshot.output.find('\n', cwd_begin + 4);
+  Require(cwd_begin != std::string::npos && cwd_end != std::string::npos,
+          "Child did not report a complete working-directory record");
+  const auto cwd = snapshot.output.substr(cwd_begin + 4, cwd_end - cwd_begin - 4);
+  Require(foundation::IsValidUtf8(cwd), "Child working-directory record is not UTF-8");
+  const std::filesystem::path child_directory{std::u8string(cwd.begin(), cwd.end())};
+  std::error_code directory_error;
+  const bool same_directory =
+      std::filesystem::equivalent(child_directory, directory, directory_error);
+  if (!same_directory || directory_error) {
+    const auto expected = directory.generic_u8string();
+    std::cerr << "Actual child CWD=" << cwd
+              << " expected=" << std::string(expected.begin(), expected.end()) << '\n';
+  }
+  Require(same_directory && !directory_error &&
               snapshot.output.find("STDERR_END") != std::string::npos &&
               !std::filesystem::exists(directory / "SHELL_WAS_RUN"),
           "Working directory/merged stderr/no-shell contract failed");

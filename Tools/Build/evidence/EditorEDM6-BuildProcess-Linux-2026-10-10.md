@@ -90,3 +90,15 @@ Windows keeps its exact 0xc0000005 termination and no test assertion was weakene
 The corrected fixture and process test rebuilt successfully on Linux; focused
 editor.bounded_build_process passed 1/1 in 0.52s. Production code is unchanged from
 the full 220/220 gate above. Fresh published-head Windows checks remain required.
+
+## Working-directory identity acceptance
+
+Hosted Windows compiled the corrected fixture and reached actual process execution,
+but the fixture's cwd text comparison rejected an otherwise successful argv/exit run.
+The test now requires a complete UTF-8 CWD record and filesystem equivalence to the
+requested directory, instead of requiring identical canonical path spelling. Windows
+short/long temporary-directory aliases and macOS /tmp aliases are equivalent directory
+identities. Merged stderr and no-shell assertions remain strict; a genuinely different
+cwd still fails and now prints both controlled fixture paths. No production code changed.
+The rebuilt actual process test passed **1/1 in 0.51s** on Linux. Fresh Windows acceptance
+remains required; this local result does not establish the hosted failure's final resolution.
