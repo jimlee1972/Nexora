@@ -247,6 +247,10 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   focus/write loss, hidden Content, external modals or stale asset scope. Real 1x/2x Unicode/gate
   tests and Linux Xvfb F2/Enter with scene Save/Undo/restart verify the workflow; physical IME and
   complete graphical acceptance remain open.
+- ✅ Linux native project-upgrade acceptance now delivers one keyboard gesture through explicit
+  rendered keydown/keyup phases. Three cold runs and the affected 252-test graphical suite retain
+  exact upgrade/backup/report, read-only conservation and Vulkan assertions.
+  [Input evidence](../../Tools/Build/evidence/EditorEDM0-ProjectUpgradeInput-Linux-2026-10-10.md).
 - Open: physical-display/Windows fresh-project workflow acceptance.
 
 ### ED-M2 — Scene authoring core
