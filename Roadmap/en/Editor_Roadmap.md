@@ -778,6 +778,10 @@ creates property widgets; unknown components retain raw data instead of being si
     nested materialization, historical revision access and override/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
 
+  - ✅ Project prefab placement owner passes actual mixed-revision source-closure, stale/foreign
+    target, read-only/recovery/external-change and Save/reopen gates, full Linux 243/243 and
+    Minimal Shipping. Graphical instantiation follows separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectPrefabPlacement-Linux-2026-10-10.md).
   - ✅ Persistent Editor scene prefab placement bindings pass nested/repeated placement,
     history, Save All, reopen and corruption gates, full Linux 242/242 and Shipping;
     graphical instantiate and structural source reconciliation remain open.
