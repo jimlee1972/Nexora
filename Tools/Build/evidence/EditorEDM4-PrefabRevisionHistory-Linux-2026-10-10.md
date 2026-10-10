@@ -39,3 +39,20 @@ does not reconstruct previously overwritten legacy revisions, prune references,
 or provide a multi-file power-loss journal. Graphical override/rebase and nested
 materialization remain separate work. Stable C/Gameplay ABI and module graph
 are unchanged; public C++ consumers rebuild. Full Editor milestones remain **0/8**.
+
+## Accepted native-input Main integration
+
+Only the retained-revision feature replays onto accepted Main
+`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79` (PR 500 native frame admission), retaining
+accepted PrefabDocumentSession and Content index budgets. The own replay is
+`36ea7b8c8ab372c79110226dd4d0173b3fd3093a`; old conflicted/unpublished heads do not
+authorize this integration. Sources, tests and contracts for both ownership and
+revision history remain registered.
+
+Fresh full graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer Development
+configure/build passed **515 steps** and **241/241 in 590.10 s**, zero skips. The
+actual revision-history fixture repeated successfully in **0.03 s**. Cold Minimal
+Monolithic Shipping built **74 steps**. This
+profile excludes Editor and does not accept full graphical Shipping. Pinned ImGui/
+Vulkan dependency cache overrides are unchanged. Documentation tests passed **16/16 in 0.562 s** and changed-document links passed. Fresh published-head hosted checks and independently clean current Main remain
+mandatory before ordinary squash merge. Full graphical milestones remain **0/8**.
