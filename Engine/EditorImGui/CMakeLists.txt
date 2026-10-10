@@ -36,7 +36,8 @@ if(NEXORA_LINK_MODE STREQUAL "Modular")
 endif()
 
 include(NexoraTarget)
-add_library(NexoraEditorImGui ${NEXORA_MODULE_LIBRARY_TYPE} src/EditorImGui.cpp)
+add_library(NexoraEditorImGui ${NEXORA_MODULE_LIBRARY_TYPE} src/EditorImGui.cpp
+  src/EditorSystemFont.cpp)
 add_library(Nexora::EditorImGui ALIAS NexoraEditorImGui)
 target_include_directories(NexoraEditorImGui
   PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")

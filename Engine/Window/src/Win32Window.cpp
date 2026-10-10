@@ -297,6 +297,12 @@ public:
     candidate.dwStyle = CFS_CANDIDATEPOS;
     candidate.ptCurrentPos = {x, y};
     const bool positioned = ImmSetCandidateWindow(context, &candidate) != FALSE;
+    // Anchor the composition string at the same point; otherwise the system draws it at the
+    // client origin, away from the text field being edited.
+    COMPOSITIONFORM composition{};
+    composition.dwStyle = CFS_FORCE_POSITION;
+    composition.ptCurrentPos = {x, y};
+    static_cast<void>(ImmSetCompositionWindow(context, &composition));
     ImmReleaseContext(hwnd, context);
     return positioned ? WindowError::None : WindowError::PlatformFailure;
   }
@@ -411,7 +417,14 @@ private:
           ImmReleaseContext(h, imc);
         }
       }
-      return 0;
+      // The default window procedure forwards composition updates to the system IME window, which
+      // draws the composition string and candidate list. Returning here without it leaves both
+      // invisible. The result flags are withheld because the committed text is already queued
+      // above; passing them on would make Windows synthesize WM_IME_CHAR/WM_CHAR and commit it
+      // twice.
+      return DefWindowProcW(h, m, w,
+                            l & ~static_cast<LPARAM>(GCS_RESULTSTR | GCS_RESULTCLAUSE |
+                                                     GCS_RESULTREADSTR | GCS_RESULTREADCLAUSE));
     case WM_MOUSEMOVE:
       self->Push(h, WindowEventType::Pointer, GET_X_LPARAM(l), GET_Y_LPARAM(l));
       return 0;
