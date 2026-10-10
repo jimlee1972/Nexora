@@ -44,11 +44,16 @@ def main():
 
         def click(x, y):
             send("mousemove", "--window", window, str(x), str(y))
-            send("click", "1")
+            send("mousedown", "1")
+            send("mouseup", "1")
+
+        def key(chord):
+            # Modifier down/key/down/up transitions must span software-rendered frames.
+            send("key", "--clearmodifiers", "--delay", "100", chord)
 
         def type_at(x, y, text):
             click(x, y)
-            send("key", "--clearmodifiers", "ctrl+a")
+            key("ctrl+a")
             send("type", "--clearmodifiers", "--delay", "15", "--", text)
 
         def event_text():
@@ -71,8 +76,9 @@ def main():
             send("windowfocus", "--sync", window)
             time.sleep(1.5)
             click(595, 199 if readonly else 182)
+            time.sleep(.8)
             click(397, 29)
-            send("key", "--clearmodifiers", "ctrl+alt+e")
+            key("ctrl+alt+e")
 
         def finish(readonly=False):
             nonlocal process
@@ -132,8 +138,9 @@ def main():
     finally:
         if process is not None and process.poll() is None:
             process.kill()
-            process.communicate()
-        xvfb.terminate()
+            process.communicate(timeout=10)
+        if xvfb.poll() is None:
+            xvfb.terminate()
         xvfb.communicate(timeout=10)
         shutil.rmtree(scratch)
 

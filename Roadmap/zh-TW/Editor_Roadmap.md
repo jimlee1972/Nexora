@@ -1024,6 +1024,8 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - 待辦：圖形化 build frontend、remote deployment/log、實體 GPU 計時校準、任意 capture import
   與 plugin manager。
 
+
+- Native signed-manager 輸入跨越慢速 software frame；連續八次完整 workflow 通過。
 - ✅ Settings／Ctrl+Alt+E 現可開啟 project-scoped signed package manager，提供明確 session
   publisher key／capability policy、owning verified review、immutable install、native enable／disable、
   revocation、restart-required 狀態與受保護移除。實際 1x／2x widget 與 Xvfb native cooperative／
