@@ -709,6 +709,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、
+明確 full revert 確認、一次 mixed-property Undo／Redo 及 read-only inspection。
+Targeted field、source apply、structural binding 與 reference rebase 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyReview-Linux-2026-10-10.md)。
+
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
 - ✅ Graphical prefab isolation 已驗證：create/open/variant/save/reopen 使用獨立 native document，

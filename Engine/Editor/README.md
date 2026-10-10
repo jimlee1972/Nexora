@@ -1363,3 +1363,29 @@ slice installs no files, persists no private keys, makes no network calls and lo
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
+
+## Scoped prefab property review and revert
+
+`PrefabDocumentSession::Review` returns an owning comparison against the exact retained base
+revision for a variant, or the last published revision for a regular prefab. Read-only inspection
+is permitted. Unsaved new node/field identities require explicit Save before review; no temporary
+stable identities are fabricated. Candidate restoration requires identical stable node sets and
+retains target scene/entity identity. Base/nested metadata rows are visible but never rewritten
+by a document-property revert. A clean draft without a published source cannot authorize review.
+
+The opaque review records project UUID/root, session generation, asset/previous publication,
+current PreparedSave and exact immutable source. Revert rechecks each observation, writer authority,
+recovery/external-change state and actual retained source before one complete-property transaction.
+Unauthorized, stale, replaced, corrupt/changed source or incompatible shape rejects without live
+mutation or IO. The original scene and stored prefab files remain unchanged until explicit Save.
+One Undo/Redo restores complete mixed properties, including unavailable bytes; generation, keys,
+selection, clipboard and saved baseline survive. Review grants no write authority. Calls serialize
+with all owners/project publication; the native host also requires stopped Play and no conflicting
+modal/export/close operation. Public C++ consumers rebuild.
+
+The graphical isolation panel exposes explicit Review changes, owning clipped source/edit rows,
+and a separate confirmation before full property revert. Scope changes and successful local edits
+revoke displayed review/confirmation. Read-only scopes retain Review but disable Revert. Existing
+create/open/variant/save/close and dirty-close protection remain. Targeted field revert, apply to
+source, structural reconciliation, persistent live instance bindings and reference rebase remain
+separate work. These bounded owning snapshots are not a total history/process memory quota.
