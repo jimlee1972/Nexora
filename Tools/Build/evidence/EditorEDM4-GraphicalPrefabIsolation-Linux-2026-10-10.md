@@ -47,3 +47,15 @@ requires an explicit prefab save before retrying. No prefab crash journal, neste
 materialization, override/revert/apply/rebase or complete component authoring is
 claimed. Public C++ consumers rebuild; stable C ABI/module graph are unchanged.
 Full Editor milestones remain **0/8**. Current-head hosted gates remain required.
+
+## Latest accepted Main integration
+
+The two owned graphical-isolation/native-tabs commits were replayed onto accepted
+Main `4e4c2984d1339cb80af83ff40a6735b6497cf6dd`, including the separately merged
+native project-upgrade input correction. No prerequisite/foundation branch was merged.
+Graphical Development rebuilt **327 steps**, and full CTest passed **242/242 in
+638.43 s**, zero skips. Actual native prefab isolation passed in **20.38 s** and
+phased native scene tabs in **50.91 s**. Minimal Monolithic Shipping passed **5 steps**,
+with Editor excluded. Existing isolation/source-save/tab ownership contracts and
+bilingual supporting roadmap scope remain unchanged. Fresh published-head hosted
+checks and clean current Main remain required; complete milestones remain **0/8**.
