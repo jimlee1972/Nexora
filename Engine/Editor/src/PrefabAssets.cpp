@@ -356,6 +356,60 @@ bool PrefabAssets::Publish(const ProjectWorkspace &workspace, const PrefabAsset 
                                            : fail("Published prefab could not be confirmed.");
 }
 
+std::optional<PrefabAsset> PrefabAssets::SaveDocument(const ProjectWorkspace &workspace, Uuid id,
+                                                      SceneDocument &document,
+                                                      const std::function<Uuid()> &new_identity,
+                                                      const PrefabAsset *previous,
+                                                      std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) -> std::optional<PrefabAsset> {
+    if (error)
+      *error = message;
+    return {};
+  };
+  if (id.IsNil() || !workspace.Writable() || workspace.Root().empty() ||
+      workspace.HasRecoveryJournal() || workspace.HasExternalChange() ||
+      (previous && !Validate(*previous)))
+    return fail("Prefab document save requires a valid writable resolved source.");
+  const auto root = workspace.Root();
+  const auto project = workspace.Project().id;
+  const auto previous_snapshot = previous ? std::optional(*previous) : std::nullopt;
+  previous = previous_snapshot ? &*previous_snapshot : nullptr;
+  auto prepared = document.PrepareSave();
+  if (!prepared || prepared->Bytes().size() > kMaximumSceneBytes)
+    return fail("Prefab document exceeds the supported source budget.");
+  std::optional<PrefabAsset> asset;
+  if (previous && previous->id == id && previous->scene_bytes == prepared->Bytes()) {
+    const auto stored = Load(workspace, id);
+    if (!stored || *stored != *previous)
+      return fail("Prefab source changed; preserve the current document baseline.");
+    asset = previous_snapshot;
+  } else {
+    asset = Capture(id, document, new_identity, previous);
+    if (!asset || asset->scene_bytes != prepared->Bytes() ||
+        !document.MatchesPreparedSave(*prepared) || workspace.Root() != root ||
+        workspace.Project().id != project)
+      return fail("Prefab capture became stale; no revision was published.");
+    if (previous && previous->id != id) {
+      const auto base = Load(workspace, previous->id);
+      if (!base || *base != *previous)
+        return fail("Variant base changed; no new asset was published.");
+    }
+    if (!Publish(workspace, *asset, previous && previous->id == id ? previous : nullptr, error))
+      return {};
+  }
+  if (!document.MatchesPreparedSave(*prepared) || workspace.Root() != root ||
+      workspace.Project().id != project || !workspace.Writable() ||
+      workspace.HasRecoveryJournal() || workspace.HasExternalChange())
+    return fail("Publication is retained, but the current document baseline was not acknowledged.");
+  // Prepared state already owns these strings; baseline acknowledgement allocates no new history.
+  document.saved_signature_ = std::move(prepared->signature_);
+  document.saved_opaque_records_ = std::move(prepared->opaque_records_);
+  document.opaque_dirty_ = false;
+  return asset;
+}
+
 std::optional<ResolvedPrefabGraph> PrefabAssets::Resolve(PrefabRevisionReference root,
                                                          std::span<const PrefabAsset> sources) {
   if (!Reference(root) || sources.empty() || sources.size() > kMaximumSources)

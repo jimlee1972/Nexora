@@ -70,6 +70,12 @@ public:
   [[nodiscard]] static std::optional<PrefabAsset> Load(const ProjectWorkspace &, foundation::Uuid);
   static bool Publish(const ProjectWorkspace &, const PrefabAsset &,
                       const PrefabAsset *expected = nullptr, std::string *error = nullptr);
+  // Confirms wrapped publication before advancing only the document's saved baseline. Existing
+  // generation, selection, clipboard and Undo/Redo remain intact. Callers serialize all owners.
+  [[nodiscard]] static std::optional<PrefabAsset>
+  SaveDocument(const ProjectWorkspace &, foundation::Uuid, SceneDocument &,
+               const std::function<foundation::Uuid()> &, const PrefabAsset *previous = nullptr,
+               std::string *error = nullptr);
   // Validates exact revisions and the complete base/nested closure before returning any result.
   // This is resolution metadata, not document-write or native code-loading authority.
   [[nodiscard]] static std::optional<ResolvedPrefabGraph>
