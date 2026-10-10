@@ -1,4 +1,5 @@
 #include "Nexora/Editor/PrefabPlacementInspection.h"
+#include "Nexora/Editor/PrefabPlacementOverrides.h"
 #include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include "Nexora/Editor/SceneFiles.h"
 #include <algorithm>
@@ -132,6 +133,104 @@ void Run() {
               target.Dirty() && Files(workspace.Root()) == original_files,
           "Placement lost scoped bindings, existing keys or wrote before Scene Save");
   const auto published = *target.PrepareSave();
+  using Overrides = editor::PrefabPlacementOverrides;
+  std::string override_error;
+  const auto clean_review =
+      Overrides::Prepare(observer, target, placed->front().target, &override_error);
+  Require(clean_review && clean_review->Rows().empty() &&
+              clean_review->Instance() == foundation::Uuid{1903, 1} &&
+              clean_review->Source() == editor::PrefabRevisionReference{parent->id, 1} &&
+              Overrides::Matches(workspace, target, *clean_review) && override_error.empty(),
+          "Clean nested placement fabricated property/parent overrides from translated IDs");
+  const auto old_node = std::ranges::find_if(*placed, [](const auto &entry) {
+    return entry.scope == std::vector{foundation::Uuid{1902, 1}};
+  });
+  Require(old_node != placed->end() && target.Rename(old_node->target, "Local nested override") &&
+              target.SetEulerField(std::array{old_node->target}, 1, 720) &&
+              target.SetOpaqueComponent(old_node->target, {99, "Absent.Provider", {0, 255, 29}}) &&
+              target.SetOpaqueComponent(placed->front().target, {123, "Local.Provider", {42}}),
+          "Live nested override fixture failed");
+  const auto edited = *target.PrepareSave();
+  const auto property_review =
+      Overrides::Prepare(observer, target, old_node->target, &override_error);
+  Require(property_review && !property_review->Rows().empty() &&
+              !Overrides::Matches(workspace, target, *clean_review) &&
+              Overrides::Matches(observer, target, *property_review) &&
+              target.MatchesPreparedSave(edited) && Files(workspace.Root()) == original_files,
+          "Read-only override review mutated target/files or retained stale content");
+  const auto named = std::ranges::find_if(property_review->Rows(), [&](const auto &row) {
+    return row.target == old_node->target && row.field == "name";
+  });
+  const auto name_identity = std::ranges::find(old->nodes.front().properties, "name",
+                                               &editor::PrefabPropertyIdentity::field);
+  Require(named != property_review->Rows().end() && named->scope == old_node->scope &&
+              named->source == editor::PrefabRevisionReference{old->id, 1} &&
+              named->node == old_node->node &&
+              name_identity != old->nodes.front().properties.end() &&
+              named->property == name_identity->id && named->retained == "Old nested" &&
+              named->local == "Local nested override" && !named->structural,
+          "Override review lost exact scoped source node/field identity");
+  Require(
+      std::ranges::any_of(property_review->Rows(),
+                          [&](const auto &row) {
+                            return row.target == old_node->target &&
+                                   row.field == "authoring/euler/y" && row.retained == "0" &&
+                                   row.local == "720" && row.property.has_value();
+                          }) &&
+          std::ranges::any_of(property_review->Rows(),
+                              [&](const auto &row) {
+                                return row.target == old_node->target &&
+                                       row.field == "opaque/99/payload_hex" &&
+                                       row.retained == "00ff1b" && row.local == "00ff1d" &&
+                                       row.property.has_value();
+                              }) &&
+          std::ranges::any_of(property_review->Rows(),
+                              [&](const auto &row) {
+                                return row.target == placed->front().target &&
+                                       row.field == "opaque/123/payload_hex" && !row.retained &&
+                                       row.local == "2a" && !row.property;
+                              }),
+      "Override review lost authored Euler, unknown bytes or explicit local component addition");
+  Require(target.Undo() && target.Undo() && target.Undo() && target.Undo() &&
+              target.MatchesPreparedSave(published) && target.Redo() && target.Redo() &&
+              target.Redo() && target.Redo() && target.MatchesPreparedSave(edited),
+          "Override review changed authoring Undo/Redo boundaries");
+  const auto repeated_review = Overrides::Prepare(workspace, target, old_node->target);
+  Require(repeated_review && std::ranges::equal(repeated_review->Rows(), property_review->Rows()) &&
+              target.Undo() && target.Undo() && target.Undo() && target.Undo() &&
+              target.MatchesPreparedSave(published),
+          "Owning override review was not deterministic across actual history replay");
+  Write(archive, replaced);
+  Require(!Overrides::Matches(workspace, target, *clean_review),
+          "Valid same-revision source replacement retained an old override review");
+  std::filesystem::remove(archive);
+  Require(!Overrides::Prepare(observer, target, placed->front().target, &override_error) &&
+              !override_error.empty() && target.MatchesPreparedSave(published),
+          "Missing retained source produced a partial review or changed the target");
+  Write(archive, *old);
+  Require(target.SetOpaqueComponent(old_node->target,
+                                    {99, "Absent.Provider", std::vector<std::uint8_t>(40000)}) &&
+              !Overrides::Prepare(workspace, target, old_node->target, &override_error) &&
+              !override_error.empty() && target.Undo() && target.MatchesPreparedSave(published) &&
+              Files(workspace.Root()) == original_files,
+          "Over-budget semantic value produced a partial review or mutated source/history");
+  auto stale_override_key = placed->front().target;
+  ++stale_override_key.document_generation;
+  Require(!Overrides::Prepare(workspace, target, seed_key) &&
+              !Overrides::Prepare(workspace, target, stale_override_key) &&
+              target.Reparent(old_node->target.id, seed),
+          "Unbound/stale review or hierarchy fixture failed");
+  const auto hierarchy_review = Overrides::Prepare(workspace, target, old_node->target);
+  Require(hierarchy_review &&
+              std::ranges::any_of(hierarchy_review->Rows(),
+                                  [&](const auto &row) {
+                                    return row.target == old_node->target &&
+                                           row.field == "parent" && row.structural &&
+                                           row.property.has_value() &&
+                                           row.local == std::to_string(seed);
+                                  }) &&
+              target.Undo() && target.MatchesPreparedSave(published),
+          "Hierarchy change was silently treated as a supported value override");
   using Inspector = editor::PrefabPlacementInspector;
   std::optional<editor::PrefabPlacementInspection> inspected;
   for (const auto &entry : *placed) {
