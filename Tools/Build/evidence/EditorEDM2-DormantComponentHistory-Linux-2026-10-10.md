@@ -32,3 +32,14 @@ Public C++ consumers rebuild after private command layout changes. Stable C/Game
 ABI, module dependencies and serialized formats remain unchanged. Calls retain the
 serialized World authoring-thread and atomic replay contract. Editor milestones stay
 **0/8**; no physical display or other-platform acceptance is claimed.
+
+## Fresh accepted Main integration
+
+The owned component-history correction was replayed onto accepted Main
+`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79`. Graphical Development rebuilt
+**350 steps**, then full CTest passed **240/240 in 587.64 s**, zero skips.
+The component reset fixture repeated in **0.02 s** and Inspector reset in **0.13 s**.
+Minimal Monolithic Shipping rebuilt **14 steps**, including Runtime and AIIntegration,
+with Editor excluded. Public World removal defaults remain unchanged; only Editor
+history restoration uses the private presence override. No prerequisite branch was
+merged. Fresh published-head hosted checks and a clean current Main remain required.
