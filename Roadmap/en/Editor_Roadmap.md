@@ -875,6 +875,12 @@ creates property widgets; unknown components retain raw data instead of being si
     Reviewed merge publication, provider integration and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ Qualified native service lookup now checks the exact loaded plugin admission and owned
+    provider identity, including copied registries, same-name reload and same numeric IDs across
+    hosts. Manual replacements and revoked/pending/restart-required providers reject. Results
+    remain owner-thread borrows; consumers release them before mutation/unload. This grants no
+    operation authority or lifetime lease; graphical callbacks and reference-tool acceptance remain
+    open. [Linux evidence](../../Tools/Build/evidence/EditorEDM5-QualifiedPluginServices-Linux-2026-10-10.md).
   - ✅ UI-neutral specialized-tool metadata now owns schema/interface versions, provider IDs,
     declared permissions, document/contribution identities and bounded resource declarations.
     Invalid/oversized admission preserves existing registry state; owning snapshots survive removal.
