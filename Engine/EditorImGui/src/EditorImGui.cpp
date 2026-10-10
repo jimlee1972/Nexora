@@ -106,7 +106,7 @@ struct EditorImGuiHost::State final {
   float dpi_bucket = 0.0F;
   // The system CJK font and its glyph ranges outlive every atlas build: ImGui keeps the range
   // pointer until the atlas is cleared.
-  EditorImGuiDetail::SystemCjkFont cjk_font;
+  Nexora::EditorImGuiDetail::SystemCjkFont cjk_font;
   std::vector<ImWchar> cjk_ranges;
   bool cjk_probed = false;
   std::uint32_t font_generation = 1;
@@ -4062,7 +4062,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     fonts.AddFontDefault(&config);
     if (!state_->cjk_probed) {
       state_->cjk_probed = true;
-      if (EditorImGuiDetail::FindSystemCjkFont(state_->cjk_font)) {
+      if (Nexora::EditorImGuiDetail::FindSystemCjkFont(state_->cjk_font)) {
         for (const auto point : state_->cjk_font.glyph_pairs)
           state_->cjk_ranges.push_back(static_cast<ImWchar>(point));
         state_->cjk_ranges.push_back(0);
