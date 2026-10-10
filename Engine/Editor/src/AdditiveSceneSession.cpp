@@ -1,4 +1,5 @@
 #include "Nexora/Editor/AdditiveSceneSession.h"
+#include "Nexora/Editor/AdditiveSceneComposition.h"
 #include "Nexora/Editor/SceneSaveBatch.h"
 
 #include <algorithm>
@@ -281,5 +282,106 @@ SceneSaveBatchResult AdditiveSceneSession::SaveAll() {
   if (!batch.Prepare(files, &error))
     return {SceneSaveBatchStatus::Rejected, std::move(error)};
   return batch.Publish();
+}
+bool AdditiveSceneSession::RestoreComposition(std::span<const SceneCompositionEntry> rows,
+                                              std::size_t active,
+                                              const std::function<bool()> &validate_metadata,
+                                              const std::function<void()> &after_size_preflight,
+                                              std::string *error) {
+  if (!Allowed(error) || rows.empty() || rows.size() > kMaximumDocuments || active >= rows.size() ||
+      entries_.size() != 1 || entries_.front()->release || entries_.front()->document->Dirty() ||
+      !Live(*entries_.front(), entries_.front()->files->Token()) ||
+      entries_.front()->files->CurrentPath() != rows.front().path)
+    return Fail(error,
+                "Open the saved bootstrap scene as a clean primary before restoring composition.");
+  std::uintmax_t payload_bytes = 0;
+  for (const auto &row : rows) {
+    const auto destination = entries_.front()->files->Resolve(row.path);
+    std::error_code error_code;
+    const auto size = destination ? std::filesystem::file_size(*destination, error_code) : 0;
+    if (!destination || error_code || size > SceneFileSession::kMaximumDiskBaselineBytes ||
+        size > SceneSaveBatch::kMaximumPayloadBytes - payload_bytes)
+      return Fail(
+          error,
+          "Composition source files are unavailable or exceed the aggregate payload budget.");
+    payload_bytes += size;
+  }
+  try {
+    if (after_size_preflight)
+      after_size_preflight();
+  } catch (...) {
+    return Fail(error, "Composition restore was interrupted after source size preflight.");
+  }
+  if (!Allowed(error))
+    return false;
+  AdditiveSceneSession candidate(workspace_, world_);
+  std::vector<SceneDocumentId> identities;
+  identities.reserve(rows.size());
+  const auto primary = candidate.Attach(*entries_.front()->document, *entries_.front()->files,
+                                        rows.front().owned, error);
+  if (!primary)
+    return false;
+  payload_bytes = 0;
+  const auto account_source = [&](const SceneFileSession &files) {
+    if (!files.disk_baseline_ || !files.disk_baseline_->exists ||
+        files.disk_baseline_->bytes.size() > SceneSaveBatch::kMaximumPayloadBytes - payload_bytes)
+      return Fail(error, "Loaded composition sources exceed the aggregate payload budget.");
+    payload_bytes += files.disk_baseline_->bytes.size();
+    return true;
+  };
+  if (!account_source(*candidate.Files(*primary)))
+    return false;
+  identities.push_back(*primary);
+  for (std::size_t index = 0; index < rows.size(); ++index) {
+    std::vector<SceneDocumentId> dependencies;
+    dependencies.reserve(rows[index].dependencies.size());
+    for (const auto parent : rows[index].dependencies) {
+      if (parent >= index)
+        return Fail(error, "Saved dependencies must precede each document in the load order.");
+      dependencies.push_back(identities[parent]);
+    }
+    if (index == 0) {
+      if (!dependencies.empty())
+        return Fail(error, "The bootstrap scene cannot depend on a later document.");
+      continue;
+    }
+    const auto admitted =
+        candidate.Open(rows[index].path, rows[index].owned, std::move(dependencies), error);
+    if (!admitted)
+      return false;
+    if (!account_source(*candidate.Files(*admitted)))
+      return false;
+    identities.push_back(*admitted);
+  }
+  if (!candidate.Select(identities[active], candidate.Files(identities[active])->Token(), error))
+    return false;
+  try {
+    if (!validate_metadata() || !candidate.Allowed(error))
+      return Fail(error, "Composition metadata or project scope changed during restore.");
+  } catch (...) {
+    return Fail(error, "Composition restore was interrupted before membership publication.");
+  }
+  payload_bytes = 0;
+  for (const auto &entry : candidate.entries_) {
+    if (!entry->files->current_ || !entry->files->disk_baseline_ ||
+        !entry->files->disk_baseline_->exists ||
+        !candidate.DistinctPath(entry->files->current_, entry->id))
+      return Fail(error, "A candidate source is missing, aliased or lost its observed baseline.");
+    const auto size = entry->files->disk_baseline_->bytes.size();
+    if (size > SceneSaveBatch::kMaximumPayloadBytes - payload_bytes)
+      return Fail(error, "Loaded composition sources exceed the aggregate payload budget.");
+    payload_bytes += size;
+    const auto path = entry->files->Resolve(*entry->files->current_);
+    const auto current = path ? SceneFileSession::ReadDisk(*path) : std::nullopt;
+    if (!candidate.Live(*entry, entry->files->Token()) || !current || !current->exists ||
+        current->bytes != entry->files->disk_baseline_->bytes)
+      return Fail(error, "A scene source changed during restore. Existing owners were preserved.");
+  }
+  // All IO, allocations and source/graph validation completed in the candidate. Removing the old
+  // borrowed entry leaves its owners intact; rejected candidates release only their new records.
+  entries_ = std::move(candidate.entries_);
+  graph_ = std::move(candidate.graph_);
+  active_ = candidate.active_;
+  return true;
 }
 } // namespace nexora::editor

@@ -701,6 +701,15 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Authoring SDK 現可保存有界且 project-bound 的 named scene composition，涵蓋
+  ownership／reference role、deterministic dependency load order 與 active selection。
+  Restore 先 stage 完整 candidate 並於 membership 替換前重驗 source／metadata revision；
+  invalid、missing、colliding、external change 或 interruption 均保留 primary 與全部原檔。
+  實際 16 文件、read-only、late change 與 aggregate budget 測試通過，亦涵蓋 missing baseline、
+  同位元組 hard-link 替換與 size preflight 後增長。Graphical integration
+  與完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md)。
+
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
   drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
   reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle

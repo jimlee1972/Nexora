@@ -185,6 +185,9 @@ jobs:
       - name: Require coordinated scene-save acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.scene_save_batch$' | grep -q 'Total Tests: 1'
+      - name: Require persisted additive composition acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.additive_scene_composition$' | grep -q 'Total Tests: 1'
       - name: Require additive document-owner acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.additive_scene_session$' | grep -q 'Total Tests: 1'

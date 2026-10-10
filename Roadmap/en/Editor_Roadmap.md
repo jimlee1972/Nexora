@@ -740,6 +740,14 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ The authoring SDK now persists a bounded, project-bound named scene composition with
+    ownership/reference roles, deterministic dependency load order and active selection. Restore
+    stages the complete candidate and rechecks source/metadata revisions before replacing membership;
+    invalid, missing, colliding, externally changed or interrupted input preserves the primary and
+    every original. Genuine sixteen-document, read-only, late-change and aggregate-budget tests pass,
+    including missing baselines, byte-identical hard-link replacement and growth after size preflight.
+    Graphical integration and full ED-M4 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.
