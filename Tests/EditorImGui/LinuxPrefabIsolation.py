@@ -321,17 +321,110 @@ def main():
         require(asset(variant)[3] == after_local_save[3] and asset(variant)[2] == child_asset[2] and
                 asset(base)[0] == applied_source[0] and source.read_bytes() == original,
                 'Source apply changed local Redo, stable identities or published base after Save')
+        # Create two real three-way conflicts against the retained v4 reference.
+        text(window, 180, 131, base_id)
+        start = len(captured)
+        click(window, 230, 154)
+        wait_log(r'prefab action=1 applied=1 .*revision=5 dirty=0', start)
+        click(window, 140, 227)
+        text(window, 180, 427, 'New source')
+        key('Return')
+        text(window, 180, 451, '19')
+        key('Return')
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=6 dirty=0', start)
+        rebase_source = asset(base)
+        text(window, 180, 131, variant_id)
+        start = len(captured)
+        click(window, 230, 154)
+        wait_log(r'prefab action=1 applied=1 .*revision=10 dirty=0', start)
+        click(window, 140, 227)
+        before_rebase_variant = asset(variant)
+        rebase_before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        start = len(captured)
+        click(window, 552, 154)
+        wait_log(r'prefab action=9 applied=1 .*revision=10 dirty=0', start)
+        click(window, 614, 154)
+        require(rebase_before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
+                'Unresolved native rebase wrote project files')
+        # Stable field UUID ordering defines the two actual clipped table rows.
+        name_y = 580 if selected_name else 603
+        position_y = 603 if selected_name else 580
+        click(window, 618, name_y)
+        click(window, 615, name_y + 40)  # Take source name.
+        click(window, 618, position_y)
+        click(window, 615, position_y + 23)  # Keep local complete position group.
+        start = len(captured)
+        click(window, 660, 177)
+        wait_log(r'prefab action=10 applied=1 .*revision=10 dirty=0', start)
+        click(window, 614, 154)
+        require(rebase_before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
+                'Native rebase preparation/confirmation published without explicit Save')
+        start = len(captured)
+        click(window, 122, 216)
+        wait_log(r'prefab action=11 applied=1 .*revision=10 dirty=1', start)
+        require(rebase_before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
+                'Native rebase wrote sources before explicit Save')
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=11 dirty=0', start)
+        rebased = asset(variant)
+        require(b'node ' + node + b' 0 New source\n' in rebased[3] and
+                re.search(rb'^' + node + rb' 0 11 ', rebased[3], re.M) and
+                rebased[2] == child_asset[2] and opaque in rebased[3] and
+                struct.unpack_from('<Q', rebased[0], 48)[0] == 6 and
+                asset(base)[0] == rebase_source[0] and source.read_bytes() == original,
+                'Native rebase choices lost whole-group overrides, exact reference, IDs or source isolation')
+        retained_variant = root / '.nexora/prefabs/revisions' / variant_id / '10.nxprefab'
+        require(retained_variant.read_bytes() == before_rebase_variant[0],
+                'Native rebase publication lost exact previous variant')
+        click(window, 88, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=12 dirty=0', start)
+        unrebased = asset(variant)
+        require(unrebased[3] == after_local_save[3] and unrebased[2] == child_asset[2] and
+                struct.unpack_from('<Q', unrebased[0], 48)[0] == 4,
+                'One native Undo failed to restore properties plus exact retained reference')
+        click(window, 140, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=13 dirty=0', start)
+        require(asset(variant)[3] == rebased[3] and asset(variant)[2] == rebased[2] and
+                struct.unpack_from('<Q', asset(variant)[0], 48)[0] == 6 and
+                asset(base)[0] == rebase_source[0],
+                'One native Redo failed properties/reference history or mutated the source')
+        # Advance source again through actual controls for read-only latest-source review.
+        text(window, 180, 131, base_id)
+        start = len(captured)
+        click(window, 230, 154)
+        wait_log(r'prefab action=1 applied=1 .*revision=6 dirty=0', start)
+        click(window, 140, 227)
+        text(window, 180, 427, 'Readonly newer source')
+        key('Return')
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=7 dirty=0', start)
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
         text(window, 180, 113, variant_id)
         click(window, 230, 137)
-        wait_log(r'prefab action=1 applied=1 .*revision=10 dirty=0')
+        wait_log(r'prefab action=1 applied=1 .*revision=13 dirty=0')
         start = len(captured)
         click(window, 310, 177)
         wait_log(r'prefab action=5 applied=1 .*dirty=0', start)
         click(window, 435, 177)
         require(b'prefab action=6' not in captured, 'Read-only review enabled property revert')
+        start = len(captured)
+        click(window, 552, 154)
+        wait_log(r'prefab action=9 applied=1 .*revision=13 dirty=0', start)
+        start = len(captured)
+        click(window, 660, 177)
+        wait_log(r'prefab action=10 applied=1 .*revision=13 dirty=0', start)
+        click(window, 614, 154)
+        require(b'prefab action=11' not in captured, 'Read-only latest-source review enabled rebase')
         click(window, 140, 227)
         text(window, 180, 427, 'Forbidden readonly edit')
         key('Return')

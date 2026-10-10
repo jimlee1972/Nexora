@@ -24,10 +24,12 @@
 #include <locale>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -155,6 +157,12 @@ struct EditorImGuiHost::State final {
   bool prefab_can_revert{}, prefab_revert_confirmation{};
   bool prefab_can_apply{}, prefab_apply_confirmation{};
   bool prefab_targeted{};
+  bool prefab_rebase{}, prefab_can_rebase{}, prefab_rebase_confirmation{};
+  std::optional<PrefabRevisionReference> prefab_previous_base, prefab_next_base;
+  std::vector<PrefabPropertySelection> prefab_conflicts;
+  std::vector<PrefabRebaseChoice> prefab_choices;
+  std::size_t prefab_unresolved{};
+  std::vector<std::tuple<std::size_t, std::size_t, std::array<float, 2>>> prefab_choice_positions;
   std::vector<PrefabPropertySelection> prefab_selected;
   std::vector<std::pair<std::size_t, std::array<float, 2>>> prefab_property_positions;
   std::array<char, 65> prefab_target{};
@@ -165,7 +173,7 @@ struct EditorImGuiHost::State final {
   std::array<double, 3> prefab_position_original{};
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
-  std::array<std::optional<std::array<float, 2>>, 23> prefab_positions{};
+  std::array<std::optional<std::array<float, 2>>, 28> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
