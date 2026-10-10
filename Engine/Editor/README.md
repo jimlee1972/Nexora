@@ -1,5 +1,45 @@
 # Editor Core contract
 
+## Stable revisioned prefab asset foundation
+
+`PrefabAssets` owns exact versioned SceneDocument bytes, an asset UUID/revision, stable node UUIDs
+and stable field UUIDs, optional exact base revision and scoped nested instance references. Capture
+uses an authoring-thread identity factory only during the call; it copies and validates the scene
+before calling that factory. Nil/duplicate identifiers reject. Matching serialized node IDs and
+canonical field keys preserve identities across rename, value changes and actual save/reopen. The
+caller supplies the previous revision of that same authoring source (or a variant of it), not an
+unrelated document with coincidentally matching Runtime IDs. A same-asset capture increments without
+wrap; a new-asset variant starts at revision one and references the exact previous asset revision.
+It retains a full materialized source snapshot; this foundation does not automatically rebase it.
+
+The canonical `NXPFAB1` binary format uses fixed little-endian integers, exact EOF and validated
+counts before iteration. It retains exact unknown opaque bytes and authored Scene metadata. Current
+field identity covers name, parent, layer, Transform lanes, whole Camera/Light/Mesh components and
+whole opaque components; it does not interpret arbitrary native plugin layouts. Limits are 8 MiB
+scene bytes, 16 MiB asset bytes, 4096 nodes, 64 fields/node and 32768 fields/asset. Decoder errors
+return no partial asset and never mutate live documents or their history.
+
+Resolve stages an owning unique-asset revision archive, instance scopes and expanded node count.
+Each input asset UUID identifies one exact revision; conflicting revision requirements reject.
+Missing/stale sources, duplicate identities, invalid attachments, base/nested cycles or budgets
+reject the whole result. Base dependency closure does not become a second live instance; repeated
+nested placements have separate instance scopes. Shared base closure is memoized to avoid exponential
+traversal, while each actual nested placement consumes its budget. Limits are 64 supplied sources,
+64 MiB total encoded input/archive, 128 expanded instances, 4096 expanded nodes and depth 32.
+Returned values retain no document, World, caller-source or callback borrows.
+
+Load/Publish use the canonical project path `.nexora/prefabs/<asset-uuid>.nxprefab`. Actual reads
+require ordinary nonsymlink, single-link files and remain bounded if the file grows after preflight.
+Both operations require resolved workspace/recovery state; only publication requires the writer
+lease. Initial publication preserves an occupied identity. Replacement requires the exact canonical
+previous bytes, matching UUID and next revision, then uses the common atomic staging helper. Invalid
+or externally changed sources and occupied foreign staging files remain untouched. This is the
+existing serialized single-writer contract, not exclusion against hostile filesystem races or a
+multi-file crash/power-loss journal. No source scene, saved baseline, clipboard or Undo entry changes.
+Full graphical isolation, stable instance metadata, instantiate/override diff/revert/apply/rebase and
+transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
+C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
+
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`

@@ -710,6 +710,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
+  revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。
+  實際 rename／Undo／save／reopen、scoped repeated placement、cycle／stale／budget 拒絕及
+  readonly／recovery／external-change／staging 保護皆通過。Graphical isolation、instance materialization
+  與 override diff／revert／apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md)。
+
 - ✅ 原生 graphical Editor 現透過有界 scene tab 編輯獨立 owned／reference document，
   提供 dirty close 選擇、coordinated Save All 與跨文件的 window close 保護。Named role／load order／
   active selection 可在兩種 access mode 重開；完整 restore 失敗會 freeze authoring 並保留全部原檔。
