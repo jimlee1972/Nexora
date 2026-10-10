@@ -23,6 +23,7 @@
 #if defined(_WIN32)
 #include <windows.h>
 #elif defined(__APPLE__)
+#include <Availability.h>
 #include <TargetConditionals.h>
 #endif
 #if !defined(_WIN32) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IPHONE)
@@ -56,7 +57,7 @@ struct BuildProcess::Implementation final {
     BuildProcessSnapshot snapshot;
     BuildProcessRequest request;
     core::CancellationSource cancellation;
-    core::JobHandle job;
+    core::JobHandle job_handle;
     bool consumed{};
     void Set(BuildProcessPhase phase, std::string message) {
       std::lock_guard lock{mutex};
@@ -133,7 +134,7 @@ bool BuildProcess::Start(BuildProcessRequest request, std::string *error) {
   op->snapshot.message = "Build process queued.";
   op->request = std::move(request);
   try {
-    op->job = impl.jobs.Submit(
+    op->job_handle = impl.jobs.Submit(
         {[op](const core::CancellationToken &token) {
            try {
              op->Run(token);
@@ -155,11 +156,11 @@ bool BuildProcess::Poll(std::uint64_t current_scope) {
   const auto op = impl.operation;
   if (!op || op->consumed)
     return false;
-  const auto status = op->job.Status();
+  const auto status = op->job_handle.Status();
   if (status == core::JobStatus::Queued || status == core::JobStatus::Running)
     return false;
   try {
-    impl.jobs.Wait(op->job);
+    impl.jobs.Wait(op->job_handle);
   } catch (...) {
     op->Set(BuildProcessPhase::Failed, "Build process worker failed.");
   }
@@ -170,7 +171,7 @@ bool BuildProcess::Poll(std::uint64_t current_scope) {
     if (current_scope != op->snapshot.scope)
       op->Set(BuildProcessPhase::Stale,
               "Build process scope changed; no build success was published.");
-    else if (op->snapshot.exit_code != 0)
+    else if (op->snapshot.exit_code != 0u)
       op->Set(BuildProcessPhase::Failed, "Build process returned a nonzero exit code.");
     else
       op->Set(BuildProcessPhase::Exited,
@@ -206,7 +207,7 @@ void BuildProcess::Shutdown() noexcept {
     return;
   op->cancellation.Cancel();
   try {
-    impl.jobs.Wait(op->job);
+    impl.jobs.Wait(op->job_handle);
   } catch (...) {
   }
   op->request = {};
@@ -295,8 +296,22 @@ void BuildProcess::Implementation::Operation::Run(const core::CancellationToken 
   SpawnCheck(posix_spawn_file_actions_adddup2(&actions.value, write_end.value, STDOUT_FILENO));
   SpawnCheck(posix_spawn_file_actions_adddup2(&actions.value, write_end.value, STDERR_FILENO));
   SpawnCheck(posix_spawn_file_actions_addclose(&actions.value, write_end.value));
+#if defined(__APPLE__) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+  if (__builtin_available(macOS 26.0, *))
+    SpawnCheck(
+        posix_spawn_file_actions_addchdir(&actions.value, request.working_directory.c_str()));
+  else {
+    // Retain the older deployment target with only this deprecated compatibility call suppressed.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    SpawnCheck(
+        posix_spawn_file_actions_addchdir_np(&actions.value, request.working_directory.c_str()));
+#pragma clang diagnostic pop
+  }
+#else
   SpawnCheck(
       posix_spawn_file_actions_addchdir_np(&actions.value, request.working_directory.c_str()));
+#endif
   SpawnAttributes attributes;
   sigset_t empty, defaults;
   sigemptyset(&empty);

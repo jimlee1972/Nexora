@@ -60,7 +60,7 @@ void Run(const std::filesystem::path &fixture) {
           "Intake/busy contract failed");
   Finish(process, 42);
   auto snapshot = process.Snapshot();
-  Require(snapshot.phase == Phase::Exited && snapshot.exit_code == 0 &&
+  Require(snapshot.phase == Phase::Exited && snapshot.exit_code == 0u &&
               !snapshot.dropped_output_bytes,
           "Actual successful exit was not represented correctly");
   for (std::size_t i = 1; i < request.arguments.size(); ++i)
@@ -75,7 +75,7 @@ void Run(const std::filesystem::path &fixture) {
   request.arguments = {"--fail"};
   Require(process.Start(request), "Nonzero fixture did not launch");
   Finish(process, 42);
-  Require(process.Snapshot().phase == Phase::Failed && process.Snapshot().exit_code == 7 &&
+  Require(process.Snapshot().phase == Phase::Failed && process.Snapshot().exit_code == 7u &&
               process.Snapshot().output.find("ACTUAL_NONZERO_EXIT") != std::string::npos,
           "Nonzero process was reported as success");
   request.arguments = {"--native-failure"};
@@ -99,7 +99,7 @@ void Run(const std::filesystem::path &fixture) {
   request.arguments = {"--args"};
   Require(process.Start(request), "Stale fixture did not launch");
   Finish(process, 43);
-  Require(process.Snapshot().phase == Phase::Stale && process.Snapshot().exit_code == 0,
+  Require(process.Snapshot().phase == Phase::Stale && process.Snapshot().exit_code == 0u,
           "Old scope accepted a successful exit");
   auto missing = request;
   missing.executable = directory / "missing-executable";
