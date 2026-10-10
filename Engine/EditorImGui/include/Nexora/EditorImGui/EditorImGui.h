@@ -1,4 +1,5 @@
 #pragma once
+#include "Nexora/Editor/ReflectedInspector.h"
 
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
@@ -167,6 +168,9 @@ public:
   bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
   [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
 
+  // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
+  bool SetReflectedInspector(const ReflectedInspector &catalog);
+  [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   void DrawProductShell(
       ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
       ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,

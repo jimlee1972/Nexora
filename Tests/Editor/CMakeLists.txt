@@ -227,3 +227,7 @@ add_test(NAME editor.gpu_timing_json
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/GpuTimingJsonTests.py" "$<TARGET_FILE:NexoraGpuTimingCaptureTests>")
 add_test(NAME editor.gpu_timing_json_optimized
   COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/GpuTimingJsonTests.py" "$<TARGET_FILE:NexoraGpuTimingCaptureTests>")
+add_executable(NexoraReflectedInspectorTests ReflectedInspectorTests.cpp)
+target_link_libraries(NexoraReflectedInspectorTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraReflectedInspectorTests)
+add_test(NAME editor.reflected_inspector COMMAND NexoraReflectedInspectorTests)

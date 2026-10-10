@@ -323,6 +323,15 @@ public:
   // Editor-owned missing-plugin payloads. Writes are generation checked and undoable;
   // inspection returns an owning copy, never a pointer into node storage.
   bool SetOpaqueComponent(NodeKey entity, OpaqueComponent component);
+  struct OpaqueComponentEdit final {
+    NodeKey entity;
+    OpaqueComponent expected;
+    OpaqueComponent replacement;
+  };
+  // Existing-component compare-and-replace: all keys/bytes/budgets validate before publication.
+  // One independent metadata Undo; rejected/no-op requests preserve history and every payload.
+  // The serialized authoring owner enforces workspace access/recovery/Play authority.
+  bool ApplyOpaqueComponents(std::span<const OpaqueComponentEdit> edits);
   [[nodiscard]] std::optional<std::vector<OpaqueComponent>> OpaqueComponents(NodeKey entity) const;
   [[nodiscard]] std::optional<std::vector<OpaqueComponentInfo>>
   InspectOpaqueComponents(NodeKey entity) const;
@@ -447,7 +456,7 @@ private:
     std::vector<OpaqueComponent> opaque{};
   };
   struct UndoEntry final {
-    enum class Kind { Runtime, Rename, Opaque } kind{Kind::Runtime};
+    enum class Kind { Runtime, Rename, Opaque, OpaqueBatch } kind{Kind::Runtime};
     NodeKey entity;
     std::string previous_name;
     std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
@@ -457,6 +466,7 @@ private:
     std::vector<runtime::Id> redo_selection{};
     std::vector<OpaqueComponent> previous_opaque{};
     bool restore_selection{};
+    std::vector<std::pair<NodeKey, std::vector<OpaqueComponent>>> previous_opaque_batch{};
   };
   void PushUndo(UndoEntry entry);
   runtime::World &world_;

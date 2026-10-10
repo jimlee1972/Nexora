@@ -9,6 +9,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ProjectContent.cpp
   src/ProjectWorkspace.cpp
   src/ProjectInputBindings.cpp
+  src/ReflectedInspector.cpp
   src/PlayApply.cpp
   src/EditorWorkspace.cpp
   src/MaterialImport.cpp

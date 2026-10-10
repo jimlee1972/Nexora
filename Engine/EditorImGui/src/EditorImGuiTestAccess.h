@@ -92,6 +92,13 @@ public:
   static void SetHierarchyFilter(EditorImGuiHost &host, std::string_view filter) noexcept;
   [[nodiscard]] static std::vector<OpaqueComponentInfo>
   InspectorOpaqueInfo(const EditorImGuiHost &host);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ReflectedPropertyPosition(const EditorImGuiHost &host, std::string_view path);
+  [[nodiscard]] static std::optional<bool> ReflectedPropertyMixed(const EditorImGuiHost &host,
+                                                                  std::string_view path);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ReflectedChoicePosition(const EditorImGuiHost &host, std::string_view path,
+                          std::string_view label);
   [[nodiscard]] static std::array<float, 2> PointerPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;

@@ -414,6 +414,15 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   超限匯入。損壞、重複、orphan 與缺失 entity 紀錄在修改 live state 前拒絕。外掛還原／執行
   及完整 reflected 編輯仍待完成。
 
+- ✅ 圖形化 Inspector 現以有界、明確的 reflection metadata 編輯 opaque 元件：Boolean、
+  signed／unsigned scalar、enum／flags、vector／color、完整 entity／asset reference、固定陣列
+  及展平的 nested path。Mixed 多選以 exact-source、generation 核對提交一次 atomic Undo／Redo，
+  Flags 點擊只變更各 target 被操作的 bit，保存／重開保留未知 bytes。專案 metadata reload
+  會取消過期草稿；唯讀及損壞 metadata 保留來源。
+  真正 1x／2x 控制項及原生 Vulkan 編輯／保存／重開的驗收見
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md)。
+  Dynamic array、原生外掛還原及完整 ED-M2 驗收仍待完成。
+
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save
   會等待提交或取消後才儲存。

@@ -194,6 +194,11 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_reflected_inspector
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedInspector.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_reflected_inspector PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
   add_test(NAME editor.linux_diagnostic_privacy
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDiagnosticPrivacy.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
@@ -524,3 +529,8 @@ target_include_directories(NexoraStaticProjectExportUiTests PRIVATE ../../Engine
 nexora_apply_defaults(NexoraStaticProjectExportUiTests)
 add_test(NAME editor.static_project_export_ui COMMAND NexoraStaticProjectExportUiTests)
 set_tests_properties(editor.static_project_export_ui PROPERTIES TIMEOUT 60)
+add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
+target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraReflectedInspectorUiTests)
+add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)

@@ -18,10 +18,13 @@
 #include <cstdio>
 #include <cstring>
 #include <exception>
+#include <iomanip>
 #include <limits>
+#include <locale>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -336,6 +339,17 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
+  ReflectedInspector reflected_inspector;
+  bool reflected_metadata_reload{};
+  std::vector<std::pair<std::string, std::array<float, 2>>> reflected_positions;
+  std::vector<std::pair<std::string, std::array<float, 2>>> reflected_choice_positions;
+  std::vector<std::pair<std::string, bool>> reflected_mixed;
+  std::vector<runtime::TypeId> reflected_rendered_types;
+  std::uint64_t reflected_draft_generation{1};
+  std::optional<ReflectedObservation> reflected_pending;
+  std::string reflected_pending_path;
+  std::array<char, 512> reflected_pending_text{};
+  std::uint64_t reflected_pending_identity{};
   bool inspector_transform_visible = false;
   std::string inspector_error;
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
@@ -438,6 +452,8 @@ template <typename StateT> void CancelSceneGestures(StateT &state) {
 }
 
 template <typename StateT> void CancelInspectorDrafts(StateT &state) {
+  ++state.reflected_draft_generation;
+  state.reflected_pending.reset();
   if (std::ranges::any_of(state.inspector_transform_active, [](bool active) { return active; }) ||
       std::ranges::any_of(state.inspector_euler_active, [](bool active) { return active; }) ||
       std::ranges::any_of(state.inspector_camera_active, [](bool active) { return active; }) ||
@@ -2685,6 +2701,8 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
   ImGui::EndDragDropTarget();
 }
 
+#include "ReflectedInspectorPanel.inl"
+
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
@@ -2702,6 +2720,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_reset_positions = {};
   state.inspector_clipboard_positions = {};
   state.inspector_opaque_info.clear();
+  state.reflected_choice_positions.clear();
+  state.reflected_positions.clear();
+  state.reflected_mixed.clear();
+  state.reflected_rendered_types.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
     selected_entities.insert(scene->Selection().begin(), scene->Selection().end());
@@ -2735,6 +2757,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     transforms.push_back(*transform);
   }
   state.inspector_transform_visible = true;
+  DrawReflectedInspector(state, *scene, keys, editable);
   if (keys.size() == 1)
     ImGui::Text("%.*s", static_cast<int>(scene->Name(keys.front().id).size()),
                 scene->Name(keys.front().id).data());
@@ -2760,8 +2783,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                                          std::make_move_iterator(info->begin()),
                                          std::make_move_iterator(info->end()));
     }
-  std::erase_if(state.inspector_opaque_info,
-                [](const auto &info) { return ReadMaterialAssetReference(info).has_value(); });
+  std::erase_if(state.inspector_opaque_info, [&](const auto &info) {
+    return ReadMaterialAssetReference(info).has_value() ||
+           std::ranges::find(state.reflected_rendered_types, info.type) !=
+               state.reflected_rendered_types.end();
+  });
   if (!state.inspector_opaque_info.empty() &&
       ImGui::CollapsingHeader("Unavailable component data", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::TextWrapped("Read-only: component data is preserved. Restore a compatible plugin or "
@@ -4315,6 +4341,15 @@ void EditorImGuiHost::SetProjectSelectorStatus(std::string status, bool busy) {
 
 std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
   return state_->selector_error;
+}
+bool EditorImGuiHost::SetReflectedInspector(const ReflectedInspector &catalog) {
+  Activate(state_->context);
+  state_->reflected_positions.clear();
+  state_->reflected_mixed.clear();
+  return state_->reflected_inspector.SetComponents(catalog.Components());
+}
+bool EditorImGuiHost::TakeReflectedMetadataReloadRequest() noexcept {
+  return std::exchange(state_->reflected_metadata_reload, false);
 }
 
 void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
@@ -6894,11 +6929,35 @@ std::vector<OpaqueComponentInfo>
 EditorImGuiTestAccess::InspectorOpaqueInfo(const EditorImGuiHost &host) {
   return host.state_->inspector_opaque_info;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ReflectedPropertyPosition(const EditorImGuiHost &host,
+                                                 std::string_view path) {
+  for (const auto &[name, point] : host.state_->reflected_positions)
+    if (name == path)
+      return point;
+  return {};
+}
+std::optional<bool> EditorImGuiTestAccess::ReflectedPropertyMixed(const EditorImGuiHost &host,
+                                                                  std::string_view path) {
+  for (const auto &[name, mixed] : host.state_->reflected_mixed)
+    if (name == path)
+      return mixed;
+  return {};
+}
 
 std::array<float, 2> EditorImGuiTestAccess::PointerPosition(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto position = ImGui::GetIO().MousePos;
   return {position.x, position.y};
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ReflectedChoicePosition(const EditorImGuiHost &host, std::string_view path,
+                                               std::string_view label) {
+  const std::string key = std::string(path) + "/" + std::string(label);
+  for (const auto &[name, point] : host.state_->reflected_choice_positions)
+    if (name == key)
+      return point;
+  return {};
 }
 
 std::optional<std::array<float, 2>>
