@@ -751,6 +751,11 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Undoable prefab base-reference metadata is validated: reference-only and mixed property
+    transactions share one Undo/Redo, wrapped Save retains exact revisions and clean reopen,
+    and plain Scene/Save All publication rejects unpersisted asset context. Graphical three-way
+    rebase choices and structural/live-instance reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabReferenceHistory-Linux-2026-10-10.md).
   - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
     sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
     Targeted fields, source apply, structural bindings and reference rebase remain open.
