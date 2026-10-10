@@ -24,6 +24,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace nexora::editor::imgui {
 
@@ -37,6 +38,22 @@ enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cance
 enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
 enum class ProjectSelectorAction : std::uint8_t { Open, Create };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
+enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
+struct SceneTabItem final {
+  std::uint64_t id{};
+  SceneFileToken token{};
+  std::string label;
+  std::optional<std::filesystem::path> path;
+  bool owned{}, dirty{}, closeable{}, read_only{};
+};
+struct SceneTabRequest final {
+  SceneTabAction action{};
+  SceneFileToken source{};
+  std::uint64_t target{};
+  SceneFileToken target_token{};
+  std::filesystem::path path{};
+  bool discard_dirty{}, save_before_close{};
+};
 struct GameInputBindingsSaveRequest final {
   foundation::Uuid project;
   std::filesystem::path root;
@@ -178,6 +195,11 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
+  // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
+  bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);
+  [[nodiscard]] std::optional<SceneTabRequest> TakeSceneTabRequest();
+  void SetSceneTabStatus(std::string message, bool success);
   void RequestSceneSaveAs(bool close_after_save = false,
                           std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);

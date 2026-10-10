@@ -1054,3 +1054,18 @@ existing owning buffer into the parser, avoiding an extra full source copy.
 
 Actual contract, capacity, legacy and history preservation results are recorded in
 [Linux comparison evidence](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md).
+## Graphical additive document host
+
+The native application consumes owning tab requests through `AdditiveSceneSession`, independently
+revalidating workspace access, source/target generations, reference policy, stopped Play, recovery
+and drained exports. Save All uses the accepted immutable batch and publishes every owned saved
+Content scene after coordinated success. Close considers every owned dirty document, including
+inactive owners behind a clean reference, and preserves unnamed Save As retry continuations.
+Composition metadata is saved only after host readers and Play are stopped; failed full restore
+retains the bootstrap and freezes source mutation while all foreign data remains intact. Initial
+metadata begins with multiple documents and later records a single remaining owner; ordinary
+single-scene startup/fallback remains authoritative until a composition exists. Legacy startup
+observation initializes before bootstrap. Stable entity identity/opaque references are not rewritten.
+The Scene canvas/Hierarchy display the active document. See
+[Linux graphical evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneTabs-Linux-2026-10-09.md)
+for actual controls, source isolation, reference policy, failure/reopen and legacy compatibility.

@@ -30,7 +30,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M1 project/assets | Portable create/open, schema upgrade, single-writer/read-only access, recent-project state, deterministic indexing/search, persistent sidecar UUIDs, virtualized Content Browser state, breadcrumb/selection, transactional mutations, typed generation-safe drag payloads, dependency/cycle inspection, transactional reimport, watcher debounce, and dirty-conflict decisions exist. The native shell exposes project status, provides a graphical create/open/recent selector, binds the real index to a graphical Content panel with recoverable project-local mutations, runs cancellable background import/reimport with bounded progress and structured diagnostics, shows dependency cycles, and presents blocking reload/keep/compare conflict UX; physical-display/Windows workflow acceptance remains open. | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection, reparent, sibling reorder (undoable Hierarchy drag model), multi-selection, clipboard, transform transaction, undo, and atomic save/reload exist, plus UI-neutral pick-ray, AABB picking, axis-drag, snapping, and viewport-resize-hysteresis math, and Unity-style translate/rotate/scale gizmo math with Global/Local axes, Pivot/Center, parents, negative-scale rules, and multi-selection roots. The graphical Hierarchy now presents a parent-aware expandable tree, filtering, generation-keyed expansion/selection, clipped visible rows, undoable rename, sibling ordering, and cycle-safe reparenting while rejecting stale entity/document generations. A docked Inspector exposes generation-safe position, Euler degrees (quaternion storage), and scale editing for single and mixed-value multi-selection, with atomic Runtime validation and one-step undo. Scalar opaque PBR material assets now import/reimport and support single-object Inspector assignment with persistent UUID references, Undo/save/reopen and real native Scene View palettes. Full authored-mesh Scene View, the complete reflected Inspector, complete material/shader workflows, camera authoring, and missing-plugin restoration remain open. Bounded read-only opaque component inspection and persistence are implemented. The native proxy preview already has Move, Rotate, and Scale handles. | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View and frozen scalar PBR materials are implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
-| ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Graphical prefab/multi-scene, migration/recovery, conflict, and source-control workflows remain open. | [ ] |
+| ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Native additive tabs, owning/reference documents, coordinated Save All and named composition reopen are accepted on Linux Xvfb. Graphical prefab, migration/recovery, semantic/provider conflicts and full target-host acceptance remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
 | ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Native Vulkan/DX12/Metal command-buffer GPU intervals have a separate bounded live history and schema-1 JSON capture with honest unavailable/software status. Build/deploy/log, physical GPU calibration, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
@@ -549,13 +549,13 @@ creates property widgets; unknown components retain raw data instead of being si
   foreign or unavailable data falls back to Main and stays protected for the session. New/failed
   operations retain the prior choice, and independent metadata-write failure retains successful
   scene persistence. Portable tests and Linux Xvfb restart/edit/save/fallback verify the workflow.
-  Additive tabs and full ED-M4 acceptance remain open.
+  Full ED-M4 acceptance remains open; additive tabs are covered below.
 - ✅ Content Browser scene activation now supports double-click, context Open scene, the Open scene
   button and focused Enter. Owning paths use the existing deferred scene-file request and dirty
   Save/Discard/Cancel workflow; UI widgets perform no file IO or World replacement. Read-only Open
   is allowed; Play/modal/token gates reject replacement. Real 1x/2x pointer/key tests cover Unicode
   paths, single/double clicks, non-scene/multiple selection rejection, dirty decisions and stale
-  requests. Additive scene tabs and full ED-M4 acceptance remain open.
+  requests. Full ED-M4 acceptance remains open; additive tabs are covered below.
 - ✅ Active Content scenes follow stable UUIDs through rename/move and Content Undo, retaining
   document generation, dirty content, selection, history and live view state. Committed relocation
   also updates startup filename without saving dirty World state, so Discard
@@ -740,13 +740,21 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ The native graphical Editor now edits independent owned/reference documents through bounded
+    scene tabs, dirty-close decisions, coordinated Save All and aggregate window-close protection.
+    Persisted named roles/load order/active selection reopen in both access modes; failed complete
+    restore freezes authoring and retains every original. Actual 1x/2x controls and X11 independent
+    Undo, Save All, reference, corrupt/repair and close-to-single restart workflows pass. Legacy
+    startup/relocation/fallback remains accepted. Combined multi-scene canvas/Hierarchy, graphical
+    dependency editing, prefab/migration/provider workflows and full ED-M4 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneTabs-Linux-2026-10-09.md).
   - ✅ The authoring SDK now persists a bounded, project-bound named scene composition with
     ownership/reference roles, deterministic dependency load order and active selection. Restore
     stages the complete candidate and rechecks source/metadata revisions before replacing membership;
     invalid, missing, colliding, externally changed or interrupted input preserves the primary and
     every original. Genuine sixteen-document, read-only, late-change and aggregate-budget tests pass,
     including missing baselines, byte-identical hard-link replacement and growth after size preflight.
-    Graphical integration and full ED-M4 remain open.
+    Graphical reopen integration is covered by the supporting slice; full ED-M4 remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md).
 
   - ✅ Read-only semantic scene comparison now owns stable object/field differences across actual
@@ -762,28 +770,26 @@ creates property widgets; unknown components retain raw data instead of being si
     history and opaque data; references stay inspection-only and are excluded from Save All.
     Duplicate destinations, stale scopes, dependency cycles and unloading/unloaded publication
     reject safely. Real sixteen-document, rejected-admission lifecycle and independent reopen
-    tests pass. Graphical tabs, persisted composition and full ED-M4 remain open.
+    tests pass. Graphical tabs and persisted composition are covered by the supporting slices; full ED-M4 remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneSession-Linux-2026-10-09.md).
   - ✅ The authoring SDK now stages/revalidates a bounded immutable Save All batch, publishes all
     named scene files and acknowledges baselines only after complete verification. Interrupted
     publication restores exact originals or retains gated recovery data; foreign/corrupt inputs
     are preserved. Real multi-document/16-document, rollback, restart, initial metadata write
     failure and final directory cleanup retry tests pass.
-    Graphical additive tabs, persisted composition and full ED-M4 remain open.
+    Graphical additive tabs and persisted composition are covered by the supporting slices; full ED-M4 remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
   - ✅ Scene saves now prepare an owning immutable byte/content/generation snapshot without IO,
     dirty-baseline or history changes. Deferred single-file publication revalidates live generation
     and serializable content, including opaque bytes and authored Euler turns, before IO; only a
     successful replacement marks the snapshot clean. Ordinary Save shares this path. Tests cover
-    stale rejection, Undo/Redo, staging failure, ownership and save/reopen. Graphical coordinated
-    multi-file publication, additive tabs and full ED-M4 remain open.
+    stale rejection, Undo/Redo, staging failure, ownership and save/reopen. Coordinated publication and additive tabs are covered below; full ED-M4 remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md).
 
   - ✅ Initial additive-scene dependencies now reject zero, self and missing IDs before graph
     mutation and normalize repeated edges consistently with dependency replacement. Dedicated
     portable tests preserve owned/reference descriptors and deterministic load order after rejected
-    admission, verify cycle rollback and safe reverse-order removal. Additive tabs, graphical
-    coordinated save-all and full ED-M4 acceptance remain open.
+    admission, verify cycle rollback and safe reverse-order removal. Graphical tabs/Save All are covered above; full ED-M4 acceptance remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md).
   - ✅ Autosave writes enforce the same 64 MiB payload budget as recovery before touching files,
     retain last-good journals and occupied temporary paths, and clean failed replacement staging.
@@ -793,13 +799,13 @@ creates property widgets; unknown components retain raw data instead of being si
     immutable apply, variants, and nested-path rebase.
   - ✅ Portable additive-scene ownership/dependency ordering, migration dry-run, atomic bounded
     autosave/corrupt recovery, and stable-path three-way conflict records are implemented and tested.
-  - Open: graphical workflows and source-control-provider UI integration.
+  - Open: graphical prefab/migration/recovery and semantic source-control-provider UI integration.
   - ✅ Managed ordinary scene Save compares a bounded owning exact-byte disk baseline, including
     same-size edits with restored modification times. External changes require Replace/Cancel with
     a session/path/document-bound confirmation that rechecks disk revisions before writing. Ctrl+S,
     Save before New/Open and Save and Exit share this graphical workflow; failures retain scene,
     history and disk versions. Portable 64 MiB/lifecycle/Content relocation tests and 1x/2x ImGui
-    control tests cover the supporting slice. Full prefab/additive/migration/crash and source-control
+    control tests cover the supporting slice. Full prefab/migration/crash and source-control
     acceptance remain open; see [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
   - ✅ UI-neutral specialized-tool metadata now owns schema/interface versions, provider IDs,
