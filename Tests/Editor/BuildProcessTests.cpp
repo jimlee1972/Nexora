@@ -67,7 +67,7 @@ void Run(const std::filesystem::path &fixture) {
     Require(snapshot.output.find(std::to_string(request.arguments[i].size()) + ':' +
                                  request.arguments[i] + '\n') != std::string::npos,
             "Unicode/empty/metacharacter argument was not reproduced exactly");
-  const auto cwd = directory.generic_u8string();
+  const auto cwd = std::filesystem::canonical(directory).generic_u8string();
   Require(snapshot.output.find("CWD=" + std::string(cwd.begin(), cwd.end())) != std::string::npos &&
               snapshot.output.find("STDERR_END") != std::string::npos &&
               !std::filesystem::exists(directory / "SHELL_WAS_RUN"),

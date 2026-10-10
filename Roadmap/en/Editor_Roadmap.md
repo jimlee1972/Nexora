@@ -826,6 +826,13 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ The build prerequisite now runs actual scoped owning processes with direct native argv,
+    bounded merged output/dropped counts and exact launch/exit/cancellation states. Real child
+    fixtures cover Unicode/metacharacters, nonzero/signal failure, flood limits, queued/running
+    cancellation, managed descendants, shutdown and stale scopes. A zero exit does not certify
+    artifacts or build success; graphical toolchains, verified manifests and deploy/log integration
+    remain open. Raw output requires caller sanitization/redaction before display or persistence.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-BuildProcess-Linux-2026-10-10.md).
   - ✅ Optional native ProjectPlayer now draws actual owning StaticView package assets through
     bounded public NativePBR geometry/material/affine admission, without Editor, SDK, source content
     or Showcase. Authored camera/light selection, resized projection and native close/drain are

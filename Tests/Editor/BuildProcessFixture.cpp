@@ -11,6 +11,9 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <cstdio>
+#include <fcntl.h>
+#include <io.h>
 #include <windows.h>
 #else
 #include <sys/wait.h>
@@ -106,6 +109,9 @@ int Run(const std::vector<std::string> &arguments) {
 } // namespace
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) {
+  // Define exact fixture bytes independently of the Windows CRT's default CRLF text mode.
+  if (_setmode(_fileno(stdout), _O_BINARY) == -1 || _setmode(_fileno(stderr), _O_BINARY) == -1)
+    return 4;
   std::vector<std::string> arguments;
   for (int i = 0; i < argc; ++i) {
     const auto size = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
