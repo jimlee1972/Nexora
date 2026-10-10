@@ -65,3 +65,25 @@ ProjectPlayer using unchanged pinned ImGui/Vulkan caches. Minimal Shipping exclu
 proves profile/link compatibility only. Hosted published-head checks remain mandatory. Feature dependencies must land before replaying only this graphical commit onto Main;
 local integration foundation branches are never merged into Main. Physical platform workflows,
 complete source-reference/structural rebase and full graphical milestones remain open (**0/8**).
+
+## Bound-scene reader correction in the integration foundation
+
+Hosted Windows desktop and mimalloc jobs on the first GUI head failed only the
+inherited `editor.prefab_nested_materialization` Save All fixture (214/215 and
+128/129 respectively); compilation and the new GUI tests passed. Its saved-scene
+input reader remained open across a later atomic replacement of the same file.
+
+The revised review-only foundation `8a541cf119eb34cf2bc8fa0261054de328b9292d`
+closes that reader immediately after copying its owning bytes, preserving every
+existing assertion and product busy-reader rejection. The GUI feature is replayed
+alone on this foundation. Beads `nexora-pmb.2.8` tracks the independent fixture fix.
+The earlier Windows failures are excluded; latest local and hosted-head gates are
+required before accepting the revised integration. Never merge the foundation.
+
+The corrected integration passed **253/253 in 655.88 s**, zero skips, followed
+by **Minimal Monolithic Shipping, 5 steps**. Bound materialization/Save All passed
+in **7.49 s**, native Upgrade in **17.95 s**, native Scene Preview in **28.79 s**,
+and actual source-rebase controls in **13.74 s**. Product GUI/Core/Editor source
+is byte-identical to the previously accepted GUI head; only the inherited reader
+fixture differs in the revised foundation. Fresh corrected-head Windows CI remains
+required, and prerequisite Main replay remains separate.
