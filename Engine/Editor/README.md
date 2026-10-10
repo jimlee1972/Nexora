@@ -1432,3 +1432,20 @@ followed by separate selected-revert confirmation. Scope changes, local edits an
 review/confirmation. Unselected values, unavailable bytes, generation, keys, clipboard and original
 scene/source files survive; explicit Save remains the publication boundary. Source apply, reference
 rebase, structural reconciliation and persistent live instance bindings remain separate work.
+
+## Explicit variant property application to source
+
+`PrefabPropertyReview::CanApplyToSource` is an inspection hint for compatible saved variants.
+`ApplyToSource` independently rechecks writer authority, root/UUID/owner/current document, actual
+variant publication and the exact current source. Regular prefabs use Save; unsaved variants cannot
+apply because advancing their base would invalidate first-save preconditions. Stale source or
+variant publication, invalid shape/identities, recovery, external change, exhausted revisions and
+unsafe/staged publication reject without changing current source or isolated document.
+
+Full/selected source candidates invert the stable UUID remapping while preserving source scene/
+entity/node/field identity, references and all unselected values. Publication advances one source
+revision and retains the previously committed source. Failed current publication may retain a
+harmless old archive, never an uncommitted future revision. Local variant content, baseline, dirty
+state, keys, selection, clipboard and history stay unchanged; the variant keeps its retained base
+until explicit Rebase. Source publication has its own revision history and is not a local document
+Undo entry. Original scene files stay unchanged. No structural reconciliation is claimed.

@@ -25,6 +25,8 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
     state.prefab_confirmation.reset();
     state.prefab_review.reset();
     state.prefab_can_revert = false;
+    state.prefab_can_apply = false;
+    state.prefab_apply_confirmation = false;
     state.prefab_revert_confirmation = false;
     state.prefab_selected.clear();
     state.prefab_targeted = false;
@@ -40,7 +42,7 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
 void EditorImGuiHost::OpenPrefabIsolation() noexcept { state_->prefab_isolation_open = true; }
 void EditorImGuiHost::SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert,
                                       std::span<const PrefabPropertySelection> selected,
-                                      bool targeted) {
+                                      bool targeted, bool can_apply_to_source) {
   if (selected.size() > PrefabAssets::kMaximumProperties)
     changes.reset();
   if (changes) {
@@ -69,6 +71,8 @@ void EditorImGuiHost::SetPrefabReview(std::optional<SceneComparison> changes, bo
   }
   state_->prefab_review = std::move(changes);
   state_->prefab_can_revert = state_->prefab_review && can_revert;
+  state_->prefab_can_apply = state_->prefab_review && can_apply_to_source;
+  state_->prefab_apply_confirmation = false;
   state_->prefab_revert_confirmation = false;
   state_->prefab_selected.clear();
   if (state_->prefab_review)
@@ -127,7 +131,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     PrefabIsolationRequest next{action, observation, target, false};
     if (observation.dirty && action != PrefabIsolationAction::Review &&
         action != PrefabIsolationAction::SelectReview && action != PrefabIsolationAction::Revert &&
-        action != PrefabIsolationAction::Save && action != PrefabIsolationAction::Variant)
+        action != PrefabIsolationAction::ApplyToSource && action != PrefabIsolationAction::Save &&
+        action != PrefabIsolationAction::Variant)
       state.prefab_confirmation = std::move(next);
     else
       state.prefab_request = std::move(next);
@@ -145,8 +150,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     capture(0);
     const auto parsed = foundation::Uuid::Parse(state.prefab_target.data());
     const bool target = parsed && !parsed.Value().IsNil();
-    const bool confirming =
-        state.prefab_confirmation.has_value() || state.prefab_revert_confirmation;
+    const bool confirming = state.prefab_confirmation.has_value() ||
+                            state.prefab_revert_confirmation || state.prefab_apply_confirmation;
     ImGui::BeginDisabled(!writable || !target || confirming ||
                          !observation.source.document_generation);
     if (ImGui::Button("Create from scene"))
@@ -165,6 +170,12 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     if (ImGui::Button("Create variant"))
       request(PrefabIsolationAction::Variant, parsed.Value());
     capture(3);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!writable || !state.prefab_can_apply || confirming);
+    if (ImGui::Button("Apply to source"))
+      state.prefab_apply_confirmation = true;
+    capture(20);
     ImGui::EndDisabled();
     ImGui::BeginDisabled(!writable || !observation.open || confirming);
     if (ImGui::Button("Save prefab"))
@@ -199,6 +210,24 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     }
     capture(19);
     ImGui::EndDisabled();
+    if (state.prefab_apply_confirmation) {
+      ImGui::TextUnformatted(state.prefab_targeted
+                                 ? "Publish selected properties to the current source?"
+                                 : "Publish reviewed properties to the current source?");
+      ImGui::TextWrapped("The variant keeps its retained base until explicit Rebase. Local "
+                         "edits/history stay unchanged.");
+      ImGui::BeginDisabled(!writable);
+      if (ImGui::Button("Confirm source apply")) {
+        request(PrefabIsolationAction::ApplyToSource);
+        state.prefab_apply_confirmation = false;
+      }
+      capture(21);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel source apply"))
+        state.prefab_apply_confirmation = false;
+      capture(22);
+    }
     if (state.prefab_revert_confirmation) {
       ImGui::TextUnformatted(state.prefab_targeted
                                  ? "Restore selected properties? Use Undo to recover your edits."
@@ -421,6 +450,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
                   state.prefab_selected.erase(found);
                 // A previous full/selected candidate never authorizes a changed UI selection.
                 state.prefab_can_revert = false;
+                state.prefab_can_apply = false;
+                state.prefab_apply_confirmation = false;
                 state.prefab_revert_confirmation = false;
               }
               const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();

@@ -1095,3 +1095,14 @@ available in tooltips. Presentation data carries no write authority: the native 
 the actual immutable review and revalidates it at execution. Read-only inspection remains available
 while Revert requires current authoring permission. Edits, Undo/Redo, source actions and scope
 replacement revoke presented review/confirmation. Targeted field/source apply and rebase remain open.
+
+## Graphical variant source application
+
+The isolation toolbar exposes Apply to source only for an owning reviewed saved variant candidate.
+Checkbox changes revoke prior source/full-revert consent; Review selected prepares a new capability.
+Source application requires a separate confirmation and explains that the variant retains its base
+until explicit Rebase. Cancel/scope replacement/local edits/Undo/Redo revoke pending confirmation.
+The native host and owner independently recheck project/modal/export/close/stopped-Play/current-source
+conditions. Read-only review remains available; source publication is disabled. No file IO occurs
+in widgets, no automatic local Save/acknowledgement/rebase follows, and all owning source checks are
+repeated before canonical publication.
