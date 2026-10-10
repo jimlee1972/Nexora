@@ -441,6 +441,7 @@ creates property widgets; unknown components retain raw data instead of being si
   reload revokes stale drafts; read-only and corrupt metadata preserve sources. Real controls at
   1x/2x and native Vulkan edit/save/restart are accepted in
   [the Linux evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md).
+  Native pointer delivery retains down/up across slow frames; eight consecutive actual runs pass.
   Dynamic arrays, native plugin restoration and complete ED-M2 acceptance remain open.
 
 - ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
