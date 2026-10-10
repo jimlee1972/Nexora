@@ -76,3 +76,8 @@ the final descriptor/cancellation corrections then passed **220/220 in 518.09s**
 The Shipping profile intentionally excludes Editor; this is profile/link compatibility evidence,
 not a claim that the Editor process runner executes in Shipping. Hosted final-head macOS/Windows
 checks remain required; their earlier failed published head does not provide acceptance.
+
+Final integration replays only this process feature onto accepted additive-tab main 9d799cd2.
+BuildProcess, private pipe/spawn helper, shader launcher and fixture/test source are unchanged
+from the recorded final 220/220 gate; workflow and module documentation retain both features.
+Fresh final-head hosted checks, including corrected macOS/Windows compilation, remain mandatory.
