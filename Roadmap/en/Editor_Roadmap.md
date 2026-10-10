@@ -751,10 +751,14 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Nested prefab materialization is validated: exact revision closure stages outside the
+    live document, preserves scoped identities/local transforms/unknown bytes and imports as one
+    Undo/Redo transaction. Persistent instance metadata and graphical override/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md).
   - ✅ Prefab revision retention is validated: superseded committed sources remain available by
     exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.
     Archive conflicts preserve current sources; failed current writes do not occupy future revisions.
-    Graphical rebase/nested materialization and power-loss journaling remain open.
+    Graphical rebase, persistent instance metadata and power-loss journaling remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md).
   - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
     only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
@@ -763,8 +767,8 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
-    readonly/recovery/external-change/staging protection pass. Graphical isolation, instance
-    materialization and override diff/revert/apply/rebase remain open.
+    readonly/recovery/external-change/staging protection pass. Graphical isolation, persistent
+    instance metadata and override diff/revert/apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md).
 
   - ✅ Scene forest import now uses official bounded parsing, owning source-to-generation identity
