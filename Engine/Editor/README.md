@@ -1410,3 +1410,53 @@ native dependencies remain trusted. The wrapper is not crash isolation or permis
 against malicious native code. Raw PluginHost remains a trusted low-level API, not a package gate.
 Graphical installation/enable/recovery and other-platform immutable staging remain separate work.
 Public C++ consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+### Project-scoped signed package manager
+
+`PluginManager` is a serialized authoring owner of session publisher trust, its service registry,
+and the signed native host. Borrowed services expire at disable, revoke, policy change, detach or
+shutdown polling; callers must drain every service invocation before those operations. The graphical
+Editor does not hand these services to Play or background jobs. Keys are explicitly enrolled by the
+host user and retained only in the process session. Packages and projects cannot enroll keys. Project
+activation clears capability permissions and discovers metadata without enabling native code; a new
+process restores neither publisher trust nor enabled providers.
+
+`NXEXTPK1` containers contain the canonical signed manifest, its 64-byte Ed25519 signature and the
+exact artifact. The 84-byte header has little-endian manifest/artifact lengths. Exact EOF and all
+lengths are checked before slices or allocations. Inputs are absolute UTF-8 regular, nonsymlink,
+single-link files, read in bounded chunks; actual reads cannot exceed 64 MiB of artifact plus 16 KiB
+of manifest and fixed overhead. At most 16 installed packages and 64 directory entries are inspected.
+These are package/inspection bounds, not quotas on trusted native allocation or filesystem use.
+
+Review owns verified bytes and project/configuration scope. Installation rechecks signature,
+digest and current policy, then copies those owned bytes into
+`.nexora/extensions/<id-length>-<id>-<version>.nxpkg`; it never loads the mutable review path. A changed
+key, capability policy or project cancels the review. Source file edits after review cannot substitute
+bytes. Occupied identity/version or unrelated staging bytes are preserved; identical verified bytes
+are idempotent. Source scene/workspace documents remain outside the package operation. Installation,
+enable and removal require the current writer lease and resolved recovery. Read-only inspection and
+session trust settings do not grant writes or native enable authority.
+
+Enable rereads the installed package and checks the complete manifest, byte count, current trust,
+capabilities and enabled dependencies before sealed native admission. Built-in `core` and `reflection`
+are explicit available host dependencies. Installing/removing dependency identities changes policy
+and conservatively revokes mapped providers; no dependency or package enables automatically. Trust
+revocation and disable request the real cooperative lifecycle and revoke services. Legacy/pending
+native code is retained and blocks further enable/removal until drain or process restart. Removal
+also verifies the current exact signed file; tampered/untrusted files remain for inspection. Loader
+ABI errors, lifecycle results, cooperative support and restart state come from the native host.
+
+The optional graphical Extensions window opens from Settings or Ctrl+Alt+E. Its widgets transfer
+owning project-scoped requests; the native owner independently checks current identity, access,
+Play/export/recovery/external-change and modal gates. Closing the window or changing its path cancels
+the retained review. Trust and capability input is explicit, package review is distinct from install,
+and install is distinct from enable. Native extensions remain trusted in-process code: permission
+bits are admission declarations, not an operating-system sandbox. Current executable admission uses
+the signed host's Linux sealed-image backend; other native backends reject as unavailable. No network,
+key persistence, unsigned fallback, hostile-filesystem-race or crash/power-loss recovery guarantee is
+introduced by this manager.
+
+Repeated binding also revokes mapped services and cancels retained review when actual workspace
+recovery or an external workspace change appears. Occupied recovery evidence and foreign workspace
+bytes remain untouched. Exact resolution permits only explicit re-enable. Read-only binding retains
+inspection/review availability while access changes revoke the previous writable project session.

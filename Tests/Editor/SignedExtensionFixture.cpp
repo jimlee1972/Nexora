@@ -19,12 +19,14 @@ struct Lifetime final {
   Lifetime() { Event("initialize"); }
   ~Lifetime() { Event("unload"); }
 } lifetime;
+#if NEXORA_SIGNED_FIXTURE_MODE != 4
 int32_t Stop(void *) {
   stopped = true;
   Event("stop");
   return 0;
 }
 int32_t Poll(void *) { return stopped ? 1 : 0; }
+#endif
 } // namespace
 NEXORA_PLUGIN_ABI_EXPORT uint32_t NexoraPluginAbiVersion() noexcept {
   return nexora::foundation::kEngineAbiVersion + (mode == 3 ? 1U : 0U);
@@ -36,6 +38,7 @@ NEXORA_PLUGIN_ABI_EXPORT void NexoraPluginRegister(void *context,
   static char marker[] = {static_cast<char>('A' + mode - 1), '\0'};
   callback(context, mode == 2 ? "signed.B" : "signed.A", marker);
 }
+#if NEXORA_SIGNED_FIXTURE_MODE != 4
 NEXORA_PLUGIN_ABI_EXPORT int32_t
 NexoraPluginGetLifecycleV1(uint32_t requested, NexoraPluginLifecycleV1 *result) noexcept {
   if (!result || requested != 1 || result->struct_size < sizeof(*result))
@@ -43,3 +46,4 @@ NexoraPluginGetLifecycleV1(uint32_t requested, NexoraPluginLifecycleV1 *result) 
   *result = {sizeof(*result), 1, nullptr, Stop, Poll};
   return 0;
 }
+#endif

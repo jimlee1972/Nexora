@@ -1024,6 +1024,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - 待辦：圖形化 build frontend、remote deployment/log、實體 GPU 計時校準、任意 capture import
   與 plugin manager。
 
+- ✅ Settings／Ctrl+Alt+E 現可開啟 project-scoped signed package manager，提供明確 session
+  publisher key／capability policy、owning verified review、immutable install、native enable／disable、
+  revocation、restart-required 狀態與受保護移除。實際 1x／2x widget 與 Xvfb native cooperative／
+  legacy／ABI fixture 驗證 current scope、modal／Play／access／recovery／external-change gate
+  及 source preservation；restart 不會還原 key 或自動啟用程式碼。支援 Linux sealed-image admission；
+  persistent trust、crash／power-loss recovery、其他 native backend 與第三方圖形化工具 contribution
+  仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md)。
+
 ### ED-M7 — Production hardening
 
 - ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
