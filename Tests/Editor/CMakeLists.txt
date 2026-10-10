@@ -5,6 +5,11 @@ add_test(NAME editor.extension_signature_trust COMMAND NexoraExtensionTrustTests
 
 add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
 add_executable(NexoraPrefabAssetTests PrefabAssetsTests.cpp)
+add_executable(NexoraPrefabDocumentSessionTests PrefabDocumentSessionTests.cpp)
+target_link_libraries(NexoraPrefabDocumentSessionTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPrefabDocumentSessionTests)
+add_test(NAME editor.prefab_document_isolation COMMAND NexoraPrefabDocumentSessionTests)
+set_tests_properties(editor.prefab_document_isolation PROPERTIES TIMEOUT 60)
 target_link_libraries(NexoraPrefabAssetTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPrefabAssetTests)
 add_test(NAME editor.prefab_asset_graph COMMAND NexoraPrefabAssetTests)

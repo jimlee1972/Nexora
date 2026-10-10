@@ -53,6 +53,26 @@ publication followed by a late source/scope change retains the file but does not
 changed document. The serialized host handles that explicit error. This is an authoring save helper,
 not a graphical isolation session, nested materializer or multi-file crash journal.
 
+`PrefabDocumentSession` owns an isolated Runtime World and SceneDocument and borrows only its
+workspace, which outlives it. Serialized owner calls can copy a complete scene into an unsaved
+prefab draft, open an actual wrapped asset, create a distinct variant from a saved current source,
+save through `SaveDocument`, and close. Opening/replacing a dirty owner requires explicit discard;
+variants require a clean source and confirm its current exact stored revision. Copying a source
+retains no original World/document borrow and never changes that original source or history.
+
+Const inspection is available in read-only scopes; editable access and publication require a
+current project UUID/root, writer lease and resolved recovery/external-change state. Rebinding the
+workspace invalidates document/asset observations. Safe close can release a stale/recovery owner.
+Successful replacement/close expires document borrows and advances a nonwrapping session generation;
+successful save keeps live document generation, selection, clipboard and Undo/Redo. New drafts and
+variants remain dirty until actual publication. Identity callbacks cannot reenter owner replacement,
+save or editable access, and exceptional callbacks release the busy guard without publication.
+Existing document borrows must not outlive replacement or destruction; callers stop background readers
+before those operations. Destruction of the session during one of its own calls is unsupported.
+This is the isolation owner, not a graphical panel, stable nested instance materializer, revision
+archive or override/rebase engine. Public C++ consumers rebuild; module dependencies and stable
+C/Gameplay ABI do not change.
+
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`

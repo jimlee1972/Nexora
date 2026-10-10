@@ -750,6 +750,11 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Prefab isolation owner is validated: project-scoped create/open/variant/save/reopen use a
+    separate World and document, retaining unknown bytes and original scene history. Dirty replacement,
+    read-only writes, stale scope/revision and reentrant identity callbacks reject. Graphical binding,
+    nested materialization, historical revision access and override/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
   - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
     only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
     Current source/project and expected asset revision are rechecked; graphical isolation remains open.
