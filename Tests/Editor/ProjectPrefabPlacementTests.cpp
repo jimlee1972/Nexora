@@ -1,3 +1,4 @@
+#include "Nexora/Editor/PrefabPlacementInspection.h"
 #include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include "Nexora/Editor/SceneFiles.h"
 #include <algorithm>
@@ -131,12 +132,70 @@ void Run() {
               target.Dirty() && Files(workspace.Root()) == original_files,
           "Placement lost scoped bindings, existing keys or wrote before Scene Save");
   const auto published = *target.PrepareSave();
+  using Inspector = editor::PrefabPlacementInspector;
+  std::optional<editor::PrefabPlacementInspection> inspected;
+  for (const auto &entry : *placed) {
+    auto value = Inspector::Inspect(workspace, target, entry.target);
+    const auto scoped = entry.scope.empty() ? editor::PrefabRevisionReference{parent->id, 1}
+                        : entry.scope.front() == foundation::Uuid{1902, 1}
+                            ? editor::PrefabRevisionReference{old->id, 1}
+                            : editor::PrefabRevisionReference{old->id, 2};
+    Require(value && value->Resolved() && value->Instance() == foundation::Uuid{1903, 1} &&
+                value->Source() == editor::PrefabRevisionReference{parent->id, 1} &&
+                value->SourceNode() == entry.node && value->ScopedSource() == scoped &&
+                std::ranges::equal(value->SourceScope(), entry.scope) &&
+                value->PublishedRevision() == 1 && value->MappedNodes() == 3 &&
+                Inspector::Matches(workspace, target, *value),
+            "Owning placement inspection lost exact mixed-revision scoped identity");
+    inspected = std::move(value);
+  }
+  Require(!Inspector::Inspect(workspace, target, seed_key) &&
+              !Inspector::Inspect(workspace, foreign, placed->front().target) &&
+              Inspector::Inspect(observer, target, placed->front().target) &&
+              target.MatchesPreparedSave(published) && Files(workspace.Root()) == original_files,
+          "Inspection acquired authority, changed files or resolved an unbound/foreign node");
+  auto mismatched = published.Bytes();
+  const auto source_token = " " + placed->front().node.ToString() + " " +
+                            std::to_string(placed->front().target.id) + "\n";
+  const auto token_position = mismatched.find(source_token);
+  Require(token_position != std::string::npos, "Scoped metadata mismatch fixture absent");
+  mismatched.replace(token_position + 1, 36, foundation::Uuid{1904, 99}.ToString());
+  runtime::World mismatch_world;
+  editor::SceneDocument mismatch(mismatch_world, mismatch_world.LoadScene("Mismatch"));
+  Require(mismatch.ReloadBytes(mismatched), "Syntactically valid source mismatch fixture failed");
+  const auto incompatible =
+      Inspector::Inspect(workspace, mismatch, *mismatch.Key(placed->front().target.id));
+  Require(incompatible && !incompatible->Resolved() && !incompatible->ScopedSource() &&
+              Inspector::Matches(workspace, mismatch, *incompatible),
+          "A valid scene binding to an absent scoped source node was falsely resolved");
+  Write(archive, replaced);
+  Require(!Inspector::Matches(workspace, target, *inspected) &&
+              target.MatchesPreparedSave(published),
+          "Valid transitive same-revision replacement retained stale inspection");
+  Write(archive, *old);
+  const auto original_archive =
+      Files(workspace.Root()).at(archive.lexically_relative(workspace.Root()));
+  std::filesystem::remove(archive);
+  auto missing = Inspector::Inspect(workspace, target, placed->front().target);
+  Require(missing && !missing->Resolved() && !missing->ScopedSource() &&
+              missing->Instance() == foundation::Uuid{1903, 1} && missing->Source().revision == 1 &&
+              Inspector::Matches(workspace, target, *missing) &&
+              !Inspector::Matches(workspace, target, *inspected),
+          "Missing retained nested source hid binding identity or remained falsely resolved");
+  Write(archive, *old);
+  Require(Files(workspace.Root()).at(archive.lexically_relative(workspace.Root())) ==
+                  original_archive &&
+              !Inspector::Matches(workspace, target, *missing) &&
+              Inspector::Matches(workspace, target, *inspected),
+          "Restored closure did not revoke unresolved inspection or preserve exact bytes");
   Require(target.Undo() && target.MatchesPreparedSave(expected) &&
               target.PrefabPlacements().empty() && target.Selection().front() == seed &&
               target.Redo() && target.MatchesPreparedSave(published) && target.Paste() &&
               target.Name(target.Selection().front()) == "Seed Copy" && target.Undo() &&
               target.MatchesPreparedSave(published),
           "Placement was not one complete Undo/Redo or erased clipboard");
+  Require(Inspector::Matches(workspace, target, *inspected),
+          "Owning inspection lost exact restored document context after history replay");
   auto stale_source = Owner::Prepare(workspace, parent->id, target);
   auto next_parent = *parent;
   next_parent.revision = 2;
@@ -144,6 +203,11 @@ void Run() {
               !Owner::Instantiate(workspace, target, *stale_source, {1903, 2}, true) &&
               target.MatchesPreparedSave(published),
           "Advancing published root retained stale authority");
+  const auto advanced = Inspector::Inspect(workspace, target, placed->front().target);
+  Require(advanced && advanced->Resolved() && advanced->Source().revision == 1 &&
+              advanced->PublishedRevision() == 2 &&
+              !Inspector::Matches(workspace, target, *inspected),
+          "Inspection confused current publication with the placement's retained revision");
   auto fresh = Owner::Prepare(workspace, parent->id, target);
   Require(fresh && fresh->Source().revision == 2 &&
               Owner::Instantiate(workspace, target, *fresh, {1903, 2}, true) &&
@@ -158,6 +222,14 @@ void Run() {
   Require(reopen.Reload(workspace.Root() / "Content/Placed.scene") && !reopen.Dirty() &&
               std::ranges::equal(reopen.PrefabPlacements(), target.PrefabPlacements()),
           "Saved project placement did not reopen exact scoped source revisions");
+  Require(!Inspector::Inspect(workspace, reopen, placed->front().target),
+          "Reopened scene accepted a stale generation key");
+  const auto reopened_inspection =
+      Inspector::Inspect(workspace, reopen, *reopen.Key(placed->front().target.id));
+  Require(reopened_inspection && reopened_inspection->Resolved() &&
+              reopened_inspection->Source().revision == 1 &&
+              reopened_inspection->PublishedRevision() == 2,
+          "Clean scene reopen did not expose its exact retained placement source");
 }
 } // namespace
 int main() {
