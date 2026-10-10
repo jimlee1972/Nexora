@@ -1416,3 +1416,19 @@ process/history memory quotas. Planning performs no IO, live edits or history/ba
 grants no authority. The owner still rechecks its current document/project/source before atomic
 application. Graphical selected-field binding, source apply, structural identity reconciliation and
 reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+
+## Graphical selected prefab property restoration
+
+`SelectReview` derives an owning targeted candidate from the unchanged private review, explicit
+stable node/field identities and the exact retained source. Unknown, empty, duplicate, stale,
+changed/corrupt source, replaced scope, recovery/external-change or unsupported selections reject.
+Read-only inspection can prepare a candidate but never apply it. Application rechecks writer
+access and all original observations before the existing one-step property transaction.
+
+The isolation comparison exposes field-group checkboxes; component/transform rows sharing one
+field UUID select the complete group. Metadata references remain inspection only. Changing a
+checkbox revokes prior full/selected revert consent. Review selected prepares a new candidate,
+followed by separate selected-revert confirmation. Scope changes, local edits and Undo/Redo revoke
+review/confirmation. Unselected values, unavailable bytes, generation, keys, clipboard and original
+scene/source files survive; explicit Save remains the publication boundary. Source apply, reference
+rebase, structural reconciliation and persistent live instance bindings remain separate work.

@@ -1,5 +1,6 @@
 #include "../EditorImGui/TemporaryDirectoryCleanup.h"
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -48,6 +49,24 @@ void Run() {
               document->PrepareSave()->Bytes() == edited && !session.Revert(*review, false) &&
               document->PrepareSave()->Bytes() == edited,
           "Read-only inspection changed content or granted write authority");
+  const auto name_field =
+      std::ranges::find(first.nodes[0].properties, "name", &editor::PrefabPropertyIdentity::field);
+  Require(name_field != first.nodes[0].properties.end(), "Stable name field missing");
+  const std::array selected_name{
+      editor::PrefabPropertySelection{first.nodes[0].id, name_field->id}};
+  const auto selected_review = session.SelectReview(*review, selected_name, &error);
+  Require(selected_review && selected_review->Targeted() && selected_review->CanRevert() &&
+              selected_review->Selections().size() == 1 && !session.SelectReview(*review, {}) &&
+              session.Revert(*selected_review, true) && document->Name(parent) == "Parent" &&
+              document->Transform(parent)->x == 3.5 &&
+              document->OpaqueComponents(*document->Key(child))->front().data ==
+                  std::vector<std::uint8_t>{27, 255, 0} &&
+              document->Undo() && document->PrepareSave()->Bytes() == edited && document->Redo() &&
+              document->Name(parent) == "Parent" && document->Undo(),
+          "Selected review changed unselected properties or failed one-step Undo/Redo");
+  const std::array invalid{editor::PrefabPropertySelection{first.nodes[0].id, {999, 1}}};
+  Require(!session.SelectReview(*review, invalid) && document->PrepareSave()->Bytes() == edited,
+          "Unknown selected field changed the reviewed document");
   Require(session.Revert(*review, true, &error) && document->PrepareSave()->Bytes() == original &&
               !session.Dirty() && document->Generation() == generation &&
               document->Key(parent) == key && document->Selection().size() == 1 &&
@@ -62,11 +81,13 @@ void Run() {
           "Revert changed published/original source or erased the clipboard");
   review = session.Review();
   Require(review && document->Rename(key, "After review") && !session.Revert(*review, true) &&
+              !session.SelectReview(*review, selected_name) &&
               document->Name(parent) == "After review" && document->Undo() &&
               document->PrepareSave()->Bytes() == edited,
           "Stale review overwrote a later document edit");
   review = session.Review();
-  Require(review && session.Save(factory) && !session.Revert(*review, true),
+  Require(review && session.Save(factory) && !session.Revert(*review, true) &&
+              !session.SelectReview(*review, selected_name),
           "Save retained authority from an earlier published baseline");
   const auto second = *session.SourceBaseline();
   Require(second.revision == 2 && session.Variant(variant) && session.Save(factory),
@@ -100,7 +121,12 @@ void Run() {
     editor::PrefabDocumentSession inspection(observer);
     Require(inspection.Open(variant), "Read-only open failed");
     auto inspected = inspection.Review();
-    Require(inspected && inspected->CanRevert() && !inspection.Revert(*inspected, true) &&
+    auto selected_inspection =
+        inspected ? inspection.SelectReview(*inspected, selected_name) : std::nullopt;
+    Require(inspected && inspected->CanRevert() && selected_inspection &&
+                selected_inspection->Targeted() && selected_inspection->CanRevert() &&
+                !inspection.Revert(*selected_inspection, true) &&
+                !inspection.Revert(*inspected, true) &&
                 inspection.Document()->PrepareSave()->Bytes() == published_variant.scene_bytes,
             "Read-only review failed or permitted a revert");
   }
@@ -109,6 +135,7 @@ void Run() {
   const auto recovery = workspace.Root() / ".nexora/workspace.recovery";
   std::filesystem::create_directory(recovery);
   Require(review && !session.Review() && !session.Revert(*review, true) &&
+              !session.SelectReview(*review, selected_name) &&
               document->PrepareSave()->Bytes() == before,
           "Recovery allowed review/revert or changed live properties");
   std::filesystem::remove(recovery);
@@ -116,6 +143,7 @@ void Run() {
   const auto timestamp = std::filesystem::last_write_time(metadata);
   std::filesystem::last_write_time(metadata, timestamp + std::chrono::seconds(5));
   Require(!session.Review() && !session.Revert(*review, true) &&
+              !session.SelectReview(*review, selected_name) &&
               document->PrepareSave()->Bytes() == before,
           "External workspace change admitted an old review");
   std::filesystem::last_write_time(metadata, timestamp);
@@ -123,9 +151,11 @@ void Run() {
       workspace.Root() / ".nexora/prefabs/revisions" / base.ToString() / "2.nxprefab";
   std::ofstream(archived, std::ios::binary | std::ios::trunc) << "corrupt retained source";
   Require(!session.Revert(*review, true) && !session.Review() &&
+              !session.SelectReview(*review, selected_name) &&
               document->PrepareSave()->Bytes() == before,
           "Invalid retained source fell back to latest or authorized stale revert");
-  Require(session.Close(true) && session.Open(variant) && !session.Revert(*review, true),
+  Require(session.Close(true) && session.Open(variant) && !session.Revert(*review, true) &&
+              !session.SelectReview(*review, selected_name),
           "Replacement revived a prior session review");
   Require(source.PrepareSave()->Bytes() == original, "Review workflow modified original scene");
 }

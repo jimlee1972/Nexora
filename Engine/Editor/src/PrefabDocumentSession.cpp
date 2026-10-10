@@ -164,14 +164,53 @@ std::optional<PrefabPropertyReview> PrefabDocumentSession::Review(std::string *e
       *expected, previous, std::move(*source), std::move(*changes), std::move(candidate),
       root_,     project_, owner_->id,         generation_};
 }
+bool PrefabDocumentSession::MatchesReview(const PrefabPropertyReview &review) const {
+  return owner_ && owner_->previous && review.root_ == root_ && review.project_ == project_ &&
+         review.asset_ == owner_->id && review.generation_ == generation_ &&
+         review.previous_ == *owner_->previous &&
+         owner_->document.MatchesPreparedSave(review.expected_);
+}
+std::optional<PrefabPropertyReview>
+PrefabDocumentSession::SelectReview(const PrefabPropertyReview &review,
+                                    std::span<const PrefabPropertySelection> selected,
+                                    std::string *error) const {
+  if (!Allowed(false, error))
+    return {};
+  if (selected.empty() || selected.size() > PrefabAssets::kMaximumProperties ||
+      !MatchesReview(review)) {
+    Fail(error, "Select known properties from an unchanged current review.");
+    return {};
+  }
+  const auto source =
+      PrefabAssets::LoadRevision(workspace_, {review.source_.id, review.source_.revision});
+  if (!source || *source != review.source_) {
+    Fail(error, "Reviewed source changed or is unavailable.");
+    return {};
+  }
+  const auto current = PrefabAssets::Capture(
+      owner_->id, owner_->document, [] { return foundation::Uuid{}; }, &*owner_->previous);
+  auto candidate =
+      current ? BuildPrefabPropertySnapshot(*current, *source, selected) : std::nullopt;
+  if (!candidate) {
+    Fail(error, "Selected identities or the resulting property hierarchy are incompatible.");
+    return {};
+  }
+  if (*candidate == review.expected_.Bytes())
+    candidate.reset();
+  if (!Allowed(false, error) || !MatchesReview(review))
+    return {};
+  PrefabPropertyReview result{review.expected_, review.previous_,     review.source_,
+                              review.changes_,  std::move(candidate), root_,
+                              project_,         owner_->id,           generation_};
+  result.selections_.assign(selected.begin(), selected.end());
+  result.targeted_ = true;
+  return result;
+}
 bool PrefabDocumentSession::Revert(const PrefabPropertyReview &review, bool authorized,
                                    std::string *error) {
   if (!Allowed(true, error))
     return false;
-  if (!authorized || !owner_ || !owner_->previous || !review.candidate_ || review.root_ != root_ ||
-      review.project_ != project_ || review.asset_ != owner_->id ||
-      review.generation_ != generation_ || review.previous_ != *owner_->previous ||
-      !owner_->document.MatchesPreparedSave(review.expected_))
+  if (!authorized || !review.candidate_ || !MatchesReview(review))
     return Fail(error, "Property review is stale or has no authorized compatible changes.");
   const auto source =
       PrefabAssets::LoadRevision(workspace_, {review.source_.id, review.source_.revision});

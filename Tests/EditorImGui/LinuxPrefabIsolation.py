@@ -202,12 +202,73 @@ def main():
         require(asset(variant)[3] == child_asset[3] and asset(variant)[2] == child_asset[2] and
                 source.read_bytes() == original and asset(base)[0] == restored[0],
                 'Native Redo lost exact source properties or changed original/base')
+        # Select one stable field in the actual differences table; preserve the other edit.
+        root_fields = next(properties for identity, properties in child_asset[2]
+                           if struct.unpack_from('<Q', identity, 16)[0] == int(node))
+        fields = {name: struct.unpack('<QQ', identity) for identity, name in root_fields}
+        selected_name = fields[b'name'] < fields[b'transform.position']
+        click(window, 140, 227)
+        text(window, 180, 427, 'Selected override')
+        key('Return')
+        text(window, 180, 451, '7')
+        key('Return')
+        unchanged_files = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        start = len(captured)
+        click(window, 310, 177)
+        wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
+        click(window, 90, 580)
+        start = len(captured)
+        click(window, 565, 177)
+        wait_log(r'prefab action=7 applied=1 .*dirty=1', start)
+        click(window, 435, 177)
+        start = len(captured)
+        click(window, 165, 216)
+        wait_log(r'prefab action=6 applied=1 .*dirty=1', start)
+        require(unchanged_files == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
+                'Selected review/revert wrote project files before explicit Save')
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=4 dirty=0', start)
+        partial = asset(variant)
+        expected_name = b'Isolated source' if selected_name else b'Selected override'
+        expected_position = rb'7' if selected_name else rb'3\.5'
+        require(b'node ' + node + b' 0 ' + expected_name + b'\n' in partial[3] and
+                re.search(rb'^' + node + rb' 0 ' + expected_position + rb' ', partial[3], re.M) and
+                partial[2] == child_asset[2] and opaque in partial[3],
+                'Actual selected revert changed an unselected value, stable identity or unknown bytes')
+        click(window, 88, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=5 dirty=0', start)
+        selected_undo = asset(variant)
+        require(b'node ' + node + b' 0 Selected override\n' in selected_undo[3] and
+                re.search(rb'^' + node + rb' 0 7 ', selected_undo[3], re.M),
+                'One selected native Undo failed to restore both edits')
+        click(window, 140, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=6 dirty=0', start)
+        require(asset(variant)[3] == partial[3] and asset(variant)[2] == partial[2],
+                'One selected native Redo failed to retain unselected properties')
+        start = len(captured)
+        click(window, 310, 177)
+        wait_log(r'prefab action=5 applied=1 .*dirty=0', start)
+        click(window, 435, 177)
+        start = len(captured)
+        click(window, 165, 216)
+        wait_log(r'prefab action=6 applied=1 .*dirty=1', start)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=7 dirty=0', start)
+        require(asset(variant)[3] == child_asset[3] and asset(variant)[2] == child_asset[2] and
+                source.read_bytes() == original and asset(base)[0] == restored[0],
+                'Full review after selected workflow failed to restore exact source properties')
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
         text(window, 180, 113, variant_id)
         click(window, 230, 137)
-        wait_log(r'prefab action=1 applied=1 .*revision=3 dirty=0')
+        wait_log(r'prefab action=1 applied=1 .*revision=7 dirty=0')
         start = len(captured)
         click(window, 310, 177)
         wait_log(r'prefab action=5 applied=1 .*dirty=0', start)
