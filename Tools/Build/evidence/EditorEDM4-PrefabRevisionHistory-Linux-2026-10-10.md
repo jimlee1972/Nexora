@@ -56,3 +56,18 @@ Monolithic Shipping built **74 steps**. This
 profile excludes Editor and does not accept full graphical Shipping. Pinned ImGui/
 Vulkan dependency cache overrides are unchanged. Documentation tests passed **16/16 in 0.562 s** and changed-document links passed. Fresh published-head hosted checks and independently clean current Main remain
 mandatory before ordinary squash merge. Full graphical milestones remain **0/8**.
+
+## Stable comparison and native Save Main integration
+
+Only the own revision-history feature/evidence replay onto accepted Main
+`89bb06ec2ff30f081702599f83107ed13d707e99`. README preserves retention under
+the prefab publication contract and keeps the separate stable UUID comparison
+section; CMake retains both actual fixture targets. The replayed pre-evidence
+head is `51becd1a`; prior EB-head hosted checks are historical.
+
+Fresh complete graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer
+Development configure/build passed **332 steps**; **242/242 in 593.49 s**, zero
+skips. The actual revision-history test passed in **0.02 s**. Minimal Monolithic
+Shipping configure/build passed **5 steps**, with Editor excluded and only minimal
+profile/link compatibility claimed. New current-head hosted CI and a clean Main
+guard remain required before ordinary squash merge. Full milestones remain **0/8**.
