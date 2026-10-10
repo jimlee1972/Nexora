@@ -57,6 +57,14 @@ bool PrefabDocumentSession::Open(foundation::Uuid id, bool discard_dirty, std::s
   if (!candidate->document.ReloadBytes(source->scene_bytes, PrefabAssets::kMaximumNodes))
     return Fail(error, "Prefab scene could not be isolated.");
   candidate->id = id;
+  if (source->base) {
+    candidate->document.prefab_base_ =
+        SceneDocument::PrefabBaseReference{source->base->asset, source->base->revision};
+    auto signature = candidate->document.StateSignature();
+    if (!signature)
+      return Fail(error, "Prefab source reference could not be initialized.");
+    candidate->document.saved_signature_ = std::move(*signature);
+  }
   candidate->previous = std::move(source);
   candidate->published = true;
   owner_ = std::move(candidate);
@@ -94,6 +102,8 @@ bool PrefabDocumentSession::Variant(foundation::Uuid id, std::string *error) {
   if (!candidate->document.ReloadBytes(prepared->Bytes(), PrefabAssets::kMaximumNodes))
     return Fail(error, "Variant source could not be isolated.");
   candidate->id = id;
+  candidate->document.prefab_base_ =
+      SceneDocument::PrefabBaseReference{owner_->previous->id, owner_->previous->revision};
   candidate->previous = owner_->previous;
   owner_ = std::move(candidate);
   ++generation_;
@@ -139,7 +149,11 @@ std::optional<PrefabPropertyReview> PrefabDocumentSession::Review(std::string *e
       previous.id != owner_->id
           ? PrefabRevisionReference{previous.id, previous.revision}
           : previous.base.value_or(PrefabRevisionReference{previous.id, previous.revision});
-  auto source = PrefabAssets::LoadRevision(workspace_, reference);
+  const auto authored_reference = owner_->document.PrefabBase();
+  auto source = PrefabAssets::LoadRevision(
+      workspace_, authored_reference ? PrefabRevisionReference{authored_reference->asset,
+                                                               authored_reference->revision}
+                                     : reference);
   const auto expected = owner_->document.PrepareSave();
   // Inspection never fabricates stable identities for unsaved structural/field additions.
   const auto current = PrefabAssets::Capture(
@@ -231,6 +245,13 @@ SceneDocument *PrefabDocumentSession::EditableDocument() {
 }
 foundation::Uuid PrefabDocumentSession::AssetId() const {
   return owner_ && Current() ? owner_->id : foundation::Uuid{};
+}
+std::optional<PrefabRevisionReference> PrefabDocumentSession::BaseReference() const {
+  if (!owner_ || !Current())
+    return {};
+  const auto reference = owner_->document.PrefabBase();
+  return reference ? std::optional{PrefabRevisionReference{reference->asset, reference->revision}}
+                   : std::nullopt;
 }
 std::optional<PrefabAsset> PrefabDocumentSession::SourceBaseline() const {
   return owner_ && Current() ? owner_->previous : std::nullopt;
