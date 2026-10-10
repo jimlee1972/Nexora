@@ -50,6 +50,8 @@ def main():
     root = scratch / 'project'
     subprocess.run([args.fixture, '--write-native-fixture', str(root)], check=True)
     source = root / '.nexora/scenes/Main.scene'
+    project_id = re.search(rb'^uuid=([0-9a-f-]{36})$',
+                           (root / 'project.nexora').read_bytes(), re.M)[1]
     original = source.read_bytes()
     node = re.search(rb'^node (\d+) 0 ', original, re.M)[1]
     opaque = re.search(rb'^opaque .+$', original, re.M)[0]
@@ -94,6 +96,23 @@ def main():
                 if re.search(pattern, captured[start:].decode('utf-8', errors='replace')):
                     return
             raise RuntimeError(f'Missing prefab action {pattern}: {captured!r}')
+
+        def scene_shortcut(letter):
+            # Hold each modifier/key phase through a native frame; one physical action.
+            send('keydown', 'Control_L')
+            send('keydown', letter)
+            send('keyup', letter)
+            send('keyup', 'Control_L')
+
+        def wait_scene(predicate, message):
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                require(process.poll() is None, 'Editor exited during scene placement')
+                value = source.read_bytes()
+                if predicate(value):
+                    return value
+                time.sleep(.1)
+            raise RuntimeError(message)
 
         def open_host(read_only=False):
             nonlocal process, captured
@@ -406,12 +425,62 @@ def main():
         start = len(captured)
         click(window, 110, 177)
         wait_log(r'prefab action=3 applied=1 .*revision=7 dirty=0', start)
+        # Instantiate the exact saved variant into the original active Scene, independently
+        # of the isolation document and the subsequently advanced base publication.
+        text(window, 180, 131, variant_id)
+        start = len(captured)
+        click(window, 230, 154)
+        wait_log(r'prefab action=1 applied=1 .*revision=13 dirty=0', start)
+        placement_before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        start = len(captured)
+        click(window, 230, 200)
+        wait_log(r'prefab action=12 applied=1 .*revision=13 dirty=0', start)
+        require(placement_before == {p.relative_to(root): p.read_bytes()
+                                    for p in root.rglob('*') if p.is_file()},
+                'Native scene instantiation published files before explicit Scene Save')
+        click(window, 700, 70)  # Hide the clean isolation panel without changing its document.
+        click(window, 397, 29)  # Restore original Scene focus for ordinary Save/Undo/Redo.
+        scene_shortcut('s')
+        placed_scene = wait_scene(lambda value: value.startswith(b'NEXORA_EDITOR_SCENE 4\n'),
+                                  'Explicit Scene Save did not publish placement bindings')
+        scene_nodes = re.findall(rb'^node (\d+) ', placed_scene, re.M)
+        clone = next((identity for identity in scene_nodes if identity != node), None)
+        require(len(scene_nodes) == 2 and clone and
+                b'node ' + clone + b' 0 New source\n' in placed_scene and
+                re.search(rb'^' + clone + rb' 0 11 ', placed_scene, re.M) and
+                len(re.findall(rb'^opaque .+$', placed_scene, re.M)) == 2 and
+                re.search(rb'^prefab-placement [0-9a-f-]{36} ' + variant_id.encode() + rb' 13$',
+                          placed_scene, re.M) and
+                re.search(rb'^prefab-node [0-9a-f-]{36} 0 [0-9a-f-]{36} ' + clone + rb'$',
+                          placed_scene, re.M),
+                'Native saved placement lost exact revision, scoped identity, properties or unknown data')
+        scene_shortcut('z')
+        scene_shortcut('s')
+        wait_scene(lambda value: value == original,
+                   'One native Scene Undo failed to remove the complete placement and bindings')
+        scene_shortcut('y')
+        scene_shortcut('s')
+        wait_scene(lambda value: value == placed_scene,
+                   'One native Scene Redo failed to restore exact placement bytes and bindings')
+        placement_after = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        placement_changed = {path for path in placement_before.keys() | placement_after.keys()
+                             if placement_before.get(path) != placement_after.get(path)}
+        startup_path = Path('.nexora/scene-session.ini')
+        expected_startup = (b'schema=1\nproject=' + project_id + b'\nscene=' +
+                            source.relative_to(root).as_posix().encode() + b'\n')
+        require(source.relative_to(root) in placement_changed and
+                placement_changed <= {source.relative_to(root), startup_path} and
+                placement_after.get(startup_path) == expected_startup,
+                'Scene placement/save/history changed unexpected files: ' +
+                ', '.join(sorted(str(path) for path in placement_changed)))
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
         text(window, 180, 113, variant_id)
         click(window, 230, 137)
         wait_log(r'prefab action=1 applied=1 .*revision=13 dirty=0')
+        click(window, 230, 200)
+        require(b'prefab action=12' not in captured, 'Read-only prefab enabled scene instantiation')
         start = len(captured)
         click(window, 310, 177)
         wait_log(r'prefab action=5 applied=1 .*dirty=0', start)

@@ -709,6 +709,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Graphical saved-prefab scene instantiation 通過實際 1x／2x scope／role／dirty，以及
+  native Save／reopen／一次 Undo／Redo／唯讀 gate、完整 Linux 251/251 與 Minimal Shipping。
+  Structural live-instance override／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalScenePrefabInstantiation-Linux-2026-10-10.md)。
+
 - ✅ Graphical same-identity source rebase 已具實際 conflict choice、Prepare 與獨立確認；
   1x／2x 及 native properties／reference Undo／Redo／Save／reopen 與唯讀 gate 通過。
   完整 Linux integration gate 通過（248/248）；structural／live-instance workflow 仍待完成。
