@@ -383,8 +383,8 @@ bool SceneSaveBatch::Prepare(std::span<SceneFileSession *const> sessions, std::s
   std::size_t budget = 0;
   for (auto *session : sessions) {
     if (!session || &session->workspace_ != &state.workspace || !session->Live(session->Token()) ||
-        session->SaveBlocked() || !session->current_ || !session->disk_baseline_ ||
-        !documents.insert(&session->document_).second)
+        session->SaveBlocked() || session->document_.PrefabBase() || !session->current_ ||
+        !session->disk_baseline_ || !documents.insert(&session->document_).second)
       return fail("Each Save All scene needs one current, writable named document.");
     const auto destination = SafeDestination(state.root, *session->current_);
     if (!destination || !destination_keys.insert(PortableDestinationKey(*destination)).second ||
