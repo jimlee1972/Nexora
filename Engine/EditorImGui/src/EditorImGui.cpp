@@ -1,5 +1,6 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
@@ -147,6 +148,18 @@ struct EditorImGuiHost::State final {
   std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
+  bool prefab_isolation_open{};
+  std::optional<PrefabIsolationObservation> prefab_isolation;
+  std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
+  std::array<char, 65> prefab_target{};
+  std::array<char, 1025> prefab_name{};
+  std::array<std::array<char, 64>, 3> prefab_position{};
+  std::optional<SceneDocument::NodeKey> prefab_edit_key;
+  std::string prefab_name_original, prefab_status;
+  std::array<double, 3> prefab_position_original{};
+  std::array<bool, 3> prefab_position_active{};
+  bool prefab_name_active{};
+  std::array<std::optional<std::array<float, 2>>, 15> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -4599,6 +4612,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->prefab_isolation_open = !state_->prefab_isolation_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
@@ -4647,6 +4664,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
     }
     if (ImGui::BeginMenu("Settings")) {
+      ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
       ImGui::EndMenu();
     }
@@ -5913,13 +5931,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
   }
-  if (ImGui::BeginPopupModal("Unsaved scene###editor.close", nullptr,
+  if (ImGui::BeginPopupModal("Unsaved work###editor.close", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     if (state_->scene_file_close_popup) {
       state_->scene_file_close_popup = false;
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextUnformatted(state_->scene_tabs.empty()
+      ImGui::TextUnformatted(state_->prefab_isolation && state_->prefab_isolation->dirty
+                                 ? "Save your prefab in Prefab Isolation before exiting."
+                             : state_->scene_tabs.empty()
                                  ? "Save scene changes before closing?"
                                  : "Save all owned scene changes before closing?");
       if (ImGui::Button("Save and Exit"))
@@ -6804,6 +6824,7 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 }
 
 #include "BuildProcessPanel.inl"
+#include "PrefabIsolationPanel.inl"
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);

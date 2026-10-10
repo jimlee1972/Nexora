@@ -710,6 +710,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Graphical prefab isolation 已驗證：create/open/variant/save/reopen 使用獨立 native document，
+  提供 hierarchy、name/position edit、Undo／Redo 與 dirty-close 保護；read-only inspection 保留
+  project files。Nested materialization 與 override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md)。
+
 - ✅ Prefab isolation owner 已驗證：project-scoped create/open/variant/save/reopen 使用獨立 World
   與 document，保留 unknown bytes 與原場景 history。Dirty replacement、read-only write、stale
   scope/revision 與 reentrant identity callback 都拒絕；graphical binding、nested materialization、

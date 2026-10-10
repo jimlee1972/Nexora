@@ -1063,3 +1063,28 @@ observations are private to test builds and expose no ImGui type across the publ
 Build-process Run also independently checks current focus, queued Play/close decisions and
 recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
 confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.
+
+## Prefab isolation controls
+
+Settings > Prefab isolation and Ctrl+Alt+P open a dedicated window. The native application owns
+a project-scoped `PrefabDocumentSession` with a separate World/document; drawing borrows it only
+for the frame. The active scene remains independent. Create from scene, Open, Create variant,
+Save prefab and Close prefab emit owning one-shot requests, rechecked against project scope,
+owner/document generation, asset identity and active scene token before native dispatch.
+The GUI performs no filesystem publication. Core save repeats writer, recovery and source checks.
+
+The clipped hierarchy selects generation keys. Name and position text commit on Enter as one
+document Undo step; numeric input must be finite and within the displayed supported bounds.
+Unknown component bytes are retained without interpretation. Save preserves Undo/Redo and stable
+identities. Project/document changes clear pending confirmations and active input. Read-only
+projects can inspect/open but cannot create, modify, save or create variants. Focus, Play,
+recovery, external changes, build/close/file/tab/rename/input dialogs block authoring.
+
+Dirty replacement/close requires an explicit discard decision; Keep editing preserves the owner.
+Hiding the window retains the session. Application close includes dirty prefab work in its prompt.
+Save and Exit requires the user to save the prefab explicitly before retrying; it does not combine
+prefab publication with ordinary scene saves. Cancel keeps the owner available. Forced termination
+has no prefab recovery journal in this slice. Variants require an exact clean published base.
+Nested materialization, override diff/revert/apply/rebase, reflected prefab properties and complete
+transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
+module dependencies are unchanged.

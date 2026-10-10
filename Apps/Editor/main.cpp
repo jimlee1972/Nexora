@@ -28,6 +28,7 @@
 #include "ScenePreviewCandidates.h"
 #endif
 
+#include "Nexora/Editor/PrefabDocumentSession.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -41,6 +42,7 @@
 #include <memory>
 #include <numbers>
 #include <optional>
+#include <random>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -796,6 +798,10 @@ int RunGraphical(std::optional<ProjectState> project,
   }
   nexora::editor::SceneDocument primary_scene(world, scene_id);
   std::unique_ptr<nexora::editor::SceneFileSession> primary_scene_files;
+  std::unique_ptr<nexora::editor::PrefabDocumentSession> prefab_documents;
+  std::uint64_t prefab_project_scope{};
+  std::filesystem::path prefab_project_root;
+  nexora::foundation::Uuid prefab_project;
   std::unique_ptr<nexora::editor::AdditiveSceneSession> scene_documents;
   std::unique_ptr<nexora::editor::AdditiveSceneComposition> scene_composition;
   bool composition_restore_blocked = false;
@@ -1165,6 +1171,8 @@ int RunGraphical(std::optional<ProjectState> project,
     return true;
   };
   const auto has_unsaved_owned_scenes = [&] {
+    if (prefab_documents && prefab_documents->Dirty())
+      return true;
     if (!scene_documents)
       return primary_scene.Dirty();
     const auto rows = scene_documents->Snapshot();
@@ -1257,6 +1265,11 @@ int RunGraphical(std::optional<ProjectState> project,
     return false;
   };
   const auto save_all_and_exit = [&] {
+    if (prefab_documents && prefab_documents->Dirty()) {
+      ui.OpenPrefabIsolation();
+      ui.SetPrefabIsolationStatus("Save your prefab, then choose Save and exit again.", false);
+      return false;
+    }
     if (composition_restore_blocked) {
       ui.SetSceneSaveResult("Resolve the saved scene set before saving source files.", false);
       return false;
@@ -2077,6 +2090,100 @@ int RunGraphical(std::optional<ProjectState> project,
                 << " retained=" << local_diagnostics.Events().size() << '\n';
     else if (events_before && local_diagnostics.Events().empty())
       std::cerr << "diagnostic queue cleared retained=0\n";
+    if (project) {
+      const auto scope = content.Browser().ProjectGeneration();
+      if (!prefab_documents || prefab_project_scope != scope ||
+          prefab_project_root != project->workspace.Root() ||
+          prefab_project != project->workspace.Project().id) {
+        prefab_documents =
+            std::make_unique<nexora::editor::PrefabDocumentSession>(project->workspace);
+        prefab_project_scope = scope;
+        prefab_project_root = project->workspace.Root();
+        prefab_project = project->workspace.Project().id;
+      }
+      const auto observation = [&] {
+        nexora::editor::imgui::PrefabIsolationObservation value;
+        value.project = prefab_project;
+        value.project_scope = prefab_project_scope;
+        value.owner_generation = prefab_documents->Generation();
+        value.asset = prefab_documents->AssetId();
+        if (const auto *document = prefab_documents->Document()) {
+          value.open = true;
+          value.document_generation = document->Generation();
+          value.dirty = prefab_documents->Dirty();
+        }
+        if (const auto previous = prefab_documents->SourceBaseline();
+            previous && previous->id == value.asset)
+          value.revision = previous->revision;
+        if (active_files())
+          value.source = active_files()->Token();
+        value.writable = project->workspace.Writable();
+        return value;
+      };
+      const bool allowed =
+          play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+          !exit_requested && !composition_restore_blocked &&
+          !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
+      static_cast<void>(ui.SetPrefabIsolation(observation()));
+      ui.DrawPrefabIsolation(prefab_documents->Document(), prefab_documents->EditableDocument(),
+                             project->workspace, allowed);
+      if (const auto request = ui.TakePrefabIsolationRequest()) {
+        const auto current = observation();
+        const auto &expected = request->scope;
+        const bool live = allowed && expected.project == current.project &&
+                          expected.project_scope == current.project_scope &&
+                          expected.owner_generation == current.owner_generation &&
+                          expected.document_generation == current.document_generation &&
+                          expected.asset == current.asset && expected.source == current.source;
+        std::string error;
+        bool applied = false;
+        if (!live) {
+          error = "Prefab action is stale, or Play/export/close/recovery is active.";
+        } else {
+          using Action = nexora::editor::imgui::PrefabIsolationAction;
+          switch (request->action) {
+          case Action::Create:
+            if (scene_authoring_allowed())
+              applied = prefab_documents->Create(request->target, active_scene(),
+                                                 request->discard_dirty, &error);
+            else
+              error = "The active scene cannot authorize prefab creation.";
+            break;
+          case Action::Open:
+            applied = prefab_documents->Open(request->target, request->discard_dirty, &error);
+            break;
+          case Action::Variant:
+            applied = prefab_documents->Variant(request->target, &error);
+            break;
+          case Action::Save:
+            applied = prefab_documents->Save(
+                [] {
+                  try {
+                    std::random_device random;
+                    const auto high = (static_cast<std::uint64_t>(random()) << 32) | random();
+                    const auto low = (static_cast<std::uint64_t>(random()) << 32) | random();
+                    return nexora::foundation::Uuid{high, low};
+                  } catch (const std::exception &) {
+                    return nexora::foundation::Uuid{};
+                  }
+                },
+                &error);
+            break;
+          case Action::Close:
+            applied = prefab_documents->Close(request->discard_dirty, &error);
+            break;
+          }
+        }
+        ui.SetPrefabIsolationStatus(applied ? "Prefab action completed." : error, applied);
+        const auto reported = observation();
+        std::cerr << "prefab action=" << static_cast<unsigned>(request->action)
+                  << " applied=" << applied << " asset=" << reported.asset.ToString()
+                  << " revision=" << reported.revision << " dirty=" << reported.dirty << '\n';
+      }
+    } else {
+      prefab_documents.reset();
+      static_cast<void>(ui.SetPrefabIsolation(std::nullopt));
+    }
     const auto build_project =
         project ? project->workspace.Project().id : nexora::foundation::Uuid{};
     if (build_project != build_project_id) {

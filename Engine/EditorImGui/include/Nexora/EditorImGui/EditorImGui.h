@@ -42,6 +42,21 @@ enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop }
 enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
 enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
+enum class PrefabIsolationAction : std::uint8_t { Create, Open, Variant, Save, Close };
+struct PrefabIsolationObservation final {
+  foundation::Uuid project, asset;
+  std::uint64_t project_scope{}, owner_generation{}, document_generation{}, revision{};
+  SceneFileToken source;
+  bool open{}, dirty{}, writable{};
+  friend bool operator==(const PrefabIsolationObservation &,
+                         const PrefabIsolationObservation &) = default;
+};
+struct PrefabIsolationRequest final {
+  PrefabIsolationAction action{};
+  PrefabIsolationObservation scope;
+  foundation::Uuid target;
+  bool discard_dirty{};
+};
 struct SceneTabItem final {
   std::uint64_t id{};
   SceneFileToken token{};
@@ -171,6 +186,13 @@ public:
 
   // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
   bool SetReflectedInspector(const ReflectedInspector &catalog);
+  // Owning scope and one-shot IO requests. Document/workspace borrows last only this frame.
+  bool SetPrefabIsolation(std::optional<PrefabIsolationObservation>);
+  void DrawPrefabIsolation(const SceneDocument *, SceneDocument *, const ProjectWorkspace &,
+                           bool authoring_allowed);
+  [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
+  void SetPrefabIsolationStatus(std::string message, bool success);
+  void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.
   // Scope changes revoke pending work. Run requires explicit user action and caller permission.
