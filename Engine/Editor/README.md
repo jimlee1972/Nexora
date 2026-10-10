@@ -1268,3 +1268,30 @@ slice installs no files, persists no private keys, makes no network calls and lo
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
+
+## Targeted stable-field prefab property candidates
+
+The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
+pairs. Both complete sources and exact node sets are validated first. A selected identity must be
+known in at least one source; shared property names require matching field identities. Duplicate,
+unknown, mismatched, unsupported reserved metadata or incompatible resulting hierarchy rejects
+the entire owning candidate. Empty selection returns a canonical current-source no-op.
+
+Names, position/rotation/scale groups, authored Euler, parent/sibling groups, complete Camera/Light/
+Mesh presence and stored data, and exact unavailable component records are independently selectable.
+Selected absent-source unknown components are removed; unselected unknown bytes remain intact.
+Inactive component stored values are retained through official canonical Runtime property groups,
+rather than reset through component-disable setters. Typed staged hierarchy commands retain local
+TRS, validate the complete selected parent graph and then apply sibling positions. Unselected
+parent/TRS/component/name data retain their current values; selected moves naturally affect sibling
+indices. Source rotations retain their authored Euler records, while other selections preserve the
+current rotation/Euler. Target scene identity and existing serialized entity IDs remain unchanged.
+
+Supported canonical Runtime version-three record groups are parsed from official serialization;
+changed/unknown record framing fails closed. Document metadata stays owning and opaque records are
+never interpreted as native objects. Final output is officially parsed/prepared again. Existing
+4096-node,32768-selection and8MiB scene/output budgets apply; these are logical budgets, not total
+process/history memory quotas. Planning performs no IO, live edits or history/baseline changes and
+grants no authority. The owner still rechecks its current document/project/source before atomic
+application. Graphical selected-field binding, source apply, structural identity reconciliation and
+reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
