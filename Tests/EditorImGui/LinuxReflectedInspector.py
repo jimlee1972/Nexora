@@ -54,7 +54,9 @@ def main():
         def click(window, x, y):
             # Deliver a hovered frame before the button event, including across docked windows.
             send('mousemove', '--window', window, str(x), str(y))
-            send('click', '1')
+            # Keep press/release observable in separate frames on slower software renderers.
+            send('mousedown', '1')
+            send('mouseup', '1')
 
         def save_until(expected):
             deadline = time.monotonic() + 5
@@ -75,6 +77,8 @@ def main():
             time.sleep(.8)
             # Select the existing source through the actual Hierarchy; metadata does not select it.
             click(window, 595, 199 if read_only else 182)
+            # Selection changes the Inspector contents; allow that layout to settle before edits.
+            time.sleep(.8)
             return window
 
         def close_host(window):
