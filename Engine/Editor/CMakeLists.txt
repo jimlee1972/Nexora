@@ -15,6 +15,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/PrefabInstantiation.cpp
   src/PlayApply.cpp
   src/EditorWorkspace.cpp
+  src/PropertySnapshot.cpp
   src/MaterialImport.cpp
   src/MaterialAssetCatalog.cpp
   src/MeshImport.cpp
