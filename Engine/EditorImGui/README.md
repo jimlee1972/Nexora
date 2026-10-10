@@ -14,6 +14,22 @@ production retains ImGui's native platform defaults.
 
 ## Ownership and lifetime
 
+`DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
+Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
+Clear retained events. Initial/project UUID/nil-scope changes revoke consent and release the queue;
+no project disables opt-in. Opt-out releases retained records immediately and re-enable starts empty.
+Clear forgets records while preserving an existing opt-in. The application emits only the fixed
+`frame.presented` label at bounded cadence, after successfully presented frames. No paths, source,
+commands, user/project names or credentials enter that production queue. The generic Core primitive
+still accepts caller-owned event text; this panel displays only exact allowlisted labels and counts
+excluded records without rendering, logging, tooltip or snapshot exposure of their contents. It
+submits at most 128 safe rows while reporting the bounded queue/excluded counts. Consent and the
+panel are not serialized in project/layout data; no persistence or network adapter is installed.
+Read-only projects may use these local controls without obtaining source-write authority. The
+application revokes on shutdown; restart creates a default-off empty model. This is local diagnostic
+privacy, not an extension signature verifier or a telemetry transport implementation.
+
+
 - `SetSceneTabs` copies at most sixteen current document identities/tokens, labels, destinations,
   ownership and dirty indicators. Invalid or mixed-project metadata preserves the previous copy.
   Tab source/target replacement cancels pending gestures, Inspector drafts and stale requests.
