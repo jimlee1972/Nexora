@@ -778,9 +778,13 @@ creates property widgets; unknown components retain raw data instead of being si
     nested materialization, historical revision access and override/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
 
+  - ✅ Persistent Editor scene prefab placement bindings pass nested/repeated placement,
+    history, Save All, reopen and corruption gates, full Linux 242/242 and Shipping;
+    graphical instantiate and structural source reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PersistentPrefabBindings-Linux-2026-10-10.md).
   - ✅ Nested prefab materialization is validated: exact revision closure stages outside the
     live document, preserves scoped identities/local transforms/unknown bytes and imports as one
-    Undo/Redo transaction. Persistent instance metadata and graphical override/rebase remain open.
+    Undo/Redo transaction. Graphical instance override/rebase remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md).
   - ✅ Prefab revision retention is validated: superseded committed sources remain available by
     exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.

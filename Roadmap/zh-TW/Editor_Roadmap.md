@@ -745,6 +745,10 @@ Targeted field、source apply、structural binding 與 reference rebase 仍待�
 保留未選取的值、inactive stored component 與 unknown bytes。Graphical selection、source apply、
 structural reconciliation 與 reference rebase 仍待完成。
 [Linux 證據](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md)。
+- ✅ Editor scene persistent prefab placement binding 通過 nested／repeated placement、
+  history、Save All、reopen 與 corruption gate，以及完整 Linux 242/242 與 Shipping；
+  graphical instantiate 與 structural source reconciliation 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PersistentPrefabBindings-Linux-2026-10-10.md)。
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
@@ -760,7 +764,7 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
 - ✅ Nested prefab materialization 已驗證：exact revision closure 先在 live document 外組合，
   保留 scoped identity／local transform／unknown bytes，再以一次 Undo／Redo transaction 匯入。
-  Persistent instance metadata 與 graphical override/rebase 仍待完成。
+  Graphical instance override/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md)。
 
 - ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
