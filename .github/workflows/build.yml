@@ -228,6 +228,11 @@ jobs:
         run: |
           ctest --preset linux-development -N -R '^editor\.prefab_asset_graph$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -R '^editor\.prefab_asset_graph$' --output-on-failure
+
+      - name: Require atomic scene forest import acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.atomic_forest_import$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -R '^editor\.atomic_forest_import$' --output-on-failure
       - name: Require reflected Inspector transactions and graphical acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.(reflected_inspector|reflected_inspector_ui|linux_reflected_inspector)$' | grep -q 'Total Tests: 3'

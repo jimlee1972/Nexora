@@ -1147,7 +1147,8 @@ bool SceneDocument::CutSelection() {
   return true;
 }
 bool SceneDocument::Paste() {
-  if (clipboard_.empty())
+  if (clipboard_.empty() ||
+      clipboard_.size() > std::numeric_limits<std::uint64_t>::max() - next_entity_generation_)
     return false;
   // Validate every prospective opaque payload before Runtime allocates any new identities.
   auto staged_opaque = CaptureOpaque(nodes_);
@@ -1170,26 +1171,88 @@ bool SceneDocument::Paste() {
   UndoEntry entry;
   entry.previous_selection = selection_;
   entry.restore_selection = true;
+  auto staged_nodes = nodes_;
+  staged_nodes.reserve(nodes_.size() + clipboard_.size());
+  std::vector<runtime::Id> pasted_roots;
+  pasted_roots.reserve(clipboard_.size());
+  auto next_generation = next_entity_generation_;
+  for (const auto &source : clipboard_) {
+    const bool root = source.entity.parent == 0;
+    staged_nodes.push_back({0,
+                            root && !clipboard_cut_pending_ ? source.name + " Copy" : source.name,
+                            next_generation++, source.euler_hint, source.opaque});
+  }
+  // Allocate document history/metadata before Runtime publishes its atomic clone transaction.
+  if (undo_.size() == undo_.capacity())
+    undo_.reserve(std::max(undo_.size() + 1, undo_.capacity() + undo_.capacity() / 2));
   const auto created = editor_.CloneEntityForest(scene_, prototypes);
   if (created.empty())
     return false;
-  std::vector<runtime::Id> pasted_roots;
   for (std::size_t index = 0; index < created.size(); ++index) {
     const auto &source = clipboard_[index];
-    const auto generation = next_entity_generation_++;
-    if (next_entity_generation_ == 0)
-      ++next_entity_generation_;
-    const bool root = source.entity.parent == 0;
-    nodes_.push_back({created[index],
-                      root && !clipboard_cut_pending_ ? source.name + " Copy" : source.name,
-                      generation, source.euler_hint, source.opaque});
-    if (root)
+    staged_nodes[nodes_.size() + index].id = created[index];
+    if (source.entity.parent == 0)
       pasted_roots.push_back(created[index]);
   }
   PushUndo(std::move(entry));
-  selection_ = std::move(pasted_roots);
+  nodes_.swap(staged_nodes);
+  selection_.swap(pasted_roots);
+  next_entity_generation_ = next_generation;
   clipboard_cut_pending_ = false;
   return true;
+}
+std::optional<std::vector<SceneDocument::ImportedForestNode>>
+SceneDocument::ImportForestBytes(const PreparedSave &expected, std::string_view source,
+                                 bool authorized) {
+  if (!authorized || source.empty() || source.size() > kMaximumImportedForestBytes ||
+      !MatchesPreparedSave(expected))
+    return {};
+  runtime::World source_world;
+  SceneDocument probe(source_world, source_world.LoadScene("Forest import"));
+  if (!probe.ReloadBytes(source, kMaximumImportedForestNodes) || probe.nodes_.empty())
+    return {};
+  const auto *scene = source_world.FindScene(probe.scene_);
+  if (!scene || scene->entities.size() != probe.nodes_.size())
+    return {};
+  std::unordered_map<runtime::Id, const Node *> metadata;
+  for (const auto &node : probe.nodes_) {
+    if (node.name.empty() || node.name.size() > 1024 || node.name.find('\0') != std::string::npos ||
+        !foundation::IsValidUtf8(node.name))
+      return {};
+    metadata.emplace(node.id, &node);
+  }
+  std::vector<ClipboardNode> incoming;
+  std::vector<ImportedForestNode> result;
+  incoming.reserve(scene->entities.size());
+  result.reserve(scene->entities.size());
+  for (const auto &entity : scene->entities) {
+    const auto found = metadata.find(entity.id);
+    if (found == metadata.end())
+      return {};
+    const auto &node = *found->second;
+    incoming.push_back({node.name, entity, node.euler_hint, node.opaque});
+    result.push_back({entity.id, {}});
+  }
+  struct RestoreClipboard final {
+    std::vector<ClipboardNode> &target;
+    std::vector<ClipboardNode> previous;
+    bool &cut;
+    bool previous_cut;
+    ~RestoreClipboard() {
+      target = std::move(previous);
+      cut = previous_cut;
+    }
+  } restore{clipboard_, std::move(clipboard_), clipboard_cut_pending_, clipboard_cut_pending_};
+  clipboard_ = std::move(incoming);
+  clipboard_cut_pending_ = true; // Preserve every source root name.
+  if (!Paste())
+    return {};
+  const auto first = nodes_.size() - result.size();
+  for (std::size_t i = 0; i < result.size(); ++i) {
+    const auto &node = nodes_[first + i];
+    result[i].target = {node.id, node.generation, document_generation_};
+  }
+  return std::optional(std::move(result));
 }
 bool SceneDocument::DuplicateSelection() {
   auto previous_clipboard = std::move(clipboard_);

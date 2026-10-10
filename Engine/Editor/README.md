@@ -939,6 +939,28 @@ Redo restores initialized pose/component data, stable IDs, names and metadata. D
 the prior clipboard even on failure. The serialized authoring thread retains no live World borrow in
 clipboard/history, and no source IO or GPU residency work occurs during Copy/Cut/Paste/Duplicate.
 
+Paste now stages the complete replacement node metadata, root selection and next history capacity
+before Runtime clone publication. After clone succeeds, assignment and swaps publish without a new
+metadata/history allocation. Exhausted entity-generation space rejects instead of wrapping.
+
+`SceneDocument::ImportForestBytes` accepts at most 8 MiB and 4096 source authoring nodes, using the
+same versioned parser/migration and unknown-payload validation as Reload. It requires caller-provided
+current authoring permission and an exact matching owning PreparedSave for the target document.
+The serialized host remains responsible for writer lease, recovery, Play and modal authority.
+Invalid/foreign-generation/stale/over-budget inputs return no partial result and retain source,
+selection, Undo/Redo and the user clipboard. Parsing uses a separate World/document before mutation.
+
+The complete source World storage order determines the imported sibling order. All internal parents
+are remapped to fresh entities through one existing CloneEntityForest transaction; root names,
+initialized components, authored Euler revolutions and exact opaque bytes remain unchanged.
+The returned owning source-ID/current-generation target-key map has no source World/document borrows.
+One Undo removes the entire import and restores prior selection; Redo restores the same initialized
+identities and metadata. A scoped restore keeps previous Copy and pending-Cut clipboard behavior,
+including failure/exception unwinding. Result capacity is allocated before publication.
+This operation performs no file IO, GPU admission, native loading, persistent prefab-instance binding,
+existing-parent attachment or arbitrary opaque entity-reference interpretation. Those remain host/
+prefab integrations. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
 
 ## Cut clipboard lifecycle
 
