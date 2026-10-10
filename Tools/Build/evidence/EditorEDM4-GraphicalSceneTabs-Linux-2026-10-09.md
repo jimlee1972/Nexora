@@ -62,7 +62,9 @@ After the startup/persistence correction, a two-step application build and both 
 passed 2/2 in 61.55s (scene files 39.93s; additive tabs 21.62s). The added close-to-single/restart case
 passed 1/1 in 24.95s. Final full configure/build completed 189 incremental steps and **220/220 in
 531.34s**, zero skips; minimal Shipping completed 74 steps. The same full run includes all existing
-native workflows. After all three composition review corrections, the renewed full build completed
+native display/Scene/Game/import/export/input acceptance.
+
+After all three composition review corrections, the renewed full build completed
 239 steps and Linux passed **220/220 in 533.15s**, zero skips; minimal Shipping completed five
 incremental steps. Rebasing the three graphical commits onto accepted composition main
 **28af164c0025a854cf9a03363e0eca96d0550a99** produced an identical complete Git tree, verified against
@@ -70,7 +72,8 @@ the tested **30167a4e** tree. Only this evidence paragraph changes afterward. Th
 candidate containing corrected semantic comparison and graphical inspection independently passes
 seven focused cases in 45.81s, including real native tabs/reopen and both new comparison scope cases;
 its full gate is separate and is not claimed complete here.
-native display/Scene/Game/import/export/input acceptance. English/Traditional Chinese supporting
+
+English/Traditional Chinese supporting
 roadmaps and module contracts are synchronized; the root README and complete milestone count 0/8
 remain unchanged.
 
