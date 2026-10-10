@@ -8,7 +8,7 @@ enables code. Opening a project or restarting restores neither publisher keys no
 ## Acceptance
 
 - Full Linux Development graphical/native configure/build/CTest, with actual OpenSSL cryptography,
-  Slang, Zig, Showcase and native Project Player: **236/236 passed**, zero skips, **589.01 seconds**.
+  Slang, Zig, Showcase and native Project Player: **241/241 passed**, zero skips, **620.96 seconds**, after 320 build steps.
   Minimal Monolithic `linux-shipping` configure/build also passed, **5 build steps**.
 - Final focused Core/widget/native acceptance: **3/3**, **20.38 seconds**, including the actual native
   window **20.27 seconds**. Real widgets run at 1x and 2x scaling. Ctrl+Alt+E opens Extensions after
@@ -42,3 +42,15 @@ fail closed. Hostile filesystem races, native crash isolation, power-loss recove
 network distribution, automatic updates and graphical third-party tool contributions remain open.
 This is a supporting ED-M6/7 slice; all **0/8** complete milestone counters remain unchanged. Windows,
 macOS, Android and iOS were not run in this Linux cloud environment.
+
+## Current accepted-main integration
+
+The latest full run includes accepted main
+`638e982e64a937d97d94c804a1becb4b2ed55301`, Crypto PR #477 head `6e6a419f`,
+and the current signed-admission implementation. PluginManager, panel and
+Core/widget/native fixtures are unchanged from the original validated feature.
+Both build-console and extension-manager root interaction guards remain active.
+The current main Inspector and real native build-console tests run in this
+**241/241** gate; Shipping remains successful (5 steps). Documentation-only
+admission integration evidence does not change the validated runtime paths.
+Published-head hosted checks are independently required before merge.
