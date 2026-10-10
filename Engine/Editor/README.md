@@ -1127,6 +1127,18 @@ paths, at most 256 arguments and 32 KiB executable/argv bytes reject invalid adm
 changing the previous observation. There is no shell expansion. The child inherits the host
 environment; the caller authorizes its executable and project scripts. This is not a sandbox.
 
+Cancel admits only queued/running work while synchronized with worker outcome publication.
+After a terminal outcome is published, Cancel returns false even before owner Poll; completed
+exit codes and launch failures remain observable. Shutdown ends the owner scope without
+rewriting an already completed failure as cancellation.
+
+POSIX output pipes are close-on-exec at creation on Linux. The built-in build and shader
+launchers share a creation/spawn mutex for older Darwin pipe creation. Linux requires glibc
+2.34 close-from spawn actions; macOS uses CLOEXEC_DEFAULT and whitelists duplicated standard
+streams. Unrelated inheritable host descriptors are absent in the build child. Other POSIX
+backends without this isolation report Unsupported. Embedding applications must apply the same
+pipe/spawn isolation policy to their own concurrent launchers.
+
 POSIX creates a new managed process group through posix_spawn; hosts must retain ordinary SIGCHLD
 wait policy and must not externally reap runner-owned children or change that policy while active.
 The direct child remains unreaped until cleanup, reserving process-group identity. Windows starts

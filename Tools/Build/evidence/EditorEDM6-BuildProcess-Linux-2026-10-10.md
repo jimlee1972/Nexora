@@ -57,3 +57,22 @@ GCC 14.2, CMake 3.31.6, Ninja, Slang 2026.18, Zig, Xvfb/xdotool and software Mes
 editor.bounded_build_process is required by Linux CI. Hosted exact-head gates remain required before
 acceptance; Linux does not establish local Windows/macOS or physical-device results. C++ consumers
 rebuild; stable C/Gameplay ABI and module dependencies remain unchanged. Full milestones stay **0/8**.
+
+## Final review corrections
+
+Completed but unconsumed zero/nonzero/launch-failed workers reject Cancel and preserve their actual
+outcomes. Admission is synchronized with worker terminal publication. Linux output pipes use atomic
+CLOEXEC creation; the built-in shader/build launchers share pipe/spawn serialization for older Darwin.
+Linux glibc 2.34 close-from spawn actions and macOS CLOEXEC_DEFAULT isolate unrelated host descriptors.
+Other POSIX backends without this policy report Unsupported. A real deliberately inheritable host
+pipe is absent in the child; prior running/queued/tree/shutdown cancellation assertions remain intact.
+Focused actual process acceptance passed 1/1 in 0.52s after seven build steps.
+
+Current macOS SDK 26 uses the available nondeprecated chdir action and retains older deployment
+compatibility with suppression scoped to that one compatibility call. MSVC shadow/unsigned warning
+corrections preserve exact exit semantics. Compiler-correction full Linux passed 220/220 in 512.27s;
+the final descriptor/cancellation corrections then passed **220/220 in 518.09s**, zero skips, after
+86 incremental build steps. Minimal Shipping reconfiguration/build passed (no additional work).
+The Shipping profile intentionally excludes Editor; this is profile/link compatibility evidence,
+not a claim that the Editor process runner executes in Shipping. Hosted final-head macOS/Windows
+checks remain required; their earlier failed published head does not provide acceptance.

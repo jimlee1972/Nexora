@@ -14,6 +14,8 @@
 #else
 #include <cerrno>
 #include <csignal>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 namespace {
@@ -27,6 +29,16 @@ void Finish(editor::BuildProcess &process, std::uint64_t scope) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
   while (!process.Poll(scope)) {
     Require(std::chrono::steady_clock::now() < deadline, "Process owner did not complete");
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+}
+void AwaitTerminal(editor::BuildProcess &process) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+  for (;;) {
+    const auto phase = process.Snapshot().phase;
+    if (phase != Phase::Queued && phase != Phase::Running)
+      return;
+    Require(std::chrono::steady_clock::now() < deadline, "Worker did not publish its outcome");
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
@@ -107,6 +119,43 @@ void Run(const std::filesystem::path &fixture) {
   Finish(process, 42);
   Require(process.Snapshot().phase == Phase::Failed && !process.Snapshot().exit_code,
           "Launch failure fabricated an exit status");
+  // Completed but unconsumed outcomes must survive late cancellation.
+  for (const auto &mode : {"--args", "--fail"}) {
+    request.arguments = {mode};
+    Require(process.Start(request), "Late cancellation fixture did not launch");
+    AwaitTerminal(process);
+    Require(process.Busy() && !process.Cancel(), "Completed worker accepted cancellation");
+    Finish(process, 42);
+    const bool success = std::string_view(mode) == "--args";
+    Require(process.Snapshot().phase == (success ? Phase::Exited : Phase::Failed) &&
+                process.Snapshot().exit_code == (success ? 0u : 7u),
+            "Late cancellation replaced the actual exit outcome");
+  }
+  Require(process.Start(missing), "Late launch failure fixture failed intake");
+  AwaitTerminal(process);
+  Require(!process.Cancel(), "Completed launch failure accepted cancellation");
+  Finish(process, 42);
+  Require(process.Snapshot().phase == Phase::Failed && !process.Snapshot().exit_code,
+          "Late cancellation hid launch failure");
+#if !defined(_WIN32)
+  // Deliberately inheritable host resource must be absent in the actual child.
+  struct HostPipe final {
+    int descriptors[2]{-1, -1};
+    ~HostPipe() {
+      for (const auto fd : descriptors)
+        if (fd >= 0)
+          close(fd);
+    }
+  } host;
+  Require(pipe(host.descriptors) == 0 && !(fcntl(host.descriptors[1], F_GETFD) & FD_CLOEXEC),
+          "Could not establish an inheritable host resource");
+  request.arguments = {"--fd", std::to_string(host.descriptors[1])};
+  Require(process.Start(request), "Descriptor isolation fixture did not launch");
+  Finish(process, 42);
+  Require(process.Snapshot().phase == Phase::Exited &&
+              process.Snapshot().output.find("FD_CLOSED") != std::string::npos,
+          "Child inherited an unrelated host file descriptor");
+#endif
   request.arguments = {"--sleep"};
   Require(process.Start(request), "Cancellation fixture did not launch");
   Output(process, "READY");

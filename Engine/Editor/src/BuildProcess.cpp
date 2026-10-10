@@ -28,12 +28,18 @@
 #endif
 #if !defined(_WIN32) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IPHONE)
 #define NEXORA_BUILD_PROCESS_POSIX 1
+#include "ProcessLaunch.h"
 #include <cerrno>
 #include <csignal>
 #include <fcntl.h>
 #include <spawn.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if defined(__linux__) && defined(__GLIBC__)
+#if __GLIBC_PREREQ(2, 34)
+#define NEXORA_BUILD_PROCESS_CLOSEFROM 1
+#endif
+#endif
 #if defined(__APPLE__)
 #include <crt_externs.h>
 #else
@@ -185,6 +191,12 @@ bool BuildProcess::Cancel() noexcept {
   const auto op = implementation_->operation;
   if (!op || op->consumed)
     return false;
+  std::lock_guard lock{op->mutex};
+  const auto status = op->job_handle.Status();
+  if ((op->snapshot.phase != BuildProcessPhase::Queued &&
+       op->snapshot.phase != BuildProcessPhase::Running) ||
+      (status != core::JobStatus::Queued && status != core::JobStatus::Running))
+    return false;
   op->cancellation.Cancel();
   return true;
 }
@@ -205,16 +217,22 @@ void BuildProcess::Shutdown() noexcept {
   const auto op = impl.operation;
   if (!op || op->consumed)
     return;
-  op->cancellation.Cancel();
+  const auto cancelled = Cancel() || op->cancellation.Token().IsCancellationRequested();
   try {
     impl.jobs.Wait(op->job_handle);
   } catch (...) {
   }
-  op->request = {};
-  op->consumed = true;
   try {
-    op->Set(BuildProcessPhase::Cancelled, "Build process stopped and drained.");
+    if (cancelled) {
+      op->request = {};
+      op->consumed = true;
+      op->Set(BuildProcessPhase::Cancelled, "Build process stopped and drained.");
+    } else
+      static_cast<void>(
+          Poll(0)); // Closing ends the owner scope without hiding a completed failure.
   } catch (...) {
+    op->request = {};
+    op->consumed = true;
   }
 }
 #if defined(NEXORA_BUILD_PROCESS_POSIX)
@@ -270,8 +288,13 @@ void BuildProcess::Implementation::Operation::Run(const core::CancellationToken 
     Set(BuildProcessPhase::Failed, "Build process requires owned child wait/reap policy.");
     return;
   }
+#if !defined(NEXORA_BUILD_PROCESS_CLOSEFROM) && !defined(__APPLE__)
+  Set(BuildProcessPhase::Unsupported, "This POSIX platform cannot isolate build descriptors.");
+  return;
+#endif
+  std::unique_lock launch{detail::ProcessLaunchMutex()};
   int descriptors[2];
-  if (pipe(descriptors)) {
+  if (detail::ProcessOutputPipe(descriptors)) {
     Set(BuildProcessPhase::Failed, "Could not create build output pipe.");
     return;
   }
@@ -296,6 +319,9 @@ void BuildProcess::Implementation::Operation::Run(const core::CancellationToken 
   SpawnCheck(posix_spawn_file_actions_adddup2(&actions.value, write_end.value, STDOUT_FILENO));
   SpawnCheck(posix_spawn_file_actions_adddup2(&actions.value, write_end.value, STDERR_FILENO));
   SpawnCheck(posix_spawn_file_actions_addclose(&actions.value, write_end.value));
+#if defined(NEXORA_BUILD_PROCESS_CLOSEFROM)
+  SpawnCheck(posix_spawn_file_actions_addclosefrom_np(&actions.value, STDERR_FILENO + 1));
+#endif
 #if defined(__APPLE__) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
   if (__builtin_available(macOS 26.0, *))
     SpawnCheck(
@@ -322,8 +348,11 @@ void BuildProcess::Implementation::Operation::Run(const core::CancellationToken 
   SpawnCheck(posix_spawnattr_setsigmask(&attributes.value, &empty));
   SpawnCheck(posix_spawnattr_setsigdefault(&attributes.value, &defaults));
   SpawnCheck(posix_spawnattr_setpgroup(&attributes.value, 0));
-  SpawnCheck(posix_spawnattr_setflags(
-      &attributes.value, POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF));
+  short flags = POSIX_SPAWN_SETPGROUP | POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF;
+#if defined(__APPLE__)
+  flags |= POSIX_SPAWN_CLOEXEC_DEFAULT;
+#endif
+  SpawnCheck(posix_spawnattr_setflags(&attributes.value, flags));
   const auto executable = Utf8(request.executable);
   std::vector<char *> arguments;
   arguments.reserve(request.arguments.size() + 2);
@@ -345,6 +374,7 @@ void BuildProcess::Implementation::Operation::Run(const core::CancellationToken 
   }
   close(write_end.value);
   write_end.value = -1;
+  launch.unlock();
   Set(BuildProcessPhase::Running, "Build process running.");
   std::optional<std::chrono::steady_clock::time_point> terminating;
   siginfo_t exit{};

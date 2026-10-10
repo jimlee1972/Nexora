@@ -829,7 +829,9 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ The build prerequisite now runs actual scoped owning processes with direct native argv,
     bounded merged output/dropped counts and exact launch/exit/cancellation states. Real child
     fixtures cover Unicode/metacharacters, nonzero/signal failure, flood limits, queued/running
-    cancellation, managed descendants, shutdown and stale scopes. A zero exit does not certify
+    cancellation, managed descendants, shutdown and stale scopes. Completed worker outcomes reject
+    late cancellation; actual child tests verify unrelated host descriptors are not inherited.
+    A zero exit does not certify
     artifacts or build success; graphical toolchains, verified manifests and deploy/log integration
     remain open. Raw output requires caller sanitization/redaction before display or persistence.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-BuildProcess-Linux-2026-10-10.md).

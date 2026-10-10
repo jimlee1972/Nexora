@@ -41,6 +41,7 @@ struct BuildProcessSnapshot final {
 // Absolute executable/cwd and owning UTF-8 argv launch directly, without a shell. The caller
 // authorizes its executable and project build scripts; this runner is not an execution sandbox.
 // Exited means code zero, never verified artifacts/build/deployment success. Poll checks scope.
+// Cancel returns false after a worker publishes its terminal outcome, including before Poll.
 // Cancellation/shutdown stop the managed process group/job and drain the direct child/worker.
 // Commands, output and environment are not persisted by this API. Child environment is inherited.
 // POSIX hosts must retain normal SIGCHLD wait policy and never externally reap owned children.

@@ -16,6 +16,7 @@
 #include <io.h>
 #include <windows.h>
 #else
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #endif
@@ -37,6 +38,15 @@ int Run(const std::vector<std::string> &arguments) {
     std::cerr << "STDERR_END\n";
     return 0;
   }
+#if !defined(_WIN32)
+  if (mode == "--fd" && arguments.size() == 3) {
+    const auto fd = std::stoi(arguments[2]);
+    if (fcntl(fd, F_GETFD) != -1 || errno != EBADF)
+      return 9;
+    std::cout << "FD_CLOSED\n";
+    return 0;
+  }
+#endif
   if (mode == "--fail") {
     std::cerr << "ACTUAL_NONZERO_EXIT\n";
     return 7;
