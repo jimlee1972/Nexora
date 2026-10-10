@@ -65,7 +65,9 @@ def main():
     scene = root / '.nexora/scenes/Main.scene'
     initial = scene.read_bytes()
     original_schema = (root / '.nexora/inspector.reflection').read_bytes()
-    xvfb, display = start_xvfb(args.xvfb, '1600x1200x24')
+    # Match the native host's initial size. Resizing after its first docked frame retains
+    # the original split widths, so fixed control coordinates would depend on startup timing.
+    xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
     process = None
     try:
         require(display is not None, 'Xvfb failed')
@@ -108,9 +110,9 @@ def main():
         def click(window, x, y, observe_checkbox=False):
             # Deliver a hovered frame before the button event, including across docked windows.
             send('mousemove', '--window', window, str(x), str(y))
-            # This fixed native fixture uses the default theme and 1600x1200 layout.
+            # This fixed native fixture uses the default theme and 1280x720 layout.
             # A background patch outside the checkmark observes actual hovered/held frames.
-            patch = (1424, 92, 3, 3)
+            patch = (1174, 92, 3, 3)
             if observe_checkbox:
                 wait_rendered(window, patch, lambda r, g, b: g >= 120 and b >= 150,
                               7, 'Boolean hover frame')
@@ -139,15 +141,18 @@ def main():
             nonlocal process
             process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
             window = wait_for_window(args.xdotool, env)
-            send('windowsize', '--sync', window, '1600', '1200')
+            geometry = subprocess.run([args.xdotool, 'getwindowgeometry', '--shell', window],
+                                      env=env, check=True, capture_output=True, text=True).stdout
+            require('WIDTH=1280\n' in geometry and 'HEIGHT=720\n' in geometry,
+                    'Native reflected fixture requires the initial 1280x720 layout: ' + geometry)
             send('windowfocus', '--sync', window)
             y = 199 if read_only else 182
             blue = lambda r, g, b: b >= r + 25 and g >= r + 10
             # Window creation precedes first presentation. Wait for the actual Scene Select all
-            # control in the resized layout before issuing its one physical click.
-            wait_rendered(window, (590, y - 4, 10, 10), blue, 10, 'Scene selection control')
-            click(window, 595, y)
-            wait_rendered(window, (1424, 92, 3, 3), blue, 7, 'selected reflected Boolean')
+            # control in the initial layout before issuing its one physical click.
+            wait_rendered(window, (518, y - 4, 10, 10), blue, 10, 'Scene selection control')
+            click(window, 523, y)
+            wait_rendered(window, (1174, 92, 3, 3), blue, 7, 'selected reflected Boolean')
             return window
 
         def close_host(window):
@@ -160,7 +165,7 @@ def main():
 
         window = open_host()
         # The top Inspector field is the actual schema-backed Boolean control.
-        click(window, 1428, 97, observe_checkbox=True)
+        click(window, 1178, 97, observe_checkbox=True)
         expected = bytearray(payload(scene))
         expected[0] = 1
         save_until(expected)
@@ -172,7 +177,7 @@ def main():
         save_until(expected)
         require(scene.read_bytes() == edited and payload(scene)[23] == 255,
                 'Redo changed padding or unrelated source bytes')
-        click(window, 1510, 120)
+        click(window, 1230, 120)
         key('ctrl+a')
         send('type', '--clearmodifiers', '--delay', '20', '--', '6.75')
         key('Return')
@@ -182,7 +187,7 @@ def main():
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
-        click(window, 1428, 97)
+        click(window, 1178, 97)
         key('ctrl+s')
         close_host(window)
         require(before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
@@ -201,7 +206,7 @@ def main():
                 'Invalid metadata restart changed source')
         schema.write_bytes(original_schema)
         window = open_host()
-        click(window, 1428, 97, observe_checkbox=True)
+        click(window, 1178, 97, observe_checkbox=True)
         expected[0] = 0
         save_until(expected)
         close_host(window)

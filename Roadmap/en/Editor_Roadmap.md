@@ -444,6 +444,8 @@ creates property widgets; unknown components retain raw data instead of being si
   Native pointer delivery retains down/up across slow frames; eight consecutive actual runs pass.
   Presented X11 control/hover/held/released readiness and separate shortcut-key phases also
   pass eight cold, single-thread software-rendered native workflows (134.62s); all 239 graphical Development tests and Shipping build pass.
+  The native fixture now retains the initial 1280x720 host size, removing the reproduced
+  resize/dock initialization race; five consecutive cold native runs pass (75.21s).
   Dynamic arrays, native plugin restoration and complete ED-M2 acceptance remain open.
 
 - ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
