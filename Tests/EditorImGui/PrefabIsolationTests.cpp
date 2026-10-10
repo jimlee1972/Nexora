@@ -54,6 +54,7 @@ void Run(float scale) {
     view.owner_generation = session.Generation();
     view.source = files.Token();
     view.asset = session.AssetId();
+    view.base = session.BaseReference();
     view.open = document != nullptr;
     view.document_generation = document ? document->Generation() : 0;
     view.dirty = view.open && session.Dirty();
@@ -290,6 +291,7 @@ void Run(float scale) {
     view.owner_generation = inspection.Generation();
     view.document_generation = inspection.Document()->Generation();
     view.asset = id;
+    view.base = inspection.BaseReference();
     view.open = true;
     view.revision = saved->revision;
     Require(readonly_ui.SetPrefabIsolation(view), "Read-only observation rejected");
@@ -385,6 +387,7 @@ void RunSourceApply(float scale) {
     observation.owner_generation = session.Generation();
     observation.source = files.Token();
     observation.asset = variant;
+    observation.base = session.BaseReference();
     observation.document_generation = document->Generation();
     observation.open = observation.dirty = observation.writable = true;
     observation.revision = variant_before.revision;
@@ -470,6 +473,264 @@ void RunSourceApply(float scale) {
               editor::PrefabAssets::LoadRevision(workspace, {base, 1}) == before,
           "Actual source publication lost version/identity retention");
 }
+void RunRebase(float scale) {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-rebase-ui-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directory(root);
+  editor::test::TemporaryDirectoryCleanup cleanup{root};
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root / "Project", "Rebase UI"), "Rebase UI project failed");
+  runtime::World world;
+  editor::SceneDocument original(world, world.LoadScene("Original"));
+  const auto node = original.Create("Original");
+  Require(original.SetOpaqueComponent(*original.Key(node), {99, "Absent", {0, 255, 27}}),
+          "Rebase opaque fixture failed");
+  const auto original_bytes = original.PrepareSave()->Bytes();
+  const foundation::Uuid base{1700, 1}, variant{1700, 2};
+  std::uint64_t serial = 100;
+  const auto factory = [&] { return foundation::Uuid{1701, ++serial}; };
+  editor::PrefabDocumentSession source(workspace), session(workspace);
+  Require(source.Create(base, original) && source.Save(factory) && session.Open(base) &&
+              session.Variant(variant) && session.Save(factory),
+          "Rebase UI variant fixture failed");
+  auto *document = session.EditableDocument();
+  Require(document->Rename(*document->Key(node), "Local name") &&
+              source.EditableDocument()->Rename(*source.Document()->Key(node), "Source name") &&
+              source.EditableDocument()->SetTransform(node, {4, 0, 0}) && source.Save(factory),
+          "Rebase UI independent edits failed");
+  const auto local_before = *document->PrepareSave();
+  const auto published_before = *session.SourceBaseline();
+  const auto source_before = *source.SourceBaseline();
+  editor::SceneFileSession files(workspace, original);
+  editor::imgui::EditorImGuiHost ui;
+  ui.SetDisplay(1400 * scale, 1100 * scale, scale);
+  Access::ConfigureSyntheticInput(ui);
+  ui.OpenPrefabIsolation();
+  Nexora::Window::WindowEvent focus;
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 1;
+  ui.ProcessEvents(std::array{focus});
+  editor::ProductShell shell;
+  std::uint64_t scope = 70;
+  bool allowed = true;
+  const auto draw = [&] {
+    editor::imgui::PrefabIsolationObservation observation;
+    observation.project = workspace.Project().id;
+    observation.project_scope = scope;
+    observation.owner_generation = session.Generation();
+    observation.document_generation = document->Generation();
+    observation.source = files.Token();
+    observation.asset = session.AssetId();
+    observation.base = session.BaseReference();
+    observation.open = true;
+    observation.dirty = session.Dirty();
+    observation.writable = workspace.Writable();
+    observation.revision = session.SourceBaseline()->revision;
+    Require(ui.SetPrefabIsolation(observation), "Rebase observation rejected");
+    ui.BeginFrame();
+    ui.DrawProductShell(shell, &original, &workspace);
+    ui.DrawPrefabIsolation(document, document, workspace, allowed);
+    static_cast<void>(ui.EndFrame());
+  };
+  for (int i = 0; i < 4; ++i)
+    draw();
+  const auto point_click = [&](std::array<float, 2> point) {
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>(point[0] * scale);
+    pointer.value1 = static_cast<int>(point[1] * scale);
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  const auto click = [&](std::size_t control) {
+    const auto point = Access::PrefabControlPosition(ui, control);
+    Require(point.has_value(), "Actual rebase control absent");
+    point_click(*point);
+  };
+  click(23);
+  auto request = ui.TakePrefabIsolationRequest();
+  Require(request && request->action == Action::ReviewRebase &&
+              request->scope.base == editor::PrefabRevisionReference{base, 1},
+          "Actual source rebase review request failed");
+  auto review = session.ReviewRebase();
+  Require(review && review->Conflicts().size() == 1 && !review->CanApply(),
+          "Actual rebase comparison failed");
+  ui.SetPrefabRebaseReview(review->Changes(), review->PreviousReference(), review->NextReference(),
+                           review->Conflicts(), {}, review->CanApply(), review->Unresolved());
+  draw();
+  click(25);
+  Require(!Access::PrefabControlPosition(ui, 26) && !ui.TakePrefabIsolationRequest(),
+          "Unresolved rebase exposed confirmation");
+  const auto row = std::ranges::find_if(review->Changes().rows, [](const auto &value) {
+    return value.stable_path.ends_with("/name");
+  });
+  Require(row != review->Changes().rows.end(), "Rebase name row absent");
+  const auto row_index = static_cast<std::size_t>(row - review->Changes().rows.begin());
+  auto position = Access::PrefabRebaseChoicePosition(ui, row_index, 2);
+  Require(position.has_value(), "Actual conflict combo absent");
+  point_click(*position);
+  position = Access::PrefabRebaseChoicePosition(ui, row_index, 0);
+  Require(position.has_value(), "Actual Keep local option absent");
+  point_click(*position);
+  click(25);
+  Require(!Access::PrefabControlPosition(ui, 26), "Unprepared choices retained apply consent");
+  click(24);
+  request = ui.TakePrefabIsolationRequest();
+  Require(request && request->action == Action::ResolveRebase && request->choices.size() == 1 &&
+              request->choices.front().decision == editor::PrefabRebaseDecision::KeepLocal,
+          "Actual choice preparation request failed");
+  const auto choices = request->choices;
+  auto resolved = session.ResolveRebase(*review, choices);
+  Require(resolved && resolved->CanApply(), "Actual choice preparation failed");
+  const auto show = [&] {
+    ui.SetPrefabRebaseReview(resolved->Changes(), resolved->PreviousReference(),
+                             resolved->NextReference(), resolved->Conflicts(), choices,
+                             resolved->CanApply(), resolved->Unresolved());
+    draw();
+  };
+  show();
+  click(25);
+  Require(Access::PrefabControlPosition(ui, 26).has_value() && !ui.TakePrefabIsolationRequest() &&
+              document->MatchesPreparedSave(local_before),
+          "Opening rebase consent changed content or failed confirmation");
+  click(27);
+  Require(!Access::PrefabControlPosition(ui, 26) && document->MatchesPreparedSave(local_before),
+          "Cancel rebase changed content");
+  click(25);
+  ++scope;
+  draw();
+  Require(!Access::PrefabControlPosition(ui, 26) && !ui.TakePrefabIsolationRequest(),
+          "Scope change retained rebase consent");
+  show();
+  click(25);
+  allowed = false;
+  draw();
+  Require(!Access::PrefabControlPosition(ui, 26) && !ui.TakePrefabIsolationRequest() &&
+              document->MatchesPreparedSave(local_before),
+          "Blocked authoring retained rebase consent");
+  allowed = true;
+  draw();
+  click(25);
+  Require(!Access::PrefabControlPosition(ui, 26), "Unblocking resurrected rebase consent");
+  show();
+  click(25);
+  click(26);
+  request = ui.TakePrefabIsolationRequest();
+  Require(request && request->action == Action::Rebase &&
+              request->scope.base == editor::PrefabRevisionReference{base, 1} &&
+              session.Rebase(*resolved, true),
+          "Actual confirmed rebase failed");
+  Require(document->Name(node) == "Local name" && document->Transform(node)->x == 4 &&
+              session.BaseReference() == editor::PrefabRevisionReference{base, 2} &&
+              session.SourceBaseline() == published_before &&
+              editor::PrefabAssets::Load(workspace, variant) == published_before &&
+              editor::PrefabAssets::Load(workspace, base) == source_before &&
+              original.PrepareSave()->Bytes() == original_bytes,
+          "Rebase lost override/reference or wrote before Save");
+  draw();
+  click(8);
+  Require(document->MatchesPreparedSave(local_before) &&
+              session.BaseReference() == editor::PrefabRevisionReference{base, 1},
+          "Actual rebase Undo failed");
+  click(9);
+  Require(document->Transform(node)->x == 4 &&
+              session.BaseReference() == editor::PrefabRevisionReference{base, 2},
+          "Actual rebase Redo failed");
+  click(4);
+  request = ui.TakePrefabIsolationRequest();
+  Require(request && request->action == Action::Save && session.Save(factory) && !session.Dirty() &&
+              session.SourceBaseline()->base == editor::PrefabRevisionReference{base, 2} &&
+              editor::PrefabAssets::LoadRevision(workspace, {variant, 1}) == published_before,
+          "Actual rebase Save failed exact reference/retention");
+  Require(session.Close() && session.Open(variant) && !session.Dirty() &&
+              session.Document()->Name(node) == "Local name" &&
+              session.BaseReference() == editor::PrefabRevisionReference{base, 2},
+          "Rebase UI wrapped reopen failed");
+  Require(source.EditableDocument()->Rename(*source.Document()->Key(node), "Newer source") &&
+              source.Save(factory),
+          "Read-only newer source fixture failed");
+  editor::ProjectWorkspace observer;
+  Require(observer.Open(workspace.Root(), editor::ProjectAccess::ReadOnly),
+          "Read-only rebase observer failed");
+  editor::PrefabDocumentSession inspection(observer);
+  Require(inspection.Open(variant), "Read-only rebase open failed");
+  const auto readonly_before = *inspection.Document()->PrepareSave();
+  const auto current_variant = editor::PrefabAssets::Load(workspace, variant);
+  const auto current_source = editor::PrefabAssets::Load(workspace, base);
+  auto readonly_review = inspection.ReviewRebase();
+  Require(readonly_review && readonly_review->Conflicts().size() == 1,
+          "Read-only rebase comparison failed");
+  std::vector<editor::PrefabRebaseChoice> readonly_choices;
+  for (const auto &field : readonly_review->Conflicts())
+    readonly_choices.push_back({field, editor::PrefabRebaseDecision::KeepLocal});
+  auto readonly_resolved = inspection.ResolveRebase(*readonly_review, readonly_choices);
+  Require(readonly_resolved && readonly_resolved->CanApply(),
+          "Read-only choices could not prepare inspection");
+  editor::imgui::EditorImGuiHost readonly_ui;
+  readonly_ui.SetDisplay(1400 * scale, 1100 * scale, scale);
+  Access::ConfigureSyntheticInput(readonly_ui);
+  readonly_ui.OpenPrefabIsolation();
+  readonly_ui.ProcessEvents(std::array{focus});
+  editor::imgui::PrefabIsolationObservation readonly_observation;
+  readonly_observation.project = observer.Project().id;
+  readonly_observation.project_scope = 99;
+  readonly_observation.owner_generation = inspection.Generation();
+  readonly_observation.document_generation = inspection.Document()->Generation();
+  readonly_observation.asset = variant;
+  readonly_observation.base = inspection.BaseReference();
+  readonly_observation.revision = current_variant->revision;
+  readonly_observation.open = true;
+  Require(readonly_ui.SetPrefabIsolation(readonly_observation),
+          "Read-only rebase observation rejected");
+  const auto readonly_draw = [&] {
+    readonly_ui.BeginFrame();
+    readonly_ui.DrawProductShell(shell, &original, &observer);
+    readonly_ui.DrawPrefabIsolation(inspection.Document(), inspection.EditableDocument(), observer,
+                                    true);
+    static_cast<void>(readonly_ui.EndFrame());
+  };
+  for (int i = 0; i < 4; ++i)
+    readonly_draw();
+  readonly_ui.SetPrefabRebaseReview(readonly_resolved->Changes(),
+                                    readonly_resolved->PreviousReference(),
+                                    readonly_resolved->NextReference(),
+                                    readonly_resolved->Conflicts(), readonly_choices, true, 0);
+  readonly_draw();
+  const auto point = Access::PrefabControlPosition(readonly_ui, 25);
+  Require(point.has_value(), "Read-only rebase control absent");
+  Nexora::Window::WindowEvent pointer, button;
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>((*point)[0] * scale);
+  pointer.value1 = static_cast<int>((*point)[1] * scale);
+  readonly_ui.ProcessEvents(std::array{pointer});
+  readonly_draw();
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  readonly_ui.ProcessEvents(std::array{button});
+  readonly_draw();
+  button.value1 = 0;
+  readonly_ui.ProcessEvents(std::array{button});
+  readonly_draw();
+  Require(!Access::PrefabControlPosition(readonly_ui, 26) &&
+              !readonly_ui.TakePrefabIsolationRequest() &&
+              !inspection.Rebase(*readonly_resolved, true) &&
+              inspection.Document()->MatchesPreparedSave(readonly_before) && !inspection.Dirty() &&
+              editor::PrefabAssets::Load(workspace, variant) == current_variant &&
+              editor::PrefabAssets::Load(workspace, base) == current_source,
+          "Read-only rebase gained authority or changed document/source");
+}
+
 } // namespace
 int main() {
   try {
@@ -477,6 +738,8 @@ int main() {
     Run(2);
     RunSourceApply(1);
     RunSourceApply(2);
+    RunRebase(1);
+    RunRebase(2);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

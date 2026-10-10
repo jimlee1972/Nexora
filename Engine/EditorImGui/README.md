@@ -1106,3 +1106,22 @@ The native host and owner independently recheck project/modal/export/close/stopp
 conditions. Read-only review remains available; source publication is disabled. No file IO occurs
 in widgets, no automatic local Save/acknowledgement/rebase follows, and all owning source checks are
 repeated before canonical publication.
+
+
+## Three-way prefab source rebase controls
+
+The isolated variant exposes retained source revision, Review rebase, a clipped five-column
+old-base/local/current-source comparison and explicit Keep local/Take source choices for each
+conflicting complete stable field group. Prepare forwards owning choices to the authoring owner;
+changing a choice revokes any prepared candidate and consent. Source-only changes need no choices.
+Rebase opens separate confirmation; confirmation forwards one current observation, and only the
+owner's private reviewed capability can apply. UI snapshots confer no write authority or perform IO.
+
+Project/source-document/owner/document/asset/base scope changes clear review and confirmation.
+Local edits, Undo/Redo, hidden windows and blocked authoring revoke consent; re-enabling interaction
+does not revive it. Read-only sessions can review/prepare choices but cannot confirm or mutate.
+The application repeats project/writer/recovery/Play/modal and exact-current-source checks.
+Successful rebase changes properties and retained reference as one document Undo/Redo. Publication
+remains explicit Save, which archives the previous exact variant and permits clean reopen. Source
+apply retains its separate confirmation and publication boundary. Structural identity reconciliation,
+persistent live instances and complete nested authoring remain separate work.

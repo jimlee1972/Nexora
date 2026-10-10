@@ -205,7 +205,7 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabIsolation.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
-  set_tests_properties(editor.linux_prefab_isolation PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  set_tests_properties(editor.linux_prefab_isolation PROPERTIES TIMEOUT 180 LABELS "vulkan;virtual-display")
   add_test(NAME editor.linux_reflected_inspector
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedInspector.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
