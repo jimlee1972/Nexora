@@ -547,3 +547,9 @@ target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SO
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraReflectedInspectorUiTests)
 add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)
+
+add_executable(NexoraChromeTraceDisplayTests ChromeTraceDisplayTests.cpp)
+target_link_libraries(NexoraChromeTraceDisplayTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraChromeTraceDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraChromeTraceDisplayTests)
+add_test(NAME editor.chrome_trace_display COMMAND NexoraChromeTraceDisplayTests)

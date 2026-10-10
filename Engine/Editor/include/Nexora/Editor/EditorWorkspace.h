@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/ChromeTrace.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MaterialImport.h"
@@ -128,6 +129,10 @@ public:
                            std::string *error = nullptr);
   [[nodiscard]] std::optional<GpuTimingCapture>
   ImportGpuTimingJson(std::string *error = nullptr) const;
+  // Explicit external Chrome trace at .nexora/chrome-trace.json. Does not infer CPU/GPU/RSS
+  // or host/project timing provenance; read-only observers may import. No writes or native loads.
+  [[nodiscard]] std::optional<ChromeTraceCapture>
+  ImportChromeTraceJson(ChromeTraceSelection, std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;
