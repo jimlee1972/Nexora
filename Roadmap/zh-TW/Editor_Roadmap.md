@@ -741,6 +741,11 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   Structural change 與 graphical prefab revert/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
 
+- ✅ Identity-remapped prefab property candidate 已驗證：exact stable node set 保留 target entity／
+  scene identity，還原完整 source property 與 unknown data；structural edit、graphical revert／
+  targeted field 與 reference rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyPlan-Linux-2026-10-10.md)。
+
 - ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
   revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。
   實際 rename／Undo／save／reopen、scoped repeated placement、cycle／stale／budget 拒絕及
