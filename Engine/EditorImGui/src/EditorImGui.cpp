@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -368,10 +369,12 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> prefab_source_position;
   int prefab_source_frame{};
   bool prefab_override_authoring{}, prefab_override_confirm{}, prefab_override_popup{};
-  std::optional<PrefabPlacementOverrideRequest> prefab_override_request;
+  std::optional<PrefabPlacementOverrideRequest> prefab_override_request, prefab_override_consent;
+  std::vector<bool> prefab_override_selected;
+  std::map<std::size_t, std::array<float, 2>> prefab_override_row_positions;
   std::optional<PrefabPlacementOverrideReport> prefab_override_report;
   std::string prefab_override_error;
-  std::array<std::optional<std::array<float, 2>>, 4> prefab_override_positions{};
+  std::array<std::optional<std::array<float, 2>>, 5> prefab_override_positions{};
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
   FileDialog scene_file_dialog{FileDialog::None};
   bool scene_file_context{}, scene_file_save_blocked{}, scene_file_popup_pending{};
@@ -4134,6 +4137,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
       if (!state_->app_focused) {
+        state_->prefab_override_request.reset();
+        state_->prefab_override_consent.reset();
+        state_->prefab_override_confirm = state_->prefab_override_popup = false;
         state_->game_input_binding_open = false;
         state_->game_input_binding_pending = false;
         if (state_->game_input_save_requested)
@@ -6091,10 +6097,16 @@ void EditorImGuiHost::SetPrefabPlacementSourceContext(const std::filesystem::pat
     state_->prefab_override_request.reset();
     state_->prefab_override_error.clear();
     state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
+    state_->prefab_override_selected.clear();
   }
   state_->prefab_source_read_allowed = read_allowed;
-  if (!read_allowed)
+  if (!read_allowed) {
     state_->prefab_source_request.reset();
+    state_->prefab_override_request.reset();
+    state_->prefab_override_consent.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  }
 }
 std::optional<PrefabPlacementSourceRequest> EditorImGuiHost::TakePrefabPlacementSourceRequest() {
   ImGui::SetCurrentContext(state_->context);
@@ -6124,8 +6136,9 @@ void EditorImGuiHost::SetPrefabPlacementOverrideContext(bool authoring_allowed) 
   state_->prefab_override_authoring = authoring_allowed;
   if (!authoring_allowed) {
     state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
     if (state_->prefab_override_request &&
-        state_->prefab_override_request->action == PrefabPlacementOverrideAction::Revert)
+        state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review)
       state_->prefab_override_request.reset();
   }
 }
@@ -6140,16 +6153,18 @@ EditorImGuiHost::TakePrefabPlacementOverrideRequest() {
       !state_->prefab_source_scope) {
     state_->prefab_override_request.reset();
     state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
     return {};
   }
   if (state_->prefab_override_request &&
       (state_->prefab_override_request->scope != *state_->prefab_source_scope ||
        state_->prefab_override_request->scope.source != state_->scene_file_token ||
-       (state_->prefab_override_request->action == PrefabPlacementOverrideAction::Revert &&
+       (state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review &&
         (!state_->prefab_override_authoring || !state_->prefab_override_report ||
          state_->prefab_override_request->review != state_->prefab_override_report->review)))) {
     state_->prefab_override_request.reset();
     state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
   }
   return std::exchange(state_->prefab_override_request, std::nullopt);
 }
@@ -6178,6 +6193,8 @@ bool EditorImGuiHost::SetPrefabPlacementOverrideReport(PrefabPlacementOverrideRe
       return false;
     bytes += size;
   }
+  state_->prefab_override_selected.assign(report.rows.size(), false);
+  state_->prefab_override_consent.reset();
   state_->prefab_override_report = std::move(report);
   state_->prefab_override_request.reset();
   state_->prefab_override_error.clear();
@@ -6188,6 +6205,8 @@ void EditorImGuiHost::SetPrefabPlacementOverrideError(std::string error) {
   state_->prefab_override_report.reset();
   state_->prefab_override_request.reset();
   state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  state_->prefab_override_consent.reset();
+  state_->prefab_override_selected.clear();
   state_->prefab_override_error = error.substr(0, 1024);
 }
 std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
@@ -7323,6 +7342,13 @@ EditorImGuiTestAccess::PrefabOverridePosition(const EditorImGuiHost &host,
   return control < host.state_->prefab_override_positions.size()
              ? host.state_->prefab_override_positions[control]
              : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabOverrideRowPosition(const EditorImGuiHost &host,
+                                                 std::size_t row) noexcept {
+  const auto found = host.state_->prefab_override_row_positions.find(row);
+  return found == host.state_->prefab_override_row_positions.end() ? std::nullopt
+                                                                   : std::optional{found->second};
 }
 const PrefabPlacementOverrideReport *
 EditorImGuiTestAccess::PrefabOverrideReport(const EditorImGuiHost &host) noexcept {

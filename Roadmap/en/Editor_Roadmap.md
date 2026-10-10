@@ -751,25 +751,32 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ The bound-scene Inspector selects owning scoped property rows and freezes their review
+    serial/indices at explicit Revert confirmation. Complete selected property groups restore
+    retained source values while unselected names/TRS/unknown data remain intact. Actual 1x/2x
+    controls, three cold native Name/rotation/opaque workflows, exact Scene Save/one Undo/Redo
+    and read-only reopen pass; full Linux 248/248 and Minimal Shipping pass. Structural source
+    reconciliation and live instance source apply/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedUi-Linux-2026-10-10.md).
   - ✅ The graphical bound-scene Inspector reviews owning scoped retained/local property rows
     and requires explicit confirmation for whole-instance Revert. Read-only, stale, structural,
     hidden/focus/close and permission guards preserve data; actual 1x/2x controls, three cold native
     launches, exact Scene Save/Undo/Redo and read-only reopen pass. Full Linux 247/247 and Minimal
-    Shipping pass. Targeted graphical selection and source apply/rebase remain open.
+    Shipping pass. Source apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md).
   - ✅ Targeted live prefab property Revert accepts immutable scoped review row indices and
     expands selected lanes into complete name/TRS/authored rotation/component/opaque groups.
     Distinct lanes coalesce; invalid/duplicate/read-only/unauthorized inputs reject. Unselected
     local overrides, dormant values, unknown additions, identity, bindings and files are preserved
     with one Undo/Redo; empty selection preserves pending Redo. Mixed nested source fixtures and
-    full Linux 243/243 plus Minimal Shipping pass. Graphical selection and source apply/rebase
+    full Linux 243/243 plus Minimal Shipping pass. Source apply/rebase
     remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md).
   - ✅ Atomic live instance property revert restores the exact retained nested source, including
     dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
     explicit authorization and exact source/target revalidation reject stale/read-only/structural
     inputs. Source advancement, unchanged files and saved-baseline/Scene Save/reopen pass;
-    full Linux 243/243 and Minimal Shipping pass. Targeted revert,
-    structural reconciliation and source apply/rebase remain open.
+    full Linux 243/243 and Minimal Shipping pass. Structural reconciliation and source
+    apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md).
   - ✅ The graphical scene Inspector now shows a selected persistent prefab node's source and
     retained revision, with explicit read-only inspection of captured available/unresolved,

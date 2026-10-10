@@ -174,6 +174,8 @@ public:
   PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabOverridePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabOverrideRowPosition(const EditorImGuiHost &host, std::size_t row) noexcept;
   [[nodiscard]] static const PrefabPlacementOverrideReport *
   PrefabOverrideReport(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
