@@ -709,6 +709,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+✅ Graphical saved-variant source apply 已驗證：full／selected inverse stable-field publication
+保留 source identity、未選取的值及舊版本；local edit、baseline／history 與 retained base reference
+維持不變。Explicit rebase 與 structural reconciliation 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabSourceApply-Linux-2026-10-10.md)。
+
+
 ✅ Graphical selected-field prefab revert 已驗證：stable field-group checkbox、明確 candidate
 preparation 與確認，保留未選取的值並使用一次 Undo／Redo。Source apply、reference rebase、
 structural／live-instance binding 仍待完成。

@@ -159,10 +159,139 @@ void Run() {
           "Replacement revived a prior session review");
   Require(source.PrepareSave()->Bytes() == original, "Review workflow modified original scene");
 }
+
+void ApplySource() {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-prefab-source-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directory(root);
+  editor::test::TemporaryDirectoryCleanup cleanup{root};
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root / "Project", "Apply source"), "Apply project fixture failed");
+  runtime::World world;
+  editor::SceneDocument original(world, world.LoadScene("Primary"));
+  const auto node = original.Create("Original");
+  Require(original.SetOpaqueComponent(*original.Key(node), {99, "Absent.Provider", {0, 255, 27}}),
+          "Apply opaque fixture failed");
+  const auto original_bytes = original.PrepareSave()->Bytes();
+  editor::PrefabDocumentSession session(workspace);
+  const foundation::Uuid base{901, 1}, variant{901, 2};
+  std::uint64_t serial = 100;
+  const auto factory = [&] { return foundation::Uuid{902, ++serial}; };
+  Require(session.Create(base, original) && session.Save(factory), "Apply base fixture failed");
+  const auto base_first = *session.SourceBaseline();
+  Require(session.Variant(variant), "Apply variant fixture failed");
+  auto *document = session.EditableDocument();
+  const auto key = *document->Key(node);
+  Require(document->Rename(key, "Published variant"), "Apply variant rename failed");
+  auto draft_review = session.Review();
+  Require(draft_review && !draft_review->CanApplyToSource() &&
+              !session.ApplyToSource(*draft_review, true) && session.Save(factory),
+          "Unsaved variant applied source or lost its initial-save precondition");
+  const auto published_variant = *session.SourceBaseline();
+  const auto generation = document->Generation();
+  const std::array selected{node};
+  Require(document->Select(selected) && document->CopySelection() &&
+              document->Rename(key, "Selected local") && document->SetTransform(node, {7, 2, 1}) &&
+              document->SetOpaqueComponent(key, {99, "Absent.Provider", {77, 255, 0}}),
+          "Apply mixed fixture failed");
+  const auto edited = document->PrepareSave()->Bytes();
+  auto review = session.Review();
+  const auto name = std::ranges::find(base_first.nodes[0].properties, "name",
+                                      &editor::PrefabPropertyIdentity::field);
+  Require(review && review->CanApplyToSource() && name != base_first.nodes[0].properties.end(),
+          "Saved variant source application unavailable");
+  const std::array fields{editor::PrefabPropertySelection{base_first.nodes[0].id, name->id}};
+  auto targeted = session.SelectReview(*review, fields);
+  Require(targeted && targeted->CanApplyToSource() && !session.ApplyToSource(*targeted, false) &&
+              editor::PrefabAssets::Load(workspace, base) == base_first &&
+              document->PrepareSave()->Bytes() == edited,
+          "Inspection granted source publication authority");
+  const auto recovery = workspace.Root() / ".nexora/workspace.recovery";
+  std::filesystem::create_directory(recovery);
+  Require(!session.ApplyToSource(*targeted, true) && document->PrepareSave()->Bytes() == edited,
+          "Recovery admitted source application");
+  std::filesystem::remove(recovery);
+  Require(document->Rename(key, "Later edit") && !session.ApplyToSource(*targeted, true) &&
+              document->Undo() && document->PrepareSave()->Bytes() == edited,
+          "Stale source review overwrote a later edit");
+  {
+    editor::ProjectWorkspace observer;
+    Require(observer.Open(workspace.Root(), editor::ProjectAccess::ReadOnly),
+            "Apply observer failed");
+    editor::PrefabDocumentSession inspection(observer);
+    Require(inspection.Open(variant), "Apply read-only open failed");
+    auto readonly_review = inspection.Review();
+    Require(readonly_review && readonly_review->CanApplyToSource() &&
+                !inspection.ApplyToSource(*readonly_review, true) &&
+                editor::PrefabAssets::Load(observer, base) == base_first,
+            "Read-only source inspection published an asset");
+  }
+  const auto source_path = workspace.Root() / ".nexora/prefabs" / (base.ToString() + ".nxprefab");
+  auto stage = source_path;
+  stage += ".tmp";
+  std::ofstream(stage) << "unrelated stage";
+  Require(!session.ApplyToSource(*targeted, true) &&
+              editor::PrefabAssets::Load(workspace, base) == base_first &&
+              document->PrepareSave()->Bytes() == edited,
+          "Occupied staging changed current source or variant");
+  std::filesystem::remove(stage);
+  auto applied = session.ApplyToSource(*targeted, true);
+  Require(applied && applied->id == base && applied->revision == 2 &&
+              applied->nodes == base_first.nodes && applied->base == base_first.base &&
+              applied->nested == base_first.nested &&
+              editor::PrefabAssets::LoadRevision(workspace, {base, 1}) == base_first &&
+              editor::PrefabAssets::Load(workspace, base) == applied &&
+              editor::PrefabAssets::Load(workspace, variant) == published_variant &&
+              session.SourceBaseline() == published_variant &&
+              document->PrepareSave()->Bytes() == edited && session.Dirty() &&
+              document->Generation() == generation && document->Key(node) == key &&
+              document->Selection().size() == 1 &&
+              original.PrepareSave()->Bytes() == original_bytes,
+          "Selected source publication changed local history/baseline/identity/original scene");
+  runtime::World source_world;
+  editor::SceneDocument source_document(source_world, source_world.LoadScene("Source"));
+  Require(source_document.ReloadBytes(applied->scene_bytes) &&
+              source_document.Name(node) == "Selected local" &&
+              source_document.Transform(node)->x == 0 &&
+              source_document.OpaqueComponents(*source_document.Key(node))->front().data ==
+                  std::vector<std::uint8_t>{0, 255, 27},
+          "Selected source publication changed unselected transform or opaque bytes");
+  Require(!session.ApplyToSource(*targeted, true) &&
+              editor::PrefabAssets::Load(workspace, base) == applied && document->Undo() &&
+              document->Redo() && document->PrepareSave()->Bytes() == edited && document->Paste() &&
+              document->Nodes().size() == 2 && document->Undo() &&
+              document->PrepareSave()->Bytes() == edited,
+          "Changed current source was overwritten or local history/clipboard erased");
+
+  editor::PrefabDocumentSession full(workspace);
+  Require(full.Open(base) && full.Variant({901, 3}) && full.Save(factory),
+          "Full apply fixture failed");
+  const auto full_published = *full.SourceBaseline();
+  auto *full_document = full.EditableDocument();
+  Require(full_document->Rename(*full_document->Key(node), "Full local") &&
+              full_document->SetTransform(node, {12, 3, 4}) &&
+              full_document->SetOpaqueComponent(*full_document->Key(node),
+                                                {99, "Absent.Provider", {42, 0, 255}}),
+          "Full source mixed edits failed");
+  const auto full_edited = full_document->PrepareSave()->Bytes();
+  auto full_review = full.Review();
+  Require(full_review && full_review->CanApplyToSource(), "Full source review failed");
+  const auto full_result = full.ApplyToSource(*full_review, true);
+  Require(full_result && full_result->revision == 3 && full_result->scene_bytes == full_edited &&
+              full_result->nodes == applied->nodes &&
+              editor::PrefabAssets::LoadRevision(workspace, {base, 2}) == applied &&
+              full_document->PrepareSave()->Bytes() == full_edited &&
+              full.SourceBaseline() == full_published && full.Dirty() && full_document->Undo() &&
+              full_document->Redo() && full_document->PrepareSave()->Bytes() == full_edited &&
+              original.PrepareSave()->Bytes() == original_bytes,
+          "Full source application was partial or changed the isolated history/baseline/original");
+}
 } // namespace
 int main() {
   try {
     Run();
+    ApplySource();
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

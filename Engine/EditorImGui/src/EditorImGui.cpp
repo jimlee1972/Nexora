@@ -153,6 +153,7 @@ struct EditorImGuiHost::State final {
   std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
   std::optional<SceneComparison> prefab_review;
   bool prefab_can_revert{}, prefab_revert_confirmation{};
+  bool prefab_can_apply{}, prefab_apply_confirmation{};
   bool prefab_targeted{};
   std::vector<PrefabPropertySelection> prefab_selected;
   std::vector<std::pair<std::size_t, std::array<float, 2>>> prefab_property_positions;
@@ -164,7 +165,7 @@ struct EditorImGuiHost::State final {
   std::array<double, 3> prefab_position_original{};
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
-  std::array<std::optional<std::array<float, 2>>, 20> prefab_positions{};
+  std::array<std::optional<std::array<float, 2>>, 23> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
