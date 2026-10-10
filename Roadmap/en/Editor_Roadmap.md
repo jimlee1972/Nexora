@@ -787,6 +787,11 @@ creates property widgets; unknown components retain raw data instead of being si
     references, unknown payloads and nested metadata remain independent of serialized Runtime IDs.
     Graphical override/revert/apply/rebase and structurally validated publication remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md).
+
+  - ✅ Atomic same-identity document property snapshots are validated: complete mixed metadata,
+    hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
+    clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
