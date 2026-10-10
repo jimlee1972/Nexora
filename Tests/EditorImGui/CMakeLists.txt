@@ -1,3 +1,9 @@
+add_executable(NexoraPluginManagerUiTests PluginManagerTests.cpp)
+target_include_directories(NexoraPluginManagerUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraPluginManagerUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPluginManagerUiTests)
+add_test(NAME editor.plugin_manager_ui COMMAND NexoraPluginManagerUiTests)
+
 add_executable(NexoraDiagnosticPrivacyTests DiagnosticPrivacyTests.cpp)
 target_include_directories(NexoraDiagnosticPrivacyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraDiagnosticPrivacyTests PRIVATE Nexora::EditorImGui)
@@ -211,6 +217,14 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_reflected_inspector PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  if(NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME editor.linux_plugin_manager
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPluginManager.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPluginManagerTests>"
+        --module "$<TARGET_FILE:NexoraSignedExtensionFixture1>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_plugin_manager PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  endif()
   add_test(NAME editor.linux_diagnostic_privacy
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDiagnosticPrivacy.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"

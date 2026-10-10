@@ -379,6 +379,16 @@ struct EditorImGuiHost::State final {
   std::array<char, 512> reflected_pending_text{};
   std::uint64_t reflected_pending_identity{};
   bool inspector_transform_visible = false;
+  bool extension_manager_open{};
+  bool extension_input_blocked{true};
+  std::optional<ExtensionManagerObservation> extension_manager;
+  std::optional<ExtensionManagerRequest> extension_manager_request;
+  std::string extension_manager_status;
+  std::array<char, 1024> extension_package_path{};
+  std::array<char, 129> extension_publisher{};
+  std::array<char, 65> extension_public_key{};
+  std::uint32_t extension_permission_draft{};
+  std::vector<std::pair<std::string, std::array<float, 2>>> extension_positions;
   std::string inspector_error;
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
   FileDialog scene_file_dialog{FileDialog::None};
@@ -4505,6 +4515,8 @@ std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview(
   return state_->selector_upgrade;
 }
 
+#include "ExtensionManagerPanel.inl"
+
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
@@ -4634,6 +4646,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
   const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
   state_->build_console_interaction_blocked = file_external_block || tab_modal;
+  state_->extension_input_blocked = file_external_block || tab_modal || !workspace;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
@@ -4642,6 +4655,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
       state_->prefab_isolation_open = !state_->prefab_isolation_open;
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_E,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->extension_manager_open = !state_->extension_manager_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
@@ -4692,6 +4709,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (ImGui::BeginMenu("Settings")) {
       ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
+      ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
       ImGui::EndMenu();
     }
     if (file_context_valid)
@@ -4992,7 +5010,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (state_->app_focused && !interaction_blocked &&
             ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
             (ImGui::IsItemHovered(ImGuiHoveredFlags_NoNavOverride) || ImGui::IsItemActive()) &&
-            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
+            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput &&
+            !io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
           if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
             state_->native_scene_tool = NativeSceneTool::Select;
           else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
@@ -6165,6 +6184,14 @@ EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std:
   return index < host.state_->scene_comparison_positions.size()
              ? host.state_->scene_comparison_positions[index]
              : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ExtensionManagerPosition(const EditorImGuiHost &host, std::string_view key) {
+  const auto found =
+      std::ranges::find(host.state_->extension_positions, key,
+                        [](const auto &entry) -> std::string_view { return entry.first; });
+  return found == host.state_->extension_positions.end() ? std::nullopt
+                                                         : std::optional(found->second);
 }
 SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const EditorImGuiHost &host) {
   return host.state_->scene_comparison;
