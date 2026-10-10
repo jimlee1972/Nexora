@@ -50,7 +50,7 @@ std::string WriteFixture(const std::filesystem::path &root) {
   transform.x = 4.5;
   Require(scene.Rename(key, "Local instance") &&
               scene.SetOpaqueComponent(key, {781, "Unavailable.Provider", {3, 255, 19}}) &&
-              scene.SetTransform(key.id, transform),
+              scene.SetTransform(key.id, transform) && scene.SetEulerField(std::array{key}, 1, 720),
           "Local override fixture failed");
   editor::SceneFileSession files(workspace, scene);
   std::filesystem::create_directories(root / ".nexora/scenes");
@@ -98,8 +98,7 @@ void Run(float scale) {
   };
   for (int i = 0; i < 4; ++i)
     draw();
-  const auto click = [&](std::size_t control) {
-    const auto point = Access::PrefabOverridePosition(ui, control);
+  const auto click_point = [&](std::optional<std::array<float, 2>> point) {
     Require(point.has_value(), "Actual override control absent");
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
@@ -116,6 +115,9 @@ void Run(float scale) {
     ui.ProcessEvents(std::array{button});
     draw();
     draw();
+  };
+  const auto click = [&](std::size_t control) {
+    click_point(Access::PrefabOverridePosition(ui, control));
   };
   click(0);
   auto request = ui.TakePrefabPlacementOverrideRequest();
@@ -137,6 +139,114 @@ void Run(float scale) {
   Require(!ui.SetPrefabPlacementOverrideReport(invalid) && Access::PrefabOverrideReport(ui),
           "Invalid report erased valid captured state");
   draw();
+  const auto named = std::ranges::find(review->Rows(), std::string("name"),
+                                       &editor::PrefabPlacementOverrideRow::field);
+  Require(named != review->Rows().end(), "Selected Name fixture absent");
+  const auto name_index = static_cast<std::size_t>(named - review->Rows().begin());
+  click(4);
+  Require(!ui.TakePrefabPlacementOverrideRequest(), "Empty selection emitted targeted consent");
+  click_point(Access::PrefabOverrideRowPosition(ui, name_index));
+  click(4);
+  Require(!ui.TakePrefabPlacementOverrideRequest(), "Selected revert bypassed confirmation");
+  click(3);
+  Require(!ui.TakePrefabPlacementOverrideRequest() && scene.MatchesPreparedSave(local),
+          "Selected Cancel mutated live properties");
+  click(4);
+  click(2);
+  request = ui.TakePrefabPlacementOverrideRequest();
+  Require(request && request->action == Action::RevertSelected && request->review == 1 &&
+              request->rows == std::vector<std::size_t>{name_index} &&
+              Overrides::RevertSelected(writer, scene, *review, request->rows, true) &&
+              scene.Name(key.id) == "Retained source" && scene.Transform(key.id)->x == 4.5 &&
+              scene.EulerAngles(key.id)->at(1) == 720 &&
+              scene.OpaqueComponents(key)->front().data ==
+                  std::vector<std::uint8_t>({3, 255, 19}) &&
+              scene.Key(key.id) == key && scene.Selection().front() == key.id &&
+              Files(root) == original_files,
+          "Selected Name revert changed unselected values, identity or source files");
+  const auto partial = *scene.PrepareSave();
+  Require(scene.Undo() && scene.MatchesPreparedSave(local) && scene.Redo() &&
+              scene.MatchesPreparedSave(partial) && scene.Undo() &&
+              ui.SetPrefabPlacementOverrideReport(report),
+          "Selected revert lost one Undo/Redo or refreshed report");
+  draw();
+  const auto rotation = std::ranges::find(review->Rows(), std::string("authoring/euler/y"),
+                                          &editor::PrefabPlacementOverrideRow::field);
+  const auto opaque = std::ranges::find(review->Rows(), std::string("opaque/781/payload_hex"),
+                                        &editor::PrefabPlacementOverrideRow::field);
+  Require(rotation != review->Rows().end() && opaque != review->Rows().end(),
+          "Selected rotation/opaque fixture rows absent");
+  std::vector<std::size_t> property_rows{
+      static_cast<std::size_t>(rotation - review->Rows().begin()),
+      static_cast<std::size_t>(opaque - review->Rows().begin())};
+  std::ranges::sort(property_rows);
+  for (const auto row : property_rows)
+    click_point(Access::PrefabOverrideRowPosition(ui, row));
+  click(4);
+  click(2);
+  request = ui.TakePrefabPlacementOverrideRequest();
+  Require(request && request->action == Action::RevertSelected && request->rows == property_rows &&
+              Overrides::RevertSelected(writer, scene, *review, request->rows, true) &&
+              scene.Name(key.id) == "Local instance" && scene.Transform(key.id)->x == 4.5 &&
+              scene.EulerAngles(key.id)->at(1) == 0 &&
+              scene.OpaqueComponents(key)->front().data ==
+                  std::vector<std::uint8_t>({3, 255, 17}) &&
+              Files(root) == original_files,
+          "Selected actual rotation/opaque controls changed unselected Name/position or files");
+  const auto properties = *scene.PrepareSave();
+  Require(scene.Undo() && scene.MatchesPreparedSave(local) && scene.Redo() &&
+              scene.MatchesPreparedSave(properties) && scene.Undo() &&
+              ui.SetPrefabPlacementOverrideReport(report),
+          "Selected rotation/opaque did not preserve exact one-step history");
+  draw();
+  click(4);
+  Require(!ui.TakePrefabPlacementOverrideRequest(), "Refreshed report retained row selection");
+  click_point(Access::PrefabOverrideRowPosition(ui, name_index));
+  click(4);
+  auto refreshed = report;
+  refreshed.review = 3;
+  Require(ui.SetPrefabPlacementOverrideReport(refreshed), "Refreshed serial rejected");
+  draw();
+  draw();
+  Require(!Access::PrefabOverridePosition(ui, 2) && !ui.TakePrefabPlacementOverrideRequest() &&
+              scene.MatchesPreparedSave(local) && ui.SetPrefabPlacementOverrideReport(report),
+          "Review refresh retained prior targeted consent");
+  draw();
+  click_point(Access::PrefabOverrideRowPosition(ui, name_index));
+  click(4);
+  focus.value0 = 0;
+  ui.ProcessEvents(std::array{focus});
+  focus.value0 = 1;
+  ui.ProcessEvents(std::array{focus});
+  draw();
+  draw();
+  Require(!Access::PrefabOverridePosition(ui, 2) && !ui.TakePrefabPlacementOverrideRequest(),
+          "Blur/regain without a frame revived targeted consent");
+  click(4);
+  ui.SetPrefabPlacementSourceContext(root, false);
+  ui.SetPrefabPlacementSourceContext(root, true);
+  draw();
+  draw();
+  Require(!Access::PrefabOverridePosition(ui, 2) && !ui.TakePrefabPlacementOverrideRequest() &&
+              scene.MatchesPreparedSave(local),
+          "Read permission loss/regain revived targeted consent");
+  click(4);
+  Require(scene.Select(std::span<const editor::SceneDocument::NodeKey>{}),
+          "Selected consent scope-clear fixture failed");
+  draw();
+  draw();
+  Require(!Access::PrefabOverrideReport(ui) && !ui.TakePrefabPlacementOverrideRequest() &&
+              scene.Select(std::array{key}),
+          "Selection replacement retained old targeted consent");
+  draw();
+  Require(ui.SetPrefabPlacementOverrideReport(report), "New selected scope report rejected");
+  draw();
+  click(0);
+  request = ui.TakePrefabPlacementOverrideRequest();
+  Require(request && request->action == Action::Review && scene.MatchesPreparedSave(local) &&
+              ui.SetPrefabPlacementOverrideReport(report),
+          "Cancelled selected-scope modal blocked new actual inspection");
+  draw();
   click(1);
   Require(!ui.TakePrefabPlacementOverrideRequest() && scene.MatchesPreparedSave(local),
           "Revert bypassed explicit confirmation");
@@ -157,6 +267,10 @@ void Run(float scale) {
   workspace = &reader;
   authoring = false;
   draw();
+  click_point(Access::PrefabOverrideRowPosition(ui, name_index));
+  click(4);
+  Require(!ui.TakePrefabPlacementOverrideRequest() && scene.MatchesPreparedSave(local),
+          "Read-only selected rows emitted authoring consent");
   click(1);
   Require(!ui.TakePrefabPlacementOverrideRequest() && scene.MatchesPreparedSave(local),
           "Read-only control emitted authoring intent");
@@ -235,8 +349,50 @@ void Run(float scale) {
 } // namespace
 int main(int argc, char **argv) {
   try {
-    if (argc == 4 && std::string_view(argv[1]) == "--write-native-fixture") {
-      const auto bytes = WriteFixture(argv[2]);
+    if (argc == 4 && (std::string_view(argv[1]) == "--write-native-fixture" ||
+                      std::string_view(argv[1]) == "--write-native-selected-fixture")) {
+      auto bytes = WriteFixture(argv[2]);
+      if (std::string_view(argv[1]) == "--write-native-selected-fixture") {
+        runtime::World world;
+        editor::SceneDocument scene(world, world.LoadScene("Main"));
+        Require(scene.Reload(std::filesystem::path(argv[2]) / ".nexora/scenes/Main.scene"),
+                "Selected native expected fixture reload failed");
+        const auto key = *scene.Key(scene.Nodes().front().id);
+        editor::ProjectWorkspace workspace;
+        Require(workspace.Open(argv[2]), "Selected native source observation failed");
+        const auto review = Overrides::Prepare(workspace, scene, key);
+        Require(review.has_value(), "Selected native logical review failed");
+        std::ofstream rows(std::string(argv[3]) + ".rows");
+        for (const auto field : {"name", "authoring/euler/y", "opaque/781/payload_hex"}) {
+          const auto row = std::ranges::find(review->Rows(), std::string(field),
+                                             &editor::PrefabPlacementOverrideRow::field);
+          Require(row != review->Rows().end(), "Selected native expected field absent");
+          rows << (row - review->Rows().begin()) << '\n';
+        }
+        Require(static_cast<bool>(rows), "Selected native external row oracle failed");
+        const auto retained_snapshot = bytes;
+        Require(scene.Rename(key, "Retained source"), "Selected expected Name failed");
+        bytes = scene.PrepareSave()->Bytes();
+        Require(scene.Undo(), "Selected independent property oracle reset failed");
+        runtime::World expected_world;
+        editor::SceneDocument expected(expected_world, expected_world.LoadScene("Main"));
+        Require(expected.ReloadBytes(retained_snapshot), "Retained property oracle reload failed");
+        const auto expected_key = *expected.Key(key.id);
+        auto expected_transform = *expected.Transform(key.id);
+        const auto local_transform = *scene.Transform(key.id);
+        expected_transform.x = local_transform.x;
+        expected_transform.y = local_transform.y;
+        expected_transform.z = local_transform.z;
+        Require(expected.Rename(expected_key, std::string(scene.Name(key.id))) &&
+                    expected.SetTransform(key.id, expected_transform),
+                "Selected independent unselected-property oracle failed");
+        // Retained source has no authored Euler hint. Start from its exact metadata rather
+        // than authoring a zero hint, which would add a record absent from the source.
+        const auto properties = expected.PrepareSave()->Bytes();
+        std::ofstream property_output(std::string(argv[3]) + ".properties", std::ios::binary);
+        property_output.write(properties.data(), static_cast<std::streamsize>(properties.size()));
+        Require(static_cast<bool>(property_output), "Selected native property oracle write failed");
+      }
       std::ofstream output(argv[3], std::ios::binary);
       output.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
       Require(static_cast<bool>(output), "Expected retained scene write failed");

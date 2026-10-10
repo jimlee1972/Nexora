@@ -1530,9 +1530,20 @@ int RunGraphical(std::optional<ProjectState> project,
                                   !active_files()->SaveBlocked() && prefab_instance_scope &&
                                   *prefab_instance_scope == scope && prefab_instance_review &&
                                   request->review == prefab_instance_review_serial;
-          if (authorized && Overrides::Revert(project->workspace, active_scene(),
-                                              *prefab_instance_review, true, &error)) {
-            std::cerr << "prefab instance reverted retained=" << scope.retained.revision << '\n';
+          const bool targeted = request->action == Action::RevertSelected;
+          const bool applied =
+              authorized &&
+              (targeted
+                   ? Overrides::RevertSelected(project->workspace, active_scene(),
+                                               *prefab_instance_review, request->rows, true, &error)
+                   : Overrides::Revert(project->workspace, active_scene(), *prefab_instance_review,
+                                       true, &error));
+          if (applied) {
+            if (targeted)
+              std::cerr << "prefab instance selected revert retained=" << scope.retained.revision
+                        << " rows=" << request->rows.size() << '\n';
+            else
+              std::cerr << "prefab instance reverted retained=" << scope.retained.revision << '\n';
             ui.SetPrefabPlacementOverrideError({});
           } else if (error.empty())
             error = "Prefab revert lost current review or authoring authorization.";

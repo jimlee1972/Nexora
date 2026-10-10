@@ -81,11 +81,12 @@ struct PrefabPlacementSourceReport final {
   std::optional<PrefabRevisionReference> scoped_source{};
   std::size_t mapped_nodes{};
 };
-enum class PrefabPlacementOverrideAction : std::uint8_t { Review, Revert };
+enum class PrefabPlacementOverrideAction : std::uint8_t { Review, Revert, RevertSelected };
 struct PrefabPlacementOverrideRequest final {
   PrefabPlacementSourceRequest scope;
   PrefabPlacementOverrideAction action{PrefabPlacementOverrideAction::Review};
   std::uint64_t review{};
+  std::vector<std::size_t> rows{};
 };
 struct PrefabPlacementOverrideReport final {
   PrefabPlacementSourceRequest scope;
