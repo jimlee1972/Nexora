@@ -962,6 +962,16 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md)。
 
+- ✅ ExtensionTrust 現透過可選 Cryptography module 與 vetted OpenSSL >=3.0，驗證有界 immutable
+  artifact bytes 的真實 pure Ed25519 signature，成功後回傳 owning SHA-256 digest 與 trust revision。
+  Unknown publisher、tampering、malformed／over-budget input、unavailable provider 與 failure 均
+  不會通過。驗證涵蓋有界 owning key 設定、rotation／revocation、獨立 RFC8032／SHA-256 vector、
+  精確 64 MiB input 與明確 NONE backend。Native AUTO 可選用 OpenSSL；cross-compiling 需明確
+  target package／backend，否則拒絕驗證。Artifact 不會下載或自行登錄 key。此 prerequisite
+  尚未約束 native loader：signed manifest、immutable staging、installation／permission／dependency
+  檢查及 pre-load enforcement 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md)。
+
 - ✅ Linux native center-gesture acceptance 在原有 deadline 內觀察 committed bytes 時只重送
   Save，保留精確 transform／saved-byte 與單步 Undo 斷言；實體 input／display 及整體
   synthetic-input 穩定度仍待完成。

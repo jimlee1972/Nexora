@@ -51,6 +51,11 @@ def main():
         def key(*keys):
             send('key', '--clearmodifiers', '--delay', '100', *keys)
 
+        def click(window, x, y):
+            # Deliver a hovered frame before the button event, including across docked windows.
+            send('mousemove', '--window', window, str(x), str(y))
+            send('click', '1')
+
         def save_until(expected):
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
@@ -58,7 +63,8 @@ def main():
                 key('ctrl+s')
                 if payload(scene) == expected:
                     return
-            raise RuntimeError('Actual reflected source did not save expected bytes')
+            raise RuntimeError('Actual reflected source did not save expected bytes: '
+                               f'expected={expected.hex()} actual={payload(scene).hex()}')
 
         def open_host(read_only=False):
             nonlocal process
@@ -68,7 +74,7 @@ def main():
             send('windowfocus', '--sync', window)
             time.sleep(.8)
             # Select the existing source through the actual Hierarchy; metadata does not select it.
-            send('mousemove', '--window', window, '595', '199' if read_only else '182', 'click', '1')
+            click(window, 595, 199 if read_only else 182)
             return window
 
         def close_host(window):
@@ -81,7 +87,7 @@ def main():
 
         window = open_host()
         # The top Inspector field is the actual schema-backed Boolean control.
-        send('mousemove', '--window', window, '1428', '97', 'click', '1')
+        click(window, 1428, 97)
         expected = bytearray(payload(scene))
         expected[0] = 1
         save_until(expected)
@@ -93,7 +99,7 @@ def main():
         save_until(expected)
         require(scene.read_bytes() == edited and payload(scene)[23] == 255,
                 'Redo changed padding or unrelated source bytes')
-        send('mousemove', '--window', window, '1510', '120', 'click', '1')
+        click(window, 1510, 120)
         key('ctrl+a')
         send('type', '--clearmodifiers', '--delay', '20', '--', '6.75')
         key('Return')
@@ -103,7 +109,7 @@ def main():
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
-        send('mousemove', '--window', window, '1428', '97', 'click', '1')
+        click(window, 1428, 97)
         key('ctrl+s')
         close_host(window)
         require(before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
@@ -122,7 +128,7 @@ def main():
                 'Invalid metadata restart changed source')
         schema.write_bytes(original_schema)
         window = open_host()
-        send('mousemove', '--window', window, '1428', '97', 'click', '1')
+        click(window, 1428, 97)
         expected[0] = 0
         save_until(expected)
         close_host(window)

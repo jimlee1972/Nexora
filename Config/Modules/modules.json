@@ -6,6 +6,21 @@
       "dependencies": []
     },
     {
+      "name": "Cryptography",
+      "feature": "NEXORA_ENABLE_CRYPTOGRAPHY",
+      "dependencies": [
+        "Foundation"
+      ],
+      "external_dependencies": [
+        {
+          "package": "OpenSSL",
+          "target": "OpenSSL::Crypto",
+          "minimum_version": "3.0",
+          "provider": "OPENSSL"
+        }
+      ]
+    },
+    {
       "name": "Foundation",
       "dependencies": [
         "API"
@@ -113,7 +128,8 @@
         "Renderer",
         "Core",
         "Foundation",
-        "Runtime"
+        "Runtime",
+        "Cryptography"
       ]
     },
     {

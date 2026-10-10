@@ -1,3 +1,8 @@
+add_executable(NexoraExtensionTrustTests ExtensionTrustTests.cpp)
+target_link_libraries(NexoraExtensionTrustTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraExtensionTrustTests)
+add_test(NAME editor.extension_signature_trust COMMAND NexoraExtensionTrustTests)
+
 add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
 add_executable(NexoraPrefabAssetTests PrefabAssetsTests.cpp)
 target_link_libraries(NexoraPrefabAssetTests PRIVATE Nexora::Editor)

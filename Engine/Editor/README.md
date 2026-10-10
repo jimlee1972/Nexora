@@ -1229,3 +1229,24 @@ Project activation and explicit metadata reload replace interpretation; failures
 catalog and preserve scene bytes. The host never rewrites metadata. Dynamic arrays, arbitrary
 native plugin object restoration and runtime execution are outside this slice. Public C++
 consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+## Cryptographic extension verification
+
+`ExtensionTrust` owns at most 64 host-configured public publisher keys. IDs are bounded
+case-sensitive ASCII identifiers; manifests must never enroll their own keys into this
+trusted registry. Set/rotation/revocation update a nonwrapping revision; repeated identical
+configuration is idempotent. Rejected input preserves previous keys. Snapshot owns a copy.
+All registry calls are serialized by the caller. Zero/identity key shapes reject; hosts
+select authentic RFC8032-generated publisher keys through their separate trust workflow.
+
+Verify uses the declared Cryptography module to verify the actual signature over the
+exact supplied artifact bytes, then computes an owning SHA256 digest only after success.
+No caller-supplied signature-valid flag is accepted. Unknown publishers, changed keys/data,
+invalid signatures, over-budget inputs and unavailable/failing backends cannot verify.
+The result includes the captured trust revision; it is an observation, not code-load
+authority. Later loading must independently validate manifest/ABI/permissions/dependencies,
+recheck trust revision and bind verified immutable staged bytes to the native load. This
+slice installs no files, persists no private keys, makes no network calls and loads no
+plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
+it is not the cryptographic verifier or a production load gate. Graphical installation,
+trusted staging and pre-load enforcement remain separate unfinished work.

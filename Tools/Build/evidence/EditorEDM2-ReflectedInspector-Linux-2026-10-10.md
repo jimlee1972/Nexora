@@ -37,3 +37,14 @@ now has its own declaration. Linux Development rebuilt successfully; the complet
 suite passed **232/232**, zero skips, **583.29 s**. Minimal Monolithic Shipping rebuilt successfully.
 Windows verification is delegated to the new exact-head hosted jobs; the Linux run is not a Windows
 execution claim. No property limits, ABI functions or authoring behavior changed.
+
+## Native pointer event ordering correction
+
+Hosted Linux CI exposed a docked-window pointer timing failure at the first
+Boolean edit. The native test now sends pointer movement and click separately,
+allowing a hovered frame before pressing the button. Source-byte and Undo/Redo
+assertions, read-only checks, restart behavior and Vulkan validation rejection
+remain intact. Eight consecutive focused runs passed (**103.66 s** total).
+The complete graphical Development suite with Cryptography enabled and accepted
+Inspector/build-console integration passed **237/237**, zero skips, **591.45 s**;
+minimal Shipping built successfully. Hosted checks on the new commit are required.
