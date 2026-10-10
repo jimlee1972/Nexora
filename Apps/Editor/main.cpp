@@ -10,6 +10,7 @@
 #include "Nexora/Editor/AdditiveSceneSession.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
+#include "Nexora/Editor/PluginManager.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -717,6 +718,7 @@ int RunGraphical(std::optional<ProjectState> project,
     if (!metadata)
       std::cerr << "Inspector reflection metadata rejected; component bytes preserved.\n";
   };
+  nexora::editor::PluginManager extensions;
   std::cerr << "diagnostic privacy: enabled=0 retained=0 storage=none transport=none\n";
   ui.SetNativeScenePreview(native_scene_preview);
   if (initial_gameplay_library)
@@ -1438,6 +1440,82 @@ int RunGraphical(std::optional<ProjectState> project,
                           &imports, &console, &play, &profile, &meshes, &materials);
       if (ui.TakeReflectedMetadataReloadRequest())
         load_reflected_metadata(project->workspace);
+      std::string extension_error;
+      static_cast<void>(extensions.BindProject(project->workspace, &extension_error));
+      extensions.Poll();
+      nexora::editor::imgui::ExtensionManagerObservation extension_view;
+      extension_view.project = extensions.Project();
+      extension_view.root = extensions.Root();
+      extension_view.scope = extensions.Scope();
+      extension_view.permissions = extensions.AllowedPermissions();
+      extension_view.publishers = extensions.Publishers();
+      extension_view.packages = extensions.Snapshot();
+      extension_view.review = extensions.ReviewSnapshot();
+      extension_view.rejected_files = extensions.RejectedFiles();
+      extension_view.restart_required = extensions.RestartRequired();
+      static_cast<void>(ui.SetExtensionManagerObservation(std::move(extension_view)));
+      const bool extension_settings_allowed =
+          ui.ExtensionManagerInteractionAllowed() &&
+          play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+          !composition_restore_blocked && !project->workspace.HasRecoveryJournal() &&
+          !project->workspace.HasExternalChange();
+      ui.DrawExtensionManager(extension_settings_allowed,
+                              extension_settings_allowed && project->workspace.Writable());
+      if (auto request = ui.TakeExtensionManagerRequest()) {
+        using Action = nexora::editor::imgui::ExtensionManagerAction;
+        bool applied = false;
+        if (request->project != project->workspace.Project().id ||
+            request->root != project->workspace.Root() || request->scope != extensions.Scope() ||
+            (!extension_settings_allowed && request->action != Action::CancelReview)) {
+          extension_error = "Extension action is stale, or Play/export/recovery is active.";
+        } else {
+          switch (request->action) {
+          case Action::SetPublisher:
+            applied = extensions.SetPublisher(request->id, request->public_key);
+            break;
+          case Action::RevokePublisher:
+            applied = extensions.RemovePublisher(request->id);
+            break;
+          case Action::SetPermissions:
+            applied = extensions.SetAllowedPermissions(request->permissions);
+            break;
+          case Action::Review: {
+            auto path = request->package_path;
+            if (!path.is_absolute())
+              path = project->workspace.Root() / path;
+            applied = extensions.Review(project->workspace, path, &extension_error);
+            break;
+          }
+          case Action::Install:
+            applied = extensions.Install(project->workspace, request->scope, request->configuration,
+                                         &extension_error);
+            break;
+          case Action::Refresh:
+            applied = extensions.Refresh(project->workspace, &extension_error);
+            break;
+          case Action::Enable:
+            applied = extensions.Enable(project->workspace, request->id, request->version,
+                                        &extension_error);
+            break;
+          case Action::Disable:
+            applied = extensions.Disable(request->id, request->version);
+            break;
+          case Action::Remove:
+            applied = extensions.Remove(project->workspace, request->id, request->version,
+                                        &extension_error);
+            break;
+          case Action::CancelReview:
+            extensions.CancelReview();
+            applied = true;
+            break;
+          }
+        }
+        ui.SetExtensionManagerStatus(
+            applied ? "Extension operation completed."
+            : extension_error.empty()
+                ? "Extension operation rejected; configuration and source preserved."
+                : extension_error);
+      }
       if (auto request = ui.TakeSceneTabRequest()) {
         std::string error;
         bool applied = false;
@@ -2020,6 +2098,8 @@ int RunGraphical(std::optional<ProjectState> project,
         reflected_root.clear();
         static_cast<void>(ui.SetReflectedInspector(nexora::editor::ReflectedInspector{}));
       }
+      if (!extensions.Root().empty())
+        extensions.Detach();
       if (ui.TakeProjectSelectorCancel() && pending_project) {
         static_cast<void>(imports.Cancel(pending_project->import));
         ui.SetProjectSelectorStatus("Cancelling project import", true);
@@ -2407,6 +2487,7 @@ int RunGraphical(std::optional<ProjectState> project,
     }
 
   local_diagnostics.Set(false);
+  extensions.Detach();
   std::cerr << "diagnostic privacy close: enabled=0 retained=0\n";
   static_cast<void>(static_export.Cancel());
   static_cast<void>(build_process.Cancel());
