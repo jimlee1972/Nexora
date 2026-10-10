@@ -66,3 +66,15 @@ ExtensionPolicy's legacy boolean predicate remains a portable primitive. PluginH
 to this new verifier: signed manifest/ABI/permission/dependency validation, immutable native staging,
 revision recheck and actual pre-load enforcement still require implementation. No private key store,
 network telemetry, installation UI or native crash isolation is added. Full milestones stay 0/8.
+
+## Integration with accepted inspector and build console
+
+On main `638e982e64a937d97d94c804a1becb4b2ed55301`, the full graphical Linux
+Development build completed (286 steps), and **237/237** tests passed with zero
+skips in **591.45 s**. Minimal Monolithic Shipping built successfully (14 steps).
+The real reflected Inspector Xvfb/xdotool interaction additionally passed eight
+consecutive runs (**103.66 s** total). Pointer movement now receives a hovered
+frame before the separate click event, preserving all original source-byte,
+Undo/Redo, read-only, restart and validation assertions. This corrects the native
+test input timing exposed by hosted Linux CI, without changing production code.
+Final published-head hosted checks remain required for merge.
