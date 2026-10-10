@@ -102,3 +102,13 @@ identities. Merged stderr and no-shell assertions remain strict; a genuinely dif
 cwd still fails and now prints both controlled fixture paths. No production code changed.
 The rebuilt actual process test passed **1/1 in 0.51s** on Linux. Fresh Windows acceptance
 remains required; this local result does not establish the hosted failure's final resolution.
+
+## Accepted upgrade-core integration
+
+The corrected branch replays only bounded-process work onto accepted main
+374a0a3809ae53d57c01a4e6fda85f5fe30fcfce. Module documentation retains both
+upgrade and process contracts. Process/pipe/shader production source and corrected
+fixture/test source are unchanged during rebase; actual process acceptance rebuilt
+and passed **1/1 in 0.51s** on the integrated tree. Prior full 220/220 and Shipping
+acceptance remains recorded above; fresh hosted checks must verify the latest
+Windows cwd identity correction and accepted-Core integration before merge.
