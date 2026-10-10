@@ -950,8 +950,16 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
   1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；
   重複 revoke／enable 不會恢復舊 event。Contract tests 涵蓋精確上限、損壞文字、飽和與
-  consent transition。Persistence／transmission、redaction 與圖形化 privacy 驗收仍待完成。
+  consent transition。Persistence／transmission、redaction 與完整圖形化 privacy 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md)。
+
+- ✅ Native Editor 現提供 session-local diagnostic privacy 設定（Ctrl+Alt+T）：
+  預設關閉、明確 consent、有界檢視、清空、opt-out 立即刪除，以及 project／close／restart reset。
+  內建 producer 只記錄固定的 frame-presented label，未知 event 文字不會顯示。
+  實際 1x／2x widget 與 Xvfb keyboard 流程保留 read-only source bytes。
+  未安裝 diagnostic storage 或 network transport；signed-extension verification 與
+  persistence／transmission policy 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md)。
 
 - ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，
   避免 detached housekeeping 與嚴格 temporary-directory cleanup 競爭；routing semantics、

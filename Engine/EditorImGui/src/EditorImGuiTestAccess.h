@@ -59,6 +59,9 @@ struct EditorHierarchyTestRow final {
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  DiagnosticPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static std::array<std::size_t, 2> DiagnosticRows(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>> SceneTabPosition(const EditorImGuiHost &,
                                                                             std::uint64_t);
   [[nodiscard]] static std::optional<std::array<float, 2>> SceneTabControl(const EditorImGuiHost &,

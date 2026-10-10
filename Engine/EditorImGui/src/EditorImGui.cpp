@@ -86,6 +86,10 @@ struct EditorImGuiHost::State final {
     if (previous != context)
       ImGui::SetCurrentContext(previous);
   }
+  bool diagnostic_privacy_open{}, diagnostic_scope_initialized{};
+  foundation::Uuid diagnostic_scope;
+  std::array<std::optional<std::array<float, 2>>, 2> diagnostic_positions;
+  std::size_t diagnostic_visible_events{}, diagnostic_excluded_events{};
   ImGuiContext *context = nullptr;
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
@@ -4145,6 +4149,70 @@ std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
   return state_->selector_error;
 }
 
+void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
+                                            foundation::Uuid project) {
+  Activate(state_->context);
+  state_->diagnostic_positions = {};
+  state_->diagnostic_visible_events = state_->diagnostic_excluded_events = 0;
+  if (!state_->diagnostic_scope_initialized || state_->diagnostic_scope != project) {
+    diagnostics.Set(false);
+    state_->diagnostic_scope = project;
+    state_->diagnostic_scope_initialized = true;
+  }
+  if (project.IsNil())
+    diagnostics.Set(false);
+  if (state_->app_focused && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_T))
+    state_->diagnostic_privacy_open = !state_->diagnostic_privacy_open;
+  if (!state_->diagnostic_privacy_open)
+    return;
+  ImGui::SetNextWindowSize({560, 340}, ImGuiCond_FirstUseEver);
+  if (ImGui::Begin("Privacy diagnostics###editor.diagnostic-privacy",
+                   &state_->diagnostic_privacy_open, ImGuiWindowFlags_NoSavedSettings)) {
+    ImGui::TextWrapped("Keep a bounded local diagnostic queue for this project session. "
+                       "Consent is off at startup and resets when the project changes.");
+    ImGui::TextWrapped(
+        "Storage: none. Network transport: none. Built-in events use fixed operational "
+        "labels, without names, paths, source text or commands.");
+    bool enabled = diagnostics.Enabled();
+    ImGui::BeginDisabled(project.IsNil());
+    if (ImGui::Checkbox("Retain local diagnostics for this session", &enabled))
+      diagnostics.Set(enabled);
+    ImGui::SetItemDefaultFocus();
+    state_->diagnostic_positions[0] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    ImGui::EndDisabled();
+    if (ImGui::Button("Clear retained events")) {
+      diagnostics.Set(false);
+      if (enabled && !project.IsNil())
+        diagnostics.Set(true);
+    }
+    state_->diagnostic_positions[1] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    ImGui::Text("Retained: %zu / %zu", diagnostics.Events().size(),
+                TelemetryConsent::kMaximumEvents);
+    ImGui::TextWrapped("Turning consent off immediately forgets every retained event. "
+                       "Re-enabling starts an empty queue.");
+    ImGui::BeginChild("diagnostic-events", {0, 100}, ImGuiChildFlags_Borders);
+    // Display only exact allowlisted labels; generic Core callers can retain arbitrary text.
+    // Unknown records never become text, tooltips, logs or a persisted UI snapshot here.
+    for (const auto &event : diagnostics.Events()) {
+      if (event == "frame.presented") {
+        ++state_->diagnostic_visible_events;
+        if (state_->diagnostic_visible_events <= 128)
+          ImGui::TextUnformatted("Rendered frame presented");
+      } else
+        ++state_->diagnostic_excluded_events;
+    }
+    ImGui::EndChild();
+    if (state_->diagnostic_excluded_events)
+      ImGui::TextDisabled("%zu unrecognized events excluded from display.",
+                          state_->diagnostic_excluded_events);
+  }
+  ImGui::End();
+}
+
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
@@ -4316,6 +4384,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
       state_->static_export_positions[0] =
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+    }
+    if (ImGui::BeginMenu("Settings")) {
+      ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
+      ImGui::EndMenu();
     }
     if (file_context_valid)
       ImGui::TextDisabled("%s%s",
@@ -6423,6 +6495,16 @@ bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryC
 std::string_view EditorImGuiHost::RecoveryError() const noexcept { return state_->recovery_error; }
 
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::DiagnosticPosition(const EditorImGuiHost &host, std::size_t control) {
+  return control < host.state_->diagnostic_positions.size()
+             ? host.state_->diagnostic_positions[control]
+             : std::nullopt;
+}
+std::array<std::size_t, 2> EditorImGuiTestAccess::DiagnosticRows(const EditorImGuiHost &host) {
+  return {host.state_->diagnostic_visible_events, host.state_->diagnostic_excluded_events};
+}
+
 EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto &io = ImGui::GetIO();

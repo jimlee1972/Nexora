@@ -152,6 +152,8 @@ public:
   void SetProjectSelectorError(std::string error);
   void SetProjectSelectorStatus(std::string status, bool busy);
   [[nodiscard]] std::string_view ProjectSelectorError() const noexcept;
+  // Serialized owner call; model is borrowed only for this frame. Scope changes revoke consent.
+  void DrawDiagnosticPrivacy(TelemetryConsent &diagnostics, foundation::Uuid project);
   void DrawProductShell(
       ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
       ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,

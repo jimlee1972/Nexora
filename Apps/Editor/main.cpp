@@ -700,6 +700,8 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::imgui::EditorImGuiHost ui;
+  nexora::editor::TelemetryConsent local_diagnostics;
+  std::cerr << "diagnostic privacy: enabled=0 retained=0 storage=none transport=none\n";
   ui.SetNativeScenePreview(native_scene_preview);
   if (initial_gameplay_library)
     ui.SetGameplayLibrary(*initial_gameplay_library);
@@ -1982,6 +1984,15 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
+    const auto consent_before = local_diagnostics.Enabled();
+    const auto events_before = local_diagnostics.Events().size();
+    ui.DrawDiagnosticPrivacy(local_diagnostics, project ? project->workspace.Project().id
+                                                        : nexora::foundation::Uuid{});
+    if (consent_before != local_diagnostics.Enabled())
+      std::cerr << "diagnostic consent changed enabled=" << local_diagnostics.Enabled()
+                << " retained=" << local_diagnostics.Events().size() << '\n';
+    else if (events_before && local_diagnostics.Events().empty())
+      std::cerr << "diagnostic queue cleared retained=0\n";
     static_cast<void>(ui.EndFrame());
     // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
     // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
@@ -2111,6 +2122,11 @@ int RunGraphical(std::optional<ProjectState> project,
     // OS observation belongs to the application, after a successfully presented frame. The
     // owner throttles reads independently of frame rate; drawing widgets only copies its result.
     static_cast<void>(profile.SampleProcessMemory(std::chrono::steady_clock::now()));
+    if (frames % 60 == 0) {
+      const bool was_empty = local_diagnostics.Events().empty();
+      if (local_diagnostics.Record("frame.presented") && was_empty)
+        std::cerr << "diagnostic queue retained=" << local_diagnostics.Events().size() << '\n';
+    }
     ++frames;
   }
   if (result == 0 && project && project->workspace.Writable() &&
@@ -2172,6 +2188,8 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
 
+  local_diagnostics.Set(false);
+  std::cerr << "diagnostic privacy close: enabled=0 retained=0\n";
   static_cast<void>(static_export.Cancel());
   imports.Shutdown();
   static_export.Shutdown();

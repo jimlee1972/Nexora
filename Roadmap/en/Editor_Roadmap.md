@@ -974,8 +974,15 @@ creates property widgets; unknown components retain raw data instead of being si
     in-memory queue to 1,024 events of 1,024 UTF-8 bytes each. Invalid/oversized/overflow events
     preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
     cover exact limits, malformed text, saturation and consent transitions. Persistence/transmission,
-    redaction and graphical privacy acceptance remain open.
+    redaction and broader graphical privacy acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md).
+  - ✅ The native Editor now provides session-local diagnostic privacy settings (Ctrl+Alt+T):
+    default-off explicit consent, bounded inspection, clear, immediate opt-out deletion and
+    project/close/restart reset. The built-in producer records only a fixed frame-presented label;
+    unknown event text is excluded from display. Actual 1x/2x widget and Xvfb keyboard workflows
+    preserve read-only source bytes. No diagnostic storage or network transport is installed;
+    signed-extension verification and persistence/transmission policy remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.
     Routing semantics and product/global Git settings remain unchanged.
