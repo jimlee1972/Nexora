@@ -1346,3 +1346,30 @@ slice installs no files, persists no private keys, makes no network calls and lo
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
+
+
+## Persistent scene prefab placement bindings
+
+`PrefabAssets::InstantiateBound` retains the same complete graph/staging/one-import contract and
+adds one owning Editor placement UUID, exact root source UUID/revision and scoped stable-source-node
+to serialized-target-node mappings. The immutable binding snapshot and imported Runtime forest share
+one Undo/Redo. Every result/metadata/index allocation precedes the live import; IDs are translated
+without allocation afterward. Existing document keys, selection/clipboard policy and unknown bytes
+retain the forest-import contract. Project/source authority belongs to the serialized authoring owner.
+
+Scene format4 serializes nonempty bindings before `world`; legacy1/2/3 remain readable and ordinary
+unbound output keeps2/3. The format rejects nil/repeated placement identities, missing/duplicate live
+node targets, repeated scoped source keys, signed/overflowing counts/revisions, corrupt ordering and
+excess scope/node/byte budgets before replacing the live document. Limits are128 placements,4096
+mapped nodes total,32 scope levels and4MiB binding records; existing64MiB scene bounds also apply.
+These are logical data bounds, not total process/history memory quotas. Source revisions are owning
+references, not read-time IO or write authority; the caller resolves/rechecks actual source closure.
+
+Rename/TRS/component edits and same-identity property snapshots preserve exact bindings. Deleting
+any mapped node detaches the affected whole placement before publication, with Undo restoring the
+complete binding; remaining nodes become ordinary nodes. Paste/Duplicate create detached copies.
+Scene Save/Save All include bindings, saved signatures detect metadata changes and clean reopen uses
+fresh generation keys. NewScene clears bindings. Runtime scene capture excludes all binding records.
+Prefab asset capture/validation rejects bound scene bytes until explicit nested identity reconciliation
+exists, avoiding silently copied live binding context. Graphical instancing and structural/nested
+reconciliation remain separate work; public C++ consumers rebuild, stable C/Gameplay ABI unchanged.
