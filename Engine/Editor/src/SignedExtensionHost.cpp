@@ -1,7 +1,7 @@
 #include "Nexora/Editor/SignedExtensionHost.h"
 #include <algorithm>
 #include <limits>
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
 #include <cerrno>
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -70,7 +70,7 @@ bool Same(std::span<const std::byte> a, std::span<const std::byte> b) {
 struct FileGuard final {
   int fd{-1};
   ~FileGuard() {
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
     if (fd >= 0)
       static_cast<void>(close(fd));
 #endif
@@ -226,7 +226,7 @@ SignedExtensionLoadResult SignedExtensionHost::Load(const PreparedExtension &pre
         return image.fd >= 0 && image.identity == prepared.manifest_.id;
       }))
     return fail(ExtensionAdmissionError::DuplicateIdentity);
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
   if (prepared.manifest_.target != "linux-x86_64" && prepared.manifest_.target != "linux-aarch64")
     return fail(ExtensionAdmissionError::BackendUnavailable);
 #if defined(__x86_64__)
@@ -284,7 +284,7 @@ void SignedExtensionHost::ReleaseUnloaded() noexcept {
       const auto found = std::ranges::find(snapshot, image.id, &runtime::PluginSnapshot::id);
       if (image.fd >= 0 && found != snapshot.end() &&
           found->state == runtime::PluginState::Unloaded) {
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
         static_cast<void>(close(image.fd));
 #endif
         image.fd = -1;

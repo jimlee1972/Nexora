@@ -8,6 +8,12 @@ later authority without current trust/policy/signature/digest revalidation.
 
 ## Actual acceptance
 
+Final desktop-Linux backend correction and accepted bounded-runner integration:
+full enabled Linux Development configure/build/CTest **233/233**, no skips, **570.46 seconds**;
+minimal Shipping **5 steps** passed. Exported DLL constants use separate declarations. Android
+explicitly selects unavailable immutable-native admission instead of inheriting the desktop Linux
+memfd branch through `__linux__`; no Android or other target-host execution is claimed.
+
 - `editor.signed_extension_admission`: actual signatures generated with RFC8032's publicly published
   test seed; every-byte truncation, unknown schema, overflow, duplicate/unsorted dependencies,
   unsafe IDs, permission bits and budgets reject. Real artifacts/signatures/key rotation/policy/

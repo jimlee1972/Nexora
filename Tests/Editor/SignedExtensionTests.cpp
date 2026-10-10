@@ -11,7 +11,7 @@
 #if defined(NEXORA_TEST_OPENSSL)
 #include <openssl/evp.h>
 #endif
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
 #include <cerrno>
 #include <fcntl.h>
 #include <unistd.h>
@@ -31,7 +31,7 @@ std::vector<std::byte> Hex(std::string_view text) {
     bytes.push_back(static_cast<std::byte>((digit(text[i]) << 4) | digit(text[i + 1])));
   return bytes;
 }
-#if defined(__linux__) && defined(NEXORA_TEST_OPENSSL)
+#if defined(__linux__) && !defined(__ANDROID__) && defined(NEXORA_TEST_OPENSSL)
 std::vector<std::byte> Read(const std::filesystem::path &path) {
   std::ifstream input(path, std::ios::binary);
   Require(static_cast<bool>(input), "Fixture read failed");
@@ -127,7 +127,7 @@ void Codec() {
 }
 void Run(int argc, char **argv) {
   Codec();
-#if defined(__linux__) && defined(NEXORA_TEST_OPENSSL)
+#if defined(__linux__) && !defined(__ANDROID__) && defined(NEXORA_TEST_OPENSSL)
   const auto scratch =
       std::filesystem::temp_directory_path() /
       ("nexora-signed-admission-" + std::to_string(getpid()) + "-" +
@@ -153,7 +153,7 @@ void Run(int argc, char **argv) {
   const auto key = Hex("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a");
   editor::ExtensionTrust trust;
   Require(trust.SetPublisher("known.vendor", key), "Trusted public fixture key rejected");
-#if defined(__linux__) && defined(NEXORA_TEST_OPENSSL)
+#if defined(__linux__) && !defined(__ANDROID__) && defined(NEXORA_TEST_OPENSSL)
   runtime::ServiceRegistry services;
 #endif
   editor::SignedExtensionHost host(trust, foundation::kEngineAbiVersion);
@@ -174,7 +174,7 @@ void Run(int argc, char **argv) {
           "Unavailable provider did not fail closed");
 #else
   std::vector<std::byte> artifact{std::byte{1}, std::byte{2}};
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
   Require(argc == 4, "Actual native fixtures missing");
   artifact = Read(argv[1]);
 #else
@@ -231,7 +231,7 @@ void Run(int argc, char **argv) {
           "Changed policy retained old prepared authorization");
   Require(host.SetPolicy(Policy()), "Policy restore failed");
   prepared = host.Prepare(original);
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__ANDROID__)
   changed = original;
   changed.signature[8] ^= std::byte{1};
   reject(std::move(changed), Error::UntrustedOrInvalidSignature);
