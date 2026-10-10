@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Edit/save/undo/reopen an actual reflected component through the native host."""
 import argparse
+import ctypes
 import os
 from pathlib import Path
 import re
@@ -10,6 +11,7 @@ import subprocess
 import tempfile
 import time
 from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
+from LinuxNativeScenePreview import XImage, channel
 
 
 def require(value, message):
@@ -23,6 +25,35 @@ def payload(scene):
     return bytes.fromhex(found[1].decode('ascii'))
 
 
+def rendered_pixels(display_name, window, rectangle):
+    """Observe the presented X11 window; no synthetic UI state or edit retries."""
+    x11 = ctypes.CDLL('libX11.so.6')
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XGetImage.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_int,
+                             ctypes.c_uint, ctypes.c_uint, ctypes.c_ulong, ctypes.c_int]
+    x11.XGetImage.restype = ctypes.POINTER(XImage)
+    x11.XGetPixel.argtypes = [ctypes.POINTER(XImage), ctypes.c_int, ctypes.c_int]
+    x11.XGetPixel.restype = ctypes.c_ulong
+    x11.XDestroyImage.argtypes = [ctypes.POINTER(XImage)]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    display = x11.XOpenDisplay(display_name.encode())
+    require(display, 'Rendered-control pixel connection failed')
+    try:
+        x, y, width, height = rectangle
+        image = x11.XGetImage(display, int(window), x, y, width, height,
+                             ctypes.c_ulong(-1).value, 2)
+        require(image, 'Rendered-control pixel readback failed')
+        try:
+            masks = (image.contents.red_mask, image.contents.green_mask, image.contents.blue_mask)
+            return [tuple(channel(x11.XGetPixel(image, px, py), mask) for mask in masks)
+                    for py in range(height) for px in range(width)]
+        finally:
+            x11.XDestroyImage(image)
+    finally:
+        x11.XCloseDisplay(display)
+
+
 def main():
     parser = argparse.ArgumentParser()
     for name in ('editor', 'fixture', 'xvfb', 'xdotool'):
@@ -34,7 +65,9 @@ def main():
     scene = root / '.nexora/scenes/Main.scene'
     initial = scene.read_bytes()
     original_schema = (root / '.nexora/inspector.reflection').read_bytes()
-    xvfb, display = start_xvfb(args.xvfb, '1600x1200x24')
+    # Match the native host's initial size. Resizing after its first docked frame retains
+    # the original split widths, so fixed control coordinates would depend on startup timing.
+    xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
     process = None
     try:
         require(display is not None, 'Xvfb failed')
@@ -49,14 +82,50 @@ def main():
             time.sleep(.2)
 
         def key(*keys):
-            send('key', '--clearmodifiers', '--delay', '100', *keys)
+            # Keep shortcut modifiers and the primary key observable across rendered frames.
+            modifiers = {'ctrl': 'Control_L', 'alt': 'Alt_L', 'shift': 'Shift_L'}
+            for combination in keys:
+                parts = combination.split('+')
+                held = [modifiers[name] for name in parts[:-1]]
+                try:
+                    for modifier in held:
+                        send('keydown', modifier)
+                    send('keydown', parts[-1])
+                    send('keyup', parts[-1])
+                finally:
+                    for modifier in reversed(held):
+                        send('keyup', modifier)
 
-        def click(window, x, y):
+        def wait_rendered(window, rectangle, predicate, minimum, description):
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                require(process.poll() is None, 'Editor exited before rendered ' + description)
+                observed = rendered_pixels(display, window, rectangle)
+                if sum(predicate(*pixel) for pixel in observed) >= minimum:
+                    return
+                time.sleep(.05)
+            raise RuntimeError('Rendered ' + description + ' did not become ready; colors=' +
+                               repr(sorted(set(observed))))
+
+        def click(window, x, y, observe_checkbox=False):
             # Deliver a hovered frame before the button event, including across docked windows.
             send('mousemove', '--window', window, str(x), str(y))
-            # Keep press/release observable in separate frames on slower software renderers.
+            # This fixed native fixture uses the default theme and 1280x720 layout.
+            # A background patch outside the checkmark observes actual hovered/held frames.
+            patch = (1174, 92, 3, 3)
+            if observe_checkbox:
+                wait_rendered(window, patch, lambda r, g, b: g >= 120 and b >= 150,
+                              7, 'Boolean hover frame')
             send('mousedown', '1')
-            send('mouseup', '1')
+            try:
+                if observe_checkbox:
+                    wait_rendered(window, patch, lambda r, g, b: g >= 160 and b >= 200,
+                                  7, 'Boolean held frame')
+            finally:
+                send('mouseup', '1')
+            if observe_checkbox:
+                wait_rendered(window, patch, lambda r, g, b: 120 <= g < 160 and 150 <= b < 200,
+                              7, 'Boolean released frame')
 
         def save_until(expected):
             deadline = time.monotonic() + 5
@@ -72,13 +141,18 @@ def main():
             nonlocal process
             process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
             window = wait_for_window(args.xdotool, env)
-            send('windowsize', '--sync', window, '1600', '1200')
+            geometry = subprocess.run([args.xdotool, 'getwindowgeometry', '--shell', window],
+                                      env=env, check=True, capture_output=True, text=True).stdout
+            require('WIDTH=1280\n' in geometry and 'HEIGHT=720\n' in geometry,
+                    'Native reflected fixture requires the initial 1280x720 layout: ' + geometry)
             send('windowfocus', '--sync', window)
-            time.sleep(.8)
-            # Select the existing source through the actual Hierarchy; metadata does not select it.
-            click(window, 595, 199 if read_only else 182)
-            # Selection changes the Inspector contents; allow that layout to settle before edits.
-            time.sleep(.8)
+            y = 199 if read_only else 182
+            blue = lambda r, g, b: b >= r + 25 and g >= r + 10
+            # Window creation precedes first presentation. Wait for the actual Scene Select all
+            # control in the initial layout before issuing its one physical click.
+            wait_rendered(window, (518, y - 4, 10, 10), blue, 10, 'Scene selection control')
+            click(window, 523, y)
+            wait_rendered(window, (1174, 92, 3, 3), blue, 7, 'selected reflected Boolean')
             return window
 
         def close_host(window):
@@ -91,7 +165,7 @@ def main():
 
         window = open_host()
         # The top Inspector field is the actual schema-backed Boolean control.
-        click(window, 1428, 97)
+        click(window, 1178, 97, observe_checkbox=True)
         expected = bytearray(payload(scene))
         expected[0] = 1
         save_until(expected)
@@ -103,7 +177,7 @@ def main():
         save_until(expected)
         require(scene.read_bytes() == edited and payload(scene)[23] == 255,
                 'Redo changed padding or unrelated source bytes')
-        click(window, 1510, 120)
+        click(window, 1230, 120)
         key('ctrl+a')
         send('type', '--clearmodifiers', '--delay', '20', '--', '6.75')
         key('Return')
@@ -113,7 +187,7 @@ def main():
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
-        click(window, 1428, 97)
+        click(window, 1178, 97)
         key('ctrl+s')
         close_host(window)
         require(before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
@@ -132,7 +206,7 @@ def main():
                 'Invalid metadata restart changed source')
         schema.write_bytes(original_schema)
         window = open_host()
-        click(window, 1428, 97)
+        click(window, 1178, 97, observe_checkbox=True)
         expected[0] = 0
         save_until(expected)
         close_host(window)
