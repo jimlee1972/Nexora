@@ -757,6 +757,13 @@ creates property widgets; unknown components retain raw data instead of being si
     launches, exact Scene Save/Undo/Redo and read-only reopen pass. Full Linux 247/247 and Minimal
     Shipping pass. Targeted graphical selection and source apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md).
+  - ✅ Targeted live prefab property Revert accepts immutable scoped review row indices and
+    expands selected lanes into complete name/TRS/authored rotation/component/opaque groups.
+    Distinct lanes coalesce; invalid/duplicate/read-only/unauthorized inputs reject. Unselected
+    local overrides, dormant values, unknown additions, identity, bindings and files are preserved
+    with one Undo/Redo; empty selection preserves pending Redo. Mixed nested source fixtures and
+    full Linux 243/243 plus Minimal Shipping pass. Graphical selection and source apply/rebase
+    remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md).
   - ✅ Atomic live instance property revert restores the exact retained nested source, including
     dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
     explicit authorization and exact source/target revalidation reject stale/read-only/structural

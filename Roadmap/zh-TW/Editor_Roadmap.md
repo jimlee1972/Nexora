@@ -716,12 +716,20 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   及 source apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md)。
 
+- ✅ Targeted live prefab property Revert 使用 immutable scoped review row index，將選取 lane
+  展開為完整 name／TRS／authored rotation／component／opaque group。不同 lane 會合併；
+  invalid／duplicate／read-only／unauthorized input 都拒絕。未選取 local override、dormant value、
+  unknown addition、identity、binding 與檔案保留，整組只有一次 Undo／Redo；空選取保留 pending
+  Redo。Mixed nested source fixture、完整 Linux 243/243 與 Minimal Shipping 通過；graphical
+  selection 與 source apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md)。
+
 - ✅ Atomic live instance property revert 在一筆 Undo／Redo 中還原 exact retained nested
   source，包含 dormant component values、authored Euler 與未知 bytes。Current writer、明確
   authorization 及 exact source／target 再驗證拒絕 stale／唯讀／structural input；來源升版、
   files 不變及 saved baseline／Scene Save／reopen 通過，完整 Linux 243/243 與 Minimal Shipping
-  通過。Targeted revert、structural reconciliation 與 source
-  apply／rebase 仍待完成。
+  通過。Targeted Core revert 已於上方驗證；structural reconciliation 與 source apply／rebase
+  仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md)。
 
 - ✅ 圖形化 scene Inspector 現顯示所選 persistent prefab node 的來源與 retained revision，
