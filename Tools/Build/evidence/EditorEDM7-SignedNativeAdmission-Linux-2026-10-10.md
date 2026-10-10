@@ -35,3 +35,19 @@ memfd branch through `__linux__`; no Android or other target-host execution is c
 The native code/dependencies/host linker environment remain trusted in-process components;
 declared permissions are admission policy, not a sandbox. Other-platform immutable loading,
 graphical installation/recovery and complete ED-M6/7 acceptance remain open. Progress stays **0/8**.
+
+## Accepted build-console and inspector integration
+
+On Crypto PR #477 head `6e6a419fbfca187da061123f66cc4ea5e452d8cb` and
+accepted main `638e982e64a937d97d94c804a1becb4b2ed55301`, the admission
+implementation and fixtures are unchanged from the full-validated version above.
+The rebuilt Editor and affected test targets completed 33 steps; **9/9** focused
+tests passed in **22.81 s**. These include actual Ed25519/SHA256, trust, native
+admission, bounded processes, reflected Core/UI/native controls and real native
+build-console interaction.
+
+The dependent graphical manager integrates this same admission code. Its full
+graphical Linux Development gate passed **241/241**, zero skips, **620.96 s**,
+after 320 build steps; minimal Shipping built successfully (5 steps). This is
+dependent-tree integration evidence, not a separate full run of the admission-only
+tree. Published-head hosted checks remain independently required.
