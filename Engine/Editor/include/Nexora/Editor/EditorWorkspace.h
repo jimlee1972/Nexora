@@ -176,6 +176,15 @@ private:
   std::vector<RecentProject> entries_;
 };
 
+// Admission bounds for one Content index. A tree beyond either bound is rejected as a whole, before
+// any identity sidecar is written, so the previous index and project files stay untouched.
+inline constexpr std::size_t kMaximumIndexedAssets = 262144;
+inline constexpr std::size_t kMaximumIndexedPathBytes = 1024; // UTF-8, project-relative.
+struct AssetIndexLimits final {
+  std::size_t max_assets = kMaximumIndexedAssets;
+  std::size_t max_path_bytes = kMaximumIndexedPathBytes;
+};
+
 enum class ImportState { Pending, Imported, Cancelled, Failed };
 enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentReadWrite };
 
@@ -197,6 +206,9 @@ class NEXORA_EDITOR_API AssetWorkspace final {
 public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
+  // `limits` bounds the number of indexed files (".meta" sidecars excluded) and each project-
+  // relative UTF-8 path. Exceeding either fails before any sidecar is created and keeps the
+  // existing index.
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
   // OBJ/material parsing retains its bounded source/payload policy; live publication is
@@ -204,7 +216,7 @@ public:
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
-                  std::string *error = nullptr);
+                  std::string *error = nullptr, AssetIndexLimits limits = {});
   // Reads only one already-saved .scene and its sidecar in this initialized Content index.
   // Bounds source bytes at 64 MiB, preserves other entries/geometry, and checks IDs against the
   // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
