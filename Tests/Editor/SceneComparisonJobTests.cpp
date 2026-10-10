@@ -1,3 +1,4 @@
+#include "Nexora/Editor/AdditiveSceneSession.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 
 #include <chrono>
@@ -156,6 +157,31 @@ void Run() {
   Require(job.Snapshot().phase == Phase::Ready && job.Snapshot().result->rows.empty() &&
               Read(path) == disk,
           "Read-only inspection changed source");
+  {
+    runtime::World reference_world;
+    const auto reserved = reference_world.LoadScene("Reserved identities");
+    for (int i = 0; i < 32; ++i)
+      static_cast<void>(reference_world.CreateEntity(reserved));
+    editor::SceneDocument reference_document(reference_world,
+                                             reference_world.LoadScene("Reference"));
+    Require(reference_document.CreateCamera("Reference camera") &&
+                reference_document.Save(root / "Content/Reference.scene"),
+            "Actual reference fixture failed");
+    const auto reference_source = Read(root / "Content/Reference.scene");
+    editor::AdditiveSceneSession documents(workspace, world);
+    Require(documents.Attach(document, files).has_value(), "Borrowed primary attachment failed");
+    const auto reference = documents.Open("Content/Reference.scene", false);
+    Require(reference && !documents.EditableDocument(*reference) &&
+                !documents.WritableFiles(*reference) && documents.Files(*reference) &&
+                job.Start(*documents.Files(*reference)),
+            "Const-only actual reference could not be inspected");
+    const auto before_reference = Bytes(*documents.Document(*reference));
+    Drain(job, *documents.Files(*reference));
+    Require(job.Snapshot().phase == Phase::Ready && job.Snapshot().result->rows.empty() &&
+                Bytes(*documents.Document(*reference)) == before_reference &&
+                Read(root / "Content/Reference.scene") == reference_source,
+            "Actual reference comparison mutated its document/source");
+  }
   std::filesystem::remove(path);
   Require(job.Start(reader_files), "Deleted disk inspection was blocked");
   Drain(job, reader_files);
