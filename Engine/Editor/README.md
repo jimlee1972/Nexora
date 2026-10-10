@@ -40,6 +40,19 @@ Full graphical isolation, stable instance metadata, instantiate/override diff/re
 transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
 C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
 
+`PrefabAssets::SaveDocument` integrates wrapped prefab publication with the live authoring document.
+It captures owning previous-asset and document baselines plus project scope before identity callbacks;
+current document/project state is rechecked before any publish. Initial saves and new variants use
+missing-identity publication, while same-asset updates require the exact previous revision. A new
+variant additionally requires its exact base revision to remain the current stored source. An
+unchanged confirmed source retains its current revision and does not clear pending Redo.
+Only confirmed publication advances the document's saved signature/opaque baseline, moving already
+owned preparation strings without Reload or new history allocation. Generation, selection,
+clipboard and all existing Undo/Redo stay intact. Failure leaves the old saved baseline; any actual
+publication followed by a late source/scope change retains the file but does not acknowledge the
+changed document. The serialized host handles that explicit error. This is an authoring save helper,
+not a graphical isolation session, nested materializer or multi-file crash journal.
+
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`

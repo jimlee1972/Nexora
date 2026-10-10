@@ -284,10 +284,132 @@ void Run() {
   Require(std::string(std::istreambuf_iterator<char>{changed}, {}) == "external prefab bytes",
           "Failed revision compare changed external source");
 }
+void RunDocumentSave() {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-prefab-document-save-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directory(root);
+  editor::test::TemporaryDirectoryCleanup cleanup{root};
+  editor::ProjectWorkspace workspace;
+  std::string error;
+  Require(workspace.Create(root / "Project", "Prefab document", &error), "Save project failed");
+  runtime::World world;
+  editor::SceneDocument document(world, world.LoadScene("Prefab document"));
+  const auto node = document.Create("Saved root");
+  const auto key = *document.Key(node);
+  const std::array selected{node};
+  Require(document.SetOpaqueComponent(key, {99, "Unavailable.Provider", {0, 255, 27, 127}}) &&
+              document.Select(selected) && document.CopySelection(),
+          "Save document fixture failed");
+  const auto generation = document.Generation();
+  const std::string original = document.PrepareSave()->Bytes();
+  std::uint64_t counter{};
+  const auto identity = [&]() -> foundation::Uuid { return {400, ++counter}; };
+  auto first = Assets::SaveDocument(workspace, {400, 1000}, document, identity, nullptr, &error);
+  Require(
+      first && first->scene_bytes == original && !document.Dirty() &&
+          document.Generation() == generation && document.Key(node) == key &&
+          Assets::Load(workspace, first->id) == first &&
+          std::ranges::equal(document.Selection(), selected),
+      "Confirmed prefab save changed live generation/selection or failed baseline acknowledgement");
+  Require(document.Undo() && document.Dirty() && document.Redo() && !document.Dirty() &&
+              document.PrepareSave()->Bytes() == original && document.Paste() &&
+              document.Name(document.Selection().front()) == "Saved root Copy" && document.Undo() &&
+              !document.Dirty(),
+          "Save cleared original Undo/Redo or Copy clipboard");
+  Require(document.Rename(key, "Edited root") && document.Dirty(), "Dirty revision fixture failed");
+  const auto path = workspace.Root() / ".nexora/prefabs" / (first->id.ToString() + ".nxprefab");
+  auto stage = path;
+  stage += ".tmp";
+  std::filesystem::create_directory(stage);
+  Require(!Assets::SaveDocument(workspace, first->id, document, identity, &*first, &error) &&
+              document.Dirty() && !error.empty() && std::filesystem::is_directory(stage) &&
+              Assets::Load(workspace, first->id) == first && document.Undo() && !document.Dirty() &&
+              document.Redo() && document.Name(node) == "Edited root",
+          "Failed publication acknowledged dirty source or erased history/foreign evidence");
+  std::filesystem::remove(stage);
+  auto second = Assets::SaveDocument(workspace, first->id, document, identity, &*first, &error);
+  Require(second && second->revision == 2 && second->nodes == first->nodes && !document.Dirty(),
+          "Revision update changed persistent identities or failed baseline");
+  Require(document.Rename(key, "Redo retained") && document.Undo(), "No-op Redo fixture failed");
+  const auto no_op =
+      Assets::SaveDocument(workspace, second->id, document, identity, &*second, &error);
+  Require(no_op == second && !document.Dirty() && document.Redo() &&
+              document.Name(node) == "Redo retained" && document.Dirty() && document.Undo(),
+          "Unchanged save fabricated a revision or erased Redo");
+  Require(!Assets::SaveDocument(workspace, first->id, document, identity, &*first, &error) &&
+              Assets::Load(workspace, second->id) == second && !document.Dirty(),
+          "Stale expected prefab revision replaced confirmed bytes/baseline");
+  {
+    editor::ProjectWorkspace observer;
+    Require(observer.Open(workspace.Root(), editor::ProjectAccess::ReadOnly, &error) &&
+                document.Rename(key, "Read-only attempt") &&
+                !Assets::SaveDocument(observer, second->id, document, identity, &*second, &error) &&
+                document.Dirty() && Assets::Load(workspace, second->id) == second &&
+                document.Undo() && !document.Dirty(),
+            "Read-only save changed files/baseline/history");
+  }
+  const auto recovery = workspace.Root() / ".nexora/workspace.recovery";
+  std::filesystem::create_directory(recovery);
+  Require(!Assets::SaveDocument(workspace, second->id, document, identity, &*second, &error) &&
+              std::filesystem::is_directory(recovery) && !document.Dirty(),
+          "Pending recovery was consumed or acknowledged");
+  std::filesystem::remove(recovery);
+  bool changed{};
+  const foundation::Uuid rejected_id{401, 1000};
+  Require(!Assets::SaveDocument(
+              workspace, rejected_id, document,
+              [&] {
+                if (!changed) {
+                  Require(document.Rename(key, "Callback changed source"),
+                          "Callback fixture failed");
+                  changed = true;
+                }
+                return identity();
+              },
+              nullptr, &error) &&
+              changed && document.Dirty() &&
+              !std::filesystem::exists(workspace.Root() / ".nexora/prefabs" /
+                                       (rejected_id.ToString() + ".nxprefab")) &&
+              Assets::Load(workspace, second->id) == second && document.Undo() && !document.Dirty(),
+          "Callback-induced stale document published or lost the user's change/history");
+  Require(document.SetOpaqueComponent(key, {100, "New.Provider", {8}}), "New field fixture failed");
+  auto callback_previous = *second;
+  auto third = Assets::SaveDocument(
+      workspace, second->id, document,
+      [&] {
+        callback_previous.nodes.clear();
+        callback_previous.scene_bytes.clear();
+        return identity();
+      },
+      &callback_previous, &error);
+  Require(third && third->revision == 3 && third->nodes[0].id == second->nodes[0].id &&
+              callback_previous.nodes.empty() && !document.Dirty(),
+          "Callback invalidated owning expected revision during publication");
+  const auto variant =
+      Assets::SaveDocument(workspace, {402, 1000}, document, identity, &*third, &error);
+  Require(variant && variant->base == editor::PrefabRevisionReference{third->id, 3} &&
+              variant->revision == 1 && variant->nodes == third->nodes &&
+              Assets::Load(workspace, variant->id) == variant && !document.Dirty() &&
+              document.Generation() == generation,
+          "Variant document save lost identity/base/history scope");
+  Require(!Assets::SaveDocument(workspace, {403, 1000}, document, identity, &*second, &error) &&
+              !Assets::Load(workspace, {403, 1000}) && !document.Dirty() &&
+              Assets::Load(workspace, third->id) == third,
+          "Stale variant base published an unusable new identity");
+  Require(
+      document.SetOpaqueComponent(key, {101, "Invalid.New.Identity", {9}}) &&
+          !Assets::SaveDocument(
+              workspace, third->id, document, [] { return foundation::Uuid{}; }, &*third, &error) &&
+          document.Dirty() && Assets::Load(workspace, third->id) == third && document.Undo() &&
+          !document.Dirty(),
+      "Rejected new identity acknowledged a saved state");
+}
 } // namespace
 int main() {
   try {
     Run();
+    RunDocumentSave();
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

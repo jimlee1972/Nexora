@@ -276,6 +276,7 @@ public:
   private:
     friend class SceneDocument;
     friend class SceneSaveBatch;
+    friend class PrefabAssets;
     PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
                  std::string opaque_records)
         : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
@@ -440,6 +441,7 @@ public:
 
 private:
   friend class AdditiveSceneSession;
+  friend class PrefabAssets;
   enum class BuiltinEntity { Empty, Camera, Light };
   friend class SceneSaveBatch;
   bool ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes = std::nullopt);
