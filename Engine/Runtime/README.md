@@ -603,6 +603,25 @@ extension mechanism; the pre-existing in-process `ExtensionRegistry` (`Runtime.h
 M4-M11 contract sweep, exercised by `runtime.v1_m4_m11_contracts`) is a lighter descriptor/ABI-number
 bookkeeping structure that predates this milestone and does not itself load anything.
 
+### Qualified native service borrowing
+
+`PluginHost::FindService(id, registry, name)` returns a borrowed service only when
+that exact host admission is loaded and the supplied registry's visible owned entry
+shares its provider identity. Another host's same numeric ID/name, a manual replacement,
+missing/revoked services and empty/NUL-containing/over-256-byte names return null.
+Registry copies retain the original weak provider identity; reload gets a new admission
+ID, so a retired ID cannot resolve the replacement. Lookup does not publish, mutate
+registries, invoke native callbacks or change lifecycle state.
+
+The existing serialized owner-thread, no-reentrancy and release-before-mutation/unload
+contract still applies. This query provides neither a lifetime lease nor document/IO
+permission, and does not track in-flight service calls. Consumers copy metadata/results
+and perform a fresh qualified lookup for each later invocation. Public C++ clients can
+use the additive exported method after rebuilding; required C plugin ABI and lifecycle
+schemas, class data layout, module graph and serialized formats remain unchanged.
+This is a tool-SDK prerequisite, not a completed specialized-tool callback or reference
+plugin workflow.
+
 ### Cooperative plugin lifecycle
 
 The optional `NexoraPluginGetLifecycleV1` C export adds schema-one shutdown/quiescence callbacks

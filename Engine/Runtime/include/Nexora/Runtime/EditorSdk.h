@@ -143,6 +143,13 @@ public:
 
   [[nodiscard]] PluginLoadResult Load(const std::string &library_path,
                                       ServiceRegistry *services = nullptr);
+  // Serialized, non-reentrant owner-thread lookup of this admission's visible owned service.
+  // Names are bounded by kMaximumServiceNameBytes. Registry copies retain provider identity;
+  // manual replacements and another host's same numeric ID never qualify. The returned pointer
+  // is borrowed, grants no operation authority and must be released before registry mutation or
+  // RequestUnload. This lookup does not acquire a lifetime lease or track in-flight calls.
+  [[nodiscard]] void *FindService(std::uint64_t id, const ServiceRegistry &services,
+                                  std::string_view name) const;
   void UnloadAll() noexcept;
   [[nodiscard]] PluginState RequestUnload(std::uint64_t id) noexcept;
   void PollShutdown() noexcept;
