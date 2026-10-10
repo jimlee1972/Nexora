@@ -67,3 +67,13 @@ The final feature branch replays only the graphical comparison work onto accepte
 Application, Engine and test source is byte-identical to the full integrated 224/224 gate
 recorded above; only documentation and required-test workflow context changed during rebase.
 Fresh hosted checks on the published head remain required.
+
+## Windows fixture lease cleanup correction
+
+Hosted Windows acceptance exposed the comparison fixture deleting its project root
+while its real ProjectWorkspace writer lease was still alive. Workspace, documents and
+comparison jobs now leave their owning scope before remove_all; strict root-removal
+verification and all comparison assertions remain enabled. The rebuilt focused
+editor.semantic_scene_comparison_job passed 1/1 in 0.02s on Linux. Production code
+is unchanged from the full 224/224 gate above. Fresh published-head Windows checks
+remain required; Linux does not prove Windows file-sharing behavior.
