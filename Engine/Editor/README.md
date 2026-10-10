@@ -1373,3 +1373,13 @@ fresh generation keys. NewScene clears bindings. Runtime scene capture excludes 
 Prefab asset capture/validation rejects bound scene bytes until explicit nested identity reconciliation
 exists, avoiding silently copied live binding context. Graphical instancing and structural/nested
 reconciliation remain separate work; public C++ consumers rebuild, stable C/Gameplay ABI unchanged.
+
+`ProjectPrefabPlacement::Prepare` owns an immutable observation of the open project root/UUID,
+current published root asset, exact resolved transitive closure and target prepared content. It may
+run for a read-only project and grants no write authority. `Instantiate` rechecks current project,
+recovery/external-change state, target content, root publication and every retained exact source
+before requesting one bound import. A valid same-revision source replacement invalidates the review.
+The host must serialize authoring owners and repeat Play/modal/target-document role policy at the
+explicit action. A nonnil placement UUID and current writable project are required. Rejection
+preserves target history/clipboard/files; success writes nothing until ordinary Scene Save. This
+is a synchronous source observation, not a hostile-filesystem lease or multi-file atomic IO promise.
