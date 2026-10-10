@@ -135,6 +135,12 @@ struct EditorImGuiHost::State final {
   std::optional<StaticExportRequest> static_export_request;
   StaticExportSnapshot static_export;
   bool static_export_busy{};
+  SceneComparisonSnapshot scene_comparison;
+  std::optional<SceneFileToken> scene_comparison_request;
+  bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
+  bool scene_comparison_cancel_requested{};
+  std::array<std::optional<std::array<float, 2>>, 4> scene_comparison_positions{};
+  std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool profile_json_export_requested = false;
   bool profile_csv_import_requested = false;
@@ -2347,6 +2353,89 @@ void BeginContentScene(StateT &state, SceneDocument &scene, const std::filesyste
   state.scene_file_popup_pending = true;
 }
 
+template <typename StateT> void CaptureComparisonControl(StateT &state, std::size_t index) {
+  const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+  state.scene_comparison_positions[index] =
+      std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+}
+template <typename StateT> void BeginSceneComparison(StateT &state, bool overwrite = false) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  state.scene_comparison = {};
+  state.scene_comparison_request = state.scene_file_token;
+  state.scene_comparison_in_overwrite = overwrite;
+  state.scene_comparison_open = !overwrite;
+}
+void ComparisonCell(const std::optional<std::string> &value) {
+  if (!value) {
+    ImGui::TextDisabled("(absent)");
+    return;
+  }
+  if (value->empty()) {
+    ImGui::TextDisabled("(empty)");
+    return;
+  }
+  auto preview = value->substr(0, 128);
+  while (!foundation::IsValidUtf8(preview))
+    preview.pop_back();
+  if (preview.size() != value->size())
+    preview += "...";
+  ImGui::TextUnformatted(preview.c_str());
+  if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(600);
+    ImGui::TextUnformatted(value->c_str());
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
+}
+template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
+  const auto &snapshot = state.scene_comparison;
+  ImGui::TextWrapped("%s", snapshot.message.empty() ? "Preparing scene comparison..."
+                                                    : snapshot.message.c_str());
+  if (state.scene_comparison_busy) {
+    if (ImGui::Button("Cancel comparison"))
+      state.scene_comparison_cancel_requested = true;
+    CaptureComparisonControl(state, 2);
+  }
+  state.scene_comparison_rendered_rows = 0;
+  if (!snapshot.result)
+    return;
+  ImGui::Text("Changed fields: %zu   Unresolved conflicts: %zu", snapshot.result->rows.size(),
+              snapshot.result->conflicts);
+  ImGui::TextWrapped("Read-only captured revisions. Choices are hints; replacing a scene still "
+                     "requires the original save confirmation.");
+  if (!ImGui::BeginTable("Semantic fields", 5,
+                         ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX |
+                             ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable,
+                         {0, 240}))
+    return;
+  for (const auto *label : {"Stable field", "Base", "Local", "Disk", "Hint"})
+    ImGui::TableSetupColumn(label, ImGuiTableColumnFlags_WidthFixed, 180);
+  ImGui::TableSetupScrollFreeze(0, 1);
+  ImGui::TableHeadersRow();
+  ImGuiListClipper clipper;
+  clipper.Begin(static_cast<int>(snapshot.result->rows.size()),
+                ImGui::GetTextLineHeightWithSpacing());
+  constexpr const char *choices[] = {"Shared", "Local", "Disk", "Unresolved"};
+  while (clipper.Step())
+    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+      const auto &row = snapshot.result->rows[static_cast<std::size_t>(i)];
+      ImGui::TableNextRow();
+      ImGui::TableNextColumn();
+      ImGui::TextUnformatted(row.stable_path.c_str());
+      ImGui::TableNextColumn();
+      ComparisonCell(row.base);
+      ImGui::TableNextColumn();
+      ComparisonCell(row.local);
+      ImGui::TableNextColumn();
+      ComparisonCell(row.remote);
+      ImGui::TableNextColumn();
+      ImGui::TextUnformatted(choices[static_cast<unsigned>(row.choice)]);
+      ++state.scene_comparison_rendered_rows;
+    }
+  ImGui::EndTable();
+}
 template <typename StateT>
 void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, bool cancel) {
   if (cancel || !scene || !state.scene_file_context ||
@@ -2371,6 +2460,7 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
                               ImGuiWindowFlags_AlwaysAutoResize))
     return;
   const auto cancel_dialog = [&] {
+    state.scene_comparison_in_overwrite = false;
     state.scene_file_dialog = StateT::FileDialog::None;
     state.scene_file_intent.reset();
     state.scene_file_close_popup = false;
@@ -2410,13 +2500,26 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
   } else if (state.scene_file_dialog == StateT::FileDialog::Overwrite) {
     const auto &path = request.save_path ? *request.save_path : request.path;
     ImGui::TextWrapped("Replace the existing scene at %s?", PathLabel(path).c_str());
-    ImGui::BeginDisabled(!writable);
-    if (ImGui::Button("Replace")) {
-      request.replace_existing = true;
-      emit = true;
+    if (state.scene_comparison_in_overwrite) {
+      DrawSceneComparisonPanel(state);
+      if (ImGui::Button("Back to replacement"))
+        state.scene_comparison_in_overwrite = false;
+      CaptureComparisonControl(state, 3);
+    } else {
+      ImGui::BeginDisabled(state.scene_comparison_busy || !state.scene_file_path ||
+                           path != *state.scene_file_path);
+      if (ImGui::Button("Compare base / local / disk"))
+        BeginSceneComparison(state, true);
+      CaptureComparisonControl(state, 1);
+      ImGui::EndDisabled();
+      ImGui::BeginDisabled(!writable);
+      if (ImGui::Button("Replace")) {
+        request.replace_existing = true;
+        emit = true;
+      }
+      CaptureSceneFileControl(state, 9);
+      ImGui::EndDisabled();
     }
-    CaptureSceneFileControl(state, 9);
-    ImGui::EndDisabled();
   } else {
     const bool opening = state.scene_file_dialog == StateT::FileDialog::OpenPath;
     ImGui::TextUnformatted(opening ? "Open scene" : "Save scene as");
@@ -4361,6 +4464,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S", false, writable))
         BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
       CaptureSceneFileControl(*state_, 3);
+      if (ImGui::MenuItem("Compare scene revisions", "Ctrl+Alt+D", false,
+                          !game_running && state_->scene_file_path &&
+                              !state_->scene_comparison_busy))
+        BeginSceneComparison(*state_);
+      CaptureComparisonControl(*state_, 0);
       ImGui::EndMenu();
     }
     state_->static_export_positions = {};
@@ -4406,6 +4514,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     else if (!game_running &&
              ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::Open);
+    else if (!game_running && state_->scene_file_path && !state_->scene_comparison_busy &&
+             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D,
+                             ImGuiInputFlags_RouteGlobal))
+      BeginSceneComparison(*state_);
     else if (writable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
                                          ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
@@ -5682,6 +5794,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                          close_confirmation_open || game_running ||
                          state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || state_->game_input_binding_open);
+  if (state_->scene_comparison_open && file_context_valid && !file_external_block) {
+    const auto size = ImGui::GetMainViewport()->WorkSize;
+    ImGui::SetNextWindowSize({std::min(960.0F, std::max(1.0F, size.x - 24)),
+                              std::min(440.0F, std::max(1.0F, size.y - 24))},
+                             ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Scene comparison###editor.scene-comparison", &state_->scene_comparison_open))
+      DrawSceneComparisonPanel(*state_);
+    ImGui::End();
+  }
 }
 
 bool EditorImGuiHost::SetSceneTabs(std::span<const SceneTabItem> items, std::uint64_t active,
@@ -5763,7 +5884,12 @@ void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
 void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
                                           std::optional<std::filesystem::path> path,
                                           bool save_blocked) {
-  if (state_->scene_file_context && state_->scene_file_token != token) {
+  if (state_->scene_file_context &&
+      (state_->scene_file_token != token || state_->scene_file_path != path)) {
+    state_->scene_comparison = {};
+    state_->scene_comparison_request.reset();
+    state_->scene_comparison_open = false;
+    state_->scene_comparison_in_overwrite = false;
     state_->static_export_request.reset();
     state_->static_export = {};
     state_->static_export_busy = false;
@@ -5781,6 +5907,71 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 }
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
+}
+std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
+  return std::exchange(state_->scene_comparison_request, std::nullopt);
+}
+bool EditorImGuiHost::TakeSceneComparisonCancelRequest() noexcept {
+  return std::exchange(state_->scene_comparison_cancel_requested, false);
+}
+void EditorImGuiHost::SetSceneComparisonStatus(SceneComparisonSnapshot snapshot, bool busy) {
+  if (snapshot.operation &&
+      (!state_->scene_file_context || snapshot.token != state_->scene_file_token ||
+       state_->scene_file_path != snapshot.path)) {
+    snapshot = {};
+    snapshot.message = busy ? "Previous scene comparison is draining."
+                            : "Previous scene comparison was discarded.";
+  }
+  const auto safe = [](std::string_view value) {
+    return foundation::IsValidUtf8(value) &&
+           std::ranges::none_of(value, [](unsigned char c) { return c < 32 || c == 127; });
+  };
+  if (snapshot.message.size() > 1024 || !safe(snapshot.message))
+    return;
+  if (snapshot.result && (!snapshot.operation || snapshot.phase != SceneComparisonPhase::Ready))
+    snapshot.result.reset();
+  if (snapshot.result && snapshot.result != state_->scene_comparison.result) {
+    bool valid = snapshot.result->rows.size() <= SceneComparison::kMaximumRows;
+    std::size_t bytes = 0, conflicts = 0;
+    for (const auto &row : snapshot.result->rows) {
+      if (!valid)
+        break;
+      valid = row.stable_path.size() <= 1024 && safe(row.stable_path) &&
+              static_cast<unsigned>(row.choice) <=
+                  static_cast<unsigned>(SceneComparisonChoice::Unresolved);
+      std::size_t count = row.stable_path.size();
+      for (const auto *value : {&row.base, &row.local, &row.remote})
+        if (*value) {
+          valid = valid && (*value)->size() <= SceneComparison::kMaximumValueBytes && safe(**value);
+          count += (*value)->size();
+        }
+      valid = valid && count <= SceneComparison::kMaximumResultBytes - bytes;
+      if (!valid)
+        break;
+      bytes += count;
+      conflicts += row.choice == SceneComparisonChoice::Unresolved;
+    }
+    valid = valid && conflicts == snapshot.result->conflicts;
+    if (!valid) {
+      snapshot.result.reset();
+      snapshot.phase = SceneComparisonPhase::Failed;
+      snapshot.message = "Scene comparison observation exceeds safe display limits.";
+    }
+  }
+  state_->scene_comparison = std::move(snapshot);
+  state_->scene_comparison_busy = busy;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->scene_comparison_positions.size()
+             ? host.state_->scene_comparison_positions[index]
+             : std::nullopt;
+}
+SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const EditorImGuiHost &host) {
+  return host.state_->scene_comparison;
+}
+std::uint32_t EditorImGuiTestAccess::SceneComparisonRenderedRows(const EditorImGuiHost &host) {
+  return host.state_->scene_comparison_rendered_rows;
 }
 void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
                                          std::optional<std::filesystem::path> suggested_path) {

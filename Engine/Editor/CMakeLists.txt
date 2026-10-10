@@ -17,6 +17,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ShaderAuthoring.cpp
   src/SceneAuthoring.cpp
   src/SceneComparison.cpp
+  src/SceneComparisonJob.cpp
   src/SceneFiles.cpp
   src/SceneSaveBatch.cpp
   src/StaticProjectExport.cpp

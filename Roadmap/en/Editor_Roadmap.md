@@ -807,6 +807,14 @@ creates property widgets; unknown components retain raw data instead of being si
     history and disk versions. Portable 64 MiB/lifecycle/Content relocation tests and 1x/2x ImGui
     control tests cover the supporting slice. Full prefab/migration/crash and source-control
     acceptance remain open; see [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md).
+  - ✅ Graphical semantic source inspection now captures owning base/local/disk revisions and
+    publishes bounded background comparisons only to the original live file/document scope.
+    A read-only field table integrates with the retained external-save Replace/Cancel decision;
+    references may inspect without writable access. Real 1x/2x controls and Linux native writer,
+    read-only, corrupt-disk and additive-reference tests preserve sources and independent history.
+    Cancellation, changed content/baseline/session and stale generations reject publication.
+    Reviewed merge publication, provider integration and physical-host acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
   - ✅ UI-neutral specialized-tool metadata now owns schema/interface versions, provider IDs,
     declared permissions, document/contribution identities and bounded resource declarations.

@@ -1097,3 +1097,23 @@ cooperating-writer policy does not promise hostile concurrent-filesystem isolati
 durability, all-file atomic replacement or cancellation of a synchronous call. Broader graphical
 migration/recovery remains separate work. Public C++ consumers rebuild; stable C/Gameplay ABI and
 module dependencies are unchanged.
+
+## Scoped graphical source-conflict inspection
+
+`SceneComparisonJob` captures owning bounded saved-baseline and prepared-local bytes on the
+authoring owner, reads a bounded disk revision and compares isolated Worlds on the referenced
+`JobSystem`. Jobs must outlive the owner; shutdown cancels and drains before document destruction.
+Workers retain no workspace/document borrows and perform no source writes. One operation blocks
+replacement until its terminal worker is consumed. Cancellation, changed document/path/project,
+changed prepared local content, changed saved baseline or a replacement file-session identity
+reject publication. Ready owns an immutable captured comparison, not continuing disk authority.
+
+The application polls on its authoring owner, then transfers only owning observations to ImGui.
+Reference and read-only documents may inspect through their const file session; no writable
+document accessor is required. Stopped Play, live scope and recovery/modal gates revalidate
+requests. Neither comparison nor its per-field hints alter selection, history, dirty baselines,
+sources or replacement confirmation. Inspectable differences do not certify a valid merged tree.
+[Linux graphical evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md)
+covers actual controls and source isolation. Reviewed merge publication and provider integration
+remain open. These additive C++ APIs require rebuild and change no stable C/Gameplay ABI or module
+dependency.

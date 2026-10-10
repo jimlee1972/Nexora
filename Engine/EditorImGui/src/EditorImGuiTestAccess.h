@@ -69,6 +69,10 @@ public:
   static void SetSceneTabPath(EditorImGuiHost &, std::string_view);
   [[nodiscard]] static std::vector<SceneTabItem> SceneTabs(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneComparisonPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static SceneComparisonSnapshot SceneComparisonStatus(const EditorImGuiHost &);
+  [[nodiscard]] static std::uint32_t SceneComparisonRenderedRows(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   StaticExportPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static StaticExportSnapshot StaticExportStatus(const EditorImGuiHost &);
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;

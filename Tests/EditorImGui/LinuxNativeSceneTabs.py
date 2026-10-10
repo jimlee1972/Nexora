@@ -121,10 +121,14 @@ def main():
                    'Save All from an active reference omitted another owned document', process)
         if second.read_bytes() != second_original or reference.read_bytes() != reference_original:
             raise RuntimeError('Save All changed the clean scene or read-only reference')
+        # Inspection is available on the actual active reference, without acquiring a writer.
+        key('ctrl+alt+d')
+        time.sleep(1)
         request_window_close(window, env)
         output, error = collect_output(process, 15)
         if (process.returncode != 0 or 'scene_documents=3' not in error or
-                'scene_references=1' not in error or 'scene_nodes=1' not in error or 'ui_draws=' not in error):
+                'scene_references=1' not in error or 'scene_nodes=1' not in error or 'ui_draws=' not in error or
+                'scene comparison ready fields=0 conflicts=0' not in error):
             raise RuntimeError(f'Actual additive host ownership/reference acceptance failed: {output}\n{error}')
         process = None
         metadata = root / '.nexora/scene-composition.ini'

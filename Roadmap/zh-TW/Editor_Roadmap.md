@@ -771,6 +771,14 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   ImGui 真實控制項測試涵蓋此 supporting slice；完整 prefab／migration／crash 與
   source-control 驗收仍待完成，詳見 [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md)。
 
+- ✅ 圖形化 semantic source inspection 現擷取 owning base／local／disk revision，僅將有界
+  background comparison 發布至原本的 live file／document scope。唯讀欄位表整合既有 external-save
+  Replace／Cancel 決定；reference 不需 writable access 即可檢視。真實 1x／2x 控制項與 Linux
+  native writer、read-only、corrupt-disk 及 additive-reference 測試保留來源及獨立 history。
+  取消、content／baseline／session 變更與 stale generation 會拒絕發布；經審核 merge publication、
+  provider 整合及實體 host 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md)。
+
 ### ED-M5 — Specialized tools
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。

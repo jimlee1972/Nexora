@@ -10,6 +10,11 @@ target_include_directories(NexoraEditorImGuiTests
 target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
+add_executable(NexoraSceneComparisonUiTests SceneComparisonTests.cpp)
+target_include_directories(NexoraSceneComparisonUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSceneComparisonUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneComparisonUiTests)
+add_test(NAME editor.semantic_scene_comparison_ui COMMAND NexoraSceneComparisonUiTests)
 
 add_executable(NexoraDeepHierarchyTests DeepHierarchyTests.cpp)
 target_include_directories(NexoraDeepHierarchyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
@@ -204,6 +209,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   # This workflow includes several native launches; individual waits still fail after 10 seconds.
   set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 120)
+  add_test(NAME editor.linux_scene_comparison
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneComparison.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_scene_comparison PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
   if(NEXORA_BUILD_PROJECT_PLAYER)
     add_test(NAME editor.linux_static_project_export
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxStaticProjectExport.py"

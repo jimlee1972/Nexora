@@ -11,6 +11,7 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/SceneAuthoring.h"
+#include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -709,6 +710,7 @@ int RunGraphical(std::optional<ProjectState> project,
   import_jobs.Start();
   nexora::editor::AssetImportQueue imports{import_jobs};
   nexora::editor::StaticProjectExportJob static_export{import_jobs};
+  nexora::editor::SceneComparisonJob scene_comparison{import_jobs};
   nexora::editor::ProjectContentSession content;
   struct PendingProject final {
     ProjectState candidate;
@@ -1388,6 +1390,15 @@ int RunGraphical(std::optional<ProjectState> project,
         ui.SetSceneFileContext(active_files()->Token(), active_files()->CurrentPath(),
                                scene_load_failed || active_files()->SaveBlocked());
       ui.SetStaticExportStatus(static_export.Snapshot(), static_export.Busy());
+      if (active_files() && scene_comparison.Poll(*active_files())) {
+        const auto compared = scene_comparison.Snapshot();
+        if (compared.result)
+          std::cerr << "scene comparison ready fields=" << compared.result->rows.size()
+                    << " conflicts=" << compared.result->conflicts << '\n';
+        else
+          std::cerr << "scene comparison finished: " << compared.message << '\n';
+      }
+      ui.SetSceneComparisonStatus(scene_comparison.Snapshot(), scene_comparison.Busy());
       update_scene_tabs();
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
@@ -1470,6 +1481,25 @@ int RunGraphical(std::optional<ProjectState> project,
         }
         ui.SetSceneTabStatus(applied ? (error.empty() ? "Scene action completed." : error) : error,
                              applied);
+      }
+      if (ui.TakeSceneComparisonCancelRequest())
+        static_cast<void>(scene_comparison.Cancel());
+      if (const auto request = ui.TakeSceneComparisonRequest(); request && active_files()) {
+        std::string comparison_error;
+        if (*request != active_files()->Token() ||
+            play.State() != nexora::runtime::PlayState::Stopped)
+          comparison_error = "Scene comparison request has an old scope or active Play session.";
+        else if (scene_comparison.Start(*active_files(), &comparison_error))
+          std::cerr << "scene comparison started\n";
+        if (!comparison_error.empty())
+          ui.SetSceneComparisonStatus(
+              {0,
+               nexora::editor::SceneComparisonPhase::Failed,
+               *request,
+               active_files()->CurrentPath().value_or(std::filesystem::path{}),
+               comparison_error,
+               {}},
+              scene_comparison.Busy());
       }
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
         load_input_settings(project->workspace);
@@ -2192,6 +2222,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::cerr << "diagnostic privacy close: enabled=0 retained=0\n";
   static_cast<void>(static_export.Cancel());
   imports.Shutdown();
+  scene_comparison.Shutdown();
   static_export.Shutdown();
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)

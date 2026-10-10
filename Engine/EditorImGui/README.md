@@ -983,3 +983,24 @@ The native center-gesture acceptance helper repeats only Save while observing co
 within the existing five-second deadline. Gestures and Undo are not replayed, and exact saved-byte
 and one-step Undo assertions are retained. The helper performs no production input change and
 does not certify physical display/input or every synthetic-input timing path.
+
+## Semantic scene source-conflict view
+
+File > Compare scene revisions and Ctrl+Alt+D emit one owning document-token request. The
+application captures saved base/local/disk versions; widgets perform no IO or background work.
+The existing external-save modal offers comparison and a return to its retained Replace/Cancel
+decision without authorizing replacement. Comparison Cancel stops inspection only. The bounded
+read-only table shows stable field paths, absent versus empty Base/Local/Disk values, unresolved
+conflicts and inspection hints. Large values use UTF-8-safe previews and bounded tooltips; clipped
+rows avoid rendering the full retained result each frame. Results explicitly describe a captured
+disk snapshot, not current overwrite authority.
+
+Owning observation publication validates enum, token/path, UTF-8/display safety, row/value/byte
+budgets and exact conflict count before retaining data. A changed document/path clears results
+and pending requests. Live read-only/reference scopes may inspect while source authoring remains
+disabled. Busy, stopped-Play, recovery and modal policy apply independently in the host. Failed,
+cancelled or stale jobs show their actual state without a partial result, source writes or later
+request resurrection. Keyboard and 1x/2x real controls are covered by
+[Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
+Automatic semantic merge, source-control authentication and physical screen-reader acceptance
+remain open.
