@@ -979,6 +979,10 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
+  guard、16 項 documentation-routing、完整 Linux 239/239 與 Minimal Shipping 通過。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md)。
+
 - ✅ Native project browser 現提供兩種 access mode 的 owning no-write upgrade preview，
   顯示 captured schema／UUID、source／workspace count 與 recovery evidence 位置。
   Busy 或 typed root 變更會清除 stale intake／result；明確 Open 仍重新檢查 writer access

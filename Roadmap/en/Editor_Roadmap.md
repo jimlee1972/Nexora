@@ -1003,6 +1003,9 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Current session CI cleanup adds exact published branch and actor checks; 14 ownership/race
+    and 16 documentation-routing tests, full Linux 239/239 and Minimal Shipping pass.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md).
   - ✅ The native project browser now offers an owning no-write upgrade preview in both access
     modes, showing captured schema/UUID, source/workspace counts and recovery evidence locations.
     Busy and typed-root changes clear stale intake/results; explicit Open reinspects ordinary
