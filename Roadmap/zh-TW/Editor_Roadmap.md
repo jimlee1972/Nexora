@@ -748,7 +748,8 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 - ✅ Atomic same-identity document property snapshot 已驗證：mixed metadata、hierarchy／TRS 與
   stored component 使用一次 guarded Undo／Redo，保留 generation、selection、clipboard 與 baseline。
-  Structural change 與 graphical prefab revert/rebase 仍待完成。
+  最新 Main 整合通過完整 Linux 241/241 與 Minimal Shipping；structural change 與 graphical
+  prefab revert/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
 
 - ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、

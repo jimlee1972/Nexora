@@ -1,13 +1,15 @@
 # ED-M4 atomic document property snapshots — Linux, 2026-10-10
 
-Beads: `nexora-pmb.1.9`. Validated on main
-`64b20ea7b2fc4250af4900f6c1ace17001170464`, with stable prefab foundation and
-accepted Crypto/Inspector fix. Signed native admission is a separate branch.
+Beads: `nexora-pmb.1.9`. The final integration replays only the atomic property
+feature onto accepted Main `5ecb6871319449581739da8c5770d5d96c0ca3f8`, including
+accepted isolated ownership and Content index budgets. Both owner and snapshot
+contracts are retained. The old green but conflicted head is not merge authority
+for this new integration.
 
-Graphical Linux Development configure/build passed (22 steps after initialization
-fix, 279 full build steps). **239/239** tests passed, zero skips, **599.50 s**.
-Minimal Monolithic Shipping configure/build passed (5 steps). Focused atomic
-property snapshot test passed **1/1**, **0.01 s**.
+Graphical Linux Development configure/build passed (314 steps). **241/241** tests
+passed, zero skips, **601.65 s**. Minimal Monolithic Shipping configure/build passed
+(5 steps). Focused atomic property snapshot test passed **1/1**, **0.02 s**.
+Changed Markdown validation and the 16-test documentation regression suite pass.
 
 ```sh
 cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON \
