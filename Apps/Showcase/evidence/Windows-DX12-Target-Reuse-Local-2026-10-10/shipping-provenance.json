@@ -1,0 +1,9 @@
+{
+  "source_commit": "7c4534b850c37fc0ae741ebf2198408f20613368",
+  "exe_sha256": "257c23cb8051ee736d50bbdb1dcba9f4eaaea6036fecdb1446bb12c1a9b0e518",
+  "quality_runs": 18,
+  "gpu_comparisons": 4,
+  "live_ui_animation_runs": 4,
+  "hardware_budget_accepted": false,
+  "scope": "Committed Shipping source, same quality and effect budgets; raw paced and unpaused reports retained separately; all 18 exact-source GitHub-hosted CI jobs pass"
+}

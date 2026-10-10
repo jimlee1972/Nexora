@@ -1,0 +1,254 @@
+Test project G:/proj/Nexora/build/windows-showcase-development
+      Start  1: build.module_graph
+ 1/99 Test  #1: build.module_graph .............................   Passed    0.08 sec
+      Start  2: build.shader_contract
+ 2/99 Test  #2: build.shader_contract ..........................   Passed    0.88 sec
+      Start  3: build.plugin_manifests
+ 3/99 Test  #3: build.plugin_manifests .........................   Passed    0.11 sec
+      Start  4: build.showcase_package
+ 4/99 Test  #4: build.showcase_package .........................   Passed    5.21 sec
+      Start  5: build.showcase_package_launch_safety
+ 5/99 Test  #5: build.showcase_package_launch_safety ...........   Passed    1.25 sec
+      Start  6: build.v2_migration_scanner
+ 6/99 Test  #6: build.v2_migration_scanner .....................   Passed    0.36 sec
+      Start  7: build.v2_production_toolchain
+ 7/99 Test  #7: build.v2_production_toolchain ..................   Passed    3.75 sec
+      Start  8: gameplay.zig_abi_smoke
+ 8/99 Test  #8: gameplay.zig_abi_smoke .........................   Passed    0.20 sec
+      Start  9: showcase.courtyard_asset_generation
+ 9/99 Test  #9: showcase.courtyard_asset_generation ............   Passed   11.34 sec
+      Start 10: showcase.courtyard_hero_generation
+10/99 Test #10: showcase.courtyard_hero_generation .............***Failed  174.34 sec
+Original courtyard artifact differs: G:\proj\Nexora\Content\Showcase\Courtyard\Hero\manifest.json
+
+      Start 11: showcase.courtyard_environment_generation
+11/99 Test #11: showcase.courtyard_environment_generation ......   Passed   57.37 sec
+      Start 12: showcase.courtyard_environment_contracts
+12/99 Test #12: showcase.courtyard_environment_contracts .......   Passed   48.75 sec
+      Start 13: showcase.courtyard_asset_conversion
+13/99 Test #13: showcase.courtyard_asset_conversion ............   Passed   21.37 sec
+      Start 14: showcase.performance_statistics
+14/99 Test #14: showcase.performance_statistics ................   Passed    0.17 sec
+      Start 15: showcase.benchmark_evidence_policy
+15/99 Test #15: showcase.benchmark_evidence_policy .............   Passed    1.12 sec
+      Start 16: showcase.benchmark_evidence_policy_optimized
+16/99 Test #16: showcase.benchmark_evidence_policy_optimized ...   Passed    2.82 sec
+      Start 17: showcase.v1_probe
+17/99 Test #17: showcase.v1_probe ..............................   Passed    0.13 sec
+      Start 18: showcase.runtime_rooms
+18/99 Test #18: showcase.runtime_rooms .........................   Passed    4.73 sec
+      Start 19: showcase.visual_tour_cli
+19/99 Test #19: showcase.visual_tour_cli .......................   Passed    2.72 sec
+      Start 20: showcase.guided_tour_cli
+20/99 Test #20: showcase.guided_tour_cli .......................   Passed    0.42 sec
+      Start 21: showcase.probe_export
+21/99 Test #21: showcase.probe_export ..........................   Passed    0.45 sec
+      Start 22: showcase.zig_headless
+22/99 Test #22: showcase.zig_headless ..........................   Passed    0.44 sec
+      Start 23: showcase.feature_gallery
+23/99 Test #23: showcase.feature_gallery .......................   Passed    0.42 sec
+      Start 24: showcase.zig_dynamic
+24/99 Test #24: showcase.zig_dynamic ...........................   Passed    0.41 sec
+      Start 25: showcase.capability_fallbacks
+25/99 Test #25: showcase.capability_fallbacks ..................   Passed    0.38 sec
+      Start 26: foundation.build_info
+26/99 Test #26: foundation.build_info ..........................   Passed    0.07 sec
+      Start 27: foundation.gameplay_abi
+27/99 Test #27: foundation.gameplay_abi ........................   Passed    0.07 sec
+      Start 28: core.runtime
+28/99 Test #28: core.runtime ...................................   Passed    0.18 sec
+      Start 29: core.v2_m11_remote_diagnostics
+29/99 Test #29: core.v2_m11_remote_diagnostics .................   Passed    0.07 sec
+      Start 30: ai.v2_m7_navigation_crowd_policy
+30/99 Test #30: ai.v2_m7_navigation_crowd_policy ...............   Passed    0.15 sec
+      Start 31: build.pose_search_profiles
+31/99 Test #31: build.pose_search_profiles .....................***Failed    0.82 sec
+Traceback (most recent call last):
+  File "G:\proj\Nexora\Tools\Build\VerifyPoseSearchProfiles.py", line 66, in <module>
+    main()
+    ~~~~^^
+  File "G:\proj\Nexora\Tools\Build\VerifyPoseSearchProfiles.py", line 62, in main
+    verify(args.root.resolve(), args.cmake, Path(temporary) / name, options, enabled)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\proj\Nexora\Tools\Build\VerifyPoseSearchProfiles.py", line 24, in verify
+    raise RuntimeError(f"{directory.name}: configure failed\n{result.stdout}\n{result.stderr}")
+RuntimeError: development: configure failed
+-- Configuring incomplete, errors occurred!
+
+CMake Error: CMake was unable to find a build program corresponding to "Ninja".  CMAKE_MAKE_PROGRAM is not set.  You probably need to select a different build tool.
+CMake Error: CMAKE_C_COMPILER not set, after EnableLanguage
+CMake Error: CMAKE_CXX_COMPILER not set, after EnableLanguage
+
+
+      Start 32: animation.v2_m8_pose_search
+32/99 Test #32: animation.v2_m8_pose_search ....................   Passed    0.43 sec
+      Start 33: build.animation_profiles
+33/99 Test #33: build.animation_profiles .......................***Failed    0.58 sec
+Traceback (most recent call last):
+  File "G:\proj\Nexora\Tools\Build\VerifyAnimationProfiles.py", line 67, in <module>
+    main()
+    ~~~~^^
+  File "G:\proj\Nexora\Tools\Build\VerifyAnimationProfiles.py", line 63, in main
+    verify(args.root.resolve(), args.cmake, Path(temporary) / name, options, enabled)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "G:\proj\Nexora\Tools\Build\VerifyAnimationProfiles.py", line 24, in verify
+    raise RuntimeError(f"{directory.name}: configure failed\n{result.stdout}\n{result.stderr}")
+RuntimeError: development: configure failed
+-- Configuring incomplete, errors occurred!
+
+CMake Error: CMake was unable to find a build program corresponding to "Ninja".  CMAKE_MAKE_PROGRAM is not set.  You probably need to select a different build tool.
+CMake Error: CMAKE_C_COMPILER not set, after EnableLanguage
+CMake Error: CMAKE_CXX_COMPILER not set, after EnableLanguage
+
+
+      Start 34: animation.v2_m8_synchronized_trs_graph
+34/99 Test #34: animation.v2_m8_synchronized_trs_graph .........   Passed    0.18 sec
+      Start 35: animation.v2_m8_marker_sync
+35/99 Test #35: animation.v2_m8_marker_sync ....................   Passed    0.10 sec
+      Start 36: animation.v2_m8_pose_storage_retarget
+36/99 Test #36: animation.v2_m8_pose_storage_retarget ..........   Passed    0.19 sec
+      Start 37: network.v2_m5_transport
+37/99 Test #37: network.v2_m5_transport ........................   Passed    0.39 sec
+      Start 38: network.v2_m6_entity_mapping
+38/99 Test #38: network.v2_m6_entity_mapping ...................   Passed    0.32 sec
+      Start 39: network.v2_m6_replication_interest
+39/99 Test #39: network.v2_m6_replication_interest .............   Passed    0.32 sec
+      Start 40: network.v2_m6_dormancy
+40/99 Test #40: network.v2_m6_dormancy .........................   Passed    0.32 sec
+      Start 41: network.v2_m6_prediction_replay
+41/99 Test #41: network.v2_m6_prediction_replay ................   Passed    0.29 sec
+      Start 42: network.server_runtime_contract
+42/99 Test #42: network.server_runtime_contract ................   Passed    0.32 sec
+      Start 43: network.v2_m5_headless_dependency
+43/99 Test #43: network.v2_m5_headless_dependency ..............   Passed    0.18 sec
+      Start 44: window_presentation.contracts
+44/99 Test #44: window_presentation.contracts ..................   Passed    3.42 sec
+      Start 45: window_presentation.scene_instance_contract
+45/99 Test #45: window_presentation.scene_instance_contract ....   Passed    0.15 sec
+      Start 46: window_presentation.dx12_pbr
+46/99 Test #46: window_presentation.dx12_pbr ...................***Failed    6.34 sec
+PBR frame=0 left=15,15,15 right=15,15,15 marker=80 expected=26 ui=23 pcf=46 halo=82 center=144
+PBR emission/normal/ORM/sRGB native pixels mismatch
+
+      Start 47: window_presentation.hlsl_embedding
+47/99 Test #47: window_presentation.hlsl_embedding .............   Passed    0.47 sec
+      Start 48: api.foundation_math_types
+48/99 Test #48: api.foundation_math_types ......................   Passed    0.23 sec
+      Start 49: api.core_services_handle_and_vfs_contract
+49/99 Test #49: api.core_services_handle_and_vfs_contract ......   Passed   38.39 sec
+      Start 50: api.m6_c_consumer
+50/99 Test #50: api.m6_c_consumer ..............................   Passed    0.66 sec
+      Start 51: api.m6_manifest_compatibility
+51/99 Test #51: api.m6_manifest_compatibility ..................   Passed    4.34 sec
+      Start 52: samples.api_foundation
+52/99 Test #52: samples.api_foundation .........................   Passed    0.23 sec
+      Start 53: renderer.metal_source_contract
+53/99 Test #53: renderer.metal_source_contract .................   Passed    0.85 sec
+      Start 54: renderer.indirect_range_source_contract
+54/99 Test #54: renderer.indirect_range_source_contract ........   Passed    1.38 sec
+      Start 55: renderer.contracts
+55/99 Test #55: renderer.contracts .............................   Passed    8.35 sec
+      Start 56: renderer.scene_frame_contracts
+56/99 Test #56: renderer.scene_frame_contracts .................   Passed    0.15 sec
+      Start 57: renderer.material_contracts
+57/99 Test #57: renderer.material_contracts ....................   Passed    0.13 sec
+      Start 58: renderer.golden_image_acceptance
+58/99 Test #58: renderer.golden_image_acceptance ...............   Passed    0.15 sec
+      Start 59: renderer.v2_gpu_scene
+59/99 Test #59: renderer.v2_gpu_scene ..........................   Passed    0.14 sec
+      Start 60: renderer.v2_gpu_driven
+60/99 Test #60: renderer.v2_gpu_driven .........................   Passed    1.19 sec
+      Start 61: runtime.shader_artifact_contracts
+61/99 Test #61: runtime.shader_artifact_contracts ..............   Passed    0.14 sec
+      Start 62: runtime.v1_m4_m11_contracts
+62/99 Test #62: runtime.v1_m4_m11_contracts ....................   Passed    0.12 sec
+      Start 63: api.game_world_facade
+63/99 Test #63: api.game_world_facade ..........................   Passed    0.12 sec
+      Start 64: runtime.transform_rotation_scale
+64/99 Test #64: runtime.transform_rotation_scale ...............   Passed    0.11 sec
+      Start 65: runtime.entity_parenting
+65/99 Test #65: runtime.entity_parenting .......................   Passed    5.95 sec
+      Start 66: runtime.render_sync
+66/99 Test #66: runtime.render_sync ............................   Passed    1.40 sec
+      Start 67: api.gameplay_host_bridge
+67/99 Test #67: api.gameplay_host_bridge .......................   Passed    0.13 sec
+      Start 68: runtime.v1_m12_shipping
+68/99 Test #68: runtime.v1_m12_shipping ........................   Passed    0.27 sec
+      Start 69: runtime.v2_m12_hardening_reference_projects
+69/99 Test #69: runtime.v2_m12_hardening_reference_projects ....   Passed    0.26 sec
+      Start 70: runtime.v1_m7_input_ui_localization
+70/99 Test #70: runtime.v1_m7_input_ui_localization ............   Passed    0.13 sec
+      Start 71: runtime.v1_m8_gameplay_simulation
+71/99 Test #71: runtime.v1_m8_gameplay_simulation ..............   Passed    0.13 sec
+      Start 72: runtime.v2_m7_ai_character_intent_bridge
+72/99 Test #72: runtime.v2_m7_ai_character_intent_bridge .......   Passed    0.10 sec
+      Start 73: runtime.v1_m10_large_world
+73/99 Test #73: runtime.v1_m10_large_world .....................   Passed    0.13 sec
+      Start 74: runtime.v1_m11_platform
+74/99 Test #74: runtime.v1_m11_platform ........................   Passed    0.12 sec
+      Start 75: animation.v2_m8_sync_group_graph
+75/99 Test #75: animation.v2_m8_sync_group_graph ...............   Passed    0.13 sec
+      Start 76: runtime.v1_m9_presentation
+76/99 Test #76: runtime.v1_m9_presentation .....................   Passed    0.12 sec
+      Start 77: runtime.v2_m9_timeline_ui_audio_media
+77/99 Test #77: runtime.v2_m9_timeline_ui_audio_media ..........   Passed    0.13 sec
+      Start 78: runtime.v1_m4_vertical_slice
+78/99 Test #78: runtime.v1_m4_vertical_slice ...................   Passed    0.62 sec
+      Start 79: runtime.gameplay_module_host
+79/99 Test #79: runtime.gameplay_module_host ...................   Passed    0.11 sec
+      Start 80: runtime.dynamic_gameplay_module
+80/99 Test #80: runtime.dynamic_gameplay_module ................   Passed    0.82 sec
+      Start 81: runtime.v1_m5_asset_pipeline
+81/99 Test #81: runtime.v1_m5_asset_pipeline ...................   Passed    0.36 sec
+      Start 82: api.bundle_mount
+82/99 Test #82: api.bundle_mount ...............................   Passed    0.10 sec
+      Start 83: runtime.v1_m6_editor_sdk
+83/99 Test #83: runtime.v1_m6_editor_sdk .......................   Passed    0.13 sec
+      Start 84: editor.shader_authoring_contracts
+84/99 Test #84: editor.shader_authoring_contracts ..............   Passed    0.18 sec
+      Start 85: editor.preview_contract
+85/99 Test #85: editor.preview_contract ........................   Passed    2.24 sec
+      Start 86: editor.autosave_journal
+86/99 Test #86: editor.autosave_journal ........................   Passed    0.89 sec
+      Start 87: editor.workspace_budget
+87/99 Test #87: editor.workspace_budget ........................   Passed    4.56 sec
+      Start 88: editor.viewport_math
+88/99 Test #88: editor.viewport_math ...........................   Passed    0.10 sec
+      Start 89: editor.mesh_import
+89/99 Test #89: editor.mesh_import .............................   Passed    0.46 sec
+      Start 90: editor.asset_source
+90/99 Test #90: editor.asset_source ............................   Passed    1.99 sec
+      Start 91: editor.mesh_asset_catalog
+91/99 Test #91: editor.mesh_asset_catalog ......................   Passed    0.10 sec
+      Start 92: editor.mesh_reimport
+92/99 Test #92: editor.mesh_reimport ...........................   Passed    0.63 sec
+      Start 93: editor.parser_robustness
+93/99 Test #93: editor.parser_robustness .......................   Passed  172.69 sec
+      Start 94: editor.affine_gizmo_contract
+94/99 Test #94: editor.affine_gizmo_contract ...................   Passed    0.15 sec
+      Start 95: editor.component_reset_contract
+95/99 Test #95: editor.component_reset_contract ................   Passed    0.18 sec
+      Start 96: editor.transform_value_contract
+96/99 Test #96: editor.transform_value_contract ................   Passed    0.18 sec
+      Start 97: editor.builtin_creation_contract
+97/99 Test #97: editor.builtin_creation_contract ...............   Passed    0.29 sec
+      Start 98: editor.scene_file_contract
+98/99 Test #98: editor.scene_file_contract .....................   Passed    1.77 sec
+      Start 99: editor.play_input_settings
+99/99 Test #99: editor.play_input_settings .....................   Passed    0.54 sec
+
+96% tests passed, 4 tests failed out of 99
+
+Label Time Summary:
+dx12              =   6.34 sec*proc (1 test)
+native-display    =   6.34 sec*proc (1 test)
+showcase          =   6.34 sec*proc (1 test)
+
+Total Test time (real) = 610.02 sec
+
+The following tests FAILED:
+	 10 - showcase.courtyard_hero_generation (Failed)
+	 31 - build.pose_search_profiles (Failed)
+	 33 - build.animation_profiles (Failed)
+	 46 - window_presentation.dx12_pbr (Failed)             dx12 native-display showcase
+Errors while running CTest

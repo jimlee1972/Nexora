@@ -6,6 +6,7 @@
 #include "ToneParametersUpload.h"
 
 #include <array>
+#include <bit>
 #include <cmath>
 #include <iostream>
 #include <limits>
@@ -107,6 +108,34 @@ void Run() {
   pbr.pbr = true;
   pbr.vertices = pbrVertices;
   Require(ValidatePbrData(pbr), "valid PBR geometry rejected");
+  // Cover both signs and every exponent, including subnormals and multiple NaN payloads.
+  for (std::uint32_t exponent = 0; exponent < 256; ++exponent)
+    for (const std::uint32_t sign : {0U, 0x80000000U})
+      for (const std::uint32_t fraction : {0U, 1U, 0x3fffffU, 0x400000U, 0x7fffffU}) {
+        const float value = std::bit_cast<float>(sign | (exponent << 23) | fraction);
+        const bool finite = std::isfinite(value);
+        Require(IsFiniteSceneFloat(value) == finite, "binary32 classification changed");
+        pbrVertices[0].position[0] = value;
+        Require(ValidatePbrData(pbr) == finite, "PBR position finite classification changed");
+        pbrVertices[0].position[0] = 0;
+        pbrVertices[0].uv[0] = value;
+        Require(ValidatePbrData(pbr) == finite, "PBR UV finite classification changed");
+        pbrVertices[0].uv[0] = 0;
+      }
+  for (const std::uint32_t bits :
+       {0x7f800000U, 0xff800000U, 0x7fc00001U, 0x7f800001U, 0xffc00001U, 0xff800001U}) {
+    auto &vertex = pbrVertices[0];
+    for (float *component :
+         {&vertex.position[0], &vertex.position[1], &vertex.position[2], &vertex.normal[0],
+          &vertex.normal[1], &vertex.normal[2], &vertex.uv[0], &vertex.uv[1], &vertex.tangent[0],
+          &vertex.tangent[1], &vertex.tangent[2], &vertex.tangent[3]}) {
+      const float previous = *component;
+      *component = std::bit_cast<float>(bits);
+      Require(!ValidatePbrData(pbr), "nonfinite PBR component accepted");
+      *component = previous;
+    }
+  }
+
   pbr.hdr = true;
   Require(!ValidatePbrData(pbr), "direct HDR accepted");
   pbr.offscreen = true;

@@ -2,6 +2,8 @@
 #include "Nexora/Presentation/Surface.h"
 #include <algorithm>
 #include <array>
+#include <bit>
+#include <limits>
 
 namespace Nexora::Presentation {
 [[nodiscard]] inline bool HasSceneRefraction(const SceneDrawData &draw) noexcept {
@@ -9,6 +11,14 @@ namespace Nexora::Presentation {
     return material.refractionIndex > 1 && material.refractionThickness > 0 && material.opacity > 0;
   });
 }
+// Binary32 classification avoids a CRT call per vertex component on MSVC. No arithmetic
+// touches the value, so signed zeros and subnormals remain finite and every NaN payload is
+// rejected.
+[[nodiscard]] inline bool IsFiniteSceneFloat(float value) noexcept {
+  static_assert(sizeof(float) == sizeof(std::uint32_t) && std::numeric_limits<float>::is_iec559);
+  return (std::bit_cast<std::uint32_t>(value) & 0x7f800000U) != 0x7f800000U;
+}
+
 // PBR validation is shared; resident map references and native capabilities remain adapter-owned.
 [[nodiscard]] inline bool ValidatePbrData(const SceneDrawData &draw) noexcept {
   if (draw.postProcessAntiAliasing && (!draw.hdr || !draw.pbr || !draw.offscreen))
@@ -183,16 +193,16 @@ namespace Nexora::Presentation {
       return false;
   for (const auto &vertex : draw.vertices) {
     for (const auto value : vertex.position)
-      if (!std::isfinite(value))
+      if (!IsFiniteSceneFloat(value))
         return false;
     for (const auto value : vertex.uv)
-      if (!std::isfinite(value))
+      if (!IsFiniteSceneFloat(value))
         return false;
     for (const auto value : vertex.normal)
-      if (!std::isfinite(value))
+      if (!IsFiniteSceneFloat(value))
         return false;
     for (const auto value : vertex.tangent)
-      if (!std::isfinite(value))
+      if (!IsFiniteSceneFloat(value))
         return false;
     if (std::abs(vertex.tangent[3]) != 1)
       return false;

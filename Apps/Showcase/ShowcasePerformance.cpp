@@ -83,15 +83,54 @@ void FrameProfiler::Record(double frameMs, std::optional<double> processCpuMs) {
   }
 }
 
+void FrameProfiler::RecordCompletedGpu(std::uint64_t submission,
+                                       std::optional<double> milliseconds) {
+  if (!gpuTimingRequested_ || !submission || submission <= lastGpuSubmission_ || !milliseconds ||
+      !std::isfinite(*milliseconds) || *milliseconds <= 0 || *milliseconds > 60000)
+    return;
+  lastGpuSubmission_ = submission;
+  if (submission <= warmupFrames)
+    return;
+  if (gpuSamples_.size() < maxSamples)
+    gpuSamples_.push_back(*milliseconds);
+  else {
+    gpuSamples_[nextGpuSample_] = *milliseconds;
+    nextGpuSample_ = (nextGpuSample_ + 1) % maxSamples;
+  }
+}
+
 std::string FrameProfiler::Report() const {
   std::ostringstream out;
   out << std::setprecision(9)
       << "{\"schema\":\"nexora.showcase.performance.v1\",\"scope\":\"native acquired frame; "
          "includes acquire/present and pacing\",\"warmup_frames\":60,\"observed_frames\":"
       << observed_ << ",\"sample_count\":" << samples_.size()
-      << ",\"sample_capacity\":18000,\"sample_window\":\"latest frames after warmup\","
-         "\"gpu_timing_ms\":null,\"gpu_timing_status\":\"UNAVAILABLE: no GPU timestamps\","
-         "\"cpu_scope\":\"process-wide user+kernel CPU time; includes all threads\",";
+      << ",\"sample_capacity\":18000,\"sample_window\":\"latest frames after warmup\",";
+  out << "\"gpu_timing_requested\":" << (gpuTimingRequested_ ? "true" : "false")
+      << ",\"gpu_timing_sample_count\":" << gpuSamples_.size()
+      << ",\"gpu_sample_capacity\":18000,\"gpu_sample_window\":\"latest completed submissions "
+         "after GPU warmup\","
+         "\"gpu_scope\":\"native completed command-buffer interval; excludes CPU waits and display "
+         "latency\","
+         "\"gpu_completed_submission\":"
+      << lastGpuSubmission_ << ',';
+  if (gpuSamples_.empty()) {
+    out << "\"gpu_timing_ms\":null,\"gpu_timing_status\":\""
+        << (gpuTimingRequested_ ? "UNAVAILABLE: no completed GPU samples"
+                                : "UNAVAILABLE: no GPU timestamps")
+        << "\",\"gpu_p95_ms\":null,\"gpu_p99_ms\":null,";
+  } else {
+    auto samples = gpuSamples_;
+    const double mean = std::accumulate(samples.begin(), samples.end(), 0.0) / samples.size();
+    std::sort(samples.begin(), samples.end());
+    const auto percentile = [&](double quantile) {
+      return samples[static_cast<std::size_t>(std::ceil(quantile * samples.size())) - 1];
+    };
+    out << "\"gpu_timing_ms\":" << mean
+        << ",\"gpu_timing_status\":\"MEASURED: completed native GPU intervals\","
+        << "\"gpu_p95_ms\":" << percentile(0.95) << ",\"gpu_p99_ms\":" << percentile(0.99) << ',';
+  }
+  out << "\"cpu_scope\":\"process-wide user+kernel CPU time; includes all threads\",";
   if (const auto memory = PeakResidentBytes())
     out << "\"peak_resident_bytes\":" << *memory << ',';
   else
