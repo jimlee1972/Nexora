@@ -270,6 +270,13 @@ public:
   static void FocusInspectorEulerField(EditorImGuiHost &host, std::size_t axis) noexcept;
   [[nodiscard]] static std::optional<std::array<double, 3>>
   InspectorEulerAngles(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;
+  // Actual build panel controls: executable, cwd, add/remove argument, run, cancel, first argv.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  BuildControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  static void SetBuildCommand(EditorImGuiHost &host, std::string_view executable,
+                              std::string_view cwd, std::span<const std::string> arguments);
+  [[nodiscard]] static BuildProcessSnapshot BuildStatus(const EditorImGuiHost &host);
+  [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,

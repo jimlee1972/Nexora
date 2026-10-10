@@ -836,6 +836,14 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ The graphical Build Console edits an absolute executable, working directory and discrete
+    owning arguments, with explicit Run/Cancel and Ctrl+Enter/Ctrl+Shift+Enter. Live merged output
+    is a bounded 16 KiB raw tail rendered with byte escapes, exact dropped counts and native exit
+    status; exit zero explicitly leaves artifacts unverified. Scope/authority changes cancel work
+    and clear old display, while native close drains a real long-running child. Actual 1x/2x controls,
+    binary output, Unicode/empty/metacharacter arguments, failures and cancellation pass; existing
+    export controls retain acceptance. Target profiles, verified build manifests and remote deploy
+    remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM6-BuildConsole-Linux-2026-10-10.md).
   - ✅ The build prerequisite now runs actual scoped owning processes with direct native argv,
     bounded merged output/dropped counts and exact launch/exit/cancellation states. Real child
     fixtures cover Unicode/metacharacters, nonzero/signal failure, flood limits, queued/running

@@ -47,6 +47,11 @@ int Run(const std::vector<std::string> &arguments) {
     return 0;
   }
 #endif
+  if (mode == "--binary-output") {
+    constexpr char bytes[]{'A', '\0', static_cast<char>(0xff), '\x1b', '[', '3', '1', 'm', '\n'};
+    std::cout.write(bytes, sizeof(bytes));
+    return 0;
+  }
   if (mode == "--fail") {
     std::cerr << "ACTUAL_NONZERO_EXIT\n";
     return 7;

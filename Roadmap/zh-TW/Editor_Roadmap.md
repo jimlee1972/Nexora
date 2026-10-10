@@ -807,6 +807,15 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 
+- ✅ 圖形化 Build Console 可編輯 absolute executable、working directory 與分開保存的 owning
+  argument，提供明確 Run／Cancel 及 Ctrl+Enter／Ctrl+Shift+Enter。即時合併輸出保留有界
+  16 KiB raw tail，以 byte escape 顯示，附精確 dropped count 與 native exit status；exit zero
+  明示 artifact 尚未驗證。Scope／authority 改變會取消工作並清除舊顯示，native close 排空
+  真實長時間 child。實際 1x／2x control、binary output、Unicode／empty／metacharacter argument、
+  failure 與 cancellation 通過，既有 export control 仍通過驗收。Target profile、verified build
+  manifest 與 remote deploy 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-BuildConsole-Linux-2026-10-10.md)。
+
 - ✅ Build prerequisite 現以 native argv 直接執行真實 scoped owning process，提供有界
   merged output／dropped count 與精確 launch／exit／cancellation state。實際 child fixture 涵蓋
   Unicode／特殊字元、nonzero／signal failure、flood limit、queued／running cancellation、

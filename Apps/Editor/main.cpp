@@ -724,6 +724,11 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::AssetImportQueue imports{import_jobs};
   nexora::editor::StaticProjectExportJob static_export{import_jobs};
   nexora::editor::SceneComparisonJob scene_comparison{import_jobs};
+  nexora::editor::BuildProcess build_process{import_jobs};
+  std::uint64_t build_scope = 1;
+  nexora::foundation::Uuid build_project_id{};
+  std::uint64_t build_reported_operation{};
+  nexora::editor::BuildProcessPhase build_reported_phase{};
   nexora::editor::ProjectContentSession content;
   struct PendingProject final {
     ProjectState candidate;
@@ -2072,6 +2077,33 @@ int RunGraphical(std::optional<ProjectState> project,
                 << " retained=" << local_diagnostics.Events().size() << '\n';
     else if (events_before && local_diagnostics.Events().empty())
       std::cerr << "diagnostic queue cleared retained=0\n";
+    const auto build_project =
+        project ? project->workspace.Project().id : nexora::foundation::Uuid{};
+    if (build_project != build_project_id) {
+      build_project_id = build_project;
+      ++build_scope;
+    }
+    const bool build_allowed = project && project->workspace.Writable() &&
+                               !project->workspace.HasExternalChange() &&
+                               !project->workspace.HasRecoveryJournal() &&
+                               play.State() == nexora::runtime::PlayState::Stopped &&
+                               !exit_requested && !composition_restore_blocked;
+    ui.DrawBuildProcess(build_process, project ? build_scope : 0,
+                        project ? project->workspace.Root() : std::filesystem::path{},
+                        build_allowed);
+    const auto build_observation = build_process.Snapshot();
+    if (build_observation.operation != build_reported_operation ||
+        build_observation.phase != build_reported_phase) {
+      build_reported_operation = build_observation.operation;
+      build_reported_phase = build_observation.phase;
+      std::cerr << "build process phase=" << static_cast<unsigned>(build_observation.phase)
+                << " operation=" << build_observation.operation << " exit=";
+      if (build_observation.exit_code)
+        std::cerr << *build_observation.exit_code;
+      else
+        std::cerr << "unavailable";
+      std::cerr << " artifact_verified=0\n";
+    }
     static_cast<void>(ui.EndFrame());
     // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
     // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
@@ -2270,9 +2302,11 @@ int RunGraphical(std::optional<ProjectState> project,
   local_diagnostics.Set(false);
   std::cerr << "diagnostic privacy close: enabled=0 retained=0\n";
   static_cast<void>(static_export.Cancel());
+  static_cast<void>(build_process.Cancel());
   imports.Shutdown();
   scene_comparison.Shutdown();
   static_export.Shutdown();
+  build_process.Shutdown();
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
