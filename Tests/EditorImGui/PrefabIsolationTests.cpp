@@ -1,6 +1,7 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/PrefabDocumentSession.h"
 #include "TemporaryDirectoryCleanup.h"
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -36,7 +37,7 @@ void Run(float scale) {
   Require(session.Create(id, source, false, &error), "Isolation fixture failed");
   editor::imgui::EditorImGuiHost ui;
   editor::ProductShell shell;
-  ui.SetDisplay(1400, 1000, scale);
+  ui.SetDisplay(1400, 1800, scale);
   Access::ConfigureSyntheticInput(ui);
   ui.OpenPrefabIsolation();
   Nexora::Window::WindowEvent focus;
@@ -70,6 +71,25 @@ void Run(float scale) {
   const auto click = [&](std::size_t control) {
     const auto point = Access::PrefabControlPosition(ui, control);
     Require(point.has_value(), "Actual prefab control absent");
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * scale);
+    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  const auto click_property = [&](std::size_t row) {
+    const auto point = Access::PrefabPropertyPosition(ui, row);
+    Require(point.has_value(), "Actual selected-property checkbox absent");
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
     pointer.value0 = static_cast<int>((*point)[0] * scale);
@@ -147,6 +167,61 @@ void Run(float scale) {
           "Actual Review control did not emit an owning source comparison");
   ui.SetPrefabReview(review->Changes(), review->CanRevert());
   draw();
+  // Prepare two edits, select only name, and exercise actual confirmation and history.
+  Require(session.EditableDocument()->Rename(*session.Document()->Key(node), "Selective name"),
+          "Selected name fixture failed");
+  auto mixed_review = session.Review(&error);
+  Require(mixed_review && mixed_review->CanRevert(), "Mixed selected review failed");
+  ui.SetPrefabReview(mixed_review->Changes(), mixed_review->CanRevert());
+  draw();
+  const auto &mixed_rows = mixed_review->Changes().rows;
+  const auto name_row = std::ranges::find_if(
+      mixed_rows, [](const auto &row) { return row.stable_path.ends_with("/name"); });
+  Require(name_row != mixed_rows.end(), "Stable name difference absent");
+  click_property(static_cast<std::size_t>(name_row - mixed_rows.begin()));
+  click(16);
+  Require(!ui.TakePrefabIsolationRequest() && !Access::PrefabControlPosition(ui, 17),
+          "Changed checkbox selection retained full-revert consent");
+  click(19);
+  const auto selection_request = ui.TakePrefabIsolationRequest();
+  Require(selection_request && selection_request->action == Action::SelectReview &&
+              selection_request->selected.size() == 1,
+          "Actual selected review lost stable field identities");
+  auto selected_review = session.SelectReview(*mixed_review, selection_request->selected, &error);
+  Require(selected_review && selected_review->Targeted() && selected_review->CanRevert(),
+          "Selected owning candidate preparation failed");
+  ui.SetPrefabReview(selected_review->Changes(), selected_review->CanRevert(),
+                     selected_review->Selections(), selected_review->Targeted());
+  draw();
+  click(16);
+  Require(!ui.TakePrefabIsolationRequest(), "Selected revert skipped confirmation");
+  click(17);
+  const auto selected_revert = ui.TakePrefabIsolationRequest();
+  Require(selected_revert && selected_revert->action == Action::Revert &&
+              session.Revert(*selected_review, true, &error) &&
+              session.Document()->Name(node) == "Isolated edit" &&
+              session.Document()->Transform(node)->x == 0 && session.Dirty(),
+          "Selected name revert changed unselected position or lost dirty state");
+  ui.SetPrefabReview(std::nullopt);
+  draw();
+  click(8);
+  Require(session.Document()->Name(node) == "Selective name" &&
+              session.Document()->Transform(node)->x == 0,
+          "One selected Undo did not restore the mixed edit");
+  click(9);
+  Require(session.Document()->Name(node) == "Isolated edit" &&
+              session.Document()->Transform(node)->x == 0,
+          "One selected Redo changed an unselected field");
+  click(8);
+  click(8);
+  Require(session.Document()->Name(node) == "Isolated edit" &&
+              session.Document()->Transform(node)->x == 0 &&
+              editor::PrefabAssets::Load(workspace, id) == saved,
+          "Selected workflow published source or lost original edit history");
+  review = session.Review(&error);
+  Require(review && review->CanRevert(), "Fresh full review failed after selected history");
+  ui.SetPrefabReview(review->Changes(), review->CanRevert());
+  draw();
   click(16);
   Require(!ui.TakePrefabIsolationRequest() && Access::PrefabControlPosition(ui, 17),
           "Actual property revert skipped explicit confirmation");
@@ -205,7 +280,7 @@ void Run(float scale) {
     Require(inspection.Open(id, false, &error), "Read-only prefab open failed");
     const auto before = inspection.Document()->PrepareSave()->Bytes();
     editor::imgui::EditorImGuiHost readonly_ui;
-    readonly_ui.SetDisplay(1400, 1000, scale);
+    readonly_ui.SetDisplay(1400, 1800, scale);
     Access::ConfigureSyntheticInput(readonly_ui);
     readonly_ui.OpenPrefabIsolation();
     readonly_ui.ProcessEvents(std::array{focus});

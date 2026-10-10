@@ -2140,6 +2140,8 @@ int RunGraphical(std::optional<ProjectState> project,
         std::string error;
         bool applied = false;
         if (!live) {
+          prefab_review.reset();
+          ui.SetPrefabReview(std::nullopt);
           error = "Prefab action is stale, or Play/export/close/recovery is active.";
         } else {
           using Action = nexora::editor::imgui::PrefabIsolationAction;
@@ -2188,9 +2190,23 @@ int RunGraphical(std::optional<ProjectState> project,
             else
               error = "Review the current prefab changes before reverting properties.";
             break;
+          case Action::SelectReview:
+            if (prefab_review)
+              prefab_review =
+                  prefab_documents->SelectReview(*prefab_review, request->selected, &error);
+            else
+              error = "Review the current source before preparing selected properties.";
+            applied = prefab_review.has_value();
+            if (prefab_review)
+              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
+                                 prefab_review->Selections(), prefab_review->Targeted());
+            else
+              ui.SetPrefabReview(std::nullopt);
+            break;
           }
         }
-        if (request->action != nexora::editor::imgui::PrefabIsolationAction::Review) {
+        if (request->action != nexora::editor::imgui::PrefabIsolationAction::Review &&
+            request->action != nexora::editor::imgui::PrefabIsolationAction::SelectReview) {
           prefab_review.reset();
           ui.SetPrefabReview(std::nullopt);
         }

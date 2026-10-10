@@ -709,6 +709,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+✅ Graphical selected-field prefab revert 已驗證：stable field-group checkbox、明確 candidate
+preparation 與確認，保留未選取的值並使用一次 Undo／Redo。Source apply、reference rebase、
+structural／live-instance binding 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-SelectedPrefabRevert-Linux-2026-10-10.md)。
+
+
 ✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、
 明確 full revert 確認、一次 mixed-property Undo／Redo 及 read-only inspection。
 Targeted field、source apply、structural binding 與 reference rebase 仍待完成。

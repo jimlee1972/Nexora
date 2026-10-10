@@ -1,5 +1,6 @@
 #pragma once
 #include "Nexora/Editor/PrefabAssets.h"
+#include "Nexora/Editor/PrefabPropertyPlan.h"
 #include "Nexora/Editor/SceneComparison.h"
 #include <memory>
 
@@ -10,6 +11,10 @@ class NEXORA_EDITOR_API PrefabPropertyReview final {
 public:
   [[nodiscard]] const SceneComparison &Changes() const noexcept { return changes_; }
   [[nodiscard]] bool CanRevert() const noexcept { return candidate_.has_value(); }
+  [[nodiscard]] bool Targeted() const noexcept { return targeted_; }
+  [[nodiscard]] std::span<const PrefabPropertySelection> Selections() const noexcept {
+    return selections_;
+  }
 
 private:
   friend class PrefabDocumentSession;
@@ -27,6 +32,8 @@ private:
   std::filesystem::path root_;
   foundation::Uuid project_, asset_;
   std::uint64_t generation_{};
+  std::vector<PrefabPropertySelection> selections_{};
+  bool targeted_{};
 };
 // Serialized authoring owner. Workspace outlives this session. Document borrows expire on
 // successful replacement, Close or destruction; no source World/document borrows are retained.
@@ -43,6 +50,9 @@ public:
   bool Save(const std::function<foundation::Uuid()> &, std::string *error = nullptr);
   bool Close(bool discard_dirty = false, std::string *error = nullptr);
   [[nodiscard]] std::optional<PrefabPropertyReview> Review(std::string *error = nullptr) const;
+  [[nodiscard]] std::optional<PrefabPropertyReview>
+  SelectReview(const PrefabPropertyReview &, std::span<const PrefabPropertySelection>,
+               std::string *error = nullptr) const;
   bool Revert(const PrefabPropertyReview &, bool authorized, std::string *error = nullptr);
   [[nodiscard]] const SceneDocument *Document() const;
   [[nodiscard]] SceneDocument *EditableDocument();
@@ -57,6 +67,7 @@ private:
   bool Current() const;
   bool Allowed(bool write, std::string *) const;
   bool Replaceable(bool discard_dirty, std::string *) const;
+  bool MatchesReview(const PrefabPropertyReview &) const;
   const ProjectWorkspace &workspace_;
   std::filesystem::path root_;
   foundation::Uuid project_;
