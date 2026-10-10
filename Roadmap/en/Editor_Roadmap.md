@@ -251,6 +251,11 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Linux native Scene Preview rotation Save acceptance now retains one physical keyboard
+  gesture across rendered release/modifier/key phases. Three cold workflows and the affected
+  253-test graphical suite preserve existing preview/commit/Undo/scale/reopen assertions and
+  deadlines. [Input evidence](../../Tools/Build/evidence/EditorEDM0-ScenePreviewSaveInput-Linux-2026-10-10.md).
+
 - ✅ Scalar opaque PBR `.nmaterial` assets now import/reimport as bounded immutable typed data,
   with 64 KiB sources, 4096-asset/Content Undo budgets and canonical Renderer-schema validation.
   Single-object Inspector assignment uses a versioned owning opaque UUID reference, one Undo and
