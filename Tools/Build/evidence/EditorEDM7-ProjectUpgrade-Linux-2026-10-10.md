@@ -52,3 +52,8 @@ or synchronous-call cancellation is inferred. This slice upgrades the project de
 source scenes, layout/workspace migration and broader graphical recovery remain separate work.
 Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged. Full milestones
 remain **0/8**.
+
+The final branch integrates accepted additive-tab main 9d799cd28a6628085b04ae50077614e3da33f11c.
+Upgrade production source and its tests remain unchanged from the recorded full Linux gate;
+the rebase retains both module contracts and all required workflow registrations.
+Final published-head hosted checks remain required.
