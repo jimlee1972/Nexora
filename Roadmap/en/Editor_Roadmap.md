@@ -751,6 +751,14 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Same-identity live placement snapshots advance one retained revision and its complete
+    properties in one Undo/Redo, preserving scoped mappings, other placements, hierarchy,
+    unbound latent Euler hints, dormant values, identity and source files. Invalid/stale input and
+    replay preserve history; mixed nested/two-placement, Save/reopen and full Linux 244/244 plus
+    Minimal Shipping pass. This transaction is a source-rebase prerequisite; source closure,
+    conflict review and graphical source rebase follow separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md).
+
   - ✅ The bound-scene Inspector selects owning scoped property rows and freezes their review
     serial/indices at explicit Revert confirmation. Complete selected property groups restore
     retained source values while unselected names/TRS/unknown data remain intact. Actual 1x/2x

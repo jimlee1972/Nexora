@@ -709,6 +709,14 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Same-identity live placement snapshot 將一個 retained revision 與完整 property 一起更新，
+  整組只有一次 Undo／Redo。Scoped mapping、其他 placement、hierarchy、unbound latent Euler
+  hint、dormant value、identity 與來源檔案均保留；invalid／stale input 或 replay 保留 history。
+  Mixed nested／two-placement、Save／reopen、完整 Linux 244/244 與 Minimal Shipping 通過。
+  這是 source-rebase 的交易前置項；source closure、conflict review 與圖形化 source rebase
+  仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md)。
+
 - ✅ Bound-scene Inspector 可選取持有的 scoped property row，並在明確 Revert 確認時凍結
   review serial／index。完整選取 property group 還原 retained source value，未選取 name／TRS／
   unknown data 保持原值。實際 1x／2x 控制項、三次原生冷啟動的 Name／rotation／opaque 流程、
