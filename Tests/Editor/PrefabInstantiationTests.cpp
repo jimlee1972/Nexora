@@ -1,5 +1,8 @@
 #include "Nexora/Editor/PrefabAssets.h"
+#include "Nexora/Editor/SceneSaveBatch.h"
 #include <algorithm>
+#include <chrono>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -10,7 +13,7 @@ void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
-void Run() {
+void Run(bool bound) {
   std::uint64_t next = 100;
   const auto identity = [&] { return foundation::Uuid{700, ++next}; };
   runtime::World root_world, child_world, target_world;
@@ -64,7 +67,11 @@ void Run() {
               !Assets::Instantiate({variant->id, 1}, sources, target, expected, true) &&
               target.Undo(),
           "Stale document observation authorized materialization");
-  const auto instantiated = Assets::Instantiate({variant->id, 1}, sources, target, expected, true);
+  const foundation::Uuid placement_id{710, 1};
+  const auto instantiated =
+      bound ? Assets::InstantiateBound(placement_id, {variant->id, 1}, sources, target, expected,
+                                       true)
+            : Assets::Instantiate({variant->id, 1}, sources, target, expected, true);
   Require(instantiated && instantiated->size() == 6 && target.Nodes().size() == 7,
           "Variant duplicated its base or lost nested placements");
   const auto mapped = [&](std::vector<foundation::Uuid> scope, foundation::Uuid node) {
@@ -106,11 +113,165 @@ void Run() {
               target.Name(target.Selection().front()) == "Seed Copy" && target.Undo() &&
               target.PrepareSave()->Bytes() == published,
           "Materialization was not one Undo/Redo or replaced user clipboard");
+  if (!bound) {
+    Require(target.PrefabPlacements().empty(), "Detached import acquired placement authority");
+    return;
+  }
+  const auto bindings =
+      std::vector(target.PrefabPlacements().begin(), target.PrefabPlacements().end());
+  Require(bindings.size() == 1 && bindings.front().instance == placement_id &&
+              bindings.front().source == variant->id && bindings.front().revision == 1 &&
+              bindings.front().nodes.size() == 6 &&
+              published.starts_with("NEXORA_EDITOR_SCENE 4\n") && target.Key(seed) == seed_key &&
+              target.Generation() == seed_key.document_generation,
+          "Bound import lost exact source/scope metadata or stable existing keys");
+  for (const auto &entry : *instantiated)
+    Require(std::ranges::any_of(bindings.front().nodes,
+                                [&](const auto &mapping) {
+                                  return mapping.scope == entry.scope &&
+                                         mapping.source_node == entry.node &&
+                                         mapping.target == entry.target.id;
+                                }),
+            "Persistent nested mapping differs from actual materialization");
+  Require(target.Rename(seed_key, "Ordinary edit") &&
+              std::ranges::equal(target.PrefabPlacements(), bindings) && target.Undo() &&
+              target.PrepareSave()->Bytes() == published,
+          "Ordinary rename/Undo changed placement bindings");
+  const auto current = *target.PrepareSave();
+  Require(
+      !Assets::InstantiateBound({}, {variant->id, 1}, sources, target, current, true) &&
+          !Assets::InstantiateBound(placement_id, {variant->id, 1}, sources, target, current,
+                                    true) &&
+          !Assets::InstantiateBound({710, 2}, {variant->id, 1}, sources, target, current, false) &&
+          target.MatchesPreparedSave(current),
+      "Nil/duplicate/unauthorized placement changed the live document");
+  runtime::World property_world;
+  editor::SceneDocument property(property_world, property_world.LoadScene("Property probe"));
+  Require(property.ReloadBytes(published) &&
+              property.Rename(*property.Key(root_key.id), "Property replacement") &&
+              target.ApplyPropertySnapshot(current, property.PrepareSave()->Bytes(), true) &&
+              std::ranges::equal(target.PrefabPlacements(), bindings) && target.Undo() &&
+              target.PrepareSave()->Bytes() == published && target.Redo() && target.Undo(),
+          "Generic property snapshot/Undo/Redo lost bound metadata");
+  auto different_binding = published;
+  const auto source_record =
+      "prefab-placement " + placement_id.ToString() + ' ' + variant->id.ToString() + " 1\n";
+  const auto start = different_binding.find(source_record);
+  Require(start != std::string::npos, "Placement source record absent");
+  different_binding.replace(start, source_record.size(),
+                            "prefab-placement " + placement_id.ToString() + ' ' +
+                                variant->id.ToString() + " 2\n");
+  Require(!target.ApplyPropertySnapshot(current, different_binding, true) &&
+              target.MatchesPreparedSave(current),
+          "Property-only replacement changed placement source context");
+  const auto capture = target.CaptureRuntimeScene();
+  Require(capture && capture->runtime_snapshot.find("prefab-") == std::string::npos &&
+              !Assets::Capture({710, 9}, target, identity),
+          "Editor bindings leaked to Runtime or were silently captured as unlinked assets");
+  const auto second_placement =
+      Assets::InstantiateBound({710, 2}, {variant->id, 1}, sources, target, current, true);
+  Require(second_placement && target.PrefabPlacements().size() == 2,
+          "Repeated bound placement failed");
+  const auto repeated = *target.PrepareSave();
+  const auto repeated_bindings =
+      std::vector(target.PrefabPlacements().begin(), target.PrefabPlacements().end());
+  Require(target.Select(std::array{a}) && target.DeleteSelection() &&
+              target.PrefabPlacements().size() == 1 &&
+              target.PrefabPlacements().front().instance == foundation::Uuid{710, 2} &&
+              target.PrepareSave().has_value() && target.Undo() &&
+              target.MatchesPreparedSave(repeated) &&
+              std::ranges::equal(target.PrefabPlacements(), repeated_bindings) && target.Redo() &&
+              target.PrefabPlacements().size() == 1 && target.Undo(),
+          "Structural deletion retained a dangling placement or lost binding Undo/Redo");
+  const auto temporary =
+      std::filesystem::temp_directory_path() /
+      ("nexora-bound-prefab-" +
+       std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  struct Cleanup {
+    std::filesystem::path path;
+    ~Cleanup() {
+      std::error_code error;
+      std::filesystem::remove_all(path, error);
+    }
+  } cleanup{temporary};
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(temporary, "Bound prefab"), "Bound save workspace failed");
+  editor::SceneFileSession files(workspace, target);
+  Require(files.SaveAs(files.Token(), "Content/Bound.scene").Applied() && !target.Dirty(),
+          "Scene file publication rejected owning bindings");
+  std::ifstream file(temporary / "Content/Bound.scene", std::ios::binary);
+  const std::string saved{std::istreambuf_iterator<char>(file), {}};
+  runtime::World reopened_world;
+  editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Reopen"));
+  Require(reopened.ReloadBytes(saved) && !reopened.Dirty() &&
+              std::ranges::equal(reopened.PrefabPlacements(), repeated_bindings) &&
+              reopened.PrepareSave()->Bytes() == saved && reopened.Key(a.id) != a,
+          "Scene reopen lost stable scoped bindings or retained stale generation keys");
+  const auto reopened_before = *reopened.PrepareSave();
+  Require(!reopened.ImportForestBytes(reopened_before, saved, true) &&
+              reopened.MatchesPreparedSave(reopened_before),
+          "Ordinary forest import silently dropped persistent source bindings");
+  const auto reject = [&](std::string bad) {
+    Require(!reopened.ReloadBytes(bad) && reopened.MatchesPreparedSave(reopened_before) &&
+                !reopened.Dirty(),
+            "Corrupt placement reload changed live content/baseline");
+  };
+  auto bad = saved;
+  bad.replace(0, std::string("NEXORA_EDITOR_SCENE 4").size(), "NEXORA_EDITOR_SCENE 3");
+  reject(bad);
+  bad = saved;
+  const auto record = saved.substr(saved.find("prefab-placement "),
+                                   saved.find('\n', saved.find("prefab-placement ")) -
+                                       saved.find("prefab-placement ") + 1);
+  bad.insert(bad.find(record), record);
+  reject(bad);
+  bad = saved;
+  const auto node_start = bad.find("prefab-node "), node_end = bad.find('\n', node_start);
+  const auto node_record = bad.substr(node_start, node_end - node_start + 1);
+  bad.insert(node_start, node_record);
+  reject(bad);
+  bad = saved;
+  const auto revision = bad.find(source_record) + source_record.size() - 2;
+  bad.replace(revision, 1, "-1");
+  reject(bad);
+  bad = saved;
+  const auto target_start = bad.rfind(' ', node_end);
+  bad.replace(target_start + 1, node_end - target_start - 1, "18446744073709551615");
+  reject(bad);
+  bad = saved;
+  bad.replace(bad.find(placement_id.ToString()), 36, foundation::Uuid{}.ToString());
+  reject(bad);
+  Require(target.Rename(seed_key, "Batch edit"), "Bound batch edit failed");
+  editor::SceneSaveBatch batch(workspace);
+  const std::array sessions{&files};
+  Require(batch.Prepare(sessions) && batch.Publish().Published() && !target.Dirty() &&
+              std::ranges::equal(target.PrefabPlacements(), repeated_bindings) && target.Undo() &&
+              target.PrepareSave()->Bytes() == saved,
+          "Coordinated Scene Save All lost bindings or consumed Undo");
+  Require(reopened.NewScene() && reopened.PrefabPlacements().empty() &&
+              reopened.ReloadBytes(saved) &&
+              std::ranges::equal(reopened.PrefabPlacements(), repeated_bindings),
+          "NewScene/reload retained stale or lost reopened placement metadata");
+  runtime::World many_world;
+  editor::SceneDocument many(many_world, many_world.LoadScene("Placement budget"));
+  for (std::size_t i = 0; i < editor::SceneDocument::kMaximumPrefabPlacements; ++i) {
+    const auto observation = *many.PrepareSave();
+    Require(
+        Assets::InstantiateBound({711, i + 1}, {variant->id, 1}, sources, many, observation, true)
+            .has_value(),
+        "Valid repeated placement budget rejected early");
+  }
+  const auto limit = *many.PrepareSave();
+  Require(!Assets::InstantiateBound({711, 129}, {variant->id, 1}, sources, many, limit, true) &&
+              many.MatchesPreparedSave(limit) && many.Undo() && many.Redo() &&
+              many.MatchesPreparedSave(limit),
+          "Placement limit mutated content or broke complete history");
 }
 } // namespace
 int main() {
   try {
-    Run();
+    Run(false);
+    Run(true);
     std::cout << "Nested prefab materialization passed\n";
     return 0;
   } catch (const std::exception &error) {
