@@ -1309,3 +1309,26 @@ slice installs no files, persists no private keys, makes no network calls and lo
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
+
+## External Chrome trace inspection
+
+`ChromeTraceImporter` imports wrapped `traceEvents` or bare event arrays as owning external
+complete-event intervals. Selection requires an explicit event name, process ID and thread ID;
+Chrome timestamps/durations are microseconds regardless of displayTimeUnit. Results retain the
+external trace clock and convert duration to milliseconds. ph=X alone does not identify CPU/GPU
+measurements, process memory or Editor frames; no such observations are fabricated.
+
+Bounded UTF-8/Unicode JSON validates unknown metadata, duplicate keys and framing without a DOM.
+Limits: 4MiB input,32768 events,600 retained selected samples,32 unknown-value depth,64 keys/object,
+64KiB decoded strings and256-byte event selector. Process/thread IDs are exact nonnegative decimal
+JSON integers or decimal strings up to2^53-1. Selected start times are finite/nonnegative/ordered;
+complete intervals remain inside that supported clock range. Simultaneous timestamps are permitted.
+Newest selected intervals retain original sequence IDs and exact older-sample dropped counts.
+Unsupported/malformed input rejects without changing prior captures or input files. Logical budgets
+do not promise a total allocator-memory quota. Public C++ consumers rebuild; stable C ABI unchanged.
+
+`ProjectWorkspace::ImportChromeTraceJson` explicitly reads `.nexora/chrome-trace.json`; read-only
+observers may import. Closed/recovery/external-change scopes, nonregular paths, symlinked metadata,
+aliased project roots and multiply linked trace files reject. Reads remain byte-bounded and recheck
+recovery/external state. No file writes, native loads or clock calibration occur. Arbitrary binary
+capture formats and physical GPU calibration remain separate work.

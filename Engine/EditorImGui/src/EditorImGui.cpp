@@ -137,6 +137,12 @@ struct EditorImGuiHost::State final {
   bool memory_import_requested = false;
   std::optional<ProcessMemoryCapture> imported_memory;
   std::array<std::optional<std::array<float, 2>>, 3> memory_control_positions{};
+  bool chrome_trace_open{};
+  std::array<char, 257> chrome_event_name{'F', 'r', 'a', 'm', 'e', 0};
+  std::array<char, 21> chrome_process{'0', 0}, chrome_thread{'0', 0};
+  std::optional<ChromeTraceImportRequest> chrome_trace_request;
+  std::optional<ChromeTraceCapture> imported_chrome_trace;
+  std::array<std::optional<std::array<float, 2>>, 5> chrome_positions{};
   bool gpu_export_requested = false;
   bool gpu_import_requested = false;
   std::optional<GpuTimingCapture> imported_gpu;
@@ -4538,11 +4544,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
   state_->gpu_control_positions = {};
+  state_->chrome_positions = {};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
+    state_->imported_chrome_trace.reset();
+    state_->chrome_trace_request.reset();
+    state_->chrome_trace_open = false;
+    state_->chrome_event_name = {'F', 'r', 'a', 'm', 'e', 0};
+    state_->chrome_process = state_->chrome_thread = {'0', 0};
+    const auto *chrome_window = ImGui::FindWindowByName("Chrome Trace###editor.profiler.chrome");
+    if (chrome_window && ImGui::GetCurrentContext()->ActiveIdWindow == chrome_window)
+      ImGui::ClearActiveID();
     state_->imported_memory.reset();
     state_->imported_gpu.reset();
     state_->gpu_export_requested = false;
@@ -5696,9 +5711,92 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             "Saved Editor wall timing; GPU/memory unavailable. CSV has no project provenance.");
         plot(state_->imported_profile->samples, "Imported frame processing (ms)");
       }
+      ImGui::BeginDisabled(!workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested);
+      if (ImGui::Button("Inspect Chrome trace"))
+        OpenChromeTraceImport();
+      ImGui::EndDisabled();
     }
   }
   ImGui::End();
+  if (state_->chrome_trace_open) {
+    ImGui::SetNextWindowPos({80, 80}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({600, 500}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Chrome Trace###editor.profiler.chrome", &state_->chrome_trace_open)) {
+      ImGui::TextUnformatted("Import .nexora/chrome-trace.json from this project.");
+      ImGui::TextWrapped(
+          "Select complete events by name, process and thread. External intervals "
+          "use their own trace clock; CPU/GPU classification and memory are unavailable.");
+      const auto position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->chrome_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      ImGui::SetNextItemWidth(350);
+      ImGui::InputText("Event name", state_->chrome_event_name.data(),
+                       state_->chrome_event_name.size());
+      position(0);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Process ID", state_->chrome_process.data(), state_->chrome_process.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(1);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Thread ID", state_->chrome_thread.data(), state_->chrome_thread.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(2);
+      ChromeTraceSelection selection;
+      selection.event_name = state_->chrome_event_name.data();
+      const auto integer = [](const auto &text, std::uint64_t &value) {
+        const auto size = std::strlen(text.data());
+        const auto result = std::from_chars(text.data(), text.data() + size, value);
+        return size && result.ec == std::errc{} && result.ptr == text.data() + size &&
+               value <= 9007199254740991ULL;
+      };
+      const bool valid = integer(state_->chrome_process, selection.process) &&
+                         integer(state_->chrome_thread, selection.thread) &&
+                         !selection.event_name.empty();
+      ImGui::BeginDisabled(!valid || !workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested || workspace->HasRecoveryJournal() ||
+                           workspace->HasExternalChange());
+      if (ImGui::Button("Import selected events"))
+        state_->chrome_trace_request = ChromeTraceImportRequest{
+            workspace->Project().id, workspace->Root(), std::move(selection)};
+      position(3);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_chrome_trace);
+      if (ImGui::Button("Clear external import"))
+        state_->imported_chrome_trace.reset();
+      position(4);
+      ImGui::EndDisabled();
+      if (!state_->profile_export_status.empty())
+        ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
+      if (state_->imported_chrome_trace) {
+        const auto &capture = *state_->imported_chrome_trace;
+        ImGui::SeparatorText("External Chrome complete-event intervals (static)");
+        ImGui::Text("Process %llu | Thread %llu | %zu intervals | %llu older dropped",
+                    static_cast<unsigned long long>(capture.selection.process),
+                    static_cast<unsigned long long>(capture.selection.thread),
+                    capture.samples.size(),
+                    static_cast<unsigned long long>(capture.older_samples_dropped));
+        ImGui::TextWrapped("Event: %s", capture.selection.event_name.c_str());
+        ImGui::BeginChild("External intervals", {0, 150}, ImGuiChildFlags_Borders);
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(capture.samples.size()));
+        while (clipper.Step())
+          for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+            const auto &sample = capture.samples[static_cast<std::size_t>(i)];
+            ImGui::Text("%llu | external %.6f us | duration %.6f ms",
+                        static_cast<unsigned long long>(sample.sequence), sample.start_microseconds,
+                        sample.duration_milliseconds);
+          }
+        ImGui::EndChild();
+      }
+    }
+    ImGui::End();
+    if (!state_->chrome_trace_open)
+      state_->chrome_trace_request.reset();
+  }
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
                        file_context_valid && state_->app_focused && !game_running &&
@@ -6302,6 +6400,16 @@ bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
       !ValidateGpuTimingSamples(capture.source, capture.samples))
     return false;
   state_->imported_gpu = std::move(capture);
+  return true;
+}
+void EditorImGuiHost::OpenChromeTraceImport() noexcept { state_->chrome_trace_open = true; }
+std::optional<ChromeTraceImportRequest> EditorImGuiHost::TakeChromeTraceImportRequest() {
+  return std::exchange(state_->chrome_trace_request, std::nullopt);
+}
+bool EditorImGuiHost::SetImportedChromeTrace(ChromeTraceCapture capture) {
+  if (state_->profile_project_root.empty() || !ChromeTraceImporter::Validate(capture))
+    return false;
+  state_->imported_chrome_trace = std::move(capture);
   return true;
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
@@ -7133,6 +7241,16 @@ EditorImGuiTestAccess::MemoryControlPosition(const EditorImGuiHost &host,
   return control < host.state_->memory_control_positions.size()
              ? host.state_->memory_control_positions[control]
              : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ChromeTraceControlPosition(const EditorImGuiHost &host,
+                                                  std::size_t index) noexcept {
+  return index < host.state_->chrome_positions.size() ? host.state_->chrome_positions[index]
+                                                      : std::nullopt;
+}
+const ChromeTraceCapture *
+EditorImGuiTestAccess::ImportedChromeTrace(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_chrome_trace ? &*host.state_->imported_chrome_trace : nullptr;
 }
 const ProcessMemoryCapture *
 EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {

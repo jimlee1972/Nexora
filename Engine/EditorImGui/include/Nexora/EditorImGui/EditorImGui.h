@@ -141,6 +141,11 @@ struct RendererMetrics final {
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
 // Move between frames; moved-from hosts support only destruction or assignment. Release the
 // destination's public-RHI renderer before move assignment while its device is still alive.
+struct ChromeTraceImportRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  ChromeTraceSelection selection;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -206,6 +211,9 @@ public:
   [[nodiscard]] bool TakeGpuExportRequest() noexcept;
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
+  void OpenChromeTraceImport() noexcept;
+  [[nodiscard]] std::optional<ChromeTraceImportRequest> TakeChromeTraceImportRequest();
+  bool SetImportedChromeTrace(ChromeTraceCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
   // Owning bounded observations only. Application revalidates requests and owns job publication.

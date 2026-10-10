@@ -1552,6 +1552,22 @@ int RunGraphical(std::optional<ProjectState> project,
                   : nexora::runtime::RuntimeLogSeverity::Error,
             "Profiler", saved ? "Native GPU timing trace exported." : error);
       }
+      if (auto request = ui.TakeChromeTraceImportRequest()) {
+        std::string error;
+        const bool current = request->project == project->workspace.Project().id &&
+                             request->root == project->workspace.Root();
+        auto capture = current
+                           ? project->workspace.ImportChromeTraceJson(request->selection, &error)
+                           : std::nullopt;
+        const bool loaded = capture && ui.SetImportedChromeTrace(std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Chrome trace request belongs to another project or has an invalid capture.";
+        ui.SetProfileExportStatus(loaded ? "Loaded external Chrome trace intervals (static)."
+                                         : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", loaded ? "External Chrome trace imported; live capture unchanged." : error);
+      }
       if (ui.TakeGpuImportRequest()) {
         std::string error;
         auto capture = project->workspace.ImportGpuTimingJson(&error);

@@ -1072,3 +1072,16 @@ Linux test synchronization, not a renderer or runtime behavior change.
 Build-process Run also independently checks current focus, queued Play/close decisions and
 recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
 confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.
+
+## External Chrome trace view
+
+Profiler **Inspect Chrome trace** opens an explicit event/process/thread selection window and
+imports the project-owned Chrome JSON. Requests own UUID/root/selection; the application independently
+rechecks the current project and the workspace read guards. Static external intervals show the
+original trace timestamp in microseconds and duration in milliseconds, with source identity,
+retained/drop counts and clipped rows. CPU/GPU classification and memory remain unavailable.
+`SetImportedChromeTrace` validates and copies an owning capture; invalid publication retains the
+last-good view. Live Clear and each native/wall/RSS/external static Clear remain independent.
+Project UUID/root changes revoke pending requests, active selection inputs, external window and
+static capture. Read-only import remains available; close/recovery/external-change/modal guards
+prevent new import requests. No widgets perform file IO or native code loads.
