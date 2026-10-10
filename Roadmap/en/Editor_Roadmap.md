@@ -979,6 +979,17 @@ creates property widgets; unknown components retain raw data instead of being si
     flows preserve source/backup bytes and existing Create/close guards. Broader migration/recovery
     and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md).
+
+  - ✅ ExtensionTrust now verifies actual pure Ed25519 signatures over bounded immutable artifact
+    bytes through an optional Cryptography module backed by vetted OpenSSL >=3.0, then returns an
+    owning SHA-256 digest and trust revision. Unknown publishers, tampering, malformed/over-budget
+    inputs, unavailable providers and failures cannot verify. Bounded owning key configuration,
+    rotation/revocation, independent RFC8032/SHA-256 vectors, exact 64 MiB input and explicit NONE
+    backend tests pass. Native AUTO can select OpenSSL; cross-compiling requires an explicit target
+    package/backend and otherwise rejects verification. No keys are downloaded or enrolled by an
+    artifact. This prerequisite does not enforce the native loader: signed manifests, immutable
+    staging, installation/permission/dependency checks and pre-load enforcement remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md).
   - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
     inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.
     Physical input/display and general synthetic-input stability remain open.
