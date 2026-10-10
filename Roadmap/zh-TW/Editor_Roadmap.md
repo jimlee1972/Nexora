@@ -714,6 +714,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 維持不變。Explicit rebase 與 structural reconciliation 仍待完成。
 [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabSourceApply-Linux-2026-10-10.md)。
 
+- ✅ Same-identity 三方來源 rebase 已具 owning review、完整欄位群組的 conflict decision、
+  受保護的 source closure，以及一次 properties／reference history transaction。
+  完整 Linux 驗收通過（248/248）；graphical conflict confirmation 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabThreeWayRebase-Linux-2026-10-10.md)。
+
 - ✅ 可復原的 prefab base-reference metadata 已驗證：reference-only 與 mixed-property
   transaction 使用一次 Undo／Redo，wrapped Save 保留精確 revision 並能乾淨重開；一般
   Scene／Save All 拒絕發布未存入其格式的 asset context。Graphical three-way rebase choice、
