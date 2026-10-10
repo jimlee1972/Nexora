@@ -275,6 +275,12 @@ nexora_apply_defaults(NexoraPrefabReviewTests)
 add_test(NAME editor.prefab_guarded_property_review COMMAND NexoraPrefabReviewTests)
 set_tests_properties(editor.prefab_guarded_property_review PROPERTIES TIMEOUT 60)
 
+add_executable(NexoraPrefabRebaseTests PrefabRebaseTests.cpp)
+target_link_libraries(NexoraPrefabRebaseTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPrefabRebaseTests)
+add_test(NAME editor.prefab_three_way_rebase COMMAND NexoraPrefabRebaseTests)
+set_tests_properties(editor.prefab_three_way_rebase PROPERTIES TIMEOUT 60)
+
 add_executable(NexoraPrefabReferenceHistoryTests PrefabReferenceHistoryTests.cpp)
 target_link_libraries(NexoraPrefabReferenceHistoryTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPrefabReferenceHistoryTests)
