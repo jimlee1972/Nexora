@@ -853,6 +853,13 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
+  loaded tool service，回傳 owning outcome，input／output 各限 64 KiB。Wrong-thread／reentrant、
+  malformed、revoked 與 foreign 呼叫拒絕；無效 success length 與失敗 callback 丟棄 output。
+  十四個 compiled native fixture 與 C consumer 驗證此支援 contract。Host document／IO
+  授權及 graphical reference-tool edit／preview／save／unload 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md)。
+
 - ✅ Qualified native service lookup 現檢查 exact loaded plugin admission 與 owned provider
   identity，涵蓋 registry copy、同名 reload 與不同 host 的相同 numeric ID。Manual replacement、
   revoked／pending／restart-required provider 均拒絕。結果仍為 owner-thread borrow，consumer
