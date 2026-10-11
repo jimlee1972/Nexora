@@ -47,3 +47,19 @@ Minimal Monolithic Shipping passed **5 steps**, proving profile/link compatibili
 Editor is excluded from this Shipping profile. Existing contract and bilingual
 supporting roadmap scope remain unchanged; complete graphical milestones stay **0/8**.
 Fresh published-head hosted checks and a clean current Main remain required.
+
+## Latest accepted Main integration — 2026-10-11
+
+Only this property-plan feature was replayed onto accepted Main
+`89bb06ec2ff30f081702599f83107ed13d707e99`, retaining stable-UUID comparison,
+its tests/contracts and the accepted native project-upgrade/Scene Preview fixtures.
+Signed-native admission PR 484 merged separately while this gate ran; it is not
+attributed to this starting source. Graphical Development rebuilt **316 steps**;
+full CTest passed **242/242 in 595.88 s**, zero skips. Minimal Monolithic Shipping
+passed **5 steps**, with Editor excluded. No product or assertion changes were
+introduced by this integration replay. Bilingual supporting scope remains unchanged,
+full milestones **0/8**. Fresh published-head hosted checks and a clean/current Main
+guard remain required before ordinary squash merge.
+
+Final documentation regressions passed **16/16 in 1.148 s**; changed-document links
+and diff whitespace checks pass. Root README remains unchanged.
