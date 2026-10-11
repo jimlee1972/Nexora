@@ -1,11 +1,34 @@
 #include "Nexora/Editor/MaterialImport.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
+#include <iomanip>
+#include <limits>
 #include <locale>
 #include <sstream>
 
 namespace nexora::editor {
+MaterialExportResult ExportMaterial(const MaterialAsset &material) {
+  const auto validation = ValidateMaterialAsset(material);
+  if (!validation.valid)
+    return {{}, validation.message};
+  std::ostringstream output;
+  output.imbue(std::locale::classic());
+  output << std::setprecision(std::numeric_limits<float>::max_digits10)
+         << "NEXORA_MATERIAL 1\nbase_color " << material.base_color[0] << ' '
+         << material.base_color[1] << ' ' << material.base_color[2] << "\nmetallic "
+         << material.metallic << "\nroughness " << material.roughness << "\nocclusion "
+         << material.occlusion << "\nemission " << material.emission[0] << ' '
+         << material.emission[1] << ' ' << material.emission[2] << '\n';
+  if (!output)
+    return {{}, "Material serialization failed."};
+  auto source = output.str();
+  if (source.size() > kMaximumCanonicalMaterialBytes)
+    return {{}, "Canonical material exceeds its byte budget."};
+  return {std::move(source), {}};
+}
+
 renderer::MaterialValidation ValidateMaterialAsset(const MaterialAsset &material) {
   const auto finite_scalar = [](float value, float maximum) {
     return std::isfinite(value) && value >= 0 && value <= maximum;
@@ -66,10 +89,15 @@ MaterialImportResult ImportMaterial(std::string_view source,
     std::string number;
     if (!(input >> number))
       return false;
-    std::istringstream scalar_input{number};
-    scalar_input.imbue(std::locale::classic());
-    return static_cast<bool>(scalar_input >> value) && scalar_input.eof() && std::isfinite(value) &&
-           value >= 0 && value <= maximum;
+    std::string_view numeric = number;
+    if (numeric.starts_with('+')) {
+      numeric.remove_prefix(1);
+      if (numeric.empty() || numeric.front() == '+' || numeric.front() == '-')
+        return false;
+    }
+    const auto parsed = std::from_chars(numeric.data(), numeric.data() + numeric.size(), value);
+    return parsed.ec == std::errc{} && parsed.ptr == numeric.data() + numeric.size() &&
+           std::isfinite(value) && value >= 0 && value <= maximum;
   };
   const auto triple = [&](std::array<float, 3> &values, float maximum) {
     return std::ranges::all_of(values, [&](float &value) { return scalar(value, maximum); });
