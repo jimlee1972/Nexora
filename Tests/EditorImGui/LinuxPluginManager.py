@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import time
 from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
+from LinuxReflectedInspector import rendered_pixels
 
 
 def require(value, message):
@@ -72,11 +73,18 @@ def main():
             nonlocal process, window
             process = launch(args.editor, root, scratch / "recent", env, read_only=readonly)
             window = wait_for_window(args.xdotool, env)
-            send("windowsize", window, "1600", "1200")
+            # Initial dock splits belong to the native host's 1280x720 startup layout.
+            # Select the actual rendered source before resizing to the Extensions fixture size.
+            send("windowsize", window, "1280", "720")
             send("windowfocus", "--sync", window)
             time.sleep(1.5)
-            click(595, 199 if readonly else 182)
+            y = 199 if readonly else 182
+            wait(lambda: any(b >= r + 25 and g >= r + 10
+                             for r, g, b in rendered_pixels(display, window, (588, y - 4, 12, 8))),
+                 "rendered source control")
+            click(595, y)
             time.sleep(.8)
+            send("windowsize", window, "1600", "1200")
             click(397, 29)
             key("ctrl+alt+e")
 
