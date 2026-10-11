@@ -2,9 +2,11 @@
 #include "Nexora/Editor/MaterialImport.h"
 #include "Nexora/Editor/ProjectContent.h"
 
+#include <bit>
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <locale>
 #include <stdexcept>
 #include <thread>
@@ -71,10 +73,30 @@ void TestParser() {
   reject(std::string(editor::kMaximumMaterialSourceBytes + 1, ' '));
   reject(Source(-.1F));
   reject(Source(1.1F));
-  for (const auto &replacement : {"nan", "inf", "1e100", "-0.1", "1.1"}) {
+  for (const auto &replacement :
+       {"nan", "inf", "1e100", "1e-100", "-0.1", "1.1", "+", "++0.2", "+-0.2", "0.2suffix"}) {
     auto source = Source();
     source.replace(source.find("0.2"), 3, replacement);
     reject(source);
+  }
+  for (const auto &replacement : {"+0.2", "+.2e+0"}) {
+    auto source = Source();
+    source.replace(source.find("0.2"), 3, replacement);
+    const auto result = editor::ImportMaterial(source);
+    Require(result.material && result.material->base_color[0] == .2F,
+            "valid leading-plus material scalar was rejected");
+  }
+  for (const float boundary :
+       {0.F, -0.F, std::numeric_limits<float>::denorm_min(), std::numeric_limits<float>::min()}) {
+    auto material = *parsed.material;
+    material.metallic = boundary;
+    material.schema.parameters[1].value = boundary;
+    const auto exported = editor::ExportMaterial(material);
+    Require(exported.error.empty(), "boundary material export failed");
+    const auto restored = editor::ImportMaterial(exported.source);
+    Require(restored.material && std::bit_cast<std::uint32_t>(restored.material->metallic) ==
+                                     std::bit_cast<std::uint32_t>(boundary),
+            "canonical scalar boundary lost exact float bits");
   }
   for (const auto &replacement :
        {"NEXORA_MATERIAL 2", "NEXORA_MATERIAL 01", "NEXORA_MATERIAL 1.0", "OTHER_MATERIAL 1"}) {
