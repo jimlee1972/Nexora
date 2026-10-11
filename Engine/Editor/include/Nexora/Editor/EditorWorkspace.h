@@ -416,6 +416,10 @@ public:
   [[nodiscard]] std::optional<PreparedSave> PrepareSave() const;
   // Current authoring content/generation check without IO or saved-baseline/history mutation.
   [[nodiscard]] bool MatchesPreparedSave(const PreparedSave &prepared) const;
+  // Complete same-identity property replacement as one owning Undo/Redo; no IO or baseline change.
+  // Source scene name/persistence and entity IDs must match. Serialized owner supplies authority.
+  bool ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
+                             bool authorized);
   // Rejects changed document generation or content before IO; advances the baseline only after
   // successful single-file publication. Caller owns workspace access and destination policy.
   bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
@@ -480,7 +484,7 @@ private:
     std::vector<OpaqueComponent> opaque{};
   };
   struct UndoEntry final {
-    enum class Kind { Runtime, Rename, Opaque, OpaqueBatch } kind{Kind::Runtime};
+    enum class Kind { Runtime, Rename, Opaque, OpaqueBatch, PropertySnapshot } kind{Kind::Runtime};
     NodeKey entity;
     std::string previous_name;
     std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
@@ -491,7 +495,14 @@ private:
     std::vector<OpaqueComponent> previous_opaque{};
     bool restore_selection{};
     std::vector<std::pair<NodeKey, std::vector<OpaqueComponent>>> previous_opaque_batch{};
+    struct PropertySnapshot final {
+      PreparedSave before, after;
+      std::string previous_runtime, next_runtime;
+      std::vector<Node> previous_nodes, next_nodes;
+    };
+    std::shared_ptr<const PropertySnapshot> property_snapshot{};
   };
+  bool ReplayPropertySnapshot(bool forward);
   void PushUndo(UndoEntry entry);
   runtime::World &world_;
   runtime::Id scene_{};

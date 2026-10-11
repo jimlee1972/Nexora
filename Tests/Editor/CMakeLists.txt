@@ -27,6 +27,11 @@ add_test(NAME editor.signed_extension_admission COMMAND NexoraSignedExtensionTes
 set_tests_properties(editor.signed_extension_admission PROPERTIES TIMEOUT 60)
 
 add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
+add_executable(NexoraPropertySnapshotTests PropertySnapshotTests.cpp)
+target_link_libraries(NexoraPropertySnapshotTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPropertySnapshotTests)
+add_test(NAME editor.atomic_property_snapshot COMMAND NexoraPropertySnapshotTests)
+set_tests_properties(editor.atomic_property_snapshot PROPERTIES TIMEOUT 60)
 add_executable(NexoraPrefabAssetTests PrefabAssetsTests.cpp)
 add_executable(NexoraPrefabDocumentSessionTests PrefabDocumentSessionTests.cpp)
 target_link_libraries(NexoraPrefabDocumentSessionTests PRIVATE Nexora::Editor)
