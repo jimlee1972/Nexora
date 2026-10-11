@@ -1,13 +1,14 @@
 # ED-M5 bounded native tool callbacks — Linux, 2026-10-11
 
 Beads: `nexora-032.1.3`, depending on qualified-service task `nexora-032.1.2` / PR 523.
-Current delivery replays only this SDK feature onto accepted Main
-`6609e7a278c121f79f2d2baef555f40591346e7c`, containing the merged qualified
-service prerequisite (PR 523). The frozen validation source is
-`d16538f68e48f309d8dcaeaa154d09e0c660bf12`; Main advanced through atomic
-property snapshots and prefab revision archives during this gate. Earlier review-only
-foundation results below are historical; the current branch targets Main and requires
-its own current-head hosted checks.
+Current delivery replays only this SDK feature onto Main
+`2a0a7d57430fd9306275cc1d6441453e0c1526a5`, including the accepted artifact
+verification, atomic-property and prefab-history changes. The frozen runtime is
+`7d5e31fd522e9cdc4f8e5939f34545dc6008836f`; the pre-gate review source is `489bc9724a578bb4ffb711dc7c25bbe6acf80c55`. No review-only
+prerequisite copies remain. The previous Main-660 integration passed all 36
+hosted checks at `6af07337`, but artifact-verification delivery subsequently
+caused README/test-CMake conflicts. Both independent contracts and targets were
+preserved in this replay; the new head requires new hosted checks.
 This is byte-callback SDK support; graphical reference-tool acceptance and full
 Editor milestones remain **0/8**.
 
@@ -46,7 +47,7 @@ Graphical controls, production reference-plugin integration, backend restoration
 edit/preview/save/reopen acceptance remain separate work. Public C++ consumers rebuild;
 module graph and persisted formats are unchanged.
 
-## Accepted Linux gates
+## Historical accepted Linux gates
 
 ```sh
 cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON \
@@ -71,10 +72,22 @@ current-head hosted checks and are not attributed to Linux execution.
 Documentation regressions passed **16/16 in 0.560 s**; changed-document links, touched
 C/C++ formatting and diff whitespace checks pass. Root README is unchanged.
 
-## Main integration acceptance
+## Historical Main-660 integration acceptance
 
 The exact commands above passed on the frozen Main-660 source: graphical Development
 rebuilt **403 steps**, then **247/247 tests in 639.15 s**, zero skips. Minimal
 Monolithic Shipping passed **14 steps**. The prerequisite is delivered on Main;
 no review-only prerequisite copies remain in this SDK branch. Main advances during
 the running gate are recorded rather than attributed to the frozen source.
+
+## Current Main-2a0a reconciliation acceptance
+
+The same graphical Development/Minimal Shipping commands above passed on the
+frozen current-main runtime: **366 build steps**, **250/250 tests in 652.72 s**,
+zero failures and skips, then **5 Monolithic Shipping steps**. Actual native
+scene tabs, preview, meshes, reflected Inspector, project upgrade, Play/Game and
+build-console workflows ran alongside artifact verification and the SDK's
+fourteen compiled callback fixtures. Shipping excludes Editor/SDK by profile;
+it is not graphical Shipping execution. Original callback behavior and all
+budgets/assertions are unchanged. Other target platforms require the new
+head's hosted checks; previous-head results are not carried forward as approval.
