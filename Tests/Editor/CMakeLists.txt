@@ -26,6 +26,12 @@ endif()
 add_test(NAME editor.signed_extension_admission COMMAND NexoraSignedExtensionTests ${nexora_signed_fixtures})
 set_tests_properties(editor.signed_extension_admission PROPERTIES TIMEOUT 60)
 
+add_executable(NexoraBuildArtifactVerificationTests BuildArtifactVerificationTests.cpp)
+target_link_libraries(NexoraBuildArtifactVerificationTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraBuildArtifactVerificationTests)
+add_test(NAME editor.build_artifact_verification COMMAND NexoraBuildArtifactVerificationTests)
+set_tests_properties(editor.build_artifact_verification PROPERTIES TIMEOUT 30)
+
 add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
 add_executable(NexoraPrefabAssetTests PrefabAssetsTests.cpp)
 add_executable(NexoraPrefabDocumentSessionTests PrefabDocumentSessionTests.cpp)

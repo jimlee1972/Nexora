@@ -91,9 +91,26 @@ struct BuildManifest final {
   std::vector<BuildArtifact> artifacts;
 };
 
+// Caller-captured owning bytes. Capture consistency and target completeness are caller contracts.
+struct BuildArtifactInput final {
+  std::string path;
+  std::vector<std::byte> bytes;
+};
+
 class NEXORA_EDITOR_API BuildFrontend final {
 public:
+  static constexpr std::size_t kMaximumVerifiedArtifacts = 64;
+  static constexpr std::size_t kMaximumVerifiedArtifactBytes = 16 * 1024 * 1024;
+  static constexpr std::size_t kMaximumVerifiedTotalBytes = 64 * 1024 * 1024;
+  static constexpr std::size_t kMaximumVerifiedPathBytes = 1024;
+  static constexpr std::size_t kMaximumVerifiedCommandBytes = 32 * 1024;
   [[nodiscard]] static bool Validate(const BuildManifest &manifest, std::string *error = nullptr);
+  // Serialized synchronous verification of an exact nonempty bounded set. Checksums must be
+  // canonical sha256:<64 lowercase hex digits>. No IO, process/target success, lifetime retention,
+  // publication or permission grant. An unavailable SHA-256 provider always rejects.
+  [[nodiscard]] static bool VerifyArtifacts(const BuildManifest &manifest,
+                                            std::span<const BuildArtifactInput> inputs,
+                                            std::string *error = nullptr);
   [[nodiscard]] static bool Write(const BuildManifest &manifest, const std::filesystem::path &path,
                                   std::string *error = nullptr);
 };
