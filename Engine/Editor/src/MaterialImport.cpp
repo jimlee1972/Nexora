@@ -1,6 +1,7 @@
 #include "Nexora/Editor/MaterialImport.h"
 
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <iomanip>
 #include <limits>
@@ -88,10 +89,15 @@ MaterialImportResult ImportMaterial(std::string_view source,
     std::string number;
     if (!(input >> number))
       return false;
-    std::istringstream scalar_input{number};
-    scalar_input.imbue(std::locale::classic());
-    return static_cast<bool>(scalar_input >> value) && scalar_input.eof() && std::isfinite(value) &&
-           value >= 0 && value <= maximum;
+    std::string_view numeric = number;
+    if (numeric.starts_with('+')) {
+      numeric.remove_prefix(1);
+      if (numeric.empty() || numeric.front() == '+' || numeric.front() == '-')
+        return false;
+    }
+    const auto parsed = std::from_chars(numeric.data(), numeric.data() + numeric.size(), value);
+    return parsed.ec == std::errc{} && parsed.ptr == numeric.data() + numeric.size() &&
+           std::isfinite(value) && value >= 0 && value <= maximum;
   };
   const auto triple = [&](std::array<float, 3> &values, float maximum) {
     return std::ranges::all_of(values, [&](float &value) { return scalar(value, maximum); });
