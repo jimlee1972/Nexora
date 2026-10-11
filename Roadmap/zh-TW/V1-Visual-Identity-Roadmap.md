@@ -739,3 +739,16 @@ PBR frame 的 core/sync 驗證；Shipping/Full 隔離、原生比較精確還原
 ✅ 玻璃／原生互動整合：Linux configure/build 與完整 97/97 測試通過（111.31 秒，Khronos core/sync validation），包含 97 幀原生 PBR 與九項證據政策測試。通過 checksum 的 4933fbc 原 Shipping 程式已通過同步匯出、按住相機輸入與實際縮放呈現的隔離驗收。程式原始碼、凍結執行檔與影片不變。證據：`Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
 
 ✅ 石台／原生互動整合：Linux configure/build 與完整 97/97 測試通過（110.58 秒，Khronos core/sync validation），包含 97 幀原生 PBR 與九項證據政策測試。通過 checksum 的 1989904 原 Shipping 程式已通過同步匯出、按住相機輸入與實際縮放呈現的隔離驗收。程式原始碼、凍結執行檔與影片不變。證據：`Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`。VIS 仍為 5/7；預覽圖一致性與實體顯示器驗收仍未完成。
+
+
+## Blender 來源美術草稿保存（2026-10-12）
+
+✅ 目前可編輯的 Blender 草稿、目標參考圖、對應 CPU 預覽、重建工具、原始草稿備份
+及素材來源已整理至 [Arts/ShowcaseScene](../../Arts/ShowcaseScene/readme.md)。
+僅含場景主檔的副本已在 Windows Blender 5.1.2 重新開啟，使用 Cycles CPU、
+32 samples 完成 836 × 470 渲染；16 張圖像均已內嵌，沒有連結外部 Blender library。
+保存版本包含已檢視預覽使用的石材法線修正。場景／預覽雜湊與可攜性檢查見
+[validation.json](../../Arts/ShowcaseScene/evidence/validation.json)。
+這是尚未完成的來源美術進度保存：天空朝向、光照、背景配置及表面／雕刻細節
+仍與參考圖有差距。完整解析度最終美術驗收及原生 Showcase 整合保持未完成；
+VIS 維持 5/7。
