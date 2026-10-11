@@ -2,10 +2,32 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <limits>
 #include <locale>
 #include <sstream>
 
 namespace nexora::editor {
+MaterialExportResult ExportMaterial(const MaterialAsset &material) {
+  const auto validation = ValidateMaterialAsset(material);
+  if (!validation.valid)
+    return {{}, validation.message};
+  std::ostringstream output;
+  output.imbue(std::locale::classic());
+  output << std::setprecision(std::numeric_limits<float>::max_digits10)
+         << "NEXORA_MATERIAL 1\nbase_color " << material.base_color[0] << ' '
+         << material.base_color[1] << ' ' << material.base_color[2] << "\nmetallic "
+         << material.metallic << "\nroughness " << material.roughness << "\nocclusion "
+         << material.occlusion << "\nemission " << material.emission[0] << ' '
+         << material.emission[1] << ' ' << material.emission[2] << '\n';
+  if (!output)
+    return {{}, "Material serialization failed."};
+  auto source = output.str();
+  if (source.size() > kMaximumCanonicalMaterialBytes)
+    return {{}, "Canonical material exceeds its byte budget."};
+  return {std::move(source), {}};
+}
+
 renderer::MaterialValidation ValidateMaterialAsset(const MaterialAsset &material) {
   const auto finite_scalar = [](float value, float maximum) {
     return std::isfinite(value) && value >= 0 && value <= maximum;
