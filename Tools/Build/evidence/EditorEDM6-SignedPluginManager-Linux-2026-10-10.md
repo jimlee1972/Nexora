@@ -90,3 +90,28 @@ qualify this replay. No physical-host or other-platform local execution is claim
 
 Final documentation regressions pass **16/16 in 0.595 s**; changed-document links,
 12 touched C++ formatting and diff whitespace checks pass. Root README remains unchanged.
+
+## Rendered source selection correction — 2026-10-11
+
+The old hosted `b0c61350` native test reached real install/enable/revoke operations but
+failed final `scene_selected=1`. The current parent-only replay starts from Main
+`1023b19aac8ad84ffd1b7b05a429c3e6f295cfad`. It selects the actual source control in
+the native host's initial 1280x720 dock layout before resizing to the existing
+1600x1200 Extensions fixture. X11 readback uses the existing Inspector pixel helper;
+the initial control is at x=523, rather than the old resized-layout x=595.
+
+An initial probe incorrectly retained the old coordinate and failed; it is excluded.
+The corrected focus passed **3/3 in 25.82 s**, including the real native workflow
+**25.71 s**. The current graphical Development product rebuild passed **378 steps**.
+Selection/source conservation, native lifecycle, read-only restart, Vulkan validation,
+the 12-second operation deadline and the 120-second CTest timeout are unchanged.
+The frozen current runtime/test source is `ba662ee8`; full current-source integration
+acceptance is recorded separately below. Older failed hosted heads cannot qualify it.
+
+The corrected frozen source passed the complete graphical Development suite:
+**250/250 in 662.11 s**, zero skips, including native source selection and extension
+lifecycle (**25.76 s**), reflected Inspector, scene tabs/preview and normal close.
+Minimal Monolithic Shipping passed **14 steps**, excluding Editor by profile.
+Documentation regressions passed **16/16 in 0.551 s**; changed-document links,
+**11 touched C/C++ files** and diff whitespace checks pass. The original source
+checkout remains unchanged. Fresh current-head hosted checks remain required.
