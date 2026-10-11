@@ -1,5 +1,17 @@
 # Nexora Foundation public value API
 
+## Optional native tool service ABI
+
+`Nexora/Foundation/EditorToolAbi.h` is a C-compatible, separately versioned optional
+PluginHost service table for bounded synchronous byte transformations. It adds no
+required plugin export, engine ABI change, Editor runtime data or module dependency.
+Input/output are caller-owned call-scoped buffers; native providers obey immutable
+readable table, capacity, nonreentrancy, no-throw and cooperative drain-before-unload
+contracts. Operations grant no document, IO, GPU or publication authority. This is
+trusted in-process native code rather than an isolation boundary. The public Editor
+`NativeToolInvoker` validates tables and copies outcomes through fresh qualified service
+borrows; its owning/lifetime contract is documented in [Editor](../Editor/README.md).
+
 ## Math and geometry (API-M1)
 
 `Nexora/Math/Math.h` defines the allocation-free math and geometry surface. Coordinates are
