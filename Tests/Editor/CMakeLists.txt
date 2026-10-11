@@ -66,6 +66,17 @@ add_test(NAME editor.native_tool_callbacks COMMAND NexoraNativeToolTests ${nexor
 set_tests_properties(editor.native_tool_callbacks PROPERTIES TIMEOUT 30)
 
 if(NEXORA_FEATURE_SCALAR_MATERIAL_TOOL)
+  add_executable(NexoraSignedToolInvocationTests SignedToolInvocationTests.cpp)
+  target_link_libraries(NexoraSignedToolInvocationTests PRIVATE Nexora::Editor)
+  if(NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE)
+    target_compile_definitions(NexoraSignedToolInvocationTests PRIVATE NEXORA_TEST_OPENSSL=1)
+    target_link_libraries(NexoraSignedToolInvocationTests PRIVATE OpenSSL::Crypto)
+  endif()
+  nexora_apply_defaults(NexoraSignedToolInvocationTests)
+  add_dependencies(NexoraSignedToolInvocationTests NexoraScalarMaterialPlugin NexoraNativeToolFixture13)
+  add_test(NAME editor.signed_tool_invocation COMMAND NexoraSignedToolInvocationTests
+           "$<TARGET_FILE:NexoraScalarMaterialPlugin>" "$<TARGET_FILE:NexoraNativeToolFixture13>")
+  set_tests_properties(editor.signed_tool_invocation PROPERTIES TIMEOUT 30)
   add_executable(NexoraScalarMaterialToolTests ScalarMaterialToolTests.cpp)
   target_link_libraries(NexoraScalarMaterialToolTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraScalarMaterialToolTests)
