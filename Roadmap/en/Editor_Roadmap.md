@@ -790,6 +790,12 @@ creates property widgets; unknown components retain raw data instead of being si
     read-only writes, stale scope/revision and reentrant identity callbacks reject. Graphical binding,
     nested materialization, historical revision access and override/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
+
+  - ✅ Prefab revision retention is validated: superseded committed sources remain available by
+    exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.
+    Archive conflicts preserve current sources; failed current writes do not occupy future revisions.
+    Graphical rebase/nested materialization and power-loss journaling remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md).
   - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
     only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
     Current source/project and expected asset revision are rechecked; graphical isolation remains open.
