@@ -899,6 +899,12 @@ creates property widgets; unknown components retain raw data instead of being si
     Reviewed merge publication, provider integration and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ A scoped material document owner now deeply owns canonical state, exact raw save baseline
+    and up to 64 Undo/Redo transitions. Actual production native edits, repeated history,
+    no-op/Redo preservation, wrong-thread/stale/read-only rejection and owning unload/reopen data
+    pass full Linux and explicit scalar-OFF acceptance. Save acknowledgement checks caller-confirmed
+    bytes but performs no file IO; graphical controls, actual publication and GPU Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-MaterialToolDocument-Linux-2026-10-11.md).
   - ✅ An optional scalar PBR native plugin now uses public Editor import/export and Renderer
     validation for actual Inspect/Edit/Serialize byte transformations. Typed edits cover nine
     scalar lanes within a 64 KiB request; canonical owning output is capped at 1024 bytes.
