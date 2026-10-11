@@ -54,6 +54,7 @@ public:
 
 private:
   friend class SignedExtensionHost;
+  friend class PluginManager;
   [[nodiscard]] NativeToolState ContextState() const noexcept;
   const std::thread::id owner_;
 };
