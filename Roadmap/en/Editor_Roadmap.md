@@ -32,7 +32,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View and frozen scalar PBR materials are implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Native additive tabs, owning/reference documents, coordinated Save All and named composition reopen are accepted on Linux Xvfb. Graphical prefab, migration/recovery, semantic/provider conflicts and full target-host acceptance remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Native Vulkan/DX12/Metal command-buffer GPU intervals have a separate bounded live history and schema-1 JSON capture with honest unavailable/software status. Build/deploy/log, physical GPU calibration, arbitrary capture import, and plugin-manager workflows remain open. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Native Vulkan/DX12/Metal command-buffer GPU intervals have a separate bounded live history and schema-1 JSON capture with honest unavailable/software status. Project-scoped signed package installation and explicit session enable/revoke are supported on Linux. Build/deploy/log, physical GPU calibration, arbitrary capture import, and persistent plugin-manager trust/recovery remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
 
 The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
@@ -1049,7 +1049,17 @@ creates property widgets; unknown components retain raw data instead of being si
     writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
-    and plugin manager.
+    and persistent plugin-manager trust/recovery.
+  - Native signed-manager input spans slow software frames; eight complete consecutive workflows pass.
+  - ✅ Settings / Ctrl+Alt+E now opens a project-scoped signed package manager with explicit session
+    publisher keys and capability policy, verified owning review, immutable installation, native
+    enable/disable, revocation, restart-required state and protected removal. Real 1x/2x widgets and
+    Xvfb native cooperative/legacy/ABI fixtures validate current scope, modal/Play/access/recovery/
+    external-change gates and source preservation. Restart never restores keys or enables code.
+    Linux sealed-image admission is supported; persistent trust, crash/power-loss recovery,
+    other native backends and third-party graphical contributions remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
+
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ Current session CI cleanup adds exact published branch and actor checks; 14 ownership/race
     and 16 documentation-routing tests, full Linux 239/239 and Minimal Shipping pass.
@@ -1070,7 +1080,7 @@ creates property widgets; unknown components retain raw data instead of being si
     admissions do not initialize; two distinct images, mutation rejection and lifetime limits pass.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-SignedNativeAdmission-Linux-2026-10-10.md)
     documents trusted in-process limits and post-admission dishonest-binary ABI detection.
-    Graphical installation/recovery, native crash isolation and other-platform staging remain open.
+    Persistent installation recovery, native crash isolation and other-platform staging remain open.
   - ✅ ExtensionTrust now verifies actual pure Ed25519 signatures over bounded immutable artifact
     bytes through an optional Cryptography module backed by vetted OpenSSL >=3.0, then returns an
     owning SHA-256 digest and trust revision. Unknown publishers, tampering, malformed/over-budget
@@ -1079,7 +1089,7 @@ creates property widgets; unknown components retain raw data instead of being si
     backend tests pass. Native AUTO can select OpenSSL; cross-compiling requires an explicit target
     package/backend and otherwise rejects verification. No keys are downloaded or enrolled by an
     artifact. This verifier remains a prerequisite; the separate SignedExtensionHost slice above
-    supplies canonical manifest/immutable native admission. Graphical installation remains open.
+    supplies canonical manifest/immutable native admission. Persistent trust and installation recovery remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md).
   - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
     inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.

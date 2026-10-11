@@ -8,6 +8,7 @@
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
+#include "Nexora/Editor/PluginManager.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -94,6 +95,40 @@ struct SceneFileRequest final {
 struct StaticExportRequest final {
   SceneFileToken token;
   bool cancel{};
+};
+
+enum class ExtensionManagerAction : std::uint8_t {
+  SetPublisher,
+  RevokePublisher,
+  SetPermissions,
+  Review,
+  Install,
+  Refresh,
+  Enable,
+  Disable,
+  Remove,
+  CancelReview
+};
+struct ExtensionManagerRequest final {
+  ExtensionManagerAction action{};
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t scope{}, configuration{};
+  std::string id, version;
+  std::filesystem::path package_path;
+  std::array<std::byte, 32> public_key{};
+  std::uint32_t permissions{};
+};
+struct ExtensionManagerObservation final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t scope{};
+  std::uint32_t permissions{};
+  std::vector<TrustedPublisherKey> publishers;
+  std::vector<ManagedExtension> packages;
+  std::optional<ExtensionPackageReview> review;
+  std::size_t rejected_files{};
+  bool restart_required{};
 };
 
 struct ProjectUpgradeObservation final {
@@ -183,6 +218,11 @@ public:
   void DrawDiagnosticPrivacy(TelemetryConsent &diagnostics, foundation::Uuid project);
   bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
   [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
+  bool SetExtensionManagerObservation(ExtensionManagerObservation observation);
+  void SetExtensionManagerStatus(std::string status);
+  void DrawExtensionManager(bool settings_allowed, bool authoring_allowed);
+  [[nodiscard]] bool ExtensionManagerInteractionAllowed() const noexcept;
+  [[nodiscard]] std::optional<ExtensionManagerRequest> TakeExtensionManagerRequest();
 
   // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
   bool SetReflectedInspector(const ReflectedInspector &catalog);

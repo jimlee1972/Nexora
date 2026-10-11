@@ -72,6 +72,7 @@ public:
   SignedExtensionLoadResult Load(const PreparedExtension &,
                                  runtime::ServiceRegistry *services = nullptr);
   runtime::PluginState RequestUnload(std::uint64_t id) noexcept;
+  void RequestUnloadAll() noexcept;
   void PollShutdown() noexcept;
   [[nodiscard]] std::vector<runtime::PluginSnapshot> Snapshot() const;
 
