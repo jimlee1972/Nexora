@@ -236,6 +236,24 @@ PluginLoadResult PluginHost::Load(const std::string &library_path, ServiceRegist
   return {true,       PluginLoadError::None, reported,
           registered, entry.observation.id,  entry.observation.cooperative};
 }
+void *PluginHost::FindService(std::uint64_t id, const ServiceRegistry &services,
+                              std::string_view name) const {
+  if (name.empty() || name.size() > kMaximumServiceNameBytes ||
+      name.find('\0') != std::string_view::npos)
+    return nullptr;
+  const auto admission =
+      std::ranges::find(entries_, id, [](const Entry &entry) { return entry.observation.id; });
+  if (admission == entries_.end() || admission->observation.state != PluginState::Loaded ||
+      !admission->handle || !admission->provider || !admission->provider->active)
+    return nullptr;
+  const auto service = services.services_.find(std::string(name));
+  if (service == services.services_.end() || !service->second.owned ||
+      !ServiceRegistry::Visible(service->second) ||
+      service->second.provider.lock() != admission->provider)
+    return nullptr;
+  return service->second.service;
+}
+
 void PluginHost::UnloadAll() noexcept {
   for (auto &entry : entries_)
     static_cast<void>(RequestUnload(entry.observation.id));
