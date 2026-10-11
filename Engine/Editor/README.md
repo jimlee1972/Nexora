@@ -1091,6 +1091,15 @@ these additive APIs change no existing class layout, module dependencies or game
 
 ## Scalar PBR material assets
 
+`ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
+at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
+It performs no IO/publication and rejects divergent reflection or invalid scalar data.
+The optional [scalar material native tool](../../Plugins/ScalarMaterial/README.md) uses
+this public codec and `ImportMaterial` for actual bounded Inspect/Edit/Serialize byte
+transformations. Edit's public little-endian wire contract is in `ScalarMaterialTool.h`.
+GPU Preview remains unavailable; host document authorization, scope/source guards,
+Undo and Save/reopen integration remain separate work.
+
 `.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
 from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
 for the source grammar, numeric bounds and persistent UUID-reference bytes. Indexing and reimport

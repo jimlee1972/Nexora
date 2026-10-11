@@ -65,6 +65,16 @@ endforeach()
 add_test(NAME editor.native_tool_callbacks COMMAND NexoraNativeToolTests ${nexora_native_tool_fixtures})
 set_tests_properties(editor.native_tool_callbacks PROPERTIES TIMEOUT 30)
 
+if(NEXORA_FEATURE_SCALAR_MATERIAL_TOOL)
+  add_executable(NexoraScalarMaterialToolTests ScalarMaterialToolTests.cpp)
+  target_link_libraries(NexoraScalarMaterialToolTests PRIVATE Nexora::Editor)
+  nexora_apply_defaults(NexoraScalarMaterialToolTests)
+  add_dependencies(NexoraScalarMaterialToolTests NexoraScalarMaterialPlugin)
+  add_test(NAME editor.scalar_material_native_tool COMMAND NexoraScalarMaterialToolTests
+           "$<TARGET_FILE:NexoraScalarMaterialPlugin>")
+  set_tests_properties(editor.scalar_material_native_tool PROPERTIES TIMEOUT 30)
+endif()
+
 add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
 add_executable(NexoraPropertySnapshotTests PropertySnapshotTests.cpp)
 target_link_libraries(NexoraPropertySnapshotTests PRIVATE Nexora::Editor)
