@@ -864,18 +864,26 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Scoped material source session 現綁定精確 project／Content／asset／path 與 saved bytes，
+  經確認的 atomic publication 與 owning Content refresh 完成後才 acknowledge Save。
+  真實 Unicode 路徑檔案、四十次 Save／history 循環、identity 保留，以及 external／alias／
+  read-only／stale 拒絕與發布後 refresh 失敗，通過完整 Linux 與 scalar-OFF 驗收。
+  圖形化 signed-tool binding 與 GPU Preview 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-MaterialToolSourceSession-Linux-2026-10-11.md)。
+
 - ✅ Scoped material document owner 現完整擁有 canonical state、精確 raw save baseline 與最多
   64 個 Undo／Redo transition。真實 production native edit、重複 history、no-op／Redo 保留、
   wrong-thread／stale／read-only 拒絕及 owning unload／reopen 資料，通過完整 Linux 與明確
   scalar-OFF 驗收。Save acknowledgement 檢查 caller-confirmed bytes，但不執行 file IO；
-  graphical control、實際 publication 與 GPU Preview 仍待完成。
+  實際 publication 由上列 source-session owner 負責；graphical control 與 GPU Preview 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM5-MaterialToolDocument-Linux-2026-10-11.md)。
 
 - ✅ Optional scalar PBR native plugin 現以公開 Editor import／export 與 Renderer validation
   執行真實 Inspect／Edit／Serialize byte transformation。Typed edit 涵蓋九個 scalar lane，
   request 限 64 KiB，canonical owning output 限 1024 bytes。真實 dynamic-load 測試涵蓋
   exact float roundtrip、failure budget、獨立 host 及 unload／reload。GPU Preview 明確
-  unavailable；signed-package host 整合及圖形化 document／Undo／Save／reopen 仍待完成。
+  unavailable；signed-package host 整合及圖形化 document binding 仍待完成，
+  scoped history 與 source Save／reopen 已列於上方 supporting slice。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md)。
 
 - ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
