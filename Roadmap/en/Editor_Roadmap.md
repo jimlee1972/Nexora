@@ -904,13 +904,21 @@ creates property widgets; unknown components retain raw data instead of being si
     scalar lanes within a 64 KiB request; canonical owning output is capped at 1024 bytes.
     Actual dynamic-load tests cover exact float roundtrips, failure budgets, independent hosts
     and unload/reload. The signed-host callback bridge is delivered below. GPU Preview is unavailable;
-    Manager selection and graphical document/Undo/Save/reopen workflows remain open.
+    Graphical document/Undo/Save/reopen workflows remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md).
+  - ✅ Plugin Manager now selects exact enabled tools with owning manager-instance/project-scope/
+    configuration/admission identities and calls only through its private signed host/registry.
+    Same-ID foreign managers, stale/revoked selections, read-only edits, unresolved project state
+    and wrong-thread/reentrant calls reject before callbacks. Actual signed installed scalar
+    material Edit/Serialize and native recursion pass; outputs survive unload. Graphical material
+    document/Undo/Save/reopen/Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ManagedToolInvocation-Linux-2026-10-11.md).
   - ✅ Signed native tool invocation now binds every byte callback to its exact current sealed
     image, trust/policy revisions and qualified active provider. Wrong-thread/reentrant checks
     precede mutable admission inspection; stale trust, foreign registries and retired IDs reject
     without lifecycle mutation. Actual signed scalar-material Inspect/Serialize and cross-invoker
-    native recursion pass. Manager selection and graphical document/Undo/Save/Preview remain open.
+    native recursion pass. The scoped Manager facade is delivered above; graphical
+    document/Undo/Save/Preview remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md).
   - ✅ The optional versioned native byte-callback SDK now executes actual loaded tool services
     through fresh qualified lookups, with owning outcomes and 64 KiB input/output limits.
