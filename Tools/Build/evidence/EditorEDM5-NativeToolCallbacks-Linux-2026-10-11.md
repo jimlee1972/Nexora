@@ -1,11 +1,13 @@
 # ED-M5 bounded native tool callbacks — Linux, 2026-10-11
 
 Beads: `nexora-032.1.3`, depending on qualified-service task `nexora-032.1.2` / PR 523.
-Validation source starts from review-only foundation
-`953dafb452b9848b4702a0a0eb5a668e6dc6e114`: accepted Main
-`89bb06ec2ff30f081702599f83107ed13d707e99` plus the qualified-service prerequisite.
-Never merge this foundation. Main delivery requires the prerequisite, replay of only
-this feature, fresh integration acceptance and current-head hosted checks.
+Current delivery replays only this SDK feature onto accepted Main
+`6609e7a278c121f79f2d2baef555f40591346e7c`, containing the merged qualified
+service prerequisite (PR 523). The frozen validation source is
+`d16538f68e48f309d8dcaeaa154d09e0c660bf12`; Main advanced through atomic
+property snapshots and prefab revision archives during this gate. Earlier review-only
+foundation results below are historical; the current branch targets Main and requires
+its own current-head hosted checks.
 This is byte-callback SDK support; graphical reference-tool acceptance and full
 Editor milestones remain **0/8**.
 
@@ -68,3 +70,11 @@ current-head hosted checks and are not attributed to Linux execution.
 
 Documentation regressions passed **16/16 in 0.560 s**; changed-document links, touched
 C/C++ formatting and diff whitespace checks pass. Root README is unchanged.
+
+## Main integration acceptance
+
+The exact commands above passed on the frozen Main-660 source: graphical Development
+rebuilt **403 steps**, then **247/247 tests in 639.15 s**, zero skips. Minimal
+Monolithic Shipping passed **14 steps**. The prerequisite is delivered on Main;
+no review-only prerequisite copies remain in this SDK branch. Main advances during
+the running gate are recorded rather than attributed to the frozen source.
