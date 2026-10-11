@@ -1,13 +1,13 @@
 # ED-M5 public-API scalar material native plugin — Linux, 2026-10-11
 
 Beads: `nexora-032.1.4`, depending on callback SDK task `nexora-032.1.3` / PR 525.
-Review-only foundation `145f2000b324f00159faac2cbdeaf548006dbaf5` starts from
-accepted signed-admission Main `e4f62f179350e24f20c3af630ac75e66f6444da4`, then copies
-pending qualified-service PR 523 and callback SDK PR 525. Never merge the foundation.
-The test-registration conflict retained both signed admission and SDK fixtures.
-PR 515 merged during the full gate; its separate dormant-history change is not
-attributed to the tested starting source. Eventual Main delivery requires landed
-prerequisites, replay of only this feature and fresh full/current-head acceptance.
+Current review-only foundation `8d5239f6` starts from accepted Main
+`1023b19aac8ad84ffd1b7b05a429c3e6f295cfad`, containing the merged qualified
+service prerequisite, and copies only the pending callback SDK implementation.
+Never merge the foundation. The frozen corrected feature source is
+`440a60378081fbd0dd0e7c8ab99ffa65b1c5c5ee`; the earlier foundation/gate below
+is historical. Main delivery still requires landed SDK, an own-feature replay and
+fresh integration/current-head hosted acceptance.
 
 This is a production-subsystem-backed byte plugin, not complete graphical reference-tool
 acceptance. Full Editor milestones remain **0/8**.
@@ -75,3 +75,27 @@ plugin manifests **2**. Root README remains unchanged.
 
 Final documentation regressions passed **16/16 in 0.768 s**; changed-document links,
 five touched C++ formatting and diff whitespace checks pass.
+
+## Cross-platform failure correction and current Linux acceptance
+
+Hosted original `6d05e9c9` failed Windows `/W4 /WX` on a fixture `size_t` to uint32
+capacity argument and macOS exact canonical boundary-float roundtrip. The correction
+uses an explicit bounded fixture conversion and the production importer's
+`std::from_chars(float)` parser, already used by public MeshImport. Leading plus is
+retained explicitly; malformed/double signs, numeric tails, nonfinite, out-of-range
+and underflow reject. Exact negative-zero/subnormal/minimum-normal assertions stay
+intact; failure diagnostics show expected/decoded bits. Portable import regression
+coverage adds leading-plus grammar and exact canonical boundary roundtrips.
+
+Current graphical/OpenSSL/Slang/Zig/Showcase/native ProjectPlayer Development configure/
+build passed **364 steps**. Actual SDK/scalar/import focus passed **4/4 in 0.53 s**;
+full graphical CTest passed **250/250 in 636.22 s**, zero skips. Minimal Monolithic
+Shipping passed **5 steps** and forcibly excludes Editor/scalar. A separate portable
+provider-NONE Development build with graphical/native, Slang/Zig, Showcase and
+ProjectPlayer OFF and scalar feature explicitly OFF passed **340 steps** and
+**3/3 SDK/import tests in 0.53 s**. Its configured target/CTest inventory excludes
+the scalar native plugin/test; old output files are not treated as enabled targets.
+
+These results validate Linux only. The original failed macOS/Windows heads remain
+excluded; fresh corrected hosted checks are required before claiming repair there.
+File publication, graphical reference-tool acceptance and GPU Preview remain open.
