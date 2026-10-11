@@ -22,6 +22,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/MaterialAssetCatalog.cpp
   src/MeshImport.cpp
   src/MeshAssetCatalog.cpp
+  src/NativeTool.cpp
   src/ShaderAuthoring.cpp
   src/SceneAuthoring.cpp
   src/SceneComparison.cpp
