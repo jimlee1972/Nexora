@@ -1037,7 +1037,9 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   publisher key／capability policy、owning verified review、immutable install、native enable／disable、
   revocation、restart-required 狀態與受保護移除。實際 1x／2x widget 與 Xvfb native cooperative／
   legacy／ABI fixture 驗證 current scope、modal／Play／access／recovery／external-change gate
-  及 source preservation；restart 不會還原 key 或自動啟用程式碼。支援 Linux sealed-image admission；
+  及 source preservation；restart 不會還原 key 或自動啟用程式碼。Native 驗證透過實際 X11
+  輸入使用 test-build widget 中心與操作完成後的重繪，保留精確安裝／lifecycle／read-only 斷言。
+  支援 Linux sealed-image admission；
   persistent trust、crash／power-loss recovery、其他 native backend 與第三方圖形化工具 contribution
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md)。
 

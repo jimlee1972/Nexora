@@ -115,3 +115,33 @@ Minimal Monolithic Shipping passed **14 steps**, excluding Editor by profile.
 Documentation regressions passed **16/16 in 0.551 s**; changed-document links,
 **11 touched C/C++ files** and diff whitespace checks pass. The original source
 checkout remains unchanged. Fresh current-head hosted checks remain required.
+
+## Actual extension widget geometry — current Main reconciliation
+
+Published head `7a86dd85` failed hosted Linux job
+[114374336963](https://github.com/jimlee1972/Nexora/actions/runs/38105828430/job/114374336963):
+249/250 tests passed, but the native fixture never observed verified installation.
+Source selection passed; that result is excluded from merge acceptance.
+
+Only the manager feature was replayed onto Main
+`2a0a7d57430fd9306275cc1d6441453e0c1526a5`, retaining delivered artifact verification.
+Runtime correction `d047ed9cefd74e11b2d8013036761a678f8920f0` replaces assumed
+Extensions coordinates with existing private widget-center observations. The
+BUILD_TESTING-only, explicitly enabled application hook reports bounded geometry,
+DPI and actual operation revisions. Tests send ordinary X11 input, wait for real
+operation completion and its next rendered panel, and retain consumed stderr in
+CTest evidence. No request/trust/permission/install/enable injection is added.
+The source-selection pixel assertion, source bytes, signature/install identity,
+no-autoenable, lifecycle, read-only and Vulkan assertions remain intact. The
+original 12-second operation and 120-second CTest deadlines are unchanged.
+
+With the same full graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer
+commands above, focused build passed **60 steps**, Core/widgets/native **3/3 in
+27.45 s**, actual native workflow **27.33 s**. Full Development passed **327
+remaining build steps**, **251/251 in 678.05 s**, zero failures/skips; the native
+workflow independently passed again in **26.77 s**. Minimal Monolithic Shipping
+passed **14 steps**, excluding Editor and graphical test hooks. Frozen runtime
+patch SHA-256: `c57b0455365fbf98ea4a5865fe3470e44f385e5e29b31c459b13dfa9878c0e94`
+on pre-correction feature head `cc2314fc`. Full milestone acceptance stays 0/8;
+the new published head still requires its own hosted checks and fresh Main merge
+guards. Other platforms and physical displays are not attributed to Linux.

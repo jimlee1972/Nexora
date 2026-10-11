@@ -1062,6 +1062,8 @@ creates property widgets; unknown components retain raw data instead of being si
     enable/disable, revocation, restart-required state and protected removal. Real 1x/2x widgets and
     Xvfb native cooperative/legacy/ABI fixtures validate current scope, modal/Play/access/recovery/
     external-change gates and source preservation. Restart never restores keys or enables code.
+    Native acceptance follows actual test-build widget centers and completed-operation redraws
+    through physical X11 input, retaining exact installation/lifecycle/read-only assertions.
     Linux sealed-image admission is supported; persistent trust, crash/power-loss recovery,
     other native backends and third-party graphical contributions remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
