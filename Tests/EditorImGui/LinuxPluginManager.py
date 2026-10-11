@@ -80,9 +80,9 @@ def main():
             time.sleep(1.5)
             y = 199 if readonly else 182
             wait(lambda: any(b >= r + 25 and g >= r + 10
-                             for r, g, b in rendered_pixels(display, window, (588, y - 4, 12, 8))),
+                             for r, g, b in rendered_pixels(display, window, (518, y - 4, 10, 10))),
                  "rendered source control")
-            click(595, y)
+            click(523, y)
             time.sleep(.8)
             send("windowsize", window, "1600", "1200")
             click(397, 29)
