@@ -69,3 +69,24 @@ implicit trust or execution. Failure cleanup uses bounded process waits. This
 changes only native test synchronization; it does not weaken permissions, trust,
 source preservation, lifecycle or Vulkan validation assertions. New hosted checks
 on the corrected head are required; the older failed head cannot merge.
+
+## Fresh signed Main integration — 2026-10-11
+
+Only the manager feature, its accepted input correction and documentation were replayed
+onto accepted Main `0eb7e9a6738d452013ff7bad0ca571ee3345e1ac`, after signed native
+admission PR 484 and dormant-history PR 515 landed. No prerequisite/foundation was
+merged. Bilingual conflicts preserve Main CI-cleanup evidence and locate manager support
+under ED-M6; overview/contracts distinguish session management from persistent trust/recovery.
+Product code and native assertions remain unchanged by this replay.
+
+Full graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer Development configure/
+build passed **370 steps**, full CTest **245/245 in 615.67 s**, zero skips. Actual Core
+manager **0.02 s**, 1x/2x widgets **0.10 s**, native manager **25.32 s** pass alongside
+the accepted native Inspector, project upgrade, scene tabs/preview and normal close.
+Minimal Monolithic Shipping passed **14 steps**, with Editor excluded by profile.
+Full milestones remain **0/8**; fresh independent published-head checks and a clean/current
+Main/head guard are required before ordinary squash merge. Older hosted heads do not
+qualify this replay. No physical-host or other-platform local execution is claimed.
+
+Final documentation regressions pass **16/16 in 0.595 s**; changed-document links,
+12 touched C++ formatting and diff whitespace checks pass. Root README remains unchanged.
