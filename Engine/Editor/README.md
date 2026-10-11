@@ -92,6 +92,24 @@ Undo/baseline change or merged publication. Choice/conflict rows are inspection 
 separate structural validation before any future revert/apply/rebase. Graphical bindings and
 transactional override publication remain separate work; public C++ consumers rebuild.
 
+## Identity-remapped prefab property candidates
+
+`BuildPrefabPropertySnapshot` validates both wrapped sources, requires identical stable node UUID
+sets and returns an owning complete authoring candidate. Official parsing normalizes supported
+schemas first. Every entity/parent, node, authored Euler and opaque owner ID is remapped to the
+current serialized identity. Source names, sibling order, TRS and complete stored component/unknown
+data survive; the target scene name/persistence are retained. Source base/nested reference metadata
+is not a document property and is not changed by this helper.
+
+The complete output is parsed again before return. Sources must be fully tracked and fit the
+existing prefab 4096-node / 8 MiB scene bounds, including normalized/remapped output. Results borrow
+no files, assets, Worlds or documents and carry no publication authority. The serialized owner
+checks its current PreparedSave and project writer/recovery/Play policy before applying a candidate
+through the atomic property transaction. Planning performs no IO, live changes, baseline or history
+mutation. Structural shape mismatch rejects rather than producing a partial revert. Graphical
+revert, targeted field selection, reference rebase and source publication remain separate work.
+Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`
