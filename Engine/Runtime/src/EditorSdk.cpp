@@ -538,8 +538,8 @@ bool SceneEditor::SetCameras(std::span<const Id> entities,
           camera->far_plane <= camera->near_plane)))
       return false;
     apply.SetCamera(entities[i], camera);
-    restore.SetCamera(entities[i],
-                      existing->camera ? std::optional(existing->camera_data) : std::nullopt);
+    restore.SetCamera(entities[i], existing->camera_data);
+    restore.commands_.back().component_present = existing->camera;
   }
   return ApplyComponentEdit(std::move(apply), std::move(restore));
 }
@@ -559,8 +559,8 @@ bool SceneEditor::SetLights(std::span<const Id> entities,
         (light && (!std::isfinite(light->intensity) || light->intensity < 0.0F)))
       return false;
     apply.SetLight(entities[i], light);
-    restore.SetLight(entities[i],
-                     existing->light ? std::optional(existing->light_data) : std::nullopt);
+    restore.SetLight(entities[i], existing->light_data);
+    restore.commands_.back().component_present = existing->light;
   }
   return ApplyComponentEdit(std::move(apply), std::move(restore));
 }
@@ -571,36 +571,17 @@ bool SceneEditor::SetMeshRenderers(std::span<const Id> entities,
                                    std::span<const std::optional<MeshComponent>> meshes) {
   if (entities.empty() || entities.size() != meshes.size())
     return false;
-  std::vector<std::optional<MeshComponent>> previous;
-  previous.reserve(entities.size());
   std::unordered_set<Id> unique;
-  WorldCommandBuffer apply;
+  WorldCommandBuffer apply, restore;
   for (std::size_t index = 0; index < entities.size(); ++index) {
     const auto *existing = world_.FindEntity(entities[index]);
     if (!existing || !unique.insert(entities[index]).second)
       return false;
-    previous.push_back(existing->mesh_renderer ? std::optional(existing->mesh_data) : std::nullopt);
     apply.SetMeshRenderer(entities[index], meshes[index]);
+    restore.SetMeshRenderer(entities[index], existing->mesh_data);
+    restore.commands_.back().component_present = existing->mesh_renderer;
   }
-  if (!apply.Apply(world_))
-    return false;
-  const std::vector<Id> owned_entities(entities.begin(), entities.end());
-  const std::vector<std::optional<MeshComponent>> next(meshes.begin(), meshes.end());
-  undo_.Record(
-      [this, owned_entities, previous] {
-        WorldCommandBuffer commands;
-        for (std::size_t index = 0; index < owned_entities.size(); ++index)
-          commands.SetMeshRenderer(owned_entities[index], previous[index]);
-        return commands.Apply(world_);
-      },
-      [this, owned_entities, next] {
-        WorldCommandBuffer commands;
-        for (std::size_t index = 0; index < owned_entities.size(); ++index)
-          commands.SetMeshRenderer(owned_entities[index], next[index]);
-        return commands.Apply(world_);
-      });
-  ++depth_;
-  return true;
+  return ApplyComponentEdit(std::move(apply), std::move(restore));
 }
 bool SceneEditor::SetTransforms(std::span<const Id> entities,
                                 std::span<const Transform> transforms) {

@@ -911,6 +911,15 @@ a command buffer; failed replay keeps the history cursor. Inputs are borrowed on
 no Entity pointer survives a mutation, and methods remain serialized on the World authoring thread.
 These C++ Editor operations do not alter the stable gameplay C ABI or scene snapshot format.
 
+Camera/Light/Mesh presence-edit Undo owns both the original presence flag and its complete stored
+values, including nondefault dormant data. Editor history uses a private command-presence override
+while retaining ordinary immutable atomic command replay. Public `WorldCommandBuffer` removal
+still clears stored data to defaults; Undo restores the exact previous data/flag and Redo repeats
+that committed removal behavior. No whole-scene snapshot or new scene-size limit is introduced.
+Mixed batches, stale/deleted targets and failed replay remain atomic and preserve the history
+cursor. Public C++ consumers rebuild after the private command layout change; stable C/Gameplay
+ABI and serialized scene formats remain unchanged.
+
 ## Atomic selected-subtree deletion
 
 `SceneEditor::DestroyEntities(scene, ids)` validates a unique nonempty selection in one live scene,
