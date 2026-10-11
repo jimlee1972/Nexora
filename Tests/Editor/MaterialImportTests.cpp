@@ -92,8 +92,8 @@ void TestParser() {
     material.metallic = boundary;
     material.schema.parameters[1].value = boundary;
     const auto exported = editor::ExportMaterial(material);
-    Require(exported.error.empty(), "boundary material export failed");
-    const auto restored = editor::ImportMaterial(exported.source);
+    Require(exported.source && exported.error.empty(), "boundary material export failed");
+    const auto restored = editor::ImportMaterial(*exported.source);
     Require(restored.material && std::bit_cast<std::uint32_t>(restored.material->metallic) ==
                                      std::bit_cast<std::uint32_t>(boundary),
             "canonical scalar boundary lost exact float bits");
