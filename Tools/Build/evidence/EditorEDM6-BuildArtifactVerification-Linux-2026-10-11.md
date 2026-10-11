@@ -67,3 +67,17 @@ Main guard remain required before ordinary squash merge.
 
 Documentation regressions passed **16/16 in 0.592 s**; final changed-document links,
 touched C++ clang-format and diff whitespace checks pass. Root README remains unchanged.
+
+## Current Main replay acceptance
+
+The verifier-only change was replayed onto accepted Main
+`0eb7e9a6738d452013ff7bad0ca571ee3345e1ac`, retaining signed admission and
+dormant-component Undo coverage. Verifier production code and assertions are
+unchanged. Fresh full graphical Development configure/build passed **368 steps**;
+**243/243 tests passed in 595.39 s**, zero skips. Minimal Monolithic Shipping
+configure/build passed **14 steps**, excluding Editor and its API by contract.
+The earlier independent provider-NONE test remains historical evidence for the
+unchanged verifier API, rather than an execution of this new full configuration.
+Documentation regressions passed **16/16 in 0.941 s**; changed-document links,
+the three touched C++ files and diff whitespace checks passed. Fresh current-head
+hosted checks remain required before ordinary squash merge.
