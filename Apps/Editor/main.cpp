@@ -17,6 +17,9 @@
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+#include "EditorImGuiTestAccess.h"
+#endif
 #include "Nexora/Math/Math.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
@@ -734,6 +737,10 @@ int RunGraphical(std::optional<ProjectState> project,
   std::uint64_t build_reported_operation{};
   nexora::editor::BuildProcessPhase build_reported_phase{};
   nexora::editor::ProjectContentSession content;
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+  std::string extension_test_geometry;
+  std::uint64_t extension_test_revision{};
+#endif
   struct PendingProject final {
     ProjectState candidate;
     nexora::editor::ImportOperationId import{};
@@ -1461,6 +1468,35 @@ int RunGraphical(std::optional<ProjectState> project,
           !project->workspace.HasExternalChange();
       ui.DrawExtensionManager(extension_settings_allowed,
                               extension_settings_allowed && project->workspace.Writable());
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+      if (std::getenv("NEXORA_EXTENSION_UI_TEST_GEOMETRY")) {
+        std::ostringstream positions;
+        positions << "extensions dpi=" << dpi << " revision=" << extension_test_revision
+                  << " controls=";
+        const auto record = [&](std::string_view key) {
+          if (const auto point =
+                  nexora::editor::imgui::EditorImGuiTestAccess::ExtensionManagerPosition(ui, key))
+            positions << key << ':' << (*point)[0] << ',' << (*point)[1] << ';';
+        };
+        for (const auto key :
+             {"trust-tab", "publisher", "public-key", "trust-key", "permission-0", "permission-1",
+              "permission-2", "permission-3", "permission-4", "permission-5", "apply-permissions",
+              "packages-tab", "package-path", "review", "refresh", "install", "cancel-review"})
+          record(key);
+        for (const auto &publisher : extensions.Publishers())
+          record(publisher.publisher + "/revoke");
+        for (const auto &package : extensions.Snapshot()) {
+          const auto identity = package.manifest.id + "/" + package.manifest.version;
+          for (const auto suffix : {"/enable", "/disable", "/remove"})
+            record(identity + suffix);
+        }
+        auto geometry = positions.str();
+        if (geometry.size() <= 16384 && geometry != extension_test_geometry) {
+          extension_test_geometry = std::move(geometry);
+          std::cerr << extension_test_geometry << '\n';
+        }
+      }
+#endif
       if (auto request = ui.TakeExtensionManagerRequest()) {
         using Action = nexora::editor::imgui::ExtensionManagerAction;
         bool applied = false;
@@ -1515,6 +1551,13 @@ int RunGraphical(std::optional<ProjectState> project,
             : extension_error.empty()
                 ? "Extension operation rejected; configuration and source preserved."
                 : extension_error);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+        if (std::getenv("NEXORA_EXTENSION_UI_TEST_GEOMETRY")) {
+          ++extension_test_revision;
+          std::cerr << "extensions action=" << static_cast<unsigned>(request->action)
+                    << " applied=" << applied << " revision=" << extension_test_revision << '\n';
+        }
+#endif
       }
       if (auto request = ui.TakeSceneTabRequest()) {
         std::string error;

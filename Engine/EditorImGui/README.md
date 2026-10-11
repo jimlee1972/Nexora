@@ -1100,6 +1100,14 @@ module dependencies are unchanged.
 
 ## Signed native package controls
 
+Native acceptance in test builds can explicitly request bounded, read-only widget geometry
+with `NEXORA_EXTENSION_UI_TEST_GEOMETRY`. The application reports actual control centers and
+DPI only when graphical testing is compiled in; it exposes no request injection or trust,
+permission, installation or enable shortcut. Native tests continue to send physical X11
+pointer/keyboard events and require the host's real operation result. Control geometry is
+refreshed after status text, tab and package changes rather than assuming fixed coordinates.
+The observation does not exist in non-testing builds and grants no authoring authority.
+
 Settings > Extensions / Ctrl+Alt+E opens the owning project-scoped publisher/capability and package
 views. Inputs transfer explicit requests; widgets never read packages or execute native code. The
 native owner rechecks project UUID/root/scope, private review revision, writer/recovery/external-change
