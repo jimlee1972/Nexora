@@ -53,6 +53,8 @@ public:
                                          std::span<const std::byte> input);
 
 private:
+  friend class SignedExtensionHost;
+  [[nodiscard]] NativeToolState ContextState() const noexcept;
   const std::thread::id owner_;
 };
 } // namespace nexora::editor

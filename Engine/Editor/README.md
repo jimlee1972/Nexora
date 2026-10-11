@@ -20,7 +20,7 @@ prefix limit. Empty input/output are supported; declared output capacity must be
 
 Results own copied bytes, state, diagnostics and optional exact raw callback status;
 successful output must explicitly report a size within the supplied capacity. Every failure discards output,
-and unexpected exceptions reject without escaping the wrapper or retaining its busy
+and unexpected callback exceptions reject without escaping the wrapper or retaining its busy
 guard. Owning results survive native unload. Unknown statuses/oversized success never
 become success. Consumers release all calls/borrows before host/registry mutation or
 unload; this provides no lifetime lease or automatic in-flight tracking.
@@ -33,6 +33,29 @@ writer/recovery/Play state before actual deferred authoring or IO. Capability me
 graphical reference-tool editing/preview/save and missing-backend restoration remain
 separate work. Public C++ consumers rebuild; module graph and persisted formats stay
 unchanged, and Foundation's optional C header adds no Shipping Editor data.
+
+## Signed tool invocation bridge
+
+`SignedExtensionHost::InvokeTool` checks the invoker's construction-thread and shared
+nonreentrancy context before reading signed admission or registry state. The serialized
+owner supplies an admission ID and service registry; the exact retained signed image
+must still have an owned descriptor and current trust/policy revisions. Trust changes
+reject immediately without requiring prior shutdown polling; restoring a key does not
+revive an observation captured under an older revision. Invocation itself performs no
+load, poll, revoke or lifecycle mutation.
+
+The bridge then delegates to the existing fresh provider-qualified `NativeToolInvoker`,
+which rejects revoked/pending/restart-required, foreign or manually replaced providers
+and returns owning bounded bytes. The private low-level PluginHost is never exposed.
+Hosts serialize trust/registry/admission access with owner calls and drain all calls
+before mutation/unload; this adds no lifetime lease or automatic in-flight tracking.
+
+The bridge grants no document, IO or GPU authority and does not attach contributions to
+the graphical manager. Native execution remains trusted. Callers must independently
+validate document type, parse owning candidates and recheck current workspace/source/
+writer/recovery/Play state before authoring or Save. Required C ABI, module graph,
+persisted schemas and existing class data layout are unchanged; C++ consumers rebuild.
+Graphical material reference-tool integration and target-platform admission remain separate.
 
 ## Stable revisioned prefab asset foundation
 
