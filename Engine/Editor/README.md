@@ -1370,7 +1370,8 @@ recheck trust revision and bind verified immutable staged bytes to the native lo
 slice installs no files, persists no private keys, makes no network calls and loads no
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. SignedExtensionHost supplies
-the canonical manifest/immutable native admission described below; graphical installation remains open.
+the canonical manifest/immutable native admission described below. The project-scoped manager
+provides explicit Linux session installation/enable/revoke; persistent trust and recovery remain open.
 
 ## Signed manifest and native image admission
 
@@ -1408,7 +1409,8 @@ The signed manifest ABI is checked before that call; a dishonest publisher whose
 differs is detected afterward and may already have initialized. Host linker configuration and
 native dependencies remain trusted. The wrapper is not crash isolation or permission enforcement
 against malicious native code. Raw PluginHost remains a trusted low-level API, not a package gate.
-Graphical installation/enable/recovery and other-platform immutable staging remain separate work.
+The project-scoped manager below supplies Linux session installation/enable/revoke. Persistent trust,
+installation recovery and other-platform immutable staging remain separate work.
 Public C++ consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
 
 ### Project-scoped signed package manager
