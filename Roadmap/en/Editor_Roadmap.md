@@ -1032,6 +1032,15 @@ creates property widgets; unknown components retain raw data instead of being si
     and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md).
 
+
+  - ✅ SignedExtensionHost now verifies canonical signed identity/version/ABI/target/permission/
+    dependency manifests and the actual artifact SHA-256 before native loading. Current trust/policy
+    revisions are rechecked; Linux uses exact owning sealed memfd images with unique live identities,
+    bounded admissions and cooperative revoke/unload. Real constructor fixtures prove denied
+    admissions do not initialize; two distinct images, mutation rejection and lifetime limits pass.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-SignedNativeAdmission-Linux-2026-10-10.md)
+    documents trusted in-process limits and post-admission dishonest-binary ABI detection.
+    Graphical installation/recovery, native crash isolation and other-platform staging remain open.
   - ✅ ExtensionTrust now verifies actual pure Ed25519 signatures over bounded immutable artifact
     bytes through an optional Cryptography module backed by vetted OpenSSL >=3.0, then returns an
     owning SHA-256 digest and trust revision. Unknown publishers, tampering, malformed/over-budget
@@ -1039,8 +1048,8 @@ creates property widgets; unknown components retain raw data instead of being si
     rotation/revocation, independent RFC8032/SHA-256 vectors, exact 64 MiB input and explicit NONE
     backend tests pass. Native AUTO can select OpenSSL; cross-compiling requires an explicit target
     package/backend and otherwise rejects verification. No keys are downloaded or enrolled by an
-    artifact. This prerequisite does not enforce the native loader: signed manifests, immutable
-    staging, installation/permission/dependency checks and pre-load enforcement remain open.
+    artifact. This verifier remains a prerequisite; the separate SignedExtensionHost slice above
+    supplies canonical manifest/immutable native admission. Graphical installation remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md).
   - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
     inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.
@@ -1086,7 +1095,7 @@ creates property widgets; unknown components retain raw data instead of being si
     project/close/restart reset. The built-in producer records only a fixed frame-presented label;
     unknown event text is excluded from display. Actual 1x/2x widget and Xvfb keyboard workflows
     preserve read-only source bytes. No diagnostic storage or network transport is installed;
-    signed-extension verification and persistence/transmission policy remain open.
+    graphical signed-package management and persistence/transmission policy remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.

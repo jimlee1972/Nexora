@@ -1008,14 +1008,22 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md)。
 
+
+- ✅ SignedExtensionHost 現在 native loading 前驗證 canonical signed identity／version／ABI／target／
+  permission／dependency manifest 及實際 artifact SHA-256，並重查當前 trust／policy revision。
+  Linux 使用 exact owning sealed memfd 映像、唯一 live identity、有界 admission 與合作式撤銷／卸載。
+  真實 constructor fixture 證明被拒絕的 admission 不會初始化；不同映像、修改拒絕及 lifetime limit
+  皆通過。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-SignedNativeAdmission-Linux-2026-10-10.md)
+  明列 trusted in-process 限制及核准後才可檢出的不實 binary ABI。
+  圖形化安裝／復原、native crash isolation 及其他平台 immutable staging 仍待完成。
 - ✅ ExtensionTrust 現透過可選 Cryptography module 與 vetted OpenSSL >=3.0，驗證有界 immutable
   artifact bytes 的真實 pure Ed25519 signature，成功後回傳 owning SHA-256 digest 與 trust revision。
   Unknown publisher、tampering、malformed／over-budget input、unavailable provider 與 failure 均
   不會通過。驗證涵蓋有界 owning key 設定、rotation／revocation、獨立 RFC8032／SHA-256 vector、
   精確 64 MiB input 與明確 NONE backend。Native AUTO 可選用 OpenSSL；cross-compiling 需明確
   target package／backend，否則拒絕驗證。Artifact 不會下載或自行登錄 key。此 prerequisite
-  尚未約束 native loader：signed manifest、immutable staging、installation／permission／dependency
-  檢查及 pre-load enforcement 仍待完成。
+  本身不約束 native loader；上方獨立 SignedExtensionHost 已提供 canonical manifest／immutable
+  native admission，圖形化安裝仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md)。
 
 - ✅ Linux native center-gesture acceptance 在原有 deadline 內觀察 committed bytes 時只重送
