@@ -1049,7 +1049,7 @@ creates property widgets; unknown components retain raw data instead of being si
     writer validates 1-600 ordered finite samples, rejects read-only/recovery writes, and atomically
     preserves the previous file on validation failure; real UI clicks emit one-shot requests.
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
-    and plugin manager.
+    and persistent plugin-manager trust/recovery.
   - Native signed-manager input spans slow software frames; eight complete consecutive workflows pass.
   - ✅ Settings / Ctrl+Alt+E now opens a project-scoped signed package manager with explicit session
     publisher keys and capability policy, verified owning review, immutable installation, native
@@ -1080,7 +1080,7 @@ creates property widgets; unknown components retain raw data instead of being si
     admissions do not initialize; two distinct images, mutation rejection and lifetime limits pass.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-SignedNativeAdmission-Linux-2026-10-10.md)
     documents trusted in-process limits and post-admission dishonest-binary ABI detection.
-    Graphical installation/recovery, native crash isolation and other-platform staging remain open.
+    Persistent installation recovery, native crash isolation and other-platform staging remain open.
   - ✅ ExtensionTrust now verifies actual pure Ed25519 signatures over bounded immutable artifact
     bytes through an optional Cryptography module backed by vetted OpenSSL >=3.0, then returns an
     owning SHA-256 digest and trust revision. Unknown publishers, tampering, malformed/over-budget
@@ -1089,7 +1089,7 @@ creates property widgets; unknown components retain raw data instead of being si
     backend tests pass. Native AUTO can select OpenSSL; cross-compiling requires an explicit target
     package/backend and otherwise rejects verification. No keys are downloaded or enrolled by an
     artifact. This verifier remains a prerequisite; the separate SignedExtensionHost slice above
-    supplies canonical manifest/immutable native admission. Graphical installation remains open.
+    supplies canonical manifest/immutable native admission. Persistent trust and installation recovery remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md).
   - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
     inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.
