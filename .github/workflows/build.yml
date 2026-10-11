@@ -215,6 +215,9 @@ jobs:
           ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_ui$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -N -R '^editor\.linux_scene_comparison$' | grep -q 'Total Tests: 1'
 
+      - name: Require graphical prefab isolation acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(prefab_document_isolation|prefab_isolation_ui|linux_prefab_isolation)$' | grep -q 'Total Tests: 3'
       - name: Require graphical build-process console acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.(build_process_console|linux_build_process_console)$' | grep -q 'Total Tests: 2'
