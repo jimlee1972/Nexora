@@ -98,6 +98,25 @@ override/rebase, nested materialization, journaling and retention policy remain 
 
 ## Stable prefab revision comparison
 
+An isolated variant document now owns its current exact base UUID/revision independently of
+its last published asset. `SceneDocument::ApplyPrefabPropertySnapshot` stages same-identity
+properties and that reference in one Undo/Redo transaction; a reference-only change is dirty even
+when reusable scene bytes are unchanged. Ordinary property transactions retain the reference.
+Prepared-save signatures include it, so changed references invalidate pending reviews and saves.
+`PrefabDocumentSession::BaseReference` returns an owning current observation; the published
+`SourceBaseline` changes only after explicit wrapped Save. Review follows the current undoable
+reference, including after Undo/Redo of a saved reference change.
+
+Wrapped Save validates the retained source closure and complete candidate graph, then increments
+the asset revision for changed reference metadata even if scene bytes are identical. Exact old
+wrapped revisions remain archived. Open initializes the reference as part of a clean saved baseline;
+read-only inspection stays available. Plain scene Save and Save All reject tagged documents before
+publication because their format does not persist this asset context. A batch prepared before a
+reference change rejects its stale signature. No scene format or stable C/Gameplay ABI changes;
+public C++ consumers rebuild. Owner calls remain serialized, and the host supplies project/source
+authority. Three-way rebase planning, graphical conflict choices and structural reconciliation are
+separate work.
+
 `ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
 node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
 Official scene parsing and bounded field snapshots retain component presence/stored values,
@@ -1416,3 +1435,36 @@ process/history memory quotas. Planning performs no IO, live edits or history/ba
 grants no authority. The owner still rechecks its current document/project/source before atomic
 application. Graphical selected-field binding, source apply, structural identity reconciliation and
 reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+
+## Graphical selected prefab property restoration
+
+`SelectReview` derives an owning targeted candidate from the unchanged private review, explicit
+stable node/field identities and the exact retained source. Unknown, empty, duplicate, stale,
+changed/corrupt source, replaced scope, recovery/external-change or unsupported selections reject.
+Read-only inspection can prepare a candidate but never apply it. Application rechecks writer
+access and all original observations before the existing one-step property transaction.
+
+The isolation comparison exposes field-group checkboxes; component/transform rows sharing one
+field UUID select the complete group. Metadata references remain inspection only. Changing a
+checkbox revokes prior full/selected revert consent. Review selected prepares a new candidate,
+followed by separate selected-revert confirmation. Scope changes, local edits and Undo/Redo revoke
+review/confirmation. Unselected values, unavailable bytes, generation, keys, clipboard and original
+scene/source files survive; explicit Save remains the publication boundary. Source apply, reference
+rebase, structural reconciliation and persistent live instance bindings remain separate work.
+
+## Explicit variant property application to source
+
+`PrefabPropertyReview::CanApplyToSource` is an inspection hint for compatible saved variants.
+`ApplyToSource` independently rechecks writer authority, root/UUID/owner/current document, actual
+variant publication and the exact current source. Regular prefabs use Save; unsaved variants cannot
+apply because advancing their base would invalidate first-save preconditions. Stale source or
+variant publication, invalid shape/identities, recovery, external change, exhausted revisions and
+unsafe/staged publication reject without changing current source or isolated document.
+
+Full/selected source candidates invert the stable UUID remapping while preserving source scene/
+entity/node/field identity, references and all unselected values. Publication advances one source
+revision and retains the previously committed source. Failed current publication may retain a
+harmless old archive, never an uncommitted future revision. Local variant content, baseline, dirty
+state, keys, selection, clipboard and history stay unchanged; the variant keeps its retained base
+until explicit Rebase. Source publication has its own revision history and is not a local document
+Undo entry. Original scene files stay unchanged. No structural reconciliation is claimed.

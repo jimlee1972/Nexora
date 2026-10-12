@@ -5,6 +5,18 @@
 namespace nexora::editor {
 bool SceneDocument::ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
                                           bool authorized) {
+  return ApplyPropertySnapshotWithReference(expected, source, authorized, prefab_base_);
+}
+bool SceneDocument::ApplyPrefabPropertySnapshot(const PreparedSave &expected,
+                                                std::string_view source,
+                                                PrefabBaseReference reference, bool authorized) {
+  if (reference.asset.IsNil() || !reference.revision)
+    return false;
+  return ApplyPropertySnapshotWithReference(expected, source, authorized, reference);
+}
+bool SceneDocument::ApplyPropertySnapshotWithReference(
+    const PreparedSave &expected, std::string_view source, bool authorized,
+    std::optional<PrefabBaseReference> reference) {
   constexpr std::size_t maximum_nodes = 4096, maximum_bytes = 8 * 1024 * 1024;
   if (!authorized || world_.Kind() != runtime::WorldKind::Editor || source.empty() ||
       source.size() > maximum_bytes || expected.Bytes().size() > maximum_bytes ||
@@ -22,6 +34,7 @@ bool SceneDocument::ApplyPropertySnapshot(const PreparedSave &expected, std::str
   if (!parsed || parsed->name != current->name || parsed->persistent != current->persistent ||
       parsed->entities.size() != current->entities.size() || staged.nodes_.size() != nodes_.size())
     return false;
+  staged.prefab_base_ = reference;
   const auto prepared = staged.PrepareSave();
   const auto previous_runtime = world_.SaveScene(scene_, maximum_bytes);
   const auto next_runtime = staged_world.SaveScene(staged_scene, maximum_bytes);
@@ -50,16 +63,18 @@ bool SceneDocument::ApplyPropertySnapshot(const PreparedSave &expected, std::str
     return true;
   UndoEntry entry;
   entry.kind = UndoEntry::Kind::PropertySnapshot;
-  entry.property_snapshot = std::make_shared<UndoEntry::PropertySnapshot>(
-      UndoEntry::PropertySnapshot{expected,
-                                  PreparedSave(document_generation_, prepared->bytes_,
-                                               prepared->signature_, prepared->opaque_records_),
-                                  *previous_runtime, *next_runtime, nodes_, next_nodes});
+  entry.property_snapshot =
+      std::make_shared<UndoEntry::PropertySnapshot>(UndoEntry::PropertySnapshot{
+          expected,
+          PreparedSave(document_generation_, prepared->bytes_, prepared->signature_,
+                       prepared->opaque_records_),
+          *previous_runtime, *next_runtime, nodes_, next_nodes, prefab_base_, reference});
   // All document/history storage exists before Runtime's atomic snapshot replacement.
   undo_.reserve(undo_.size() + 1);
   if (!MatchesPreparedSave(expected) || !world_.ReplaceSceneSnapshot(scene_, *next_runtime))
     return false;
   nodes_.swap(next_nodes);
+  prefab_base_ = reference;
   PushUndo(std::move(entry));
   return true;
 }
@@ -77,6 +92,7 @@ bool SceneDocument::ReplayPropertySnapshot(bool forward) {
                                    forward ? snapshot.next_runtime : snapshot.previous_runtime))
     return false;
   nodes_.swap(staged_nodes);
+  prefab_base_ = forward ? snapshot.next_base : snapshot.previous_base;
   destination.push_back(std::move(source.back()));
   source.pop_back();
   opaque_dirty_.reset();

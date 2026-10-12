@@ -751,6 +751,11 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Undoable prefab base-reference metadata is validated: reference-only and mixed property
+    transactions share one Undo/Redo, wrapped Save retains exact revisions and clean reopen,
+    and plain Scene/Save All publication rejects unpersisted asset context. Graphical three-way
+    rebase choices and structural/live-instance reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabReferenceHistory-Linux-2026-10-10.md).
   - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
     sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
     Targeted fields, source apply, structural bindings and reference rebase remain open.
@@ -784,6 +789,17 @@ creates property widgets; unknown components retain raw data instead of being si
     hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
     clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
+
+  - ✅ Graphical saved-variant source apply is validated: full/selected inverse stable-field
+    publication retains source identity/unselected values and prior revisions, while local edits,
+    baseline/history and retained base reference stay unchanged. Explicit rebase and structural
+    reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabSourceApply-Linux-2026-10-10.md).
+
+  - ✅ Graphical selected-field prefab revert is validated: stable field-group checkboxes,
+    explicit preparation and confirmation preserve unselected values with one Undo/Redo.
+    Source apply, reference rebase and structural/live-instance bindings remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SelectedPrefabRevert-Linux-2026-10-10.md).
 
   - ✅ Targeted stable-field prefab property candidates are validated: explicit node/field
     identity selection preserves unselected values, inactive stored components and unknown bytes.
