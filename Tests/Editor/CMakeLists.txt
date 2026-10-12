@@ -5,6 +5,11 @@ add_test(NAME editor.extension_signature_trust COMMAND NexoraExtensionTrustTests
 
 add_executable(NexoraEditorShaderTests ShaderAuthoringTests.cpp)
 add_executable(NexoraPropertySnapshotTests PropertySnapshotTests.cpp)
+add_executable(NexoraPropertySnapshotHintTests PropertySnapshotHintTests.cpp)
+target_link_libraries(NexoraPropertySnapshotHintTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPropertySnapshotHintTests)
+add_test(NAME editor.property_snapshot_hint_preservation COMMAND NexoraPropertySnapshotHintTests)
+set_tests_properties(editor.property_snapshot_hint_preservation PROPERTIES TIMEOUT 60)
 target_link_libraries(NexoraPropertySnapshotTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraPropertySnapshotTests)
 add_test(NAME editor.atomic_property_snapshot COMMAND NexoraPropertySnapshotTests)
