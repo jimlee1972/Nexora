@@ -98,6 +98,27 @@ override/rebase, nested materialization, journaling and retention policy remain 
 
 ## Stable prefab revision comparison
 
+`BuildPrefabRebasePlan` compares exact old-base/local/new-base assets and coalesces rows by stable
+node/field UUID into complete property groups. Source-only groups update; local-only overrides
+survive. Both sides changing different lanes of the same vector/component still require an explicit
+KeepLocal/TakeSource decision. Missing choices return an owning unresolved review without a
+candidate; duplicate, unknown or invalid choices reject. Exact node and field identity sets must
+match. Structural/identity, nested-reference and changed scene-metadata reconciliation remain open.
+Chosen parent/sibling groups pass the actual candidate parser and hierarchy validator together.
+
+`PrefabDocumentSession::ReviewRebase` requires a saved isolated variant and reads its exact retained
+current reference plus the newer actual current source. Its private owning result freezes document,
+publication, project/owner scope, all three assets and both complete bounded source closures.
+`ResolveRebase` and `Rebase` reread actual publication, retained/current sources and closure assets;
+stale or tampered dependencies reject. Read-only scopes may inspect and resolve choices, but only
+a current writer with resolved recovery/external state and explicit authorization may apply.
+Application stages the complete candidate graph, then changes properties and reference in one
+atomic Undo/Redo without writing files or acknowledging the baseline. Explicit wrapped Save persists
+the new reference and preserves history; local keys, generation, selection, clipboard and original
+scene remain intact. Calls serialize on the authoring owner. Logical bounds are not a total
+process/history memory quota. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+Graphical review/conflict confirmation and structural/live-instance bindings remain separate work.
+
 An isolated variant document now owns its current exact base UUID/revision independently of
 its last published asset. `SceneDocument::ApplyPrefabPropertySnapshot` stages same-identity
 properties and that reference in one Undo/Redo transaction; a reference-only change is dirty even
