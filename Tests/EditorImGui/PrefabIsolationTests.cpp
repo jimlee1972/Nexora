@@ -1,5 +1,6 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include "TemporaryDirectoryCleanup.h"
 #include <algorithm>
 #include <chrono>
@@ -731,6 +732,142 @@ void RunRebase(float scale) {
           "Read-only rebase gained authority or changed document/source");
 }
 
+void RunInstantiate(float scale) {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-placement-ui-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  editor::test::TemporaryDirectoryCleanup cleanup{root};
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root, "Placement controls"), "Placement controls project failed");
+  runtime::World source_world, active_world;
+  editor::SceneDocument source(source_world, source_world.LoadScene("Source"));
+  editor::SceneDocument active(active_world, active_world.LoadScene("Active scene"));
+  const auto prefab_node = source.Create("Prefab node"), seed = active.Create("Seed");
+  Require(source.SetOpaqueComponent(*source.Key(prefab_node), {99, "Absent", {0, 255, 27}}),
+          "Placement opaque fixture failed");
+  std::uint64_t serial = 100;
+  const auto factory = [&] { return foundation::Uuid{1950, ++serial}; };
+  const foundation::Uuid id{1951, 1};
+  const auto asset = editor::PrefabAssets::Capture(id, source, factory);
+  Require(asset && editor::PrefabAssets::Publish(workspace, *asset),
+          "Placement source save failed");
+  editor::PrefabDocumentSession isolation(workspace);
+  Require(isolation.Open(id), "Placement isolation open failed");
+  editor::SceneFileSession files(workspace, active);
+  const auto active_before = *active.PrepareSave();
+  const auto isolation_before = *isolation.Document()->PrepareSave();
+  const auto seed_key = *active.Key(seed);
+  Require(active.Select(std::array{seed}) && active.CopySelection(), "Placement clipboard failed");
+  editor::imgui::EditorImGuiHost ui;
+  ui.SetDisplay(1400 * scale, 1100 * scale, scale);
+  Access::ConfigureSyntheticInput(ui);
+  ui.OpenPrefabIsolation();
+  Nexora::Window::WindowEvent focus;
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 1;
+  ui.ProcessEvents(std::array{focus});
+  editor::ProductShell shell;
+  bool allowed = true, scene_writable = true;
+  std::uint64_t scope = 80;
+  const auto draw = [&] {
+    editor::imgui::PrefabIsolationObservation observation;
+    observation.project = workspace.Project().id;
+    observation.project_scope = scope;
+    observation.owner_generation = isolation.Generation();
+    observation.document_generation = isolation.Document()->Generation();
+    observation.asset = id;
+    observation.source = files.Token();
+    observation.revision = isolation.SourceBaseline()->revision;
+    observation.open = true;
+    observation.writable = workspace.Writable();
+    observation.scene_writable = scene_writable;
+    observation.dirty = isolation.Dirty();
+    Require(ui.SetPrefabIsolation(observation), "Placement observation rejected");
+    ui.BeginFrame();
+    ui.DrawProductShell(shell, &active, &workspace);
+    ui.DrawPrefabIsolation(isolation.Document(), isolation.EditableDocument(), workspace, allowed);
+    static_cast<void>(ui.EndFrame());
+  };
+  for (int i = 0; i < 4; ++i)
+    draw();
+  const auto click = [&] {
+    const auto point = Access::PrefabControlPosition(ui, 28);
+    Require(point.has_value(), "Actual Instantiate in scene control absent");
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * scale);
+    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  allowed = false;
+  draw();
+  click();
+  Require(!ui.TakePrefabIsolationRequest(), "Blocked authoring emitted placement");
+  allowed = true;
+  scene_writable = false;
+  draw();
+  click();
+  Require(!ui.TakePrefabIsolationRequest(), "Reference scene role emitted placement");
+  scene_writable = true;
+  draw();
+  Require(isolation.EditableDocument()->Rename(*isolation.Document()->Key(prefab_node), "Unsaved"),
+          "Unsaved placement fixture failed");
+  draw();
+  click();
+  Require(!ui.TakePrefabIsolationRequest() && isolation.EditableDocument()->Undo(),
+          "Unsaved prefab enabled saved-version instantiation");
+  draw();
+  click();
+  scene_writable = false;
+  draw();
+  Require(!ui.TakePrefabIsolationRequest(), "Changing destination role retained pending placement");
+  scene_writable = true;
+  draw();
+  click();
+  ++scope;
+  draw();
+  Require(!ui.TakePrefabIsolationRequest(), "Project scope change retained pending placement");
+  click();
+  const auto request = ui.TakePrefabIsolationRequest();
+  Require(request && request->action == Action::Instantiate && request->target == id &&
+              request->scope.scene_writable && request->scope.source == files.Token(),
+          "Actual placement control lost owning source/destination request");
+  auto prepared = editor::ProjectPrefabPlacement::Prepare(workspace, request->target, active);
+  Require(prepared &&
+              editor::ProjectPrefabPlacement::Instantiate(workspace, active, *prepared, {1952, 1},
+                                                          true) &&
+              active.Nodes().size() == 2 && active.PrefabPlacements().size() == 1 &&
+              active.Key(seed) == seed_key &&
+              isolation.Document()->MatchesPreparedSave(isolation_before) && !isolation.Dirty() &&
+              editor::PrefabAssets::Load(workspace, id) == asset &&
+              !std::filesystem::exists(root / "Content/Placed.scene"),
+          "Placement mutated isolated prefab/source or published the scene prematurely");
+  const auto placed = *active.PrepareSave();
+  Require(active.Undo() && active.MatchesPreparedSave(active_before) &&
+              active.PrefabPlacements().empty() && active.Redo() &&
+              active.MatchesPreparedSave(placed) && active.Paste() &&
+              active.Name(active.Selection().front()) == "Seed Copy" && active.Undo() &&
+              active.MatchesPreparedSave(placed),
+          "Placement did not use independent active-scene history or preserve clipboard");
+  Require(files.SaveAs(files.Token(), "Content/Placed.scene").Applied() && !active.Dirty(),
+          "Explicit placed scene save failed");
+  runtime::World reopened_world;
+  editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Reopen"));
+  Require(reopened.Reload(root / "Content/Placed.scene") && !reopened.Dirty() &&
+              std::ranges::equal(reopened.PrefabPlacements(), active.PrefabPlacements()) &&
+              reopened.Nodes().size() == 2,
+          "Actual placed Scene Save/reopen lost persistent source mapping");
+}
 } // namespace
 int main() {
   try {
@@ -740,6 +877,8 @@ int main() {
     RunSourceApply(2);
     RunRebase(1);
     RunRebase(2);
+    RunInstantiate(1);
+    RunInstantiate(2);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

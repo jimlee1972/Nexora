@@ -1110,6 +1110,16 @@ repeated before canonical publication.
 
 ## Three-way prefab source rebase controls
 
+The isolation panel also exposes `Instantiate in scene` for a clean published prefab and a
+currently writable active scene. Its owning request includes project/owner/document/source-file
+scope and destination role; changing scope or role revokes pending requests. Drawing performs no
+source IO or live import. The application prepares/rechecks the published exact source closure and
+target content, generates a placement identity, then requests one bound scene import. Read-only,
+reference-document, dirty prefab, Play/modal/recovery and stale publication guards apply. Original
+scene history owns the single Undo/Redo; isolation content/history and prefab source files stay
+independent. Ordinary explicit Scene Save publishes the placement metadata. Structural instance
+override/rebase and automatic reconciliation remain separate work.
+
 The isolated variant exposes retained source revision, Review rebase, a clipped five-column
 old-base/local/current-source comparison and explicit Keep local/Take source choices for each
 conflicting complete stable field group. Prepare forwards owning choices to the authoring owner;

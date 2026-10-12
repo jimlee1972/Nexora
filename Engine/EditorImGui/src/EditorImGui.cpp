@@ -173,7 +173,7 @@ struct EditorImGuiHost::State final {
   std::array<double, 3> prefab_position_original{};
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
-  std::array<std::optional<std::array<float, 2>>, 28> prefab_positions{};
+  std::array<std::optional<std::array<float, 2>>, 29> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
