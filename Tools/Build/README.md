@@ -36,7 +36,10 @@ only queued/running `build.yml` runs from superseded heads in this repository. I
 branch before each cancellation and stops when the head changes. Current-head push and PR runs,
 main, foreign repositories and unlisted branches remain eligible for their complete CI gates.
 Cleanup errors are warnings; they never override build acceptance. The existing actions-write
-permission and legacy ED-M0 allowlist remain unchanged. Run the eight guard cases locally with
+permission and legacy ED-M0 allowlist remain unchanged. The current roadmap group additionally
+requires the repository owner as workflow actor and the same actor on every superseded candidate;
+missing/foreign actors are retained. This group includes only published session-owned branches and
+its own cleanup branch, never a wildcard or arbitrary future branch. Run the guard cases with
 `node Tools/Build/tests/editor-ci-cleanup.test.cjs`.
 
 ```bash

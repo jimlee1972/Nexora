@@ -156,7 +156,7 @@ std::filesystem::path AssetWorkspace::IdentitySidecar(const std::filesystem::pat
 
 bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cancelled cancelled,
                                 Progress progress, AssetIdentityMode identity_mode,
-                                std::string *error) {
+                                std::string *error, AssetIndexLimits limits) {
   std::error_code ec;
   const auto root = std::filesystem::canonical(content_root, ec);
   if (ec || !std::filesystem::is_directory(root, ec)) {
@@ -171,8 +171,25 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
     if (ec)
       break;
     if (std::filesystem::is_regular_file(status) &&
-        Lower(PathUtf8(it->path().extension())) != ".meta")
+        Lower(PathUtf8(it->path().extension())) != ".meta") {
+      // Both bounds are enforced while enumerating, before any sidecar is created, so an oversized
+      // tree neither grows memory without limit nor leaves partial identity state behind.
+      if (files.size() >= limits.max_assets) {
+        if (error)
+          *error = "content tree exceeds the " + std::to_string(limits.max_assets) +
+                   "-file project index limit";
+        return false;
+      }
+      // Both paths come from the same iteration of the canonical root, so the lexical form is
+      // exact and avoids a filesystem round trip per file.
+      if (PathUtf8(it->path().lexically_relative(root)).size() > limits.max_path_bytes) {
+        if (error)
+          *error = "asset path exceeds the " + std::to_string(limits.max_path_bytes) +
+                   "-byte project index limit";
+        return false;
+      }
       files.push_back(it->path());
+    }
   }
   if (ec) {
     if (error)

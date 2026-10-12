@@ -177,8 +177,15 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ Import queue admission 現預設最多保留 64 個 operation，可設定容量，滿額回傳可重試錯誤。
   Queued job 與尚未取走的完成／失敗／取消 result 都保留名額，直到取走結果。
   `editor.preview_contract` 涵蓋混合 request、queued／失敗／取消、100 次滿額拒絕、
-  100 次取走後重新提交及 shutdown。此項限制 operation 數量；任意 project index 的 bytes
-  及實體 workflow gate 仍待完成。
+  100 次取走後重新提交及 shutdown。此項限制 operation 數量；project index 本身由下一項限制，
+  實體 workflow gate 仍待完成。
+
+- ✅ `AssetWorkspace::ImportTree` 現將單一 Content index 限制為 262,144 個檔案（不含 ".meta"
+  sidecar），每條專案相對路徑最多 1024 UTF-8 bytes，可透過 `AssetIndexLimits` 調整。兩項限制都在
+  列舉階段、寫入任何 identity sidecar 之前檢查：超限的目錄樹會以可操作的錯誤失敗、保留先前的 index、
+  不留下半成品 sidecar，列舉也會提早停止而不是讓記憶體無限成長。`editor.asset_source` 涵蓋剛好在
+  上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。單一 entry 的診斷
+  文字、縮圖與實體 workflow gate 仍待完成。
 
 - ✅ 一般資產 indexing 及同步／背景 reimport 現以 8 KiB read chunk 串流計算 binary source hash，
   不再保留整個來源檔案。讀取中取消不發布 partial hash；空檔案、embedded NUL、完整 chunk
@@ -232,9 +239,17 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   並在焦點／write loss、隱藏 Content、
   外部 modal 或 stale asset scope 時取消。真正 1×／2× Unicode／gate 測試及 Linux Xvfb
   F2／Enter 後的 Scene Save／Undo／重啟驗證流程；實體 IME 與完整圖形驗收仍待完成。
+- ✅ Linux 原生 project-upgrade 驗收現以明確 keydown／keyup 階段送出一次鍵盤操作。
+  三次冷啟動及受影響的 252 項圖形套件保留精確升級／backup／report、唯讀檔案保護
+  與 Vulkan 檢查。[輸入證據](../../Tools/Build/evidence/EditorEDM0-ProjectUpgradeInput-Linux-2026-10-10.md)。
 - 待辦：實體顯示／Windows 新 project 全流程驗收。
 
 ### ED-M2 — Scene authoring core
+
+- ✅ Linux 原生 Scene Preview 旋轉後的 Save 驗收，現以明確 release／modifier／key 階段
+  保留一次實際鍵盤操作。三次冷啟動及受影響的 253 項圖形套件保留既有
+  preview／commit／Undo／scale／reopen 檢查與期限。
+  [輸入證據](../../Tools/Build/evidence/EditorEDM0-ScenePreviewSaveInput-Linux-2026-10-10.md)。
 
 - ✅ Scalar opaque PBR `.nmaterial` 資產現可 import／reimport 為有界 immutable typed data，
   具 64 KiB source、4096 asset／Content Undo 預算與 canonical Renderer schema 驗證。
@@ -422,6 +437,10 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正 1x／2x 控制項及原生 Vulkan 編輯／保存／重開的驗收見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md)。
   Native pointer delivery 在慢速 frame 間保留 down／up；連續八次實際執行通過。
+  Presented X11 control／hover／held／released readiness 與獨立 shortcut-key phase 亦通過
+  八次冷啟動、單執行緒軟體渲染的原生流程（134.62s）；完整 239 項 graphical Development 測試與 Shipping build 皆通過。
+  原生 fixture 現保留 host 初始 1280x720 尺寸，消除已重現的 resize／dock 初始化競態；
+  連續五次冷啟動原生流程通過（75.21s）。
   Dynamic array、原生外掛還原及完整 ED-M2 驗收仍待完成。
 
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
@@ -726,6 +745,11 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   expected asset revision。Graphical isolation 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md)。
 
+- ✅ Stable prefab three-way comparison 已驗證：node／field UUID path、stable parent reference、
+  unknown payload 與 nested metadata 不依賴 serialized Runtime ID；graphical override／revert／
+  apply／rebase 及結構驗證後的 publication 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md)。
+
 - ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
   revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。
   實際 rename／Undo／save／reopen、scoped repeated placement、cycle／stale／budget 拒絕及
@@ -975,6 +999,10 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   與 plugin manager。
 
 ### ED-M7 — Production hardening
+
+- ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
+  guard、16 項 documentation-routing、完整 Linux 239/239 與 Minimal Shipping 通過。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md)。
 
 - ✅ Native project browser 現提供兩種 access mode 的 owning no-write upgrade preview，
   顯示 captured schema／UUID、source／workspace count 與 recovery evidence 位置。
