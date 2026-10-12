@@ -753,32 +753,51 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md)。
 
+- ✅ Bound-scene Inspector 可選取持有的 scoped property row，並在明確 Revert 確認時凍結
+  review serial／index。完整選取 property group 還原 retained source value，未選取 name／TRS／
+  unknown data 保持原值。實際 1x／2x 控制項、三次原生冷啟動的 Name／rotation／opaque 流程、
+  exact Scene Save／一次 Undo／Redo 與唯讀重開均通過；完整 Linux 248/248 與 Minimal Shipping
+  通過。Structural source reconciliation 與 live instance source apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedUi-Linux-2026-10-10.md)。
+
+- ✅ 圖形化 bound-scene Inspector 可檢視持有的 scoped retained／local property row，並要求
+  明確確認才執行 whole-instance Revert。唯讀、stale、structural、hidden／focus／close 與
+  permission guard 保留資料；實際 1x／2x 控制項、三次原生冷啟動、exact Scene Save／Undo／Redo
+  及唯讀重開通過。完整 Linux 247/247 與 Minimal Shipping 通過；source apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md)。
+
 - ✅ Targeted live prefab property Revert 使用 immutable scoped review row index，將選取 lane
   展開為完整 name／TRS／authored rotation／component／opaque group。不同 lane 會合併；
   invalid／duplicate／read-only／unauthorized input 都拒絕。未選取 local override、dormant value、
   unknown addition、identity、binding 與檔案保留，整組只有一次 Undo／Redo；空選取保留 pending
-  Redo。Mixed nested source fixture、完整 Linux 243/243 與 Minimal Shipping 通過；graphical
-  selection 與 source apply／rebase 仍待完成。
+  Redo。Mixed nested source fixture、完整 Linux 243/243 與 Minimal Shipping 通過；source
+  apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md)。
 
 - ✅ Atomic live instance property revert 在一筆 Undo／Redo 中還原 exact retained nested
   source，包含 dormant component values、authored Euler 與未知 bytes。Current writer、明確
   authorization 及 exact source／target 再驗證拒絕 stale／唯讀／structural input；來源升版、
   files 不變及 saved baseline／Scene Save／reopen 通過，完整 Linux 243/243 與 Minimal Shipping
-  通過。Targeted Core revert 已於上方驗證；graphical instance revert、structural reconciliation
-  與 source apply／rebase 仍待完成。
+  通過。Targeted Core revert 已於上方驗證；structural reconciliation 與 source apply／rebase
+  仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md)。
+
+- ✅ 圖形化 scene Inspector 現顯示所選 persistent prefab node 的來源與 retained revision，
+  並可明確執行唯讀檢視，顯示此次取得的 available／unresolved、scoped source 與 current
+  publication 狀態。實際 1x／2x 控制項、原生來源遺失／還原刷新及唯讀重開保留 scene／history／
+  files；完整 Linux 245/245 與 Minimal Shipping 通過。Instance source apply／rebase
+  仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md)。
 
 - ✅ Owning live prefab instance property review 以 scoped stable node／field identity 比對
   exact retained nested source，保留 authored Euler 與未知 bytes，並將 hierarchy 變更標為
   structural。唯讀檢視及 stale／missing／over-budget 拒絕保留 files 與 Undo／Redo；完整 Linux
-  243/243 與 Minimal Shipping 通過。Graphical override review 與 instance
-  apply／rebase 另行完成。
+  243/243 與 Minimal Shipping 通過。Instance apply／rebase 另行完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md)。
 
 - ✅ Persistent placement source inspection 持有 retained／current revision 與 scoped-node
-  observation，包含 unresolved source status；完整 Linux 243/243 與 Minimal Shipping 通過，graphical instance
-  inspection 與 override／rebase 另行完成。
+  observation，包含 unresolved source status；完整 Linux 243/243 與 Minimal Shipping 通過，
+  instance override／rebase 另行完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementInspection-Linux-2026-10-10.md)。
 
 - ✅ Project prefab placement owner 通過實際 mixed-revision source closure、stale／foreign
@@ -812,6 +831,11 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   stored component 使用一次 guarded Undo／Redo，保留 generation、selection、clipboard 與 baseline。
   Structural change 與 graphical prefab revert/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
+
+- ✅ 未變更的 atomic snapshot rotation group 現保留暫存的 authored Euler 圈數。
+  Ordinary snapshot、placement revision transaction 及實際 source-name rebase 保留精確 history；
+  明確 quaternion 變更及 authored record 移除仍會生效。
+  [角度證據](../../Tools/Build/evidence/EditorEDM4-SnapshotEulerHints-Linux-2026-10-10.md)。
 
 - ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
   revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。

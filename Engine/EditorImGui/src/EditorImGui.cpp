@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -396,6 +397,19 @@ struct EditorImGuiHost::State final {
   std::uint32_t extension_permission_draft{};
   std::vector<std::pair<std::string, std::array<float, 2>>> extension_positions;
   std::string inspector_error;
+  std::filesystem::path prefab_source_root;
+  bool prefab_source_read_allowed{};
+  std::optional<PrefabPlacementSourceRequest> prefab_source_scope, prefab_source_request;
+  std::optional<PrefabPlacementSourceReport> prefab_source_report;
+  std::optional<std::array<float, 2>> prefab_source_position;
+  int prefab_source_frame{};
+  bool prefab_override_authoring{}, prefab_override_confirm{}, prefab_override_popup{};
+  std::optional<PrefabPlacementOverrideRequest> prefab_override_request, prefab_override_consent;
+  std::vector<bool> prefab_override_selected;
+  std::map<std::size_t, std::array<float, 2>> prefab_override_row_positions;
+  std::optional<PrefabPlacementOverrideReport> prefab_override_report;
+  std::string prefab_override_error;
+  std::array<std::optional<std::array<float, 2>>, 5> prefab_override_positions{};
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
   FileDialog scene_file_dialog{FileDialog::None};
   bool scene_file_context{}, scene_file_save_blocked{}, scene_file_popup_pending{};
@@ -2745,12 +2759,17 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
   ImGui::EndDragDropTarget();
 }
 
+#include "PrefabPlacementOverridePanel.inl"
+#include "PrefabPlacementSourcePanel.inl"
 #include "ReflectedInspectorPanel.inl"
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
-                   bool editable, bool copy_allowed) {
+                   bool editable, bool copy_allowed, bool override_readable,
+                   bool override_writable) {
+  DrawPrefabPlacementSource(state, scene, copy_allowed);
+  DrawPrefabPlacementOverrides(state, override_readable, override_writable);
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
@@ -4173,6 +4192,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
       if (!state_->app_focused) {
+        state_->prefab_override_request.reset();
+        state_->prefab_override_consent.reset();
+        state_->prefab_override_confirm = state_->prefab_override_popup = false;
         state_->game_input_binding_open = false;
         state_->game_input_binding_pending = false;
         if (state_->game_input_save_requested)
@@ -4736,8 +4758,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::EndMainMenuBar();
   }
   if (file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
-      state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
-      !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
+      !state_->prefab_override_confirm && state_->scene_file_dialog == State::FileDialog::None &&
+      !state_->scene_file_output && !state_->content_rename_target &&
+      !ImGui::GetIO().WantTextInput) {
     if (writable && !game_running &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::New);
@@ -4760,9 +4783,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool rename_editable = !reference_scene && (!workspace || workspace->Writable()) &&
                                !external_modal_open && !state_->content_rename_target;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
-  const bool interaction_blocked =
-      external_modal_open || rename_open || state_->content_rename_target;
-  const bool scene_editable = rename_editable && !rename_open;
+  const bool interaction_blocked = external_modal_open || rename_open ||
+                                   state_->content_rename_target || state_->prefab_override_confirm;
+  const bool scene_editable = rename_editable && !rename_open && !state_->prefab_override_confirm;
   if (const auto *payload = ImGui::GetDragDropPayload();
       payload && payload->IsDataType(AssetDragPayload::kType.data()) &&
       (!state_->app_focused || !scene_editable || (content && !content->Writable()) ||
@@ -4880,7 +4903,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
     } else {
       DrawInspector(*state_, scene, content, meshes, materials, scene_editable,
-                    !interaction_blocked);
+                    !interaction_blocked,
+                    !external_modal_open && !rename_open && !state_->content_rename_target,
+                    rename_editable && !rename_open);
     }
   } else {
     CancelInspectorDrafts(*state_);
@@ -6225,6 +6250,129 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
 }
+void EditorImGuiHost::SetPrefabPlacementSourceContext(const std::filesystem::path &root,
+                                                      bool read_allowed) {
+  if (state_->prefab_source_root != root) {
+    state_->prefab_source_scope.reset();
+    state_->prefab_source_report.reset();
+    state_->prefab_source_request.reset();
+    state_->prefab_source_root = root;
+    state_->prefab_override_report.reset();
+    state_->prefab_override_request.reset();
+    state_->prefab_override_error.clear();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
+    state_->prefab_override_selected.clear();
+  }
+  state_->prefab_source_read_allowed = read_allowed;
+  if (!read_allowed) {
+    state_->prefab_source_request.reset();
+    state_->prefab_override_request.reset();
+    state_->prefab_override_consent.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  }
+}
+std::optional<PrefabPlacementSourceRequest> EditorImGuiHost::TakePrefabPlacementSourceRequest() {
+  ImGui::SetCurrentContext(state_->context);
+  if (!state_->prefab_source_read_allowed || !state_->app_focused ||
+      state_->prefab_source_frame != ImGui::GetFrameCount() || state_->close_prompt_requested ||
+      state_->play_apply_open || state_->scene_file_dialog != State::FileDialog::None ||
+      state_->scene_file_output || state_->hierarchy_rename_target ||
+      state_->content_rename_target || state_->scene_tab_dialog || !state_->scene_file_context ||
+      (state_->prefab_source_scope &&
+       state_->prefab_source_scope->source != state_->scene_file_token))
+    state_->prefab_source_request.reset();
+  return std::exchange(state_->prefab_source_request, std::nullopt);
+}
+bool EditorImGuiHost::SetPrefabPlacementSourceReport(PrefabPlacementSourceReport report) {
+  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
+      !state_->scene_file_context || report.scope.source != state_->scene_file_token ||
+      !report.mapped_nodes || report.mapped_nodes > SceneDocument::kMaximumPrefabPlacementNodes ||
+      report.resolved != report.scoped_source.has_value() ||
+      (report.published_revision && !*report.published_revision) ||
+      (report.scoped_source &&
+       (report.scoped_source->asset.IsNil() || !report.scoped_source->revision)))
+    return false;
+  state_->prefab_source_report = std::move(report);
+  return true;
+}
+void EditorImGuiHost::SetPrefabPlacementOverrideContext(bool authoring_allowed) {
+  state_->prefab_override_authoring = authoring_allowed;
+  if (!authoring_allowed) {
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
+    if (state_->prefab_override_request &&
+        state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review)
+      state_->prefab_override_request.reset();
+  }
+}
+std::optional<PrefabPlacementOverrideRequest>
+EditorImGuiHost::TakePrefabPlacementOverrideRequest() {
+  ImGui::SetCurrentContext(state_->context);
+  if (!state_->prefab_source_read_allowed || !state_->app_focused ||
+      state_->prefab_source_frame != ImGui::GetFrameCount() || state_->close_prompt_requested ||
+      state_->play_apply_open || state_->scene_file_dialog != State::FileDialog::None ||
+      state_->scene_file_output || state_->hierarchy_rename_target ||
+      state_->content_rename_target || state_->scene_tab_dialog || !state_->scene_file_context ||
+      !state_->prefab_source_scope) {
+    state_->prefab_override_request.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
+    return {};
+  }
+  if (state_->prefab_override_request &&
+      (state_->prefab_override_request->scope != *state_->prefab_source_scope ||
+       state_->prefab_override_request->scope.source != state_->scene_file_token ||
+       (state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review &&
+        (!state_->prefab_override_authoring || !state_->prefab_override_report ||
+         state_->prefab_override_request->review != state_->prefab_override_report->review)))) {
+    state_->prefab_override_request.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_override_consent.reset();
+  }
+  return std::exchange(state_->prefab_override_request, std::nullopt);
+}
+bool EditorImGuiHost::SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport report) {
+  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
+      report.scope.source != state_->scene_file_token || !report.review ||
+      (report.published_revision && !*report.published_revision) ||
+      report.rows.size() > PrefabPlacementOverrides::kMaximumRows)
+    return false;
+  std::size_t bytes{};
+  for (const auto &row : report.rows) {
+    if (row.source.asset.IsNil() || !row.source.revision || row.node.IsNil() || !row.target.id ||
+        !row.target.entity_generation || !row.target.document_generation ||
+        (row.property && row.property->IsNil()) || row.scope.size() > PrefabAssets::kMaximumDepth ||
+        row.field.empty() || row.field.size() > SceneComparison::kMaximumValueBytes ||
+        (row.retained && row.retained->size() > SceneComparison::kMaximumValueBytes) ||
+        (row.local && row.local->size() > SceneComparison::kMaximumValueBytes) ||
+        !foundation::IsValidUtf8(row.field) ||
+        (row.retained && !foundation::IsValidUtf8(*row.retained)) ||
+        (row.local && !foundation::IsValidUtf8(*row.local)))
+      return false;
+    const auto size = row.field.size() + row.scope.size() * sizeof(foundation::Uuid) +
+                      (row.retained ? row.retained->size() : 0) +
+                      (row.local ? row.local->size() : 0);
+    if (size > PrefabPlacementOverrides::kMaximumReportBytes - bytes)
+      return false;
+    bytes += size;
+  }
+  state_->prefab_override_selected.assign(report.rows.size(), false);
+  state_->prefab_override_consent.reset();
+  state_->prefab_override_report = std::move(report);
+  state_->prefab_override_request.reset();
+  state_->prefab_override_error.clear();
+  state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  return true;
+}
+void EditorImGuiHost::SetPrefabPlacementOverrideError(std::string error) {
+  state_->prefab_override_report.reset();
+  state_->prefab_override_request.reset();
+  state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  state_->prefab_override_consent.reset();
+  state_->prefab_override_selected.clear();
+  state_->prefab_override_error = error.substr(0, 1024);
+}
 std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
   return std::exchange(state_->scene_comparison_request, std::nullopt);
 }
@@ -7372,6 +7520,32 @@ void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.scene");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_source_position;
+}
+const PrefabPlacementSourceReport *
+EditorImGuiTestAccess::PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_source_report ? &*host.state_->prefab_source_report : nullptr;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabOverridePosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->prefab_override_positions.size()
+             ? host.state_->prefab_override_positions[control]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabOverrideRowPosition(const EditorImGuiHost &host,
+                                                 std::size_t row) noexcept {
+  const auto found = host.state_->prefab_override_row_positions.find(row);
+  return found == host.state_->prefab_override_row_positions.end() ? std::nullopt
+                                                                   : std::optional{found->second};
+}
+const PrefabPlacementOverrideReport *
+EditorImGuiTestAccess::PrefabOverrideReport(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_override_report ? &*host.state_->prefab_override_report : nullptr;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {

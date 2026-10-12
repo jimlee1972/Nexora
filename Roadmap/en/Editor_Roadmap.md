@@ -796,29 +796,49 @@ creates property widgets; unknown components retain raw data instead of being si
     Minimal Shipping pass. This transaction is a source-rebase prerequisite; source closure,
     conflict review and graphical source rebase follow separately.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md).
+
+  - ✅ The bound-scene Inspector selects owning scoped property rows and freezes their review
+    serial/indices at explicit Revert confirmation. Complete selected property groups restore
+    retained source values while unselected names/TRS/unknown data remain intact. Actual 1x/2x
+    controls, three cold native Name/rotation/opaque workflows, exact Scene Save/one Undo/Redo
+    and read-only reopen pass; full Linux 248/248 and Minimal Shipping pass. Structural source
+    reconciliation and live instance source apply/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedUi-Linux-2026-10-10.md).
+  - ✅ The graphical bound-scene Inspector reviews owning scoped retained/local property rows
+    and requires explicit confirmation for whole-instance Revert. Read-only, stale, structural,
+    hidden/focus/close and permission guards preserve data; actual 1x/2x controls, three cold native
+    launches, exact Scene Save/Undo/Redo and read-only reopen pass. Full Linux 247/247 and Minimal
+    Shipping pass. Source apply/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md).
   - ✅ Targeted live prefab property Revert accepts immutable scoped review row indices and
     expands selected lanes into complete name/TRS/authored rotation/component/opaque groups.
     Distinct lanes coalesce; invalid/duplicate/read-only/unauthorized inputs reject. Unselected
     local overrides, dormant values, unknown additions, identity, bindings and files are preserved
     with one Undo/Redo; empty selection preserves pending Redo. Mixed nested source fixtures and
-    full Linux 243/243 plus Minimal Shipping pass. Graphical selection and source apply/rebase
+    full Linux 243/243 plus Minimal Shipping pass. Source apply/rebase
     remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md).
   - ✅ Atomic live instance property revert restores the exact retained nested source, including
     dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
     explicit authorization and exact source/target revalidation reject stale/read-only/structural
     inputs. Source advancement, unchanged files and saved-baseline/Scene Save/reopen pass;
-    full Linux 243/243 and Minimal Shipping pass. Graphical instance revert,
-    structural reconciliation and source apply/rebase remain open.
+    full Linux 243/243 and Minimal Shipping pass. Structural reconciliation and source
+    apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md).
+  - ✅ The graphical scene Inspector now shows a selected persistent prefab node's source and
+    retained revision, with explicit read-only inspection of captured available/unresolved,
+    scoped-source and current publication facts. Actual 1x/2x controls, native missing/restored
+    source refresh and read-only reopen preserve scene/history/files; full Linux 245/245 and
+    Minimal Shipping pass. Instance source apply/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md).
   - ✅ Owning live prefab instance property review compares exact retained nested sources with
     scoped stable node/field identities, preserves authored Euler and unknown bytes, and marks
     hierarchy changes structural. Read-only review and stale/missing/over-budget rejection preserve
-    files and Undo/Redo; full Linux 243/243 and Minimal Shipping pass. Graphical override review
-    and instance apply/rebase follow separately.
+    files and Undo/Redo; full Linux 243/243 and Minimal Shipping pass. Instance apply/rebase
+    follow separately.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md).
   - ✅ Persistent placement source inspection owns retained/current revision and scoped-node
-    observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass. Graphical
-    instance inspection and override/rebase follow separately.
+    observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass.
+    Instance override/rebase follow separately.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementInspection-Linux-2026-10-10.md).
   - ✅ Project prefab placement owner passes actual mixed-revision source-closure, stale/foreign
     target, read-only/recovery/external-change and Save/reopen gates, full Linux 243/243 and
@@ -845,6 +865,10 @@ creates property widgets; unknown components retain raw data instead of being si
     hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
     clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
+  - ✅ Unchanged atomic snapshot rotation groups now conserve latent in-memory authored Euler
+    turns. Ordinary snapshots, placement revision transactions and actual source-name rebases
+    preserve exact history; explicit quaternion changes and authored-record removal are honored.
+    [Hint evidence](../../Tools/Build/evidence/EditorEDM4-SnapshotEulerHints-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
