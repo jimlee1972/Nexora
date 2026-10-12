@@ -168,7 +168,7 @@ bool PrefabAssets::Validate(const PrefabAsset &asset) {
     return false;
   runtime::World world;
   SceneDocument probe(world, world.LoadScene("Prefab validation"));
-  if (!probe.ReloadBytes(asset.scene_bytes, kMaximumNodes))
+  if (!probe.ReloadBytes(asset.scene_bytes, kMaximumNodes) || !probe.PrefabPlacements().empty())
     return false;
   const auto source_nodes = probe.Nodes();
   if (source_nodes.size() != asset.nodes.size())
@@ -209,7 +209,8 @@ bool PrefabAssets::Validate(const PrefabAsset &asset) {
 std::optional<PrefabAsset> PrefabAssets::Capture(Uuid id, const SceneDocument &scene,
                                                  const std::function<Uuid()> &new_identity,
                                                  const PrefabAsset *previous) {
-  if (id.IsNil() || !new_identity || (previous && !Validate(*previous)))
+  if (id.IsNil() || !new_identity || !scene.PrefabPlacements().empty() ||
+      (previous && !Validate(*previous)))
     return {};
   // The caller-owned previous asset must not remain borrowed while its identity callback runs.
   const auto previous_snapshot = previous ? std::optional(*previous) : std::nullopt;

@@ -394,6 +394,29 @@ public:
   // Authority/current document observation are rechecked; no file IO or user clipboard changes.
   [[nodiscard]] std::optional<std::vector<ImportedForestNode>>
   ImportForestBytes(const PreparedSave &expected, std::string_view source, bool authorized);
+  struct PrefabPlacementNode final {
+    std::vector<foundation::Uuid> scope;
+    foundation::Uuid source_node;
+    runtime::Id target{};
+    friend bool operator==(const PrefabPlacementNode &, const PrefabPlacementNode &) = default;
+  };
+  struct PrefabPlacement final {
+    foundation::Uuid instance, source;
+    std::uint64_t revision{};
+    std::vector<PrefabPlacementNode> nodes;
+    friend bool operator==(const PrefabPlacement &, const PrefabPlacement &) = default;
+  };
+  static constexpr std::size_t kMaximumPrefabPlacements = 128;
+  static constexpr std::size_t kMaximumPrefabPlacementNodes = 4096;
+  static constexpr std::size_t kMaximumPrefabPlacementDepth = 32;
+  static constexpr std::size_t kMaximumPrefabPlacementBytes = 4 * 1024 * 1024;
+  // Borrow expires on authoring mutation/reload. Serialized owner enforces project authority.
+  [[nodiscard]] std::span<const PrefabPlacement> PrefabPlacements() const noexcept;
+  // Source node targets describe the staged forest's serialized IDs. Imports properties and
+  // remapped owning placement metadata as one Undo; no IO or saved-baseline change.
+  [[nodiscard]] std::optional<std::vector<ImportedForestNode>>
+  ImportPrefabForest(const PreparedSave &, std::string_view source, PrefabPlacement,
+                     bool authorized);
   // Duplicates the current selection without replacing the user's copied clipboard.
   bool DuplicateSelection();
   // Deletes selected subtrees as one atomic Undo; selected descendants are not deleted twice.
@@ -489,9 +512,13 @@ private:
       std::vector<Node> previous_nodes, next_nodes;
     };
     std::shared_ptr<const PropertySnapshot> property_snapshot{};
+    std::shared_ptr<const std::vector<PrefabPlacement>> previous_placements{}, redo_placements{};
   };
   bool ReplayPropertySnapshot(bool forward);
   void PushUndo(UndoEntry entry);
+  [[nodiscard]] std::optional<std::string> PrefabPlacementRecords() const;
+  [[nodiscard]] static bool ValidatePrefabPlacements(std::span<const PrefabPlacement>,
+                                                     std::span<const runtime::Id>);
   runtime::World &world_;
   runtime::Id scene_{};
   runtime::SceneEditor editor_;
@@ -501,6 +528,7 @@ private:
   bool clipboard_cut_pending_{};
   std::vector<UndoEntry> undo_;
   std::vector<UndoEntry> redo_;
+  std::shared_ptr<const std::vector<PrefabPlacement>> prefab_placements_{};
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};
   mutable std::string saved_signature_;

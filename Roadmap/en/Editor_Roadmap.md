@@ -751,9 +751,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Persistent Editor scene prefab placement bindings pass nested/repeated placement,
+    history, Save All, reopen and corruption gates, full Linux 242/242 and Shipping;
+    graphical instantiate and structural source reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PersistentPrefabBindings-Linux-2026-10-10.md).
   - ✅ Nested prefab materialization is validated: exact revision closure stages outside the
     live document, preserves scoped identities/local transforms/unknown bytes and imports as one
-    Undo/Redo transaction. Persistent instance metadata and graphical override/rebase remain open.
+    Undo/Redo transaction. Graphical instance override/rebase remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md).
   - ✅ Prefab revision retention is validated: superseded committed sources remain available by
     exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.

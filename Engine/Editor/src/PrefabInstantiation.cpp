@@ -7,6 +7,20 @@ std::optional<std::vector<InstantiatedPrefabNode>>
 PrefabAssets::Instantiate(PrefabRevisionReference root, std::span<const PrefabAsset> sources,
                           SceneDocument &target, const SceneDocument::PreparedSave &expected,
                           bool authorized) {
+  return InstantiateWithPlacement({}, root, sources, target, expected, authorized);
+}
+std::optional<std::vector<InstantiatedPrefabNode>>
+PrefabAssets::InstantiateBound(foundation::Uuid instance, PrefabRevisionReference root,
+                               std::span<const PrefabAsset> sources, SceneDocument &target,
+                               const SceneDocument::PreparedSave &expected, bool authorized) {
+  if (instance.IsNil())
+    return {};
+  return InstantiateWithPlacement(instance, root, sources, target, expected, authorized);
+}
+std::optional<std::vector<InstantiatedPrefabNode>> PrefabAssets::InstantiateWithPlacement(
+    std::optional<foundation::Uuid> instance_id, PrefabRevisionReference root,
+    std::span<const PrefabAsset> sources, SceneDocument &target,
+    const SceneDocument::PreparedSave &expected, bool authorized) {
   if (!authorized || !target.MatchesPreparedSave(expected))
     return {};
   const auto graph = Resolve(root, sources);
@@ -68,7 +82,16 @@ PrefabAssets::Instantiate(PrefabRevisionReference root, std::span<const PrefabAs
   if (!prepared || prepared->Bytes().size() > kMaximumSceneBytes ||
       result.size() != graph->expanded_nodes || !target.MatchesPreparedSave(expected))
     return {};
-  const auto imported = target.ImportForestBytes(expected, prepared->Bytes(), authorized);
+  std::optional<std::vector<SceneDocument::ImportedForestNode>> imported;
+  if (instance_id) {
+    SceneDocument::PrefabPlacement placement{*instance_id, root.asset, root.revision, {}};
+    placement.nodes.reserve(result.size());
+    for (const auto &entry : result)
+      placement.nodes.push_back({entry.scope, entry.node, entry.target.id});
+    imported =
+        target.ImportPrefabForest(expected, prepared->Bytes(), std::move(placement), authorized);
+  } else
+    imported = target.ImportForestBytes(expected, prepared->Bytes(), authorized);
   if (!imported)
     return {};
   // ImportForestBytes guarantees one complete source-to-target map. All result storage and

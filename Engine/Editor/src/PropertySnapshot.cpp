@@ -20,7 +20,9 @@ bool SceneDocument::ApplyPropertySnapshot(const PreparedSave &expected, std::str
     return false;
   const auto *parsed = staged_world.FindScene(staged_scene);
   if (!parsed || parsed->name != current->name || parsed->persistent != current->persistent ||
-      parsed->entities.size() != current->entities.size() || staged.nodes_.size() != nodes_.size())
+      parsed->entities.size() != current->entities.size() ||
+      staged.nodes_.size() != nodes_.size() ||
+      !std::ranges::equal(staged.PrefabPlacements(), PrefabPlacements()))
     return false;
   const auto prepared = staged.PrepareSave();
   const auto previous_runtime = world_.SaveScene(scene_, maximum_bytes);
