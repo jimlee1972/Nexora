@@ -66,6 +66,8 @@ public:
   [[nodiscard]] foundation::Uuid AssetId() const;
   // Owning observation of the last published source (the base for an unsaved variant).
   [[nodiscard]] std::optional<PrefabAsset> SourceBaseline() const;
+  // Current owning authoring reference, including unsaved undoable reference changes.
+  [[nodiscard]] std::optional<PrefabRevisionReference> BaseReference() const;
   [[nodiscard]] bool Dirty() const;
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
 
