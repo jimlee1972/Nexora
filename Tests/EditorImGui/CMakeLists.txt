@@ -42,6 +42,11 @@ add_test(NAME editor.deep_hierarchy COMMAND NexoraDeepHierarchyTests)
 set_tests_properties(editor.deep_hierarchy PROPERTIES TIMEOUT 180)
 add_test(NAME editor.hierarchy_scale_lifecycle COMMAND NexoraDeepHierarchyTests --benchmark)
 set_tests_properties(editor.hierarchy_scale_lifecycle PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "editor;scale")
+if(WIN32)
+  # Hosted MSVC Development measured ~2 s per unchanged 100k-node shell frame. Eight complete
+  # fixture lifecycles exceed the Linux-derived aggregate deadline; this is not a frame budget.
+  set_tests_properties(editor.hierarchy_scale_lifecycle PROPERTIES TIMEOUT 600)
+endif()
 
 add_executable(NexoraOverviewPoseTests OverviewPoseTests.cpp)
 target_include_directories(NexoraOverviewPoseTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

@@ -1108,7 +1108,8 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   每個 case 先 warmup 六個 frame，再量測十二次完整 CPU draw；schema-1 record 保留排序後
   sample、nearest-rank p50／p95／max、widget／vertex 數與 ImGui allocation payload peak。
   全部 logical row 保持可用且 Hierarchy widget 少於 128，source／Undo／Redo 保持不變，
-  每次 host teardown 均釋放所有 ImGui allocation。300 秒 serial deadline 是 CI guard；
+  每次 host teardown 均釋放所有 ImGui allocation。300 秒 serial deadline（Windows 依 hosted
+  MSVC 實測校正為 600 秒）是 CI guard；
   production frame／process-memory budget、native GPU／asset scale、長時間及實體 host soak
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md)。
 

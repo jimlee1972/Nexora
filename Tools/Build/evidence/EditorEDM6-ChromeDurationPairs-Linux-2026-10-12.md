@@ -1,7 +1,8 @@
 # ED-M6 Chrome synchronous duration import and Editor CI integration
 
 Date: 2026-10-12. Base: accepted main `cd7588a3` (PR534).
-Beads: `nexora-62u.2.6` (duration import), `nexora-nqn.11` (CI admission/compatibility).
+Beads: `nexora-62u.2.6` (duration import), `nexora-nqn.11` (CI admission/compatibility),
+`nexora-0ua.1.7` (Windows aggregate deadline calibration).
 This evidence accepts supporting implementation, not ED-M0/ED-M6 or physical-host workflows.
 
 ## Imported behavior
@@ -46,6 +47,20 @@ The Editor app now uses the existing targeted `_CRT_SECURE_NO_WARNINGS` conventi
 preserving `/WX` and unrelated warning settings/targets. Runtime diagnostic behavior is unchanged.
 This source fix is not a claim of Windows execution in the Linux environment.
 
+Fresh PR535 head `6ecb4e59` compiled successfully on hosted MSVC and passed Chrome parser (0.16 s),
+Chrome controls (0.48 s) and restored prefab UI (0.91 s). Its [Windows job](https://github.com/jimlee1972/Nexora/actions/runs/38221628003/job/114719189038)
+then reported **222/223** tests passed: the only failure was the earlier 100k hierarchy benchmark's
+300-second aggregate timeout. [Six complete case records](EditorEDM7-HierarchyScale-Windows-Partial-2026-10-12.jsonl)
+show 1.9–2.3-second unoptimized MSVC frames, 44 widgets/case and zero retained ImGui payload bytes;
+the deadline expired during the seventh case. These partial records do not accept the whole gate.
+
+Windows now uses a bounded 600-second aggregate deadline to run all eight original lifecycle cases,
+with all twelve samples, six warmups, clipping/source/history/retention assertions intact. Linux
+and macOS retain 300 seconds. This allows the measured roughly 400-second Windows workload and
+headroom, rather than projecting the Linux fixture cost onto another host. It does not create a
+production frame-time budget or change any product source. Fresh full hosted acceptance is tracked
+in PR535/Beads after publication of this calibration.
+
 ## Validation configuration
 
 Host: Linux x86_64, GCC 14.2.0, CMake 4.4.4, Ninja 1.13.2, Slang 2026.18,
@@ -62,7 +77,7 @@ python3 Tools/Build/TestDocumentationCI.py
 git diff --check
 ```
 
-The final configure/build passed. Full Development passed **227/227**, zero failures/skips,
+Before the Windows-only deadline calibration, configure/build passed. Full Development passed **227/227**, zero failures/skips,
 in **692.12 seconds**. Chrome parser passed in 0.13 seconds, graphical Chrome import in 0.02 seconds,
 and the restored prefab UI fixture in 0.09 seconds. The mandatory three-test prefab admission is
 present and all three tests passed in the full gate. Documentation tests passed **16/16**;
@@ -78,3 +93,11 @@ Source SHA-256:
 - ChromeTraceDisplayTests.cpp: `04df5df9144f8f98478f9668466ab4354f05177d8fd446c42783548004abf215`
 - Apps/Editor/CMakeLists.txt: `817911b8e34cddca89b1b7ec5e6da559296de84dad982e8421536569c13bfad4`
 - Tests/EditorImGui/CMakeLists.txt: `5f0616173730f4c2324252e5a5b876934a25a768f9199cf75cfb0fc02bbceae6`
+
+The final Windows-conditional timeout changes only the last CMake source hash above to
+`72e6bac051e4314c21a59da402dd02621798d48b1cccd8ebe6dd2d9897e42b04`; the C++ hashes and measured
+dataset/sample assertions remain unchanged. `ctest --show-only=json-v1` confirms the final Linux
+property is still TIMEOUT=300, RUN_SERIAL=true with 227 registered tests. Final configure/build
+passed and full Linux Development passed **227/227**, zero failures/skips, in **690.54 seconds**.
+The unchanged Linux lifecycle gate passed in **171.08 seconds**. Documentation routing passed
+16/16; changed Markdown/link checks and raw six-case partial evidence validation passed.

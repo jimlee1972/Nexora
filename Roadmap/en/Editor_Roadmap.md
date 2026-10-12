@@ -1118,7 +1118,8 @@ creates property widgets; unknown components retain raw data instead of being si
     precede twelve measured CPU draws per case; schema-1 records retain sorted samples, nearest-rank
     p50/p95/max, widget/vertex counts and ImGui allocation payload peaks. All logical rows remain
     available with fewer than 128 hierarchy widgets, source/Undo/Redo stay unchanged, and every host
-    teardown releases all ImGui allocations. The 300-second serial deadline is a CI guard; production
+    teardown releases all ImGui allocations. The 300-second serial deadline (600 seconds on Windows,
+    calibrated from hosted MSVC observations) is a CI guard; production
     frame/process-memory budgets, native GPU/asset scale and long-duration/physical-host soak remain
     open. [Linux evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md).
 

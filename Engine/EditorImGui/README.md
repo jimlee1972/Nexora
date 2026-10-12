@@ -57,7 +57,8 @@ p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload
 Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
 source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
 ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
-deadline. It also runs directly with `NexoraDeepHierarchyTests --benchmark`.
+deadline, or 600 seconds on Windows based on hosted MSVC measurements. It also runs directly with
+`NexoraDeepHierarchyTests --benchmark`.
 
 The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
 ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame
