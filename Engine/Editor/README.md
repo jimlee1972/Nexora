@@ -152,6 +152,25 @@ validation. Existing graph budgets apply; the combined serialized forest also fi
 The staging algorithm's temporary Worlds/history are not a total process-memory budget. Persistent
 instance metadata, graphical instancing and override/revert/apply/rebase remain separate work.
 
+## Atomic same-identity placement revision snapshots
+
+`ApplyPrefabPlacementSnapshot` stages one placement's advancing retained revision and complete
+property values as one immutable Undo/Redo. Instance/source UUIDs and exact scoped node mappings,
+all placement ordering, entity ordering and hierarchy remain unchanged. Other placements and
+unbound nodes retain exact names, authored hints, unknown bytes, TRS and dormant stored values.
+The input must have the current owning PreparedSave and caller authorization; equal revision
+allows only a canonical no-op, preserving pending Redo. Stale or unsupported input/replay changes
+neither content nor history cursor. Selection, generation keys, clipboard and saved baseline remain
+intact, with no IO. Every replay restores the placement metadata and properties together.
+
+This bounded transaction is a source-rebase prerequisite, not proof of an available/current source
+closure. The authoring owner must validate the exact retained/new dependency closure, current
+workspace writer, Play/recovery/external state and explicit review consent before calling it.
+Structural reconciliation, nested mapping changes, source publication and graphical source rebase
+remain separate. Existing ordinary property snapshots continue to reject changed placement bindings.
+Limits and borrow expiration match the property snapshot contract below; public C++ consumers
+rebuild, stable C/Gameplay ABI and module graph are unchanged.
+
 ## Atomic document property snapshots
 
 `SceneDocument::ApplyPropertySnapshot` parses an owning complete authoring source, checks the

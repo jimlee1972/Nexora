@@ -751,6 +751,13 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Same-identity live placement snapshots advance one retained revision and its complete
+    properties in one Undo/Redo, preserving scoped mappings, other placements, hierarchy,
+    unbound latent Euler hints, dormant values, identity and source files. Invalid/stale input and
+    replay preserve history; mixed nested/two-placement, Save/reopen and full Linux 244/244 plus
+    Minimal Shipping pass. This transaction is a source-rebase prerequisite; source closure,
+    conflict review and graphical source rebase follow separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md).
   - ✅ Targeted live prefab property Revert accepts immutable scoped review row indices and
     expands selected lanes into complete name/TRS/authored rotation/component/opaque groups.
     Distinct lanes coalesce; invalid/duplicate/read-only/unauthorized inputs reject. Unselected
@@ -762,7 +769,7 @@ creates property widgets; unknown components retain raw data instead of being si
     dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
     explicit authorization and exact source/target revalidation reject stale/read-only/structural
     inputs. Source advancement, unchanged files and saved-baseline/Scene Save/reopen pass;
-    full Linux 243/243 and Minimal Shipping pass. Graphical instance revert, targeted revert,
+    full Linux 243/243 and Minimal Shipping pass. Graphical instance revert,
     structural reconciliation and source apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md).
   - ✅ Owning live prefab instance property review compares exact retained nested sources with

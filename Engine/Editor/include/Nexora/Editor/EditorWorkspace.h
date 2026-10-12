@@ -431,6 +431,11 @@ public:
   // Source scene name/persistence and entity IDs must match. Serialized owner supplies authority.
   bool ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
                              bool authorized);
+  // Same-identity source-rebase transaction: only this placement's revision/properties may
+  // change. Source/instance/scoped mappings, hierarchy/order and all other nodes remain exact.
+  // The serialized owner validates source closure and current writer/Play/recovery authority.
+  bool ApplyPrefabPlacementSnapshot(const PreparedSave &expected, std::string_view source,
+                                    foundation::Uuid instance, bool authorized);
   // Rejects changed document generation or content before IO; advances the baseline only after
   // successful single-file publication. Caller owns workspace access and destination policy.
   bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
@@ -515,6 +520,8 @@ private:
     std::shared_ptr<const PropertySnapshot> property_snapshot{};
     std::shared_ptr<const std::vector<PrefabPlacement>> previous_placements{}, redo_placements{};
   };
+  bool ApplyOwnedPropertySnapshot(const PreparedSave &, std::string_view,
+                                  std::optional<foundation::Uuid>, bool);
   bool ReplayPropertySnapshot(bool forward);
   void PushUndo(UndoEntry entry);
   [[nodiscard]] std::optional<std::string> PrefabPlacementRecords() const;
