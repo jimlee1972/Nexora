@@ -709,12 +709,20 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Bound-instance Inspector 現可檢視 retained／local／published 的完整 property group，
+  真正 conflict 需明確 Local／Source 選擇，並在獨立確認時凍結 scope／serial／choice。
+  唯讀檢視、cancel／blur／權限撤銷／refresh／stale 拒絕、一次 revision／property Undo／Redo
+  及來源檔案保護通過。實際 1×／2× control 保留暫存 authored Euler 圈數；native
+  Save／Undo／Redo 與完整 Linux 253/253 通過。Structural／source-reference reconciliation
+  與 apply-to-source 仍待完成。
+  [GUI 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceRebaseControls-Linux-2026-10-10.md)。
+
 - ✅ Core live source rebase 持有 exact scoped retained／local／published complete-group review。
   Source-only change 採用來源，local-only override 保留；真正 conflict 需明確 KeepLocal／
   TakeSource 選擇。一次 Undo／Redo 一起還原 property 與 retained revision；dormant value、
   authored Euler、unknown data、nested scope identity、clipboard、files 與 Save／reopen 通過。
   Schema／dependency 改變、stale／missing／tampered／advanced source、recovery／external change
-  與無授權 input 拒絕；完整 Linux 245/245 與 Minimal Shipping 通過。圖形化 conflict 選擇、
+  與無授權 input 拒絕；完整 Linux 245/245 與 Minimal Shipping 通過。圖形化 conflict 選擇已記錄於上方；
   structural reconciliation 與 apply-to-source 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceRebase-Linux-2026-10-10.md)。
 
@@ -722,8 +730,8 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   整組只有一次 Undo／Redo。Scoped mapping、其他 placement、hierarchy、unbound latent Euler
   hint、dormant value、identity 與來源檔案均保留；invalid／stale input 或 replay 保留 history。
   Mixed nested／two-placement、Save／reopen、完整 Linux 244/244 與 Minimal Shipping 通過。
-  這是 source-rebase 的交易前置項；source closure、conflict review 與圖形化 source rebase
-  仍待完成。
+  這是 source-rebase 的交易前置項；scoped source closure、conflict review 與圖形化
+  property rebase 已記錄於上方。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md)。
 
 - ✅ Bound-scene Inspector 可選取持有的 scoped property row，並在明確 Revert 確認時凍結
@@ -787,12 +795,14 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 - ✅ Nested prefab materialization 已驗證：exact revision closure 先在 live document 外組合，
   保留 scoped identity／local transform／unknown bytes，再以一次 Undo／Redo transaction 匯入。
-  Graphical instance override/rebase 仍待完成。
+  Bound-instance property review／revert／rebase 已記錄於上方；
+  structural／source-reference reconciliation 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md)。
 
 - ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
   closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
-  不占住 future revision。Graphical rebase、persistent instance metadata 與 power-loss journal 仍待完成。
+  不占住 future revision。Structural／source-reference rebase 與 power-loss journal 仍待完成；property rebase
+  及 persistent instance metadata 已記錄於上方。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
 
 - ✅ Prefab document save integration 已驗證：confirmed wrapped publication 只更新 owning saved
@@ -802,7 +812,7 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 - ✅ Atomic same-identity document property snapshot 已驗證：mixed metadata、hierarchy／TRS 與
   stored component 使用一次 guarded Undo／Redo，保留 generation、selection、clipboard 與 baseline。
-  Structural change 與 graphical prefab revert/rebase 仍待完成。
+  Structural change 與完整 source-reference reconciliation 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
 
 - ✅ 未變更的 atomic snapshot rotation group 現保留暫存的 authored Euler 圈數。

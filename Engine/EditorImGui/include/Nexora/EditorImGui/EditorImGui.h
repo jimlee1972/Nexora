@@ -10,6 +10,7 @@
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/PrefabPlacementOverrides.h"
+#include "Nexora/Editor/PrefabPlacementRebase.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -93,6 +94,18 @@ struct PrefabPlacementOverrideReport final {
   std::uint64_t review{};
   std::optional<std::uint64_t> published_revision;
   std::vector<PrefabPlacementOverrideRow> rows;
+};
+enum class PrefabPlacementRebaseAction : std::uint8_t { Review, Apply };
+struct PrefabPlacementRebaseRequest final {
+  PrefabPlacementSourceRequest scope;
+  PrefabPlacementRebaseAction action{PrefabPlacementRebaseAction::Review};
+  std::uint64_t review{};
+  std::vector<PrefabPlacementRebaseChoice> choices{};
+};
+struct PrefabPlacementRebaseReport final {
+  PrefabPlacementSourceRequest scope;
+  std::uint64_t review{}, published_revision{};
+  std::vector<PrefabPlacementRebaseRow> rows;
 };
 
 struct SceneFileRequest final {
@@ -260,6 +273,9 @@ public:
   [[nodiscard]] std::optional<PrefabPlacementOverrideRequest> TakePrefabPlacementOverrideRequest();
   bool SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport);
   void SetPrefabPlacementOverrideError(std::string);
+  [[nodiscard]] std::optional<PrefabPlacementRebaseRequest> TakePrefabPlacementRebaseRequest();
+  bool SetPrefabPlacementRebaseReport(PrefabPlacementRebaseReport);
+  void SetPrefabPlacementRebaseError(std::string);
   // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
   // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
   bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);

@@ -39,6 +39,26 @@ existing module dependencies and stable C ABI are unchanged.
 
 ## Ownership and lifetime
 
+`Review newer source` in a bound scene Inspector explicitly requests an owning three-way Core
+source-rebase review. The application retains the immutable review and publishes a bounded copied
+report with a session serial. Rendering performs no source IO. Rows display exact scoped retained,
+local and published complete property groups, with stable identity tooltips and escaped/clipped
+values. Source-only/local-only rows are automatic; each actual conflict requires Local or Source.
+Read-only scopes can inspect and choose for inspection but cannot request a write.
+
+`Rebase instance properties` remains disabled until every conflict has a choice. Opening its
+separate confirmation freezes owning choices and exact project/document/placement/source scope
+and review serial. Cancel/Escape, refresh, blur, immediate permission revocation, hidden Inspector,
+scope replacement and unrelated close/file/tab/rename/Play modals discard pending consent. The
+application repeats selection, current document key/token and placement mapping, stopped Play,
+writer/export/recovery/external-change policy before pure Core Resolve and fully revalidated Apply.
+Stale content or missing/tampered/advanced sources reject instead of overwriting later authoring;
+rejection clears the report and consent. One Undo/Redo restores complete properties and retained
+revision together. Source files never change; explicit Scene Save persists the result. Reports
+fit 32,768 groups/16 MiB logical data with 64 KiB values; this is not a process-memory budget. Structural
+reconciliation and apply-to-source remain separate. Public C++ consumers rebuild; module dependencies
+and stable C/Gameplay ABI remain unchanged.
+
 `Review overrides` in a bound scene Inspector emits an owning project/document/selection/source
 scope. The application explicitly prepares and retains an immutable `PrefabPlacementOverrideReview`
 and publishes only a bounded copied row report with a session review serial. Drawing performs no
@@ -68,8 +88,8 @@ loss/regain without an intervening frame. The application rechecks the same curr
 calls Core `RevertSelected` with the owning frozen indices; Core rejects stale/duplicate/out-of-range
 rows and revalidates the full retained closure. One Undo/Redo covers the selected groups together;
 no files change until ordinary Scene Save. Public C++ consumers rebuild, with stable C ABI and
-module dependencies unchanged. Structural reconciliation, apply-to-source and source rebase remain
-separate work.
+module dependencies unchanged. Structural reconciliation and apply-to-source remain separate;
+newer-source rebase uses its independent owning review above.
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
 Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
