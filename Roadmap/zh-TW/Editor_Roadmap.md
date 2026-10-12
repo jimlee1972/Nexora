@@ -765,16 +765,15 @@ structural reconciliation 與 reference rebase 仍待完成。
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
-- ✅ Graphical prefab isolation 已驗證：create/open/variant/save/reopen 使用獨立 native document，
-  提供 hierarchy、name/position edit、Undo／Redo 與 dirty-close 保護；read-only inspection 保留
-  project files。Nested materialization 與 override/rebase 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md)。
+- ✅ Nested prefab materialization 已驗證：exact revision closure 先在 live document 外組合，
+  保留 scoped identity／local transform／unknown bytes，再以一次 Undo／Redo transaction 匯入。
+  Persistent instance metadata 與 graphical override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md)。
 
-- ✅ Prefab isolation owner 已驗證：project-scoped create/open/variant/save/reopen 使用獨立 World
-  與 document，保留 unknown bytes 與原場景 history。Dirty replacement、read-only write、stale
-  scope/revision 與 reentrant identity callback 都拒絕；graphical binding、nested materialization、
-  historical revision access 與 override/rebase 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
+- ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
+  closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
+  不占住 future revision。Graphical rebase、persistent instance metadata 與 power-loss journal 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
 
 - ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
   closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
