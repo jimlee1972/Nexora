@@ -709,6 +709,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Project prefab placement owner 通過實際 mixed-revision source closure、stale／foreign
+  target、唯讀／recovery／external-change 及 Save／reopen gate，以及完整 Linux 243/243 與
+  Minimal Shipping；graphical instantiation 另行完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-ProjectPrefabPlacement-Linux-2026-10-10.md)。
+
 - ✅ Editor scene persistent prefab placement binding 通過 nested／repeated placement、
   history、Save All、reopen 與 corruption gate，以及完整 Linux 242/242 與 Shipping；
   graphical instantiate 與 structural source reconciliation 仍待完成。
