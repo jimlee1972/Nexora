@@ -58,6 +58,15 @@ if(WIN32)
   nexora_apply_defaults(NexoraDx12PbrTests)
   add_test(NAME window_presentation.dx12_pbr COMMAND NexoraDx12PbrTests)
   set_tests_properties(window_presentation.dx12_pbr PROPERTIES LABELS "showcase;dx12;native-display" TIMEOUT 90)
+  if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+    add_executable(NexoraWindowsVulkanPbrTests VulkanPbrTests.cpp)
+    target_compile_definitions(NexoraWindowsVulkanPbrTests PRIVATE NEXORA_TEST_VULKAN=1)
+    target_link_libraries(NexoraWindowsVulkanPbrTests PRIVATE Nexora::Presentation user32 gdi32)
+    nexora_apply_defaults(NexoraWindowsVulkanPbrTests)
+    add_test(NAME window_presentation.windows_vulkan_pbr COMMAND NexoraWindowsVulkanPbrTests)
+    set_tests_properties(window_presentation.windows_vulkan_pbr PROPERTIES
+      LABELS "showcase;vulkan;native-display" RUN_SERIAL TRUE TIMEOUT 90)
+  endif()
 endif()
 
 if(APPLE)
@@ -72,6 +81,10 @@ if(APPLE)
   set_tests_properties(window_presentation.metal_scene PROPERTIES
     LABELS "showcase;metal;native-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
 endif()
+
+add_test(NAME window_presentation.hlsl_embedding
+  COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_SOURCE_DIR}/Tests/WindowPresentation/EmbeddedHlslTests.py")
 
 if(NEXORA_ENABLE_SLANG AND NEXORA_SLANGC_EXECUTABLE)
   add_test(NAME window_presentation.pbr_shader_generation
