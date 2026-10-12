@@ -1,0 +1,4 @@
+include(NexoraTarget)
+add_library(NexoraScalarMaterialPlugin MODULE ScalarMaterialPlugin.cpp)
+target_link_libraries(NexoraScalarMaterialPlugin PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraScalarMaterialPlugin)
