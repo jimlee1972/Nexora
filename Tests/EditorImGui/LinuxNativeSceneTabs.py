@@ -42,7 +42,14 @@ def main():
             time.sleep(.2)
 
         def key(chord):
-            send('key', '--clearmodifiers', chord)
+            # Each physical modifier and main-key transition crosses rendered native frames.
+            # A compact synthetic chord can lose its modifier state in ImGui's trickled queue
+            # on a busy lavapipe host, especially immediately after restored tab ownership.
+            parts = chord.split('+')
+            for part in parts:
+                send('keydown', part)
+            for part in reversed(parts):
+                send('keyup', part)
 
         def save_as(relative):
             key('ctrl+shift+s')

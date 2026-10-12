@@ -45,6 +45,11 @@ struct ResolvedPrefabGraph final {
   std::vector<ResolvedPrefabInstance> instances;
   std::size_t expanded_nodes{};
 };
+struct InstantiatedPrefabNode final {
+  std::vector<foundation::Uuid> scope;
+  foundation::Uuid node;
+  SceneDocument::NodeKey target;
+};
 class NEXORA_EDITOR_API PrefabAssets final {
 public:
   static constexpr std::size_t kMaximumSceneBytes = 8 * 1024 * 1024;
@@ -68,6 +73,9 @@ public:
   // Canonical project-owned UUID path. Reads retain no file/document borrows. Publish requires
   // the writer lease and either a missing destination or the exact expected previous revision.
   [[nodiscard]] static std::optional<PrefabAsset> Load(const ProjectWorkspace &, foundation::Uuid);
+  // Reads an immutable retained revision, or the current exact revision if not yet superseded.
+  [[nodiscard]] static std::optional<PrefabAsset> LoadRevision(const ProjectWorkspace &,
+                                                               PrefabRevisionReference);
   static bool Publish(const ProjectWorkspace &, const PrefabAsset &,
                       const PrefabAsset *expected = nullptr, std::string *error = nullptr);
   // Confirms wrapped publication before advancing only the document's saved baseline. Existing
@@ -80,5 +88,24 @@ public:
   // This is resolution metadata, not document-write or native code-loading authority.
   [[nodiscard]] static std::optional<ResolvedPrefabGraph>
   Resolve(PrefabRevisionReference root, std::span<const PrefabAsset> sources);
+  // Bounded exact-revision closure from project storage; returns owning resolution metadata.
+  [[nodiscard]] static std::optional<ResolvedPrefabGraph>
+  ResolveProject(const ProjectWorkspace &, PrefabRevisionReference root);
+  // Stages the complete exact nested closure outside the live document, then imports once.
+  // Caller supplies current authoring authority; returned scoped mappings own all their data.
+  [[nodiscard]] static std::optional<std::vector<InstantiatedPrefabNode>>
+  Instantiate(PrefabRevisionReference root, std::span<const PrefabAsset> sources,
+              SceneDocument &target, const SceneDocument::PreparedSave &expected, bool authorized);
+  // Adds persistent Editor placement bindings together with the complete one-step forest import.
+  [[nodiscard]] static std::optional<std::vector<InstantiatedPrefabNode>>
+  InstantiateBound(foundation::Uuid instance, PrefabRevisionReference root,
+                   std::span<const PrefabAsset> sources, SceneDocument &target,
+                   const SceneDocument::PreparedSave &expected, bool authorized);
+
+private:
+  [[nodiscard]] static std::optional<std::vector<InstantiatedPrefabNode>>
+  InstantiateWithPlacement(std::optional<foundation::Uuid>, PrefabRevisionReference,
+                           std::span<const PrefabAsset>, SceneDocument &,
+                           const SceneDocument::PreparedSave &, bool);
 };
 } // namespace nexora::editor
