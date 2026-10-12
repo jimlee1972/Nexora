@@ -132,12 +132,11 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
   180 seconds. This strengthens the cloud gate without accepting a physical Editor milestone.
   [Evidence](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md).
 
-- ✅ Latest-main Editor integration now deduplicates the native tool C ABI/callback targets and
-  retains all fourteen fixture modes, restores four existing prefab implementation sources and
-  three accepted tests, and makes the public ImGui header include its PluginManager types again.
-  Accepted Chrome/build-artifact/native SDK/targeted-prefab contracts are retained alongside new
-  prefab workflows. Assertions/deadlines stay intact; Development and Shipping validation is
-  recorded in [integration evidence](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md).
+- ✅ Concurrent Editor integrations retain the existing isolated and live-placement prefab APIs,
+  selected-field/rebase/source-apply UI, native SDK/build-artifact/Chrome tests, and native input
+  handshakes. CMake targets are unique, and the managed native invocation fixture is registered.
+  Atomic property history preserves both prefab base references and placement revisions, including
+  no-op Redo. [Integration evidence](../../Tools/Build/evidence/EditorEDM0-ConcurrentIntegration-Linux-2026-10-12.md).
   This repair does not accept physical-host or graphical milestones.
 
 - ✅ The existing prefab UI fixture is registered again, restoring the mandatory three-test

@@ -10,6 +10,7 @@ import tempfile
 import time
 from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
 from LinuxReflectedInspector import rendered_pixels
+from LinuxExtensionControls import ExtensionControls
 
 
 def require(value, message):
@@ -31,11 +32,12 @@ def main():
     events = scratch / "events"
     xvfb, display = start_xvfb(args.xvfb, "1600x1200x24")
     process = None
+    controls = None
     try:
         require(display is not None, "Xvfb unavailable")
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / "state"),
-                   NEXORA_SIGNED_FIXTURE_EVENTS=str(events))
+                   NEXORA_SIGNED_FIXTURE_EVENTS=str(events), NEXORA_EXTENSION_UI_TEST_GEOMETRY="1")
         window = None
 
         def send(*arguments):
@@ -52,11 +54,6 @@ def main():
             # Modifier down/key/down/up transitions must span software-rendered frames.
             send("key", "--clearmodifiers", "--delay", "100", chord)
 
-        def type_at(x, y, text):
-            click(x, y)
-            key("ctrl+a")
-            send("type", "--clearmodifiers", "--delay", "15", "--", text)
-
         def event_text():
             return events.read_text() if events.exists() else ""
 
@@ -70,7 +67,7 @@ def main():
             raise RuntimeError("Actual native operation missing: " + label + "; events=" + event_text())
 
         def start(readonly=False):
-            nonlocal process, window
+            nonlocal process, window, controls
             process = launch(args.editor, root, scratch / "recent", env, read_only=readonly)
             window = wait_for_window(args.xdotool, env)
             # Initial dock splits belong to the native host's 1280x720 startup layout.
@@ -87,12 +84,16 @@ def main():
             send("windowsize", window, "1600", "1200")
             click(397, 29)
             key("ctrl+alt+e")
+            controls = ExtensionControls(process, send, window)
 
         def finish(readonly=False):
             nonlocal process
             request_window_close(window, env)
             output, error = collect_output(process, 15)
-            output += error
+            captured = controls.captured.decode("utf-8", errors="replace")
+            if captured:
+                print(captured, end="" if captured.endswith("\n") else "\n", flush=True)
+            output += error + captured
             require(process.returncode == 0, "Native close failed")
             require(("access=read-only" if readonly else "access=read-write") in output,
                     "Native launch did not activate requested project access")
@@ -104,29 +105,29 @@ def main():
                 require(path.read_bytes() == original, "Extension operation modified source " + path.name)
 
         start()
-        type_at(180, 126, "known.vendor")
-        type_at(180, 149, "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
-        click(95, 172)
-        click(42, 233)
-        click(125, 233)
-        click(100, 280)
-        click(195, 114)
-        type_at(180, 141, str(root / "input.nxpkg"))
-        click(90, 167)
+        controls.type("publisher", "known.vendor")
+        controls.type("public-key", "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+        controls.action("trust-key", 0)
+        controls.click("permission-0")
+        controls.click("permission-1")
+        controls.action("apply-permissions", 2)
+        controls.click("packages-tab")
+        controls.type("package-path", str(root / "input.nxpkg"))
+        controls.action("review", 3)
         time.sleep(.5)
         require(not installed.exists() and not event_text(), "Review installed or initialized code")
-        click(115, 258)
+        controls.action("install", 4)
         wait(installed.is_file, "verified installation")
         require(installed.read_bytes() == sources[root / "input.nxpkg"] and not event_text(),
                 "Install autoenabled code or changed signed bytes")
-        click(70, 235)
+        controls.action("sample.plugin/1.0.0/enable", 6)
         wait(lambda: "1 register\n" in event_text(), "explicit enable")
-        click(130, 235)
+        controls.action("sample.plugin/1.0.0/disable", 7)
         wait(lambda: "1 stop\n" in event_text() and "1 unload\n" in event_text(), "cooperative disable")
-        click(70, 235)
+        controls.action("sample.plugin/1.0.0/enable", 6)
         wait(lambda: event_text().count("1 register\n") == 2, "explicit reload")
-        click(85, 114)
-        click(65, 326)
+        controls.click("trust-tab")
+        controls.action("known.vendor/revoke", 1)
         wait(lambda: event_text().count("1 stop\n") == 2 and event_text().count("1 unload\n") == 2,
              "publisher revocation")
         finish()
@@ -136,9 +137,9 @@ def main():
         start(True)
         time.sleep(.5)
         require(event_text() == prior_events, "Read-only restart autoenabled native code")
-        click(195, 114)
-        click(70, 218)
-        click(195, 218)
+        controls.click("packages-tab")
+        controls.click("sample.plugin/1.0.0/enable")
+        controls.click("sample.plugin/1.0.0/remove")
         finish(True)
         require(event_text() == prior_events and installed.read_bytes() == retained,
                 "Read-only controls loaded or removed native package")

@@ -10,6 +10,10 @@
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/PluginManager.h"
 #include "Nexora/Editor/PrefabAssets.h"
+#include "Nexora/Editor/PrefabPlacementOverrides.h"
+#include "Nexora/Editor/PrefabPlacementRebase.h"
+#include "Nexora/Editor/PrefabPropertyPlan.h"
+#include "Nexora/Editor/PrefabRebase.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -51,7 +55,13 @@ enum class PrefabIsolationAction : std::uint8_t {
   Save,
   Close,
   Review,
-  Revert
+  Revert,
+  SelectReview,
+  ApplyToSource,
+  ReviewRebase,
+  ResolveRebase,
+  Rebase,
+  Instantiate
 };
 struct PrefabIsolationObservation final {
   foundation::Uuid project, asset;
@@ -107,6 +117,31 @@ struct PrefabPlacementSourceReport final {
   std::optional<std::uint64_t> published_revision{};
   std::optional<PrefabRevisionReference> scoped_source{};
   std::size_t mapped_nodes{};
+};
+enum class PrefabPlacementOverrideAction : std::uint8_t { Review, Revert, RevertSelected };
+struct PrefabPlacementOverrideRequest final {
+  PrefabPlacementSourceRequest scope;
+  PrefabPlacementOverrideAction action{PrefabPlacementOverrideAction::Review};
+  std::uint64_t review{};
+  std::vector<std::size_t> rows{};
+};
+struct PrefabPlacementOverrideReport final {
+  PrefabPlacementSourceRequest scope;
+  std::uint64_t review{};
+  std::optional<std::uint64_t> published_revision;
+  std::vector<PrefabPlacementOverrideRow> rows;
+};
+enum class PrefabPlacementRebaseAction : std::uint8_t { Review, Apply };
+struct PrefabPlacementRebaseRequest final {
+  PrefabPlacementSourceRequest scope;
+  PrefabPlacementRebaseAction action{PrefabPlacementRebaseAction::Review};
+  std::uint64_t review{};
+  std::vector<PrefabPlacementRebaseChoice> choices{};
+};
+struct PrefabPlacementRebaseReport final {
+  PrefabPlacementSourceRequest scope;
+  std::uint64_t review{}, published_revision{};
+  std::vector<PrefabPlacementRebaseRow> rows;
 };
 
 struct SceneFileRequest final {
@@ -268,7 +303,15 @@ public:
   [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
   void SetPrefabIsolationStatus(std::string message, bool success);
   // Presentation data only; the native owner retains/revalidates the actual review capability.
-  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false);
+  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false,
+                       std::span<const PrefabPropertySelection> selected = {},
+                       bool targeted = false, bool can_apply_to_source = false);
+  void SetPrefabRebaseReview(std::optional<SceneComparison>,
+                             std::optional<PrefabRevisionReference> previous = {},
+                             std::optional<PrefabRevisionReference> next = {},
+                             std::span<const PrefabPropertySelection> conflicts = {},
+                             std::span<const PrefabRebaseChoice> choices = {},
+                             bool can_apply = false, std::size_t unresolved = 0);
   void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.
@@ -326,6 +369,13 @@ public:
   void SetPrefabPlacementSourceContext(const std::filesystem::path &, bool read_allowed);
   [[nodiscard]] std::optional<PrefabPlacementSourceRequest> TakePrefabPlacementSourceRequest();
   bool SetPrefabPlacementSourceReport(PrefabPlacementSourceReport);
+  void SetPrefabPlacementOverrideContext(bool authoring_allowed);
+  [[nodiscard]] std::optional<PrefabPlacementOverrideRequest> TakePrefabPlacementOverrideRequest();
+  bool SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport);
+  void SetPrefabPlacementOverrideError(std::string);
+  [[nodiscard]] std::optional<PrefabPlacementRebaseRequest> TakePrefabPlacementRebaseRequest();
+  bool SetPrefabPlacementRebaseReport(PrefabPlacementRebaseReport);
+  void SetPrefabPlacementRebaseError(std::string);
   // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
   // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
   bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);
