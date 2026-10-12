@@ -1353,7 +1353,8 @@ int RunGraphical(std::optional<ProjectState> project,
     if (action != Nexora::Presentation::SurfaceAction::Render || frame.width == 0 ||
         frame.height == 0) {
       nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
-                                                created.surface->Events(), ui.GameInputBindings());
+                                                created.surface->Events(), ui.GameInputBindings(),
+                                                ui.GameInputUser());
       continue;
     }
     ui.UpdateImeCandidate(*created.surface);
@@ -2080,7 +2081,8 @@ int RunGraphical(std::optional<ProjectState> project,
         break;
       }
       nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
-                                                created.surface->Events(), ui.GameInputBindings());
+                                                created.surface->Events(), ui.GameInputBindings(),
+                                                ui.GameInputUser());
       const auto play_now = std::chrono::steady_clock::now();
       const double elapsed =
           std::clamp(std::chrono::duration<double>(play_now - last_play_frame).count(), 0.0, 0.25);

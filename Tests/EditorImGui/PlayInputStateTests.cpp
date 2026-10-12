@@ -1,3 +1,4 @@
+#include "EditorImGuiTestAccess.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "PlayInputState.h"
 #include <iostream>
@@ -138,6 +139,28 @@ int main() {
     };
     for (int frame = 0; frame < 4; ++frame)
       draw();
+    using Access = imgui::EditorImGuiTestAccess;
+    Require(host.GameInputUser() == 0 && !host.SetGameInputUser(4),
+            "Default or invalid graphical user selection failed");
+    const auto click_user_point = [&](std::optional<std::array<float, 2>> point) {
+      Require(point.has_value(), "Rendered input user control missing");
+      WindowEvent move;
+      move.type = WindowEventType::Pointer;
+      move.value0 = static_cast<int>((*point)[0]);
+      move.value1 = static_cast<int>((*point)[1]);
+      host.ProcessEvents(std::array{move, Mouse(0, false)});
+      draw();
+      host.ProcessEvents(std::array{Mouse(0, true)});
+      draw();
+      host.ProcessEvents(std::array{Mouse(0, false)});
+      draw();
+      draw();
+    };
+    click_user_point(Access::GameInputUserPosition(host));
+    click_user_point(Access::GameInputUserPosition(host, 3));
+    Require(host.GameInputUser() == 3 && !host.GameInputFocused() && !host.SetGameInputUser(4) &&
+                host.GameInputUser() == 3,
+            "Rendered selected user or invalid-candidate conservation failed");
     auto viewport = host.NativeGameViewport();
     Require(viewport.has_value(), "Game canvas absent");
     WindowEvent pointer;
@@ -147,6 +170,14 @@ int main() {
     host.ProcessEvents(std::array{pointer, Mouse(0, true)});
     draw();
     Require(host.GameInputFocused(), "canvas click did not capture Game input");
+    Require(host.SetGameInputUser(3) && host.GameInputFocused(), "Unchanged user revoked capture");
+    Require(host.SetGameInputUser(2) && !host.GameInputFocused(),
+            "Changing user retained UI capture");
+    host.ProcessEvents(std::array{Mouse(0, false)});
+    draw();
+    host.ProcessEvents(std::array{pointer, Mouse(0, true)});
+    draw();
+    Require(host.GameInputFocused(), "User switch could not reacquire canvas");
     host.ProcessEvents(std::array{Mouse(0, false)});
     draw();
     auto create = KeyEvent(Key::N, true);

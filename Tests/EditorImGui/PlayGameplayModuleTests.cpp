@@ -97,7 +97,7 @@ int main() {
     Require(host.capture_input &&
                 host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.move_x == 1 &&
-                host.capture_input(host.context, 1, &snapshot) ==
+                host.capture_input(host.context, 4, &snapshot) ==
                     NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT,
             "gameplay input callback did not return the owned user-zero snapshot");
     module.SetInputFocus(false);
@@ -137,6 +137,45 @@ int main() {
     Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.move_x == 1 && snapshot.reserved == 0,
             "custom binding did not reach gameplay callback without a rendered frame");
+    const auto user_zero_copy = snapshot;
+    NexoraInputSnapshot neutral{};
+    Require(host.capture_input(host.context, 3, &neutral) == NEXORA_GAMEPLAY_OK &&
+                neutral.sequence == snapshot.sequence && neutral.move_x == 0 &&
+                neutral.move_y == 0 && neutral.buttons == 0 && neutral.reserved == 0,
+            "Unselected logical user borrowed held state");
+    Require(!module.SetInputUser(4) &&
+                host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 1,
+            "Invalid user changed selected input or callback output");
+    editor::preview::ForwardPlayInput(play, module, true, std::array{custom}, rebound, 3);
+    Require(host.capture_input(host.context, 3, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0,
+            "User switch replayed the acquisition batch");
+    editor::preview::ForwardPlayInput(play, module, true, std::array{custom}, rebound, 3);
+    Require(host.capture_input(host.context, 3, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 1 && snapshot.reserved == 0 && user_zero_copy.move_x == 1,
+            "Selected user callback or owning previous snapshot failed");
+    for (std::uint32_t user = 0; user < 3; ++user)
+      Require(host.capture_input(host.context, user, &neutral) == NEXORA_GAMEPLAY_OK &&
+                  neutral.sequence == snapshot.sequence && neutral.move_x == 0 &&
+                  neutral.buttons == 0,
+              "Selected user input leaked to another callback lane");
+    const auto preserved = snapshot;
+    Require(
+        host.capture_input(host.context, 4, &snapshot) == NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT &&
+            snapshot.sequence == preserved.sequence && snapshot.move_x == preserved.move_x &&
+            host.capture_input(host.context, 0, nullptr) == NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT,
+        "Invalid capture mutated output or admitted a null pointer");
+    editor::preview::ForwardPlayInput(play, module, true, std::array{custom}, rebound, 4);
+    Require(!play.AcceptsInput() &&
+                host.capture_input(host.context, 3, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 0,
+            "Invalid forwarding user retained focus or held controls");
+    editor::preview::ForwardPlayInput(play, module, true, {}, rebound);
+    editor::preview::ForwardPlayInput(play, module, true, std::array{custom}, rebound);
+    Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                snapshot.move_x == 1,
+            "Default user-zero compatibility did not reacquire after switch");
     const auto captured = snapshot;
     Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.sequence == captured.sequence && snapshot.move_x == captured.move_x,
@@ -154,7 +193,9 @@ int main() {
             "fixed failure did not enter contained Play recovery");
     fail_update = true;
     Require(!module.Update(0.1), "update failure was silently accepted");
+    Require(module.SetInputUser(3) && module.InputUser() == 3, "Unload user fixture failed");
     module.Unload();
+    Require(module.InputUser() == 0, "Module unload retained selected input identity");
     Require(destroyed_with_world && !module.IsLoaded() && play.Stop(), "module outlived clone");
     fail_fixed = fail_update = false;
     optional_fixed = true;

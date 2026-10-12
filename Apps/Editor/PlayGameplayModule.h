@@ -77,6 +77,18 @@ public:
     Unload();
     return false;
   }
+  // One keyboard/mouse source has exactly one logical owner. Switching revokes held state;
+  // the next focused batch is discarded by the existing acquisition handshake.
+  bool SetInputUser(std::uint32_t user) noexcept {
+    if (user >= PlayInputBindings::kMaximumUsers)
+      return false;
+    if (input_user_ != user) {
+      input_.SetFocused(false);
+      input_user_ = user;
+    }
+    return true;
+  }
+  [[nodiscard]] std::uint32_t InputUser() const noexcept { return input_user_; }
   void SetInputFocus(bool focused) noexcept { input_.SetFocused(focused); }
   bool SetInputBindings(const PlayInputBindings &bindings) noexcept {
     return input_.SetBindings(bindings);
@@ -91,6 +103,7 @@ public:
   bool Update(double seconds) { return !IsLoaded() || module_.Update(seconds); }
   void Unload() noexcept {
     input_.SetFocused(false);
+    input_user_ = 0;
     module_.Unload();
     scenes_.Clear();
     world_ = nullptr;
@@ -190,9 +203,15 @@ private:
     };
     host.capture_input = [](void *context, std::uint32_t user,
                             NexoraInputSnapshot *snapshot) -> int32_t {
-      if (!snapshot || user != 0)
+      if (!snapshot || user >= PlayInputBindings::kMaximumUsers)
         return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
-      *snapshot = Self(context).input_.Snapshot();
+      const auto &self = Self(context);
+      auto copied = self.input_.Snapshot();
+      if (user != self.input_user_) {
+        copied.move_x = copied.move_y = 0;
+        copied.buttons = 0;
+      }
+      *snapshot = copied;
       return NEXORA_GAMEPLAY_OK;
     };
     host.load_scene = [](void *context, const char *name, std::uint32_t length,
@@ -223,6 +242,7 @@ private:
   LogSink log_;
   LogRejectionSink rejected_log_;
   PlayInputState input_;
+  std::uint32_t input_user_{};
   PlaySceneServices scenes_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};

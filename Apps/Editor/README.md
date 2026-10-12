@@ -195,6 +195,23 @@ prints bounded producer/retained/drop/gameplay-retained counts for native accept
 This routes actual Core/Play producers, without claiming complete engine/build/device log routing
 or debugger/IDE integration. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md).
 
+### Logical Play input ownership
+
+The Game panel's session-only User0–3 selector assigns its one keyboard/mouse source to one logical
+input owner. Selection changes release UI capture and clear the host's held keys/buttons; the
+existing acquisition handshake discards the next focused batch. Project activation resets the UI
+selection to0; module unload resets the host to0. Stop/Pause still revoke held state; the UI session
+choice can remain until the project changes. Existing project input profiles stay shared and retain
+their schema; selecting a user emits no settings/save request or authoring command.
+
+The existing `capture_input(user,snapshot)` callback accepts0–3. The selected user receives copied
+held values; every other user receives a neutral owning value with the same frame sequence and zero
+reserved field. Repeated capture does not consume input. Out-of-range/null capture rejects before
+writing output; invalid owner forwarding revokes focus while retaining the selected identity. The
+default remains0. No C/Gameplay ABI declaration, capability bit or module dependency changes; public
+C++ consumers rebuild. This routes one source among logical lanes, without simultaneous physical
+users, gamepad, relative-pointer or pointer-look claims.
+
 ### Scoped build output-to-Console ingress
 
 The native owner forwards its current BuildProcess retained merged stdout/stderr to the same
@@ -432,7 +449,7 @@ and host allocator capabilities. With gameplay simulation enabled, bounded CPU A
 and copied raycast are also available; other optional services remain unavailable. Click a playing
 Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
 recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
-controls; other captured keys/text do not reach authoring shortcuts. The initial user-zero input
+controls; other captured keys/text do not reach authoring shortcuts. The default user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
 device-specific rebinding, multiple users, and module hot reload remain open.
@@ -720,7 +737,7 @@ set excludes the reserved Escape/F5/F6/F10 Editor controls.
 
 `ForwardPlayInput` sends the copied profile through `PlayGameplayModule` before processing every
 native input batch, including deferred rendering. `PlayInputState` translates platform-independent
-Window keys/buttons to profile controls and publishes the same user-zero `NexoraInputSnapshot`
+Window keys/buttons to profile controls and publishes the same selected-user `NexoraInputSnapshot`
 wire shape. Successful replacement clears held keys/buttons and output, then discards one acquired
 batch while focused; an unchanged profile preserves held input, and invalid profiles preserve the
 last-good mapping/output. Sequence remains monotonic and reserved remains zero. Module callbacks

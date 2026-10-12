@@ -109,6 +109,9 @@ public:
   [[nodiscard]] static std::optional<std::filesystem::path>
   ContentFocusedFolder(const EditorImGuiHost &host);
   static void FocusGame(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GameInputUserPosition(const EditorImGuiHost &host,
+                        std::optional<std::uint32_t> user = {}) noexcept;
   [[nodiscard]] static bool GameInputBindingsOpen(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::string_view
   GameInputBindingsError(const EditorImGuiHost &host) noexcept;

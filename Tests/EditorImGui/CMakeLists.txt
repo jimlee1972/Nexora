@@ -193,7 +193,8 @@ if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
 endif()
 
 add_executable(NexoraPlayInputStateTests PlayInputStateTests.cpp)
-target_include_directories(NexoraPlayInputStateTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_include_directories(NexoraPlayInputStateTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor"
+  "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraPlayInputStateTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayInputStateTests)
 add_test(NAME editor.play_input_state COMMAND NexoraPlayInputStateTests)

@@ -725,6 +725,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring
   快捷鍵；F5／F6／F10 保留控制。測試涵蓋狀態轉移、owning snapshot、callback，以及 Xvfb
   input-only mesh 移動／釋放。Gamepad、pointer look、device-specific rebinding 與多使用者仍待完成。
+- ✅ Game panel 現可將單一鍵鼠來源路由至 logical gameplay user0–3。Rendered selection
+  釋放 capture 並清除 held state，重新擷取的第一批輸入會丟棄。未選中的 user 取得相同
+  frame sequence 的中立 owning snapshot；無效 capture 保留 output，無效 forwarding
+  釋放 focus。專案切換與 module unload 重設各自 identity。Default user0 與 stable C ABI
+  保持相容，selection 不會持久化。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md)。
+  同時多裝置 owner、gamepad 與 pointer-look 仍待完成。
 - ✅ 選取 Game entity 現會開啟唯讀 Play Inspector，顯示複製的 local／world pose、parent、
   scene state、Camera／Light 與完整寬度的 mesh／shader ID。Game panel 顯示暫停原因及 callback
   失敗次數；每 frame 與 fixed callback 失敗皆會釋放 input。快照在元件移除與 Stop 後仍有效，

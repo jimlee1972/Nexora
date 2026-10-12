@@ -330,6 +330,9 @@ public:
   void SetGameplayStatus(std::string message);
   void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);
   [[nodiscard]] bool GameInputFocused() const noexcept;
+  [[nodiscard]] std::uint32_t GameInputUser() const noexcept;
+  // Session-only logical keyboard/mouse owner; changing it releases capture. No settings IO.
+  bool SetGameInputUser(std::uint32_t user) noexcept;
   [[nodiscard]] PlayInputBindings GameInputBindings() const noexcept;
   // Owner loads validated settings during project activation; widgets never perform IO.
   bool SetGameInputBindings(const PlayInputBindings &bindings, const ProjectWorkspace &workspace);

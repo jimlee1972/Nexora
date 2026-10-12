@@ -281,6 +281,8 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> game_camera_combo_position;
   std::vector<std::pair<runtime::Id, std::array<float, 2>>> game_camera_positions;
   bool game_input_focused = false;
+  std::uint32_t game_input_user{};
+  std::array<std::optional<std::array<float, 2>>, 5> game_input_user_positions;
   PlayInputBindings game_input_bindings{}, game_input_draft{};
   std::filesystem::path game_input_root;
   foundation::Uuid game_input_project{};
@@ -4585,6 +4587,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->game_camera_combo_position.reset();
   state_->game_camera_positions.clear();
   state_->game_input_binding_positions = {};
+  state_->game_input_user_positions = {};
   state_->game_input_choice_positions.clear();
   if (!game_running || state_->game_camera_generation != play->Generation())
     state_->game_camera_selection = 0;
@@ -4677,6 +4680,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const auto input_project = workspace ? workspace->Project().id : foundation::Uuid{};
   if (state_->game_input_root != input_root || state_->game_input_project != input_project) {
     state_->game_input_bindings = {};
+    state_->game_input_user = 0;
+    state_->game_input_focused = false;
     state_->game_input_binding_status.clear();
     state_->game_input_save_requested.reset();
     state_->game_input_root = input_root;
@@ -5269,6 +5274,29 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto binding_min = ImGui::GetItemRectMin(), binding_max = ImGui::GetItemRectMax();
       state_->game_input_binding_positions[0] = std::array{(binding_min.x + binding_max.x) * 0.5F,
                                                            (binding_min.y + binding_max.y) * 0.5F};
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(interaction_blocked || !state_->app_focused);
+      ImGui::SetNextItemWidth(85);
+      constexpr std::array labels{"User 0", "User 1", "User 2", "User 3"};
+      static_assert(labels.size() == PlayInputBindings::kMaximumUsers);
+      const bool users_open =
+          ImGui::BeginCombo("###game.input.user", labels[state_->game_input_user]);
+      const auto user_min = ImGui::GetItemRectMin(), user_max = ImGui::GetItemRectMax();
+      state_->game_input_user_positions[0] =
+          std::array{(user_min.x + user_max.x) * .5F, (user_min.y + user_max.y) * .5F};
+      if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Keyboard/mouse owner for this Play session.");
+      if (users_open) {
+        for (std::uint32_t user = 0; user < labels.size(); ++user) {
+          if (ImGui::Selectable(labels[user], user == state_->game_input_user))
+            static_cast<void>(SetGameInputUser(user));
+          const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+          state_->game_input_user_positions[user + 1] =
+              std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+        }
+        ImGui::EndCombo();
+      }
       ImGui::EndDisabled();
       if (!state_->game_input_binding_status.empty())
         ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
@@ -6644,6 +6672,16 @@ CloseChoice EditorImGuiHost::TakeCloseChoice() noexcept {
 }
 
 bool EditorImGuiHost::GameInputFocused() const noexcept { return state_->game_input_focused; }
+std::uint32_t EditorImGuiHost::GameInputUser() const noexcept { return state_->game_input_user; }
+bool EditorImGuiHost::SetGameInputUser(std::uint32_t user) noexcept {
+  if (user >= PlayInputBindings::kMaximumUsers)
+    return false;
+  if (state_->game_input_user != user) {
+    state_->game_input_user = user;
+    state_->game_input_focused = false;
+  }
+  return true;
+}
 PlayInputBindings EditorImGuiHost::GameInputBindings() const noexcept {
   return state_->game_input_bindings;
 }
@@ -6651,6 +6689,11 @@ bool EditorImGuiHost::SetGameInputBindings(const PlayInputBindings &bindings,
                                            const ProjectWorkspace &workspace) {
   if (!bindings.Valid() || workspace.Root().empty())
     return false;
+  if (state_->game_input_root != workspace.Root() ||
+      state_->game_input_project != workspace.Project().id) {
+    state_->game_input_user = 0;
+    state_->game_input_focused = false;
+  }
   state_->game_input_bindings = bindings;
   state_->game_input_binding_status.clear();
   state_->game_input_root = workspace.Root();
@@ -7466,6 +7509,13 @@ void EditorImGuiTestAccess::FocusGame(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.game");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GameInputUserPosition(const EditorImGuiHost &host,
+                                             std::optional<std::uint32_t> user) noexcept {
+  if (user && *user >= PlayInputBindings::kMaximumUsers)
+    return {};
+  return host.state_->game_input_user_positions[user ? *user + 1 : 0];
 }
 bool EditorImGuiTestAccess::GameInputBindingsOpen(const EditorImGuiHost &host) noexcept {
   return host.state_->game_input_binding_open;
