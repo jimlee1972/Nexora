@@ -51,6 +51,7 @@ struct CommandLine final {
   bool headless{false};
   bool validate_v1{};
   bool clean_view{};
+  bool gpu_timing{};
   bool reload{true};
   bool frames_explicit{};
   bool scene_explicit{};
@@ -255,6 +256,8 @@ bool ParseCommandLine(int argc, char **argv, CommandLine &command, std::string &
       }
     } else if (argument == "--validate-v1") {
       command.validate_v1 = true;
+    } else if (argument == "--gpu-timing") {
+      command.gpu_timing = true;
     } else if (argument == "--pause-animation") {
       command.pause_animation = true;
     } else if (argument == "--activate-device") {
@@ -399,6 +402,7 @@ void PrintUsage() {
                "  --quality=basic|standard|high actual bounded rendering tiers\n"
                "  --pause-animation          freeze effects for fixed comparisons\n"
                "  --activate-device          enable the rune/particle effect\n"
+               "  --gpu-timing               opt into completed native GPU timestamp diagnostics\n"
                "  --clean-view               start without diagnostic UI\n  --vsync=on|off         "
                "    request synchronized or immediate presentation\n";
 }
@@ -656,10 +660,16 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
       backend = Nexora::Presentation::SurfaceBackend::Vulkan;
     else if (command.backend == "metal")
       backend = Nexora::Presentation::SurfaceBackend::Metal;
-    auto created = Nexora::Presentation::CreateRenderSurface(
-        {"Nexora Showcase", 1280, 720, true, backend,
-         command.vsync == "off" ? Nexora::Presentation::PresentMode::Immediate
-                                : Nexora::Presentation::PresentMode::VSync});
+    Nexora::Presentation::RenderSurfaceDescriptor surfaceDescriptor{
+        "Nexora Showcase",
+        1280,
+        720,
+        true,
+        backend,
+        command.vsync == "off" ? Nexora::Presentation::PresentMode::Immediate
+                               : Nexora::Presentation::PresentMode::VSync};
+    surfaceDescriptor.enableGpuTiming = command.gpu_timing;
+    auto created = Nexora::Presentation::CreateRenderSurface(surfaceDescriptor);
     if (created) {
       nativeSurface = std::move(created.surface);
       result.native_presentation = true;
@@ -712,7 +722,7 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
   rooms.SetAnimationPaused(command.pause_animation);
   if (command.activate_device)
     rooms.SetDeviceActive(true);
-  showcase::FrameProfiler profiler;
+  showcase::FrameProfiler profiler(command.gpu_timing);
   auto previousTime = std::chrono::steady_clock::now();
   for (std::size_t frame = 0; frame < frameLimit; ++frame) {
     if (nativeSurface) {
@@ -828,6 +838,11 @@ bool RunShowcase(const CommandLine &command, core::Engine &engine, ShowcaseRun &
         result.native_graph_passes = graph.GetStatistics().completed_pass_count;
         result.native_graph_transitions = graph.GetStatistics().external_transition_count;
         profiler.End();
+        if (command.gpu_timing) {
+          const auto timing = nativeSurface->Diagnostics().gpuTiming;
+          if (timing.source != Nexora::Presentation::GpuTimingSource::Unavailable)
+            profiler.RecordCompletedGpu(timing.completedSubmission, timing.milliseconds);
+        }
       } catch (const std::exception &failure) {
         error = failure.what();
         device->DestroyTexture(output);
@@ -952,6 +967,21 @@ std::string EscapeJson(std::string_view value) {
       out << c;
   }
   return out.str();
+}
+
+constexpr std::string_view GpuTimingSourceName(Nexora::Presentation::GpuTimingSource source) {
+  using Nexora::Presentation::GpuTimingSource;
+  switch (source) {
+  case GpuTimingSource::VulkanTimestamps:
+    return "vulkan-timestamps";
+  case GpuTimingSource::Dx12Timestamps:
+    return "dx12-timestamps";
+  case GpuTimingSource::MetalCommandBuffer:
+    return "metal-command-buffer";
+  case GpuTimingSource::Unavailable:
+    return "unavailable";
+  }
+  return "unavailable";
 }
 
 std::string DeviceIdentityJson(const Nexora::Presentation::SurfaceDeviceInfo &device) {
@@ -1133,6 +1163,8 @@ std::string BuildReport(const CommandLine &command, const ShowcaseRun &run) {
          << "    \"native_shadow_instances\": " << run.surface.sceneShadowInstances << ",\n"
          << "    \"native_scene_composites\": " << run.surface.sceneComposites << ",\n"
          << "    \"software_rasterizer\": " << run.surface.softwareRasterizer << ",\n"
+         << "    \"gpu_timing_source\": \"" << GpuTimingSourceName(run.surface.gpuTiming.source)
+         << "\",\n"
          << "    \"device_identity\": " << DeviceIdentityJson(run.surface.device) << ",\n"
          << "    \"native_graph_frames\": " << run.native_graph_frames << ",\n"
          << "    \"native_graph_passes\": " << run.native_graph_passes << ",\n"

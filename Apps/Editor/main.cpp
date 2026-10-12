@@ -18,6 +18,9 @@
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+#include "EditorImGuiTestAccess.h"
+#endif
 #include "Nexora/Math/Math.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "Nexora/RHI/Device.h"
@@ -30,6 +33,7 @@
 #include "ScenePreviewCandidates.h"
 #endif
 
+#include "Nexora/Editor/PrefabDocumentSession.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -43,6 +47,7 @@
 #include <memory>
 #include <numbers>
 #include <optional>
+#include <random>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -717,6 +722,7 @@ int RunGraphical(std::optional<ProjectState> project,
     if (!metadata)
       std::cerr << "Inspector reflection metadata rejected; component bytes preserved.\n";
   };
+  nexora::editor::PluginManager extensions;
   std::cerr << "diagnostic privacy: enabled=0 retained=0 storage=none transport=none\n";
   ui.SetNativeScenePreview(native_scene_preview);
   if (initial_gameplay_library)
@@ -732,6 +738,10 @@ int RunGraphical(std::optional<ProjectState> project,
   std::uint64_t build_reported_operation{};
   nexora::editor::BuildProcessPhase build_reported_phase{};
   nexora::editor::ProjectContentSession content;
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+  std::string extension_test_geometry;
+  std::uint64_t extension_test_revision{};
+#endif
   struct PendingProject final {
     ProjectState candidate;
     nexora::editor::ImportOperationId import{};
@@ -798,6 +808,10 @@ int RunGraphical(std::optional<ProjectState> project,
   }
   nexora::editor::SceneDocument primary_scene(world, scene_id);
   std::unique_ptr<nexora::editor::SceneFileSession> primary_scene_files;
+  std::unique_ptr<nexora::editor::PrefabDocumentSession> prefab_documents;
+  std::uint64_t prefab_project_scope{};
+  std::filesystem::path prefab_project_root;
+  nexora::foundation::Uuid prefab_project;
   std::unique_ptr<nexora::editor::AdditiveSceneSession> scene_documents;
   std::unique_ptr<nexora::editor::AdditiveSceneComposition> scene_composition;
   bool composition_restore_blocked = false;
@@ -1170,6 +1184,8 @@ int RunGraphical(std::optional<ProjectState> project,
     return true;
   };
   const auto has_unsaved_owned_scenes = [&] {
+    if (prefab_documents && prefab_documents->Dirty())
+      return true;
     if (!scene_documents)
       return primary_scene.Dirty();
     const auto rows = scene_documents->Snapshot();
@@ -1262,6 +1278,11 @@ int RunGraphical(std::optional<ProjectState> project,
     return false;
   };
   const auto save_all_and_exit = [&] {
+    if (prefab_documents && prefab_documents->Dirty()) {
+      ui.OpenPrefabIsolation();
+      ui.SetPrefabIsolationStatus("Save your prefab, then choose Save and exit again.", false);
+      return false;
+    }
     if (composition_restore_blocked) {
       ui.SetSceneSaveResult("Resolve the saved scene set before saving source files.", false);
       return false;
@@ -1557,6 +1578,118 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       if (ui.TakeReflectedMetadataReloadRequest())
         load_reflected_metadata(project->workspace);
+      std::string extension_error;
+      static_cast<void>(extensions.BindProject(project->workspace, &extension_error));
+      extensions.Poll();
+      nexora::editor::imgui::ExtensionManagerObservation extension_view;
+      extension_view.project = extensions.Project();
+      extension_view.root = extensions.Root();
+      extension_view.scope = extensions.Scope();
+      extension_view.permissions = extensions.AllowedPermissions();
+      extension_view.publishers = extensions.Publishers();
+      extension_view.packages = extensions.Snapshot();
+      extension_view.review = extensions.ReviewSnapshot();
+      extension_view.rejected_files = extensions.RejectedFiles();
+      extension_view.restart_required = extensions.RestartRequired();
+      static_cast<void>(ui.SetExtensionManagerObservation(std::move(extension_view)));
+      const bool extension_settings_allowed =
+          ui.ExtensionManagerInteractionAllowed() &&
+          play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+          !composition_restore_blocked && !project->workspace.HasRecoveryJournal() &&
+          !project->workspace.HasExternalChange();
+      ui.DrawExtensionManager(extension_settings_allowed,
+                              extension_settings_allowed && project->workspace.Writable());
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+      if (std::getenv("NEXORA_EXTENSION_UI_TEST_GEOMETRY")) {
+        std::ostringstream positions;
+        positions << "extensions dpi=" << dpi << " revision=" << extension_test_revision
+                  << " controls=";
+        const auto record = [&](std::string_view key) {
+          if (const auto point =
+                  nexora::editor::imgui::EditorImGuiTestAccess::ExtensionManagerPosition(ui, key))
+            positions << key << ':' << (*point)[0] << ',' << (*point)[1] << ';';
+        };
+        for (const auto key :
+             {"trust-tab", "publisher", "public-key", "trust-key", "permission-0", "permission-1",
+              "permission-2", "permission-3", "permission-4", "permission-5", "apply-permissions",
+              "packages-tab", "package-path", "review", "refresh", "install", "cancel-review"})
+          record(key);
+        for (const auto &publisher : extensions.Publishers())
+          record(publisher.publisher + "/revoke");
+        for (const auto &package : extensions.Snapshot()) {
+          const auto identity = package.manifest.id + "/" + package.manifest.version;
+          for (const auto suffix : {"/enable", "/disable", "/remove"})
+            record(identity + suffix);
+        }
+        auto geometry = positions.str();
+        if (geometry.size() <= 16384 && geometry != extension_test_geometry) {
+          extension_test_geometry = std::move(geometry);
+          std::cerr << extension_test_geometry << '\n';
+        }
+      }
+#endif
+      if (auto request = ui.TakeExtensionManagerRequest()) {
+        using Action = nexora::editor::imgui::ExtensionManagerAction;
+        bool applied = false;
+        if (request->project != project->workspace.Project().id ||
+            request->root != project->workspace.Root() || request->scope != extensions.Scope() ||
+            (!extension_settings_allowed && request->action != Action::CancelReview)) {
+          extension_error = "Extension action is stale, or Play/export/recovery is active.";
+        } else {
+          switch (request->action) {
+          case Action::SetPublisher:
+            applied = extensions.SetPublisher(request->id, request->public_key);
+            break;
+          case Action::RevokePublisher:
+            applied = extensions.RemovePublisher(request->id);
+            break;
+          case Action::SetPermissions:
+            applied = extensions.SetAllowedPermissions(request->permissions);
+            break;
+          case Action::Review: {
+            auto path = request->package_path;
+            if (!path.is_absolute())
+              path = project->workspace.Root() / path;
+            applied = extensions.Review(project->workspace, path, &extension_error);
+            break;
+          }
+          case Action::Install:
+            applied = extensions.Install(project->workspace, request->scope, request->configuration,
+                                         &extension_error);
+            break;
+          case Action::Refresh:
+            applied = extensions.Refresh(project->workspace, &extension_error);
+            break;
+          case Action::Enable:
+            applied = extensions.Enable(project->workspace, request->id, request->version,
+                                        &extension_error);
+            break;
+          case Action::Disable:
+            applied = extensions.Disable(request->id, request->version);
+            break;
+          case Action::Remove:
+            applied = extensions.Remove(project->workspace, request->id, request->version,
+                                        &extension_error);
+            break;
+          case Action::CancelReview:
+            extensions.CancelReview();
+            applied = true;
+            break;
+          }
+        }
+        ui.SetExtensionManagerStatus(
+            applied ? "Extension operation completed."
+            : extension_error.empty()
+                ? "Extension operation rejected; configuration and source preserved."
+                : extension_error);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+        if (std::getenv("NEXORA_EXTENSION_UI_TEST_GEOMETRY")) {
+          ++extension_test_revision;
+          std::cerr << "extensions action=" << static_cast<unsigned>(request->action)
+                    << " applied=" << applied << " revision=" << extension_test_revision << '\n';
+        }
+#endif
+      }
       if (auto request = ui.TakeSceneTabRequest()) {
         std::string error;
         bool applied = false;
@@ -1683,6 +1816,22 @@ int RunGraphical(std::optional<ProjectState> project,
         log(saved ? nexora::runtime::RuntimeLogSeverity::Info
                   : nexora::runtime::RuntimeLogSeverity::Error,
             "Profiler", saved ? "Native GPU timing trace exported." : error);
+      }
+      if (auto request = ui.TakeChromeTraceImportRequest()) {
+        std::string error;
+        const bool current = request->project == project->workspace.Project().id &&
+                             request->root == project->workspace.Root();
+        auto capture = current
+                           ? project->workspace.ImportChromeTraceJson(request->selection, &error)
+                           : std::nullopt;
+        const bool loaded = capture && ui.SetImportedChromeTrace(std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Chrome trace request belongs to another project or has an invalid capture.";
+        ui.SetProfileExportStatus(loaded ? "Loaded external Chrome trace intervals (static)."
+                                         : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", loaded ? "External Chrome trace imported; live capture unchanged." : error);
       }
       if (ui.TakeGpuImportRequest()) {
         std::string error;
@@ -2139,6 +2288,8 @@ int RunGraphical(std::optional<ProjectState> project,
         reflected_root.clear();
         static_cast<void>(ui.SetReflectedInspector(nexora::editor::ReflectedInspector{}));
       }
+      if (!extensions.Root().empty())
+        extensions.Detach();
       if (ui.TakeProjectSelectorCancel() && pending_project) {
         static_cast<void>(imports.Cancel(pending_project->import));
         ui.SetProjectSelectorStatus("Cancelling project import", true);
@@ -2209,6 +2360,100 @@ int RunGraphical(std::optional<ProjectState> project,
                 << " retained=" << local_diagnostics.Events().size() << '\n';
     else if (events_before && local_diagnostics.Events().empty())
       std::cerr << "diagnostic queue cleared retained=0\n";
+    if (project) {
+      const auto scope = content.Browser().ProjectGeneration();
+      if (!prefab_documents || prefab_project_scope != scope ||
+          prefab_project_root != project->workspace.Root() ||
+          prefab_project != project->workspace.Project().id) {
+        prefab_documents =
+            std::make_unique<nexora::editor::PrefabDocumentSession>(project->workspace);
+        prefab_project_scope = scope;
+        prefab_project_root = project->workspace.Root();
+        prefab_project = project->workspace.Project().id;
+      }
+      const auto observation = [&] {
+        nexora::editor::imgui::PrefabIsolationObservation value;
+        value.project = prefab_project;
+        value.project_scope = prefab_project_scope;
+        value.owner_generation = prefab_documents->Generation();
+        value.asset = prefab_documents->AssetId();
+        if (const auto *document = prefab_documents->Document()) {
+          value.open = true;
+          value.document_generation = document->Generation();
+          value.dirty = prefab_documents->Dirty();
+        }
+        if (const auto previous = prefab_documents->SourceBaseline();
+            previous && previous->id == value.asset)
+          value.revision = previous->revision;
+        if (active_files())
+          value.source = active_files()->Token();
+        value.writable = project->workspace.Writable();
+        return value;
+      };
+      const bool allowed =
+          play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+          !exit_requested && !composition_restore_blocked &&
+          !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
+      static_cast<void>(ui.SetPrefabIsolation(observation()));
+      ui.DrawPrefabIsolation(prefab_documents->Document(), prefab_documents->EditableDocument(),
+                             project->workspace, allowed);
+      if (const auto request = ui.TakePrefabIsolationRequest()) {
+        const auto current = observation();
+        const auto &expected = request->scope;
+        const bool live = allowed && expected.project == current.project &&
+                          expected.project_scope == current.project_scope &&
+                          expected.owner_generation == current.owner_generation &&
+                          expected.document_generation == current.document_generation &&
+                          expected.asset == current.asset && expected.source == current.source;
+        std::string error;
+        bool applied = false;
+        if (!live) {
+          error = "Prefab action is stale, or Play/export/close/recovery is active.";
+        } else {
+          using Action = nexora::editor::imgui::PrefabIsolationAction;
+          switch (request->action) {
+          case Action::Create:
+            if (scene_authoring_allowed())
+              applied = prefab_documents->Create(request->target, active_scene(),
+                                                 request->discard_dirty, &error);
+            else
+              error = "The active scene cannot authorize prefab creation.";
+            break;
+          case Action::Open:
+            applied = prefab_documents->Open(request->target, request->discard_dirty, &error);
+            break;
+          case Action::Variant:
+            applied = prefab_documents->Variant(request->target, &error);
+            break;
+          case Action::Save:
+            applied = prefab_documents->Save(
+                [] {
+                  try {
+                    std::random_device random;
+                    const auto high = (static_cast<std::uint64_t>(random()) << 32) | random();
+                    const auto low = (static_cast<std::uint64_t>(random()) << 32) | random();
+                    return nexora::foundation::Uuid{high, low};
+                  } catch (const std::exception &) {
+                    return nexora::foundation::Uuid{};
+                  }
+                },
+                &error);
+            break;
+          case Action::Close:
+            applied = prefab_documents->Close(request->discard_dirty, &error);
+            break;
+          }
+        }
+        ui.SetPrefabIsolationStatus(applied ? "Prefab action completed." : error, applied);
+        const auto reported = observation();
+        std::cerr << "prefab action=" << static_cast<unsigned>(request->action)
+                  << " applied=" << applied << " asset=" << reported.asset.ToString()
+                  << " revision=" << reported.revision << " dirty=" << reported.dirty << '\n';
+      }
+    } else {
+      prefab_documents.reset();
+      static_cast<void>(ui.SetPrefabIsolation(std::nullopt));
+    }
     const auto build_project =
         project ? project->workspace.Project().id : nexora::foundation::Uuid{};
     if (build_project != build_project_id) {
@@ -2432,6 +2677,7 @@ int RunGraphical(std::optional<ProjectState> project,
     }
 
   local_diagnostics.Set(false);
+  extensions.Detach();
   std::cerr << "diagnostic privacy close: enabled=0 retained=0\n";
   static_cast<void>(static_export.Cancel());
   static_cast<void>(build_process.Cancel());

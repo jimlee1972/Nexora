@@ -1,5 +1,17 @@
 # Editor Dear ImGui host contract
 
+## External Chrome duration inspection
+
+The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
+scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+Async selection uses the begin thread/name, permits cross-thread ends and supports bounded
+process-local `id2.local`/category/scope pairing. Global `id2.global`/legacy `id` and legacy `S/F`
+are unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
+read-only admission and scope revocation. Nested intervals are displayed by start order;
+duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
+contract documents pairing, chronological and capacity requirements.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
@@ -36,6 +48,24 @@ or deployment success. Artifact validation, serialized target profiles and authe
 workflows are separate. The application cancels the process before draining other models on the
 shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
 existing module dependencies and stable C ABI are unchanged.
+
+## Hierarchy scale and lifecycle measurements
+
+`editor.hierarchy_scale_lifecycle` runs the real product-shell draw path over 100,000 flat roots
+and an expanded 99,998-node chain, at 1280x900 logical pixels and 1x/2x DPI. Each of two lifecycle
+cycles creates a fresh project, World, SceneDocument and ImGui host, settles six frames and measures
+twelve complete CPU shell frames. Schema-1 JSON lines retain sorted milliseconds, nearest-rank
+p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload peak/retention.
+Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
+source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
+ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
+deadline, or 600 seconds on Windows based on hosted MSVC measurements. It also runs directly with
+`NexoraDeepHierarchyTests --benchmark`.
+
+The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
+ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame
+percentiles are observations, not a cross-machine production frame-time budget; no calibrated GPU,
+long-duration soak or physical-host acceptance follows from this test.
 
 ## Ownership and lifetime
 
@@ -1111,3 +1141,54 @@ validity. Instance override/revert/apply/rebase remain separate authoring operat
 Build-process Run also independently checks current focus, queued Play/close decisions and
 recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
 confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.
+
+## Prefab isolation controls
+
+Settings > Prefab isolation and Ctrl+Alt+P open a dedicated window. The native application owns
+a project-scoped `PrefabDocumentSession` with a separate World/document; drawing borrows it only
+for the frame. The active scene remains independent. Create from scene, Open, Create variant,
+Save prefab and Close prefab emit owning one-shot requests, rechecked against project scope,
+owner/document generation, asset identity and active scene token before native dispatch.
+The GUI performs no filesystem publication. Core save repeats writer, recovery and source checks.
+
+The clipped hierarchy selects generation keys. Name and position text commit on Enter as one
+document Undo step; numeric input must be finite and within the displayed supported bounds.
+Unknown component bytes are retained without interpretation. Save preserves Undo/Redo and stable
+identities. Project/document changes clear pending confirmations and active input. Read-only
+projects can inspect/open but cannot create, modify, save or create variants. Focus, Play,
+recovery, external changes, build/close/file/tab/rename/input dialogs block authoring.
+
+Dirty replacement/close requires an explicit discard decision; Keep editing preserves the owner.
+Hiding the window retains the session. Application close includes dirty prefab work in its prompt.
+Save and Exit requires the user to save the prefab explicitly before retrying; it does not combine
+prefab publication with ordinary scene saves. Cancel keeps the owner available. Forced termination
+has no prefab recovery journal in this slice. Variants require an exact clean published base.
+Nested materialization, override diff/revert/apply/rebase, reflected prefab properties and complete
+transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
+module dependencies are unchanged.
+
+## Signed native package controls
+
+Native acceptance in test builds can explicitly request bounded, read-only widget geometry
+with `NEXORA_EXTENSION_UI_TEST_GEOMETRY`. The application reports actual control centers and
+DPI only when graphical testing is compiled in; it exposes no request injection or trust,
+permission, installation or enable shortcut. Native tests continue to send physical X11
+pointer/keyboard events and require the host's real operation result. Control geometry is
+refreshed after status text, tab and package changes rather than assuming fixed coordinates.
+The observation does not exist in non-testing builds and grants no authoring authority.
+
+Settings > Extensions / Ctrl+Alt+E opens the owning project-scoped publisher/capability and package
+views. Inputs transfer explicit requests; widgets never read packages or execute native code. The
+native owner rechecks project UUID/root/scope, private review revision, writer/recovery/external-change
+and stopped-Play/export/modal authority. Changed project scope clears keys/path drafts and pending
+requests; keys in the host registry are explicit process-session trust and never restored from a
+project. Changing the package path or closing the window cancels the retained Core review.
+
+Review displays the actually verified canonical identity/version/publisher/target/ABI/dependencies.
+Install copies only those owned verified bytes; a separate Enable requests actual sealed native
+admission. Row state comes from the host, and its tooltip reports admission/loader errors, ABI,
+services and lifecycle/cooperative capability. Disable/revoke drain through the cooperative host;
+legacy mappings remain restart-required. Read-only scopes can inspect but cannot install, enable or
+remove files. No package/project enrolls its own trust or auto-enables. Invalid/overflowing observation
+data preserves the previous display; clipped rows and bounded input/diagnostic strings limit retained
+UI state. Native permission declarations are admission checks, not a sandbox for trusted native code.

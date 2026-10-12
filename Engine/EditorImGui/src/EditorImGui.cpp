@@ -1,9 +1,11 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
+#include "EditorSystemFont.h"
 #endif
 
 #include <imgui.h>
@@ -104,6 +106,11 @@ struct EditorImGuiHost::State final {
   // default of 1.0F here would make that common case a no-op and leave the atlas unbuilt, which
   // ImGui::NewFrame() asserts on.
   float dpi_bucket = 0.0F;
+  // The system CJK font and its glyph ranges outlive every atlas build: ImGui keeps the range
+  // pointer until the atlas is cleared.
+  Nexora::EditorImGuiDetail::SystemCjkFont cjk_font;
+  std::vector<ImWchar> cjk_ranges;
+  bool cjk_probed = false;
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
   std::uint64_t surface_font_domain = 0;
@@ -132,6 +139,12 @@ struct EditorImGuiHost::State final {
   bool memory_import_requested = false;
   std::optional<ProcessMemoryCapture> imported_memory;
   std::array<std::optional<std::array<float, 2>>, 3> memory_control_positions{};
+  bool chrome_trace_open{};
+  std::array<char, 257> chrome_event_name{'F', 'r', 'a', 'm', 'e', 0};
+  std::array<char, 21> chrome_process{'0', 0}, chrome_thread{'0', 0};
+  std::optional<ChromeTraceImportRequest> chrome_trace_request;
+  std::optional<ChromeTraceCapture> imported_chrome_trace;
+  std::array<std::optional<std::array<float, 2>>, 5> chrome_positions{};
   bool gpu_export_requested = false;
   bool gpu_import_requested = false;
   std::optional<GpuTimingCapture> imported_gpu;
@@ -148,6 +161,18 @@ struct EditorImGuiHost::State final {
   std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
+  bool prefab_isolation_open{};
+  std::optional<PrefabIsolationObservation> prefab_isolation;
+  std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
+  std::array<char, 65> prefab_target{};
+  std::array<char, 1025> prefab_name{};
+  std::array<std::array<char, 64>, 3> prefab_position{};
+  std::optional<SceneDocument::NodeKey> prefab_edit_key;
+  std::string prefab_name_original, prefab_status;
+  std::array<double, 3> prefab_position_original{};
+  std::array<bool, 3> prefab_position_active{};
+  bool prefab_name_active{};
+  std::array<std::optional<std::array<float, 2>>, 15> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -361,6 +386,16 @@ struct EditorImGuiHost::State final {
   std::array<char, 512> reflected_pending_text{};
   std::uint64_t reflected_pending_identity{};
   bool inspector_transform_visible = false;
+  bool extension_manager_open{};
+  bool extension_input_blocked{true};
+  std::optional<ExtensionManagerObservation> extension_manager;
+  std::optional<ExtensionManagerRequest> extension_manager_request;
+  std::string extension_manager_status;
+  std::array<char, 1024> extension_package_path{};
+  std::array<char, 129> extension_publisher{};
+  std::array<char, 65> extension_public_key{};
+  std::uint32_t extension_permission_draft{};
+  std::vector<std::pair<std::string, std::array<float, 2>>> extension_positions;
   std::string inspector_error;
   std::filesystem::path prefab_source_root;
   bool prefab_source_read_allowed{};
@@ -4073,6 +4108,26 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     ImFontConfig config;
     config.SizePixels = 13.0F * bucket;
     fonts.AddFontDefault(&config);
+    if (!state_->cjk_probed) {
+      state_->cjk_probed = true;
+      if (Nexora::EditorImGuiDetail::FindSystemCjkFont(state_->cjk_font)) {
+        for (const auto point : state_->cjk_font.glyph_pairs)
+          state_->cjk_ranges.push_back(static_cast<ImWchar>(point));
+        state_->cjk_ranges.push_back(0);
+      }
+    }
+    // Merge a system CJK font so IME-committed Chinese text has glyphs; without it InputText
+    // receives the characters but draws nothing for them.
+    if (!state_->cjk_ranges.empty()) {
+      ImFontConfig cjk_config;
+      cjk_config.MergeMode = true;
+      cjk_config.SizePixels = 13.0F * bucket;
+      cjk_config.OversampleH = 1;
+      cjk_config.OversampleV = 1;
+      cjk_config.PixelSnapH = true;
+      fonts.AddFontFromFileTTF(state_->cjk_font.path.c_str(), cjk_config.SizePixels, &cjk_config,
+                               state_->cjk_ranges.data());
+    }
     fonts.Build();
     fonts.SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
     ImGui::GetIO().FontGlobalScale = 1.0F / bucket;
@@ -4488,6 +4543,8 @@ std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview(
   return state_->selector_upgrade;
 }
 
+#include "ExtensionManagerPanel.inl"
+
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
@@ -4534,11 +4591,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
   state_->gpu_control_positions = {};
+  state_->chrome_positions = {};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
+    state_->imported_chrome_trace.reset();
+    state_->chrome_trace_request.reset();
+    state_->chrome_trace_open = false;
+    state_->chrome_event_name = {'F', 'r', 'a', 'm', 'e', 0};
+    state_->chrome_process = state_->chrome_thread = {'0', 0};
+    const auto *chrome_window = ImGui::FindWindowByName("Chrome Trace###editor.profiler.chrome");
+    if (chrome_window && ImGui::GetCurrentContext()->ActiveIdWindow == chrome_window)
+      ImGui::ClearActiveID();
     state_->imported_memory.reset();
     state_->imported_gpu.reset();
     state_->gpu_export_requested = false;
@@ -4617,10 +4683,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
   const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
   state_->build_console_interaction_blocked = file_external_block || tab_modal;
+  state_->extension_input_blocked = file_external_block || tab_modal || !workspace;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->prefab_isolation_open = !state_->prefab_isolation_open;
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_E,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->extension_manager_open = !state_->extension_manager_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
@@ -4669,7 +4744,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
     }
     if (ImGui::BeginMenu("Settings")) {
+      ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
+      ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
       ImGui::EndMenu();
     }
     if (file_context_valid)
@@ -4973,7 +5050,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (state_->app_focused && !interaction_blocked &&
             ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
             (ImGui::IsItemHovered(ImGuiHoveredFlags_NoNavOverride) || ImGui::IsItemActive()) &&
-            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
+            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput &&
+            !io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
           if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
             state_->native_scene_tool = NativeSceneTool::Select;
           else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
@@ -5695,9 +5773,93 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             "Saved Editor wall timing; GPU/memory unavailable. CSV has no project provenance.");
         plot(state_->imported_profile->samples, "Imported frame processing (ms)");
       }
+      ImGui::BeginDisabled(!workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested);
+      if (ImGui::Button("Inspect Chrome trace"))
+        OpenChromeTraceImport();
+      ImGui::EndDisabled();
     }
   }
   ImGui::End();
+  if (state_->chrome_trace_open) {
+    ImGui::SetNextWindowPos({80, 80}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({600, 500}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Chrome Trace###editor.profiler.chrome", &state_->chrome_trace_open)) {
+      ImGui::TextUnformatted("Import .nexora/chrome-trace.json from this project.");
+      ImGui::TextWrapped(
+          "Select X, synchronous B/E or async b/e events by name, process and begin thread. "
+          "External intervals "
+          "use their own trace clock; CPU/GPU classification and memory are unavailable.");
+      const auto position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->chrome_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      ImGui::SetNextItemWidth(350);
+      ImGui::InputText("Event name", state_->chrome_event_name.data(),
+                       state_->chrome_event_name.size());
+      position(0);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Process ID", state_->chrome_process.data(), state_->chrome_process.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(1);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Thread ID", state_->chrome_thread.data(), state_->chrome_thread.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(2);
+      ChromeTraceSelection selection;
+      selection.event_name = state_->chrome_event_name.data();
+      const auto integer = [](const auto &text, std::uint64_t &value) {
+        const auto size = std::strlen(text.data());
+        const auto result = std::from_chars(text.data(), text.data() + size, value);
+        return size && result.ec == std::errc{} && result.ptr == text.data() + size &&
+               value <= 9007199254740991ULL;
+      };
+      const bool valid = integer(state_->chrome_process, selection.process) &&
+                         integer(state_->chrome_thread, selection.thread) &&
+                         !selection.event_name.empty();
+      ImGui::BeginDisabled(!valid || !workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested || workspace->HasRecoveryJournal() ||
+                           workspace->HasExternalChange());
+      if (ImGui::Button("Import selected events"))
+        state_->chrome_trace_request = ChromeTraceImportRequest{
+            workspace->Project().id, workspace->Root(), std::move(selection)};
+      position(3);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_chrome_trace);
+      if (ImGui::Button("Clear external import"))
+        state_->imported_chrome_trace.reset();
+      position(4);
+      ImGui::EndDisabled();
+      if (!state_->profile_export_status.empty())
+        ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
+      if (state_->imported_chrome_trace) {
+        const auto &capture = *state_->imported_chrome_trace;
+        ImGui::SeparatorText("External Chrome intervals (static)");
+        ImGui::Text("Process %llu | Thread %llu | %zu intervals | %llu older dropped",
+                    static_cast<unsigned long long>(capture.selection.process),
+                    static_cast<unsigned long long>(capture.selection.thread),
+                    capture.samples.size(),
+                    static_cast<unsigned long long>(capture.older_samples_dropped));
+        ImGui::TextWrapped("Event: %s", capture.selection.event_name.c_str());
+        ImGui::BeginChild("External intervals", {0, 150}, ImGuiChildFlags_Borders);
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(capture.samples.size()));
+        while (clipper.Step())
+          for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+            const auto &sample = capture.samples[static_cast<std::size_t>(i)];
+            ImGui::Text("%llu | external %.6f us | duration %.6f ms",
+                        static_cast<unsigned long long>(sample.sequence), sample.start_microseconds,
+                        sample.duration_milliseconds);
+          }
+        ImGui::EndChild();
+      }
+    }
+    ImGui::End();
+    if (!state_->chrome_trace_open)
+      state_->chrome_trace_request.reset();
+  }
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
                        file_context_valid && state_->app_focused && !game_running &&
@@ -5938,13 +6100,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
   }
-  if (ImGui::BeginPopupModal("Unsaved scene###editor.close", nullptr,
+  if (ImGui::BeginPopupModal("Unsaved work###editor.close", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     if (state_->scene_file_close_popup) {
       state_->scene_file_close_popup = false;
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextUnformatted(state_->scene_tabs.empty()
+      ImGui::TextUnformatted(state_->prefab_isolation && state_->prefab_isolation->dirty
+                                 ? "Save your prefab in Prefab Isolation before exiting."
+                             : state_->scene_tabs.empty()
                                  ? "Save scene changes before closing?"
                                  : "Save all owned scene changes before closing?");
       if (ImGui::Button("Save and Exit"))
@@ -6268,6 +6432,14 @@ EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std:
              ? host.state_->scene_comparison_positions[index]
              : std::nullopt;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ExtensionManagerPosition(const EditorImGuiHost &host, std::string_view key) {
+  const auto found =
+      std::ranges::find(host.state_->extension_positions, key,
+                        [](const auto &entry) -> std::string_view { return entry.first; });
+  return found == host.state_->extension_positions.end() ? std::nullopt
+                                                         : std::optional(found->second);
+}
 SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const EditorImGuiHost &host) {
   return host.state_->scene_comparison;
 }
@@ -6424,6 +6596,16 @@ bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
       !ValidateGpuTimingSamples(capture.source, capture.samples))
     return false;
   state_->imported_gpu = std::move(capture);
+  return true;
+}
+void EditorImGuiHost::OpenChromeTraceImport() noexcept { state_->chrome_trace_open = true; }
+std::optional<ChromeTraceImportRequest> EditorImGuiHost::TakeChromeTraceImportRequest() {
+  return std::exchange(state_->chrome_trace_request, std::nullopt);
+}
+bool EditorImGuiHost::SetImportedChromeTrace(ChromeTraceCapture capture) {
+  if (state_->profile_project_root.empty() || !ChromeTraceImporter::Validate(capture))
+    return false;
+  state_->imported_chrome_trace = std::move(capture);
   return true;
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
@@ -6952,6 +7134,7 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 }
 
 #include "BuildProcessPanel.inl"
+#include "PrefabIsolationPanel.inl"
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);
@@ -7255,6 +7438,16 @@ EditorImGuiTestAccess::MemoryControlPosition(const EditorImGuiHost &host,
   return control < host.state_->memory_control_positions.size()
              ? host.state_->memory_control_positions[control]
              : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ChromeTraceControlPosition(const EditorImGuiHost &host,
+                                                  std::size_t index) noexcept {
+  return index < host.state_->chrome_positions.size() ? host.state_->chrome_positions[index]
+                                                      : std::nullopt;
+}
+const ChromeTraceCapture *
+EditorImGuiTestAccess::ImportedChromeTrace(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_chrome_trace ? &*host.state_->imported_chrome_trace : nullptr;
 }
 const ProcessMemoryCapture *
 EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {
