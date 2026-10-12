@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,10 +14,14 @@ namespace nexora::showcase {
 
 class FrameProfiler final {
 public:
+  explicit FrameProfiler(bool gpuTimingRequested = false)
+      : gpuTimingRequested_(gpuTimingRequested) {}
   void Begin();
   void End();
   // Samples are owned; invalid/nonfinite samples are rejected before affecting warm-up/state.
   void Record(double frameMs, std::optional<double> processCpuMs);
+  // Completed native submission IDs are monotonic; no wall/CPU fallback or added wait.
+  void RecordCompletedGpu(std::uint64_t submission, std::optional<double> milliseconds);
   [[nodiscard]] std::string Report() const;
 
 private:
@@ -29,5 +34,9 @@ private:
   std::optional<double> cpuBegin_;
   std::vector<Sample> samples_;
   std::size_t observed_{}, next_{};
+  bool gpuTimingRequested_{};
+  std::uint64_t lastGpuSubmission_{};
+  std::vector<double> gpuSamples_;
+  std::size_t nextGpuSample_{};
 };
 } // namespace nexora::showcase

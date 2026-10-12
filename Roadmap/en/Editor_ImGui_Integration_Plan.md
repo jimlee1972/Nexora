@@ -403,7 +403,14 @@ trickling and GPU frames can observe the original press/release sequence.
    both roadmap languages, inspect the final diff, and only then update ED-M0 status. Panel
    existence alone is not acceptance.
 
-Evidence for the Windows rows is recorded with `Tools/Editor/RecordEditorWindowsEvidence.ps1` (smoke automated; DPI/IME rows operator-attested, default `blocked`). The script has not yet been run on a Windows host.
+Evidence for the Windows rows is recorded with `Tools/Editor/RecordEditorWindowsEvidence.ps1` (smoke automated; DPI/IME rows operator-attested, default `blocked`). **Status note (2026-10-10):** the script ran once on a single-monitor 100% Windows host. The
+operator reported that Latin input worked but Chinese/Bopomofo composition and committed Chinese
+text were not visible. Two causes were fixed afterwards: `WM_IME_COMPOSITION` was consumed without
+reaching `DefWindowProc`, so the system composition/candidate UI never drew, and the Editor atlas
+contained only the default Latin font, so committed CJK text had no glyphs (a system CJK font is
+now merged on Windows). The recorded IME rows from that run predate the fix; an `ime.composition_cancel`
+pass is vacuous when composition itself does not show. IME evidence must be re-recorded, and the
+cross-monitor DPI row is still blocked because only one monitor scale was available.
 
 **Exit gate:** every required evidence row has a link/result and no required row says "assumed".
 

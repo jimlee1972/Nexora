@@ -1,5 +1,94 @@
 # Editor Core contract
 
+## Reviewed live prefab source rebase
+
+`PrefabPlacementRebase::Prepare` explicitly reads the exact retained and newer current source
+closures and captures an immutable owning three-way review. Read-only projects can inspect.
+Stable scoped node/property identity, dependency references and parent structure must remain
+unchanged. Structural additions/deletions, changed nested/base references and incompatible sources
+reject the entire review. Rendering must not call preparation or source IO implicitly.
+
+Rows compare retained, local and published values in complete name, position, rotation with authored
+Euler presence, scale, Camera/Light/Mesh presence and dormant values, or opaque-type name/bytes
+groups. Source-only changes apply automatically; local-only changes and identical edits survive.
+Different local and source edits to one group require an explicit KeepLocal or TakeSource choice.
+Different lanes of the same group still conflict. Unknown locally added components survive without
+fabricated stable source UUIDs. Repeated nested node UUIDs retain their distinct exact scope.
+
+`Resolve` is a pure computation against an owning immutable review. Indices identify actual conflict
+rows only; duplicate, out-of-range, nonconflict and invalid decisions reject. Unresolved choices
+produce no applicable candidate. Row borrows expire with the last owning review. A resolved candidate
+does not authorize a write. `Apply` repeats current writer, project, target and both source-closure
+observations before one `ApplyPrefabPlacementSnapshot` transaction. Stale or replaced publications,
+missing/tampered archives, recovery/external changes and unauthorized/read-only inputs reject.
+The caller serializes authoring owners and repeats current selection, Play and modal consent policy.
+
+One Undo/Redo restores complete properties and retained revision together. Stable live generation
+keys, selection, clipboard, unbound values and saved baseline survive. No source or scene file is
+written; explicit Scene Save persists the result. Source snapshots/candidates fit 8 MiB/4096 nodes;
+semantic snapshots fit 4 MiB with 64 KiB individual values; reports fit 32768 groups/16 MiB logical
+data. These limits do not certify total process memory or production-scale performance. Graphical
+conflict choices, structural reconciliation and apply-to-source remain separate work. Public C++
+consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+## Owning live prefab instance property review
+
+`PrefabPlacementOverrides::Prepare` owns a validated placement inspection and explicitly
+materializes its complete exact retained nested closure in a temporary World/document. It translates
+scoped source node identities to live generation keys before comparing semantic name, TRS, authored
+Euler, component presence/stored values and opaque name/bytes. Retained source property UUIDs accompany
+individual semantic lanes. Newly added local opaque fields have no fabricated retained property UUID.
+Parent differences are explicitly structural; absolute sibling indices and scene-global fields are
+excluded. This read-only review does not authorize structural reconciliation or writes.
+Drawing must not call it implicitly; apply and rebase remain separate operations.
+
+Read-only scopes can review. Missing/corrupt/incompatible retained sources, stale node/target/project,
+recovery/external changes and budgets return no partial review. Exact owning source/target scope is
+rechecked after preparation; `Matches` repeats it before consuming a captured review. Caller serializes
+authoring owners and repeats current selection/Play/modal policy. No file publication, saved-baseline,
+selection, clipboard, Undo or Redo mutation occurs. Row span borrows expire with their owning review.
+
+Whole-scene semantic comparison budgets apply: each input fits 8 MiB/4096 entities, snapshot fits
+4 MiB, and individual value fits 64 KiB (opaque payload hex consumes twice its byte size). Reports
+retain at most 32768 changed rows/16 MiB of logical field/scope/value data. Rejection preserves large
+uninterpreted data, rather than silently omitting it. These logical budgets do not limit total
+temporary World/container/process memory or claim large-scene review performance. Module dependencies
+and stable C/Gameplay ABI remain unchanged; public C++ consumers rebuild.
+
+`PrefabPlacementOverrides::Revert` consumes that immutable current review with an explicit host
+authoring authorization and the current project writer. It restores the entire placement's
+supported properties from its exact retained nested closure, even when a newer root is published.
+Any structural parent difference rejects the entire operation. Source materialization and target
+reconstruction happen in temporary Worlds/documents. Authoring names, Euler hints and exact opaque
+bytes come from the retained source; canonical version-3 Runtime property records transfer TRS,
+presence flags and every stored Camera/Light/Mesh value, including dormant nondefault values.
+These records consume only bounded `World::SaveScene` output, not arbitrary external input; schema
+changes reject. Live IDs, parent relationships, sibling order, generations and placement bindings
+remain target-owned. Source and target snapshots each fit the existing 8 MiB/4096-entity budget.
+
+Immediately before one `ApplyPropertySnapshot` publication, the writer, exact retained/current
+sources and complete target observation are rechecked. Failure publishes no partial live state.
+One Undo/Redo restores the entire transaction; selection, clipboard and the scene's saved baseline
+remain intact. A semantic no-op preserves pending Redo. Neither source nor scene files are written;
+ordinary explicit Scene Save persists the result. The caller serializes authoring operations and
+repeats current Play, modal and selected-document policy when supplying authorization. Read-only,
+foreign/stale, recovery/external-change, missing/changed source and unsupported structural inputs
+reject. These Core operations do not implement graphical confirmation or structural
+reconciliation, apply-to-source or source rebase.
+
+`RevertSelected` borrows row indices only during its serialized call. Indices identify rows in
+the same immutable owning review; duplicates, out-of-range indices and unsupported/structural
+review state reject atomically. Selected semantic lanes expand to complete scoped canonical
+property groups: name, position, rotation including Euler hints, scale, complete Camera/Light/Mesh
+presence and stored values, or an opaque type's name/bytes. Distinct selected rows in the same
+property group coalesce; selecting an added local opaque field removes that whole source-absent
+component without inventing a retained property UUID. Source-to-live scoped identity is resolved
+from the captured complete closure. Unselected groups and other nodes retain their local values.
+The generated canonical Runtime3 record bridge requires exactly19 property tokens and rejects
+schema changes. Writer/source/target validation, byte/entity budgets, one Undo/Redo, no file writes
+and saved-baseline guarantees are the same as whole-instance Revert. An empty valid selection is
+a no-op that preserves Redo. Targeted graphical selection remains separate.
+
 ## Stable revisioned prefab asset foundation
 
 `PrefabAssets` owns exact versioned SceneDocument bytes, an asset UUID/revision, stable node UUIDs
@@ -37,8 +126,8 @@ previous bytes, matching UUID and next revision, then uses the common atomic sta
 or externally changed sources and occupied foreign staging files remain untouched. This is the
 existing serialized single-writer contract, not exclusion against hostile filesystem races or a
 multi-file crash/power-loss journal. No source scene, saved baseline, clipboard or Undo entry changes.
-Full graphical isolation, stable instance metadata, instantiate/override diff/revert/apply/rebase and
-transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
+Full graphical isolation, persistent instance metadata, graphical instantiate/override diff/revert/
+apply/rebase remain separate work; public C++ consumers rebuild, and stable
 C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
 
 `PrefabAssets::SaveDocument` integrates wrapped prefab publication with the live authoring document.
@@ -275,6 +364,10 @@ write failure leaves original scene files and dirty baselines unchanged.
   oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
   `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
   `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
+  One index admits at most `kMaximumIndexedAssets` (262,144) files and `kMaximumIndexedPathBytes`
+  (1024) UTF-8 bytes per project-relative path (`AssetIndexLimits` overrides both). The bounds are
+  checked while enumerating, before any sidecar is written; exceeding one fails with an actionable
+  error and leaves the previous index and the project files unchanged.
   Triangulated `.obj` entries additionally retain immutable, shared owning CPU `MeshGeometry`
   snapshots (positions, normals, UVs, uint16 indices, and local bounds). `ImportObjMesh` is a
   synchronous parser with no I/O or publication; workspace jobs invoke it off the UI thread.
@@ -900,6 +993,28 @@ Redo restores initialized pose/component data, stable IDs, names and metadata. D
 the prior clipboard even on failure. The serialized authoring thread retains no live World borrow in
 clipboard/history, and no source IO or GPU residency work occurs during Copy/Cut/Paste/Duplicate.
 
+Paste now stages the complete replacement node metadata, root selection and next history capacity
+before Runtime clone publication. After clone succeeds, assignment and swaps publish without a new
+metadata/history allocation. Exhausted entity-generation space rejects instead of wrapping.
+
+`SceneDocument::ImportForestBytes` accepts at most 8 MiB and 4096 source authoring nodes, using the
+same versioned parser/migration and unknown-payload validation as Reload. It requires caller-provided
+current authoring permission and an exact matching owning PreparedSave for the target document.
+The serialized host remains responsible for writer lease, recovery, Play and modal authority.
+Invalid/foreign-generation/stale/over-budget inputs return no partial result and retain source,
+selection, Undo/Redo and the user clipboard. Parsing uses a separate World/document before mutation.
+
+The complete source World storage order determines the imported sibling order. All internal parents
+are remapped to fresh entities through one existing CloneEntityForest transaction; root names,
+initialized components, authored Euler revolutions and exact opaque bytes remain unchanged.
+The returned owning source-ID/current-generation target-key map has no source World/document borrows.
+One Undo removes the entire import and restores prior selection; Redo restores the same initialized
+identities and metadata. A scoped restore keeps previous Copy and pending-Cut clipboard behavior,
+including failure/exception unwinding. Result capacity is allocated before publication.
+This operation performs no file IO, GPU admission, native loading, persistent prefab-instance binding,
+existing-parent attachment or arbitrary opaque entity-reference interpretation. Those remain host/
+prefab integrations. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
 
 ## Cut clipboard lifecycle
 
@@ -1067,6 +1182,15 @@ ordinary shutdown never rewrite them. Settings are independent from scene conten
 these additive APIs change no existing class layout, module dependencies or gameplay C ABI.
 
 ## Scalar PBR material assets
+
+`ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
+at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
+It performs no IO/publication and rejects divergent reflection or invalid scalar data.
+The optional [scalar material native tool](../../Plugins/ScalarMaterial/README.md) uses
+this public codec and `ImportMaterial` for actual bounded Inspect/Edit/Serialize byte
+transformations. Edit's public little-endian wire contract is in `ScalarMaterialTool.h`.
+GPU Preview remains unavailable; host document authorization, scope/source guards,
+Undo and Save/reopen integration remain separate work.
 
 `.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
 from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)

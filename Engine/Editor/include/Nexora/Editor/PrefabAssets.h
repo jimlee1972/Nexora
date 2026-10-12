@@ -45,6 +45,11 @@ struct ResolvedPrefabGraph final {
   std::vector<ResolvedPrefabInstance> instances;
   std::size_t expanded_nodes{};
 };
+struct InstantiatedPrefabNode final {
+  std::vector<foundation::Uuid> scope;
+  foundation::Uuid node;
+  SceneDocument::NodeKey target;
+};
 class NEXORA_EDITOR_API PrefabAssets final {
 public:
   static constexpr std::size_t kMaximumSceneBytes = 8 * 1024 * 1024;

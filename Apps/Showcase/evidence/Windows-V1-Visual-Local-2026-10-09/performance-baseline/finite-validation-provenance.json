@@ -1,0 +1,13 @@
+{
+  "scope": "uncommitted exact finite-validation candidate atop e3eb383b4df7",
+  "source_sha256": {
+    "CMake/Modules/NexoraBuildConfig.cmake": "ec8c4e43e04eba75445a7b65c5c995869ac5b5df41a53682bfefa73c4096d45d",
+    "Engine/Presentation/src/PbrMaterialUpload.h": "4d641dfc1500f8aa2820c256aafdb1cd3d9ff03c356991b702abaaf2c8a6abc1",
+    "Engine/Presentation/src/Dx12Surface.cpp": "36aae62618033b8c8d5d0bf45cf60177b8465d7082a93a875fdce01ee2653650",
+    "Engine/Presentation/src/VulkanSurface.cpp": "48f8a1532b4cddb9a640d5776766ba7f3fc05c6d1e3da04f24c6a033da5b92d7",
+    "Tests/WindowPresentation/SceneInstanceTests.cpp": "2e7909d9656c236f7e36fc5447273b0dc869845fc2ae499472b01a8194b80ed3"
+  },
+  "temporary_stage_probe_removed": true,
+  "hardware_budget_accepted": false,
+  "final_art_accepted": false
+}

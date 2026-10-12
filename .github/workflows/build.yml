@@ -178,8 +178,12 @@ jobs:
       - name: Require real cryptographic signature verification
         run: |
           grep -q '^NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE:INTERNAL=ON$' build/linux-development/CMakeCache.txt
-          ctest --preset linux-development -N -R '^(cryptography\.ed25519_sha256|editor\.extension_signature_trust)$' | grep -q 'Total Tests: 2'
-          ctest --preset linux-development -R '^(cryptography\.ed25519_sha256|editor\.extension_signature_trust)$' --output-on-failure
+          ctest --preset linux-development -N -R '^(cryptography\.ed25519_sha256|editor\.(extension_signature_trust|signed_extension_admission))$' | grep -q 'Total Tests: 3'
+          ctest --preset linux-development -R '^(cryptography\.ed25519_sha256|editor\.(extension_signature_trust|signed_extension_admission))$' --output-on-failure
+      - name: Require actual graphical signed package management
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(plugin_manager|plugin_manager_ui|linux_plugin_manager)$' | grep -q 'Total Tests: 3'
+          ctest --preset linux-development -R '^editor\.(plugin_manager|plugin_manager_ui|linux_plugin_manager)$' --output-on-failure
       - name: Require the display acceptance to be registered
         # The test is only registered when Xvfb and xdotool are found; fail loudly instead of
         # silently skipping it if either goes missing.
@@ -228,6 +232,11 @@ jobs:
         run: |
           ctest --preset linux-development -N -R '^editor\.prefab_asset_graph$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -R '^editor\.prefab_asset_graph$' --output-on-failure
+
+      - name: Require atomic scene forest import acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.atomic_forest_import$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -R '^editor\.atomic_forest_import$' --output-on-failure
       - name: Require reflected Inspector transactions and graphical acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.(reflected_inspector|reflected_inspector_ui|linux_reflected_inspector)$' | grep -q 'Total Tests: 3'

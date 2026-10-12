@@ -160,6 +160,13 @@
       ]
     },
     {
+      "name": "ScalarMaterialPlugin",
+      "feature": "NEXORA_FEATURE_SCALAR_MATERIAL_TOOL",
+      "dependencies": [
+        "Editor"
+      ]
+    },
+    {
       "name": "ApiSamples",
       "feature": "NEXORA_FEATURE_API_SAMPLES",
       "dependencies": [

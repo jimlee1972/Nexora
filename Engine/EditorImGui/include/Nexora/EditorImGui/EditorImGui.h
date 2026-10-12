@@ -89,6 +89,36 @@ struct GameInputBindingsSaveRequest final {
   std::filesystem::path root;
   PlayInputBindings bindings;
 };
+struct PrefabPlacementSourceRequest final {
+  std::filesystem::path root;
+  SceneFileToken source{};
+  SceneDocument::NodeKey node{};
+  foundation::Uuid instance{}, source_node{};
+  PrefabRevisionReference retained{};
+  std::vector<foundation::Uuid> scope;
+  friend bool operator==(const PrefabPlacementSourceRequest &,
+                         const PrefabPlacementSourceRequest &) = default;
+};
+struct PrefabPlacementSourceReport final {
+  PrefabPlacementSourceRequest scope;
+  bool resolved{};
+  std::optional<std::uint64_t> published_revision{};
+  std::optional<PrefabRevisionReference> scoped_source{};
+  std::size_t mapped_nodes{};
+};
+enum class PrefabPlacementOverrideAction : std::uint8_t { Review, Revert, RevertSelected };
+struct PrefabPlacementOverrideRequest final {
+  PrefabPlacementSourceRequest scope;
+  PrefabPlacementOverrideAction action{PrefabPlacementOverrideAction::Review};
+  std::uint64_t review{};
+  std::vector<std::size_t> rows{};
+};
+struct PrefabPlacementOverrideReport final {
+  PrefabPlacementSourceRequest scope;
+  std::uint64_t review{};
+  std::optional<std::uint64_t> published_revision;
+  std::vector<PrefabPlacementOverrideRow> rows;
+};
 
 struct SceneFileRequest final {
   SceneFileAction action{SceneFileAction::New};
@@ -106,6 +136,40 @@ struct SceneFileRequest final {
 struct StaticExportRequest final {
   SceneFileToken token;
   bool cancel{};
+};
+
+enum class ExtensionManagerAction : std::uint8_t {
+  SetPublisher,
+  RevokePublisher,
+  SetPermissions,
+  Review,
+  Install,
+  Refresh,
+  Enable,
+  Disable,
+  Remove,
+  CancelReview
+};
+struct ExtensionManagerRequest final {
+  ExtensionManagerAction action{};
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t scope{}, configuration{};
+  std::string id, version;
+  std::filesystem::path package_path;
+  std::array<std::byte, 32> public_key{};
+  std::uint32_t permissions{};
+};
+struct ExtensionManagerObservation final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t scope{};
+  std::uint32_t permissions{};
+  std::vector<TrustedPublisherKey> publishers;
+  std::vector<ManagedExtension> packages;
+  std::optional<ExtensionPackageReview> review;
+  std::size_t rejected_files{};
+  bool restart_required{};
 };
 
 struct ProjectUpgradeObservation final {
@@ -168,6 +232,11 @@ struct RendererMetrics final {
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
 // Move between frames; moved-from hosts support only destruction or assignment. Release the
 // destination's public-RHI renderer before move assignment while its device is still alive.
+struct ChromeTraceImportRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  ChromeTraceSelection selection;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -195,6 +264,11 @@ public:
   void DrawDiagnosticPrivacy(TelemetryConsent &diagnostics, foundation::Uuid project);
   bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
   [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
+  bool SetExtensionManagerObservation(ExtensionManagerObservation observation);
+  void SetExtensionManagerStatus(std::string status);
+  void DrawExtensionManager(bool settings_allowed, bool authoring_allowed);
+  [[nodiscard]] bool ExtensionManagerInteractionAllowed() const noexcept;
+  [[nodiscard]] std::optional<ExtensionManagerRequest> TakeExtensionManagerRequest();
 
   // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
   bool SetReflectedInspector(const ReflectedInspector &catalog);
@@ -244,6 +318,9 @@ public:
   [[nodiscard]] bool TakeGpuExportRequest() noexcept;
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
+  void OpenChromeTraceImport() noexcept;
+  [[nodiscard]] std::optional<ChromeTraceImportRequest> TakeChromeTraceImportRequest();
+  bool SetImportedChromeTrace(ChromeTraceCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
   // Owning bounded observations only. Application revalidates requests and owns job publication.
@@ -257,6 +334,15 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  // Read-only source inspection: widgets own small scope/report copies and never perform IO.
+  // The host repeats scope/Play/modal/project checks and owns exact source inspection.
+  void SetPrefabPlacementSourceContext(const std::filesystem::path &, bool read_allowed);
+  [[nodiscard]] std::optional<PrefabPlacementSourceRequest> TakePrefabPlacementSourceRequest();
+  bool SetPrefabPlacementSourceReport(PrefabPlacementSourceReport);
+  void SetPrefabPlacementOverrideContext(bool authoring_allowed);
+  [[nodiscard]] std::optional<PrefabPlacementOverrideRequest> TakePrefabPlacementOverrideRequest();
+  bool SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport);
+  void SetPrefabPlacementOverrideError(std::string);
   // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
   // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
   bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);

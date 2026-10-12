@@ -36,7 +36,10 @@ only queued/running `build.yml` runs from superseded heads in this repository. I
 branch before each cancellation and stops when the head changes. Current-head push and PR runs,
 main, foreign repositories and unlisted branches remain eligible for their complete CI gates.
 Cleanup errors are warnings; they never override build acceptance. The existing actions-write
-permission and legacy ED-M0 allowlist remain unchanged. Run the eight guard cases locally with
+permission and legacy ED-M0 allowlist remain unchanged. The current roadmap group additionally
+requires the repository owner as workflow actor and the same actor on every superseded candidate;
+missing/foreign actors are retained. This group includes only published session-owned branches and
+its own cleanup branch, never a wildcard or arbitrary future branch. Run the guard cases with
 `node Tools/Build/tests/editor-ci-cleanup.test.cjs`.
 
 ```bash
@@ -103,3 +106,16 @@ gate through CTest. It does not replace compiling/testing the enabled library.
 `VerifyAnimationProfiles.py` checks the optional Foundation-only `NexoraAnimation` target and source
 graph in Development, explicit OFF, Shipping Minimal/Full/Dedicated, and headless profiles. Only
 Development and Shipping Full include pose storage/retarget code; Full uses Monolithic linkage.
+
+## Shipping optimization
+
+Custom `Shipping` configuration names do not inherit CMake's Release compiler flags.
+`NexoraBuildConfig.cmake` explicitly selects `/O2` on MSVC and `-O2` on other supported compilers,
+in addition to the existing required IPO/LTO. Development and Debug retain their existing settings.
+This policy retains descriptor checks, assertions and precise floating-point semantics; it does
+not introduce `NDEBUG` or fast-math. It applies with both single- and multi-configuration generators.
+
+自訂 `Shipping` 設定名稱不會繼承 CMake 的 Release 編譯旗標。建置政策在既有 IPO／LTO
+之外明確指定 MSVC `/O2` 或其他支援編譯器 `-O2`；Development／Debug 維持既有設定。
+保留描述資料驗證、assertion 與精確浮點語意，不加入 `NDEBUG` 或 fast-math；單一與多重
+configuration generator 均適用。效能改善需由目標主機實测驗證，不能由旗標直接宣稱驗收。
