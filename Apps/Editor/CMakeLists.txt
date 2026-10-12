@@ -1,4 +1,7 @@
 add_executable(NexoraEditor main.cpp)
+if(MSVC)
+  target_compile_definitions(NexoraEditor PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
 target_link_libraries(NexoraEditor PRIVATE Nexora::Editor Nexora::Runtime Nexora::Core)
 if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   target_link_libraries(NexoraEditor PRIVATE Nexora::EditorImGui Nexora::Presentation)

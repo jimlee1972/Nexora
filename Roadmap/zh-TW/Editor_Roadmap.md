@@ -131,6 +131,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   保持有界；九個 room 的整體預算為 180 秒。此 cloud gate 補強不接受實體 Editor 里程碑。
   [證據](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md)。
 
+- ✅ 既有 prefab UI fixture 已恢復登錄，補回 mandatory document／UI／native 三個 isolation
+  CI gate。Editor test-geometry hook 採用既有 MSVC CRT 相容定義，保留 `/WX` 與其他 target
+  warning 設定；觸發問題的 hosted failure 與新驗證記錄於
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md)。
+  此整合修復不接受 target-host 或圖形化 milestone。
+
 ### ED-M1 — Project 與 Asset workspace
 
 - ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，
@@ -881,6 +887,13 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 ### ED-M6 — Build、profile 與 extensibility
 
+- ✅ External Chrome import 現在 X event 之外支援同步 B/E duration scope。有界 selected-thread
+  LIFO pairing 保留 nested same-name／mixed-event 的 begin order、inclusive external duration、
+  最新600筆／drop count 與 evicted-begin 保護。未閉合、name mismatch、倒退或超容量 scope
+  會拒絕，保留 prior capture／file／live profile；涵蓋 read-only project IO 與實際 1x／2x
+  Profiler import control。Async span、exclusive／self time、其他 capture format 與實體校準
+  仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md)。
+
 ✅ External Chrome trace inspection 已驗證：明確 event／process／thread selection、有界 Unicode
 JSON、external clock／duration unit、最新600筆／drop count 及獨立 static view。Read-only import、
 failure／scope preservation 通過；不推定 CPU／GPU／memory。其他 capture format 與實體 GPU 校準仍待完成。
@@ -1095,7 +1108,8 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   每個 case 先 warmup 六個 frame，再量測十二次完整 CPU draw；schema-1 record 保留排序後
   sample、nearest-rank p50／p95／max、widget／vertex 數與 ImGui allocation payload peak。
   全部 logical row 保持可用且 Hierarchy widget 少於 128，source／Undo／Redo 保持不變，
-  每次 host teardown 均釋放所有 ImGui allocation。300 秒 serial deadline 是 CI guard；
+  每次 host teardown 均釋放所有 ImGui allocation。300 秒 serial deadline（Windows 依 hosted
+  MSVC 實測校正為 600 秒）是 CI guard；
   production frame／process-memory budget、native GPU／asset scale、長時間及實體 host soak
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md)。
 

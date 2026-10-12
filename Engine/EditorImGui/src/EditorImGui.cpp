@@ -5762,7 +5762,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (ImGui::Begin("Chrome Trace###editor.profiler.chrome", &state_->chrome_trace_open)) {
       ImGui::TextUnformatted("Import .nexora/chrome-trace.json from this project.");
       ImGui::TextWrapped(
-          "Select complete events by name, process and thread. External intervals "
+          "Select X or synchronous B/E events by name, process and thread. External intervals "
           "use their own trace clock; CPU/GPU classification and memory are unavailable.");
       const auto position = [&](std::size_t index) {
         const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
@@ -5810,7 +5810,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
       if (state_->imported_chrome_trace) {
         const auto &capture = *state_->imported_chrome_trace;
-        ImGui::SeparatorText("External Chrome complete-event intervals (static)");
+        ImGui::SeparatorText("External Chrome intervals (static)");
         ImGui::Text("Process %llu | Thread %llu | %zu intervals | %llu older dropped",
                     static_cast<unsigned long long>(capture.selection.process),
                     static_cast<unsigned long long>(capture.selection.thread),

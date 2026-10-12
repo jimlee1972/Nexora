@@ -1,5 +1,15 @@
 # Editor Dear ImGui host contract
 
+## External Chrome duration inspection
+
+The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
+scopes alongside `X` complete events through the selected project file. The host retains the
+same owning static interval view, external clock/unit labels, process/thread/event selection,
+read-only admission and scope revocation. Nested intervals are displayed by start order;
+duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
+contract documents pairing, chronological and capacity requirements.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
@@ -47,7 +57,8 @@ p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload
 Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
 source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
 ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
-deadline. It also runs directly with `NexoraDeepHierarchyTests --benchmark`.
+deadline, or 600 seconds on Windows based on hosted MSVC measurements. It also runs directly with
+`NexoraDeepHierarchyTests --benchmark`.
 
 The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
 ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame

@@ -1,5 +1,31 @@
 # Editor Core contract
 
+## External Chrome synchronous duration import
+
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events and synchronous `B/E`
+duration events, selected by exact process/thread/event name. Timestamps keep the external
+microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
+Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
+600-sample, Unicode/JSON and metadata bounds.
+
+On the selected thread, every B requires a name and timestamp; every E requires a timestamp
+and closes the most recent B. An optional end name must match. Nonmatching event names still
+participate in pairing so a nested scope cannot close its parent accidentally. At most 128
+scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
+threads do not share the stack. Valid zero durations remain zero. Asynchronous phases are
+validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
+previously skipped, now reject the whole import if malformed or unbalanced.
+
+Selected begins reserve their sample sequence and position immediately. End events complete
+that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
+overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
+mixed X/B/E records and nested same-name scopes. Pending intervals never escape a failed import.
+This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
+
+`ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
+admission and actual byte bounds. Failure does not publish or alter source files, prior captures
+or live measurements. Persisted Editor schemas, C ABI and product linkage are unchanged.
+
 ## Build artifact byte verification
 
 `BuildFrontend::VerifyArtifacts` synchronously verifies caller-captured owning
