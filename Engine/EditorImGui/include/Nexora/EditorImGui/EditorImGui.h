@@ -42,7 +42,15 @@ enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop }
 enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
 enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
-enum class PrefabIsolationAction : std::uint8_t { Create, Open, Variant, Save, Close };
+enum class PrefabIsolationAction : std::uint8_t {
+  Create,
+  Open,
+  Variant,
+  Save,
+  Close,
+  Review,
+  Revert
+};
 struct PrefabIsolationObservation final {
   foundation::Uuid project, asset;
   std::uint64_t project_scope{}, owner_generation{}, document_generation{}, revision{};
@@ -192,6 +200,8 @@ public:
                            bool authoring_allowed);
   [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
   void SetPrefabIsolationStatus(std::string message, bool success);
+  // Presentation data only; the native owner retains/revalidates the actual review capability.
+  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false);
   void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.

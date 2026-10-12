@@ -23,6 +23,9 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
       ImGui::ClearActiveID();
     state.prefab_request.reset();
     state.prefab_confirmation.reset();
+    state.prefab_review.reset();
+    state.prefab_can_revert = false;
+    state.prefab_revert_confirmation = false;
     state.prefab_target = {};
     state.prefab_edit_key.reset();
     state.prefab_name_active = false;
@@ -33,6 +36,35 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
   return true;
 }
 void EditorImGuiHost::OpenPrefabIsolation() noexcept { state_->prefab_isolation_open = true; }
+void EditorImGuiHost::SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert) {
+  if (changes) {
+    bool valid = changes->rows.size() <= SceneComparison::kMaximumRows;
+    std::size_t bytes{};
+    const auto account = [&](std::string_view text) {
+      if (text.size() > SceneComparison::kMaximumValueBytes ||
+          text.size() > SceneComparison::kMaximumResultBytes - bytes ||
+          !foundation::IsValidUtf8(text) ||
+          std::ranges::any_of(text, [](unsigned char c) { return c < 32 || c == 127; }))
+        return false;
+      bytes += text.size();
+      return true;
+    };
+    if (valid)
+      for (const auto &row : changes->rows) {
+        if (row.stable_path.size() > 1024 || !account(row.stable_path) ||
+            (row.base && !account(*row.base)) || (row.local && !account(*row.local)) ||
+            (row.remote && !account(*row.remote))) {
+          valid = false;
+          break;
+        }
+      }
+    if (!valid)
+      changes.reset();
+  }
+  state_->prefab_review = std::move(changes);
+  state_->prefab_can_revert = state_->prefab_review && can_revert;
+  state_->prefab_revert_confirmation = false;
+}
 std::optional<PrefabIsolationRequest> EditorImGuiHost::TakePrefabIsolationRequest() {
   return std::exchange(state_->prefab_request, std::nullopt);
 }
@@ -49,7 +81,13 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   ImGui::SetCurrentContext(state_->context);
   auto &state = *state_;
   state.prefab_positions = {};
-  if (!state.prefab_isolation_open || !state.prefab_isolation)
+  if (!state.prefab_isolation_open) {
+    SetPrefabReview(std::nullopt);
+    state.prefab_request.reset();
+    state.prefab_confirmation.reset();
+    return;
+  }
+  if (!state.prefab_isolation)
     return;
   const auto observation = *state.prefab_isolation;
   const bool current =
@@ -76,7 +114,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   };
   const auto request = [&](PrefabIsolationAction action, foundation::Uuid target = {}) {
     PrefabIsolationRequest next{action, observation, target, false};
-    if (observation.dirty && action != PrefabIsolationAction::Save &&
+    if (observation.dirty && action != PrefabIsolationAction::Review &&
+        action != PrefabIsolationAction::Revert && action != PrefabIsolationAction::Save &&
         action != PrefabIsolationAction::Variant)
       state.prefab_confirmation = std::move(next);
     else
@@ -95,7 +134,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     capture(0);
     const auto parsed = foundation::Uuid::Parse(state.prefab_target.data());
     const bool target = parsed && !parsed.Value().IsNil();
-    const bool confirming = state.prefab_confirmation.has_value();
+    const bool confirming =
+        state.prefab_confirmation.has_value() || state.prefab_revert_confirmation;
     ImGui::BeginDisabled(!writable || !target || confirming ||
                          !observation.source.document_generation);
     if (ImGui::Button("Create from scene"))
@@ -126,7 +166,33 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       request(PrefabIsolationAction::Close);
     capture(5);
     ImGui::EndDisabled();
-    if (confirming) {
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!interaction || !observation.open || confirming);
+    if (ImGui::Button("Review changes"))
+      request(PrefabIsolationAction::Review);
+    capture(15);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!writable || !state.prefab_can_revert || confirming);
+    if (ImGui::Button("Revert properties"))
+      state.prefab_revert_confirmation = true;
+    capture(16);
+    ImGui::EndDisabled();
+    if (state.prefab_revert_confirmation) {
+      ImGui::TextUnformatted("Restore source properties? Use Undo to recover your edits.");
+      ImGui::BeginDisabled(!writable);
+      if (ImGui::Button("Confirm property revert")) {
+        request(PrefabIsolationAction::Revert);
+        state.prefab_revert_confirmation = false;
+      }
+      capture(17);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel revert"))
+        state.prefab_revert_confirmation = false;
+      capture(18);
+    }
+    if (state.prefab_confirmation) {
       ImGui::TextUnformatted("Discard this prefab's unsaved changes before continuing?");
       ImGui::BeginDisabled(!interaction);
       if (ImGui::Button("Discard prefab changes")) {
@@ -145,11 +211,13 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     if (document && current) {
       ImGui::BeginDisabled(!edit || confirming);
       if (ImGui::Button("Undo"))
-        static_cast<void>(editable->Undo());
+        if (editable->Undo())
+          SetPrefabReview(std::nullopt);
       capture(8);
       ImGui::SameLine();
       if (ImGui::Button("Redo"))
-        static_cast<void>(editable->Redo());
+        if (editable->Redo())
+          SetPrefabReview(std::nullopt);
       capture(9);
       ImGui::EndDisabled();
       const auto nodes = document->Nodes();
@@ -217,7 +285,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
         }
         if (committed) {
           if (name == state.prefab_name_original)
-            static_cast<void>(editable->Rename(key, state.prefab_name.data()));
+            if (editable->Rename(key, state.prefab_name.data()))
+              SetPrefabReview(std::nullopt);
           state.prefab_name_active = false;
         } else if (ImGui::IsItemDeactivated())
           state.prefab_name_active = false;
@@ -252,7 +321,8 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
                   next.y = value;
                 else
                   next.z = value;
-                static_cast<void>(editable->SetTransform(key.id, next));
+                if (editable->SetTransform(key.id, next))
+                  SetPrefabReview(std::nullopt);
               }
               state.prefab_position_active[axis] = false;
             } else if (ImGui::IsItemDeactivated())
@@ -265,6 +335,56 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
             ImGui::Text("Preserved component %llu: %zu bytes",
                         static_cast<unsigned long long>(component.type), component.data.size());
       }
+    }
+    if (state.prefab_review) {
+      ImGui::Text("Reviewed changes: %zu (source references are inspection only)",
+                  state.prefab_review->rows.size());
+      ImGui::BeginChild("Prefab changes", {0, 150}, ImGuiChildFlags_Borders);
+      if (ImGui::BeginTable("Property differences", 3,
+                            ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                                ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableSetupColumn("Property");
+        ImGui::TableSetupColumn("Source");
+        ImGui::TableSetupColumn("Your edit");
+        ImGui::TableHeadersRow();
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(state.prefab_review->rows.size()));
+        while (clipper.Step())
+          for (int index = clipper.DisplayStart; index < clipper.DisplayEnd; ++index) {
+            const auto &row = state.prefab_review->rows[static_cast<std::size_t>(index)];
+            const auto display = [](const std::optional<std::string> &value) {
+              if (!value)
+                return std::string("<absent>");
+              if (value->size() <= 256)
+                return *value;
+              std::size_t count = 256;
+              while (count && (static_cast<unsigned char>((*value)[count]) & 0xc0) == 0x80)
+                --count;
+              return value->substr(0, count) + "... (" + std::to_string(value->size()) + " bytes)";
+            };
+            auto label = row.stable_path;
+            if (label.starts_with("nodes/")) {
+              const auto node_end = label.find('/', 6);
+              const auto fields = label.find("/fields/", node_end);
+              const auto property =
+                  fields == std::string::npos ? node_end : label.find('/', fields + 8);
+              if (property != std::string::npos)
+                label = label.substr(6, 8) + " / " + label.substr(property + 1);
+            }
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(label.c_str());
+            ImGui::SetItemTooltip("%s", row.stable_path.c_str());
+            ImGui::TableNextColumn();
+            const auto before = display(row.base);
+            ImGui::TextUnformatted(before.c_str());
+            ImGui::TableNextColumn();
+            const auto after = display(row.local);
+            ImGui::TextUnformatted(after.c_str());
+          }
+        ImGui::EndTable();
+      }
+      ImGui::EndChild();
     }
     if (!state.prefab_status.empty())
       ImGui::TextWrapped("%s", state.prefab_status.c_str());

@@ -1,4 +1,7 @@
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include "Nexora/Editor/PrefabComparison.h"
+#include "Nexora/Editor/PrefabPropertyPlan.h"
+#include <algorithm>
 #include <limits>
 #include <utility>
 
@@ -122,6 +125,63 @@ bool PrefabDocumentSession::Close(bool discard_dirty, std::string *error) {
     owner_.reset();
     ++generation_;
   }
+  return true;
+}
+std::optional<PrefabPropertyReview> PrefabDocumentSession::Review(std::string *error) const {
+  if (!Allowed(false, error))
+    return {};
+  if (!owner_ || !owner_->previous) {
+    Fail(error, "Save a prefab source before reviewing changes.");
+    return {};
+  }
+  const auto &previous = *owner_->previous;
+  const auto reference =
+      previous.id != owner_->id
+          ? PrefabRevisionReference{previous.id, previous.revision}
+          : previous.base.value_or(PrefabRevisionReference{previous.id, previous.revision});
+  auto source = PrefabAssets::LoadRevision(workspace_, reference);
+  const auto expected = owner_->document.PrepareSave();
+  // Inspection never fabricates stable identities for unsaved structural/field additions.
+  const auto current = PrefabAssets::Capture(
+      owner_->id, owner_->document, [] { return foundation::Uuid{}; }, &previous);
+  if (!source || !expected || !current) {
+    Fail(error, "Source revision is unavailable, or save new identities before reviewing.");
+    return {};
+  }
+  auto changes = ComparePrefabRevisions(&*source, &*current, &*source, error);
+  if (!changes)
+    return {};
+  auto candidate = BuildPrefabPropertySnapshot(*current, *source);
+  if (candidate && *candidate == expected->Bytes())
+    candidate.reset();
+  // Metadata references are visible, but restoring document properties never changes them.
+  if (!std::ranges::any_of(changes->rows,
+                           [](const auto &row) { return row.stable_path.starts_with("nodes/"); }))
+    candidate.reset();
+  if (!Allowed(false, error) || !owner_->document.MatchesPreparedSave(*expected))
+    return {};
+  return PrefabPropertyReview{
+      *expected, previous, std::move(*source), std::move(*changes), std::move(candidate),
+      root_,     project_, owner_->id,         generation_};
+}
+bool PrefabDocumentSession::Revert(const PrefabPropertyReview &review, bool authorized,
+                                   std::string *error) {
+  if (!Allowed(true, error))
+    return false;
+  if (!authorized || !owner_ || !owner_->previous || !review.candidate_ || review.root_ != root_ ||
+      review.project_ != project_ || review.asset_ != owner_->id ||
+      review.generation_ != generation_ || review.previous_ != *owner_->previous ||
+      !owner_->document.MatchesPreparedSave(review.expected_))
+    return Fail(error, "Property review is stale or has no authorized compatible changes.");
+  const auto source =
+      PrefabAssets::LoadRevision(workspace_, {review.source_.id, review.source_.revision});
+  if (!source || *source != review.source_)
+    return Fail(error, "Reviewed source revision changed or is unavailable.");
+  if (!Allowed(true, error))
+    return false;
+  Busy guard(busy_);
+  if (!owner_->document.ApplyPropertySnapshot(review.expected_, *review.candidate_, true))
+    return Fail(error, "Property transaction rejected; preserve the isolated document.");
   return true;
 }
 const SceneDocument *PrefabDocumentSession::Document() const {

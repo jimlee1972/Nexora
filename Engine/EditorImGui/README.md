@@ -1088,3 +1088,10 @@ has no prefab recovery journal in this slice. Variants require an exact clean pu
 Nested materialization, override diff/revert/apply/rebase, reflected prefab properties and complete
 transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
 module dependencies are unchanged.
+
+Prefab isolation additionally presents an explicit owning property comparison and full revert
+confirmation. Source/edit values use clipped table rows and bounded previews; stable paths remain
+available in tooltips. Presentation data carries no write authority: the native session retains
+the actual immutable review and revalidates it at execution. Read-only inspection remains available
+while Revert requires current authoring permission. Edits, Undo/Redo, source actions and scope
+replacement revoke presented review/confirmation. Targeted field/source apply and rebase remain open.
