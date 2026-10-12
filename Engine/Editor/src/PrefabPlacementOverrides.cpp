@@ -1,0 +1,270 @@
+#include "Nexora/Editor/PrefabPlacementOverrides.h"
+#include "PrefabPlacementPropertyInternal.h"
+#include <algorithm>
+#include <charconv>
+#include <map>
+#include <set>
+
+namespace nexora::editor {
+namespace {
+using detail::PlacementPropertyGroup;
+using detail::PlacementRuntimeProperties;
+using detail::PlacementSnapshot;
+using detail::PlacementValue;
+using detail::SelectPlacementRuntimeProperties;
+} // namespace
+
+std::optional<PrefabPlacementOverrideReview>
+PrefabPlacementOverrides::Prepare(const ProjectWorkspace &workspace, const SceneDocument &target,
+                                  SceneDocument::NodeKey selected, std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) -> std::optional<PrefabPlacementOverrideReview> {
+    if (error && error->empty())
+      *error = message;
+    return {};
+  };
+  auto inspection = PrefabPlacementInspector::Inspect(workspace, target, selected);
+  if (!inspection || !inspection->graph_)
+    return fail("Prefab instance retained source is unavailable or incompatible.");
+  runtime::World world;
+  SceneDocument baseline(world, world.LoadScene("Prefab override baseline"));
+  const auto empty = baseline.PrepareSave();
+  if (!empty)
+    return fail("Prefab baseline preparation failed.");
+  const auto mapping = PrefabAssets::Instantiate(inspection->Source(), inspection->graph_->assets,
+                                                 baseline, *empty, true);
+  const auto prepared = baseline.PrepareSave();
+  if (!mapping || !prepared || mapping->size() != inspection->placement_.nodes.size())
+    return fail("Prefab retained source materialization failed.");
+  auto retained = PlacementSnapshot(prepared->Bytes(), error);
+  const auto local = PlacementSnapshot(inspection->expected_.Bytes(), error);
+  if (!retained || !local)
+    return fail("Prefab property review exceeds semantic snapshot budgets.");
+  std::map<runtime::Id, runtime::Id> translated;
+  for (const auto &node : *mapping) {
+    const auto live = std::ranges::find_if(inspection->placement_.nodes, [&](const auto &value) {
+      return value.scope == node.scope && value.source_node == node.node;
+    });
+    if (live == inspection->placement_.nodes.end() || !target.Key(live->target) ||
+        !translated.emplace(node.target.id, live->target).second)
+      return fail("Prefab scoped source-to-target mapping changed.");
+  }
+  std::vector<PrefabPlacementOverrideRow> rows;
+  std::size_t bytes{};
+  for (const auto &node : *mapping) {
+    const auto live_id = translated.at(node.target.id);
+    const auto source_fields = retained->find(node.target.id);
+    const auto live_fields = local->find(live_id);
+    if (source_fields == retained->end() || live_fields == local->end())
+      return fail("Prefab mapped node is absent from the semantic snapshot.");
+    auto &fields = source_fields->second;
+    auto parent = fields.find("parent");
+    if (parent == fields.end())
+      return fail("Prefab baseline has no hierarchy observation.");
+    runtime::Id parent_id{};
+    const auto parsed = std::from_chars(parent->second.data(),
+                                        parent->second.data() + parent->second.size(), parent_id);
+    if (parsed.ec != std::errc{} || parsed.ptr != parent->second.data() + parent->second.size() ||
+        (parent_id && !translated.contains(parent_id)))
+      return fail("Prefab baseline parent is outside its materialized closure.");
+    parent->second = std::to_string(parent_id ? translated.at(parent_id) : 0);
+    const auto instance = std::ranges::find(inspection->graph_->instances, node.scope,
+                                            &ResolvedPrefabInstance::scope);
+    if (instance == inspection->graph_->instances.end())
+      return fail("Prefab source scope is unavailable.");
+    const auto asset = std::ranges::find_if(inspection->graph_->assets, [&](const auto &value) {
+      return value.id == instance->source.asset && value.revision == instance->source.revision;
+    });
+    if (asset == inspection->graph_->assets.end())
+      return fail("Prefab source revision is unavailable.");
+    const auto identity = std::ranges::find(asset->nodes, node.node, &PrefabNodeIdentity::id);
+    if (identity == asset->nodes.end())
+      return fail("Prefab stable source node identity is unavailable.");
+    std::set<std::string, std::less<>> names;
+    for (const auto &[name, value] : fields) {
+      static_cast<void>(value);
+      names.insert(name);
+    }
+    for (const auto &[name, value] : live_fields->second) {
+      static_cast<void>(value);
+      names.insert(name);
+    }
+    for (const auto &field : names) {
+      const auto old = PlacementValue(fields, field),
+                 current = PlacementValue(live_fields->second, field);
+      if (old == current)
+        continue;
+      const auto property = std::ranges::find(identity->properties, PlacementPropertyGroup(field),
+                                              &PrefabPropertyIdentity::field);
+      const auto size = field.size() + node.scope.size() * sizeof(foundation::Uuid) +
+                        (old ? old->size() : 0) + (current ? current->size() : 0);
+      if (rows.size() >= kMaximumRows || size > kMaximumReportBytes - bytes)
+        return fail("Prefab override report exceeds its row or logical byte budget.");
+      bytes += size;
+      rows.push_back(
+          {node.scope, instance->source, node.node,
+           property == identity->properties.end() ? std::nullopt : std::optional(property->id),
+           field, *target.Key(live_id), old, current, field == "parent"});
+    }
+  }
+  if (!PrefabPlacementInspector::Matches(workspace, target, *inspection))
+    return fail("Prefab project, source closure or target changed during review.");
+  return PrefabPlacementOverrideReview{std::move(*inspection), std::move(rows)};
+}
+bool PrefabPlacementOverrides::Matches(const ProjectWorkspace &workspace,
+                                       const SceneDocument &target,
+                                       const PrefabPlacementOverrideReview &review) {
+  return PrefabPlacementInspector::Matches(workspace, target, review.inspection_);
+}
+bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDocument &target,
+                                      const PrefabPlacementOverrideReview &review, bool authorized,
+                                      std::string *error) {
+  return RevertProperties(workspace, target, review, std::nullopt, authorized, error);
+}
+bool PrefabPlacementOverrides::RevertSelected(const ProjectWorkspace &workspace,
+                                              SceneDocument &target,
+                                              const PrefabPlacementOverrideReview &review,
+                                              std::span<const std::size_t> rows, bool authorized,
+                                              std::string *error) {
+  return RevertProperties(workspace, target, review, rows, authorized, error);
+}
+bool PrefabPlacementOverrides::RevertProperties(
+    const ProjectWorkspace &workspace, SceneDocument &target,
+    const PrefabPlacementOverrideReview &review,
+    std::optional<std::span<const std::size_t>> selected, bool authorized, std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
+    return false;
+  };
+  if (!authorized || !workspace.Writable() || target.world_.Kind() != runtime::WorldKind::Editor ||
+      !Matches(workspace, target, review))
+    return fail("Prefab property revert requires a current review and writer authorization.");
+  if (std::ranges::any_of(review.rows_, &PrefabPlacementOverrideRow::structural))
+    return fail("Prefab property revert does not reconcile structural hierarchy changes.");
+  std::map<runtime::Id, std::set<std::string>> selected_groups;
+  if (selected) {
+    if (selected->size() > kMaximumRows)
+      return fail("Prefab selected property rows exceed their budget.");
+    std::set<std::size_t> unique;
+    for (const auto index : *selected) {
+      if (index >= review.rows_.size() || !unique.insert(index).second)
+        return fail("Prefab selected property row is absent or duplicated.");
+      const auto &row = review.rows_[index];
+      const auto group = PlacementPropertyGroup(row.field);
+      if (group != "name" && group != "transform.position" && group != "transform.rotation" &&
+          group != "transform.scale" && group != "camera" && group != "light" && group != "mesh" &&
+          !group.starts_with("opaque/"))
+        return fail("Prefab selected property group is unsupported.");
+      selected_groups[row.target.id].insert(group);
+    }
+  }
+  if (review.rows_.empty() || (selected && selected->empty()))
+    return true; // Preserve pending Redo and the saved baseline for a semantic no-op.
+  const auto &inspection = review.inspection_;
+  if (!inspection.graph_)
+    return fail("Prefab retained source closure is unavailable.");
+  runtime::World source_world, staged_world;
+  SceneDocument source(source_world, source_world.LoadScene("Prefab revert source"));
+  SceneDocument staged(staged_world, staged_world.LoadScene("Prefab revert target"));
+  const auto empty = source.PrepareSave();
+  if (!empty || !staged.ReloadBytes(inspection.expected_.Bytes(), 4096))
+    return fail("Prefab property revert staging failed.");
+  const auto mapping = PrefabAssets::Instantiate(inspection.Source(), inspection.graph_->assets,
+                                                 source, *empty, true);
+  if (!mapping || mapping->size() != inspection.placement_.nodes.size())
+    return fail("Prefab retained source materialization failed.");
+  std::map<runtime::Id, SceneDocument::Node *> staged_nodes;
+  std::map<runtime::Id, const SceneDocument::Node *> source_nodes;
+  for (auto &node : staged.nodes_)
+    staged_nodes.emplace(node.id, &node);
+  for (const auto &node : source.nodes_)
+    source_nodes.emplace(node.id, &node);
+  const auto source_runtime =
+      source_world.SaveScene(source.scene_, SceneComparison::kMaximumSourceBytes);
+  const auto staged_runtime =
+      staged_world.SaveScene(staged.scene_, SceneComparison::kMaximumSourceBytes);
+  if (!source_runtime || !staged_runtime)
+    return fail("Prefab property runtime snapshots exceed their byte budget.");
+  const auto source_properties = PlacementRuntimeProperties(*source_runtime);
+  auto staged_properties = PlacementRuntimeProperties(*staged_runtime);
+  if (!source_properties || !staged_properties)
+    return fail("Prefab property runtime snapshot schema is unavailable.");
+  for (const auto &node : *mapping) {
+    const auto live = std::ranges::find_if(inspection.placement_.nodes, [&](const auto &value) {
+      return value.scope == node.scope && value.source_node == node.node;
+    });
+    const auto authoring = source_nodes.find(node.target.id);
+    if (live == inspection.placement_.nodes.end() || authoring == source_nodes.end() ||
+        !staged_nodes.contains(live->target) || !source_properties->contains(node.target.id) ||
+        !staged_properties->contains(live->target))
+      return fail("Prefab scoped source-to-live identity is unavailable.");
+    auto &destination = *staged_nodes.at(live->target);
+    if (!selected) {
+      const auto generation = destination.generation;
+      destination = *authoring->second;
+      destination.id = live->target;
+      destination.generation = generation;
+      staged_properties->at(live->target) = source_properties->at(node.target.id);
+    } else if (const auto found = selected_groups.find(live->target);
+               found != selected_groups.end()) {
+      const auto &groups = found->second;
+      if (groups.contains("name"))
+        destination.name = authoring->second->name;
+      if (groups.contains("transform.rotation"))
+        destination.euler_hint = authoring->second->euler_hint;
+      for (const auto &group : groups)
+        if (group.starts_with("opaque/")) {
+          std::uint64_t type{};
+          const auto text = std::string_view(group).substr(7);
+          const auto parsed = std::from_chars(text.data(), text.data() + text.size(), type);
+          if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || !type)
+            return fail("Prefab opaque property identity is invalid.");
+          const auto original = std::ranges::find(authoring->second->opaque, type,
+                                                  [](const auto &value) { return value.type; });
+          const auto current = std::ranges::find(destination.opaque, type,
+                                                 [](const auto &value) { return value.type; });
+          if (original == authoring->second->opaque.end())
+            std::erase_if(destination.opaque,
+                          [&](const auto &value) { return value.type == type; });
+          else if (current == destination.opaque.end())
+            destination.opaque.push_back(*original);
+          else
+            *current = *original;
+        }
+      const auto properties = SelectPlacementRuntimeProperties(
+          source_properties->at(node.target.id), staged_properties->at(live->target), groups);
+      if (!properties)
+        return fail("Prefab selected runtime property schema is unavailable.");
+      staged_properties->at(live->target) = *properties;
+      selected_groups.erase(found);
+    }
+  }
+  if (!selected_groups.empty())
+    return fail("Prefab selected scoped node is absent from the retained mapping.");
+  std::string next_runtime = staged_runtime->substr(0, staged_runtime->find('\n') + 1);
+  const auto *staged_scene = staged_world.FindScene(staged.scene_);
+  if (!staged_scene)
+    return fail("Prefab staging scene is unavailable.");
+  for (const auto &entity : staged_scene->entities) {
+    const auto line = std::to_string(entity.id) + ' ' + std::to_string(entity.parent) + ' ' +
+                      staged_properties->at(entity.id) + '\n';
+    if (line.size() > SceneComparison::kMaximumSourceBytes - next_runtime.size())
+      return fail("Prefab property runtime snapshot exceeds its byte budget.");
+    next_runtime += line;
+  }
+  if (!staged_world.ReplaceSceneSnapshot(staged.scene_, next_runtime))
+    return fail("Prefab property staging rejected source component values.");
+  staged.opaque_dirty_.reset();
+  const auto prepared = staged.PrepareSave();
+  if (!prepared || prepared->Bytes().size() > SceneComparison::kMaximumSourceBytes || !authorized ||
+      !workspace.Writable() || !Matches(workspace, target, review))
+    return fail("Prefab project, source closure or target changed before revert.");
+  if (!target.ApplyPropertySnapshot(inspection.expected_, prepared->Bytes(), authorized))
+    return fail("Prefab property revert could not publish its atomic transaction.");
+  return true;
+}
+} // namespace nexora::editor

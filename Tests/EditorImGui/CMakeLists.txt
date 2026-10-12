@@ -36,10 +36,17 @@ add_test(NAME editor.semantic_scene_comparison_ui COMMAND NexoraSceneComparisonU
 
 add_executable(NexoraDeepHierarchyTests DeepHierarchyTests.cpp)
 target_include_directories(NexoraDeepHierarchyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraDeepHierarchyTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraDeepHierarchyTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraDeepHierarchyTests)
 add_test(NAME editor.deep_hierarchy COMMAND NexoraDeepHierarchyTests)
 set_tests_properties(editor.deep_hierarchy PROPERTIES TIMEOUT 180)
+add_test(NAME editor.hierarchy_scale_lifecycle COMMAND NexoraDeepHierarchyTests --benchmark)
+set_tests_properties(editor.hierarchy_scale_lifecycle PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "editor;scale")
+if(WIN32)
+  # Hosted MSVC Development measured ~2 s per unchanged 100k-node shell frame. Eight complete
+  # fixture lifecycles exceed the Linux-derived aggregate deadline; this is not a frame budget.
+  set_tests_properties(editor.hierarchy_scale_lifecycle PROPERTIES TIMEOUT 600)
+endif()
 
 add_executable(NexoraOverviewPoseTests OverviewPoseTests.cpp)
 target_include_directories(NexoraOverviewPoseTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
@@ -211,7 +218,7 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabIsolation.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
-  set_tests_properties(editor.linux_prefab_isolation PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  set_tests_properties(editor.linux_prefab_isolation PROPERTIES TIMEOUT 180 LABELS "vulkan;virtual-display")
   add_test(NAME editor.linux_reflected_inspector
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedInspector.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
@@ -561,6 +568,46 @@ target_include_directories(NexoraStaticProjectExportUiTests PRIVATE ../../Engine
 nexora_apply_defaults(NexoraStaticProjectExportUiTests)
 add_test(NAME editor.static_project_export_ui COMMAND NexoraStaticProjectExportUiTests)
 set_tests_properties(editor.static_project_export_ui PROPERTIES TIMEOUT 60)
+add_executable(NexoraPrefabPlacementSourceUiTests PrefabPlacementSourceTests.cpp)
+target_link_libraries(NexoraPrefabPlacementSourceUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraPrefabPlacementSourceUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraPrefabPlacementSourceUiTests)
+add_test(NAME editor.prefab_placement_source_ui COMMAND NexoraPrefabPlacementSourceUiTests)
+
+add_executable(NexoraPrefabPlacementRebaseUiTests PrefabPlacementRebaseTests.cpp)
+target_link_libraries(NexoraPrefabPlacementRebaseUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraPrefabPlacementRebaseUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraPrefabPlacementRebaseUiTests)
+add_test(NAME editor.prefab_placement_rebase_ui COMMAND NexoraPrefabPlacementRebaseUiTests)
+set_tests_properties(editor.prefab_placement_rebase_ui PROPERTIES TIMEOUT 60)
+add_executable(NexoraPrefabPlacementOverrideUiTests PrefabPlacementOverrideTests.cpp)
+target_link_libraries(NexoraPrefabPlacementOverrideUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraPrefabPlacementOverrideUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraPrefabPlacementOverrideUiTests)
+add_test(NAME editor.prefab_placement_override_ui COMMAND NexoraPrefabPlacementOverrideUiTests)
+set_tests_properties(editor.prefab_placement_source_ui PROPERTIES TIMEOUT 60)
+if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_prefab_placement_source_rebase
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabPlacementRebase.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementRebaseUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_placement_source_rebase PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_prefab_placement_source
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabPlacementSource.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementSourceUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_placement_source PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_prefab_placement_overrides
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabPlacementOverrides.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementOverrideUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_placement_overrides PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_prefab_placement_selected_revert
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabPlacementOverrides.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementOverrideUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --selected)
+  set_tests_properties(editor.linux_prefab_placement_selected_revert PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+endif()
 add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
 target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)

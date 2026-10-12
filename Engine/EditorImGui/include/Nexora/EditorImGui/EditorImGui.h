@@ -43,12 +43,28 @@ enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop }
 enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
 enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
-enum class PrefabIsolationAction : std::uint8_t { Create, Open, Variant, Save, Close };
+enum class PrefabIsolationAction : std::uint8_t {
+  Create,
+  Open,
+  Variant,
+  Save,
+  Close,
+  Review,
+  Revert,
+  SelectReview,
+  ApplyToSource,
+  ReviewRebase,
+  ResolveRebase,
+  Rebase,
+  Instantiate
+};
 struct PrefabIsolationObservation final {
   foundation::Uuid project, asset;
   std::uint64_t project_scope{}, owner_generation{}, document_generation{}, revision{};
   SceneFileToken source;
   bool open{}, dirty{}, writable{};
+  std::optional<PrefabRevisionReference> base{};
+  bool scene_writable{};
   friend bool operator==(const PrefabIsolationObservation &,
                          const PrefabIsolationObservation &) = default;
 };
@@ -57,6 +73,8 @@ struct PrefabIsolationRequest final {
   PrefabIsolationObservation scope;
   foundation::Uuid target;
   bool discard_dirty{};
+  std::vector<PrefabPropertySelection> selected{};
+  std::vector<PrefabRebaseChoice> choices{};
 };
 struct SceneTabItem final {
   std::uint64_t id{};
@@ -77,6 +95,48 @@ struct GameInputBindingsSaveRequest final {
   foundation::Uuid project;
   std::filesystem::path root;
   PlayInputBindings bindings;
+};
+struct PrefabPlacementSourceRequest final {
+  std::filesystem::path root;
+  SceneFileToken source{};
+  SceneDocument::NodeKey node{};
+  foundation::Uuid instance{}, source_node{};
+  PrefabRevisionReference retained{};
+  std::vector<foundation::Uuid> scope;
+  friend bool operator==(const PrefabPlacementSourceRequest &,
+                         const PrefabPlacementSourceRequest &) = default;
+};
+struct PrefabPlacementSourceReport final {
+  PrefabPlacementSourceRequest scope;
+  bool resolved{};
+  std::optional<std::uint64_t> published_revision{};
+  std::optional<PrefabRevisionReference> scoped_source{};
+  std::size_t mapped_nodes{};
+};
+enum class PrefabPlacementOverrideAction : std::uint8_t { Review, Revert, RevertSelected };
+struct PrefabPlacementOverrideRequest final {
+  PrefabPlacementSourceRequest scope;
+  PrefabPlacementOverrideAction action{PrefabPlacementOverrideAction::Review};
+  std::uint64_t review{};
+  std::vector<std::size_t> rows{};
+};
+struct PrefabPlacementOverrideReport final {
+  PrefabPlacementSourceRequest scope;
+  std::uint64_t review{};
+  std::optional<std::uint64_t> published_revision;
+  std::vector<PrefabPlacementOverrideRow> rows;
+};
+enum class PrefabPlacementRebaseAction : std::uint8_t { Review, Apply };
+struct PrefabPlacementRebaseRequest final {
+  PrefabPlacementSourceRequest scope;
+  PrefabPlacementRebaseAction action{PrefabPlacementRebaseAction::Review};
+  std::uint64_t review{};
+  std::vector<PrefabPlacementRebaseChoice> choices{};
+};
+struct PrefabPlacementRebaseReport final {
+  PrefabPlacementSourceRequest scope;
+  std::uint64_t review{}, published_revision{};
+  std::vector<PrefabPlacementRebaseRow> rows;
 };
 
 struct SceneFileRequest final {
@@ -191,6 +251,11 @@ struct RendererMetrics final {
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
 // Move between frames; moved-from hosts support only destruction or assignment. Release the
 // destination's public-RHI renderer before move assignment while its device is still alive.
+struct ChromeTraceImportRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  ChromeTraceSelection selection;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -232,6 +297,16 @@ public:
                            bool authoring_allowed);
   [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
   void SetPrefabIsolationStatus(std::string message, bool success);
+  // Presentation data only; the native owner retains/revalidates the actual review capability.
+  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false,
+                       std::span<const PrefabPropertySelection> selected = {},
+                       bool targeted = false, bool can_apply_to_source = false);
+  void SetPrefabRebaseReview(std::optional<SceneComparison>,
+                             std::optional<PrefabRevisionReference> previous = {},
+                             std::optional<PrefabRevisionReference> next = {},
+                             std::span<const PrefabPropertySelection> conflicts = {},
+                             std::span<const PrefabRebaseChoice> choices = {},
+                             bool can_apply = false, std::size_t unresolved = 0);
   void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.
@@ -268,6 +343,9 @@ public:
   [[nodiscard]] bool TakeGpuExportRequest() noexcept;
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
+  void OpenChromeTraceImport() noexcept;
+  [[nodiscard]] std::optional<ChromeTraceImportRequest> TakeChromeTraceImportRequest();
+  bool SetImportedChromeTrace(ChromeTraceCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
   // Owning bounded observations only. Application revalidates requests and owns job publication.
@@ -281,6 +359,18 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  // Read-only source inspection: widgets own small scope/report copies and never perform IO.
+  // The host repeats scope/Play/modal/project checks and owns exact source inspection.
+  void SetPrefabPlacementSourceContext(const std::filesystem::path &, bool read_allowed);
+  [[nodiscard]] std::optional<PrefabPlacementSourceRequest> TakePrefabPlacementSourceRequest();
+  bool SetPrefabPlacementSourceReport(PrefabPlacementSourceReport);
+  void SetPrefabPlacementOverrideContext(bool authoring_allowed);
+  [[nodiscard]] std::optional<PrefabPlacementOverrideRequest> TakePrefabPlacementOverrideRequest();
+  bool SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport);
+  void SetPrefabPlacementOverrideError(std::string);
+  [[nodiscard]] std::optional<PrefabPlacementRebaseRequest> TakePrefabPlacementRebaseRequest();
+  bool SetPrefabPlacementRebaseReport(PrefabPlacementRebaseReport);
+  void SetPrefabPlacementRebaseError(std::string);
   // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
   // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
   bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);

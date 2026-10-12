@@ -144,6 +144,10 @@ public:
   GpuControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static const GpuTimingCapture *
   ImportedGpuCapture(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ChromeTraceControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static const ChromeTraceCapture *
+  ImportedChromeTrace(const EditorImGuiHost &) noexcept;
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
@@ -170,6 +174,23 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyRowPosition(const EditorImGuiHost &host, SceneDocument::NodeKey key) noexcept;
   static void FocusScene(EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static const PrefabPlacementSourceReport *
+  PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabOverridePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabOverrideRowPosition(const EditorImGuiHost &host, std::size_t row) noexcept;
+  [[nodiscard]] static const PrefabPlacementOverrideReport *
+  PrefabOverrideReport(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabRebasePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
+                             bool take_source) noexcept;
+  [[nodiscard]] static const PrefabPlacementRebaseReport *
+  PrefabRebaseReport(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   NativeSceneToolPosition(const EditorImGuiHost &host, NativeSceneTool tool) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
@@ -280,6 +301,10 @@ public:
   [[nodiscard]] static BuildProcessSnapshot BuildStatus(const EditorImGuiHost &host);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabPropertyPosition(const EditorImGuiHost &, std::size_t row) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabRebaseChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option) noexcept;
   [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;

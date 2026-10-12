@@ -4,6 +4,8 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/AdditiveSceneComposition.cpp
   src/AssetImport.cpp
   src/BuildProcess.cpp
+  src/ChromeTrace.cpp
+  src/ProjectChromeTrace.cpp
   src/ContentBrowser.cpp
   src/EditorProduction.cpp
   src/ExtensionTrust.cpp
@@ -15,10 +17,19 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/ReflectedInspector.cpp
   src/PrefabAssets.cpp
   src/PrefabDocumentSession.cpp
+  src/PrefabRebase.cpp
   src/PrefabComparison.cpp
+
+  src/PrefabPropertyPlan.cpp
+  src/TargetedPrefabPropertyPlan.cpp
+  src/PrefabInstantiation.cpp
+  src/PrefabPlacement.cpp
+  src/ProjectPrefabPlacement.cpp
   src/PlayApply.cpp
   src/EditorWorkspace.cpp
   src/PropertySnapshot.cpp
+  src/MaterialToolDocument.cpp
+  src/MaterialToolSourceSession.cpp
   src/MaterialImport.cpp
   src/MaterialAssetCatalog.cpp
   src/MeshImport.cpp
