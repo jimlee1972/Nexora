@@ -1091,6 +1091,27 @@ these additive APIs change no existing class layout, module dependencies or game
 
 ## Scalar PBR material assets
 
+`MaterialToolDocument` owns bounded schema-one material state and history on its construction
+thread. Project UUID, asset UUID, nonzero generation and a nonwrapping serial bind observations.
+Open retains the exact original source (at most 64 KiB) as the save baseline and uses production
+import/export to store canonical state (at most 1024 bytes). Snapshots copy complete material and
+source values; no document, workspace, source or native callback borrow survives.
+
+Apply parses and validates owning callback bytes before staging one Undo entry. Equal canonical
+results preserve serial, dirty state and pending Redo. Read-only, invalid/future/oversized sources,
+wrong scope/serial/thread and failed operations conserve existing history and baseline. At most
+64 transitions are retained across Undo/Redo. Dirty replace/close requires explicit discard;
+failed replacement still preserves the old owner. Reopen/close invalidate old serials.
+
+`AcknowledgeSave` checks the exact previous raw source and caller-confirmed published bytes whose
+canonical material equals the current document. It advances only the saved baseline and serial,
+retaining Undo/Redo. It performs no IO and does not prove filesystem publication or writer authority.
+The host checks current project/document/asset/source, recovery, Play state and writer lease before
+deferred authoring or publication. File capture/publication, graphical controls and native Preview
+remain separate work; this owner grants no plugin permissions. Existing file/C/Gameplay schemas,
+module dependencies and class layouts remain unchanged; public C++ consumers rebuild.
+
+
 `ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
 at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
 It performs no IO/publication and rejects divergent reflection or invalid scalar data.
