@@ -1,5 +1,15 @@
 # Editor Dear ImGui host contract
 
+## External Chrome duration inspection
+
+The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
+scopes alongside `X` complete events through the selected project file. The host retains the
+same owning static interval view, external clock/unit labels, process/thread/event selection,
+read-only admission and scope revocation. Nested intervals are displayed by start order;
+duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
+contract documents pairing, chronological and capacity requirements.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds

@@ -569,6 +569,13 @@ target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGu
 nexora_apply_defaults(NexoraReflectedInspectorUiTests)
 add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)
 
+add_executable(NexoraPrefabIsolationUiTests PrefabIsolationTests.cpp)
+target_include_directories(NexoraPrefabIsolationUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraPrefabIsolationUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPrefabIsolationUiTests)
+add_test(NAME editor.prefab_isolation_ui COMMAND NexoraPrefabIsolationUiTests)
+set_tests_properties(editor.prefab_isolation_ui PROPERTIES TIMEOUT 60)
+
 add_executable(NexoraChromeTraceDisplayTests ChromeTraceDisplayTests.cpp)
 target_link_libraries(NexoraChromeTraceDisplayTests PRIVATE Nexora::EditorImGui)
 target_include_directories(NexoraChromeTraceDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

@@ -16,8 +16,8 @@ struct ExternalTraceInterval final {
   std::uint64_t sequence{};
   double start_microseconds{}, duration_milliseconds{};
 };
-// Owning external Chrome complete-event intervals. They are neither Editor frame timings
-// nor GPU/RSS observations. Timestamps retain the external trace clock, not the host clock.
+// Owning external Chrome complete and synchronous begin/end intervals. They are neither frame
+// timings nor GPU/RSS observations. Timestamps retain the external trace clock, not the host clock.
 struct ChromeTraceCapture final {
   ChromeTraceSelection selection;
   std::vector<ExternalTraceInterval> samples;
@@ -30,9 +30,12 @@ public:
   static constexpr std::size_t kMaximumSamples = 600;
   static constexpr std::size_t kMaximumDepth = 32;
   static constexpr std::size_t kMaximumStringBytes = 65536;
+  static constexpr std::size_t kMaximumOpenScopes = 128;
   // Serialized read-only planning. Wrapped traceEvents objects and bare event arrays are
-  // supported; complete events use the Chrome microsecond timestamp/duration convention.
-  // Unknown JSON metadata is validated and skipped within bounds. No IO or live capture mutation.
+  // supported; X and synchronous B/E events use Chrome microsecond timestamps/durations.
+  // Selected-thread B/E scopes must be balanced, ordered and LIFO; newest retention uses begin
+  // order. Unknown JSON metadata is validated and skipped within bounds. No IO or live capture
+  // mutation.
   [[nodiscard]] static std::optional<ChromeTraceCapture>
   Import(std::string_view bytes, ChromeTraceSelection, std::string *error = nullptr);
   [[nodiscard]] static bool Validate(const ChromeTraceCapture &) noexcept;

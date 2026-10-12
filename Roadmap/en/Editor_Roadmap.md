@@ -132,6 +132,12 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
   180 seconds. This strengthens the cloud gate without accepting a physical Editor milestone.
   [Evidence](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md).
 
+- ✅ The existing prefab UI fixture is registered again, restoring the mandatory three-test
+  document/UI/native isolation CI gate. Editor test-geometry hooks use the established MSVC CRT
+  compatibility definition without relaxing `/WX` or other targets. The triggering hosted failure
+  and new validation are recorded in the [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
+  This integration repair does not accept target-host or graphical milestones.
+
 ### ED-M1 — Project and asset workspace
 
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the
@@ -905,6 +911,13 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ External Chrome import now supports synchronous B/E duration scopes alongside X events.
+    Bounded selected-thread LIFO pairing preserves nested same-name and mixed-event begin order,
+    inclusive external durations, newest600/drop counts and evicted-begin safety. Unclosed,
+    mismatched, backward or over-capacity scopes reject without changing prior captures/files/live
+    profiles; read-only project IO and actual 1x/2x Profiler import controls are covered.
+    Async spans, exclusive/self time, other capture formats and physical calibration remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
   - ✅ External Chrome trace inspection is validated: explicit event/process/thread selection,
     bounded Unicode JSON, external clock/duration units, newest600/drop counts and independent
     static view. Read-only import and failure/scope preservation pass. CPU/GPU/memory are not inferred.

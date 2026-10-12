@@ -136,6 +136,110 @@ void Run() {
           "Simultaneous ordered Chrome intervals rejected");
 }
 
+std::string Scope(std::string_view phase, std::uint64_t time, std::string_view name = {},
+                  std::uint64_t thread = 7) {
+  return "{\"ph\":\"" + std::string(phase) + "\",\"pid\":42,\"tid\":" + std::to_string(thread) +
+         ",\"ts\":" + std::to_string(time) +
+         (name.empty() ? "" : ",\"name\":\"" + std::string(name) + "\"") + "}";
+}
+void DurationPairs() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto begin = Scope("B", 100, "Frame");
+  const auto end = Scope("E", 1350);
+  const auto trace = "[" + begin + "," + Scope("B", 200, "Other") + "," + Scope("E", 300) + "," +
+                     Event(400) + "," + end + "]";
+  auto capture = ChromeTraceImporter::Import(trace, selection);
+  Require(capture && ChromeTraceImporter::Validate(*capture) && capture->samples.size() == 2 &&
+              capture->samples[0].start_microseconds == 100 &&
+              capture->samples[0].duration_milliseconds == 1.25 &&
+              capture->samples[1].start_microseconds == 400 &&
+              capture->samples[1].duration_milliseconds == 1.2505,
+          "Mixed X/B/E with nested nonmatching scope lost begin order or external duration");
+  auto nested = ChromeTraceImporter::Import("[" + begin + "," + Scope("B", 200, "Frame") + "," +
+                                                Scope("E", 300, "Frame") + "," + end + "]",
+                                            selection);
+  Require(nested && ChromeTraceImporter::Validate(*nested) && nested->samples.size() == 2 &&
+              nested->samples[0].sequence == 1 && nested->samples[1].sequence == 2 &&
+              nested->samples[0].duration_milliseconds == 1.25 &&
+              nested->samples[1].duration_milliseconds == .1,
+          "Nested same-name scopes lost LIFO pairing or were ordered by completion");
+  auto zero = ChromeTraceImporter::Import("[" + begin + "," + Scope("E", 100) + "]", selection);
+  Require(zero && zero->samples[0].duration_milliseconds == 0,
+          "Valid zero-duration synchronous scope rejected");
+  Require(ChromeTraceImporter::Import("[" + Scope("E", 5, {}, 8) + "," + begin + "," + end + "]",
+                                      selection)
+              .has_value(),
+          "Unrelated thread end interfered with the selected synchronous stack");
+  const auto reject = [&](const std::string &bytes) {
+    std::string error = "stale";
+    const auto source = bytes;
+    Require(!ChromeTraceImporter::Import(bytes, selection, &error) && !error.empty() &&
+                error != "stale" && source == bytes &&
+                capture->samples[0].duration_milliseconds == 1.25,
+            "Malformed duration scope changed source/prior capture or lost diagnostic");
+  };
+  reject("[" + begin + "]");
+  reject("[" + Event(50) + "," + begin + "]");
+  reject("[" + end + "," + begin + "]");
+  reject("[" + begin + "," + Scope("E", 99) + "]");
+  reject("[" + begin + "," + Scope("E", 200, "Other") + "]");
+  reject("[" + begin + "," + Scope("E", 200, {}, 8) + "]");
+  reject("[" + begin + "," + Scope("E", 200) + "," + end + "]");
+  reject("[" + begin + "," + Scope("B", 99, "Other") + "," + end + "]");
+  reject("[" + begin + "," + Scope("B", 200, "Other") + "," + Scope("E", 300) + "," +
+         Scope("E", 250) + "]");
+  reject("[" + Scope("B", 100) + "," + end + "]");
+  reject("[{\"ph\":\"B\",\"name\":\"Frame\",\"pid\":42,\"tid\":7}," + end + "]");
+  reject("[" + begin + ",{\"ph\":\"E\",\"pid\":42,\"ts\":1350}]");
+  reject("[" + begin + ",{\"ph\":\"E\",\"pid\":42,\"tid\":7,\"ts\":1350,\"dur\":0}]");
+  // The outer selected begin is evicted while still open. Its eventual end must not write
+  // a duration into the newer X interval that occupies the same ring slot.
+  std::string eviction = "[" + Scope("B", 0, "Frame");
+  for (std::uint64_t i = 1; i <= 605; ++i)
+    eviction += ',' + Event(i);
+  auto ring = ChromeTraceImporter::Import(eviction + ',' + Scope("E", 10000) + "]", selection);
+  Require(ring && ChromeTraceImporter::Validate(*ring) && ring->samples.size() == 600 &&
+              ring->older_samples_dropped == 6 && ring->samples.front().sequence == 7 &&
+              ring->samples.front().start_microseconds == 6 && ring->samples.back().sequence == 606,
+          "Pending-begin eviction lost newest-by-start sequence or dropped count");
+  for (const auto &sample : ring->samples)
+    Require(sample.duration_milliseconds == 1.2505, "Evicted end corrupted a newer ring occupant");
+  std::string completed = "[";
+  for (std::uint64_t i = 0; i < 605; ++i)
+    completed += (i ? "," : "") + Scope("B", i * 10, "Frame") + ',' + Scope("E", i * 10 + 5);
+  auto completed_ring = ChromeTraceImporter::Import(completed + "]", selection);
+  Require(completed_ring && ChromeTraceImporter::Validate(*completed_ring) &&
+              completed_ring->older_samples_dropped == 5 &&
+              completed_ring->samples.front().sequence == 6 &&
+              completed_ring->samples.front().start_microseconds == 50 &&
+              completed_ring->samples.back().duration_milliseconds == .005,
+          "Completed synchronous scopes lost ring wrap, duration or loss counts");
+  auto fractional =
+      ChromeTraceImporter::Import(R"([{"ph":"B","name":"Frame","pid":42,"tid":7,"ts":100.25},)"
+                                  R"({"ph":"E","pid":42,"tid":7,"ts":1350.75}])",
+                                  selection);
+  Require(fractional && fractional->samples[0].start_microseconds == 100.25 &&
+              fractional->samples[0].duration_milliseconds == 1.2505,
+          "Fractional synchronous microseconds were rounded or treated as milliseconds");
+  const ChromeTraceSelection unicode{42, 7, "時間😀"};
+  Require(ChromeTraceImporter::Import("[" + Scope("B", 100, "時間😀") + ',' +
+                                          Scope("E", 200, "\\u6642\\u9593\\ud83d\\ude00") + "]",
+                                      unicode)
+              .has_value(),
+          "Synchronous begin/end Unicode names did not share decoded identity");
+  std::string depth = "[";
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    depth += (i ? "," : "") + Scope("B", i, "Frame");
+  auto exact = depth;
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    exact += ',' + Scope("E", 1000 + i);
+  auto maximum = ChromeTraceImporter::Import(exact + "]", selection);
+  Require(maximum && ChromeTraceImporter::Validate(*maximum) &&
+              maximum->samples.size() == ChromeTraceImporter::kMaximumOpenScopes,
+          "Exact open-scope capacity rejected");
+  reject(depth + ',' + Scope("B", 500, "Other") + "]");
+}
+
 void ProjectIo() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-chrome-io-" +
@@ -164,6 +268,17 @@ void ProjectIo() {
               observer.Open(workspace.Root(), ProjectAccess::ReadOnly, &error) &&
               observer.ImportChromeTraceJson(selection, &error) && read() == bytes,
           "Writer/read-only import changed trace or failed external provenance");
+  const auto paired_bytes = "[" + Scope("B", 100, "Frame") + "," + Scope("E", 1350) + "]";
+  write(paired_bytes);
+  auto paired_capture = observer.ImportChromeTraceJson(selection, &error);
+  Require(paired_capture && ChromeTraceImporter::Validate(*paired_capture) && error.empty() &&
+              paired_capture->samples.front().duration_milliseconds == 1.25 &&
+              read() == paired_bytes,
+          "Read-only project duration import altered bytes or lost external duration");
+  write("[" + Scope("B", 100, "Frame") + "]");
+  Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
+              paired_capture->samples.front().duration_milliseconds == 1.25,
+          "Unclosed project duration erased prior owning capture");
   write("corrupt");
   Require(!workspace.ImportChromeTraceJson(selection, &error) && read() == "corrupt" &&
               capture->samples.front().duration_milliseconds == 1.2505,
@@ -216,6 +331,7 @@ void ProjectIo() {
 int main() {
   try {
     Run();
+    DurationPairs();
     ProjectIo();
     return 0;
   } catch (const std::exception &error) {

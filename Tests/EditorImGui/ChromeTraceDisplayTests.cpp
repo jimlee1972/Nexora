@@ -1,6 +1,7 @@
 #include "EditorImGuiTestAccess.h"
 #include "TemporaryDirectoryCleanup.h"
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -69,7 +70,19 @@ void Run(float scale) {
               request->selection.thread == 0 && !host.TakeChromeTraceImportRequest() &&
               !host.TakeGpuImportRequest() && !host.TakeMemoryImportRequest(),
           "Actual Chrome import did not copy explicit scope/selection exactly once");
-  const ChromeTraceCapture capture{{0, 0, "Frame"}, {{1, 100, 1.25}, {2, 200, 0}}, 0};
+  const auto trace_path = first.Root() / ".nexora/chrome-trace.json";
+  {
+    std::ofstream output(trace_path);
+    output << R"([{"ph":"B","name":"Frame","pid":0,"tid":0,"ts":100},)"
+              R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":200,"dur":0},)"
+              R"({"ph":"E","pid":0,"tid":0,"ts":1350}])";
+  }
+  auto loaded = first.ImportChromeTraceJson(request->selection);
+  Require(loaded && loaded->samples.size() == 2 &&
+              loaded->samples[0].duration_milliseconds == 1.25 &&
+              loaded->samples[1].duration_milliseconds == 0,
+          "Actual selected project import did not pair synchronous Chrome duration scopes");
+  const auto capture = *loaded;
   Require(host.SetImportedChromeTrace(capture), "Valid external static publication failed");
   auto copy = capture;
   copy.selection.event_name = "Changed";

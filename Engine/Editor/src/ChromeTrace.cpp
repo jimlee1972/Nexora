@@ -36,7 +36,7 @@ public:
                })) {
       return {};
     }
-    if (!events || !End() || capture_.samples.empty())
+    if (!events || !End() || !open_scopes_.empty() || capture_.samples.empty())
       return {};
     if (capture_.samples.size() == ChromeTraceImporter::kMaximumSamples && next_)
       std::rotate(capture_.samples.begin(), capture_.samples.begin() + next_,
@@ -202,6 +202,20 @@ private:
     return result.ec == std::errc{} && result.ptr == token->data() + token->size() &&
            std::isfinite(value) && value >= 0 && value <= maximum_exact_integer;
   }
+  bool Sample(double start, double duration) {
+    if (selected_ && start < previous_start_)
+      return false;
+    previous_start_ = start;
+    ExternalTraceInterval sample{++selected_, start, duration / 1000.0};
+    if (capture_.samples.size() < ChromeTraceImporter::kMaximumSamples) {
+      capture_.samples.push_back(sample);
+    } else {
+      capture_.samples[next_] = sample;
+      next_ = (next_ + 1) % ChromeTraceImporter::kMaximumSamples;
+      ++capture_.older_samples_dropped;
+    }
+    return true;
+  }
   bool Event() {
     std::string phase, name;
     std::uint64_t process{}, thread{};
@@ -228,24 +242,39 @@ private:
         }) ||
         !(seen & 1))
       return false;
-    if (phase != "X")
+    if (phase != "X" && phase != "B" && phase != "E")
       return true;
-    if (seen != 63 || duration > maximum_exact_integer - start)
+    if ((phase == "X" && (seen != 63 || duration > maximum_exact_integer - start)) ||
+        (phase == "B" && seen != 31) || (phase == "E" && ((seen & 29) != 29 || (seen & 32))))
       return false;
-    if (name != capture_.selection.event_name || process != capture_.selection.process ||
-        thread != capture_.selection.thread)
+    if (process != capture_.selection.process || thread != capture_.selection.thread)
       return true;
-    if (selected_ && start < previous_start_)
+    if (phase == "X")
+      return name != capture_.selection.event_name || Sample(start, duration);
+    if (scope_time_ && start < *scope_time_)
       return false;
-    previous_start_ = start;
-    ExternalTraceInterval sample{++selected_, start, duration / 1000.0};
-    if (capture_.samples.size() < ChromeTraceImporter::kMaximumSamples) {
-      capture_.samples.push_back(sample);
-    } else {
-      capture_.samples[next_] = sample;
-      next_ = (next_ + 1) % ChromeTraceImporter::kMaximumSamples;
-      ++capture_.older_samples_dropped;
+    scope_time_ = start;
+    if (phase == "B") {
+      if (open_scopes_.size() == ChromeTraceImporter::kMaximumOpenScopes)
+        return false;
+      const bool selected = name == capture_.selection.event_name;
+      if (selected && !Sample(start, 0))
+        return false;
+      open_scopes_.push_back({std::move(name), start, selected ? selected_ : 0});
+      return true;
     }
+    if (open_scopes_.empty())
+      return false;
+    const auto &begin = open_scopes_.back();
+    if (((seen & 2) && name != begin.name) || start < begin.start)
+      return false;
+    if (begin.sequence) {
+      auto &sample = capture_.samples[(begin.sequence - 1) % ChromeTraceImporter::kMaximumSamples];
+      // The begin can be evicted before its end; never overwrite the newer occupant of that slot.
+      if (sample.sequence == begin.sequence)
+        sample.duration_milliseconds = (start - begin.start) / 1000.0;
+    }
+    open_scopes_.pop_back();
     return true;
   }
   bool Events() {
@@ -267,6 +296,13 @@ private:
   std::uint64_t selected_{};
   std::size_t events_{}, next_{};
   double previous_start_{};
+  struct OpenScope final {
+    std::string name;
+    double start;
+    std::uint64_t sequence;
+  };
+  std::vector<OpenScope> open_scopes_;
+  std::optional<double> scope_time_;
 };
 } // namespace
 std::optional<ChromeTraceCapture> ChromeTraceImporter::Import(std::string_view bytes,
@@ -281,8 +317,8 @@ std::optional<ChromeTraceCapture> ChromeTraceImporter::Import(std::string_view b
   }
   auto result = Reader(bytes, std::move(selection)).Read();
   if (!result && error)
-    *error =
-        "Chrome trace is malformed, exceeds bounds, or has no ordered matching complete events.";
+    *error = "Chrome trace is malformed, exceeds bounds, or has no ordered matching "
+             "complete/balanced duration events.";
   return result;
 }
 
