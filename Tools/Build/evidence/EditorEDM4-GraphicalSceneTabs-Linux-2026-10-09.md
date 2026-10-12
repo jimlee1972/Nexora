@@ -99,3 +99,13 @@ Accepted semantic SDK integration onto main33ccd7b2 retained both test registrat
 sections. All application/Engine/test functional files are byte-identical to the jointly tested
 f5affe3f foundation of the 224/224 graphical-conflict integration (545.80s); only documentation and
 registration ordering differ. No tab behavior changed. Fresh rebased-head hosted checks are required.
+
+## Updated native input integration — 2026-10-10 UTC
+
+The graphical prefab-isolation composition on accepted Main `4e4c2984` repeats the
+existing native scene-tabs fixture with explicit physical modifier/key down/up phases.
+It passed in **50.91 s** inside a complete **242/242, 638.43 s**, zero-skip graphical
+Development gate; Minimal Monolithic Shipping passed **5 steps**. This preserves
+the existing independent scene/selection/history/save assertions and does not add
+keyboard retries or relax deadlines. Detailed latest integration scope is recorded
+in [graphical isolation evidence](EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md).
