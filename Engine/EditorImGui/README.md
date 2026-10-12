@@ -318,13 +318,15 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   reach authoring shortcuts; F5/F6/F10 remain Editor controls. Acquisition discards that frame's
   input batch and clears ImGui keyboard state, preventing the capture click or old held keys from
   becoming gameplay actions. The application applies the UI focus snapshot to PlaySession, then
-  publishes an owning, held `NexoraInputSnapshot` before fixed ticks. User 0 maps WASD/arrows to
+  publishes an owning, held `NexoraInputSnapshot` before fixed ticks. The default profile maps WASD/arrows to
   [-1,1] move_x/move_y and buttons to Space=1, left mouse=2, right mouse=4, Shift=8, Ctrl=16;
   sequence advances once per processed frame and reserved is zero. Repeated capture_input calls
   return the same copied frame value. Pause/hide/blur clears held controls, including before Step.
   The application forwards release/focus events into the owning gameplay snapshot even when
   rendering is deferred or the client extent is zero; these batches do not tick Play or need an
-  ImGui frame. Gamepad, pointer motion/look, device-specific rebinding and multiple input users remain open.
+  ImGui frame. A session-only User0–3 selector routes that single keyboard/mouse owner; selection releases
+  capture and project changes reset it. Other users receive neutral copied frames through the
+  existing host callback. Simultaneous device owners, gamepad and pointer motion/look remain open.
   Game uses bounded native scalar PBR slots when authored materials resolve, Renderer tangents and
   exact affine world matrices, without editor proxies or gizmos. Missing/budget-rejected materials
   use neutral slots; no resolved authored material retains Lambert shading. The application owns

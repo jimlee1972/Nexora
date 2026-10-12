@@ -232,11 +232,14 @@ void Run(float dpi, bool macos) {
   f.FocusGame();
   f.Open();
   f.Click(22);
+  Require(f.ui.SetGameInputUser(3) && f.ui.GameInputUser() == 3,
+          "Detach logical-user fixture failed");
   f.active = nullptr;
   f.Draw();
   Require(!Access::GameInputBindingsOpen(f.ui) && f.ui.GameInputBindings() == defaults &&
+              f.ui.GameInputUser() == 0 && !f.ui.GameInputFocused() &&
               !f.ui.TakeGameInputBindingsSaveRequest(),
-          "project detach retained profile or draft");
+          "project detach retained profile, logical user, capture or draft");
 }
 } // namespace
 int main() {

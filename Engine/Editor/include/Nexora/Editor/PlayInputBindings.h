@@ -61,6 +61,7 @@ enum class PlayInputAction : std::uint8_t {
   Count
 };
 struct PlayInputBindings final {
+  static constexpr std::uint32_t kMaximumUsers = 4;
   using Control = PlayInputControl;
   static constexpr std::size_t kActions = static_cast<std::size_t>(PlayInputAction::Count);
   std::array<std::array<Control, 2>, kActions> controls{

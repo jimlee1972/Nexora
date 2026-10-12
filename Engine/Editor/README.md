@@ -1833,3 +1833,11 @@ The generated canonical Runtime3 record bridge requires exactly19 property token
 schema changes. Writer/source/target validation, byte/entity budgets, one Undo/Redo, no file writes
 and saved-baseline guarantees are the same as whole-instance Revert. An empty valid selection is
 a no-op that preserves Redo. Targeted graphical selection remains separate.
+
+## Logical Play keyboard/mouse user routing
+
+`PlayInputBindings::kMaximumUsers` bounds the native Editor's logical selection to four users.
+The profile remains one shared owning keyboard/mouse mapping with unchanged persisted schema.
+The native owner and Game panel route one source to a session-only selected lane; callback scope,
+focus revocation, neutral unselected snapshots and reset behavior are documented in Apps/Editor.
+No device enumeration, simultaneous-device ownership or stable ABI extension is implied.

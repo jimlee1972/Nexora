@@ -770,6 +770,13 @@ creates property widgets; unknown components retain raw data instead of being si
     cannot trigger authoring shortcuts; F5/F6/F10 remain controls. Tests cover state transitions,
     owning snapshots, callback delivery, and native Xvfb input-only mesh movement/release.
     Gamepad, pointer look, device-specific rebinding and multiple users remain open.
+  - ✅ The Game panel can route its single keyboard/mouse source to logical gameplay user0–3.
+    Rendered selection releases capture and clears held state; reacquisition discards its first
+    batch. Unselected users receive neutral owning snapshots with the same frame sequence; invalid
+    captures preserve outputs and invalid forwarding releases focus. Project changes and module
+    unload reset their respective identity. Default user0 and the stable C ABI remain compatible;
+    no selection is persisted. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md).
+    Simultaneous device owners, gamepads and pointer-look remain open.
   - ✅ Selecting a Game entity now opens a read-only Play Inspector with copied local/world poses,
     parent and scene state, Camera/Light values, and full-width mesh/shader IDs. The Game panel shows
     pause reasons and callback failure counts; per-frame and fixed callback failures both release input.

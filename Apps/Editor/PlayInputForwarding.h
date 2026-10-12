@@ -9,8 +9,9 @@ namespace nexora::editor::preview {
 inline void ForwardPlayInput(runtime::PlaySession &play, PlayGameplayModule &gameplay,
                              bool canvas_focused,
                              std::span<const Nexora::Window::WindowEvent> events,
-                             const PlayInputBindings &bindings = {}) {
-  play.SetInputFocus(canvas_focused && play.State() == runtime::PlayState::Playing);
+                             const PlayInputBindings &bindings = {}, std::uint32_t user = 0) {
+  const bool selected = gameplay.SetInputUser(user);
+  play.SetInputFocus(selected && canvas_focused && play.State() == runtime::PlayState::Playing);
   gameplay.SetInputFocus(play.AcceptsInput());
   static_cast<void>(gameplay.SetInputBindings(bindings));
   gameplay.ProcessInput(events);
