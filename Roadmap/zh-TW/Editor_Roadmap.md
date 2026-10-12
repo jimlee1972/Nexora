@@ -709,6 +709,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Graphical same-identity source rebase 已具實際 conflict choice、Prepare 與獨立確認；
+  1x／2x 及 native properties／reference Undo／Redo／Save／reopen 與唯讀 gate 通過。
+  完整 Linux integration gate 通過（248/248）；structural／live-instance workflow 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabRebase-Linux-2026-10-10.md)。
+
 ✅ Graphical saved-variant source apply 已驗證：full／selected inverse stable-field publication
 保留 source identity、未選取的值及舊版本；local edit、baseline／history 與 retained base reference
 維持不變。Explicit rebase 與 structural reconciliation 仍待完成。

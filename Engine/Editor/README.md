@@ -1489,3 +1489,15 @@ harmless old archive, never an uncommitted future revision. Local variant conten
 state, keys, selection, clipboard and history stay unchanged; the variant keeps its retained base
 until explicit Rebase. Source publication has its own revision history and is not a local document
 Undo entry. Original scene files stay unchanged. No structural reconciliation is claimed.
+
+
+## Graphical three-way prefab rebase integration
+
+The graphical host retains the private owning rebase review independently of property revert/source
+apply. Review/Prepare use exact old/current closures; conflict choices never grant authority. Explicit
+confirmation applies one properties/reference transaction, while wrapped Save remains the sole file
+publication boundary. Project or retained-reference scope changes and local editing revoke consent;
+blocked authoring cannot revive a previous confirmation. Read-only latest-source inspection remains
+available without write controls. Actual 1x/2x controls and X11/Vulkan conflict choices, Save/Undo/Redo/
+reopen preserve exact archived versions and original source/unknown bytes. Structural identity and
+persistent nested/live-instance reconciliation remain separate work.

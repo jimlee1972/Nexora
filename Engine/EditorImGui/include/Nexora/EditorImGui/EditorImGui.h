@@ -9,6 +9,7 @@
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/PrefabPropertyPlan.h"
+#include "Nexora/Editor/PrefabRebase.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -52,13 +53,17 @@ enum class PrefabIsolationAction : std::uint8_t {
   Review,
   Revert,
   SelectReview,
-  ApplyToSource
+  ApplyToSource,
+  ReviewRebase,
+  ResolveRebase,
+  Rebase
 };
 struct PrefabIsolationObservation final {
   foundation::Uuid project, asset;
   std::uint64_t project_scope{}, owner_generation{}, document_generation{}, revision{};
   SceneFileToken source;
   bool open{}, dirty{}, writable{};
+  std::optional<PrefabRevisionReference> base{};
   friend bool operator==(const PrefabIsolationObservation &,
                          const PrefabIsolationObservation &) = default;
 };
@@ -68,6 +73,7 @@ struct PrefabIsolationRequest final {
   foundation::Uuid target;
   bool discard_dirty{};
   std::vector<PrefabPropertySelection> selected{};
+  std::vector<PrefabRebaseChoice> choices{};
 };
 struct SceneTabItem final {
   std::uint64_t id{};
@@ -208,6 +214,12 @@ public:
   void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false,
                        std::span<const PrefabPropertySelection> selected = {},
                        bool targeted = false, bool can_apply_to_source = false);
+  void SetPrefabRebaseReview(std::optional<SceneComparison>,
+                             std::optional<PrefabRevisionReference> previous = {},
+                             std::optional<PrefabRevisionReference> next = {},
+                             std::span<const PrefabPropertySelection> conflicts = {},
+                             std::span<const PrefabRebaseChoice> choices = {},
+                             bool can_apply = false, std::size_t unresolved = 0);
   void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.

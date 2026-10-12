@@ -280,6 +280,8 @@ public:
   PrefabControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabPropertyPosition(const EditorImGuiHost &, std::size_t row) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabRebaseChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option) noexcept;
   [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
