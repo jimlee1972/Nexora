@@ -771,7 +771,7 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 - ✅ Atomic same-identity document property snapshot 已驗證：mixed metadata、hierarchy／TRS 與
   stored component 使用一次 guarded Undo／Redo，保留 generation、selection、clipboard 與 baseline。
-  Structural change 與 graphical prefab revert/rebase 仍待完成。
+  Structural change 與完整 source-reference reconciliation 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
 
 - ✅ Identity-remapped prefab property candidate 已驗證：exact stable node set 保留 target entity／
@@ -873,6 +873,36 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 ### ED-M5 — Specialized tools
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
+
+- ✅ Optional scalar PBR native plugin 現以公開 Editor import／export 與 Renderer validation
+  執行真實 Inspect／Edit／Serialize byte transformation。Typed edit 涵蓋九個 scalar lane，
+  request 限 64 KiB，canonical owning output 限 1024 bytes。真實 dynamic-load 測試涵蓋
+  exact float roundtrip、failure budget、獨立 host 及 unload／reload。GPU Preview 明確
+  unavailable；signed-host callback bridge 與 Manager facade 已如下交付，圖形化
+  document／Undo／Save／reopen 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md)。
+
+- ✅ Plugin Manager 現以 owning Manager instance／project scope／configuration／admission
+  identity 選取 exact enabled tool，僅透過 private signed host／registry 呼叫。不同 Manager
+  的相同 ID、stale／revoked selection、read-only edit、未解決 project state 與
+  wrong-thread／reentrant 呼叫均在 callback 前拒絕。真實 signed installed scalar material
+  Edit／Serialize 與 native recursion 通過，owning output 可跨 unload 保留。
+  圖形化材質 document／Undo／Save／reopen／Preview 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ManagedToolInvocation-Linux-2026-10-11.md)。
+
+- ✅ Signed native tool invocation 現將每次 byte callback 綁定 exact current sealed image、
+  trust／policy revision 與 qualified active provider。Wrong-thread／reentrant 檢查先於可變
+  admission inspection；stale trust、foreign registry 及 retired ID 拒絕且不改變 lifecycle。
+  真實 signed scalar-material Inspect／Serialize 與 cross-invoker native recursion 通過。
+  Scoped Manager facade 已如上交付，圖形化 document／Undo／Save／Preview 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md)。
+
+- ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
+  loaded tool service，回傳 owning outcome，input／output 各限 64 KiB。Wrong-thread／reentrant、
+  malformed、revoked 與 foreign 呼叫拒絕；無效 success length 與失敗 callback 丟棄 output。
+  十四個 compiled native fixture 與 C consumer 驗證此支援 contract。Host document／IO
+  授權及 graphical reference-tool edit／preview／save／unload 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md)。
 
 - ✅ Qualified native service lookup 現檢查 exact loaded plugin admission 與 owned provider
   identity，涵蓋 registry copy、同名 reload 與不同 host 的相同 numeric ID。Manual replacement、
@@ -1068,9 +1098,7 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   publisher key／capability policy、owning verified review、immutable install、native enable／disable、
   revocation、restart-required 狀態與受保護移除。實際 1x／2x widget 與 Xvfb native cooperative／
   legacy／ABI fixture 驗證 current scope、modal／Play／access／recovery／external-change gate
-  及 source preservation；restart 不會還原 key 或自動啟用程式碼。Native 驗證透過實際 X11
-  輸入使用 test-build widget 中心與操作完成後的重繪，保留精確安裝／lifecycle／read-only 斷言。
-  支援 Linux sealed-image admission；
+  及 source preservation；restart 不會還原 key 或自動啟用程式碼。支援 Linux sealed-image admission；
   persistent trust、crash／power-loss recovery、其他 native backend 與第三方圖形化工具 contribution
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md)。
 

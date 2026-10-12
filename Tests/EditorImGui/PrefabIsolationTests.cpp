@@ -1,6 +1,8 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include "TemporaryDirectoryCleanup.h"
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -36,7 +38,7 @@ void Run(float scale) {
   Require(session.Create(id, source, false, &error), "Isolation fixture failed");
   editor::imgui::EditorImGuiHost ui;
   editor::ProductShell shell;
-  ui.SetDisplay(1400, 1000, scale);
+  ui.SetDisplay(1400, 1800, scale);
   Access::ConfigureSyntheticInput(ui);
   ui.OpenPrefabIsolation();
   Nexora::Window::WindowEvent focus;
@@ -53,6 +55,7 @@ void Run(float scale) {
     view.owner_generation = session.Generation();
     view.source = files.Token();
     view.asset = session.AssetId();
+    view.base = session.BaseReference();
     view.open = document != nullptr;
     view.document_generation = document ? document->Generation() : 0;
     view.dirty = view.open && session.Dirty();
@@ -70,6 +73,25 @@ void Run(float scale) {
   const auto click = [&](std::size_t control) {
     const auto point = Access::PrefabControlPosition(ui, control);
     Require(point.has_value(), "Actual prefab control absent");
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * scale);
+    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  const auto click_property = [&](std::size_t row) {
+    const auto point = Access::PrefabPropertyPosition(ui, row);
+    Require(point.has_value(), "Actual selected-property checkbox absent");
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
     pointer.value0 = static_cast<int>((*point)[0] * scale);
@@ -205,7 +227,7 @@ void Run(float scale) {
     Require(inspection.Open(id, false, &error), "Read-only prefab open failed");
     const auto before = inspection.Document()->PrepareSave()->Bytes();
     editor::imgui::EditorImGuiHost readonly_ui;
-    readonly_ui.SetDisplay(1400, 1000, scale);
+    readonly_ui.SetDisplay(1400, 1800, scale);
     Access::ConfigureSyntheticInput(readonly_ui);
     readonly_ui.OpenPrefabIsolation();
     readonly_ui.ProcessEvents(std::array{focus});
@@ -215,6 +237,7 @@ void Run(float scale) {
     view.owner_generation = inspection.Generation();
     view.document_generation = inspection.Document()->Generation();
     view.asset = id;
+    view.base = inspection.BaseReference();
     view.open = true;
     view.revision = saved->revision;
     Require(readonly_ui.SetPrefabIsolation(view), "Read-only observation rejected");
@@ -269,6 +292,12 @@ int main() {
   try {
     Run(1);
     Run(2);
+    RunSourceApply(1);
+    RunSourceApply(2);
+    RunRebase(1);
+    RunRebase(2);
+    RunInstantiate(1);
+    RunInstantiate(2);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

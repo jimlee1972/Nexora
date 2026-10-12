@@ -2,17 +2,31 @@
 #include "AtomicFile.h"
 #include "Nexora/Foundation/BuildInfo.h"
 #include <algorithm>
+#include <atomic>
 #include <fstream>
 #include <limits>
 
 namespace nexora::editor {
 namespace {
+std::uint64_t NextInstance() noexcept {
+  static std::atomic<std::uint64_t> next{1};
+  auto value = next.load(std::memory_order_relaxed);
+  while (value != std::numeric_limits<std::uint64_t>::max()) {
+    if (next.compare_exchange_weak(value, value + 1, std::memory_order_relaxed))
+      return value;
+  }
+  return 0; // Exhaustion never reuses an earlier manager identity.
+}
 constexpr std::string_view magic = "NXEXTPK1";
 constexpr std::size_t header_bytes = 84;
 bool Fail(std::string *error, const char *message) {
   if (error)
     *error = message;
   return false;
+}
+bool BuiltinDependency(std::string_view dependency) {
+  return dependency == "core" || dependency == "reflection" || dependency == "Editor" ||
+         dependency == "Foundation";
 }
 bool Missing(const std::filesystem::file_status &status, const std::error_code &error) {
   return error == std::errc::no_such_file_or_directory ||
@@ -73,7 +87,8 @@ ManagedExtensionState State(runtime::PluginState state) {
   }
 }
 } // namespace
-PluginManager::PluginManager() : host_(trust_, foundation::kEngineAbiVersion) {
+PluginManager::PluginManager()
+    : instance_(NextInstance()), host_(trust_, foundation::kEngineAbiVersion) {
   entries_.reserve(kMaximumPackages);
   static_cast<void>(Configure());
 }
@@ -87,8 +102,10 @@ bool PluginManager::Writable(const ProjectWorkspace &workspace) const {
          !workspace.HasExternalChange();
 }
 bool PluginManager::Configure() {
-  ExtensionAdmissionPolicy policy{
-      foundation::kEngineAbiVersion, allowed_permissions_, Target(), {"core", "reflection"}};
+  ExtensionAdmissionPolicy policy{foundation::kEngineAbiVersion,
+                                  allowed_permissions_,
+                                  Target(),
+                                  {"Editor", "Foundation", "core", "reflection"}};
   for (const auto &entry : entries_)
     policy.available_dependencies.push_back(entry.manifest.id);
   std::ranges::sort(policy.available_dependencies);
@@ -402,8 +419,7 @@ bool PluginManager::Enable(const ProjectWorkspace &workspace, std::string_view i
       }))
     return Fail(error, "Previous native work must drain or restart before enable.");
   for (const auto &dependency : found->manifest.dependencies)
-    if (dependency != "core" && dependency != "reflection" &&
-        std::ranges::none_of(entries_, [&](const auto &entry) {
+    if (!BuiltinDependency(dependency) && std::ranges::none_of(entries_, [&](const auto &entry) {
           return entry.manifest.id == dependency && entry.state == ManagedExtensionState::Loaded;
         }))
       return Fail(error, "Required installed dependency is not enabled.");
@@ -511,6 +527,49 @@ void PluginManager::Poll() noexcept {
 }
 std::vector<ManagedExtension> PluginManager::Snapshot() const { return entries_; }
 void *PluginManager::FindService(std::string_view name) const { return services_.Find(name); }
+std::optional<ManagedToolSelection> PluginManager::SelectTool(std::string_view id,
+                                                              std::string_view version) const {
+  if (tool_invoker_.ContextState() != NativeToolState::Success)
+    return {};
+  if (!instance_ || root_.empty() || id.empty() || id.size() > 128 || version.empty() ||
+      version.size() > 64)
+    return {};
+  const auto found = std::ranges::find_if(entries_, [&](const auto &entry) {
+    return entry.manifest.id == id && entry.manifest.version == version && entry.native_id &&
+           entry.state == ManagedExtensionState::Loaded;
+  });
+  if (found == entries_.end())
+    return {};
+  return ManagedToolSelection{instance_,          scope_,
+                              configuration_,     found->native_id,
+                              found->manifest.id, found->manifest.version};
+}
+NativeToolOutcome PluginManager::InvokeTool(const ProjectWorkspace &workspace,
+                                            const ManagedToolSelection &selection,
+                                            std::string_view service, NativeToolOperation operation,
+                                            std::span<const std::byte> input) {
+  const auto context = tool_invoker_.ContextState();
+  if (context != NativeToolState::Success)
+    return {context, {}, {}, "Managed tool invocation requires its nonreentrant owner context"};
+  const auto fail = [](const char *message) {
+    return NativeToolOutcome{NativeToolState::Unavailable, {}, {}, message};
+  };
+  if (!instance_ || selection.manager != instance_ || selection.scope != scope_ ||
+      selection.configuration != configuration_ || !selection.native_id || selection.id.empty() ||
+      selection.id.size() > 128 || selection.version.empty() || selection.version.size() > 64)
+    return fail("Managed tool selection is stale or foreign");
+  if (!Matches(workspace) || workspace.HasRecoveryJournal() || workspace.HasExternalChange())
+    return fail("Managed tool project scope is unavailable or unresolved");
+  if (operation == NativeToolOperation::Edit && !workspace.Writable())
+    return {NativeToolState::Rejected, {}, {}, "Managed tool edits require a writable project"};
+  const auto found = std::ranges::find_if(entries_, [&](const auto &entry) {
+    return entry.manifest.id == selection.id && entry.manifest.version == selection.version &&
+           entry.native_id == selection.native_id && entry.state == ManagedExtensionState::Loaded;
+  });
+  if (found == entries_.end())
+    return fail("Selected managed tool admission is no longer enabled");
+  return host_.InvokeTool(tool_invoker_, services_, found->native_id, service, operation, input);
+}
 bool PluginManager::RestartRequired() const {
   const auto native = host_.Snapshot();
   return std::ranges::any_of(native, [](const auto &entry) {

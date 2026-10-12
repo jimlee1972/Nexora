@@ -50,6 +50,8 @@ def main():
     root = scratch / 'project'
     subprocess.run([args.fixture, '--write-native-fixture', str(root)], check=True)
     source = root / '.nexora/scenes/Main.scene'
+    project_id = re.search(rb'^uuid=([0-9a-f-]{36})$',
+                           (root / 'project.nexora').read_bytes(), re.M)[1]
     original = source.read_bytes()
     node = re.search(rb'^node (\d+) 0 ', original, re.M)[1]
     opaque = re.search(rb'^opaque .+$', original, re.M)[0]
@@ -94,6 +96,23 @@ def main():
                 if re.search(pattern, captured[start:].decode('utf-8', errors='replace')):
                     return
             raise RuntimeError(f'Missing prefab action {pattern}: {captured!r}')
+
+        def scene_shortcut(letter):
+            # Hold each modifier/key phase through a native frame; one physical action.
+            send('keydown', 'Control_L')
+            send('keydown', letter)
+            send('keyup', letter)
+            send('keyup', 'Control_L')
+
+        def wait_scene(predicate, message):
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                require(process.poll() is None, 'Editor exited during scene placement')
+                value = source.read_bytes()
+                if predicate(value):
+                    return value
+                time.sleep(.1)
+            raise RuntimeError(message)
 
         def open_host(read_only=False):
             nonlocal process, captured

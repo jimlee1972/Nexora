@@ -1,5 +1,6 @@
 #pragma once
 #include "Nexora/Editor/ExtensionTrust.h"
+#include "Nexora/Editor/NativeTool.h"
 #include "Nexora/Runtime/EditorSdk.h"
 
 namespace nexora::editor {
@@ -75,6 +76,13 @@ public:
   void RequestUnloadAll() noexcept;
   void PollShutdown() noexcept;
   [[nodiscard]] std::vector<runtime::PluginSnapshot> Snapshot() const;
+  // Context checks precede host/registry access. Requires this exact current signed image,
+  // then a fresh qualified native lookup. Owner calls serialize; this grants no document/IO
+  // authority, performs no lifecycle mutation and retains no native borrow or lifetime lease.
+  [[nodiscard]] NativeToolOutcome InvokeTool(NativeToolInvoker &, const runtime::ServiceRegistry &,
+                                             std::uint64_t id, std::string_view service,
+                                             NativeToolOperation,
+                                             std::span<const std::byte> input) const;
 
 private:
   struct Image final {

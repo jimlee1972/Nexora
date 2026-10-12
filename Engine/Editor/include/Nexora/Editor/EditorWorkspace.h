@@ -527,10 +527,13 @@ private:
       PreparedSave before, after;
       std::string previous_runtime, next_runtime;
       std::vector<Node> previous_nodes, next_nodes;
+      std::optional<PrefabBaseReference> previous_base{}, next_base{};
     };
     std::shared_ptr<const PropertySnapshot> property_snapshot{};
   };
   bool ReplayPropertySnapshot(bool forward);
+  bool ApplyPropertySnapshotWithReference(const PreparedSave &, std::string_view, bool,
+                                          std::optional<PrefabBaseReference>);
   void PushUndo(UndoEntry entry);
   [[nodiscard]] std::optional<std::string> PrefabPlacementRecords() const;
   [[nodiscard]] static bool ValidatePrefabPlacements(std::span<const PrefabPlacement>,
@@ -544,6 +547,7 @@ private:
   bool clipboard_cut_pending_{};
   std::vector<UndoEntry> undo_;
   std::vector<UndoEntry> redo_;
+  std::optional<PrefabBaseReference> prefab_base_{};
   std::shared_ptr<const std::vector<PrefabPlacement>> prefab_placements_{};
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};

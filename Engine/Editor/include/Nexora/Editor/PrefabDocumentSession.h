@@ -49,6 +49,8 @@ public:
   [[nodiscard]] foundation::Uuid AssetId() const;
   // Owning observation of the last published source (the base for an unsaved variant).
   [[nodiscard]] std::optional<PrefabAsset> SourceBaseline() const;
+  // Current owning authoring reference, including unsaved undoable reference changes.
+  [[nodiscard]] std::optional<PrefabRevisionReference> BaseReference() const;
   [[nodiscard]] bool Dirty() const;
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }
 
@@ -57,6 +59,8 @@ private:
   bool Current() const;
   bool Allowed(bool write, std::string *) const;
   bool Replaceable(bool discard_dirty, std::string *) const;
+  bool MatchesReview(const PrefabPropertyReview &) const;
+  bool MatchesRebase(const PrefabRebaseReview &) const;
   const ProjectWorkspace &workspace_;
   std::filesystem::path root_;
   foundation::Uuid project_;

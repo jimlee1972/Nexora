@@ -2,8 +2,10 @@
 bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservation> value) {
   if (value && (value->project.IsNil() || !value->project_scope || !value->owner_generation ||
                 (value->open && (value->asset.IsNil() || !value->document_generation)) ||
+                (value->base && (value->base->asset.IsNil() || !value->base->revision ||
+                                 value->base->asset == value->asset)) ||
                 (!value->open && (!value->asset.IsNil() || value->document_generation ||
-                                  value->revision || value->dirty))))
+                                  value->revision || value->dirty || value->base))))
     return false;
   auto &state = *state_;
   const auto changed = [&] {
@@ -14,7 +16,8 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
     const auto &old = *state.prefab_isolation;
     return value->project != old.project || value->project_scope != old.project_scope ||
            value->owner_generation != old.owner_generation || value->asset != old.asset ||
-           value->document_generation != old.document_generation || value->source != old.source;
+           value->document_generation != old.document_generation || value->source != old.source ||
+           value->base != old.base || value->scene_writable != old.scene_writable;
   };
   if (changed()) {
     ImGui::SetCurrentContext(state.context);
@@ -90,8 +93,12 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   if (!state.prefab_isolation)
     return;
   const auto observation = *state.prefab_isolation;
+  const auto authored = document ? document->PrefabBase() : std::nullopt;
+  const auto reference =
+      authored ? std::optional{PrefabRevisionReference{authored->asset, authored->revision}}
+               : std::nullopt;
   const bool current =
-      observation.project == workspace.Project().id &&
+      observation.project == workspace.Project().id && observation.base == reference &&
       (observation.open ? document && document->Generation() == observation.document_generation
                         : !document);
   const bool interaction =
@@ -103,6 +110,10 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       !state.content_rename_target && !state.game_input_binding_open &&
       !workspace.HasRecoveryJournal() && !workspace.HasExternalChange();
   const bool writable = interaction && observation.writable && workspace.Writable();
+  if (!interaction) {
+    state.prefab_rebase_confirmation = false;
+    state.prefab_can_rebase = false;
+  }
   const bool edit = writable && editable && editable == document;
   if (!edit) {
     state.prefab_name_active = false;
@@ -129,6 +140,11 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       ImGui::Text("%s | revision %llu%s", observation.asset.ToString().c_str(),
                   static_cast<unsigned long long>(observation.revision),
                   observation.dirty ? " | unsaved" : "");
+    if (observation.base) {
+      ImGui::SameLine();
+      ImGui::Text("| base v%llu", static_cast<unsigned long long>(observation.base->revision));
+      ImGui::SetItemTooltip("Retained source: %s", observation.base->asset.ToString().c_str());
+    }
     ImGui::SetNextItemWidth(360);
     ImGui::InputText("Asset UUID", state.prefab_target.data(), state.prefab_target.size());
     capture(0);
@@ -154,6 +170,24 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     if (ImGui::Button("Create variant"))
       request(PrefabIsolationAction::Variant, parsed.Value());
     capture(3);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!writable || !state.prefab_can_apply || confirming);
+    if (ImGui::Button("Apply to source"))
+      state.prefab_apply_confirmation = true;
+    capture(20);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!interaction || !observation.open || !observation.base || confirming);
+    if (ImGui::Button("Review rebase"))
+      request(PrefabIsolationAction::ReviewRebase);
+    capture(23);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!writable || !state.prefab_can_rebase || confirming);
+    if (ImGui::Button("Rebase"))
+      state.prefab_rebase_confirmation = true;
+    capture(25);
     ImGui::EndDisabled();
     ImGui::BeginDisabled(!writable || !observation.open || confirming);
     if (ImGui::Button("Save prefab"))
@@ -219,6 +253,15 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
         if (editable->Redo())
           SetPrefabReview(std::nullopt);
       capture(9);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!writable || !observation.scene_writable || !observation.revision ||
+                           observation.dirty || confirming);
+      if (ImGui::Button("Instantiate in scene"))
+        request(PrefabIsolationAction::Instantiate, observation.asset);
+      capture(28);
+      ImGui::SetItemTooltip(
+          "Add the saved prefab to the active scene. Undo removes it; Save scene publishes it.");
       ImGui::EndDisabled();
       const auto nodes = document->Nodes();
       if (nodes.size() <= PrefabAssets::kMaximumNodes) {
@@ -392,6 +435,23 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   ImGui::End();
 }
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
+                                                  std::size_t option) noexcept {
+  for (const auto &[index, choice, position] : host.state_->prefab_choice_positions)
+    if (index == row && choice == option)
+      return position;
+  return {};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabPropertyPosition(const EditorImGuiHost &host,
+                                              std::size_t row) noexcept {
+  for (const auto &[index, position] : host.state_->prefab_property_positions)
+    if (index == row)
+      return position;
+  return std::nullopt;
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::PrefabControlPosition(const EditorImGuiHost &host,
                                              std::size_t control) noexcept {

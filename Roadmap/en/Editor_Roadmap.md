@@ -812,7 +812,7 @@ creates property widgets; unknown components retain raw data instead of being si
 
   - ✅ Atomic same-identity document property snapshots are validated: complete mixed metadata,
     hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
-    clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
+    clipboard and baseline. Structural changes and complete source-reference reconciliation remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
 
   - ✅ Identity-remapped prefab property candidates are validated: exact stable node sets retain
@@ -907,6 +907,34 @@ creates property widgets; unknown components retain raw data instead of being si
     Reviewed merge publication, provider integration and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ An optional scalar PBR native plugin now uses public Editor import/export and Renderer
+    validation for actual Inspect/Edit/Serialize byte transformations. Typed edits cover nine
+    scalar lanes within a 64 KiB request; canonical owning output is capped at 1024 bytes.
+    Actual dynamic-load tests cover exact float roundtrips, failure budgets, independent hosts
+    and unload/reload. The signed-host callback bridge is delivered below. GPU Preview is unavailable;
+    Graphical document/Undo/Save/reopen workflows remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md).
+  - ✅ Plugin Manager now selects exact enabled tools with owning manager-instance/project-scope/
+    configuration/admission identities and calls only through its private signed host/registry.
+    Same-ID foreign managers, stale/revoked selections, read-only edits, unresolved project state
+    and wrong-thread/reentrant calls reject before callbacks. Actual signed installed scalar
+    material Edit/Serialize and native recursion pass; outputs survive unload. Graphical material
+    document/Undo/Save/reopen/Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ManagedToolInvocation-Linux-2026-10-11.md).
+  - ✅ Signed native tool invocation now binds every byte callback to its exact current sealed
+    image, trust/policy revisions and qualified active provider. Wrong-thread/reentrant checks
+    precede mutable admission inspection; stale trust, foreign registries and retired IDs reject
+    without lifecycle mutation. Actual signed scalar-material Inspect/Serialize and cross-invoker
+    native recursion pass. The scoped Manager facade is delivered above; graphical
+    document/Undo/Save/Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md).
+  - ✅ The optional versioned native byte-callback SDK now executes actual loaded tool services
+    through fresh qualified lookups, with owning outcomes and 64 KiB input/output limits.
+    Wrong-thread/reentrant, malformed, revoked and foreign calls reject; invalid success lengths
+    and failed callbacks discard output. Fourteen compiled native fixtures plus a C consumer prove
+    the supporting contract. Host document/IO authorization and graphical reference-tool
+    edit/preview/save/unload acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md).
   - ✅ Qualified native service lookup now checks the exact loaded plugin admission and owned
     provider identity, including copied registries, same-name reload and same numeric IDs across
     hosts. Manual replacements and revoked/pending/restart-required providers reject. Results
@@ -1083,8 +1111,6 @@ creates property widgets; unknown components retain raw data instead of being si
     enable/disable, revocation, restart-required state and protected removal. Real 1x/2x widgets and
     Xvfb native cooperative/legacy/ABI fixtures validate current scope, modal/Play/access/recovery/
     external-change gates and source preservation. Restart never restores keys or enables code.
-    Native acceptance follows actual test-build widget centers and completed-operation redraws
-    through physical X11 input, retaining exact installation/lifecycle/read-only assertions.
     Linux sealed-image admission is supported; persistent trust, crash/power-loss recovery,
     other native backends and third-party graphical contributions remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).

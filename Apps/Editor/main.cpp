@@ -11,7 +11,6 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PrefabPlacementInspection.h"
-#include "Nexora/Editor/PrefabPlacementOverrides.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -34,6 +33,7 @@
 #endif
 
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -869,6 +869,9 @@ int RunGraphical(std::optional<ProjectState> project,
   std::optional<nexora::editor::PrefabPlacementOverrideReview> prefab_instance_review;
   std::optional<nexora::editor::imgui::PrefabPlacementSourceRequest> prefab_instance_scope;
   std::uint64_t prefab_instance_review_serial{};
+  std::optional<nexora::editor::PrefabPlacementRebaseReview> prefab_rebase_review;
+  std::optional<nexora::editor::imgui::PrefabPlacementSourceRequest> prefab_rebase_scope;
+  std::uint64_t prefab_rebase_serial{};
   nexora::core::AsyncLogService core_logs{1024};
   core_logs.Start();
   nexora::runtime::RuntimeConsole console{1024};
@@ -1427,12 +1430,8 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
-    if (!project) {
+    if (!project)
       ui.SetPrefabPlacementSourceContext({}, false);
-      ui.SetPrefabPlacementOverrideContext(false);
-      prefab_instance_review.reset();
-      prefab_instance_scope.reset();
-    }
     if (project) {
       if (!scene_documents)
         initialize_scene_documents();
@@ -1459,17 +1458,6 @@ int RunGraphical(std::optional<ProjectState> project,
           !exit_requested && !composition_restore_blocked &&
           !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
       ui.SetPrefabPlacementSourceContext(project->workspace.Root(), source_inspection_allowed);
-      if (prefab_instance_scope &&
-          (prefab_instance_scope->root != project->workspace.Root() || !active_files() ||
-           prefab_instance_scope->source != active_files()->Token() ||
-           active_scene().Key(prefab_instance_scope->node.id) != prefab_instance_scope->node ||
-           active_scene().Selection().size() != 1 ||
-           active_scene().Selection().front() != prefab_instance_scope->node.id)) {
-        prefab_instance_review.reset();
-        prefab_instance_scope.reset();
-      }
-      ui.SetPrefabPlacementOverrideContext(source_inspection_allowed && scene_authoring_allowed() &&
-                                           active_files() && !active_files()->SaveBlocked());
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
       if (const auto request = ui.TakePrefabPlacementSourceRequest()) {
@@ -1497,86 +1485,6 @@ int RunGraphical(std::optional<ProjectState> project,
           }
         }
       }
-      if (const auto request = ui.TakePrefabPlacementOverrideRequest()) {
-        using Action = nexora::editor::imgui::PrefabPlacementOverrideAction;
-        using Overrides = nexora::editor::PrefabPlacementOverrides;
-        const auto &scope = request->scope;
-        const auto selection = active_scene().Selection();
-        bool current = source_inspection_allowed && active_files() &&
-                       scope.root == project->workspace.Root() &&
-                       scope.source == active_files()->Token() && selection.size() == 1 &&
-                       selection.front() == scope.node.id &&
-                       active_scene().Key(scope.node.id) == scope.node;
-        const auto placements = active_scene().PrefabPlacements();
-        const auto placement = std::ranges::find(
-            placements, scope.instance, &nexora::editor::SceneDocument::PrefabPlacement::instance);
-        if (placement == placements.end())
-          current = false;
-        else {
-          const auto node =
-              std::ranges::find(placement->nodes, scope.node.id,
-                                &nexora::editor::SceneDocument::PrefabPlacementNode::target);
-          current =
-              current &&
-              scope.retained ==
-                  nexora::editor::PrefabRevisionReference{placement->source, placement->revision} &&
-              node != placement->nodes.end() && node->source_node == scope.source_node &&
-              std::ranges::equal(node->scope, scope.scope);
-        }
-        std::string error;
-        if (request->action == Action::Review) {
-          prefab_instance_review.reset();
-          prefab_instance_scope.reset();
-          auto reviewed =
-              current ? Overrides::Prepare(project->workspace, active_scene(), scope.node, &error)
-                      : std::nullopt;
-          if (reviewed &&
-              prefab_instance_review_serial != std::numeric_limits<std::uint64_t>::max()) {
-            nexora::editor::imgui::PrefabPlacementOverrideReport report{
-                scope,
-                ++prefab_instance_review_serial,
-                reviewed->PublishedRevision(),
-                {reviewed->Rows().begin(), reviewed->Rows().end()}};
-            if (ui.SetPrefabPlacementOverrideReport(std::move(report))) {
-              std::cerr << "prefab instance reviewed rows=" << reviewed->Rows().size()
-                        << " retained=" << reviewed->Source().revision
-                        << " published=" << reviewed->PublishedRevision().value_or(0) << '\n';
-              prefab_instance_scope = scope;
-              prefab_instance_review = std::move(reviewed);
-            } else
-              error = "Prefab review scope changed before display.";
-          } else if (error.empty())
-            error = "Prefab review is stale, unavailable or exceeds its budget.";
-        } else {
-          const bool authorized = current && scene_authoring_allowed() && active_files() &&
-                                  !active_files()->SaveBlocked() && prefab_instance_scope &&
-                                  *prefab_instance_scope == scope && prefab_instance_review &&
-                                  request->review == prefab_instance_review_serial;
-          const bool targeted = request->action == Action::RevertSelected;
-          const bool applied =
-              authorized &&
-              (targeted
-                   ? Overrides::RevertSelected(project->workspace, active_scene(),
-                                               *prefab_instance_review, request->rows, true, &error)
-                   : Overrides::Revert(project->workspace, active_scene(), *prefab_instance_review,
-                                       true, &error));
-          if (applied) {
-            if (targeted)
-              std::cerr << "prefab instance selected revert retained=" << scope.retained.revision
-                        << " rows=" << request->rows.size() << '\n';
-            else
-              std::cerr << "prefab instance reverted retained=" << scope.retained.revision << '\n';
-            ui.SetPrefabPlacementOverrideError({});
-          } else if (error.empty())
-            error = "Prefab revert lost current review or authoring authorization.";
-          prefab_instance_review.reset();
-          prefab_instance_scope.reset();
-        }
-        if (!error.empty()) {
-          ui.SetPrefabPlacementOverrideError(error);
-          std::cerr << "prefab instance action rejected: " << error << '\n';
-        }
-      }
       if (ui.TakeReflectedMetadataReloadRequest())
         load_reflected_metadata(project->workspace);
       std::string extension_error;
@@ -1600,35 +1508,6 @@ int RunGraphical(std::optional<ProjectState> project,
           !project->workspace.HasExternalChange();
       ui.DrawExtensionManager(extension_settings_allowed,
                               extension_settings_allowed && project->workspace.Writable());
-#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
-      if (std::getenv("NEXORA_EXTENSION_UI_TEST_GEOMETRY")) {
-        std::ostringstream positions;
-        positions << "extensions dpi=" << dpi << " revision=" << extension_test_revision
-                  << " controls=";
-        const auto record = [&](std::string_view key) {
-          if (const auto point =
-                  nexora::editor::imgui::EditorImGuiTestAccess::ExtensionManagerPosition(ui, key))
-            positions << key << ':' << (*point)[0] << ',' << (*point)[1] << ';';
-        };
-        for (const auto key :
-             {"trust-tab", "publisher", "public-key", "trust-key", "permission-0", "permission-1",
-              "permission-2", "permission-3", "permission-4", "permission-5", "apply-permissions",
-              "packages-tab", "package-path", "review", "refresh", "install", "cancel-review"})
-          record(key);
-        for (const auto &publisher : extensions.Publishers())
-          record(publisher.publisher + "/revoke");
-        for (const auto &package : extensions.Snapshot()) {
-          const auto identity = package.manifest.id + "/" + package.manifest.version;
-          for (const auto suffix : {"/enable", "/disable", "/remove"})
-            record(identity + suffix);
-        }
-        auto geometry = positions.str();
-        if (geometry.size() <= 16384 && geometry != extension_test_geometry) {
-          extension_test_geometry = std::move(geometry);
-          std::cerr << extension_test_geometry << '\n';
-        }
-      }
-#endif
       if (auto request = ui.TakeExtensionManagerRequest()) {
         using Action = nexora::editor::imgui::ExtensionManagerAction;
         bool applied = false;
@@ -1683,13 +1562,6 @@ int RunGraphical(std::optional<ProjectState> project,
             : extension_error.empty()
                 ? "Extension operation rejected; configuration and source preserved."
                 : extension_error);
-#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
-        if (std::getenv("NEXORA_EXTENSION_UI_TEST_GEOMETRY")) {
-          ++extension_test_revision;
-          std::cerr << "extensions action=" << static_cast<unsigned>(request->action)
-                    << " applied=" << applied << " revision=" << extension_test_revision << '\n';
-        }
-#endif
       }
       if (auto request = ui.TakeSceneTabRequest()) {
         std::string error;
@@ -2379,6 +2251,7 @@ int RunGraphical(std::optional<ProjectState> project,
         value.project_scope = prefab_project_scope;
         value.owner_generation = prefab_documents->Generation();
         value.asset = prefab_documents->AssetId();
+        value.base = prefab_documents->BaseReference();
         if (const auto *document = prefab_documents->Document()) {
           value.open = true;
           value.document_generation = document->Generation();
@@ -2390,6 +2263,8 @@ int RunGraphical(std::optional<ProjectState> project,
         if (active_files())
           value.source = active_files()->Token();
         value.writable = project->workspace.Writable();
+        value.scene_writable =
+            scene_authoring_allowed() && active_files() && !active_files()->SaveBlocked();
         return value;
       };
       const bool allowed =
@@ -2406,10 +2281,15 @@ int RunGraphical(std::optional<ProjectState> project,
                           expected.project_scope == current.project_scope &&
                           expected.owner_generation == current.owner_generation &&
                           expected.document_generation == current.document_generation &&
-                          expected.asset == current.asset && expected.source == current.source;
+                          expected.asset == current.asset && expected.source == current.source &&
+                          expected.revision == current.revision && expected.base == current.base &&
+                          expected.scene_writable == current.scene_writable;
         std::string error;
         bool applied = false;
         if (!live) {
+          prefab_review.reset();
+          prefab_rebase.reset();
+          ui.SetPrefabReview(std::nullopt);
           error = "Prefab action is stale, or Play/export/close/recovery is active.";
         } else {
           using Action = nexora::editor::imgui::PrefabIsolationAction;
@@ -2421,6 +2301,38 @@ int RunGraphical(std::optional<ProjectState> project,
             else
               error = "The active scene cannot authorize prefab creation.";
             break;
+          case Action::Instantiate: {
+            if (!current.scene_writable || current.dirty || !current.revision ||
+                request->target != current.asset || !scene_authoring_allowed()) {
+              error = "Save the prefab and select a writable active scene before instantiating.";
+              break;
+            }
+            auto prepared = nexora::editor::ProjectPrefabPlacement::Prepare(
+                project->workspace, current.asset, active_scene(), &error);
+            if (!prepared || prepared->Source().revision != current.revision) {
+              if (prepared)
+                error =
+                    "Published prefab changed; reopen its current version before instantiating.";
+              break;
+            }
+            nexora::foundation::Uuid instance;
+            try {
+              std::random_device random;
+              instance = {(static_cast<std::uint64_t>(random()) << 32) | random(),
+                          (static_cast<std::uint64_t>(random()) << 32) | random()};
+            } catch (const std::exception &) {
+              error = "Placement identity could not be generated; preserve the scene.";
+              break;
+            }
+            if (scene_authoring_allowed() && active_files() &&
+                active_files()->Token() == expected.source)
+              applied = nexora::editor::ProjectPrefabPlacement::Instantiate(
+                            project->workspace, active_scene(), *prepared, instance, true, &error)
+                            .has_value();
+            else
+              error = "The active scene cannot authorize prefab placement.";
+            break;
+          }
           case Action::Open:
             applied = prefab_documents->Open(request->target, request->discard_dirty, &error);
             break;

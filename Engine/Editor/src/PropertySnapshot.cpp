@@ -50,11 +50,12 @@ bool SceneDocument::ApplyPropertySnapshot(const PreparedSave &expected, std::str
     return true;
   UndoEntry entry;
   entry.kind = UndoEntry::Kind::PropertySnapshot;
-  entry.property_snapshot = std::make_shared<UndoEntry::PropertySnapshot>(
-      UndoEntry::PropertySnapshot{expected,
-                                  PreparedSave(document_generation_, prepared->bytes_,
-                                               prepared->signature_, prepared->opaque_records_),
-                                  *previous_runtime, *next_runtime, nodes_, next_nodes});
+  entry.property_snapshot =
+      std::make_shared<UndoEntry::PropertySnapshot>(UndoEntry::PropertySnapshot{
+          expected,
+          PreparedSave(document_generation_, prepared->bytes_, prepared->signature_,
+                       prepared->opaque_records_),
+          *previous_runtime, *next_runtime, nodes_, next_nodes, prefab_base_, reference});
   // All document/history storage exists before Runtime's atomic snapshot replacement.
   undo_.reserve(undo_.size() + 1);
   if (!MatchesPreparedSave(expected) || !world_.ReplaceSceneSnapshot(scene_, *next_runtime))
