@@ -339,11 +339,144 @@ void Run(float scale) {
             "Read-only real controls emitted publication or changed source");
   }
 }
+
+void RunSourceApply(float scale) {
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("nexora-prefab-apply-controls-" +
+                     std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directory(root);
+  editor::test::TemporaryDirectoryCleanup cleanup{root};
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root / "Project", "Source controls"), "Source control project failed");
+  runtime::World world;
+  editor::SceneDocument original(world, world.LoadScene("Original"));
+  const auto node = original.Create("Base");
+  editor::SceneFileSession files(workspace, original);
+  editor::PrefabDocumentSession session(workspace);
+  std::uint64_t serial = 100;
+  const auto factory = [&] { return foundation::Uuid{712, ++serial}; };
+  const foundation::Uuid base{711, 1}, variant{711, 2};
+  Require(session.Create(base, original) && session.Save(factory) && session.Variant(variant) &&
+              session.Save(factory),
+          "Source controls variant fixture failed");
+  const auto before = *editor::PrefabAssets::Load(workspace, base);
+  const auto variant_before = *session.SourceBaseline();
+  auto *document = session.EditableDocument();
+  Require(document->Rename(*document->Key(node), "Selected edit") &&
+              document->SetTransform(node, {7, 0, 0}),
+          "Source controls edits failed");
+  const auto edited = document->PrepareSave()->Bytes();
+  auto review = session.Review();
+  Require(review && review->CanApplyToSource(), "Source controls review failed");
+  editor::imgui::EditorImGuiHost ui;
+  ui.SetDisplay(1400 * scale, 1100 * scale, scale);
+  Access::ConfigureSyntheticInput(ui);
+  ui.OpenPrefabIsolation();
+  Nexora::Window::WindowEvent focus;
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 1;
+  ui.ProcessEvents(std::array{focus});
+  editor::ProductShell shell;
+  std::uint64_t scope = 40;
+  const auto draw = [&] {
+    editor::imgui::PrefabIsolationObservation observation;
+    observation.project = workspace.Project().id;
+    observation.project_scope = scope;
+    observation.owner_generation = session.Generation();
+    observation.source = files.Token();
+    observation.asset = variant;
+    observation.document_generation = document->Generation();
+    observation.open = observation.dirty = observation.writable = true;
+    observation.revision = variant_before.revision;
+    Require(ui.SetPrefabIsolation(observation), "Source controls observation failed");
+    ui.BeginFrame();
+    ui.DrawProductShell(shell, &original, &workspace);
+    ui.DrawPrefabIsolation(document, document, workspace, true);
+    static_cast<void>(ui.EndFrame());
+  };
+  for (int i = 0; i < 4; ++i)
+    draw();
+  const auto point_click = [&](std::array<float, 2> point) {
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>(point[0] * scale);
+    pointer.value1 = static_cast<int>(point[1] * scale);
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  const auto click = [&](std::size_t slot) {
+    auto point = Access::PrefabControlPosition(ui, slot);
+    Require(point.has_value(), "Actual source apply control absent");
+    point_click(*point);
+  };
+  ui.SetPrefabReview(review->Changes(), review->CanRevert(), {}, false, review->CanApplyToSource());
+  draw();
+  const auto row = std::ranges::find_if(review->Changes().rows, [](const auto &value) {
+    return value.stable_path.ends_with("/name");
+  });
+  Require(row != review->Changes().rows.end(), "Source name row missing");
+  auto checkbox = Access::PrefabPropertyPosition(
+      ui, static_cast<std::size_t>(row - review->Changes().rows.begin()));
+  Require(checkbox.has_value(), "Actual source field checkbox missing");
+  point_click(*checkbox);
+  click(20);
+  Require(!Access::PrefabControlPosition(ui, 21) && !ui.TakePrefabIsolationRequest(),
+          "Checkbox change retained old source application consent");
+  click(19);
+  auto selection = ui.TakePrefabIsolationRequest();
+  Require(selection && selection->action == Action::SelectReview && selection->selected.size() == 1,
+          "Source selected preparation lost identities");
+  auto targeted = session.SelectReview(*review, selection->selected);
+  Require(targeted && targeted->CanApplyToSource(), "Source selected owner preparation failed");
+  const auto display = [&] {
+    ui.SetPrefabReview(targeted->Changes(), targeted->CanRevert(), targeted->Selections(), true,
+                       targeted->CanApplyToSource());
+    draw();
+  };
+  display();
+  click(20);
+  Require(!ui.TakePrefabIsolationRequest() && Access::PrefabControlPosition(ui, 21),
+          "Source application skipped explicit confirmation");
+  click(22);
+  Require(!ui.TakePrefabIsolationRequest() && editor::PrefabAssets::Load(workspace, base) == before,
+          "Cancel source apply published files");
+  click(20);
+  ++scope;
+  draw();
+  draw();
+  Require(!Access::PrefabControlPosition(ui, 21) && !ui.TakePrefabIsolationRequest(),
+          "Scope replacement revived source-apply confirmation");
+  display();
+  click(20);
+  click(21);
+  auto apply = ui.TakePrefabIsolationRequest();
+  Require(apply && apply->action == Action::ApplyToSource && apply->scope.project_scope == scope &&
+              !apply->discard_dirty && session.ApplyToSource(*targeted, true) &&
+              document->PrepareSave()->Bytes() == edited && session.Dirty() &&
+              session.SourceBaseline() == variant_before &&
+              editor::PrefabAssets::Load(workspace, variant) == variant_before,
+          "Actual confirmed source apply changed the isolated document/baseline/history");
+  auto source = editor::PrefabAssets::Load(workspace, base);
+  Require(source && source->revision == 2 && source->nodes == before.nodes &&
+              editor::PrefabAssets::LoadRevision(workspace, {base, 1}) == before,
+          "Actual source publication lost version/identity retention");
+}
 } // namespace
 int main() {
   try {
     Run(1);
     Run(2);
+    RunSourceApply(1);
+    RunSourceApply(2);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

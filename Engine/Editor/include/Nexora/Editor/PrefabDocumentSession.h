@@ -11,6 +11,9 @@ class NEXORA_EDITOR_API PrefabPropertyReview final {
 public:
   [[nodiscard]] const SceneComparison &Changes() const noexcept { return changes_; }
   [[nodiscard]] bool CanRevert() const noexcept { return candidate_.has_value(); }
+  [[nodiscard]] bool CanApplyToSource() const noexcept {
+    return candidate_ && previous_.id == asset_ && source_.id != asset_;
+  }
   [[nodiscard]] bool Targeted() const noexcept { return targeted_; }
   [[nodiscard]] std::span<const PrefabPropertySelection> Selections() const noexcept {
     return selections_;
@@ -54,6 +57,10 @@ public:
   SelectReview(const PrefabPropertyReview &, std::span<const PrefabPropertySelection>,
                std::string *error = nullptr) const;
   bool Revert(const PrefabPropertyReview &, bool authorized, std::string *error = nullptr);
+  // Explicit saved-variant source publication. Advances only the exact current source; isolated
+  // document/history/baseline and retained base reference remain unchanged until explicit rebase.
+  [[nodiscard]] std::optional<PrefabAsset>
+  ApplyToSource(const PrefabPropertyReview &, bool authorized, std::string *error = nullptr);
   [[nodiscard]] const SceneDocument *Document() const;
   [[nodiscard]] SceneDocument *EditableDocument();
   [[nodiscard]] foundation::Uuid AssetId() const;

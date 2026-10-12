@@ -785,6 +785,12 @@ creates property widgets; unknown components retain raw data instead of being si
     clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
 
+  - ✅ Graphical saved-variant source apply is validated: full/selected inverse stable-field
+    publication retains source identity/unselected values and prior revisions, while local edits,
+    baseline/history and retained base reference stay unchanged. Explicit rebase and structural
+    reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabSourceApply-Linux-2026-10-10.md).
+
   - ✅ Graphical selected-field prefab revert is validated: stable field-group checkboxes,
     explicit preparation and confirmation preserve unselected values with one Undo/Redo.
     Source apply, reference rebase and structural/live-instance bindings remain open.
