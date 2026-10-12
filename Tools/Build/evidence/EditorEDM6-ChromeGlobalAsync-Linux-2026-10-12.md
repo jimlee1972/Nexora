@@ -6,6 +6,34 @@ PR538–PR543 merges. The rebase preserved new prefab/Inspector/tool SDK contrac
 accepted Chrome/build-artifact contract sections omitted by those upstream documentation merges.
 Global importer/test source hashes below are unchanged. Integration gate results are tracked
 in PR537 and Beads before merge.
+
+Integration repair Beads: `nexora-nqn.12`. Main 280d duplicated the native tool target/test
+block (including fourteen fixtures), causing CMP0002 configure rejection. It also removed
+four existing prefab implementation registrations and three accepted test registrations;
+their source/API files remained intact. The public ImGui header lost PluginManager.h despite
+its owning vectors/optional values requiring those types, producing missing-type errors.
+Restore those source/include/test registrations and deduplicate the identical SDK block,
+with all fixture modes/assertions/deadlines intact. Preserve all new prefab workflows and
+restore accepted module contracts omitted in the upstream documentation merges. No module
+dependency or persisted schema changes. Public C++ implementations remain available.
+
+Development configure/build now pass and enumerate 237 tests. The five restored/unique SDK
+and prefab tests are present and passed in the full suite. The first integrated full run passed 236/237 in 759.73 s; only the unchanged reflected
+Inspector behavior failed, with the upstream driver saving Boolean byte 00 instead of expected 01.
+The upstream test had removed accepted rendered-selection/hover/held/released handshakes and
+replaced them with sleeps. Restore the exact accepted 45fe driver with all assertions/deadlines
+intact; its focused rerun passed 1/1 in 15.01 s. A full 237-test repeat is required before merge,
+and final results are recorded in PR537/Beads. Newly integrated prefab source/override controls
+also passed in the initial full run. Linux Shipping Monolithic configure/build passed, testing OFF, Editor stripped:
+
+```bash
+cmake --preset linux-shipping -DX11_X11_LIB=/usr/lib/x86_64-linux-gnu/libX11.so.6 -DX11_Xext_LIB=/usr/lib/x86_64-linux-gnu/libXext.so.6 -DNEXORA_VULKAN_LIBRARY=/usr/lib/x86_64-linux-gnu/libvulkan.so.1
+cmake --build --preset linux-shipping
+```
+
+These task-local SDK/runtime overrides match the Development environment and remain external.
+The first Shipping configure lacked the Vulkan loader path; supplying the known system runtime
+resolved that environment setup without changing product configuration.
 Linux Development Modular, GCC 14.2, Dear ImGui enabled, Xvfb with Mesa lavapipe.
 This accepts supporting cloud contracts/input, not physical display/GPU calibration or
 complete ED-M6. Overall graphical milestone acceptance remains 0/8.
