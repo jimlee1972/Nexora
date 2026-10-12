@@ -898,3 +898,28 @@ bounds; the nine-room aggregate allows 180 seconds. Deterministic normal/optimiz
 replay delayed presentation, the old batching race, never-presented motion and capture failure.
 This changes test sequencing only; production rendering/animation and physical acceptance are
 unchanged. Evidence: [Linux handshake](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md).
+
+## Optional completed GPU timing diagnostics
+
+`--gpu-timing` opts the native Showcase surface into its existing fence-completed timing path.
+Default runs allocate no GPU timing resources and retain the existing unavailable timing policy.
+The performance report keeps wall/CPU statistics separate from `gpu_timing_ms`, which is the mean
+of available completed native command-buffer intervals. `gpu_timing_sample_count`, `gpu_p95_ms`,
+`gpu_p99_ms` and `gpu_completed_submission` describe an independent bounded 18,000-sample window.
+The first 60 native submission IDs are GPU warmup; repeated or older completions, unavailable,
+nonfinite, zero/negative and out-of-range values do not become samples. Polling copies diagnostics
+on the existing render thread and adds no waits. `windowed_evidence.gpu_timing_source` identifies
+Vulkan/DX12 timestamps or Metal command-buffer timing. Software-device timestamps remain software
+evidence. An unavailable GPU interval is never replaced by CPU or wall time. Default quality
+benchmarking remains unchanged; opt-in diagnostics are separate evidence, not accepted frame budgets.
+
+```powershell
+NexoraShowcase.exe --scene=courtyard --backend=dx12 --quality=standard --clean-view --pause-animation --activate-device --vsync=off --no-reload --gameplay-module=static --frames=1200 --gpu-timing --report=gpu-diagnostic.json
+```
+
+`--gpu-timing` 明確啟用既有 fence 完成後的原生 GPU 計時；預設不配置計時資源，原有品質矩陣
+維持未啟用政策。GPU 平均／p95／p99 與 wall／process CPU 分開統計，保留獨立且有界的
+18,000 筆窗口。前 60 個原生提交 ID 為暖機，重複／倒退的完成紀錄、缺值、非有限值、零／負值
+及超界值不列入樣本；只複製既有 render thread 診斷，不新增等待。來源欄位區分 Vulkan／DX12
+時間戳或 Metal command-buffer 計時；軟體裝置結果仍屬軟體證據。無可用 GPU 值時不以 CPU／
+wall time 代替。此診斷資料與最終目標硬體幀時間驗收分開。
