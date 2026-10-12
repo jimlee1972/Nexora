@@ -48,3 +48,61 @@ remain intact. Eight consecutive focused runs passed (**103.66 s** total).
 The complete graphical Development suite with Cryptography enabled and accepted
 Inspector/build-console integration passed **237/237**, zero skips, **591.45 s**;
 minimal Shipping built successfully. Hosted checks on the new commit are required.
+
+## Slow-frame pointer delivery correction
+
+Hosted PR484 on `317b2abde35eae5cffde028f4e0d157d50d7f08c` still missed the first
+Boolean edit under the runner software-rendering schedule. The native test now
+delivers movement, mouse down and mouse up separately, with a settled Inspector
+layout after source selection. No edit/source/Undo/Redo/read-only assertion or
+validation rule was removed. On main `64b20ea7b2fc4250af4900f6c1ace17001170464`,
+graphical Development rebuilt the native host and fixture (44 incremental steps);
+eight consecutive actual Xvfb/lavapipe runs passed, **129.01 s** total. This is
+a test-only correction (Beads `nexora-owg.2.4`); runtime behavior is unchanged.
+Fresh hosted checks are required before acceptance.
+
+## Presented control and shortcut readiness
+
+Beads `nexora-owg.2.5`: hosted signed head `80afa48f` still missed its first Boolean
+gesture despite an identical script passing both PR493 display matrices. A cold Xvfb
+readback inspected the actual 1600x1200 default-theme controls and established distinct
+normal/hover/held/released pixels. The initial source-selection click is the real Scene
+Select all control; the prior Hierarchy comment was inaccurate. Readback now bounds
+first presentation, selected reflected control, and each writable Boolean input phase.
+No edit is retried or supplied through a test-only model path.
+
+The first observed native run passed **11.44s**. A subsequent one-thread/cache-disabled
+attempt edited correctly but missed its Undo shortcut; that failed attempt remains
+excluded. Modifier and primary-key press/release now occur separately. Eight final
+cold `LP_NUM_THREADS=1 MESA_SHADER_CACHE_DISABLE=true` Xvfb/Vulkan runs passed
+**134.62s** total, including exact edit, Undo/Redo, Save/reopen, read-only restart,
+corrupt metadata rejection and compatible restoration. Vulkan diagnostics remain fatal.
+
+Full graphical Development **239/239 passed, zero skipped, 598.60s**; minimal
+Shipping configure/build passed (five incremental steps).
+Logs: `extension-trust/frame-ready-{first-tests,final-repeat-1..8,full-*,shipping-*}.log`
+in the execution work area. Diagnostic screenshot probes are observations, not acceptance;
+an intentionally edited unsaved probe hit the expected close prompt and was cleaned up.
+The fix changes Linux test input synchronization only. Fresh accepted-main integration
+and hosted CI are required; full Editor milestones remain **0/8**.
+
+## Native initial dock size correction
+
+PR500 head `eb06c6e7` passed its push display job but failed its PR display job
+`114221520879` before any edit: the Scene-control readback remained RGB(69,69,69).
+Delaying resize by two seconds reproduces the exact failure. The native host first
+creates its dock layout at 1280x720; enlarging to 1600x1200 afterward preserves
+split pixel widths. The Scene button then remains near x523 while the old probe
+waits at x595. An inspected X11 screenshot confirms the actual layout.
+
+The fixture now uses the native initial 1280x720 size, asserts X11 window geometry,
+and retains every physical click, rendered Boolean input-phase acknowledgement,
+exact edit/Undo/Redo/save/reopen/unknown-byte, read-only and metadata assertion.
+An actual fixed-size diagnostic passed, followed by five consecutive cold native
+runs (**75.21s**). Early and late resize probes were diagnosis, not acceptance;
+the intentionally delayed resize failure is excluded from passing evidence.
+
+Final full graphical Development **239/239 passed,596.85s**, zero failures or
+skips, including the final geometry assertion. Minimal Shipping configure/build
+passed (five actual steps). The previous failed hosted head is not accepted;
+fresh exact-head hosted CI is required for the correction.

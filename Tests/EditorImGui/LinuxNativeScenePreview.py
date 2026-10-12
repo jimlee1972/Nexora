@@ -119,6 +119,16 @@ def scene_region_pixels(display_name: str, window: int,
         x11.XCloseDisplay(display)
 
 
+def save_after_pointer_release(xdotool, environment):
+    # Keep one physical Save gesture across rendered modifier/key phases. The
+    # rotation release must reach authoring before its saved quaternion is read.
+    # Do not retry Save or the rotation drag and retain the existing deadlines.
+    for action, key in (("keydown", "ctrl"), ("keydown", "s"),
+                        ("keyup", "s"), ("keyup", "ctrl")):
+        subprocess.run([xdotool, action, key], env=environment, check=True)
+        time.sleep(.2)
+
+
 def undo_and_save(xdotool, environment, scene_file, expected, failure, render=None):
     # Issue Undo exactly once. On a busy host a Save can precede the queued Undo;
     # repeat only Save while waiting for the committed baseline, never Undo.
@@ -609,7 +619,7 @@ def main() -> int:
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("rotation preview committed before mouse release")
         subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        save_after_pointer_release(args.xdotool, environment)
         deadline = time.monotonic() + 5
         rotated = before_rotation
         while time.monotonic() < deadline and rotated == before_rotation:

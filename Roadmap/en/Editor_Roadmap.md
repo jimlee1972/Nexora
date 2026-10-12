@@ -178,7 +178,16 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   capacity and retryable full-queue error. Queued jobs and unconsumed completed/failed/cancelled
   results retain their slot until consumption. `editor.preview_contract` covers mixed request
   kinds, queued/failure/cancel paths, 100 rejected retries, 100 readmission cycles and shutdown.
-  This bounds operation count; arbitrary project-index bytes and physical workflow gates remain open.
+  This bounds operation count; the project index itself is bounded by the next item, and physical
+  workflow gates remain open.
+
+- ✅ `AssetWorkspace::ImportTree` now bounds one Content index at 262,144 files (".meta" sidecars
+  excluded) and 1024 UTF-8 bytes per project-relative path, adjustable through `AssetIndexLimits`.
+  Both limits are enforced while enumerating, before any identity sidecar is written: an oversized
+  tree fails with an actionable error, keeps the previous index and creates no partial sidecars,
+  and enumeration stops instead of growing memory. `editor.asset_source` covers exact-limit
+  acceptance, over-limit rejection with index preservation, and sidecar-free rejection in writable
+  mode. Per-entry diagnostic text, thumbnails and physical workflow gates remain open.
 
 - ✅ Ordinary asset indexing and synchronous/background reimport now stream binary source hashes
   through an 8 KiB read chunk instead of retaining whole files. Mid-file cancellation publishes no
@@ -238,9 +247,18 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   focus/write loss, hidden Content, external modals or stale asset scope. Real 1x/2x Unicode/gate
   tests and Linux Xvfb F2/Enter with scene Save/Undo/restart verify the workflow; physical IME and
   complete graphical acceptance remain open.
+- ✅ Linux native project-upgrade acceptance now delivers one keyboard gesture through explicit
+  rendered keydown/keyup phases. Three cold runs and the affected 252-test graphical suite retain
+  exact upgrade/backup/report, read-only conservation and Vulkan assertions.
+  [Input evidence](../../Tools/Build/evidence/EditorEDM0-ProjectUpgradeInput-Linux-2026-10-10.md).
 - Open: physical-display/Windows fresh-project workflow acceptance.
 
 ### ED-M2 — Scene authoring core
+
+- ✅ Linux native Scene Preview rotation Save acceptance now retains one physical keyboard
+  gesture across rendered release/modifier/key phases. Three cold workflows and the affected
+  253-test graphical suite preserve existing preview/commit/Undo/scale/reopen assertions and
+  deadlines. [Input evidence](../../Tools/Build/evidence/EditorEDM0-ScenePreviewSaveInput-Linux-2026-10-10.md).
 
 - ✅ Scalar opaque PBR `.nmaterial` assets now import/reimport as bounded immutable typed data,
   with 64 KiB sources, 4096-asset/Content Undo budgets and canonical Renderer-schema validation.
@@ -441,6 +459,11 @@ creates property widgets; unknown components retain raw data instead of being si
   reload revokes stale drafts; read-only and corrupt metadata preserve sources. Real controls at
   1x/2x and native Vulkan edit/save/restart are accepted in
   [the Linux evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md).
+  Native pointer delivery retains down/up across slow frames; eight consecutive actual runs pass.
+  Presented X11 control/hover/held/released readiness and separate shortcut-key phases also
+  pass eight cold, single-thread software-rendered native workflows (134.62s); all 239 graphical Development tests and Shipping build pass.
+  The native fixture now retains the initial 1280x720 host size, removing the reproduced
+  resize/dock initialization race; five consecutive cold native runs pass (75.21s).
   Dynamic arrays, native plugin restoration and complete ED-M2 acceptance remain open.
 
 - ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
@@ -764,6 +787,12 @@ creates property widgets; unknown components retain raw data instead of being si
     readonly/recovery/external-change/staging protection pass. Graphical isolation, instance
     materialization and override diff/revert/apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md).
+
+  - ✅ Scene forest import now uses official bounded parsing, owning source-to-generation identity
+    maps and one document-safe Undo/Redo with exact names, sibling order, components and retained
+    Copy/Cut clipboard. Actual stale/corrupt/permission/budget rejection and save/reopen pass.
+    Persistent prefab binding and graphical workflows remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicForestImport-Linux-2026-10-10.md).
   - ✅ The native graphical Editor now edits independent owned/reference documents through bounded
     scene tabs, dirty-close decisions, coordinated Save All and aggregate window-close protection.
     Persisted named roles/load order/active selection reopen in both access modes; failed complete
@@ -986,6 +1015,9 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: graphical build frontend, remote deployment/logs, physical GPU calibration, arbitrary capture import,
     and plugin manager.
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Current session CI cleanup adds exact published branch and actor checks; 14 ownership/race
+    and 16 documentation-routing tests, full Linux 239/239 and Minimal Shipping pass.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md).
   - ✅ The native project browser now offers an owning no-write upgrade preview in both access
     modes, showing captured schema/UUID, source/workspace counts and recovery evidence locations.
     Busy and typed-root changes clear stale intake/results; explicit Open reinspects ordinary

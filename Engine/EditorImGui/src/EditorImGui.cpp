@@ -4,6 +4,7 @@
 #include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
+#include "EditorSystemFont.h"
 #endif
 
 #include <imgui.h>
@@ -103,6 +104,11 @@ struct EditorImGuiHost::State final {
   // default of 1.0F here would make that common case a no-op and leave the atlas unbuilt, which
   // ImGui::NewFrame() asserts on.
   float dpi_bucket = 0.0F;
+  // The system CJK font and its glyph ranges outlive every atlas build: ImGui keeps the range
+  // pointer until the atlas is cleared.
+  Nexora::EditorImGuiDetail::SystemCjkFont cjk_font;
+  std::vector<ImWchar> cjk_ranges;
+  bool cjk_probed = false;
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
   std::uint64_t surface_font_domain = 0;
@@ -4054,6 +4060,26 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     ImFontConfig config;
     config.SizePixels = 13.0F * bucket;
     fonts.AddFontDefault(&config);
+    if (!state_->cjk_probed) {
+      state_->cjk_probed = true;
+      if (Nexora::EditorImGuiDetail::FindSystemCjkFont(state_->cjk_font)) {
+        for (const auto point : state_->cjk_font.glyph_pairs)
+          state_->cjk_ranges.push_back(static_cast<ImWchar>(point));
+        state_->cjk_ranges.push_back(0);
+      }
+    }
+    // Merge a system CJK font so IME-committed Chinese text has glyphs; without it InputText
+    // receives the characters but draws nothing for them.
+    if (!state_->cjk_ranges.empty()) {
+      ImFontConfig cjk_config;
+      cjk_config.MergeMode = true;
+      cjk_config.SizePixels = 13.0F * bucket;
+      cjk_config.OversampleH = 1;
+      cjk_config.OversampleV = 1;
+      cjk_config.PixelSnapH = true;
+      fonts.AddFontFromFileTTF(state_->cjk_font.path.c_str(), cjk_config.SizePixels, &cjk_config,
+                               state_->cjk_ranges.data());
+    }
     fonts.Build();
     fonts.SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
     ImGui::GetIO().FontGlobalScale = 1.0F / bucket;
