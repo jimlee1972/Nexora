@@ -66,8 +66,13 @@ function(nexora_configure_build)
     # Runtime tests intentionally exercise UTF-8 text, IME composition, and
     # localized UI strings.  Do not let the machine's active code page change
     # their meaning (or turn otherwise valid UTF-8 source into C4819/C2001).
+    # Custom configuration names do not inherit CMake's Release optimization.
+    # IPO alone does not optimize unoptimized translation units. Keep validation
+    # and floating-point semantics intact; Shipping needs explicit speed optimization.
+    add_compile_options($<$<CONFIG:Shipping>:/O2>)
     add_compile_options(/W4 /WX /wd4251 /permissive- /EHsc /utf-8)
   else()
+    add_compile_options($<$<CONFIG:Shipping>:-O2>)
     add_compile_options(-Wall -Wextra -Wpedantic -Werror)
   endif()
 

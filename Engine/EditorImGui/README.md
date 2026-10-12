@@ -1,5 +1,17 @@
 # Editor Dear ImGui host contract
 
+## External Chrome duration inspection
+
+The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
+scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+Async selection uses the begin thread/name, permits cross-thread ends and supports bounded
+process-local `id2.local`/category/scope pairing. Global `id2.global`/legacy `id` and legacy `S/F`
+are unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
+read-only admission and scope revocation. Nested intervals are displayed by start order;
+duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
+contract documents pairing, chronological and capacity requirements.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
@@ -36,6 +48,24 @@ or deployment success. Artifact validation, serialized target profiles and authe
 workflows are separate. The application cancels the process before draining other models on the
 shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
 existing module dependencies and stable C ABI are unchanged.
+
+## Hierarchy scale and lifecycle measurements
+
+`editor.hierarchy_scale_lifecycle` runs the real product-shell draw path over 100,000 flat roots
+and an expanded 99,998-node chain, at 1280x900 logical pixels and 1x/2x DPI. Each of two lifecycle
+cycles creates a fresh project, World, SceneDocument and ImGui host, settles six frames and measures
+twelve complete CPU shell frames. Schema-1 JSON lines retain sorted milliseconds, nearest-rank
+p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload peak/retention.
+Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
+source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
+ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
+deadline, or 600 seconds on Windows based on hosted MSVC measurements. It also runs directly with
+`NexoraDeepHierarchyTests --benchmark`.
+
+The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
+ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame
+percentiles are observations, not a cross-machine production frame-time budget; no calibrated GPU,
+long-duration soak or physical-host acceptance follows from this test.
 
 ## Ownership and lifetime
 
@@ -1131,3 +1161,75 @@ validity. Instance override/revert/apply/rebase remain separate authoring operat
 Build-process Run also independently checks current focus, queued Play/close decisions and
 recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
 confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.
+
+## Prefab isolation controls
+
+Settings > Prefab isolation and Ctrl+Alt+P open a dedicated window. The native application owns
+a project-scoped `PrefabDocumentSession` with a separate World/document; drawing borrows it only
+for the frame. The active scene remains independent. Create from scene, Open, Create variant,
+Save prefab and Close prefab emit owning one-shot requests, rechecked against project scope,
+owner/document generation, asset identity and active scene token before native dispatch.
+The GUI performs no filesystem publication. Core save repeats writer, recovery and source checks.
+
+The clipped hierarchy selects generation keys. Name and position text commit on Enter as one
+document Undo step; numeric input must be finite and within the displayed supported bounds.
+Unknown component bytes are retained without interpretation. Save preserves Undo/Redo and stable
+identities. Project/document changes clear pending confirmations and active input. Read-only
+projects can inspect/open but cannot create, modify, save or create variants. Focus, Play,
+recovery, external changes, build/close/file/tab/rename/input dialogs block authoring.
+
+Dirty replacement/close requires an explicit discard decision; Keep editing preserves the owner.
+Hiding the window retains the session. Application close includes dirty prefab work in its prompt.
+Save and Exit requires the user to save the prefab explicitly before retrying; it does not combine
+prefab publication with ordinary scene saves. Cancel keeps the owner available. Forced termination
+has no prefab recovery journal in this slice. Variants require an exact clean published base.
+Nested materialization, override diff/revert/apply/rebase, reflected prefab properties and complete
+transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
+module dependencies are unchanged.
+
+Prefab isolation additionally presents an explicit owning property comparison and full revert
+confirmation. Source/edit values use clipped table rows and bounded previews; stable paths remain
+available in tooltips. Presentation data carries no write authority: the native session retains
+the actual immutable review and revalidates it at execution. Read-only inspection remains available
+while Revert requires current authoring permission. Edits, Undo/Redo, source actions and scope
+replacement revoke presented review/confirmation. Targeted field/source apply and rebase remain open.
+
+## Graphical variant source application
+
+The isolation toolbar exposes Apply to source only for an owning reviewed saved variant candidate.
+Checkbox changes revoke prior source/full-revert consent; Review selected prepares a new capability.
+Source application requires a separate confirmation and explains that the variant retains its base
+until explicit Rebase. Cancel/scope replacement/local edits/Undo/Redo revoke pending confirmation.
+The native host and owner independently recheck project/modal/export/close/stopped-Play/current-source
+conditions. Read-only review remains available; source publication is disabled. No file IO occurs
+in widgets, no automatic local Save/acknowledgement/rebase follows, and all owning source checks are
+repeated before canonical publication.
+
+
+## Three-way prefab source rebase controls
+
+The isolation panel also exposes `Instantiate in scene` for a clean published prefab and a
+currently writable active scene. Its owning request includes project/owner/document/source-file
+scope and destination role; changing scope or role revokes pending requests. Drawing performs no
+source IO or live import. The application prepares/rechecks the published exact source closure and
+target content, generates a placement identity, then requests one bound scene import. Read-only,
+reference-document, dirty prefab, Play/modal/recovery and stale publication guards apply. Original
+scene history owns the single Undo/Redo; isolation content/history and prefab source files stay
+independent. Ordinary explicit Scene Save publishes the placement metadata. Structural instance
+override/rebase and automatic reconciliation remain separate work.
+
+The isolated variant exposes retained source revision, Review rebase, a clipped five-column
+old-base/local/current-source comparison and explicit Keep local/Take source choices for each
+conflicting complete stable field group. Prepare forwards owning choices to the authoring owner;
+changing a choice revokes any prepared candidate and consent. Source-only changes need no choices.
+Rebase opens separate confirmation; confirmation forwards one current observation, and only the
+owner's private reviewed capability can apply. UI snapshots confer no write authority or perform IO.
+
+Project/source-document/owner/document/asset/base scope changes clear review and confirmation.
+Local edits, Undo/Redo, hidden windows and blocked authoring revoke consent; re-enabling interaction
+does not revive it. Read-only sessions can review/prepare choices but cannot confirm or mutate.
+The application repeats project/writer/recovery/Play/modal and exact-current-source checks.
+Successful rebase changes properties and retained reference as one document Undo/Redo. Publication
+remains explicit Save, which archives the previous exact variant and permits clean reopen. Source
+apply retains its separate confirmation and publication boundary. Structural identity reconciliation,
+persistent live instances and complete nested authoring remain separate work.

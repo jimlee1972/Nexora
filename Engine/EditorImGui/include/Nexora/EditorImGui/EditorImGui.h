@@ -45,6 +45,39 @@ enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop }
 enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
 enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
+enum class PrefabIsolationAction : std::uint8_t {
+  Create,
+  Open,
+  Variant,
+  Save,
+  Close,
+  Review,
+  Revert,
+  SelectReview,
+  ApplyToSource,
+  ReviewRebase,
+  ResolveRebase,
+  Rebase,
+  Instantiate
+};
+struct PrefabIsolationObservation final {
+  foundation::Uuid project, asset;
+  std::uint64_t project_scope{}, owner_generation{}, document_generation{}, revision{};
+  SceneFileToken source;
+  bool open{}, dirty{}, writable{};
+  std::optional<PrefabRevisionReference> base{};
+  bool scene_writable{};
+  friend bool operator==(const PrefabIsolationObservation &,
+                         const PrefabIsolationObservation &) = default;
+};
+struct PrefabIsolationRequest final {
+  PrefabIsolationAction action{};
+  PrefabIsolationObservation scope;
+  foundation::Uuid target;
+  bool discard_dirty{};
+  std::vector<PrefabPropertySelection> selected{};
+  std::vector<PrefabRebaseChoice> choices{};
+};
 struct SceneTabItem final {
   std::uint64_t id{};
   SceneFileToken token{};
@@ -126,6 +159,40 @@ struct StaticExportRequest final {
   bool cancel{};
 };
 
+enum class ExtensionManagerAction : std::uint8_t {
+  SetPublisher,
+  RevokePublisher,
+  SetPermissions,
+  Review,
+  Install,
+  Refresh,
+  Enable,
+  Disable,
+  Remove,
+  CancelReview
+};
+struct ExtensionManagerRequest final {
+  ExtensionManagerAction action{};
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t scope{}, configuration{};
+  std::string id, version;
+  std::filesystem::path package_path;
+  std::array<std::byte, 32> public_key{};
+  std::uint32_t permissions{};
+};
+struct ExtensionManagerObservation final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t scope{};
+  std::uint32_t permissions{};
+  std::vector<TrustedPublisherKey> publishers;
+  std::vector<ManagedExtension> packages;
+  std::optional<ExtensionPackageReview> review;
+  std::size_t rejected_files{};
+  bool restart_required{};
+};
+
 struct ProjectUpgradeObservation final {
   std::filesystem::path requested_root, canonical_root;
   foundation::Uuid project;
@@ -186,6 +253,11 @@ struct RendererMetrics final {
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
 // Move between frames; moved-from hosts support only destruction or assignment. Release the
 // destination's public-RHI renderer before move assignment while its device is still alive.
+struct ChromeTraceImportRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  ChromeTraceSelection selection;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -213,9 +285,31 @@ public:
   void DrawDiagnosticPrivacy(TelemetryConsent &diagnostics, foundation::Uuid project);
   bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
   [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
+  bool SetExtensionManagerObservation(ExtensionManagerObservation observation);
+  void SetExtensionManagerStatus(std::string status);
+  void DrawExtensionManager(bool settings_allowed, bool authoring_allowed);
+  [[nodiscard]] bool ExtensionManagerInteractionAllowed() const noexcept;
+  [[nodiscard]] std::optional<ExtensionManagerRequest> TakeExtensionManagerRequest();
 
   // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
   bool SetReflectedInspector(const ReflectedInspector &catalog);
+  // Owning scope and one-shot IO requests. Document/workspace borrows last only this frame.
+  bool SetPrefabIsolation(std::optional<PrefabIsolationObservation>);
+  void DrawPrefabIsolation(const SceneDocument *, SceneDocument *, const ProjectWorkspace &,
+                           bool authoring_allowed);
+  [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
+  void SetPrefabIsolationStatus(std::string message, bool success);
+  // Presentation data only; the native owner retains/revalidates the actual review capability.
+  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false,
+                       std::span<const PrefabPropertySelection> selected = {},
+                       bool targeted = false, bool can_apply_to_source = false);
+  void SetPrefabRebaseReview(std::optional<SceneComparison>,
+                             std::optional<PrefabRevisionReference> previous = {},
+                             std::optional<PrefabRevisionReference> next = {},
+                             std::span<const PrefabPropertySelection> conflicts = {},
+                             std::span<const PrefabRebaseChoice> choices = {},
+                             bool can_apply = false, std::size_t unresolved = 0);
+  void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.
   // Scope changes revoke pending work. Run requires explicit user action and caller permission.
@@ -251,6 +345,9 @@ public:
   [[nodiscard]] bool TakeGpuExportRequest() noexcept;
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
+  void OpenChromeTraceImport() noexcept;
+  [[nodiscard]] std::optional<ChromeTraceImportRequest> TakeChromeTraceImportRequest();
+  bool SetImportedChromeTrace(ChromeTraceCapture capture);
   void SetProfileExportStatus(std::string message);
   [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
   // Owning bounded observations only. Application revalidates requests and owns job publication.

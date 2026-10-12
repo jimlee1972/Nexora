@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/ChromeTrace.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MaterialImport.h"
@@ -128,6 +129,10 @@ public:
                            std::string *error = nullptr);
   [[nodiscard]] std::optional<GpuTimingCapture>
   ImportGpuTimingJson(std::string *error = nullptr) const;
+  // Explicit external Chrome trace at .nexora/chrome-trace.json. Does not infer CPU/GPU/RSS
+  // or host/project timing provenance; read-only observers may import. No writes or native loads.
+  [[nodiscard]] std::optional<ChromeTraceCapture>
+  ImportChromeTraceJson(ChromeTraceSelection, std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;
@@ -176,6 +181,15 @@ private:
   std::vector<RecentProject> entries_;
 };
 
+// Admission bounds for one Content index. A tree beyond either bound is rejected as a whole, before
+// any identity sidecar is written, so the previous index and project files stay untouched.
+inline constexpr std::size_t kMaximumIndexedAssets = 262144;
+inline constexpr std::size_t kMaximumIndexedPathBytes = 1024; // UTF-8, project-relative.
+struct AssetIndexLimits final {
+  std::size_t max_assets = kMaximumIndexedAssets;
+  std::size_t max_path_bytes = kMaximumIndexedPathBytes;
+};
+
 enum class ImportState { Pending, Imported, Cancelled, Failed };
 enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentReadWrite };
 
@@ -197,6 +211,9 @@ class NEXORA_EDITOR_API AssetWorkspace final {
 public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
+  // `limits` bounds the number of indexed files (".meta" sidecars excluded) and each project-
+  // relative UTF-8 path. Exceeding either fails before any sidecar is created and keeps the
+  // existing index.
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
   // OBJ/material parsing retains its bounded source/payload policy; live publication is
@@ -204,7 +221,7 @@ public:
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
-                  std::string *error = nullptr);
+                  std::string *error = nullptr, AssetIndexLimits limits = {});
   // Reads only one already-saved .scene and its sidecar in this initialized Content index.
   // Bounds source bytes at 64 MiB, preserves other entries/geometry, and checks IDs against the
   // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
@@ -431,11 +448,19 @@ public:
   // Source scene name/persistence and entity IDs must match. Serialized owner supplies authority.
   bool ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
                              bool authorized);
-  // Same-identity source-rebase transaction: only this placement's revision/properties may
-  // change. Source/instance/scoped mappings, hierarchy/order and all other nodes remain exact.
-  // The serialized owner validates source closure and current writer/Play/recovery authority.
-  bool ApplyPrefabPlacementSnapshot(const PreparedSave &expected, std::string_view source,
-                                    foundation::Uuid instance, bool authorized);
+  struct PrefabBaseReference final {
+    foundation::Uuid asset;
+    std::uint64_t revision{};
+    friend bool operator==(const PrefabBaseReference &, const PrefabBaseReference &) = default;
+  };
+  [[nodiscard]] std::optional<PrefabBaseReference> PrefabBase() const noexcept {
+    return prefab_base_;
+  }
+  // Owning authoring context, persisted by wrapped PrefabAssets, not reusable scene bytes.
+  // Serialized owner validates actual source/project authority. Reference and properties share
+  // one Undo/Redo, including reference-only changes. Ordinary scene save rejects tagged documents.
+  bool ApplyPrefabPropertySnapshot(const PreparedSave &, std::string_view source,
+                                   PrefabBaseReference, bool authorized);
   // Rejects changed document generation or content before IO; advances the baseline only after
   // successful single-file publication. Caller owns workspace access and destination policy.
   bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
@@ -474,8 +499,7 @@ public:
 private:
   friend class AdditiveSceneSession;
   friend class PrefabAssets;
-  friend class PrefabPlacementOverrides;
-  friend class PrefabPlacementRebase;
+  friend class PrefabDocumentSession;
   enum class BuiltinEntity { Empty, Camera, Light };
   friend class SceneSaveBatch;
   bool ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes = std::nullopt);
@@ -517,13 +541,14 @@ private:
       PreparedSave before, after;
       std::string previous_runtime, next_runtime;
       std::vector<Node> previous_nodes, next_nodes;
+      std::optional<PrefabBaseReference> previous_base{}, next_base{};
     };
     std::shared_ptr<const PropertySnapshot> property_snapshot{};
     std::shared_ptr<const std::vector<PrefabPlacement>> previous_placements{}, redo_placements{};
   };
-  bool ApplyOwnedPropertySnapshot(const PreparedSave &, std::string_view,
-                                  std::optional<foundation::Uuid>, bool);
   bool ReplayPropertySnapshot(bool forward);
+  bool ApplyPropertySnapshotWithReference(const PreparedSave &, std::string_view, bool,
+                                          std::optional<PrefabBaseReference>);
   void PushUndo(UndoEntry entry);
   [[nodiscard]] std::optional<std::string> PrefabPlacementRecords() const;
   [[nodiscard]] static bool ValidatePrefabPlacements(std::span<const PrefabPlacement>,
@@ -537,6 +562,7 @@ private:
   bool clipboard_cut_pending_{};
   std::vector<UndoEntry> undo_;
   std::vector<UndoEntry> redo_;
+  std::optional<PrefabBaseReference> prefab_base_{};
   std::shared_ptr<const std::vector<PrefabPlacement>> prefab_placements_{};
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};

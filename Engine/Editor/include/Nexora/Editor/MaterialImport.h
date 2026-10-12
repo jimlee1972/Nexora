@@ -37,4 +37,12 @@ ImportMaterial(std::string_view source, const std::function<bool()> &cancelled =
 [[nodiscard]] NEXORA_EDITOR_API renderer::MaterialValidation
 ValidateMaterialAsset(const MaterialAsset &material);
 
+struct MaterialExportResult final {
+  std::optional<std::string> source;
+  std::string error;
+};
+// Canonical schema-1 scalar PBR source, round-tripping exact float values. No IO/publication.
+inline constexpr std::size_t kMaximumCanonicalMaterialBytes = 1024;
+[[nodiscard]] NEXORA_EDITOR_API MaterialExportResult ExportMaterial(const MaterialAsset &material);
+
 } // namespace nexora::editor
