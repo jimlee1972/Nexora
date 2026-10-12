@@ -417,20 +417,6 @@ struct EditorImGuiHost::State final {
   std::optional<PrefabPlacementSourceReport> prefab_source_report;
   std::optional<std::array<float, 2>> prefab_source_position;
   int prefab_source_frame{};
-  bool prefab_override_authoring{}, prefab_override_confirm{}, prefab_override_popup{};
-  std::optional<PrefabPlacementOverrideRequest> prefab_override_request, prefab_override_consent;
-  std::vector<bool> prefab_override_selected;
-  std::map<std::size_t, std::array<float, 2>> prefab_override_row_positions;
-  std::optional<PrefabPlacementOverrideReport> prefab_override_report;
-  std::string prefab_override_error;
-  std::array<std::optional<std::array<float, 2>>, 5> prefab_override_positions{};
-  bool prefab_rebase_confirm{}, prefab_rebase_popup{};
-  std::optional<PrefabPlacementRebaseRequest> prefab_rebase_request, prefab_rebase_consent;
-  std::optional<PrefabPlacementRebaseReport> prefab_rebase_report;
-  std::vector<std::uint8_t> prefab_rebase_choices;
-  std::string prefab_rebase_error;
-  std::array<std::optional<std::array<float, 2>>, 4> prefab_rebase_positions{};
-  std::map<std::pair<std::size_t, bool>, std::array<float, 2>> prefab_rebase_choice_positions;
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
   FileDialog scene_file_dialog{FileDialog::None};
   bool scene_file_context{}, scene_file_save_blocked{}, scene_file_popup_pending{};
@@ -2780,19 +2766,14 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
   ImGui::EndDragDropTarget();
 }
 
-#include "PrefabPlacementOverridePanel.inl"
-#include "PrefabPlacementRebasePanel.inl"
 #include "PrefabPlacementSourcePanel.inl"
 #include "ReflectedInspectorPanel.inl"
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
-                   bool editable, bool copy_allowed, bool override_readable,
-                   bool override_writable) {
+                   bool editable, bool copy_allowed) {
   DrawPrefabPlacementSource(state, scene, copy_allowed);
-  DrawPrefabPlacementOverrides(state, override_readable, override_writable);
-  DrawPrefabPlacementRebase(state, override_readable, override_writable);
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
@@ -6285,29 +6266,10 @@ void EditorImGuiHost::SetPrefabPlacementSourceContext(const std::filesystem::pat
     state_->prefab_source_report.reset();
     state_->prefab_source_request.reset();
     state_->prefab_source_root = root;
-    state_->prefab_override_report.reset();
-    state_->prefab_rebase_report.reset();
-    state_->prefab_rebase_choices.clear();
-    state_->prefab_rebase_error.clear();
-    state_->prefab_override_request.reset();
-    state_->prefab_override_error.clear();
-    state_->prefab_override_confirm = state_->prefab_override_popup = false;
-    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-    state_->prefab_rebase_consent.reset();
-    state_->prefab_rebase_request.reset();
-    state_->prefab_override_consent.reset();
-    state_->prefab_override_selected.clear();
   }
   state_->prefab_source_read_allowed = read_allowed;
-  if (!read_allowed) {
+  if (!read_allowed)
     state_->prefab_source_request.reset();
-    state_->prefab_override_request.reset();
-    state_->prefab_override_consent.reset();
-    state_->prefab_override_confirm = state_->prefab_override_popup = false;
-    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-    state_->prefab_rebase_consent.reset();
-    state_->prefab_rebase_request.reset();
-  }
 }
 std::optional<PrefabPlacementSourceRequest> EditorImGuiHost::TakePrefabPlacementSourceRequest() {
   ImGui::SetCurrentContext(state_->context);
@@ -6332,185 +6294,6 @@ bool EditorImGuiHost::SetPrefabPlacementSourceReport(PrefabPlacementSourceReport
     return false;
   state_->prefab_source_report = std::move(report);
   return true;
-}
-void EditorImGuiHost::SetPrefabPlacementOverrideContext(bool authoring_allowed) {
-  state_->prefab_override_authoring = authoring_allowed;
-  if (!authoring_allowed) {
-    state_->prefab_override_confirm = state_->prefab_override_popup = false;
-    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-    state_->prefab_rebase_consent.reset();
-    state_->prefab_rebase_request.reset();
-    state_->prefab_override_consent.reset();
-    if (state_->prefab_override_request &&
-        state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review)
-      state_->prefab_override_request.reset();
-  }
-}
-std::optional<PrefabPlacementOverrideRequest>
-EditorImGuiHost::TakePrefabPlacementOverrideRequest() {
-  ImGui::SetCurrentContext(state_->context);
-  if (!state_->prefab_source_read_allowed || !state_->app_focused ||
-      state_->prefab_source_frame != ImGui::GetFrameCount() || state_->close_prompt_requested ||
-      state_->play_apply_open || state_->scene_file_dialog != State::FileDialog::None ||
-      state_->scene_file_output || state_->hierarchy_rename_target ||
-      state_->content_rename_target || state_->scene_tab_dialog || !state_->scene_file_context ||
-      !state_->prefab_source_scope) {
-    state_->prefab_override_request.reset();
-    state_->prefab_override_confirm = state_->prefab_override_popup = false;
-    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-    state_->prefab_rebase_consent.reset();
-    state_->prefab_rebase_request.reset();
-    state_->prefab_override_consent.reset();
-    return {};
-  }
-  if (state_->prefab_override_request &&
-      (state_->prefab_override_request->scope != *state_->prefab_source_scope ||
-       state_->prefab_override_request->scope.source != state_->scene_file_token ||
-       (state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review &&
-        (!state_->prefab_override_authoring || !state_->prefab_override_report ||
-         state_->prefab_override_request->review != state_->prefab_override_report->review)))) {
-    state_->prefab_override_request.reset();
-    state_->prefab_override_confirm = state_->prefab_override_popup = false;
-    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-    state_->prefab_rebase_consent.reset();
-    state_->prefab_rebase_request.reset();
-    state_->prefab_override_consent.reset();
-  }
-  return std::exchange(state_->prefab_override_request, std::nullopt);
-}
-bool EditorImGuiHost::SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport report) {
-  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
-      report.scope.source != state_->scene_file_token || !report.review ||
-      (report.published_revision && !*report.published_revision) ||
-      report.rows.size() > PrefabPlacementOverrides::kMaximumRows)
-    return false;
-  std::size_t bytes{};
-  for (const auto &row : report.rows) {
-    if (row.source.asset.IsNil() || !row.source.revision || row.node.IsNil() || !row.target.id ||
-        !row.target.entity_generation || !row.target.document_generation ||
-        (row.property && row.property->IsNil()) || row.scope.size() > PrefabAssets::kMaximumDepth ||
-        row.field.empty() || row.field.size() > SceneComparison::kMaximumValueBytes ||
-        (row.retained && row.retained->size() > SceneComparison::kMaximumValueBytes) ||
-        (row.local && row.local->size() > SceneComparison::kMaximumValueBytes) ||
-        !foundation::IsValidUtf8(row.field) ||
-        (row.retained && !foundation::IsValidUtf8(*row.retained)) ||
-        (row.local && !foundation::IsValidUtf8(*row.local)))
-      return false;
-    const auto size = row.field.size() + row.scope.size() * sizeof(foundation::Uuid) +
-                      (row.retained ? row.retained->size() : 0) +
-                      (row.local ? row.local->size() : 0);
-    if (size > PrefabPlacementOverrides::kMaximumReportBytes - bytes)
-      return false;
-    bytes += size;
-  }
-  state_->prefab_override_selected.assign(report.rows.size(), false);
-  state_->prefab_override_consent.reset();
-  state_->prefab_override_report = std::move(report);
-  state_->prefab_override_request.reset();
-  state_->prefab_override_error.clear();
-  state_->prefab_override_confirm = state_->prefab_override_popup = false;
-  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-  state_->prefab_rebase_consent.reset();
-  state_->prefab_rebase_request.reset();
-  return true;
-}
-void EditorImGuiHost::SetPrefabPlacementOverrideError(std::string error) {
-  state_->prefab_override_report.reset();
-  state_->prefab_override_request.reset();
-  state_->prefab_override_confirm = state_->prefab_override_popup = false;
-  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-  state_->prefab_rebase_consent.reset();
-  state_->prefab_rebase_request.reset();
-  state_->prefab_override_consent.reset();
-  state_->prefab_override_selected.clear();
-  state_->prefab_override_error = error.substr(0, 1024);
-}
-std::optional<PrefabPlacementRebaseRequest> EditorImGuiHost::TakePrefabPlacementRebaseRequest() {
-  ImGui::SetCurrentContext(state_->context);
-  const bool current =
-      state_->prefab_source_read_allowed && state_->app_focused &&
-      state_->prefab_source_frame == ImGui::GetFrameCount() && !state_->close_prompt_requested &&
-      !state_->play_apply_open && state_->scene_file_dialog == State::FileDialog::None &&
-      !state_->scene_file_output && !state_->hierarchy_rename_target &&
-      !state_->content_rename_target && !state_->scene_tab_dialog && state_->scene_file_context &&
-      state_->prefab_source_scope && !state_->prefab_override_confirm;
-  bool valid = current;
-  if (state_->prefab_rebase_request) {
-    const auto &request = *state_->prefab_rebase_request;
-    valid = valid && request.scope == *state_->prefab_source_scope &&
-            request.scope.source == state_->scene_file_token;
-    if (request.action == PrefabPlacementRebaseAction::Apply) {
-      valid = valid && state_->prefab_override_authoring && state_->prefab_rebase_report &&
-              request.review == state_->prefab_rebase_report->review;
-      std::set<std::size_t> seen;
-      if (valid) {
-        for (const auto &choice : request.choices)
-          valid = valid && choice.row < state_->prefab_rebase_report->rows.size() &&
-                  state_->prefab_rebase_report->rows[choice.row].conflict &&
-                  (choice.decision == PrefabPlacementRebaseDecision::KeepLocal ||
-                   choice.decision == PrefabPlacementRebaseDecision::TakeSource) &&
-                  seen.insert(choice.row).second;
-        valid = valid && seen.size() == static_cast<std::size_t>(std::ranges::count_if(
-                                            state_->prefab_rebase_report->rows,
-                                            &PrefabPlacementRebaseRow::conflict));
-      }
-    }
-  }
-  if (!valid) {
-    state_->prefab_rebase_request.reset();
-    state_->prefab_rebase_consent.reset();
-    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-  }
-  return std::exchange(state_->prefab_rebase_request, std::nullopt);
-}
-bool EditorImGuiHost::SetPrefabPlacementRebaseReport(PrefabPlacementRebaseReport report) {
-  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
-      report.scope.source != state_->scene_file_token || !report.review ||
-      report.published_revision <= report.scope.retained.revision ||
-      report.rows.size() > PrefabPlacementRebase::kMaximumRows)
-    return false;
-  std::size_t bytes{};
-  const auto valid_text = [](std::string_view text) {
-    return text.size() <= SceneComparison::kMaximumValueBytes && foundation::IsValidUtf8(text);
-  };
-  for (const auto &row : report.rows) {
-    if (row.retained_source.asset.IsNil() || !row.retained_source.revision ||
-        row.published_source.asset != row.retained_source.asset || !row.published_source.revision ||
-        row.node.IsNil() || !row.target.id || !row.target.entity_generation ||
-        !row.target.document_generation || (row.property && row.property->IsNil()) ||
-        row.scope.size() > PrefabAssets::kMaximumDepth || row.group.empty() ||
-        !valid_text(row.group) || row.values.empty() || row.values.size() > 64)
-      return false;
-    std::size_t size = row.group.size() + row.scope.size() * sizeof(foundation::Uuid) + 128;
-    for (const auto &value : row.values) {
-      if (value.field.empty() || !valid_text(value.field) ||
-          (value.retained && !valid_text(*value.retained)) ||
-          (value.local && !valid_text(*value.local)) ||
-          (value.published && !valid_text(*value.published)))
-        return false;
-      size += value.field.size() + (value.retained ? value.retained->size() : 0) +
-              (value.local ? value.local->size() : 0) +
-              (value.published ? value.published->size() : 0);
-    }
-    if (size > PrefabPlacementRebase::kMaximumReportBytes - bytes)
-      return false;
-    bytes += size;
-  }
-  state_->prefab_rebase_choices.assign(report.rows.size(), 0);
-  state_->prefab_rebase_report = std::move(report);
-  state_->prefab_rebase_request.reset();
-  state_->prefab_rebase_consent.reset();
-  state_->prefab_rebase_error.clear();
-  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-  return true;
-}
-void EditorImGuiHost::SetPrefabPlacementRebaseError(std::string error) {
-  state_->prefab_rebase_report.reset();
-  state_->prefab_rebase_request.reset();
-  state_->prefab_rebase_consent.reset();
-  state_->prefab_rebase_choices.clear();
-  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
-  state_->prefab_rebase_error = error.substr(0, 1024);
 }
 std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
   return std::exchange(state_->scene_comparison_request, std::nullopt);
@@ -7667,42 +7450,6 @@ EditorImGuiTestAccess::PrefabSourceInspectionPosition(const EditorImGuiHost &hos
 const PrefabPlacementSourceReport *
 EditorImGuiTestAccess::PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept {
   return host.state_->prefab_source_report ? &*host.state_->prefab_source_report : nullptr;
-}
-std::optional<std::array<float, 2>>
-EditorImGuiTestAccess::PrefabOverridePosition(const EditorImGuiHost &host,
-                                              std::size_t control) noexcept {
-  return control < host.state_->prefab_override_positions.size()
-             ? host.state_->prefab_override_positions[control]
-             : std::nullopt;
-}
-std::optional<std::array<float, 2>>
-EditorImGuiTestAccess::PrefabOverrideRowPosition(const EditorImGuiHost &host,
-                                                 std::size_t row) noexcept {
-  const auto found = host.state_->prefab_override_row_positions.find(row);
-  return found == host.state_->prefab_override_row_positions.end() ? std::nullopt
-                                                                   : std::optional{found->second};
-}
-const PrefabPlacementOverrideReport *
-EditorImGuiTestAccess::PrefabOverrideReport(const EditorImGuiHost &host) noexcept {
-  return host.state_->prefab_override_report ? &*host.state_->prefab_override_report : nullptr;
-}
-std::optional<std::array<float, 2>>
-EditorImGuiTestAccess::PrefabRebasePosition(const EditorImGuiHost &host,
-                                            std::size_t control) noexcept {
-  return control < host.state_->prefab_rebase_positions.size()
-             ? host.state_->prefab_rebase_positions[control]
-             : std::nullopt;
-}
-std::optional<std::array<float, 2>>
-EditorImGuiTestAccess::PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
-                                                  bool take_source) noexcept {
-  const auto found = host.state_->prefab_rebase_choice_positions.find({row, take_source});
-  return found == host.state_->prefab_rebase_choice_positions.end() ? std::nullopt
-                                                                    : std::optional{found->second};
-}
-const PrefabPlacementRebaseReport *
-EditorImGuiTestAccess::PrefabRebaseReport(const EditorImGuiHost &host) noexcept {
-  return host.state_->prefab_rebase_report ? &*host.state_->prefab_rebase_report : nullptr;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {
