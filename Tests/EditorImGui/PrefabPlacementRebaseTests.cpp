@@ -165,7 +165,7 @@ void Run(float scale) {
   const auto row = static_cast<std::size_t>(named - report.rows.begin());
   click(1);
   Require(!ui.TakePrefabPlacementRebaseRequest(), "Unresolved rebase acquired consent");
-  click_point(Access::PrefabRebaseChoicePosition(ui, row, false));
+  click_point(Access::PrefabPlacementRebaseChoicePosition(ui, row, false));
   click(1);
   click(3);
   Require(!ui.TakePrefabPlacementRebaseRequest() && scene.MatchesPreparedSave(before),
@@ -202,7 +202,7 @@ void Run(float scale) {
               ui.SetPrefabPlacementRebaseReport(report),
           "Rejected action retained report/consent");
   draw();
-  click_point(Access::PrefabRebaseChoicePosition(ui, row, false));
+  click_point(Access::PrefabPlacementRebaseChoicePosition(ui, row, false));
   click(1);
   click(2);
   request = ui.TakePrefabPlacementRebaseRequest();
@@ -231,7 +231,7 @@ void Run(float scale) {
   report.review = 2;
   Require(ui.SetPrefabPlacementRebaseReport(report), "Refresh failed");
   draw();
-  click_point(Access::PrefabRebaseChoicePosition(ui, row, true));
+  click_point(Access::PrefabPlacementRebaseChoicePosition(ui, row, true));
   click(1);
   report.review = 3;
   Require(ui.SetPrefabPlacementRebaseReport(report), "Consent refresh rejected");
@@ -240,7 +240,7 @@ void Run(float scale) {
   workspace = &reader;
   authoring = false;
   draw();
-  click_point(Access::PrefabRebaseChoicePosition(ui, row, true));
+  click_point(Access::PrefabPlacementRebaseChoicePosition(ui, row, true));
   click(1);
   Require(!ui.TakePrefabPlacementRebaseRequest() && Files(root) == original_files &&
               scene.MatchesPreparedSave(before),

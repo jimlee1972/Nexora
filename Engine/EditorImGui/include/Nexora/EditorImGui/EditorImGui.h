@@ -12,6 +12,8 @@
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/PrefabPlacementOverrides.h"
 #include "Nexora/Editor/PrefabPlacementRebase.h"
+#include "Nexora/Editor/PrefabPropertyPlan.h"
+#include "Nexora/Editor/PrefabRebase.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"

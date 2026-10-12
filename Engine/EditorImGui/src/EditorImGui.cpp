@@ -1,4 +1,5 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
+#include "EditorSystemFont.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -4718,6 +4719,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
       state_->prefab_isolation_open = !state_->prefab_isolation_open;
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_E,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->extension_manager_open = !state_->extension_manager_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
@@ -7689,9 +7694,8 @@ EditorImGuiTestAccess::PrefabRebasePosition(const EditorImGuiHost &host,
              ? host.state_->prefab_rebase_positions[control]
              : std::nullopt;
 }
-std::optional<std::array<float, 2>>
-EditorImGuiTestAccess::PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
-                                                  bool take_source) noexcept {
+std::optional<std::array<float, 2>> EditorImGuiTestAccess::PrefabPlacementRebaseChoicePosition(
+    const EditorImGuiHost &host, std::size_t row, bool take_source) noexcept {
   const auto found = host.state_->prefab_rebase_choice_positions.find({row, take_source});
   return found == host.state_->prefab_rebase_choice_positions.end() ? std::nullopt
                                                                     : std::optional{found->second};

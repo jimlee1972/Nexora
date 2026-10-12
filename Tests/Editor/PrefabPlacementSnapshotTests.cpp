@@ -223,6 +223,26 @@ void Run() {
               reopened.PrefabPlacements()[0].revision == 2 && scene.Undo() &&
               scene.MatchesPreparedSave(before) && Sources(root) == sources,
           "Save/reopen or baseline-independent Undo changed state/source files");
+  // Reference-only history and live-placement history must coexist after integration.
+  const editor::SceneDocument::PrefabBaseReference reference{asset->id, 2};
+  Require(scene.ApplyPrefabPropertySnapshot(before, before.Bytes(), reference, true) &&
+              scene.PrefabBase() == reference && scene.PrepareSave()->Bytes() == before.Bytes(),
+          "Reference-only transaction changed live placement bytes");
+  const auto tagged = *scene.PrepareSave();
+  Require(scene.ApplyPrefabPlacementSnapshot(tagged, candidate, first, true) &&
+              scene.PrefabBase() == reference && scene.PrefabPlacements()[0].revision == 2 &&
+              scene.Undo() && scene.MatchesPreparedSave(tagged) &&
+              scene.PrefabBase() == reference && scene.PrefabPlacements()[0].revision == 1 &&
+              scene.Undo() && !scene.PrefabBase() && scene.MatchesPreparedSave(before) &&
+              scene.Redo() && scene.PrefabBase() == reference &&
+              scene.PrefabPlacements()[0].revision == 1 && scene.Redo() &&
+              scene.PrefabBase() == reference && scene.PrefabPlacements()[0].revision == 2 &&
+              Sources(root) == sources,
+          "Combined reference/placement history lost either metadata domain or mutated sources");
+  Require(scene.Undo() && scene.MatchesPreparedSave(tagged) &&
+              scene.ApplyPropertySnapshot(tagged, tagged.Bytes(), true) && scene.Redo() &&
+              scene.PrefabBase() == reference && scene.PrefabPlacements()[0].revision == 2,
+          "No-op property snapshot consumed combined-domain Redo");
 }
 } // namespace
 int main() {

@@ -6,6 +6,11 @@ namespace nexora::editor {
 namespace {
 thread_local bool invoking;
 }
+NativeToolState NativeToolInvoker::ContextState() const noexcept {
+  if (std::this_thread::get_id() != owner_)
+    return NativeToolState::WrongThread;
+  return invoking ? NativeToolState::Reentrant : NativeToolState::Success;
+}
 NativeToolOutcome NativeToolInvoker::Invoke(const runtime::PluginHost &host,
                                             const runtime::ServiceRegistry &registry,
                                             std::uint64_t admission, std::string_view name,

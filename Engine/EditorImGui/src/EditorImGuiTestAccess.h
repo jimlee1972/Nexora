@@ -187,8 +187,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabRebasePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
-  PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
-                             bool take_source) noexcept;
+  PrefabPlacementRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
+                                      bool take_source) noexcept;
   [[nodiscard]] static const PrefabPlacementRebaseReport *
   PrefabRebaseReport(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
