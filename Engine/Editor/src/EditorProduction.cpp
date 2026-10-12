@@ -1,6 +1,7 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "AtomicFile.h"
 #include "Nexora/Core/ProcessMemory.h"
+#include "Nexora/Cryptography/Signature.h"
 #include "Nexora/Foundation/Types.h"
 
 #include <algorithm>
@@ -52,14 +53,101 @@ std::string Escape(std::string_view value) {
 
 } // namespace
 
-bool SpecializedToolRegistry::Register(ToolDescriptor descriptor) {
-  if (descriptor.id.empty() || descriptor.title.empty() ||
-      std::ranges::any_of(tools_, [&](const auto &tool) { return tool.id == descriptor.id; }))
+bool SpecializedToolRegistry::Validate(const ToolDescriptor &descriptor, std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
     return false;
+  };
+  const auto identifier = [](std::string_view value) {
+    return !value.empty() && value.size() <= kMaximumIdBytes && value.front() >= 'a' &&
+           value.front() <= 'z' && std::ranges::all_of(value, [](unsigned char c) {
+             return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '-' ||
+                    c == '_';
+           });
+  };
+  const auto text = [](std::string_view value, std::size_t limit) {
+    if (value.size() > limit || !foundation::IsValidUtf8(value))
+      return false;
+    for (std::size_t i = 0; i < value.size(); ++i) {
+      const auto byte = static_cast<unsigned char>(value[i]);
+      if (byte < 0x20 || byte == 0x7F)
+        return false;
+      // Valid UTF-8 encodes U+0080..U+009F as C2 80..9F. Check that complete code-point
+      // encoding, not continuation bytes alone, so ordinary non-ASCII titles remain valid.
+      if (byte == 0xC2 && i + 1 < value.size()) {
+        const auto continuation = static_cast<unsigned char>(value[i + 1]);
+        if (continuation >= 0x80 && continuation <= 0x9F)
+          return false;
+      }
+    }
+    return true;
+  };
+  if (descriptor.schema_version != 1 || descriptor.interface_version != 1)
+    return fail("unsupported tool descriptor or interface version");
+  if (!identifier(descriptor.id) || !identifier(descriptor.provider_id) ||
+      descriptor.title.empty() || !text(descriptor.title, kMaximumTitleBytes) ||
+      !text(descriptor.reason, kMaximumReasonBytes))
+    return fail("invalid or oversized tool identity, title or diagnostic");
+  if (descriptor.state != CapabilityState::Implemented &&
+      descriptor.state != CapabilityState::ReadOnly &&
+      descriptor.state != CapabilityState::Unavailable)
+    return fail("unknown tool capability state");
   if (descriptor.state != CapabilityState::Implemented && descriptor.reason.empty())
+    return fail("read-only or unavailable tool requires a diagnostic");
+  constexpr auto permissions = static_cast<std::uint32_t>(ToolPermission::ReadDocument) |
+                               static_cast<std::uint32_t>(ToolPermission::EditDocument) |
+                               static_cast<std::uint32_t>(ToolPermission::Preview) |
+                               static_cast<std::uint32_t>(ToolPermission::SaveDocument);
+  if (!descriptor.required_permissions || (descriptor.required_permissions & ~permissions))
+    return fail("unknown or empty tool permissions");
+  if (descriptor.document_types.size() > kMaximumIdentifiers ||
+      descriptor.contributions.size() > kMaximumIdentifiers)
+    return fail("tool document or contribution count exceeds its budget");
+  std::size_t bytes = descriptor.id.size() + descriptor.provider_id.size() +
+                      descriptor.title.size() + descriptor.reason.size();
+  const auto identifiers = [&](const std::vector<std::string> &values) {
+    for (std::size_t i = 0; i < values.size(); ++i) {
+      if (!identifier(values[i]) ||
+          std::find(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(i), values[i]) !=
+              values.begin() + static_cast<std::ptrdiff_t>(i))
+        return false;
+      bytes += values[i].size();
+    }
+    return true;
+  };
+  if (!identifiers(descriptor.document_types) || !identifiers(descriptor.contributions) ||
+      bytes > kMaximumDescriptorBytes)
+    return fail("invalid, duplicate or oversized tool document/contribution metadata");
+  if (!descriptor.budget.document_bytes ||
+      descriptor.budget.document_bytes > kMaximumDocumentBytes ||
+      !descriptor.budget.preview_bytes || descriptor.budget.preview_bytes > kMaximumPreviewBytes ||
+      !descriptor.budget.pending_operations ||
+      descriptor.budget.pending_operations > kMaximumPendingOperations)
+    return fail("invalid or unsupported tool resource budget");
+  return true;
+}
+
+bool SpecializedToolRegistry::Register(ToolDescriptor descriptor, std::string *error) {
+  if (!Validate(descriptor, error))
     return false;
+  if (tools_.size() >= kMaximumTools || Find(descriptor.id)) {
+    if (error)
+      *error = "tool registry is full or the capability ID already exists";
+    return false;
+  }
   tools_.push_back(std::move(descriptor));
   std::ranges::sort(tools_, {}, &ToolDescriptor::id);
+  return true;
+}
+
+bool SpecializedToolRegistry::Remove(std::string_view id) noexcept {
+  const auto found = std::ranges::find(tools_, id, &ToolDescriptor::id);
+  if (found == tools_.end())
+    return false;
+  tools_.erase(found);
   return true;
 }
 
@@ -99,6 +187,72 @@ bool BuildFrontend::Validate(const BuildManifest &manifest, std::string *error) 
         *error = "invalid or duplicate artifact: " + artifact.path;
       return false;
     }
+  }
+  return true;
+}
+
+bool BuildFrontend::VerifyArtifacts(const BuildManifest &manifest,
+                                    std::span<const BuildArtifactInput> inputs,
+                                    std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
+    return false;
+  };
+  const auto bounded_text = [](std::string_view text, std::size_t limit) {
+    return !text.empty() && text.size() <= limit && foundation::IsValidUtf8(text) &&
+           std::ranges::none_of(text, [](unsigned char c) { return c < 0x20 || c == 0x7f; });
+  };
+  if (!bounded_text(manifest.profile.name, 256) || !bounded_text(manifest.profile.target, 256) ||
+      !bounded_text(manifest.profile.configuration, 128) ||
+      !bounded_text(manifest.profile.command, kMaximumVerifiedCommandBytes))
+    return fail("invalid or oversized verification profile");
+  if (manifest.artifacts.empty() || manifest.artifacts.size() > kMaximumVerifiedArtifacts ||
+      inputs.size() != manifest.artifacts.size())
+    return fail("verification requires an exact nonempty bounded artifact set");
+  std::uint64_t total{};
+  for (const auto &artifact : manifest.artifacts) {
+    if (!bounded_text(artifact.path, kMaximumVerifiedPathBytes) || artifact.checksum.size() != 71 ||
+        !artifact.checksum.starts_with("sha256:") ||
+        !std::ranges::all_of(std::string_view(artifact.checksum).substr(7), [](unsigned char c) {
+          return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        }))
+      return fail("invalid artifact identity or canonical SHA-256 checksum");
+    if (artifact.bytes > kMaximumVerifiedArtifactBytes ||
+        artifact.bytes > kMaximumVerifiedTotalBytes - total)
+      return fail("artifact verification byte budget exceeded");
+    total += artifact.bytes;
+  }
+  if (!Validate(manifest, error))
+    return false;
+  std::unordered_set<std::string> seen;
+  for (const auto &input : inputs) {
+    if (!bounded_text(input.path, kMaximumVerifiedPathBytes) || !seen.insert(input.path).second)
+      return fail("invalid or duplicate captured artifact identity");
+    const auto expected = std::ranges::find(manifest.artifacts, input.path, &BuildArtifact::path);
+    if (expected == manifest.artifacts.end() || input.bytes.size() != expected->bytes)
+      return fail("captured artifact set or byte count differs from manifest");
+  }
+  // Shape and all budgets are admitted before any potentially expensive provider call.
+  if (cryptography::ActiveProvider() == cryptography::Provider::Unavailable)
+    return fail("SHA-256 verification provider is unavailable");
+  constexpr std::string_view hex = "0123456789abcdef";
+  for (const auto &input : inputs) {
+    const auto digest = cryptography::Sha256(input.bytes);
+    if (!digest)
+      return fail("SHA-256 verification provider failed");
+    std::string checksum{"sha256:"};
+    checksum.reserve(71);
+    for (const auto byte : *digest) {
+      const auto value = std::to_integer<unsigned char>(byte);
+      checksum += hex[value >> 4];
+      checksum += hex[value & 15];
+    }
+    const auto expected = std::ranges::find(manifest.artifacts, input.path, &BuildArtifact::path);
+    if (checksum != expected->checksum)
+      return fail("captured artifact SHA-256 differs from manifest");
   }
   return true;
 }

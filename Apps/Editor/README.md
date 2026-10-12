@@ -791,3 +791,20 @@ state. Results enter Profiler status and the bounded Console independently of wa
 The project UUID denotes the export destination, not GPU resource ownership. No file is written
 automatically, and existing wall-time/RSS capture bytes remain compatible. Physical calibration,
 per-pass analysis and broader external capture formats remain open.
+
+Build > Export StaticView package captures the current managed Content scene, including unsaved
+authoring changes, and cooks/verifies the data package on the application JobSystem. Save an untitled
+scene first. Build > Cancel StaticView export requests cooperative cancellation. The Project panel
+shows bounded copied status and, only after current-state-checked publication, the package path,
+actual byte count/checksum and reproducible verification command. Cancellation, failure, content
+changes, project switches and recovery/write-access loss preserve the previous package.
+
+The application owns publication after widget/scene commands and rechecks the request's scene token,
+current managed asset UUID, scene/access/Play state and the coordinator's complete freshness proof.
+UI code retains no worker or filesystem borrow; changed document scope hides prior success.
+Export never saves the scene or changes its Undo/Redo baseline. Cooking cannot be interrupted within
+its synchronous producer/loader call; cancellation is checked between phases and 8 KiB IO chunks.
+Shutdown cancels and drains the job while the JobSystem remains alive. See the
+[owning coordinator contract](../../Engine/Editor/StaticProjectExport.md#graphical-staticview-export-coordinator).
+This is verified StaticView data export; executable compilation, target/device/remote deployment,
+signing and the complete Build workflow remain open.

@@ -53,6 +53,11 @@ NormalizedTransform(Transform transform) noexcept;
 }
 // Column-major 4x4 affine matrix (translation * rotation * scale), double precision.
 using TransformMatrix = std::array<double, 16>;
+struct SceneWorldPose final {
+  Id id{};
+  Transform transform;
+  TransformMatrix matrix;
+};
 [[nodiscard]] NEXORA_RUNTIME_API TransformMatrix ToMatrix(const Transform &transform) noexcept;
 // `a * b` (b applied first). World matrices are products in root-to-leaf order.
 [[nodiscard]] NEXORA_RUNTIME_API TransformMatrix
@@ -124,6 +129,10 @@ public:
   bool Activate(Id scene);
   bool RequestUnload(Id scene);
   void EndFrame();
+  // Editor-owner teardown only. The host destroys document/history owners and drains readers
+  // before this call. Removes the record without recycling IDs; all World vector borrows expire.
+  // Play Worlds retain deferred lifecycle semantics and reject this operation.
+  bool RemoveEditorScene(Id scene) noexcept;
   Entity &CreateEntity(Id scene);
   [[nodiscard]] const Scene *FindScene(Id scene) const;
   [[nodiscard]] const Entity *FindEntity(Id entity) const;
@@ -140,6 +149,10 @@ public:
   [[nodiscard]] std::optional<Transform> WorldTransform(Id entity) const;
   // Exact world matrix (product of the chain's matrices), including any shear.
   [[nodiscard]] std::optional<TransformMatrix> WorldMatrix(Id entity) const;
+  // Owning, scene-storage-order snapshot; expected O(n) work/storage on the owner thread.
+  // Missing/unloading scenes or invalid identities, hierarchy, transforms and affine overflow
+  // reject the whole snapshot. No retained World pointers or persistent transform cache.
+  [[nodiscard]] std::optional<std::vector<SceneWorldPose>> SceneWorldPoses(Id scene) const;
   [[nodiscard]] std::size_t ActiveSceneCount() const;
   [[nodiscard]] World CloneForPlay() const;
   [[nodiscard]] WorldKind Kind() const noexcept { return kind_; }
@@ -183,6 +196,7 @@ public:
   [[nodiscard]] std::span<const Id> LastDestroyed() const noexcept { return last_destroyed_; }
 
 private:
+  friend class SceneEditor;
   struct Command final {
     enum class Kind { Transform, Parent, SiblingIndex, Camera, Light, MeshRenderer, Destroy };
     Id entity{};
@@ -194,6 +208,8 @@ private:
     std::optional<CameraComponent> camera;
     std::optional<LightComponent> light;
     std::optional<MeshComponent> mesh;
+    // Editor history can restore dormant stored data independently of component presence.
+    bool component_present{true};
   };
   std::vector<Command> commands_;
   std::vector<Id> last_destroyed_;

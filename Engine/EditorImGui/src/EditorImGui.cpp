@@ -1,9 +1,11 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
+#include "EditorSystemFont.h"
 #endif
 
 #include <imgui.h>
@@ -18,10 +20,14 @@
 #include <cstdio>
 #include <cstring>
 #include <exception>
+#include <iomanip>
 #include <limits>
+#include <locale>
 #include <optional>
 #include <ranges>
 #include <span>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -86,6 +92,10 @@ struct EditorImGuiHost::State final {
     if (previous != context)
       ImGui::SetCurrentContext(previous);
   }
+  bool diagnostic_privacy_open{}, diagnostic_scope_initialized{};
+  foundation::Uuid diagnostic_scope;
+  std::array<std::optional<std::array<float, 2>>, 2> diagnostic_positions;
+  std::size_t diagnostic_visible_events{}, diagnostic_excluded_events{};
   ImGuiContext *context = nullptr;
   Nexora::Presentation::RenderSurface *surface = nullptr;
   float dpi_scale = 1.0F;
@@ -95,6 +105,11 @@ struct EditorImGuiHost::State final {
   // default of 1.0F here would make that common case a no-op and leave the atlas unbuilt, which
   // ImGui::NewFrame() asserts on.
   float dpi_bucket = 0.0F;
+  // The system CJK font and its glyph ranges outlive every atlas build: ImGui keeps the range
+  // pointer until the atlas is cleared.
+  Nexora::EditorImGuiDetail::SystemCjkFont cjk_font;
+  std::vector<ImWchar> cjk_ranges;
+  bool cjk_probed = false;
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
   std::uint64_t surface_font_domain = 0;
@@ -123,11 +138,47 @@ struct EditorImGuiHost::State final {
   bool memory_import_requested = false;
   std::optional<ProcessMemoryCapture> imported_memory;
   std::array<std::optional<std::array<float, 2>>, 3> memory_control_positions{};
+  bool chrome_trace_open{};
+  std::array<char, 257> chrome_event_name{'F', 'r', 'a', 'm', 'e', 0};
+  std::array<char, 21> chrome_process{'0', 0}, chrome_thread{'0', 0};
+  std::optional<ChromeTraceImportRequest> chrome_trace_request;
+  std::optional<ChromeTraceCapture> imported_chrome_trace;
+  std::array<std::optional<std::array<float, 2>>, 5> chrome_positions{};
   bool gpu_export_requested = false;
   bool gpu_import_requested = false;
   std::optional<GpuTimingCapture> imported_gpu;
   std::array<std::optional<std::array<float, 2>>, 3> gpu_control_positions{};
   bool profile_export_requested = false;
+  std::optional<StaticExportRequest> static_export_request;
+  StaticExportSnapshot static_export;
+  bool static_export_busy{};
+  SceneComparisonSnapshot scene_comparison;
+  std::optional<SceneFileToken> scene_comparison_request;
+  bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
+  bool scene_comparison_cancel_requested{};
+  std::array<std::optional<std::array<float, 2>>, 4> scene_comparison_positions{};
+  std::uint32_t scene_comparison_rendered_rows{};
+  std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
+  bool build_console_open{};
+  bool prefab_isolation_open{};
+  std::optional<PrefabIsolationObservation> prefab_isolation;
+  std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
+  std::array<char, 65> prefab_target{};
+  std::array<char, 1025> prefab_name{};
+  std::array<std::array<char, 64>, 3> prefab_position{};
+  std::optional<SceneDocument::NodeKey> prefab_edit_key;
+  std::string prefab_name_original, prefab_status;
+  std::array<double, 3> prefab_position_original{};
+  std::array<bool, 3> prefab_position_active{};
+  bool prefab_name_active{};
+  std::array<std::optional<std::array<float, 2>>, 15> prefab_positions{};
+  std::uint64_t build_console_scope{};
+  bool build_console_interaction_blocked{};
+  std::array<char, 4096> build_executable{}, build_cwd{};
+  std::vector<std::array<char, 2048>> build_arguments;
+  BuildProcessSnapshot build_console_status;
+  std::string build_console_error, build_console_output;
+  std::array<std::optional<std::array<float, 2>>, 7> build_console_positions{};
   bool profile_json_export_requested = false;
   bool profile_csv_import_requested = false;
   bool profile_json_import_requested = false;
@@ -322,6 +373,17 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
   std::uint32_t inspector_selection = 0;
   std::vector<OpaqueComponentInfo> inspector_opaque_info;
+  ReflectedInspector reflected_inspector;
+  bool reflected_metadata_reload{};
+  std::vector<std::pair<std::string, std::array<float, 2>>> reflected_positions;
+  std::vector<std::pair<std::string, std::array<float, 2>>> reflected_choice_positions;
+  std::vector<std::pair<std::string, bool>> reflected_mixed;
+  std::vector<runtime::TypeId> reflected_rendered_types;
+  std::uint64_t reflected_draft_generation{1};
+  std::optional<ReflectedObservation> reflected_pending;
+  std::string reflected_pending_path;
+  std::array<char, 512> reflected_pending_text{};
+  std::uint64_t reflected_pending_identity{};
   bool inspector_transform_visible = false;
   std::string inspector_error;
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
@@ -337,6 +399,16 @@ struct EditorImGuiHost::State final {
   bool scene_save_requested = false;
   std::string scene_save_message;
   bool scene_save_success = false;
+  std::vector<SceneTabItem> scene_tabs;
+  std::uint64_t scene_tab_active{};
+  SceneFileToken scene_tab_source{};
+  bool scene_tabs_busy{}, scene_tab_popup_pending{};
+  int scene_tab_dialog{}; // 1: owned path, 2: reference path, 3: close choice.
+  std::optional<SceneTabRequest> scene_tab_close, scene_tab_output;
+  std::array<char, 1024> scene_tab_path{};
+  std::string scene_tab_status;
+  std::array<std::optional<std::array<float, 2>>, 11> scene_tab_controls{};
+  std::unordered_map<std::uint64_t, std::array<float, 2>> scene_tab_positions;
   std::array<char, 128> content_query{};
   std::array<char, 64> content_type{};
   std::array<char, 1024> content_rename{};
@@ -370,6 +442,8 @@ struct EditorImGuiHost::State final {
   std::array<char, 1024> selector_root{};
   std::array<char, 256> selector_name{};
   std::optional<ProjectSelectorRequest> selector_request;
+  std::optional<ProjectUpgradeObservation> selector_upgrade;
+  std::array<std::optional<std::array<float, 2>>, 4> selector_upgrade_positions;
   bool selector_cancel_requested = false;
   std::string selector_error;
   std::string selector_status;
@@ -412,6 +486,8 @@ template <typename StateT> void CancelSceneGestures(StateT &state) {
 }
 
 template <typename StateT> void CancelInspectorDrafts(StateT &state) {
+  ++state.reflected_draft_generation;
+  state.reflected_pending.reset();
   if (std::ranges::any_of(state.inspector_transform_active, [](bool active) { return active; }) ||
       std::ranges::any_of(state.inspector_euler_active, [](bool active) { return active; }) ||
       std::ranges::any_of(state.inspector_camera_active, [](bool active) { return active; }) ||
@@ -475,7 +551,8 @@ std::string PathLabel(const std::filesystem::path &path) {
 }
 
 std::optional<std::filesystem::path> PathFromLabel(std::string_view label) {
-  if (label.empty())
+  if (label.empty() || !foundation::IsValidUtf8(label) ||
+      label.find('\0') != std::string_view::npos)
     return std::nullopt;
   try {
     std::u8string encoded;
@@ -500,6 +577,7 @@ void QueueProjectSelection(StateT &state, ProjectSelectorAction action,
     state.selector_error = "Enter a project name before creating it.";
     return;
   }
+  state.selector_upgrade.reset();
   state.selector_error.clear();
   state.selector_request = {action, root, std::move(name), access};
 }
@@ -607,19 +685,27 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
     children[parent].push_back(&node);
   }
 
-  const auto append = [&](auto &&self, runtime::Id parent, std::uint32_t depth) -> void {
-    const auto group = children.find(parent);
-    if (group == children.end())
-      return;
-    for (const auto *node : group->second) {
-      const auto child_group = children.find(node->id);
-      const bool has_children = child_group != children.end() && !child_group->second.empty();
-      rows.push_back({node, depth, has_children});
-      if (has_children && expanded.contains(node->id))
-        self(self, node->id, depth + 1);
-    }
+  // Borrowed nodes live for this synchronous call. Reverse pushes preserve exact sibling order;
+  // explicit work storage grows with input, so a valid deep tree cannot exhaust the native stack.
+  struct Pending final {
+    const SceneDocument::NodeView *node;
+    std::uint32_t depth;
   };
-  append(append, 0, 0);
+  std::vector<Pending> pending;
+  pending.reserve(nodes.size());
+  if (const auto roots = children.find(0); roots != children.end())
+    for (const auto *node : std::views::reverse(roots->second))
+      pending.push_back({node, 0});
+  while (!pending.empty()) {
+    const auto current = pending.back();
+    pending.pop_back();
+    const auto group = children.find(current.node->id);
+    const bool has_children = group != children.end() && !group->second.empty();
+    rows.push_back({current.node, current.depth, has_children});
+    if (has_children && expanded.contains(current.node->id))
+      for (const auto *node : std::views::reverse(group->second))
+        pending.push_back({node, current.depth + 1});
+  }
   return rows;
 }
 
@@ -752,9 +838,16 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
       state.hierarchy_rename_target.reset();
   }
   const auto nodes = scene->Nodes();
-  std::erase_if(state.hierarchy_expanded, [scene](const auto key) {
-    return key.document_generation != scene->Generation() || scene->Key(key.id) != key;
-  });
+  if (!state.hierarchy_expanded.empty()) {
+    std::unordered_map<runtime::Id, SceneDocument::NodeKey> current_keys;
+    current_keys.reserve(nodes.size());
+    for (const auto &node : nodes)
+      current_keys.emplace(node.id, node.Key());
+    std::erase_if(state.hierarchy_expanded, [&](const auto key) {
+      const auto current = current_keys.find(key.id);
+      return current == current_keys.end() || current->second != key;
+    });
+  }
   if (state.hierarchy_selection_anchor &&
       scene->Key(state.hierarchy_selection_anchor->id) != state.hierarchy_selection_anchor)
     state.hierarchy_selection_anchor.reset();
@@ -1328,22 +1421,33 @@ bool FrameSceneSelection(StateT &state, const SceneDocument &scene, bool all = f
   double max_x = -min_x;
   double min_z = min_x;
   double max_z = -min_x;
-  std::vector<runtime::Id> targets(scene.Selection().begin(), scene.Selection().end());
-  if (all) {
-    targets.clear();
-    for (const auto &node : scene.Nodes())
-      targets.push_back(node.id);
-  }
-  for (const auto id : targets) {
-    const auto pose = scene.WorldTransform(id);
-    if (!pose)
+  std::size_t included = 0;
+  const auto include = [&](const runtime::Transform &pose) {
+    ++included;
+    min_x = std::min(min_x, pose.x);
+    max_x = std::max(max_x, pose.x);
+    min_z = std::min(min_z, pose.z);
+    max_z = std::max(max_z, pose.z);
+  };
+  if (all || scene.Selection().size() > 1) {
+    const auto poses = scene.WorldPoses();
+    if (!poses)
       return false;
-    min_x = std::min(min_x, pose->x);
-    max_x = std::max(max_x, pose->x);
-    min_z = std::min(min_z, pose->z);
-    max_z = std::max(max_z, pose->z);
+    const std::unordered_set<runtime::Id> selected(scene.Selection().begin(),
+                                                   scene.Selection().end());
+    for (const auto &pose : *poses)
+      if (all || selected.contains(pose.id))
+        include(pose.transform);
+  } else {
+    for (const auto id : scene.Selection()) {
+      const auto pose = scene.WorldTransform(id);
+      if (!pose)
+        return false;
+      include(*pose);
+    }
   }
-  if (min_x == std::numeric_limits<double>::infinity())
+  if ((!all && included != scene.Selection().size()) ||
+      min_x == std::numeric_limits<double>::infinity())
     return false;
   const double x = min_x * 0.5 + max_x * 0.5;
   const double z = min_z * 0.5 + max_z * 0.5;
@@ -1844,23 +1948,52 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   }
 
   state.scene_markers.clear();
-  for (const auto &node : scene.Nodes()) {
-    const auto pose = scene.WorldTransform(node.id);
-    if (!pose)
-      continue;
-    ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
-                    origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
-    if (state.scene_drag) {
+  const auto nodes = scene.Nodes();
+  const auto poses = scene.WorldPoses();
+  std::unordered_map<runtime::Id, const runtime::Transform *> world_poses;
+  if (poses) {
+    world_poses.reserve(poses->size());
+    for (const auto &pose : *poses)
+      world_poses.emplace(pose.id, &pose.transform);
+  }
+  std::unordered_map<runtime::Id, bool> dragged;
+  if (poses && state.scene_drag && (preview_pixels.x != 0 || preview_pixels.y != 0)) {
+    std::unordered_map<runtime::Id, runtime::Id> parents;
+    parents.reserve(nodes.size());
+    for (const auto &node : nodes)
+      parents.emplace(node.id, node.parent);
+    std::unordered_set<runtime::Id> selected;
+    for (const auto &key : state.scene_drag->entities)
+      selected.insert(key.id);
+    dragged.reserve(nodes.size());
+    std::vector<runtime::Id> path;
+    for (const auto &node : nodes) {
+      path.clear();
       auto ancestor = node.id;
-      while (ancestor != 0) {
-        if (std::ranges::find(state.scene_drag->entities, ancestor, &SceneDocument::NodeKey::id) !=
-            state.scene_drag->entities.end()) {
-          position.x += preview_pixels.x;
-          position.y += preview_pixels.y;
+      while (ancestor && !dragged.contains(ancestor)) {
+        if (selected.contains(ancestor)) {
+          dragged.emplace(ancestor, true);
           break;
         }
-        ancestor = scene.Parent(ancestor).value_or(0);
+        path.push_back(ancestor);
+        const auto parent = parents.find(ancestor);
+        ancestor = parent == parents.end() ? 0 : parent->second;
       }
+      const bool moves = ancestor && dragged.at(ancestor);
+      for (const auto id : path)
+        dragged.emplace(id, moves);
+    }
+  }
+  for (const auto &node : nodes) {
+    const auto found = world_poses.find(node.id);
+    if (found == world_poses.end())
+      continue;
+    const auto *pose = found->second;
+    ImVec2 position{origin.x + static_cast<float>(pose->x) * state.scene_pixels_per_unit,
+                    origin.y + static_cast<float>(pose->z) * state.scene_pixels_per_unit};
+    if (const auto moving = dragged.find(node.id); moving != dragged.end() && moving->second) {
+      position.x += preview_pixels.x;
+      position.y += preview_pixels.y;
     }
     if (!std::isfinite(position.x) || !std::isfinite(position.y) || position.x < min.x - 10.0F ||
         position.x > max.x + 10.0F || position.y < min.y - 10.0F || position.y > max.y + 10.0F)
@@ -2000,6 +2133,223 @@ bool ResetInspectorComponent(StateT &state, SceneDocument &scene,
   return reset;
 }
 
+template <typename StateT> void CaptureSceneTabControl(StateT &state, std::size_t control) {
+  const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+  state.scene_tab_controls[control] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+}
+template <typename StateT> void EmitSceneTab(StateT &state, SceneTabRequest request) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  state.scene_tab_status.clear();
+  state.scene_tab_output = std::move(request);
+}
+template <typename StateT> void DrawSceneTabs(StateT &state, bool allowed, bool writable) {
+  state.scene_tab_controls = {};
+  state.scene_tab_positions.clear();
+  if (state.scene_tabs.empty())
+    return;
+  const auto active =
+      std::ranges::find(state.scene_tabs, state.scene_tab_active, &SceneTabItem::id);
+  if (active == state.scene_tabs.end())
+    return;
+  const bool idle =
+      allowed && !state.scene_tabs_busy && !state.scene_tab_output && !state.scene_tab_dialog;
+  const bool named = std::ranges::all_of(
+      state.scene_tabs, [](const auto &item) { return !item.owned || item.path.has_value(); });
+  const auto begin_close = [&] {
+    SceneTabRequest request{SceneTabAction::Close, state.scene_tab_source, active->id,
+                            active->token};
+    if (active->dirty) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      state.scene_tab_close = request;
+      state.scene_tab_dialog = 3;
+      state.scene_tab_popup_pending = true;
+      state.scene_tab_status.clear();
+    } else
+      EmitSceneTab(state, std::move(request));
+  };
+  if (idle && !ImGui::GetIO().WantTextInput) {
+    const auto route = ImGuiInputFlags_RouteGlobal;
+    if (writable && state.scene_tabs.size() < 16 &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_N, route))
+      EmitSceneTab(state, {SceneTabAction::New, state.scene_tab_source});
+    else if (writable && named && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_S, route))
+      EmitSceneTab(state, {SceneTabAction::SaveAll, state.scene_tab_source});
+    else if (state.scene_tabs.size() < 16 &&
+             (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiMod_Shift | ImGuiKey_O, route) ||
+              ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_O, route))) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      state.scene_tab_path = {};
+      state.scene_tab_dialog = ImGui::GetIO().KeyShift ? 2 : 1;
+      state.scene_tab_popup_pending = true;
+      state.scene_tab_status.clear();
+    } else if (active->closeable &&
+               ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_W, route)) {
+      begin_close();
+    } else {
+      const bool previous = ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_PageUp, route);
+      const bool next = ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_PageDown, route);
+      if ((previous || next) && state.scene_tabs.size() > 1) {
+        const auto index = static_cast<std::size_t>(active - state.scene_tabs.begin());
+        const auto target_index =
+            previous ? (index + state.scene_tabs.size() - 1) % state.scene_tabs.size()
+                     : (index + 1) % state.scene_tabs.size();
+        const auto &target = state.scene_tabs[target_index];
+        EmitSceneTab(state,
+                     {SceneTabAction::Select, state.scene_tab_source, target.id, target.token});
+      }
+    }
+  }
+  ImGui::BeginDisabled(!idle || state.scene_tab_output || state.scene_tab_dialog);
+  if (ImGui::BeginTabBar("Scene documents")) {
+    for (const auto &item : state.scene_tabs) {
+      const auto label = item.label + (item.dirty ? " *" : "") +
+                         (item.owned ? "" : " [reference]") + "###scene-document-" +
+                         std::to_string(item.id);
+      const bool visible = ImGui::BeginTabItem(
+          label.c_str(), nullptr,
+          item.id == state.scene_tab_active ? ImGuiTabItemFlags_SetSelected : 0);
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state.scene_tab_positions[item.id] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      if (ImGui::IsItemClicked() && item.id != state.scene_tab_active)
+        EmitSceneTab(state, {SceneTabAction::Select, state.scene_tab_source, item.id, item.token});
+      if (visible)
+        ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
+  ImGui::BeginDisabled(!writable || state.scene_tabs.size() >= 16);
+  if (ImGui::Button("New additive"))
+    EmitSceneTab(state, {SceneTabAction::New, state.scene_tab_source});
+  CaptureSceneTabControl(state, 0);
+  ImGui::EndDisabled();
+  const auto continue_row = [](const char *label) {
+    const auto &style = ImGui::GetStyle();
+    const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+    if (ImGui::GetItemRectMax().x + style.ItemSpacing.x + ImGui::CalcTextSize(label).x +
+            2 * style.FramePadding.x <=
+        right)
+      ImGui::SameLine();
+  };
+  for (int reference = 0; reference != 2; ++reference) {
+    continue_row(reference ? "Open reference..." : "Open additive...");
+    ImGui::BeginDisabled(state.scene_tabs.size() >= 16);
+    if (ImGui::Button(reference ? "Open reference..." : "Open additive...")) {
+      CancelSceneGestures(state);
+      CancelInspectorDrafts(state);
+      state.scene_tab_path = {};
+      state.scene_tab_dialog = reference ? 2 : 1;
+      state.scene_tab_popup_pending = true;
+      state.scene_tab_status.clear();
+    }
+    CaptureSceneTabControl(state, static_cast<std::size_t>(reference + 1));
+    ImGui::EndDisabled();
+  }
+  continue_row("Save All");
+  ImGui::BeginDisabled(!writable || !named);
+  if (ImGui::Button("Save All"))
+    EmitSceneTab(state, {SceneTabAction::SaveAll, state.scene_tab_source});
+  CaptureSceneTabControl(state, 3);
+  ImGui::EndDisabled();
+  continue_row("Close scene");
+  ImGui::BeginDisabled(!active->closeable);
+  if (ImGui::Button("Close scene"))
+    begin_close();
+  CaptureSceneTabControl(state, 4);
+  ImGui::EndDisabled();
+  ImGui::EndDisabled();
+  if (active->read_only)
+    ImGui::TextDisabled("Read-only scene: resolve the saved scene set before editing.");
+  else if (!active->owned)
+    ImGui::TextDisabled("Reference scene: editing and file writes disabled.");
+  if (!state.scene_tab_status.empty())
+    ImGui::TextWrapped("%s", state.scene_tab_status.c_str());
+  ImGui::Separator();
+}
+
+template <typename StateT> void DrawSceneTabDialog(StateT &state, bool writable, bool cancel) {
+  if (cancel) {
+    state.scene_tab_dialog = 0;
+    state.scene_tab_close.reset();
+    state.scene_tab_output.reset();
+    state.scene_tab_popup_pending = false;
+  }
+  const bool opening = state.scene_tab_popup_pending;
+  if (opening) {
+    ImGui::OpenPopup("Scene documents###editor.scene-tabs");
+    state.scene_tab_popup_pending = false;
+  }
+  const auto size = ImGui::GetMainViewport()->WorkSize;
+  ImGui::SetNextWindowSize({std::max(1.0F, std::min(600.0F, size.x - 24)), 0}, ImGuiCond_Always);
+  if (!ImGui::BeginPopupModal("Scene documents###editor.scene-tabs", nullptr,
+                              ImGuiWindowFlags_AlwaysAutoResize))
+    return;
+  if (!state.scene_tab_dialog) {
+    ImGui::CloseCurrentPopup();
+    ImGui::EndPopup();
+    return;
+  }
+  const bool closing = state.scene_tab_dialog == 3;
+  ImGui::BeginDisabled(state.scene_tabs_busy || state.scene_tab_output.has_value());
+  if (closing && state.scene_tab_close) {
+    ImGui::TextWrapped("This scene has unsaved changes. Save the owned scenes before closing, "
+                       "discard this scene's changes, or keep it open.");
+    const auto target =
+        std::ranges::find(state.scene_tabs, state.scene_tab_close->target, &SceneTabItem::id);
+    ImGui::BeginDisabled(!writable || target == state.scene_tabs.end() || !target->owned);
+    if (ImGui::Button("Save all and close")) {
+      auto request = *state.scene_tab_close;
+      request.save_before_close = true;
+      EmitSceneTab(state, std::move(request));
+    }
+    CaptureSceneTabControl(state, 8);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Discard and close")) {
+      auto request = *state.scene_tab_close;
+      request.discard_dirty = true;
+      EmitSceneTab(state, std::move(request));
+    }
+    CaptureSceneTabControl(state, 9);
+  } else {
+    ImGui::TextUnformatted(state.scene_tab_dialog == 2 ? "Open an inspection-only reference scene."
+                                                       : "Open another scene in this project.");
+    if (opening)
+      ImGui::SetKeyboardFocusHere();
+    const bool submitted =
+        ImGui::InputText("Relative .scene path", state.scene_tab_path.data(),
+                         state.scene_tab_path.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+    CaptureSceneTabControl(state, 5);
+    if (ImGui::Button("Open") || submitted) {
+      const std::string text(state.scene_tab_path.data());
+      if (text.empty() || !foundation::IsValidUtf8(text))
+        state.scene_tab_status = "Choose a valid project-relative scene path.";
+      else {
+        SceneTabRequest request{state.scene_tab_dialog == 2 ? SceneTabAction::OpenReference
+                                                            : SceneTabAction::OpenOwned,
+                                state.scene_tab_source};
+        request.path = std::filesystem::path(std::u8string(text.begin(), text.end()));
+        EmitSceneTab(state, std::move(request));
+      }
+    }
+    CaptureSceneTabControl(state, 6);
+  }
+  ImGui::SameLine();
+  if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+    state.scene_tab_dialog = 0;
+    state.scene_tab_close.reset();
+    ImGui::CloseCurrentPopup();
+  }
+  CaptureSceneTabControl(state, closing ? 10 : 7);
+  ImGui::EndDisabled();
+  if (!state.scene_tab_status.empty())
+    ImGui::TextWrapped("%s", state.scene_tab_status.c_str());
+  ImGui::EndPopup();
+}
+
 template <typename StateT> void CaptureSceneFileControl(StateT &state, std::size_t control) {
   const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
   state.scene_file_positions[control] =
@@ -2057,6 +2407,89 @@ void BeginContentScene(StateT &state, SceneDocument &scene, const std::filesyste
   state.scene_file_popup_pending = true;
 }
 
+template <typename StateT> void CaptureComparisonControl(StateT &state, std::size_t index) {
+  const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+  state.scene_comparison_positions[index] =
+      std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+}
+template <typename StateT> void BeginSceneComparison(StateT &state, bool overwrite = false) {
+  CancelSceneGestures(state);
+  CancelInspectorDrafts(state);
+  state.scene_comparison = {};
+  state.scene_comparison_request = state.scene_file_token;
+  state.scene_comparison_in_overwrite = overwrite;
+  state.scene_comparison_open = !overwrite;
+}
+void ComparisonCell(const std::optional<std::string> &value) {
+  if (!value) {
+    ImGui::TextDisabled("(absent)");
+    return;
+  }
+  if (value->empty()) {
+    ImGui::TextDisabled("(empty)");
+    return;
+  }
+  auto preview = value->substr(0, 128);
+  while (!foundation::IsValidUtf8(preview))
+    preview.pop_back();
+  if (preview.size() != value->size())
+    preview += "...";
+  ImGui::TextUnformatted(preview.c_str());
+  if (ImGui::IsItemHovered()) {
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(600);
+    ImGui::TextUnformatted(value->c_str());
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
+}
+template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
+  const auto &snapshot = state.scene_comparison;
+  ImGui::TextWrapped("%s", snapshot.message.empty() ? "Preparing scene comparison..."
+                                                    : snapshot.message.c_str());
+  if (state.scene_comparison_busy) {
+    if (ImGui::Button("Cancel comparison"))
+      state.scene_comparison_cancel_requested = true;
+    CaptureComparisonControl(state, 2);
+  }
+  state.scene_comparison_rendered_rows = 0;
+  if (!snapshot.result)
+    return;
+  ImGui::Text("Changed fields: %zu   Unresolved conflicts: %zu", snapshot.result->rows.size(),
+              snapshot.result->conflicts);
+  ImGui::TextWrapped("Read-only captured revisions. Choices are hints; replacing a scene still "
+                     "requires the original save confirmation.");
+  if (!ImGui::BeginTable("Semantic fields", 5,
+                         ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX |
+                             ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable,
+                         {0, 240}))
+    return;
+  for (const auto *label : {"Stable field", "Base", "Local", "Disk", "Hint"})
+    ImGui::TableSetupColumn(label, ImGuiTableColumnFlags_WidthFixed, 180);
+  ImGui::TableSetupScrollFreeze(0, 1);
+  ImGui::TableHeadersRow();
+  ImGuiListClipper clipper;
+  clipper.Begin(static_cast<int>(snapshot.result->rows.size()),
+                ImGui::GetTextLineHeightWithSpacing());
+  constexpr const char *choices[] = {"Shared", "Local", "Disk", "Unresolved"};
+  while (clipper.Step())
+    for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+      const auto &row = snapshot.result->rows[static_cast<std::size_t>(i)];
+      ImGui::TableNextRow();
+      ImGui::TableNextColumn();
+      ImGui::TextUnformatted(row.stable_path.c_str());
+      ImGui::TableNextColumn();
+      ComparisonCell(row.base);
+      ImGui::TableNextColumn();
+      ComparisonCell(row.local);
+      ImGui::TableNextColumn();
+      ComparisonCell(row.remote);
+      ImGui::TableNextColumn();
+      ImGui::TextUnformatted(choices[static_cast<unsigned>(row.choice)]);
+      ++state.scene_comparison_rendered_rows;
+    }
+  ImGui::EndTable();
+}
 template <typename StateT>
 void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, bool cancel) {
   if (cancel || !scene || !state.scene_file_context ||
@@ -2081,6 +2514,7 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
                               ImGuiWindowFlags_AlwaysAutoResize))
     return;
   const auto cancel_dialog = [&] {
+    state.scene_comparison_in_overwrite = false;
     state.scene_file_dialog = StateT::FileDialog::None;
     state.scene_file_intent.reset();
     state.scene_file_close_popup = false;
@@ -2120,13 +2554,26 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
   } else if (state.scene_file_dialog == StateT::FileDialog::Overwrite) {
     const auto &path = request.save_path ? *request.save_path : request.path;
     ImGui::TextWrapped("Replace the existing scene at %s?", PathLabel(path).c_str());
-    ImGui::BeginDisabled(!writable);
-    if (ImGui::Button("Replace")) {
-      request.replace_existing = true;
-      emit = true;
+    if (state.scene_comparison_in_overwrite) {
+      DrawSceneComparisonPanel(state);
+      if (ImGui::Button("Back to replacement"))
+        state.scene_comparison_in_overwrite = false;
+      CaptureComparisonControl(state, 3);
+    } else {
+      ImGui::BeginDisabled(state.scene_comparison_busy || !state.scene_file_path ||
+                           path != *state.scene_file_path);
+      if (ImGui::Button("Compare base / local / disk"))
+        BeginSceneComparison(state, true);
+      CaptureComparisonControl(state, 1);
+      ImGui::EndDisabled();
+      ImGui::BeginDisabled(!writable);
+      if (ImGui::Button("Replace")) {
+        request.replace_existing = true;
+        emit = true;
+      }
+      CaptureSceneFileControl(state, 9);
+      ImGui::EndDisabled();
     }
-    CaptureSceneFileControl(state, 9);
-    ImGui::EndDisabled();
   } else {
     const bool opening = state.scene_file_dialog == StateT::FileDialog::OpenPath;
     ImGui::TextUnformatted(opening ? "Open scene" : "Save scene as");
@@ -2288,6 +2735,8 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
   ImGui::EndDragDropTarget();
 }
 
+#include "ReflectedInspectorPanel.inl"
+
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
@@ -2305,6 +2754,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_reset_positions = {};
   state.inspector_clipboard_positions = {};
   state.inspector_opaque_info.clear();
+  state.reflected_choice_positions.clear();
+  state.reflected_positions.clear();
+  state.reflected_mixed.clear();
+  state.reflected_rendered_types.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
     selected_entities.insert(scene->Selection().begin(), scene->Selection().end());
@@ -2338,6 +2791,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     transforms.push_back(*transform);
   }
   state.inspector_transform_visible = true;
+  DrawReflectedInspector(state, *scene, keys, editable);
   if (keys.size() == 1)
     ImGui::Text("%.*s", static_cast<int>(scene->Name(keys.front().id).size()),
                 scene->Name(keys.front().id).data());
@@ -2363,8 +2817,11 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                                          std::make_move_iterator(info->begin()),
                                          std::make_move_iterator(info->end()));
     }
-  std::erase_if(state.inspector_opaque_info,
-                [](const auto &info) { return ReadMaterialAssetReference(info).has_value(); });
+  std::erase_if(state.inspector_opaque_info, [&](const auto &info) {
+    return ReadMaterialAssetReference(info).has_value() ||
+           std::ranges::find(state.reflected_rendered_types, info.type) !=
+               state.reflected_rendered_types.end();
+  });
   if (!state.inspector_opaque_info.empty() &&
       ImGui::CollapsingHeader("Unavailable component data", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::TextWrapped("Read-only: component data is preserved. Restore a compatible plugin or "
@@ -2968,6 +3425,17 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
           "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
   }
 
+  if (!state.static_export.message.empty()) {
+    ImGui::SeparatorText("StaticView export");
+    ImGui::TextWrapped("%s", state.static_export.message.c_str());
+    if (state.static_export.phase == StaticExportPhase::Published) {
+      ImGui::TextWrapped("%s", state.static_export.relative_path.c_str());
+      ImGui::TextWrapped("Verify: %s", state.static_export.verify_command.c_str());
+      ImGui::Text("Bytes: %llu / FNV-1a: %s",
+                  static_cast<unsigned long long>(state.static_export.bytes),
+                  state.static_export.checksum.c_str());
+    }
+  }
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
     ImGui::TextUnformatted("No recent projects.");
@@ -3611,6 +4079,26 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     ImFontConfig config;
     config.SizePixels = 13.0F * bucket;
     fonts.AddFontDefault(&config);
+    if (!state_->cjk_probed) {
+      state_->cjk_probed = true;
+      if (Nexora::EditorImGuiDetail::FindSystemCjkFont(state_->cjk_font)) {
+        for (const auto point : state_->cjk_font.glyph_pairs)
+          state_->cjk_ranges.push_back(static_cast<ImWchar>(point));
+        state_->cjk_ranges.push_back(0);
+      }
+    }
+    // Merge a system CJK font so IME-committed Chinese text has glyphs; without it InputText
+    // receives the characters but draws nothing for them.
+    if (!state_->cjk_ranges.empty()) {
+      ImFontConfig cjk_config;
+      cjk_config.MergeMode = true;
+      cjk_config.SizePixels = 13.0F * bucket;
+      cjk_config.OversampleH = 1;
+      cjk_config.OversampleV = 1;
+      cjk_config.PixelSnapH = true;
+      fonts.AddFontFromFileTTF(state_->cjk_font.path.c_str(), cjk_config.SizePixels, &cjk_config,
+                               state_->cjk_ranges.data());
+    }
     fonts.Build();
     fonts.SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
     ImGui::GetIO().FontGlobalScale = 1.0F / bucket;
@@ -3728,6 +4216,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
                                           ProjectAccess default_access) {
   Activate(state_->context);
   state_->selector_visible = true;
+  state_->selector_upgrade_positions = {};
   state_->selector_recent_projects =
       recent_projects == nullptr
           ? 0
@@ -3755,18 +4244,34 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   const bool focus_root = state_->selector_focus_root && state_->app_focused;
   if (focus_root)
     ImGui::SetWindowFocus();
-  ImGui::InputText("Project root", state_->selector_root.data(), state_->selector_root.size());
+  if (ImGui::InputText("Project root", state_->selector_root.data(),
+                       state_->selector_root.size())) {
+    state_->selector_upgrade.reset();
+    state_->selector_request.reset();
+  }
   if (focus_root) {
     ImGui::FocusItem();
     ImGui::ActivateItemByID(ImGui::GetItemID());
     state_->selector_focus_root = false;
   }
   state_->selector_root_active = ImGui::IsItemActive();
+  state_->selector_upgrade_positions[0] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
   ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
   ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
+  state_->selector_upgrade_positions[3] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
   ImGui::Checkbox("Open read-only", &state_->selector_read_only);
+  state_->selector_upgrade_positions[2] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
 
   const auto typed_root = PathFromLabel(state_->selector_root.data());
+  if (state_->selector_upgrade &&
+      (!typed_root || *typed_root != state_->selector_upgrade->requested_root))
+    state_->selector_upgrade.reset();
   // BeginDisabled does not suppress key chords, so gate the shortcuts on the same conditions that
   // disable their buttons: no new request while an import runs, and no Create when read-only.
   const bool open_requested =
@@ -3793,11 +4298,44 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
       state_->selector_error = "Project root must be non-empty valid UTF-8.";
   }
   ImGui::EndDisabled();
+  ImGui::SameLine();
+  const bool preview_clicked = ImGui::Button("Preview upgrade (Ctrl+Alt+M)");
+  state_->selector_upgrade_positions[1] =
+      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+  const bool preview_requested =
+      preview_clicked || (!state_->selector_busy &&
+                          ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_M));
+  if (preview_requested) {
+    if (typed_root)
+      QueueProjectSelection(*state_, ProjectSelectorAction::Preview, *typed_root, {},
+                            state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                       : ProjectAccess::ReadWrite);
+    else
+      state_->selector_error = "Project root must be non-empty valid UTF-8.";
+  }
   if (state_->selector_read_only)
     ImGui::TextDisabled("Creating a project requires read-write access.");
   if (!state_->selector_error.empty())
     ImGui::TextWrapped("%s", state_->selector_error.c_str());
 
+  if (const auto &preview = state_->selector_upgrade) {
+    ImGui::SeparatorText("Captured project upgrade preview");
+    ImGui::TextWrapped("%s", preview->name.c_str());
+    ImGui::Text("Schema: %u -> %u (%s)", preview->from, preview->to,
+                preview->required ? "upgrade required" : "current");
+    ImGui::Text("Project UUID: %s", preview->project.ToString().c_str());
+    ImGui::Text("Descriptor: %zu bytes; workspace: %zu documents", preview->source_bytes,
+                preview->documents);
+    ImGui::TextWrapped("Root: %s", PathLabel(preview->canonical_root).c_str());
+    if (preview->required)
+      ImGui::TextWrapped(
+          "Read-write Open retains the exact original at .nexora/project-upgrade.schema1.backup "
+          "and a plan report at .nexora/project-upgrade.schema1.report before upgrading. "
+          "Read-only Open leaves the project unchanged.");
+    ImGui::TextWrapped(
+        "Preview wrote no files. Open checks the current source and writer access again.");
+  }
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
     ImGui::TextUnformatted("No recent projects.");
@@ -3826,6 +4364,13 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
 std::optional<ProjectSelectorRequest> EditorImGuiHost::TakeProjectSelectorRequest() {
   auto request = std::move(state_->selector_request);
   state_->selector_request.reset();
+  if (state_->selector_busy)
+    return std::nullopt;
+  if (request && request->action == ProjectSelectorAction::Preview) {
+    const auto current = PathFromLabel(state_->selector_root.data());
+    if (!current || *current != request->root)
+      return std::nullopt;
+  }
   return request;
 }
 
@@ -3842,10 +4387,128 @@ void EditorImGuiHost::SetProjectSelectorError(std::string error) {
 void EditorImGuiHost::SetProjectSelectorStatus(std::string status, bool busy) {
   state_->selector_status = std::move(status);
   state_->selector_busy = busy;
+  if (busy) {
+    state_->selector_upgrade.reset();
+    state_->selector_request.reset();
+  }
 }
 
 std::string_view EditorImGuiHost::ProjectSelectorError() const noexcept {
   return state_->selector_error;
+}
+bool EditorImGuiHost::SetReflectedInspector(const ReflectedInspector &catalog) {
+  Activate(state_->context);
+  state_->reflected_positions.clear();
+  state_->reflected_mixed.clear();
+  return state_->reflected_inspector.SetComponents(catalog.Components());
+}
+bool EditorImGuiHost::TakeReflectedMetadataReloadRequest() noexcept {
+  return std::exchange(state_->reflected_metadata_reload, false);
+}
+
+void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
+                                            foundation::Uuid project) {
+  Activate(state_->context);
+  state_->diagnostic_positions = {};
+  state_->diagnostic_visible_events = state_->diagnostic_excluded_events = 0;
+  if (!state_->diagnostic_scope_initialized || state_->diagnostic_scope != project) {
+    diagnostics.Set(false);
+    state_->diagnostic_scope = project;
+    state_->diagnostic_scope_initialized = true;
+  }
+  if (project.IsNil())
+    diagnostics.Set(false);
+  if (state_->app_focused && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_T))
+    state_->diagnostic_privacy_open = !state_->diagnostic_privacy_open;
+  if (!state_->diagnostic_privacy_open)
+    return;
+  ImGui::SetNextWindowSize({560, 340}, ImGuiCond_FirstUseEver);
+  if (ImGui::Begin("Privacy diagnostics###editor.diagnostic-privacy",
+                   &state_->diagnostic_privacy_open, ImGuiWindowFlags_NoSavedSettings)) {
+    ImGui::TextWrapped("Keep a bounded local diagnostic queue for this project session. "
+                       "Consent is off at startup and resets when the project changes.");
+    ImGui::TextWrapped(
+        "Storage: none. Network transport: none. Built-in events use fixed operational "
+        "labels, without names, paths, source text or commands.");
+    bool enabled = diagnostics.Enabled();
+    ImGui::BeginDisabled(project.IsNil());
+    if (ImGui::Checkbox("Retain local diagnostics for this session", &enabled))
+      diagnostics.Set(enabled);
+    ImGui::SetItemDefaultFocus();
+    state_->diagnostic_positions[0] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    ImGui::EndDisabled();
+    if (ImGui::Button("Clear retained events")) {
+      diagnostics.Set(false);
+      if (enabled && !project.IsNil())
+        diagnostics.Set(true);
+    }
+    state_->diagnostic_positions[1] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    ImGui::Text("Retained: %zu / %zu", diagnostics.Events().size(),
+                TelemetryConsent::kMaximumEvents);
+    ImGui::TextWrapped("Turning consent off immediately forgets every retained event. "
+                       "Re-enabling starts an empty queue.");
+    ImGui::BeginChild("diagnostic-events", {0, 100}, ImGuiChildFlags_Borders);
+    // Display only exact allowlisted labels; generic Core callers can retain arbitrary text.
+    // Unknown records never become text, tooltips, logs or a persisted UI snapshot here.
+    for (const auto &event : diagnostics.Events()) {
+      if (event == "frame.presented") {
+        ++state_->diagnostic_visible_events;
+        if (state_->diagnostic_visible_events <= 128)
+          ImGui::TextUnformatted("Rendered frame presented");
+      } else
+        ++state_->diagnostic_excluded_events;
+    }
+    ImGui::EndChild();
+    if (state_->diagnostic_excluded_events)
+      ImGui::TextDisabled("%zu unrecognized events excluded from display.",
+                          state_->diagnostic_excluded_events);
+  }
+  ImGui::End();
+}
+
+bool EditorImGuiHost::SetProjectUpgradePreview(
+    std::optional<ProjectUpgradeObservation> observation) {
+  if (!observation) {
+    state_->selector_upgrade.reset();
+    return true;
+  }
+  const auto &value = *observation;
+  const auto safe = [](std::string_view text, std::size_t maximum) {
+    if (text.empty() || text.size() > maximum || !foundation::IsValidUtf8(text) ||
+        std::ranges::any_of(text, [](unsigned char c) { return c < 32 || c == 127; }))
+      return false;
+    for (std::size_t i = 0; i + 1 < text.size(); ++i)
+      if (static_cast<unsigned char>(text[i]) == 0xc2 &&
+          static_cast<unsigned char>(text[i + 1]) >= 0x80 &&
+          static_cast<unsigned char>(text[i + 1]) <= 0x9f)
+        return false;
+    return true;
+  };
+  const auto current = PathFromLabel(state_->selector_root.data());
+  if (state_->selector_busy || !current || *current != value.requested_root ||
+      value.project.IsNil() || (value.from != 1 && value.from != 2) || value.to != 2 ||
+      value.required != (value.from == 1) || !value.source_bytes ||
+      value.source_bytes > ProjectWorkspace::kMaximumProjectDescriptorBytes ||
+      value.documents > ProjectWorkspace::kMaximumDocuments || !safe(value.name, 1024) ||
+      !value.canonical_root.is_absolute() || value.canonical_root.native().size() > 4096 ||
+      value.requested_root.native().size() > 1024)
+    return false;
+  try {
+    if (!safe(PathLabel(value.canonical_root), 4096) ||
+        !safe(PathLabel(value.requested_root), 1024))
+      return false;
+  } catch (const std::exception &) {
+    return false;
+  }
+  state_->selector_upgrade = std::move(observation);
+  return true;
+}
+std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview() const {
+  return state_->selector_upgrade;
 }
 
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
@@ -3894,11 +4557,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
   state_->gpu_control_positions = {};
+  state_->chrome_positions = {};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
+    state_->imported_chrome_trace.reset();
+    state_->chrome_trace_request.reset();
+    state_->chrome_trace_open = false;
+    state_->chrome_event_name = {'F', 'r', 'a', 'm', 'e', 0};
+    state_->chrome_process = state_->chrome_thread = {'0', 0};
+    const auto *chrome_window = ImGui::FindWindowByName("Chrome Trace###editor.profiler.chrome");
+    if (chrome_window && ImGui::GetCurrentContext()->ActiveIdWindow == chrome_window)
+      ImGui::ClearActiveID();
     state_->imported_memory.reset();
     state_->imported_gpu.reset();
     state_->gpu_export_requested = false;
@@ -3970,10 +4642,21 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_file_token.document_generation == scene->Generation();
   const bool file_external_block = recovery_available || state_->play_apply_open ||
                                    close_confirmation_open || state_->game_input_binding_open;
-  const bool writable = workspace && workspace->Writable();
-  const bool file_busy =
-      state_->scene_file_dialog != State::FileDialog::None || state_->scene_file_output;
+  const auto active_tab =
+      std::ranges::find(state_->scene_tabs, state_->scene_tab_active, &SceneTabItem::id);
+  const bool tab_context_valid = file_context_valid && active_tab != state_->scene_tabs.end() &&
+                                 active_tab->token == state_->scene_file_token;
+  const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
+  const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
+  state_->build_console_interaction_blocked = file_external_block || tab_modal;
+  const bool writable = workspace && workspace->Writable() && !reference_scene;
+  const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
+                         state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->prefab_isolation_open = !state_->prefab_isolation_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
@@ -3990,6 +4673,40 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::MenuItem("Save As...", "Ctrl+Shift+S", false, writable))
         BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
       CaptureSceneFileControl(*state_, 3);
+      if (ImGui::MenuItem("Compare scene revisions", "Ctrl+Alt+D", false,
+                          !game_running && state_->scene_file_path &&
+                              !state_->scene_comparison_busy))
+        BeginSceneComparison(*state_);
+      CaptureComparisonControl(*state_, 0);
+      ImGui::EndMenu();
+    }
+    state_->static_export_positions = {};
+    if (ImGui::BeginMenu("Build", file_context_valid && !file_external_block && !file_busy)) {
+      const auto capture_position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->static_export_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      if (ImGui::MenuItem("Export StaticView package", nullptr, false,
+                          writable && !game_running && !state_->scene_file_save_blocked &&
+                              state_->scene_file_path && content && content->Writable() &&
+                              !content->ReimportBusy() && !state_->static_export_busy))
+        state_->static_export_request = StaticExportRequest{state_->scene_file_token, false};
+      capture_position(1);
+      if (ImGui::MenuItem("Cancel StaticView export", nullptr, false, state_->static_export_busy))
+        state_->static_export_request = StaticExportRequest{state_->scene_file_token, true};
+      capture_position(2);
+      ImGui::Separator();
+      ImGui::MenuItem("Process console", "Ctrl+Alt+B", &state_->build_console_open);
+      ImGui::EndMenu();
+    } else {
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state_->static_export_positions[0] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+    }
+    if (ImGui::BeginMenu("Settings")) {
+      ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
+      ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
       ImGui::EndMenu();
     }
     if (file_context_valid)
@@ -4000,7 +4717,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                           scene->Dirty() ? " *" : "");
     ImGui::EndMainMenuBar();
   }
-  if (file_context_valid && state_->app_focused && !file_external_block &&
+  if (file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
       state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
       !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
     if (writable && !game_running &&
@@ -4009,17 +4726,21 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     else if (!game_running &&
              ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::Open);
+    else if (!game_running && state_->scene_file_path && !state_->scene_comparison_busy &&
+             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D,
+                             ImGuiInputFlags_RouteGlobal))
+      BeginSceneComparison(*state_);
     else if (writable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
                                          ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::SaveAs);
   }
   const bool external_modal_open =
-      file_external_block || state_->scene_file_dialog != State::FileDialog::None ||
+      file_external_block || tab_modal || state_->scene_file_dialog != State::FileDialog::None ||
       state_->scene_file_output || ImGui::IsPopupOpen("Scene file###editor.scene-file");
   if (!content)
     state_->content_rename_target.reset();
-  const bool rename_editable = (!workspace || workspace->Writable()) && !external_modal_open &&
-                               !state_->content_rename_target;
+  const bool rename_editable = !reference_scene && (!workspace || workspace->Writable()) &&
+                               !external_modal_open && !state_->content_rename_target;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
   const bool interaction_blocked =
       external_modal_open || rename_open || state_->content_rename_target;
@@ -4149,6 +4870,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
+    DrawSceneTabs(*state_,
+                  tab_context_valid && !file_external_block && !game_running &&
+                      state_->scene_file_dialog == State::FileDialog::None &&
+                      !state_->scene_file_output && !state_->content_rename_target,
+                  workspace && workspace->Writable());
     if (workspace && !workspace->Writable())
       ImGui::TextDisabled("Read-only project: scene editing disabled.");
     ImGui::BeginDisabled(scene == nullptr || !scene_editable);
@@ -4496,8 +5222,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + apply_width;
         if (same_line_end <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x)
           ImGui::SameLine();
-        ImGui::BeginDisabled(scene == nullptr || workspace == nullptr || !workspace->Writable() ||
-                             interaction_blocked || state_->close_prompt_requested);
+        ImGui::BeginDisabled(scene == nullptr || !writable || interaction_blocked ||
+                             state_->close_prompt_requested);
         if (ImGui::Button("Apply Changes")) {
           state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
           state_->play_apply_open = true;
@@ -5003,9 +5729,92 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             "Saved Editor wall timing; GPU/memory unavailable. CSV has no project provenance.");
         plot(state_->imported_profile->samples, "Imported frame processing (ms)");
       }
+      ImGui::BeginDisabled(!workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested);
+      if (ImGui::Button("Inspect Chrome trace"))
+        OpenChromeTraceImport();
+      ImGui::EndDisabled();
     }
   }
   ImGui::End();
+  if (state_->chrome_trace_open) {
+    ImGui::SetNextWindowPos({80, 80}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({600, 500}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Chrome Trace###editor.profiler.chrome", &state_->chrome_trace_open)) {
+      ImGui::TextUnformatted("Import .nexora/chrome-trace.json from this project.");
+      ImGui::TextWrapped(
+          "Select complete events by name, process and thread. External intervals "
+          "use their own trace clock; CPU/GPU classification and memory are unavailable.");
+      const auto position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->chrome_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      ImGui::SetNextItemWidth(350);
+      ImGui::InputText("Event name", state_->chrome_event_name.data(),
+                       state_->chrome_event_name.size());
+      position(0);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Process ID", state_->chrome_process.data(), state_->chrome_process.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(1);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Thread ID", state_->chrome_thread.data(), state_->chrome_thread.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(2);
+      ChromeTraceSelection selection;
+      selection.event_name = state_->chrome_event_name.data();
+      const auto integer = [](const auto &text, std::uint64_t &value) {
+        const auto size = std::strlen(text.data());
+        const auto result = std::from_chars(text.data(), text.data() + size, value);
+        return size && result.ec == std::errc{} && result.ptr == text.data() + size &&
+               value <= 9007199254740991ULL;
+      };
+      const bool valid = integer(state_->chrome_process, selection.process) &&
+                         integer(state_->chrome_thread, selection.thread) &&
+                         !selection.event_name.empty();
+      ImGui::BeginDisabled(!valid || !workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested || workspace->HasRecoveryJournal() ||
+                           workspace->HasExternalChange());
+      if (ImGui::Button("Import selected events"))
+        state_->chrome_trace_request = ChromeTraceImportRequest{
+            workspace->Project().id, workspace->Root(), std::move(selection)};
+      position(3);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_chrome_trace);
+      if (ImGui::Button("Clear external import"))
+        state_->imported_chrome_trace.reset();
+      position(4);
+      ImGui::EndDisabled();
+      if (!state_->profile_export_status.empty())
+        ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
+      if (state_->imported_chrome_trace) {
+        const auto &capture = *state_->imported_chrome_trace;
+        ImGui::SeparatorText("External Chrome complete-event intervals (static)");
+        ImGui::Text("Process %llu | Thread %llu | %zu intervals | %llu older dropped",
+                    static_cast<unsigned long long>(capture.selection.process),
+                    static_cast<unsigned long long>(capture.selection.thread),
+                    capture.samples.size(),
+                    static_cast<unsigned long long>(capture.older_samples_dropped));
+        ImGui::TextWrapped("Event: %s", capture.selection.event_name.c_str());
+        ImGui::BeginChild("External intervals", {0, 150}, ImGuiChildFlags_Borders);
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(capture.samples.size()));
+        while (clipper.Step())
+          for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+            const auto &sample = capture.samples[static_cast<std::size_t>(i)];
+            ImGui::Text("%llu | external %.6f us | duration %.6f ms",
+                        static_cast<unsigned long long>(sample.sequence), sample.start_microseconds,
+                        sample.duration_milliseconds);
+          }
+        ImGui::EndChild();
+      }
+    }
+    ImGui::End();
+    if (!state_->chrome_trace_open)
+      state_->chrome_trace_request.reset();
+  }
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
                        file_context_valid && state_->app_focused && !game_running &&
@@ -5198,8 +6007,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
       ImGui::EndChild();
       ImGui::BeginDisabled(conflicts || review.diffs.empty() ||
-                           play->State() != runtime::PlayState::Paused || !workspace ||
-                           !workspace->Writable() || state_->close_prompt_requested);
+                           play->State() != runtime::PlayState::Paused || !workspace || !writable ||
+                           state_->close_prompt_requested);
       if (ImGui::Button("Apply and Stop")) {
         state_->play_apply_requested = state_->play_apply_review;
         state_->play_apply_open = false;
@@ -5246,13 +6055,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
   }
-  if (ImGui::BeginPopupModal("Unsaved scene###editor.close", nullptr,
+  if (ImGui::BeginPopupModal("Unsaved work###editor.close", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     if (state_->scene_file_close_popup) {
       state_->scene_file_close_popup = false;
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextUnformatted("Save scene changes before closing?");
+      ImGui::TextUnformatted(state_->prefab_isolation && state_->prefab_isolation->dirty
+                                 ? "Save your prefab in Prefab Isolation before exiting."
+                             : state_->scene_tabs.empty()
+                                 ? "Save scene changes before closing?"
+                                 : "Save all owned scene changes before closing?");
       if (ImGui::Button("Save and Exit"))
         state_->close_choice = CloseChoice::SaveAndExit;
       ImGui::SameLine();
@@ -5273,6 +6086,83 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       recovery_available || state_->play_apply_open || !file_context_valid ||
           (close_confirmation_open && !state_->scene_file_close_popup &&
            !state_->scene_file_intent.value_or(SceneFileRequest{}).close_after_save));
+  DrawSceneTabDialog(*state_, workspace && workspace->Writable(),
+                     !tab_context_valid || recovery_available || state_->play_apply_open ||
+                         close_confirmation_open || game_running ||
+                         state_->scene_file_dialog != State::FileDialog::None ||
+                         state_->scene_file_output || state_->game_input_binding_open);
+  if (state_->scene_comparison_open && file_context_valid && !file_external_block) {
+    const auto size = ImGui::GetMainViewport()->WorkSize;
+    ImGui::SetNextWindowSize({std::min(960.0F, std::max(1.0F, size.x - 24)),
+                              std::min(440.0F, std::max(1.0F, size.y - 24))},
+                             ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Scene comparison###editor.scene-comparison", &state_->scene_comparison_open))
+      DrawSceneComparisonPanel(*state_);
+    ImGui::End();
+  }
+}
+
+bool EditorImGuiHost::SetSceneTabs(std::span<const SceneTabItem> items, std::uint64_t active,
+                                   bool busy) {
+  if (items.size() > 16 || (items.empty() && active))
+    return false;
+  const auto selected = std::ranges::find(items, active, &SceneTabItem::id);
+  if (!items.empty() && selected == items.end())
+    return false;
+  std::unordered_set<std::uint64_t> ids, generations;
+  for (const auto &item : items) {
+    if (!item.id || !item.token.document_generation || item.token.project == foundation::Uuid{} ||
+        item.token.project != selected->token.project || !ids.insert(item.id).second ||
+        !generations.insert(item.token.document_generation).second || item.label.empty() ||
+        item.label.size() > 256 || !foundation::IsValidUtf8(item.label) ||
+        std::ranges::any_of(item.label, [](unsigned char c) { return c < 32 || c == 127; }))
+      return false;
+    if (item.path) {
+      const auto bytes = item.path->generic_u8string();
+      if (bytes.empty() || bytes.size() >= 1024 ||
+          !foundation::IsValidUtf8(
+              std::string_view(reinterpret_cast<const char *>(bytes.data()), bytes.size())))
+        return false;
+    }
+  }
+  std::vector<SceneTabItem> next(items.begin(), items.end());
+  const auto source = items.empty() ? SceneFileToken{} : selected->token;
+  const auto live_target = [&](const std::optional<SceneTabRequest> &request) {
+    if (!request || !request->target)
+      return true;
+    const auto target = std::ranges::find(items, request->target, &SceneTabItem::id);
+    return target != items.end() && target->token == request->target_token;
+  };
+  if (source != state_->scene_tab_source || !live_target(state_->scene_tab_close) ||
+      !live_target(state_->scene_tab_output)) {
+    CancelSceneGestures(*state_);
+    CancelInspectorDrafts(*state_);
+    state_->scene_tab_dialog = 0;
+    state_->scene_tab_close.reset();
+    state_->scene_tab_output.reset();
+    state_->scene_tab_popup_pending = false;
+    state_->scene_tab_path = {};
+    state_->scene_tab_status.clear();
+    state_->scene_save_requested = false;
+  }
+  state_->scene_tabs = std::move(next);
+  state_->scene_tab_active = active;
+  state_->scene_tab_source = source;
+  state_->scene_tabs_busy = busy;
+  return true;
+}
+std::optional<SceneTabRequest> EditorImGuiHost::TakeSceneTabRequest() {
+  return std::exchange(state_->scene_tab_output, std::nullopt);
+}
+void EditorImGuiHost::SetSceneTabStatus(std::string message, bool success) {
+  state_->scene_tab_status = message.size() <= 4096 && foundation::IsValidUtf8(message)
+                                 ? std::move(message)
+                                 : "The scene action returned an invalid diagnostic.";
+  if (success) {
+    state_->scene_tab_dialog = 0;
+    state_->scene_tab_close.reset();
+    state_->scene_tab_popup_pending = false;
+  }
 }
 
 bool EditorImGuiHost::TakeSceneSaveRequest() noexcept {
@@ -5291,7 +6181,15 @@ void EditorImGuiHost::SetSceneSaveResult(std::string message, bool success) {
 void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
                                           std::optional<std::filesystem::path> path,
                                           bool save_blocked) {
-  if (state_->scene_file_context && state_->scene_file_token != token) {
+  if (state_->scene_file_context &&
+      (state_->scene_file_token != token || state_->scene_file_path != path)) {
+    state_->scene_comparison = {};
+    state_->scene_comparison_request.reset();
+    state_->scene_comparison_open = false;
+    state_->scene_comparison_in_overwrite = false;
+    state_->static_export_request.reset();
+    state_->static_export = {};
+    state_->static_export_busy = false;
     state_->scene_file_intent.reset();
     state_->scene_file_output.reset();
     state_->scene_file_dialog = State::FileDialog::None;
@@ -5306,6 +6204,71 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 }
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
+}
+std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
+  return std::exchange(state_->scene_comparison_request, std::nullopt);
+}
+bool EditorImGuiHost::TakeSceneComparisonCancelRequest() noexcept {
+  return std::exchange(state_->scene_comparison_cancel_requested, false);
+}
+void EditorImGuiHost::SetSceneComparisonStatus(SceneComparisonSnapshot snapshot, bool busy) {
+  if (snapshot.operation &&
+      (!state_->scene_file_context || snapshot.token != state_->scene_file_token ||
+       state_->scene_file_path != snapshot.path)) {
+    snapshot = {};
+    snapshot.message = busy ? "Previous scene comparison is draining."
+                            : "Previous scene comparison was discarded.";
+  }
+  const auto safe = [](std::string_view value) {
+    return foundation::IsValidUtf8(value) &&
+           std::ranges::none_of(value, [](unsigned char c) { return c < 32 || c == 127; });
+  };
+  if (snapshot.message.size() > 1024 || !safe(snapshot.message))
+    return;
+  if (snapshot.result && (!snapshot.operation || snapshot.phase != SceneComparisonPhase::Ready))
+    snapshot.result.reset();
+  if (snapshot.result && snapshot.result != state_->scene_comparison.result) {
+    bool valid = snapshot.result->rows.size() <= SceneComparison::kMaximumRows;
+    std::size_t bytes = 0, conflicts = 0;
+    for (const auto &row : snapshot.result->rows) {
+      if (!valid)
+        break;
+      valid = row.stable_path.size() <= 1024 && safe(row.stable_path) &&
+              static_cast<unsigned>(row.choice) <=
+                  static_cast<unsigned>(SceneComparisonChoice::Unresolved);
+      std::size_t count = row.stable_path.size();
+      for (const auto *value : {&row.base, &row.local, &row.remote})
+        if (*value) {
+          valid = valid && (*value)->size() <= SceneComparison::kMaximumValueBytes && safe(**value);
+          count += (*value)->size();
+        }
+      valid = valid && count <= SceneComparison::kMaximumResultBytes - bytes;
+      if (!valid)
+        break;
+      bytes += count;
+      conflicts += row.choice == SceneComparisonChoice::Unresolved;
+    }
+    valid = valid && conflicts == snapshot.result->conflicts;
+    if (!valid) {
+      snapshot.result.reset();
+      snapshot.phase = SceneComparisonPhase::Failed;
+      snapshot.message = "Scene comparison observation exceeds safe display limits.";
+    }
+  }
+  state_->scene_comparison = std::move(snapshot);
+  state_->scene_comparison_busy = busy;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->scene_comparison_positions.size()
+             ? host.state_->scene_comparison_positions[index]
+             : std::nullopt;
+}
+SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const EditorImGuiHost &host) {
+  return host.state_->scene_comparison;
+}
+std::uint32_t EditorImGuiTestAccess::SceneComparisonRenderedRows(const EditorImGuiHost &host) {
+  return host.state_->scene_comparison_rendered_rows;
 }
 void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
                                          std::optional<std::filesystem::path> suggested_path) {
@@ -5459,8 +6422,40 @@ bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
   state_->imported_gpu = std::move(capture);
   return true;
 }
+void EditorImGuiHost::OpenChromeTraceImport() noexcept { state_->chrome_trace_open = true; }
+std::optional<ChromeTraceImportRequest> EditorImGuiHost::TakeChromeTraceImportRequest() {
+  return std::exchange(state_->chrome_trace_request, std::nullopt);
+}
+bool EditorImGuiHost::SetImportedChromeTrace(ChromeTraceCapture capture) {
+  if (state_->profile_project_root.empty() || !ChromeTraceImporter::Validate(capture))
+    return false;
+  state_->imported_chrome_trace = std::move(capture);
+  return true;
+}
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
   state_->profile_export_status = std::move(message);
+}
+
+std::optional<StaticExportRequest> EditorImGuiHost::TakeStaticExportRequest() {
+  return std::exchange(state_->static_export_request, std::nullopt);
+}
+void EditorImGuiHost::SetStaticExportStatus(StaticExportSnapshot snapshot, bool busy) {
+  if (snapshot.operation &&
+      (!state_->scene_file_context || snapshot.source_project != state_->scene_file_token.project ||
+       snapshot.document_generation != state_->scene_file_token.document_generation)) {
+    snapshot = {};
+    if (busy)
+      snapshot.message = "A previous-scene export is pending; cancel or wait for its state check.";
+  }
+  if (snapshot.message.size() > 1024 || snapshot.relative_path.size() > 1024 ||
+      snapshot.verify_command.size() > 1024 || snapshot.checksum.size() > 64 ||
+      !foundation::IsValidUtf8(snapshot.message) ||
+      !foundation::IsValidUtf8(snapshot.relative_path) ||
+      !foundation::IsValidUtf8(snapshot.verify_command) ||
+      !foundation::IsValidUtf8(snapshot.checksum))
+    return;
+  state_->static_export = std::move(snapshot);
+  state_->static_export_busy = busy;
 }
 
 PlayCommand EditorImGuiHost::TakePlayCommand() noexcept {
@@ -5962,6 +6957,9 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
   state_->surface = &surface;
 }
 
+#include "BuildProcessPanel.inl"
+#include "PrefabIsolationPanel.inl"
+
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);
   ImGui::Render();
@@ -5998,6 +6996,16 @@ bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryC
 std::string_view EditorImGuiHost::RecoveryError() const noexcept { return state_->recovery_error; }
 
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::DiagnosticPosition(const EditorImGuiHost &host, std::size_t control) {
+  return control < host.state_->diagnostic_positions.size()
+             ? host.state_->diagnostic_positions[control]
+             : std::nullopt;
+}
+std::array<std::size_t, 2> EditorImGuiTestAccess::DiagnosticRows(const EditorImGuiHost &host) {
+  return {host.state_->diagnostic_visible_events, host.state_->diagnostic_excluded_events};
+}
+
 EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto &io = ImGui::GetIO();
@@ -6035,6 +7043,14 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->app_focused,
           host.state_->selector_focus_root,
           host.state_->selector_root_active};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProjectUpgradePosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->selector_upgrade_positions.size()
+             ? host.state_->selector_upgrade_positions[control]
+             : std::nullopt;
 }
 
 std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHost &host) noexcept {
@@ -6082,11 +7098,35 @@ std::vector<OpaqueComponentInfo>
 EditorImGuiTestAccess::InspectorOpaqueInfo(const EditorImGuiHost &host) {
   return host.state_->inspector_opaque_info;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ReflectedPropertyPosition(const EditorImGuiHost &host,
+                                                 std::string_view path) {
+  for (const auto &[name, point] : host.state_->reflected_positions)
+    if (name == path)
+      return point;
+  return {};
+}
+std::optional<bool> EditorImGuiTestAccess::ReflectedPropertyMixed(const EditorImGuiHost &host,
+                                                                  std::string_view path) {
+  for (const auto &[name, mixed] : host.state_->reflected_mixed)
+    if (name == path)
+      return mixed;
+  return {};
+}
 
 std::array<float, 2> EditorImGuiTestAccess::PointerPosition(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto position = ImGui::GetIO().MousePos;
   return {position.x, position.y};
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ReflectedChoicePosition(const EditorImGuiHost &host, std::string_view path,
+                                               std::string_view label) {
+  const std::string key = std::string(path) + "/" + std::string(label);
+  for (const auto &[name, point] : host.state_->reflected_choice_positions)
+    if (name == key)
+      return point;
+  return {};
 }
 
 std::optional<std::array<float, 2>>
@@ -6223,6 +7263,16 @@ EditorImGuiTestAccess::MemoryControlPosition(const EditorImGuiHost &host,
              ? host.state_->memory_control_positions[control]
              : std::nullopt;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ChromeTraceControlPosition(const EditorImGuiHost &host,
+                                                  std::size_t index) noexcept {
+  return index < host.state_->chrome_positions.size() ? host.state_->chrome_positions[index]
+                                                      : std::nullopt;
+}
+const ChromeTraceCapture *
+EditorImGuiTestAccess::ImportedChromeTrace(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_chrome_trace ? &*host.state_->imported_chrome_trace : nullptr;
+}
 const ProcessMemoryCapture *
 EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {
   return host.state_->imported_memory ? &*host.state_->imported_memory : nullptr;
@@ -6351,6 +7401,27 @@ void EditorImGuiTestAccess::QueueHierarchyMove(EditorImGuiHost &host, SceneDocum
   host.state_->hierarchy_move_request = {entity, parent, index};
 }
 
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneTabPosition(const EditorImGuiHost &host, std::uint64_t id) {
+  const auto at = host.state_->scene_tab_positions.find(id);
+  return at == host.state_->scene_tab_positions.end() ? std::nullopt : std::optional(at->second);
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneTabControl(const EditorImGuiHost &host, std::size_t control) {
+  return control < host.state_->scene_tab_controls.size() ? host.state_->scene_tab_controls[control]
+                                                          : std::nullopt;
+}
+void EditorImGuiTestAccess::SetSceneTabPath(EditorImGuiHost &host, std::string_view text) {
+  Activate(host.state_->context);
+  ImGui::ClearActiveID();
+  host.state_->scene_tab_path = {};
+  std::copy_n(text.begin(), std::min(text.size(), host.state_->scene_tab_path.size() - 1),
+              host.state_->scene_tab_path.begin());
+}
+std::vector<SceneTabItem> EditorImGuiTestAccess::SceneTabs(const EditorImGuiHost &host) {
+  return host.state_->scene_tabs;
+}
+
 std::string_view EditorImGuiTestAccess::SceneFileText(const EditorImGuiHost &host) noexcept {
   return host.state_->scene_file_text.data();
 }
@@ -6384,6 +7455,23 @@ void EditorImGuiTestAccess::QueueHierarchyExpansion(EditorImGuiHost &host,
                                                     SceneDocument::NodeKey entity,
                                                     bool expanded) noexcept {
   host.state_->hierarchy_expansion_request = std::pair{entity, expanded};
+}
+
+void EditorImGuiTestAccess::SetHierarchyExpanded(EditorImGuiHost &host,
+                                                 std::span<const SceneDocument::NodeKey> keys) {
+  host.state_->hierarchy_expanded.assign(keys.begin(), keys.end());
+}
+
+std::vector<EditorHierarchyTestRow>
+EditorImGuiTestAccess::HierarchyRows(const EditorImGuiHost &host, const SceneDocument &document) {
+  const auto nodes = document.Nodes();
+  const auto rows = BuildHierarchyRows(*host.state_, nodes,
+                                       std::string_view(host.state_->hierarchy_filter.data()));
+  std::vector<EditorHierarchyTestRow> result;
+  result.reserve(rows.size());
+  for (const auto &row : rows)
+    result.push_back({row.node->Key(), row.depth, row.has_children});
+  return result;
 }
 
 void EditorImGuiTestAccess::QueueHierarchyRename(EditorImGuiHost &host,
@@ -6610,6 +7698,16 @@ std::vector<std::byte> EditorImGuiTestAccess::NativeTexturePixels(const EditorIm
       textures[index].generation != generation)
     return {};
   return textures[index].pixels;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::StaticExportPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->static_export_positions.size()
+             ? host.state_->static_export_positions[index]
+             : std::nullopt;
+}
+StaticExportSnapshot EditorImGuiTestAccess::StaticExportStatus(const EditorImGuiHost &host) {
+  return host.state_->static_export;
 }
 
 std::uint32_t EditorImGuiTestAccess::OverrideDrawTexture(EditorImGuiHost &host,

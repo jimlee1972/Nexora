@@ -1,9 +1,52 @@
+add_executable(NexoraDiagnosticPrivacyTests DiagnosticPrivacyTests.cpp)
+target_include_directories(NexoraDiagnosticPrivacyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraDiagnosticPrivacyTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraDiagnosticPrivacyTests)
+add_test(NAME editor.diagnostic_privacy COMMAND NexoraDiagnosticPrivacyTests)
+add_executable(NexoraProjectUpgradeUiTests ProjectUpgradeTests.cpp)
+target_include_directories(NexoraProjectUpgradeUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraProjectUpgradeUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraProjectUpgradeUiTests)
+add_test(NAME editor.project_upgrade_ui COMMAND NexoraProjectUpgradeUiTests)
+add_executable(NexoraBuildProcessConsoleTests BuildProcessConsoleTests.cpp)
+target_include_directories(NexoraBuildProcessConsoleTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraBuildProcessConsoleTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraBuildProcessConsoleTests)
+add_dependencies(NexoraBuildProcessConsoleTests NexoraBuildProcessFixture)
+add_test(NAME editor.build_process_console COMMAND NexoraBuildProcessConsoleTests "$<TARGET_FILE:NexoraBuildProcessFixture>")
+set_tests_properties(editor.build_process_console PROPERTIES TIMEOUT 60)
+
 add_executable(NexoraEditorImGuiTests EditorImGuiTests.cpp)
 target_include_directories(NexoraEditorImGuiTests
   PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
+add_executable(NexoraSceneComparisonUiTests SceneComparisonTests.cpp)
+target_include_directories(NexoraSceneComparisonUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSceneComparisonUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneComparisonUiTests)
+add_test(NAME editor.semantic_scene_comparison_ui COMMAND NexoraSceneComparisonUiTests)
+
+add_executable(NexoraDeepHierarchyTests DeepHierarchyTests.cpp)
+target_include_directories(NexoraDeepHierarchyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraDeepHierarchyTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraDeepHierarchyTests)
+add_test(NAME editor.deep_hierarchy COMMAND NexoraDeepHierarchyTests)
+set_tests_properties(editor.deep_hierarchy PROPERTIES TIMEOUT 180)
+
+add_executable(NexoraOverviewPoseTests OverviewPoseTests.cpp)
+target_include_directories(NexoraOverviewPoseTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraOverviewPoseTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraOverviewPoseTests)
+add_test(NAME editor.overview_pose_snapshot COMMAND NexoraOverviewPoseTests)
+set_tests_properties(editor.overview_pose_snapshot PROPERTIES TIMEOUT 180)
+
+add_executable(NexoraSceneTabTests SceneTabTests.cpp)
+target_include_directories(NexoraSceneTabTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraSceneTabTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneTabTests)
+add_test(NAME editor.scene_tabs COMMAND NexoraSceneTabTests)
 
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
 target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
@@ -158,6 +201,33 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_prefab_isolation
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabIsolation.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_isolation PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_reflected_inspector
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedInspector.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_reflected_inspector PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_diagnostic_privacy
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDiagnosticPrivacy.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_diagnostic_privacy PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_project_upgrade
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProjectUpgrade.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_project_upgrade PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_xvfb_lifetime
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxXvfbLifetime.py"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --editor-helper "${CMAKE_CURRENT_SOURCE_DIR}/LinuxDisplayAcceptance.py"
+      --showcase-helper "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVirtualDisplaySmoke.py")
+  set_tests_properties(editor.linux_xvfb_lifetime PROPERTIES TIMEOUT 40
+    LABELS "virtual-display")
   add_test(
     NAME editor.linux_scene_files
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneFiles.py"
@@ -166,6 +236,19 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   # This workflow includes several native launches; individual waits still fail after 10 seconds.
   set_tests_properties(editor.linux_scene_files PROPERTIES TIMEOUT 120)
+  add_test(NAME editor.linux_scene_comparison
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneComparison.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_scene_comparison PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  if(NEXORA_BUILD_PROJECT_PLAYER)
+    add_test(NAME editor.linux_static_project_export
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxStaticProjectExport.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --player "$<TARGET_FILE:NexoraProjectPlayer>"
+        --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+    set_tests_properties(editor.linux_static_project_export PROPERTIES TIMEOUT 60
+      LABELS "vulkan;virtual-display")
+  endif()
   add_test(
     NAME editor.linux_display_acceptance
     COMMAND "${Python3_EXECUTABLE}"
@@ -180,6 +263,18 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProcessMemory.py"
             --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}")
   set_tests_properties(editor.linux_process_memory PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_build_process_console
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxBuildProcessConsole.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraBuildProcessFixture>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_build_process_console PROPERTIES TIMEOUT 90)
+
+  add_test(NAME editor.linux_native_scene_tabs
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeSceneTabs.py"
+            --editor "$<TARGET_FILE:NexoraEditor>"
+            --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+            --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_scene_tabs PROPERTIES TIMEOUT 90)
   add_test(
     NAME editor.linux_native_scene_preview
     COMMAND "${Python3_EXECUTABLE}"
@@ -446,3 +541,20 @@ target_link_libraries(NexoraGpuCaptureDisplayTests PRIVATE Nexora::EditorImGui)
 target_include_directories(NexoraGpuCaptureDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 nexora_apply_defaults(NexoraGpuCaptureDisplayTests)
 add_test(NAME editor.gpu_capture_display COMMAND NexoraGpuCaptureDisplayTests)
+add_executable(NexoraStaticProjectExportUiTests StaticProjectExportTests.cpp)
+target_link_libraries(NexoraStaticProjectExportUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraStaticProjectExportUiTests PRIVATE ../../Engine/EditorImGui/src)
+nexora_apply_defaults(NexoraStaticProjectExportUiTests)
+add_test(NAME editor.static_project_export_ui COMMAND NexoraStaticProjectExportUiTests)
+set_tests_properties(editor.static_project_export_ui PROPERTIES TIMEOUT 60)
+add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
+target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraReflectedInspectorUiTests)
+add_test(NAME editor.reflected_inspector_ui COMMAND NexoraReflectedInspectorUiTests)
+
+add_executable(NexoraChromeTraceDisplayTests ChromeTraceDisplayTests.cpp)
+target_link_libraries(NexoraChromeTraceDisplayTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraChromeTraceDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraChromeTraceDisplayTests)
+add_test(NAME editor.chrome_trace_display COMMAND NexoraChromeTraceDisplayTests)

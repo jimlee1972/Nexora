@@ -18,16 +18,53 @@ namespace nexora::editor {
 
 enum class CapabilityState { Implemented, ReadOnly, Unavailable };
 
+// Declared host operations, not grants or a native-code sandbox. The host must authorize each
+// actual operation independently, including writable access and current document generation.
+enum class ToolPermission : std::uint32_t {
+  ReadDocument = 1,
+  EditDocument = 2,
+  Preview = 4,
+  SaveDocument = 8
+};
+struct ToolResourceBudget final {
+  std::uint64_t document_bytes{65536};
+  std::uint64_t preview_bytes{8 * 1024 * 1024};
+  std::uint32_t pending_operations{1};
+};
+
 struct ToolDescriptor final {
   std::string id;
   std::string title;
   CapabilityState state{CapabilityState::Unavailable};
   std::string reason;
+  // Appended defaults preserve the original four-field aggregate callers. Empty contribution
+  // lists describe a discovery-only capability; they do not prove a production tool workflow.
+  std::uint32_t schema_version{1};
+  std::uint32_t interface_version{1};
+  std::string provider_id{"builtin"};
+  std::uint32_t required_permissions{static_cast<std::uint32_t>(ToolPermission::ReadDocument)};
+  std::vector<std::string> document_types{};
+  std::vector<std::string> contributions{};
+  ToolResourceBudget budget{};
 };
 
+// Authoring-thread serialized owning metadata only. No callbacks, native handles or plugin borrows.
 class NEXORA_EDITOR_API SpecializedToolRegistry final {
 public:
-  bool Register(ToolDescriptor descriptor);
+  static constexpr std::size_t kMaximumTools = 128;
+  static constexpr std::size_t kMaximumIdBytes = 128;
+  static constexpr std::size_t kMaximumTitleBytes = 256;
+  static constexpr std::size_t kMaximumReasonBytes = 1024;
+  static constexpr std::size_t kMaximumIdentifiers = 16;
+  static constexpr std::size_t kMaximumDescriptorBytes = 4096;
+  static constexpr std::uint64_t kMaximumDocumentBytes = 16 * 1024 * 1024;
+  static constexpr std::uint64_t kMaximumPreviewBytes = 128 * 1024 * 1024;
+  static constexpr std::uint32_t kMaximumPendingOperations = 64;
+  [[nodiscard]] static bool Validate(const ToolDescriptor &, std::string *error = nullptr);
+  bool Register(ToolDescriptor descriptor, std::string *error = nullptr);
+  bool Remove(std::string_view id) noexcept;
+  [[nodiscard]] std::vector<ToolDescriptor> Snapshot() const { return tools_; }
+  // Borrowed views expire on the next registry mutation. Use Snapshot across unload/removal.
   [[nodiscard]] const ToolDescriptor *Find(std::string_view id) const noexcept;
   [[nodiscard]] std::span<const ToolDescriptor> Tools() const noexcept { return tools_; }
 
@@ -54,9 +91,26 @@ struct BuildManifest final {
   std::vector<BuildArtifact> artifacts;
 };
 
+// Caller-captured owning bytes. Capture consistency and target completeness are caller contracts.
+struct BuildArtifactInput final {
+  std::string path;
+  std::vector<std::byte> bytes;
+};
+
 class NEXORA_EDITOR_API BuildFrontend final {
 public:
+  static constexpr std::size_t kMaximumVerifiedArtifacts = 64;
+  static constexpr std::size_t kMaximumVerifiedArtifactBytes = 16 * 1024 * 1024;
+  static constexpr std::size_t kMaximumVerifiedTotalBytes = 64 * 1024 * 1024;
+  static constexpr std::size_t kMaximumVerifiedPathBytes = 1024;
+  static constexpr std::size_t kMaximumVerifiedCommandBytes = 32 * 1024;
   [[nodiscard]] static bool Validate(const BuildManifest &manifest, std::string *error = nullptr);
+  // Serialized synchronous verification of an exact nonempty bounded set. Checksums must be
+  // canonical sha256:<64 lowercase hex digits>. No IO, process/target success, lifetime retention,
+  // publication or permission grant. An unavailable SHA-256 provider always rejects.
+  [[nodiscard]] static bool VerifyArtifacts(const BuildManifest &manifest,
+                                            std::span<const BuildArtifactInput> inputs,
+                                            std::string *error = nullptr);
   [[nodiscard]] static bool Write(const BuildManifest &manifest, const std::filesystem::path &path,
                                   std::string *error = nullptr);
 };

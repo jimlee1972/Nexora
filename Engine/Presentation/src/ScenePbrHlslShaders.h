@@ -873,7 +873,8 @@ float NexoraApplyShadowBias_0(float receiverDepth_0, float normalBias_0, float s
 {
 
 
-    return receiverDepth_0 - max(normalBias_0, 0.0f) - (1.0f - saturate(nDotL_0)) * max(slopeBias_0, 0.0f);
+)NEXORA_PBR"
+    R"NEXORA_PBR(    return receiverDepth_0 - max(normalBias_0, 0.0f) - (1.0f - saturate(nDotL_0)) * max(slopeBias_0, 0.0f);
 }
 
 float NexoraEvaluatePcf4_0(float receiverDepth_1, float4 shadowDepths_0, float bias_0)
@@ -1350,7 +1351,8 @@ R"NEXORA_PBR(lse
     {
 
 #line 245
-        n_2 = - n_1;
+)NEXORA_PBR"
+    R"NEXORA_PBR(        n_2 = - n_1;
 
 #line 245
     }

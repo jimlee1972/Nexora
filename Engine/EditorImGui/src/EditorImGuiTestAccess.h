@@ -51,9 +51,33 @@ struct EditorImGuiTestState final {
   bool selector_root_active = false;
 };
 
+struct EditorHierarchyTestRow final {
+  SceneDocument::NodeKey key;
+  std::uint32_t depth{};
+  bool has_children{};
+};
+
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  DiagnosticPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static std::array<std::size_t, 2> DiagnosticRows(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>> SceneTabPosition(const EditorImGuiHost &,
+                                                                            std::uint64_t);
+  [[nodiscard]] static std::optional<std::array<float, 2>> SceneTabControl(const EditorImGuiHost &,
+                                                                           std::size_t);
+  static void SetSceneTabPath(EditorImGuiHost &, std::string_view);
+  [[nodiscard]] static std::vector<SceneTabItem> SceneTabs(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneComparisonPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static SceneComparisonSnapshot SceneComparisonStatus(const EditorImGuiHost &);
+  [[nodiscard]] static std::uint32_t SceneComparisonRenderedRows(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  StaticExportPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static StaticExportSnapshot StaticExportStatus(const EditorImGuiHost &);
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ProjectUpgradePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::string_view ProjectSelectorRoot(const EditorImGuiHost &host) noexcept;
   // Deterministic event batches default to portable Ctrl semantics; production OS policy is
   // untouched.
@@ -68,6 +92,13 @@ public:
   static void SetHierarchyFilter(EditorImGuiHost &host, std::string_view filter) noexcept;
   [[nodiscard]] static std::vector<OpaqueComponentInfo>
   InspectorOpaqueInfo(const EditorImGuiHost &host);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ReflectedPropertyPosition(const EditorImGuiHost &host, std::string_view path);
+  [[nodiscard]] static std::optional<bool> ReflectedPropertyMixed(const EditorImGuiHost &host,
+                                                                  std::string_view path);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ReflectedChoicePosition(const EditorImGuiHost &host, std::string_view path,
+                          std::string_view label);
   [[nodiscard]] static std::array<float, 2> PointerPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;
@@ -111,6 +142,10 @@ public:
   GpuControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static const GpuTimingCapture *
   ImportedGpuCapture(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ChromeTraceControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static const ChromeTraceCapture *
+  ImportedChromeTrace(const EditorImGuiHost &) noexcept;
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
@@ -167,6 +202,10 @@ public:
   static void QueueHierarchyReorder(EditorImGuiHost &host, int direction) noexcept;
   static void QueueHierarchyExpansion(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                       bool expanded) noexcept;
+  static void SetHierarchyExpanded(EditorImGuiHost &host,
+                                   std::span<const SceneDocument::NodeKey> keys);
+  [[nodiscard]] static std::vector<EditorHierarchyTestRow>
+  HierarchyRows(const EditorImGuiHost &host, const SceneDocument &document);
   static void QueueHierarchyRename(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                    std::string name);
   static void QueueInspectorTransform(EditorImGuiHost &host, SceneDocument::NodeKey entity,
@@ -235,6 +274,15 @@ public:
   static void FocusInspectorEulerField(EditorImGuiHost &host, std::size_t axis) noexcept;
   [[nodiscard]] static std::optional<std::array<double, 3>>
   InspectorEulerAngles(const EditorImGuiHost &host, SceneDocument::NodeKey entity) noexcept;
+  // Actual build panel controls: executable, cwd, add/remove argument, run, cancel, first argv.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  BuildControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  static void SetBuildCommand(EditorImGuiHost &host, std::string_view executable,
+                              std::string_view cwd, std::span<const std::string> arguments);
+  [[nodiscard]] static BuildProcessSnapshot BuildStatus(const EditorImGuiHost &host);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,

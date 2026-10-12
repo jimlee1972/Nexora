@@ -28,7 +28,7 @@ shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。Scalar opaque PBR 材質資產現已支援 import／reimport、單物件 Inspector 指派、persistent UUID 參照、Undo／save／reopen 與真實原生 Scene View palette。完整的 authored-mesh Scene View、reflected Inspector、完整 material／shader workflow、camera authoring 與 missing-plugin 還原仍待完成；有界唯讀 opaque component Inspector 與 persistence 已實作；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 與凍結 scalar PBR 材質已實作；完整材質／多個 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
-| ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Graphical prefab/multi-scene、migration/recovery、conflict 與 source-control workflow 仍待完成。 | [ ] |
+| ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Native additive tab、owned／reference document、coordinated Save All 與 named composition reopen 已通過 Linux Xvfb。Graphical prefab、migration/recovery、semantic／provider conflict 與完整 target-host 驗收仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
 | ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數，並顯示真實目前 process resident bytes 與 observed peak。CSV 與 schema-1 wall-time JSON export／import 已提供，另有獨立且有界的 process-memory JSON trace。另有獨立且有界的 native Vulkan／DX12／Metal command-buffer GPU interval live history 與 schema-1 JSON capture，明示 unavailable／software 狀態。Build/deploy/log、實體 GPU 計時校準、任意 capture import 與 plugin manager workflow 仍待完成。 | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy、trust/signature policy 與 telemetry opt-in test 已存在。Graphical scale/soak、migration/corruption、keyboard 與 screen-reader audit 仍待完成。 | [ ] |
@@ -177,8 +177,15 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ Import queue admission 現預設最多保留 64 個 operation，可設定容量，滿額回傳可重試錯誤。
   Queued job 與尚未取走的完成／失敗／取消 result 都保留名額，直到取走結果。
   `editor.preview_contract` 涵蓋混合 request、queued／失敗／取消、100 次滿額拒絕、
-  100 次取走後重新提交及 shutdown。此項限制 operation 數量；任意 project index 的 bytes
-  及實體 workflow gate 仍待完成。
+  100 次取走後重新提交及 shutdown。此項限制 operation 數量；project index 本身由下一項限制，
+  實體 workflow gate 仍待完成。
+
+- ✅ `AssetWorkspace::ImportTree` 現將單一 Content index 限制為 262,144 個檔案（不含 ".meta"
+  sidecar），每條專案相對路徑最多 1024 UTF-8 bytes，可透過 `AssetIndexLimits` 調整。兩項限制都在
+  列舉階段、寫入任何 identity sidecar 之前檢查：超限的目錄樹會以可操作的錯誤失敗、保留先前的 index、
+  不留下半成品 sidecar，列舉也會提早停止而不是讓記憶體無限成長。`editor.asset_source` 涵蓋剛好在
+  上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。單一 entry 的診斷
+  文字、縮圖與實體 workflow gate 仍待完成。
 
 - ✅ 一般資產 indexing 及同步／背景 reimport 現以 8 KiB read chunk 串流計算 binary source hash，
   不再保留整個來源檔案。讀取中取消不發布 partial hash；空檔案、embedded NUL、完整 chunk
@@ -232,9 +239,17 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   並在焦點／write loss、隱藏 Content、
   外部 modal 或 stale asset scope 時取消。真正 1×／2× Unicode／gate 測試及 Linux Xvfb
   F2／Enter 後的 Scene Save／Undo／重啟驗證流程；實體 IME 與完整圖形驗收仍待完成。
+- ✅ Linux 原生 project-upgrade 驗收現以明確 keydown／keyup 階段送出一次鍵盤操作。
+  三次冷啟動及受影響的 252 項圖形套件保留精確升級／backup／report、唯讀檔案保護
+  與 Vulkan 檢查。[輸入證據](../../Tools/Build/evidence/EditorEDM0-ProjectUpgradeInput-Linux-2026-10-10.md)。
 - 待辦：實體顯示／Windows 新 project 全流程驗收。
 
 ### ED-M2 — Scene authoring core
+
+- ✅ Linux 原生 Scene Preview 旋轉後的 Save 驗收，現以明確 release／modifier／key 階段
+  保留一次實際鍵盤操作。三次冷啟動及受影響的 253 項圖形套件保留既有
+  preview／commit／Undo／scale／reopen 檢查與期限。
+  [輸入證據](../../Tools/Build/evidence/EditorEDM0-ScenePreviewSaveInput-Linux-2026-10-10.md)。
 
 - ✅ Scalar opaque PBR `.nmaterial` 資產現可 import／reimport 為有界 immutable typed data，
   具 64 KiB source、4096 asset／Content Undo 預算與 canonical Renderer schema 驗證。
@@ -396,6 +411,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   modal gate。Portable 與 1x／2x 真正 UI 輸入測試涵蓋 metadata-only Undo、mixed presence、
   無關 payload 保留及 save／reload。完整 reflected Inspector 與 target-host 驗收仍待完成。
 
+- ✅ Camera／Light／Mesh presence-edit Undo 現還原原本 flag 與全部 stored value，包含
+  nondefault inactive lens／intensity 及完整寬度 mesh／shader reference。Mixed batch 每種元件
+  反覆 40 次 Undo／Redo 都保留精確 bytes；no-op／invalid／stale input 保留 history，失敗 replay
+  保留 cursor。完整 Linux 240/240 與 Minimal Shipping 通過。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM2-DormantComponentHistory-Linux-2026-10-10.md)。
+
 - ✅ Camera／Light Inspector 現支援多選及 mixed presence／value。Mixed component 的 Enable
   會補到缺少的 entity 並保留現有值；Enter 只套用編輯欄位，以 generation-checked 原子交易
   完成單步 Undo／Redo。無效／過期／重複 batch 與唯讀／復原寫入會整批拒絕。真實鍵盤測試
@@ -413,6 +434,20 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   Generation 與每元件 1 MiB、總 payload 16 MiB、每 entity 64、總 4096 records 限制會拒絕過期／
   超限匯入。損壞、重複、orphan 與缺失 entity 紀錄在修改 live state 前拒絕。外掛還原／執行
   及完整 reflected 編輯仍待完成。
+
+- ✅ 圖形化 Inspector 現以有界、明確的 reflection metadata 編輯 opaque 元件：Boolean、
+  signed／unsigned scalar、enum／flags、vector／color、完整 entity／asset reference、固定陣列
+  及展平的 nested path。Mixed 多選以 exact-source、generation 核對提交一次 atomic Undo／Redo，
+  Flags 點擊只變更各 target 被操作的 bit，保存／重開保留未知 bytes。專案 metadata reload
+  會取消過期草稿；唯讀及損壞 metadata 保留來源。
+  真正 1x／2x 控制項及原生 Vulkan 編輯／保存／重開的驗收見
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md)。
+  Native pointer delivery 在慢速 frame 間保留 down／up；連續八次實際執行通過。
+  Presented X11 control／hover／held／released readiness 與獨立 shortcut-key phase 亦通過
+  八次冷啟動、單執行緒軟體渲染的原生流程（134.62s）；完整 239 項 graphical Development 測試與 Shipping build 皆通過。
+  原生 fixture 現保留 host 初始 1280x720 尺寸，消除已重現的 resize／dock 初始化競態；
+  連續五次冷啟動原生流程通過（75.21s）。
+  Dynamic array、原生外掛還原及完整 ED-M2 驗收仍待完成。
 
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save
@@ -514,12 +549,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   project／UTF-8 metadata 重新驗證 managed scope；無效／aliased、其他專案或無法載入的資料
   回到 Main 並在本次 session 保留原檔案。New／失敗操作保留先前選擇；獨立 metadata
   儲存失敗保留成功的場景儲存。Portable 及 Linux Xvfb 的重啟／編輯／儲存／fallback 驗證
-  流程；additive tab 與完整 ED-M4 圖形驗收仍待完成。
+  流程；additive tab 見下方 supporting slice，完整 ED-M4 圖形驗收仍待完成。
 - ✅ Content Browser 場景開啟現支援雙擊、context Open scene、Open scene 按鈕及 focused Enter。
   Owning 路徑沿用 deferred scene-file request 與 dirty Save／Discard／Cancel；UI widget 不執行
   檔案 IO 或 World 替換。唯讀允許 Open；Play／modal／token gate 拒絕替換。真正 1×／2×
   pointer／key 測試涵蓋 Unicode 路徑、單／雙擊、非場景／多選拒絕、dirty 決策及過期
-  request；additive scene tab 與完整 ED-M4 圖形驗收仍待完成。
+  request；additive tab 見下方 supporting slice，完整 ED-M4 圖形驗收仍待完成。
 - ✅ 目前 Content 場景現透過 stable UUID 跟隨重新命名／移動及 Content Undo，保留文件
   generation、dirty 內容、selection、history 與 live view state。已提交的移動也會更新啟動
   檔名而不儲存 dirty World，Discard and Exit／重啟可載入改名後已提交的來源。
@@ -701,18 +736,103 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
 
+- ✅ Graphical prefab isolation 已驗證：create/open/variant/save/reopen 使用獨立 native document，
+  提供 hierarchy、name/position edit、Undo／Redo 與 dirty-close 保護；read-only inspection 保留
+  project files。Accepted owner 整合通過完整 Linux 242/242 與 Minimal Shipping；逐鍵 native
+  shortcut 保留精確 additive ownership 驗證。Nested materialization 與 override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md)。
+
+- ✅ Prefab isolation owner 已驗證：project-scoped create/open/variant/save/reopen 使用獨立 World
+  與 document，保留 unknown bytes 與原場景 history。Dirty replacement、read-only write、stale
+  scope/revision 與 reentrant identity callback 都拒絕；graphical binding、nested materialization、
+  historical revision access 與 override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
+
+- ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
+  closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
+  不占住 future revision。Graphical rebase／nested materialization 與 power-loss journal 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
+
+- ✅ Prefab document save integration 已驗證：confirmed wrapped publication 只更新 owning saved
+  baseline，保留 generation、selection、clipboard 與 Undo／Redo；重查 current source／project 及
+  expected asset revision。Graphical isolation 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md)。
+
+- ✅ Stable prefab three-way comparison 已驗證：node／field UUID path、stable parent reference、
+  unknown payload 與 nested metadata 不依賴 serialized Runtime ID；graphical override／revert／
+  apply／rebase 及結構驗證後的 publication 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md)。
+
+- ✅ Atomic same-identity document property snapshot 已驗證：mixed metadata、hierarchy／TRS 與
+  stored component 使用一次 guarded Undo／Redo，保留 generation、selection、clipboard 與 baseline。
+  最新 Main 整合通過完整 Linux 241/241 與 Minimal Shipping；structural change 與 graphical
+  prefab revert/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md)。
+
+- ✅ Prefab asset foundation 現擁有 exact scene／unknown bytes、stable asset／node／field identity、
+  revisioned codec、writer／expected-source publication 及 bounded exact base／nested closure。
+  實際 rename／Undo／save／reopen、scoped repeated placement、cycle／stale／budget 拒絕及
+  readonly／recovery／external-change／staging 保護皆通過。Graphical isolation、instance materialization
+  與 override diff／revert／apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md)。
+
+- ✅ Scene forest import 現使用 official bounded parsing、owning source-to-generation identity map
+  與 document-safe 單次 Undo／Redo，保留 exact name、sibling order、component 與 Copy／Cut
+  clipboard。實際 stale／corrupt／permission／budget 拒絕及 save／reopen 通過；persistent prefab
+  binding 及圖形化操作仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AtomicForestImport-Linux-2026-10-10.md)。
+
+- ✅ 原生 graphical Editor 現透過有界 scene tab 編輯獨立 owned／reference document，
+  提供 dirty close 選擇、coordinated Save All 與跨文件的 window close 保護。Named role／load order／
+  active selection 可在兩種 access mode 重開；完整 restore 失敗會 freeze authoring 並保留全部原檔。
+  真正 1x／2x 控制項及 X11 的獨立 Undo、Save All、reference、corrupt／repair 與縮回單文件 restart
+  流程通過；legacy startup／relocation／fallback 仍通過。Combined multi-scene canvas／Hierarchy、
+  graphical dependency edit、prefab／migration／provider workflow 與完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneTabs-Linux-2026-10-09.md)。
+
+- ✅ Authoring SDK 現可保存有界且 project-bound 的 named scene composition，涵蓋
+  ownership／reference role、deterministic dependency load order 與 active selection。
+  Restore 先 stage 完整 candidate 並於 membership 替換前重驗 source／metadata revision；
+  invalid、missing、colliding、external change 或 interruption 均保留 primary 與全部原檔。
+  實際 16 文件、read-only、late change 與 aggregate budget 測試通過，亦涵蓋 missing baseline、
+  同位元組 hard-link 替換與 size preflight 後增長。Graphical reopen integration 已有 supporting slice；
+  完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md)。
+
+- ✅ Read-only semantic scene comparison 現使用正式 parser／migration，擁有實際
+  base／local／remote revision 的 stable object／field 差異。Missing／empty value、sibling order、
+  known Runtime field、authored Euler turn 與完整 unknown payload 維持區別；unresolved conflict
+  及容量拒絕保留 live data／history。實際 legacy、component、source／opaque／aggregate 邊界與
+  4,096 entity 測試通過，亦驗證等價 quaternion 正負號及 ingestion 前 authoring-node 上限。
+  欄位選擇僅供檢視提示；graphical provider／conflict presentation 與有效
+  merge publication 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md)。
+
+- ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
+  drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
+  reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle
+  與 unloading／unloaded publication 均安全拒絕。實際 16 文件、admission 拒絕時的 lifecycle
+  與獨立 reopen 測試通過。Graphical tab 與 persisted composition 已有 supporting slice，完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneSession-Linux-2026-10-09.md)。
+
+- ✅ Authoring SDK 現可 stage／重驗有界 immutable Save All batch，僅在全部 named scene
+  file 發布並驗證後承認 baseline。中斷時復原精確原檔或保留 gated recovery data，
+  不覆寫 foreign／corrupt input；實際多文件／16 文件、rollback、restart、初始 metadata 寫入失敗與最後目錄 cleanup retry
+  測試通過。圖形化 additive tab 與 persisted composition 已有 supporting slice，完整 ED-M4 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md)。
+
 - ✅ Scene save 現先準備 owning、immutable 的 byte／content／generation snapshot，不做 IO、
   不改 dirty baseline 或 history。延後的單檔 publication 在 IO 前重驗 live generation 與
   serializable content，涵蓋 opaque bytes 及 authored Euler turns；僅替換成功後才將 snapshot
   標為 clean。一般 Save 共用此路徑。測試涵蓋 stale rejection、Undo／Redo、staging failure、
-  ownership 與 save／reopen。Coordinated multi-file publication、additive tabs 及完整 ED-M4
+  ownership 與 save／reopen。Coordinated publication 與 additive tab 見下方 supporting slice；完整 ED-M4
   仍保持 open。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PreparedSceneSave-Linux-2026-10-08.md)。
 
 - ✅ Additive scene 的初始 dependency 現於 graph mutation 前拒絕 zero／self／missing ID，
   並與 dependency replacement 一致地正規化重複 edge。獨立 portable 測試確認 admission
   拒絕後保留 owned／reference descriptor 與 deterministic load order，並驗證 cycle rollback
-  及安全的反向移除。Additive tab、coordinated save-all 與完整 ED-M4 驗收仍待完成。
+  及安全的反向移除。Graphical tab／Save All 見上方 supporting slice；完整 ED-M4 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneDependencies-Linux-2026-10-08.md)。
 
 - ✅ Autosave 寫入於碰觸檔案前套用與 recovery 相同的 64 MiB payload 上限；保留上一份有效
@@ -724,25 +844,85 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   apply、variant 與 nested-path rebase。
 - ✅ 已實作並測試 portable additive-scene ownership／dependency ordering、migration dry-run、
   atomic bounded autosave／corrupt recovery，以及 stable-path three-way conflict records。
-- 待辦：圖形化 workflow 與 source-control provider UI 整合。
+- 待辦：graphical prefab／migration／recovery 及 semantic source-control provider UI 整合。
 - ✅ Managed scene 的 ordinary Save 以有界 owning 原始磁碟 bytes baseline 精確比對，包含
   相同大小且還原修改時間的外部編輯。外部變更需 Replace／Cancel，確認綁定 session／path／document
   並於寫入前重新驗證磁碟版本。Ctrl+S、New／Open 前 Save 與 Save and Exit 共用此圖形流程；
   失敗保留場景、history 與磁碟版本。Portable 64 MiB／lifecycle／Content relocation 與 1x／2x
-  ImGui 真實控制項測試涵蓋此 supporting slice；完整 prefab／additive／migration／crash 與
+  ImGui 真實控制項測試涵蓋此 supporting slice；完整 prefab／migration／crash 與
   source-control 驗收仍待完成，詳見 [external-save evidence](../../Tools/Build/evidence/EditorEDM4-ExternalSceneSave-Linux-2026-10-08.md)。
+
+- ✅ 圖形化 semantic source inspection 現擷取 owning base／local／disk revision，僅將有界
+  background comparison 發布至原本的 live file／document scope。唯讀欄位表整合既有 external-save
+  Replace／Cancel 決定；reference 不需 writable access 即可檢視。真實 1x／2x 控制項與 Linux
+  native writer、read-only、corrupt-disk 及 additive-reference 測試保留來源及獨立 history。
+  取消、content／baseline／session 變更與 stale generation 會拒絕發布；經審核 merge publication、
+  provider 整合及實體 host 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md)。
 
 ### ED-M5 — Specialized tools
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
+  loaded tool service，回傳 owning outcome，input／output 各限 64 KiB。Wrong-thread／reentrant、
+  malformed、revoked 與 foreign 呼叫拒絕；無效 success length 與失敗 callback 丟棄 output。
+  十四個 compiled native fixture 與 C consumer 驗證此支援 contract。Host document／IO
+  授權及 graphical reference-tool edit／preview／save／unload 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md)。
+
+- ✅ Qualified native service lookup 現檢查 exact loaded plugin admission 與 owned provider
+  identity，涵蓋 registry copy、同名 reload 與不同 host 的相同 numeric ID。Manual replacement、
+  revoked／pending／restart-required provider 均拒絕。結果仍為 owner-thread borrow，consumer
+  必須在 mutation／unload 前釋放；查詢不授權、不提供 lifetime lease。Graphical callback 與
+  reference-tool 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-QualifiedPluginServices-Linux-2026-10-10.md)。
+
 - ✅ Portable capability registry 強制 stable tool ID 與誠實的 implemented/read-only/unavailable
   狀態，fallback 必須附原因。
 - 待辦：由各 production subsystem 支援的圖形化 specialized tool 與 capability plugin。
 
+- ✅ UI-neutral specialized-tool metadata 現擁有 schema／interface version、provider ID、
+  宣告權限、document／contribution identity 與有界 resource declaration。無效或超限 registration
+  保留既有 registry；owning snapshot 可跨 removal。這些宣告不授權、不執行 plugin allocation
+  policy，也不代表 production graphical workflow 已驗收；reference plugin 與
+  edit／preview／save／unload 驗收仍待完成。
+  [Linux contract 證據](../../Tools/Build/evidence/EditorEDM5-ToolCapabilities-Linux-2026-10-09.md)。
+
 ### ED-M6 — Build、profile 與 extensibility
 
+✅ External Chrome trace inspection 已驗證：明確 event／process／thread selection、有界 Unicode
+JSON、external clock／duration unit、最新600筆／drop count 及獨立 static view。Read-only import、
+failure／scope preservation 通過；不推定 CPU／GPU／memory。其他 capture format 與實體 GPU 校準仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeTrace-Linux-2026-10-10.md)。
+
+
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
+
+- ✅ Build artifact byte verification 現以 caller-captured owning bytes 檢查 exact nonempty
+  有界 manifest set、relative identity、大小與 canonical SHA-256。損壞／缺少／額外／重複
+  input 及 unavailable cryptography 均拒絕，不進行 publication。結果只驗證所提供的 bytes；
+  一致的 file capture、target completeness、可重現 argv／toolchain、build-success UI 與
+  deployment 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-BuildArtifactVerification-Linux-2026-10-11.md)。
+
+- ✅ 圖形化 Build Console 可編輯 absolute executable、working directory 與分開保存的 owning
+  argument，提供明確 Run／Cancel 及 Ctrl+Enter／Ctrl+Shift+Enter。即時合併輸出保留有界
+  16 KiB raw tail，以 byte escape 顯示，附精確 dropped count 與 native exit status；exit zero
+  明示 artifact 尚未驗證。Scope／authority 改變會取消工作並清除舊顯示，native close 排空
+  真實長時間 child。實際 1x／2x control、binary output、Unicode／empty／metacharacter argument、
+  failure 與 cancellation 通過，既有 export control 仍通過驗收。Target profile、verified build
+  manifest 與 remote deploy 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-BuildConsole-Linux-2026-10-10.md)。
+
+- ✅ Build prerequisite 現以 native argv 直接執行真實 scoped owning process，提供有界
+  merged output／dropped count 與精確 launch／exit／cancellation state。實際 child fixture 涵蓋
+  Unicode／特殊字元、nonzero／signal failure、flood limit、queued／running cancellation、
+  managed descendant、shutdown 與 stale scope。已完成 worker outcome 拒絕 late cancellation；
+  真實 child 驗證不會繼承無關 host descriptor。Zero exit 不代表 artifact 或 build success；
+  graphical toolchain、verified manifest 及 deploy／log 整合仍待完成。Raw output 必須由 caller
+  在 display／persistence 前 sanitize／redact。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-BuildProcess-Linux-2026-10-10.md)。
 
 - ✅ 可選 native ProjectPlayer 現以有界 public NativePBR geometry／material／affine admission
   繪出真實 owning StaticView package asset，不依賴 Editor、SDK、source content 或 Showcase。
@@ -752,6 +932,15 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   resize、close 及正好四次成功 present。保留 verification-only／feature-off build。
   Gameplay、build／deploy／publication UI、實體 display 及其他平台 native pixel 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md)。
+
+- ✅ 真實 plugin host 現支援可選 schema-one 合作式 shutdown／quiescence、有界原子 service
+  registration，以及 native unload 前撤銷 registry copy 的查詢可見性。Owning row 保留真實
+  ABI／lifecycle diagnostic；legacy、拒絕停止與 pending 工作需 restart，不強制卸載。
+  Windows 將 UTF-8 path 轉成原生 wide path 載入。ExamplePlugin、十四個真實 compiled module
+  與 C header consumer 驗證 worker lifetime、Unicode path、拒絕／rollback 與精確上限。
+  Consumer 須先排空 borrowed call；圖形化 PluginManager、install／trust policy 與 native crash
+  isolation 仍待完成。[ADR-0007](ADR-0007-Cooperative-Plugin-Lifecycle.md) 與
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-PluginLifecycle-Linux-2026-10-09.md)。
 
 - ✅ Build export 前置現提供有界 owning Runtime scene capture。共用 schema-3 writer
   在 append 前限制輸出；Editor 複製完整 Runtime 實體、tracked NodeKey 與完整未知 metadata，
@@ -777,8 +966,16 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   capture 的 deterministic bytes、真實 10 萬 entities、精確 geometry／opaque 上限與
   standalone ProjectPlayer consumption；詳見 [producer contract](../../Engine/Editor/StaticProjectExport.md)
   與 [Linux 證據](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)。
-  Current-state／recovery／cancellation 授權、atomic publication、圖形化 export、原生
-  player rendering 與完整 Build／deploy／log 驗收仍待完成。
+  下列獨立 coordinator 已加入 current-state／cancellation 檢查與圖形化 publication；
+  原生 player rendering 與完整 Build／deploy／log 驗收屬於其他 supporting slice。
+- ✅ 圖形化 Build 選單現透過單一背景 Core job 匯出 owning StaticView package。實際
+  cook／Runtime verification、分段 staging／readback 完成後，authoring thread 重新檢查
+  project／document／Content／catalog／recovery／access／cancellation，才 atomic publish。
+  Ready 狀態提供實際 bytes／checksum 與可重現的 ProjectPlayer verification command。
+  取消、過期場景／專案／資產、cook 失敗及不安全／占用輸出均保留先前套件與 authoring
+  Undo／baseline。真實 core 與 1x／2x UI → worker → Runtime 測試涵蓋此資料套件 slice；
+  executable compilation、manifest、remote deploy／signing 與完整 ED-M6 仍待完成。
+  [Coordinator 契約](../../Engine/Editor/StaticProjectExport.md#graphical-staticview-export-coordinator)。
 
 - ✅ Editor 現明確啟用真實 completed native GPU timing：Vulkan／DX12 timestamp query
   與 Metal command-buffer timing 在既有 completion point 發布 copied source／submission／
@@ -849,6 +1046,63 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
+  guard、16 項 documentation-routing、完整 Linux 239/239 與 Minimal Shipping 通過。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md)。
+
+- ✅ Native project browser 現提供兩種 access mode 的 owning no-write upgrade preview，
+  顯示 captured schema／UUID、source／workspace count 與 recovery evidence 位置。
+  Busy 或 typed root 變更會清除 stale intake／result；明確 Open 仍重新檢查 writer access
+  與來源狀態。實際 1x／2x widget 與 Linux native legacy／current／unsupported 流程保留
+  source／backup bytes 與既有 Create／close guard；更完整 migration／recovery 與實體 host
+  驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md)。
+
+
+- ✅ SignedExtensionHost 現在 native loading 前驗證 canonical signed identity／version／ABI／target／
+  permission／dependency manifest 及實際 artifact SHA-256，並重查當前 trust／policy revision。
+  Linux 使用 exact owning sealed memfd 映像、唯一 live identity、有界 admission 與合作式撤銷／卸載。
+  真實 constructor fixture 證明被拒絕的 admission 不會初始化；不同映像、修改拒絕及 lifetime limit
+  皆通過。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-SignedNativeAdmission-Linux-2026-10-10.md)
+  明列 trusted in-process 限制及核准後才可檢出的不實 binary ABI。
+  圖形化安裝／復原、native crash isolation 及其他平台 immutable staging 仍待完成。
+- ✅ ExtensionTrust 現透過可選 Cryptography module 與 vetted OpenSSL >=3.0，驗證有界 immutable
+  artifact bytes 的真實 pure Ed25519 signature，成功後回傳 owning SHA-256 digest 與 trust revision。
+  Unknown publisher、tampering、malformed／over-budget input、unavailable provider 與 failure 均
+  不會通過。驗證涵蓋有界 owning key 設定、rotation／revocation、獨立 RFC8032／SHA-256 vector、
+  精確 64 MiB input 與明確 NONE backend。Native AUTO 可選用 OpenSSL；cross-compiling 需明確
+  target package／backend，否則拒絕驗證。Artifact 不會下載或自行登錄 key。此 prerequisite
+  本身不約束 native loader；上方獨立 SignedExtensionHost 已提供 canonical manifest／immutable
+  native admission，圖形化安裝仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md)。
+
+- ✅ Linux native center-gesture acceptance 在原有 deadline 內觀察 committed bytes 時只重送
+  Save，保留精確 transform／saved-byte 與單步 Undo 斷言；實體 input／display 及整體
+  synthetic-input 穩定度仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-NativeSaveObservation-Linux-2026-10-09.md)。
+
+- ✅ Graphical Hierarchy 改以 explicit work storage 走訪 deep expanded scene，保留
+  parent-first／sibling order；expansion pruning 一次索引 current generation key，name-only
+  saved-state metadata 省去重複 World lookup。這是 bounded-by-input correctness foundation；
+  真正 100,000-node ImGui fixture 在 3D-preview layout 驗證 deep／flat order、clipping、
+  navigation、collapse、filter、replacement 與 1x／2x；overview pose traversal 另行驗收。
+  完整 frame／memory budget、production asset scale、soak 與實體 host 驗收仍待完成。
+
+- ✅ Top-down Scene overview 改用 owning bulk world pose 與 iterative indexed ancestry，
+  保留 exact affine origin 與既有 TRS approximation；marker、Frame all、prospective drag ancestry
+  避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證
+  reversed storage、1x／2x、untracked ancestor、reload 與 corruption rejection。
+  完整 frame／memory budget、production asset scale 與 soak 仍待完成。
+  [Linux contract 證據](../../Tools/Build/evidence/EditorEDM7-OverviewWorldPoses-Linux-2026-10-09.md)。
+
+- ✅ 支援的 project descriptor upgrade 現提供 owning、無寫入的 schema-1／2 dry-run。
+  Read-write Open 於替換來源前保留精確原始 bytes 與 immutable plan-only report；拒絕 foreign／
+  corrupt／aliased evidence 及 occupied staging，並重驗 source revision。實際 Unicode／CRLF、
+  read-only、failure／retry／reopen 與 prior-live-writer fixture 保留穩定 UUID、workspace bytes
+  及 last-good backup。Descriptor reader 於 line parsing 前限制實際 bytes，包含 stat 後增長；
+  graphical／scene migration 及更完整 crash／cancellation 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-ProjectUpgrade-Linux-2026-10-10.md)。
+
 - ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
   欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
   空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。
@@ -860,8 +1114,16 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 - ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
   1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；
   重複 revoke／enable 不會恢復舊 event。Contract tests 涵蓋精確上限、損壞文字、飽和與
-  consent transition。Persistence／transmission、redaction 與圖形化 privacy 驗收仍待完成。
+  consent transition。Persistence／transmission、redaction 與完整圖形化 privacy 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md)。
+
+- ✅ Native Editor 現提供 session-local diagnostic privacy 設定（Ctrl+Alt+T）：
+  預設關閉、明確 consent、有界檢視、清空、opt-out 立即刪除，以及 project／close／restart reset。
+  內建 producer 只記錄固定的 frame-presented label，未知 event 文字不會顯示。
+  實際 1x／2x widget 與 Xvfb keyboard 流程保留 read-only source bytes。
+  未安裝 diagnostic storage 或 network transport；signed-extension verification 與
+  persistence／transmission policy 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md)。
 
 - ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，
   避免 detached housekeeping 與嚴格 temporary-directory cleanup 競爭；routing semantics、

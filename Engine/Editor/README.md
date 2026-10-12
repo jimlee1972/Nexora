@@ -1,5 +1,195 @@
 # Editor Core contract
 
+## Build artifact byte verification
+
+`BuildFrontend::VerifyArtifacts` synchronously verifies caller-captured owning
+`BuildArtifactInput` values against an exact nonempty schema-one manifest set. It
+requires canonical `sha256:` plus 64 lowercase hexadecimal digits, matching relative
+path identities and exact byte counts. A missing/unavailable SHA-256 backend never
+accepts. Legacy `Validate`/`Write` retain their serialized manifest compatibility;
+writing a manifest alone does not verify its artifacts.
+
+Limits are 64 artifacts, 16 MiB each, 64 MiB total, 1024 UTF-8 bytes per path, 256
+bytes each for profile name/target, 128 for configuration and 32 KiB for command text.
+Empty/ASCII-control-containing/invalid UTF-8 profile text and unsafe relative paths reject.
+All shape and byte budgets are checked before hashing. Inputs and manifest remain
+unchanged, and no file IO, publication, native process or permission grant occurs.
+Calls serialize with caller-owned captures; results certify only those supplied bytes
+at that call, without retained borrows. The caller owns consistent filesystem capture,
+expected target completeness, process outcome, reproducible argv/toolchain/features
+and future publication/deployment. A command string is descriptive and never executed.
+No build-success UI is introduced. Public C++ consumers rebuild; module graph,
+existing wire schema and stable C/Gameplay ABI are unchanged.
+
+## Native tool byte callback SDK
+
+The optional public C `EditorToolAbi.h` defines a separately versioned service table
+for Inspect/Edit/Preview/Serialize byte transformations. It preserves required engine
+plugin ABI and lifecycle schemas. A service registration supplies a readable immutable
+table for its admission; native plugins remain trusted and must obey capacities,
+call-scoped borrows, cooperative draining and the no-throw contract.
+
+`NativeToolInvoker` performs a fresh qualified `PluginHost::FindService` lookup for
+every synchronous owner-thread call. It retains no table, function or native context.
+Wrong-thread/reentrant calls (including another invoker on the same owner thread),
+malformed prefixes/interface/masks/budgets, revoked or
+foreign providers and undeclared operations reject before invocation. The input is
+read-only and at most 64 KiB; output storage is host-owned and capped at 64 KiB, also
+respecting each table's smaller declared limits. Complete shape validation precedes
+allocation/callback work. Future table suffixes are ignored, with a 4096-byte declared
+prefix limit. Empty input/output are supported; declared output capacity must be nonzero.
+
+Results own copied bytes, state, diagnostics and optional exact raw callback status;
+successful output must explicitly report a size within the supplied capacity. Every failure discards output,
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
+guard. Owning results survive native unload. Unknown statuses/oversized success never
+become success. Consumers release all calls/borrows before host/registry mutation or
+unload; this provides no lifetime lease or automatic in-flight tracking.
+
+The byte SDK exposes no SceneDocument, workspace or renderer objects and performs no
+file IO, history mutation or publication. Declared byte operations confer no actual
+document/IO/GPU permissions. The host separately authorizes native execution, validates
+the operation's document type, parses owning results and rechecks current scope/source/
+writer/recovery/Play state before actual deferred authoring or IO. Capability metadata,
+graphical reference-tool editing/preview/save and missing-backend restoration remain
+separate work. Public C++ consumers rebuild; module graph and persisted formats stay
+unchanged, and Foundation's optional C header adds no Shipping Editor data.
+
+## Stable revisioned prefab asset foundation
+
+`PrefabAssets` owns exact versioned SceneDocument bytes, an asset UUID/revision, stable node UUIDs
+and stable field UUIDs, optional exact base revision and scoped nested instance references. Capture
+uses an authoring-thread identity factory only during the call; it copies and validates the scene
+before calling that factory. Nil/duplicate identifiers reject. Matching serialized node IDs and
+canonical field keys preserve identities across rename, value changes and actual save/reopen. The
+caller supplies the previous revision of that same authoring source (or a variant of it), not an
+unrelated document with coincidentally matching Runtime IDs. A same-asset capture increments without
+wrap; a new-asset variant starts at revision one and references the exact previous asset revision.
+It retains a full materialized source snapshot; this foundation does not automatically rebase it.
+
+The canonical `NXPFAB1` binary format uses fixed little-endian integers, exact EOF and validated
+counts before iteration. It retains exact unknown opaque bytes and authored Scene metadata. Current
+field identity covers name, parent, layer, Transform lanes, whole Camera/Light/Mesh components and
+whole opaque components; it does not interpret arbitrary native plugin layouts. Limits are 8 MiB
+scene bytes, 16 MiB asset bytes, 4096 nodes, 64 fields/node and 32768 fields/asset. Decoder errors
+return no partial asset and never mutate live documents or their history.
+
+Resolve stages an owning unique-asset revision archive, instance scopes and expanded node count.
+Each input asset UUID/revision pair identifies one exact source; duplicate pairs reject. Distinct
+revisions of the same UUID may coexist in one closure and retain their separate exact references.
+Missing/stale sources, duplicate identities, invalid attachments, base/nested cycles or budgets
+reject the whole result. Base dependency closure does not become a second live instance; repeated
+nested placements have separate instance scopes. Shared base closure is memoized to avoid exponential
+traversal, while each actual nested placement consumes its budget. Limits are 64 supplied sources,
+64 MiB total encoded input/archive, 128 expanded instances, 4096 expanded nodes and depth 32.
+Returned values retain no document, World, caller-source or callback borrows.
+
+Load/Publish use the canonical project path `.nexora/prefabs/<asset-uuid>.nxprefab`. Actual reads
+require ordinary nonsymlink, single-link files and remain bounded if the file grows after preflight.
+Both operations require resolved workspace/recovery state; only publication requires the writer
+lease. Initial publication preserves an occupied identity. Replacement requires the exact canonical
+previous bytes, matching UUID and next revision, then uses the common atomic staging helper. Invalid
+or externally changed sources and occupied foreign staging files remain untouched. This is the
+existing serialized single-writer contract, not exclusion against hostile filesystem races or a
+multi-file crash/power-loss journal. No source scene, saved baseline, clipboard or Undo entry changes.
+Full graphical isolation, stable instance metadata, instantiate/override diff/revert/apply/rebase and
+transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
+C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
+
+`PrefabAssets::SaveDocument` integrates wrapped prefab publication with the live authoring document.
+It captures owning previous-asset and document baselines plus project scope before identity callbacks;
+current document/project state is rechecked before any publish. Initial saves and new variants use
+missing-identity publication, while same-asset updates require the exact previous revision. A new
+variant additionally requires its exact base revision to remain the current stored source. An
+unchanged confirmed source retains its current revision and does not clear pending Redo.
+Only confirmed publication advances the document's saved signature/opaque baseline, moving already
+owned preparation strings without Reload or new history allocation. Generation, selection,
+clipboard and all existing Undo/Redo stay intact. Failure leaves the old saved baseline; any actual
+publication followed by a late source/scope change retains the file but does not acknowledge the
+changed document. The serialized host handles that explicit error. This is an authoring save helper,
+not a graphical isolation session, nested materializer or multi-file crash journal.
+
+`PrefabDocumentSession` owns an isolated Runtime World and SceneDocument and borrows only its
+workspace, which outlives it. Serialized owner calls can copy a complete scene into an unsaved
+prefab draft, open an actual wrapped asset, create a distinct variant from a saved current source,
+save through `SaveDocument`, and close. Opening/replacing a dirty owner requires explicit discard;
+variants require a clean source and confirm its current exact stored revision. Copying a source
+retains no original World/document borrow and never changes that original source or history.
+
+Const inspection is available in read-only scopes; editable access and publication require a
+current project UUID/root, writer lease and resolved recovery/external-change state. Rebinding the
+workspace invalidates document/asset observations. Safe close can release a stale/recovery owner.
+Successful replacement/close expires document borrows and advances a nonwrapping session generation;
+successful save keeps live document generation, selection, clipboard and Undo/Redo. New drafts and
+variants remain dirty until actual publication. Identity callbacks cannot reenter owner replacement,
+save or editable access, and exceptional callbacks release the busy guard without publication.
+Existing document borrows must not outlive replacement or destruction; callers stop background readers
+before those operations. Destruction of the session during one of its own calls is unsupported.
+This is the isolation owner, not a graphical panel, stable nested instance materializer, revision
+archive or override/rebase engine. Public C++ consumers rebuild; module dependencies and stable
+C/Gameplay ABI do not change.
+
+Before replacing the current wrapped source, Publish retains its exact committed previous bytes at
+`.nexora/prefabs/revisions/<asset-uuid>/<revision>.nxprefab`. An occupied archive entry must already
+equal those bytes; mismatching, corrupt, aliased, multiply linked and foreign staging paths reject
+without advancing the current source. Current source bytes and workspace authority are rechecked
+after retention. If the final current-file publication fails, the retained old committed revision
+is harmless and no uncommitted future version occupies the next revision identity. An unchanged
+retained entry requires no replacement write. Initial publication still writes only the current file.
+
+`LoadRevision` returns owning validated archived data or, only when the archive entry/ordinary
+parents are absent, the matching current revision. Existing invalid archive evidence never falls
+back to a current source. `ResolveProject` gathers at most 64 exact sources / 64 MiB encoded bytes,
+then performs the same cycle/depth/instance/node checks as Resolve; inspection-only read-only scopes
+work. These are logical data budgets, not a bound on total process memory. History directories are
+ordinary nonsymlink directories; each file keeps the existing 16 MiB and single-link read bounds.
+Calls serialize with all project publication and owners; returned graphs borrow no files/documents.
+
+History is retained when a committed revision is superseded, so previously overwritten legacy
+revisions cannot be reconstructed. No automatic pruning or total disk quota is introduced: retained
+sources may still be referenced by variants/nested graphs. The archive/current writes form an
+ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
+override/rebase, nested materialization, journaling and retention policy remain separate work.
+
+## Stable prefab revision comparison
+
+`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
+node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
+Official scene parsing and bounded field snapshots retain component presence/stored values,
+authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
+instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
+are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
+Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
+
+The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
+4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
+opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
+Sources and authoring owners serialize during capture; results borrow no asset/document/World.
+The comparison performs no file IO, interpretation of unavailable native components, live mutation,
+Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
+separate structural validation before any future revert/apply/rebase. Graphical bindings and
+transactional override publication remain separate work; public C++ consumers rebuild.
+
+## Atomic document property snapshots
+
+`SceneDocument::ApplyPropertySnapshot` parses an owning complete authoring source, checks the
+current PreparedSave and requires the exact existing entity/node ID set, scene name and persistence.
+It stages names, authored Euler and unavailable opaque data while preserving current generation
+keys. The existing Runtime atomic snapshot replacement applies hierarchy/order/TRS and complete
+component presence/stored values. It performs no IO, creation/deletion or saved-baseline change.
+Selection and user clipboard/cut state remain intact. Callers serialize owners and enforce current
+project writer, recovery and Play authority; false authorization rejects before mutation.
+
+All document/history storage is prepared before publication. A dedicated immutable owning history
+entry replays the complete Runtime and metadata state as one Undo/Redo, checking the expected current
+document each time. Rejected replay leaves the cursor/content in place. Ordinary Runtime/rename/
+opaque operations retain their independent history cursor. Equivalent snapshots preserve pending
+Redo. Limits are 4096 fully tracked nodes, 8 MiB source/prepared/runtime bytes and 1024-byte UTF-8
+NUL-free names. These are logical per-transaction bounds, not a total history memory quota.
+Successful replacement expires entity and node-name borrows; document pointers and generation
+keys remain valid. Structural additions/deletions and prefab field selection/rebase are separate
+work. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
 diagnostics. `CompileSlang`
@@ -39,13 +229,18 @@ into renderer or platform internals.
 
 ## Ownership and lifetime
 
+Save All recovery retires a strictly empty ordinary journal without replacing any source or
+inferring a publication phase. If final directory removal fails, cleanup best-effort restores its
+bounded phase manifest for retry; occupied/invalid journals retain their entries. Initial metadata
+write failure leaves original scene files and dirty baselines unchanged.
+
 - `ProjectWorkspace` owns its descriptor, stable project UUID, open-document list, and (for
   read-write access) one OS-held writer lease on `.nexora/editor.lock`. A second writer fails with
   the owning process ID while any number of explicit read-only observers may coexist. The lock file
   is metadata, not the lease: the kernel releases the actual lock on normal close or process death.
-  Schema-1 descriptors remain readable; a read-write open atomically upgrades them to schema 2 and
-  persists their derived UUID, while a read-only open reports `Required` without changing the
-  project. A read-write open of a schema-1 project that predates the `.nexora` directory creates it,
+  Schema-1 descriptors remain readable; a read-write open retains an exact descriptor backup and
+  immutable plan report before atomically upgrading to schema 2 and persisting the derived UUID.
+  A read-only open reports `Required` without changing the project. A read-write open of a schema-1 project that predates the `.nexora` directory creates it,
   but only for a root that already holds a project descriptor. All project-owned writes reject
   read-only workspaces. Workspace files are atomically replaced (the temporary file is flushed and
   checked before it replaces the old one), a recovery journal is written before the primary
@@ -98,6 +293,10 @@ into renderer or platform internals.
   oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
   `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
   `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
+  One index admits at most `kMaximumIndexedAssets` (262,144) files and `kMaximumIndexedPathBytes`
+  (1024) UTF-8 bytes per project-relative path (`AssetIndexLimits` overrides both). The bounds are
+  checked while enumerating, before any sidecar is written; exceeding one fails with an actionable
+  error and leaves the previous index and the project files unchanged.
   Triangulated `.obj` entries additionally retain immutable, shared owning CPU `MeshGeometry`
   snapshots (positions, normals, UVs, uint16 indices, and local bounds). `ImportObjMesh` is a
   synchronous parser with no I/O or publication; workspace jobs invoke it off the UI thread.
@@ -214,6 +413,10 @@ into renderer or platform internals.
   clipboard. Like Paste, the entire initialized forest is one Undo step.
   `WorldTransform` exposes a live node's composed world pose to Editor views, so children can be
   drawn at their actual world position without exposing mutable Runtime entity storage.
+  `WorldPoses` owns a bulk current-scene observation, filters it to tracked document nodes in
+  World storage order, and retains the effect of untracked ancestors. It uses no persistent cache
+  or retained Runtime pointers, authors nothing and consumes no history. Owner-thread calls remain
+  serialized; invalid Runtime hierarchy/affine composition rejects the complete observation.
   `WorldMatrix` returns an owning exact affine matrix for a live document node, including shear;
   missing or foreign nodes return no matrix.
   `TranslateSelectionXZ` and `TranslateSelection` validate generation-keyed targets, filter
@@ -245,11 +448,73 @@ into renderer or platform internals.
   successful publication and is empty on failure; the owning result is allocated before IO.
   Both calls are serialized by the authoring host; the snapshot can be copied
   or retained without World borrows, but submission still requires the live owning document.
-  Callers retain workspace writer/recovery and destination-path responsibilities. This is save-all
-  staging groundwork: no multi-file commit, crash journal, additive tabs or fsync durability is added.
+  Callers retain workspace writer/recovery and destination-path responsibilities. These individual
+  calls publish one file; coordinated publication uses the separate `SceneSaveBatch` owner below.
   `Dirty` compares the live serializable scene to the last successful Save or Reload. Its signature
   preserves sibling order while ignoring storage order left by a restored subtree, so Undo can
   return to a clean scene. Failed saves keep the previous baseline; external Runtime edits are seen.
+- `SceneSaveBatch` borrows one writer workspace and its current named scene-file sessions. The
+  workspace, sessions and documents must outlive the batch. Prepare/publish/cancel are serialized
+  on the authoring thread; drain background readers before publication. Up to 16 unique documents
+  capture owning `PreparedSave` outputs and exact disk baselines, with 128 MiB aggregate original
+  and output bytes and the existing 64 MiB per-file limit. This bounds serialized payload, not
+  total resident memory. Read-only, stale, externally changed, recovery-blocked, unnamed,
+  duplicate, ASCII case-colliding, aliased or unsafe inputs reject before publication. Destination parents must exist
+  as ordinary directories; occupied sibling staging paths are preserved.
+  `.nexora/scene-save-all.recovery` retains a bounded project-UUID/version/checksum manifest and
+  exact originals and outputs. Preparing authorizes no source writes; prepared authorizes
+  sequential native replacements after all copies/stages validate; committed acknowledges every
+  document baseline only after all files verify. Rollback records a separate completed phase so
+  partial cleanup can be retried without requiring copies already removed. Metadata uses the
+  existing atomic-write policy; file replacement uses POSIX rename or Windows replace/write-through,
+  without deleting a destination before retry. Independent readers do not observe a filesystem-wide
+  atomic snapshot, and power-loss/fsync durability is not promised.
+  Before restoration, recovery validates every retained payload and all current destinations.
+  Conflicting external changes, malformed metadata, aliases and unknown retained entries block
+  recovery and preserve inspection data. `RecoveryRequired` leaves documents dirty and originals
+  retained; `PublishedRecoveryRequired` acknowledges the complete batch while gating authoring
+  until cleanup finishes. `ProjectWorkspace` recovery status and controls recognize both journals.
+  Discarding an uncommitted Save All restores its originals; discarding a committed batch finishes
+  cleanup and retains its acknowledged outputs. Baseline acknowledgement preserves identity,
+  selection, opaque metadata, Euler turns and Undo/Redo. Graphical additive tabs and composition
+  are separate host workflows. This rebuild-required C++ API does not change scene or gameplay C ABI.
+  [Linux acceptance](../../Tools/Build/evidence/EditorEDM4-SceneSaveBatch-Linux-2026-10-09.md).
+- Linux ownership/lifecycle acceptance is recorded in
+  [the additive session evidence](../../Tools/Build/evidence/EditorEDM4-AdditiveSceneSession-Linux-2026-10-09.md).
+- `AdditiveSceneComposition` borrows the session and persists at most sixteen named paths, roles,
+  prior-row dependencies and active selection in a project-bound 32 KiB UTF-8 record. Start from
+  `BootstrapScene`, attach one clean primary, then Restore after Play/readers drain. All candidate
+  sources/dependencies plus final exact source/metadata revisions verify before membership changes.
+  Named source payloads have a 128 MiB aggregate logical limit, not a total RSS bound. Restore
+  counts actual loaded baselines after each admission and again before publication, since source
+  files can grow after size preflight. Save and final Restore require existing source revisions and
+  recheck all destinations for aliases, including byte-identical hard links introduced after admission.
+  A rejected restore
+  preserves the primary and drops only newly admitted records; invalid/foreign metadata, source ID
+  collisions and external changes preserve their bytes. Save writes only metadata and requires its
+  observed baseline, all named/live/source-resolved documents and writer access. Dirty scene content
+  remains dirty; unnamed/unresolved sets retain the previous composition. No source IDs or opaque
+  payloads are rewritten, and no power-loss/hostile-filesystem durability is promised. See the
+  [Linux acceptance](../../Tools/Build/evidence/EditorEDM4-SceneComposition-Linux-2026-10-09.md).
+- `AdditiveSceneSession` borrows one current project and Editor World and owns up to sixteen
+  coexisting documents/file sessions; it can attach an externally owned primary document. Admission
+  and active switches retain each document's selection, generation, opaque metadata and Undo/Redo.
+  Owning snapshots follow deterministic dependency order; missing/cyclic dependencies and removal
+  of required documents reject atomically. Paths are distinct, including ASCII case collisions and
+  existing filesystem aliases. The owner Save As entry rechecks collisions against every other
+  open document/reference before writing; trusted hosts use it instead of bypassing membership
+  through borrowed file sessions. Unloading/unloaded scenes reject attachment and stale access.
+  Existing global entity IDs must not collide: rejection preserves
+  other scenes and unknown payloads without silent ID rewriting. Inspection-only references expose
+  const document/file views and are excluded from Save All. Mutable borrows require owned documents,
+  a current writer and resolved recovery/external workspace state; these are cooperative host checks,
+  not a native-code sandbox. Unnamed owned documents require Save As before coordinated publication.
+  The host serializes calls, stops Play and drains readers before membership changes or Save All.
+  Document/file borrows survive other admission/switches but expire on removal/destruction. Owned
+  owners destroy histories/file sessions before releasing their Editor scene records, preserving the
+  monotonic ID watermark. Detaching a borrowed primary changes membership only; its original owner
+  remains responsible for document/World lifecycle. Graphical tabs and persisted composition require
+  separate host integration. This C++ API requires a rebuild and changes no scene/gameplay schema.
 - `AdditiveSceneGraph` owns scene descriptors and dependency edges, distinguishes owned documents
   from references, and rejects cycles or unsafe removal atomically. Initial dependencies must refer
   to already admitted scenes; zero, self, missing dependencies and duplicate scene IDs reject before
@@ -328,6 +593,23 @@ into renderer or platform internals.
   Console records and inspection/debugger state cross as owning snapshots, never live World pointers.
 - Specialized tools are registrations, not implied backends: a tool must report `Implemented`,
   `ReadOnly`, or `Unavailable`, and every non-implemented state carries a reason.
+  Schema/interface version one now owns a provider ID, declared operation permissions,
+  document/contribution IDs and document/preview/pending-operation budgets. Stable IDs use lowercase
+  ASCII letters, digits, dot, hyphen and underscore, starting with a letter; displayed titles and
+  diagnostics are bounded UTF-8 without C0, DEL or Unicode C1 control characters. Ordinary
+  non-ASCII continuation bytes retain their code-point meaning. Discovery is limited to 128 tools,
+  128-byte IDs, 256-byte titles, 1024-byte reasons, 16 document IDs and 16 contribution IDs, and
+  4096 total text bytes per descriptor. Document/preview declarations are positive and at most
+  16 MiB/128 MiB; pending operations are 1..64. Invalid versions, states, permissions, duplicate IDs
+  or exceeded limits reject before registry mutation. Removal releases discovery capacity;
+  `Snapshot()` owns copied metadata across provider removal. `Find()`/`Tools()` are borrowed only
+  until the next mutation. Calls are serialized on the authoring thread.
+  These declarations grant no access and enforce no native allocation policy: the implementing
+  host must separately check permissions, access, document generation, actual resource use and
+  preview lifetime. Empty contribution lists preserve the original four-field aggregate discovery
+  API; they do not certify a production tool. Registry removal neither unloads a native library nor
+  edits source payload. The production reference plugin and graphical fallback remain separate
+  acceptance work. Public C++ consumers must rebuild; the C/Zig gameplay ABI is unchanged.
 - Build manifests own copied profile/artifact data and are atomically replaced. A successful
   manifest always records its target, configuration, reproducible command, artifact sizes, and
   checksums. Manifest JSON numbers and control-character escapes use the classic locale, including
@@ -351,8 +633,10 @@ into renderer or platform internals.
 The owning capture is consumed by the pure `CookStaticProject` producer, which resolves explicitly
 supplied owning OBJ/scalar-PBR inputs into an exact Runtime StaticView dependency closure and
 returns deterministic package bytes. [Producer contract](StaticProjectExport.md) specifies identity,
-bounds, reserved references, lifetime/threading and the separate publication boundary. GUI export,
-current-state authorization, atomic publication and complete Build/deploy workflows remain open.
+bounds, reserved references, lifetime/threading and the separate publication boundary. The separate
+StaticProjectExportJob and graphical Build menu now provide owning background cooking/verification,
+cooperative cancellation and current-content-checked single-package publication; see the coordinator
+section of that contract. Full executable Build/deploy workflows remain open.
 
 `SceneDocument::CaptureRuntimeScene` synchronously returns an owning `RuntimeSceneCapture` from a
 live, non-unloading Editor World scene. `runtime_snapshot` contains every Runtime entity and its
@@ -638,6 +922,28 @@ Redo restores initialized pose/component data, stable IDs, names and metadata. D
 the prior clipboard even on failure. The serialized authoring thread retains no live World borrow in
 clipboard/history, and no source IO or GPU residency work occurs during Copy/Cut/Paste/Duplicate.
 
+Paste now stages the complete replacement node metadata, root selection and next history capacity
+before Runtime clone publication. After clone succeeds, assignment and swaps publish without a new
+metadata/history allocation. Exhausted entity-generation space rejects instead of wrapping.
+
+`SceneDocument::ImportForestBytes` accepts at most 8 MiB and 4096 source authoring nodes, using the
+same versioned parser/migration and unknown-payload validation as Reload. It requires caller-provided
+current authoring permission and an exact matching owning PreparedSave for the target document.
+The serialized host remains responsible for writer lease, recovery, Play and modal authority.
+Invalid/foreign-generation/stale/over-budget inputs return no partial result and retain source,
+selection, Undo/Redo and the user clipboard. Parsing uses a separate World/document before mutation.
+
+The complete source World storage order determines the imported sibling order. All internal parents
+are remapped to fresh entities through one existing CloneEntityForest transaction; root names,
+initialized components, authored Euler revolutions and exact opaque bytes remain unchanged.
+The returned owning source-ID/current-generation target-key map has no source World/document borrows.
+One Undo removes the entire import and restores prior selection; Redo restores the same initialized
+identities and metadata. A scoped restore keeps previous Copy and pending-Cut clipboard behavior,
+including failure/exception unwinding. Result capacity is allocated before publication.
+This operation performs no file IO, GPU admission, native loading, persistent prefab-instance binding,
+existing-parent attachment or arbitrary opaque entity-reference interpretation. Those remain host/
+prefab integrations. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
 
 ## Cut clipboard lifecycle
 
@@ -767,11 +1073,15 @@ preservation as scene writes; its failure leaves the World, scene save, path and
 The application warns after an independent recording failure and still permits successful Save and
 Exit. Read-only startup only reads; per-file camera loading follows the restored association.
 
-Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` path, including
-directories and valid/dangling leaf symlinks. Only verified absence permits existing recovery-gated
-authoring/export/shutdown actions. Recovery rejects unsafe inputs without mutation. Explicit writer
-discard removes one directory entry (never recursively); alias targets remain untouched, and a
-nonempty directory remains pending after discard fails. Read-only observers cannot discard.
+Recovery presence means any occupied or uninspectable `.nexora/workspace.recovery` or
+`.nexora/scene-save-all.recovery` path, including directories and valid/dangling leaf symlinks.
+Only verified absence permits existing recovery-gated authoring/export/shutdown actions.
+Recovery rejects unsafe inputs without replacing source files. Explicit writer discard of the
+workspace journal removes one directory entry (never recursively); alias targets remain untouched,
+and a nonempty directory remains pending after discard fails. Save All discard instead validates
+and restores an uncommitted batch or finishes committed cleanup; it never recursively erases the
+only retained originals. If both journals are present, resolve the workspace journal first, then
+Save All. Read-only observers cannot recover or discard either journal.
 
 ## Play input binding values
 
@@ -929,3 +1239,213 @@ source/software, scope, units and retained peak. Read-only/modal/recovery/close 
 profiler actions. No capture is saved implicitly. These additive rebuild-required C++ APIs change
 no module dependencies or stable C/Gameplay ABI. Physical GPU calibration, per-pass analysis and
 third-party capture adapters remain open.
+
+## Semantic scene revision comparison
+
+`CompareSceneRevisions` accepts synchronous base/local/remote byte views and returns owning changed
+rows keyed by stable entity IDs and fields. An absent whole source is `nullopt`, distinct from an
+empty present file or an existing empty field. `SceneDocument::ReloadBytes` and ordinary file Reload
+share one versioned parser and legacy migration; comparison uses only isolated temporary Worlds.
+Comparison caps authoring nodes during ingestion before legacy validation/migration, and legacy
+hierarchy validation visits each node/edge once. Quaternion signs use one canonical hemisphere;
+equivalent q/-q rotations remain equal while independent authored Euler turns stay inspectable.
+Runtime entity presence, parent/sibling order, local TRS, camera/light/mesh fields, tracked names,
+authored Euler turns and opaque type names/exact hexadecimal payloads remain inspectable. Generation
+IDs, selection and Undo history are not persistent source fields. Unknown payloads are never loaded
+as plugins or interpreted as a future schema.
+
+Each source is limited to 8 MiB and 4,096 entities; a value to 64 KiB (32 KiB opaque binary), a
+semantic snapshot to 4 MiB, and the final result to 131,072 rows/16 MiB. Limits measure logical
+source/field bytes, not process RSS or the parser's bounded temporary allocations. Invalid, unsafe
+display text, unsupported or over-budget revisions reject without partial output, IO or caller
+document/baseline/history mutation. Output sorts stable paths and owns every optional value after
+the input views expire. Callers supply project/revision provenance and serialize borrowed access.
+
+Shared/local/remote choices are per-field inspection hints. Deletion versus editing remains an
+explicit unresolved conflict. They do not certify a structurally valid merged scene and do not
+publish source data. Graphical conflict/provider and reviewed merge publication remain separate
+acceptance work. ReloadBytes is a rebuild-required C++ API with the same successful replacement,
+generation/history and failed-reload preservation contract as file Reload; file Reload moves its
+existing owning buffer into the parser, avoiding an extra full source copy.
+
+Actual contract, capacity, legacy and history preservation results are recorded in
+[Linux comparison evidence](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md).
+## Graphical additive document host
+
+The native application consumes owning tab requests through `AdditiveSceneSession`, independently
+revalidating workspace access, source/target generations, reference policy, stopped Play, recovery
+and drained exports. Save All uses the accepted immutable batch and publishes every owned saved
+Content scene after coordinated success. Close considers every owned dirty document, including
+inactive owners behind a clean reference, and preserves unnamed Save As retry continuations.
+Composition metadata is saved only after host readers and Play are stopped; failed full restore
+retains the bootstrap and freezes source mutation while all foreign data remains intact. Initial
+metadata begins with multiple documents and later records a single remaining owner; ordinary
+single-scene startup/fallback remains authoritative until a composition exists. Legacy startup
+observation initializes before bootstrap. Stable entity identity/opaque references are not rewritten.
+The Scene canvas/Hierarchy display the active document. See
+[Linux graphical evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneTabs-Linux-2026-10-09.md)
+for actual controls, source isolation, reference policy, failure/reopen and legacy compatibility.
+
+## Supported project upgrade inspection and retained originals
+
+`ProjectWorkspace::PreviewUpgrade` synchronously reads supported schema-1/2 descriptor and bounded
+workspace data into an owning plan without acquiring a writer lease, creating directories or
+writing files. Its copied original retains exact CRLF/UTF-8 bytes; legacy identity derives from the
+canonical root/name exactly as ordinary Open. Proposed bytes describe a plan, not publication
+authority. Current-schema preview preserves original bytes. Unsupported/corrupt inputs reject.
+Descriptor reading retains at most 4 KiB and checks actual read bytes, so post-stat growth cannot
+cause an unbounded line allocation. Workspace limits remain 4,096 paths of at most 1,024 bytes.
+
+Read-write Open reinspects under its existing OS-held cooperating-writer lease. Before a legacy
+descriptor replacement, `.nexora/project-upgrade.schema1.backup` retains exact original bytes and
+`.nexora/project-upgrade.schema1.report` records the immutable schema/UUID/byte-count plan. The
+report explicitly says plan-only and is not evidence that publication succeeded. Preexisting
+matching dedicated regular evidence supports retry; foreign/corrupt, symlink/hard-link aliases and
+occupied staging reject without deletion or replacement. Source bytes revalidate before/between
+evidence writes and before descriptor publication. Preparation or replacement failure retains the
+source and any successfully prepared evidence; repairing occupied staging permits retry. Successful
+reopen retains backup/report and stable UUID without rewriting current-schema descriptors.
+
+Preview and Open calls remain synchronous owner operations; plans survive caller/file changes but
+never grant later write authority. Failed Open preserves prior in-memory state and its writer
+lease. Source scenes and workspace/layout bytes are not migrated by this descriptor slice. The
+cooperating-writer policy does not promise hostile concurrent-filesystem isolation, power-loss
+durability, all-file atomic replacement or cancellation of a synchronous call. Broader graphical
+migration/recovery remains separate work. Public C++ consumers rebuild; stable C/Gameplay ABI and
+module dependencies are unchanged.
+
+## Scoped graphical source-conflict inspection
+
+`SceneComparisonJob` captures owning bounded saved-baseline and prepared-local bytes on the
+authoring owner, reads a bounded disk revision and compares isolated Worlds on the referenced
+`JobSystem`. Jobs must outlive the owner; shutdown cancels and drains before document destruction.
+Workers retain no workspace/document borrows and perform no source writes. One operation blocks
+replacement until its terminal worker is consumed. Cancellation, changed document/path/project,
+changed prepared local content, changed saved baseline or a replacement file-session identity
+reject publication. Ready owns an immutable captured comparison, not continuing disk authority.
+
+The application polls on its authoring owner, then transfers only owning observations to ImGui.
+Reference and read-only documents may inspect through their const file session; no writable
+document accessor is required. Stopped Play, live scope and recovery/modal gates revalidate
+requests. Neither comparison nor its per-field hints alter selection, history, dirty baselines,
+sources or replacement confirmation. Inspectable differences do not certify a valid merged tree.
+[Linux graphical evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md)
+covers actual controls and source isolation. Reviewed merge publication and provider integration
+remain open. These additive C++ APIs require rebuild and change no stable C/Gameplay ABI or module
+dependency.
+
+## Bounded scoped build processes
+
+`BuildProcess` owns one direct executable/working-directory/UTF-8 argv request on its referenced
+Core JobSystem. Owner calls are serialized; the JobSystem outlives the runner and shutdown
+cancels/drains before destruction. Workers retain no document/workspace borrows. Absolute native
+paths, at most 256 arguments and 32 KiB executable/argv bytes reject invalid admission before
+changing the previous observation. There is no shell expansion. The child inherits the host
+environment; the caller authorizes its executable and project scripts. This is not a sandbox.
+
+Cancel admits only queued/running work while synchronized with worker outcome publication.
+After a terminal outcome is published, Cancel returns false even before owner Poll; completed
+exit codes and launch failures remain observable. Shutdown ends the owner scope without
+rewriting an already completed failure as cancellation.
+
+POSIX output pipes are close-on-exec at creation on Linux. The built-in build and shader
+launchers share a creation/spawn mutex for older Darwin pipe creation. Linux requires glibc
+2.34 close-from spawn actions; macOS uses CLOEXEC_DEFAULT and whitelists duplicated standard
+streams. Unrelated inheritable host descriptors are absent in the build child. Other POSIX
+backends without this isolation report Unsupported. Embedding applications must apply the same
+pipe/spawn isolation policy to their own concurrent launchers.
+
+POSIX creates a new managed process group through posix_spawn; hosts must retain ordinary SIGCHLD
+wait policy and must not externally reap runner-owned children or change that policy while active.
+The direct child remains unreaped until cleanup, reserving process-group identity. Windows starts
+suspended, assigns a kill-on-close Job Object before execution and restricts inherited handles to
+its output pipe and null stdin. Cancellation, exceptional cleanup and shutdown stop managed
+descendants and join the direct child/worker. Deliberately detached POSIX groups are outside this
+cooperative policy. Mobile platforms without a backend explicitly report Unsupported.
+
+Merged stdout/stderr retains a raw byte tail, default 64 KiB and maximum 256 KiB, with exact dropped
+byte accounting; it is neither UTF-8 display text nor a redacted log. Callers sanitize/redact before
+display or persistence. The API persists no commands, output or environment. Failed launch has no
+fabricated exit code; native nonzero exits, signals, incomplete output, cancellation and stale
+owner scope cannot publish success. Exited means only actual code zero; independently verified
+artifacts, target manifest, checksums and reproducible build publication remain host obligations.
+The API changes no stable C/Gameplay ABI or module graph; public C++ consumers must rebuild.
+## Reflected opaque-property authoring
+
+`ReflectedInspector` owns a validated catalog and Runtime reflection descriptors. It interprets
+explicit portable wire layouts in retained opaque components, never offsets into native plugin
+objects. Catalogs allow 64 types, 64 fields/type, 32 fixed elements/field and 32 enum/flag choices.
+Names/paths/labels are bounded UTF-8, ranges cannot overlap, expanded property paths are unique,
+and schema text is capped at 256 KiB. Boolean uses one byte; integers, enums, flags, entity IDs
+and finite binary64 lanes use little-endian eight-byte values. Asset UUIDs use two little-endian
+64-bit words; colors have four finite lanes in [0,1]. Unknown padding and other components remain
+unchanged. Nested structs use flattened paths; arrays have fixed declared lengths.
+
+`Inspect` returns an owning observation of metadata, generation keys, exact source component
+bytes and mixed values for at most 256 targets/1 MiB. `Apply` checks current catalog revision,
+selection, complete source bytes, validated values and caller-supplied current authoring authority
+before publishing. The owner serializes access; observations retain no World, document or plugin
+borrows. `SceneDocument::ApplyOpaqueComponents` stages and validates all replacements together,
+then records one atomic Undo/Redo entry. Rejections and no-op edits preserve source/history.
+Application/UI callers continue to enforce project writer, recovery and Play authority.
+`ApplyFlag` sets or clears only a declared checkbox bit in each target's original mask;
+mixed values never copy unrelated bits from the first selection. It shares the same complete
+observation revalidation and atomic Undo/Redo path as ordinary property replacement.
+
+Optional project metadata is read from `.nexora/inspector.reflection`; missing means an empty
+catalog. Files must be regular, non-symlink and single-linked; actual reads stop at 256 KiB + 1.
+The LF header is `NXEDITORREFLECTION 1`, followed by `type <id> "name" <bytes> <field-count>`,
+`field "path" <kind> <offset> <elements> <choice-count>` and, where declared,
+`choice <uint64-value> "label"` records. Kinds are bool/int64/uint64/double/enum/flags,
+vector2/vector3/vector4/color/entity_reference/asset_reference. Unsigned counts reject signed
+tokens/overflow; malformed versions, trailing records and invalid layouts reject the whole catalog.
+This is cooperating-project metadata validation, not hostile filesystem race isolation.
+
+Project activation and explicit metadata reload replace interpretation; failures clear the active
+catalog and preserve scene bytes. The host never rewrites metadata. Dynamic arrays, arbitrary
+native plugin object restoration and runtime execution are outside this slice. Public C++
+consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+## Cryptographic extension verification
+
+`ExtensionTrust` owns at most 64 host-configured public publisher keys. IDs are bounded
+case-sensitive ASCII identifiers; manifests must never enroll their own keys into this
+trusted registry. Set/rotation/revocation update a nonwrapping revision; repeated identical
+configuration is idempotent. Rejected input preserves previous keys. Snapshot owns a copy.
+All registry calls are serialized by the caller. Zero/identity key shapes reject; hosts
+select authentic RFC8032-generated publisher keys through their separate trust workflow.
+
+Verify uses the declared Cryptography module to verify the actual signature over the
+exact supplied artifact bytes, then computes an owning SHA256 digest only after success.
+No caller-supplied signature-valid flag is accepted. Unknown publishers, changed keys/data,
+invalid signatures, over-budget inputs and unavailable/failing backends cannot verify.
+The result includes the captured trust revision; it is an observation, not code-load
+authority. Later loading must independently validate manifest/ABI/permissions/dependencies,
+recheck trust revision and bind verified immutable staged bytes to the native load. This
+slice installs no files, persists no private keys, makes no network calls and loads no
+plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
+it is not the cryptographic verifier or a production load gate. Graphical installation,
+trusted staging and pre-load enforcement remain separate unfinished work.
+
+## External Chrome trace inspection
+
+`ChromeTraceImporter` imports wrapped `traceEvents` or bare event arrays as owning external
+complete-event intervals. Selection requires an explicit event name, process ID and thread ID;
+Chrome timestamps/durations are microseconds regardless of displayTimeUnit. Results retain the
+external trace clock and convert duration to milliseconds. ph=X alone does not identify CPU/GPU
+measurements, process memory or Editor frames; no such observations are fabricated.
+
+Bounded UTF-8/Unicode JSON validates unknown metadata, duplicate keys and framing without a DOM.
+Limits: 4MiB input,32768 events,600 retained selected samples,32 unknown-value depth,64 keys/object,
+64KiB decoded strings and256-byte event selector. Process/thread IDs are exact nonnegative decimal
+JSON integers or decimal strings up to2^53-1. Selected start times are finite/nonnegative/ordered;
+complete intervals remain inside that supported clock range. Simultaneous timestamps are permitted.
+Newest selected intervals retain original sequence IDs and exact older-sample dropped counts.
+Unsupported/malformed input rejects without changing prior captures or input files. Logical budgets
+do not promise a total allocator-memory quota. Public C++ consumers rebuild; stable C ABI unchanged.
+
+`ProjectWorkspace::ImportChromeTraceJson` explicitly reads `.nexora/chrome-trace.json`; read-only
+observers may import. Closed/recovery/external-change scopes, nonregular paths, symlinked metadata,
+aliased project roots and multiply linked trace files reject. Reads remain byte-bounded and recheck
+recovery/external state. No file writes, native loads or clock calibration occur. Arbitrary binary
+capture formats and physical GPU calibration remain separate work.

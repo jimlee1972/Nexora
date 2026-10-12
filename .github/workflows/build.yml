@@ -18,42 +18,18 @@ jobs:
     outputs:
       full_build: ${{ steps.route.outputs.full_build }}
     steps:
-      - name: Cancel superseded ED-M0 runs
-        if: startsWith(github.head_ref || github.ref_name, 'codex/ed-m0-') && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const {owner, repo} = context.repo;
-            // Existing runs predate the concurrency group. Never cancel main or a current head.
-            const branches = ['codex/ed-m0-native-validation', 'codex/ed-m0-desktop-parity',
-                              'codex/ed-m0-surface-font-domain', 'codex/ed-m0-native-images'];
-            for (const branch of branches) {
-              try {
-                const ref = await github.rest.git.getRef({owner, repo, ref: `heads/${branch}`});
-                const head = ref.data.object.sha;
-                const runs = await github.paginate(github.rest.actions.listWorkflowRuns,
-                  {owner, repo, workflow_id: 'build.yml', branch, per_page: 100});
-                for (const run of runs) {
-                  if (!['queued', 'in_progress'].includes(run.status) ||
-                      run.head_branch !== branch || run.head_repository?.full_name !== `${owner}/${repo}` ||
-                      run.head_sha === head || run.id === context.runId)
-                    continue;
-                  const current = await github.rest.git.getRef({owner, repo, ref: `heads/${branch}`});
-                  if (current.data.object.sha !== head) {
-                    core.info(`${branch} advanced during cleanup; keeping the new head's runs`);
-                    break;
-                  }
-                  await github.rest.actions.cancelWorkflowRun({owner, repo, run_id: run.id});
-                  core.info(`Cancelled superseded ${branch} run ${run.id} (${run.head_sha})`);
-                }
-              } catch (error) {
-                // Cleanup is best-effort; missing/deleted refs or API races are not build failures.
-                core.warning(`ED-M0 cleanup for ${branch}: ${error.message}`);
-              }
-            }
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Cancel superseded editor runs
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {cleanup} = require('./Tools/Build/editor-ci-cleanup.cjs');
+            await cleanup({github, context, core});
+      - name: Test editor CI cleanup guards
+        run: node Tools/Build/tests/editor-ci-cleanup.test.cjs
       - name: Install pinned Markdown parser
         run: python3 -m pip install --requirement Tools/Build/documentation-requirements.txt
       - name: Test documentation routing
@@ -196,16 +172,79 @@ jobs:
       - name: Install Vulkan, X11, Xvfb and xdotool
         run: |
           sudo apt-get update
-          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers libx11-dev xvfb xdotool glslang-tools
-      - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
+          sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers vulkan-validationlayers libx11-dev xvfb xdotool glslang-tools libssl-dev
+      - run: cmake --preset linux-development -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON -DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL
       - run: cmake --build --preset linux-development
+      - name: Require real cryptographic signature verification
+        run: |
+          grep -q '^NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE:INTERNAL=ON$' build/linux-development/CMakeCache.txt
+          ctest --preset linux-development -N -R '^(cryptography\.ed25519_sha256|editor\.(extension_signature_trust|signed_extension_admission))$' | grep -q 'Total Tests: 3'
+          ctest --preset linux-development -R '^(cryptography\.ed25519_sha256|editor\.(extension_signature_trust|signed_extension_admission))$' --output-on-failure
       - name: Require the display acceptance to be registered
         # The test is only registered when Xvfb and xdotool are found; fail loudly instead of
         # silently skipping it if either goes missing.
         run: |
           ctest --preset linux-development -N -R '^editor\.linux_display_acceptance$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.static_project_export_(job|ui)$|^editor\.linux_static_project_export$' | grep -q 'Total Tests: 3'
+          ctest --preset linux-development -N -R '^editor\.tool_capability_metadata$' | grep -q 'Total Tests: 1'
+      - name: Require coordinated scene-save acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.scene_save_batch$' | grep -q 'Total Tests: 1'
+      - name: Require persisted additive composition acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.additive_scene_composition$' | grep -q 'Total Tests: 1'
+      - name: Require project-upgrade evidence acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.project_upgrade_evidence$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.(project_upgrade_ui|linux_project_upgrade)$' | grep -q 'Total Tests: 2'
+      - name: Require additive document-owner acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.additive_scene_session$' | grep -q 'Total Tests: 1'
+      - name: Require semantic scene comparison acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison$' | grep -q 'Total Tests: 1'
+      - name: Require graphical additive-tab acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(scene_tabs|linux_native_scene_tabs)$' | grep -q 'Total Tests: 2'
+      - name: Require graphical diagnostic privacy acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(diagnostic_privacy|linux_diagnostic_privacy)$' | grep -q 'Total Tests: 2'
+      - name: Require graphical semantic comparison acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_job$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison_ui$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^editor\.linux_scene_comparison$' | grep -q 'Total Tests: 1'
+
+      - name: Require graphical prefab isolation acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(prefab_document_isolation|prefab_isolation_ui|linux_prefab_isolation)$' | grep -q 'Total Tests: 3'
+      - name: Require graphical build-process console acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(build_process_console|linux_build_process_console)$' | grep -q 'Total Tests: 2'
+      - name: Require bounded build-process acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.bounded_build_process$' | grep -q 'Total Tests: 1'
+      - name: Require stable prefab persistence and dependency acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.prefab_asset_graph$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -R '^editor\.prefab_asset_graph$' --output-on-failure
+
+      - name: Require atomic scene forest import acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.atomic_forest_import$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -R '^editor\.atomic_forest_import$' --output-on-failure
+      - name: Require reflected Inspector transactions and graphical acceptance
+        run: |
+          ctest --preset linux-development -N -R '^editor\.(reflected_inspector|reflected_inspector_ui|linux_reflected_inspector)$' | grep -q 'Total Tests: 3'
       - name: Editor tests (includes the Xvfb display acceptance)
-        run: ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-tests.log
+        # The deep hierarchy test must be present in the graphical configuration.
+        # Full Editor execution below retains all existing navigation controls.
+        # Keep this separate from Xvfb discovery, since it is a portable ImGui test.
+        run: |
+          ctest --preset linux-development -N -R '^editor\.deep_hierarchy$' | grep -q 'Total Tests: 1'
+          ctest --preset linux-development -N -R '^(runtime\.scene_world_pose_snapshot|editor\.overview_pose_snapshot)$' | grep -q 'Total Tests: 2'
+          ctest --preset linux-development -R '^runtime\.scene_world_pose_snapshot$' -V
+          ctest --preset linux-development -R '^editor\.' -V --output-log build/linux-development/editor-tests.log
       - name: Require and verify standalone native ProjectPlayer
         run: |
           ctest --preset linux-development -N -R '^runtime\.(native_static_view|linux_native_static_player)$' | grep -q 'Total Tests: 2'

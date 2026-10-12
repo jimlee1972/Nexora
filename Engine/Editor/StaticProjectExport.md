@@ -66,9 +66,10 @@ by the shared codecs/package encoder; unchanged raw World text produces identica
 ## Publication boundary and acceptance
 
 Owning inputs are evidence of captured content, not authorization or proof of current content.
-Document generation identifies an object, not an edit revision. A future coordinator must check
+Document generation identifies an object, not an edit revision. The separate
+[StaticProjectExportJob](include/Nexora/Editor/StaticProjectExportJob.h) coordinator checks
 workspace identity/write access, recovery state, current scene/imported-content revisions and
-cancellation before atomic publication. The producer does not authorize stale catalog content,
+cancellation before atomic publication. The producer itself does not authorize stale catalog content,
 write a manifest, choose an output path or mark dirty documents saved.
 
 `editor.static_project_export` covers actual import/capture-to-package ownership and exact closure,
@@ -78,9 +79,60 @@ and opaque limits, geometry accounting and a functional 100,000-entity World. Op
 optimized `editor.static_project_export_cli` tests feed the generated production artifact to the
 standalone player from a Unicode path, verify its report and unchanged bytes, and repeat cooking
 from independent owning captures. [Delivery evidence](../../Tools/Build/evidence/EditorEDM6-StaticProjectExport-Linux-2026-10-09.md)
-records executed gates. The optional [native Project Player](../../Apps/ProjectPlayer/README.md)
+records executed producer gates. The coordinator below adds graphical export/publication.
+The optional [native Project Player](../../Apps/ProjectPlayer/README.md)
 now renders admitted StaticView packages using the production native presentation path, with
 [executed Linux acceptance](../../Tools/Build/evidence/EditorEDM6-NativeProjectPlayer-Linux-2026-10-09.md).
-Gameplay compilation, GUI export/publication, deployment/signing and the complete ED-M6 milestone
+Gameplay compilation, deployment/signing and the complete ED-M6 milestone
 remain open. Existing NXAB still limits this
 package to little-endian hosts; FNV integrity is not authenticity.
+
+## Graphical StaticView export coordinator
+
+The optional Editor Build menu exports the current managed Content scene to
+~~~text
+.nexora/exports/static-view.nxproject
+~~~
+Save an untitled scene first. Export captures current unsaved authoring changes without saving them,
+changing selection/Undo/Redo or advancing the scene's saved baseline. It is a data-package export;
+there is no executable compilation, build manifest, deployment, signing or gameplay execution.
+The ready state includes actual byte count, a 16-digit FNV-1a checksum and the reproducible command,
+run from the project root:
+~~~sh
+NexoraProjectPlayer --verify-package ".nexora/exports/static-view.nxproject"
+~~~
+The player must be separately built/available. This status proves Runtime package admission, not
+native renderer/camera/viewport admission.
+
+StaticProjectExportJob borrows an application JobSystem that must outlive it. Start, Poll, Cancel,
+Snapshot and Shutdown run serially on the authoring thread. One operation is retained; concurrent
+intake rejects, identities never reuse, and consuming a terminal result releases captured payloads.
+Copied status has one diagnostic capped at 1024 UTF-8 bytes and fixed bounded output/command fields.
+There is no unbounded log/history queue. Shutdown stops intake, cancels, joins and attempts owned
+stage cleanup. Worker closures retain no workspace, document, catalog, browser, World or GUI pointer.
+
+Start checks same-root writable workspace/Content, nonzero persistent identities, recovery/external
+workspace changes, reimport activity and pending conflicts. It prepares complete authoring-save
+content and owning Runtime capture, then copies current imported mesh/scalar-material values.
+The first version conservatively supplies every imported CPU asset, including unused ones: all
+4095-asset and 128 MiB geometry admission limits apply before copying each geometry. Pure cooking
+still serializes only the actual scene dependency closure. This bounds logical input/output, not
+peak allocation, capture latency or interactive 100k-entity frame performance.
+
+The worker calls the real producer and Runtime loader, writes verified bytes in 8 KiB chunks to the
+sibling .tmp stage, checks close/flush and rereads the actual complete bytes. Cancellation is
+cooperative between phases and chunks; it cannot interrupt the producer/loader internally.
+ReadyToPublish is staging only. Poll consumes only terminal jobs and checks root/project UUID,
+Content generation/revision, full current authoring content including names/opaque metadata, an
+exact new Runtime capture including untracked entities, and immutable catalog snapshot identities.
+Access loss, project/scene/content changes and cancellation retain the previous output and never
+become Published. UI observations carry project/document scope; changed scope hides previous success.
+
+Output parents must be real directories, the destination absent or a regular file, and staging
+absent before intake/writing. Existing files/directories/aliases at .tmp are preserved. Only owned
+regular staging under safe parents is cleaned up. The ready stage's size/revision and regular-file
+kind are rechecked before same-volume POSIX rename or Windows replace-existing MoveFileExW.
+Failed replacement retains the destination. Changed/unsafe/unremovable staging is preserved with
+a diagnostic to inspect its .tmp path. This follows the existing single project writer contract;
+it is not protection from hostile concurrent actors, filesystem metadata forgery or native crashes,
+and does not promise directory fsync durability. FNV is integrity metadata, not authentication.

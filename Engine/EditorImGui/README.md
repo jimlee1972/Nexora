@@ -12,8 +12,71 @@ Synthetic contract fixtures explicitly choose Ctrl shortcut semantics and disabl
 The shared undo/redo contract also runs with macOS behaviors and physical Cmd/Super events;
 production retains ImGui's native platform defaults.
 
+## Local build process console
+
+`DrawBuildProcess` borrows the real BuildProcess only for its serialized frame call. The host
+owns session-only executable/cwd fields and at most 256 discrete argument fields (2,047 bytes
+each); the runner independently enforces its aggregate 32 KiB command budget. No shell command
+is assembled. The visible escaped-byte preview describes the exact argv and working directory,
+with clipped argument/preview rows; it is not a shell command to paste. The application supplies
+current project scope and permission. Read-only, missing, recovery/external-change, Play and
+failed-composition states disable Run. Scope replacement clears configuration/display and cancels
+old work. Revoked permission cancels active work. No document/world pointer reaches workers.
+
+Build > Process console and Ctrl+Alt+B open the panel. Within the focused panel Ctrl+Enter runs
+and Ctrl+Shift+Enter cancels; disabled widgets and keyboard use the same admission gates.
+Execution uses the user's program, scripts and inherited environment, not a sandbox. Configuration,
+argv and logs are never persisted or sent to diagnostics. The built-in capture retains a 16 KiB raw
+merged stdout/stderr tail and a dropped-byte counter. Display escapes non-ASCII, NUL and control
+bytes to valid ASCII, preventing malformed UTF-8/terminal controls from reaching widget text.
+
+Snapshots distinguish queued/running/finalizing, actual unsigned exit code, failed/cancelled/stale
+and unsupported. Exit zero explicitly leaves artifacts unverified; this panel never reports build
+or deployment success. Artifact validation, serialized target profiles and authenticated remote
+workflows are separate. The application cancels the process before draining other models on the
+shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
+existing module dependencies and stable C ABI are unchanged.
+
 ## Ownership and lifetime
 
+`DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
+Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
+Clear retained events. Initial/project UUID/nil-scope changes revoke consent and release the queue;
+no project disables opt-in. Opt-out releases retained records immediately and re-enable starts empty.
+Clear forgets records while preserving an existing opt-in. The application emits only the fixed
+`frame.presented` label at bounded cadence, after successfully presented frames. No paths, source,
+commands, user/project names or credentials enter that production queue. The generic Core primitive
+still accepts caller-owned event text; this panel displays only exact allowlisted labels and counts
+excluded records without rendering, logging, tooltip or snapshot exposure of their contents. It
+submits at most 128 safe rows while reporting the bounded queue/excluded counts. Consent and the
+panel are not serialized in project/layout data; no persistence or network adapter is installed.
+Read-only projects may use these local controls without obtaining source-write authority. The
+application revokes on shutdown; restart creates a default-off empty model. This is local diagnostic
+privacy, not an extension signature verifier or a telemetry transport implementation.
+
+
+- `SetSceneTabs` copies at most sixteen current document identities/tokens, labels, destinations,
+  ownership and dirty indicators. Invalid or mixed-project metadata preserves the previous copy.
+  Tab source/target replacement cancels pending gestures, Inspector drafts and stale requests.
+  `TakeSceneTabRequest` transfers one owning Select/New/Open/Close/Save All intent; widgets perform
+  no scene IO or membership changes. The application rechecks both source and target tokens, stops
+  Play and drains export readers before changing document owners. Reference tabs disable source
+  editing, Save and Play Apply; the application's source mutation paths independently enforce this.
+  Dirty Close offers Save All, explicit Discard and Cancel. Unnamed owned documents require Save As
+  before Save All. Export/recovery and other modal operations block tab actions. Controls wrap in
+  narrow panels and use logical coordinates at both 1x and 2x DPI.
+  Ctrl+Alt+N adds a scene, Ctrl+Alt+O opens an owned scene, Ctrl+Alt+Shift+O opens a reference,
+  Ctrl+Alt+S saves all owned scenes, Ctrl+Alt+W closes the current additive scene, and
+  Ctrl+Alt+PageUp/PageDown selects the previous/next document. Enter submits the focused path chooser.
+  These shortcuts obey the same busy, permission, modal and text-input gates as the buttons.
+  A host may freeze owned source editing with the copied `read_only` field when the saved scene
+  set cannot be restored. The application starts from the persisted load-order bootstrap, restores
+  all named memberships/roles and active selection, and preserves invalid metadata/source versions.
+  Metadata is saved after Play/export shutdown, with exact source/metadata baseline checks; unnamed
+  or unresolved sets preserve the previous saved composition and report the reason.
+  A composition record starts when multiple documents coexist. Once present it also remembers a
+  later single-document set. Ordinary single-scene sessions retain the legacy startup/fallback
+  contract; bootstrap still validates legacy settings so later Open can remember its destination.
 - `EditorImGuiHost` owns one ImGui context and destroys it with the host.
   State ownership also releases the previous context on move assignment, clearing backend/IME
   borrows before destruction and preserving another current context. Move between frames;
@@ -32,8 +95,16 @@ production retains ImGui's native platform defaults.
 - `ProductShell` and `SceneDocument` remain borrowed Editor Core models and outlive calls that
   present them. The Hierarchy owns only presentation state: its filter, generation-keyed expansion
   and selection anchor/cursor, rename buffer/modal, and pending one-frame UI requests. It builds
-  parent-aware visible rows and clips their submission with `ImGuiListClipper`; plain/Ctrl/Shift
-  selection routes through `SceneDocument::Select`, rename routes through `SceneDocument::Rename`,
+  parent-aware visible rows and clips their submission with `ImGuiListClipper`. Hierarchy
+  traversal uses an explicit work vector, preserving parent-first and sibling order without native
+  recursion even for a deep expanded chain. Expansion pruning indexes the current generation-keyed
+  nodes once instead of performing a complete document lookup per expanded row. These changes do
+  not introduce a cached authoring snapshot or certify a per-frame performance budget.
+  Real 100,000-node fixtures exercise a 99,998-node expanded chain at 1x/2x and a flat hierarchy,
+  exact order/depth, clipped widgets, Home/End, collapse, filtering and document replacement in the
+  3D-preview layout. Native GPU submission and top-down overview pose traversal are separate gates.
+  Plain/Ctrl/Shift selection routes through `SceneDocument::Select`, rename routes through
+  `SceneDocument::Rename`,
   and sibling reorder or drag/drop reparenting routes through `SceneDocument::Move`. Stale entity or
   document generations, cycle rejection, and undo remain in Editor Core. The application owns the
   document and its `World`.
@@ -52,6 +123,12 @@ production retains ImGui's native platform defaults.
   The Scene panel has a top-down X/Z overview with a world grid, composed entity positions,
   middle-button pan, wheel zoom, and click selection synchronized with Hierarchy. It is an
   authoring overview; native OBJ geometry submission is application-owned and full Scene View acceptance remains open.
+  Overview markers resolve one owning `SceneDocument::WorldPoses` snapshot per draw, rather than
+  performing a complete parent-chain lookup per node. Frame all/multiple-selection framing uses
+  the same bulk observation. Prospective drag ancestry is memoized once across tracked nodes;
+  untracked ancestors still affect committed poses, but do not become selectable document nodes.
+  Corrupt/non-finite scene poses publish no markers. No pose snapshot or Runtime pointer persists
+  across frames; draw geometry and dirty-state serialization still scale with authored input.
   `SceneCanvasViewport()` exposes its visible, clipped canvas rectangle in framebuffer pixels
   after each frame's dock layout and DPI scale. It is empty when the panel is not drawn and is
   reset at `BeginFrame`. The 3D Preview toggle publishes this rectangle to the application for
@@ -200,6 +277,16 @@ production retains ImGui's native platform defaults.
   unavailable GPU/memory fields. No retained workspace/sample borrow or live-session mutation is
   introduced. Statistics use an incremental mean so finite large samples do not overflow a sum.
   CSV has no project/device provenance and is labelled accordingly; JSON import verifies project identity.
+- The project selector provides Preview upgrade and Ctrl+Alt+M in both read-write and read-only
+  browser modes. Intake is owning and one-shot; busy import blocks preview and Create/Open.
+  The application calls the read-only Core preview, then publishes only an owning summary bound
+  to the typed requested root. UUID/schema, bounded descriptor/workspace counts, canonical root
+  and printable UTF-8 labels are checked before replacing the previous accepted summary.
+  Root edits, a new selection and busy status clear captured results and stale requests.
+  The panel displays the captured schema/identity and backup/report locations; inspection acquires
+  no writer lease and writes no project files. Explicit Open rechecks the source and access through
+  the ordinary workspace activation path. The summary neither authorizes writes nor certifies a
+  completed upgrade. Existing Create name validation and read-only gates remain enforced.
 - The project selector displays background content-index progress and exposes a one-shot cancel
   request. The application owns the candidate workspace and import operation, consumes the staged
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
@@ -779,7 +866,8 @@ Inspector drafts. File modals block authoring, clipboard/history, Play commands,
 Project/document token changes cancel both pending dialogs and emitted requests. Read-only projects
 permit Open but disable New/Save/Save As; running Play disables New/Open. Recovery/close/apply dialogs
 block new file actions. The application independently rechecks policy and token before I/O. These
-are single-active-document controls; additive scene tabs and a native OS picker remain open.
+operate on the active document; additive membership uses the separate copied tab requests. A native
+OS picker remains open.
 
 Ordinary Ctrl+S, Save before New/Open, and Save and Exit route an externally changed managed scene
 through the same Replace/Cancel modal and show the owning conflict reason. Requests retain the
@@ -923,3 +1011,77 @@ unavailable; zero remains measured. Static clear and live Clear are independent,
 imports. Project root/UUID changes and detachment clear static state and pending requests while
 live surface history remains. Export requires a writable/resolved project and nonempty live GPU
 history; read-only import is permitted. Modal/recovery/close/no-project gates suppress requests.
+
+## Linux native saved-byte observation
+
+The native center-gesture acceptance helper repeats only Save while observing committed bytes
+within the existing five-second deadline. Gestures and Undo are not replayed, and exact saved-byte
+and one-step Undo assertions are retained. The helper performs no production input change and
+does not certify physical display/input or every synthetic-input timing path.
+
+## Semantic scene source-conflict view
+
+File > Compare scene revisions and Ctrl+Alt+D emit one owning document-token request. The
+application captures saved base/local/disk versions; widgets perform no IO or background work.
+The existing external-save modal offers comparison and a return to its retained Replace/Cancel
+decision without authorizing replacement. Comparison Cancel stops inspection only. The bounded
+read-only table shows stable field paths, absent versus empty Base/Local/Disk values, unresolved
+conflicts and inspection hints. Large values use UTF-8-safe previews and bounded tooltips; clipped
+rows avoid rendering the full retained result each frame. Results explicitly describe a captured
+disk snapshot, not current overwrite authority.
+
+Owning observation publication validates enum, token/path, UTF-8/display safety, row/value/byte
+budgets and exact conflict count before retaining data. A changed document/path clears results
+and pending requests. Live read-only/reference scopes may inspect while source authoring remains
+disabled. Busy, stopped-Play, recovery and modal policy apply independently in the host. Failed,
+cancelled or stale jobs show their actual state without a partial result, source writes or later
+request resurrection. Keyboard and 1x/2x real controls are covered by
+[Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
+Automatic semantic merge, source-control authentication and physical screen-reader acceptance
+remain open.
+
+## Reflected component Inspector
+
+`SetReflectedInspector` copies a validated owning Editor catalog. The Inspector renders compatible
+opaque component fields before built-in Transform controls, retaining unknown/incompatible data in
+the read-only section. Actual Boolean, enum and flag controls and typed scalar/vector/color/reference
+inputs support mixed multi-selection. Numeric text stays in an owning draft until Enter; activation
+freezes exact source observations, and commit rechecks current selection, catalog and source bytes.
+Generation/catalog/draft IDs and existing focus/authority cancellation prevent stale input revival.
+Read-only, recovery, Play and close gates disable authoring. Each successful field edit records one
+atomic document Undo/Redo entry, preserving padding and unrelated values.
+Flags checkbox clicks submit a bit operation, preserving each selected entity's other flags.
+
+Reload property metadata emits a one-shot request; the native application performs the bounded read
+after the UI frame and replaces the catalog. Project detachment clears interpretation. GUI code owns
+no native plugin objects and performs no metadata writes or native code loading. Fixed arrays and
+flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
+observations are private to test builds and expose no ImGui type across the public module boundary.
+
+The native reflected fixture retains the host's initial 1280x720 size and checks actual X11 window
+geometry: resizing after initial docking retains split pixel widths and makes fixed widget positions
+depend on startup timing. It observes presented X11 pixels in its fixed default-theme layout before
+selecting the source. Writable Boolean gestures wait for actual hover, held and released frames;
+shortcut modifiers and primary keys have separate press/release delivery. Readback never retries an
+edit or supplies synthetic model state. Bounded readiness failure reports observed colors, releases
+held input and retains every exact source/history/read-only/metadata and Vulkan assertion. This is
+Linux test synchronization, not a renderer or runtime behavior change.
+
+## Build process interaction guards
+
+Build-process Run also independently checks current focus, queued Play/close decisions and
+recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
+confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.
+
+## External Chrome trace view
+
+Profiler **Inspect Chrome trace** opens an explicit event/process/thread selection window and
+imports the project-owned Chrome JSON. Requests own UUID/root/selection; the application independently
+rechecks the current project and the workspace read guards. Static external intervals show the
+original trace timestamp in microseconds and duration in milliseconds, with source identity,
+retained/drop counts and clipped rows. CPU/GPU classification and memory remain unavailable.
+`SetImportedChromeTrace` validates and copies an owning capture; invalid publication retains the
+last-good view. Live Clear and each native/wall/RSS/external static Clear remain independent.
+Project UUID/root changes revoke pending requests, active selection inputs, external window and
+static capture. Read-only import remains available; close/recovery/external-change/modal guards
+prevent new import requests. No widgets perform file IO or native code loads.

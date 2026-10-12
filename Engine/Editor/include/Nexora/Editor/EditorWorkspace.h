@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/ChromeTrace.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MaterialImport.h"
@@ -56,6 +57,15 @@ struct ProjectDescriptor final {
 enum class ProjectAccess : std::uint8_t { ReadWrite, ReadOnly };
 enum class ProjectUpgradeState : std::uint8_t { Current, Applied, Required };
 
+// Owning read-only inspection. The proposed descriptor is a plan, not publication authority.
+struct ProjectUpgradePreview final {
+  std::filesystem::path root;
+  ProjectDescriptor project;
+  ProjectUpgradeState state{ProjectUpgradeState::Current};
+  std::vector<std::string> documents;
+  std::string original_descriptor, proposed_descriptor;
+};
+
 class NEXORA_EDITOR_API ProjectWorkspace final {
 public:
   static constexpr std::size_t kMaximumDocuments = 4096;
@@ -66,6 +76,10 @@ public:
   static constexpr std::size_t kMaximumProcessMemoryJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumGpuTimingJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumPlayInputSettingsBytes = 1024;
+  static constexpr std::size_t kMaximumProjectDescriptorBytes = 4096;
+  // No writer lease, directory creation or file writes. A read-write Open always reinspects.
+  [[nodiscard]] static std::optional<ProjectUpgradePreview>
+  PreviewUpgrade(const std::filesystem::path &root, std::string *error = nullptr);
   ProjectWorkspace();
   ~ProjectWorkspace();
   ProjectWorkspace(ProjectWorkspace &&) noexcept;
@@ -115,6 +129,10 @@ public:
                            std::string *error = nullptr);
   [[nodiscard]] std::optional<GpuTimingCapture>
   ImportGpuTimingJson(std::string *error = nullptr) const;
+  // Explicit external Chrome trace at .nexora/chrome-trace.json. Does not infer CPU/GPU/RSS
+  // or host/project timing provenance; read-only observers may import. No writes or native loads.
+  [[nodiscard]] std::optional<ChromeTraceCapture>
+  ImportChromeTraceJson(ChromeTraceSelection, std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;
@@ -163,6 +181,15 @@ private:
   std::vector<RecentProject> entries_;
 };
 
+// Admission bounds for one Content index. A tree beyond either bound is rejected as a whole, before
+// any identity sidecar is written, so the previous index and project files stay untouched.
+inline constexpr std::size_t kMaximumIndexedAssets = 262144;
+inline constexpr std::size_t kMaximumIndexedPathBytes = 1024; // UTF-8, project-relative.
+struct AssetIndexLimits final {
+  std::size_t max_assets = kMaximumIndexedAssets;
+  std::size_t max_path_bytes = kMaximumIndexedPathBytes;
+};
+
 enum class ImportState { Pending, Imported, Cancelled, Failed };
 enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentReadWrite };
 
@@ -184,6 +211,9 @@ class NEXORA_EDITOR_API AssetWorkspace final {
 public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
+  // `limits` bounds the number of indexed files (".meta" sidecars excluded) and each project-
+  // relative UTF-8 path. Exceeding either fails before any sidecar is created and keeps the
+  // existing index.
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
   // OBJ/material parsing retains its bounded source/payload policy; live publication is
@@ -191,7 +221,7 @@ public:
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
-                  std::string *error = nullptr);
+                  std::string *error = nullptr, AssetIndexLimits limits = {});
   // Reads only one already-saved .scene and its sidecar in this initialized Content index.
   // Bounds source bytes at 64 MiB, preserves other entries/geometry, and checks IDs against the
   // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
@@ -262,6 +292,8 @@ public:
 
   private:
     friend class SceneDocument;
+    friend class SceneSaveBatch;
+    friend class PrefabAssets;
     PreparedSave(std::uint64_t generation, std::string bytes, std::string signature,
                  std::string opaque_records)
         : generation_(generation), bytes_(std::move(bytes)), signature_(std::move(signature)),
@@ -309,6 +341,15 @@ public:
   // Editor-owned missing-plugin payloads. Writes are generation checked and undoable;
   // inspection returns an owning copy, never a pointer into node storage.
   bool SetOpaqueComponent(NodeKey entity, OpaqueComponent component);
+  struct OpaqueComponentEdit final {
+    NodeKey entity;
+    OpaqueComponent expected;
+    OpaqueComponent replacement;
+  };
+  // Existing-component compare-and-replace: all keys/bytes/budgets validate before publication.
+  // One independent metadata Undo; rejected/no-op requests preserve history and every payload.
+  // The serialized authoring owner enforces workspace access/recovery/Play authority.
+  bool ApplyOpaqueComponents(std::span<const OpaqueComponentEdit> edits);
   [[nodiscard]] std::optional<std::vector<OpaqueComponent>> OpaqueComponents(NodeKey entity) const;
   [[nodiscard]] std::optional<std::vector<OpaqueComponentInfo>>
   InspectOpaqueComponents(NodeKey entity) const;
@@ -347,6 +388,10 @@ public:
   [[nodiscard]] std::optional<runtime::LightComponent> Light(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::MeshComponent> MeshRenderer(NodeKey entity) const noexcept;
   [[nodiscard]] std::optional<runtime::Transform> WorldTransform(runtime::Id entity) const noexcept;
+  // Owning current-document poses in World storage order, resolved together. Includes only
+  // tracked nodes; untracked ancestors still participate in their exact world matrices.
+  // Serialized owner-thread observation, not an authoring transaction or persistent cache.
+  [[nodiscard]] std::optional<std::vector<runtime::SceneWorldPose>> WorldPoses() const;
   [[nodiscard]] std::optional<runtime::TransformMatrix>
   WorldMatrix(runtime::Id entity) const noexcept;
   // Copies selected-root forests, initialized components and authoring metadata into owned storage.
@@ -356,6 +401,16 @@ public:
   // The next successful Paste preserves root names, then the retained snapshot becomes a copy.
   bool CutSelection();
   bool Paste();
+  struct ImportedForestNode final {
+    runtime::Id source{};
+    NodeKey target;
+  };
+  static constexpr std::size_t kMaximumImportedForestNodes = 4096;
+  static constexpr std::size_t kMaximumImportedForestBytes = 8 * 1024 * 1024;
+  // Parses a complete owning source revision, then clones its ordered forest as one Undo.
+  // Authority/current document observation are rechecked; no file IO or user clipboard changes.
+  [[nodiscard]] std::optional<std::vector<ImportedForestNode>>
+  ImportForestBytes(const PreparedSave &expected, std::string_view source, bool authorized);
   // Duplicates the current selection without replacing the user's copied clipboard.
   bool DuplicateSelection();
   // Deletes selected subtrees as one atomic Undo; selected descendants are not deleted twice.
@@ -364,6 +419,12 @@ public:
   bool Redo();
   // Serialized authoring-thread calls. Prepare performs no IO or baseline/history mutation.
   [[nodiscard]] std::optional<PreparedSave> PrepareSave() const;
+  // Current authoring content/generation check without IO or saved-baseline/history mutation.
+  [[nodiscard]] bool MatchesPreparedSave(const PreparedSave &prepared) const;
+  // Complete same-identity property replacement as one owning Undo/Redo; no IO or baseline change.
+  // Source scene name/persistence and entity IDs must match. Serialized owner supplies authority.
+  bool ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
+                             bool authorized);
   // Rejects changed document generation or content before IO; advances the baseline only after
   // successful single-file publication. Caller owns workspace access and destination policy.
   bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
@@ -377,6 +438,11 @@ public:
   // This document boundary is not an Undo step. Caller owns workspace/dirty-content decisions.
   bool NewScene();
   bool Reload(const std::filesystem::path &path);
+  // Reuses the versioned file parser for an already bounded owning/caller-held byte revision.
+  // No filesystem IO; success/rejection has the same atomic replacement/history contract as Reload.
+  bool ReloadBytes(std::string_view bytes);
+  // Rejects excess authoring nodes during ingestion, before legacy hierarchy validation/migration.
+  bool ReloadBytes(std::string_view bytes, std::size_t maximum_nodes);
   // Authoring-thread, synchronous capture of a live Editor World scene. Preflights identities,
   // opaque metadata and bounds before serialization/copy; serialization uses World authority
   // with the byte cap. No IO, World borrow in the result, or history/selection/baseline mutation.
@@ -395,7 +461,11 @@ public:
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
+  friend class AdditiveSceneSession;
+  friend class PrefabAssets;
   enum class BuiltinEntity { Empty, Camera, Light };
+  friend class SceneSaveBatch;
+  bool ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes = std::nullopt);
   runtime::Id CreateBuiltin(std::string name, runtime::Id parent, BuiltinEntity kind);
   runtime::Id AdoptCreatedEntity(runtime::Id entity, std::string name);
   [[nodiscard]] std::optional<std::vector<std::pair<NodeKey, runtime::Transform>>>
@@ -419,7 +489,7 @@ private:
     std::vector<OpaqueComponent> opaque{};
   };
   struct UndoEntry final {
-    enum class Kind { Runtime, Rename, Opaque } kind{Kind::Runtime};
+    enum class Kind { Runtime, Rename, Opaque, OpaqueBatch, PropertySnapshot } kind{Kind::Runtime};
     NodeKey entity;
     std::string previous_name;
     std::vector<std::pair<NodeKey, std::optional<EulerHint>>> previous_hints{};
@@ -429,7 +499,15 @@ private:
     std::vector<runtime::Id> redo_selection{};
     std::vector<OpaqueComponent> previous_opaque{};
     bool restore_selection{};
+    std::vector<std::pair<NodeKey, std::vector<OpaqueComponent>>> previous_opaque_batch{};
+    struct PropertySnapshot final {
+      PreparedSave before, after;
+      std::string previous_runtime, next_runtime;
+      std::vector<Node> previous_nodes, next_nodes;
+    };
+    std::shared_ptr<const PropertySnapshot> property_snapshot{};
   };
+  bool ReplayPropertySnapshot(bool forward);
   void PushUndo(UndoEntry entry);
   runtime::World &world_;
   runtime::Id scene_{};

@@ -1,5 +1,7 @@
 #pragma once
+#include "Nexora/Editor/ReflectedInspector.h"
 
+#include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
@@ -7,7 +9,9 @@
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Editor/ProjectContent.h"
+#include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/Api.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -23,6 +27,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace nexora::editor::imgui {
 
@@ -34,8 +39,39 @@ inline constexpr std::size_t kMaximumNativeSceneFrameCandidates = 3999;
 enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
 enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
-enum class ProjectSelectorAction : std::uint8_t { Open, Create };
+enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
+enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
+enum class PrefabIsolationAction : std::uint8_t { Create, Open, Variant, Save, Close };
+struct PrefabIsolationObservation final {
+  foundation::Uuid project, asset;
+  std::uint64_t project_scope{}, owner_generation{}, document_generation{}, revision{};
+  SceneFileToken source;
+  bool open{}, dirty{}, writable{};
+  friend bool operator==(const PrefabIsolationObservation &,
+                         const PrefabIsolationObservation &) = default;
+};
+struct PrefabIsolationRequest final {
+  PrefabIsolationAction action{};
+  PrefabIsolationObservation scope;
+  foundation::Uuid target;
+  bool discard_dirty{};
+};
+struct SceneTabItem final {
+  std::uint64_t id{};
+  SceneFileToken token{};
+  std::string label;
+  std::optional<std::filesystem::path> path;
+  bool owned{}, dirty{}, closeable{}, read_only{};
+};
+struct SceneTabRequest final {
+  SceneTabAction action{};
+  SceneFileToken source{};
+  std::uint64_t target{};
+  SceneFileToken target_token{};
+  std::filesystem::path path{};
+  bool discard_dirty{}, save_before_close{};
+};
 struct GameInputBindingsSaveRequest final {
   foundation::Uuid project;
   std::filesystem::path root;
@@ -53,6 +89,20 @@ struct SceneFileRequest final {
   bool replace_existing{};
   bool close_after_save{};
   std::optional<SceneOverwriteToken> overwrite_token{};
+};
+
+struct StaticExportRequest final {
+  SceneFileToken token;
+  bool cancel{};
+};
+
+struct ProjectUpgradeObservation final {
+  std::filesystem::path requested_root, canonical_root;
+  foundation::Uuid project;
+  std::string name;
+  std::uint32_t from{}, to{};
+  std::size_t source_bytes{}, documents{};
+  bool required{};
 };
 
 struct ProjectSelectorRequest final {
@@ -106,6 +156,11 @@ struct RendererMetrics final {
 // window owner thread. Draw data is borrowed until BeginFrame() or destruction.
 // Move between frames; moved-from hosts support only destruction or assignment. Release the
 // destination's public-RHI renderer before move assignment while its device is still alive.
+struct ChromeTraceImportRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  ChromeTraceSelection selection;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -129,6 +184,25 @@ public:
   void SetProjectSelectorError(std::string error);
   void SetProjectSelectorStatus(std::string status, bool busy);
   [[nodiscard]] std::string_view ProjectSelectorError() const noexcept;
+  // Serialized owner call; model is borrowed only for this frame. Scope changes revoke consent.
+  void DrawDiagnosticPrivacy(TelemetryConsent &diagnostics, foundation::Uuid project);
+  bool SetProjectUpgradePreview(std::optional<ProjectUpgradeObservation> observation);
+  [[nodiscard]] std::optional<ProjectUpgradeObservation> ProjectUpgradePreview() const;
+
+  // Copies validated metadata; no plugin allocation or IO is retained by the graphical host.
+  bool SetReflectedInspector(const ReflectedInspector &catalog);
+  // Owning scope and one-shot IO requests. Document/workspace borrows last only this frame.
+  bool SetPrefabIsolation(std::optional<PrefabIsolationObservation>);
+  void DrawPrefabIsolation(const SceneDocument *, SceneDocument *, const ProjectWorkspace &,
+                           bool authoring_allowed);
+  [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
+  void SetPrefabIsolationStatus(std::string message, bool success);
+  void OpenPrefabIsolation() noexcept;
+  [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
+  // Frame-only model borrow; configuration and sanitized output are owning presentation state.
+  // Scope changes revoke pending work. Run requires explicit user action and caller permission.
+  void DrawBuildProcess(BuildProcess &process, std::uint64_t scope,
+                        const std::filesystem::path &root, bool allow_start);
   void DrawProductShell(
       ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
       ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,
@@ -159,7 +233,13 @@ public:
   [[nodiscard]] bool TakeGpuExportRequest() noexcept;
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
+  void OpenChromeTraceImport() noexcept;
+  [[nodiscard]] std::optional<ChromeTraceImportRequest> TakeChromeTraceImportRequest();
+  bool SetImportedChromeTrace(ChromeTraceCapture capture);
   void SetProfileExportStatus(std::string message);
+  [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
+  // Owning bounded observations only. Application revalidates requests and owns job publication.
+  void SetStaticExportStatus(StaticExportSnapshot snapshot, bool busy);
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   // Owning context only; the application performs all file IO and rechecks token/access.
@@ -169,6 +249,14 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
+  // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
+  bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);
+  [[nodiscard]] std::optional<SceneTabRequest> TakeSceneTabRequest();
+  void SetSceneTabStatus(std::string message, bool success);
+  [[nodiscard]] std::optional<SceneFileToken> TakeSceneComparisonRequest();
+  [[nodiscard]] bool TakeSceneComparisonCancelRequest() noexcept;
+  void SetSceneComparisonStatus(SceneComparisonSnapshot snapshot, bool busy);
   void RequestSceneSaveAs(bool close_after_save = false,
                           std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);
