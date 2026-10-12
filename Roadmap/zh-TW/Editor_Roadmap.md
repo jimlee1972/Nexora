@@ -131,12 +131,11 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   保持有界；九個 room 的整體預算為 180 秒。此 cloud gate 補強不接受實體 Editor 里程碑。
   [證據](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md)。
 
-- ✅ 最新 main 的 Editor 整合現去除 native tool C ABI／callback target 重複登錄，保留全部
-  十四種 fixture，補回四個既有 prefab 實作來源與三個已接受的測試，並恢復 public ImGui
-  header 所需的 PluginManager include。Chrome／build-artifact／native SDK／targeted-prefab
-  契約與新 prefab workflow 一併保留，未放寬斷言或期限。Development／Shipping 驗證記錄於
-  [整合證據](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md)。
-  原生 reflected-input 驗收保留 rendered selection／hover／held／released 握手。
+- ✅ Editor 並行整合保留既有隔離與 live-placement prefab API、selected-field／rebase／
+  source-apply UI、native SDK／build-artifact／Chrome 測試及原生輸入握手。CMake target
+  去除重複，managed native invocation fixture 納入正式 gate。原子 property history
+  同時保留 prefab base reference 與 placement revision，包括 no-op 後的 Redo。
+  [整合證據](../../Tools/Build/evidence/EditorEDM0-ConcurrentIntegration-Linux-2026-10-12.md)。
   此修復不接受實體主機或圖形化 milestone。
 
 - ✅ 既有 prefab UI fixture 已恢復登錄，補回 mandatory document／UI／native 三個 isolation

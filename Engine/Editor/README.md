@@ -1615,6 +1615,22 @@ create/open/variant/save/close and dirty-close protection remain. Targeted field
 source, structural reconciliation, persistent live instance bindings and reference rebase remain
 separate work. These bounded owning snapshots are not a total history/process memory quota.
 
+## Combined prefab property history
+
+Ordinary property snapshots retain the current isolated prefab base reference. Isolated-reference
+and live-placement snapshot APIs share one staged transaction helper: the former changes the base
+reference, while the latter changes only the selected placement revision and owned properties.
+Undo/Redo restores both metadata families together; a no-op property snapshot preserves pending
+placement Redo. Unrelated placements, stable IDs, generation keys, hierarchy order, latent authored
+Euler and opaque metadata remain intact. Source files and saved baselines change only through the
+existing explicit publication owners.
+
+`PluginManager::SelectTool` returns owning package/scope/configuration identity, not a service
+pointer or permission grant. `InvokeTool` rechecks the manager instance, project writer, enabled
+package and current permissions before synchronous owning-byte invocation. Owner-thread and
+reentrancy checks precede manager inspection. Disable, reconfigure or detach invalidates retained
+selections; callers independently validate document/Play/consent policy before authoring.
+
 ## Targeted stable-field prefab property candidates
 
 The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
@@ -1812,4 +1828,3 @@ The generated canonical Runtime3 record bridge requires exactly19 property token
 schema changes. Writer/source/target validation, byte/entity budgets, one Undo/Redo, no file writes
 and saved-baseline guarantees are the same as whole-instance Revert. An empty valid selection is
 a no-op that preserves Redo. Targeted graphical selection remains separate.
-

@@ -4,8 +4,8 @@ Beads: `nexora-62u.2.8`. Original base: `45fe2e4007e5b7a2b3f1fbb73235b5d1c58b624
 Integrated base: `280d4175e46feb3d8741d2fc7a0220e2d4b4ae51`, after concurrent upstream
 PR538–PR543 merges. The rebase preserved new prefab/Inspector/tool SDK contracts and restored
 accepted Chrome/build-artifact contract sections omitted by those upstream documentation merges.
-Global importer/test source hashes below are unchanged. Integration gate results are tracked
-in PR537 and Beads before merge.
+Global importer/test source hashes below are unchanged. These first-integration results are historical; repaired-main validation is recorded in
+[the later integration evidence](EditorEDM0-ConcurrentIntegration-Linux-2026-10-12.md).
 
 Integration repair Beads: `nexora-nqn.12`. Main 280d duplicated the native tool target/test
 block (including fourteen fixtures), causing CMP0002 configure rejection. It also removed
@@ -22,8 +22,10 @@ and prefab tests are present and passed in the full suite. The first integrated 
 Inspector behavior failed, with the upstream driver saving Boolean byte 00 instead of expected 01.
 The upstream test had removed accepted rendered-selection/hover/held/released handshakes and
 replaced them with sleeps. Restore the exact accepted 45fe driver with all assertions/deadlines
-intact; its focused rerun passed 1/1 in 15.01 s. A full 237-test repeat is required before merge,
-and final results are recorded in PR537/Beads. Newly integrated prefab source/override controls
+intact; its focused rerun passed 1/1 in 15.01 s. The 237-test repeat was superseded by further concurrent main integrations; it is not
+reported as passed. PR537 was merged by another flow before those local repair edits were
+published. Final repaired-main gates are documented in
+[the integration evidence](EditorEDM0-ConcurrentIntegration-Linux-2026-10-12.md). Newly integrated prefab source/override controls
 also passed in the initial full run. Linux Shipping Monolithic configure/build passed, testing OFF, Editor stripped:
 
 ```bash
