@@ -1,5 +1,36 @@
 # Editor Core contract
 
+## Reviewed live prefab source rebase
+
+`PrefabPlacementRebase::Prepare` explicitly reads the exact retained and newer current source
+closures and captures an immutable owning three-way review. Read-only projects can inspect.
+Stable scoped node/property identity, dependency references and parent structure must remain
+unchanged. Structural additions/deletions, changed nested/base references and incompatible sources
+reject the entire review. Rendering must not call preparation or source IO implicitly.
+
+Rows compare retained, local and published values in complete name, position, rotation with authored
+Euler presence, scale, Camera/Light/Mesh presence and dormant values, or opaque-type name/bytes
+groups. Source-only changes apply automatically; local-only changes and identical edits survive.
+Different local and source edits to one group require an explicit KeepLocal or TakeSource choice.
+Different lanes of the same group still conflict. Unknown locally added components survive without
+fabricated stable source UUIDs. Repeated nested node UUIDs retain their distinct exact scope.
+
+`Resolve` is a pure computation against an owning immutable review. Indices identify actual conflict
+rows only; duplicate, out-of-range, nonconflict and invalid decisions reject. Unresolved choices
+produce no applicable candidate. Row borrows expire with the last owning review. A resolved candidate
+does not authorize a write. `Apply` repeats current writer, project, target and both source-closure
+observations before one `ApplyPrefabPlacementSnapshot` transaction. Stale or replaced publications,
+missing/tampered archives, recovery/external changes and unauthorized/read-only inputs reject.
+The caller serializes authoring owners and repeats current selection, Play and modal consent policy.
+
+One Undo/Redo restores complete properties and retained revision together. Stable live generation
+keys, selection, clipboard, unbound values and saved baseline survive. No source or scene file is
+written; explicit Scene Save persists the result. Source snapshots/candidates fit 8 MiB/4096 nodes;
+semantic snapshots fit 4 MiB with 64 KiB individual values; reports fit 32768 groups/16 MiB logical
+data. These limits do not certify total process memory or production-scale performance. Graphical
+conflict choices, structural reconciliation and apply-to-source remain separate work. Public C++
+consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
 ## Owning live prefab instance property review
 
 `PrefabPlacementOverrides::Prepare` owns a validated placement inspection and explicitly

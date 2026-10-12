@@ -709,6 +709,15 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Core live source rebase 持有 exact scoped retained／local／published complete-group review。
+  Source-only change 採用來源，local-only override 保留；真正 conflict 需明確 KeepLocal／
+  TakeSource 選擇。一次 Undo／Redo 一起還原 property 與 retained revision；dormant value、
+  authored Euler、unknown data、nested scope identity、clipboard、files 與 Save／reopen 通過。
+  Schema／dependency 改變、stale／missing／tampered／advanced source、recovery／external change
+  與無授權 input 拒絕；完整 Linux 245/245 與 Minimal Shipping 通過。圖形化 conflict 選擇、
+  structural reconciliation 與 apply-to-source 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceRebase-Linux-2026-10-10.md)。
+
 - ✅ Same-identity live placement snapshot 將一個 retained revision 與完整 property 一起更新，
   整組只有一次 Undo／Redo。Scoped mapping、其他 placement、hierarchy、unbound latent Euler
   hint、dormant value、identity 與來源檔案均保留；invalid／stale input 或 replay 保留 history。
