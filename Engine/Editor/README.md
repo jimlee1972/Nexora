@@ -1506,8 +1506,8 @@ enable and removal require the current writer lease and resolved recovery. Read-
 session trust settings do not grant writes or native enable authority.
 
 Enable rereads the installed package and checks the complete manifest, byte count, current trust,
-capabilities and enabled dependencies before sealed native admission. Built-in `core` and `reflection`
-are explicit available host dependencies. Installing/removing dependency identities changes policy
+capabilities and enabled dependencies before sealed native admission. Built-in `core`, `reflection`, `Editor` and `Foundation`
+are explicit available host dependencies, reflecting the compiled Editor/public SDK modules. Installing/removing dependency identities changes policy
 and conservatively revokes mapped providers; no dependency or package enables automatically. Trust
 revocation and disable request the real cooperative lifecycle and revoke services. Legacy/pending
 native code is retained and blocks further enable/removal until drain or process restart. Removal
@@ -1528,3 +1528,24 @@ Repeated binding also revokes mapped services and cancels retained review when a
 recovery or an external workspace change appears. Occupied recovery evidence and foreign workspace
 bytes remain untouched. Exact resolution permits only explicit re-enable. Read-only binding retains
 inspection/review availability while access changes revoke the previous writable project session.
+
+### Scoped managed native tool calls
+
+`ManagedToolSelection` owns exact package identity/version and nonwrapping manager instance,
+project scope, configuration revision and native admission. `SelectTool` observes only enabled
+providers; a copied selection grants no permission. `InvokeTool` uses the manager-owned invoker,
+private registry and signed host. Construction-thread and shared native-callback reentrancy checks
+precede mutable manager/project/host access. No native table, context or function borrow escapes.
+Selections from another manager reject even when both managers have identical project, scope,
+configuration, package identity and numeric admission. Exhausted instance identities are never reused.
+
+Every call rechecks exact selection and current resolved project access before signed image/trust/
+policy/provider admission. Read-only edit attempts, unresolved recovery/external changes, disabled/
+retired providers, policy/key changes and detach reject with no native callback. Invocation does not
+poll, unload, enable, write files or mutate documents. Successful outputs are owning bounded bytes;
+callers parse them and independently recheck current document type/scope, Play state, authoring and
+writer authority before deferred mutation, Undo or IO. Permission declarations remain admission
+metadata rather than a sandbox or host publication authorization. Other owner operations retain their
+serialized drain-before-mutation contract. New C++ public class layout requires consumer rebuilds;
+required plugin C ABI, persisted package/scene formats and module dependencies remain unchanged.
+Graphical material-document edit/preview/Undo/Save/reopen integration remains separate work.

@@ -868,15 +868,23 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
   執行真實 Inspect／Edit／Serialize byte transformation。Typed edit 涵蓋九個 scalar lane，
   request 限 64 KiB，canonical owning output 限 1024 bytes。真實 dynamic-load 測試涵蓋
   exact float roundtrip、failure budget、獨立 host 及 unload／reload。GPU Preview 明確
-  unavailable；signed-host callback bridge 已如下交付，Manager selection 及圖形化
+  unavailable；signed-host callback bridge 與 Manager facade 已如下交付，圖形化
   document／Undo／Save／reopen 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md)。
+
+- ✅ Plugin Manager 現以 owning Manager instance／project scope／configuration／admission
+  identity 選取 exact enabled tool，僅透過 private signed host／registry 呼叫。不同 Manager
+  的相同 ID、stale／revoked selection、read-only edit、未解決 project state 與
+  wrong-thread／reentrant 呼叫均在 callback 前拒絕。真實 signed installed scalar material
+  Edit／Serialize 與 native recursion 通過，owning output 可跨 unload 保留。
+  圖形化材質 document／Undo／Save／reopen／Preview 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ManagedToolInvocation-Linux-2026-10-11.md)。
 
 - ✅ Signed native tool invocation 現將每次 byte callback 綁定 exact current sealed image、
   trust／policy revision 與 qualified active provider。Wrong-thread／reentrant 檢查先於可變
   admission inspection；stale trust、foreign registry 及 retired ID 拒絕且不改變 lifecycle。
   真實 signed scalar-material Inspect／Serialize 與 cross-invoker native recursion 通過。
-  Manager selection 及圖形化 document／Undo／Save／Preview 仍待完成。
+  Scoped Manager facade 已如上交付，圖形化 document／Undo／Save／Preview 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md)。
 
 - ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
