@@ -37,8 +37,8 @@ previous bytes, matching UUID and next revision, then uses the common atomic sta
 or externally changed sources and occupied foreign staging files remain untouched. This is the
 existing serialized single-writer contract, not exclusion against hostile filesystem races or a
 multi-file crash/power-loss journal. No source scene, saved baseline, clipboard or Undo entry changes.
-Full graphical isolation, stable instance metadata, instantiate/override diff/revert/apply/rebase and
-transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
+Full graphical isolation, persistent instance metadata, graphical instantiate/override diff/revert/
+apply/rebase remain separate work; public C++ consumers rebuild, and stable
 C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
 
 `PrefabAssets::SaveDocument` integrates wrapped prefab publication with the live authoring document.
@@ -53,26 +53,6 @@ clipboard and all existing Undo/Redo stay intact. Failure leaves the old saved b
 publication followed by a late source/scope change retains the file but does not acknowledge the
 changed document. The serialized host handles that explicit error. This is an authoring save helper,
 not a graphical isolation session, nested materializer or multi-file crash journal.
-
-`PrefabDocumentSession` owns an isolated Runtime World and SceneDocument and borrows only its
-workspace, which outlives it. Serialized owner calls can copy a complete scene into an unsaved
-prefab draft, open an actual wrapped asset, create a distinct variant from a saved current source,
-save through `SaveDocument`, and close. Opening/replacing a dirty owner requires explicit discard;
-variants require a clean source and confirm its current exact stored revision. Copying a source
-retains no original World/document borrow and never changes that original source or history.
-
-Const inspection is available in read-only scopes; editable access and publication require a
-current project UUID/root, writer lease and resolved recovery/external-change state. Rebinding the
-workspace invalidates document/asset observations. Safe close can release a stale/recovery owner.
-Successful replacement/close expires document borrows and advances a nonwrapping session generation;
-successful save keeps live document generation, selection, clipboard and Undo/Redo. New drafts and
-variants remain dirty until actual publication. Identity callbacks cannot reenter owner replacement,
-save or editable access, and exceptional callbacks release the busy guard without publication.
-Existing document borrows must not outlive replacement or destruction; callers stop background readers
-before those operations. Destruction of the session during one of its own calls is unsupported.
-This is the isolation owner, not a graphical panel, stable nested instance materializer, revision
-archive or override/rebase engine. Public C++ consumers rebuild; module dependencies and stable
-C/Gameplay ABI do not change.
 
 Before replacing the current wrapped source, Publish retains its exact committed previous bytes at
 `.nexora/prefabs/revisions/<asset-uuid>/<revision>.nxprefab`. An occupied archive entry must already
@@ -94,26 +74,25 @@ History is retained when a committed revision is superseded, so previously overw
 revisions cannot be reconstructed. No automatic pruning or total disk quota is introduced: retained
 sources may still be referenced by variants/nested graphs. The archive/current writes form an
 ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
-override/rebase, nested materialization, journaling and retention policy remain separate work.
+override/rebase, persistent instance metadata, journaling and retention policy remain separate work.
 
-## Stable prefab revision comparison
+## Transactional nested prefab materialization
 
-`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
-node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
-Official scene parsing and bounded field snapshots retain component presence/stored values,
-authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
-instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
-are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
-Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
+`PrefabAssets::Instantiate` resolves the complete exact revision closure, builds an independent
+staging World/document, then imports that complete forest once against a caller-owned current
+PreparedSave. Base dependencies are validation sources, not duplicate live instances. Every nested
+placement keeps its independent instance scope; stable node UUIDs map to fresh live generation keys.
+Nested roots attach to the corresponding stable parent node while retaining authored local TRS,
+Euler metadata, names, sibling order, components and unavailable opaque bytes.
 
-The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
-4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
-opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
-Sources and authoring owners serialize during capture; results borrow no asset/document/World.
-The comparison performs no file IO, interpretation of unavailable native components, live mutation,
-Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
-separate structural validation before any future revert/apply/rebase. Graphical bindings and
-transactional override publication remain separate work; public C++ consumers rebuild.
+All result vectors, scope vectors/identities and translation indices are allocated before live
+publication. The final import retains its atomic Undo/Redo, clipboard/cut and stale-observation
+contracts. No filesystem IO or source asset publication occurs. Callers serialize source/target
+owners and supply current authoring authority; project writer/recovery/Play policy belongs to the
+host. Returned mappings own their data but their target keys still require document-generation
+validation. Existing graph budgets apply; the combined serialized forest also fits 8 MiB.
+The staging algorithm's temporary Worlds/history are not a total process-memory budget. Persistent
+instance metadata, graphical instancing and override/revert/apply/rebase remain separate work.
 
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
