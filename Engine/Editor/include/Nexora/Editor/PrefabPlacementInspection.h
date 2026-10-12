@@ -25,6 +25,7 @@ public:
 
 private:
   friend class PrefabPlacementInspector;
+  friend class PrefabPlacementOverrides;
   PrefabPlacementInspection(std::filesystem::path root, foundation::Uuid project,
                             SceneDocument::NodeKey target, SceneDocument::PrefabPlacement placement,
                             SceneDocument::PrefabPlacementNode node,
