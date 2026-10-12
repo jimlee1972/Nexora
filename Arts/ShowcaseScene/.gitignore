@@ -1,0 +1,7 @@
+# Original downloads are packed into ruins_scene.blend; restore with fetch_assets.py.
+assets/
+textures/
+# Publisher API responses are summarized by asset-manifest.json.
+evidence/*_source.json
+*.blend[0-9]
+__pycache__/

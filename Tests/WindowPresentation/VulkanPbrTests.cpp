@@ -64,6 +64,10 @@ std::array<Rgb, 9> Read(
     std::uint64_t *sceneHash = nullptr, unsigned *intermediate = nullptr) {
 #if defined(_WIN32)
   (void)display;
+  // This reads desktop pixels, so the native client must stay above other apps
+  // even when a background CTest process cannot acquire foreground activation.
+  Require(SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW),
+          "PBR client could not be exposed for capture");
   POINT origin{};
   Require(ClientToScreen(window, &origin), "PBR client origin unavailable");
   auto source = GetDC(nullptr);
@@ -158,7 +162,7 @@ int main(int argc, char **argv) {
     descriptor.window = window.handle;
     descriptor.width = 640;
     descriptor.height = 480;
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(NEXORA_TEST_VULKAN)
     descriptor.backend = SurfaceBackend::Dx12;
 #else
     descriptor.backend = SurfaceBackend::Vulkan;
@@ -447,7 +451,7 @@ int main(int argc, char **argv) {
       const auto exposedMarker = marker * draw.exposure;
       const auto mappedMarker = exposedMarker * (2.51F * exposedMarker + 0.03F) /
                                 (exposedMarker * (2.43F * exposedMarker + 0.59F) + 0.14F);
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(NEXORA_TEST_VULKAN)
       const auto legacyMarker = marker * 1.15F; // Existing DX12 Lambert ambient + direct light.
 #else
       const auto legacyMarker =
@@ -465,6 +469,13 @@ int main(int argc, char **argv) {
                 "PBR extent failed");
       }
       static_cast<void>(windows->PumpEvents());
+      // Split the opaque receiver without changing its coverage. This exercises adjacent
+      // equal material bindings followed by two different materials on both native backends.
+      std::array<SceneMeshBatch, 4> splitReceiver{};
+      if (frame == 26) {
+        splitReceiver = {{{0, 3, 0, 1, 0}, {3, 3, 0, 1, 0}, {6, 3, 0, 1, 2}, {9, 3, 0, 1, 1}}};
+        draw.batches = splitReceiver;
+      }
       Require(surface->Acquire() == SurfaceStatus::Ready, "PBR acquire failed");
       if (frame == 0) {
         materials[0].normalTextureId = 987;
@@ -765,7 +776,7 @@ int main(int argc, char **argv) {
         const auto observedMarker = static_cast<int>(pixels[2][0]);
         const auto uiMarker = static_cast<float>(std::lround(marker * 255)) / 255;
 #if defined(_WIN32)
-        // DX12 UI submits encoded byte colors directly to its UNORM swapchain.
+        // Both Windows test adapters use UNORM swapchains for encoded UI byte colors.
         const auto uiMarkerCode = static_cast<int>(std::lround(255 * uiMarker));
 #else
         // Vulkan's sRGB swapchain performs the UI output transfer in hardware.
