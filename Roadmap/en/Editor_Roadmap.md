@@ -779,38 +779,14 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
-  - ✅ Graphical prefab isolation is validated: create/open/variant/save/reopen use a separate
-    native document, with hierarchy, name/position edits, Undo/Redo and dirty-close protection.
-    Read-only inspection preserves project files. Accepted-owner integration passes full Linux
-    242/242 and Minimal Shipping; phased native shortcuts retain exact additive ownership assertions.
-    Nested materialization and override/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md).
-  - ✅ Prefab isolation owner is validated: project-scoped create/open/variant/save/reopen use a
-    separate World and document, retaining unknown bytes and original scene history. Dirty replacement,
-    read-only writes, stale scope/revision and reentrant identity callbacks reject. Graphical binding,
-    nested materialization, historical revision access and override/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
-
-  - ✅ Prefab revision retention is validated: superseded committed sources remain available by
-    exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.
-    Archive conflicts preserve current sources; failed current writes do not occupy future revisions.
-    Graphical rebase/nested materialization and power-loss journaling remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md).
-  - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
-    only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
-    Current source/project and expected asset revision are rechecked; graphical isolation remains open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md).
-
-  - ✅ Stable prefab three-way comparison is validated: node/field UUID paths, stable parent
-    references, unknown payloads and nested metadata remain independent of serialized Runtime IDs.
-    Graphical override/revert/apply/rebase and structurally validated publication remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md).
-
-  - ✅ Atomic same-identity document property snapshots are validated: complete mixed metadata,
-    hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
-    clipboard and baseline. Latest Main integration passes full Linux 241/241 and Minimal Shipping.
-    Structural changes and graphical prefab revert/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
+  - ✅ Targeted stable-field prefab property candidates are validated: explicit node/field
+    identity selection preserves unselected values, inactive stored components and unknown bytes.
+    Graphical selection, source apply, structural reconciliation and reference rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md).
+  - ✅ Identity-remapped prefab property candidates are validated: exact stable node sets retain
+    target entity/scene identity while restoring complete source properties and unknown data.
+    Structural edits, graphical revert/targeted fields and reference rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyPlan-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
