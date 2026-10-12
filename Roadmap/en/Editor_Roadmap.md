@@ -1100,6 +1100,15 @@ creates property widgets; unknown components retain raw data instead of being si
     These are bounded-by-input correctness foundations; complete frame/memory budgets, production
     asset scale, soak and physical-host acceptance remain open.
 
+  - ✅ A serial 100k-node product-shell scale/lifecycle gate now records flat roots and the expanded
+    99,998-node chain at 1x/2x DPI over two fresh project/World/document/host cycles. Six warmup frames
+    precede twelve measured CPU draws per case; schema-1 records retain sorted samples, nearest-rank
+    p50/p95/max, widget/vertex counts and ImGui allocation payload peaks. All logical rows remain
+    available with fewer than 128 hierarchy widgets, source/Undo/Redo stay unchanged, and every host
+    teardown releases all ImGui allocations. The 300-second serial deadline is a CI guard; production
+    frame/process-memory budgets, native GPU/asset scale and long-duration/physical-host soak remain
+    open. [Linux evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md).
+
   - ✅ Top-down Scene overview now resolves owning bulk world poses with iterative indexed ancestry,
     preserving exact affine origins and the existing TRS approximation. Marker traversal, Frame all
     and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and
