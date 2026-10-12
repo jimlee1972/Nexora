@@ -847,6 +847,13 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Optional scalar PBR native plugin 現以公開 Editor import／export 與 Renderer validation
+  執行真實 Inspect／Edit／Serialize byte transformation。Typed edit 涵蓋九個 scalar lane，
+  request 限 64 KiB，canonical owning output 限 1024 bytes。真實 dynamic-load 測試涵蓋
+  exact float roundtrip、failure budget、獨立 host 及 unload／reload。GPU Preview 明確
+  unavailable；signed-package host 整合及圖形化 document／Undo／Save／reopen 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md)。
+
 - ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
   loaded tool service，回傳 owning outcome，input／output 各限 64 KiB。Wrong-thread／reentrant、
   malformed、revoked 與 foreign 呼叫拒絕；無效 success length 與失敗 callback 丟棄 output。
