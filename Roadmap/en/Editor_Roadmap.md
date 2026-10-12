@@ -781,19 +781,75 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
-  - ✅ Targeted stable-field prefab property candidates are validated: explicit node/field
-    identity selection preserves unselected values, inactive stored components and unknown bytes.
-    Graphical selection, source apply, structural reconciliation and reference rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md).
-  - ✅ Identity-remapped prefab property candidates are validated: exact stable node sets retain
-    target entity/scene identity while restoring complete source properties and unknown data.
-    Structural edits, graphical revert/targeted fields and reference rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyPlan-Linux-2026-10-10.md).
+  - ✅ Core live source rebase owns exact scoped retained/local/published complete-group reviews.
+    Source-only changes apply, local-only overrides survive and actual conflicts require explicit
+    KeepLocal/TakeSource choices. One Undo/Redo restores properties plus retained revision; dormant
+    values, authored Euler, unknown data, nested scope identity, clipboard, files and Save/reopen
+    pass. Changed schema/dependencies, stale/missing/tampered/advanced sources, recovery/external
+    changes and authority reject. Full Linux 245/245 and Minimal Shipping pass. Graphical conflict
+    choices, structural reconciliation and apply-to-source remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceRebase-Linux-2026-10-10.md).
+  - ✅ Same-identity live placement snapshots advance one retained revision and its complete
+    properties in one Undo/Redo, preserving scoped mappings, other placements, hierarchy,
+    unbound latent Euler hints, dormant values, identity and source files. Invalid/stale input and
+    replay preserve history; mixed nested/two-placement, Save/reopen and full Linux 244/244 plus
+    Minimal Shipping pass. This transaction is a source-rebase prerequisite; source closure,
+    conflict review and graphical source rebase follow separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md).
+  - ✅ Targeted live prefab property Revert accepts immutable scoped review row indices and
+    expands selected lanes into complete name/TRS/authored rotation/component/opaque groups.
+    Distinct lanes coalesce; invalid/duplicate/read-only/unauthorized inputs reject. Unselected
+    local overrides, dormant values, unknown additions, identity, bindings and files are preserved
+    with one Undo/Redo; empty selection preserves pending Redo. Mixed nested source fixtures and
+    full Linux 243/243 plus Minimal Shipping pass. Graphical selection and source apply/rebase
+    remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md).
+  - ✅ Atomic live instance property revert restores the exact retained nested source, including
+    dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
+    explicit authorization and exact source/target revalidation reject stale/read-only/structural
+    inputs. Source advancement, unchanged files and saved-baseline/Scene Save/reopen pass;
+    full Linux 243/243 and Minimal Shipping pass. Graphical instance revert,
+    structural reconciliation and source apply/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md).
+  - ✅ Owning live prefab instance property review compares exact retained nested sources with
+    scoped stable node/field identities, preserves authored Euler and unknown bytes, and marks
+    hierarchy changes structural. Read-only review and stale/missing/over-budget rejection preserve
+    files and Undo/Redo; full Linux 243/243 and Minimal Shipping pass. Graphical override review
+    and instance apply/rebase follow separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md).
+  - ✅ Persistent placement source inspection owns retained/current revision and scoped-node
+    observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass. Graphical
+    instance inspection and override/rebase follow separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementInspection-Linux-2026-10-10.md).
+  - ✅ Project prefab placement owner passes actual mixed-revision source-closure, stale/foreign
+    target, read-only/recovery/external-change and Save/reopen gates, full Linux 243/243 and
+    Minimal Shipping. Graphical instantiation follows separately.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectPrefabPlacement-Linux-2026-10-10.md).
+  - ✅ Persistent Editor scene prefab placement bindings pass nested/repeated placement,
+    history, Save All, reopen and corruption gates, full Linux 242/242 and Shipping;
+    graphical instantiate and structural source reconciliation remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PersistentPrefabBindings-Linux-2026-10-10.md).
+  - ✅ Nested prefab materialization is validated: exact revision closure stages outside the
+    live document, preserves scoped identities/local transforms/unknown bytes and imports as one
+    Undo/Redo transaction. Graphical instance override/rebase remains open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md).
+  - ✅ Prefab revision retention is validated: superseded committed sources remain available by
+    exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.
+    Archive conflicts preserve current sources; failed current writes do not occupy future revisions.
+    Graphical rebase, persistent instance metadata and power-loss journaling remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md).
+  - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
+    only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
+    Current source/project and expected asset revision are rechecked; graphical isolation remains open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md).
+  - ✅ Atomic same-identity document property snapshots are validated: complete mixed metadata,
+    hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
+    clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
-    readonly/recovery/external-change/staging protection pass. Graphical isolation, instance
-    materialization and override diff/revert/apply/rebase remain open.
+    readonly/recovery/external-change/staging protection pass. Graphical isolation, persistent
+    instance metadata and override diff/revert/apply/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabAssets-Linux-2026-10-10.md).
 
   - ✅ Scene forest import now uses official bounded parsing, owning source-to-generation identity

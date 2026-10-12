@@ -1,15 +1,13 @@
 # ED-M4 atomic document property snapshots — Linux, 2026-10-10
 
-Beads: `nexora-pmb.1.9`. The final integration replays only the atomic property
-feature onto accepted Main `5ecb6871319449581739da8c5770d5d96c0ca3f8`, including
-accepted isolated ownership and Content index budgets. Both owner and snapshot
-contracts are retained. The old green but conflicted head is not merge authority
-for this new integration.
+Beads: `nexora-pmb.1.9`. Validated on main
+`64b20ea7b2fc4250af4900f6c1ace17001170464`, with stable prefab foundation and
+accepted Crypto/Inspector fix. Signed native admission is a separate branch.
 
-Graphical Linux Development configure/build passed (314 steps). **241/241** tests
-passed, zero skips, **601.65 s**. Minimal Monolithic Shipping configure/build passed
-(5 steps). Focused atomic property snapshot test passed **1/1**, **0.02 s**.
-Changed Markdown validation and the 16-test documentation regression suite pass.
+Graphical Linux Development configure/build passed (22 steps after initialization
+fix, 279 full build steps). **239/239** tests passed, zero skips, **599.50 s**.
+Minimal Monolithic Shipping configure/build passed (5 steps). Focused atomic
+property snapshot test passed **1/1**, **0.01 s**.
 
 ```sh
 cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON \
@@ -46,39 +44,3 @@ and supplies project writer/recovery/Play authority. Structural additions/deleti
 prefab field selection and graphical revert/rebase remain separate work. Public C++
 consumers rebuild; stable C/Gameplay ABI/module graph are unchanged. Full Editor
 milestones remain **0/8**. Current-head hosted checks remain required before merge.
-
-## Accepted native-input Main integration
-
-Only the atomic snapshot code and its evidence replay onto accepted Main
-`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79` (PR 500 native frame admission), retaining
-accepted PrefabDocumentSession and Content index budgets. The replayed feature head is
-`c7b4be7e76b565f01204e31462fbc744d4585b20`; previous green/conflicted and unpublished
-intermediate heads do not authorize the new integration.
-
-Fresh full graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer Development
-configure/build passed **313 steps** and **241/241 in 590.36 s**, zero skips. The atomic
-snapshot fixture repeated successfully in **0.01 s**. Minimal Monolithic Shipping
-reconfiguration/build passed **5 steps**, excluding Editor and proving minimal
-profile/link compatibility only. Pinned ImGui/Vulkan cache overrides are unchanged.
-Documentation tests passed **16/16 in 0.765 s** and changed-document links passed.
-Published current-head hosted checks and
-an independently clean current Main remain mandatory before ordinary squash merge.
-The separately tracked latent in-memory Euler preservation fix remains its own
-placement/source-rebase dependency scope; no expanded latent-hint acceptance is
-claimed by this canonical snapshot gate. Full Editor milestones remain **0/8**.
-
-## Stable comparison and native Save Main integration
-
-The same three own feature/evidence commits replay onto accepted Main
-`89bb06ec2ff30f081702599f83107ed13d707e99`, including accepted stable UUID comparison
-and native project-upgrade/Scene Preview input fixes. README and both Roadmaps retain
-all Main and snapshot contracts. Replayed pre-evidence head is
-`692a006dd1a2ce058b4ce9679056493a221a6423`; old current-head checks are historical.
-
-Fresh complete graphical/Cryptography/Slang/Zig/Showcase/native ProjectPlayer configure
-and build passed **356 steps**, followed by **242/242 in 593.90 s**, zero skips.
-Minimal Monolithic Shipping configure/build passed **14 steps**, rebuilding Runtime
-and AI dependencies with Editor excluded; this is minimal profile/link compatibility.
-No product-code or assertion changes were needed for the replay. The separate latent
-Euler preservation dependency remains open. Fresh published-head hosted CI and a clean
-current-Main guard are required before ordinary squash merge. Full milestones remain **0/8**.
