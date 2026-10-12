@@ -1498,6 +1498,11 @@ dependency.
 
 ## Bounded scoped build processes
 
+The native Editor forwards copied current-scope process output into owning Runtime Console
+records with explicit session scope/operation and receipt time, bounded ASCII escaping and
+separate raw-byte loss/record-drop units. The adapter is documented in Apps/Editor; it adds no
+runner callbacks, module dependency, persistence, artifact verification or document authority.
+
 `BuildProcess` owns one direct executable/working-directory/UTF-8 argv request on its referenced
 Core JobSystem. Owner calls are serialized; the JobSystem outlives the runner and shutdown
 cancels/drains before destruction. Workers retain no document/workspace borrows. Absolute native

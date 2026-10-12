@@ -3,6 +3,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+#include "BuildConsoleIngress.h"
 #include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
 #include "MaterialScenePreview.h"
@@ -878,6 +879,7 @@ int RunGraphical(std::optional<ProjectState> project,
   core_logs.Start();
   nexora::runtime::RuntimeConsole console{1024};
   nexora::editor::preview::CoreConsoleIngress console_ingress{core_logs, console, "NexoraEditor"};
+  nexora::editor::preview::BuildConsoleIngress build_console_ingress{console};
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
@@ -2684,6 +2686,7 @@ int RunGraphical(std::optional<ProjectState> project,
                         project ? project->workspace.Root() : std::filesystem::path{},
                         build_allowed);
     const auto build_observation = build_process.Snapshot();
+    static_cast<void>(build_console_ingress.Poll(build_observation, project ? build_scope : 0));
     if (build_observation.operation != build_reported_operation ||
         build_observation.phase != build_reported_phase) {
       build_reported_operation = build_observation.operation;
@@ -2900,6 +2903,9 @@ int RunGraphical(std::optional<ProjectState> project,
   scene_comparison.Shutdown();
   static_export.Shutdown();
   build_process.Shutdown();
+  const auto final_build = build_process.Snapshot();
+  for (std::size_t i = 0; i < nexora::editor::BuildProcess::kMaximumOutputBytes / (16 * 1024); ++i)
+    static_cast<void>(build_console_ingress.Poll(final_build, project ? build_scope : 0));
   gameplay.Unload();
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
@@ -2913,6 +2919,12 @@ int RunGraphical(std::optional<ProjectState> project,
   core_logs.Stop();
   console_ingress.Poll();
   const auto console_records = console.Snapshot();
+  std::cerr << "console build evidence: records=" << build_console_ingress.ForwardedRecords()
+            << " consumed_raw_bytes=" << build_console_ingress.ConsumedRawBytes()
+            << " missing_raw_bytes=" << build_console_ingress.MissingRawBytes() << " retained="
+            << std::ranges::count(console_records, std::string("BuildOutput"),
+                                  &nexora::runtime::RuntimeLogRecord::category)
+            << '\n';
   std::cerr << "console producer evidence: source=core_async_log forwarded="
             << console_ingress.ForwardedCount() << " retained=" << console_records.size()
             << " dropped=" << console.DroppedCount() << " gameplay_retained="

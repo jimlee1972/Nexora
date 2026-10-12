@@ -758,6 +758,12 @@ creates property widgets; unknown components retain raw data instead of being si
     Actual V3, simulation-OFF and dynamic native Game fixtures cover queries and unchanged Editor
     data. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md).
     Rigid-body/backend stepping, authored collider import and full gameplay/input remain open.
+  - ✅ Local BuildProcess merged output now reaches the owning graphical Runtime Console through
+    scope/operation cursors. Each poll consumes at most 16 KiB raw bytes; escaped chunks fit 16 KiB
+    records. Raw-byte loss is distinct from Console record drops. Repeated/stale snapshots do not
+    duplicate output; shutdown drains bounded retained bytes without publication. Receipt timestamps
+    and scope/operation labels are explicit; output is session-only and exit zero never verifies
+    artifacts. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-BuildConsoleIngress-Linux-2026-10-12.md).
   - ✅ Clicking the playing Game canvas now routes user-zero held WASD/arrow movement and
     Space/mouse/Shift/Ctrl buttons through copied gameplay input snapshots. Escape, pointer exit,
     hidden Game, Pause/Stop, prompts, and native blur clear capture and held state. Captured keys

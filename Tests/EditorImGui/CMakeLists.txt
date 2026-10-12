@@ -151,6 +151,13 @@ target_link_libraries(NexoraPlayGameplayModuleTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayGameplayModuleTests)
 add_test(NAME editor.play_gameplay_module COMMAND NexoraPlayGameplayModuleTests)
 
+add_executable(NexoraBuildConsoleIngressTests BuildConsoleIngressTests.cpp)
+target_include_directories(NexoraBuildConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraBuildConsoleIngressTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraBuildConsoleIngressTests)
+add_test(NAME editor.build_console_ingress COMMAND NexoraBuildConsoleIngressTests)
+set_tests_properties(editor.build_console_ingress PROPERTIES TIMEOUT 30)
+
 add_executable(NexoraCoreConsoleIngressTests CoreConsoleIngressTests.cpp)
 target_include_directories(NexoraCoreConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraCoreConsoleIngressTests PRIVATE Nexora::EditorImGui)
