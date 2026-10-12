@@ -164,6 +164,12 @@ struct EditorImGuiHost::State final {
   bool prefab_isolation_open{};
   std::optional<PrefabIsolationObservation> prefab_isolation;
   std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
+  std::optional<SceneComparison> prefab_review;
+  bool prefab_can_revert{}, prefab_revert_confirmation{};
+  bool prefab_can_apply{}, prefab_apply_confirmation{};
+  bool prefab_targeted{};
+  std::vector<PrefabPropertySelection> prefab_selected;
+  std::vector<std::pair<std::size_t, std::array<float, 2>>> prefab_property_positions;
   std::array<char, 65> prefab_target{};
   std::array<char, 1025> prefab_name{};
   std::array<std::array<char, 64>, 3> prefab_position{};
@@ -172,7 +178,7 @@ struct EditorImGuiHost::State final {
   std::array<double, 3> prefab_position_original{};
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
-  std::array<std::optional<std::array<float, 2>>, 15> prefab_positions{};
+  std::array<std::optional<std::array<float, 2>>, 23> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -4692,10 +4698,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
       state_->prefab_isolation_open = !state_->prefab_isolation_open;
-    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
-        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_E,
-                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
-      state_->extension_manager_open = !state_->extension_manager_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);

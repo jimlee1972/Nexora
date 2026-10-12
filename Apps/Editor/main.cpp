@@ -809,6 +809,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::SceneDocument primary_scene(world, scene_id);
   std::unique_ptr<nexora::editor::SceneFileSession> primary_scene_files;
   std::unique_ptr<nexora::editor::PrefabDocumentSession> prefab_documents;
+  std::optional<nexora::editor::PrefabPropertyReview> prefab_review;
   std::uint64_t prefab_project_scope{};
   std::filesystem::path prefab_project_root;
   nexora::foundation::Uuid prefab_project;
@@ -2367,6 +2368,7 @@ int RunGraphical(std::optional<ProjectState> project,
           prefab_project != project->workspace.Project().id) {
         prefab_documents =
             std::make_unique<nexora::editor::PrefabDocumentSession>(project->workspace);
+        prefab_review.reset();
         prefab_project_scope = scope;
         prefab_project_root = project->workspace.Root();
         prefab_project = project->workspace.Project().id;
@@ -2408,6 +2410,8 @@ int RunGraphical(std::optional<ProjectState> project,
         std::string error;
         bool applied = false;
         if (!live) {
+          prefab_review.reset();
+          ui.SetPrefabReview(std::nullopt);
           error = "Prefab action is stale, or Play/export/close/recovery is active.";
         } else {
           using Action = nexora::editor::imgui::PrefabIsolationAction;
@@ -2442,7 +2446,50 @@ int RunGraphical(std::optional<ProjectState> project,
           case Action::Close:
             applied = prefab_documents->Close(request->discard_dirty, &error);
             break;
+          case Action::Review:
+            prefab_review = prefab_documents->Review(&error);
+            applied = prefab_review.has_value();
+            if (prefab_review)
+              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
+                                 prefab_review->Selections(), prefab_review->Targeted(),
+                                 prefab_review->CanApplyToSource());
+            else
+              ui.SetPrefabReview(std::nullopt);
+            break;
+          case Action::Revert:
+            if (prefab_review)
+              applied = prefab_documents->Revert(*prefab_review, allowed, &error);
+            else
+              error = "Review the current prefab changes before reverting properties.";
+            break;
+          case Action::ApplyToSource:
+            if (prefab_review) {
+              const auto published = prefab_documents->ApplyToSource(*prefab_review, true, &error);
+              applied = published.has_value();
+            } else {
+              error = "Review an unchanged saved variant before applying properties to its source.";
+            }
+            break;
+          case Action::SelectReview:
+            if (prefab_review)
+              prefab_review =
+                  prefab_documents->SelectReview(*prefab_review, request->selected, &error);
+            else
+              error = "Review the current source before preparing selected properties.";
+            applied = prefab_review.has_value();
+            if (prefab_review)
+              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
+                                 prefab_review->Selections(), prefab_review->Targeted(),
+                                 prefab_review->CanApplyToSource());
+            else
+              ui.SetPrefabReview(std::nullopt);
+            break;
           }
+        }
+        if (request->action != nexora::editor::imgui::PrefabIsolationAction::Review &&
+            request->action != nexora::editor::imgui::PrefabIsolationAction::SelectReview) {
+          prefab_review.reset();
+          ui.SetPrefabReview(std::nullopt);
         }
         ui.SetPrefabIsolationStatus(applied ? "Prefab action completed." : error, applied);
         const auto reported = observation();
@@ -2452,6 +2499,7 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     } else {
       prefab_documents.reset();
+      prefab_review.reset();
       static_cast<void>(ui.SetPrefabIsolation(std::nullopt));
     }
     const auto build_project =

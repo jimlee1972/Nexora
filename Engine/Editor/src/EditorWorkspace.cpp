@@ -1337,7 +1337,6 @@ bool SceneDocument::Undo() {
   auto &entry = undo_.back();
   if (entry.kind == UndoEntry::Kind::PropertySnapshot)
     return ReplayPropertySnapshot(false);
-  entry.redo_placements = prefab_placements_;
   entry.redo_nodes = nodes_;
   entry.redo_selection = selection_;
   if (entry.kind == UndoEntry::Kind::Runtime) {
@@ -1478,10 +1477,9 @@ std::optional<std::string> SceneDocument::StateSignature() const {
                << node->euler_hint->degrees[1] << ' ' << node->euler_hint->degrees[2] << '\n';
   }
   signature += metadata.str();
-  const auto placements = PrefabPlacementRecords();
-  if (!placements)
-    return std::nullopt;
-  signature += *placements;
+  if (prefab_base_)
+    signature += "prefab-base " + prefab_base_->asset.ToString() + " " +
+                 std::to_string(prefab_base_->revision) + "\n";
   return signature;
 }
 
@@ -1616,7 +1614,7 @@ bool SceneDocument::MatchesPreparedSave(const PreparedSave &prepared) const {
 
 bool SceneDocument::SavePrepared(const std::filesystem::path &path,
                                  const PreparedSave &prepared) const {
-  if (prepared.generation_ != document_generation_)
+  if (prefab_base_ || prepared.generation_ != document_generation_)
     return false;
   const auto signature = StateSignature();
   const auto opaque = CaptureOpaque(nodes_);
