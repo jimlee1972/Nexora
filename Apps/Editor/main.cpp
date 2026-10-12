@@ -10,6 +10,7 @@
 #include "Nexora/Editor/AdditiveSceneSession.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
+#include "Nexora/Editor/PrefabPlacementInspection.h"
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -1400,6 +1401,8 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
+    if (!project)
+      ui.SetPrefabPlacementSourceContext({}, false);
     if (project) {
       if (!scene_documents)
         initialize_scene_documents();
@@ -1421,8 +1424,38 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       ui.SetSceneComparisonStatus(scene_comparison.Snapshot(), scene_comparison.Busy());
       update_scene_tabs();
+      const bool source_inspection_allowed =
+          play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+          !exit_requested && !composition_restore_blocked &&
+          !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
+      ui.SetPrefabPlacementSourceContext(project->workspace.Root(), source_inspection_allowed);
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
+      if (const auto request = ui.TakePrefabPlacementSourceRequest()) {
+        const auto selection = active_scene().Selection();
+        const bool live = source_inspection_allowed && active_files() &&
+                          request->root == project->workspace.Root() &&
+                          request->source == active_files()->Token() && selection.size() == 1 &&
+                          selection.front() == request->node.id &&
+                          active_scene().Key(request->node.id) == request->node;
+        if (live) {
+          const auto inspected = nexora::editor::PrefabPlacementInspector::Inspect(
+              project->workspace, active_scene(), request->node);
+          if (inspected && inspected->Instance() == request->instance &&
+              inspected->Source() == request->retained &&
+              inspected->SourceNode() == request->source_node &&
+              std::ranges::equal(inspected->SourceScope(), request->scope) &&
+              active_files()->Token() == request->source) {
+            const bool displayed = ui.SetPrefabPlacementSourceReport(
+                {*request, inspected->Resolved(), inspected->PublishedRevision(),
+                 inspected->ScopedSource(), inspected->MappedNodes()});
+            if (displayed)
+              std::cerr << "prefab source inspected resolved=" << inspected->Resolved()
+                        << " retained=" << inspected->Source().revision
+                        << " published=" << inspected->PublishedRevision().value_or(0) << '\n';
+          }
+        }
+      }
       if (ui.TakeReflectedMetadataReloadRequest())
         load_reflected_metadata(project->workspace);
       if (auto request = ui.TakeSceneTabRequest()) {

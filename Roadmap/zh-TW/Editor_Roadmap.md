@@ -709,9 +709,16 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ 圖形化 scene Inspector 現顯示所選 persistent prefab node 的來源與 retained revision，
+  並可明確執行唯讀檢視，顯示此次取得的 available／unresolved、scoped source 與 current
+  publication 狀態。實際 1x／2x 控制項、原生來源遺失／還原刷新及唯讀重開保留 scene／history／
+  files；完整 Linux 245/245 與 Minimal Shipping 通過。Live instance override／revert／apply／rebase
+  仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md)。
+
 - ✅ Persistent placement source inspection 持有 retained／current revision 與 scoped-node
-  observation，包含 unresolved source status；完整 Linux 243/243 與 Minimal Shipping 通過，graphical instance
-  inspection 與 override／rebase 另行完成。
+  observation，包含 unresolved source status；完整 Linux 243/243 與 Minimal Shipping 通過，
+  instance override／rebase 另行完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementInspection-Linux-2026-10-10.md)。
 
 - ✅ Project prefab placement owner 通過實際 mixed-revision source closure、stale／foreign

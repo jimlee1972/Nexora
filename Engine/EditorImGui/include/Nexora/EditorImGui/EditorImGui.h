@@ -8,6 +8,7 @@
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
+#include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -61,6 +62,23 @@ struct GameInputBindingsSaveRequest final {
   foundation::Uuid project;
   std::filesystem::path root;
   PlayInputBindings bindings;
+};
+struct PrefabPlacementSourceRequest final {
+  std::filesystem::path root;
+  SceneFileToken source{};
+  SceneDocument::NodeKey node{};
+  foundation::Uuid instance{}, source_node{};
+  PrefabRevisionReference retained{};
+  std::vector<foundation::Uuid> scope;
+  friend bool operator==(const PrefabPlacementSourceRequest &,
+                         const PrefabPlacementSourceRequest &) = default;
+};
+struct PrefabPlacementSourceReport final {
+  PrefabPlacementSourceRequest scope;
+  bool resolved{};
+  std::optional<std::uint64_t> published_revision{};
+  std::optional<PrefabRevisionReference> scoped_source{};
+  std::size_t mapped_nodes{};
 };
 
 struct SceneFileRequest final {
@@ -219,6 +237,11 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  // Read-only source inspection: widgets own small scope/report copies and never perform IO.
+  // The host repeats scope/Play/modal/project checks and owns exact source inspection.
+  void SetPrefabPlacementSourceContext(const std::filesystem::path &, bool read_allowed);
+  [[nodiscard]] std::optional<PrefabPlacementSourceRequest> TakePrefabPlacementSourceRequest();
+  bool SetPrefabPlacementSourceReport(PrefabPlacementSourceReport);
   // Owns at most sixteen copied rows. Admission validates the whole context before mutation;
   // scope/target changes cancel old dialogs and output. Widgets perform no source IO.
   bool SetSceneTabs(std::span<const SceneTabItem>, std::uint64_t active, bool busy = false);

@@ -361,6 +361,12 @@ struct EditorImGuiHost::State final {
   std::uint64_t reflected_pending_identity{};
   bool inspector_transform_visible = false;
   std::string inspector_error;
+  std::filesystem::path prefab_source_root;
+  bool prefab_source_read_allowed{};
+  std::optional<PrefabPlacementSourceRequest> prefab_source_scope, prefab_source_request;
+  std::optional<PrefabPlacementSourceReport> prefab_source_report;
+  std::optional<std::array<float, 2>> prefab_source_position;
+  int prefab_source_frame{};
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
   FileDialog scene_file_dialog{FileDialog::None};
   bool scene_file_context{}, scene_file_save_blocked{}, scene_file_popup_pending{};
@@ -2710,12 +2716,14 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
   ImGui::EndDragDropTarget();
 }
 
+#include "PrefabPlacementSourcePanel.inl"
 #include "ReflectedInspectorPanel.inl"
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
                    bool editable, bool copy_allowed) {
+  DrawPrefabPlacementSource(state, scene, copy_allowed);
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
@@ -6061,6 +6069,42 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
 }
+void EditorImGuiHost::SetPrefabPlacementSourceContext(const std::filesystem::path &root,
+                                                      bool read_allowed) {
+  if (state_->prefab_source_root != root) {
+    state_->prefab_source_scope.reset();
+    state_->prefab_source_report.reset();
+    state_->prefab_source_request.reset();
+    state_->prefab_source_root = root;
+  }
+  state_->prefab_source_read_allowed = read_allowed;
+  if (!read_allowed)
+    state_->prefab_source_request.reset();
+}
+std::optional<PrefabPlacementSourceRequest> EditorImGuiHost::TakePrefabPlacementSourceRequest() {
+  ImGui::SetCurrentContext(state_->context);
+  if (!state_->prefab_source_read_allowed || !state_->app_focused ||
+      state_->prefab_source_frame != ImGui::GetFrameCount() || state_->close_prompt_requested ||
+      state_->play_apply_open || state_->scene_file_dialog != State::FileDialog::None ||
+      state_->scene_file_output || state_->hierarchy_rename_target ||
+      state_->content_rename_target || state_->scene_tab_dialog || !state_->scene_file_context ||
+      (state_->prefab_source_scope &&
+       state_->prefab_source_scope->source != state_->scene_file_token))
+    state_->prefab_source_request.reset();
+  return std::exchange(state_->prefab_source_request, std::nullopt);
+}
+bool EditorImGuiHost::SetPrefabPlacementSourceReport(PrefabPlacementSourceReport report) {
+  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
+      !state_->scene_file_context || report.scope.source != state_->scene_file_token ||
+      !report.mapped_nodes || report.mapped_nodes > SceneDocument::kMaximumPrefabPlacementNodes ||
+      report.resolved != report.scoped_source.has_value() ||
+      (report.published_revision && !*report.published_revision) ||
+      (report.scoped_source &&
+       (report.scoped_source->asset.IsNil() || !report.scoped_source->revision)))
+    return false;
+  state_->prefab_source_report = std::move(report);
+  return true;
+}
 std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
   return std::exchange(state_->scene_comparison_request, std::nullopt);
 }
@@ -7179,6 +7223,14 @@ void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.scene");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_source_position;
+}
+const PrefabPlacementSourceReport *
+EditorImGuiTestAccess::PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_source_report ? &*host.state_->prefab_source_report : nullptr;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {
