@@ -33,3 +33,25 @@ accepted and Runtime schema/C ABI/module graph stay unchanged. Structural deleti
 explicitly detaches the affected entire placement; Paste/Duplicate are detached.
 No power-loss journal, history-memory quota, graphical instantiate or automatic
 source reconciliation is claimed. Full Editor milestones remain **0/8**.
+
+## Windows Save All fixture reader lifetime
+
+The inherited bound-scene fixture copied saved bytes but retained its input file
+handle across the later coordinated atomic replacement. Hosted Windows desktop and
+mimalloc runs of the expanded prefab integration exposed this as a Save All failure;
+Linux permits replacement while the reader remains open.
+
+The fixture now closes the reader immediately after copying the owning saved bytes.
+Preparation, publication, saved baseline, placement metadata, Undo and exact original
+bytes retain all previous assertions, now with separate failure messages. Product
+atomic publication and rejection of actual busy readers are unchanged. Beads
+`nexora-pmb.2.8` tracks the cross-platform verification. Previous full-suite timings
+above describe the earlier feature head; fresh corrected-head validation is required.
+
+Corrected-head full graphical Development build passed **316 steps** and
+**242/242 tests in 600.40 s**, zero skips. Bound nested materialization/Save All
+passed in **7.76 s**, native project upgrade in **11.88 s**, and native Scene
+Preview in **28.06 s**. Minimal Monolithic Shipping passed **5 steps**.
+This validates the owning persistent-bindings composition, with its existing
+review-only prerequisite foundation; fresh Main replay and hosted Windows checks
+remain necessary before merge. No new GUI/input feature is claimed by this fix.
