@@ -309,4 +309,20 @@ void SignedExtensionHost::PollShutdown() noexcept {
 std::vector<runtime::PluginSnapshot> SignedExtensionHost::Snapshot() const {
   return native_.Snapshot();
 }
+NativeToolOutcome SignedExtensionHost::InvokeTool(NativeToolInvoker &invoker,
+                                                  const runtime::ServiceRegistry &services,
+                                                  std::uint64_t id, std::string_view name,
+                                                  NativeToolOperation operation,
+                                                  std::span<const std::byte> input) const {
+  const auto context = invoker.ContextState();
+  if (context != NativeToolState::Success)
+    return {context, {}, {}, "Signed tool invocation requires its nonreentrant owner context"};
+  const auto image =
+      std::ranges::find_if(images_, [id](const Image &value) { return value.id == id; });
+  if (image == images_.end() || image->fd < 0 || image->trust_revision != trust_.Revision() ||
+      image->policy_revision != policy_revision_)
+    return {
+        NativeToolState::Unavailable, {}, {}, "Current signed tool image admission is unavailable"};
+  return invoker.Invoke(native_, services, id, name, operation, input);
+}
 } // namespace nexora::editor

@@ -885,9 +885,15 @@ creates property widgets; unknown components retain raw data instead of being si
     validation for actual Inspect/Edit/Serialize byte transformations. Typed edits cover nine
     scalar lanes within a 64 KiB request; canonical owning output is capped at 1024 bytes.
     Actual dynamic-load tests cover exact float roundtrips, failure budgets, independent hosts
-    and unload/reload. GPU Preview is unavailable; signed-package host integration and graphical
-    document/Undo/Save/reopen workflows remain open.
+    and unload/reload. The signed-host callback bridge is delivered below. GPU Preview is unavailable;
+    Manager selection and graphical document/Undo/Save/reopen workflows remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md).
+  - ✅ Signed native tool invocation now binds every byte callback to its exact current sealed
+    image, trust/policy revisions and qualified active provider. Wrong-thread/reentrant checks
+    precede mutable admission inspection; stale trust, foreign registries and retired IDs reject
+    without lifecycle mutation. Actual signed scalar-material Inspect/Serialize and cross-invoker
+    native recursion pass. Manager selection and graphical document/Undo/Save/Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md).
   - ✅ The optional versioned native byte-callback SDK now executes actual loaded tool services
     through fresh qualified lookups, with owning outcomes and 64 KiB input/output limits.
     Wrong-thread/reentrant, malformed, revoked and foreign calls reject; invalid success lengths
