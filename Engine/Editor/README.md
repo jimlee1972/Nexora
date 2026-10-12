@@ -42,8 +42,21 @@ remain intact. A semantic no-op preserves pending Redo. Neither source nor scene
 ordinary explicit Scene Save persists the result. The caller serializes authoring operations and
 repeats current Play, modal and selected-document policy when supplying authorization. Read-only,
 foreign/stale, recovery/external-change, missing/changed source and unsupported structural inputs
-reject. This Core operation does not implement graphical confirmation, targeted revert, structural
+reject. These Core operations do not implement graphical confirmation or structural
 reconciliation, apply-to-source or source rebase.
+
+`RevertSelected` borrows row indices only during its serialized call. Indices identify rows in
+the same immutable owning review; duplicates, out-of-range indices and unsupported/structural
+review state reject atomically. Selected semantic lanes expand to complete scoped canonical
+property groups: name, position, rotation including Euler hints, scale, complete Camera/Light/Mesh
+presence and stored values, or an opaque type's name/bytes. Distinct selected rows in the same
+property group coalesce; selecting an added local opaque field removes that whole source-absent
+component without inventing a retained property UUID. Source-to-live scoped identity is resolved
+from the captured complete closure. Unselected groups and other nodes retain their local values.
+The generated canonical Runtime3 record bridge requires exactly19 property tokens and rejects
+schema changes. Writer/source/target validation, byte/entity budgets, one Undo/Redo, no file writes
+and saved-baseline guarantees are the same as whole-instance Revert. An empty valid selection is
+a no-op that preserves Redo. Targeted graphical selection remains separate.
 
 ## Stable revisioned prefab asset foundation
 

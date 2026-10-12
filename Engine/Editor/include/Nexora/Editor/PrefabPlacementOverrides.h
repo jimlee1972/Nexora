@@ -49,5 +49,17 @@ public:
   static bool Revert(const ProjectWorkspace &, SceneDocument &,
                      const PrefabPlacementOverrideReview &, bool authorized,
                      std::string *error = nullptr);
+  // Row indices belong to this immutable review. Each selected semantic lane expands to its
+  // complete scoped property group, including rotation hints or dormant component values.
+  static bool RevertSelected(const ProjectWorkspace &, SceneDocument &,
+                             const PrefabPlacementOverrideReview &,
+                             std::span<const std::size_t> rows, bool authorized,
+                             std::string *error = nullptr);
+
+private:
+  static bool RevertProperties(const ProjectWorkspace &, SceneDocument &,
+                               const PrefabPlacementOverrideReview &,
+                               std::optional<std::span<const std::size_t>>, bool authorized,
+                               std::string *error);
 };
 } // namespace nexora::editor

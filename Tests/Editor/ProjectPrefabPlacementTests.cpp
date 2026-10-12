@@ -230,6 +230,82 @@ void Run() {
       std::vector(target.Selection().begin(), target.Selection().end());
   const auto bindings_before_revert =
       std::vector(target.PrefabPlacements().begin(), target.PrefabPlacements().end());
+  const auto name_index = static_cast<std::size_t>(named - property_review->Rows().begin());
+  Require(!Overrides::RevertSelected(workspace, target, *property_review,
+                                     std::array{name_index, name_index}, true) &&
+              !Overrides::RevertSelected(workspace, target, *property_review,
+                                         std::array{property_review->Rows().size()}, true) &&
+              !Overrides::RevertSelected(observer, target, *property_review, std::array{name_index},
+                                         true) &&
+              !Overrides::RevertSelected(workspace, target, *property_review,
+                                         std::array{name_index}, false) &&
+              target.MatchesPreparedSave(edited) &&
+              Overrides::RevertSelected(workspace, target, *property_review, std::array{name_index},
+                                        true) &&
+              target.Name(old_node->target.id) == "Old nested" &&
+              target.EulerAngles(old_node->target.id)->at(1) == 720 &&
+              target.OpaqueComponents(old_node->target)->front().data ==
+                  std::vector<std::uint8_t>{0, 255, 29} &&
+              target.OpaqueComponents(placed->front().target)->size() == 1,
+          "Selected Name revert changed unselected Euler/opaque or admitted invalid scope");
+  const auto named_reverted = *target.PrepareSave();
+  Require(target.Undo() && target.MatchesPreparedSave(edited) && target.Redo() &&
+              target.MatchesPreparedSave(named_reverted) && target.Undo() &&
+              Overrides::RevertSelected(workspace, target, *property_review, {}, true) &&
+              target.Redo() && target.MatchesPreparedSave(named_reverted) && target.Undo() &&
+              target.MatchesPreparedSave(edited) && Files(workspace.Root()) == original_files,
+          "Selected Name revert/no-op lost one history boundary or pending Redo");
+  const auto added_row = std::ranges::find_if(property_review->Rows(), [](const auto &row) {
+    return row.field == "opaque/123/payload_hex";
+  });
+  const auto rotation_row = std::ranges::find_if(
+      property_review->Rows(), [](const auto &row) { return row.field == "authoring/euler/y"; });
+  Require(added_row != property_review->Rows().end() &&
+              rotation_row != property_review->Rows().end(),
+          "Selected stable property fixtures absent");
+  const auto added_index = static_cast<std::size_t>(added_row - property_review->Rows().begin());
+  const auto rotation_index =
+      static_cast<std::size_t>(rotation_row - property_review->Rows().begin());
+  Require(Overrides::RevertSelected(workspace, target, *property_review,
+                                    std::array{added_index, rotation_index}, true) &&
+              target.OpaqueComponents(placed->front().target)->empty() &&
+              target.EulerAngles(old_node->target.id)->at(1) == 0 &&
+              target.EulerAngles(old_node->target.id)->at(2) == 37.5 &&
+              target.Name(old_node->target.id) == "Local nested override" &&
+              target.OpaqueComponents(old_node->target)->front().data ==
+                  std::vector<std::uint8_t>{0, 255, 29} &&
+              target.Undo() && target.MatchesPreparedSave(edited),
+          "Selected rotation/addition groups lost exact hints or unselected scoped values");
+  auto local_transform = *target.Transform(old_node->target.id);
+  local_transform.x = 9;
+  local_transform.y = 8;
+  local_transform.z = 7;
+  local_transform.sx = 4;
+  local_transform.sy = 5;
+  local_transform.sz = 6;
+  Require(target.SetTransform(old_node->target.id, local_transform),
+          "Selected position/scale fixture failed");
+  const auto positioned = *target.PrepareSave();
+  const auto position_review = Overrides::Prepare(workspace, target, old_node->target);
+  Require(position_review.has_value(), "Position review failed");
+  std::vector<std::size_t> position_rows;
+  for (std::size_t i = 0; i < position_review->Rows().size(); ++i)
+    if (position_review->Rows()[i].field.starts_with("transform/position/"))
+      position_rows.push_back(i);
+  Require(position_rows.size() == 3 &&
+              position_review->Rows()[position_rows[0]].property ==
+                  position_review->Rows()[position_rows[1]].property &&
+              Overrides::RevertSelected(workspace, target, *position_review,
+                                        std::span(position_rows).first(2), true),
+          "Distinct lanes of one stable position group did not coalesce");
+  const auto position_result = *target.Transform(old_node->target.id);
+  Require(position_result.x == 2.75 && position_result.y == 3.25 && position_result.z == -7.125 &&
+              position_result.sx == 4 && position_result.sy == 5 && position_result.sz == 6 &&
+              target.EulerAngles(old_node->target.id)->at(1) == 720 &&
+              target.Name(old_node->target.id) == "Local nested override" && target.Undo() &&
+              target.MatchesPreparedSave(positioned) && target.Undo() &&
+              target.MatchesPreparedSave(edited) && Files(workspace.Root()) == original_files,
+          "Selected position group changed unselected scale/Euler/name or lost one Undo");
   Require(!Overrides::Revert(observer, target, *property_review, true, &override_error) &&
               !Overrides::Revert(workspace, target, *property_review, false, &override_error) &&
               !Overrides::Revert(workspace, foreign, *property_review, true, &override_error) &&
@@ -306,6 +382,18 @@ void Run() {
   Require(active_review && !active_review->Rows().empty() &&
               !Overrides::Revert(workspace, target, *clean_review, true),
           "Changed active components retained stale review authority");
+  const auto camera_row = std::ranges::find_if(
+      active_review->Rows(), [](const auto &row) { return row.field == "camera/enabled"; });
+  Require(camera_row != active_review->Rows().end(), "Selected Camera presence row absent");
+  const auto camera_index = static_cast<std::size_t>(camera_row - active_review->Rows().begin());
+  Require(Overrides::RevertSelected(workspace, target, *active_review, std::array{camera_index},
+                                    true) &&
+              !target.Camera(old_node->target) && target.Light(old_node->target)->intensity == 9 &&
+              target.MeshRenderer(old_node->target)->mesh == 8123 &&
+              target_world.FindEntity(old_node->target.id)->camera_data.vertical_field_of_view ==
+                  91 &&
+              target.Undo() && target.MatchesPreparedSave(active),
+          "Selected Camera group lost dormant data or changed unselected Light/Mesh");
   {
     std::ofstream file(recovery);
     file << "pending";
