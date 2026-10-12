@@ -864,6 +864,13 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
+  loaded tool service，回傳 owning outcome，input／output 各限 64 KiB。Wrong-thread／reentrant、
+  malformed、revoked 與 foreign 呼叫拒絕；無效 success length 與失敗 callback 丟棄 output。
+  十四個 compiled native fixture 與 C consumer 驗證此支援 contract。Host document／IO
+  授權及 graphical reference-tool edit／preview／save／unload 驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md)。
+
 - ✅ Qualified native service lookup 現檢查 exact loaded plugin admission 與 owned provider
   identity，涵蓋 registry copy、同名 reload 與不同 host 的相同 numeric ID。Manual replacement、
   revoked／pending／restart-required provider 均拒絕。結果仍為 owner-thread borrow，consumer
@@ -883,6 +890,12 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
   [Linux contract 證據](../../Tools/Build/evidence/EditorEDM5-ToolCapabilities-Linux-2026-10-09.md)。
 
 ### ED-M6 — Build、profile 與 extensibility
+
+✅ External Chrome trace inspection 已驗證：明確 event／process／thread selection、有界 Unicode
+JSON、external clock／duration unit、最新600筆／drop count 及獨立 static view。Read-only import、
+failure／scope preservation 通過；不推定 CPU／GPU／memory。其他 capture format 與實體 GPU 校準仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeTrace-Linux-2026-10-10.md)。
+
 
 Build profiles、cook/package frontend、target/device matrix、remote deploy/log、CPU/GPU/memory/frame profiler、plugin manager、script/API docs。任何「Build Success」必須附 target manifest 與可重現 command。
 

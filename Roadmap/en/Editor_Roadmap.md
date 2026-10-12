@@ -899,6 +899,13 @@ creates property widgets; unknown components retain raw data instead of being si
     Reviewed merge publication, provider integration and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ The optional versioned native byte-callback SDK now executes actual loaded tool services
+    through fresh qualified lookups, with owning outcomes and 64 KiB input/output limits.
+    Wrong-thread/reentrant, malformed, revoked and foreign calls reject; invalid success lengths
+    and failed callbacks discard output. Fourteen compiled native fixtures plus a C consumer prove
+    the supporting contract. Host document/IO authorization and graphical reference-tool
+    edit/preview/save/unload acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md).
   - ✅ Qualified native service lookup now checks the exact loaded plugin admission and owned
     provider identity, including copied registries, same-name reload and same numeric IDs across
     hosts. Manual replacements and revoked/pending/restart-required providers reject. Results
@@ -915,12 +922,11 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
-  - ✅ Build artifact byte verification now checks an exact nonempty bounded manifest set,
-    relative identities, sizes and canonical SHA-256 values against caller-captured owning bytes.
-    Corrupt/missing/extra/duplicate inputs and unavailable cryptography reject without publication.
-    This certifies the supplied bytes only; consistent file capture, target completeness,
-    reproducible argv/toolchains, build-success UI and deployment remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-BuildArtifactVerification-Linux-2026-10-11.md).
+  - ✅ External Chrome trace inspection is validated: explicit event/process/thread selection,
+    bounded Unicode JSON, external clock/duration units, newest600/drop counts and independent
+    static view. Read-only import and failure/scope preservation pass. CPU/GPU/memory are not inferred.
+    Other capture formats and physical GPU calibration remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeTrace-Linux-2026-10-10.md).
   - ✅ The graphical Build Console edits an absolute executable, working directory and discrete
     owning arguments, with explicit Run/Cancel and Ctrl+Enter/Ctrl+Shift+Enter. Live merged output
     is a bounded 16 KiB raw tail rendered with byte escapes, exact dropped counts and native exit
