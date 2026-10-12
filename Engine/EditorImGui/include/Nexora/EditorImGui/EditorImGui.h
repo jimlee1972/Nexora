@@ -50,13 +50,7 @@ enum class PrefabIsolationAction : std::uint8_t {
   Save,
   Close,
   Review,
-  Revert,
-  SelectReview,
-  ApplyToSource,
-  ReviewRebase,
-  ResolveRebase,
-  Rebase,
-  Instantiate
+  Revert
 };
 struct PrefabIsolationObservation final {
   foundation::Uuid project, asset;
@@ -273,15 +267,7 @@ public:
   [[nodiscard]] std::optional<PrefabIsolationRequest> TakePrefabIsolationRequest();
   void SetPrefabIsolationStatus(std::string message, bool success);
   // Presentation data only; the native owner retains/revalidates the actual review capability.
-  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false,
-                       std::span<const PrefabPropertySelection> selected = {},
-                       bool targeted = false, bool can_apply_to_source = false);
-  void SetPrefabRebaseReview(std::optional<SceneComparison>,
-                             std::optional<PrefabRevisionReference> previous = {},
-                             std::optional<PrefabRevisionReference> next = {},
-                             std::span<const PrefabPropertySelection> conflicts = {},
-                             std::span<const PrefabRebaseChoice> choices = {},
-                             bool can_apply = false, std::size_t unresolved = 0);
+  void SetPrefabReview(std::optional<SceneComparison> changes, bool can_revert = false);
   void OpenPrefabIsolation() noexcept;
   [[nodiscard]] bool TakeReflectedMetadataReloadRequest() noexcept;
   // Frame-only model borrow; configuration and sanitized output are owning presentation state.

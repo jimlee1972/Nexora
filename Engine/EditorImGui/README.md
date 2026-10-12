@@ -1187,20 +1187,9 @@ Nested materialization, override diff/revert/apply/rebase, reflected prefab prop
 transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
 module dependencies are unchanged.
 
-## Signed native package controls
-
-Settings > Extensions / Ctrl+Alt+E opens the owning project-scoped publisher/capability and package
-views. Inputs transfer explicit requests; widgets never read packages or execute native code. The
-native owner rechecks project UUID/root/scope, private review revision, writer/recovery/external-change
-and stopped-Play/export/modal authority. Changed project scope clears keys/path drafts and pending
-requests; keys in the host registry are explicit process-session trust and never restored from a
-project. Changing the package path or closing the window cancels the retained Core review.
-
-Review displays the actually verified canonical identity/version/publisher/target/ABI/dependencies.
-Install copies only those owned verified bytes; a separate Enable requests actual sealed native
-admission. Row state comes from the host, and its tooltip reports admission/loader errors, ABI,
-services and lifecycle/cooperative capability. Disable/revoke drain through the cooperative host;
-legacy mappings remain restart-required. Read-only scopes can inspect but cannot install, enable or
-remove files. No package/project enrolls its own trust or auto-enables. Invalid/overflowing observation
-data preserves the previous display; clipped rows and bounded input/diagnostic strings limit retained
-UI state. Native permission declarations are admission checks, not a sandbox for trusted native code.
+Prefab isolation additionally presents an explicit owning property comparison and full revert
+confirmation. Source/edit values use clipped table rows and bounded previews; stable paths remain
+available in tooltips. Presentation data carries no write authority: the native session retains
+the actual immutable review and revalidates it at execution. Read-only inspection remains available
+while Revert requires current authoring permission. Edits, Undo/Redo, source actions and scope
+replacement revoke presented review/confirmation. Targeted field/source apply and rebase remain open.

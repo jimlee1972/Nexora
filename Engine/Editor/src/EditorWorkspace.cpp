@@ -1337,7 +1337,6 @@ bool SceneDocument::Undo() {
   auto &entry = undo_.back();
   if (entry.kind == UndoEntry::Kind::PropertySnapshot)
     return ReplayPropertySnapshot(false);
-  entry.redo_placements = prefab_placements_;
   entry.redo_nodes = nodes_;
   entry.redo_selection = selection_;
   if (entry.kind == UndoEntry::Kind::Runtime) {

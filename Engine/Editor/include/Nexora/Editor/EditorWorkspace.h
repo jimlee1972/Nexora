@@ -448,19 +448,6 @@ public:
   // Source scene name/persistence and entity IDs must match. Serialized owner supplies authority.
   bool ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
                              bool authorized);
-  struct PrefabBaseReference final {
-    foundation::Uuid asset;
-    std::uint64_t revision{};
-    friend bool operator==(const PrefabBaseReference &, const PrefabBaseReference &) = default;
-  };
-  [[nodiscard]] std::optional<PrefabBaseReference> PrefabBase() const noexcept {
-    return prefab_base_;
-  }
-  // Owning authoring context, persisted by wrapped PrefabAssets, not reusable scene bytes.
-  // Serialized owner validates actual source/project authority. Reference and properties share
-  // one Undo/Redo, including reference-only changes. Ordinary scene save rejects tagged documents.
-  bool ApplyPrefabPropertySnapshot(const PreparedSave &, std::string_view source,
-                                   PrefabBaseReference, bool authorized);
   // Rejects changed document generation or content before IO; advances the baseline only after
   // successful single-file publication. Caller owns workspace access and destination policy.
   bool SavePrepared(const std::filesystem::path &path, const PreparedSave &prepared) const;
@@ -499,7 +486,6 @@ public:
 private:
   friend class AdditiveSceneSession;
   friend class PrefabAssets;
-  friend class PrefabDocumentSession;
   enum class BuiltinEntity { Empty, Camera, Light };
   friend class SceneSaveBatch;
   bool ReloadOwnedBytes(std::string bytes, std::optional<std::size_t> maximum_nodes = std::nullopt);
@@ -544,7 +530,6 @@ private:
       std::optional<PrefabBaseReference> previous_base{}, next_base{};
     };
     std::shared_ptr<const PropertySnapshot> property_snapshot{};
-    std::shared_ptr<const std::vector<PrefabPlacement>> previous_placements{}, redo_placements{};
   };
   bool ReplayPropertySnapshot(bool forward);
   bool ApplyPropertySnapshotWithReference(const PreparedSave &, std::string_view, bool,

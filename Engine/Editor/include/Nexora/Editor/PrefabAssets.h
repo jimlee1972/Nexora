@@ -91,21 +91,5 @@ public:
   // Bounded exact-revision closure from project storage; returns owning resolution metadata.
   [[nodiscard]] static std::optional<ResolvedPrefabGraph>
   ResolveProject(const ProjectWorkspace &, PrefabRevisionReference root);
-  // Stages the complete exact nested closure outside the live document, then imports once.
-  // Caller supplies current authoring authority; returned scoped mappings own all their data.
-  [[nodiscard]] static std::optional<std::vector<InstantiatedPrefabNode>>
-  Instantiate(PrefabRevisionReference root, std::span<const PrefabAsset> sources,
-              SceneDocument &target, const SceneDocument::PreparedSave &expected, bool authorized);
-  // Adds persistent Editor placement bindings together with the complete one-step forest import.
-  [[nodiscard]] static std::optional<std::vector<InstantiatedPrefabNode>>
-  InstantiateBound(foundation::Uuid instance, PrefabRevisionReference root,
-                   std::span<const PrefabAsset> sources, SceneDocument &target,
-                   const SceneDocument::PreparedSave &expected, bool authorized);
-
-private:
-  [[nodiscard]] static std::optional<std::vector<InstantiatedPrefabNode>>
-  InstantiateWithPlacement(std::optional<foundation::Uuid>, PrefabRevisionReference,
-                           std::span<const PrefabAsset>, SceneDocument &,
-                           const SceneDocument::PreparedSave &, bool);
 };
 } // namespace nexora::editor

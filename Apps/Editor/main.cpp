@@ -810,7 +810,6 @@ int RunGraphical(std::optional<ProjectState> project,
   std::unique_ptr<nexora::editor::SceneFileSession> primary_scene_files;
   std::unique_ptr<nexora::editor::PrefabDocumentSession> prefab_documents;
   std::optional<nexora::editor::PrefabPropertyReview> prefab_review;
-  std::optional<nexora::editor::PrefabRebaseReview> prefab_rebase;
   std::uint64_t prefab_project_scope{};
   std::filesystem::path prefab_project_root;
   nexora::foundation::Uuid prefab_project;
@@ -2242,7 +2241,6 @@ int RunGraphical(std::optional<ProjectState> project,
         prefab_documents =
             std::make_unique<nexora::editor::PrefabDocumentSession>(project->workspace);
         prefab_review.reset();
-        prefab_rebase.reset();
         prefab_project_scope = scope;
         prefab_project_root = project->workspace.Root();
         prefab_project = project->workspace.Project().id;
@@ -2362,9 +2360,7 @@ int RunGraphical(std::optional<ProjectState> project,
             prefab_review = prefab_documents->Review(&error);
             applied = prefab_review.has_value();
             if (prefab_review)
-              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
-                                 prefab_review->Selections(), prefab_review->Targeted(),
-                                 prefab_review->CanApplyToSource());
+              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert());
             else
               ui.SetPrefabReview(std::nullopt);
             break;
@@ -2374,73 +2370,12 @@ int RunGraphical(std::optional<ProjectState> project,
             else
               error = "Review the current prefab changes before reverting properties.";
             break;
-          case Action::ApplyToSource:
-            if (prefab_review) {
-              const auto published = prefab_documents->ApplyToSource(*prefab_review, true, &error);
-              applied = published.has_value();
-            } else {
-              error = "Review an unchanged saved variant before applying properties to its source.";
-            }
-            break;
-          case Action::ReviewRebase:
-            prefab_rebase = prefab_documents->ReviewRebase(&error);
-            applied = prefab_rebase.has_value();
-            if (prefab_rebase)
-              ui.SetPrefabRebaseReview(prefab_rebase->Changes(), prefab_rebase->PreviousReference(),
-                                       prefab_rebase->NextReference(), prefab_rebase->Conflicts(),
-                                       {}, prefab_rebase->CanApply(), prefab_rebase->Unresolved());
-            else
-              ui.SetPrefabRebaseReview(std::nullopt);
-            break;
-          case Action::ResolveRebase:
-            if (prefab_rebase)
-              prefab_rebase =
-                  prefab_documents->ResolveRebase(*prefab_rebase, request->choices, &error);
-            else
-              error = "Review the latest source before preparing conflict choices.";
-            applied = prefab_rebase.has_value();
-            if (prefab_rebase)
-              ui.SetPrefabRebaseReview(prefab_rebase->Changes(), prefab_rebase->PreviousReference(),
-                                       prefab_rebase->NextReference(), prefab_rebase->Conflicts(),
-                                       request->choices, prefab_rebase->CanApply(),
-                                       prefab_rebase->Unresolved());
-            else
-              ui.SetPrefabRebaseReview(std::nullopt);
-            break;
-          case Action::Rebase:
-            if (prefab_rebase)
-              applied = prefab_documents->Rebase(*prefab_rebase, true, &error);
-            else
-              error = "Prepare a current source rebase and resolve every conflicting group.";
-            break;
-          case Action::SelectReview:
-            if (prefab_review)
-              prefab_review =
-                  prefab_documents->SelectReview(*prefab_review, request->selected, &error);
-            else
-              error = "Review the current source before preparing selected properties.";
-            applied = prefab_review.has_value();
-            if (prefab_review)
-              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
-                                 prefab_review->Selections(), prefab_review->Targeted(),
-                                 prefab_review->CanApplyToSource());
-            else
-              ui.SetPrefabReview(std::nullopt);
-            break;
           }
         }
-        const bool keep_properties =
-            request->action == nexora::editor::imgui::PrefabIsolationAction::Review ||
-            request->action == nexora::editor::imgui::PrefabIsolationAction::SelectReview;
-        const bool keep_rebase =
-            request->action == nexora::editor::imgui::PrefabIsolationAction::ReviewRebase ||
-            request->action == nexora::editor::imgui::PrefabIsolationAction::ResolveRebase;
-        if (!keep_properties)
+        if (request->action != nexora::editor::imgui::PrefabIsolationAction::Review) {
           prefab_review.reset();
-        if (!keep_rebase)
-          prefab_rebase.reset();
-        if (!keep_properties && !keep_rebase)
           ui.SetPrefabReview(std::nullopt);
+        }
         ui.SetPrefabIsolationStatus(applied ? "Prefab action completed." : error, applied);
         const auto reported = observation();
         std::cerr << "prefab action=" << static_cast<unsigned>(request->action)
@@ -2450,7 +2385,6 @@ int RunGraphical(std::optional<ProjectState> project,
     } else {
       prefab_documents.reset();
       prefab_review.reset();
-      prefab_rebase.reset();
       static_cast<void>(ui.SetPrefabIsolation(std::nullopt));
     }
     const auto build_project =
