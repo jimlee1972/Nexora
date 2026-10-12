@@ -594,8 +594,8 @@ struct RoomSession::State final {
     courtyardFreeCamera = false;
     courtyardShot = shot % 3;
     constexpr std::array<float, 3> yaws{0.12F, -0.35F, 0.12F};
-    constexpr std::array<float, 3> pitches{0.30F, 0.28F, 0.25F};
-    constexpr std::array<float, 3> radii{9.0F, 9.0F, 11.0F};
+    constexpr std::array<float, 3> pitches{0.23F, 0.25F, 0.22F};
+    constexpr std::array<float, 3> radii{10.2F, 9.5F, 11.5F};
     yaw = yaws[courtyardShot];
     pitch = pitches[courtyardShot];
     radius = radii[courtyardShot];
@@ -723,12 +723,12 @@ struct RoomSession::State final {
     }
   }
   void VisualTourCamera() {
-    constexpr std::array<std::array<float, 4>, 6> route{{{0, .12F, .30F, 9.0F},
+    constexpr std::array<std::array<float, 4>, 6> route{{{0, .12F, .23F, 10.2F},
                                                          {25, .05F, .35F, 15},
-                                                         {45, -.35F, .26F, 9},
-                                                         {65, .12F, .28F, 11},
+                                                         {45, -.35F, .25F, 9.5F},
+                                                         {65, .12F, .22F, 11.5F},
                                                          {80, -.45F, .32F, 13},
-                                                         {100, .12F, .30F, 9.0F}}};
+                                                         {100, .12F, .23F, 10.2F}}};
     std::size_t segment = 0;
     while (segment + 2 < route.size() && tourSeconds >= route[segment + 1][0])
       ++segment;
@@ -1363,9 +1363,9 @@ struct RoomSession::State final {
     const auto crystalBase = static_cast<std::uint16_t>(vertices.size());
     for (const auto &v : courtyardCrystal.vertices) {
       const auto normal = math::NormalizeSafe(
-          math::Vector3{v.normal[0] / 0.9F, v.normal[1] / 0.8F, v.normal[2] / 0.9F});
+          math::Vector3{v.normal[0] / 0.72F, v.normal[1] / 0.8F, v.normal[2] / 0.72F});
       vertices.push_back(
-          {{v.position[0] * 0.9F, v.position[1] * 0.8F + 3.15F, v.position[2] * 0.9F},
+          {{v.position[0] * 0.72F, v.position[1] * 0.8F + 3.15F, v.position[2] * 0.72F},
            {normal.x, normal.y, normal.z},
            {v.uv[0], v.uv[1]}});
     }
@@ -1392,8 +1392,8 @@ struct RoomSession::State final {
         const auto base = static_cast<std::uint16_t>(vertices.size());
         for (unsigned corner = 0; corner < 3; ++corner) {
           const auto &v = courtyardCrystal.vertices[courtyardCrystal.indices[face * 3 + corner]];
-          const float x = v.position[0] * 0.45F, y = v.position[1] * 0.624F,
-                      z = v.position[2] * 0.45F;
+          const float x = v.position[0] * 0.60F, y = v.position[1] * 0.69F,
+                      z = v.position[2] * 0.60F;
           // Small deterministic fractures break the interior's regular ring planes.
           // Equal cooked positions map equally, retaining the closed mineral surface.
           vertices.push_back(
@@ -1743,8 +1743,8 @@ struct RoomSession::State final {
         const float arc = std::fmod(z + 7, 6.0F) - 3;
         const float root = 3.7F + std::sqrt(std::max(0.0F, 9 - arc * arc));
         for (unsigned leaf = 0; leaf < 5; ++leaf) {
-          const float height = 0.4F + (i % 4) * 0.06F;
-          LeafQuad({x + (leaf % 2) * 0.1F, root - leaf * 0.32F - height, z}, 0.2F, height,
+          const float height = 0.29F + (i % 4) * 0.04F;
+          LeafQuad({x + (leaf % 2) * 0.1F, root - leaf * 0.28F - height, z}, 0.16F, height,
                    i * 0.61F + leaf);
           for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
             vertices[v].uv[1] = 1 - vertices[v].uv[1];
@@ -1827,10 +1827,10 @@ struct RoomSession::State final {
       const float rootX = 1.94F * std::cos(angle);
       const float rootY = 2.9F + 1.94F * std::sin(angle);
       for (unsigned leaf = 0; leaf < 10; ++leaf) {
-        const float height = 0.24F + ((vine + leaf) % 3) * 0.025F;
+        const float height = 0.20F + ((vine + leaf) % 3) * 0.025F;
         LeafQuad({rootX + 0.08F * std::sin(leaf * 1.7F), rootY - leaf * 0.145F - height,
                   0.33F + 0.04F * std::cos(leaf * 1.3F)},
-                 0.14F, height, vine * 0.57F);
+                 0.11F, height, vine * 0.57F);
         for (std::size_t v = vertices.size() - 4; v < vertices.size(); ++v)
           vertices[v].uv[1] = 1 - vertices[v].uv[1];
       }
@@ -1839,13 +1839,13 @@ struct RoomSession::State final {
     rotateDeviceRange(ringIvyFirst);
     // Dense foreground banks retain the original alpha mask and the same GPU wind.
     for (const auto bank :
-         {std::array{-3.8F, 3.8F}, std::array{3.8F, 3.8F}, std::array{-7.8F, -1.8F}})
+         {std::array{-2.4F, 5.8F}, std::array{3.0F, 5.8F}, std::array{-7.8F, -1.8F}})
       for (unsigned sprig = 0; sprig < 128; ++sprig) {
         const float angle = sprig * 2.399963F;
         const float sprigRadius = 1.3F * std::sqrt((sprig + 0.5F) / 128);
         LeafQuad({bank[0] + sprigRadius * std::cos(angle), 0.15F + 0.25F * (1 - sprigRadius / 1.3F),
                   bank[1] + sprigRadius * std::sin(angle)},
-                 0.16F + (sprig % 4) * 0.025F, 0.32F + (sprig % 5) * 0.06F, angle);
+                 0.14F + (sprig % 4) * 0.02F, 0.28F + (sprig % 5) * 0.045F, angle);
       }
     finish(5);
     for (const auto &prototype : masonry) {
@@ -3000,7 +3000,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
   s.batches.clear();
   s.Cube(0, -0.3F, 0, 6, 0.3F, 6);
   if (s.selected == "courtyard") {
-    s.materials = {{{0.8F, 0.8F, 0.8F, 1}, 0},
+    s.materials = {{{0.72F, 0.78F, 0.85F, 1}, 0},
                    {{0.78F, 0.44F, 0.12F, 1}, 0},
                    {{0.08F, 0.8F, 0.95F, 1}, 0},
                    {{0.3F, 0.21F, 0.13F, 1}, 0},
@@ -3010,10 +3010,10 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[4].textureId = 2;
 #endif
     s.materials[0].roughness = 0.85F;
-    s.materials[0].occlusion = 0.45F;
-    s.materials[0].normalScale = 0.2F;
-    // One authored sandstone repeat spans 2.5 metres, exposing broad erosion cracks.
-    s.materials[0].worldTextureScale = s.courtyardPbr ? 0.4F : 0;
+    s.materials[0].occlusion = 0.65F;
+    s.materials[0].normalScale = 0.11F;
+    // Finer weathering complements the real chipped blocks without oversized mineral patches.
+    s.materials[0].worldTextureScale = s.courtyardPbr ? 0.85F : 0;
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[0].textureId = 10;
     s.materials[0].normalTextureId = 11;
@@ -3024,8 +3024,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials[4].baseColor = {0.52F, 0.44F, 0.31F, 1};
     s.materials[1].metallic = 1;
-    s.materials[1].roughness = 0.4F;
-    s.materials[1].baseColor = {1.0F, 0.95F, 0.85F, 1};
+    s.materials[1].roughness = 0.55F;
+    s.materials[1].baseColor = {0.55F, 0.63F, 0.62F, 1};
     s.materials[2].roughness = 0.22F;
     s.materials[2].baseColor = {0.02F, 0.16F, 0.17F, 1};
     s.materials[2].emission = {0.012F, 0.32F, 0.4F};
@@ -3042,7 +3042,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
 #endif
     s.materials[4].roughness = 0.8F;
     // Olive leaf reflectance retains the existing ambient light and warm transmission.
-    s.materials[5].baseColor = {0.8F, 0.8F, 0.6F, 1};
+    s.materials[5].baseColor = {1.0F, 0.95F, 0.85F, 1};
     s.materials[5].twoSidedLighting = s.courtyardPbr;
     s.materials[5].roughness = 0.7F;
     s.materials[5].emission = {0, 0, 0};
@@ -3052,8 +3052,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (s.courtyardPbr) {
       s.materials[5].alphaCutoff = 0.5F;
       s.materials[5].windAmplitude = s.courtyardWind ? 0.22F : 0;
-      s.materials[5].transmissionThickness = s.courtyardTransmission ? 0.12F : 0;
-      s.materials[5].transmissionColor = {0.2F, 0.35F, 0.1F};
+      s.materials[5].transmissionThickness = s.courtyardTransmission ? 0.22F : 0;
+      s.materials[5].transmissionColor = {0.24F, 0.32F, 0.12F};
     }
 #if NEXORA_ASSET_PIPELINE_ENABLED
     s.materials[5].textureId = 16;
@@ -3093,7 +3093,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       background.castsShadow = false;
       s.materials.push_back(background);
     }
-    s.materials[8].occlusion = 0.5F;
+    s.materials[8].baseColor = {0.64F, 0.69F, 0.75F, 1};
+    s.materials[8].occlusion = 0.7F;
     s.materials[8].castsShadow = s.courtyardQuality > 0;
     s.materials[10].castsShadow = s.courtyardQuality > 0;
     // Woody cypress trunks and ivy stems retain the existing shared material slot.
@@ -3101,8 +3102,8 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     s.materials[10].roughness = 0.9F;
     s.materials[10].occlusion = 0.8F;
 #if NEXORA_ASSET_PIPELINE_ENABLED
-    s.materials[8].worldTextureScale = s.courtyardPbr ? 0.4F : 0;
-    s.materials[8].normalScale = 0.14F;
+    s.materials[8].worldTextureScale = s.courtyardPbr ? 0.85F : 0;
+    s.materials[8].normalScale = 0.10F;
     s.materials[8].textureId = 10;
     s.materials[8].normalTextureId = 11;
     s.materials[8].ormTextureId = 12;
@@ -3135,13 +3136,13 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     crystal.opacity = s.courtyardPbr && s.courtyardTransparency ? 0.95F : 1.0F;
     if (crystal.opacity < 1 && s.courtyardQuality > 0 && s.courtyardRefraction) {
       crystal.refractionIndex = 1.46F;
-      crystal.refractionThickness = 0.65F;
+      crystal.refractionThickness = 0.35F;
       crystal.refractionFrontSurfaceOnly = true;
       crystal.dielectricRefraction = true;
     }
-    crystal.transparencyTint = {0.65F, 0.98F, 0.94F};
+    crystal.transparencyTint = {0.22F, 0.85F, 0.78F};
     crystal.metallic = 0.0F;
-    crystal.roughness = 0.035F;
+    crystal.roughness = 0.075F;
     s.materials.push_back(crystal);
     Nexora::Presentation::SceneMaterial water{};
     water.baseColor = {0.28F, 0.4F, 0.42F, 1};
@@ -3190,7 +3191,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
       s.materials.push_back(interior);
     }
     auto wetStone = s.materials[0];
-    wetStone.baseColor = {0.507F, 0.507F, 0.507F, 1};
+    wetStone.baseColor = {0.60F, 0.65F, 0.70F, 1};
     wetStone.roughness = 0.25F;
     wetStone.occlusion = 0.55F;
     s.materials.push_back(wetStone);
@@ -3396,15 +3397,15 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (data.hdr && s.courtyardReflections && s.courtyardQuality != 0)
       data.planarReflection = s.CourtyardReflectionSettings();
     if (data.hdr && s.courtyardAtmosphere && s.courtyardQuality != 0)
-      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.55F, 0.48F, 0.46F}, 0.35F, 24, 75};
+      data.atmosphere = Nexora::Presentation::SceneAtmosphere{{0.61F, 0.55F, 0.49F}, 0.30F, 20, 65};
     if (data.hdr && s.courtyardStyled)
-      data.colorGrade = Nexora::Presentation::SceneColorGrade{1.05F, 1.05F};
+      data.colorGrade = Nexora::Presentation::SceneColorGrade{1.0F, 0.97F};
     if (data.hdr && s.courtyardBloom && s.courtyardQuality != 0)
       data.bloom = Nexora::Presentation::SceneBloom{s.courtyardQuality == 2 ? 0.28F : 0.22F, 1.0F,
                                                     s.courtyardQuality == 2 ? 20.0F : 12.0F};
     if (data.hdr && data.pbr && s.courtyardQuality != 0 && s.courtyardOcclusion)
       data.screenSpaceOcclusion = Nexora::Presentation::SceneScreenSpaceOcclusion{
-          s.courtyardQuality == 2 ? 0.85F : 0.7F, 0.5F, 0.025F, 0.85F};
+          s.courtyardQuality == 2 ? 0.60F : 0.45F, 0.5F, 0.025F, 0.85F};
     if (data.hdr && s.courtyardFocus && s.courtyardQuality != 0)
       data.depthOfField = Nexora::Presentation::SceneDepthOfField{
           math::Length(eye - math::Vector3{0, 3.15F, 0}), s.courtyardQuality == 2 ? 0.5F : 0.35F,
@@ -3421,7 +3422,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
     if (data.pbr) {
       for (unsigned axis = 0; axis < 3; ++axis) {
         data.light_direction[axis] = -courtyard_hero::sun_direction[axis];
-        data.light_color[axis] = courtyard_hero::key_radiance[axis];
+        data.light_color[axis] = courtyard_hero::key_radiance[axis] * 1.25F;
       }
       if (s.courtyardShadows) {
         // Basic retains the bounded foreground map. Standard/High include the
@@ -3444,8 +3445,12 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
         data.shadow->normalBias = s.courtyardShadowBias;
         data.shadow->slopeBias = s.courtyardShadowBias * 2;
       }
-      if (s.courtyardStyled)
+      if (s.courtyardStyled) {
         data.lightingStyle = Nexora::Presentation::SceneLightingStyle{};
+        data.lightingStyle->shadowTint = {0.50F, 0.62F, 0.76F};
+        data.lightingStyle->lightTint = {1.0F, 0.94F, 0.86F};
+        data.lightingStyle->rampSoftness = 0.18F;
+      }
     }
     data.materials = s.materials;
     data.batches = s.batches;
@@ -3470,7 +3475,7 @@ Nexora::Presentation::SceneDrawData RoomSession::Scene(std::uint32_t width, std:
                               {4, 64, 32, 7, s.courtyardEnvironment[1]},
                               {5, 32, 32, 1, s.courtyardEnvironment[2]}};
       data.linearTextureUploads = s.linearSceneUploads;
-      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.8F, 0.0F, 7};
+      data.environment = Nexora::Presentation::SceneEnvironment{3, 4, 5, 1.6F, 0.0F, 7};
     }
 #endif
     data.base_color[0] = 0.72F;

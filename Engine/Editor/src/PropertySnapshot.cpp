@@ -1,9 +1,6 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include <algorithm>
-#include <charconv>
 #include <map>
-#include <set>
-#include <tuple>
 
 namespace nexora::editor {
 namespace {
@@ -40,19 +37,18 @@ CanonicalMetadata(std::string_view bytes, const std::set<runtime::Id> &excluded,
 } // namespace
 bool SceneDocument::ApplyPropertySnapshot(const PreparedSave &expected, std::string_view source,
                                           bool authorized) {
-  return ApplyOwnedPropertySnapshot(expected, source, std::nullopt, authorized);
+  return ApplyPropertySnapshotWithReference(expected, source, authorized, prefab_base_);
 }
-bool SceneDocument::ApplyPrefabPlacementSnapshot(const PreparedSave &expected,
-                                                 std::string_view source, foundation::Uuid instance,
-                                                 bool authorized) {
-  if (instance.IsNil())
+bool SceneDocument::ApplyPrefabPropertySnapshot(const PreparedSave &expected,
+                                                std::string_view source,
+                                                PrefabBaseReference reference, bool authorized) {
+  if (reference.asset.IsNil() || !reference.revision)
     return false;
-  return ApplyOwnedPropertySnapshot(expected, source, instance, authorized);
+  return ApplyPropertySnapshotWithReference(expected, source, authorized, reference);
 }
-bool SceneDocument::ApplyOwnedPropertySnapshot(const PreparedSave &expected,
-                                               std::string_view source,
-                                               std::optional<foundation::Uuid> instance,
-                                               bool authorized) {
+bool SceneDocument::ApplyPropertySnapshotWithReference(
+    const PreparedSave &expected, std::string_view source, bool authorized,
+    std::optional<PrefabBaseReference> reference) {
   constexpr std::size_t maximum_nodes = 4096, maximum_bytes = 8 * 1024 * 1024;
   if (!authorized || world_.Kind() != runtime::WorldKind::Editor || source.empty() ||
       source.size() > maximum_bytes || expected.Bytes().size() > maximum_bytes ||
@@ -68,45 +64,11 @@ bool SceneDocument::ApplyOwnedPropertySnapshot(const PreparedSave &expected,
     return false;
   const auto *parsed = staged_world.FindScene(staged_scene);
   if (!parsed || parsed->name != current->name || parsed->persistent != current->persistent ||
-      parsed->entities.size() != current->entities.size() || staged.nodes_.size() != nodes_.size())
+      parsed->entities.size() != current->entities.size() ||
+      staged.nodes_.size() != nodes_.size() ||
+      !std::ranges::equal(staged.PrefabPlacements(), PrefabPlacements()))
     return false;
-  std::set<runtime::Id> owned;
-  bool revision_changed = false;
-  if (instance) {
-    const auto old = PrefabPlacements(), next = staged.PrefabPlacements();
-    if (old.size() != next.size())
-      return false;
-    bool found = false;
-    for (std::size_t i = 0; i < old.size(); ++i) {
-      if (old[i].instance != *instance) {
-        if (old[i] != next[i])
-          return false;
-        continue;
-      }
-      if (old[i].instance != next[i].instance || old[i].source != next[i].source ||
-          old[i].nodes != next[i].nodes || next[i].revision < old[i].revision)
-        return false;
-      found = true;
-      revision_changed = next[i].revision != old[i].revision;
-      for (const auto &node : old[i].nodes)
-        owned.insert(node.target);
-    }
-    if (!found)
-      return false;
-    const auto stored = [](const runtime::Entity &entity) {
-      return std::tie(entity.transform, entity.camera, entity.light, entity.mesh_renderer,
-                      entity.camera_data.vertical_field_of_view, entity.camera_data.near_plane,
-                      entity.camera_data.far_plane, entity.light_data.intensity,
-                      entity.mesh_data.mesh, entity.mesh_data.material.shader);
-    };
-    for (std::size_t i = 0; i < current->entities.size(); ++i) {
-      const auto &before = current->entities[i], &after = parsed->entities[i];
-      if (before.id != after.id || before.parent != after.parent ||
-          (!owned.contains(before.id) && stored(before) != stored(after)))
-        return false;
-    }
-  } else if (!std::ranges::equal(staged.PrefabPlacements(), PrefabPlacements()))
-    return false;
+  staged.prefab_base_ = reference;
   const auto prepared = staged.PrepareSave();
   const auto previous_runtime = world_.SaveScene(scene_, maximum_bytes);
   const auto next_runtime = staged_world.SaveScene(staged_scene, maximum_bytes);
@@ -171,28 +133,21 @@ bool SceneDocument::ApplyOwnedPropertySnapshot(const PreparedSave &expected,
   if (prepared->signature_ == expected.signature_ &&
       prepared->opaque_records_ == expected.opaque_records_)
     return true;
-  // A retained revision must advance for a nontrivial rebase; equal revision is only a no-op.
-  if (instance && !revision_changed)
-    return false;
   UndoEntry entry;
-  entry.previous_placements = prefab_placements_;
-  entry.redo_placements = instance ? staged.prefab_placements_ : prefab_placements_;
-
   entry.kind = UndoEntry::Kind::PropertySnapshot;
-  entry.property_snapshot = std::make_shared<UndoEntry::PropertySnapshot>(
-      UndoEntry::PropertySnapshot{expected,
-                                  PreparedSave(document_generation_, prepared->bytes_,
-                                               prepared->signature_, prepared->opaque_records_),
-                                  *previous_runtime, *next_runtime, nodes_, next_nodes});
+  entry.property_snapshot =
+      std::make_shared<UndoEntry::PropertySnapshot>(UndoEntry::PropertySnapshot{
+          expected,
+          PreparedSave(document_generation_, prepared->bytes_, prepared->signature_,
+                       prepared->opaque_records_),
+          *previous_runtime, *next_runtime, nodes_, next_nodes, prefab_base_, reference});
   // All document/history storage exists before Runtime's atomic snapshot replacement.
   undo_.reserve(undo_.size() + 1);
   if (!MatchesPreparedSave(expected) || !world_.ReplaceSceneSnapshot(scene_, *next_runtime))
     return false;
   nodes_.swap(next_nodes);
-  const auto next_placements = entry.redo_placements;
-  // PushUndo captures the current binding as the before-state; advance only afterward.
+  prefab_base_ = reference;
   PushUndo(std::move(entry));
-  prefab_placements_ = next_placements;
   return true;
 }
 bool SceneDocument::ReplayPropertySnapshot(bool forward) {
@@ -209,7 +164,7 @@ bool SceneDocument::ReplayPropertySnapshot(bool forward) {
                                    forward ? snapshot.next_runtime : snapshot.previous_runtime))
     return false;
   nodes_.swap(staged_nodes);
-  prefab_placements_ = forward ? source.back().redo_placements : source.back().previous_placements;
+  prefab_base_ = forward ? snapshot.next_base : snapshot.previous_base;
   destination.push_back(std::move(source.back()));
   source.pop_back();
   opaque_dirty_.reset();
