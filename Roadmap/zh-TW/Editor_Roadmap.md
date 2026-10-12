@@ -1090,6 +1090,15 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   navigation、collapse、filter、replacement 與 1x／2x；overview pose traversal 另行驗收。
   完整 frame／memory budget、production asset scale、soak 與實體 host 驗收仍待完成。
 
+- ✅ Serial 100k-node product-shell scale／lifecycle gate 現會在 1x／2x DPI，透過兩次全新
+  project／World／document／host cycle 量測 flat roots 與 expanded 99,998-node chain。
+  每個 case 先 warmup 六個 frame，再量測十二次完整 CPU draw；schema-1 record 保留排序後
+  sample、nearest-rank p50／p95／max、widget／vertex 數與 ImGui allocation payload peak。
+  全部 logical row 保持可用且 Hierarchy widget 少於 128，source／Undo／Redo 保持不變，
+  每次 host teardown 均釋放所有 ImGui allocation。300 秒 serial deadline 是 CI guard；
+  production frame／process-memory budget、native GPU／asset scale、長時間及實體 host soak
+  仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md)。
+
 - ✅ Top-down Scene overview 改用 owning bulk world pose 與 iterative indexed ancestry，
   保留 exact affine origin 與既有 TRS approximation；marker、Frame all、prospective drag ancestry
   避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證

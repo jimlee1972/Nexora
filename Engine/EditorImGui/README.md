@@ -37,6 +37,23 @@ workflows are separate. The application cancels the process before draining othe
 shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
 existing module dependencies and stable C ABI are unchanged.
 
+## Hierarchy scale and lifecycle measurements
+
+`editor.hierarchy_scale_lifecycle` runs the real product-shell draw path over 100,000 flat roots
+and an expanded 99,998-node chain, at 1280x900 logical pixels and 1x/2x DPI. Each of two lifecycle
+cycles creates a fresh project, World, SceneDocument and ImGui host, settles six frames and measures
+twelve complete CPU shell frames. Schema-1 JSON lines retain sorted milliseconds, nearest-rank
+p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload peak/retention.
+Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
+source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
+ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
+deadline. It also runs directly with `NexoraDeepHierarchyTests --benchmark`.
+
+The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
+ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame
+percentiles are observations, not a cross-machine production frame-time budget; no calibrated GPU,
+long-duration soak or physical-host acceptance follows from this test.
+
 ## Ownership and lifetime
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.

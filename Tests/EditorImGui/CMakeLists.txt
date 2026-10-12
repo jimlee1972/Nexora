@@ -36,10 +36,12 @@ add_test(NAME editor.semantic_scene_comparison_ui COMMAND NexoraSceneComparisonU
 
 add_executable(NexoraDeepHierarchyTests DeepHierarchyTests.cpp)
 target_include_directories(NexoraDeepHierarchyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraDeepHierarchyTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraDeepHierarchyTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraDeepHierarchyTests)
 add_test(NAME editor.deep_hierarchy COMMAND NexoraDeepHierarchyTests)
 set_tests_properties(editor.deep_hierarchy PROPERTIES TIMEOUT 180)
+add_test(NAME editor.hierarchy_scale_lifecycle COMMAND NexoraDeepHierarchyTests --benchmark)
+set_tests_properties(editor.hierarchy_scale_lifecycle PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE LABELS "editor;scale")
 
 add_executable(NexoraOverviewPoseTests OverviewPoseTests.cpp)
 target_include_directories(NexoraOverviewPoseTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
