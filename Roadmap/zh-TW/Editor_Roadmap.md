@@ -728,23 +728,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+✅ Targeted stable-field prefab property candidate 已驗證：明確 node／field identity selection
+保留未選取的值、inactive stored component 與 unknown bytes。Graphical selection、source apply、
+structural reconciliation 與 reference rebase 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md)。
+
 Prefab create/open/variant、override diff/revert/apply、nested rebase；additive scenes；stable serialization、schema migration、autosave/recovery、external-change detection、human-readable diff/merge。先支援安全的 source-control workflow，不先承諾即時多人協作。
-
-- ✅ Prefab isolation owner 已驗證：project-scoped create/open/variant/save/reopen 使用獨立 World
-  與 document，保留 unknown bytes 與原場景 history。Dirty replacement、read-only write、stale
-  scope/revision 與 reentrant identity callback 都拒絕；graphical binding、nested materialization、
-  historical revision access 與 override/rebase 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
-
-- ✅ Prefab document save integration 已驗證：confirmed wrapped publication 只更新 owning saved
-  baseline，保留 generation、selection、clipboard 與 Undo／Redo；重查 current source／project 及
-  expected asset revision。Graphical isolation 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md)。
-
-- ✅ Stable prefab three-way comparison 已驗證：node／field UUID path、stable parent reference、
-  unknown payload 與 nested metadata 不依賴 serialized Runtime ID；graphical override／revert／
-  apply／rebase 及結構驗證後的 publication 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md)。
 
 - ✅ Identity-remapped prefab property candidate 已驗證：exact stable node set 保留 target entity／
   scene identity，還原完整 source property 與 unknown data；structural edit、graphical revert／

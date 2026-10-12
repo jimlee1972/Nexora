@@ -35,31 +35,3 @@ and document observations before an atomic property transaction. Graphical rever
 field selection, structural reconciliation and reference rebase remain open.
 Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged. Full Editor
 milestones remain **0/8**; current hosted checks are required before merge.
-
-## Fresh accepted Main integration
-
-Only the property-plan feature was replayed onto accepted Main
-`5f5079cec33e8f788e0ff10cb6cf5fe2779abc79`. The newer owning prefab document
-session, its tests and contracts remain present; no prerequisite branch was merged.
-Graphical Development rebuilt **208 steps**, and full CTest passed **241/241 in
-589.79 s**, zero skips. The property-plan fixture repeated successfully in **0.01 s**.
-Minimal Monolithic Shipping passed **5 steps**, proving profile/link compatibility;
-Editor is excluded from this Shipping profile. Existing contract and bilingual
-supporting roadmap scope remain unchanged; complete graphical milestones stay **0/8**.
-Fresh published-head hosted checks and a clean current Main remain required.
-
-## Latest accepted Main integration — 2026-10-11
-
-Only this property-plan feature was replayed onto accepted Main
-`89bb06ec2ff30f081702599f83107ed13d707e99`, retaining stable-UUID comparison,
-its tests/contracts and the accepted native project-upgrade/Scene Preview fixtures.
-Signed-native admission PR 484 merged separately while this gate ran; it is not
-attributed to this starting source. Graphical Development rebuilt **316 steps**;
-full CTest passed **242/242 in 595.88 s**, zero skips. Minimal Monolithic Shipping
-passed **5 steps**, with Editor excluded. No product or assertion changes were
-introduced by this integration replay. Bilingual supporting scope remains unchanged,
-full milestones **0/8**. Fresh published-head hosted checks and a clean/current Main
-guard remain required before ordinary squash merge.
-
-Final documentation regressions passed **16/16 in 1.148 s**; changed-document links
-and diff whitespace checks pass. Root README remains unchanged.

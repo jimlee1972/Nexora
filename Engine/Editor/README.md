@@ -40,58 +40,6 @@ Full graphical isolation, stable instance metadata, instantiate/override diff/re
 transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
 C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
 
-`PrefabAssets::SaveDocument` integrates wrapped prefab publication with the live authoring document.
-It captures owning previous-asset and document baselines plus project scope before identity callbacks;
-current document/project state is rechecked before any publish. Initial saves and new variants use
-missing-identity publication, while same-asset updates require the exact previous revision. A new
-variant additionally requires its exact base revision to remain the current stored source. An
-unchanged confirmed source retains its current revision and does not clear pending Redo.
-Only confirmed publication advances the document's saved signature/opaque baseline, moving already
-owned preparation strings without Reload or new history allocation. Generation, selection,
-clipboard and all existing Undo/Redo stay intact. Failure leaves the old saved baseline; any actual
-publication followed by a late source/scope change retains the file but does not acknowledge the
-changed document. The serialized host handles that explicit error. This is an authoring save helper,
-not a graphical isolation session, nested materializer or multi-file crash journal.
-
-`PrefabDocumentSession` owns an isolated Runtime World and SceneDocument and borrows only its
-workspace, which outlives it. Serialized owner calls can copy a complete scene into an unsaved
-prefab draft, open an actual wrapped asset, create a distinct variant from a saved current source,
-save through `SaveDocument`, and close. Opening/replacing a dirty owner requires explicit discard;
-variants require a clean source and confirm its current exact stored revision. Copying a source
-retains no original World/document borrow and never changes that original source or history.
-
-Const inspection is available in read-only scopes; editable access and publication require a
-current project UUID/root, writer lease and resolved recovery/external-change state. Rebinding the
-workspace invalidates document/asset observations. Safe close can release a stale/recovery owner.
-Successful replacement/close expires document borrows and advances a nonwrapping session generation;
-successful save keeps live document generation, selection, clipboard and Undo/Redo. New drafts and
-variants remain dirty until actual publication. Identity callbacks cannot reenter owner replacement,
-save or editable access, and exceptional callbacks release the busy guard without publication.
-Existing document borrows must not outlive replacement or destruction; callers stop background readers
-before those operations. Destruction of the session during one of its own calls is unsupported.
-This is the isolation owner, not a graphical panel, stable nested instance materializer, revision
-archive or override/rebase engine. Public C++ consumers rebuild; module dependencies and stable
-C/Gameplay ABI do not change.
-
-## Stable prefab revision comparison
-
-`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
-node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
-Official scene parsing and bounded field snapshots retain component presence/stored values,
-authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
-instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
-are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
-Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
-
-The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
-4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
-opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
-Sources and authoring owners serialize during capture; results borrow no asset/document/World.
-The comparison performs no file IO, interpretation of unavailable native components, live mutation,
-Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
-separate structural validation before any future revert/apply/rebase. Graphical bindings and
-transactional override publication remain separate work; public C++ consumers rebuild.
-
 ## Identity-remapped prefab property candidates
 
 `BuildPrefabPropertySnapshot` validates both wrapped sources, requires identical stable node UUID
@@ -1346,3 +1294,30 @@ slice installs no files, persists no private keys, makes no network calls and lo
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
+
+## Targeted stable-field prefab property candidates
+
+The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
+pairs. Both complete sources and exact node sets are validated first. A selected identity must be
+known in at least one source; shared property names require matching field identities. Duplicate,
+unknown, mismatched, unsupported reserved metadata or incompatible resulting hierarchy rejects
+the entire owning candidate. Empty selection returns a canonical current-source no-op.
+
+Names, position/rotation/scale groups, authored Euler, parent/sibling groups, complete Camera/Light/
+Mesh presence and stored data, and exact unavailable component records are independently selectable.
+Selected absent-source unknown components are removed; unselected unknown bytes remain intact.
+Inactive component stored values are retained through official canonical Runtime property groups,
+rather than reset through component-disable setters. Typed staged hierarchy commands retain local
+TRS, validate the complete selected parent graph and then apply sibling positions. Unselected
+parent/TRS/component/name data retain their current values; selected moves naturally affect sibling
+indices. Source rotations retain their authored Euler records, while other selections preserve the
+current rotation/Euler. Target scene identity and existing serialized entity IDs remain unchanged.
+
+Supported canonical Runtime version-three record groups are parsed from official serialization;
+changed/unknown record framing fails closed. Document metadata stays owning and opaque records are
+never interpreted as native objects. Final output is officially parsed/prepared again. Existing
+4096-node,32768-selection and8MiB scene/output budgets apply; these are logical budgets, not total
+process/history memory quotas. Planning performs no IO, live edits or history/baseline changes and
+grants no authority. The owner still rechecks its current document/project/source before atomic
+application. Graphical selected-field binding, source apply, structural identity reconciliation and
+reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
