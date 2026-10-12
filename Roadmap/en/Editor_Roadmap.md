@@ -843,26 +843,10 @@ creates property widgets; unknown components retain raw data instead of being si
     hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
     clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
-
-  - ✅ Graphical saved-variant source apply is validated: full/selected inverse stable-field
-    publication retains source identity/unselected values and prior revisions, while local edits,
-    baseline/history and retained base reference stay unchanged. Explicit rebase and structural
-    reconciliation remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabSourceApply-Linux-2026-10-10.md).
-
-  - ✅ Graphical selected-field prefab revert is validated: stable field-group checkboxes,
-    explicit preparation and confirmation preserve unselected values with one Undo/Redo.
-    Source apply, reference rebase and structural/live-instance bindings remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SelectedPrefabRevert-Linux-2026-10-10.md).
-
-  - ✅ Targeted stable-field prefab property candidates are validated: explicit node/field
-    identity selection preserves unselected values, inactive stored components and unknown bytes.
-    Graphical selection, source apply, structural reconciliation and reference rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md).
-  - ✅ Identity-remapped prefab property candidates are validated: exact stable node sets retain
-    target entity/scene identity while restoring complete source properties and unknown data.
-    Structural edits, graphical revert/targeted fields and reference rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyPlan-Linux-2026-10-10.md).
+  - ✅ Unchanged atomic snapshot rotation groups now conserve latent in-memory authored Euler
+    turns. Ordinary snapshots, placement revision transactions and actual source-name rebases
+    preserve exact history; explicit quaternion changes and authored-record removal are honored.
+    [Hint evidence](../../Tools/Build/evidence/EditorEDM4-SnapshotEulerHints-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
