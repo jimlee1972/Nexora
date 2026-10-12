@@ -10,7 +10,11 @@ namespace nexora::editor {
 namespace {
 using Uuid = foundation::Uuid;
 using Key = std::pair<std::uint64_t, std::uint64_t>;
+using RevisionKey = std::pair<Key, std::uint64_t>;
 Key Identity(Uuid id) { return {id.high, id.low}; }
+RevisionKey RevisionIdentity(PrefabRevisionReference ref) {
+  return {Identity(ref.asset), ref.revision};
+}
 bool Reference(PrefabRevisionReference ref) { return !ref.asset.IsNil() && ref.revision; }
 std::vector<std::string> Fields(const SceneDocument &scene, runtime::Id id) {
   std::vector<std::string> fields{"camera",
@@ -83,6 +87,27 @@ bool Directory(const std::filesystem::path &path) {
 std::filesystem::path Destination(const ProjectWorkspace &workspace, Uuid id) {
   return workspace.Root() / ".nexora/prefabs" / (id.ToString() + ".nxprefab");
 }
+std::filesystem::path RevisionDirectory(const ProjectWorkspace &workspace, Uuid id) {
+  return workspace.Root() / ".nexora/prefabs/revisions" / id.ToString();
+}
+std::filesystem::path RevisionDestination(const ProjectWorkspace &workspace,
+                                          PrefabRevisionReference ref) {
+  return RevisionDirectory(workspace, ref.asset) / (std::to_string(ref.revision) + ".nxprefab");
+}
+bool Missing(const std::filesystem::path &path) {
+  std::error_code ec;
+  const auto status = std::filesystem::symlink_status(path, ec);
+  return ec == std::errc::no_such_file_or_directory ||
+         (!ec && status.type() == std::filesystem::file_type::not_found);
+}
+bool EnsureDirectory(const std::filesystem::path &path) {
+  if (Missing(path)) {
+    std::error_code ec;
+    if (!std::filesystem::create_directory(path, ec) || ec)
+      return false;
+  }
+  return Directory(path);
+}
 std::optional<std::vector<std::byte>> ReadFile(const std::filesystem::path &path) {
   std::error_code ec;
   const auto status = std::filesystem::symlink_status(path, ec);
@@ -106,6 +131,32 @@ std::optional<std::vector<std::byte>> ReadFile(const std::filesystem::path &path
     bytes.insert(bytes.end(), begin, begin + count);
   }
   return input.eof() && !input.bad() ? std::optional(std::move(bytes)) : std::nullopt;
+}
+bool RetainRevision(const ProjectWorkspace &workspace, const PrefabAsset &previous,
+                    const std::vector<std::byte> &bytes, std::string *error) {
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
+    return false;
+  };
+  if (!EnsureDirectory(workspace.Root() / ".nexora/prefabs/revisions") ||
+      !EnsureDirectory(RevisionDirectory(workspace, previous.id)))
+    return fail("Prefab revision storage is occupied or aliased.");
+  const auto path = RevisionDestination(workspace, {previous.id, previous.revision});
+  if (Missing(path)) {
+    if (!detail::AtomicWriteWith(
+            path,
+            [&](std::ostream &output) {
+              output.write(reinterpret_cast<const char *>(bytes.data()),
+                           static_cast<std::streamsize>(bytes.size()));
+            },
+            error))
+      return false;
+  }
+  const auto retained = ReadFile(path);
+  return retained && *retained == bytes
+             ? true
+             : fail("Existing prefab revision differs; preserve archive and source.");
 }
 } // namespace
 
@@ -304,6 +355,32 @@ std::optional<PrefabAsset> PrefabAssets::Load(const ProjectWorkspace &workspace,
   auto asset = bytes ? Decode(*bytes) : std::nullopt;
   return asset && asset->id == id ? std::move(asset) : std::nullopt;
 }
+std::optional<PrefabAsset> PrefabAssets::LoadRevision(const ProjectWorkspace &workspace,
+                                                      PrefabRevisionReference reference) {
+  if (!Reference(reference) || workspace.Root().empty() || workspace.HasRecoveryJournal() ||
+      workspace.HasExternalChange() || !Directory(workspace.Root() / ".nexora") ||
+      !Directory(workspace.Root() / ".nexora/prefabs"))
+    return {};
+  const auto current = [&]() -> std::optional<PrefabAsset> {
+    auto asset = Load(workspace, reference.asset);
+    return asset && asset->revision == reference.revision ? std::move(asset) : std::nullopt;
+  };
+  for (const auto &directory : {workspace.Root() / ".nexora/prefabs/revisions",
+                                RevisionDirectory(workspace, reference.asset)}) {
+    if (Missing(directory))
+      return current();
+    if (!Directory(directory))
+      return {};
+  }
+  const auto path = RevisionDestination(workspace, reference);
+  if (Missing(path))
+    return current();
+  const auto bytes = ReadFile(path);
+  auto asset = bytes ? Decode(*bytes) : std::nullopt;
+  return asset && asset->id == reference.asset && asset->revision == reference.revision
+             ? std::move(asset)
+             : std::nullopt;
+}
 bool PrefabAssets::Publish(const ProjectWorkspace &workspace, const PrefabAsset &asset,
                            const PrefabAsset *expected, std::string *error) {
   if (error)
@@ -341,6 +418,14 @@ bool PrefabAssets::Publish(const ProjectWorkspace &workspace, const PrefabAsset 
     const auto current = ReadFile(path);
     if (!current || *current != *previous)
       return fail("Prefab source changed; preserve the existing revision.");
+    // Retain only an already committed old revision. A failed current-file write must not
+    // poison the next revision's identity with bytes that were never actually committed.
+    if (!RetainRevision(workspace, *expected, *previous, error))
+      return false;
+    const auto rechecked = ReadFile(path);
+    if (!rechecked || *rechecked != *previous || !workspace.Writable() ||
+        workspace.HasRecoveryJournal() || workspace.HasExternalChange())
+      return fail("Prefab source changed after retaining history; current revision is preserved.");
   } else if (!missing)
     return fail("Prefab identity is already occupied.");
   if (!detail::AtomicWriteWith(
@@ -414,7 +499,7 @@ std::optional<ResolvedPrefabGraph> PrefabAssets::Resolve(PrefabRevisionReference
                                                          std::span<const PrefabAsset> sources) {
   if (!Reference(root) || sources.empty() || sources.size() > kMaximumSources)
     return {};
-  std::map<Key, const PrefabAsset *> lookup;
+  std::map<RevisionKey, const PrefabAsset *> lookup;
   std::size_t input_bytes{};
   const auto account = [&](std::size_t bytes) {
     if (bytes > kMaximumGraphBytes - input_bytes)
@@ -435,18 +520,19 @@ std::optional<ResolvedPrefabGraph> PrefabAssets::Resolve(PrefabRevisionReference
     }
   }
   for (const auto &asset : sources)
-    if (!Validate(asset) || !lookup.emplace(Identity(asset.id), &asset).second)
+    if (!Validate(asset) ||
+        !lookup.emplace(RevisionIdentity({asset.id, asset.revision}), &asset).second)
       return {};
   ResolvedPrefabGraph result;
-  std::set<Key> active, retained;
-  std::map<Key, std::size_t> checked_height;
+  std::set<RevisionKey> active, retained;
+  std::map<RevisionKey, std::size_t> checked_height;
   std::size_t retained_bytes{};
   const auto visit = [&](auto &&self, PrefabRevisionReference reference,
                          const std::vector<Uuid> &scope, std::optional<Uuid> attachment,
                          bool instance, std::size_t depth) -> bool {
     if (depth > kMaximumDepth || scope.size() > kMaximumDepth)
       return false;
-    const auto key = Identity(reference.asset);
+    const auto key = RevisionIdentity(reference);
     const auto found = lookup.find(key);
     if (found == lookup.end() || found->second->revision != reference.revision ||
         active.contains(key))
@@ -474,19 +560,57 @@ std::optional<ResolvedPrefabGraph> PrefabAssets::Resolve(PrefabRevisionReference
     if (asset.base) {
       if (!self(self, *asset.base, scope, {}, false, depth + 1))
         return false;
-      height = checked_height.at(Identity(asset.base->asset)) + 1;
+      height = checked_height.at(RevisionIdentity(*asset.base)) + 1;
     }
     for (const auto &nested : asset.nested) {
       auto nested_scope = scope;
       nested_scope.push_back(nested.instance);
       if (!self(self, nested.source, nested_scope, nested.attachment, instance, depth + 1))
         return false;
-      height = std::max(height, checked_height.at(Identity(nested.source.asset)) + 1);
+      height = std::max(height, checked_height.at(RevisionIdentity(nested.source)) + 1);
     }
     checked_height[key] = height;
     active.erase(key);
     return true;
   };
   return visit(visit, root, {}, {}, true, 0) ? std::optional(std::move(result)) : std::nullopt;
+}
+std::optional<ResolvedPrefabGraph> PrefabAssets::ResolveProject(const ProjectWorkspace &workspace,
+                                                                PrefabRevisionReference root) {
+  if (!Reference(root) || workspace.Root().empty() || workspace.HasRecoveryJournal() ||
+      workspace.HasExternalChange())
+    return {};
+  const auto project_root = workspace.Root();
+  const auto project_id = workspace.Project().id;
+  std::vector<PrefabRevisionReference> pending{root};
+  std::set<RevisionKey> scheduled{RevisionIdentity(root)};
+  std::vector<PrefabAsset> sources;
+  std::size_t bytes{};
+  const auto schedule = [&](PrefabRevisionReference reference) {
+    if (scheduled.contains(RevisionIdentity(reference)))
+      return true;
+    if (pending.size() == kMaximumSources)
+      return false;
+    scheduled.insert(RevisionIdentity(reference));
+    pending.push_back(reference);
+    return true;
+  };
+  for (std::size_t i = 0; i < pending.size(); ++i) {
+    auto source = LoadRevision(workspace, pending[i]);
+    const auto encoded = source ? Encode(*source) : std::nullopt;
+    if (!source || !encoded || encoded->size() > kMaximumGraphBytes - bytes)
+      return {};
+    bytes += encoded->size();
+    if (source->base && !schedule(*source->base))
+      return {};
+    for (const auto &nested : source->nested)
+      if (!schedule(nested.source))
+        return {};
+    sources.push_back(std::move(*source));
+  }
+  if (workspace.Root() != project_root || workspace.Project().id != project_id ||
+      workspace.HasRecoveryJournal() || workspace.HasExternalChange())
+    return {};
+  return Resolve(root, sources);
 }
 } // namespace nexora::editor

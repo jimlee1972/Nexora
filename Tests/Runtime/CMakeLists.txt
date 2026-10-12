@@ -222,6 +222,16 @@ if(NEXORA_ENABLE_EDITOR_SDK)
     add_dependencies(NexoraV1M6Tests NexoraExamplePlugin)
     set_property(TEST runtime.v1_m6_editor_sdk APPEND PROPERTY ENVIRONMENT
       "NEXORA_EXAMPLE_PLUGIN_PATH=$<TARGET_FILE:NexoraExamplePlugin>")
+    add_executable(NexoraPluginServiceOwnershipTests PluginServiceOwnershipTests.cpp)
+    target_link_libraries(NexoraPluginServiceOwnershipTests PRIVATE Nexora::Runtime)
+    nexora_apply_defaults(NexoraPluginServiceOwnershipTests)
+    add_dependencies(NexoraPluginServiceOwnershipTests NexoraExamplePlugin
+      NexoraPluginLifecycleFixture2 NexoraPluginLifecycleFixture3 NexoraPluginLifecycleFixture13)
+    add_test(NAME runtime.plugin_service_ownership
+      COMMAND NexoraPluginServiceOwnershipTests "$<TARGET_FILE:NexoraExamplePlugin>"
+        "$<TARGET_FILE:NexoraPluginLifecycleFixture2>" "$<TARGET_FILE:NexoraPluginLifecycleFixture3>"
+        "$<TARGET_FILE:NexoraPluginLifecycleFixture13>")
+    set_tests_properties(runtime.plugin_service_ownership PROPERTIES TIMEOUT 30)
   endif()
 else()
   add_test(NAME runtime.v1_m6_feature_strip

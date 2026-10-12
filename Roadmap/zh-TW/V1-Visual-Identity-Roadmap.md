@@ -1,5 +1,45 @@
 # Nexora V1 視覺特色 Showcase Roadmap
 
+階段交接（2026-10-10）：依使用者要求，在已驗證的 DX12／Vulkan 效能及實體交付更新後暫停。Windows 錄影仍為 10 FPS，30 FPS 採樣準備稿尚未套用或驗收。完整概念圖美術、最終 paced 預算與同版影片仍未完成。[目前狀態](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/status.zh-TW.md)。
+
+✅ 已提交 DX12 目標重用 `7c4534b8` 通過 Windows 125/125、同來源 hosted Build 2105 全部 18 項與 GTX 960 Shipping 全部 18 份品質報告。Standard DX12 從 51.71–55.16 提升至 131.52–134.91 FPS；未暫停 Standard／UI 為 DX12 133.43、Vulkan 126.30 FPS。requested vsync on 均平均約 60 FPS，保留 p99 18.04／18.24 ms。Vulkan 修正 Build 2092 亦全部 18 項通過。同一執行檔雙後端實體完整導覽均通過（各 74 張截圖、51 項雜湊）；最終 16.7 ms 預算、完整概念圖美術驗收與本版影片仍未完成（VIS 5/7）。[證據](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md)。
+
+以下舊紀錄保留各候選版收集證據時的狀態；目前階段與已驗證來源以上方更新為準，舊版「待驗證」不取代最新量測及 CI 結果。
+
+✅ DX12 完成槽目標重用通過完整初始化 Windows configure／build／CTest 125/125（444.81 秒），包含兩套門檻不變的原生 PBR 測試。保留先前狀態 transition、有界槽所有權與全部效果；精確來源 hosted CI、Shipping／即時／垂直同步／動畫效能仍待驗證。最終 VIS-M6／美術驗收維持未完成。[證據](../../Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md)。
+
+✅ 同步修正 Shipping `5aa60d5c` 通過 GTX 960 實體螢幕互動／完整導覽：74 張截圖、51 項校驗碼、實際 210.013 秒，無 fallback／software／issues。同來源 Linux Xvfb 核心／原生同步驗證亦通過；其餘 CI 仍待完成。最終概念圖一致性與硬體預算維持未完成。
+
+DX12 完成槽目標重用由 `nexora-82p.16` 持續處理，保留明確的先前狀態 transition 與原有場景／效果／像素門檻。最新原生 Player main `16c2c980` 已整合於 `bba5db85`。DX12 來源與效能仍待驗證，不代表 VIS-M6 完成。
+
+已提交的同步修正版 Shipping `5aa60d5c` 通過封裝／headless 與全部 18 份 GTX 960 品質報告：Vulkan Standard 116.48–122.25 FPS，DX12 51.71–55.16 FPS。未暫停 Standard／UI 的 Vulkan 關閉垂直同步為 119.55 FPS、開啟為 59.73（保留 paced p99 24.88 ms）；DX12 仍約 52 FPS。修正版 hosted 同步 CI 排隊／執行中，來源驗證、最終概念圖一致性與整體幀時間預算維持未完成。
+
+✅ 整合最新 main 的 Vulkan 同步修正通過完整 Windows configure／build／CTest 125/125（482.59 秒），包含兩套門檻不變的原生 PBR 像素測試。以兩個 CTest worker 重跑先前逾時項目，未改變任何時間限制。修正版精確來源的 Linux 同步 CI、新版 Shipping／垂直同步／動畫效能仍待驗證；最終美術與硬體驗收維持未完成。
+
+目標重用來源 `0fd292cc` 未通過 hosted Linux Xvfb 同步驗證（run [37968144564](https://github.com/jimlee1972/Nexora/actions/runs/37968144564)）：取樣色彩影像 `WRITE_AFTER_READ`、重用深度 `WRITE_AFTER_WRITE`。Windows 像素／實體顯示／效能結果仍是該候選版的局部觀測；修正重用屏障與 early／late 深度相依性期間，來源驗收與合併維持未完成，VIS 維持 5/7。
+
+✅ 相容 Vulkan offscreen 目標重用候選版通過 Windows configure／build／CTest 123/123（213.17 秒），包含雙後端原生 PBR 像素測試，Shipping／隔離 headless 亦通過。GTX 960 全部 18 次品質報告驗證通過：Vulkan Standard 125.99–126.19 FPS（p99 8.96–10.17 ms），DX12 Standard 59.87–60.56 FPS（p99 17.96–19.96 ms）。Vulkan 長跑啟用診斷時 GPU 平均 7.88 ms、process CPU 平均 6.28 ms。已提交 0fd292cc 的重建 Vulkan 實體 gate 通過 74 張截圖／51 項雜湊與實際 210.028 秒導覽；同執行檔 1200 幀動畫／UI 長跑平均 123.92 FPS（p99 12.14 ms）。重用目標同版 CI、最終概念圖一致性與整體硬體預算仍未完成。[證據](../../Apps/Showcase/evidence/Windows-Vulkan-Target-Reuse-Local-2026-10-10/acceptance.md)。
+
+具識別版本 `bb0c96f0` 的 GTX 960 矩陣保留全部 18 次量測：DX12 Standard 60.20–60.73 FPS（p99 18.89–20.48 ms），Vulkan Standard 37.51–40.11 FPS （p99 35.15–37.66 ms）。穩定 16.7 ms 預算與最終概念圖一致性仍未驗收。可選的已完成 GPU 計時候選版通過 Windows 122/122（234.54 秒）、Shipping 與原生／預設／headless 對照：Vulkan GPU 平均 9.24 ms，wall 平均 26.85 ms；DX12 仍保留 272.02 ms wall p99 停頓。診斷版本 5f59f934 通過 Build 2074 全部 18 項託管 CI；預設品質矩陣計時政策維持原值。
+
+已提交的 `bb0c96f0` 候選版通過 GTX 960 雙後端實體顯示互動／完整導覽（各 74 張截圖、51 項雜湊）及同版 Build 2069 全部 18 項託管 CI。最終美術、穩定幀時間預算與修正版視覺影片仍未完成。
+
+✅ 全面庭院美術候選已通過本機 Windows Development configure/build/CTest 122/122（249.24 秒），維持相同幾何預算，並驗證 DX12／Vulkan 原生固定鏡位。已修改構圖、風化石材、青銅、晶體、植被及日落光照；最終概念圖一致性與穩定硬體幀時間仍未驗收。證據：`Apps/Showcase/evidence/Windows-V1-Concept-Revision-Local-2026-10-10/`。
+
+Windows 目標主機續作：Shipping 最佳化、有限值驗證及相鄰材質綁定共用已改善量測吞吐，但保留的 Standard 異常結果 p99 仍達 DX12 149.83 ms／Vulkan 419.94 ms；穩定 60 FPS 尚未驗收。整合基線 `ab7b4f32` 已通過全部 18 項 hosted CI 工作及本機 Windows 122/122；全面概念圖美術修改與同版原生量測／最終審核仍待完成。證據：`Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/`。VIS 維持 5/7。
+
+✅ 有限值驗證候選通過完整 Windows Development configure／build 與 113/113 CTest（211.00 秒），包含 binary32 分類／拒絕案例與原生 DX12 PBR。最終 Linux CI、實體美術及效能驗收仍未完成。
+
+Windows GTX 960 效能調查（2026-10-09）：相同場景的 DX12／Vulkan、三品質各三次矩陣，保留明確 Shipping 編譯最佳化前後的資料。原生 MSVC 建置與共 36 次收集皆成功，但最佳化候選仍未達暫定 60 FPS 目標。操作者要求整體美術接近已核准概念圖；最終美術、效能預算及同版交付仍未驗收（VIS 5/7）。 [Performance evidence](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/performance-baseline/acceptance.md).
+
+✅ Windows 最新主線整合後 Development configure/build 與完整 113/113 CTest 通過（296.04 秒），涵蓋原生 DX12 PBR、prepared／外部 scene save 及 owning Runtime capture。整合修復恢復既有 API，並如實回報 DX12 呈現模式。Linux CI 與同版 Windows Shipping、實體美術、品質預算及影片驗收仍待完成；VIS 維持 5/7。[整合證據](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/integration/acceptance.md)。
+
+Windows 本機續作（2026-10-09）：已修正生成的 Slang→HLSL 儲存觸發 MSVC C2026，shader
+位元組保持一致。完整 Development build 與 DX12 原生 PBR 重測通過；第一輪 95/99 CTest
+的四個失敗經標準 LF、VS/Ninja 環境與不受遮擋的 capture 修正後均通過指定重測。
+Linux 完整 gate、同版實體 DX12/Vulkan 最終美術、效能及導覽交付仍在進行；VIS 維持 5/7。
+[證據](../../Apps/Showcase/evidence/Windows-V1-Visual-Local-2026-10-09/core-fix/acceptance.md)。
+
 ✅ Standard／High 浮點 HDR 環境光強度由 2.4 降至 1.8，使庭院石材陰影更深，同時保留既有直接光；Basic 仍省略 IBL。原始天空來源／圖集、浮點 diffuse／specular／BRDF 資料、資源標頭、HDR 太陽、主光／點光、水晶／粒子輻射、bloom、幾何與共用動畫時鐘保持一致。固定鏡位原生前後對照保留，開放天空區域逐像素相同。Standard 保持 62,557 頂點、142,488 索引、395 批次、48 材質及 4,041 來源植被卡片。完整 Linux configure/build 與 111/111 測試通過（141.78 秒，core/sync validation）；凍結 Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製通過（實際 101.32 秒）。來源凍結 `1dd920094dc339ddc90ce5955543447355d056ef`；證據：`Apps/Showcase/evidence/VIS-IBL-Fill-Balance-Linux-2026-10-08/`。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。
 
 ✅ 粒子整合保留已接受的 main `e05af4b9a102`，包含 Animation 慣性姿態混合與 Editor 不同 DPI 證據合約。粒子幾何來源及三張固定鏡位原生畫面與前一粒子版本完全一致。完整 Linux configure/build 與 111/111 測試通過（145.47 秒，core/sync validation），並通過一般 Monolithic Shipping 建置、凍結 Showcase Shipping 原生驗收、風／反射／遮蔽精確還原及 100 秒動畫錄製（實際 101.29 秒）。最終來源凍結 `d01541bed0d4b4ec3c06135b121ab44bb627b8d9`；整合證據：`Apps/Showcase/evidence/VIS-Crystal-Mote-Scale-Linux-2026-10-08/integration/`。先前粒子與天空的製作證據各自保留。預覽圖一致性及實體目標硬體驗收仍未完成（VIS 5/7）。

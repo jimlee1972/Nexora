@@ -1320,6 +1320,8 @@ bool SceneDocument::Undo() {
   if (undo_.empty())
     return false;
   auto &entry = undo_.back();
+  if (entry.kind == UndoEntry::Kind::PropertySnapshot)
+    return ReplayPropertySnapshot(false);
   entry.redo_nodes = nodes_;
   entry.redo_selection = selection_;
   if (entry.kind == UndoEntry::Kind::Runtime) {
@@ -1373,6 +1375,8 @@ bool SceneDocument::Redo() {
   if (redo_.empty())
     return false;
   auto &entry = redo_.back();
+  if (entry.kind == UndoEntry::Kind::PropertySnapshot)
+    return ReplayPropertySnapshot(true);
   if (entry.kind == UndoEntry::Kind::Runtime && !editor_.Redo())
     return false;
   if (entry.kind == UndoEntry::Kind::OpaqueBatch) {

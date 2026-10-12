@@ -1,5 +1,9 @@
 # Nexora Presentation contract (WP-M4)
 
+DX12 surface diagnostics report the selected presentation mode used by `Present`: VSync uses
+sync interval 1; Immediate uses 0 and requests tearing when the DXGI factory supports it.
+This observation does not guarantee a display refresh rate or exclude compositor pacing.
+
 `SurfaceDiagnostics::device` copies the selected native device's UTF-8 name and observed IDs/driver
 version into bounded value storage. It allocates no memory, owns no native handle, follows the
 existing diagnostics render-thread contract, and survives resize and drain. Vulkan supplies
@@ -698,6 +702,21 @@ Transparent surfaces retain the existing nearest-geometry distance approximation
 composite. Shared native fixtures verify contact darkening, planar stability, preserved HDR pixels,
 and exact absent/zero-strength restoration; descriptor tests reject invalid scalar combinations.
 
+## PBR validation cost
+
+The shared PBR validator classifies vertex components by their binary32 exponent bits. This
+retains finite signed zero/subnormal values and rejects every infinity and NaN payload without
+performing arithmetic on those values. Geometry bounds, tangent handedness/orthogonality and
+material/range checks are retained. DX12 and Vulkan use that complete scan for PBR submissions;
+their Lambert paths retain the existing independent finite checks. This removes duplicate vertex
+scans while keeping descriptor rejection before native recording. No caller may bypass validation
+or declare unverified geometry resident merely to improve a benchmark.
+
+PBR 頂點以 binary32 exponent 位元分類有限值，保留正負零與 subnormal，拒絕所有 Infinity／
+NaN payload；不以浮點運算改變待驗值。幾何界限、切線方向／正交性及材質／範圍驗證皆保留。
+DX12／Vulkan 的 PBR 提交共用完整掃描，Lambert 維持原有獨立檢查；消除重複掃描後仍在原生
+命令錄製前拒絕無效描述資料。驗證成本改善不代表最終目標主機效能已驗收。
+
 ## Optional completed GPU timing
 
 `SurfaceDescriptor::enableGpuTiming` and the corresponding `RenderSurfaceDescriptor` option default
@@ -731,3 +750,88 @@ errors and invalid intervals remain unavailable. Neither adapter adds a completi
 These extend rebuild-required C++ descriptors/diagnostics; the stable C/Gameplay ABI and module
 relationships are unchanged. Linux virtual-display/query failure/lifetime tests provide cloud evidence;
 Windows/macOS hosted compilation and physical GPU timing calibration are separate gates.
+
+## Adjacent native material bindings
+
+DX12 and Vulkan retain the last emitted material slot only within one scene phase or shadow
+pass. Adjacent batches with the same slot reuse pipeline, blend, constant and texture bindings;
+every indexed draw remains in its original order with its original ranges. Each scene phase,
+mirror pass, shadow pass and DrawScene call starts with an empty cache. The cache borrows no
+caller storage and cannot survive a command list or descriptor generation. Validation and
+native capability rejection still complete before recording. The shared native image fixture
+splits a receiver into adjacent same-material draws followed by different materials while
+retaining its existing pixel checks.
+
+DX12／Vulkan 僅在單一場景 phase 或陰影 pass 記住上一筆已提交的材質槽，相鄰同材質 batch
+共用 pipeline、blend、常數及貼圖綁定；每筆 indexed draw 的順序與範圍皆保留。每個 phase、
+鏡像、陰影 pass 及 DrawScene 呼叫都清空快取；不保留呼叫者資料或跨 command list／貼圖世代
+共用狀態。原有描述驗證與原生能力拒絕仍先於命令錄製。原生影像 fixture 將接收面拆成相鄰
+同材質繪製後再切換材質，維持既有像素驗收。
+
+
+## Completed-slot Vulkan offscreen target reuse
+
+After the existing protecting frame-slot fence has completed, Vulkan can reuse that slot's complete
+scene/depth/shadow/reflection/refraction images, views and scene framebuffers for an offscreen draw
+with matching dimensions, HDR format, shadow resolution and reflection/refraction requirements.
+A mismatch, direct draw, resize or teardown releases the targets through the existing completed-slot
+or device-drain path. Storage remains bounded to the existing maximum three slots; no resource is
+shared across in-flight slots and no extra wait is introduced. Reuse still discards and clears scene
+contents, renders every requested pass/batch and copies fresh opaque color for refraction.
+
+Material descriptors and tone-composite bindings remain transient. They are released after completion
+and rebuilt from this submission's textures, material ranges, uniform buffer offsets and acquired
+swapchain image. Upload resizing and all descriptor/geometry validation retain their existing rules.
+The shared native PBR pixel fixture also runs on Windows Vulkan when that backend is enabled, covering
+changing materials, offscreen/direct frames, HDR, shadow, refraction/reflection and resize/restoration.
+
+既有 frame-slot fence 完成後，Vulkan 才能重用該槽完整的 offscreen 場景／深度／陰影／鏡面／
+折射 image、view 與場景 framebuffer；尺寸、HDR 格式、陰影解析度及鏡面／折射需求必須相同。
+需求改變、直接繪製、resize 或 teardown 仍沿用既有完成槽或 device drain 釋放路徑。最多維持
+原有三個槽，不跨 in-flight 槽共用、不新增等待；每幀仍清除內容、提交所有 pass／batch 並複製
+新鮮 opaque 色彩。材質 descriptor 與 tone 綁定每幀重建，維持目前 uniform offset、紋理與
+acquired swapchain image 的對應。Windows 啟用 Vulkan 時也執行共用 PBR 原生像素測試。
+
+Reused-image discard transitions still synchronize previous fragment sampling, transfer reads and
+attachment writes before the next color write. Reused refraction snapshots retain shader-readable
+layout until `CaptureRefraction` synchronizes the copy. The external scene/HDR/shadow render-pass
+dependency includes both early and late depth attachment writes/reads before an implicit depth
+layout transition or clear. Fence completion protects CPU resource lifetime; these device execution
+and memory dependencies protect repeated image accesses even when contents are discarded.
+[The Vulkan synchronization examples](https://docs.vulkan.org/guide/latest/synchronization_examples.html)
+describe this separate dependency for discarded depth attachments.
+
+重用影像即使丟棄舊內容，也必須同步先前的 fragment 取樣、transfer 讀取與 attachment 寫入，
+再開始新的色彩寫入。折射快照維持 shader-readable layout，到 `CaptureRefraction` 才同步複製。
+場景／HDR／陰影的 external render-pass 相依性涵蓋 early 與 late 深度附件讀寫，保護隱式
+layout transition 與 clear；fence 保護 CPU 資源生命週期，device 相依性保護重複影像存取。
+
+## Completed-slot DX12 offscreen target reuse
+
+After `Acquire` waits the existing swapchain-slot fence, a complete offscreen scene target set can
+be reused only when dimensions, HDR format, shadow resolution and reflection/refraction requirements
+match. The set includes scene/reflection/refraction colors and shadow color/depth; main depth and
+upload capacity retain their existing storage. Private per-slot state records color COPY_SOURCE or
+PIXEL_SHADER_RESOURCE after composite, and shadow/reflection shader-readable states after their
+passes. Reuse records the required transitions back to RENDER_TARGET before clears. Refraction
+remains shader-readable until the existing synchronized opaque-copy transitions.
+
+RTV/DSV/SRV views and material bindings refresh from the current submission; no public handle or
+borrowed descriptor lifetime changes. Invalid input retains validation behavior, partial recording
+never publishes a reusable set, incompatible/direct draws reset the completed slot, and resize
+resets all sets after the existing drain. Teardown also releases every set after its drain. Storage
+remains bounded to the existing maximum three slots, with no extra wait and every draw/effect/clear
+retained. Both unchanged native pixel fixtures pass full Windows 125/125 validation; exact-source `7c4534b8`
+passes all 18 hosted CI jobs. GTX 960 unpaused Standard/UI reaches 133.43 FPS DX12 and 126.30 FPS
+Vulkan; requested vsync on reaches approximately 60 FPS, with p99 18.04 / 18.24 ms retained. Overall
+hardware-budget and final art acceptance remain open. Evidence: `Apps/Showcase/evidence/Windows-DX12-Target-Reuse-Local-2026-10-10/acceptance.md`.
+
+既有 `Acquire` 等待 swapchain 槽 fence 完成後，才可重用完整且尺寸、HDR 格式、陰影解析度、
+鏡面／折射需求一致的 offscreen 場景目標。每槽追蹤 composite 後的 COPY_SOURCE／
+PIXEL_SHADER_RESOURCE，以及陰影／鏡面完成後的 shader-readable 狀態；再次 clear 前記錄
+回到 RENDER_TARGET 的 transition，折射仍沿用既有 opaque copy 同步。view 與材質綁定
+使用本次提交資料，部分失敗不發布可重用集合；需求改變／直接繪製釋放完成槽，resize／
+teardown 在既有 drain 後釋放。最多三槽、不新增等待、保留所有繪製與效果。Windows
+完整 125/125 與同來源 `7c4534b8` hosted CI 全部 18 項通過；GTX 960 未暫停 Standard／UI
+為 DX12 133.43 FPS、Vulkan 126.30 FPS，requested vsync on 均約 60 FPS，保留 p99
+18.04／18.24 ms。整體硬體預算與最終美術仍未完成；證據見上述路徑。
