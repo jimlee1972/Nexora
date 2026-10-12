@@ -1,10 +1,11 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "Nexora/Editor/InspectorRotation.h"
+#include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/Runtime/RenderSync.h"
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
-#include "EditorSystemFont.h"
+#include <set>
 #endif
 
 #include <imgui.h>
@@ -22,12 +23,15 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <map>
 #include <optional>
 #include <ranges>
+#include <set>
 #include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -137,6 +141,12 @@ struct EditorImGuiHost::State final {
   bool memory_import_requested = false;
   std::optional<ProcessMemoryCapture> imported_memory;
   std::array<std::optional<std::array<float, 2>>, 3> memory_control_positions{};
+  bool chrome_trace_open{};
+  std::array<char, 257> chrome_event_name{'F', 'r', 'a', 'm', 'e', 0};
+  std::array<char, 21> chrome_process{'0', 0}, chrome_thread{'0', 0};
+  std::optional<ChromeTraceImportRequest> chrome_trace_request;
+  std::optional<ChromeTraceCapture> imported_chrome_trace;
+  std::array<std::optional<std::array<float, 2>>, 5> chrome_positions{};
   bool gpu_export_requested = false;
   bool gpu_import_requested = false;
   std::optional<GpuTimingCapture> imported_gpu;
@@ -153,6 +163,30 @@ struct EditorImGuiHost::State final {
   std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
+  bool prefab_isolation_open{};
+  std::optional<PrefabIsolationObservation> prefab_isolation;
+  std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
+  std::optional<SceneComparison> prefab_review;
+  bool prefab_can_revert{}, prefab_revert_confirmation{};
+  bool prefab_can_apply{}, prefab_apply_confirmation{};
+  bool prefab_targeted{};
+  bool prefab_rebase{}, prefab_can_rebase{}, prefab_rebase_confirmation{};
+  std::optional<PrefabRevisionReference> prefab_previous_base, prefab_next_base;
+  std::vector<PrefabPropertySelection> prefab_conflicts;
+  std::vector<PrefabRebaseChoice> prefab_choices;
+  std::size_t prefab_unresolved{};
+  std::vector<std::tuple<std::size_t, std::size_t, std::array<float, 2>>> prefab_choice_positions;
+  std::vector<PrefabPropertySelection> prefab_selected;
+  std::vector<std::pair<std::size_t, std::array<float, 2>>> prefab_property_positions;
+  std::array<char, 65> prefab_target{};
+  std::array<char, 1025> prefab_name{};
+  std::array<std::array<char, 64>, 3> prefab_position{};
+  std::optional<SceneDocument::NodeKey> prefab_edit_key;
+  std::string prefab_name_original, prefab_status;
+  std::array<double, 3> prefab_position_original{};
+  std::array<bool, 3> prefab_position_active{};
+  bool prefab_name_active{};
+  std::array<std::optional<std::array<float, 2>>, 29> prefab_positions{};
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -366,7 +400,37 @@ struct EditorImGuiHost::State final {
   std::array<char, 512> reflected_pending_text{};
   std::uint64_t reflected_pending_identity{};
   bool inspector_transform_visible = false;
+  bool extension_manager_open{};
+  bool extension_input_blocked{true};
+  std::optional<ExtensionManagerObservation> extension_manager;
+  std::optional<ExtensionManagerRequest> extension_manager_request;
+  std::string extension_manager_status;
+  std::array<char, 1024> extension_package_path{};
+  std::array<char, 129> extension_publisher{};
+  std::array<char, 65> extension_public_key{};
+  std::uint32_t extension_permission_draft{};
+  std::vector<std::pair<std::string, std::array<float, 2>>> extension_positions;
   std::string inspector_error;
+  std::filesystem::path prefab_source_root;
+  bool prefab_source_read_allowed{};
+  std::optional<PrefabPlacementSourceRequest> prefab_source_scope, prefab_source_request;
+  std::optional<PrefabPlacementSourceReport> prefab_source_report;
+  std::optional<std::array<float, 2>> prefab_source_position;
+  int prefab_source_frame{};
+  bool prefab_override_authoring{}, prefab_override_confirm{}, prefab_override_popup{};
+  std::optional<PrefabPlacementOverrideRequest> prefab_override_request, prefab_override_consent;
+  std::vector<bool> prefab_override_selected;
+  std::map<std::size_t, std::array<float, 2>> prefab_override_row_positions;
+  std::optional<PrefabPlacementOverrideReport> prefab_override_report;
+  std::string prefab_override_error;
+  std::array<std::optional<std::array<float, 2>>, 5> prefab_override_positions{};
+  bool prefab_rebase_confirm{}, prefab_rebase_popup{};
+  std::optional<PrefabPlacementRebaseRequest> prefab_rebase_request, prefab_rebase_consent;
+  std::optional<PrefabPlacementRebaseReport> prefab_rebase_report;
+  std::vector<std::uint8_t> prefab_rebase_choices;
+  std::string prefab_rebase_error;
+  std::array<std::optional<std::array<float, 2>>, 4> prefab_rebase_positions{};
+  std::map<std::pair<std::size_t, bool>, std::array<float, 2>> prefab_rebase_choice_positions;
   enum class FileDialog { None, OpenPath, SavePath, Unsaved, Overwrite };
   FileDialog scene_file_dialog{FileDialog::None};
   bool scene_file_context{}, scene_file_save_blocked{}, scene_file_popup_pending{};
@@ -2716,12 +2780,19 @@ void AcceptInspectorMeshDrop(StateT &state, ProjectContentSession *content,
   ImGui::EndDragDropTarget();
 }
 
+#include "PrefabPlacementOverridePanel.inl"
+#include "PrefabPlacementRebasePanel.inl"
+#include "PrefabPlacementSourcePanel.inl"
 #include "ReflectedInspectorPanel.inl"
 
 template <typename StateT>
 void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *content,
                    const MeshAssetCatalog *meshes, const MaterialAssetCatalog *materials,
-                   bool editable, bool copy_allowed) {
+                   bool editable, bool copy_allowed, bool override_readable,
+                   bool override_writable) {
+  DrawPrefabPlacementSource(state, scene, copy_allowed);
+  DrawPrefabPlacementOverrides(state, override_readable, override_writable);
+  DrawPrefabPlacementRebase(state, override_readable, override_writable);
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
@@ -4144,6 +4215,12 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
       // Dear ImGui releases held inputs on focus loss. Cancel before that synthetic release
       // can be interpreted as a completed authoring gesture.
       if (!state_->app_focused) {
+        state_->prefab_override_request.reset();
+        state_->prefab_override_consent.reset();
+        state_->prefab_override_confirm = state_->prefab_override_popup = false;
+        state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+        state_->prefab_rebase_consent.reset();
+        state_->prefab_rebase_request.reset();
         state_->game_input_binding_open = false;
         state_->game_input_binding_pending = false;
         if (state_->game_input_save_requested)
@@ -4492,6 +4569,8 @@ std::optional<ProjectUpgradeObservation> EditorImGuiHost::ProjectUpgradePreview(
   return state_->selector_upgrade;
 }
 
+#include "ExtensionManagerPanel.inl"
+
 void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene,
                                        ProjectWorkspace *workspace, ProjectContentSession *content,
                                        RecentProjectStore *recent_projects,
@@ -4538,11 +4617,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
   state_->gpu_control_positions = {};
+  state_->chrome_positions = {};
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
+    state_->imported_chrome_trace.reset();
+    state_->chrome_trace_request.reset();
+    state_->chrome_trace_open = false;
+    state_->chrome_event_name = {'F', 'r', 'a', 'm', 'e', 0};
+    state_->chrome_process = state_->chrome_thread = {'0', 0};
+    const auto *chrome_window = ImGui::FindWindowByName("Chrome Trace###editor.profiler.chrome");
+    if (chrome_window && ImGui::GetCurrentContext()->ActiveIdWindow == chrome_window)
+      ImGui::ClearActiveID();
     state_->imported_memory.reset();
     state_->imported_gpu.reset();
     state_->gpu_export_requested = false;
@@ -4621,10 +4709,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
   const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
   state_->build_console_interaction_blocked = file_external_block || tab_modal;
+  state_->extension_input_blocked = file_external_block || tab_modal || !workspace;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->prefab_isolation_open = !state_->prefab_isolation_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
@@ -4673,7 +4766,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
     }
     if (ImGui::BeginMenu("Settings")) {
+      ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
+      ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
       ImGui::EndMenu();
     }
     if (file_context_valid)
@@ -4685,6 +4780,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::EndMainMenuBar();
   }
   if (file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
+      !state_->prefab_override_confirm && !state_->prefab_rebase_confirm &&
       state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
       !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
     if (writable && !game_running &&
@@ -4709,9 +4805,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool rename_editable = !reference_scene && (!workspace || workspace->Writable()) &&
                                !external_modal_open && !state_->content_rename_target;
   const bool rename_open = state_->hierarchy_rename_target.has_value();
-  const bool interaction_blocked =
-      external_modal_open || rename_open || state_->content_rename_target;
-  const bool scene_editable = rename_editable && !rename_open;
+  const bool interaction_blocked = external_modal_open || rename_open ||
+                                   state_->content_rename_target ||
+                                   state_->prefab_override_confirm || state_->prefab_rebase_confirm;
+  const bool scene_editable = rename_editable && !rename_open && !state_->prefab_override_confirm &&
+                              !state_->prefab_rebase_confirm;
   if (const auto *payload = ImGui::GetDragDropPayload();
       payload && payload->IsDataType(AssetDragPayload::kType.data()) &&
       (!state_->app_focused || !scene_editable || (content && !content->Writable()) ||
@@ -4829,7 +4927,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
     } else {
       DrawInspector(*state_, scene, content, meshes, materials, scene_editable,
-                    !interaction_blocked);
+                    !interaction_blocked,
+                    !external_modal_open && !rename_open && !state_->content_rename_target,
+                    rename_editable && !rename_open);
     }
   } else {
     CancelInspectorDrafts(*state_);
@@ -4974,7 +5074,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (state_->app_focused && !interaction_blocked &&
             ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
             (ImGui::IsItemHovered(ImGuiHoveredFlags_NoNavOverride) || ImGui::IsItemActive()) &&
-            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput) {
+            !state_->native_scene_drag_origin && !state_->native_scene_drag && !io.WantTextInput &&
+            !io.KeyCtrl && !io.KeyAlt && !io.KeySuper) {
           if (ImGui::IsKeyPressed(ImGuiKey_Q, false))
             state_->native_scene_tool = NativeSceneTool::Select;
           else if (ImGui::IsKeyPressed(ImGuiKey_W, false))
@@ -5696,9 +5797,93 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             "Saved Editor wall timing; GPU/memory unavailable. CSV has no project provenance.");
         plot(state_->imported_profile->samples, "Imported frame processing (ms)");
       }
+      ImGui::BeginDisabled(!workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested);
+      if (ImGui::Button("Inspect Chrome trace"))
+        OpenChromeTraceImport();
+      ImGui::EndDisabled();
     }
   }
   ImGui::End();
+  if (state_->chrome_trace_open) {
+    ImGui::SetNextWindowPos({80, 80}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize({600, 500}, ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Chrome Trace###editor.profiler.chrome", &state_->chrome_trace_open)) {
+      ImGui::TextUnformatted("Import .nexora/chrome-trace.json from this project.");
+      ImGui::TextWrapped(
+          "Select X, synchronous B/E or async b/e events by name, process and begin thread. "
+          "External intervals "
+          "use their own trace clock; CPU/GPU classification and memory are unavailable.");
+      const auto position = [&](std::size_t index) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->chrome_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      ImGui::SetNextItemWidth(350);
+      ImGui::InputText("Event name", state_->chrome_event_name.data(),
+                       state_->chrome_event_name.size());
+      position(0);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Process ID", state_->chrome_process.data(), state_->chrome_process.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(1);
+      ImGui::SetNextItemWidth(200);
+      ImGui::InputText("Thread ID", state_->chrome_thread.data(), state_->chrome_thread.size(),
+                       ImGuiInputTextFlags_CharsDecimal);
+      position(2);
+      ChromeTraceSelection selection;
+      selection.event_name = state_->chrome_event_name.data();
+      const auto integer = [](const auto &text, std::uint64_t &value) {
+        const auto size = std::strlen(text.data());
+        const auto result = std::from_chars(text.data(), text.data() + size, value);
+        return size && result.ec == std::errc{} && result.ptr == text.data() + size &&
+               value <= 9007199254740991ULL;
+      };
+      const bool valid = integer(state_->chrome_process, selection.process) &&
+                         integer(state_->chrome_thread, selection.thread) &&
+                         !selection.event_name.empty();
+      ImGui::BeginDisabled(!valid || !workspace || interaction_blocked || !state_->app_focused ||
+                           state_->close_prompt_requested || workspace->HasRecoveryJournal() ||
+                           workspace->HasExternalChange());
+      if (ImGui::Button("Import selected events"))
+        state_->chrome_trace_request = ChromeTraceImportRequest{
+            workspace->Project().id, workspace->Root(), std::move(selection)};
+      position(3);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_chrome_trace);
+      if (ImGui::Button("Clear external import"))
+        state_->imported_chrome_trace.reset();
+      position(4);
+      ImGui::EndDisabled();
+      if (!state_->profile_export_status.empty())
+        ImGui::TextWrapped("%s", state_->profile_export_status.c_str());
+      if (state_->imported_chrome_trace) {
+        const auto &capture = *state_->imported_chrome_trace;
+        ImGui::SeparatorText("External Chrome intervals (static)");
+        ImGui::Text("Process %llu | Thread %llu | %zu intervals | %llu older dropped",
+                    static_cast<unsigned long long>(capture.selection.process),
+                    static_cast<unsigned long long>(capture.selection.thread),
+                    capture.samples.size(),
+                    static_cast<unsigned long long>(capture.older_samples_dropped));
+        ImGui::TextWrapped("Event: %s", capture.selection.event_name.c_str());
+        ImGui::BeginChild("External intervals", {0, 150}, ImGuiChildFlags_Borders);
+        ImGuiListClipper clipper;
+        clipper.Begin(static_cast<int>(capture.samples.size()));
+        while (clipper.Step())
+          for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+            const auto &sample = capture.samples[static_cast<std::size_t>(i)];
+            ImGui::Text("%llu | external %.6f us | duration %.6f ms",
+                        static_cast<unsigned long long>(sample.sequence), sample.start_microseconds,
+                        sample.duration_milliseconds);
+          }
+        ImGui::EndChild();
+      }
+    }
+    ImGui::End();
+    if (!state_->chrome_trace_open)
+      state_->chrome_trace_request.reset();
+  }
   if (content != nullptr)
     DrawContentBrowser(*state_, *content, imports, scene, meshes, scene_editable,
                        file_context_valid && state_->app_focused && !game_running &&
@@ -5939,13 +6124,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
   }
-  if (ImGui::BeginPopupModal("Unsaved scene###editor.close", nullptr,
+  if (ImGui::BeginPopupModal("Unsaved work###editor.close", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     if (state_->scene_file_close_popup) {
       state_->scene_file_close_popup = false;
       ImGui::CloseCurrentPopup();
     } else {
-      ImGui::TextUnformatted(state_->scene_tabs.empty()
+      ImGui::TextUnformatted(state_->prefab_isolation && state_->prefab_isolation->dirty
+                                 ? "Save your prefab in Prefab Isolation before exiting."
+                             : state_->scene_tabs.empty()
                                  ? "Save scene changes before closing?"
                                  : "Save all owned scene changes before closing?");
       if (ImGui::Button("Save and Exit"))
@@ -6087,6 +6274,240 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
 }
+void EditorImGuiHost::SetPrefabPlacementSourceContext(const std::filesystem::path &root,
+                                                      bool read_allowed) {
+  if (state_->prefab_source_root != root) {
+    state_->prefab_source_scope.reset();
+    state_->prefab_source_report.reset();
+    state_->prefab_source_request.reset();
+    state_->prefab_source_root = root;
+    state_->prefab_override_report.reset();
+    state_->prefab_rebase_report.reset();
+    state_->prefab_rebase_choices.clear();
+    state_->prefab_rebase_error.clear();
+    state_->prefab_override_request.reset();
+    state_->prefab_override_error.clear();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+    state_->prefab_rebase_consent.reset();
+    state_->prefab_rebase_request.reset();
+    state_->prefab_override_consent.reset();
+    state_->prefab_override_selected.clear();
+  }
+  state_->prefab_source_read_allowed = read_allowed;
+  if (!read_allowed) {
+    state_->prefab_source_request.reset();
+    state_->prefab_override_request.reset();
+    state_->prefab_override_consent.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+    state_->prefab_rebase_consent.reset();
+    state_->prefab_rebase_request.reset();
+  }
+}
+std::optional<PrefabPlacementSourceRequest> EditorImGuiHost::TakePrefabPlacementSourceRequest() {
+  ImGui::SetCurrentContext(state_->context);
+  if (!state_->prefab_source_read_allowed || !state_->app_focused ||
+      state_->prefab_source_frame != ImGui::GetFrameCount() || state_->close_prompt_requested ||
+      state_->play_apply_open || state_->scene_file_dialog != State::FileDialog::None ||
+      state_->scene_file_output || state_->hierarchy_rename_target ||
+      state_->content_rename_target || state_->scene_tab_dialog || !state_->scene_file_context ||
+      (state_->prefab_source_scope &&
+       state_->prefab_source_scope->source != state_->scene_file_token))
+    state_->prefab_source_request.reset();
+  return std::exchange(state_->prefab_source_request, std::nullopt);
+}
+bool EditorImGuiHost::SetPrefabPlacementSourceReport(PrefabPlacementSourceReport report) {
+  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
+      !state_->scene_file_context || report.scope.source != state_->scene_file_token ||
+      !report.mapped_nodes || report.mapped_nodes > SceneDocument::kMaximumPrefabPlacementNodes ||
+      report.resolved != report.scoped_source.has_value() ||
+      (report.published_revision && !*report.published_revision) ||
+      (report.scoped_source &&
+       (report.scoped_source->asset.IsNil() || !report.scoped_source->revision)))
+    return false;
+  state_->prefab_source_report = std::move(report);
+  return true;
+}
+void EditorImGuiHost::SetPrefabPlacementOverrideContext(bool authoring_allowed) {
+  state_->prefab_override_authoring = authoring_allowed;
+  if (!authoring_allowed) {
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+    state_->prefab_rebase_consent.reset();
+    state_->prefab_rebase_request.reset();
+    state_->prefab_override_consent.reset();
+    if (state_->prefab_override_request &&
+        state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review)
+      state_->prefab_override_request.reset();
+  }
+}
+std::optional<PrefabPlacementOverrideRequest>
+EditorImGuiHost::TakePrefabPlacementOverrideRequest() {
+  ImGui::SetCurrentContext(state_->context);
+  if (!state_->prefab_source_read_allowed || !state_->app_focused ||
+      state_->prefab_source_frame != ImGui::GetFrameCount() || state_->close_prompt_requested ||
+      state_->play_apply_open || state_->scene_file_dialog != State::FileDialog::None ||
+      state_->scene_file_output || state_->hierarchy_rename_target ||
+      state_->content_rename_target || state_->scene_tab_dialog || !state_->scene_file_context ||
+      !state_->prefab_source_scope) {
+    state_->prefab_override_request.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+    state_->prefab_rebase_consent.reset();
+    state_->prefab_rebase_request.reset();
+    state_->prefab_override_consent.reset();
+    return {};
+  }
+  if (state_->prefab_override_request &&
+      (state_->prefab_override_request->scope != *state_->prefab_source_scope ||
+       state_->prefab_override_request->scope.source != state_->scene_file_token ||
+       (state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review &&
+        (!state_->prefab_override_authoring || !state_->prefab_override_report ||
+         state_->prefab_override_request->review != state_->prefab_override_report->review)))) {
+    state_->prefab_override_request.reset();
+    state_->prefab_override_confirm = state_->prefab_override_popup = false;
+    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+    state_->prefab_rebase_consent.reset();
+    state_->prefab_rebase_request.reset();
+    state_->prefab_override_consent.reset();
+  }
+  return std::exchange(state_->prefab_override_request, std::nullopt);
+}
+bool EditorImGuiHost::SetPrefabPlacementOverrideReport(PrefabPlacementOverrideReport report) {
+  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
+      report.scope.source != state_->scene_file_token || !report.review ||
+      (report.published_revision && !*report.published_revision) ||
+      report.rows.size() > PrefabPlacementOverrides::kMaximumRows)
+    return false;
+  std::size_t bytes{};
+  for (const auto &row : report.rows) {
+    if (row.source.asset.IsNil() || !row.source.revision || row.node.IsNil() || !row.target.id ||
+        !row.target.entity_generation || !row.target.document_generation ||
+        (row.property && row.property->IsNil()) || row.scope.size() > PrefabAssets::kMaximumDepth ||
+        row.field.empty() || row.field.size() > SceneComparison::kMaximumValueBytes ||
+        (row.retained && row.retained->size() > SceneComparison::kMaximumValueBytes) ||
+        (row.local && row.local->size() > SceneComparison::kMaximumValueBytes) ||
+        !foundation::IsValidUtf8(row.field) ||
+        (row.retained && !foundation::IsValidUtf8(*row.retained)) ||
+        (row.local && !foundation::IsValidUtf8(*row.local)))
+      return false;
+    const auto size = row.field.size() + row.scope.size() * sizeof(foundation::Uuid) +
+                      (row.retained ? row.retained->size() : 0) +
+                      (row.local ? row.local->size() : 0);
+    if (size > PrefabPlacementOverrides::kMaximumReportBytes - bytes)
+      return false;
+    bytes += size;
+  }
+  state_->prefab_override_selected.assign(report.rows.size(), false);
+  state_->prefab_override_consent.reset();
+  state_->prefab_override_report = std::move(report);
+  state_->prefab_override_request.reset();
+  state_->prefab_override_error.clear();
+  state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+  state_->prefab_rebase_consent.reset();
+  state_->prefab_rebase_request.reset();
+  return true;
+}
+void EditorImGuiHost::SetPrefabPlacementOverrideError(std::string error) {
+  state_->prefab_override_report.reset();
+  state_->prefab_override_request.reset();
+  state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+  state_->prefab_rebase_consent.reset();
+  state_->prefab_rebase_request.reset();
+  state_->prefab_override_consent.reset();
+  state_->prefab_override_selected.clear();
+  state_->prefab_override_error = error.substr(0, 1024);
+}
+std::optional<PrefabPlacementRebaseRequest> EditorImGuiHost::TakePrefabPlacementRebaseRequest() {
+  ImGui::SetCurrentContext(state_->context);
+  const bool current =
+      state_->prefab_source_read_allowed && state_->app_focused &&
+      state_->prefab_source_frame == ImGui::GetFrameCount() && !state_->close_prompt_requested &&
+      !state_->play_apply_open && state_->scene_file_dialog == State::FileDialog::None &&
+      !state_->scene_file_output && !state_->hierarchy_rename_target &&
+      !state_->content_rename_target && !state_->scene_tab_dialog && state_->scene_file_context &&
+      state_->prefab_source_scope && !state_->prefab_override_confirm;
+  bool valid = current;
+  if (state_->prefab_rebase_request) {
+    const auto &request = *state_->prefab_rebase_request;
+    valid = valid && request.scope == *state_->prefab_source_scope &&
+            request.scope.source == state_->scene_file_token;
+    if (request.action == PrefabPlacementRebaseAction::Apply) {
+      valid = valid && state_->prefab_override_authoring && state_->prefab_rebase_report &&
+              request.review == state_->prefab_rebase_report->review;
+      std::set<std::size_t> seen;
+      if (valid) {
+        for (const auto &choice : request.choices)
+          valid = valid && choice.row < state_->prefab_rebase_report->rows.size() &&
+                  state_->prefab_rebase_report->rows[choice.row].conflict &&
+                  (choice.decision == PrefabPlacementRebaseDecision::KeepLocal ||
+                   choice.decision == PrefabPlacementRebaseDecision::TakeSource) &&
+                  seen.insert(choice.row).second;
+        valid = valid && seen.size() == static_cast<std::size_t>(std::ranges::count_if(
+                                            state_->prefab_rebase_report->rows,
+                                            &PrefabPlacementRebaseRow::conflict));
+      }
+    }
+  }
+  if (!valid) {
+    state_->prefab_rebase_request.reset();
+    state_->prefab_rebase_consent.reset();
+    state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+  }
+  return std::exchange(state_->prefab_rebase_request, std::nullopt);
+}
+bool EditorImGuiHost::SetPrefabPlacementRebaseReport(PrefabPlacementRebaseReport report) {
+  if (!state_->prefab_source_scope || report.scope != *state_->prefab_source_scope ||
+      report.scope.source != state_->scene_file_token || !report.review ||
+      report.published_revision <= report.scope.retained.revision ||
+      report.rows.size() > PrefabPlacementRebase::kMaximumRows)
+    return false;
+  std::size_t bytes{};
+  const auto valid_text = [](std::string_view text) {
+    return text.size() <= SceneComparison::kMaximumValueBytes && foundation::IsValidUtf8(text);
+  };
+  for (const auto &row : report.rows) {
+    if (row.retained_source.asset.IsNil() || !row.retained_source.revision ||
+        row.published_source.asset != row.retained_source.asset || !row.published_source.revision ||
+        row.node.IsNil() || !row.target.id || !row.target.entity_generation ||
+        !row.target.document_generation || (row.property && row.property->IsNil()) ||
+        row.scope.size() > PrefabAssets::kMaximumDepth || row.group.empty() ||
+        !valid_text(row.group) || row.values.empty() || row.values.size() > 64)
+      return false;
+    std::size_t size = row.group.size() + row.scope.size() * sizeof(foundation::Uuid) + 128;
+    for (const auto &value : row.values) {
+      if (value.field.empty() || !valid_text(value.field) ||
+          (value.retained && !valid_text(*value.retained)) ||
+          (value.local && !valid_text(*value.local)) ||
+          (value.published && !valid_text(*value.published)))
+        return false;
+      size += value.field.size() + (value.retained ? value.retained->size() : 0) +
+              (value.local ? value.local->size() : 0) +
+              (value.published ? value.published->size() : 0);
+    }
+    if (size > PrefabPlacementRebase::kMaximumReportBytes - bytes)
+      return false;
+    bytes += size;
+  }
+  state_->prefab_rebase_choices.assign(report.rows.size(), 0);
+  state_->prefab_rebase_report = std::move(report);
+  state_->prefab_rebase_request.reset();
+  state_->prefab_rebase_consent.reset();
+  state_->prefab_rebase_error.clear();
+  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+  return true;
+}
+void EditorImGuiHost::SetPrefabPlacementRebaseError(std::string error) {
+  state_->prefab_rebase_report.reset();
+  state_->prefab_rebase_request.reset();
+  state_->prefab_rebase_consent.reset();
+  state_->prefab_rebase_choices.clear();
+  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
+  state_->prefab_rebase_error = error.substr(0, 1024);
+}
 std::optional<SceneFileToken> EditorImGuiHost::TakeSceneComparisonRequest() {
   return std::exchange(state_->scene_comparison_request, std::nullopt);
 }
@@ -6145,6 +6566,14 @@ EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std:
   return index < host.state_->scene_comparison_positions.size()
              ? host.state_->scene_comparison_positions[index]
              : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ExtensionManagerPosition(const EditorImGuiHost &host, std::string_view key) {
+  const auto found =
+      std::ranges::find(host.state_->extension_positions, key,
+                        [](const auto &entry) -> std::string_view { return entry.first; });
+  return found == host.state_->extension_positions.end() ? std::nullopt
+                                                         : std::optional(found->second);
 }
 SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const EditorImGuiHost &host) {
   return host.state_->scene_comparison;
@@ -6302,6 +6731,16 @@ bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
       !ValidateGpuTimingSamples(capture.source, capture.samples))
     return false;
   state_->imported_gpu = std::move(capture);
+  return true;
+}
+void EditorImGuiHost::OpenChromeTraceImport() noexcept { state_->chrome_trace_open = true; }
+std::optional<ChromeTraceImportRequest> EditorImGuiHost::TakeChromeTraceImportRequest() {
+  return std::exchange(state_->chrome_trace_request, std::nullopt);
+}
+bool EditorImGuiHost::SetImportedChromeTrace(ChromeTraceCapture capture) {
+  if (state_->profile_project_root.empty() || !ChromeTraceImporter::Validate(capture))
+    return false;
+  state_->imported_chrome_trace = std::move(capture);
   return true;
 }
 void EditorImGuiHost::SetProfileExportStatus(std::string message) {
@@ -6830,6 +7269,7 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 }
 
 #include "BuildProcessPanel.inl"
+#include "PrefabIsolationPanel.inl"
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);
@@ -7134,6 +7574,16 @@ EditorImGuiTestAccess::MemoryControlPosition(const EditorImGuiHost &host,
              ? host.state_->memory_control_positions[control]
              : std::nullopt;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ChromeTraceControlPosition(const EditorImGuiHost &host,
+                                                  std::size_t index) noexcept {
+  return index < host.state_->chrome_positions.size() ? host.state_->chrome_positions[index]
+                                                      : std::nullopt;
+}
+const ChromeTraceCapture *
+EditorImGuiTestAccess::ImportedChromeTrace(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_chrome_trace ? &*host.state_->imported_chrome_trace : nullptr;
+}
 const ProcessMemoryCapture *
 EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {
   return host.state_->imported_memory ? &*host.state_->imported_memory : nullptr;
@@ -7205,6 +7655,50 @@ void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.scene");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_source_position;
+}
+const PrefabPlacementSourceReport *
+EditorImGuiTestAccess::PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_source_report ? &*host.state_->prefab_source_report : nullptr;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabOverridePosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->prefab_override_positions.size()
+             ? host.state_->prefab_override_positions[control]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabOverrideRowPosition(const EditorImGuiHost &host,
+                                                 std::size_t row) noexcept {
+  const auto found = host.state_->prefab_override_row_positions.find(row);
+  return found == host.state_->prefab_override_row_positions.end() ? std::nullopt
+                                                                   : std::optional{found->second};
+}
+const PrefabPlacementOverrideReport *
+EditorImGuiTestAccess::PrefabOverrideReport(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_override_report ? &*host.state_->prefab_override_report : nullptr;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabRebasePosition(const EditorImGuiHost &host,
+                                            std::size_t control) noexcept {
+  return control < host.state_->prefab_rebase_positions.size()
+             ? host.state_->prefab_rebase_positions[control]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
+                                                  bool take_source) noexcept {
+  const auto found = host.state_->prefab_rebase_choice_positions.find({row, take_source});
+  return found == host.state_->prefab_rebase_choice_positions.end() ? std::nullopt
+                                                                    : std::optional{found->second};
+}
+const PrefabPlacementRebaseReport *
+EditorImGuiTestAccess::PrefabRebaseReport(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_rebase_report ? &*host.state_->prefab_rebase_report : nullptr;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneFramePosition(const EditorImGuiHost &host) noexcept {
