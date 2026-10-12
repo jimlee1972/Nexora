@@ -845,3 +845,17 @@ the recorded runtime/movie production freeze remains unchanged.
 ✅ Dielectric/native interaction integration: Linux configure/build and full 97/97 tests passed (111.31 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 4933fbc passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Dielectric-Glass-Linux-2026-10-05/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
 
 ✅ Coping/native interaction integration: Linux configure/build and full 97/97 tests passed (110.58 s, Khronos core/sync validation), including 97 native PBR frames and nine evidence-policy tests. The original checksum-verified Shipping executable from 1989904 passed isolated acceptance with the synchronized export, held camera input and presented-resize checks. Runtime sources, frozen executable and movie are unchanged. Evidence: `Apps/Showcase/evidence/VIS-Courtyard-Coping-Linux-2026-10-06/interaction-synchronization/`. VIS remains 5/7; preview parity and physical-display acceptance remain open.
+
+
+## Blender source-art draft archive (2026-10-12)
+
+✅ The current editable Blender draft, its concept reference, matching CPU preview,
+rebuild tools, original draft backup and asset provenance are retained under
+[Arts/ShowcaseScene](../../Arts/ShowcaseScene/readme.md). A scene-only copy reopened
+and rendered at 836 × 470 in Blender 5.1.2 on Windows with Cycles CPU, 32 samples,
+16 packed images and no linked Blender libraries. The snapshot includes the masonry
+normal corrections used by the reviewed preview. Exact scene/render hashes and
+portability checks are in [validation.json](../../Arts/ShowcaseScene/evidence/validation.json).
+This is an archive of unfinished source art: sky orientation, lighting, background
+arrangement and surface/ornament detail still differ from the concept. Full-resolution
+final art acceptance and native Showcase integration remain open; VIS stays 5/7.
