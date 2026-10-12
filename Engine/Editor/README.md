@@ -1,5 +1,101 @@
 # Editor Core contract
 
+## External Chrome duration import
+
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`
+and nestable async `b/e` duration events, selected by exact process/begin-thread/event name. Timestamps keep the external
+microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
+Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
+600-sample, Unicode/JSON and metadata bounds.
+
+On the selected thread, every B requires a name and timestamp; every E requires a timestamp
+and closes the most recent B. An optional end name must match. Nonmatching event names still
+participate in pairing so a nested scope cannot close its parent accidentally. At most 128
+synchronous plus async scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
+threads do not share the stack. Valid zero durations remain zero. Legacy async `S/T/F`, instant
+`n` and other phases remain validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
+previously skipped, now reject the whole import if malformed or unbalanced.
+
+Nestable async `b/e` events on the selected process require name, process, thread, timestamp
+and an `id2` object containing exactly `local`, with no `dur` or legacy `id`. Identity consists of
+ID type/value plus `cat` and `scope`;
+omitted category/scope are empty. Numeric IDs are exact nonnegative integers through 2^53-1;
+string IDs are nonempty decoded UTF-8 up to 256 bytes. Numeric 1 and string "1" are separate.
+Category/scope must be strings of at most 256 decoded bytes. Global `id2.global`/legacy `id` and legacy
+`S/T/F` pairing are not supported. Ends can arrive on another thread in the same process;
+only begins on the selected thread with the exact selected name produce samples. All b/e on
+that process participate, including nonselected names/threads, so nesting cannot close a
+selected parent accidentally. Each identity is LIFO with matching end names and nondecreasing
+timestamps while open; independent IDs can finish in any order. All must close, and the shared
+128-open budget includes synchronous scopes. Malformed recognized b/e on that process now
+reject rather than being silently skipped. Other processes do not share the async registry.
+This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
+
+Selected begins reserve their sample sequence and position immediately. End events complete
+that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
+overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
+mixed X/B/E/b/e records and nested same-name scopes. Pending intervals never escape a failed import.
+This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
+
+`ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
+admission and actual byte bounds. Failure does not publish or alter source files, prior captures
+or live measurements. Persisted Editor schemas, C ABI and product linkage are unchanged.
+
+## Build artifact byte verification
+
+`BuildFrontend::VerifyArtifacts` synchronously verifies caller-captured owning
+`BuildArtifactInput` values against an exact nonempty schema-one manifest set. It
+requires canonical `sha256:` plus 64 lowercase hexadecimal digits, matching relative
+path identities and exact byte counts. A missing/unavailable SHA-256 backend never
+accepts. Legacy `Validate`/`Write` retain their serialized manifest compatibility;
+writing a manifest alone does not verify its artifacts.
+
+Limits are 64 artifacts, 16 MiB each, 64 MiB total, 1024 UTF-8 bytes per path, 256
+bytes each for profile name/target, 128 for configuration and 32 KiB for command text.
+Empty/ASCII-control-containing/invalid UTF-8 profile text and unsafe relative paths reject.
+All shape and byte budgets are checked before hashing. Inputs and manifest remain
+unchanged, and no file IO, publication, native process or permission grant occurs.
+Calls serialize with caller-owned captures; results certify only those supplied bytes
+at that call, without retained borrows. The caller owns consistent filesystem capture,
+expected target completeness, process outcome, reproducible argv/toolchain/features
+and future publication/deployment. A command string is descriptive and never executed.
+No build-success UI is introduced. Public C++ consumers rebuild; module graph,
+existing wire schema and stable C/Gameplay ABI are unchanged.
+
+## Native tool byte callback SDK
+
+The optional public C `EditorToolAbi.h` defines a separately versioned service table
+for Inspect/Edit/Preview/Serialize byte transformations. It preserves required engine
+plugin ABI and lifecycle schemas. A service registration supplies a readable immutable
+table for its admission; native plugins remain trusted and must obey capacities,
+call-scoped borrows, cooperative draining and the no-throw contract.
+
+`NativeToolInvoker` performs a fresh qualified `PluginHost::FindService` lookup for
+every synchronous owner-thread call. It retains no table, function or native context.
+Wrong-thread/reentrant calls (including another invoker on the same owner thread),
+malformed prefixes/interface/masks/budgets, revoked or
+foreign providers and undeclared operations reject before invocation. The input is
+read-only and at most 64 KiB; output storage is host-owned and capped at 64 KiB, also
+respecting each table's smaller declared limits. Complete shape validation precedes
+allocation/callback work. Future table suffixes are ignored, with a 4096-byte declared
+prefix limit. Empty input/output are supported; declared output capacity must be nonzero.
+
+Results own copied bytes, state, diagnostics and optional exact raw callback status;
+successful output must explicitly report a size within the supplied capacity. Every failure discards output,
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
+guard. Owning results survive native unload. Unknown statuses/oversized success never
+become success. Consumers release all calls/borrows before host/registry mutation or
+unload; this provides no lifetime lease or automatic in-flight tracking.
+
+The byte SDK exposes no SceneDocument, workspace or renderer objects and performs no
+file IO, history mutation or publication. Declared byte operations confer no actual
+document/IO/GPU permissions. The host separately authorizes native execution, validates
+the operation's document type, parses owning results and rechecks current scope/source/
+writer/recovery/Play state before actual deferred authoring or IO. Capability metadata,
+graphical reference-tool editing/preview/save and missing-backend restoration remain
+separate work. Public C++ consumers rebuild; module graph and persisted formats stay
+unchanged, and Foundation's optional C header adds no Shipping Editor data.
+
 ## Stable revisioned prefab asset foundation
 
 `PrefabAssets` owns exact versioned SceneDocument bytes, an asset UUID/revision, stable node UUIDs
@@ -20,7 +116,8 @@ scene bytes, 16 MiB asset bytes, 4096 nodes, 64 fields/node and 32768 fields/ass
 return no partial asset and never mutate live documents or their history.
 
 Resolve stages an owning unique-asset revision archive, instance scopes and expanded node count.
-Each input asset UUID identifies one exact revision; conflicting revision requirements reject.
+Each input asset UUID/revision pair identifies one exact source; duplicate pairs reject. Distinct
+revisions of the same UUID may coexist in one closure and retain their separate exact references.
 Missing/stale sources, duplicate identities, invalid attachments, base/nested cycles or budgets
 reject the whole result. Base dependency closure does not become a second live instance; repeated
 nested placements have separate instance scopes. Shared base closure is memoized to avoid exponential
@@ -39,6 +136,44 @@ multi-file crash/power-loss journal. No source scene, saved baseline, clipboard 
 Full graphical isolation, stable instance metadata, instantiate/override diff/revert/apply/rebase and
 transactional nested materialization remain separate work; public C++ consumers rebuild, and stable
 C/Gameplay ABI, Runtime prefab compatibility and module dependencies remain unchanged.
+
+## Identity-remapped prefab property candidates
+
+`BuildPrefabPropertySnapshot` validates both wrapped sources, requires identical stable node UUID
+sets and returns an owning complete authoring candidate. Official parsing normalizes supported
+schemas first. Every entity/parent, node, authored Euler and opaque owner ID is remapped to the
+current serialized identity. Source names, sibling order, TRS and complete stored component/unknown
+data survive; the target scene name/persistence are retained. Source base/nested reference metadata
+is not a document property and is not changed by this helper.
+
+The complete output is parsed again before return. Sources must be fully tracked and fit the
+existing prefab 4096-node / 8 MiB scene bounds, including normalized/remapped output. Results borrow
+no files, assets, Worlds or documents and carry no publication authority. The serialized owner
+checks its current PreparedSave and project writer/recovery/Play policy before applying a candidate
+through the atomic property transaction. Planning performs no IO, live changes, baseline or history
+mutation. Structural shape mismatch rejects rather than producing a partial revert. Graphical
+revert, targeted field selection, reference rebase and source publication remain separate work.
+Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
+## Atomic document property snapshots
+
+`SceneDocument::ApplyPropertySnapshot` parses an owning complete authoring source, checks the
+current PreparedSave and requires the exact existing entity/node ID set, scene name and persistence.
+It stages names, authored Euler and unavailable opaque data while preserving current generation
+keys. The existing Runtime atomic snapshot replacement applies hierarchy/order/TRS and complete
+component presence/stored values. It performs no IO, creation/deletion or saved-baseline change.
+Selection and user clipboard/cut state remain intact. Callers serialize owners and enforce current
+project writer, recovery and Play authority; false authorization rejects before mutation.
+
+All document/history storage is prepared before publication. A dedicated immutable owning history
+entry replays the complete Runtime and metadata state as one Undo/Redo, checking the expected current
+document each time. Rejected replay leaves the cursor/content in place. Ordinary Runtime/rename/
+opaque operations retain their independent history cursor. Equivalent snapshots preserve pending
+Redo. Limits are 4096 fully tracked nodes, 8 MiB source/prepared/runtime bytes and 1024-byte UTF-8
+NUL-free names. These are logical per-transaction bounds, not a total history memory quota.
+Successful replacement expires entity and node-name borrows; document pointers and generation
+keys remain valid. Structural additions/deletions and prefab field selection/rebase are separate
+work. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
 
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
@@ -143,6 +278,10 @@ write failure leaves original scene files and dirty baselines unchanged.
   oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
   `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
   `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
+  One index admits at most `kMaximumIndexedAssets` (262,144) files and `kMaximumIndexedPathBytes`
+  (1024) UTF-8 bytes per project-relative path (`AssetIndexLimits` overrides both). The bounds are
+  checked while enumerating, before any sidecar is written; exceeding one fails with an actionable
+  error and leaves the previous index and the project files unchanged.
   Triangulated `.obj` entries additionally retain immutable, shared owning CPU `MeshGeometry`
   snapshots (positions, normals, UVs, uint16 indices, and local bounds). `ImportObjMesh` is a
   synchronous parser with no I/O or publication; workspace jobs invoke it off the UI thread.
@@ -958,6 +1097,15 @@ these additive APIs change no existing class layout, module dependencies or game
 
 ## Scalar PBR material assets
 
+`ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
+at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
+It performs no IO/publication and rejects divergent reflection or invalid scalar data.
+The optional [scalar material native tool](../../Plugins/ScalarMaterial/README.md) uses
+this public codec and `ImportMaterial` for actual bounded Inspect/Edit/Serialize byte
+transformations. Edit's public little-endian wire contract is in `ScalarMaterialTool.h`.
+GPU Preview remains unavailable; host document authorization, scope/source guards,
+Undo and Save/reopen integration remain separate work.
+
 `.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
 from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
 for the source grammar, numeric bounds and persistent UUID-reference bytes. Indexing and reimport
@@ -1272,3 +1420,30 @@ slice installs no files, persists no private keys, makes no network calls and lo
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
+
+## Targeted stable-field prefab property candidates
+
+The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
+pairs. Both complete sources and exact node sets are validated first. A selected identity must be
+known in at least one source; shared property names require matching field identities. Duplicate,
+unknown, mismatched, unsupported reserved metadata or incompatible resulting hierarchy rejects
+the entire owning candidate. Empty selection returns a canonical current-source no-op.
+
+Names, position/rotation/scale groups, authored Euler, parent/sibling groups, complete Camera/Light/
+Mesh presence and stored data, and exact unavailable component records are independently selectable.
+Selected absent-source unknown components are removed; unselected unknown bytes remain intact.
+Inactive component stored values are retained through official canonical Runtime property groups,
+rather than reset through component-disable setters. Typed staged hierarchy commands retain local
+TRS, validate the complete selected parent graph and then apply sibling positions. Unselected
+parent/TRS/component/name data retain their current values; selected moves naturally affect sibling
+indices. Source rotations retain their authored Euler records, while other selections preserve the
+current rotation/Euler. Target scene identity and existing serialized entity IDs remain unchanged.
+
+Supported canonical Runtime version-three record groups are parsed from official serialization;
+changed/unknown record framing fails closed. Document metadata stays owning and opaque records are
+never interpreted as native objects. Final output is officially parsed/prepared again. Existing
+4096-node,32768-selection and8MiB scene/output budgets apply; these are logical budgets, not total
+process/history memory quotas. Planning performs no IO, live edits or history/baseline changes and
+grants no authority. The owner still rechecks its current document/project/source before atomic
+application. Graphical selected-field binding, source apply, structural identity reconciliation and
+reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.

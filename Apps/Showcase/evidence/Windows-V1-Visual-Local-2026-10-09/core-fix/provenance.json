@@ -1,0 +1,29 @@
+{
+  "scope": "Windows GTX 960 local compiler/native-pixel repair; Linux gate pending",
+  "source_base": "720dd5304ee3800f85609cf3cbde2754ccfcb6ab",
+  "canonical_source_sha256": {
+    "Engine/Presentation/shaders/GeneratePbrShaders.py": "092154bbfc763cd5496a59cf792408b62f680f0a1df3a121b71bdb26294f657d",
+    "Engine/Presentation/src/ScenePbrHlslShaders.h": "249843227bf89bb0bac57865f6e3bcc7e23afcb047e70342e2f35d93ff6f87c3",
+    "Tests/WindowPresentation/CMakeLists.txt": "2a32b22b31751df9cadc214bcd038ccfa290abe075108b028429032e7fe8a423",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "1180752bad84a78d67ac8fb798aeab30177f9fa8724c28afb10135bb9360c5cb",
+    "Tests/WindowPresentation/EmbeddedHlslTests.py": "3ed461161bc79fceb194eda50dbbc4face827798699ccfe43d844b9b44514f7d"
+  },
+  "hlsl_source_bytes_unchanged": {
+    "vertex": 6579,
+    "fragment": 34411,
+    "shadow_fragment": 3757
+  },
+  "first_full_ctest": {
+    "total": 99,
+    "passed": 95,
+    "failed": 4
+  },
+  "rechecks": {
+    "courtyard_hero_generation": "PASS",
+    "pose_search_profiles": "PASS",
+    "animation_profiles": "PASS",
+    "dx12_pbr": "PASS"
+  },
+  "linux_gate": "NOT_RUN",
+  "log_normalization": "Trailing whitespace removed for versioned text; original logs remain under build/v1-windows-local-2026-10-09."
+}

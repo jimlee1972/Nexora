@@ -68,11 +68,23 @@ public:
   // Canonical project-owned UUID path. Reads retain no file/document borrows. Publish requires
   // the writer lease and either a missing destination or the exact expected previous revision.
   [[nodiscard]] static std::optional<PrefabAsset> Load(const ProjectWorkspace &, foundation::Uuid);
+  // Reads an immutable retained revision, or the current exact revision if not yet superseded.
+  [[nodiscard]] static std::optional<PrefabAsset> LoadRevision(const ProjectWorkspace &,
+                                                               PrefabRevisionReference);
   static bool Publish(const ProjectWorkspace &, const PrefabAsset &,
                       const PrefabAsset *expected = nullptr, std::string *error = nullptr);
+  // Confirms wrapped publication before advancing only the document's saved baseline. Existing
+  // generation, selection, clipboard and Undo/Redo remain intact. Callers serialize all owners.
+  [[nodiscard]] static std::optional<PrefabAsset>
+  SaveDocument(const ProjectWorkspace &, foundation::Uuid, SceneDocument &,
+               const std::function<foundation::Uuid()> &, const PrefabAsset *previous = nullptr,
+               std::string *error = nullptr);
   // Validates exact revisions and the complete base/nested closure before returning any result.
   // This is resolution metadata, not document-write or native code-loading authority.
   [[nodiscard]] static std::optional<ResolvedPrefabGraph>
   Resolve(PrefabRevisionReference root, std::span<const PrefabAsset> sources);
+  // Bounded exact-revision closure from project storage; returns owning resolution metadata.
+  [[nodiscard]] static std::optional<ResolvedPrefabGraph>
+  ResolveProject(const ProjectWorkspace &, PrefabRevisionReference root);
 };
 } // namespace nexora::editor

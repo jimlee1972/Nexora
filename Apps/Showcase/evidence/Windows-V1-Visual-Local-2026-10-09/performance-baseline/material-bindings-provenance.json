@@ -1,0 +1,11 @@
+{
+  "schema": "nexora.showcase.local-source-evidence.v1",
+  "base_commit": "ab7b4f32c14e261e01045cc2acf1ae3bb45083fd",
+  "sources": {
+    "Engine\\Presentation\\src\\Dx12Surface.cpp": "52fe20d48e53dbd1ef6c6e2ad15d9afb3b5593e6bbd9cbe4569f2162287bcb3d",
+    "Engine\\Presentation\\src\\VulkanSurface.cpp": "e9b7539cee9322c52cb921e2da7bcbdb0d1591644616b208f7f22de6af2405d9"
+  },
+  "benchmark_art": "unchanged pre-concept revision courtyard",
+  "draw_order_and_ranges_preserved": true,
+  "hardware_budget_accepted": false
+}
