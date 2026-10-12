@@ -714,6 +714,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   native Game fixture 涵蓋 query、Editor 資料未變動；詳見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md)。
   Rigid-body／backend stepping、authored collider import 與完整 gameplay／input 仍待完成。
+- ✅ Local BuildProcess merged output 現透過 scope／operation cursor 進入 owning 圖形化
+  Runtime Console。每次 poll 最多消耗 16 KiB raw bytes，escaped chunk 符合 16 KiB record
+  預算；原始位元組遺失與 Console record drop 分開計量。重複／stale snapshot 不重送；
+  shutdown 有界排空 retained bytes，不寫入專案。明確標示接收時間與 scope／operation；
+  輸出只保留於 session，exit zero 仍不代表 artifacts 已驗證。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-BuildConsoleIngress-Linux-2026-10-12.md)。
 - ✅ 點擊 playing Game canvas 現可透過複製的 gameplay input snapshot 路由 user-zero
   WASD／方向鍵位移與 Space／滑鼠／Shift／Ctrl 按鈕。Escape、pointer 離開、隱藏 Game、
   Pause／Stop、提示視窗與 native 失焦會清除擷取及 held state。擷取中的按鍵不會觸發 authoring

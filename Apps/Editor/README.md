@@ -195,6 +195,25 @@ prints bounded producer/retained/drop/gameplay-retained counts for native accept
 This routes actual Core/Play producers, without claiming complete engine/build/device log routing
 or debugger/IDE integration. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-CoreConsole-Linux-2026-10-09.md).
 
+### Scoped build output-to-Console ingress
+
+The native owner forwards its current BuildProcess retained merged stdout/stderr to the same
+Runtime Console. Numeric project scope/operation labels accompany owning ASCII-escaped records;
+all control/non-ASCII bytes are represented exactly as hex escapes. Timestamps identify wall-clock
+receipt time, not producer execution time or stdout/stderr ordering. Output chunks carry Info,
+not inferred severity. Per-frame processing consumes at most 16 KiB raw bytes in four 4096-byte chunks,
+each within the 16 KiB Console message budget; producer loss adds at most one Warning record.
+
+Cumulative retained-byte offsets avoid duplicate forwarding. Missing raw bytes enter a separate
+saturating byte counter and an explicit warning; Console drops remain record counts. New operations
+reset only their cursor. Foreign, detached and stale scope observations are ignored; regressed,
+oversized or overflowing snapshots reject before changing history. Console admission failure
+consumes that chunk once and uses the existing Console rejection counter. Allocation failure leaves
+the current chunk retryable. Shutdown cancels/joins the runner, then drains its at-most 256 KiB
+retained snapshot in bounded passes before Console teardown. Output can contain child-produced
+private data and remains session-only, just like the existing local Build Console; this adapter
+adds no persistence/transmission, command/environment capture, authoring write or artifact claim.
+
 The docked Game panel now controls an isolated `PlaySession`: F5 starts or stops, F6 pauses or
 resumes, and F10 advances one paused fixed tick. The panel inspects copied Play World entity
 positions and tick counts. Stop discards the cloned World; the Editor World is not applied back.

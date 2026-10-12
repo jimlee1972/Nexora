@@ -105,9 +105,14 @@ def main():
         _, error = collect_output(process, 15)
         require(time.monotonic() - close_started < 3.5,
                 "Closing did not cancel/drain the actual running build promptly")
+        captured.extend(error.encode("utf-8"))
         prefix = captured.decode("utf-8", errors="replace")
         print(prefix, end="", flush=True)
         require(process.returncode == 0, "Native build console failed graceful close")
+        match = re.search(r"console build evidence: records=(\d+) consumed_raw_bytes=(\d+) "
+                          r"missing_raw_bytes=(\d+) retained=(\d+)", prefix)
+        require(match is not None and all(int(match[i]) > 0 for i in (1, 2, 4)),
+                "Actual process output did not reach owning Runtime Console records")
         require(not re.search(r"Validation Error\b|(?:VUID-|SYNC-HAZARD-)[A-Za-z0-9_-]+", prefix),
                 "Native build console reported Vulkan validation errors")
         process = None
