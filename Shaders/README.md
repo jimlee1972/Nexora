@@ -51,7 +51,11 @@ smoke-shader coverage when Slang is disabled.
 `Engine/Presentation/shaders/scene_pbr.slang` imports this shared library for actual native
 Presentation draws. Its four explicit tier-1 material maps use hardware sRGB base/emission views;
 +Y normal and ORM are linear. `GeneratePbrShaders.py` uses pinned Slang 2026.18 to embed SPIR-V and HLSL/Metal source,
-with an optional Slang-enabled regeneration check. Native adapters own geometry/material resources
+with an optional Slang-enabled regeneration check. Slang remains the authoring source: HLSL is
+its generated DX12 backend output, which the native adapter compiles through `D3DCompile`.
+Generated HLSL is stored in adjacent C++ raw literals bounded to 8 KiB each for MSVC; concatenation
+preserves every shader-source byte. `window_presentation.hlsl_embedding` checks that bound and
+reproducible storage even without a Slang compiler. Native adapters own geometry/material resources
 and frame lifetimes. Three additional bounded linear resources supply diffuse irradiance,
 roughness-prefiltered latlong specular and the BRDF LUT. Environment coordinates use +Y rotation,
 U wrap/V clamp; the LUT clamps both axes. Material perceptual roughness spans prefilter levels;
