@@ -1,5 +1,60 @@
 # Editor Core contract
 
+## Build artifact byte verification
+
+`BuildFrontend::VerifyArtifacts` synchronously verifies caller-captured owning
+`BuildArtifactInput` values against an exact nonempty schema-one manifest set. It
+requires canonical `sha256:` plus 64 lowercase hexadecimal digits, matching relative
+path identities and exact byte counts. A missing/unavailable SHA-256 backend never
+accepts. Legacy `Validate`/`Write` retain their serialized manifest compatibility;
+writing a manifest alone does not verify its artifacts.
+
+Limits are 64 artifacts, 16 MiB each, 64 MiB total, 1024 UTF-8 bytes per path, 256
+bytes each for profile name/target, 128 for configuration and 32 KiB for command text.
+Empty/ASCII-control-containing/invalid UTF-8 profile text and unsafe relative paths reject.
+All shape and byte budgets are checked before hashing. Inputs and manifest remain
+unchanged, and no file IO, publication, native process or permission grant occurs.
+Calls serialize with caller-owned captures; results certify only those supplied bytes
+at that call, without retained borrows. The caller owns consistent filesystem capture,
+expected target completeness, process outcome, reproducible argv/toolchain/features
+and future publication/deployment. A command string is descriptive and never executed.
+No build-success UI is introduced. Public C++ consumers rebuild; module graph,
+existing wire schema and stable C/Gameplay ABI are unchanged.
+
+## Native tool byte callback SDK
+
+The optional public C `EditorToolAbi.h` defines a separately versioned service table
+for Inspect/Edit/Preview/Serialize byte transformations. It preserves required engine
+plugin ABI and lifecycle schemas. A service registration supplies a readable immutable
+table for its admission; native plugins remain trusted and must obey capacities,
+call-scoped borrows, cooperative draining and the no-throw contract.
+
+`NativeToolInvoker` performs a fresh qualified `PluginHost::FindService` lookup for
+every synchronous owner-thread call. It retains no table, function or native context.
+Wrong-thread/reentrant calls (including another invoker on the same owner thread),
+malformed prefixes/interface/masks/budgets, revoked or
+foreign providers and undeclared operations reject before invocation. The input is
+read-only and at most 64 KiB; output storage is host-owned and capped at 64 KiB, also
+respecting each table's smaller declared limits. Complete shape validation precedes
+allocation/callback work. Future table suffixes are ignored, with a 4096-byte declared
+prefix limit. Empty input/output are supported; declared output capacity must be nonzero.
+
+Results own copied bytes, state, diagnostics and optional exact raw callback status;
+successful output must explicitly report a size within the supplied capacity. Every failure discards output,
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
+guard. Owning results survive native unload. Unknown statuses/oversized success never
+become success. Consumers release all calls/borrows before host/registry mutation or
+unload; this provides no lifetime lease or automatic in-flight tracking.
+
+The byte SDK exposes no SceneDocument, workspace or renderer objects and performs no
+file IO, history mutation or publication. Declared byte operations confer no actual
+document/IO/GPU permissions. The host separately authorizes native execution, validates
+the operation's document type, parses owning results and rechecks current scope/source/
+writer/recovery/Play state before actual deferred authoring or IO. Capability metadata,
+graphical reference-tool editing/preview/save and missing-backend restoration remain
+separate work. Public C++ consumers rebuild; module graph and persisted formats stay
+unchanged, and Foundation's optional C header adds no Shipping Editor data.
+
 ## Stable revisioned prefab asset foundation
 
 `PrefabAssets` owns exact versioned SceneDocument bytes, an asset UUID/revision, stable node UUIDs
@@ -20,7 +75,8 @@ scene bytes, 16 MiB asset bytes, 4096 nodes, 64 fields/node and 32768 fields/ass
 return no partial asset and never mutate live documents or their history.
 
 Resolve stages an owning unique-asset revision archive, instance scopes and expanded node count.
-Each input asset UUID identifies one exact revision; conflicting revision requirements reject.
+Each input asset UUID/revision pair identifies one exact source; duplicate pairs reject. Distinct
+revisions of the same UUID may coexist in one closure and retain their separate exact references.
 Missing/stale sources, duplicate identities, invalid attachments, base/nested cycles or budgets
 reject the whole result. Base dependency closure does not become a second live instance; repeated
 nested placements have separate instance scopes. Shared base closure is memoized to avoid exponential
@@ -72,6 +128,67 @@ before those operations. Destruction of the session during one of its own calls 
 This is the isolation owner, not a graphical panel, stable nested instance materializer, revision
 archive or override/rebase engine. Public C++ consumers rebuild; module dependencies and stable
 C/Gameplay ABI do not change.
+
+Before replacing the current wrapped source, Publish retains its exact committed previous bytes at
+`.nexora/prefabs/revisions/<asset-uuid>/<revision>.nxprefab`. An occupied archive entry must already
+equal those bytes; mismatching, corrupt, aliased, multiply linked and foreign staging paths reject
+without advancing the current source. Current source bytes and workspace authority are rechecked
+after retention. If the final current-file publication fails, the retained old committed revision
+is harmless and no uncommitted future version occupies the next revision identity. An unchanged
+retained entry requires no replacement write. Initial publication still writes only the current file.
+
+`LoadRevision` returns owning validated archived data or, only when the archive entry/ordinary
+parents are absent, the matching current revision. Existing invalid archive evidence never falls
+back to a current source. `ResolveProject` gathers at most 64 exact sources / 64 MiB encoded bytes,
+then performs the same cycle/depth/instance/node checks as Resolve; inspection-only read-only scopes
+work. These are logical data budgets, not a bound on total process memory. History directories are
+ordinary nonsymlink directories; each file keeps the existing 16 MiB and single-link read bounds.
+Calls serialize with all project publication and owners; returned graphs borrow no files/documents.
+
+History is retained when a committed revision is superseded, so previously overwritten legacy
+revisions cannot be reconstructed. No automatic pruning or total disk quota is introduced: retained
+sources may still be referenced by variants/nested graphs. The archive/current writes form an
+ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
+override/rebase, nested materialization, journaling and retention policy remain separate work.
+
+## Stable prefab revision comparison
+
+`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
+node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
+Official scene parsing and bounded field snapshots retain component presence/stored values,
+authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
+instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
+are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
+Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
+
+The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
+4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
+opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
+Sources and authoring owners serialize during capture; results borrow no asset/document/World.
+The comparison performs no file IO, interpretation of unavailable native components, live mutation,
+Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
+separate structural validation before any future revert/apply/rebase. Graphical bindings and
+transactional override publication remain separate work; public C++ consumers rebuild.
+
+## Atomic document property snapshots
+
+`SceneDocument::ApplyPropertySnapshot` parses an owning complete authoring source, checks the
+current PreparedSave and requires the exact existing entity/node ID set, scene name and persistence.
+It stages names, authored Euler and unavailable opaque data while preserving current generation
+keys. The existing Runtime atomic snapshot replacement applies hierarchy/order/TRS and complete
+component presence/stored values. It performs no IO, creation/deletion or saved-baseline change.
+Selection and user clipboard/cut state remain intact. Callers serialize owners and enforce current
+project writer, recovery and Play authority; false authorization rejects before mutation.
+
+All document/history storage is prepared before publication. A dedicated immutable owning history
+entry replays the complete Runtime and metadata state as one Undo/Redo, checking the expected current
+document each time. Rejected replay leaves the cursor/content in place. Ordinary Runtime/rename/
+opaque operations retain their independent history cursor. Equivalent snapshots preserve pending
+Redo. Limits are 4096 fully tracked nodes, 8 MiB source/prepared/runtime bytes and 1024-byte UTF-8
+NUL-free names. These are logical per-transaction bounds, not a total history memory quota.
+Successful replacement expires entity and node-name borrows; document pointers and generation
+keys remain valid. Structural additions/deletions and prefab field selection/rebase are separate
+work. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
 
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant

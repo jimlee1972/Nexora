@@ -196,6 +196,7 @@ public:
   [[nodiscard]] std::span<const Id> LastDestroyed() const noexcept { return last_destroyed_; }
 
 private:
+  friend class SceneEditor;
   struct Command final {
     enum class Kind { Transform, Parent, SiblingIndex, Camera, Light, MeshRenderer, Destroy };
     Id entity{};
@@ -207,6 +208,8 @@ private:
     std::optional<CameraComponent> camera;
     std::optional<LightComponent> light;
     std::optional<MeshComponent> mesh;
+    // Editor history can restore dormant stored data independently of component presence.
+    bool component_present{true};
   };
   std::vector<Command> commands_;
   std::vector<Id> last_destroyed_;

@@ -255,6 +255,11 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Linux native Scene Preview rotation Save acceptance now retains one physical keyboard
+  gesture across rendered release/modifier/key phases. Three cold workflows and the affected
+  253-test graphical suite preserve existing preview/commit/Undo/scale/reopen assertions and
+  deadlines. [Input evidence](../../Tools/Build/evidence/EditorEDM0-ScenePreviewSaveInput-Linux-2026-10-10.md).
+
 - ✅ Scalar opaque PBR `.nmaterial` assets now import/reimport as bounded immutable typed data,
   with 64 KiB sources, 4096-asset/Content Undo budgets and canonical Renderer-schema validation.
   Single-object Inspector assignment uses a versioned owning opaque UUID reference, one Undo and
@@ -425,6 +430,12 @@ creates property widgets; unknown components retain raw data instead of being si
   unsubmitted drafts and Scene gestures; workspace/modal gates apply. Portable and 1x/2x real UI
   input tests cover metadata-only Undo, mixed presence, unrelated payloads and save/reload.
   Complete reflected Inspector and target-host acceptance remain open.
+
+- ✅ Camera/Light/Mesh presence-edit Undo now restores both the original flag and every stored
+  value, including nondefault inactive lens/intensity and full-width mesh/shader references.
+  Mixed batches retain exact bytes across 40 Undo/Redo cycles per component; no-op/invalid/stale
+  inputs preserve history and failed replay retains its cursor. Full Linux 240/240 and Minimal
+  Shipping pass. [Linux evidence](../../Tools/Build/evidence/EditorEDM2-DormantComponentHistory-Linux-2026-10-10.md).
 
 - ✅ Camera and Light Inspector fields now support multi-selection with mixed presence/value states.
   Enabling a mixed component adds it to missing entities while preserving existing values; Enter applies
@@ -768,15 +779,38 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Graphical prefab isolation is validated: create/open/variant/save/reopen use a separate
+    native document, with hierarchy, name/position edits, Undo/Redo and dirty-close protection.
+    Read-only inspection preserves project files. Accepted-owner integration passes full Linux
+    242/242 and Minimal Shipping; phased native shortcuts retain exact additive ownership assertions.
+    Nested materialization and override/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md).
   - ✅ Prefab isolation owner is validated: project-scoped create/open/variant/save/reopen use a
     separate World and document, retaining unknown bytes and original scene history. Dirty replacement,
     read-only writes, stale scope/revision and reentrant identity callbacks reject. Graphical binding,
     nested materialization, historical revision access and override/rebase remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
+
+  - ✅ Prefab revision retention is validated: superseded committed sources remain available by
+    exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.
+    Archive conflicts preserve current sources; failed current writes do not occupy future revisions.
+    Graphical rebase/nested materialization and power-loss journaling remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md).
   - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
     only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
     Current source/project and expected asset revision are rechecked; graphical isolation remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md).
+
+  - ✅ Stable prefab three-way comparison is validated: node/field UUID paths, stable parent
+    references, unknown payloads and nested metadata remain independent of serialized Runtime IDs.
+    Graphical override/revert/apply/rebase and structurally validated publication remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md).
+
+  - ✅ Atomic same-identity document property snapshots are validated: complete mixed metadata,
+    hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
+    clipboard and baseline. Latest Main integration passes full Linux 241/241 and Minimal Shipping.
+    Structural changes and graphical prefab revert/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
@@ -865,6 +899,19 @@ creates property widgets; unknown components retain raw data instead of being si
     Reviewed merge publication, provider integration and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ The optional versioned native byte-callback SDK now executes actual loaded tool services
+    through fresh qualified lookups, with owning outcomes and 64 KiB input/output limits.
+    Wrong-thread/reentrant, malformed, revoked and foreign calls reject; invalid success lengths
+    and failed callbacks discard output. Fourteen compiled native fixtures plus a C consumer prove
+    the supporting contract. Host document/IO authorization and graphical reference-tool
+    edit/preview/save/unload acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md).
+  - ✅ Qualified native service lookup now checks the exact loaded plugin admission and owned
+    provider identity, including copied registries, same-name reload and same numeric IDs across
+    hosts. Manual replacements and revoked/pending/restart-required providers reject. Results
+    remain owner-thread borrows; consumers release them before mutation/unload. This grants no
+    operation authority or lifetime lease; graphical callbacks and reference-tool acceptance remain
+    open. [Linux evidence](../../Tools/Build/evidence/EditorEDM5-QualifiedPluginServices-Linux-2026-10-10.md).
   - ✅ UI-neutral specialized-tool metadata now owns schema/interface versions, provider IDs,
     declared permissions, document/contribution identities and bounded resource declarations.
     Invalid/oversized admission preserves existing registry state; owning snapshots survive removal.
@@ -1027,6 +1074,15 @@ creates property widgets; unknown components retain raw data instead of being si
     and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectUpgradePreview-Linux-2026-10-10.md).
 
+
+  - ✅ SignedExtensionHost now verifies canonical signed identity/version/ABI/target/permission/
+    dependency manifests and the actual artifact SHA-256 before native loading. Current trust/policy
+    revisions are rechecked; Linux uses exact owning sealed memfd images with unique live identities,
+    bounded admissions and cooperative revoke/unload. Real constructor fixtures prove denied
+    admissions do not initialize; two distinct images, mutation rejection and lifetime limits pass.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-SignedNativeAdmission-Linux-2026-10-10.md)
+    documents trusted in-process limits and post-admission dishonest-binary ABI detection.
+    Graphical installation/recovery, native crash isolation and other-platform staging remain open.
   - ✅ ExtensionTrust now verifies actual pure Ed25519 signatures over bounded immutable artifact
     bytes through an optional Cryptography module backed by vetted OpenSSL >=3.0, then returns an
     owning SHA-256 digest and trust revision. Unknown publishers, tampering, malformed/over-budget
@@ -1034,8 +1090,8 @@ creates property widgets; unknown components retain raw data instead of being si
     rotation/revocation, independent RFC8032/SHA-256 vectors, exact 64 MiB input and explicit NONE
     backend tests pass. Native AUTO can select OpenSSL; cross-compiling requires an explicit target
     package/backend and otherwise rejects verification. No keys are downloaded or enrolled by an
-    artifact. This prerequisite does not enforce the native loader: signed manifests, immutable
-    staging, installation/permission/dependency checks and pre-load enforcement remain open.
+    artifact. This verifier remains a prerequisite; the separate SignedExtensionHost slice above
+    supplies canonical manifest/immutable native admission. Graphical installation remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ExtensionSignature-Linux-2026-10-10.md).
   - ✅ Linux native center-gesture acceptance now repeats only Save while observing committed bytes
     inside the original deadline, retaining exact transform/saved-byte and one-step Undo assertions.
@@ -1081,7 +1137,7 @@ creates property widgets; unknown components retain raw data instead of being si
     project/close/restart reset. The built-in producer records only a fixed frame-presented label;
     unknown event text is excluded from display. Actual 1x/2x widget and Xvfb keyboard workflows
     preserve read-only source bytes. No diagnostic storage or network transport is installed;
-    signed-extension verification and persistence/transmission policy remain open.
+    graphical signed-package management and persistence/transmission policy remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.
