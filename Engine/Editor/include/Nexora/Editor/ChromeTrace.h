@@ -34,8 +34,9 @@ public:
   // Serialized read-only planning. Wrapped traceEvents objects and bare event arrays are
   // supported; X and synchronous B/E events use Chrome microsecond timestamps/durations.
   // Selected-thread B/E scopes must be balanced, ordered and LIFO; newest retention uses begin
-  // order. Nestable async b/e uses process-local id2.local/category/scope with cross-thread ends;
-  // selection uses the begin thread/name. global id/id2.global and legacy S/F are unsupported.
+  // order. Nestable async b/e supports id2.local and global id/id2.global, category/scope pairing
+  // and cross-thread/process global ends. Selection uses the begin process/thread/name.
+  // Local/global and numeric/string identities stay separate. Legacy S/F is unsupported.
   // Unknown JSON metadata is validated and skipped within bounds. No IO or live capture
   // mutation.
   [[nodiscard]] static std::optional<ChromeTraceCapture>

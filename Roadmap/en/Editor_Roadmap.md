@@ -132,6 +132,14 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
   180 seconds. This strengthens the cloud gate without accepting a physical Editor milestone.
   [Evidence](../../Tools/Build/evidence/EditorEDM0-LinuxAnimationHandshake-2026-10-09.md).
 
+- ✅ Latest-main Editor integration now deduplicates the native tool C ABI/callback targets and
+  retains all fourteen fixture modes, restores four existing prefab implementation sources and
+  three accepted tests, and makes the public ImGui header include its PluginManager types again.
+  Accepted Chrome/build-artifact/native SDK/targeted-prefab contracts are retained alongside new
+  prefab workflows. Assertions/deadlines stay intact; Development and Shipping validation is
+  recorded in [integration evidence](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md).
+  This repair does not accept physical-host or graphical milestones.
+
 - ✅ The existing prefab UI fixture is registered again, restoring the mandatory three-test
   document/UI/native isolation CI gate. Editor test-geometry hooks use the established MSVC CRT
   compatibility definition without relaxing `/WX` or other targets. The triggering hosted failure
@@ -951,19 +959,26 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ External Chrome global async import now aliases legacy id with id2.global and pairs
+    cross-process/thread ends. Begin process/thread/name selection, local/global separation,
+    global nesting across nonselected processes, typed ID/category/scope isolation, shared
+    128-open capacity and evicted-begin safety pass Core, read-only project IO and actual
+    1x/2x mixed-event import controls. Inclusive latency remains externally sourced; legacy S/F,
+    exclusive/self time, other formats and physical calibration remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md).
   - ✅ External Chrome import now pairs bounded nestable async b/e with process-local id2.local IDs,
     category/scope identity and cross-thread ends. Selection uses the begin thread/name; shared
     128-open LIFO pairing, mixed X/B/E/b/e begin order, newest600/drop counts, Unicode identity,
     evicted-begin safety and malformed/unbalanced rejection are covered by Core, read-only IO
     and actual 1x/2x controls. Elapsed inclusive latency does not infer CPU execution or GPU/memory.
-    Global id/id2.global, legacy S/F pairing, other formats and physical calibration remain open.
+    Legacy S/F pairing, other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeAsyncPairs-Linux-2026-10-12.md).
   - ✅ External Chrome import now supports synchronous B/E duration scopes alongside X events.
     Bounded selected-thread LIFO pairing preserves nested same-name and mixed-event begin order,
     inclusive external durations, newest600/drop counts and evicted-begin safety. Unclosed,
     mismatched, backward or over-capacity scopes reject without changing prior captures/files/live
     profiles; read-only project IO and actual 1x/2x Profiler import controls are covered.
-    Legacy async S/F, global id/id2.global, exclusive/self time, other formats and physical calibration remain open.
+    Legacy async S/F, exclusive/self time, other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
   - ✅ External Chrome trace inspection is validated: explicit event/process/thread selection,
     bounded Unicode JSON, external clock/duration units, newest600/drop counts and independent

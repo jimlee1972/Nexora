@@ -1,5 +1,74 @@
 # Editor Core contract
 
+## External Chrome duration import
+
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`
+and nestable async `b/e` duration events, selected by exact process/begin-thread/event name. Timestamps keep the external
+microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
+Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
+600-sample, Unicode/JSON and metadata bounds.
+
+On the selected thread, every B requires a name and timestamp; every E requires a timestamp
+and closes the most recent B. An optional end name must match. Nonmatching event names still
+participate in pairing so a nested scope cannot close its parent accidentally. At most 128
+synchronous plus async scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
+threads do not share the stack. Valid zero durations remain zero. Legacy async `S/T/F`, instant
+`n` and other phases remain validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
+previously skipped, now reject the whole import if malformed or unbalanced.
+
+Nestable async `b/e` events require name, process, thread and timestamp, with no `dur`.
+Identity is exactly one legacy `id` or an `id2` object containing exactly one `local` or
+`global` key. Legacy `id` and `id2.global` share a global namespace and may pair across
+processes/threads. `id2.local` belongs to the selected process; unrelated process-local values
+remain opaque validated metadata and never participate. Local and global namespaces stay
+separate even when their ID/category/scope text matches. Each namespace uses ID type/value
+plus `cat` and `scope`; omitted category/scope are empty. Numeric IDs are exact nonnegative
+integers through 2^53-1; string IDs are nonempty decoded UTF-8 up to 256 bytes. Numeric 1 and
+string "1" are separate. Category/scope must be strings of at most 256 decoded bytes for
+participating intervals. Mixed id/id2, empty/ambiguous/unknown id2 members reject.
+
+Only begins on the selected process/thread with the exact selected name produce samples.
+All global b/e on all processes and all local b/e on the selected process participate,
+including nonselected names/threads/processes, so nesting cannot close a selected parent
+accidentally. Each identity is LIFO with matching end names and nondecreasing timestamps
+while open; independent IDs can finish in any order. All participating scopes must close,
+and the shared 128-open budget includes synchronous scopes. Malformed recognized global
+b/e on any process or participating local b/e reject the whole import. Previously skipped
+global events on other processes now participate and must pair; ordinary unrelated local
+metadata remains skipped. Legacy `S/T/F` pairing remains unsupported.
+This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
+
+Selected begins reserve their sample sequence and position immediately. End events complete
+that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
+overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
+mixed X/B/E/b/e records and nested same-name scopes. Pending intervals never escape a failed import.
+This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
+
+`ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
+admission and actual byte bounds. Failure does not publish or alter source files, prior captures
+or live measurements. Persisted Editor schemas, C ABI and product linkage are unchanged.
+
+## Build artifact byte verification
+
+`BuildFrontend::VerifyArtifacts` synchronously verifies caller-captured owning
+`BuildArtifactInput` values against an exact nonempty schema-one manifest set. It
+requires canonical `sha256:` plus 64 lowercase hexadecimal digits, matching relative
+path identities and exact byte counts. A missing/unavailable SHA-256 backend never
+accepts. Legacy `Validate`/`Write` retain their serialized manifest compatibility;
+writing a manifest alone does not verify its artifacts.
+
+Limits are 64 artifacts, 16 MiB each, 64 MiB total, 1024 UTF-8 bytes per path, 256
+bytes each for profile name/target, 128 for configuration and 32 KiB for command text.
+Empty/ASCII-control-containing/invalid UTF-8 profile text and unsafe relative paths reject.
+All shape and byte budgets are checked before hashing. Inputs and manifest remain
+unchanged, and no file IO, publication, native process or permission grant occurs.
+Calls serialize with caller-owned captures; results certify only those supplied bytes
+at that call, without retained borrows. The caller owns consistent filesystem capture,
+expected target completeness, process outcome, reproducible argv/toolchain/features
+and future publication/deployment. A command string is descriptive and never executed.
+No build-success UI is introduced. Public C++ consumers rebuild; module graph,
+existing wire schema and stable C/Gameplay ABI are unchanged.
+
 ## Native tool byte callback SDK
 
 The optional public C `EditorToolAbi.h` defines a separately versioned service table
@@ -20,7 +89,7 @@ prefix limit. Empty input/output are supported; declared output capacity must be
 
 Results own copied bytes, state, diagnostics and optional exact raw callback status;
 successful output must explicitly report a size within the supplied capacity. Every failure discards output,
-and unexpected callback exceptions reject without escaping the wrapper or retaining its busy
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
 guard. Owning results survive native unload. Unknown statuses/oversized success never
 become success. Consumers release all calls/borrows before host/registry mutation or
 unload; this provides no lifetime lease or automatic in-flight tracking.
@@ -34,28 +103,122 @@ graphical reference-tool editing/preview/save and missing-backend restoration re
 separate work. Public C++ consumers rebuild; module graph and persisted formats stay
 unchanged, and Foundation's optional C header adds no Shipping Editor data.
 
-## Signed tool invocation bridge
 
-`SignedExtensionHost::InvokeTool` checks the invoker's construction-thread and shared
-nonreentrancy context before reading signed admission or registry state. The serialized
-owner supplies an admission ID and service registry; the exact retained signed image
-must still have an owned descriptor and current trust/policy revisions. Trust changes
-reject immediately without requiring prior shutdown polling; restoring a key does not
-revive an observation captured under an older revision. Invocation itself performs no
-load, poll, revoke or lifecycle mutation.
+## Targeted stable-field prefab property candidates
 
-The bridge then delegates to the existing fresh provider-qualified `NativeToolInvoker`,
-which rejects revoked/pending/restart-required, foreign or manually replaced providers
-and returns owning bounded bytes. The private low-level PluginHost is never exposed.
-Hosts serialize trust/registry/admission access with owner calls and drain all calls
-before mutation/unload; this adds no lifetime lease or automatic in-flight tracking.
+The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
+pairs. Both complete sources and exact node sets are validated first. A selected identity must be
+known in at least one source; shared property names require matching field identities. Duplicate,
+unknown, mismatched, unsupported reserved metadata or incompatible resulting hierarchy rejects
+the entire owning candidate. Empty selection returns a canonical current-source no-op.
 
-The bridge grants no document, IO or GPU authority and does not attach contributions to
-the graphical manager. Native execution remains trusted. Callers must independently
-validate document type, parse owning candidates and recheck current workspace/source/
-writer/recovery/Play state before authoring or Save. Required C ABI, module graph,
-persisted schemas and existing class data layout are unchanged; C++ consumers rebuild.
-Graphical material reference-tool integration and target-platform admission remain separate.
+Names, position/rotation/scale groups, authored Euler, parent/sibling groups, complete Camera/Light/
+Mesh presence and stored data, and exact unavailable component records are independently selectable.
+Selected absent-source unknown components are removed; unselected unknown bytes remain intact.
+Inactive component stored values are retained through official canonical Runtime property groups,
+rather than reset through component-disable setters. Typed staged hierarchy commands retain local
+TRS, validate the complete selected parent graph and then apply sibling positions. Unselected
+parent/TRS/component/name data retain their current values; selected moves naturally affect sibling
+indices. Source rotations retain their authored Euler records, while other selections preserve the
+current rotation/Euler. Target scene identity and existing serialized entity IDs remain unchanged.
+
+Supported canonical Runtime version-three record groups are parsed from official serialization;
+changed/unknown record framing fails closed. Document metadata stays owning and opaque records are
+never interpreted as native objects. Final output is officially parsed/prepared again. Existing
+4096-node,32768-selection and8MiB scene/output budgets apply; these are logical budgets, not total
+process/history memory quotas. Planning performs no IO, live edits or history/baseline changes and
+grants no authority. The owner still rechecks its current document/project/source before atomic
+application. Graphical selected-field binding, source apply, structural identity reconciliation and
+reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+
+## Reviewed live prefab source rebase
+
+`PrefabPlacementRebase::Prepare` explicitly reads the exact retained and newer current source
+closures and captures an immutable owning three-way review. Read-only projects can inspect.
+Stable scoped node/property identity, dependency references and parent structure must remain
+unchanged. Structural additions/deletions, changed nested/base references and incompatible sources
+reject the entire review. Rendering must not call preparation or source IO implicitly.
+
+Rows compare retained, local and published values in complete name, position, rotation with authored
+Euler presence, scale, Camera/Light/Mesh presence and dormant values, or opaque-type name/bytes
+groups. Source-only changes apply automatically; local-only changes and identical edits survive.
+Different local and source edits to one group require an explicit KeepLocal or TakeSource choice.
+Different lanes of the same group still conflict. Unknown locally added components survive without
+fabricated stable source UUIDs. Repeated nested node UUIDs retain their distinct exact scope.
+
+`Resolve` is a pure computation against an owning immutable review. Indices identify actual conflict
+rows only; duplicate, out-of-range, nonconflict and invalid decisions reject. Unresolved choices
+produce no applicable candidate. Row borrows expire with the last owning review. A resolved candidate
+does not authorize a write. `Apply` repeats current writer, project, target and both source-closure
+observations before one `ApplyPrefabPlacementSnapshot` transaction. Stale or replaced publications,
+missing/tampered archives, recovery/external changes and unauthorized/read-only inputs reject.
+The caller serializes authoring owners and repeats current selection, Play and modal consent policy.
+
+One Undo/Redo restores complete properties and retained revision together. Stable live generation
+keys, selection, clipboard, unbound values and saved baseline survive. No source or scene file is
+written; explicit Scene Save persists the result. Source snapshots/candidates fit 8 MiB/4096 nodes;
+semantic snapshots fit 4 MiB with 64 KiB individual values; reports fit 32768 groups/16 MiB logical
+data. These limits do not certify total process memory or production-scale performance. Graphical
+conflict choices, structural reconciliation and apply-to-source remain separate work. Public C++
+consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+## Owning live prefab instance property review
+
+`PrefabPlacementOverrides::Prepare` owns a validated placement inspection and explicitly
+materializes its complete exact retained nested closure in a temporary World/document. It translates
+scoped source node identities to live generation keys before comparing semantic name, TRS, authored
+Euler, component presence/stored values and opaque name/bytes. Retained source property UUIDs accompany
+individual semantic lanes. Newly added local opaque fields have no fabricated retained property UUID.
+Parent differences are explicitly structural; absolute sibling indices and scene-global fields are
+excluded. This read-only review does not authorize structural reconciliation or writes.
+Drawing must not call it implicitly; apply and rebase remain separate operations.
+
+Read-only scopes can review. Missing/corrupt/incompatible retained sources, stale node/target/project,
+recovery/external changes and budgets return no partial review. Exact owning source/target scope is
+rechecked after preparation; `Matches` repeats it before consuming a captured review. Caller serializes
+authoring owners and repeats current selection/Play/modal policy. No file publication, saved-baseline,
+selection, clipboard, Undo or Redo mutation occurs. Row span borrows expire with their owning review.
+
+Whole-scene semantic comparison budgets apply: each input fits 8 MiB/4096 entities, snapshot fits
+4 MiB, and individual value fits 64 KiB (opaque payload hex consumes twice its byte size). Reports
+retain at most 32768 changed rows/16 MiB of logical field/scope/value data. Rejection preserves large
+uninterpreted data, rather than silently omitting it. These logical budgets do not limit total
+temporary World/container/process memory or claim large-scene review performance. Module dependencies
+and stable C/Gameplay ABI remain unchanged; public C++ consumers rebuild.
+
+`PrefabPlacementOverrides::Revert` consumes that immutable current review with an explicit host
+authoring authorization and the current project writer. It restores the entire placement's
+supported properties from its exact retained nested closure, even when a newer root is published.
+Any structural parent difference rejects the entire operation. Source materialization and target
+reconstruction happen in temporary Worlds/documents. Authoring names, Euler hints and exact opaque
+bytes come from the retained source; canonical version-3 Runtime property records transfer TRS,
+presence flags and every stored Camera/Light/Mesh value, including dormant nondefault values.
+These records consume only bounded `World::SaveScene` output, not arbitrary external input; schema
+changes reject. Live IDs, parent relationships, sibling order, generations and placement bindings
+remain target-owned. Source and target snapshots each fit the existing 8 MiB/4096-entity budget.
+
+Immediately before one `ApplyPropertySnapshot` publication, the writer, exact retained/current
+sources and complete target observation are rechecked. Failure publishes no partial live state.
+One Undo/Redo restores the entire transaction; selection, clipboard and the scene's saved baseline
+remain intact. A semantic no-op preserves pending Redo. Neither source nor scene files are written;
+ordinary explicit Scene Save persists the result. The caller serializes authoring operations and
+repeats current Play, modal and selected-document policy when supplying authorization. Read-only,
+foreign/stale, recovery/external-change, missing/changed source and unsupported structural inputs
+reject. These Core operations do not implement graphical confirmation or structural
+reconciliation, apply-to-source or source rebase.
+
+`RevertSelected` borrows row indices only during its serialized call. Indices identify rows in
+the same immutable owning review; duplicates, out-of-range indices and unsupported/structural
+review state reject atomically. Selected semantic lanes expand to complete scoped canonical
+property groups: name, position, rotation including Euler hints, scale, complete Camera/Light/Mesh
+presence and stored values, or an opaque type's name/bytes. Distinct selected rows in the same
+property group coalesce; selecting an added local opaque field removes that whole source-absent
+component without inventing a retained property UUID. Source-to-live scoped identity is resolved
+from the captured complete closure. Unselected groups and other nodes retain their local values.
+The generated canonical Runtime3 record bridge requires exactly19 property tokens and rejects
+schema changes. Writer/source/target validation, byte/entity budgets, one Undo/Redo, no file writes
+and saved-baseline guarantees are the same as whole-instance Revert. An empty valid selection is
+a no-op that preserves Redo. Targeted graphical selection remains separate.
 
 ## Stable revisioned prefab asset foundation
 
