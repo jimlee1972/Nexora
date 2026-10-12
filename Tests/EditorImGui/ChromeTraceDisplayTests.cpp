@@ -75,13 +75,16 @@ void Run(float scale) {
     std::ofstream output(trace_path);
     output << R"([{"ph":"B","name":"Frame","pid":0,"tid":0,"ts":100},)"
               R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":200,"dur":0},)"
+              R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":300,"id2":{"local":"job"}},)"
+              R"({"ph":"e","name":"Frame","pid":0,"tid":9,"ts":800,"id2":{"local":"job"}},)"
               R"({"ph":"E","pid":0,"tid":0,"ts":1350}])";
   }
   auto loaded = first.ImportChromeTraceJson(request->selection);
-  Require(loaded && loaded->samples.size() == 2 &&
-              loaded->samples[0].duration_milliseconds == 1.25 &&
-              loaded->samples[1].duration_milliseconds == 0,
-          "Actual selected project import did not pair synchronous Chrome duration scopes");
+  Require(
+      loaded && loaded->samples.size() == 3 && loaded->samples[0].duration_milliseconds == 1.25 &&
+          loaded->samples[1].duration_milliseconds == 0 &&
+          loaded->samples[2].duration_milliseconds == .5,
+      "Actual selected project import did not pair mixed synchronous/async Chrome duration scopes");
   const auto capture = *loaded;
   Require(host.SetImportedChromeTrace(capture), "Valid external static publication failed");
   auto copy = capture;

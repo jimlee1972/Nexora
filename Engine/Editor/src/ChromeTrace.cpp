@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <charconv>
 #include <cmath>
+#include <iterator>
 #include <unordered_set>
 #include <utility>
 
@@ -36,7 +37,8 @@ public:
                })) {
       return {};
     }
-    if (!events || !End() || !open_scopes_.empty() || capture_.samples.empty())
+    if (!events || !End() || !open_scopes_.empty() || !async_scopes_.empty() ||
+        capture_.samples.empty())
       return {};
     if (capture_.samples.size() == ChromeTraceImporter::kMaximumSamples && next_)
       std::rotate(capture_.samples.begin(), capture_.samples.begin() + next_,
@@ -218,6 +220,8 @@ private:
   }
   bool Event() {
     std::string phase, name;
+    std::string_view id_token, category_token, scope_token;
+    std::string_view id2_token;
     std::uint64_t process{}, thread{};
     double start{}, duration{};
     unsigned seen{};
@@ -238,10 +242,95 @@ private:
             seen |= key == "ts" ? 16 : 32;
             return Time(key == "ts" ? start : duration);
           }
+          if (key == "id" || key == "id2" || key == "cat" || key == "scope") {
+            Space();
+            const auto before = remaining_;
+            if (!Skip(2))
+              return false;
+            auto &token = key == "id"    ? id_token
+                          : key == "id2" ? id2_token
+                          : key == "cat" ? category_token
+                                         : scope_token;
+            token = before.substr(0, before.size() - remaining_.size());
+            return true;
+          }
           return Skip(2);
         }) ||
         !(seen & 1))
       return false;
+    if (phase == "b" || phase == "e") {
+      if ((seen & 31) != 31 || (seen & 32))
+        return false;
+      if (process != capture_.selection.process)
+        return true;
+      // Decode identity only for supported async events. Existing X/B/E metadata remains opaque.
+      const auto tail = remaining_;
+      AsyncIdentity identity;
+      remaining_ = id2_token;
+      bool local = false;
+      if (!id_token.empty() || !Members([&](const std::string &key) {
+            if (key != "local")
+              return false;
+            local = true;
+            Space();
+            identity.numeric = !remaining_.starts_with('"');
+            if (identity.numeric) {
+              std::uint64_t value{};
+              if (!Identity(value))
+                return false;
+              identity.id = std::to_string(value);
+            } else {
+              auto value = ReadString();
+              if (!value || value->empty() || value->size() > 256)
+                return false;
+              identity.id = std::move(*value);
+            }
+            return true;
+          }) ||
+          !local || !End())
+        return false;
+      const auto text = [&](std::string_view token, std::string &value) {
+        if (token.empty())
+          return true;
+        remaining_ = token;
+        auto decoded = ReadString();
+        if (!decoded || decoded->size() > 256 || !End())
+          return false;
+        value = std::move(*decoded);
+        return true;
+      };
+      if (!text(category_token, identity.category) || !text(scope_token, identity.scope))
+        return false;
+      remaining_ = tail;
+      const auto previous =
+          std::find_if(async_scopes_.rbegin(), async_scopes_.rend(),
+                       [&](const auto &scope) { return scope.identity == identity; });
+      if (previous != async_scopes_.rend() && start < previous->last_time)
+        return false;
+      if (phase == "b") {
+        if (open_scopes_.size() + async_scopes_.size() == ChromeTraceImporter::kMaximumOpenScopes)
+          return false;
+        const bool selected =
+            thread == capture_.selection.thread && name == capture_.selection.event_name;
+        if (selected && !Sample(start, 0))
+          return false;
+        async_scopes_.push_back(
+            {std::move(identity), {std::move(name), start, selected ? selected_ : 0}, start});
+        return true;
+      }
+      // Nesting is LIFO per identity; independent IDs may finish in any order and on any thread.
+      const auto begin = previous;
+      if (begin == async_scopes_.rend() || begin->scope.name != name || start < begin->scope.start)
+        return false;
+      Complete(begin->scope, start);
+      async_scopes_.erase(std::next(begin).base());
+      const auto parent =
+          std::find_if(async_scopes_.rbegin(), async_scopes_.rend(),
+                       [&](const auto &scope) { return scope.identity == identity; });
+      if (parent != async_scopes_.rend())
+        parent->last_time = start;
+      return true;
+    }
     if (phase != "X" && phase != "B" && phase != "E")
       return true;
     if ((phase == "X" && (seen != 63 || duration > maximum_exact_integer - start)) ||
@@ -255,7 +344,7 @@ private:
       return false;
     scope_time_ = start;
     if (phase == "B") {
-      if (open_scopes_.size() == ChromeTraceImporter::kMaximumOpenScopes)
+      if (open_scopes_.size() + async_scopes_.size() == ChromeTraceImporter::kMaximumOpenScopes)
         return false;
       const bool selected = name == capture_.selection.event_name;
       if (selected && !Sample(start, 0))
@@ -268,14 +357,32 @@ private:
     const auto &begin = open_scopes_.back();
     if (((seen & 2) && name != begin.name) || start < begin.start)
       return false;
+    Complete(begin, start);
+    open_scopes_.pop_back();
+    return true;
+  }
+  struct OpenScope final {
+    std::string name;
+    double start;
+    std::uint64_t sequence;
+  };
+  struct AsyncIdentity final {
+    std::string id, category, scope;
+    bool numeric{};
+    bool operator==(const AsyncIdentity &) const = default;
+  };
+  struct AsyncScope final {
+    AsyncIdentity identity;
+    OpenScope scope;
+    double last_time;
+  };
+  void Complete(const OpenScope &begin, double start) {
     if (begin.sequence) {
       auto &sample = capture_.samples[(begin.sequence - 1) % ChromeTraceImporter::kMaximumSamples];
       // The begin can be evicted before its end; never overwrite the newer occupant of that slot.
       if (sample.sequence == begin.sequence)
         sample.duration_milliseconds = (start - begin.start) / 1000.0;
     }
-    open_scopes_.pop_back();
-    return true;
   }
   bool Events() {
     if (!Literal("["))
@@ -296,12 +403,8 @@ private:
   std::uint64_t selected_{};
   std::size_t events_{}, next_{};
   double previous_start_{};
-  struct OpenScope final {
-    std::string name;
-    double start;
-    std::uint64_t sequence;
-  };
   std::vector<OpenScope> open_scopes_;
+  std::vector<AsyncScope> async_scopes_;
   std::optional<double> scope_time_;
 };
 } // namespace

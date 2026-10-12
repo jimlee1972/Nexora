@@ -1,9 +1,9 @@
 # Editor Core contract
 
-## External Chrome synchronous duration import
+## External Chrome duration import
 
-`ChromeTraceImporter` owns intervals from Chrome `X` complete events and synchronous `B/E`
-duration events, selected by exact process/thread/event name. Timestamps keep the external
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`
+and nestable async `b/e` duration events, selected by exact process/begin-thread/event name. Timestamps keep the external
 microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
 Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
 600-sample, Unicode/JSON and metadata bounds.
@@ -11,15 +11,30 @@ Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 3
 On the selected thread, every B requires a name and timestamp; every E requires a timestamp
 and closes the most recent B. An optional end name must match. Nonmatching event names still
 participate in pairing so a nested scope cannot close its parent accidentally. At most 128
-scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
-threads do not share the stack. Valid zero durations remain zero. Asynchronous phases are
-validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
+synchronous plus async scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
+threads do not share the stack. Valid zero durations remain zero. Legacy async `S/T/F`, instant
+`n` and other phases remain validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
 previously skipped, now reject the whole import if malformed or unbalanced.
+
+Nestable async `b/e` events on the selected process require name, process, thread, timestamp
+and an `id2` object containing exactly `local`, with no `dur` or legacy `id`. Identity consists of
+ID type/value plus `cat` and `scope`;
+omitted category/scope are empty. Numeric IDs are exact nonnegative integers through 2^53-1;
+string IDs are nonempty decoded UTF-8 up to 256 bytes. Numeric 1 and string "1" are separate.
+Category/scope must be strings of at most 256 decoded bytes. Global `id2.global`/legacy `id` and legacy
+`S/T/F` pairing are not supported. Ends can arrive on another thread in the same process;
+only begins on the selected thread with the exact selected name produce samples. All b/e on
+that process participate, including nonselected names/threads, so nesting cannot close a
+selected parent accidentally. Each identity is LIFO with matching end names and nondecreasing
+timestamps while open; independent IDs can finish in any order. All must close, and the shared
+128-open budget includes synchronous scopes. Malformed recognized b/e on that process now
+reject rather than being silently skipped. Other processes do not share the async registry.
+This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
 
 Selected begins reserve their sample sequence and position immediately. End events complete
 that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
 overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
-mixed X/B/E records and nested same-name scopes. Pending intervals never escape a failed import.
+mixed X/B/E/b/e records and nested same-name scopes. Pending intervals never escape a failed import.
 This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
 
 `ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
