@@ -263,12 +263,70 @@ def main():
         require(asset(variant)[3] == child_asset[3] and asset(variant)[2] == child_asset[2] and
                 source.read_bytes() == original and asset(base)[0] == restored[0],
                 'Full review after selected workflow failed to restore exact source properties')
+        # Explicit selected publication advances only the exact current base source.
+        click(window, 140, 227)
+        text(window, 180, 427, 'Source applied')
+        key('Return')
+        text(window, 180, 451, '11')
+        key('Return')
+        before_apply = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        start = len(captured)
+        click(window, 310, 177)
+        wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
+        click(window, 90, 580)
+        start = len(captured)
+        click(window, 565, 177)
+        wait_log(r'prefab action=7 applied=1 .*dirty=1', start)
+        click(window, 430, 154)
+        require(before_apply == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
+                'Source application review/confirmation published before explicit consent')
+        start = len(captured)
+        click(window, 140, 247)
+        wait_log(r'prefab action=8 applied=1 .*revision=7 dirty=1', start)
+        applied_source = asset(base)
+        source_name = b'Source applied' if selected_name else b'Isolated source'
+        source_position = rb'3\.5' if selected_name else rb'11'
+        require(applied_source[1] == 5 and applied_source[2] == restored[2] and
+                b'node ' + node + b' 0 ' + source_name + b'\n' in applied_source[3] and
+                re.search(rb'^' + node + rb' 0 ' + source_position + rb' ', applied_source[3], re.M) and
+                opaque in applied_source[3] and asset(variant)[1] == 7 and
+                asset(variant)[3] == child_asset[3] and source.read_bytes() == original,
+                'Selected source publication changed unselected values, variant file, IDs or original scene')
+        retained_base = root / '.nexora/prefabs/revisions' / base_id / '4.nxprefab'
+        require(retained_base.read_bytes() == restored[0], 'Source apply lost exact prior base revision')
+        after_apply = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        changed = {path for path in before_apply.keys() | after_apply.keys()
+                   if before_apply.get(path) != after_apply.get(path)}
+        require(changed == {base.relative_to(root), retained_base.relative_to(root)},
+                'Source apply changed unrelated project files')
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=8 dirty=0', start)
+        after_local_save = asset(variant)
+        require(b'node ' + node + b' 0 Source applied\n' in after_local_save[3] and
+                re.search(rb'^' + node + rb' 0 11 ', after_local_save[3], re.M) and
+                struct.unpack_from('<Q', after_local_save[0], 48)[0] == 4,
+                'Source publication acknowledged/rewrote local edits or implicitly rebased the variant')
+        click(window, 88, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=9 dirty=0', start)
+        require(b'node ' + node + b' 0 Source applied\n' in asset(variant)[3] and
+                re.search(rb'^' + node + rb' 0 3\.5 ', asset(variant)[3], re.M),
+                'Source apply occupied/erased local Undo history')
+        click(window, 140, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=10 dirty=0', start)
+        require(asset(variant)[3] == after_local_save[3] and asset(variant)[2] == child_asset[2] and
+                asset(base)[0] == applied_source[0] and source.read_bytes() == original,
+                'Source apply changed local Redo, stable identities or published base after Save')
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
         text(window, 180, 113, variant_id)
         click(window, 230, 137)
-        wait_log(r'prefab action=1 applied=1 .*revision=7 dirty=0')
+        wait_log(r'prefab action=1 applied=1 .*revision=10 dirty=0')
         start = len(captured)
         click(window, 310, 177)
         wait_log(r'prefab action=5 applied=1 .*dirty=0', start)

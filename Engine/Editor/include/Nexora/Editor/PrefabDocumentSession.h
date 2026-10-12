@@ -12,6 +12,9 @@ class NEXORA_EDITOR_API PrefabPropertyReview final {
 public:
   [[nodiscard]] const SceneComparison &Changes() const noexcept { return changes_; }
   [[nodiscard]] bool CanRevert() const noexcept { return candidate_.has_value(); }
+  [[nodiscard]] bool CanApplyToSource() const noexcept {
+    return candidate_ && previous_.id == asset_ && source_.id != asset_;
+  }
   [[nodiscard]] bool Targeted() const noexcept { return targeted_; }
   [[nodiscard]] std::span<const PrefabPropertySelection> Selections() const noexcept {
     return selections_;

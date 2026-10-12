@@ -2180,7 +2180,9 @@ int RunGraphical(std::optional<ProjectState> project,
             prefab_review = prefab_documents->Review(&error);
             applied = prefab_review.has_value();
             if (prefab_review)
-              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert());
+              ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
+                                 prefab_review->Selections(), prefab_review->Targeted(),
+                                 prefab_review->CanApplyToSource());
             else
               ui.SetPrefabReview(std::nullopt);
             break;
@@ -2189,6 +2191,14 @@ int RunGraphical(std::optional<ProjectState> project,
               applied = prefab_documents->Revert(*prefab_review, allowed, &error);
             else
               error = "Review the current prefab changes before reverting properties.";
+            break;
+          case Action::ApplyToSource:
+            if (prefab_review) {
+              const auto published = prefab_documents->ApplyToSource(*prefab_review, true, &error);
+              applied = published.has_value();
+            } else {
+              error = "Review an unchanged saved variant before applying properties to its source.";
+            }
             break;
           case Action::SelectReview:
             if (prefab_review)
@@ -2199,7 +2209,8 @@ int RunGraphical(std::optional<ProjectState> project,
             applied = prefab_review.has_value();
             if (prefab_review)
               ui.SetPrefabReview(prefab_review->Changes(), prefab_review->CanRevert(),
-                                 prefab_review->Selections(), prefab_review->Targeted());
+                                 prefab_review->Selections(), prefab_review->Targeted(),
+                                 prefab_review->CanApplyToSource());
             else
               ui.SetPrefabReview(std::nullopt);
             break;
