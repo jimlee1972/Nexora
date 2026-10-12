@@ -67,6 +67,13 @@ int main(int argc, char **argv) {
     const auto encoded = ExportMaterial(edge);
     Require(encoded.source.has_value(), "Valid boundary scalar did not serialize");
     const auto decoded = ImportMaterial(*encoded.source);
+    if (!decoded.material || std::bit_cast<std::uint32_t>(decoded.material->roughness) !=
+                                 std::bit_cast<std::uint32_t>(scalar))
+      std::cerr << "Boundary expected bits=" << std::hex << std::bit_cast<std::uint32_t>(scalar)
+                << " decoded="
+                << (decoded.material ? std::bit_cast<std::uint32_t>(decoded.material->roughness)
+                                     : 0U)
+                << " parse_error=" << decoded.error << '\n';
     Require(decoded.material && std::bit_cast<std::uint32_t>(decoded.material->roughness) ==
                                     std::bit_cast<std::uint32_t>(scalar),
             "Canonical boundary float did not roundtrip exact bits");
@@ -159,8 +166,9 @@ int main(int argc, char **argv) {
   std::uint8_t output = 77;
   std::uint32_t written = 99;
   Require(table->invoke(table->context, NEXORA_EDITOR_TOOL_SERIALIZE,
-                        reinterpret_cast<const std::uint8_t *>(input.data()), input.size(), &output,
-                        1, &written) == NEXORA_EDITOR_TOOL_REJECTED &&
+                        reinterpret_cast<const std::uint8_t *>(input.data()),
+                        static_cast<std::uint32_t>(input.size()), &output, 1,
+                        &written) == NEXORA_EDITOR_TOOL_REJECTED &&
               output == 77 && written == 0,
           "Insufficient actual native output capacity changed caller storage");
   table = nullptr;

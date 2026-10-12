@@ -89,7 +89,7 @@ prefix limit. Empty input/output are supported; declared output capacity must be
 
 Results own copied bytes, state, diagnostics and optional exact raw callback status;
 successful output must explicitly report a size within the supplied capacity. Every failure discards output,
-and unexpected callback exceptions reject without escaping the wrapper or retaining its busy
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
 guard. Owning results survive native unload. Unknown statuses/oversized success never
 become success. Consumers release all calls/borrows before host/registry mutation or
 unload; this provides no lifetime lease or automatic in-flight tracking.
@@ -102,29 +102,6 @@ writer/recovery/Play state before actual deferred authoring or IO. Capability me
 graphical reference-tool editing/preview/save and missing-backend restoration remain
 separate work. Public C++ consumers rebuild; module graph and persisted formats stay
 unchanged, and Foundation's optional C header adds no Shipping Editor data.
-
-## Signed tool invocation bridge
-
-`SignedExtensionHost::InvokeTool` checks the invoker's construction-thread and shared
-nonreentrancy context before reading signed admission or registry state. The serialized
-owner supplies an admission ID and service registry; the exact retained signed image
-must still have an owned descriptor and current trust/policy revisions. Trust changes
-reject immediately without requiring prior shutdown polling; restoring a key does not
-revive an observation captured under an older revision. Invocation itself performs no
-load, poll, revoke or lifecycle mutation.
-
-The bridge then delegates to the existing fresh provider-qualified `NativeToolInvoker`,
-which rejects revoked/pending/restart-required, foreign or manually replaced providers
-and returns owning bounded bytes. The private low-level PluginHost is never exposed.
-Hosts serialize trust/registry/admission access with owner calls and drain all calls
-before mutation/unload; this adds no lifetime lease or automatic in-flight tracking.
-
-The bridge grants no document, IO or GPU authority and does not attach contributions to
-the graphical manager. Native execution remains trusted. Callers must independently
-validate document type, parse owning candidates and recheck current workspace/source/
-writer/recovery/Play state before authoring or Save. Required C ABI, module graph,
-persisted schemas and existing class data layout are unchanged; C++ consumers rebuild.
-Graphical material reference-tool integration and target-platform admission remain separate.
 
 ## Stable revisioned prefab asset foundation
 
@@ -1245,14 +1222,57 @@ these additive APIs change no existing class layout, module dependencies or game
 
 ## Scalar PBR material assets
 
+`MaterialToolDocument` owns bounded schema-one material state and history on its construction
+thread. Project UUID, asset UUID, nonzero generation and a nonwrapping serial bind observations.
+Open retains the exact original source (at most 64 KiB) as the save baseline and uses production
+import/export to store canonical state (at most 1024 bytes). Snapshots copy complete material and
+source values; no document, workspace, source or native callback borrow survives.
+
+Apply parses and validates owning callback bytes before staging one Undo entry. Equal canonical
+results preserve serial, dirty state and pending Redo. Read-only, invalid/future/oversized sources,
+wrong scope/serial/thread and failed operations conserve existing history and baseline. At most
+64 transitions are retained across Undo/Redo. Dirty replace/close requires explicit discard;
+failed replacement still preserves the old owner. Reopen/close invalidate old serials.
+
+`AcknowledgeSave` checks the exact previous raw source and caller-confirmed published bytes whose
+canonical material equals the current document. It advances only the saved baseline and serial,
+retaining Undo/Redo. It performs no IO and does not prove filesystem publication or writer authority.
+The host checks current project/document/asset/source, recovery, Play state and writer lease before
+deferred authoring or publication. File capture/publication belongs to the source session below;
+graphical controls and native Preview remain separate work. This owner grants no plugin permissions. Existing file/C/Gameplay schemas,
+module dependencies and class layouts remain unchanged; public C++ consumers rebuild.
+
+
+`MaterialToolSourceSession` borrows a workspace and Content session that outlive it, while
+privately owning its material document. Open copies an ordinary bounded `.nmaterial` source and
+binds project/root, Content generation and exact asset/path. A nonwrapping process-local owner
+identity supplies document-scope generation, preventing observations from crossing owners with
+otherwise equal project/asset/serial values; exhaustion rejects. Snapshots remain owning inspection
+values after scope loss. Authoring and Save check construction thread before mutable context,
+current identity/path, writer access, resolved recovery/external state, no pending reimport, the
+host's explicit authoring/Play gate and exact saved raw source. No mutable document borrow escapes.
+
+Reads reject symlink/hardlink/parent aliases and source growth beyond 64 KiB. Save preallocates saved
+baselines, rechecks the exact source, uses the common occupied-staging-preserving atomic helper,
+confirms actual bytes and refreshes Content's owning material before acknowledging the baseline.
+Undo/Redo survive confirmed Save; history never writes a source implicitly. A late confirmation or
+Content refresh failure explicitly reports that publication occurred, retaining the dirty owner
+and old baseline; retrying that baseline rejects until explicit inspection/discard/reopen. This is
+the serialized ordinary-file contract, not hostile filesystem race exclusion or a power-loss
+journal. Close can release a stale owner without IO; dirty close/replacement still requires discard.
+The source owner invokes no native callbacks, grants no plugin permissions and adds no graphical
+controls or GPU Preview. Existing module/file/C/Gameplay schemas and class layouts stay unchanged;
+C++ consumers rebuild. Actual file/reopen and disabled-tool acceptance is recorded in
+[Linux evidence](../../Tools/Build/evidence/EditorEDM5-MaterialToolSourceSession-Linux-2026-10-11.md).
+
 `ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
 at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
 It performs no IO/publication and rejects divergent reflection or invalid scalar data.
 The optional [scalar material native tool](../../Plugins/ScalarMaterial/README.md) uses
 this public codec and `ImportMaterial` for actual bounded Inspect/Edit/Serialize byte
 transformations. Edit's public little-endian wire contract is in `ScalarMaterialTool.h`.
-GPU Preview remains unavailable; host document authorization, scope/source guards,
-Undo and Save/reopen integration remain separate work.
+GPU Preview remains unavailable. Document history and confirmed source Save/reopen use the
+owners above; graphical signed-tool selection and its deferred native application remain open.
 
 `.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
 from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
