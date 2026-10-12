@@ -887,11 +887,19 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 ### ED-M6 — Build、profile 與 extensibility
 
+- ✅ External Chrome import 現支援有界 nestable async b/e，以 process-local id2.local ID、
+  category／scope identity 配對並允許跨執行緒結束。Selection 採 begin thread／name；Core、
+  read-only IO 與實際 1x／2x control 涵蓋共用128-open LIFO pairing、mixed X/B/E/b/e begin
+  order、最新600筆／drop count、Unicode identity、evicted-begin 保護及 malformed／未閉合拒絕。
+  Inclusive elapsed latency 不推定 CPU execution 或 GPU／memory。Global id／id2.global、legacy S/F
+  pairing、其他格式與實體校準仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeAsyncPairs-Linux-2026-10-12.md)。
+
 - ✅ External Chrome import 現在 X event 之外支援同步 B/E duration scope。有界 selected-thread
   LIFO pairing 保留 nested same-name／mixed-event 的 begin order、inclusive external duration、
   最新600筆／drop count 與 evicted-begin 保護。未閉合、name mismatch、倒退或超容量 scope
   會拒絕，保留 prior capture／file／live profile；涵蓋 read-only project IO 與實際 1x／2x
-  Profiler import control。Async span、exclusive／self time、其他 capture format 與實體校準
+  Profiler import control。Legacy async S/F、global id／id2.global、exclusive／self time、其他格式與實體校準
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md)。
 
 ✅ External Chrome trace inspection 已驗證：明確 event／process／thread selection、有界 Unicode

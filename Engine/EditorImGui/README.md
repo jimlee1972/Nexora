@@ -3,8 +3,10 @@
 ## External Chrome duration inspection
 
 The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
-scopes alongside `X` complete events through the selected project file. The host retains the
-same owning static interval view, external clock/unit labels, process/thread/event selection,
+scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+Async selection uses the begin thread/name, permits cross-thread ends and supports bounded
+process-local `id2.local`/category/scope pairing. Global `id2.global`/legacy `id` and legacy `S/F`
+are unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
 read-only admission and scope revocation. Nested intervals are displayed by start order;
 duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
 Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core

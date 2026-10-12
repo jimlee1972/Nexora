@@ -240,6 +240,129 @@ void DurationPairs() {
   reject(depth + ',' + Scope("B", 500, "Other") + "]");
 }
 
+std::string Async(std::string_view phase, std::uint64_t time, std::string_view id = "1",
+                  std::uint64_t thread = 7, std::string_view name = "Frame",
+                  std::string_view category = "work", std::string_view scope = "session") {
+  return "{\"ph\":\"" + std::string(phase) + "\",\"pid\":42,\"tid\":" + std::to_string(thread) +
+         ",\"name\":\"" + std::string(name) + "\",\"ts\":" + std::to_string(time) +
+         ",\"id2\":{\"local\":" + std::string(id) + "},\"cat\":\"" + std::string(category) +
+         "\",\"scope\":\"" + std::string(scope) + "\"}";
+}
+void AsyncPairs() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto begin = Async("b", 100);
+  const auto end = Async("e", 1350, "1", 8);
+  const auto bytes = "[" + begin + ',' + Async("b", 200, "2") + ',' + Async("e", 300, "1", 9) +
+                     ',' + Event(400) + ',' + Async("e", 500, "2", 8) + "]";
+  auto capture = ChromeTraceImporter::Import(bytes, selection);
+  Require(capture && ChromeTraceImporter::Validate(*capture) && capture->samples.size() == 3 &&
+              capture->samples[0].duration_milliseconds == .2 &&
+              capture->samples[1].duration_milliseconds == .3 &&
+              capture->samples[2].duration_milliseconds == 1.2505,
+          "Cross-thread async IDs lost independent completion or mixed begin order");
+  const auto reject = [&](const std::string &source) {
+    std::string error;
+    const auto copy = source;
+    Require(!ChromeTraceImporter::Import(source, selection, &error) && !error.empty() &&
+                source == copy && capture->samples.front().duration_milliseconds == .2,
+            "Invalid async import changed source/prior capture or omitted diagnostic");
+  };
+  auto nested =
+      ChromeTraceImporter::Import("[" + begin + ',' + Async("b", 200, "1", 8, "Other") + ',' +
+                                      Async("e", 300, "1", 9, "Other") + ',' + end + "]",
+                                  selection);
+  Require(nested && nested->samples.size() == 1 && nested->samples[0].duration_milliseconds == 1.25,
+          "Nonselected begin on another thread broke identity LIFO or begin-thread selection");
+  auto same_name = ChromeTraceImporter::Import("[" + begin + ',' + Async("b", 200) + ',' +
+                                                   Async("e", 300, "1", 8) + ',' + end + "]",
+                                               selection);
+  Require(same_name && same_name->samples.size() == 2 &&
+              same_name->samples[0].duration_milliseconds == 1.25 &&
+              same_name->samples[1].duration_milliseconds == .1,
+          "Same-ID nested async intervals lost inclusive duration or begin order");
+  // Numeric and string IDs, category and scope are independent identity lanes.
+  for (int lane = 0; lane < 3; ++lane) {
+    const auto id = lane == 0 ? "\"1\"" : "1";
+    const auto cat = lane == 1 ? "other" : "work";
+    const auto scope = lane == 2 ? "other" : "session";
+    auto separated = ChromeTraceImporter::Import(
+        "[" + begin + ',' + Async("b", 200, id, 7, "Frame", cat, scope) + ',' + end + ',' +
+            Async("e", 1400, id, 8, "Frame", cat, scope) + "]",
+        selection);
+    Require(separated && separated->samples.size() == 2 &&
+                separated->samples[0].duration_milliseconds == 1.25 &&
+                separated->samples[1].duration_milliseconds == 1.2,
+            "Async identity lanes collided");
+  }
+  Require(ChromeTraceImporter::Import("[" + Async("b", 100, "\"時間\\ud83d\\ude00\"") + ',' +
+                                          Async("e", 100, "\"時間😀\"", 8) + "]",
+                                      selection)
+                  ->samples[0]
+                  .duration_milliseconds == 0,
+          "Unicode ID or zero async duration rejected");
+  Require(ChromeTraceImporter::Import(
+              R"([{"ph":"b","name":"Frame","pid":42,"tid":7,"ts":100.25,"id2":{"local":1}},)"
+              R"({"ph":"e","name":"Frame","pid":42,"tid":8,"ts":1350.75,"id2":{"local":1}}])",
+              selection)
+                  ->samples[0]
+                  .duration_milliseconds == 1.2505,
+          "Fractional async microseconds or omitted category/scope rejected");
+  reject("[" + begin + "]");
+  reject("[" + end + ',' + begin + "]");
+  reject("[" + begin + ',' + Async("e", 99) + "]");
+  reject("[" + begin + ',' + Async("e", 200, "2") + "]");
+  reject("[" + begin + ',' + Async("e", 200, "1", 8, "Other") + "]");
+  reject("[" + begin + ',' + Async("b", 99) + ',' + Async("e", 200) + ',' + end + "]");
+  reject("[" + begin + ',' + Async("b", 200) + ',' + Async("e", 400) + ',' + Async("e", 300) + "]");
+  for (const auto id : {"null", "true", "-1", "1.5", "9007199254740992", "\"\""})
+    reject("[" + Async("b", 100, id) + ',' + Async("e", 200, id) + "]");
+  reject("[" + Async("b", 100, "\"" + std::string(257, 'x') + "\"") + ',' + end + "]");
+  const auto mutate = [&](std::string_view from, std::string_view to) {
+    auto value = "[" + begin + ',' + end + "]";
+    const auto index = value.find(from);
+    Require(index != std::string::npos, "Async mutation fixture missing");
+    value.replace(index, from.size(), to);
+    reject(value);
+  };
+  mutate("\"id2\":{\"local\":1},", "");
+  mutate("\"id2\":{\"local\":1},", "\"id\":1,");
+  mutate("\"local\":1", "\"global\":1");
+  mutate("\"local\":1", "\"local\":1,\"global\":1");
+  mutate("\"id2\":{\"local\":1}", "\"id2\":{\"local\":1},\"id\":1");
+  mutate("\"cat\":\"work\"", "\"cat\":42");
+  mutate("\"scope\":\"session\"", "\"scope\":null");
+  mutate("\"ts\":100", "\"ts\":100,\"dur\":1");
+  mutate("\"tid\":7,", "");
+  mutate("\"name\":\"Frame\",", "");
+  mutate("\"pid\":42", "\"pid\":43");
+  // Recognized metadata on existing X events stays opaque, even if it is not an async identity.
+  Require(ChromeTraceImporter::Import("[" + Event(1).substr(0, Event(1).size() - 1) +
+                                          ",\"id\":null,\"cat\":{},\"scope\":[]}]",
+                                      selection)
+              .has_value(),
+          "Async decoding changed existing X metadata compatibility");
+  std::string pending = "[" + Async("b", 0);
+  for (std::uint64_t i = 1; i <= 605; ++i)
+    pending += ',' + Event(i);
+  auto ring =
+      ChromeTraceImporter::Import(pending + ',' + Async("e", 10000, "1", 8) + "]", selection);
+  Require(ring && ChromeTraceImporter::Validate(*ring) && ring->older_samples_dropped == 6 &&
+              ring->samples.front().sequence == 7 && ring->samples.back().sequence == 606,
+          "Async pending-begin eviction lost sequence/drop count");
+  for (const auto &sample : ring->samples)
+    Require(sample.duration_milliseconds == 1.2505, "Evicted async end overwrote newer interval");
+  std::string depth = "[";
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    depth += (i ? "," : "") + Async("b", i, std::to_string(i));
+  auto exact = depth;
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    exact += ',' + Async("e", 1000 + i, std::to_string(i), 8);
+  Require(ChromeTraceImporter::Import(exact + "]", selection)->samples.size() == 128,
+          "Exact async open-scope capacity rejected");
+  reject(depth + ',' + Scope("B", 500, "Other") + "]");
+  reject(depth + ',' + Async("b", 500, "999") + "]");
+}
+
 void ProjectIo() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-chrome-io-" +
@@ -275,6 +398,12 @@ void ProjectIo() {
               paired_capture->samples.front().duration_milliseconds == 1.25 &&
               read() == paired_bytes,
           "Read-only project duration import altered bytes or lost external duration");
+  const auto async_bytes = "[" + Async("b", 100) + ',' + Async("e", 1350, "1", 8) + "]";
+  write(async_bytes);
+  auto async_capture = observer.ImportChromeTraceJson(selection, &error);
+  Require(async_capture && async_capture->samples.front().duration_milliseconds == 1.25 &&
+              read() == async_bytes,
+          "Read-only cross-thread async import changed source or duration");
   write("[" + Scope("B", 100, "Frame") + "]");
   Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
               paired_capture->samples.front().duration_milliseconds == 1.25,
@@ -332,6 +461,7 @@ int main() {
   try {
     Run();
     DurationPairs();
+    AsyncPairs();
     ProjectIo();
     return 0;
   } catch (const std::exception &error) {
