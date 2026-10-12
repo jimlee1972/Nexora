@@ -163,25 +163,66 @@ History is retained when a committed revision is superseded, so previously overw
 revisions cannot be reconstructed. No automatic pruning or total disk quota is introduced: retained
 sources may still be referenced by variants/nested graphs. The archive/current writes form an
 ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
-override/rebase, persistent instance metadata, journaling and retention policy remain separate work.
+override/rebase, nested materialization, journaling and retention policy remain separate work.
 
-## Transactional nested prefab materialization
+## Stable prefab revision comparison
 
-`PrefabAssets::Instantiate` resolves the complete exact revision closure, builds an independent
-staging World/document, then imports that complete forest once against a caller-owned current
-PreparedSave. Base dependencies are validation sources, not duplicate live instances. Every nested
-placement keeps its independent instance scope; stable node UUIDs map to fresh live generation keys.
-Nested roots attach to the corresponding stable parent node while retaining authored local TRS,
-Euler metadata, names, sibling order, components and unavailable opaque bytes.
+`BuildPrefabRebasePlan` compares exact old-base/local/new-base assets and coalesces rows by stable
+node/field UUID into complete property groups. Source-only groups update; local-only overrides
+survive. Both sides changing different lanes of the same vector/component still require an explicit
+KeepLocal/TakeSource decision. Missing choices return an owning unresolved review without a
+candidate; duplicate, unknown or invalid choices reject. Exact node and field identity sets must
+match. Structural/identity, nested-reference and changed scene-metadata reconciliation remain open.
+Chosen parent/sibling groups pass the actual candidate parser and hierarchy validator together.
 
-All result vectors, scope vectors/identities and translation indices are allocated before live
-publication. The final import retains its atomic Undo/Redo, clipboard/cut and stale-observation
-contracts. No filesystem IO or source asset publication occurs. Callers serialize source/target
-owners and supply current authoring authority; project writer/recovery/Play policy belongs to the
-host. Returned mappings own their data but their target keys still require document-generation
-validation. Existing graph budgets apply; the combined serialized forest also fits 8 MiB.
-The staging algorithm's temporary Worlds/history are not a total process-memory budget. Persistent
-instance metadata, graphical instancing and override/revert/apply/rebase remain separate work.
+`PrefabDocumentSession::ReviewRebase` requires a saved isolated variant and reads its exact retained
+current reference plus the newer actual current source. Its private owning result freezes document,
+publication, project/owner scope, all three assets and both complete bounded source closures.
+`ResolveRebase` and `Rebase` reread actual publication, retained/current sources and closure assets;
+stale or tampered dependencies reject. Read-only scopes may inspect and resolve choices, but only
+a current writer with resolved recovery/external state and explicit authorization may apply.
+Application stages the complete candidate graph, then changes properties and reference in one
+atomic Undo/Redo without writing files or acknowledging the baseline. Explicit wrapped Save persists
+the new reference and preserves history; local keys, generation, selection, clipboard and original
+scene remain intact. Calls serialize on the authoring owner. Logical bounds are not a total
+process/history memory quota. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+Graphical review/conflict confirmation and structural/live-instance bindings remain separate work.
+
+An isolated variant document now owns its current exact base UUID/revision independently of
+its last published asset. `SceneDocument::ApplyPrefabPropertySnapshot` stages same-identity
+properties and that reference in one Undo/Redo transaction; a reference-only change is dirty even
+when reusable scene bytes are unchanged. Ordinary property transactions retain the reference.
+Prepared-save signatures include it, so changed references invalidate pending reviews and saves.
+`PrefabDocumentSession::BaseReference` returns an owning current observation; the published
+`SourceBaseline` changes only after explicit wrapped Save. Review follows the current undoable
+reference, including after Undo/Redo of a saved reference change.
+
+Wrapped Save validates the retained source closure and complete candidate graph, then increments
+the asset revision for changed reference metadata even if scene bytes are identical. Exact old
+wrapped revisions remain archived. Open initializes the reference as part of a clean saved baseline;
+read-only inspection stays available. Plain scene Save and Save All reject tagged documents before
+publication because their format does not persist this asset context. A batch prepared before a
+reference change rejects its stale signature. No scene format or stable C/Gameplay ABI changes;
+public C++ consumers rebuild. Owner calls remain serialized, and the host supplies project/source
+authority. Three-way rebase planning, graphical conflict choices and structural reconciliation are
+separate work.
+
+`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
+node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
+Official scene parsing and bounded field snapshots retain component presence/stored values,
+authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
+instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
+are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
+Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
+
+The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
+4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
+opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
+Sources and authoring owners serialize during capture; results borrow no asset/document/World.
+The comparison performs no file IO, interpretation of unavailable native components, live mutation,
+Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
+separate structural validation before any future revert/apply/rebase. Graphical bindings and
+transactional override publication remain separate work; public C++ consumers rebuild.
 
 ## Atomic document property snapshots
 
@@ -1552,3 +1593,15 @@ harmless old archive, never an uncommitted future revision. Local variant conten
 state, keys, selection, clipboard and history stay unchanged; the variant keeps its retained base
 until explicit Rebase. Source publication has its own revision history and is not a local document
 Undo entry. Original scene files stay unchanged. No structural reconciliation is claimed.
+
+
+## Graphical three-way prefab rebase integration
+
+The graphical host retains the private owning rebase review independently of property revert/source
+apply. Review/Prepare use exact old/current closures; conflict choices never grant authority. Explicit
+confirmation applies one properties/reference transaction, while wrapped Save remains the sole file
+publication boundary. Project or retained-reference scope changes and local editing revoke consent;
+blocked authoring cannot revive a previous confirmation. Read-only latest-source inspection remains
+available without write controls. Actual 1x/2x controls and X11/Vulkan conflict choices, Save/Undo/Redo/
+reopen preserve exact archived versions and original source/unknown bytes. Structural identity and
+persistent nested/live-instance reconciliation remain separate work.

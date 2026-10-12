@@ -95,6 +95,11 @@ public:
   SelectReview(const PrefabPropertyReview &, std::span<const PrefabPropertySelection>,
                std::string *error = nullptr) const;
   bool Revert(const PrefabPropertyReview &, bool authorized, std::string *error = nullptr);
+  // Explicit saved-variant source publication. Advances only the exact current source; isolated
+  // document/history/baseline and retained base reference remain unchanged until explicit rebase.
+  [[nodiscard]] std::optional<PrefabAsset>
+  ApplyToSource(const PrefabPropertyReview &, bool authorized, std::string *error = nullptr);
+
   [[nodiscard]] std::optional<PrefabRebaseReview> ReviewRebase(std::string *error = nullptr) const;
   [[nodiscard]] std::optional<PrefabRebaseReview> ResolveRebase(const PrefabRebaseReview &,
                                                                 std::span<const PrefabRebaseChoice>,
