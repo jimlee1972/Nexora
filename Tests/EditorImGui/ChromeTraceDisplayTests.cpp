@@ -73,17 +73,21 @@ void Run(float scale) {
   const auto trace_path = first.Root() / ".nexora/chrome-trace.json";
   {
     std::ofstream output(trace_path);
-    output << R"([{"ph":"B","name":"Frame","pid":0,"tid":0,"ts":100},)"
-              R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":200,"dur":0},)"
-              R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":300,"id2":{"local":"job"}},)"
-              R"({"ph":"e","name":"Frame","pid":0,"tid":9,"ts":800,"id2":{"local":"job"}},)"
-              R"({"ph":"E","pid":0,"tid":0,"ts":1350}])";
+    output
+        << R"([{"ph":"B","name":"Frame","pid":0,"tid":0,"ts":100},)"
+           R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":200,"dur":0},)"
+           R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":300,"id2":{"local":"job"}},)"
+           R"({"ph":"e","name":"Frame","pid":0,"tid":9,"ts":800,"id2":{"local":"job"}},)"
+           R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":400,"id":"global-job"},)"
+           R"({"ph":"e","name":"Frame","pid":9,"tid":8,"ts":1150,"id2":{"global":"global-job"}},)"
+           R"({"ph":"E","pid":0,"tid":0,"ts":1350}])";
   }
   auto loaded = first.ImportChromeTraceJson(request->selection);
   Require(
-      loaded && loaded->samples.size() == 3 && loaded->samples[0].duration_milliseconds == 1.25 &&
+      loaded && loaded->samples.size() == 4 && loaded->samples[0].duration_milliseconds == 1.25 &&
           loaded->samples[1].duration_milliseconds == 0 &&
-          loaded->samples[2].duration_milliseconds == .5,
+          loaded->samples[2].duration_milliseconds == .5 &&
+          loaded->samples[3].duration_milliseconds == .75,
       "Actual selected project import did not pair mixed synchronous/async Chrome duration scopes");
   const auto capture = *loaded;
   Require(host.SetImportedChromeTrace(capture), "Valid external static publication failed");

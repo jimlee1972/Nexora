@@ -973,19 +973,26 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ External Chrome global async import now aliases legacy id with id2.global and pairs
+    cross-process/thread ends. Begin process/thread/name selection, local/global separation,
+    global nesting across nonselected processes, typed ID/category/scope isolation, shared
+    128-open capacity and evicted-begin safety pass Core, read-only project IO and actual
+    1x/2x mixed-event import controls. Inclusive latency remains externally sourced; legacy S/F,
+    exclusive/self time, other formats and physical calibration remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md).
   - ✅ External Chrome import now pairs bounded nestable async b/e with process-local id2.local IDs,
     category/scope identity and cross-thread ends. Selection uses the begin thread/name; shared
     128-open LIFO pairing, mixed X/B/E/b/e begin order, newest600/drop counts, Unicode identity,
     evicted-begin safety and malformed/unbalanced rejection are covered by Core, read-only IO
     and actual 1x/2x controls. Elapsed inclusive latency does not infer CPU execution or GPU/memory.
-    Global id/id2.global, legacy S/F pairing, other formats and physical calibration remain open.
+    Legacy S/F pairing, other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeAsyncPairs-Linux-2026-10-12.md).
   - ✅ External Chrome import now supports synchronous B/E duration scopes alongside X events.
     Bounded selected-thread LIFO pairing preserves nested same-name and mixed-event begin order,
     inclusive external durations, newest600/drop counts and evicted-begin safety. Unclosed,
     mismatched, backward or over-capacity scopes reject without changing prior captures/files/live
     profiles; read-only project IO and actual 1x/2x Profiler import controls are covered.
-    Legacy async S/F, global id/id2.global, exclusive/self time, other formats and physical calibration remain open.
+    Legacy async S/F, exclusive/self time, other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
   - ✅ External Chrome trace inspection is validated: explicit event/process/thread selection,
     bounded Unicode JSON, external clock/duration units, newest600/drop counts and independent
