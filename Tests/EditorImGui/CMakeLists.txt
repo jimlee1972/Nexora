@@ -542,6 +542,19 @@ target_include_directories(NexoraStaticProjectExportUiTests PRIVATE ../../Engine
 nexora_apply_defaults(NexoraStaticProjectExportUiTests)
 add_test(NAME editor.static_project_export_ui COMMAND NexoraStaticProjectExportUiTests)
 set_tests_properties(editor.static_project_export_ui PROPERTIES TIMEOUT 60)
+add_executable(NexoraPrefabPlacementSourceUiTests PrefabPlacementSourceTests.cpp)
+target_link_libraries(NexoraPrefabPlacementSourceUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraPrefabPlacementSourceUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraPrefabPlacementSourceUiTests)
+add_test(NAME editor.prefab_placement_source_ui COMMAND NexoraPrefabPlacementSourceUiTests)
+set_tests_properties(editor.prefab_placement_source_ui PROPERTIES TIMEOUT 60)
+if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_prefab_placement_source
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabPlacementSource.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementSourceUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_placement_source PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+endif()
 add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
 target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)

@@ -765,8 +765,8 @@ creates property widgets; unknown components retain raw data instead of being si
     and instance apply/rebase follow separately.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md).
   - ✅ Persistent placement source inspection owns retained/current revision and scoped-node
-    observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass. Graphical
-    instance inspection and override/rebase follow separately.
+    observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass.
+    Instance override/rebase follow separately.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementInspection-Linux-2026-10-10.md).
   - ✅ Project prefab placement owner passes actual mixed-revision source-closure, stale/foreign
     target, read-only/recovery/external-change and Save/reopen gates, full Linux 243/243 and
