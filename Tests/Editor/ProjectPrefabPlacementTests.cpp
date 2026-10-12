@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <stdexcept>
 namespace {
 using namespace nexora;
@@ -54,6 +55,40 @@ void Run() {
   const auto attachment = source.Create("Attachment"), child = nested.Create("Old nested");
   Require(nested.SetOpaqueComponent(*nested.Key(child), {99, "Absent.Provider", {0, 255, 27}}),
           "Unknown nested fixture failed");
+  Require(nested.SetEulerField(std::array{*nested.Key(child)}, 2, 37.5),
+          "Retained source rotation fixture failed");
+  auto source_transform = *nested.Transform(child);
+  source_transform.x = 2.75;
+  source_transform.y = 3.25;
+  source_transform.z = -7.125;
+  source_transform.sx = 2;
+  source_transform.sy = -3;
+  source_transform.sz = .5;
+  Require(nested.SetTransform(child, source_transform), "Retained source TRS fixture failed");
+  const auto source_capture = nested.CaptureRuntimeScene();
+  Require(source_capture.has_value(), "Dormant source fixture capture failed");
+  std::istringstream source_input(source_capture->runtime_snapshot);
+  std::string source_header, source_record;
+  std::getline(source_input, source_header);
+  std::getline(source_input, source_record);
+  std::istringstream record_input(source_record);
+  std::vector<std::string> tokens;
+  for (std::string token; record_input >> token;)
+    tokens.push_back(token);
+  Require(tokens.size() == 21 && tokens[12] == "0" && tokens[13] == "0" && tokens[14] == "0",
+          "Dormant source snapshot schema changed");
+  tokens[15] = "91";
+  tokens[16] = "0.2";
+  tokens[17] = "950";
+  tokens[18] = "3.5";
+  tokens[19] = "123456789012345";
+  tokens[20] = "987654321098765";
+  std::string dormant_runtime = source_header + '\n';
+  for (std::size_t i = 0; i < tokens.size(); ++i)
+    dormant_runtime += (i ? " " : "") + tokens[i];
+  dormant_runtime += '\n';
+  Require(nested_world.ReplaceSceneSnapshot(source_capture->scene, dormant_runtime),
+          "Dormant stored component fixture failed");
   std::uint64_t serial = 100;
   const auto factory = [&] { return foundation::Uuid{1900, ++serial}; };
   auto parent = Assets::Capture({1901, 1}, source, factory);
@@ -191,6 +226,28 @@ void Run() {
                                        row.local == "2a" && !row.property;
                               }),
       "Override review lost authored Euler, unknown bytes or explicit local component addition");
+  const auto selection_before_revert =
+      std::vector(target.Selection().begin(), target.Selection().end());
+  const auto bindings_before_revert =
+      std::vector(target.PrefabPlacements().begin(), target.PrefabPlacements().end());
+  Require(!Overrides::Revert(observer, target, *property_review, true, &override_error) &&
+              !Overrides::Revert(workspace, target, *property_review, false, &override_error) &&
+              !Overrides::Revert(workspace, foreign, *property_review, true, &override_error) &&
+              target.MatchesPreparedSave(edited) && Files(workspace.Root()) == original_files &&
+              Overrides::Revert(workspace, target, *property_review, true, &override_error) &&
+              override_error.empty() && target.MatchesPreparedSave(published) && target.Dirty() &&
+              std::ranges::equal(target.Selection(), selection_before_revert) &&
+              std::ranges::equal(target.PrefabPlacements(), bindings_before_revert) &&
+              target.Key(seed) == seed_key && target.Key(old_node->target.id) == old_node->target &&
+              Files(workspace.Root()) == original_files && target.Undo() &&
+              target.MatchesPreparedSave(edited) && target.Redo() &&
+              target.MatchesPreparedSave(published),
+          "Whole instance revert lost exact source/dormant values, keys, files or one Undo/Redo");
+  Require(target.Rename(seed_key, "No-op redo sentinel") && target.Undo() &&
+              Overrides::Revert(workspace, target, *clean_review, true) && target.Redo() &&
+              target.Name(seed) == "No-op redo sentinel" && target.Undo() && target.Undo() &&
+              target.MatchesPreparedSave(edited),
+          "No-op prefab revert consumed Redo or changed saved/history boundaries");
   Require(target.Undo() && target.Undo() && target.Undo() && target.Undo() &&
               target.MatchesPreparedSave(published) && target.Redo() && target.Redo() &&
               target.Redo() && target.Redo() && target.MatchesPreparedSave(edited),
@@ -201,11 +258,14 @@ void Run() {
               target.MatchesPreparedSave(published),
           "Owning override review was not deterministic across actual history replay");
   Write(archive, replaced);
-  Require(!Overrides::Matches(workspace, target, *clean_review),
+  Require(!Overrides::Matches(workspace, target, *clean_review) &&
+              !Overrides::Revert(workspace, target, *clean_review, true),
           "Valid same-revision source replacement retained an old override review");
   std::filesystem::remove(archive);
   Require(!Overrides::Prepare(observer, target, placed->front().target, &override_error) &&
-              !override_error.empty() && target.MatchesPreparedSave(published),
+              !override_error.empty() &&
+              !Overrides::Revert(workspace, target, *clean_review, true) &&
+              target.MatchesPreparedSave(published),
           "Missing retained source produced a partial review or changed the target");
   Write(archive, *old);
   Require(target.SetOpaqueComponent(old_node->target,
@@ -229,8 +289,45 @@ void Run() {
                                            row.property.has_value() &&
                                            row.local == std::to_string(seed);
                                   }) &&
-              target.Undo() && target.MatchesPreparedSave(published),
+              !Overrides::Revert(workspace, target, *hierarchy_review, true) && target.Undo() &&
+              target.MatchesPreparedSave(published),
           "Hierarchy change was silently treated as a supported value override");
+  runtime::World active_world;
+  editor::SceneDocument active_stage(active_world, active_world.LoadScene("Active fixture"));
+  Require(active_stage.ReloadBytes(published.Bytes()), "Active fixture staging failed");
+  const auto active_key = *active_stage.Key(old_node->target.id);
+  Require(active_stage.SetCamera(active_key, runtime::CameraComponent{72, .3, 400}) &&
+              active_stage.SetLight(active_key, runtime::LightComponent{9}) &&
+              active_stage.SetMeshRenderer(active_key, runtime::MeshComponent{8123, {9456}}) &&
+              target.ApplyPropertySnapshot(published, active_stage.PrepareSave()->Bytes(), true),
+          "Active component override fixture failed");
+  const auto active = *target.PrepareSave();
+  const auto active_review = Overrides::Prepare(workspace, target, old_node->target);
+  Require(active_review && !active_review->Rows().empty() &&
+              !Overrides::Revert(workspace, target, *clean_review, true),
+          "Changed active components retained stale review authority");
+  {
+    std::ofstream file(recovery);
+    file << "pending";
+  }
+  Require(!Overrides::Revert(workspace, target, *active_review, true) &&
+              target.MatchesPreparedSave(active),
+          "Recovery admitted live instance property revert");
+  std::filesystem::remove(recovery);
+  std::filesystem::last_write_time(state, timestamp + std::chrono::seconds(10));
+  Require(!Overrides::Revert(workspace, target, *active_review, true) &&
+              target.MatchesPreparedSave(active),
+          "External project change admitted live instance property revert");
+  std::filesystem::last_write_time(state, timestamp);
+  Require(Overrides::Revert(workspace, target, *active_review, true),
+          "Active component revert failed");
+  Require(target.MatchesPreparedSave(published) && Files(workspace.Root()) == original_files,
+          "Active-to-dormant revert lost stored values or changed files");
+  Require(target.Undo() && target.MatchesPreparedSave(active) && target.Redo() &&
+              target.MatchesPreparedSave(published),
+          "Active-to-dormant revert lost atomic Undo/Redo");
+  Require(target.Undo() && target.Undo() && target.MatchesPreparedSave(published),
+          "Complete active component fixture history lost dormant stored values");
   using Inspector = editor::PrefabPlacementInspector;
   std::optional<editor::PrefabPlacementInspection> inspected;
   for (const auto &entry : *placed) {
@@ -307,6 +404,18 @@ void Run() {
               advanced->PublishedRevision() == 2 &&
               !Inspector::Matches(workspace, target, *inspected),
           "Inspection confused current publication with the placement's retained revision");
+  Require(target.Rename(old_node->target, "Local edit after source advance"),
+          "Advanced retained source override fixture failed");
+  const auto advanced_edited = *target.PrepareSave();
+  const auto advanced_review = Overrides::Prepare(workspace, target, old_node->target);
+  const auto advanced_files = Files(workspace.Root());
+  Require(advanced_review && advanced_review->Source().revision == 1 &&
+              advanced_review->PublishedRevision() == 2 &&
+              Overrides::Revert(workspace, target, *advanced_review, true) &&
+              target.MatchesPreparedSave(published) && Files(workspace.Root()) == advanced_files &&
+              target.Undo() && target.MatchesPreparedSave(advanced_edited) && target.Redo() &&
+              target.MatchesPreparedSave(published),
+          "Revert confused exact retained source with advanced current publication");
   auto fresh = Owner::Prepare(workspace, parent->id, target);
   Require(fresh && fresh->Source().revision == 2 &&
               Owner::Instantiate(workspace, target, *fresh, {1903, 2}, true) &&
@@ -329,6 +438,20 @@ void Run() {
               reopened_inspection->Source().revision == 1 &&
               reopened_inspection->PublishedRevision() == 2,
           "Clean scene reopen did not expose its exact retained placement source");
+  const auto clean_saved = *target.PrepareSave();
+  const auto saved_files = Files(workspace.Root());
+  Require(target.Rename(old_node->target, "Saved instance override") && target.Dirty(),
+          "Saved instance override fixture failed");
+  const auto saved_review = Overrides::Prepare(workspace, target, old_node->target);
+  Require(saved_review && Overrides::Revert(workspace, target, *saved_review, true) &&
+              target.MatchesPreparedSave(clean_saved) && !target.Dirty() &&
+              Files(workspace.Root()) == saved_files && target.Undo() && target.Dirty() &&
+              target.Redo() && !target.Dirty() && files.Save(files.Token()).Applied(),
+          "Revert changed the saved baseline or wrote before explicit Scene Save");
+  Require(reopen.Reload(workspace.Root() / "Content/Placed.scene") &&
+              reopen.PrepareSave()->Bytes() == clean_saved.Bytes() &&
+              std::ranges::equal(reopen.PrefabPlacements(), target.PrefabPlacements()),
+          "Reverted instance Save/reopen lost exact retained properties or bindings");
 }
 } // namespace
 int main() {
