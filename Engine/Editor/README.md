@@ -1383,3 +1383,16 @@ The host must serialize authoring owners and repeat Play/modal/target-document r
 explicit action. A nonnil placement UUID and current writable project are required. Rejection
 preserves target history/clipboard/files; success writes nothing until ordinary Scene Save. This
 is a synchronous source observation, not a hostile-filesystem lease or multi-file atomic IO promise.
+
+`PrefabPlacementInspector::Inspect` explicitly resolves the selected bound node's retained complete
+source closure and owns project/target/binding/source observations. It reports placement identity,
+root retained revision, scoped source-node identity, exact scoped asset revision, mapped-node count
+and optional current published root revision. Every binding must map to exactly one resolved scoped
+source node; incomplete or incompatible mappings report unresolved. Missing/corrupt retained sources
+keep the owning binding identity inspectable, without fabricating source values or write authority.
+Read-only projects can inspect. `Matches` revokes stale project/document/key/current-publication or
+exact resolved-source observations; a restored source closure revokes an unresolved report.
+Unresolved reports compare availability/mapping status, not arbitrary malformed file bytes. Calls
+serialize all authoring/source owners; there is no per-frame IO, live mutation or filesystem lease.
+Source/target budgets follow the existing bounded graph and prepared-scene contracts; total retained
+history/process memory quota and graphical instance override/rebase remain separate work.
