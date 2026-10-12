@@ -46,6 +46,7 @@ public:
              std::string *error = nullptr);
 
 private:
+  friend class MaterialToolSourceSession;
   struct State final {
     std::string source;
     MaterialAsset material;

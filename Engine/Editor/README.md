@@ -1107,10 +1107,32 @@ failed replacement still preserves the old owner. Reopen/close invalidate old se
 canonical material equals the current document. It advances only the saved baseline and serial,
 retaining Undo/Redo. It performs no IO and does not prove filesystem publication or writer authority.
 The host checks current project/document/asset/source, recovery, Play state and writer lease before
-deferred authoring or publication. File capture/publication, graphical controls and native Preview
-remain separate work; this owner grants no plugin permissions. Existing file/C/Gameplay schemas,
+deferred authoring or publication. File capture/publication belongs to the source session below;
+graphical controls and native Preview remain separate work. This owner grants no plugin permissions. Existing file/C/Gameplay schemas,
 module dependencies and class layouts remain unchanged; public C++ consumers rebuild.
 
+
+`MaterialToolSourceSession` borrows a workspace and Content session that outlive it, while
+privately owning its material document. Open copies an ordinary bounded `.nmaterial` source and
+binds project/root, Content generation and exact asset/path. A nonwrapping process-local owner
+identity supplies document-scope generation, preventing observations from crossing owners with
+otherwise equal project/asset/serial values; exhaustion rejects. Snapshots remain owning inspection
+values after scope loss. Authoring and Save check construction thread before mutable context,
+current identity/path, writer access, resolved recovery/external state, no pending reimport, the
+host's explicit authoring/Play gate and exact saved raw source. No mutable document borrow escapes.
+
+Reads reject symlink/hardlink/parent aliases and source growth beyond 64 KiB. Save preallocates saved
+baselines, rechecks the exact source, uses the common occupied-staging-preserving atomic helper,
+confirms actual bytes and refreshes Content's owning material before acknowledging the baseline.
+Undo/Redo survive confirmed Save; history never writes a source implicitly. A late confirmation or
+Content refresh failure explicitly reports that publication occurred, retaining the dirty owner
+and old baseline; retrying that baseline rejects until explicit inspection/discard/reopen. This is
+the serialized ordinary-file contract, not hostile filesystem race exclusion or a power-loss
+journal. Close can release a stale owner without IO; dirty close/replacement still requires discard.
+The source owner invokes no native callbacks, grants no plugin permissions and adds no graphical
+controls or GPU Preview. Existing module/file/C/Gameplay schemas and class layouts stay unchanged;
+C++ consumers rebuild. Actual file/reopen and disabled-tool acceptance is recorded in
+[Linux evidence](../../Tools/Build/evidence/EditorEDM5-MaterialToolSourceSession-Linux-2026-10-11.md).
 
 `ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
 at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
@@ -1118,8 +1140,8 @@ It performs no IO/publication and rejects divergent reflection or invalid scalar
 The optional [scalar material native tool](../../Plugins/ScalarMaterial/README.md) uses
 this public codec and `ImportMaterial` for actual bounded Inspect/Edit/Serialize byte
 transformations. Edit's public little-endian wire contract is in `ScalarMaterialTool.h`.
-GPU Preview remains unavailable; host document authorization, scope/source guards,
-Undo and Save/reopen integration remain separate work.
+GPU Preview remains unavailable. Document history and confirmed source Save/reopen use the
+owners above; graphical signed-tool selection and its deferred native application remain open.
 
 `.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
 from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
