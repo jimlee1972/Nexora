@@ -20,7 +20,7 @@ prefix limit. Empty input/output are supported; declared output capacity must be
 
 Results own copied bytes, state, diagnostics and optional exact raw callback status;
 successful output must explicitly report a size within the supplied capacity. Every failure discards output,
-and unexpected callback exceptions reject without escaping the wrapper or retaining its busy
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
 guard. Owning results survive native unload. Unknown statuses/oversized success never
 become success. Consumers release all calls/borrows before host/registry mutation or
 unload; this provides no lifetime lease or automatic in-flight tracking.
@@ -33,29 +33,6 @@ writer/recovery/Play state before actual deferred authoring or IO. Capability me
 graphical reference-tool editing/preview/save and missing-backend restoration remain
 separate work. Public C++ consumers rebuild; module graph and persisted formats stay
 unchanged, and Foundation's optional C header adds no Shipping Editor data.
-
-## Signed tool invocation bridge
-
-`SignedExtensionHost::InvokeTool` checks the invoker's construction-thread and shared
-nonreentrancy context before reading signed admission or registry state. The serialized
-owner supplies an admission ID and service registry; the exact retained signed image
-must still have an owned descriptor and current trust/policy revisions. Trust changes
-reject immediately without requiring prior shutdown polling; restoring a key does not
-revive an observation captured under an older revision. Invocation itself performs no
-load, poll, revoke or lifecycle mutation.
-
-The bridge then delegates to the existing fresh provider-qualified `NativeToolInvoker`,
-which rejects revoked/pending/restart-required, foreign or manually replaced providers
-and returns owning bounded bytes. The private low-level PluginHost is never exposed.
-Hosts serialize trust/registry/admission access with owner calls and drain all calls
-before mutation/unload; this adds no lifetime lease or automatic in-flight tracking.
-
-The bridge grants no document, IO or GPU authority and does not attach contributions to
-the graphical manager. Native execution remains trusted. Callers must independently
-validate document type, parse owning candidates and recheck current workspace/source/
-writer/recovery/Play state before authoring or Save. Required C ABI, module graph,
-persisted schemas and existing class data layout are unchanged; C++ consumers rebuild.
-Graphical material reference-tool integration and target-platform admission remain separate.
 
 ## Stable revisioned prefab asset foundation
 
@@ -1175,6 +1152,27 @@ ordinary shutdown never rewrite them. Settings are independent from scene conten
 these additive APIs change no existing class layout, module dependencies or gameplay C ABI.
 
 ## Scalar PBR material assets
+
+`MaterialToolDocument` owns bounded schema-one material state and history on its construction
+thread. Project UUID, asset UUID, nonzero generation and a nonwrapping serial bind observations.
+Open retains the exact original source (at most 64 KiB) as the save baseline and uses production
+import/export to store canonical state (at most 1024 bytes). Snapshots copy complete material and
+source values; no document, workspace, source or native callback borrow survives.
+
+Apply parses and validates owning callback bytes before staging one Undo entry. Equal canonical
+results preserve serial, dirty state and pending Redo. Read-only, invalid/future/oversized sources,
+wrong scope/serial/thread and failed operations conserve existing history and baseline. At most
+64 transitions are retained across Undo/Redo. Dirty replace/close requires explicit discard;
+failed replacement still preserves the old owner. Reopen/close invalidate old serials.
+
+`AcknowledgeSave` checks the exact previous raw source and caller-confirmed published bytes whose
+canonical material equals the current document. It advances only the saved baseline and serial,
+retaining Undo/Redo. It performs no IO and does not prove filesystem publication or writer authority.
+The host checks current project/document/asset/source, recovery, Play state and writer lease before
+deferred authoring or publication. File capture/publication, graphical controls and native Preview
+remain separate work; this owner grants no plugin permissions. Existing file/C/Gameplay schemas,
+module dependencies and class layouts remain unchanged; public C++ consumers rebuild.
+
 
 `ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
 at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.

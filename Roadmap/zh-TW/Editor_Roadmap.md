@@ -947,20 +947,19 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
 
 Material/shader graph、animation state/curve、particle/VFX、audio mixer、navigation/physics debug、terrain/vegetation、localization。每個工具以 capability plugin 交付，缺 backend 時 read-only 或清楚 unavailable。
 
+- ✅ Scoped material document owner 現完整擁有 canonical state、精確 raw save baseline 與最多
+  64 個 Undo／Redo transition。真實 production native edit、重複 history、no-op／Redo 保留、
+  wrong-thread／stale／read-only 拒絕及 owning unload／reopen 資料，通過完整 Linux 與明確
+  scalar-OFF 驗收。Save acknowledgement 檢查 caller-confirmed bytes，但不執行 file IO；
+  graphical control、實際 publication 與 GPU Preview 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-MaterialToolDocument-Linux-2026-10-11.md)。
+
 - ✅ Optional scalar PBR native plugin 現以公開 Editor import／export 與 Renderer validation
   執行真實 Inspect／Edit／Serialize byte transformation。Typed edit 涵蓋九個 scalar lane，
   request 限 64 KiB，canonical owning output 限 1024 bytes。真實 dynamic-load 測試涵蓋
   exact float roundtrip、failure budget、獨立 host 及 unload／reload。GPU Preview 明確
-  unavailable；signed-host callback bridge 已如下交付，Manager selection 及圖形化
-  document／Undo／Save／reopen 仍待完成。
+  unavailable；signed-package host 整合及圖形化 document／Undo／Save／reopen 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md)。
-
-- ✅ Signed native tool invocation 現將每次 byte callback 綁定 exact current sealed image、
-  trust／policy revision 與 qualified active provider。Wrong-thread／reentrant 檢查先於可變
-  admission inspection；stale trust、foreign registry 及 retired ID 拒絕且不改變 lifecycle。
-  真實 signed scalar-material Inspect／Serialize 與 cross-invoker native recursion 通過。
-  Manager selection 及圖形化 document／Undo／Save／Preview 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md)。
 
 - ✅ Optional versioned native byte-callback SDK 現以每次 fresh qualified lookup 呼叫真實
   loaded tool service，回傳 owning outcome，input／output 各限 64 KiB。Wrong-thread／reentrant、
