@@ -173,6 +173,10 @@ public:
   [[nodiscard]] static const PrefabPlacementSourceReport *
   PrefabSourceInspectionReport(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabOverridePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static const PrefabPlacementOverrideReport *
+  PrefabOverrideReport(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   NativeSceneToolPosition(const EditorImGuiHost &host, NativeSceneTool tool) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneFramePosition(const EditorImGuiHost &host) noexcept;

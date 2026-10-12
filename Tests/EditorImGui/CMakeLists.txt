@@ -547,6 +547,12 @@ target_link_libraries(NexoraPrefabPlacementSourceUiTests PRIVATE Nexora::EditorI
 target_include_directories(NexoraPrefabPlacementSourceUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 nexora_apply_defaults(NexoraPrefabPlacementSourceUiTests)
 add_test(NAME editor.prefab_placement_source_ui COMMAND NexoraPrefabPlacementSourceUiTests)
+
+add_executable(NexoraPrefabPlacementOverrideUiTests PrefabPlacementOverrideTests.cpp)
+target_link_libraries(NexoraPrefabPlacementOverrideUiTests PRIVATE Nexora::EditorImGui)
+target_include_directories(NexoraPrefabPlacementOverrideUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+nexora_apply_defaults(NexoraPrefabPlacementOverrideUiTests)
+add_test(NAME editor.prefab_placement_override_ui COMMAND NexoraPrefabPlacementOverrideUiTests)
 set_tests_properties(editor.prefab_placement_source_ui PROPERTIES TIMEOUT 60)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
   add_test(NAME editor.linux_prefab_placement_source
@@ -554,6 +560,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementSourceUiTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_prefab_placement_source PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_prefab_placement_overrides
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabPlacementOverrides.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementOverrideUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_placement_overrides PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
 endif()
 add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
 target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

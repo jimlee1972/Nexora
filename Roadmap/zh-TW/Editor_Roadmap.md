@@ -709,26 +709,32 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ 圖形化 bound-scene Inspector 可檢視持有的 scoped retained／local property row，並要求
+  明確確認才執行 whole-instance Revert。唯讀、stale、structural、hidden／focus／close 與
+  permission guard 保留資料；實際 1x／2x 控制項、三次原生冷啟動、exact Scene Save／Undo／Redo
+  及唯讀重開通過。完整 Linux 247/247 與 Minimal Shipping 通過；targeted graphical selection
+  及 source apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md)。
+
 - ✅ Atomic live instance property revert 在一筆 Undo／Redo 中還原 exact retained nested
   source，包含 dormant component values、authored Euler 與未知 bytes。Current writer、明確
   authorization 及 exact source／target 再驗證拒絕 stale／唯讀／structural input；來源升版、
   files 不變及 saved baseline／Scene Save／reopen 通過，完整 Linux 243/243 與 Minimal Shipping
-  通過。Graphical instance revert、targeted revert、structural reconciliation 與 source
+  通過。Targeted revert、structural reconciliation 與 source
   apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md)。
 
 - ✅ 圖形化 scene Inspector 現顯示所選 persistent prefab node 的來源與 retained revision，
   並可明確執行唯讀檢視，顯示此次取得的 available／unresolved、scoped source 與 current
   publication 狀態。實際 1x／2x 控制項、原生來源遺失／還原刷新及唯讀重開保留 scene／history／
-  files；完整 Linux 245/245 與 Minimal Shipping 通過。Live instance override／revert／apply／rebase
+  files；完整 Linux 245/245 與 Minimal Shipping 通過。Instance source apply／rebase
   仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md)。
 
 - ✅ Owning live prefab instance property review 以 scoped stable node／field identity 比對
   exact retained nested source，保留 authored Euler 與未知 bytes，並將 hierarchy 變更標為
   structural。唯讀檢視及 stale／missing／over-budget 拒絕保留 files 與 Undo／Redo；完整 Linux
-  243/243 與 Minimal Shipping 通過。Graphical override review 與 instance
-  apply／rebase 另行完成。
+  243/243 與 Minimal Shipping 通過。Instance apply／rebase 另行完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md)。
 
 - ✅ Persistent placement source inspection 持有 retained／current revision 與 scoped-node
