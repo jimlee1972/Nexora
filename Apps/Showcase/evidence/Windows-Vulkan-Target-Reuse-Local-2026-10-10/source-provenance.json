@@ -1,0 +1,10 @@
+{
+  "base_commit": "5f59f93446af2d41dccc094efb65ac6b63049787",
+  "source_sha256": {
+    "Engine/Presentation/src/VulkanSurface.cpp": "a930401a4721d693e31242598f5c43fbc42e8a2604f9b6c3598dad5df3e68acc",
+    "Tests/WindowPresentation/CMakeLists.txt": "e89102cb87f4db14bfa81bfd32f49fd55fae4899a04321b36b5e64d2809ff736",
+    "Tests/WindowPresentation/VulkanPbrTests.cpp": "3d1e26a10d034e0d1597966a98cb604adb578db20c4c1b1ff86b9cabc6e216e1"
+  },
+  "exe_sha256": "8e8c2917fe11ffc11544393bdf49ff2764c37671f2411cc99ddf0849f2ae880c",
+  "scope": "Vulkan completed-slot target reuse source patch over 5f59f934; diagnostic/art baselines remain separate"
+}
