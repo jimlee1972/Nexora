@@ -50,3 +50,29 @@ before acceptance on Main after prerequisite prefab/source-rebase commits land.
 Latent hints remain in-process metadata; this does not persist them through Save/reopen while the
 Runtime quaternion differs. GUI integration, structural/source-reference reconciliation, physical
 platform checks and complete graphical milestones remain separate (**0/8**).
+
+## Windows reader-lifetime correction and fresh integration
+
+Hosted Windows desktop and mimalloc runs for the first published hint head compiled
+successfully and passed the new hint fixture, but failed the inherited
+`editor.prefab_nested_materialization` coordinated Save All fixture. Its input
+`std::ifstream` still held `Bound.scene` open while the later atomic publication
+replaced that same destination. Windows readers do not share deletion; Linux
+permits this replacement with an open reader.
+
+The fixture now closes the reader immediately after copying the owning saved bytes.
+Every original Save All, baseline, binding, Undo and exact-byte assertion remains,
+with separate failure messages. Product atomic replacement and busy-reader rejection
+are unchanged. The correction is tracked independently as `nexora-pmb.2.8` and is
+also backported to the owning persistent-bindings feature.
+
+The isolated integration foundation is now `0641bfd34ed37a2cf8c324f81613451f1b74856c`,
+which also contains the independently tested native Scene Preview Save input phases.
+This foundation must never be merged. Published-head Windows checks remain required;
+the earlier Windows failures are not accepted as a successful cross-platform gate.
+
+Fresh corrected integration passed **246/246 in 611.45 s**, zero skips, followed
+by **Minimal Monolithic Shipping, 5 build steps**. The repeated hint fixture passed
+in **0.04 s**, bound nested materialization/Save All in **7.57 s**, native project
+upgrade in **18.02 s**, and native Scene Preview in **28.75 s**. This accepted Linux
+run includes both the reader release and native Scene Preview input correction.

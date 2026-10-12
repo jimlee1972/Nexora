@@ -69,6 +69,26 @@ long-duration soak or physical-host acceptance follows from this test.
 
 ## Ownership and lifetime
 
+`Review newer source` in a bound scene Inspector explicitly requests an owning three-way Core
+source-rebase review. The application retains the immutable review and publishes a bounded copied
+report with a session serial. Rendering performs no source IO. Rows display exact scoped retained,
+local and published complete property groups, with stable identity tooltips and escaped/clipped
+values. Source-only/local-only rows are automatic; each actual conflict requires Local or Source.
+Read-only scopes can inspect and choose for inspection but cannot request a write.
+
+`Rebase instance properties` remains disabled until every conflict has a choice. Opening its
+separate confirmation freezes owning choices and exact project/document/placement/source scope
+and review serial. Cancel/Escape, refresh, blur, immediate permission revocation, hidden Inspector,
+scope replacement and unrelated close/file/tab/rename/Play modals discard pending consent. The
+application repeats selection, current document key/token and placement mapping, stopped Play,
+writer/export/recovery/external-change policy before pure Core Resolve and fully revalidated Apply.
+Stale content or missing/tampered/advanced sources reject instead of overwriting later authoring;
+rejection clears the report and consent. One Undo/Redo restores complete properties and retained
+revision together. Source files never change; explicit Scene Save persists the result. Reports
+fit 32,768 groups/16 MiB logical data with 64 KiB values; this is not a process-memory budget. Structural
+reconciliation and apply-to-source remain separate. Public C++ consumers rebuild; module dependencies
+and stable C/Gameplay ABI remain unchanged.
+
 `Review overrides` in a bound scene Inspector emits an owning project/document/selection/source
 scope. The application explicitly prepares and retains an immutable `PrefabPlacementOverrideReview`
 and publishes only a bounded copied row report with a session review serial. Drawing performs no
@@ -98,8 +118,8 @@ loss/regain without an intervening frame. The application rechecks the same curr
 calls Core `RevertSelected` with the owning frozen indices; Core rejects stale/duplicate/out-of-range
 rows and revalidates the full retained closure. One Undo/Redo covers the selected groups together;
 no files change until ordinary Scene Save. Public C++ consumers rebuild, with stable C ABI and
-module dependencies unchanged. Structural reconciliation, apply-to-source and source rebase remain
-separate work.
+module dependencies unchanged. Structural reconciliation and apply-to-source remain separate;
+newer-source rebase uses its independent owning review above.
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
 Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
@@ -1167,28 +1187,9 @@ Nested materialization, override diff/revert/apply/rebase, reflected prefab prop
 transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
 module dependencies are unchanged.
 
-## Signed native package controls
-
-Native acceptance in test builds can explicitly request bounded, read-only widget geometry
-with `NEXORA_EXTENSION_UI_TEST_GEOMETRY`. The application reports actual control centers and
-DPI only when graphical testing is compiled in; it exposes no request injection or trust,
-permission, installation or enable shortcut. Native tests continue to send physical X11
-pointer/keyboard events and require the host's real operation result. Control geometry is
-refreshed after status text, tab and package changes rather than assuming fixed coordinates.
-The observation does not exist in non-testing builds and grants no authoring authority.
-
-Settings > Extensions / Ctrl+Alt+E opens the owning project-scoped publisher/capability and package
-views. Inputs transfer explicit requests; widgets never read packages or execute native code. The
-native owner rechecks project UUID/root/scope, private review revision, writer/recovery/external-change
-and stopped-Play/export/modal authority. Changed project scope clears keys/path drafts and pending
-requests; keys in the host registry are explicit process-session trust and never restored from a
-project. Changing the package path or closing the window cancels the retained Core review.
-
-Review displays the actually verified canonical identity/version/publisher/target/ABI/dependencies.
-Install copies only those owned verified bytes; a separate Enable requests actual sealed native
-admission. Row state comes from the host, and its tooltip reports admission/loader errors, ABI,
-services and lifecycle/cooperative capability. Disable/revoke drain through the cooperative host;
-legacy mappings remain restart-required. Read-only scopes can inspect but cannot install, enable or
-remove files. No package/project enrolls its own trust or auto-enables. Invalid/overflowing observation
-data preserves the previous display; clipped rows and bounded input/diagnostic strings limit retained
-UI state. Native permission declarations are admission checks, not a sandbox for trusted native code.
+Prefab isolation additionally presents an explicit owning property comparison and full revert
+confirmation. Source/edit values use clipped table rows and bounded previews; stable paths remain
+available in tooltips. Presentation data carries no write authority: the native session retains
+the actual immutable review and revalidates it at execution. Read-only inspection remains available
+while Revert requires current authoring permission. Edits, Undo/Redo, source actions and scope
+replacement revoke presented review/confirmation. Targeted field/source apply and rebase remain open.

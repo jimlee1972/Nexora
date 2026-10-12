@@ -789,94 +789,44 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/multiple native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
-  - ✅ Core live source rebase owns exact scoped retained/local/published complete-group reviews.
-    Source-only changes apply, local-only overrides survive and actual conflicts require explicit
-    KeepLocal/TakeSource choices. One Undo/Redo restores properties plus retained revision; dormant
-    values, authored Euler, unknown data, nested scope identity, clipboard, files and Save/reopen
-    pass. Changed schema/dependencies, stale/missing/tampered/advanced sources, recovery/external
-    changes and authority reject. Full Linux 245/245 and Minimal Shipping pass. Graphical conflict
-    choices, structural reconciliation and apply-to-source remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceRebase-Linux-2026-10-10.md).
-  - ✅ Same-identity live placement snapshots advance one retained revision and its complete
-    properties in one Undo/Redo, preserving scoped mappings, other placements, hierarchy,
-    unbound latent Euler hints, dormant values, identity and source files. Invalid/stale input and
-    replay preserve history; mixed nested/two-placement, Save/reopen and full Linux 244/244 plus
-    Minimal Shipping pass. This transaction is a source-rebase prerequisite; source closure,
-    conflict review and graphical source rebase follow separately.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevisionHistory-Linux-2026-10-10.md).
+  - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
+    sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
+    Targeted fields, source apply, structural bindings and reference rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyReview-Linux-2026-10-10.md).
+  - ✅ Graphical prefab isolation is validated: create/open/variant/save/reopen use a separate
+    native document, with hierarchy, name/position edits, Undo/Redo and dirty-close protection.
+    Read-only inspection preserves project files. Nested materialization and override/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabIsolation-Linux-2026-10-10.md).
+  - ✅ Prefab isolation owner is validated: project-scoped create/open/variant/save/reopen use a
+    separate World and document, retaining unknown bytes and original scene history. Dirty replacement,
+    read-only writes, stale scope/revision and reentrant identity callbacks reject. Graphical binding,
+    nested materialization, historical revision access and override/rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md).
 
-  - ✅ The bound-scene Inspector selects owning scoped property rows and freezes their review
-    serial/indices at explicit Revert confirmation. Complete selected property groups restore
-    retained source values while unselected names/TRS/unknown data remain intact. Actual 1x/2x
-    controls, three cold native Name/rotation/opaque workflows, exact Scene Save/one Undo/Redo
-    and read-only reopen pass; full Linux 248/248 and Minimal Shipping pass. Structural source
-    reconciliation and live instance source apply/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedUi-Linux-2026-10-10.md).
-  - ✅ The graphical bound-scene Inspector reviews owning scoped retained/local property rows
-    and requires explicit confirmation for whole-instance Revert. Read-only, stale, structural,
-    hidden/focus/close and permission guards preserve data; actual 1x/2x controls, three cold native
-    launches, exact Scene Save/Undo/Redo and read-only reopen pass. Full Linux 247/247 and Minimal
-    Shipping pass. Source apply/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md).
-  - ✅ Targeted live prefab property Revert accepts immutable scoped review row indices and
-    expands selected lanes into complete name/TRS/authored rotation/component/opaque groups.
-    Distinct lanes coalesce; invalid/duplicate/read-only/unauthorized inputs reject. Unselected
-    local overrides, dormant values, unknown additions, identity, bindings and files are preserved
-    with one Undo/Redo; empty selection preserves pending Redo. Mixed nested source fixtures and
-    full Linux 243/243 plus Minimal Shipping pass. Source apply/rebase
-    remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md).
-  - ✅ Atomic live instance property revert restores the exact retained nested source, including
-    dormant component values, authored Euler and unknown bytes, in one Undo/Redo. Current writer,
-    explicit authorization and exact source/target revalidation reject stale/read-only/structural
-    inputs. Source advancement, unchanged files and saved-baseline/Scene Save/reopen pass;
-    full Linux 243/243 and Minimal Shipping pass. Structural reconciliation and source
-    apply/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementRevert-Linux-2026-10-10.md).
-  - ✅ The graphical scene Inspector now shows a selected persistent prefab node's source and
-    retained revision, with explicit read-only inspection of captured available/unresolved,
-    scoped-source and current publication facts. Actual 1x/2x controls, native missing/restored
-    source refresh and read-only reopen preserve scene/history/files; full Linux 245/245 and
-    Minimal Shipping pass. Instance source apply/rebase remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSourceUi-Linux-2026-10-10.md).
-  - ✅ Owning live prefab instance property review compares exact retained nested sources with
-    scoped stable node/field identities, preserves authored Euler and unknown bytes, and marks
-    hierarchy changes structural. Read-only review and stale/missing/over-budget rejection preserve
-    files and Undo/Redo; full Linux 243/243 and Minimal Shipping pass. Instance apply/rebase
-    follow separately.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrides-Linux-2026-10-10.md).
-  - ✅ Persistent placement source inspection owns retained/current revision and scoped-node
-    observations, including unresolved source status; full Linux 243/243 and Minimal Shipping pass.
-    Instance override/rebase follow separately.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementInspection-Linux-2026-10-10.md).
-  - ✅ Project prefab placement owner passes actual mixed-revision source-closure, stale/foreign
-    target, read-only/recovery/external-change and Save/reopen gates, full Linux 243/243 and
-    Minimal Shipping. Graphical instantiation follows separately.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-ProjectPrefabPlacement-Linux-2026-10-10.md).
-  - ✅ Persistent Editor scene prefab placement bindings pass nested/repeated placement,
-    history, Save All, reopen and corruption gates, full Linux 242/242 and Shipping;
-    graphical instantiate and structural source reconciliation remain open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PersistentPrefabBindings-Linux-2026-10-10.md).
-  - ✅ Nested prefab materialization is validated: exact revision closure stages outside the
-    live document, preserves scoped identities/local transforms/unknown bytes and imports as one
-    Undo/Redo transaction. Graphical instance override/rebase remains open.
-    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md).
   - ✅ Prefab revision retention is validated: superseded committed sources remain available by
     exact UUID/revision, and bounded project closure can resolve multiple revisions of one asset.
     Archive conflicts preserve current sources; failed current writes do not occupy future revisions.
-    Graphical rebase, persistent instance metadata and power-loss journaling remain open.
+    Graphical rebase/nested materialization and power-loss journaling remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md).
   - ✅ Prefab document save integration is validated: confirmed wrapped publication advances
     only the owning saved baseline while preserving generation, selection, clipboard and Undo/Redo.
     Current source/project and expected asset revision are rechecked; graphical isolation remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabDocumentSave-Linux-2026-10-10.md).
+
+  - ✅ Stable prefab three-way comparison is validated: node/field UUID paths, stable parent
+    references, unknown payloads and nested metadata remain independent of serialized Runtime IDs.
+    Graphical override/revert/apply/rebase and structurally validated publication remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-StablePrefabComparison-Linux-2026-10-10.md).
+
   - ✅ Atomic same-identity document property snapshots are validated: complete mixed metadata,
     hierarchy/TRS and stored components use one guarded Undo/Redo, preserving generations, selection,
-    clipboard and baseline. Structural changes and graphical prefab revert/rebase remain open.
+    clipboard and baseline. Structural changes and complete source-reference reconciliation remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-AtomicPropertySnapshot-Linux-2026-10-10.md).
-  - ✅ Unchanged atomic snapshot rotation groups now conserve latent in-memory authored Euler
-    turns. Ordinary snapshots, placement revision transactions and actual source-name rebases
-    preserve exact history; explicit quaternion changes and authored-record removal are honored.
-    [Hint evidence](../../Tools/Build/evidence/EditorEDM4-SnapshotEulerHints-Linux-2026-10-10.md).
+
+  - ✅ Identity-remapped prefab property candidates are validated: exact stable node sets retain
+    target entity/scene identity while restoring complete source properties and unknown data.
+    Structural edits, graphical revert/targeted fields and reference rebase remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyPlan-Linux-2026-10-10.md).
   - ✅ Prefab asset foundation now owns exact scene/unknown bytes, stable asset/node/field identities,
     revisioned codec, writer/expected-source publication and bounded exact base/nested closure.
     Actual rename/Undo/save/reopen, scoped repeated placements, cycle/stale/budget rejection and
@@ -965,6 +915,34 @@ creates property widgets; unknown components retain raw data instead of being si
     Reviewed merge publication, provider integration and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalSceneConflicts-Linux-2026-10-10.md).
 - **ED-M5 — Specialized tools:** material/shader graph, animation, particles/VFX, audio, navigation/physics debug, terrain/vegetation, localization. Each is a capability plugin with honest read-only/unavailable states.
+  - ✅ An optional scalar PBR native plugin now uses public Editor import/export and Renderer
+    validation for actual Inspect/Edit/Serialize byte transformations. Typed edits cover nine
+    scalar lanes within a 64 KiB request; canonical owning output is capped at 1024 bytes.
+    Actual dynamic-load tests cover exact float roundtrips, failure budgets, independent hosts
+    and unload/reload. The signed-host callback bridge is delivered below. GPU Preview is unavailable;
+    Graphical document/Undo/Save/reopen workflows remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ScalarMaterialPlugin-Linux-2026-10-11.md).
+  - ✅ Plugin Manager now selects exact enabled tools with owning manager-instance/project-scope/
+    configuration/admission identities and calls only through its private signed host/registry.
+    Same-ID foreign managers, stale/revoked selections, read-only edits, unresolved project state
+    and wrong-thread/reentrant calls reject before callbacks. Actual signed installed scalar
+    material Edit/Serialize and native recursion pass; outputs survive unload. Graphical material
+    document/Undo/Save/reopen/Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-ManagedToolInvocation-Linux-2026-10-11.md).
+  - ✅ Signed native tool invocation now binds every byte callback to its exact current sealed
+    image, trust/policy revisions and qualified active provider. Wrong-thread/reentrant checks
+    precede mutable admission inspection; stale trust, foreign registries and retired IDs reject
+    without lifecycle mutation. Actual signed scalar-material Inspect/Serialize and cross-invoker
+    native recursion pass. The scoped Manager facade is delivered above; graphical
+    document/Undo/Save/Preview remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-SignedToolInvocation-Linux-2026-10-11.md).
+  - ✅ The optional versioned native byte-callback SDK now executes actual loaded tool services
+    through fresh qualified lookups, with owning outcomes and 64 KiB input/output limits.
+    Wrong-thread/reentrant, malformed, revoked and foreign calls reject; invalid success lengths
+    and failed callbacks discard output. Fourteen compiled native fixtures plus a C consumer prove
+    the supporting contract. Host document/IO authorization and graphical reference-tool
+    edit/preview/save/unload acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM5-NativeToolCallbacks-Linux-2026-10-11.md).
   - ✅ Qualified native service lookup now checks the exact loaded plugin admission and owned
     provider identity, including copied registries, same-name reload and same numeric IDs across
     hosts. Manual replacements and revoked/pending/restart-required providers reject. Results
@@ -1148,8 +1126,6 @@ creates property widgets; unknown components retain raw data instead of being si
     enable/disable, revocation, restart-required state and protected removal. Real 1x/2x widgets and
     Xvfb native cooperative/legacy/ABI fixtures validate current scope, modal/Play/access/recovery/
     external-change gates and source preservation. Restart never restores keys or enables code.
-    Native acceptance follows actual test-build widget centers and completed-operation redraws
-    through physical X11 input, retaining exact installation/lifecycle/read-only assertions.
     Linux sealed-image admission is supported; persistent trust, crash/power-loss recovery,
     other native backends and third-party graphical contributions remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).

@@ -1,6 +1,8 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/PrefabDocumentSession.h"
+#include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include "TemporaryDirectoryCleanup.h"
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -36,7 +38,7 @@ void Run(float scale) {
   Require(session.Create(id, source, false, &error), "Isolation fixture failed");
   editor::imgui::EditorImGuiHost ui;
   editor::ProductShell shell;
-  ui.SetDisplay(1400, 1000, scale);
+  ui.SetDisplay(1400, 1800, scale);
   Access::ConfigureSyntheticInput(ui);
   ui.OpenPrefabIsolation();
   Nexora::Window::WindowEvent focus;
@@ -53,6 +55,7 @@ void Run(float scale) {
     view.owner_generation = session.Generation();
     view.source = files.Token();
     view.asset = session.AssetId();
+    view.base = session.BaseReference();
     view.open = document != nullptr;
     view.document_generation = document ? document->Generation() : 0;
     view.dirty = view.open && session.Dirty();
@@ -70,6 +73,25 @@ void Run(float scale) {
   const auto click = [&](std::size_t control) {
     const auto point = Access::PrefabControlPosition(ui, control);
     Require(point.has_value(), "Actual prefab control absent");
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*point)[0] * scale);
+    pointer.value1 = static_cast<int>((*point)[1] * scale);
+    ui.ProcessEvents(std::array{pointer});
+    draw();
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    button.value1 = 0;
+    ui.ProcessEvents(std::array{button});
+    draw();
+    draw();
+  };
+  const auto click_property = [&](std::size_t row) {
+    const auto point = Access::PrefabPropertyPosition(ui, row);
+    Require(point.has_value(), "Actual selected-property checkbox absent");
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
     pointer.value0 = static_cast<int>((*point)[0] * scale);
@@ -139,6 +161,41 @@ void Run(float scale) {
           "Actual save baseline failed");
   click(8);
   Require(session.Dirty() && session.Document()->Transform(node)->x == 0, "Save erased field Undo");
+  click(15);
+  const auto review_request = ui.TakePrefabIsolationRequest();
+  auto review = session.Review(&error);
+  Require(review_request && review_request->action == Action::Review && review &&
+              review->CanRevert(),
+          "Actual Review control did not emit an owning source comparison");
+  ui.SetPrefabReview(review->Changes(), review->CanRevert());
+  draw();
+  click(16);
+  Require(!ui.TakePrefabIsolationRequest() && Access::PrefabControlPosition(ui, 17),
+          "Actual property revert skipped explicit confirmation");
+  click(18);
+  Require(!ui.TakePrefabIsolationRequest() && session.Document()->Transform(node)->x == 0,
+          "Cancel revert changed document properties");
+  click(16);
+  ++scope;
+  draw();
+  draw();
+  Require(!Access::PrefabControlPosition(ui, 17) && !ui.TakePrefabIsolationRequest(),
+          "Scope replacement revived property-revert confirmation");
+  ui.SetPrefabReview(review->Changes(), review->CanRevert());
+  draw();
+  click(16);
+  click(17);
+  const auto revert_request = ui.TakePrefabIsolationRequest();
+  Require(revert_request && revert_request->action == Action::Revert &&
+              !revert_request->discard_dirty && session.Revert(*review, true, &error) &&
+              session.Document()->Transform(node)->x == 3.5 && !session.Dirty(),
+          "Actual confirmed revert failed or bypassed the original document baseline");
+  ui.SetPrefabReview(std::nullopt);
+  draw();
+  click(8);
+  Require(session.Dirty() && session.Document()->Transform(node)->x == 0 &&
+              editor::PrefabAssets::Load(workspace, id) == saved,
+          "One Undo did not restore reverted edits or revert wrote its source");
   click(5);
   Require(!ui.TakePrefabIsolationRequest() && Access::PrefabControlPosition(ui, 6),
           "Dirty close skipped confirmation");
@@ -170,7 +227,7 @@ void Run(float scale) {
     Require(inspection.Open(id, false, &error), "Read-only prefab open failed");
     const auto before = inspection.Document()->PrepareSave()->Bytes();
     editor::imgui::EditorImGuiHost readonly_ui;
-    readonly_ui.SetDisplay(1400, 1000, scale);
+    readonly_ui.SetDisplay(1400, 1800, scale);
     Access::ConfigureSyntheticInput(readonly_ui);
     readonly_ui.OpenPrefabIsolation();
     readonly_ui.ProcessEvents(std::array{focus});
@@ -180,6 +237,7 @@ void Run(float scale) {
     view.owner_generation = inspection.Generation();
     view.document_generation = inspection.Document()->Generation();
     view.asset = id;
+    view.base = inspection.BaseReference();
     view.open = true;
     view.revision = saved->revision;
     Require(readonly_ui.SetPrefabIsolation(view), "Read-only observation rejected");
@@ -192,23 +250,37 @@ void Run(float scale) {
     };
     for (int i = 0; i < 4; ++i)
       render();
-    const auto point = Access::PrefabControlPosition(readonly_ui, 4);
-    Require(point.has_value(), "Read-only Save control absent");
-    Nexora::Window::WindowEvent pointer, button;
-    pointer.type = Nexora::Window::WindowEventType::Pointer;
-    pointer.value0 = static_cast<int>((*point)[0] * scale);
-    pointer.value1 = static_cast<int>((*point)[1] * scale);
-    readonly_ui.ProcessEvents(std::array{pointer});
+    readonly_ui.SetPrefabReview(review->Changes(), true);
     render();
-    button.type = Nexora::Window::WindowEventType::PointerButton;
-    button.value0 = 0;
-    button.value1 = 1;
-    readonly_ui.ProcessEvents(std::array{button});
-    render();
-    button.value1 = 0;
-    readonly_ui.ProcessEvents(std::array{button});
-    render();
-    render();
+    const auto readonly_click = [&](std::size_t control) {
+      const auto point = Access::PrefabControlPosition(readonly_ui, control);
+      Require(point.has_value(), "Read-only Save control absent");
+      Nexora::Window::WindowEvent pointer, button;
+      pointer.type = Nexora::Window::WindowEventType::Pointer;
+      pointer.value0 = static_cast<int>((*point)[0] * scale);
+      pointer.value1 = static_cast<int>((*point)[1] * scale);
+      readonly_ui.ProcessEvents(std::array{pointer});
+      render();
+      button.type = Nexora::Window::WindowEventType::PointerButton;
+      button.value0 = 0;
+      button.value1 = 1;
+      readonly_ui.ProcessEvents(std::array{button});
+      render();
+      button.value1 = 0;
+      readonly_ui.ProcessEvents(std::array{button});
+      render();
+      render();
+    };
+    readonly_click(4);
+    Require(!readonly_ui.TakePrefabIsolationRequest(), "Read-only Save emitted a request");
+    readonly_click(16);
+    Require(!Access::PrefabControlPosition(readonly_ui, 17) &&
+                !readonly_ui.TakePrefabIsolationRequest(),
+            "Read-only Revert displayed write confirmation");
+    readonly_click(15);
+    const auto inspect_request = readonly_ui.TakePrefabIsolationRequest();
+    Require(inspect_request && inspect_request->action == Action::Review,
+            "Read-only controls blocked owning source inspection");
     Require(!readonly_ui.TakePrefabIsolationRequest() &&
                 inspection.Document()->PrepareSave()->Bytes() == before &&
                 editor::PrefabAssets::Load(observer, id) == saved,
@@ -220,6 +292,12 @@ int main() {
   try {
     Run(1);
     Run(2);
+    RunSourceApply(1);
+    RunSourceApply(2);
+    RunRebase(1);
+    RunRebase(2);
+    RunInstantiate(1);
+    RunInstantiate(2);
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

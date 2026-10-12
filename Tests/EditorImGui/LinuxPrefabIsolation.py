@@ -50,6 +50,8 @@ def main():
     root = scratch / 'project'
     subprocess.run([args.fixture, '--write-native-fixture', str(root)], check=True)
     source = root / '.nexora/scenes/Main.scene'
+    project_id = re.search(rb'^uuid=([0-9a-f-]{36})$',
+                           (root / 'project.nexora').read_bytes(), re.M)[1]
     original = source.read_bytes()
     node = re.search(rb'^node (\d+) 0 ', original, re.M)[1]
     opaque = re.search(rb'^opaque .+$', original, re.M)[0]
@@ -77,7 +79,8 @@ def main():
 
         def click(window, x, y):
             send('mousemove', '--window', window, str(x), str(y))
-            send('click', '1')
+            send('mousedown', '1')
+            send('mouseup', '1')
 
         def text(window, x, y, value):
             click(window, x, y)
@@ -93,6 +96,23 @@ def main():
                 if re.search(pattern, captured[start:].decode('utf-8', errors='replace')):
                     return
             raise RuntimeError(f'Missing prefab action {pattern}: {captured!r}')
+
+        def scene_shortcut(letter):
+            # Hold each modifier/key phase through a native frame; one physical action.
+            send('keydown', 'Control_L')
+            send('keydown', letter)
+            send('keyup', letter)
+            send('keyup', 'Control_L')
+
+        def wait_scene(predicate, message):
+            deadline = time.monotonic() + 8
+            while time.monotonic() < deadline:
+                require(process.poll() is None, 'Editor exited during scene placement')
+                value = source.read_bytes()
+                if predicate(value):
+                    return value
+                time.sleep(.1)
+            raise RuntimeError(message)
 
         def open_host(read_only=False):
             nonlocal process, captured
@@ -169,12 +189,49 @@ def main():
                 'Actual variant lost its exact base/identity/source')
         require(source.read_bytes() == original and asset(base)[0] == restored[0],
                 'Prefab workflow changed its original scene or base')
+        before_review = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
+        click(window, 140, 227)
+        text(window, 180, 427, 'Variant override')
+        key('Return')
+        text(window, 180, 451, '9')
+        key('Return')
+        start = len(captured)
+        click(window, 310, 177)
+        wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
+        click(window, 435, 177)
+        time.sleep(.3)
+        start = len(captured)
+        click(window, 165, 216)
+        wait_log(r'prefab action=6 applied=1 .*dirty=0', start)
+        require(before_review == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
+                'Review/revert published source or changed project files')
+        click(window, 88, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=2 dirty=0', start)
+        undo_revert = asset(variant)
+        require(b'node ' + node + b' 0 Variant override\n' in undo_revert[3] and
+                re.search(rb'^' + node + rb' 0 9 ', undo_revert[3], re.M) and
+                undo_revert[2] == child_asset[2] and opaque in undo_revert[3],
+                'One native Undo did not restore all reverted properties/identities')
+        click(window, 140, 200)
+        start = len(captured)
+        click(window, 110, 177)
+        wait_log(r'prefab action=3 applied=1 .*revision=3 dirty=0', start)
+        require(asset(variant)[3] == child_asset[3] and asset(variant)[2] == child_asset[2] and
+                source.read_bytes() == original and asset(base)[0] == restored[0],
+                'Native Redo lost exact source properties or changed original/base')
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
         text(window, 180, 113, variant_id)
         click(window, 230, 137)
-        wait_log(r'prefab action=1 applied=1 .*revision=1 dirty=0')
+        wait_log(r'prefab action=1 applied=1 .*revision=3 dirty=0')
+        start = len(captured)
+        click(window, 310, 177)
+        wait_log(r'prefab action=5 applied=1 .*dirty=0', start)
+        click(window, 435, 177)
+        require(b'prefab action=6' not in captured, 'Read-only review enabled property revert')
         click(window, 140, 227)
         text(window, 180, 427, 'Forbidden readonly edit')
         key('Return')
