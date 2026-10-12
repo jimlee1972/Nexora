@@ -1187,49 +1187,20 @@ Nested materialization, override diff/revert/apply/rebase, reflected prefab prop
 transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
 module dependencies are unchanged.
 
-Prefab isolation additionally presents an explicit owning property comparison and full revert
-confirmation. Source/edit values use clipped table rows and bounded previews; stable paths remain
-available in tooltips. Presentation data carries no write authority: the native session retains
-the actual immutable review and revalidates it at execution. Read-only inspection remains available
-while Revert requires current authoring permission. Edits, Undo/Redo, source actions and scope
-replacement revoke presented review/confirmation. Targeted field/source apply and rebase remain open.
+## Signed native package controls
 
-## Graphical variant source application
+Settings > Extensions / Ctrl+Alt+E opens the owning project-scoped publisher/capability and package
+views. Inputs transfer explicit requests; widgets never read packages or execute native code. The
+native owner rechecks project UUID/root/scope, private review revision, writer/recovery/external-change
+and stopped-Play/export/modal authority. Changed project scope clears keys/path drafts and pending
+requests; keys in the host registry are explicit process-session trust and never restored from a
+project. Changing the package path or closing the window cancels the retained Core review.
 
-The isolation toolbar exposes Apply to source only for an owning reviewed saved variant candidate.
-Checkbox changes revoke prior source/full-revert consent; Review selected prepares a new capability.
-Source application requires a separate confirmation and explains that the variant retains its base
-until explicit Rebase. Cancel/scope replacement/local edits/Undo/Redo revoke pending confirmation.
-The native host and owner independently recheck project/modal/export/close/stopped-Play/current-source
-conditions. Read-only review remains available; source publication is disabled. No file IO occurs
-in widgets, no automatic local Save/acknowledgement/rebase follows, and all owning source checks are
-repeated before canonical publication.
-
-
-## Three-way prefab source rebase controls
-
-The isolation panel also exposes `Instantiate in scene` for a clean published prefab and a
-currently writable active scene. Its owning request includes project/owner/document/source-file
-scope and destination role; changing scope or role revokes pending requests. Drawing performs no
-source IO or live import. The application prepares/rechecks the published exact source closure and
-target content, generates a placement identity, then requests one bound scene import. Read-only,
-reference-document, dirty prefab, Play/modal/recovery and stale publication guards apply. Original
-scene history owns the single Undo/Redo; isolation content/history and prefab source files stay
-independent. Ordinary explicit Scene Save publishes the placement metadata. Structural instance
-override/rebase and automatic reconciliation remain separate work.
-
-The isolated variant exposes retained source revision, Review rebase, a clipped five-column
-old-base/local/current-source comparison and explicit Keep local/Take source choices for each
-conflicting complete stable field group. Prepare forwards owning choices to the authoring owner;
-changing a choice revokes any prepared candidate and consent. Source-only changes need no choices.
-Rebase opens separate confirmation; confirmation forwards one current observation, and only the
-owner's private reviewed capability can apply. UI snapshots confer no write authority or perform IO.
-
-Project/source-document/owner/document/asset/base scope changes clear review and confirmation.
-Local edits, Undo/Redo, hidden windows and blocked authoring revoke consent; re-enabling interaction
-does not revive it. Read-only sessions can review/prepare choices but cannot confirm or mutate.
-The application repeats project/writer/recovery/Play/modal and exact-current-source checks.
-Successful rebase changes properties and retained reference as one document Undo/Redo. Publication
-remains explicit Save, which archives the previous exact variant and permits clean reopen. Source
-apply retains its separate confirmation and publication boundary. Structural identity reconciliation,
-persistent live instances and complete nested authoring remain separate work.
+Review displays the actually verified canonical identity/version/publisher/target/ABI/dependencies.
+Install copies only those owned verified bytes; a separate Enable requests actual sealed native
+admission. Row state comes from the host, and its tooltip reports admission/loader errors, ABI,
+services and lifecycle/cooperative capability. Disable/revoke drain through the cooperative host;
+legacy mappings remain restart-required. Read-only scopes can inspect but cannot install, enable or
+remove files. No package/project enrolls its own trust or auto-enables. Invalid/overflowing observation
+data preserves the previous display; clipped rows and bounded input/diagnostic strings limit retained
+UI state. Native permission declarations are admission checks, not a sandbox for trusted native code.

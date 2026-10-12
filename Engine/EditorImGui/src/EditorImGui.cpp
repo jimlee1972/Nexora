@@ -4718,6 +4718,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
       state_->prefab_isolation_open = !state_->prefab_isolation_open;
+    if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_E,
+                        ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
+      state_->extension_manager_open = !state_->extension_manager_open;
     const bool menu = ImGui::BeginMenu("File", file_context_valid && !file_external_block &&
                                                    !file_busy && !state_->content_rename_target);
     CaptureSceneFileControl(*state_, 0);
