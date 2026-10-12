@@ -363,6 +363,131 @@ void AsyncPairs() {
   reject(depth + ',' + Async("b", 500, "999") + "]");
 }
 
+std::string Global(std::string_view phase, std::uint64_t time, std::uint64_t process = 42,
+                   bool legacy = false, std::string_view id = "1", std::string_view name = "Frame",
+                   std::string_view category = "work", std::string_view scope = "session") {
+  auto event = Async(phase, time, id, 7, name, category, scope);
+  event.replace(event.find("\"pid\":42"), 8, "\"pid\":" + std::to_string(process));
+  const auto identity = "\"id2\":{\"local\":" + std::string(id) + "}";
+  event.replace(event.find(identity), identity.size(),
+                legacy ? "\"id\":" + std::string(id)
+                       : "\"id2\":{\"global\":" + std::string(id) + "}");
+  return event;
+}
+void GlobalPairs() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto begin = Global("b", 100);
+  const auto end = Global("e", 1350, 43);
+  const auto bytes = "[" + begin + ',' + Global("b", 200, 44, true, "1", "Other") + ',' +
+                     Global("e", 300, 45, false, "1", "Other") + ',' + end + "]";
+  auto capture = ChromeTraceImporter::Import(bytes, selection);
+  Require(capture && ChromeTraceImporter::Validate(*capture) && capture->samples.size() == 1 &&
+              capture->samples[0].duration_milliseconds == 1.25,
+          "Cross-process global nesting lost inclusive latency or begin-process selection");
+  for (const bool legacy : {false, true}) {
+    auto alias = ChromeTraceImporter::Import(
+        "[" + Global("b", 100, 42, legacy) + ',' + Global("e", 1350, 43, !legacy) + "]", selection);
+    Require(alias && alias->samples[0].duration_milliseconds == 1.25,
+            "Legacy id and explicit global id2 failed to share the global namespace");
+  }
+  auto namespace_split = ChromeTraceImporter::Import(
+      "[" + Async("b", 100) + ',' + Global("b", 200) + ',' + Async("e", 300) + ',' + end + "]",
+      selection);
+  Require(namespace_split && namespace_split->samples.size() == 2 &&
+              namespace_split->samples[0].duration_milliseconds == .2 &&
+              namespace_split->samples[1].duration_milliseconds == 1.15,
+          "Local/global IDs collided or local end closed a global begin");
+  auto same =
+      "[" + begin + ',' + Global("b", 200, 43) + ',' + Global("e", 300, 44) + ',' + end + "]";
+  auto selected_other = ChromeTraceImporter::Import(same, {43, 7, "Frame"});
+  Require(selected_other && selected_other->samples.size() == 1 &&
+              selected_other->samples[0].start_microseconds == 200 &&
+              selected_other->samples[0].duration_milliseconds == .1,
+          "Global samples selected the end process instead of the begin process");
+  auto ordered = ChromeTraceImporter::Import(
+      "[" + begin + ',' + Global("b", 200, 42, true, "2") + ',' + Global("e", 300, 44) + ',' +
+          Scope("B", 400, "Frame") + ',' + Event(500) + ',' + Scope("E", 600) + ',' +
+          Global("e", 700, 43, false, "2") + "]",
+      selection);
+  Require(ordered && ChromeTraceImporter::Validate(*ordered) && ordered->samples.size() == 4 &&
+              ordered->samples[0].duration_milliseconds == .2 &&
+              ordered->samples[1].duration_milliseconds == .5 &&
+              ordered->samples[2].duration_milliseconds == .2,
+          "Global independent completion lost mixed X/B/E/b/e begin ordering");
+  for (int lane = 0; lane < 3; ++lane) {
+    const auto id = lane == 0 ? "\"1\"" : "1";
+    const auto cat = lane == 1 ? "other" : "work";
+    const auto scope = lane == 2 ? "other" : "session";
+    auto separated = ChromeTraceImporter::Import(
+        "[" + begin + ',' + Global("b", 200, 42, true, id, "Frame", cat, scope) + ',' + end + ',' +
+            Global("e", 1400, 44, false, id, "Frame", cat, scope) + "]",
+        selection);
+    Require(separated && separated->samples.size() == 2 &&
+                separated->samples[0].duration_milliseconds == 1.25 &&
+                separated->samples[1].duration_milliseconds == 1.2,
+            "Typed global ID/category/scope identity lanes collided");
+  }
+  auto unicode =
+      ChromeTraceImporter::Import("[" + Global("b", 100, 42, true, "\"時間\\ud83d\\ude00\"") + ',' +
+                                      Global("e", 100, 43, false, "\"時間😀\"") + "]",
+                                  selection);
+  Require(unicode && unicode->samples[0].duration_milliseconds == 0,
+          "Global escaped Unicode ID alias or zero duration rejected");
+  auto unrelated_local = Async("b", 200, "null", 7, "Other");
+  unrelated_local.replace(unrelated_local.find("\"pid\":42"), 8, "\"pid\":44");
+  Require(
+      ChromeTraceImporter::Import("[" + begin + ',' + unrelated_local + ',' + end + "]", selection)
+          .has_value(),
+      "Unrelated process-local metadata interfered with global pairing");
+  const auto reject = [&](const std::string &source) {
+    const auto copy = source;
+    std::string error;
+    Require(!ChromeTraceImporter::Import(source, selection, &error) && !error.empty() &&
+                source == copy && capture->samples[0].duration_milliseconds == 1.25,
+            "Invalid global trace lost source/prior capture or diagnostic preservation");
+  };
+  reject("[" + begin + "]");
+  reject("[" + end + ',' + begin + "]");
+  reject("[" + begin + ',' + Global("e", 99, 43) + "]");
+  reject("[" + begin + ',' + Global("e", 200, 43, false, "2") + "]");
+  reject("[" + begin + ',' + Global("e", 200, 43, false, "1", "Other") + "]");
+  reject("[" + begin + ',' + Global("b", 200, 43) + ',' + Global("e", 400, 44) + ',' +
+         Global("e", 300) + "]");
+  reject("[" + Event(1) + ',' + Global("b", 200, 44, true, "2", "Other") + "]");
+  reject("[" + begin + ',' + Global("b", 99, 43) + ',' + Global("e", 300, 44) + ',' + end + "]");
+  for (const auto id : {"null", "true", "-1", "1.5", "9007199254740992", "\"\""})
+    for (bool legacy : {false, true})
+      reject("[" + Global("b", 100, 42, legacy, id) + ',' + end + "]");
+  auto ambiguous = begin;
+  ambiguous.replace(ambiguous.find("\"global\":1"), 10, "\"global\":1,\"local\":1");
+  reject("[" + ambiguous + ',' + end + "]");
+  auto dual = begin;
+  dual.insert(dual.size() - 1, ",\"id\":1");
+  reject("[" + dual + ',' + end + "]");
+  std::string pending = "[" + begin;
+  for (std::uint64_t i = 1; i <= 605; ++i)
+    pending += ',' + Event(100 + i);
+  auto evicted =
+      ChromeTraceImporter::Import(pending + ',' + Global("e", 10000, 43) + "]", selection);
+  Require(evicted && ChromeTraceImporter::Validate(*evicted) &&
+              evicted->older_samples_dropped == 6 && evicted->samples.front().sequence == 7 &&
+              evicted->samples.back().sequence == 606,
+          "Global pending begin eviction lost newest600/drop accounting");
+  for (const auto &sample : evicted->samples)
+    Require(sample.duration_milliseconds == 1.2505,
+            "Evicted global end overwrote a newer ring slot");
+  std::string depth = "[" + Event(1);
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    depth += ',' + Global("b", 100 + i, 43, true, std::to_string(i), "Other");
+  auto exact = depth;
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    exact += ',' + Global("e", 1000 + i, 44, false, std::to_string(i), "Other");
+  Require(ChromeTraceImporter::Import(exact + "]", selection).has_value(),
+          "Exact global open capacity rejected");
+  reject(depth + ',' + Async("b", 500, "999") + "]");
+  reject(depth + ',' + Scope("B", 500, "Other") + "]");
+}
+
 void ProjectIo() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-chrome-io-" +
@@ -404,6 +529,12 @@ void ProjectIo() {
   Require(async_capture && async_capture->samples.front().duration_milliseconds == 1.25 &&
               read() == async_bytes,
           "Read-only cross-thread async import changed source or duration");
+  const auto global_bytes = "[" + Global("b", 100, 42, true) + ',' + Global("e", 1350, 43) + "]";
+  write(global_bytes);
+  auto global_capture = observer.ImportChromeTraceJson(selection, &error);
+  Require(global_capture && global_capture->samples.front().duration_milliseconds == 1.25 &&
+              read() == global_bytes,
+          "Read-only cross-process global import changed source or duration");
   write("[" + Scope("B", 100, "Frame") + "]");
   Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
               paired_capture->samples.front().duration_milliseconds == 1.25,
@@ -462,6 +593,7 @@ int main() {
     Run();
     DurationPairs();
     AsyncPairs();
+    GlobalPairs();
     ProjectIo();
     return 0;
   } catch (const std::exception &error) {

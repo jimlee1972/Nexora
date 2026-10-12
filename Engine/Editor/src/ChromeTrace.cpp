@@ -261,34 +261,49 @@ private:
     if (phase == "b" || phase == "e") {
       if ((seen & 31) != 31 || (seen & 32))
         return false;
-      if (process != capture_.selection.process)
-        return true;
       // Decode identity only for supported async events. Existing X/B/E metadata remains opaque.
       const auto tail = remaining_;
       AsyncIdentity identity;
-      remaining_ = id2_token;
-      bool local = false;
-      if (!id_token.empty() || !Members([&](const std::string &key) {
-            if (key != "local")
-              return false;
-            local = true;
-            Space();
-            identity.numeric = !remaining_.starts_with('"');
-            if (identity.numeric) {
-              std::uint64_t value{};
-              if (!Identity(value))
+      const auto value = [&] {
+        Space();
+        identity.numeric = !remaining_.starts_with('"');
+        if (identity.numeric) {
+          std::uint64_t number{};
+          if (!Identity(number))
+            return false;
+          identity.id = std::to_string(number);
+        } else {
+          auto decoded = ReadString();
+          if (!decoded || decoded->empty() || decoded->size() > 256)
+            return false;
+          identity.id = std::move(*decoded);
+        }
+        return true;
+      };
+      if (!id_token.empty()) {
+        remaining_ = id_token;
+        if (!id2_token.empty() || !value() || !End())
+          return false;
+      } else {
+        remaining_ = id2_token;
+        bool identifier = false;
+        if (!Members([&](const std::string &key) {
+              if (identifier || (key != "local" && key != "global"))
                 return false;
-              identity.id = std::to_string(value);
-            } else {
-              auto value = ReadString();
-              if (!value || value->empty() || value->size() > 256)
-                return false;
-              identity.id = std::move(*value);
-            }
-            return true;
-          }) ||
-          !local || !End())
-        return false;
+              identifier = true;
+              identity.process_local = key == "local";
+              // Unrelated process-local identities remain opaque validated metadata.
+              if (identity.process_local && process != capture_.selection.process)
+                return Skip(3);
+              return value();
+            }) ||
+            !identifier || !End())
+          return false;
+      }
+      if (identity.process_local && process != capture_.selection.process) {
+        remaining_ = tail;
+        return true;
+      }
       const auto text = [&](std::string_view token, std::string &value) {
         if (token.empty())
           return true;
@@ -310,8 +325,9 @@ private:
       if (phase == "b") {
         if (open_scopes_.size() + async_scopes_.size() == ChromeTraceImporter::kMaximumOpenScopes)
           return false;
-        const bool selected =
-            thread == capture_.selection.thread && name == capture_.selection.event_name;
+        const bool selected = process == capture_.selection.process &&
+                              thread == capture_.selection.thread &&
+                              name == capture_.selection.event_name;
         if (selected && !Sample(start, 0))
           return false;
         async_scopes_.push_back(
@@ -368,7 +384,7 @@ private:
   };
   struct AsyncIdentity final {
     std::string id, category, scope;
-    bool numeric{};
+    bool numeric{}, process_local{};
     bool operator==(const AsyncIdentity &) const = default;
   };
   struct AsyncScope final {

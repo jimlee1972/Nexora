@@ -1,5 +1,74 @@
 # Editor Core contract
 
+## External Chrome duration import
+
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`
+and nestable async `b/e` duration events, selected by exact process/begin-thread/event name. Timestamps keep the external
+microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
+Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
+600-sample, Unicode/JSON and metadata bounds.
+
+On the selected thread, every B requires a name and timestamp; every E requires a timestamp
+and closes the most recent B. An optional end name must match. Nonmatching event names still
+participate in pairing so a nested scope cannot close its parent accidentally. At most 128
+synchronous plus async scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
+threads do not share the stack. Valid zero durations remain zero. Legacy async `S/T/F`, instant
+`n` and other phases remain validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
+previously skipped, now reject the whole import if malformed or unbalanced.
+
+Nestable async `b/e` events require name, process, thread and timestamp, with no `dur`.
+Identity is exactly one legacy `id` or an `id2` object containing exactly one `local` or
+`global` key. Legacy `id` and `id2.global` share a global namespace and may pair across
+processes/threads. `id2.local` belongs to the selected process; unrelated process-local values
+remain opaque validated metadata and never participate. Local and global namespaces stay
+separate even when their ID/category/scope text matches. Each namespace uses ID type/value
+plus `cat` and `scope`; omitted category/scope are empty. Numeric IDs are exact nonnegative
+integers through 2^53-1; string IDs are nonempty decoded UTF-8 up to 256 bytes. Numeric 1 and
+string "1" are separate. Category/scope must be strings of at most 256 decoded bytes for
+participating intervals. Mixed id/id2, empty/ambiguous/unknown id2 members reject.
+
+Only begins on the selected process/thread with the exact selected name produce samples.
+All global b/e on all processes and all local b/e on the selected process participate,
+including nonselected names/threads/processes, so nesting cannot close a selected parent
+accidentally. Each identity is LIFO with matching end names and nondecreasing timestamps
+while open; independent IDs can finish in any order. All participating scopes must close,
+and the shared 128-open budget includes synchronous scopes. Malformed recognized global
+b/e on any process or participating local b/e reject the whole import. Previously skipped
+global events on other processes now participate and must pair; ordinary unrelated local
+metadata remains skipped. Legacy `S/T/F` pairing remains unsupported.
+This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
+
+Selected begins reserve their sample sequence and position immediately. End events complete
+that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
+overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
+mixed X/B/E/b/e records and nested same-name scopes. Pending intervals never escape a failed import.
+This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
+
+`ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
+admission and actual byte bounds. Failure does not publish or alter source files, prior captures
+or live measurements. Persisted Editor schemas, C ABI and product linkage are unchanged.
+
+## Build artifact byte verification
+
+`BuildFrontend::VerifyArtifacts` synchronously verifies caller-captured owning
+`BuildArtifactInput` values against an exact nonempty schema-one manifest set. It
+requires canonical `sha256:` plus 64 lowercase hexadecimal digits, matching relative
+path identities and exact byte counts. A missing/unavailable SHA-256 backend never
+accepts. Legacy `Validate`/`Write` retain their serialized manifest compatibility;
+writing a manifest alone does not verify its artifacts.
+
+Limits are 64 artifacts, 16 MiB each, 64 MiB total, 1024 UTF-8 bytes per path, 256
+bytes each for profile name/target, 128 for configuration and 32 KiB for command text.
+Empty/ASCII-control-containing/invalid UTF-8 profile text and unsafe relative paths reject.
+All shape and byte budgets are checked before hashing. Inputs and manifest remain
+unchanged, and no file IO, publication, native process or permission grant occurs.
+Calls serialize with caller-owned captures; results certify only those supplied bytes
+at that call, without retained borrows. The caller owns consistent filesystem capture,
+expected target completeness, process outcome, reproducible argv/toolchain/features
+and future publication/deployment. A command string is descriptive and never executed.
+No build-success UI is introduced. Public C++ consumers rebuild; module graph,
+existing wire schema and stable C/Gameplay ABI are unchanged.
+
 ## Native tool byte callback SDK
 
 The optional public C `EditorToolAbi.h` defines a separately versioned service table
