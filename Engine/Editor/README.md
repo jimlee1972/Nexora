@@ -69,6 +69,68 @@ and future publication/deployment. A command string is descriptive and never exe
 No build-success UI is introduced. Public C++ consumers rebuild; module graph,
 existing wire schema and stable C/Gameplay ABI are unchanged.
 
+## Native tool byte callback SDK
+
+The optional public C `EditorToolAbi.h` defines a separately versioned service table
+for Inspect/Edit/Preview/Serialize byte transformations. It preserves required engine
+plugin ABI and lifecycle schemas. A service registration supplies a readable immutable
+table for its admission; native plugins remain trusted and must obey capacities,
+call-scoped borrows, cooperative draining and the no-throw contract.
+
+`NativeToolInvoker` performs a fresh qualified `PluginHost::FindService` lookup for
+every synchronous owner-thread call. It retains no table, function or native context.
+Wrong-thread/reentrant calls (including another invoker on the same owner thread),
+malformed prefixes/interface/masks/budgets, revoked or
+foreign providers and undeclared operations reject before invocation. The input is
+read-only and at most 64 KiB; output storage is host-owned and capped at 64 KiB, also
+respecting each table's smaller declared limits. Complete shape validation precedes
+allocation/callback work. Future table suffixes are ignored, with a 4096-byte declared
+prefix limit. Empty input/output are supported; declared output capacity must be nonzero.
+
+Results own copied bytes, state, diagnostics and optional exact raw callback status;
+successful output must explicitly report a size within the supplied capacity. Every failure discards output,
+and unexpected exceptions reject without escaping the wrapper or retaining its busy
+guard. Owning results survive native unload. Unknown statuses/oversized success never
+become success. Consumers release all calls/borrows before host/registry mutation or
+unload; this provides no lifetime lease or automatic in-flight tracking.
+
+The byte SDK exposes no SceneDocument, workspace or renderer objects and performs no
+file IO, history mutation or publication. Declared byte operations confer no actual
+document/IO/GPU permissions. The host separately authorizes native execution, validates
+the operation's document type, parses owning results and rechecks current scope/source/
+writer/recovery/Play state before actual deferred authoring or IO. Capability metadata,
+graphical reference-tool editing/preview/save and missing-backend restoration remain
+separate work. Public C++ consumers rebuild; module graph and persisted formats stay
+unchanged, and Foundation's optional C header adds no Shipping Editor data.
+
+
+## Targeted stable-field prefab property candidates
+
+The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
+pairs. Both complete sources and exact node sets are validated first. A selected identity must be
+known in at least one source; shared property names require matching field identities. Duplicate,
+unknown, mismatched, unsupported reserved metadata or incompatible resulting hierarchy rejects
+the entire owning candidate. Empty selection returns a canonical current-source no-op.
+
+Names, position/rotation/scale groups, authored Euler, parent/sibling groups, complete Camera/Light/
+Mesh presence and stored data, and exact unavailable component records are independently selectable.
+Selected absent-source unknown components are removed; unselected unknown bytes remain intact.
+Inactive component stored values are retained through official canonical Runtime property groups,
+rather than reset through component-disable setters. Typed staged hierarchy commands retain local
+TRS, validate the complete selected parent graph and then apply sibling positions. Unselected
+parent/TRS/component/name data retain their current values; selected moves naturally affect sibling
+indices. Source rotations retain their authored Euler records, while other selections preserve the
+current rotation/Euler. Target scene identity and existing serialized entity IDs remain unchanged.
+
+Supported canonical Runtime version-three record groups are parsed from official serialization;
+changed/unknown record framing fails closed. Document metadata stays owning and opaque records are
+never interpreted as native objects. Final output is officially parsed/prepared again. Existing
+4096-node,32768-selection and8MiB scene/output budgets apply; these are logical budgets, not total
+process/history memory quotas. Planning performs no IO, live edits or history/baseline changes and
+grants no authority. The owner still rechecks its current document/project/source before atomic
+application. Graphical selected-field binding, source apply, structural identity reconciliation and
+reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+
 ## Reviewed live prefab source rebase
 
 `PrefabPlacementRebase::Prepare` explicitly reads the exact retained and newer current source

@@ -8,6 +8,7 @@
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
 #include "Nexora/Editor/PlayInputBindings.h"
+#include "Nexora/Editor/PluginManager.h"
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/PrefabPlacementOverrides.h"
 #include "Nexora/Editor/ProjectContent.h"
