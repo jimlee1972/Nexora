@@ -1,0 +1,236 @@
+Test project G:/proj/Nexora/build/windows-showcase-development
+        Start  10: showcase.courtyard_hero_generation
+        Start 103: editor.parser_robustness
+        Start  11: showcase.courtyard_environment_generation
+        Start  12: showcase.courtyard_environment_contracts
+  1/113 Test  #12: showcase.courtyard_environment_contracts .......   Passed   26.06 sec
+        Start  32: build.pose_search_profiles
+  2/113 Test  #11: showcase.courtyard_environment_generation ......   Passed   39.54 sec
+        Start  34: build.animation_profiles
+  3/113 Test  #32: build.pose_search_profiles .....................   Passed  109.47 sec
+        Start  13: showcase.courtyard_asset_conversion
+  4/113 Test  #34: build.animation_profiles .......................   Passed  120.61 sec
+        Start  51: api.core_services_handle_and_vfs_contract
+  5/113 Test  #13: showcase.courtyard_asset_conversion ............   Passed   27.73 sec
+        Start   9: showcase.courtyard_asset_generation
+  6/113 Test   #9: showcase.courtyard_asset_generation ............   Passed   25.48 sec
+        Start  48: window_presentation.dx12_pbr
+  7/113 Test  #51: api.core_services_handle_and_vfs_contract ......   Passed   37.40 sec
+        Start  97: editor.workspace_budget
+  8/113 Test  #48: window_presentation.dx12_pbr ...................   Passed   10.90 sec
+        Start  16: showcase.benchmark_evidence_policy_optimized
+  9/113 Test  #16: showcase.benchmark_evidence_policy_optimized ...   Passed    1.14 sec
+        Start  57: renderer.contracts
+ 10/113 Test  #97: editor.workspace_budget ........................   Passed    5.25 sec
+        Start  19: showcase.visual_tour_cli
+ 11/113 Test  #57: renderer.contracts .............................   Passed    2.10 sec
+        Start 100: editor.asset_source
+ 12/113 Test #100: editor.asset_source ............................   Passed    3.71 sec
+        Start  67: runtime.entity_parenting
+ 13/113 Test  #19: showcase.visual_tour_cli .......................   Passed    6.22 sec
+        Start 108: editor.scene_file_contract
+ 14/113 Test #108: editor.scene_file_contract .....................   Passed    1.87 sec
+        Start   4: build.showcase_package
+ 15/113 Test   #4: build.showcase_package .........................   Passed    3.20 sec
+        Start  18: showcase.runtime_rooms
+ 16/113 Test  #67: runtime.entity_parenting .......................   Passed    7.73 sec
+        Start  53: api.m6_manifest_compatibility
+ 17/113 Test  #53: api.m6_manifest_compatibility ..................   Passed    0.21 sec
+        Start   7: build.v2_production_toolchain
+ 18/113 Test   #7: build.v2_production_toolchain ..................   Passed    4.14 sec
+        Start  46: window_presentation.contracts
+ 19/113 Test  #18: showcase.runtime_rooms .........................   Passed    6.44 sec
+        Start  15: showcase.benchmark_evidence_policy
+ 20/113 Test  #15: showcase.benchmark_evidence_policy .............   Passed    0.82 sec
+        Start  96: editor.autosave_journal
+ 21/113 Test  #96: editor.autosave_journal ........................   Passed    0.88 sec
+        Start  91: editor.preview_contract
+ 22/113 Test  #46: window_presentation.contracts ..................   Passed    3.63 sec
+        Start 102: editor.mesh_reimport
+ 23/113 Test #102: editor.mesh_reimport ...........................   Passed    0.63 sec
+        Start 110: editor.play_input_settings
+ 24/113 Test #110: editor.play_input_settings .....................   Passed    0.56 sec
+        Start  49: window_presentation.hlsl_embedding
+ 25/113 Test  #49: window_presentation.hlsl_embedding .............   Passed    0.47 sec
+        Start  68: runtime.render_sync
+ 26/113 Test  #91: editor.preview_contract ........................   Passed    2.43 sec
+        Start  99: editor.mesh_import
+ 27/113 Test  #99: editor.mesh_import .............................   Passed    0.61 sec
+        Start  56: renderer.indirect_range_source_contract
+ 28/113 Test  #68: runtime.render_sync ............................   Passed    1.48 sec
+        Start  33: animation.v2_m8_pose_search
+ 29/113 Test  #56: renderer.indirect_range_source_contract ........   Passed    0.30 sec
+        Start   5: build.showcase_package_launch_safety
+ 30/113 Test  #33: animation.v2_m8_pose_search ....................   Passed    0.55 sec
+        Start  62: renderer.v2_gpu_driven
+ 31/113 Test   #5: build.showcase_package_launch_safety ...........   Passed    1.20 sec
+        Start   2: build.shader_contract
+ 32/113 Test   #2: build.shader_contract ..........................   Passed    0.57 sec
+        Start 107: editor.builtin_creation_contract
+ 33/113 Test  #62: renderer.v2_gpu_driven .........................   Passed    1.46 sec
+        Start  55: renderer.metal_source_contract
+ 34/113 Test  #55: renderer.metal_source_contract .................   Passed    0.30 sec
+        Start  83: runtime.dynamic_gameplay_module
+ 35/113 Test #107: editor.builtin_creation_contract ...............   Passed    0.54 sec
+        Start  52: api.m6_c_consumer
+ 36/113 Test  #52: api.m6_c_consumer ..............................   Passed    0.22 sec
+        Start  81: runtime.v1_m4_vertical_slice
+ 37/113 Test  #83: runtime.dynamic_gameplay_module ................   Passed    0.94 sec
+        Start  38: animation.v2_m8_pose_storage_retarget
+ 38/113 Test  #38: animation.v2_m8_pose_storage_retarget ..........   Passed    0.32 sec
+        Start 106: editor.transform_value_contract
+ 39/113 Test  #81: runtime.v1_m4_vertical_slice ...................   Passed    1.08 sec
+        Start  36: animation.v2_m8_synchronized_trs_graph
+ 40/113 Test #106: editor.transform_value_contract ................   Passed    0.38 sec
+        Start 105: editor.component_reset_contract
+ 41/113 Test  #36: animation.v2_m8_synchronized_trs_graph .........   Passed    0.36 sec
+        Start  14: showcase.performance_statistics
+ 42/113 Test  #14: showcase.performance_statistics ................   Passed    0.13 sec
+        Start 104: editor.affine_gizmo_contract
+ 43/113 Test #105: editor.component_reset_contract ................   Passed    0.34 sec
+        Start  21: showcase.probe_export
+ 44/113 Test #104: editor.affine_gizmo_contract ...................   Passed    0.19 sec
+        Start  47: window_presentation.scene_instance_contract
+ 45/113 Test  #47: window_presentation.scene_instance_contract ....   Passed    0.22 sec
+        Start  22: showcase.zig_headless
+ 46/113 Test  #21: showcase.probe_export ..........................   Passed    0.77 sec
+        Start  20: showcase.guided_tour_cli
+ 47/113 Test  #22: showcase.zig_headless ..........................   Passed    0.67 sec
+        Start  23: showcase.feature_gallery
+ 48/113 Test  #20: showcase.guided_tour_cli .......................   Passed    0.62 sec
+        Start  24: showcase.zig_dynamic
+ 49/113 Test  #23: showcase.feature_gallery .......................   Passed    0.59 sec
+        Start  39: network.v2_m5_transport
+ 50/113 Test  #24: showcase.zig_dynamic ...........................   Passed    0.62 sec
+        Start  78: animation.v2_m8_sync_group_graph
+ 51/113 Test  #39: network.v2_m5_transport ........................   Passed    0.53 sec
+        Start  25: showcase.capability_fallbacks
+ 52/113 Test  #78: animation.v2_m8_sync_group_graph ...............   Passed    0.13 sec
+        Start  84: runtime.v1_m5_asset_pipeline
+ 53/113 Test  #84: runtime.v1_m5_asset_pipeline ...................   Passed    0.42 sec
+        Start   6: build.v2_migration_scanner
+ 54/113 Test  #25: showcase.capability_fallbacks ..................   Passed    0.59 sec
+        Start  44: network.server_runtime_contract
+ 55/113 Test   #6: build.v2_migration_scanner .....................   Passed    0.51 sec
+        Start  41: network.v2_m6_replication_interest
+ 56/113 Test  #44: network.server_runtime_contract ................   Passed    0.53 sec
+        Start  40: network.v2_m6_entity_mapping
+ 57/113 Test  #41: network.v2_m6_replication_interest .............   Passed    0.47 sec
+        Start  42: network.v2_m6_dormancy
+ 58/113 Test  #40: network.v2_m6_entity_mapping ...................   Passed    0.47 sec
+        Start 101: editor.mesh_asset_catalog
+ 59/113 Test #101: editor.mesh_asset_catalog ......................   Passed    0.12 sec
+        Start  37: animation.v2_m8_marker_sync
+ 60/113 Test  #37: animation.v2_m8_marker_sync ....................   Passed    0.13 sec
+        Start  43: network.v2_m6_prediction_replay
+ 61/113 Test  #42: network.v2_m6_dormancy .........................   Passed    0.49 sec
+        Start  70: runtime.v1_m12_shipping
+ 62/113 Test  #70: runtime.v1_m12_shipping ........................   Passed    0.37 sec
+        Start  71: runtime.v2_m12_hardening_reference_projects
+ 63/113 Test  #43: network.v2_m6_prediction_replay ................   Passed    0.54 sec
+        Start  50: api.foundation_math_types
+ 64/113 Test  #71: runtime.v2_m12_hardening_reference_projects ....   Passed    0.34 sec
+        Start  54: samples.api_foundation
+ 65/113 Test  #50: api.foundation_math_types ......................   Passed    0.31 sec
+        Start   8: gameplay.zig_abi_smoke
+ 66/113 Test  #54: samples.api_foundation .........................   Passed    0.17 sec
+        Start  28: core.runtime
+ 67/113 Test   #8: gameplay.zig_abi_smoke .........................   Passed    0.24 sec
+        Start  90: editor.shader_authoring_contracts
+ 68/113 Test  #90: editor.shader_authoring_contracts ..............   Passed    0.19 sec
+        Start  45: network.v2_m5_headless_dependency
+ 69/113 Test  #28: core.runtime ...................................   Passed    0.39 sec
+        Start  58: renderer.scene_frame_contracts
+ 70/113 Test  #58: renderer.scene_frame_contracts .................   Passed    0.17 sec
+        Start  60: renderer.golden_image_acceptance
+ 71/113 Test  #60: renderer.golden_image_acceptance ...............   Passed    0.15 sec
+        Start  31: ai.v2_m7_navigation_crowd_policy
+ 72/113 Test  #45: network.v2_m5_headless_dependency ..............   Passed    0.54 sec
+        Start  63: runtime.shader_artifact_contracts
+ 73/113 Test  #31: ai.v2_m7_navigation_crowd_policy ...............   Passed    0.27 sec
+        Start  61: renderer.v2_gpu_scene
+ 74/113 Test  #63: runtime.shader_artifact_contracts ..............   Passed    0.18 sec
+        Start  74: runtime.v1_m8_gameplay_simulation
+ 75/113 Test  #61: renderer.v2_gpu_scene ..........................   Passed    0.18 sec
+        Start  76: runtime.v1_m10_large_world
+ 76/113 Test  #74: runtime.v1_m8_gameplay_simulation ..............   Passed    0.18 sec
+        Start  59: renderer.material_contracts
+ 77/113 Test  #76: runtime.v1_m10_large_world .....................   Passed    0.19 sec
+        Start  69: api.gameplay_host_bridge
+ 78/113 Test  #59: renderer.material_contracts ....................   Passed    0.19 sec
+        Start  80: runtime.v2_m9_timeline_ui_audio_media
+ 79/113 Test  #69: api.gameplay_host_bridge .......................   Passed    0.16 sec
+        Start  17: showcase.v1_probe
+ 80/113 Test  #80: runtime.v2_m9_timeline_ui_audio_media ..........   Passed    0.22 sec
+        Start  73: runtime.v1_m7_input_ui_localization
+ 81/113 Test  #17: showcase.v1_probe ..............................   Passed    0.23 sec
+        Start  87: runtime.v1_m6_editor_sdk
+ 82/113 Test  #73: runtime.v1_m7_input_ui_localization ............   Passed    0.20 sec
+        Start  77: runtime.v1_m11_platform
+ 83/113 Test  #87: runtime.v1_m6_editor_sdk .......................   Passed    0.24 sec
+        Start  64: runtime.v1_m4_m11_contracts
+ 84/113 Test  #77: runtime.v1_m11_platform ........................   Passed    0.21 sec
+        Start  65: api.game_world_facade
+ 85/113 Test  #64: runtime.v1_m4_m11_contracts ....................   Passed    0.19 sec
+        Start  79: runtime.v1_m9_presentation
+ 86/113 Test  #65: api.game_world_facade ..........................   Passed    0.22 sec
+        Start   3: build.plugin_manifests
+ 87/113 Test  #79: runtime.v1_m9_presentation .....................   Passed    0.19 sec
+        Start  66: runtime.transform_rotation_scale
+ 88/113 Test  #66: runtime.transform_rotation_scale ...............   Passed    0.20 sec
+        Start  82: runtime.gameplay_module_host
+ 89/113 Test  #82: runtime.gameplay_module_host ...................   Passed    0.15 sec
+        Start  85: api.bundle_mount
+ 90/113 Test   #3: build.plugin_manifests .........................   Passed    0.52 sec
+        Start  98: editor.viewport_math
+ 91/113 Test  #85: api.bundle_mount ...............................   Passed    0.20 sec
+        Start  75: runtime.v2_m7_ai_character_intent_bridge
+ 92/113 Test  #98: editor.viewport_math ...........................   Passed    0.20 sec
+        Start   1: build.module_graph
+ 93/113 Test  #75: runtime.v2_m7_ai_character_intent_bridge .......   Passed    0.34 sec
+        Start  30: core.v2_m11_remote_diagnostics
+ 94/113 Test   #1: build.module_graph .............................   Passed    0.44 sec
+        Start  26: foundation.build_info
+ 95/113 Test  #30: core.v2_m11_remote_diagnostics .................   Passed    0.27 sec
+        Start  27: foundation.gameplay_abi
+ 96/113 Test  #26: foundation.build_info ..........................   Passed    0.16 sec
+        Start  29: core.process_memory
+ 97/113 Test  #27: foundation.gameplay_abi ........................   Passed    0.21 sec
+        Start  35: animation.v2_m8_inertial_pose_blend
+ 98/113 Test  #29: core.process_memory ............................   Passed    0.25 sec
+        Start  72: runtime.bounded_scene_save
+ 99/113 Test  #35: animation.v2_m8_inertial_pose_blend ............   Passed    0.22 sec
+        Start  86: runtime.console_record_admission
+100/113 Test  #86: runtime.console_record_admission ...............   Passed    0.36 sec
+        Start  88: runtime.cooked_scene_assets
+101/113 Test  #88: runtime.cooked_scene_assets ....................   Passed    1.04 sec
+        Start  89: runtime.static_project_package
+102/113 Test  #10: showcase.courtyard_hero_generation .............   Passed  241.70 sec
+        Start  92: editor.prepared_scene_save
+103/113 Test  #92: editor.prepared_scene_save .....................   Passed    0.29 sec
+        Start  93: editor.additive_scene_contract
+104/113 Test  #93: editor.additive_scene_contract .................   Passed    0.14 sec
+        Start  94: editor.process_memory_profile
+105/113 Test  #94: editor.process_memory_profile ..................   Passed    0.13 sec
+        Start  95: editor.inspector_atomic_batch
+106/113 Test  #95: editor.inspector_atomic_batch ..................   Passed    0.23 sec
+        Start 109: editor.external_scene_save_contract
+107/113 Test  #89: runtime.static_project_package .................   Passed    3.21 sec
+        Start 111: editor.scene_runtime_capture
+108/113 Test #109: editor.external_scene_save_contract ............   Passed    1.12 sec
+        Start 112: editor.material_import
+109/113 Test  #72: runtime.bounded_scene_save .....................   Passed    6.99 sec
+        Start 113: editor.material_catalog
+110/113 Test #103: editor.parser_robustness .......................   Passed  246.07 sec
+111/113 Test #113: editor.material_catalog ........................   Passed    0.29 sec
+112/113 Test #112: editor.material_import .........................   Passed   12.81 sec
+113/113 Test #111: editor.scene_runtime_capture ...................   Passed   52.38 sec
+
+100% tests passed, 0 tests failed out of 113
+
+Label Time Summary:
+dx12              =  10.90 sec*proc (1 test)
+native-display    =  10.90 sec*proc (1 test)
+showcase          =  10.90 sec*proc (1 test)
+
+Total Test time (real) = 296.04 sec

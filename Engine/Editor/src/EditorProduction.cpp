@@ -1,6 +1,7 @@
 #include "Nexora/Editor/EditorProduction.h"
 #include "AtomicFile.h"
 #include "Nexora/Core/ProcessMemory.h"
+#include "Nexora/Cryptography/Signature.h"
 #include "Nexora/Foundation/Types.h"
 
 #include <algorithm>
@@ -186,6 +187,72 @@ bool BuildFrontend::Validate(const BuildManifest &manifest, std::string *error) 
         *error = "invalid or duplicate artifact: " + artifact.path;
       return false;
     }
+  }
+  return true;
+}
+
+bool BuildFrontend::VerifyArtifacts(const BuildManifest &manifest,
+                                    std::span<const BuildArtifactInput> inputs,
+                                    std::string *error) {
+  if (error)
+    error->clear();
+  const auto fail = [&](const char *message) {
+    if (error)
+      *error = message;
+    return false;
+  };
+  const auto bounded_text = [](std::string_view text, std::size_t limit) {
+    return !text.empty() && text.size() <= limit && foundation::IsValidUtf8(text) &&
+           std::ranges::none_of(text, [](unsigned char c) { return c < 0x20 || c == 0x7f; });
+  };
+  if (!bounded_text(manifest.profile.name, 256) || !bounded_text(manifest.profile.target, 256) ||
+      !bounded_text(manifest.profile.configuration, 128) ||
+      !bounded_text(manifest.profile.command, kMaximumVerifiedCommandBytes))
+    return fail("invalid or oversized verification profile");
+  if (manifest.artifacts.empty() || manifest.artifacts.size() > kMaximumVerifiedArtifacts ||
+      inputs.size() != manifest.artifacts.size())
+    return fail("verification requires an exact nonempty bounded artifact set");
+  std::uint64_t total{};
+  for (const auto &artifact : manifest.artifacts) {
+    if (!bounded_text(artifact.path, kMaximumVerifiedPathBytes) || artifact.checksum.size() != 71 ||
+        !artifact.checksum.starts_with("sha256:") ||
+        !std::ranges::all_of(std::string_view(artifact.checksum).substr(7), [](unsigned char c) {
+          return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        }))
+      return fail("invalid artifact identity or canonical SHA-256 checksum");
+    if (artifact.bytes > kMaximumVerifiedArtifactBytes ||
+        artifact.bytes > kMaximumVerifiedTotalBytes - total)
+      return fail("artifact verification byte budget exceeded");
+    total += artifact.bytes;
+  }
+  if (!Validate(manifest, error))
+    return false;
+  std::unordered_set<std::string> seen;
+  for (const auto &input : inputs) {
+    if (!bounded_text(input.path, kMaximumVerifiedPathBytes) || !seen.insert(input.path).second)
+      return fail("invalid or duplicate captured artifact identity");
+    const auto expected = std::ranges::find(manifest.artifacts, input.path, &BuildArtifact::path);
+    if (expected == manifest.artifacts.end() || input.bytes.size() != expected->bytes)
+      return fail("captured artifact set or byte count differs from manifest");
+  }
+  // Shape and all budgets are admitted before any potentially expensive provider call.
+  if (cryptography::ActiveProvider() == cryptography::Provider::Unavailable)
+    return fail("SHA-256 verification provider is unavailable");
+  constexpr std::string_view hex = "0123456789abcdef";
+  for (const auto &input : inputs) {
+    const auto digest = cryptography::Sha256(input.bytes);
+    if (!digest)
+      return fail("SHA-256 verification provider failed");
+    std::string checksum{"sha256:"};
+    checksum.reserve(71);
+    for (const auto byte : *digest) {
+      const auto value = std::to_integer<unsigned char>(byte);
+      checksum += hex[value >> 4];
+      checksum += hex[value & 15];
+    }
+    const auto expected = std::ranges::find(manifest.artifacts, input.path, &BuildArtifact::path);
+    if (checksum != expected->checksum)
+      return fail("captured artifact SHA-256 differs from manifest");
   }
   return true;
 }
