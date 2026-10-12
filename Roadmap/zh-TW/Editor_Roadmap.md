@@ -709,19 +709,25 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Bound-scene Inspector 可選取持有的 scoped property row，並在明確 Revert 確認時凍結
+  review serial／index。完整選取 property group 還原 retained source value，未選取 name／TRS／
+  unknown data 保持原值。實際 1x／2x 控制項、三次原生冷啟動的 Name／rotation／opaque 流程、
+  exact Scene Save／一次 Undo／Redo 與唯讀重開均通過；完整 Linux 248/248 與 Minimal Shipping
+  通過。Structural source reconciliation 與 live instance source apply／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedUi-Linux-2026-10-10.md)。
+
 - ✅ 圖形化 bound-scene Inspector 可檢視持有的 scoped retained／local property row，並要求
   明確確認才執行 whole-instance Revert。唯讀、stale、structural、hidden／focus／close 與
   permission guard 保留資料；實際 1x／2x 控制項、三次原生冷啟動、exact Scene Save／Undo／Redo
-  及唯讀重開通過。完整 Linux 247/247 與 Minimal Shipping 通過；targeted graphical selection
-  及 source apply／rebase 仍待完成。
+  及唯讀重開通過。完整 Linux 247/247 與 Minimal Shipping 通過；source apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementOverrideUi-Linux-2026-10-10.md)。
 
 - ✅ Targeted live prefab property Revert 使用 immutable scoped review row index，將選取 lane
   展開為完整 name／TRS／authored rotation／component／opaque group。不同 lane 會合併；
   invalid／duplicate／read-only／unauthorized input 都拒絕。未選取 local override、dormant value、
   unknown addition、identity、binding 與檔案保留，整組只有一次 Undo／Redo；空選取保留 pending
-  Redo。Mixed nested source fixture、完整 Linux 243/243 與 Minimal Shipping 通過；graphical
-  selection 與 source apply／rebase 仍待完成。
+  Redo。Mixed nested source fixture、完整 Linux 243/243 與 Minimal Shipping 通過；source
+  apply／rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPlacementSelectedRevert-Linux-2026-10-10.md)。
 
 - ✅ Atomic live instance property revert 在一筆 Undo／Redo 中還原 exact retained nested

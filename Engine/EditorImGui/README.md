@@ -57,8 +57,19 @@ review, but do not emit Revert. Scope replacement, hidden Inspector, focus/permi
 and unrelated file/tab/close/rename modals cancel pending intents and consent. All work is serialized
 on the authoring thread. UI and application own copied data; no World/document pointer escapes a
 frame call. Successful Revert is one Core Undo/Redo and does not write source or scene files;
-ordinary Scene Save persists it. The immutable review retains no authoring authority. Targeted
-revert, structural reconciliation, apply-to-source and source rebase remain separate work.
+ordinary Scene Save persists it. The immutable review retains no authoring authority.
+
+`Revert selected properties` freezes owning row indices and the exact captured scope/review
+serial when opening confirmation. Each selected lane restores its complete stable scoped property
+group; unselected groups and unknown components remain intact. Checkboxes are clipped and available
+for read-only inspection, while empty or structural selections cannot authorize writes. Report
+refresh resets selection and consent. Blur or permission loss clears consent immediately, including
+loss/regain without an intervening frame. The application rechecks the same current policy and
+calls Core `RevertSelected` with the owning frozen indices; Core rejects stale/duplicate/out-of-range
+rows and revalidates the full retained closure. One Undo/Redo covers the selected groups together;
+no files change until ordinary Scene Save. Public C++ consumers rebuild, with stable C ABI and
+module dependencies unchanged. Structural reconciliation, apply-to-source and source rebase remain
+separate work.
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
 Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
