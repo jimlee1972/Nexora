@@ -1,49 +1,61 @@
 # Editor Core contract
 
-## Owning live prefab instance property review
+## Native tool byte callback SDK
 
-`PrefabPlacementOverrides::Prepare` owns a validated placement inspection and explicitly
-materializes its complete exact retained nested closure in a temporary World/document. It translates
-scoped source node identities to live generation keys before comparing semantic name, TRS, authored
-Euler, component presence/stored values and opaque name/bytes. Retained source property UUIDs accompany
-individual semantic lanes. Newly added local opaque fields have no fabricated retained property UUID.
-Parent differences are explicitly structural; absolute sibling indices and scene-global fields are
-excluded. This read-only review does not authorize structural reconciliation or writes.
-Drawing must not call it implicitly; apply and rebase remain separate operations.
+The optional public C `EditorToolAbi.h` defines a separately versioned service table
+for Inspect/Edit/Preview/Serialize byte transformations. It preserves required engine
+plugin ABI and lifecycle schemas. A service registration supplies a readable immutable
+table for its admission; native plugins remain trusted and must obey capacities,
+call-scoped borrows, cooperative draining and the no-throw contract.
 
-Read-only scopes can review. Missing/corrupt/incompatible retained sources, stale node/target/project,
-recovery/external changes and budgets return no partial review. Exact owning source/target scope is
-rechecked after preparation; `Matches` repeats it before consuming a captured review. Caller serializes
-authoring owners and repeats current selection/Play/modal policy. No file publication, saved-baseline,
-selection, clipboard, Undo or Redo mutation occurs. Row span borrows expire with their owning review.
+`NativeToolInvoker` performs a fresh qualified `PluginHost::FindService` lookup for
+every synchronous owner-thread call. It retains no table, function or native context.
+Wrong-thread/reentrant calls (including another invoker on the same owner thread),
+malformed prefixes/interface/masks/budgets, revoked or
+foreign providers and undeclared operations reject before invocation. The input is
+read-only and at most 64 KiB; output storage is host-owned and capped at 64 KiB, also
+respecting each table's smaller declared limits. Complete shape validation precedes
+allocation/callback work. Future table suffixes are ignored, with a 4096-byte declared
+prefix limit. Empty input/output are supported; declared output capacity must be nonzero.
 
-Whole-scene semantic comparison budgets apply: each input fits 8 MiB/4096 entities, snapshot fits
-4 MiB, and individual value fits 64 KiB (opaque payload hex consumes twice its byte size). Reports
-retain at most 32768 changed rows/16 MiB of logical field/scope/value data. Rejection preserves large
-uninterpreted data, rather than silently omitting it. These logical budgets do not limit total
-temporary World/container/process memory or claim large-scene review performance. Module dependencies
-and stable C/Gameplay ABI remain unchanged; public C++ consumers rebuild.
+Results own copied bytes, state, diagnostics and optional exact raw callback status;
+successful output must explicitly report a size within the supplied capacity. Every failure discards output,
+and unexpected callback exceptions reject without escaping the wrapper or retaining its busy
+guard. Owning results survive native unload. Unknown statuses/oversized success never
+become success. Consumers release all calls/borrows before host/registry mutation or
+unload; this provides no lifetime lease or automatic in-flight tracking.
 
-`PrefabPlacementOverrides::Revert` consumes that immutable current review with an explicit host
-authoring authorization and the current project writer. It restores the entire placement's
-supported properties from its exact retained nested closure, even when a newer root is published.
-Any structural parent difference rejects the entire operation. Source materialization and target
-reconstruction happen in temporary Worlds/documents. Authoring names, Euler hints and exact opaque
-bytes come from the retained source; canonical version-3 Runtime property records transfer TRS,
-presence flags and every stored Camera/Light/Mesh value, including dormant nondefault values.
-These records consume only bounded `World::SaveScene` output, not arbitrary external input; schema
-changes reject. Live IDs, parent relationships, sibling order, generations and placement bindings
-remain target-owned. Source and target snapshots each fit the existing 8 MiB/4096-entity budget.
+The byte SDK exposes no SceneDocument, workspace or renderer objects and performs no
+file IO, history mutation or publication. Declared byte operations confer no actual
+document/IO/GPU permissions. The host separately authorizes native execution, validates
+the operation's document type, parses owning results and rechecks current scope/source/
+writer/recovery/Play state before actual deferred authoring or IO. Capability metadata,
+graphical reference-tool editing/preview/save and missing-backend restoration remain
+separate work. Public C++ consumers rebuild; module graph and persisted formats stay
+unchanged, and Foundation's optional C header adds no Shipping Editor data.
 
-Immediately before one `ApplyPropertySnapshot` publication, the writer, exact retained/current
-sources and complete target observation are rechecked. Failure publishes no partial live state.
-One Undo/Redo restores the entire transaction; selection, clipboard and the scene's saved baseline
-remain intact. A semantic no-op preserves pending Redo. Neither source nor scene files are written;
-ordinary explicit Scene Save persists the result. The caller serializes authoring operations and
-repeats current Play, modal and selected-document policy when supplying authorization. Read-only,
-foreign/stale, recovery/external-change, missing/changed source and unsupported structural inputs
-reject. This Core operation does not implement graphical confirmation, targeted revert, structural
-reconciliation, apply-to-source or source rebase.
+## Signed tool invocation bridge
+
+`SignedExtensionHost::InvokeTool` checks the invoker's construction-thread and shared
+nonreentrancy context before reading signed admission or registry state. The serialized
+owner supplies an admission ID and service registry; the exact retained signed image
+must still have an owned descriptor and current trust/policy revisions. Trust changes
+reject immediately without requiring prior shutdown polling; restoring a key does not
+revive an observation captured under an older revision. Invocation itself performs no
+load, poll, revoke or lifecycle mutation.
+
+The bridge then delegates to the existing fresh provider-qualified `NativeToolInvoker`,
+which rejects revoked/pending/restart-required, foreign or manually replaced providers
+and returns owning bounded bytes. The private low-level PluginHost is never exposed.
+Hosts serialize trust/registry/admission access with owner calls and drain all calls
+before mutation/unload; this adds no lifetime lease or automatic in-flight tracking.
+
+The bridge grants no document, IO or GPU authority and does not attach contributions to
+the graphical manager. Native execution remains trusted. Callers must independently
+validate document type, parse owning candidates and recheck current workspace/source/
+writer/recovery/Play state before authoring or Save. Required C ABI, module graph,
+persisted schemas and existing class data layout are unchanged; C++ consumers rebuild.
+Graphical material reference-tool integration and target-platform admission remain separate.
 
 ## Stable revisioned prefab asset foundation
 
@@ -139,6 +151,65 @@ validation. Existing graph budgets apply; the combined serialized forest also fi
 The staging algorithm's temporary Worlds/history are not a total process-memory budget. Persistent
 instance metadata, graphical instancing and override/revert/apply/rebase remain separate work.
 
+## Stable prefab revision comparison
+
+`BuildPrefabRebasePlan` compares exact old-base/local/new-base assets and coalesces rows by stable
+node/field UUID into complete property groups. Source-only groups update; local-only overrides
+survive. Both sides changing different lanes of the same vector/component still require an explicit
+KeepLocal/TakeSource decision. Missing choices return an owning unresolved review without a
+candidate; duplicate, unknown or invalid choices reject. Exact node and field identity sets must
+match. Structural/identity, nested-reference and changed scene-metadata reconciliation remain open.
+Chosen parent/sibling groups pass the actual candidate parser and hierarchy validator together.
+
+`PrefabDocumentSession::ReviewRebase` requires a saved isolated variant and reads its exact retained
+current reference plus the newer actual current source. Its private owning result freezes document,
+publication, project/owner scope, all three assets and both complete bounded source closures.
+`ResolveRebase` and `Rebase` reread actual publication, retained/current sources and closure assets;
+stale or tampered dependencies reject. Read-only scopes may inspect and resolve choices, but only
+a current writer with resolved recovery/external state and explicit authorization may apply.
+Application stages the complete candidate graph, then changes properties and reference in one
+atomic Undo/Redo without writing files or acknowledging the baseline. Explicit wrapped Save persists
+the new reference and preserves history; local keys, generation, selection, clipboard and original
+scene remain intact. Calls serialize on the authoring owner. Logical bounds are not a total
+process/history memory quota. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+Graphical review/conflict confirmation and structural/live-instance bindings remain separate work.
+
+An isolated variant document now owns its current exact base UUID/revision independently of
+its last published asset. `SceneDocument::ApplyPrefabPropertySnapshot` stages same-identity
+properties and that reference in one Undo/Redo transaction; a reference-only change is dirty even
+when reusable scene bytes are unchanged. Ordinary property transactions retain the reference.
+Prepared-save signatures include it, so changed references invalidate pending reviews and saves.
+`PrefabDocumentSession::BaseReference` returns an owning current observation; the published
+`SourceBaseline` changes only after explicit wrapped Save. Review follows the current undoable
+reference, including after Undo/Redo of a saved reference change.
+
+Wrapped Save validates the retained source closure and complete candidate graph, then increments
+the asset revision for changed reference metadata even if scene bytes are identical. Exact old
+wrapped revisions remain archived. Open initializes the reference as part of a clean saved baseline;
+read-only inspection stays available. Plain scene Save and Save All reject tagged documents before
+publication because their format does not persist this asset context. A batch prepared before a
+reference change rejects its stale signature. No scene format or stable C/Gameplay ABI changes;
+public C++ consumers rebuild. Owner calls remain serialized, and the host supplies project/source
+authority. Three-way rebase planning, graphical conflict choices and structural reconciliation are
+separate work.
+
+`ComparePrefabRevisions` returns an owning read-only three-way `SceneComparison`, aligned by stable
+node and field UUIDs. A null source means absent; invalid present source/identity metadata rejects.
+Official scene parsing and bounded field snapshots retain component presence/stored values,
+authored Euler, hierarchy/sibling order and exact unknown payload hex. Parent values use node UUIDs
+instead of serialized Runtime IDs. Base/nested references, attachment UUIDs and nested ordering
+are also compared; the containing asset's own UUID/revision are provenance, not authored diff rows.
+Renumbering Runtime IDs with correctly remapped stable metadata creates no false differences.
+
+The existing SceneComparison limits apply: 8 MiB scene input, 4096 nodes, 64 KiB display value,
+4 MiB stable snapshot, 131072 rows and 16 MiB result. Expanded stable paths consume those budgets;
+opaque payloads must fit the existing hex display bound. Unsafe display control characters reject.
+Sources and authoring owners serialize during capture; results borrow no asset/document/World.
+The comparison performs no file IO, interpretation of unavailable native components, live mutation,
+Undo/baseline change or merged publication. Choice/conflict rows are inspection hints and require
+separate structural validation before any future revert/apply/rebase. Graphical bindings and
+transactional override publication remain separate work; public C++ consumers rebuild.
+
 ## Atomic document property snapshots
 
 `SceneDocument::ApplyPropertySnapshot` parses an owning complete authoring source, checks the
@@ -146,6 +217,12 @@ current PreparedSave and requires the exact existing entity/node ID set, scene n
 It stages names, authored Euler and unavailable opaque data while preserving current generation
 keys. The existing Runtime atomic snapshot replacement applies hierarchy/order/TRS and complete
 component presence/stored values. It performs no IO, creation/deletion or saved-baseline change.
+Unchanged rotation groups retain an existing in-memory Euler hint when both the exact Runtime
+quaternion and canonical Euler records are unchanged. This includes latent authored turns whose
+saved quaternion currently differs from Runtime and is therefore omitted by PrepareSave. Explicit
+quaternion changes or Euler-record insertion/removal use the candidate metadata. Complete history
+retains the resulting hints; a no-op preserves Redo. This does not persist a latent hint while its
+quaternion differs from Runtime or change the scene codec.
 Selection and user clipboard/cut state remain intact. Callers serialize owners and enforce current
 project writer, recovery and Play authority; false authorization rejects before mutation.
 
@@ -158,6 +235,24 @@ NUL-free names. These are logical per-transaction bounds, not a total history me
 Successful replacement expires entity and node-name borrows; document pointers and generation
 keys remain valid. Structural additions/deletions and prefab field selection/rebase are separate
 work. Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
+
+## Identity-remapped prefab property candidates
+
+`BuildPrefabPropertySnapshot` validates both wrapped sources, requires identical stable node UUID
+sets and returns an owning complete authoring candidate. Official parsing normalizes supported
+schemas first. Every entity/parent, node, authored Euler and opaque owner ID is remapped to the
+current serialized identity. Source names, sibling order, TRS and complete stored component/unknown
+data survive; the target scene name/persistence are retained. Source base/nested reference metadata
+is not a document property and is not changed by this helper.
+
+The complete output is parsed again before return. Sources must be fully tracked and fit the
+existing prefab 4096-node / 8 MiB scene bounds, including normalized/remapped output. Results borrow
+no files, assets, Worlds or documents and carry no publication authority. The serialized owner
+checks its current PreparedSave and project writer/recovery/Play policy before applying a candidate
+through the atomic property transaction. Planning performs no IO, live changes, baseline or history
+mutation. Structural shape mismatch rejects rather than producing a partial revert. Graphical
+revert, targeted field selection, reference rebase and source publication remain separate work.
+Public C++ consumers rebuild; stable C/Gameplay ABI and module graph are unchanged.
 
 Shader authoring and diagnostics remain an Editor/tool responsibility above Runtime and RHI.
 The UI-independent `ShaderCompileResult` carries file/line/column/severity/backend/variant
@@ -262,6 +357,10 @@ write failure leaves original scene files and dirty baselines unchanged.
   oversized, symlinked, or duplicate-UUID metadata fails without replacing the last good index.
   `PersistentReadOnly` never creates missing sidecars and rejects incomplete identity state.
   `DerivedFromPath` remains an explicitly non-persistent compatibility mode.
+  One index admits at most `kMaximumIndexedAssets` (262,144) files and `kMaximumIndexedPathBytes`
+  (1024) UTF-8 bytes per project-relative path (`AssetIndexLimits` overrides both). The bounds are
+  checked while enumerating, before any sidecar is written; exceeding one fails with an actionable
+  error and leaves the previous index and the project files unchanged.
   Triangulated `.obj` entries additionally retain immutable, shared owning CPU `MeshGeometry`
   snapshots (positions, normals, UVs, uint16 indices, and local bounds). `ImportObjMesh` is a
   synchronous parser with no I/O or publication; workspace jobs invoke it off the UI thread.
@@ -1077,6 +1176,15 @@ these additive APIs change no existing class layout, module dependencies or game
 
 ## Scalar PBR material assets
 
+`ExportMaterial` validates the complete canonical scalar/Renderer schema and produces
+at most 1024 bytes of schema-1 source using the classic locale and float `max_digits10`.
+It performs no IO/publication and rejects divergent reflection or invalid scalar data.
+The optional [scalar material native tool](../../Plugins/ScalarMaterial/README.md) uses
+this public codec and `ImportMaterial` for actual bounded Inspect/Edit/Serialize byte
+transformations. Edit's public little-endian wire contract is in `ScalarMaterialTool.h`.
+GPU Preview remains unavailable; host document authorization, scope/source guards,
+Undo and Save/reopen integration remain separate work.
+
 `.nmaterial` schema 1 imports opaque linear base color, metallic, roughness, occlusion and emission
 from bounded fixed-order tokens; see [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md)
 for the source grammar, numeric bounds and persistent UUID-reference bytes. Indexing and reimport
@@ -1389,55 +1497,117 @@ authority. Later loading must independently validate manifest/ABI/permissions/de
 recheck trust revision and bind verified immutable staged bytes to the native load. This
 slice installs no files, persists no private keys, makes no network calls and loads no
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
-it is not the cryptographic verifier or a production load gate. Graphical installation,
-trusted staging and pre-load enforcement remain separate unfinished work.
+it is not the cryptographic verifier or a production load gate. SignedExtensionHost supplies
+the canonical manifest/immutable native admission described below. The project-scoped manager
+provides explicit Linux session installation/enable/revoke; persistent trust and recovery remain open.
 
+## Signed manifest and native image admission
 
-## Persistent scene prefab placement bindings
+`SignedExtensionHost` is an Editor admission wrapper over the trusted low-level Runtime PluginHost.
+It borrows a host-selected ExtensionTrust registry; the registry and optional service registry outlive
+the host and every serialized owner call. Prepared observations own the actual manifest, signature
+and artifact. Manifests cannot enroll publisher keys. Preparation performs no IO/native loading;
+loading rechecks current trust/policy revisions and actual signature/digest before native code.
 
-`PrefabAssets::InstantiateBound` retains the same complete graph/staging/one-import contract and
-adds one owning Editor placement UUID, exact root source UUID/revision and scoped stable-source-node
-to serialized-target-node mappings. The immutable binding snapshot and imported Runtime forest share
-one Undo/Redo. Every result/metadata/index allocation precedes the live import; IDs are translated
-without allocation afterward. Existing document keys, selection/clipboard policy and unknown bytes
-retain the forest-import contract. Project/source authority belongs to the serialized authoring owner.
+Canonical binary schema one starts with `NXEXTM1\n`, then little-endian uint32 engine ABI and
+permission mask, four uint32-length-prefixed ASCII identity/version/publisher/target strings,
+32 SHA256 bytes, uint32 dependency count and sorted unique length-prefixed dependency IDs.
+Exact EOF/re-encoding, safe bounded identifiers, nonzero ABI/digest and known mask bits are required.
+The version is a bounded label, not a semantic-version evaluator. Limits are 16 KiB manifest,
+64 dependencies, 64 MiB artifact and 128 lifetime native admissions. Policy selects the exact ABI,
+target, allowed six-bit capability mask and available logical dependency IDs; it does not prove
+transitive operating-system linker dependency provenance or enforce a native allocation sandbox.
 
-Scene format4 serializes nonempty bindings before `world`; legacy1/2/3 remain readable and ordinary
-unbound output keeps2/3. The format rejects nil/repeated placement identities, missing/duplicate live
-node targets, repeated scoped source keys, signed/overflowing counts/revisions, corrupt ordering and
-excess scope/node/byte budgets before replacing the live document. Limits are128 placements,4096
-mapped nodes total,32 scope levels and4MiB binding records; existing64MiB scene bounds also apply.
-These are logical data bounds, not total process/history memory quotas. Source revisions are owning
-references, not read-time IO or write authority; the caller resolves/rechecks actual source closure.
+The signature authenticates the complete canonical manifest including the artifact digest. Unknown
+publisher, changed signed bytes/artifact, denied ABI/target/permissions/dependencies, stale key or
+policy and unavailable cryptography cannot reach native initialization. Linux x86-64/AArch64 loading
+writes the exact owning verified artifact to a new memfd, validates its size and applies/verifies
+write/grow/shrink/seal seals before passing its unique `/proc/self/fd/<n>` identity to Runtime.
+Unsupported platforms reject instead of loading a mutable temporary/project path. No source file,
+key store, endpoint or environment policy is written/read by this wrapper.
 
-Rename/TRS/component edits and same-identity property snapshots preserve exact bindings. Deleting
-any mapped node detaches the affected whole placement before publication, with Undo restoring the
-complete binding; remaining nodes become ordinary nodes. Paste/Duplicate create detached copies.
-Scene Save/Save All include bindings, saved signatures detect metadata changes and clean reopen uses
-fresh generation keys. NewScene clears bindings. Runtime scene capture excludes all binding records.
-Prefab asset capture/validation rejects bound scene bytes until explicit nested identity reconciliation
-exists, avoiding silently copied live binding context. Graphical instancing and structural/nested
-reconciliation remain separate work; public C++ consumers rebuild, stable C/Gameplay ABI unchanged.
+Mapped images retain unique descriptors until proven cooperative unload. Key/policy revision changes
+request shutdown and revoke services on the next owner poll (policy replacement also polls).
+Pending/legacy/rejected unsafe-to-unmap images and their descriptors remain until process restart;
+host destruction never forces unsafe unmapping or descriptor identity reuse. Callers drain borrowed
+service calls before changing policy, polling revocation or unloading. Snapshots own native state.
 
-`ProjectPrefabPlacement::Prepare` owns an immutable observation of the open project root/UUID,
-current published root asset, exact resolved transitive closure and target prepared content. It may
-run for a read-only project and grants no write authority. `Instantiate` rechecks current project,
-recovery/external-change state, target content, root publication and every retained exact source
-before requesting one bound import. A valid same-revision source replacement invalidates the review.
-The host must serialize authoring owners and repeat Play/modal/target-document role policy at the
-explicit action. A nonnil placement UUID and current writable project are required. Rejection
-preserves target history/clipboard/files; success writes nothing until ordinary Scene Save. This
-is a synchronous source observation, not a hostile-filesystem lease or multi-file atomic IO promise.
+Admitted trusted in-process native code can run constructors when the OS loader opens the image.
+The signed manifest ABI is checked before that call; a dishonest publisher whose binary ABI getter
+differs is detected afterward and may already have initialized. Host linker configuration and
+native dependencies remain trusted. The wrapper is not crash isolation or permission enforcement
+against malicious native code. Raw PluginHost remains a trusted low-level API, not a package gate.
+The project-scoped manager below supplies Linux session installation/enable/revoke. Persistent trust,
+installation recovery and other-platform immutable staging remain separate work.
+Public C++ consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
 
-`PrefabPlacementInspector::Inspect` explicitly resolves the selected bound node's retained complete
-source closure and owns project/target/binding/source observations. It reports placement identity,
-root retained revision, scoped source-node identity, exact scoped asset revision, mapped-node count
-and optional current published root revision. Every binding must map to exactly one resolved scoped
-source node; incomplete or incompatible mappings report unresolved. Missing/corrupt retained sources
-keep the owning binding identity inspectable, without fabricating source values or write authority.
-Read-only projects can inspect. `Matches` revokes stale project/document/key/current-publication or
-exact resolved-source observations; a restored source closure revokes an unresolved report.
-Unresolved reports compare availability/mapping status, not arbitrary malformed file bytes. Calls
-serialize all authoring/source owners; there is no per-frame IO, live mutation or filesystem lease.
-Source/target budgets follow the existing bounded graph and prepared-scene contracts; total retained
-history/process memory quota and graphical instance override/rebase remain separate work.
+### Project-scoped signed package manager
+
+`PluginManager` is a serialized authoring owner of session publisher trust, its service registry,
+and the signed native host. Borrowed services expire at disable, revoke, policy change, detach or
+shutdown polling; callers must drain every service invocation before those operations. The graphical
+Editor does not hand these services to Play or background jobs. Keys are explicitly enrolled by the
+host user and retained only in the process session. Packages and projects cannot enroll keys. Project
+activation clears capability permissions and discovers metadata without enabling native code; a new
+process restores neither publisher trust nor enabled providers.
+
+`NXEXTPK1` containers contain the canonical signed manifest, its 64-byte Ed25519 signature and the
+exact artifact. The 84-byte header has little-endian manifest/artifact lengths. Exact EOF and all
+lengths are checked before slices or allocations. Inputs are absolute UTF-8 regular, nonsymlink,
+single-link files, read in bounded chunks; actual reads cannot exceed 64 MiB of artifact plus 16 KiB
+of manifest and fixed overhead. At most 16 installed packages and 64 directory entries are inspected.
+These are package/inspection bounds, not quotas on trusted native allocation or filesystem use.
+
+Review owns verified bytes and project/configuration scope. Installation rechecks signature,
+digest and current policy, then copies those owned bytes into
+`.nexora/extensions/<id-length>-<id>-<version>.nxpkg`; it never loads the mutable review path. A changed
+key, capability policy or project cancels the review. Source file edits after review cannot substitute
+bytes. Occupied identity/version or unrelated staging bytes are preserved; identical verified bytes
+are idempotent. Source scene/workspace documents remain outside the package operation. Installation,
+enable and removal require the current writer lease and resolved recovery. Read-only inspection and
+session trust settings do not grant writes or native enable authority.
+
+Enable rereads the installed package and checks the complete manifest, byte count, current trust,
+capabilities and enabled dependencies before sealed native admission. Built-in `core`, `reflection`, `Editor` and `Foundation`
+are explicit available host dependencies, reflecting the compiled Editor/public SDK modules. Installing/removing dependency identities changes policy
+and conservatively revokes mapped providers; no dependency or package enables automatically. Trust
+revocation and disable request the real cooperative lifecycle and revoke services. Legacy/pending
+native code is retained and blocks further enable/removal until drain or process restart. Removal
+also verifies the current exact signed file; tampered/untrusted files remain for inspection. Loader
+ABI errors, lifecycle results, cooperative support and restart state come from the native host.
+
+The optional graphical Extensions window opens from Settings or Ctrl+Alt+E. Its widgets transfer
+owning project-scoped requests; the native owner independently checks current identity, access,
+Play/export/recovery/external-change and modal gates. Closing the window or changing its path cancels
+the retained review. Trust and capability input is explicit, package review is distinct from install,
+and install is distinct from enable. Native extensions remain trusted in-process code: permission
+bits are admission declarations, not an operating-system sandbox. Current executable admission uses
+the signed host's Linux sealed-image backend; other native backends reject as unavailable. No network,
+key persistence, unsigned fallback, hostile-filesystem-race or crash/power-loss recovery guarantee is
+introduced by this manager.
+
+Repeated binding also revokes mapped services and cancels retained review when actual workspace
+recovery or an external workspace change appears. Occupied recovery evidence and foreign workspace
+bytes remain untouched. Exact resolution permits only explicit re-enable. Read-only binding retains
+inspection/review availability while access changes revoke the previous writable project session.
+
+### Scoped managed native tool calls
+
+`ManagedToolSelection` owns exact package identity/version and nonwrapping manager instance,
+project scope, configuration revision and native admission. `SelectTool` observes only enabled
+providers; a copied selection grants no permission. `InvokeTool` uses the manager-owned invoker,
+private registry and signed host. Construction-thread and shared native-callback reentrancy checks
+precede mutable manager/project/host access. No native table, context or function borrow escapes.
+Selections from another manager reject even when both managers have identical project, scope,
+configuration, package identity and numeric admission. Exhausted instance identities are never reused.
+
+Every call rechecks exact selection and current resolved project access before signed image/trust/
+policy/provider admission. Read-only edit attempts, unresolved recovery/external changes, disabled/
+retired providers, policy/key changes and detach reject with no native callback. Invocation does not
+poll, unload, enable, write files or mutate documents. Successful outputs are owning bounded bytes;
+callers parse them and independently recheck current document type/scope, Play state, authoring and
+writer authority before deferred mutation, Undo or IO. Permission declarations remain admission
+metadata rather than a sandbox or host publication authorization. Other owner operations retain their
+serialized drain-before-mutation contract. New C++ public class layout requires consumer rebuilds;
+required plugin C ABI, persisted package/scene formats and module dependencies remain unchanged.
+Graphical material-document edit/preview/Undo/Save/reopen integration remains separate work.

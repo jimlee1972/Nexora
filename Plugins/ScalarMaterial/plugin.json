@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "id": "org.nexora.editor.scalar-material",
+  "version": "0.1.0",
+  "engine_abi": 1,
+  "optional": true,
+  "dependencies": ["Editor"]
+}

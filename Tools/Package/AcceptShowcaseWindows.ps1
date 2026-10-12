@@ -296,6 +296,11 @@ public static class NexoraAcceptanceWindow {
     Press-Key 121
     Capture-Compared 'courtyard-anti-aliasing-restored.png' 'courtyard-activated.png' $true
     $acceptance.courtyard_anti_aliasing_comparison = $true
+    Press-Key 122 # F11 compares depth-based screen-space contact occlusion.
+    Capture-Compared 'courtyard-contact-occlusion-off.png' 'courtyard-activated.png' $false
+    Press-Key 122
+    Capture-Compared 'courtyard-contact-occlusion-restored.png' 'courtyard-activated.png' $true
+    $acceptance.courtyard_contact_occlusion_comparison = $true
     Start-Sleep -Milliseconds 300
     Capture-Compared 'courtyard-paused.png' 'courtyard-activated.png' $true
     Press-Key 32
@@ -374,7 +379,15 @@ public static class NexoraAcceptanceWindow {
     Press-Key 71; Capture 'gameplay-teleported.png'
     Press-Key 54; Press-Key 74; Start-Sleep -Milliseconds 600; Capture 'presentation-blend.png'
     Press-Key 56; Press-Key 66; Press-Key 66; Press-Key 72; Capture 'shipping-pressure.png'
-    Press-Key 84; Start-Sleep -Milliseconds 1800; Press-Key 32; Capture 'tour-paused.png'
+    Press-Key 84
+    $tourProgressDeadline = [DateTime]::UtcNow.AddSeconds(15)
+    do {
+        Require ([DateTime]::UtcNow -lt $tourProgressDeadline) 'Tour did not produce observed progress before pause/replay.'
+        Start-Sleep -Milliseconds 200
+        $progress = Export-State 'tour-progress'
+        Require ($progress.tour.enabled -and -not $progress.tour.paused) 'Tour stopped before pause/replay.'
+    } while ($progress.tour.seconds -lt 1.8)
+    Press-Key 32; Capture 'tour-paused.png'
     $beforeReplay = Export-State 'tour-before-replay'
     Require ($beforeReplay.tour.enabled -and $beforeReplay.tour.paused -and
         $beforeReplay.tour.seconds -ge 1.5) 'Tour did not advance before pause/replay.'
@@ -387,11 +400,14 @@ public static class NexoraAcceptanceWindow {
     if ($CompleteGuidedTour) {
         Press-Key 32
         # Keep rendering all seven steps; do not fabricate elapsed simulation time.
-        $tourDeadline = [DateTime]::UtcNow.AddSeconds(215)
-        while ([DateTime]::UtcNow -lt $tourDeadline) {
+        $tourDeadline = [DateTime]::UtcNow.AddSeconds(300)
+        do {
             Require (-not $process.HasExited) 'Showcase exited during the complete guided tour.'
-            Start-Sleep -Milliseconds 500
-        }
+            Require ([DateTime]::UtcNow -lt $tourDeadline) 'Complete guided tour timed out before observed completion.'
+            Start-Sleep -Seconds 5
+            $progress = Export-State 'tour-completion-progress'
+        } while (-not ($progress.tour.seconds -ge 210 -and $progress.tour.step -eq 6 -and
+                       $progress.tour.enabled -and $progress.tour.paused))
         Capture 'tour-completed.png'
     }
     $tourState = Export-State 'tour-state'

@@ -1,5 +1,5 @@
 #include "Nexora/Editor/PrefabPlacementOverrides.h"
-#include "Nexora/Editor/SceneComparison.h"
+#include "PrefabPlacementPropertyInternal.h"
 #include <algorithm>
 #include <charconv>
 #include <map>
@@ -7,82 +7,11 @@
 
 namespace nexora::editor {
 namespace {
-using Fields = std::map<std::string, std::string, std::less<>>;
-using Nodes = std::map<runtime::Id, Fields>;
-std::optional<Nodes> Snapshot(std::string_view bytes, std::string *error) {
-  const auto comparison = CompareSceneRevisions({}, bytes, {}, error);
-  if (!comparison)
-    return {};
-  Nodes result;
-  for (const auto &row : comparison->rows) {
-    constexpr std::string_view prefix = "entities/";
-    if (!row.stable_path.starts_with(prefix) || !row.local)
-      continue;
-    const auto path = std::string_view(row.stable_path).substr(prefix.size());
-    const auto slash = path.find('/');
-    if (slash == path.npos)
-      return {};
-    runtime::Id id{};
-    const auto parsed = std::from_chars(path.data(), path.data() + slash, id);
-    if (parsed.ec != std::errc{} || parsed.ptr != path.data() + slash || !id)
-      return {};
-    const auto field = path.substr(slash + 1);
-    // Scene-global identity and absolute sibling positions are not instance properties.
-    if (field == "present" || field == "authoring/tracked" || field == "sibling/index")
-      continue;
-    result[id].emplace(field, *row.local);
-  }
-  return result;
-}
-std::string Property(std::string_view field) {
-  if (field.starts_with("authoring/euler/"))
-    return "transform.rotation";
-  for (const auto prefix : {"transform/position/", "transform/rotation/", "transform/scale/"})
-    if (field.starts_with(prefix)) {
-      std::string result(prefix);
-      result.pop_back();
-      std::ranges::replace(result, '/', '.');
-      return result;
-    }
-  if (field.starts_with("opaque/")) {
-    const auto slash = field.find('/', 7);
-    return std::string(field.substr(0, slash));
-  }
-  return std::string(field.substr(0, field.find('/')));
-}
-std::optional<std::string> Value(const Fields &fields, const std::string &name) {
-  const auto found = fields.find(name);
-  return found == fields.end() ? std::nullopt : std::optional(found->second);
-}
-std::optional<std::map<runtime::Id, std::string>>
-RuntimePropertyRecords(std::string_view snapshot) {
-  // Consume only bounded canonical version-3 output produced by World::SaveScene here.
-  // ID/parent remain target-owned; the suffix owns every stored property and presence flag.
-  if (!snapshot.starts_with("NEXORA_SCENE 3 "))
-    return {};
-  auto cursor = snapshot.find('\n');
-  if (cursor == snapshot.npos)
-    return {};
-  ++cursor;
-  std::map<runtime::Id, std::string> records;
-  while (cursor < snapshot.size()) {
-    const auto end = snapshot.find('\n', cursor);
-    if (end == snapshot.npos)
-      return {};
-    const auto line = snapshot.substr(cursor, end - cursor);
-    const auto first = line.find(' ');
-    const auto second = first == line.npos ? line.npos : line.find(' ', first + 1);
-    if (second == line.npos || second + 1 == line.size())
-      return {};
-    runtime::Id id{};
-    const auto parsed = std::from_chars(line.data(), line.data() + first, id);
-    if (parsed.ec != std::errc{} || parsed.ptr != line.data() + first || !id ||
-        !records.emplace(id, line.substr(second + 1)).second)
-      return {};
-    cursor = end + 1;
-  }
-  return records;
-}
+using detail::PlacementPropertyGroup;
+using detail::PlacementRuntimeProperties;
+using detail::PlacementSnapshot;
+using detail::PlacementValue;
+using detail::SelectPlacementRuntimeProperties;
 } // namespace
 
 std::optional<PrefabPlacementOverrideReview>
@@ -108,8 +37,8 @@ PrefabPlacementOverrides::Prepare(const ProjectWorkspace &workspace, const Scene
   const auto prepared = baseline.PrepareSave();
   if (!mapping || !prepared || mapping->size() != inspection->placement_.nodes.size())
     return fail("Prefab retained source materialization failed.");
-  auto retained = Snapshot(prepared->Bytes(), error);
-  const auto local = Snapshot(inspection->expected_.Bytes(), error);
+  auto retained = PlacementSnapshot(prepared->Bytes(), error);
+  const auto local = PlacementSnapshot(inspection->expected_.Bytes(), error);
   if (!retained || !local)
     return fail("Prefab property review exceeds semantic snapshot budgets.");
   std::map<runtime::Id, runtime::Id> translated;
@@ -162,11 +91,12 @@ PrefabPlacementOverrides::Prepare(const ProjectWorkspace &workspace, const Scene
       names.insert(name);
     }
     for (const auto &field : names) {
-      const auto old = Value(fields, field), current = Value(live_fields->second, field);
+      const auto old = PlacementValue(fields, field),
+                 current = PlacementValue(live_fields->second, field);
       if (old == current)
         continue;
-      const auto property =
-          std::ranges::find(identity->properties, Property(field), &PrefabPropertyIdentity::field);
+      const auto property = std::ranges::find(identity->properties, PlacementPropertyGroup(field),
+                                              &PrefabPropertyIdentity::field);
       const auto size = field.size() + node.scope.size() * sizeof(foundation::Uuid) +
                         (old ? old->size() : 0) + (current ? current->size() : 0);
       if (rows.size() >= kMaximumRows || size > kMaximumReportBytes - bytes)
@@ -190,6 +120,19 @@ bool PrefabPlacementOverrides::Matches(const ProjectWorkspace &workspace,
 bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDocument &target,
                                       const PrefabPlacementOverrideReview &review, bool authorized,
                                       std::string *error) {
+  return RevertProperties(workspace, target, review, std::nullopt, authorized, error);
+}
+bool PrefabPlacementOverrides::RevertSelected(const ProjectWorkspace &workspace,
+                                              SceneDocument &target,
+                                              const PrefabPlacementOverrideReview &review,
+                                              std::span<const std::size_t> rows, bool authorized,
+                                              std::string *error) {
+  return RevertProperties(workspace, target, review, rows, authorized, error);
+}
+bool PrefabPlacementOverrides::RevertProperties(
+    const ProjectWorkspace &workspace, SceneDocument &target,
+    const PrefabPlacementOverrideReview &review,
+    std::optional<std::span<const std::size_t>> selected, bool authorized, std::string *error) {
   if (error)
     error->clear();
   const auto fail = [&](const char *message) {
@@ -202,7 +145,24 @@ bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDo
     return fail("Prefab property revert requires a current review and writer authorization.");
   if (std::ranges::any_of(review.rows_, &PrefabPlacementOverrideRow::structural))
     return fail("Prefab property revert does not reconcile structural hierarchy changes.");
-  if (review.rows_.empty())
+  std::map<runtime::Id, std::set<std::string>> selected_groups;
+  if (selected) {
+    if (selected->size() > kMaximumRows)
+      return fail("Prefab selected property rows exceed their budget.");
+    std::set<std::size_t> unique;
+    for (const auto index : *selected) {
+      if (index >= review.rows_.size() || !unique.insert(index).second)
+        return fail("Prefab selected property row is absent or duplicated.");
+      const auto &row = review.rows_[index];
+      const auto group = PlacementPropertyGroup(row.field);
+      if (group != "name" && group != "transform.position" && group != "transform.rotation" &&
+          group != "transform.scale" && group != "camera" && group != "light" && group != "mesh" &&
+          !group.starts_with("opaque/"))
+        return fail("Prefab selected property group is unsupported.");
+      selected_groups[row.target.id].insert(group);
+    }
+  }
+  if (review.rows_.empty() || (selected && selected->empty()))
     return true; // Preserve pending Redo and the saved baseline for a semantic no-op.
   const auto &inspection = review.inspection_;
   if (!inspection.graph_)
@@ -229,8 +189,8 @@ bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDo
       staged_world.SaveScene(staged.scene_, SceneComparison::kMaximumSourceBytes);
   if (!source_runtime || !staged_runtime)
     return fail("Prefab property runtime snapshots exceed their byte budget.");
-  const auto source_properties = RuntimePropertyRecords(*source_runtime);
-  auto staged_properties = RuntimePropertyRecords(*staged_runtime);
+  const auto source_properties = PlacementRuntimeProperties(*source_runtime);
+  auto staged_properties = PlacementRuntimeProperties(*staged_runtime);
   if (!source_properties || !staged_properties)
     return fail("Prefab property runtime snapshot schema is unavailable.");
   for (const auto &node : *mapping) {
@@ -243,12 +203,48 @@ bool PrefabPlacementOverrides::Revert(const ProjectWorkspace &workspace, SceneDo
         !staged_properties->contains(live->target))
       return fail("Prefab scoped source-to-live identity is unavailable.");
     auto &destination = *staged_nodes.at(live->target);
-    const auto generation = destination.generation;
-    destination = *authoring->second;
-    destination.id = live->target;
-    destination.generation = generation;
-    staged_properties->at(live->target) = source_properties->at(node.target.id);
+    if (!selected) {
+      const auto generation = destination.generation;
+      destination = *authoring->second;
+      destination.id = live->target;
+      destination.generation = generation;
+      staged_properties->at(live->target) = source_properties->at(node.target.id);
+    } else if (const auto found = selected_groups.find(live->target);
+               found != selected_groups.end()) {
+      const auto &groups = found->second;
+      if (groups.contains("name"))
+        destination.name = authoring->second->name;
+      if (groups.contains("transform.rotation"))
+        destination.euler_hint = authoring->second->euler_hint;
+      for (const auto &group : groups)
+        if (group.starts_with("opaque/")) {
+          std::uint64_t type{};
+          const auto text = std::string_view(group).substr(7);
+          const auto parsed = std::from_chars(text.data(), text.data() + text.size(), type);
+          if (parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size() || !type)
+            return fail("Prefab opaque property identity is invalid.");
+          const auto original = std::ranges::find(authoring->second->opaque, type,
+                                                  [](const auto &value) { return value.type; });
+          const auto current = std::ranges::find(destination.opaque, type,
+                                                 [](const auto &value) { return value.type; });
+          if (original == authoring->second->opaque.end())
+            std::erase_if(destination.opaque,
+                          [&](const auto &value) { return value.type == type; });
+          else if (current == destination.opaque.end())
+            destination.opaque.push_back(*original);
+          else
+            *current = *original;
+        }
+      const auto properties = SelectPlacementRuntimeProperties(
+          source_properties->at(node.target.id), staged_properties->at(live->target), groups);
+      if (!properties)
+        return fail("Prefab selected runtime property schema is unavailable.");
+      staged_properties->at(live->target) = *properties;
+      selected_groups.erase(found);
+    }
   }
+  if (!selected_groups.empty())
+    return fail("Prefab selected scoped node is absent from the retained mapping.");
   std::string next_runtime = staged_runtime->substr(0, staged_runtime->find('\n') + 1);
   const auto *staged_scene = staged_world.FindScene(staged.scene_);
   if (!staged_scene)

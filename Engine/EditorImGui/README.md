@@ -1,5 +1,17 @@
 # Editor Dear ImGui host contract
 
+## External Chrome duration inspection
+
+The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
+scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+Async selection uses the begin thread/name, permits cross-thread ends and supports bounded
+process-local `id2.local`/category/scope pairing. Global `id2.global`/legacy `id` and legacy `S/F`
+are unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
+read-only admission and scope revocation. Nested intervals are displayed by start order;
+duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
+contract documents pairing, chronological and capacity requirements.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
@@ -37,7 +49,77 @@ workflows are separate. The application cancels the process before draining othe
 shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
 existing module dependencies and stable C ABI are unchanged.
 
+## Hierarchy scale and lifecycle measurements
+
+`editor.hierarchy_scale_lifecycle` runs the real product-shell draw path over 100,000 flat roots
+and an expanded 99,998-node chain, at 1280x900 logical pixels and 1x/2x DPI. Each of two lifecycle
+cycles creates a fresh project, World, SceneDocument and ImGui host, settles six frames and measures
+twelve complete CPU shell frames. Schema-1 JSON lines retain sorted milliseconds, nearest-rank
+p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload peak/retention.
+Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
+source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
+ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
+deadline, or 600 seconds on Windows based on hosted MSVC measurements. It also runs directly with
+`NexoraDeepHierarchyTests --benchmark`.
+
+The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
+ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame
+percentiles are observations, not a cross-machine production frame-time budget; no calibrated GPU,
+long-duration soak or physical-host acceptance follows from this test.
+
 ## Ownership and lifetime
+
+`Review newer source` in a bound scene Inspector explicitly requests an owning three-way Core
+source-rebase review. The application retains the immutable review and publishes a bounded copied
+report with a session serial. Rendering performs no source IO. Rows display exact scoped retained,
+local and published complete property groups, with stable identity tooltips and escaped/clipped
+values. Source-only/local-only rows are automatic; each actual conflict requires Local or Source.
+Read-only scopes can inspect and choose for inspection but cannot request a write.
+
+`Rebase instance properties` remains disabled until every conflict has a choice. Opening its
+separate confirmation freezes owning choices and exact project/document/placement/source scope
+and review serial. Cancel/Escape, refresh, blur, immediate permission revocation, hidden Inspector,
+scope replacement and unrelated close/file/tab/rename/Play modals discard pending consent. The
+application repeats selection, current document key/token and placement mapping, stopped Play,
+writer/export/recovery/external-change policy before pure Core Resolve and fully revalidated Apply.
+Stale content or missing/tampered/advanced sources reject instead of overwriting later authoring;
+rejection clears the report and consent. One Undo/Redo restores complete properties and retained
+revision together. Source files never change; explicit Scene Save persists the result. Reports
+fit 32,768 groups/16 MiB logical data with 64 KiB values; this is not a process-memory budget. Structural
+reconciliation and apply-to-source remain separate. Public C++ consumers rebuild; module dependencies
+and stable C/Gameplay ABI remain unchanged.
+
+`Review overrides` in a bound scene Inspector emits an owning project/document/selection/source
+scope. The application explicitly prepares and retains an immutable `PrefabPlacementOverrideReview`
+and publishes only a bounded copied row report with a session review serial. Drawing performs no
+source IO and does not authorize writes. Clipped rows show scoped retained/local property values and
+source revision; tooltips expose stable node/field UUIDs and every nested instance scope. Control
+bytes are escaped; long values visibly indicate display truncation while the owning report remains
+complete. Captured values and published revision are observations that require explicit refresh.
+
+`Revert instance properties` requires writable current authoring scope and an explicit modal
+confirmation; Cancel or Escape leaves the review and document untouched. Structural rows disable
+the action. The application repeats current document, selected key, placement identity, stopped
+Play, export/recovery/external-change and writer policy, checks the exact retained review serial,
+then delegates complete source/target revalidation to Core Revert. Stale/missing/changed inputs
+reject and clear the old report instead of applying stale displayed values. Read-only scopes may
+review, but do not emit Revert. Scope replacement, hidden Inspector, focus/permission revocation
+and unrelated file/tab/close/rename modals cancel pending intents and consent. All work is serialized
+on the authoring thread. UI and application own copied data; no World/document pointer escapes a
+frame call. Successful Revert is one Core Undo/Redo and does not write source or scene files;
+ordinary Scene Save persists it. The immutable review retains no authoring authority.
+
+`Revert selected properties` freezes owning row indices and the exact captured scope/review
+serial when opening confirmation. Each selected lane restores its complete stable scoped property
+group; unselected groups and unknown components remain intact. Checkboxes are clipped and available
+for read-only inspection, while empty or structural selections cannot authorize writes. Report
+refresh resets selection and consent. Blur or permission loss clears consent immediately, including
+loss/regain without an intervening frame. The application rechecks the same current policy and
+calls Core `RevertSelected` with the owning frozen indices; Core rejects stale/duplicate/out-of-range
+rows and revalidates the full retained closure. One Undo/Redo covers the selected groups together;
+no files change until ordinary Scene Save. Public C++ consumers rebuild, with stable C ABI and
+module dependencies unchanged. Structural reconciliation and apply-to-source remain separate;
+newer-source rebase uses its independent owning review above.
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
 Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
@@ -1079,3 +1161,46 @@ validity. Instance override/revert/apply/rebase remain separate authoring operat
 Build-process Run also independently checks current focus, queued Play/close decisions and
 recovery/file/tab/rename/input modals. Caller authorization alone cannot launch through a close
 confirmation; blocked authority cancels running work while retaining actual terminal diagnostics.
+
+## Prefab isolation controls
+
+Settings > Prefab isolation and Ctrl+Alt+P open a dedicated window. The native application owns
+a project-scoped `PrefabDocumentSession` with a separate World/document; drawing borrows it only
+for the frame. The active scene remains independent. Create from scene, Open, Create variant,
+Save prefab and Close prefab emit owning one-shot requests, rechecked against project scope,
+owner/document generation, asset identity and active scene token before native dispatch.
+The GUI performs no filesystem publication. Core save repeats writer, recovery and source checks.
+
+The clipped hierarchy selects generation keys. Name and position text commit on Enter as one
+document Undo step; numeric input must be finite and within the displayed supported bounds.
+Unknown component bytes are retained without interpretation. Save preserves Undo/Redo and stable
+identities. Project/document changes clear pending confirmations and active input. Read-only
+projects can inspect/open but cannot create, modify, save or create variants. Focus, Play,
+recovery, external changes, build/close/file/tab/rename/input dialogs block authoring.
+
+Dirty replacement/close requires an explicit discard decision; Keep editing preserves the owner.
+Hiding the window retains the session. Application close includes dirty prefab work in its prompt.
+Save and Exit requires the user to save the prefab explicitly before retrying; it does not combine
+prefab publication with ordinary scene saves. Cancel keeps the owner available. Forced termination
+has no prefab recovery journal in this slice. Variants require an exact clean published base.
+Nested materialization, override diff/revert/apply/rebase, reflected prefab properties and complete
+transform/component editing remain separate work. Public C++ consumers rebuild; stable C ABI and
+module dependencies are unchanged.
+
+## Signed native package controls
+
+Settings > Extensions / Ctrl+Alt+E opens the owning project-scoped publisher/capability and package
+views. Inputs transfer explicit requests; widgets never read packages or execute native code. The
+native owner rechecks project UUID/root/scope, private review revision, writer/recovery/external-change
+and stopped-Play/export/modal authority. Changed project scope clears keys/path drafts and pending
+requests; keys in the host registry are explicit process-session trust and never restored from a
+project. Changing the package path or closing the window cancels the retained Core review.
+
+Review displays the actually verified canonical identity/version/publisher/target/ABI/dependencies.
+Install copies only those owned verified bytes; a separate Enable requests actual sealed native
+admission. Row state comes from the host, and its tooltip reports admission/loader errors, ABI,
+services and lifecycle/cooperative capability. Disable/revoke drain through the cooperative host;
+legacy mappings remain restart-required. Read-only scopes can inspect but cannot install, enable or
+remove files. No package/project enrolls its own trust or auto-enables. Invalid/overflowing observation
+data preserves the previous display; clipped rows and bounded input/diagnostic strings limit retained
+UI state. Native permission declarations are admission checks, not a sandbox for trusted native code.

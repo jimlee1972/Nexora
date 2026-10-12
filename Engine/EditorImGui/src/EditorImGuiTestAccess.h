@@ -60,6 +60,8 @@ struct EditorHierarchyTestRow final {
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  ExtensionManagerPosition(const EditorImGuiHost &, std::string_view);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   DiagnosticPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static std::array<std::size_t, 2> DiagnosticRows(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>> SceneTabPosition(const EditorImGuiHost &,
@@ -142,6 +144,10 @@ public:
   GpuControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static const GpuTimingCapture *
   ImportedGpuCapture(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ChromeTraceControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static const ChromeTraceCapture *
+  ImportedChromeTrace(const EditorImGuiHost &) noexcept;
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
@@ -280,6 +286,12 @@ public:
   static void SetBuildCommand(EditorImGuiHost &host, std::string_view executable,
                               std::string_view cwd, std::span<const std::string> arguments);
   [[nodiscard]] static BuildProcessSnapshot BuildStatus(const EditorImGuiHost &host);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabPropertyPosition(const EditorImGuiHost &, std::size_t row) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  PrefabRebaseChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option) noexcept;
   [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
