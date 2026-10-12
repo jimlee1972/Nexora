@@ -19,9 +19,10 @@ NativeToolOutcome NativeToolInvoker::Invoke(const runtime::PluginHost &host,
   const auto fail = [](NativeToolState state, const char *message) {
     return NativeToolOutcome{state, {}, {}, message};
   };
-  if (std::this_thread::get_id() != owner_)
+  const auto context = ContextState();
+  if (context == NativeToolState::WrongThread)
     return fail(NativeToolState::WrongThread, "Native tool invocation requires its owner thread");
-  if (invoking)
+  if (context == NativeToolState::Reentrant)
     return fail(NativeToolState::Reentrant, "Native tool invocation cannot reenter");
   const auto requested = static_cast<std::uint32_t>(operation);
   constexpr auto known = NEXORA_EDITOR_TOOL_INSPECT | NEXORA_EDITOR_TOOL_EDIT |

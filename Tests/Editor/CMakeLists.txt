@@ -416,3 +416,17 @@ target_link_libraries(NexoraMaterialToolSourceSessionTests PRIVATE Nexora::Edito
 nexora_apply_defaults(NexoraMaterialToolSourceSessionTests)
 add_test(NAME editor.material_tool_source_session COMMAND NexoraMaterialToolSourceSessionTests)
 set_tests_properties(editor.material_tool_source_session PROPERTIES TIMEOUT 30)
+
+if(NEXORA_FEATURE_SCALAR_MATERIAL_TOOL)
+  add_executable(NexoraManagedToolInvocationTests ManagedToolInvocationTests.cpp)
+  target_link_libraries(NexoraManagedToolInvocationTests PRIVATE Nexora::Editor)
+  if(NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE)
+    target_compile_definitions(NexoraManagedToolInvocationTests PRIVATE NEXORA_TEST_OPENSSL=1)
+    target_link_libraries(NexoraManagedToolInvocationTests PRIVATE OpenSSL::Crypto)
+  endif()
+  nexora_apply_defaults(NexoraManagedToolInvocationTests)
+  add_dependencies(NexoraManagedToolInvocationTests NexoraScalarMaterialPlugin NexoraNativeToolFixture13)
+  add_test(NAME editor.managed_tool_invocation COMMAND NexoraManagedToolInvocationTests
+           "$<TARGET_FILE:NexoraScalarMaterialPlugin>" "$<TARGET_FILE:NexoraNativeToolFixture13>")
+  set_tests_properties(editor.managed_tool_invocation PROPERTIES TIMEOUT 30)
+endif()

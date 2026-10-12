@@ -1,5 +1,6 @@
 #pragma once
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/NativeTool.h"
 #include "Nexora/Editor/SignedExtensionHost.h"
 
 namespace nexora::editor {
@@ -28,6 +29,12 @@ struct ExtensionPackageReview final {
   ExtensionManifest manifest;
   std::size_t package_bytes{};
   std::uint64_t scope{}, configuration{};
+};
+// Owning observation, not a permission grant. Exact manager instance/scope/configuration and
+// admission are rechecked for every call; callers never retain a native service pointer.
+struct ManagedToolSelection final {
+  std::uint64_t manager{}, scope{}, configuration{}, native_id{};
+  std::string id, version;
 };
 // Serialized owner. Callers drain every borrowed service call before revoke, detach or unload.
 // No project/package input enrolls trusted keys, and no package auto-enables on project activation.
@@ -73,6 +80,13 @@ public:
   [[nodiscard]] std::vector<ManagedExtension> Snapshot() const;
   // Borrowed while enabled, until the next owner revoke/disable/detach/poll operation.
   [[nodiscard]] void *FindService(std::string_view name) const;
+  [[nodiscard]] std::optional<ManagedToolSelection> SelectTool(std::string_view id,
+                                                               std::string_view version) const;
+  // Synchronous owning-byte call. No lifecycle changes or document/IO publication. Callers parse
+  // outputs and independently recheck document scope/Play/writer authority before authoring.
+  [[nodiscard]] NativeToolOutcome InvokeTool(const ProjectWorkspace &, const ManagedToolSelection &,
+                                             std::string_view service, NativeToolOperation,
+                                             std::span<const std::byte> input);
   [[nodiscard]] bool RestartRequired() const;
   [[nodiscard]] std::size_t RejectedFiles() const noexcept { return rejected_files_; }
 
@@ -83,6 +97,8 @@ private:
   bool Changed();
   std::optional<PreparedExtension> Verify(std::span<const std::byte>,
                                           ExtensionAdmissionError *) const;
+  NativeToolInvoker tool_invoker_;
+  const std::uint64_t instance_;
   ExtensionTrust trust_;
   runtime::ServiceRegistry services_;
   SignedExtensionHost host_;
