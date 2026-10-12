@@ -1,0 +1,197 @@
+{
+  "scope": "GitHub-hosted Actions, not Codex Cloud execution",
+  "runs": [
+    {
+      "source_commit": "5aa60d5cc8a05931f2afb57ec7ede03af6d8b46c",
+      "run_id": 37974114417,
+      "jobs": [
+        {
+          "name": "Documentation and change detection",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-windows-vulkan-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Zig object smoke (aarch64-linux-android)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Editor Linux display acceptance (Xvfb)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Zig object smoke (aarch64-ios)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "mimalloc backend (macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "mimalloc backend (windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-contract",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CMake configure smoke (ios-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-windows-shipping-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CMake configure smoke (android-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "desktop (ubuntu-latest, linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "mimalloc backend (linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "desktop (windows-latest, windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "desktop (macos-latest, macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI result",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "source_commit": "7c4534b850c37fc0ae741ebf2198408f20613368",
+      "run_id": 37978332845,
+      "jobs": [
+        {
+          "name": "Documentation and change detection",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Zig object smoke (aarch64-ios)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-posix-shipping-package (macos-latest, macos-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Editor Linux display acceptance (Xvfb)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "desktop (windows-latest, windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-windows-vulkan-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Zig object smoke (aarch64-linux-android)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "desktop (ubuntu-latest, linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "build-contract",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "mimalloc backend (macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-windows-shipping-package",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "desktop (macos-latest, macos-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "mimalloc backend (linux-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "mimalloc backend (windows-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CMake configure smoke (android-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CMake configure smoke (ios-development)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "CI result",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ]
+}
