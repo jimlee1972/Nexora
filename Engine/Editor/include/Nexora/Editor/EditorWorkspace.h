@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Editor/Api.h"
+#include "Nexora/Editor/ChromeTrace.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/MaterialImport.h"
@@ -128,6 +129,10 @@ public:
                            std::string *error = nullptr);
   [[nodiscard]] std::optional<GpuTimingCapture>
   ImportGpuTimingJson(std::string *error = nullptr) const;
+  // Explicit external Chrome trace at .nexora/chrome-trace.json. Does not infer CPU/GPU/RSS
+  // or host/project timing provenance; read-only observers may import. No writes or native loads.
+  [[nodiscard]] std::optional<ChromeTraceCapture>
+  ImportChromeTraceJson(ChromeTraceSelection, std::string *error = nullptr) const;
   bool SaveEditorLayout(std::string_view layout, std::string *error = nullptr);
   [[nodiscard]] std::optional<std::string> LoadEditorLayout(std::string *error = nullptr) const;
   [[nodiscard]] bool HasRecoveryJournal() const;
@@ -176,6 +181,15 @@ private:
   std::vector<RecentProject> entries_;
 };
 
+// Admission bounds for one Content index. A tree beyond either bound is rejected as a whole, before
+// any identity sidecar is written, so the previous index and project files stay untouched.
+inline constexpr std::size_t kMaximumIndexedAssets = 262144;
+inline constexpr std::size_t kMaximumIndexedPathBytes = 1024; // UTF-8, project-relative.
+struct AssetIndexLimits final {
+  std::size_t max_assets = kMaximumIndexedAssets;
+  std::size_t max_path_bytes = kMaximumIndexedPathBytes;
+};
+
 enum class ImportState { Pending, Imported, Cancelled, Failed };
 enum class AssetIdentityMode { DerivedFromPath, PersistentReadOnly, PersistentReadWrite };
 
@@ -197,6 +211,9 @@ class NEXORA_EDITOR_API AssetWorkspace final {
 public:
   using Cancelled = std::function<bool()>;
   using Progress = std::function<void(std::size_t, std::size_t)>;
+  // `limits` bounds the number of indexed files (".meta" sidecars excluded) and each project-
+  // relative UTF-8 path. Exceeding either fails before any sidecar is created and keeps the
+  // existing index.
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
   // OBJ/material parsing retains its bounded source/payload policy; live publication is
@@ -204,7 +221,7 @@ public:
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
                   AssetIdentityMode identity_mode = AssetIdentityMode::DerivedFromPath,
-                  std::string *error = nullptr);
+                  std::string *error = nullptr, AssetIndexLimits limits = {});
   // Reads only one already-saved .scene and its sidecar in this initialized Content index.
   // Bounds source bytes at 64 MiB, preserves other entries/geometry, and checks IDs against the
   // current in-memory index. No directory scan, OBJ parsing, GPU work, or project-wide refresh.
@@ -384,6 +401,39 @@ public:
   // The next successful Paste preserves root names, then the retained snapshot becomes a copy.
   bool CutSelection();
   bool Paste();
+  struct ImportedForestNode final {
+    runtime::Id source{};
+    NodeKey target;
+  };
+  static constexpr std::size_t kMaximumImportedForestNodes = 4096;
+  static constexpr std::size_t kMaximumImportedForestBytes = 8 * 1024 * 1024;
+  // Parses a complete owning source revision, then clones its ordered forest as one Undo.
+  // Authority/current document observation are rechecked; no file IO or user clipboard changes.
+  [[nodiscard]] std::optional<std::vector<ImportedForestNode>>
+  ImportForestBytes(const PreparedSave &expected, std::string_view source, bool authorized);
+  struct PrefabPlacementNode final {
+    std::vector<foundation::Uuid> scope;
+    foundation::Uuid source_node;
+    runtime::Id target{};
+    friend bool operator==(const PrefabPlacementNode &, const PrefabPlacementNode &) = default;
+  };
+  struct PrefabPlacement final {
+    foundation::Uuid instance, source;
+    std::uint64_t revision{};
+    std::vector<PrefabPlacementNode> nodes;
+    friend bool operator==(const PrefabPlacement &, const PrefabPlacement &) = default;
+  };
+  static constexpr std::size_t kMaximumPrefabPlacements = 128;
+  static constexpr std::size_t kMaximumPrefabPlacementNodes = 4096;
+  static constexpr std::size_t kMaximumPrefabPlacementDepth = 32;
+  static constexpr std::size_t kMaximumPrefabPlacementBytes = 4 * 1024 * 1024;
+  // Borrow expires on authoring mutation/reload. Serialized owner enforces project authority.
+  [[nodiscard]] std::span<const PrefabPlacement> PrefabPlacements() const noexcept;
+  // Source node targets describe the staged forest's serialized IDs. Imports properties and
+  // remapped owning placement metadata as one Undo; no IO or saved-baseline change.
+  [[nodiscard]] std::optional<std::vector<ImportedForestNode>>
+  ImportPrefabForest(const PreparedSave &, std::string_view source, PrefabPlacement,
+                     bool authorized);
   // Duplicates the current selection without replacing the user's copied clipboard.
   bool DuplicateSelection();
   // Deletes selected subtrees as one atomic Undo; selected descendants are not deleted twice.
@@ -499,6 +549,9 @@ private:
   bool ApplyPropertySnapshotWithReference(const PreparedSave &, std::string_view, bool,
                                           std::optional<PrefabBaseReference>);
   void PushUndo(UndoEntry entry);
+  [[nodiscard]] std::optional<std::string> PrefabPlacementRecords() const;
+  [[nodiscard]] static bool ValidatePrefabPlacements(std::span<const PrefabPlacement>,
+                                                     std::span<const runtime::Id>);
   runtime::World &world_;
   runtime::Id scene_{};
   runtime::SceneEditor editor_;

@@ -1,5 +1,17 @@
 # Editor Dear ImGui host contract
 
+## External Chrome duration inspection
+
+The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
+scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+Async selection uses the begin thread/name, permits cross-thread ends and supports bounded
+process-local `id2.local`/category/scope pairing. Global `id2.global`/legacy `id` and legacy `S/F`
+are unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
+read-only admission and scope revocation. Nested intervals are displayed by start order;
+duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
+contract documents pairing, chronological and capacity requirements.
+
 `NexoraEditorImGui` is an optional UI-host module. It owns the Dear ImGui context, translates
 public `Nexora::Window` events, applies the Editor theme and DPI scale, creates the root dockspace,
 and presents panels using the stable IDs owned by `NexoraEditorCore`. On the first frame it builds
@@ -37,7 +49,57 @@ workflows are separate. The application cancels the process before draining othe
 shared JobSystem, then calls Shutdown before model/job destruction. Public C++ consumers rebuild;
 existing module dependencies and stable C ABI are unchanged.
 
+## Hierarchy scale and lifecycle measurements
+
+`editor.hierarchy_scale_lifecycle` runs the real product-shell draw path over 100,000 flat roots
+and an expanded 99,998-node chain, at 1280x900 logical pixels and 1x/2x DPI. Each of two lifecycle
+cycles creates a fresh project, World, SceneDocument and ImGui host, settles six frames and measures
+twelve complete CPU shell frames. Schema-1 JSON lines retain sorted milliseconds, nearest-rank
+p50/p95/max, rendered hierarchy widget/vertex counts and ImGui allocator payload peak/retention.
+Every frame requires all 100k logical rows with fewer than 128 submitted hierarchy widgets;
+source bytes, clean saved state and empty Undo/Redo must survive. Every teardown requires zero
+ImGui allocations and no current context. CTest runs this gate serially with a 300-second aggregate
+deadline, or 600 seconds on Windows based on hosted MSVC measurements. It also runs directly with
+`NexoraDeepHierarchyTests --benchmark`.
+
+The measurement excludes fixture loading, native GPU submission, asset residency and presentation.
+ImGui payload bytes exclude allocation headers and World/document/STL/process memory. Frame
+percentiles are observations, not a cross-machine production frame-time budget; no calibrated GPU,
+long-duration soak or physical-host acceptance follows from this test.
+
 ## Ownership and lifetime
+
+`Review overrides` in a bound scene Inspector emits an owning project/document/selection/source
+scope. The application explicitly prepares and retains an immutable `PrefabPlacementOverrideReview`
+and publishes only a bounded copied row report with a session review serial. Drawing performs no
+source IO and does not authorize writes. Clipped rows show scoped retained/local property values and
+source revision; tooltips expose stable node/field UUIDs and every nested instance scope. Control
+bytes are escaped; long values visibly indicate display truncation while the owning report remains
+complete. Captured values and published revision are observations that require explicit refresh.
+
+`Revert instance properties` requires writable current authoring scope and an explicit modal
+confirmation; Cancel or Escape leaves the review and document untouched. Structural rows disable
+the action. The application repeats current document, selected key, placement identity, stopped
+Play, export/recovery/external-change and writer policy, checks the exact retained review serial,
+then delegates complete source/target revalidation to Core Revert. Stale/missing/changed inputs
+reject and clear the old report instead of applying stale displayed values. Read-only scopes may
+review, but do not emit Revert. Scope replacement, hidden Inspector, focus/permission revocation
+and unrelated file/tab/close/rename modals cancel pending intents and consent. All work is serialized
+on the authoring thread. UI and application own copied data; no World/document pointer escapes a
+frame call. Successful Revert is one Core Undo/Redo and does not write source or scene files;
+ordinary Scene Save persists it. The immutable review retains no authoring authority.
+
+`Revert selected properties` freezes owning row indices and the exact captured scope/review
+serial when opening confirmation. Each selected lane restores its complete stable scoped property
+group; unselected groups and unknown components remain intact. Checkboxes are clipped and available
+for read-only inspection, while empty or structural selections cannot authorize writes. Report
+refresh resets selection and consent. Blur or permission loss clears consent immediately, including
+loss/regain without an intervening frame. The application rechecks the same current policy and
+calls Core `RevertSelected` with the owning frozen indices; Core rejects stale/duplicate/out-of-range
+rows and revalidates the full retained closure. One Undo/Redo covers the selected groups together;
+no files change until ordinary Scene Save. Public C++ consumers rebuild, with stable C ABI and
+module dependencies unchanged. Structural reconciliation, apply-to-source and source rebase remain
+separate work.
 
 `DrawDiagnosticPrivacy` borrows the actual `TelemetryConsent` only for its serialized frame call.
 Settings > Privacy diagnostics or Ctrl+Alt+T opens session-only opt-in, safe event inspection and
@@ -1057,6 +1119,22 @@ after the UI frame and replaces the catalog. Project detachment clears interpret
 no native plugin objects and performs no metadata writes or native code loading. Fixed arrays and
 flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
 observations are private to test builds and expose no ImGui type across the public module boundary.
+
+## Persistent prefab instance source inspection
+
+The Inspector shows source identity and retained revision only for a single selected bound scene
+node. `Inspect source` emits an owning project/root/file/node/placement/scoped-source request;
+drawing performs no file IO or scene mutation. Read-only/reference scenes can inspect. The host
+rechecks current scope and stopped Play/modal/export/recovery policy before resolving the exact
+retained source closure. The UI keeps only a small owning display report, never a source/document
+borrow or write capability. Available/unresolved and current publication are explicitly labeled
+as captured facts; the user requests inspection again to refresh filesystem observations.
+
+Changed project/file/document/node/binding selection clears pending request and prior report.
+Blocked interaction clears pending inspection; hidden/Play Inspector frames cannot consume an
+old click. Scope-invalid, over-budget or inconsistent reports reject without replacing the prior
+display. Local ordinary property changes do not fabricate source values or imply live source
+validity. Instance override/revert/apply/rebase remain separate authoring operations.
 
 ## Build process interaction guards
 

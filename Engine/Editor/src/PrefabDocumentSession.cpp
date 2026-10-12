@@ -237,46 +237,87 @@ bool PrefabDocumentSession::Revert(const PrefabPropertyReview &review, bool auth
     return Fail(error, "Property transaction rejected; preserve the isolated document.");
   return true;
 }
-std::optional<PrefabAsset> PrefabDocumentSession::ApplyToSource(const PrefabPropertyReview &review,
-                                                                bool authorized,
-                                                                std::string *error) {
-  if (!Allowed(true, error))
+std::optional<PrefabRebaseReview> PrefabDocumentSession::ReviewRebase(std::string *error) const {
+  if (!Allowed(false, error))
     return {};
-  if (!authorized || !review.CanApplyToSource() || !MatchesReview(review) || !owner_->published ||
-      review.source_.revision == std::numeric_limits<std::uint64_t>::max()) {
-    Fail(error, "Apply requires an authorized unchanged saved variant and distinct source.");
+  const auto reference = BaseReference();
+  if (!owner_ || !owner_->published || !owner_->previous || !reference) {
+    Fail(error, "Save an isolated variant before reviewing its source rebase.");
     return {};
   }
-  const auto published_variant = PrefabAssets::Load(workspace_, owner_->id);
-  const auto source = PrefabAssets::Load(workspace_, review.source_.id);
-  if (!published_variant || *published_variant != review.previous_ || !source ||
-      *source != review.source_) {
-    Fail(error, "Variant publication or current source changed; preserve edits and review/rebase.");
-    return {};
-  }
-  const auto current = PrefabAssets::Capture(
+  auto base = PrefabAssets::LoadRevision(workspace_, *reference);
+  auto source = PrefabAssets::Load(workspace_, reference->asset);
+  const auto published = PrefabAssets::Load(workspace_, owner_->id);
+  auto expected = owner_->document.PrepareSave();
+  auto local = PrefabAssets::Capture(
       owner_->id, owner_->document, [] { return foundation::Uuid{}; }, &*owner_->previous);
-  auto planned = current ? (review.targeted_
-                                ? BuildPrefabPropertySnapshot(*source, *current, review.selections_)
-                                : BuildPrefabPropertySnapshot(*source, *current))
-                         : std::nullopt;
-  if (!planned || *planned == source->scene_bytes) {
-    Fail(error, "Source property application has no compatible selected changes.");
+  auto base_graph =
+      base ? PrefabAssets::ResolveProject(workspace_, {base->id, base->revision}) : std::nullopt;
+  auto source_graph = source
+                          ? PrefabAssets::ResolveProject(workspace_, {source->id, source->revision})
+                          : std::nullopt;
+  if (!base || !source || !expected || !local || published != owner_->previous || !base_graph ||
+      !source_graph) {
+    Fail(error, "Rebase source, publication or stable identities are unavailable.");
     return {};
   }
-  auto next = *source;
-  next.scene_bytes = std::move(*planned);
-  ++next.revision;
-  if (!PrefabAssets::Validate(next) || !Allowed(true, error) || !MatchesReview(review)) {
-    Fail(error, "Source identities or current variant observation became incompatible.");
+  auto plan = BuildPrefabRebasePlan(*base, *local, *source, {}, error);
+  if (!plan || !Allowed(false, error) || !owner_->document.MatchesPreparedSave(*expected))
+    return {};
+  return PrefabRebaseReview{std::move(*expected),
+                            *owner_->previous,
+                            std::move(*base),
+                            std::move(*local),
+                            std::move(*source),
+                            std::move(*plan),
+                            root_,
+                            project_,
+                            owner_->id,
+                            generation_,
+                            std::move(*base_graph),
+                            std::move(*source_graph)};
+}
+bool PrefabDocumentSession::MatchesRebase(const PrefabRebaseReview &review) const {
+  if (!owner_ || !owner_->published || !owner_->previous || review.root_ != root_ ||
+      review.project_ != project_ || review.asset_ != owner_->id ||
+      review.generation_ != generation_ || review.previous_ != *owner_->previous ||
+      !owner_->document.MatchesPreparedSave(review.expected_))
+    return false;
+  const auto old = PrefabAssets::LoadRevision(workspace_, {review.base_.id, review.base_.revision});
+  const auto source = PrefabAssets::Load(workspace_, review.source_.id);
+  const auto published = PrefabAssets::Load(workspace_, owner_->id);
+  const auto base_graph =
+      PrefabAssets::ResolveProject(workspace_, {review.base_.id, review.base_.revision});
+  const auto source_graph =
+      PrefabAssets::ResolveProject(workspace_, {review.source_.id, review.source_.revision});
+  return old && *old == review.base_ && source && *source == review.source_ &&
+         published == owner_->previous && base_graph && source_graph &&
+         base_graph->assets == review.base_graph_.assets &&
+         source_graph->assets == review.source_graph_.assets;
+}
+std::optional<PrefabRebaseReview>
+PrefabDocumentSession::ResolveRebase(const PrefabRebaseReview &review,
+                                     std::span<const PrefabRebaseChoice> choices,
+                                     std::string *error) const {
+  if (!Allowed(false, error) || !MatchesRebase(review)) {
+    Fail(error, "Rebase review is stale; prepare a current source comparison.");
     return {};
   }
-  // Allocate the owning result before file publication. Never acknowledge or reload the variant.
-  std::optional<PrefabAsset> result{std::move(next)};
-  Busy guard(busy_);
-  if (!PrefabAssets::Publish(workspace_, *result, &*source, error))
+  auto plan = BuildPrefabRebasePlan(review.base_, review.local_, review.source_, choices, error);
+  if (!plan || !Allowed(false, error) || !MatchesRebase(review))
     return {};
-  return result;
+  return PrefabRebaseReview{review.expected_,
+                            review.previous_,
+                            review.base_,
+                            review.local_,
+                            review.source_,
+                            std::move(*plan),
+                            root_,
+                            project_,
+                            owner_->id,
+                            generation_,
+                            review.base_graph_,
+                            review.source_graph_};
 }
 
 std::optional<PrefabRebaseReview> PrefabDocumentSession::ReviewRebase(std::string *error) const {

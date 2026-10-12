@@ -1,6 +1,7 @@
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "AtomicFile.h"
 #include "Nexora/Editor/ViewportMath.h"
+#include "PrefabPlacementInternal.h"
 #include "ReimportSource.h"
 
 #include <algorithm>
@@ -156,7 +157,7 @@ std::filesystem::path AssetWorkspace::IdentitySidecar(const std::filesystem::pat
 
 bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cancelled cancelled,
                                 Progress progress, AssetIdentityMode identity_mode,
-                                std::string *error) {
+                                std::string *error, AssetIndexLimits limits) {
   std::error_code ec;
   const auto root = std::filesystem::canonical(content_root, ec);
   if (ec || !std::filesystem::is_directory(root, ec)) {
@@ -171,8 +172,25 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
     if (ec)
       break;
     if (std::filesystem::is_regular_file(status) &&
-        Lower(PathUtf8(it->path().extension())) != ".meta")
+        Lower(PathUtf8(it->path().extension())) != ".meta") {
+      // Both bounds are enforced while enumerating, before any sidecar is created, so an oversized
+      // tree neither grows memory without limit nor leaves partial identity state behind.
+      if (files.size() >= limits.max_assets) {
+        if (error)
+          *error = "content tree exceeds the " + std::to_string(limits.max_assets) +
+                   "-file project index limit";
+        return false;
+      }
+      // Both paths come from the same iteration of the canonical root, so the lexical form is
+      // exact and avoids a filesystem round trip per file.
+      if (PathUtf8(it->path().lexically_relative(root)).size() > limits.max_path_bytes) {
+        if (error)
+          *error = "asset path exceeds the " + std::to_string(limits.max_path_bytes) +
+                   "-byte project index limit";
+        return false;
+      }
       files.push_back(it->path());
+    }
   }
   if (ec) {
     if (error)
@@ -445,6 +463,7 @@ SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
   saved_signature_ = StateSignature().value_or(std::string{});
 }
 void SceneDocument::PushUndo(UndoEntry entry) {
+  entry.previous_placements = prefab_placements_;
   opaque_dirty_.reset();
   redo_.clear();
   undo_.push_back(std::move(entry));
@@ -1147,7 +1166,8 @@ bool SceneDocument::CutSelection() {
   return true;
 }
 bool SceneDocument::Paste() {
-  if (clipboard_.empty())
+  if (clipboard_.empty() ||
+      clipboard_.size() > std::numeric_limits<std::uint64_t>::max() - next_entity_generation_)
     return false;
   // Validate every prospective opaque payload before Runtime allocates any new identities.
   auto staged_opaque = CaptureOpaque(nodes_);
@@ -1170,26 +1190,89 @@ bool SceneDocument::Paste() {
   UndoEntry entry;
   entry.previous_selection = selection_;
   entry.restore_selection = true;
+  auto staged_nodes = nodes_;
+  staged_nodes.reserve(nodes_.size() + clipboard_.size());
+  std::vector<runtime::Id> pasted_roots;
+  pasted_roots.reserve(clipboard_.size());
+  auto next_generation = next_entity_generation_;
+  for (const auto &source : clipboard_) {
+    const bool root = source.entity.parent == 0;
+    staged_nodes.push_back({0,
+                            root && !clipboard_cut_pending_ ? source.name + " Copy" : source.name,
+                            next_generation++, source.euler_hint, source.opaque});
+  }
+  // Allocate document history/metadata before Runtime publishes its atomic clone transaction.
+  if (undo_.size() == undo_.capacity())
+    undo_.reserve(std::max(undo_.size() + 1, undo_.capacity() + undo_.capacity() / 2));
   const auto created = editor_.CloneEntityForest(scene_, prototypes);
   if (created.empty())
     return false;
-  std::vector<runtime::Id> pasted_roots;
   for (std::size_t index = 0; index < created.size(); ++index) {
     const auto &source = clipboard_[index];
-    const auto generation = next_entity_generation_++;
-    if (next_entity_generation_ == 0)
-      ++next_entity_generation_;
-    const bool root = source.entity.parent == 0;
-    nodes_.push_back({created[index],
-                      root && !clipboard_cut_pending_ ? source.name + " Copy" : source.name,
-                      generation, source.euler_hint, source.opaque});
-    if (root)
+    staged_nodes[nodes_.size() + index].id = created[index];
+    if (source.entity.parent == 0)
       pasted_roots.push_back(created[index]);
   }
   PushUndo(std::move(entry));
-  selection_ = std::move(pasted_roots);
+  nodes_.swap(staged_nodes);
+  selection_.swap(pasted_roots);
+  next_entity_generation_ = next_generation;
   clipboard_cut_pending_ = false;
   return true;
+}
+std::optional<std::vector<SceneDocument::ImportedForestNode>>
+SceneDocument::ImportForestBytes(const PreparedSave &expected, std::string_view source,
+                                 bool authorized) {
+  if (!authorized || source.empty() || source.size() > kMaximumImportedForestBytes ||
+      !MatchesPreparedSave(expected))
+    return {};
+  runtime::World source_world;
+  SceneDocument probe(source_world, source_world.LoadScene("Forest import"));
+  if (!probe.ReloadBytes(source, kMaximumImportedForestNodes) || probe.nodes_.empty() ||
+      !probe.PrefabPlacements().empty())
+    return {};
+  const auto *scene = source_world.FindScene(probe.scene_);
+  if (!scene || scene->entities.size() != probe.nodes_.size())
+    return {};
+  std::unordered_map<runtime::Id, const Node *> metadata;
+  for (const auto &node : probe.nodes_) {
+    if (node.name.empty() || node.name.size() > 1024 || node.name.find('\0') != std::string::npos ||
+        !foundation::IsValidUtf8(node.name))
+      return {};
+    metadata.emplace(node.id, &node);
+  }
+  std::vector<ClipboardNode> incoming;
+  std::vector<ImportedForestNode> result;
+  incoming.reserve(scene->entities.size());
+  result.reserve(scene->entities.size());
+  for (const auto &entity : scene->entities) {
+    const auto found = metadata.find(entity.id);
+    if (found == metadata.end())
+      return {};
+    const auto &node = *found->second;
+    incoming.push_back({node.name, entity, node.euler_hint, node.opaque});
+    result.push_back({entity.id, {}});
+  }
+  struct RestoreClipboard final {
+    std::vector<ClipboardNode> &target;
+    std::vector<ClipboardNode> previous;
+    bool &cut;
+    bool previous_cut;
+    ~RestoreClipboard() {
+      target = std::move(previous);
+      cut = previous_cut;
+    }
+  } restore{clipboard_, std::move(clipboard_), clipboard_cut_pending_, clipboard_cut_pending_};
+  clipboard_ = std::move(incoming);
+  clipboard_cut_pending_ = true; // Preserve every source root name.
+  if (!Paste())
+    return {};
+  const auto first = nodes_.size() - result.size();
+  for (std::size_t i = 0; i < result.size(); ++i) {
+    const auto &node = nodes_[first + i];
+    result[i].target = {node.id, node.generation, document_generation_};
+  }
+  return std::optional(std::move(result));
 }
 bool SceneDocument::DuplicateSelection() {
   auto previous_clipboard = std::move(clipboard_);
@@ -1224,6 +1307,17 @@ bool SceneDocument::DeleteSelection() {
       for (const auto child : found->second)
         if (subtree_ids.insert(child).second)
           pending.push_back(child);
+  auto remaining_placements = prefab_placements_;
+  if (prefab_placements_) {
+    auto staged = std::make_shared<std::vector<PrefabPlacement>>(*prefab_placements_);
+    // A structural deletion detaches the affected placement as a whole. Remaining materialized
+    // nodes are ordinary authored nodes; no dangling/partial source binding is serialized.
+    std::erase_if(*staged, [&](const auto &placement) {
+      return std::ranges::any_of(
+          placement.nodes, [&](const auto &node) { return subtree_ids.contains(node.target); });
+    });
+    remaining_placements = std::move(staged);
+  }
   UndoEntry entry;
   entry.previous_selection = selection_;
   for (const auto &node : nodes_)
@@ -1233,6 +1327,7 @@ bool SceneDocument::DeleteSelection() {
     return false;
   PushUndo(std::move(entry));
   std::erase_if(nodes_, [&](const Node &node) { return subtree_ids.contains(node.id); });
+  prefab_placements_ = std::move(remaining_placements);
   selection_.clear();
   return true;
 }
@@ -1286,6 +1381,7 @@ bool SceneDocument::Undo() {
     else
       found->opaque = entry.previous_opaque;
   }
+  prefab_placements_ = entry.previous_placements;
   redo_.push_back(std::move(entry));
   undo_.pop_back();
   opaque_dirty_.reset();
@@ -1313,6 +1409,7 @@ bool SceneDocument::Redo() {
   selection_ = entry.redo_selection;
   std::erase_if(nodes_, [this](const Node &node) { return world_.FindEntity(node.id) == nullptr; });
   std::erase_if(selection_, [this](runtime::Id id) { return world_.FindEntity(id) == nullptr; });
+  prefab_placements_ = entry.redo_placements;
   undo_.push_back(std::move(entry));
   redo_.pop_back();
   opaque_dirty_.reset();
@@ -1480,8 +1577,12 @@ std::optional<SceneDocument::PreparedSave> SceneDocument::PrepareSave() const {
   if (!opaque)
     return std::nullopt;
   const auto opaque_records = OpaqueRecords(*opaque);
-  std::string output =
-      opaque_records.empty() ? "NEXORA_EDITOR_SCENE 2\n" : "NEXORA_EDITOR_SCENE 3\n";
+  const auto placements = PrefabPlacementRecords();
+  if (!placements)
+    return std::nullopt;
+  std::string output = !placements->empty()     ? "NEXORA_EDITOR_SCENE 4\n"
+                       : opaque_records.empty() ? "NEXORA_EDITOR_SCENE 2\n"
+                                                : "NEXORA_EDITOR_SCENE 3\n";
   // The parent column duplicates the runtime hierarchy (snapshot version 3) for older readers.
   for (const auto &node : nodes_)
     output += "node " + std::to_string(node.id) + " " +
@@ -1495,7 +1596,7 @@ std::optional<SceneDocument::PreparedSave> SceneDocument::PrepareSave() const {
       hints << "euler " << node.id << ' ' << node.euler_hint->degrees[0] << ' '
             << node.euler_hint->degrees[1] << ' ' << node.euler_hint->degrees[2] << '\n';
   }
-  output += hints.str() + opaque_records;
+  output += hints.str() + opaque_records + *placements;
   output += "world\n" + *snapshot;
   if (output.size() > kMaximumSceneFileBytes)
     return std::nullopt;
@@ -1555,6 +1656,7 @@ bool SceneDocument::NewScene() {
     return false;
   document_generation_ = NextDocumentGeneration();
   nodes_.clear();
+  prefab_placements_.reset();
   selection_.clear();
   clipboard_.clear();
   clipboard_cut_pending_ = false;
@@ -1602,17 +1704,28 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
   };
   std::vector<LoadedNode> loaded;
   std::unordered_map<runtime::Id, EulerDegrees> hints;
+  std::vector<PrefabPlacement> placements;
+  std::size_t placement_bytes{};
   if (!input || !std::getline(input, line) ||
       (line != "NEXORA_EDITOR_SCENE 1" && line != "NEXORA_EDITOR_SCENE 2" &&
-       line != "NEXORA_EDITOR_SCENE 3"))
+       line != "NEXORA_EDITOR_SCENE 3" && line != "NEXORA_EDITOR_SCENE 4"))
     return false;
-  const bool supports_opaque = line == "NEXORA_EDITOR_SCENE 3";
+  const bool supports_placements = line == "NEXORA_EDITOR_SCENE 4";
+  const bool supports_opaque = supports_placements || line == "NEXORA_EDITOR_SCENE 3";
   const bool supports_hints = supports_opaque || line == "NEXORA_EDITOR_SCENE 2";
   std::string opaque_data = "NEXORA_OPAQUE_COMPONENTS 1\n";
   std::unordered_set<runtime::Id> opaque_entities;
   UnknownComponentStore opaque;
 
   while (std::getline(input, line) && line != "world") {
+    if (supports_placements && line.starts_with("prefab-")) {
+      if (line.size() + 1 > kMaximumPrefabPlacementBytes - placement_bytes ||
+          line.size() > kMaximumPrefabPlacementDepth * 37 + 160 ||
+          !detail::ReadPrefabPlacementLine(line, placements))
+        return false;
+      placement_bytes += line.size() + 1;
+      continue;
+    }
     if (supports_opaque && line.starts_with("opaque ")) {
       if (line.size() > UnknownComponentStore::kMaximumSerializedBytes - opaque_data.size())
         return false;
@@ -1663,6 +1776,10 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
   for (const auto &node : loaded)
     if (!node.id || !ids.insert(node.id).second)
       return false;
+  std::vector<runtime::Id> placement_ids(ids.begin(), ids.end());
+  if (!ValidatePrefabPlacements(placements, placement_ids) ||
+      (supports_placements && placements.empty()))
+    return false;
   // From world snapshot version 3 on, the snapshot is authoritative for the hierarchy and the
   // node-line parent column is informational (a node may legitimately have a parent entity that is
   // not a node), so only legacy files, whose migration uses that column, validate it.
@@ -1705,7 +1822,7 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
   };
   const bool migrate = migration().Size() != 0;
   std::string snapshot_to_load = world_data;
-  if (migrate || !hints.empty() || !opaque_entities.empty()) {
+  if (migrate || !hints.empty() || !opaque_entities.empty() || !placements.empty()) {
     // Validate hints and migration before touching the live World or replacing its authoring state.
     runtime::World rehearsal{world_.Kind()};
     const auto staged_scene = rehearsal.LoadSceneSnapshot(world_data);
@@ -1714,6 +1831,10 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
     for (const auto id : opaque_entities)
       if (!ids.contains(id) || !rehearsal.FindEntity(id))
         return false;
+    for (const auto &placement : placements)
+      for (const auto &node : placement.nodes)
+        if (!rehearsal.FindEntity(node.target))
+          return false;
     if (migrate) {
       const auto migrated_snapshot = rehearsal.SaveScene(*staged_scene);
       if (!migrated_snapshot)
@@ -1740,11 +1861,15 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
     if (const auto hint = hints.find(node.id); hint != hints.end())
       staged_nodes.back().euler_hint = EulerHint{*WithEulerDegrees({}, hint->second), hint->second};
   }
+  std::shared_ptr<const std::vector<PrefabPlacement>> staged_placements;
+  if (!placements.empty())
+    staged_placements = std::make_shared<const std::vector<PrefabPlacement>>(std::move(placements));
   if (!world_.ReplaceSceneSnapshot(scene_, snapshot_to_load))
     return false;
   document_generation_ = NextDocumentGeneration();
   next_entity_generation_ = next_generation;
   nodes_ = std::move(staged_nodes);
+  prefab_placements_ = std::move(staged_placements);
   selection_.clear();
   clipboard_.clear();
   clipboard_cut_pending_ = false;

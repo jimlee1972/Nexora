@@ -1,0 +1,11 @@
+{
+  "base_commit": "bb0c96f0c5397819d13577be20371533790d2dad",
+  "source_sha256": {
+    "Apps/Showcase/main.cpp": "8081e0173e69ad33a3a8d9ea79c07997c7780fe0d0d10b60f72c885d38dc5c54",
+    "Apps/Showcase/ShowcasePerformance.cpp": "682a516a24802221cb9364b88850421698e9f2daeff47d7ed16ce0b5ada60c1d",
+    "Apps/Showcase/ShowcasePerformance.h": "df0de7ed3a44fdfd06667933ba1012f8c5c3e6e2769b20b5c9d5f36ef7240322",
+    "Tests/Showcase/ShowcasePerformanceTests.cpp": "1e9d28d047257b8c4fa90153c288d2ee150d34922f993a53566a503a9b485d2b"
+  },
+  "exe_sha256": "91e6ff779435ef2f761b6d835875df42627fb0416fafdb86f16dd2ae2c2a3294",
+  "scope": "uncommitted optional GPU diagnostics over bb0c96f0; not the committed 18-run art artifact"
+}

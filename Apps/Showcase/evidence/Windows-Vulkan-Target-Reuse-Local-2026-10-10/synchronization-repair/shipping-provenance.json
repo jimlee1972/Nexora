@@ -1,0 +1,9 @@
+{
+  "source_commit": "5aa60d5cc8a05931f2afb57ec7ede03af6d8b46c",
+  "exe_sha256": "fab09a2c7fddc1354015145db6a68dd9b0d5488f7f38cfea82b1470016371b46",
+  "quality_runs": 18,
+  "gpu_comparisons": 4,
+  "live_ui_animation_runs": 4,
+  "hardware_budget_accepted": false,
+  "scope": "Committed Shipping source; Standard live immediate/paced comparisons are separate from paused default benchmark reports; exact-source hosted synchronization gate pending"
+}
