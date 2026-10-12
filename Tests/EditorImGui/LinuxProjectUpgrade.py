@@ -40,7 +40,19 @@ def main():
 
         def send(*arguments):
             if arguments[0] == "key":
-                arguments = ("key", "--delay", "100", *arguments[1:])
+                # A compound --clearmodifiers pulse may be consumed before an
+                # accepting rendered frame after asynchronous preview completion.
+                # Deliver one physical gesture, retaining each modifier/key phase
+                # across frames, then release in reverse order. Never retry Open.
+                chords = [value for value in arguments[1:] if value != "--clearmodifiers"]
+                require(len(chords) == 1, "Native fixture expected one physical chord")
+                parts = chords[0].split("+")
+                for action, keys in (("keydown", parts), ("keyup", reversed(parts))):
+                    for key in keys:
+                        subprocess.run([args.xdotool, action, key], env=env, check=True,
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                        time.sleep(.2)
+                return
             subprocess.run([args.xdotool, *arguments], env=env, check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
             time.sleep(.2)

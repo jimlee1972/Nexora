@@ -169,6 +169,57 @@ void TestHashCompatibility(const std::filesystem::path &root) {
               content.Browser().Find(asset)->artifact_hash == "cf593a78267c9069",
           "authoring-thread publication did not preserve the streaming hash contract");
 }
+
+std::size_t CountSidecars(const std::filesystem::path &root) {
+  std::size_t count{};
+  for (const auto &entry : std::filesystem::recursive_directory_iterator(root))
+    if (entry.is_regular_file() && entry.path().extension() == ".meta")
+      ++count;
+  return count;
+}
+
+void TestIndexBounds(const std::filesystem::path &root) {
+  std::filesystem::create_directories(root / "Nested");
+  for (const auto *name : {"A.asset", "B.asset", "C.asset", "Nested/D.asset"})
+    WritePayload(root / name, 16);
+  // A pre-existing sidecar must not count against the file budget.
+  std::ofstream(root / "A.asset.meta") << "schema=1\n";
+
+  editor::AssetWorkspace assets;
+  std::string error;
+  Require(assets.ImportTree(root, {}, {}, editor::AssetIdentityMode::DerivedFromPath, &error) &&
+              assets.Entries().size() == 4,
+          "default limits rejected a small tree");
+  const auto before = assets.Entries().size();
+
+  Require(!assets.ImportTree(root, {}, {}, editor::AssetIdentityMode::DerivedFromPath, &error,
+                             {3, editor::kMaximumIndexedPathBytes}) &&
+              error.find("3-file project index limit") != std::string::npos &&
+              assets.Entries().size() == before,
+          "an oversized tree was accepted or replaced the previous index");
+  Require(assets.ImportTree(root, {}, {}, editor::AssetIdentityMode::DerivedFromPath, &error,
+                            {4, editor::kMaximumIndexedPathBytes}) &&
+              error.empty() && assets.Entries().size() == 4,
+          "a tree exactly at the file limit was rejected");
+
+  // A rejected writable import must not create identity sidecars for the files it did enumerate.
+  const auto sidecars = CountSidecars(root);
+  Require(!assets.ImportTree(root, {}, {}, editor::AssetIdentityMode::PersistentReadWrite, &error,
+                             {2, editor::kMaximumIndexedPathBytes}) &&
+              CountSidecars(root) == sidecars && assets.Entries().size() == before,
+          "a rejected writable import left identity sidecars behind");
+
+  // "Nested/D.asset" is 14 UTF-8 bytes; the bound is on the project-relative path.
+  Require(assets.ImportTree(root, {}, {}, editor::AssetIdentityMode::DerivedFromPath, &error,
+                            {editor::kMaximumIndexedAssets, 14}) &&
+              assets.Entries().size() == 4,
+          "a path exactly at the byte limit was rejected");
+  Require(!assets.ImportTree(root, {}, {}, editor::AssetIdentityMode::DerivedFromPath, &error,
+                             {editor::kMaximumIndexedAssets, 13}) &&
+              error.find("13-byte project index limit") != std::string::npos &&
+              assets.Entries().size() == before,
+          "an over-long relative path was accepted or replaced the previous index");
+}
 } // namespace
 
 int main() {
@@ -180,7 +231,9 @@ int main() {
     TestLargeSource(root / "Large");
     TestCancellation(root / "Cancelled");
     TestHashCompatibility(root / "Project");
-    std::cout << "PASS: streamed binary/empty/chunk hashes, mid-file cancellation and reimport\n";
+    TestIndexBounds(root / "Bounds");
+    std::cout << "PASS: streamed binary/empty/chunk hashes, mid-file cancellation, reimport and "
+                 "index bounds\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

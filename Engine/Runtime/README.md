@@ -603,6 +603,25 @@ extension mechanism; the pre-existing in-process `ExtensionRegistry` (`Runtime.h
 M4-M11 contract sweep, exercised by `runtime.v1_m4_m11_contracts`) is a lighter descriptor/ABI-number
 bookkeeping structure that predates this milestone and does not itself load anything.
 
+### Qualified native service borrowing
+
+`PluginHost::FindService(id, registry, name)` returns a borrowed service only when
+that exact host admission is loaded and the supplied registry's visible owned entry
+shares its provider identity. Another host's same numeric ID/name, a manual replacement,
+missing/revoked services and empty/NUL-containing/over-256-byte names return null.
+Registry copies retain the original weak provider identity; reload gets a new admission
+ID, so a retired ID cannot resolve the replacement. Lookup does not publish, mutate
+registries, invoke native callbacks or change lifecycle state.
+
+The existing serialized owner-thread, no-reentrancy and release-before-mutation/unload
+contract still applies. This query provides neither a lifetime lease nor document/IO
+permission, and does not track in-flight service calls. Consumers copy metadata/results
+and perform a fresh qualified lookup for each later invocation. Public C++ clients can
+use the additive exported method after rebuilding; required C plugin ABI and lifecycle
+schemas, class data layout, module graph and serialized formats remain unchanged.
+This is a tool-SDK prerequisite, not a completed specialized-tool callback or reference
+plugin workflow.
+
 ### Cooperative plugin lifecycle
 
 The optional `NexoraPluginGetLifecycleV1` C export adds schema-one shutdown/quiescence callbacks
@@ -910,6 +929,15 @@ wrappers. Undo/Redo own immutable command templates and replay fresh copies beca
 a command buffer; failed replay keeps the history cursor. Inputs are borrowed only for the call,
 no Entity pointer survives a mutation, and methods remain serialized on the World authoring thread.
 These C++ Editor operations do not alter the stable gameplay C ABI or scene snapshot format.
+
+Camera/Light/Mesh presence-edit Undo owns both the original presence flag and its complete stored
+values, including nondefault dormant data. Editor history uses a private command-presence override
+while retaining ordinary immutable atomic command replay. Public `WorldCommandBuffer` removal
+still clears stored data to defaults; Undo restores the exact previous data/flag and Redo repeats
+that committed removal behavior. No whole-scene snapshot or new scene-size limit is introduced.
+Mixed batches, stale/deleted targets and failed replay remain atomic and preserve the history
+cursor. Public C++ consumers rebuild after the private command layout change; stable C/Gameplay
+ABI and serialized scene formats remain unchanged.
 
 ## Atomic selected-subtree deletion
 

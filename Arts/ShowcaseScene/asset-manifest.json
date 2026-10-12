@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "assets": [
+    {
+      "id": "sandstone_cracks",
+      "source": "https://polyhaven.com/a/sandstone_cracks",
+      "authors": "Rob Tuytel",
+      "license": "CC0-1.0",
+      "files": [
+        {
+          "path": "textures/sandstone_cracks_diff_2k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sandstone_cracks/sandstone_cracks_diff_2k.jpg",
+          "bytes": 2870078,
+          "publisher_md5": "bc08fe111536bf9b12fa89b43ae90561",
+          "sha256": "6d3f99604c85a818277150db784ac66e67a4d91ddc255dabf61b3e956564090d"
+        },
+        {
+          "path": "textures/sandstone_cracks_disp_2k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/sandstone_cracks/sandstone_cracks_disp_2k.png",
+          "bytes": 7644915,
+          "publisher_md5": "d9a2ee3a5abcd66a45c5e43924c4a72a",
+          "sha256": "de23ba7a4e038741ef82fe1eaf2d4cded5c5fd857159c6c914c4014405c575e5"
+        },
+        {
+          "path": "textures/sandstone_cracks_nor_gl_2k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/sandstone_cracks/sandstone_cracks_nor_gl_2k.png",
+          "bytes": 8801869,
+          "publisher_md5": "90999a9752e0871d9df8a069058b61a5",
+          "sha256": "59dc2d5f1cad0b2e5ba5ce3050e3253ff1a59596122ce12e35af2f642764d717"
+        },
+        {
+          "path": "textures/sandstone_cracks_rough_2k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/sandstone_cracks/sandstone_cracks_rough_2k.jpg",
+          "bytes": 1569280,
+          "publisher_md5": "242c27221af41d559dfc0281345bba6f",
+          "sha256": "45347870225f1f1b223968e8fc0ac2125374c0b1e0907cda7ad93b1c5dda39f4"
+        }
+      ]
+    },
+    {
+      "id": "kloppenheim_06_puresky",
+      "source": "https://polyhaven.com/a/kloppenheim_06_puresky",
+      "authors": "Greg Zaal; Jarod Guest",
+      "license": "CC0-1.0",
+      "files": [
+        {
+          "path": "textures/kloppenheim_06_puresky_2k.hdr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloppenheim_06_puresky_2k.hdr",
+          "bytes": 4434394,
+          "publisher_md5": "590a829b3cf71216451655e601d542c6",
+          "sha256": "99451201586489ef3288c97bfac2a2ac232a5491c51a1faf0ec8ea39f3ccd533"
+        }
+      ]
+    },
+    {
+      "id": "mountainside",
+      "source": "https://polyhaven.com/a/mountainside",
+      "authors": "Dario Barresi; Rico Cilliers",
+      "license": "CC0-1.0",
+      "files": [
+        {
+          "path": "assets/mountainside/mountainside_2k.blend",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/mountainside/mountainside_2k.blend",
+          "bytes": 11211054,
+          "publisher_md5": "61f84f2dc07514224e9fdb8865ca4799",
+          "sha256": "3939a70a658131790061bdad8454614846175f440243a1065dbc4a0e0c40cc4b"
+        },
+        {
+          "path": "assets/mountainside/textures/mountainside_diff_2k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/mountainside/mountainside_diff_2k.jpg",
+          "bytes": 3557566,
+          "publisher_md5": "b17b6412ee4b662bea39625add48952f",
+          "sha256": "3fe1a61dc38423b07a757fc74e1dce5d02a5ea0b4fbab52b5bcddece052df811"
+        },
+        {
+          "path": "assets/mountainside/textures/mountainside_nor_gl_2k.exr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/mountainside/mountainside_nor_gl_2k.exr",
+          "bytes": 9134990,
+          "publisher_md5": "8de39f33f4fd806fcae6747777040b97",
+          "sha256": "5c19c0276d1e0e3ed64229900371574a58d4d230ae15257de3f5e07cc7d42c50"
+        },
+        {
+          "path": "assets/mountainside/textures/mountainside_rough_2k.exr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/mountainside/mountainside_rough_2k.exr",
+          "bytes": 1816658,
+          "publisher_md5": "8c630229225cc3d2653216850d3a81fa",
+          "sha256": "7510809f51eff8e5513f84633e9be726d5d6927ba8d024999a603e2fbf448043"
+        }
+      ]
+    },
+    {
+      "id": "rock_moss_set_01",
+      "source": "https://polyhaven.com/a/rock_moss_set_01",
+      "authors": "Kless Gyzen",
+      "license": "CC0-1.0",
+      "files": [
+        {
+          "path": "assets/rock_moss_set_01/rock_moss_set_01_2k.blend",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/rock_moss_set_01/rock_moss_set_01_2k.blend",
+          "bytes": 2698020,
+          "publisher_md5": "321f414ebeef8d204fed21f72e451c89",
+          "sha256": "43c0d123aa154d999a1a3117137f5a6282f50d9410d7e73decc409fd330d216f"
+        },
+        {
+          "path": "assets/rock_moss_set_01/textures/rock_moss_set_01_diff_2k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/rock_moss_set_01/rock_moss_set_01_diff_2k.jpg",
+          "bytes": 649415,
+          "publisher_md5": "d3e1292c9e34bd6b4a236698a1b41290",
+          "sha256": "bdee6da8baba67bd7e85e414e669cd46aab9afaf755114fb5163f0e68775c3d6"
+        },
+        {
+          "path": "assets/rock_moss_set_01/textures/rock_moss_set_01_nor_gl_2k.exr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/rock_moss_set_01/rock_moss_set_01_nor_gl_2k.exr",
+          "bytes": 6882427,
+          "publisher_md5": "88164f1feb37e45c41d37b3983c06ff2",
+          "sha256": "2cb4ccc16e8099c925c849128e5b3d4e2487f8cb4404f753963859e965f2031f"
+        },
+        {
+          "path": "assets/rock_moss_set_01/textures/rock_moss_set_01_rough_2k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/rock_moss_set_01/rock_moss_set_01_rough_2k.jpg",
+          "bytes": 293827,
+          "publisher_md5": "f7b3045b503fbde038598f8586ac25ef",
+          "sha256": "a05a8bd9f2563cf55b738484b894671df7b2391aa02d66451366c5ad38077cd2"
+        }
+      ]
+    },
+    {
+      "id": "weed_plant_02",
+      "source": "https://polyhaven.com/a/weed_plant_02",
+      "authors": "Rico Cilliers; Rob Tuytel",
+      "license": "CC0-1.0",
+      "files": [
+        {
+          "path": "assets/weed_plant_02/weed_plant_02_2k.blend",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/blend/2k/weed_plant_02/weed_plant_02_2k.blend",
+          "bytes": 464684,
+          "publisher_md5": "b218c6dea7da8c36f47853b60a3b9d46",
+          "sha256": "a958ea51f16cf5e3cd69fe8e7e62cff2d098e2599f55aed597b171c4853250cd"
+        },
+        {
+          "path": "assets/weed_plant_02/textures/weed_plant_02_alpha_2k.png",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/2k/weed_plant_02/weed_plant_02_alpha_2k.png",
+          "bytes": 420666,
+          "publisher_md5": "47efb600ae3dc785c2978bf65f84c15b",
+          "sha256": "8349b29915497305b2e69b45a5f663e37f6c398379514dfb7ffd3003b07827a9"
+        },
+        {
+          "path": "assets/weed_plant_02/textures/weed_plant_02_diff_2k.jpg",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/2k/weed_plant_02/weed_plant_02_diff_2k.jpg",
+          "bytes": 1566453,
+          "publisher_md5": "97165d40d029a652ada297f06f382c4f",
+          "sha256": "25e4190cddce367d0e161b24de44873425c2179862faf7878aea49cbdc72c0e7"
+        },
+        {
+          "path": "assets/weed_plant_02/textures/weed_plant_02_nor_gl_2k.exr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/weed_plant_02/weed_plant_02_nor_gl_2k.exr",
+          "bytes": 5631811,
+          "publisher_md5": "b39ac0675ece0a0dbe5cdfea988ffa72",
+          "sha256": "4942276b9529857d9e3e592f212be73022d0268f419504621486ca88a8c56b69"
+        },
+        {
+          "path": "assets/weed_plant_02/textures/weed_plant_02_rough_2k.exr",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Models/exr/2k/weed_plant_02/weed_plant_02_rough_2k.exr",
+          "bytes": 1980037,
+          "publisher_md5": "64c0ac60de3db67973c16edc5f7443d6",
+          "sha256": "e04e614e765a0d79f84923f403bf51e58ea2a62c34814db700a71cff0cf0d5e0"
+        }
+      ]
+    }
+  ]
+}

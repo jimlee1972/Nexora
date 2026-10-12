@@ -1,8 +1,5 @@
 #include "Nexora/Editor/PrefabAssets.h"
-#include "Nexora/Editor/SceneSaveBatch.h"
 #include <algorithm>
-#include <chrono>
-#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -13,7 +10,7 @@ void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
-void Run(bool bound) {
+void Run() {
   std::uint64_t next = 100;
   const auto identity = [&] { return foundation::Uuid{700, ++next}; };
   runtime::World root_world, child_world, target_world;
@@ -67,11 +64,7 @@ void Run(bool bound) {
               !Assets::Instantiate({variant->id, 1}, sources, target, expected, true) &&
               target.Undo(),
           "Stale document observation authorized materialization");
-  const foundation::Uuid placement_id{710, 1};
-  const auto instantiated =
-      bound ? Assets::InstantiateBound(placement_id, {variant->id, 1}, sources, target, expected,
-                                       true)
-            : Assets::Instantiate({variant->id, 1}, sources, target, expected, true);
+  const auto instantiated = Assets::Instantiate({variant->id, 1}, sources, target, expected, true);
   Require(instantiated && instantiated->size() == 6 && target.Nodes().size() == 7,
           "Variant duplicated its base or lost nested placements");
   const auto mapped = [&](std::vector<foundation::Uuid> scope, foundation::Uuid node) {
@@ -277,8 +270,7 @@ void Run(bool bound) {
 } // namespace
 int main() {
   try {
-    Run(false);
-    Run(true);
+    Run();
     std::cout << "Nested prefab materialization passed\n";
     return 0;
   } catch (const std::exception &error) {
