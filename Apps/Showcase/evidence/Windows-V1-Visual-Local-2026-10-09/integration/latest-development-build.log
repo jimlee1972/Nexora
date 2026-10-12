@@ -1,0 +1,73 @@
+.NET Framework 的 MSBuild 版本 17.14.40+3e7442088
+
+  Checking File Globs
+  1>Checking Build System
+  BuildInfo.cpp
+  NexoraFoundation.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraFoundation.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  Building Custom Rule G:/proj/Nexora/Tests/Runtime/CMakeLists.txt
+  NexoraDynamicGameplayFailing.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Tests\Runtime\Development\NexoraDynamicGameplayFailing.dll
+  NexoraDynamicGameplaySecond.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Tests\Runtime\Development\NexoraDynamicGameplaySecond.dll
+  NexoraDynamicGameplayFirst.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Tests\Runtime\Development\NexoraDynamicGameplayFirst.dll
+  NexoraExamplePlugin.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Plugins\Example\Development\NexoraExamplePlugin.dll
+  NexoraApiFoundationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiFoundationTests.exe
+  NexoraApiM6CConsumer.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiM6CConsumer.exe
+  ProcessMemory.cpp
+  InertialBlend.cpp
+  NexoraFoundationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraFoundationTests.exe
+  NexoraGameplayAbiTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGameplayAbiTests.exe
+  NexoraPoseSearch.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraPoseSearch.dll
+  NexoraShowcaseProbes.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\Apps\Showcase\Development\NexoraShowcaseProbes.lib
+  NexoraShowcasePerformanceTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraShowcasePerformanceTests.exe
+  NexoraPoseSearchTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraPoseSearchTests.exe
+  NexoraShowcaseProbeTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraShowcaseProbeTests.exe
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Animation/Development/NexoraAnimation.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Animation/Development/NexoraAnimation.exp
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Core/Development/NexoraCore.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Core/Development/NexoraCore.exp
+  NexoraAnimation.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraAnimation.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Animation/CMakeLists.txt
+  NexoraCore.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraCore.dll
+  InertialBlendTests.cpp
+  NexoraSyncGroupTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraSyncGroupTests.exe
+  NexoraAnimationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraAnimationTests.exe
+  NexoraWindow.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraWindow.dll
+  Building Custom Rule G:/proj/Nexora/Tests/Core/CMakeLists.txt
+  ProcessMemoryTests.cpp
+  NexoraV2M11Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV2M11Tests.exe
+  NexoraCoreTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraCoreTests.exe
+  NexoraPoseGraphTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraPoseGraphTests.exe
+  NexoraNetwork.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraNetwork.dll
+  NexoraApiCoreContractTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiCoreContractTests.exe
+  NexoraInertialBlendTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraInertialBlendTests.exe
+  NexoraApiFoundationSample.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraApiFoundationSample.exe
+  NexoraRHI.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRHI.dll
+  NexoraProcessMemoryTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraProcessMemoryTests.exe
+  NexoraAI.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraAI.dll
+  NexoraNetworkTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraNetworkTests.exe
+  NexoraDedicatedServer.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraDedicatedServer.exe
+     正在建立程式庫 G:/proj/Nexora/build/windows-showcase-development/Engine/Renderer/Development/NexoraRenderer.lib 和物件 G:/proj/Nexora/build/windows-showcase-development/Engine/Renderer/Development/NexoraRenderer.exp
+  NexoraPresentation.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraPresentation.dll
+  NexoraV2M7Tests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraV2M7Tests.exe
+  NexoraDx12PbrTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraDx12PbrTests.exe
+  NexoraRenderer.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRenderer.dll
+  NexoraWindowPresentationTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraWindowPresentationTests.exe
+  NexoraGPUDrivenTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGPUDrivenTests.exe
+  NexoraMaterialTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraMaterialTests.exe
+  GameWorld.cpp
+  NexoraGPUSceneTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGPUSceneTests.exe
+  NexoraRendererTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraRendererTests.exe
+  NexoraSceneFrameTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraSceneFrameTests.exe
+  NexoraSceneInstanceTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraSceneInstanceTests.exe
+  NexoraGoldenImageTests.vcxproj -> G:\proj\Nexora\build\windows-showcase-development\bin\Development\NexoraGoldenImageTests.exe
+  GameplayHostBridge.cpp
+  RenderSync.cpp
+  Runtime.cpp
+  CookedSceneAssets.cpp
+  ProjectPackage.cpp
+G:\proj\Nexora\Engine\Runtime\src\ProjectPackage.cpp(100,27): error C2220: 以下警告視為錯誤處理 [G:\proj\Nexora\build\windows-showcase-development\Engine\Runtime\NexoraRuntime.vcxproj]
+G:\proj\Nexora\Engine\Runtime\src\ProjectPackage.cpp(100,27): warning C4127: 條件運算式是常數 [G:\proj\Nexora\build\windows-showcase-development\Engine\Runtime\NexoraRuntime.vcxproj]
+      G:\proj\Nexora\Engine\Runtime\src\ProjectPackage.cpp(100,27):
+      請考慮改用 'if constexpr' 陳述式
+
+  EditorSdk.cpp
+  正在產生程式碼...

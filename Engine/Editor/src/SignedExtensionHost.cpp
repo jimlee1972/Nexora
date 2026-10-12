@@ -306,6 +306,13 @@ void SignedExtensionHost::PollShutdown() noexcept {
   native_.PollShutdown();
   ReleaseUnloaded();
 }
+void SignedExtensionHost::RequestUnloadAll() noexcept {
+  for (const auto &image : images_)
+    if (image.fd >= 0)
+      static_cast<void>(native_.RequestUnload(image.id));
+  native_.PollShutdown();
+  ReleaseUnloaded();
+}
 std::vector<runtime::PluginSnapshot> SignedExtensionHost::Snapshot() const {
   return native_.Snapshot();
 }

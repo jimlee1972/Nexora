@@ -168,7 +168,7 @@ bool PrefabAssets::Validate(const PrefabAsset &asset) {
     return false;
   runtime::World world;
   SceneDocument probe(world, world.LoadScene("Prefab validation"));
-  if (!probe.ReloadBytes(asset.scene_bytes, kMaximumNodes))
+  if (!probe.ReloadBytes(asset.scene_bytes, kMaximumNodes) || !probe.PrefabPlacements().empty())
     return false;
   const auto source_nodes = probe.Nodes();
   if (source_nodes.size() != asset.nodes.size())
@@ -209,11 +209,13 @@ bool PrefabAssets::Validate(const PrefabAsset &asset) {
 std::optional<PrefabAsset> PrefabAssets::Capture(Uuid id, const SceneDocument &scene,
                                                  const std::function<Uuid()> &new_identity,
                                                  const PrefabAsset *previous) {
-  if (id.IsNil() || !new_identity || (previous && !Validate(*previous)))
+  if (id.IsNil() || !new_identity || !scene.PrefabPlacements().empty() ||
+      (previous && !Validate(*previous)))
     return {};
   // The caller-owned previous asset must not remain borrowed while its identity callback runs.
   const auto previous_snapshot = previous ? std::optional(*previous) : std::nullopt;
   previous = previous_snapshot ? &*previous_snapshot : nullptr;
+  const auto reference = scene.PrefabBase();
   auto source_nodes = scene.Nodes();
   if (source_nodes.size() > kMaximumNodes)
     return {};
@@ -238,6 +240,8 @@ std::optional<PrefabAsset> PrefabAssets::Capture(Uuid id, const SceneDocument &s
       asset.base = PrefabRevisionReference{previous->id, previous->revision};
     asset.nested = previous->nested;
   }
+  if (reference)
+    asset.base = PrefabRevisionReference{reference->asset, reference->revision};
   std::ranges::sort(source_nodes, {}, &SceneDocument::NodeView::id);
   for (const auto &source : source_nodes) {
     const PrefabNodeIdentity *old{};
@@ -465,7 +469,17 @@ std::optional<PrefabAsset> PrefabAssets::SaveDocument(const ProjectWorkspace &wo
   if (!prepared || prepared->Bytes().size() > kMaximumSceneBytes)
     return fail("Prefab document exceeds the supported source budget.");
   std::optional<PrefabAsset> asset;
-  if (previous && previous->id == id && previous->scene_bytes == prepared->Bytes()) {
+  const auto reference = document.PrefabBase();
+  const auto closure = reference
+                           ? ResolveProject(workspace, {reference->asset, reference->revision})
+                           : std::optional<ResolvedPrefabGraph>{};
+  if (reference && !closure)
+    return fail("Prefab authoring reference has no valid bounded retained source closure.");
+  const bool base_matches =
+      !reference || (previous && previous->base == PrefabRevisionReference{reference->asset,
+                                                                           reference->revision});
+  if (previous && previous->id == id && previous->scene_bytes == prepared->Bytes() &&
+      base_matches) {
     const auto stored = Load(workspace, id);
     if (!stored || *stored != *previous)
       return fail("Prefab source changed; preserve the current document baseline.");
@@ -480,6 +494,12 @@ std::optional<PrefabAsset> PrefabAssets::SaveDocument(const ProjectWorkspace &wo
       const auto base = Load(workspace, previous->id);
       if (!base || *base != *previous)
         return fail("Variant base changed; no new asset was published.");
+    }
+    if (closure) {
+      auto sources = closure->assets;
+      sources.push_back(*asset);
+      if (!Resolve({asset->id, asset->revision}, sources))
+        return fail("Prefab publication exceeds its complete source graph bounds.");
     }
     if (!Publish(workspace, *asset, previous && previous->id == id ? previous : nullptr, error))
       return {};
