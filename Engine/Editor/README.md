@@ -1424,44 +1424,28 @@ authority. Later loading must independently validate manifest/ABI/permissions/de
 recheck trust revision and bind verified immutable staged bytes to the native load. This
 slice installs no files, persists no private keys, makes no network calls and loads no
 plugin. The older ExtensionPolicy boolean predicate remains a portable policy primitive;
-it is not the cryptographic verifier or a production load gate. SignedExtensionHost supplies
-the canonical manifest/immutable native admission described below; graphical installation remains open.
+it is not the cryptographic verifier or a production load gate. Graphical installation,
+trusted staging and pre-load enforcement remain separate unfinished work.
 
-## Signed manifest and native image admission
+## External Chrome trace inspection
 
-`SignedExtensionHost` is an Editor admission wrapper over the trusted low-level Runtime PluginHost.
-It borrows a host-selected ExtensionTrust registry; the registry and optional service registry outlive
-the host and every serialized owner call. Prepared observations own the actual manifest, signature
-and artifact. Manifests cannot enroll publisher keys. Preparation performs no IO/native loading;
-loading rechecks current trust/policy revisions and actual signature/digest before native code.
+`ChromeTraceImporter` imports wrapped `traceEvents` or bare event arrays as owning external
+complete-event intervals. Selection requires an explicit event name, process ID and thread ID;
+Chrome timestamps/durations are microseconds regardless of displayTimeUnit. Results retain the
+external trace clock and convert duration to milliseconds. ph=X alone does not identify CPU/GPU
+measurements, process memory or Editor frames; no such observations are fabricated.
 
-Canonical binary schema one starts with `NXEXTM1\n`, then little-endian uint32 engine ABI and
-permission mask, four uint32-length-prefixed ASCII identity/version/publisher/target strings,
-32 SHA256 bytes, uint32 dependency count and sorted unique length-prefixed dependency IDs.
-Exact EOF/re-encoding, safe bounded identifiers, nonzero ABI/digest and known mask bits are required.
-The version is a bounded label, not a semantic-version evaluator. Limits are 16 KiB manifest,
-64 dependencies, 64 MiB artifact and 128 lifetime native admissions. Policy selects the exact ABI,
-target, allowed six-bit capability mask and available logical dependency IDs; it does not prove
-transitive operating-system linker dependency provenance or enforce a native allocation sandbox.
+Bounded UTF-8/Unicode JSON validates unknown metadata, duplicate keys and framing without a DOM.
+Limits: 4MiB input,32768 events,600 retained selected samples,32 unknown-value depth,64 keys/object,
+64KiB decoded strings and256-byte event selector. Process/thread IDs are exact nonnegative decimal
+JSON integers or decimal strings up to2^53-1. Selected start times are finite/nonnegative/ordered;
+complete intervals remain inside that supported clock range. Simultaneous timestamps are permitted.
+Newest selected intervals retain original sequence IDs and exact older-sample dropped counts.
+Unsupported/malformed input rejects without changing prior captures or input files. Logical budgets
+do not promise a total allocator-memory quota. Public C++ consumers rebuild; stable C ABI unchanged.
 
-The signature authenticates the complete canonical manifest including the artifact digest. Unknown
-publisher, changed signed bytes/artifact, denied ABI/target/permissions/dependencies, stale key or
-policy and unavailable cryptography cannot reach native initialization. Linux x86-64/AArch64 loading
-writes the exact owning verified artifact to a new memfd, validates its size and applies/verifies
-write/grow/shrink/seal seals before passing its unique `/proc/self/fd/<n>` identity to Runtime.
-Unsupported platforms reject instead of loading a mutable temporary/project path. No source file,
-key store, endpoint or environment policy is written/read by this wrapper.
-
-Mapped images retain unique descriptors until proven cooperative unload. Key/policy revision changes
-request shutdown and revoke services on the next owner poll (policy replacement also polls).
-Pending/legacy/rejected unsafe-to-unmap images and their descriptors remain until process restart;
-host destruction never forces unsafe unmapping or descriptor identity reuse. Callers drain borrowed
-service calls before changing policy, polling revocation or unloading. Snapshots own native state.
-
-Admitted trusted in-process native code can run constructors when the OS loader opens the image.
-The signed manifest ABI is checked before that call; a dishonest publisher whose binary ABI getter
-differs is detected afterward and may already have initialized. Host linker configuration and
-native dependencies remain trusted. The wrapper is not crash isolation or permission enforcement
-against malicious native code. Raw PluginHost remains a trusted low-level API, not a package gate.
-Graphical installation/enable/recovery and other-platform immutable staging remain separate work.
-Public C++ consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+`ProjectWorkspace::ImportChromeTraceJson` explicitly reads `.nexora/chrome-trace.json`; read-only
+observers may import. Closed/recovery/external-change scopes, nonregular paths, symlinked metadata,
+aliased project roots and multiply linked trace files reject. Reads remain byte-bounded and recheck
+recovery/external state. No file writes, native loads or clock calibration occur. Arbitrary binary
+capture formats and physical GPU calibration remain separate work.
