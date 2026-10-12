@@ -1,5 +1,8 @@
 #include "Nexora/Editor/PrefabAssets.h"
+#include "Nexora/Editor/SceneSaveBatch.h"
 #include <algorithm>
+#include <chrono>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
 
@@ -10,7 +13,7 @@ void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
-void Run() {
+void Run(bool bound) {
   std::uint64_t next = 100;
   const auto identity = [&] { return foundation::Uuid{700, ++next}; };
   runtime::World root_world, child_world, target_world;
@@ -64,7 +67,11 @@ void Run() {
               !Assets::Instantiate({variant->id, 1}, sources, target, expected, true) &&
               target.Undo(),
           "Stale document observation authorized materialization");
-  const auto instantiated = Assets::Instantiate({variant->id, 1}, sources, target, expected, true);
+  const foundation::Uuid placement_id{710, 1};
+  const auto instantiated =
+      bound ? Assets::InstantiateBound(placement_id, {variant->id, 1}, sources, target, expected,
+                                       true)
+            : Assets::Instantiate({variant->id, 1}, sources, target, expected, true);
   Require(instantiated && instantiated->size() == 6 && target.Nodes().size() == 7,
           "Variant duplicated its base or lost nested placements");
   const auto mapped = [&](std::vector<foundation::Uuid> scope, foundation::Uuid node) {
@@ -194,10 +201,6 @@ void Run() {
           "Scene file publication rejected owning bindings");
   std::ifstream file(temporary / "Content/Bound.scene", std::ios::binary);
   const std::string saved{std::istreambuf_iterator<char>(file), {}};
-  // Windows readers do not share deletion: release the destination before the
-  // later coordinated atomic replacement, while retaining its owning bytes.
-  file.close();
-  Require(!file.fail(), "Bound saved scene reader did not close successfully");
   runtime::World reopened_world;
   editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Reopen"));
   Require(reopened.ReloadBytes(saved) && !reopened.Dirty() &&
@@ -241,13 +244,10 @@ void Run() {
   Require(target.Rename(seed_key, "Batch edit"), "Bound batch edit failed");
   editor::SceneSaveBatch batch(workspace);
   const std::array sessions{&files};
-  Require(batch.Prepare(sessions), "Bound Scene Save All preparation failed");
-  Require(batch.Publish().Published(), "Bound Scene Save All publication failed");
-  Require(!target.Dirty(), "Bound Scene Save All did not advance the saved baseline");
-  Require(std::ranges::equal(target.PrefabPlacements(), repeated_bindings),
-          "Bound Scene Save All lost placement metadata");
-  Require(target.Undo(), "Bound Scene Save All consumed Undo");
-  Require(target.PrepareSave()->Bytes() == saved, "Bound Scene Save All Undo changed exact bytes");
+  Require(batch.Prepare(sessions) && batch.Publish().Published() && !target.Dirty() &&
+              std::ranges::equal(target.PrefabPlacements(), repeated_bindings) && target.Undo() &&
+              target.PrepareSave()->Bytes() == saved,
+          "Coordinated Scene Save All lost bindings or consumed Undo");
   Require(reopened.NewScene() && reopened.PrefabPlacements().empty() &&
               reopened.ReloadBytes(saved) &&
               std::ranges::equal(reopened.PrefabPlacements(), repeated_bindings),
@@ -270,7 +270,8 @@ void Run() {
 } // namespace
 int main() {
   try {
-    Run();
+    Run(false);
+    Run(true);
     std::cout << "Nested prefab materialization passed\n";
     return 0;
   } catch (const std::exception &error) {

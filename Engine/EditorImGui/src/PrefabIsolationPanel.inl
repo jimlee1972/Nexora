@@ -17,7 +17,7 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
     return value->project != old.project || value->project_scope != old.project_scope ||
            value->owner_generation != old.owner_generation || value->asset != old.asset ||
            value->document_generation != old.document_generation || value->source != old.source ||
-           value->base != old.base;
+           value->base != old.base || value->scene_writable != old.scene_writable;
   };
   if (changed()) {
     ImGui::SetCurrentContext(state.context);
@@ -398,6 +398,15 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
         if (editable->Redo())
           SetPrefabReview(std::nullopt);
       capture(9);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!writable || !observation.scene_writable || !observation.revision ||
+                           observation.dirty || confirming);
+      if (ImGui::Button("Instantiate in scene"))
+        request(PrefabIsolationAction::Instantiate, observation.asset);
+      capture(28);
+      ImGui::SetItemTooltip(
+          "Add the saved prefab to the active scene. Undo removes it; Save scene publishes it.");
       ImGui::EndDisabled();
       const auto nodes = document->Nodes();
       if (nodes.size() <= PrefabAssets::kMaximumNodes) {

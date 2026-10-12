@@ -163,7 +163,25 @@ History is retained when a committed revision is superseded, so previously overw
 revisions cannot be reconstructed. No automatic pruning or total disk quota is introduced: retained
 sources may still be referenced by variants/nested graphs. The archive/current writes form an
 ordered single-writer protocol, not a multi-file power-loss durability guarantee. Graphical
-override/rebase, nested materialization, journaling and retention policy remain separate work.
+override/rebase, persistent instance metadata, journaling and retention policy remain separate work.
+
+## Transactional nested prefab materialization
+
+`PrefabAssets::Instantiate` resolves the complete exact revision closure, builds an independent
+staging World/document, then imports that complete forest once against a caller-owned current
+PreparedSave. Base dependencies are validation sources, not duplicate live instances. Every nested
+placement keeps its independent instance scope; stable node UUIDs map to fresh live generation keys.
+Nested roots attach to the corresponding stable parent node while retaining authored local TRS,
+Euler metadata, names, sibling order, components and unavailable opaque bytes.
+
+All result vectors, scope vectors/identities and translation indices are allocated before live
+publication. The final import retains its atomic Undo/Redo, clipboard/cut and stale-observation
+contracts. No filesystem IO or source asset publication occurs. Callers serialize source/target
+owners and supply current authoring authority; project writer/recovery/Play policy belongs to the
+host. Returned mappings own their data but their target keys still require document-generation
+validation. Existing graph budgets apply; the combined serialized forest also fits 8 MiB.
+The staging algorithm's temporary Worlds/history are not a total process-memory budget. Persistent
+instance metadata, graphical instancing and override/revert/apply/rebase remain separate work.
 
 ## Stable prefab revision comparison
 
@@ -1508,6 +1526,103 @@ plugin. The older ExtensionPolicy boolean predicate remains a portable policy pr
 it is not the cryptographic verifier or a production load gate. Graphical installation,
 trusted staging and pre-load enforcement remain separate unfinished work.
 
+## Scoped prefab property review and revert
+
+`PrefabDocumentSession::Review` returns an owning comparison against the exact retained base
+revision for a variant, or the last published revision for a regular prefab. Read-only inspection
+is permitted. Unsaved new node/field identities require explicit Save before review; no temporary
+stable identities are fabricated. Candidate restoration requires identical stable node sets and
+retains target scene/entity identity. Base/nested metadata rows are visible but never rewritten
+by a document-property revert. A clean draft without a published source cannot authorize review.
+
+The opaque review records project UUID/root, session generation, asset/previous publication,
+current PreparedSave and exact immutable source. Revert rechecks each observation, writer authority,
+recovery/external-change state and actual retained source before one complete-property transaction.
+Unauthorized, stale, replaced, corrupt/changed source or incompatible shape rejects without live
+mutation or IO. The original scene and stored prefab files remain unchanged until explicit Save.
+One Undo/Redo restores complete mixed properties, including unavailable bytes; generation, keys,
+selection, clipboard and saved baseline survive. Review grants no write authority. Calls serialize
+with all owners/project publication; the native host also requires stopped Play and no conflicting
+modal/export/close operation. Public C++ consumers rebuild.
+
+The graphical isolation panel exposes explicit Review changes, owning clipped source/edit rows,
+and a separate confirmation before full property revert. Scope changes and successful local edits
+revoke displayed review/confirmation. Read-only scopes retain Review but disable Revert. Existing
+create/open/variant/save/close and dirty-close protection remain. Targeted field revert, apply to
+source, structural reconciliation, persistent live instance bindings and reference rebase remain
+separate work. These bounded owning snapshots are not a total history/process memory quota.
+
+## Targeted stable-field prefab property candidates
+
+The selection overload of `BuildPrefabPropertySnapshot` accepts bounded stable node/field UUID
+pairs. Both complete sources and exact node sets are validated first. A selected identity must be
+known in at least one source; shared property names require matching field identities. Duplicate,
+unknown, mismatched, unsupported reserved metadata or incompatible resulting hierarchy rejects
+the entire owning candidate. Empty selection returns a canonical current-source no-op.
+
+Names, position/rotation/scale groups, authored Euler, parent/sibling groups, complete Camera/Light/
+Mesh presence and stored data, and exact unavailable component records are independently selectable.
+Selected absent-source unknown components are removed; unselected unknown bytes remain intact.
+Inactive component stored values are retained through official canonical Runtime property groups,
+rather than reset through component-disable setters. Typed staged hierarchy commands retain local
+TRS, validate the complete selected parent graph and then apply sibling positions. Unselected
+parent/TRS/component/name data retain their current values; selected moves naturally affect sibling
+indices. Source rotations retain their authored Euler records, while other selections preserve the
+current rotation/Euler. Target scene identity and existing serialized entity IDs remain unchanged.
+
+Supported canonical Runtime version-three record groups are parsed from official serialization;
+changed/unknown record framing fails closed. Document metadata stays owning and opaque records are
+never interpreted as native objects. Final output is officially parsed/prepared again. Existing
+4096-node,32768-selection and8MiB scene/output budgets apply; these are logical budgets, not total
+process/history memory quotas. Planning performs no IO, live edits or history/baseline changes and
+grants no authority. The owner still rechecks its current document/project/source before atomic
+application. Graphical selected-field binding, source apply, structural identity reconciliation and
+reference rebase remain separate work. Public C++ consumers rebuild; stable C/Gameplay ABI is unchanged.
+
+## Graphical selected prefab property restoration
+
+`SelectReview` derives an owning targeted candidate from the unchanged private review, explicit
+stable node/field identities and the exact retained source. Unknown, empty, duplicate, stale,
+changed/corrupt source, replaced scope, recovery/external-change or unsupported selections reject.
+Read-only inspection can prepare a candidate but never apply it. Application rechecks writer
+access and all original observations before the existing one-step property transaction.
+
+The isolation comparison exposes field-group checkboxes; component/transform rows sharing one
+field UUID select the complete group. Metadata references remain inspection only. Changing a
+checkbox revokes prior full/selected revert consent. Review selected prepares a new candidate,
+followed by separate selected-revert confirmation. Scope changes, local edits and Undo/Redo revoke
+review/confirmation. Unselected values, unavailable bytes, generation, keys, clipboard and original
+scene/source files survive; explicit Save remains the publication boundary. Source apply, reference
+rebase, structural reconciliation and persistent live instance bindings remain separate work.
+
+## Explicit variant property application to source
+
+`PrefabPropertyReview::CanApplyToSource` is an inspection hint for compatible saved variants.
+`ApplyToSource` independently rechecks writer authority, root/UUID/owner/current document, actual
+variant publication and the exact current source. Regular prefabs use Save; unsaved variants cannot
+apply because advancing their base would invalidate first-save preconditions. Stale source or
+variant publication, invalid shape/identities, recovery, external change, exhausted revisions and
+unsafe/staged publication reject without changing current source or isolated document.
+
+Full/selected source candidates invert the stable UUID remapping while preserving source scene/
+entity/node/field identity, references and all unselected values. Publication advances one source
+revision and retains the previously committed source. Failed current publication may retain a
+harmless old archive, never an uncommitted future revision. Local variant content, baseline, dirty
+state, keys, selection, clipboard and history stay unchanged; the variant keeps its retained base
+until explicit Rebase. Source publication has its own revision history and is not a local document
+Undo entry. Original scene files stay unchanged. No structural reconciliation is claimed.
+
+
+## Graphical three-way prefab rebase integration
+
+The graphical host retains the private owning rebase review independently of property revert/source
+apply. Review/Prepare use exact old/current closures; conflict choices never grant authority. Explicit
+confirmation applies one properties/reference transaction, while wrapped Save remains the sole file
+publication boundary. Project or retained-reference scope changes and local editing revoke consent;
+blocked authoring cannot revive a previous confirmation. Read-only latest-source inspection remains
+available without write controls. Actual 1x/2x controls and X11/Vulkan conflict choices, Save/Undo/Redo/
+reopen preserve exact archived versions and original source/unknown bytes. Structural identity and
+persistent nested/live-instance reconciliation remain separate work.
 
 ## Persistent scene prefab placement bindings
 

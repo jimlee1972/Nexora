@@ -32,7 +32,9 @@ bool SceneDocument::ApplyPropertySnapshotWithReference(
     return false;
   const auto *parsed = staged_world.FindScene(staged_scene);
   if (!parsed || parsed->name != current->name || parsed->persistent != current->persistent ||
-      parsed->entities.size() != current->entities.size() || staged.nodes_.size() != nodes_.size())
+      parsed->entities.size() != current->entities.size() ||
+      staged.nodes_.size() != nodes_.size() ||
+      !std::ranges::equal(staged.PrefabPlacements(), PrefabPlacements()))
     return false;
   staged.prefab_base_ = reference;
   const auto prepared = staged.PrepareSave();

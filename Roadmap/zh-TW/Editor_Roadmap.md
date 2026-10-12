@@ -736,6 +736,47 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Graphical saved-prefab scene instantiation 通過實際 1x／2x scope／role／dirty，以及
+  native Save／reopen／一次 Undo／Redo／唯讀 gate、完整 Linux 251/251 與 Minimal Shipping。
+  Structural live-instance override／rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalScenePrefabInstantiation-Linux-2026-10-10.md)。
+
+- ✅ Graphical same-identity source rebase 已具實際 conflict choice、Prepare 與獨立確認；
+  1x／2x 及 native properties／reference Undo／Redo／Save／reopen 與唯讀 gate 通過。
+  完整 Linux integration gate 通過（248/248）；structural／live-instance workflow 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-GraphicalPrefabRebase-Linux-2026-10-10.md)。
+
+✅ Graphical saved-variant source apply 已驗證：full／selected inverse stable-field publication
+保留 source identity、未選取的值及舊版本；local edit、baseline／history 與 retained base reference
+維持不變。Explicit rebase 與 structural reconciliation 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabSourceApply-Linux-2026-10-10.md)。
+
+- ✅ Same-identity 三方來源 rebase 已具 owning review、完整欄位群組的 conflict decision、
+  受保護的 source closure，以及一次 properties／reference history transaction。
+  完整 Linux 驗收通過（248/248）；graphical conflict confirmation 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabThreeWayRebase-Linux-2026-10-10.md)。
+
+- ✅ 可復原的 prefab base-reference metadata 已驗證：reference-only 與 mixed-property
+  transaction 使用一次 Undo／Redo，wrapped Save 保留精確 revision 並能乾淨重開；一般
+  Scene／Save All 拒絕發布未存入其格式的 asset context。Graphical three-way rebase choice、
+  structural／live-instance reconciliation 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabReferenceHistory-Linux-2026-10-10.md)。
+
+✅ Graphical selected-field prefab revert 已驗證：stable field-group checkbox、明確 candidate
+preparation 與確認，保留未選取的值並使用一次 Undo／Redo。Source apply、reference rebase、
+structural／live-instance binding 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-SelectedPrefabRevert-Linux-2026-10-10.md)。
+
+
+✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、
+明確 full revert 確認、一次 mixed-property Undo／Redo 及 read-only inspection。
+Targeted field、source apply、structural binding 與 reference rebase 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabPropertyReview-Linux-2026-10-10.md)。
+
+✅ Targeted stable-field prefab property candidate 已驗證：明確 node／field identity selection
+保留未選取的值、inactive stored component 與 unknown bytes。Graphical selection、source apply、
+structural reconciliation 與 reference rebase 仍待完成。
+[Linux 證據](../../Tools/Build/evidence/EditorEDM4-TargetedPrefabProperties-Linux-2026-10-10.md)。
 - ✅ Project prefab placement owner 通過實際 mixed-revision source closure、stale／foreign
   target、唯讀／recovery／external-change 及 Save／reopen gate，以及完整 Linux 243/243 與
   Minimal Shipping；graphical instantiation 另行完成。
@@ -753,14 +794,19 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   Persistent instance metadata 與 graphical override/rebase 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md)。
 
-- ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
-  closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
-  不占住 future revision。Graphical rebase、persistent instance metadata 與 power-loss journal 仍待完成。
-  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
+- ✅ Prefab isolation owner 已驗證：project-scoped create/open/variant/save/reopen 使用獨立 World
+  與 document，保留 unknown bytes 與原場景 history。Dirty replacement、read-only write、stale
+  scope/revision 與 reentrant identity callback 都拒絕；graphical binding、nested materialization、
+  historical revision access 與 override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabIsolation-Linux-2026-10-10.md)。
+- ✅ Nested prefab materialization 已驗證：exact revision closure 先在 live document 外組合，
+  保留 scoped identity／local transform／unknown bytes，再以一次 Undo／Redo transaction 匯入。
+  Graphical instance override/rebase 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM4-NestedPrefabMaterialization-Linux-2026-10-10.md)。
 
 - ✅ Prefab revision retention 已驗證：已提交舊來源可依精確 UUID/revision 重開，bounded project
   closure 可解析同一資產的多個版本。Archive conflict 保留 current source；current write 失敗
-  不占住 future revision。Graphical rebase／nested materialization 與 power-loss journal 仍待完成。
+  不占住 future revision。Graphical rebase、persistent instance metadata 與 power-loss journal 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-PrefabRevisionHistory-Linux-2026-10-10.md)。
 
 - ✅ Prefab document save integration 已驗證：confirmed wrapped publication 只更新 owning saved

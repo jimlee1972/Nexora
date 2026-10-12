@@ -544,6 +544,7 @@ private:
       std::optional<PrefabBaseReference> previous_base{}, next_base{};
     };
     std::shared_ptr<const PropertySnapshot> property_snapshot{};
+    std::shared_ptr<const std::vector<PrefabPlacement>> previous_placements{}, redo_placements{};
   };
   bool ReplayPropertySnapshot(bool forward);
   bool ApplyPropertySnapshotWithReference(const PreparedSave &, std::string_view, bool,
@@ -562,6 +563,7 @@ private:
   std::vector<UndoEntry> undo_;
   std::vector<UndoEntry> redo_;
   std::optional<PrefabBaseReference> prefab_base_{};
+  std::shared_ptr<const std::vector<PrefabPlacement>> prefab_placements_{};
   std::uint64_t document_generation_{};
   std::uint64_t next_entity_generation_{1};
   mutable std::string saved_signature_;

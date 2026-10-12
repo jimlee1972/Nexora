@@ -1337,6 +1337,7 @@ bool SceneDocument::Undo() {
   auto &entry = undo_.back();
   if (entry.kind == UndoEntry::Kind::PropertySnapshot)
     return ReplayPropertySnapshot(false);
+  entry.redo_placements = prefab_placements_;
   entry.redo_nodes = nodes_;
   entry.redo_selection = selection_;
   if (entry.kind == UndoEntry::Kind::Runtime) {
@@ -1480,6 +1481,10 @@ std::optional<std::string> SceneDocument::StateSignature() const {
   if (prefab_base_)
     signature += "prefab-base " + prefab_base_->asset.ToString() + " " +
                  std::to_string(prefab_base_->revision) + "\n";
+  const auto placements = PrefabPlacementRecords();
+  if (!placements)
+    return std::nullopt;
+  signature += *placements;
   return signature;
 }
 
