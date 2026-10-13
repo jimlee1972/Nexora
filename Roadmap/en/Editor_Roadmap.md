@@ -468,6 +468,13 @@ creates property widgets; unknown components retain raw data instead of being si
   Broader residency policy, authored material/shader workflows and full ED-M2 acceptance remain open.
   [Evidence](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md).
 
+- ✅ Native Scene/Game mesh residency now resolves all 4,096 valid batch bindings while bounding
+  key/native admission work to 64 distinct ranges. Fixed memoized successes/failures preserve reuse
+  across large repeated scenes; additional ranges fall back individually without losing prior hits.
+  Portable full-limit/partial-fallback contracts and native Vulkan/DX12/Metal pixels exercise the path.
+  Broader policy, production material/shader authoring and target-host ED-M2 acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md).
+
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
   Default names follow type choices while custom names remain. Queued owning requests recheck

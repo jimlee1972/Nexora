@@ -1300,7 +1300,7 @@ private:
   id<CAMetalDrawable> drawable_ = nil;
   SurfaceDiagnostics diagnostics_{};
   detail::SceneGeometryResidency<MetalMeshAllocation> meshResidency_;
-  std::array<std::uint8_t, 64> meshBindings_{};
+  detail::MeshResidencyBindings meshBindings_{};
   std::uint64_t timingSequence_{};
   std::array<std::uint64_t, kFrames> timingSequences_{};
 };

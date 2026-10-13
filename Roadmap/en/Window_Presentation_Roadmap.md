@@ -175,3 +175,9 @@ DX12 native PBR and Metal Scene/UI/shadow/reflection guards request residency an
 portable admission tests and Vulkan tracing retain allocation/completion failure evidence. Actual
 hardware OOM, broader policy and full target-host acceptance remain open.
 [Evidence](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md).
+
+✅ All native adapters now resolve 4,096 mesh bindings with fixed metadata and at most 64 distinct
+range admissions. Large repeated batches retain exact geometry reuse; extra ranges fall back
+individually, retaining prior success/failure memo results. Portable full-limit bounds and real
+native pixels verify this extension without increasing GPU entry/memory limits.
+[Evidence](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md).

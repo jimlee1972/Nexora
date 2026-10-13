@@ -472,12 +472,22 @@ int main(int argc, char **argv) {
       // Split the opaque receiver without changing its coverage. This exercises adjacent
       // equal material bindings followed by two different materials on both native backends.
       std::array<SceneMeshBatch, 4> splitReceiver{};
+      std::array<SceneMeshBatch, 65> repeatedGeometry{};
+      std::size_t repeatedHits{};
       if (frame == 26) {
         splitReceiver = {{{0, 3, 0, 1, 0}, {3, 3, 0, 1, 0}, {6, 3, 0, 1, 2}, {9, 3, 0, 1, 1}}};
         draw.batches = splitReceiver;
       }
       // Exercise cached/legacy transitions on completed frame slots without changing pixels.
       draw.retainMeshGeometry = surface->SupportsSceneGeometryResidency() && frame % 7 != 0;
+      if (frame == 1) {
+        Require(!draw.batches.empty() && draw.batches.size() < repeatedGeometry.size(),
+                "repeated native geometry fixture has no bounded opaque batches");
+        repeatedHits = repeatedGeometry.size() - draw.batches.size();
+        std::ranges::fill(repeatedGeometry, draw.batches.front());
+        std::ranges::copy(draw.batches, repeatedGeometry.begin());
+        draw.batches = repeatedGeometry;
+      }
       Require(surface->Acquire() == SurfaceStatus::Ready, "PBR acquire failed");
       if (frame == 0) {
         materials[0].normalTextureId = 987;
@@ -560,6 +570,9 @@ int main(int argc, char **argv) {
         std::cerr << "PBR draw frame=" << frame << " status=" << static_cast<int>(drawStatus)
                   << '\n';
       Require(drawStatus == SurfaceStatus::Ready, "shared PBR draw failed");
+      if (frame == 1 && surface->SupportsSceneGeometryResidency())
+        Require(surface->Diagnostics().sceneGeometryResidency.hits >= repeatedHits,
+                "more-than64 native batches fell back instead of reusing resident ranges");
       if (draw.offscreen)
         Require(surface->CompositeScene() == SurfaceStatus::Ready, "PBR composite failed");
       if (frame >= 19) {

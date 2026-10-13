@@ -165,6 +165,20 @@ int main(int argc, char **argv) {
     if (!geometryCache.available || !geometryCache.hits || !geometryCache.uploads ||
         !geometryCache.retainedCpuBytes || geometryCache.nativeAllocationBytes > 32 * 1024 * 1024)
       return fail(__LINE__);
+    std::array<SceneMeshBatch, 65> repeatedGeometry{};
+    const SceneMeshBatch whole{
+        0, static_cast<std::uint32_t>(draw.indices.size()), 0,
+        static_cast<std::uint32_t>(std::max<std::size_t>(1, draw.instances.size())), 0};
+    std::ranges::fill(repeatedGeometry, whole);
+    auto repeatedDraw = draw;
+    repeatedDraw.batches = repeatedGeometry;
+    if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
+        !require(DrawRetained(*surface, repeatedDraw), SurfaceStatus::Ready) ||
+        !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
+        !require(surface->Present(), SurfaceStatus::Ready) ||
+        surface->Diagnostics().sceneGeometryResidency.hits < geometryCache.hits + 64 ||
+        surface->Diagnostics().sceneGeometryResidency.uploads != geometryCache.uploads)
+      return fail(__LINE__);
     const auto captured = surface->ReadScenePixelsForTesting();
     if (captured.size() != 640U * 360U * 4U)
       return fail(__LINE__);

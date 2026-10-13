@@ -1812,7 +1812,7 @@ private:
   std::array<uint64_t, kMaximumFrames> fenceValues_{};
   SurfaceDiagnostics diagnostics_{};
   detail::SceneGeometryResidency<Dx12MeshAllocation> meshResidency_;
-  std::array<std::uint8_t, 64> meshBindings_{};
+  detail::MeshResidencyBindings meshBindings_{};
   ComPtr<IDXGIFactory6> factory_;
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D12CommandQueue> queue_;
