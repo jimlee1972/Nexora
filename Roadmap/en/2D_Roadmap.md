@@ -27,15 +27,15 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | --- | --- | --- | --- | --- | --- |
 | 2D-M0 | P0 | Scene Sprite Renderer | Atlas regions, pivot, flip, tint/alpha, sorting layers and stable Y ordering; existing transforms/orthographic cameras | Native captures verify UVs, pivot, flips, transparency and overlapping order; save/reopen retains fields | Complete dedicated specification not confirmed |
 | 2D-M1 | P0 | Frame animation | Frame duration/rate, looping, switching and animation events, separate from skeletal animation | Frame/event traces verify loop boundaries, switching, pause/resume and large time steps without duplicate events | Dedicated sprite animation path not confirmed |
-| 2D-M2 | P0 | 2D asset pipeline | Slicing, deterministic Atlas packing, import/sampling settings, transparent-edge handling and stable references | Import/cook/reimport retains references; native sampling has no edge bleed; invalid input preserves published assets | General foundation exists; 2D workflow needs inventory |
+| 2D-M2 | P0 | 2D asset pipeline | Slicing, deterministic Atlas packing, import/sampling settings, transparent-edge handling and stable references | Identical inputs/settings/tool versions reproduce Atlas layout, regions and output hashes; import/cook/reimport retains references; native sampling has no edge bleed; invalid input preserves published assets | General foundation exists; 2D workflow needs inventory |
 | 2D-M3 | P0 | Lightweight 2D collision/queries | Circle/AABB overlap, filters, range queries, spatial index and swept checks for fast movement | Compare indexed results with an independent brute-force oracle; cover boundaries, filtering, fast motion and insert/remove | Jolt 3D is not proof of this capability |
-| 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes under load | Architecture has direction; capacity needs measurement |
+| 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | Architecture has direction; capacity needs measurement |
 | 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | General rendering exists; 2D path needs verification |
 | 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Actual capacity must be measured |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, reload, save/reopen and shutdown pass | Existing subsystem slices need end-to-end 2D acceptance |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | Existing subsystem slices need end-to-end 2D acceptance |
 | 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | Complete graphical 2D workflow not confirmed |
 | 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | Dedicated tools not confirmed |
-| 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | If selected, paint-Undo/save/reopen and chunk-boundary render/query tests pass; otherwise record workflow decision and defer | Needed only for a tile-based map workflow |
+| 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | Needed only for a tile-based map workflow |
 
 ## 3. Dependencies and implementation order
 
@@ -84,7 +84,8 @@ Physical Windows PC and clean-machine evidence must come from those hosts; missi
 
 ## 6. Status, deferred scope and related documents
 
-Count these 11 milestones equally for this roadmap only; report P0 as 8/8 separately if useful.
+Count these 11 milestones equally for this roadmap only; report actual accepted P0 as x/8
+(currently 0/8), reaching 8/8 only when every P0 milestone has acceptance evidence.
 Deferred Tilemap stays in the denominator until a reviewed scope revision changes it. Planning
 completion does not change V1 foundation, Editor or focused AI-plan percentages. Retain detailed
 acceptance beside the module/tool or in evidence directories; Beads remains the durable task tracker.
