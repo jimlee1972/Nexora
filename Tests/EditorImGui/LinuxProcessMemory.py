@@ -65,7 +65,8 @@ def main():
             if (root / ".nexora/frame-processing.json").exists() or \
                     (root / ".nexora/frame-processing.csv").exists() or \
                     (root / ".nexora/process-memory.json").exists() or \
-                    (root / ".nexora/gpu-timing.json").exists():
+                    (root / ".nexora/gpu-timing.json").exists() or \
+                    (root / ".nexora/mesh-memory.json").exists():
                 raise RuntimeError("live profiling implicitly wrote a capture")
     finally:
         if server.poll() is None:

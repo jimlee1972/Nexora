@@ -261,6 +261,11 @@ struct ChromeTraceImportRequest final {
   std::filesystem::path root;
   ChromeTraceSelection selection;
 };
+// Owning explicit file-action scope; no workspace/history/native borrow survives a widget call.
+struct MeshMemoryCaptureRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -351,6 +356,10 @@ public:
   [[nodiscard]] bool TakeGpuExportRequest() noexcept;
   [[nodiscard]] bool TakeGpuImportRequest() noexcept;
   bool SetImportedGpuCapture(GpuTimingCapture capture);
+  [[nodiscard]] std::optional<MeshMemoryCaptureRequest> TakeMeshMemoryExportRequest();
+  [[nodiscard]] std::optional<MeshMemoryCaptureRequest> TakeMeshMemoryImportRequest();
+  // Validates both captured project scope and samples before replacing the owning static import.
+  bool SetImportedMeshMemoryCapture(const MeshMemoryCaptureRequest &, MeshMemoryCapture capture);
   void OpenChromeTraceImport() noexcept;
   [[nodiscard]] std::optional<ChromeTraceImportRequest> TakeChromeTraceImportRequest();
   bool SetImportedChromeTrace(ChromeTraceCapture capture);

@@ -149,6 +149,11 @@ public:
   GpuControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static const GpuTimingCapture *
   ImportedGpuCapture(const EditorImGuiHost &host) noexcept;
+  static std::optional<std::array<float, 2>>
+  MeshMemoryControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  static void ScrollProfilerToMeshControls(EditorImGuiHost &) noexcept;
+  static const MeshMemoryCapture *ImportedMeshMemoryCapture(const EditorImGuiHost &) noexcept;
+
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ChromeTraceControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
   [[nodiscard]] static const ChromeTraceCapture *

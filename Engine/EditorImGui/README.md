@@ -1256,6 +1256,27 @@ values, plots bounded history in native-allocation and CPU-key series and names 
 units. Gaps break both lines; zero is available. Source is retained geometry owned by the current
 native surface, excluding textures/frame uploads, total device VRAM and process resident memory.
 Capture/Clear apply to observations; a new surface domain cannot retain another owner's latest/peak.
-Clear does not release renderer resources or static imported captures. This channel is live-only;
-existing wall/RSS/GPU import/export controls retain their original source/scope. C++ ProfileSession
+Clear does not release renderer resources or static imported captures. Independent Export mesh memory,
+Import mesh memory and Clear mesh import controls use explicit schema-1 interchange; existing
+wall/RSS/GPU controls retain their original source/scope. C++ ProfileSession
 layout/storage changes require rebuilds, while stable C/scene schemas and module dependencies remain.
+
+
+Mesh file actions own a copied `MeshMemoryCaptureRequest` project UUID/root, consumed once on the
+window owner thread. The application rechecks both values before core IO; widgets do no IO/native
+reads and retain no workspace or history borrow. Export requires writable/open/current/unblocked
+scope and nonempty live history. Import permits read-only projects and empty live streams.
+Focus loss immediately revokes pending requests; modal/recovery/close gates revoke them on Draw or
+Take. Read-only transitions revoke queued writer actions. Project UUID/root replacement, closure
+or detachment clear pending requests and the owning static mesh import. Active mesh-button gestures
+are canceled on scope/gate changes, so a held press cannot complete against a new project. Focus/modals preserve safe
+static data. `SetImportedMeshMemoryCapture` checks captured/current scope and shared bounded sample
+validation before replacement; failed publication/load leaves prior imports intact. Static Clear
+leaves live CPU/GPU/RSS/mesh and other imports untouched; live Clear leaves static imports intact.
+The historical two-series plot labels byte scale, exact last saved values/unavailability, elapsed
+milliseconds, independent drops and surface geometry/CPU-key scope; destination project is export
+provenance rather than allocation ownership. No field becomes total VRAM/RSS. Control placement
+preserves original GPU/RSS actions; bounded viewport scrolling precedes real1x/2x pointer tests.
+Additive C++ APIs/types require matching consumer rebuilds; public host layout, stable C/Zig/scene
+formats and module dependencies are unchanged. Physical calibration and broader device metrics
+remain open.
