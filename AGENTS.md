@@ -82,6 +82,26 @@ See `CLAUDE.md` for the longer architecture and milestone guidance shared by clo
 
 ## Automated Pull Request Workflow
 
+### Standing project authorization
+
+The user granted the following ongoing authorization on 2026-10-14 for
+`jimlee1972/Nexora`. Apply it to subsequent tasks in this project unless the user revokes
+or narrows it; do not ask the user to repeat authorization for actions within this scope.
+
+- After the applicable local validation passes, automatically commit the requested changes,
+  push a feature branch to this repository, and create a PR targeting `main`.
+- After required PR checks pass, enable squash auto-merge for PRs created by this agent's work.
+  Never bypass required CI checks or branch protection, merge after failed validation, or
+  automatically merge another contributor's PR.
+- Synchronize Beads to this repository's existing remote and `refs/dolt/data`. The user
+  understands and authorizes that `bd dolt push` synchronizes the full task database, not just
+  the current task. Never add secrets, credentials, private personal data, or private notes.
+- Verify that Git and Beads destinations belong to `jimlee1972/Nexora` before publishing;
+  this authorization does not extend to other repositories or newly selected remotes.
+- This records user authorization; it does not disable or override platform approval,
+  sandbox, or network policies. If an action remains blocked, preserve the completed work
+  and report the action and the stated reason.
+
 For every development task in this repository:
 
 1. Follow all existing AGENTS.md and CLAUDE.md instructions.
