@@ -1303,6 +1303,13 @@ creates property widgets; unknown components retain raw data instead of being si
     frame/process-memory budgets, native GPU/asset scale and long-duration/physical-host soak remain
     open. [Linux evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md).
 
+  - ✅ Hierarchy snapshots reuse an owned ID/metadata-slot index after full current-ID/order
+    validation, reducing repeated hash-node allocation without caching names, parent relationships
+    or native/World borrows. Same-count replacement, Undo/Redo/reload/new/Runtime-order changes
+    preserve snapshot correctness and existing name-borrow lifetime. Existing100k ImGui lifecycle
+    checks and scoped31-sample Nodes before/after measurements pass with honest CPU/allocator scope;
+    O(n) validation/other frame work and complete production/GPU/memory/soak budgets remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyNodeIndex-Linux-2026-10-13.md).
   - ✅ Top-down Scene overview now resolves owning bulk world poses with iterative indexed ancestry,
     preserving exact affine origins and the existing TRS approximation. Marker traversal, Frame all
     and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and

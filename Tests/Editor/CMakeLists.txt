@@ -444,3 +444,8 @@ if(NEXORA_FEATURE_SCALAR_MATERIAL_TOOL)
            "$<TARGET_FILE:NexoraScalarMaterialPlugin>" "$<TARGET_FILE:NexoraNativeToolFixture13>")
   set_tests_properties(editor.managed_tool_invocation PROPERTIES TIMEOUT 30)
 endif()
+
+add_executable(NexoraHierarchySnapshotIndexTests HierarchySnapshotIndexTests.cpp)
+target_link_libraries(NexoraHierarchySnapshotIndexTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraHierarchySnapshotIndexTests)
+add_test(NAME editor.hierarchy_snapshot_index COMMAND NexoraHierarchySnapshotIndexTests)

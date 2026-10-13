@@ -67,6 +67,13 @@ ImGui payload bytes exclude allocation headers and World/document/STL/process me
 percentiles are observations, not a cross-machine production frame-time budget; no calibrated GPU,
 long-duration soak or physical-host acceptance follows from this test.
 
+SceneDocument hierarchy snapshots now reuse a self-validated owned ID/metadata-slot index;
+current Runtime ordering/parents and metadata names/generations are read fresh. Returned name views
+retain their document borrow lifetime and are consumed synchronously by hierarchy drawing. Existing
+100k flat/deep scale/source/history/teardown assertions are unchanged. A separate31-sample Nodes CPU
+measurement and before/after shell results identify scope; shell p95 can vary and no whole-frame/
+process-memory/GPU/physical acceptance is inferred. C++ SceneDocument consumers must rebuild.
+
 ## Ownership and lifetime
 
 `Review newer source` in a bound scene Inspector explicitly requests an owning three-way Core

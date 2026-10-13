@@ -512,6 +512,8 @@ public:
   [[nodiscard]] std::string_view Name(runtime::Id entity) const;
   // In runtime sibling order (scene storage order), so a Hierarchy view can list children as
   // ordered by Move and the runtime.
+  // Owns copied scalar records in Runtime storage order; names remain document string borrows.
+  // Serialized owner-thread observation; validates a metadata ID/slot index, never cached views.
   [[nodiscard]] std::vector<NodeView> Nodes() const;
 
 private:
@@ -578,6 +580,8 @@ private:
   runtime::Id scene_{};
   runtime::SceneEditor editor_;
   std::vector<Node> nodes_;
+  // Slots are self-validated against every current node ID/order before use. No node/World borrow.
+  mutable std::unordered_map<runtime::Id, std::size_t> node_view_slots_;
   std::vector<runtime::Id> selection_;
   std::vector<ClipboardNode> clipboard_;
   bool clipboard_cut_pending_{};
