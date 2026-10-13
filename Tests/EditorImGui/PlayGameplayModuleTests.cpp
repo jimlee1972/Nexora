@@ -104,6 +104,23 @@ int main() {
     Require(host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.move_x == 0,
             "input callback retained a pressed key after focus loss");
+    Nexora::Window::WindowEvent acquisition_blur;
+    acquisition_blur.type = Nexora::Window::WindowEventType::FocusChanged;
+    for (const std::uint32_t user : {0U, 3U}) {
+      Require(module.SetInputUser(user), "acquisition release user selection failed");
+      module.SetInputFocus(true);
+      module.ProcessInput(std::array{right, acquisition_blur});
+      module.ProcessInput(std::array{right});
+      NexoraInputSnapshot inactive{};
+      Require(host.capture_input(host.context, user, &snapshot) == NEXORA_GAMEPLAY_OK &&
+                  snapshot.move_x == 0 && snapshot.buttons == 0 &&
+                  host.capture_input(host.context, user == 0 ? 3 : 0, &inactive) ==
+                      NEXORA_GAMEPLAY_OK &&
+                  inactive.move_x == 0 && inactive.buttons == 0 &&
+                  inactive.sequence == snapshot.sequence,
+              "acquisition blur leaked pressed input through gameplay callback lanes");
+    }
+    Require(module.SetInputUser(0), "default input owner restore failed");
     Require(play.Resume(), "deferred input fixture resume failed");
     editor::preview::ForwardPlayInput(play, module, true, {});
     editor::preview::ForwardPlayInput(play, module, true, std::array{right});

@@ -782,6 +782,11 @@ creates property widgets; unknown components retain raw data instead of being si
     unload reset their respective identity. Default user0 and the stable C ABI remain compatible;
     no selection is persisted. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md).
     Simultaneous device owners, gamepads and pointer-look remain open.
+  - ✅ Play input acquisition now honors native blur and pressed Escape before suppressing the
+    first batch. Release wins regardless of event order; later batches remain neutral until explicit
+    reacquisition, whose first batch is still discarded. State and actual gameplay callback tests
+    cover owning snapshots, advancing sequences and neutral selected/unselected users.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayAcquisitionRelease-Linux-2026-10-13.md).
   - ✅ Selecting a Game entity now opens a read-only Play Inspector with copied local/world poses,
     parent and scene state, Camera/Light values, and full-width mesh/shader IDs. The Game panel shows
     pause reasons and callback failure counts; per-frame and fixed callback failures both release input.

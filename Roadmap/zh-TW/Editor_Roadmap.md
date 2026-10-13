@@ -737,6 +737,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   保持相容，selection 不會持久化。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md)。
   同時多裝置 owner、gamepad 與 pointer-look 仍待完成。
+- ✅ Play input acquisition 現會先處理 native 失焦與按下 Escape，再丟棄第一批輸入。
+  不論事件順序，release 都優先；後續批次維持中立，直到明確重新取得 focus，而重新取得的
+  第一批仍會丟棄。State 與真正 gameplay callback 測試涵蓋 owning snapshot、持續遞增
+  sequence，以及 selected／unselected user 的中立輸入。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayAcquisitionRelease-Linux-2026-10-13.md)。
 - ✅ 選取 Game entity 現會開啟唯讀 Play Inspector，顯示複製的 local／world pose、parent、
   scene state、Camera／Light 與完整寬度的 mesh／shader ID。Game panel 顯示暫停原因及 callback
   失敗次數；每 frame 與 fixed callback 失敗皆會釋放 input。快照在元件移除與 Stop 後仍有效，

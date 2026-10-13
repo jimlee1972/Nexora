@@ -42,6 +42,32 @@ int main() {
     const auto copied = input.Snapshot();
     Require(copied.move_x == 1 && copied.buttons == 3 && copied.reserved == 0,
             "copied input mapping failed");
+    WindowEvent acquisition_blur;
+    acquisition_blur.type = WindowEventType::FocusChanged;
+    acquisition_blur.value0 = 0;
+    for (const auto &release : {acquisition_blur, KeyEvent(Key::Escape, true)}) {
+      for (const bool release_first : {false, true}) {
+        preview::PlayInputState acquiring;
+        acquiring.SetFocused(true);
+        const std::array batch =
+            release_first ? std::array{release, held[0]} : std::array{held[0], release};
+        acquiring.Process(batch);
+        const auto released = acquiring.Snapshot();
+        acquiring.Process(held);
+        acquiring.Process({});
+        Require(acquiring.Snapshot().move_x == 0 && acquiring.Snapshot().buttons == 0 &&
+                    acquiring.Snapshot().sequence > released.sequence,
+                "acquisition release admitted later input without reacquisition");
+        acquiring.SetFocused(true);
+        acquiring.Process(held);
+        Require(acquiring.Snapshot().move_x == 0 && acquiring.Snapshot().buttons == 0,
+                "release recovery skipped acquisition suppression");
+        acquiring.Process(held);
+        Require(acquiring.Snapshot().move_x == 1 && acquiring.Snapshot().buttons == 3 &&
+                    released.move_x == 0 && released.buttons == 0,
+                "release recovery failed or changed the owning released snapshot");
+      }
+    }
     input.Process(std::array{KeyEvent(Key::A, true), KeyEvent(Key::W, true),
                              KeyEvent(Key::RightShift, true), KeyEvent(Key::LeftControl, true),
                              Mouse(1, true)});
