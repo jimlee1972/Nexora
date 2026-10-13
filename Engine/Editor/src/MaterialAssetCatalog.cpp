@@ -2,6 +2,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 
 #include <algorithm>
+#include <array>
 
 namespace nexora::editor {
 
@@ -89,23 +90,36 @@ std::optional<runtime::AssetUuid> ReadMaterialAssetReference(const SceneDocument
 bool AssignMaterialAsset(SceneDocument &scene, SceneDocument::NodeKey key, runtime::AssetUuid asset,
                          std::uint64_t expected_generation, const ProjectContentSession &content,
                          const MaterialAssetCatalog &catalog, bool editable) {
+  return AssignMaterialAssets(scene, std::array{key}, asset, expected_generation, content, catalog,
+                              editable);
+}
+
+bool AssignMaterialAssets(SceneDocument &scene, std::span<const SceneDocument::NodeKey> keys,
+                          runtime::AssetUuid asset, std::uint64_t expected_generation,
+                          const ProjectContentSession &content, const MaterialAssetCatalog &catalog,
+                          bool editable) {
   const auto selected = scene.Selection();
   const auto *item = content.Browser().Find(asset);
   const auto resolved = catalog.ResolveAsset(asset, expected_generation);
-  if (!editable || !content.Writable() || selected.size() != 1 || selected[0] != key.id ||
-      !scene.MeshRenderer(key) || content.Browser().ProjectGeneration() != expected_generation ||
-      !item || !item->material || !resolved || resolved->material != item->material)
+  if (!editable || !content.Writable() || keys.empty() || selected.size() != keys.size() ||
+      keys.size() > UnknownComponentStore::kMaximumComponents ||
+      content.Browser().ProjectGeneration() != expected_generation || !item || !item->material ||
+      !resolved || resolved->material != item->material)
     return false;
-  const auto components = scene.OpaqueComponents(key);
-  if (!components)
-    return false;
-  for (const auto &component : *components)
-    if ((component.type == kMaterialAssetReferenceType ||
-         component.type_name == kMaterialAssetReferenceName) &&
-        !DecodeReference(component.type, component.type_name, component.data.size(),
-                         component.data))
+  for (std::size_t index = 0; index < keys.size(); ++index) {
+    const auto key = keys[index];
+    if (selected[index] != key.id || !scene.MeshRenderer(key))
       return false;
-  return scene.SetOpaqueComponent(key, MaterialAssetReference(asset));
+    const auto components = scene.InspectOpaqueComponents(key);
+    if (!components)
+      return false;
+    for (const auto &component : *components)
+      if ((component.type == kMaterialAssetReferenceType ||
+           component.type_name == kMaterialAssetReferenceName) &&
+          !ReadMaterialAssetReference(component))
+        return false;
+  }
+  return scene.SetOpaqueComponents(keys, MaterialAssetReference(asset));
 }
 
 } // namespace nexora::editor

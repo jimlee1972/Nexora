@@ -790,8 +790,10 @@ unchanged settings/scene bytes. Expanded devices/users and physical-host accepta
 ### Authored scalar PBR Scene materials
 
 The application publishes a generation-scoped material catalog alongside its mesh catalog after
-activation and successful Content changes. Inspector single-object assignment persists a versioned
-UUID reference through document Undo/Redo and save/reopen, preserving legacy shader IDs. Valid
+activation and successful Content changes. Inspector single/multiple-object assignment persists
+versioned UUID references through one atomic document Undo/Redo and save/reopen, preserving legacy
+shader IDs. Mixed references/presence show Mixed; missing Mesh Renderers or unsupported references
+reject the entire batch. Valid
 `.nmaterial` scalar assets produce actual per-batch Presentation PBR slots in Scene View. A palette
 reserves neutral fallback slot zero and at most 63 unique authored UUIDs; unresolved/over-budget
 references remain stored. Authored slots use white instance tint so selection does not recolor the
@@ -800,8 +802,9 @@ existing Lambert preview stays active. Geometry tangents come from Renderer, inc
 with no usable UVs, while the submitted world matrix retains shear/mirroring.
 
 Every draw owns its temporary palette and converted geometry until `DrawScene` returns; native
-Presentation fences retain submitted storage. Geometry is still converted/uploaded per frame:
-persistent per-asset GPU caching is open. This is scalar opaque Scene material assignment, not
+Presentation fences retain submitted storage. CPU geometry conversion remains per frame; optional
+immutable native mesh residency reuses exact geometry independently of frame layout (see
+[ADR-0008](../../Roadmap/en/ADR-0008-Editor-Mesh-Geometry-Residency.md)). This is scalar opaque Scene material assignment, not
 texture/shader-graph editing, shipping asset cooking or full physical/multi-DPI
 Scene View acceptance. See [ADR-0005](../../Roadmap/en/ADR-0005-Editor-Scalar-PBR-Materials.md).
 

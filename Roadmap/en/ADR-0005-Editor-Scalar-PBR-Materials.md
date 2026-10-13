@@ -43,11 +43,13 @@ not be overwritten by this version's assignment UI. Existing scene containers an
 schemas are unchanged. A future runtime/cook consumer needs its own explicit integration.
 
 The catalog resolves UUID only within the current nonzero project generation; snapshots own
-material data across reimport/unload. Inspector assignment requires one selected entity with a
-live Mesh Renderer, writable project/content, matching entity/document/project generations and
-the same live typed payload in Content and catalog. One accepted assignment uses the existing
-opaque-component Undo transaction. Multi-selection and removing the reference are separate work.
-Missing references stay stored and are shown honestly.
+material data across reimport/unload. Inspector assignment requires every selected entity to have a
+live Mesh Renderer, writable project/content, matching entity/document/project generations and the
+same live typed payload in Content and catalog. Requests own the complete selected-key vector;
+selection drift or an unsupported reference on any target rejects the entire batch. Bounded atomic
+opaque add/replace records one metadata Undo/Redo; equal batches preserve pending Redo. Mixed
+references/presence show Mixed. Removing the reference remains separate work. Missing references
+stay stored and are shown honestly.
 
 ## Drawing and remaining gates
 

@@ -1011,6 +1011,43 @@ bool SceneDocument::SetOpaqueComponent(NodeKey entity, OpaqueComponent component
   PushUndo(std::move(entry));
   return true;
 }
+bool SceneDocument::SetOpaqueComponents(std::span<const NodeKey> entities,
+                                        const OpaqueComponent &component) {
+  if (entities.empty() || entities.size() > UnknownComponentStore::kMaximumComponents)
+    return false;
+  auto store = CaptureOpaque(nodes_);
+  if (!store)
+    return false;
+  std::unordered_set<runtime::Id> unique;
+  bool changed = false;
+  for (const auto key : entities) {
+    if (Key(key.id) != key || !unique.insert(key.id).second)
+      return false;
+    const auto current = store->Find(key.id);
+    const auto found = std::ranges::find(current, component.type, &OpaqueComponent::type);
+    changed |= found == current.end() || *found != component;
+    if (!store->Set(key.id, component))
+      return false;
+  }
+  if (!changed)
+    return true;
+  auto staged_nodes = nodes_;
+  UndoEntry entry;
+  entry.kind = UndoEntry::Kind::OpaqueBatch;
+  entry.previous_opaque_batch.reserve(entities.size());
+  for (const auto key : entities) {
+    auto &node = *std::ranges::find(staged_nodes, key.id, &Node::id);
+    entry.previous_opaque_batch.emplace_back(key, node.opaque);
+    const auto found = std::ranges::find(node.opaque, component.type, &OpaqueComponent::type);
+    if (found == node.opaque.end())
+      node.opaque.push_back(component);
+    else
+      *found = component;
+  }
+  PushUndo(std::move(entry));
+  nodes_.swap(staged_nodes);
+  return true;
+}
 std::optional<std::vector<OpaqueComponent>> SceneDocument::OpaqueComponents(NodeKey entity) const {
   if (Key(entity.id) != entity)
     return std::nullopt;

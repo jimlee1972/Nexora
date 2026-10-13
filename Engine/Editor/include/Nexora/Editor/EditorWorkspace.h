@@ -341,6 +341,9 @@ public:
   // Editor-owned missing-plugin payloads. Writes are generation checked and undoable;
   // inspection returns an owning copy, never a pointer into node storage.
   bool SetOpaqueComponent(NodeKey entity, OpaqueComponent component);
+  // Bounded add/replace of one shared payload across unique live entities. One metadata Undo;
+  // validation or a no-op preserves every payload and pending Redo.
+  bool SetOpaqueComponents(std::span<const NodeKey> entities, const OpaqueComponent &component);
   struct OpaqueComponentEdit final {
     NodeKey entity;
     OpaqueComponent expected;

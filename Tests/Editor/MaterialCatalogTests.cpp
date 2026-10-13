@@ -1,4 +1,5 @@
 #include "MaterialScenePreview.h"
+#include <array>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
@@ -8,9 +9,51 @@ void Require(bool ok, const char *message) {
   if (!ok)
     throw std::runtime_error(message);
 }
+void CheckOpaqueBatch() {
+  using namespace nexora;
+  runtime::World world;
+  const auto id = world.LoadScene("Opaque batch admission");
+  Require(world.Activate(id), "opaque batch activation failed");
+  editor::SceneDocument scene(world, id);
+  const auto first = scene.Create("First");
+  const auto second = scene.Create("Second");
+  const std::array keys{*scene.Key(first), *scene.Key(second)};
+  for (std::uint64_t type = 1; type <= editor::UnknownComponentStore::kMaximumComponentsPerEntity;
+       ++type)
+    Require(scene.SetOpaqueComponent(keys[1], {type, "Preserved plugin", {7}}),
+            "opaque batch capacity fixture failed");
+  const editor::OpaqueComponent added{991, "New payload", {1, 2, 3}};
+  Require(scene.SetOpaqueComponent(keys[0], added) && scene.Undo(),
+          "opaque batch pending Redo fixture failed");
+  const auto before_first = scene.OpaqueComponents(keys[0]);
+  const auto before_second = scene.OpaqueComponents(keys[1]);
+  const auto before_world = world.SaveScene(id);
+  auto stale = keys[1];
+  ++stale.entity_generation;
+  Require(!scene.SetOpaqueComponents({}, added) &&
+              !scene.SetOpaqueComponents(std::array{keys[0], keys[0]}, added) &&
+              !scene.SetOpaqueComponents(std::array{keys[0], stale}, added) &&
+              !scene.SetOpaqueComponents(keys, added) &&
+              scene.OpaqueComponents(keys[0]) == before_first &&
+              scene.OpaqueComponents(keys[1]) == before_second &&
+              world.SaveScene(id) == before_world && scene.Redo() && scene.Undo(),
+          "late capacity/invalid key rejection changed payloads, Runtime or Redo");
+  const editor::OpaqueComponent replacement{1, "Preserved plugin", {9}};
+  Require(scene.SetOpaqueComponents(keys, replacement) &&
+              scene.OpaqueComponents(keys[0])->front() == replacement &&
+              scene.OpaqueComponents(keys[1])->front() == replacement && scene.Undo() &&
+              scene.OpaqueComponents(keys[0]) == before_first &&
+              scene.OpaqueComponents(keys[1]) == before_second && scene.Redo(),
+          "opaque batch add/replace did not share one Undo/Redo transaction");
+  Require(scene.SetTransform(first, runtime::Transform{5, 0, 0}) && scene.Undo() &&
+              scene.SetOpaqueComponents(keys, replacement) && scene.Redo() &&
+              scene.Transform(first)->x == 5,
+          "equal opaque batch consumed unrelated Runtime Redo");
+}
 } // namespace
 int main() {
   try {
+    CheckOpaqueBatch();
     using namespace nexora;
     const auto parsed = editor::ImportMaterial(
         "NEXORA_MATERIAL 1 base_color 1 0 0 metallic 0 roughness 0.5 occlusion 1 emission 0 0 0");

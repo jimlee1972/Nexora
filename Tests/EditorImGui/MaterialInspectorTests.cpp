@@ -213,8 +213,8 @@ int main() {
     reject(key, asset, 7);
     Require(scene.Select(std::array{entity, other}), "multi-selection failed");
     reject(key, asset, 7);
-    Require(Access::InspectorMaterialLabel(ui) == "Single selection required",
-            "multi-selection did not explain material limitation");
+    Require(Access::InspectorMaterialLabel(ui) == "Unassigned",
+            "equal absent material references were incorrectly mixed");
     Require(!editor::ReadMaterialAssetReference(scene, other_key),
             "multi-selection partially assigned another entity");
     Require(scene.Select(std::array{entity}), "reselection failed");
@@ -269,6 +269,98 @@ int main() {
             "missing material erased saved reference");
     Require(content.Undo(&error) && materials.PublishContent(content.Browser(), &error),
             "material content Undo failed");
+    // Actual multi-selection widgets publish one metadata transaction, including initial
+    // references, while preserving each object's native shader and mesh values.
+    const auto multi_other = *scene.Key(other);
+    Require(scene.Select(std::array{entity, other}), "material batch selection failed");
+    draw();
+    Require(Access::InspectorMaterialLabel(ui) == "Mixed", "mixed material references hidden");
+    for (const float scale : {1.F, 2.F}) {
+      pointer_scale = scale;
+      ui.SetDisplay(1280, 1600, scale);
+      Access::FocusInspector(ui);
+      draw();
+      draw();
+      click(0);
+      draw();
+      click(1);
+      Require(editor::ReadMaterialAssetReference(scene, key) == asset &&
+                  editor::ReadMaterialAssetReference(scene, multi_other) == asset &&
+                  scene.MeshRenderer(key)->mesh == mesh.mesh &&
+                  scene.MeshRenderer(multi_other)->mesh == mesh.mesh &&
+                  scene.MeshRenderer(key)->material.shader == mesh.material.shader &&
+                  scene.MeshRenderer(multi_other)->material.shader == mesh.material.shader,
+              "actual multi-material widget changed mesh/shader or failed assignment");
+      Require(scene.Undo() && !scene.Dirty() &&
+                  editor::ReadMaterialAssetReference(scene, key) == asset &&
+                  !editor::ReadMaterialAssetReference(scene, multi_other),
+              "multi-material assignment did not Undo atomically to clean baseline");
+    }
+    const std::array material_keys{key, multi_other};
+    const auto reject_batch = [&](std::span<const editor::SceneDocument::NodeKey> requested,
+                                  std::uint64_t generation) {
+      Access::QueueInspectorMaterials(ui, requested, asset, generation);
+      draw();
+      Require(!scene.Dirty() && !editor::ReadMaterialAssetReference(scene, multi_other),
+              "rejected material batch partially published");
+    };
+    reject_batch(std::array{key}, 7);
+    reject_batch(std::array{key, key}, 7);
+    reject_batch(std::array{old_key, multi_other}, 7);
+    reject_batch(material_keys, 6);
+    Access::QueueInspectorMaterials(ui, material_keys, asset, 7);
+    Require(scene.Select(std::array{entity}), "batch stale selection fixture failed");
+    draw();
+    Require(!scene.Dirty() && !editor::ReadMaterialAssetReference(scene, multi_other),
+            "changed selection revived a queued material batch");
+    Require(scene.Select(std::array{entity, other}), "batch reselection failed");
+    Access::QueueInspectorMaterials(ui, material_keys, asset, 7);
+    ui.ProcessEvents(std::array{lost, focus});
+    draw();
+    Require(!scene.Dirty() && !editor::ReadMaterialAssetReference(scene, multi_other),
+            "focus cancellation revived a queued material batch");
+    Require(scene.Redo() && editor::ReadMaterialAssetReference(scene, multi_other) == asset,
+            "rejected material batches consumed Redo");
+    Require(scene.Save(path), "material batch save failed");
+    Require(scene.SetTransform(other, runtime::Transform{8, 0, 0}) && scene.Undo(),
+            "material batch no-op Redo fixture failed");
+    Access::QueueInspectorMaterials(ui, material_keys, asset, 7);
+    draw();
+    Require(!scene.Dirty() && scene.Redo() && scene.Transform(other)->x == 8 && scene.Undo(),
+            "equal material batch consumed unrelated Redo");
+    Require(scene.Reload(path), "material batch reopen failed");
+    key = *scene.Key(entity);
+    Require(editor::ReadMaterialAssetReference(scene, key) == asset &&
+                editor::ReadMaterialAssetReference(scene, *scene.Key(other)) == asset &&
+                scene.MeshRenderer(key)->mesh == mesh.mesh &&
+                scene.MeshRenderer(*scene.Key(other))->material.shader == mesh.material.shader,
+            "material batch reopen changed UUIDs or mesh/shader values");
+    const auto fresh = scene.Create("Unassigned batch target");
+    const auto bad = scene.Create("Unsupported batch target");
+    const std::array rejected_keys{*scene.Key(fresh), *scene.Key(bad)};
+    Require(
+        scene.SetMeshRenderers(rejected_keys, std::array{std::optional{mesh}, std::optional{mesh}}),
+        "unsupported material batch mesh fixture failed");
+    auto bad_reference = editor::MaterialAssetReference(asset);
+    bad_reference.data[0] = 2;
+    Require(scene.SetOpaqueComponent(rejected_keys[1], bad_reference) && scene.Save(path) &&
+                scene.Select(std::array{fresh, bad}),
+            "unsupported material batch fixture failed");
+    Access::QueueInspectorMaterials(ui, rejected_keys, asset, 7);
+    draw();
+    Require(!scene.Dirty() && !editor::ReadMaterialAssetReference(scene, rejected_keys[0]) &&
+                scene.OpaqueComponents(rejected_keys[1])->front() == bad_reference,
+            "late unsupported target partially assigned material or erased unknown bytes");
+    Require(scene.SetOpaqueComponent(rejected_keys[1], editor::MaterialAssetReference(asset)) &&
+                scene.SetMeshRenderer(rejected_keys[1], std::nullopt) && scene.Save(path),
+            "late missing Mesh Renderer fixture failed");
+    Access::QueueInspectorMaterials(ui, rejected_keys, asset, 7);
+    draw();
+    Require(!scene.Dirty() && !editor::ReadMaterialAssetReference(scene, rejected_keys[0]) &&
+                editor::ReadMaterialAssetReference(scene, rejected_keys[1]) == asset &&
+                Access::InspectorMaterialLabel(ui) == "No Mesh Renderer",
+            "late missing Mesh Renderer partially assigned a material batch");
+    Require(scene.Select(std::array{entity}), "final material reselection failed");
     auto unsupported = editor::MaterialAssetReference(asset);
     unsupported.data.front() = 2;
     Require(scene.SetOpaqueComponent(key, unsupported) && scene.Save(path),
