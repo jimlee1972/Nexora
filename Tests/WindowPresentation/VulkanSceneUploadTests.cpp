@@ -1,6 +1,7 @@
 // Trace real Vulkan allocation/submission calls while compiling the private adapter, following
 // the Metal pixel-test pattern. Production exposes no native handles or test-only entry points.
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
@@ -251,7 +252,7 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
   return mask ? static_cast<unsigned>((pixel & mask) * 255 / mask) : 0;
 }
 void Pixels(Display *display, ::Window window, unsigned width, unsigned height, bool green,
-            const std::filesystem::path &capture = {}) {
+            const std::filesystem::path &capture = {}, std::optional<unsigned> blueMarker = {}) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
   while (std::chrono::steady_clock::now() < deadline) {
     XSync(display, False);
@@ -259,9 +260,17 @@ void Pixels(Display *display, ::Window window, unsigned width, unsigned height, 
     Require(image != nullptr, "upload reuse readback failed");
     const auto pixel = XGetPixel(image, green ? width * 3 / 4 : width / 2, height / 2);
     const auto empty = XGetPixel(image, green ? width / 2 : width * 3 / 4, height / 2);
-    const bool matches =
+    bool matches =
         green ? Channel(pixel, image->green_mask) > 180 && Channel(pixel, image->red_mask) < 20
               : Channel(pixel, image->red_mask) > 180 && Channel(pixel, image->green_mask) < 20;
+    if (blueMarker) {
+      const auto observed = static_cast<int>(Channel(pixel, image->blue_mask));
+      const float linear = static_cast<float>(*blueMarker) / 255;
+      const auto srgb =
+          static_cast<int>(std::lround(255 * (1.055F * std::pow(linear, 1 / 2.4F) - 0.055F)));
+      matches = matches && (std::abs(observed - static_cast<int>(*blueMarker)) <= 3 ||
+                            std::abs(observed - srgb) <= 3);
+    }
     const bool background =
         Channel(empty, image->red_mask) < 80 && Channel(empty, image->green_mask) < 80;
     if (matches && background && !capture.empty()) {
@@ -315,17 +324,22 @@ void RunResidency() {
   draw.light_direction[2] = -1;
   draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
   unsigned width = 640, height = 480;
+  unsigned submission = 0;
   const auto submit = [&](bool green, bool pixels = true, bool geometryShift = false) {
     Require(surface->Acquire() == SurfaceStatus::Ready, "mesh residency acquire failed");
     instances[0].translation[0] = green && !geometryShift ? 0.75F : 0;
     materials[0].baseColor =
         green ? std::array<float, 4>{0, 1, 0, 1} : std::array<float, 4>{1, 0, 0, 1};
+    // Adjacent blue codes differ under both supported display transfers. This excludes an
+    // asynchronously presented prior frame even when successive geometry/material poses match.
+    const unsigned marker = (++submission % 8 + 1) * 8;
+    materials[0].baseColor[2] = static_cast<float>(marker) / 255;
     draw.vertices = vertices;
     Require(surface->DrawScene(draw) == SurfaceStatus::Ready &&
                 surface->Present() == SurfaceStatus::Ready,
             "mesh residency submit failed");
     if (pixels)
-      Pixels(display, native, width, height, green);
+      Pixels(display, native, width, height, green, {}, marker);
   };
   for (int frame = 0; frame < 6; ++frame)
     submit(frame % 2 != 0);

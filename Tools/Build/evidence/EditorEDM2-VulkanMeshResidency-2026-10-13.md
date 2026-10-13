@@ -22,18 +22,22 @@ allocation/mapping failure fallback and retry, legacy/cached/legacy prefix-key c
 eviction only after completion, injected idle failure preserving prior ownership, resize hits and
 zero retained CPU/native allocations after teardown. These are cache-specific bytes, not total
 GPU memory or device-local VRAM. Existing frame upload/target/texture budgets remain separate.
+Each residency submission carries a distinct adjacent blue marker, checked under linear/sRGB
+display transfer, so repeated poses cannot accidentally accept an asynchronously presented prior frame.
 
 Linux cloud results:
 
 - `cmake --preset linux-development`: passed.
 - `cmake --build --preset linux-development`: passed, 437 actions.
-- `ctest --preset linux-development --output-on-failure`: 248/248 passed, no skips, 835.46 seconds.
+- Initial `ctest --preset linux-development --output-on-failure`: 248/248 passed, no skips, 835.46 seconds.
   Portable residency, real Vulkan tracing and PBR pixels, and actual Editor Scene/OBJ fixtures ran.
 - `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping`: passed, 9 actions.
 - Targeted portable/native residency tests passed (2/2, 2.86 seconds); common Vulkan PBR residency
   passed (6.76 seconds) with its original 105-submit/shadow/reflection pixel guards unchanged.
 - Touched C++ format, `git diff --check`, changed Markdown/link/bilingual validation and
   `python3 Tools/Build/TestDocumentationCI.py`: passed (16 documentation tests).
+- Fresh-marker native fixture: passed (2.94 seconds). Final source-head full-gate and hosted results
+  are recorded in [PR #578](https://github.com/jimlee1972/Nexora/pull/578) and Beads.
 
 Hosted results are recorded in the associated PR and Beads; Linux cloud execution alone does not
 claim Windows/macOS native execution. The shared PBR fixture requests residency only when supported.
