@@ -1912,3 +1912,22 @@ The profile remains one shared owning keyboard/mouse mapping with unchanged pers
 The native owner and Game panel route one source to a session-only selected lane; callback scope,
 focus revocation, neutral unselected snapshots and reset behavior are documented in Apps/Editor.
 No device enumeration, simultaneous-device ownership or stable ABI extension is implied.
+
+
+## Validated hierarchy snapshot metadata indices
+
+`SceneDocument::Nodes()` reuses an ID-to-owned-metadata-slot index after validating current size,
+IDs and slot order. Same-count replacement/permutation triggers a fresh-map rebuild; stale keys/
+capacity are released on publication. Cache entries own only integers, with no metadata, Runtime,
+native or returned-view borrow. Returned vectors/scalars follow current Runtime storage/parent
+order and current names/entity/document generations. Names remain document string-view borrows;
+consume them synchronously before relevant document mutation/destruction. Untracked Runtime entities
+remain omitted, and snapshot observation changes no authoring data/history/baseline. Calls remain
+serialized on the authoring owner thread, including const observations of the private memo.
+
+Storage scales with the last validated metadata input until rebuild; fresh-map failure preserves
+old memo/document/World. O(n) validation/output traversal and other frame work remain; this reduces
+repeated hash-node allocation, not total process memory or a constant-work production frame budget.
+The private SceneDocument C++ layout grows and consumers must rebuild. Stable C/Zig/scene formats
+and module dependencies are unchanged. Scoped CPU/100k ImGui evidence does not certify native GPU,
+production asset scale, total memory or physical/long-duration soak budgets.

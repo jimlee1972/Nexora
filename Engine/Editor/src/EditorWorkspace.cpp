@@ -1970,15 +1970,32 @@ std::string_view SceneDocument::Name(runtime::Id entity) const {
 std::vector<SceneDocument::NodeView> SceneDocument::Nodes() const {
   std::vector<NodeView> result;
   result.reserve(nodes_.size());
-  std::unordered_map<runtime::Id, const Node *> indexed;
-  indexed.reserve(nodes_.size());
-  for (const auto &node : nodes_)
-    indexed.emplace(node.id, &node);
+  bool indexed = node_view_slots_.size() == nodes_.size();
+  if (indexed)
+    for (std::size_t slot = 0; slot < nodes_.size(); ++slot) {
+      const auto found = node_view_slots_.find(nodes_[slot].id);
+      if (found == node_view_slots_.end() || found->second != slot) {
+        indexed = false;
+        break;
+      }
+    }
+  if (!indexed) {
+    // Stage a fresh map: failures leave document/World untouched, and publication releases stale
+    // keys/capacity instead of retaining the largest historical document. Values are indices,
+    // never addresses; same-count replacement/permutation is detected by the validation above.
+    std::unordered_map<runtime::Id, std::size_t> slots;
+    slots.reserve(nodes_.size());
+    for (std::size_t slot = 0; slot < nodes_.size(); ++slot)
+      slots.emplace(nodes_[slot].id, slot);
+    node_view_slots_.swap(slots);
+  }
   if (const auto *scene = world_.FindScene(scene_))
     for (const auto &entity : scene->entities)
-      if (const auto found = indexed.find(entity.id); found != indexed.end())
-        result.push_back({entity.id, entity.parent, found->second->name, found->second->generation,
-                          document_generation_});
+      if (const auto found = node_view_slots_.find(entity.id); found != node_view_slots_.end()) {
+        const auto &node = nodes_[found->second];
+        result.push_back(
+            {entity.id, entity.parent, node.name, node.generation, document_generation_});
+      }
   return result;
 }
 } // namespace nexora::editor
