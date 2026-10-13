@@ -415,6 +415,11 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   memory；其他 backend 回報 unavailable。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM2-VulkanGeometryReuse-Linux-2026-10-13.md)。
   Persistent per-asset GPU cache 與完整圖形化驗收仍待完成。
+- ✅ DX12 Scene／UI upload 放大現會在 staged allocation 成功後，一起提交 resource 與容量。
+  失敗保留既有 live upload，供較小 draw 重試；空 resource 不會沿用殘留容量，overflow
+  在 allocation 前拒絕。Portable ownership／fault tests 與 fresh hosted native runtime
+  檢查保留既有 descriptor 及 fence 約定。
+  [證據](../../Tools/Build/evidence/EditorEDM2-Dx12UploadGrowth-2026-10-13.md)。
 
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步

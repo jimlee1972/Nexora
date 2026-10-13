@@ -112,6 +112,15 @@ later draw failure and remain cumulative through resize; retained CPU bytes retu
 teardown. These bytes are not GPU-memory measurements. This public C++ diagnostics layout requires
 consumers to rebuild; the stable C ABI is unchanged. No tracing or native handles are exported.
 
+DX12 Scene/UI upload growth stages a new committed resource and its geometric capacity before
+replacing either retained value. A failed or empty candidate leaves the live resource/capacity
+unchanged, so a smaller corrected draw can reuse it. Empty resources always allocate, regardless of
+stale capacity; geometric size overflow rejects before allocation. Successful replacement releases
+the old resource only after the caller's existing owning-slot fence wait. UI reallocation counters
+advance only for committed replacements. The shared private helper's portable owning-resource tests
+exercise partial failure, smaller retry, empty success, overflow and lifetime conservation; actual
+DX12 runtime validation is recorded separately. No public layout, C ABI or submission ordering changes.
+
 An application with unsaved work may call `CancelCloseRequest()` after `BeginFrame()` reports a user
 close and before the next frame, then render its confirmation dialog. The call fails when the native
 window was destroyed externally, or the surface has been drained. Existing consumers that do not
