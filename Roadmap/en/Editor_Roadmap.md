@@ -445,6 +445,13 @@ creates property widgets; unknown components retain raw data instead of being si
   [Evidence](../../Tools/Build/evidence/EditorEDM2-NativeGeometryReuse-2026-10-13.md).
   Persistent per-asset GPU residency and full target-host ED-M2 acceptance remain open.
 
+- ✅ Scene/Game frame geometry append now prepares both bounded capacities before publishing
+  vertices or indices. Allocation failure returns the existing unavailable-mesh fallback, preserving
+  prior contents/ranges and allowing retry; fitting appends do not allocate. Isolated real-vector
+  fault tests cover both growth points and unchanged attributes/rebased retry indices. This supports
+  ED-M2 failure handling; persistent per-asset GPU residency and full graphical acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-GeometryAllocation-2026-10-13.md).
+
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
   Default names follow type choices while custom names remain. Queued owning requests recheck

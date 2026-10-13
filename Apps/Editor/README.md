@@ -439,6 +439,13 @@ rotation, preview/release pixel equality, and one-step Undo. Closed-form three-l
 fixtures distinguish exact silhouette hits from lossy TRS misses and check owning matrix conversion.
 Material shaders and persistent per-resource GPU caching remain open.
 
+Frame geometry append prepares both bounded vector capacities before publishing any vertices or
+indices. Allocation failure returns the existing unavailable-mesh fallback without changing element
+contents, sizes or prior ranges; reserved capacity may grow. Growth remains geometric within the
+upload limits, and a fitting append performs no allocation. This covers only geometry vector growth,
+not every allocation in the frame builder. An isolated executable faults each real vector allocation
+and verifies unchanged attributes/ranges and successful retry with correctly rebased indices.
+
 OBJ reimport now publishes an owning geometry payload together with the artifact hash, after its
 source/project/dependency revisions and live geometry budget pass validation. The application
 refreshes its CPU catalog when the live Content Browser revision changes, before drawing native
