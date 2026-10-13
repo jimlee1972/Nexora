@@ -425,8 +425,14 @@ creates property widgets; unknown components retain raw data instead of being si
 - ✅ Vulkan Scene/Game uploads now reuse bounded capacity in fence-protected frame slots.
   Steady, smaller and Scene-free frames retain allocation; growth stages replacement before retiring
   old storage, and resize/teardown drains GPU work. Native call tracing and pixels verify 100 steady
-  frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
-  copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
+  frames, maximum descriptor budgets, failed growth and leak-free lifetime.
+- ✅ Vulkan Scene/Game slots now reuse exact unchanged vertex/index uploads with a bounded owning
+  CPU key. Instances/materials remain fresh; growth, resize and teardown invalidate allocation-bound
+  reuse. Native pixels and tracing verify changed instances, geometry and instance-only growth,
+  failed growth conservation and released payloads. Copied diagnostics distinguish uploads/hits and
+  CPU payload bytes from GPU memory; other backends report unavailable.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM2-VulkanGeometryReuse-Linux-2026-10-13.md).
+  Persistent per-asset GPU caching and full graphical acceptance remain open.
 
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.

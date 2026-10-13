@@ -59,6 +59,15 @@ struct SurfaceGpuTiming final {
   std::optional<double> milliseconds;
 };
 
+// Copied observations of geometry-prefix reuse, independent of instance/material uploads.
+// Unavailable backends leave available false. retainedCpuBytes counts owned comparison payloads,
+// not device memory; uploads/hits count actual writes/skipped writes, including later draw
+// failures.
+struct SceneGeometryUploadCacheDiagnostics final {
+  bool available{};
+  std::uint64_t uploads{}, hits{}, retainedCpuBytes{};
+};
+
 struct SurfaceDiagnostics final {
   SurfaceGpuTiming gpuTiming;
   std::uint64_t acquiredFrames = 0;
@@ -84,6 +93,7 @@ struct SurfaceDiagnostics final {
   // Submitted frames that require swapchain replacement instead of reporting successful present.
   std::uint64_t recoverablePresentFrames = 0;
   SurfaceDeviceInfo device;
+  SceneGeometryUploadCacheDiagnostics sceneGeometryUploadCache;
 };
 
 struct UiVertex final {

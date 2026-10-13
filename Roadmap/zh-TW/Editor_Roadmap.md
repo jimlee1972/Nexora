@@ -407,8 +407,14 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 - ✅ Vulkan Scene／Game upload 現會重用 fence-protected frame slot 的有界容量。穩定、縮小
   或沒有 Scene 的 frame 保留配置；放大時先完成新配置才釋放舊配置，resize／teardown 會等待
   GPU 完成。Native call tracing 與像素測試驗證 100 個穩定 frame、最大 descriptor 預算、
-  放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
-  及完整圖形化驗收仍待完成。
+  放大失敗及無洩漏生命週期。
+- ✅ Vulkan Scene／Game slot 現透過有界 owning CPU key 重用完全相同的 vertex／index upload。
+  Instance／material 仍逐幀更新；放大、resize 與 teardown 使 allocation-bound 重用失效。
+  Native pixels 與 tracing 驗證 instance 變更、geometry／instance-only 放大、放大失敗保留
+  及 payload 釋放。Copied diagnostics 區分 uploads／hits 與 CPU payload bytes，不推論 GPU
+  memory；其他 backend 回報 unavailable。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM2-VulkanGeometryReuse-Linux-2026-10-13.md)。
+  Persistent per-asset GPU cache 與完整圖形化驗收仍待完成。
 
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
