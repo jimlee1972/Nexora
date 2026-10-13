@@ -232,6 +232,22 @@ int main(int argc, char **argv) {
                 (!mesh_profile.MeshMemory().native_allocation_bytes ||
                  *mesh_profile.MeshMemory().native_allocation_bytes == 0),
             "native teardown did not publish released/unavailable allocations");
+    std::string capture_error;
+    Require(f.workspace.ExportMeshMemoryJson(mesh_profile.MeshMemorySamples(),
+                                             mesh_profile.MeshMemoryDroppedCount(), &capture_error),
+            "native allocation history export failed");
+    auto memory_capture = f.workspace.ImportMeshMemoryJson(&capture_error);
+    Require(memory_capture && memory_capture->samples.size() == 6 && capture_error.empty(),
+            "native allocation history import failed");
+    for (std::size_t i = 0; i < memory_capture->samples.size(); ++i) {
+      const auto &saved_memory = memory_capture->samples[i];
+      const auto &live_memory = mesh_profile.MeshMemorySamples()[i];
+      Require(saved_memory.sequence == live_memory.sequence &&
+                  saved_memory.elapsed_ms == live_memory.elapsed_ms &&
+                  saved_memory.native_allocation_bytes == live_memory.native_allocation_bytes &&
+                  saved_memory.cpu_key_payload_bytes == live_memory.cpu_key_payload_bytes,
+              "native allocation capture changed measured bytes/time or released state");
+    }
     surface.reset();
     XCloseDisplay(display);
     windows->Destroy(window.handle);

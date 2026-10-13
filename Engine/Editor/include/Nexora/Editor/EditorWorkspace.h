@@ -74,6 +74,7 @@ public:
   static constexpr std::size_t kMaximumFrameProcessingCsvBytes = 128 * 1024;
   static constexpr std::size_t kMaximumFrameProcessingJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumProcessMemoryJsonBytes = 128 * 1024;
+  static constexpr std::size_t kMaximumMeshMemoryJsonBytes = 192 * 1024;
   static constexpr std::size_t kMaximumGpuTimingJsonBytes = 128 * 1024;
   static constexpr std::size_t kMaximumPlayInputSettingsBytes = 1024;
   static constexpr std::size_t kMaximumProjectDescriptorBytes = 4096;
@@ -122,6 +123,12 @@ public:
                                std::uint64_t dropped_samples, std::string *error = nullptr);
   [[nodiscard]] std::optional<ProcessMemoryCapture>
   ImportProcessMemoryJson(std::string *error = nullptr) const;
+  // Retained native mesh allocation and CPU-key payload bytes; neither RSS nor total VRAM.
+  // Synchronous samples are borrowed only during export; imports own all data, no native domains.
+  bool ExportMeshMemoryJson(std::span<const MeshMemorySample> samples,
+                            std::uint64_t dropped_samples, std::string *error = nullptr);
+  [[nodiscard]] std::optional<MeshMemoryCapture>
+  ImportMeshMemoryJson(std::string *error = nullptr) const;
   // Separate native completed command-buffer intervals; unavailable samples remain JSON null.
   // Destination project UUID is provenance, not ownership of the process-wide surface history.
   bool ExportGpuTimingJson(GpuProfileSource source, bool software_rasterizer,
