@@ -10,6 +10,7 @@
 #include "ScenePbrHlslShaders.h"
 #include "SceneTextureMipmaps.h"
 #include "SceneToneHlslShaders.h"
+#include "StagedUploadAllocation.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
 #include <algorithm>
@@ -1451,50 +1452,36 @@ private:
     return true;
   }
   bool EnsureSceneUpload(std::size_t required) {
-    if (sceneUploadCapacity_[frame_] >= required)
-      return true;
-    sceneUploadCapacity_[frame_] = 4096;
-    while (sceneUploadCapacity_[frame_] < required)
-      sceneUploadCapacity_[frame_] *= 2;
-    D3D12_HEAP_PROPERTIES heap{};
-    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
-    heap.CreationNodeMask = 1;
-    heap.VisibleNodeMask = 1;
-    D3D12_RESOURCE_DESC buffer{};
-    buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    buffer.Width = sceneUploadCapacity_[frame_];
-    buffer.Height = 1;
-    buffer.DepthOrArraySize = 1;
-    buffer.MipLevels = 1;
-    buffer.SampleDesc.Count = 1;
-    buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    return SUCCEEDED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &buffer,
-                                                      D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                      IID_PPV_ARGS(&sceneUploads_[frame_])));
+    return CreateUploadAllocation(sceneUploads_[frame_], sceneUploadCapacity_[frame_], required);
+  }
+  bool CreateUploadAllocation(ComPtr<ID3D12Resource> &resource, std::size_t &capacity,
+                              std::size_t required) {
+    return detail::EnsureUploadAllocation(
+        resource, capacity, required,
+        [&](ComPtr<ID3D12Resource> &candidate, std::size_t candidateCapacity) {
+          D3D12_HEAP_PROPERTIES heap{};
+          heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+          heap.CreationNodeMask = 1;
+          heap.VisibleNodeMask = 1;
+          D3D12_RESOURCE_DESC buffer{};
+          buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+          buffer.Width = candidateCapacity;
+          buffer.Height = 1;
+          buffer.DepthOrArraySize = 1;
+          buffer.MipLevels = 1;
+          buffer.SampleDesc.Count = 1;
+          buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+          return SUCCEEDED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &buffer,
+                                                            D3D12_RESOURCE_STATE_GENERIC_READ,
+                                                            nullptr, IID_PPV_ARGS(&candidate)));
+        });
   }
   bool EnsureUiUpload(std::size_t required) {
-    if (uiUploadCapacity_[frame_] >= required)
-      return true;
-    uiUploadCapacity_[frame_] = 4096;
-    while (uiUploadCapacity_[frame_] < required)
-      uiUploadCapacity_[frame_] *= 2;
-    D3D12_HEAP_PROPERTIES heap{};
-    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
-    heap.CreationNodeMask = 1;
-    heap.VisibleNodeMask = 1;
-    D3D12_RESOURCE_DESC buffer{};
-    buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-    buffer.Width = uiUploadCapacity_[frame_];
-    buffer.Height = 1;
-    buffer.DepthOrArraySize = 1;
-    buffer.MipLevels = 1;
-    buffer.SampleDesc.Count = 1;
-    buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &buffer,
-                                                D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                IID_PPV_ARGS(&uiUploads_[frame_]))))
+    const auto before = uiUploads_[frame_].Get();
+    if (!CreateUploadAllocation(uiUploads_[frame_], uiUploadCapacity_[frame_], required))
       return false;
-    ++diagnostics_.nativeUiBufferReallocations;
+    if (uiUploads_[frame_].Get() != before)
+      ++diagnostics_.nativeUiBufferReallocations;
     return true;
   }
   bool UploadUiTexture(const UiTextureUpload &upload, bool scene = false,

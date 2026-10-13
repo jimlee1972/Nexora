@@ -433,6 +433,11 @@ creates property widgets; unknown components retain raw data instead of being si
   CPU payload bytes from GPU memory; other backends report unavailable.
   [Linux evidence](../../Tools/Build/evidence/EditorEDM2-VulkanGeometryReuse-Linux-2026-10-13.md).
   Persistent per-asset GPU caching and full graphical acceptance remain open.
+- ✅ DX12 Scene/UI upload growth now commits resource and capacity together after a successful
+  staged allocation. Failure preserves the previous live upload for smaller retry; empty resources
+  never reuse stale capacity and overflow rejects before allocation. Portable ownership/fault tests
+  and fresh hosted native runtime checks preserve existing descriptor and fence contracts.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-Dx12UploadGrowth-2026-10-13.md).
 
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
