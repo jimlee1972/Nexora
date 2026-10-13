@@ -4,6 +4,11 @@
 **對應來源：跨平台3D_Engine_V1_完整規劃書_v1_2.md**  
 **用途：AI 施工、Engine Programmer 實作、系統拆分、Code Review、CI Gate。**
 
+> **2D Work Packet：** 僅引擎層擴充採 [2D 引擎 Roadmap](2D_Roadmap.md) 的 2D-M0～M10。
+> 先盤點既有 Contract，再按 Sprite／Atlas → 動畫／查詢／生命週期 → 批次／壓測 → Windows
+> Shipping → 製作工具的依賴施工。Portable、原生 GPU 與 Windows 主機證據分開記錄；
+> 不加入 Gameplay 任務，無實測不得宣稱 60 FPS。
+
 
 
 ---

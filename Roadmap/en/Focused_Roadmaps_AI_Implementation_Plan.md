@@ -35,6 +35,15 @@ Derive state machines, command/undo models, and wireframes from user stories bef
 
 ## 4. Waves and parallelism
 
+### Independent 2D capability extension
+
+[2D Engine Roadmap](2D_Roadmap.md) defines engine-only work packets 2D-M0–M10. Inventory current
+contracts before implementation, then follow Sprite/Atlas → animation/query/lifecycle → batching
+and stress → Windows Shipping → Editor tools. Use synthetic engine fixtures instead of gameplay;
+keep CPU/GPU measurements and target-host evidence separate from portable tests. M8/M9 and
+conditional M10 consume existing Editor contracts. Track 2D acceptance independently; the 60%
+progress above continues to use its original API/Zig/Editor denominator.
+
 | Wave | Safe parallel work | Exit/dependency rule |
 | --- | --- | --- |
 | 0 | inventory, ADRs, contract tables, fixtures | approve ABI conventions before bindings |

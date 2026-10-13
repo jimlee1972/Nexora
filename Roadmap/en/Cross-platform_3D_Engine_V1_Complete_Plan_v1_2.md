@@ -3,6 +3,11 @@
 **Engine Generation: V1.x — Production Foundation**
 **Target Platforms: Windows / macOS / Android / iOS**
 
+> **Focused 2D extension:** [2D Engine Roadmap](2D_Roadmap.md) tracks scene Sprite rendering,
+> frame animation, Atlas/import, lightweight collision, bulk updates, batching, performance,
+> Windows Shipping and 2D authoring. It reuses V1 foundations and excludes gameplay. All 11
+> dedicated capability milestones await acceptance; this does not revise V1 foundation completion.
+
 > This document is the **V1 Master Plan**. It integrates the previous complete engine architecture analysis, Architecture Completion Baseline, Scene/World/Streaming/HLOD, Input, UI, Physics, Animation, Audio, DataTable, Editor, Asset/Bundle, Build/CI, as well as the latest **Plugin SDK / Bridge Layer / Third-Party Extensions / Video & Media Framework**.
 >
 > If the earlier Plugin summary differs from the “V1 Plugin / Media Detailed Contract” at the end of the document, **the detailed Contract at the end shall prevail**.
