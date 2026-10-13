@@ -4,6 +4,11 @@
 **Corresponding Source: Cross-Platform3D_Engine_V1_Complete_Planning_v1_2.md**
 **Purpose: AI implementation, Engine Programmer implementation, system decomposition, Code Review, CI Gate.**
 
+> **2D work packets:** Use [2D Engine Roadmap](2D_Roadmap.md) IDs 2D-M0–M10 for the engine-only
+> extension. Inventory existing contracts first; follow Sprite/Atlas → animation/query/lifecycle
+> → batching/stress → Windows Shipping → authoring dependencies. Retain separate portable,
+> native-GPU and Windows target-host evidence; no gameplay tasks or 60 FPS claims without measurements.
+
 
 
 ---

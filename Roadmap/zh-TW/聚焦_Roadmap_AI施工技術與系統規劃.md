@@ -59,6 +59,14 @@ Roadmap/ADR 定義意圖；header/schema 定義 contract；tests 定義可執行
 
 ## 4. 分波次施工與並行限制
 
+### 獨立 2D 能力擴充
+
+[2D 引擎 Roadmap](2D_Roadmap.md) 定義僅引擎層的 2D-M0～M10 Work Packet。先盤點既有
+Contract，再依 Sprite／Atlas → 動畫／查詢／生命週期 → 批次與壓測 → Windows Shipping →
+Editor 工具施工。使用合成引擎 fixture，不加入 Gameplay；CPU／GPU 量測與主機證據和
+Portable 測試分開。M8／M9 與條件式 M10 沿用既有 Editor Contract；2D 驗收獨立追蹤，
+上方 60% 仍維持原 API／Zig／Editor 分母。
+
 | Wave | 可並行工作 | 禁止並行/完成條件 |
 | --- | --- | --- |
 | 0 | inventory、ADR、contract tables、fixtures | ABI conventions 未核准前不產生 bindings |
