@@ -43,7 +43,10 @@ Catalog 只在目前非零 project generation 解析 UUID；snapshot 在 reimpor
 entity／document／project generation，以及 Content 與 catalog 中相同的 live typed payload。
 Request 擁有完整 selected-key vector；選取變動或任一目標含不支援參照時拒絕整批。有界 atomic
 opaque add／replace 只產生一步 metadata Undo／Redo；相同值保留待執行 Redo。不同參照或 presence
-顯示 Mixed。移除參照仍另行處理。缺失參照保留且誠實顯示。
+顯示 Mixed。Unassigned 會明確移除完整選取範圍的支援版本參照，以一次有界 metadata
+Undo／Redo 提交；參照已缺席時保留其他待執行 Redo。移除要求目前 keys、live Mesh Renderer、
+可寫 Content 與 project generation，但不要求 source／catalog 解析。缺失參照會保留與顯示，
+直到使用者明確清除；不支援版本仍受保護。不改寫材質 source file 或 legacy mesh／shader 值。
 
 ## 繪製與剩餘 gate
 

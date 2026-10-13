@@ -50,5 +50,10 @@ NEXORA_EDITOR_API bool AssignMaterialAssets(SceneDocument &,
                                             runtime::AssetUuid, std::uint64_t expected_generation,
                                             const ProjectContentSession &,
                                             const MaterialAssetCatalog &, bool editable);
+// Clear only supported references on the complete current selection. Missing source/catalog
+// assets do not prevent removal; unsupported reserved payloads remain protected on every target.
+NEXORA_EDITOR_API bool ClearMaterialAssets(SceneDocument &, std::span<const SceneDocument::NodeKey>,
+                                           std::uint64_t expected_generation,
+                                           const ProjectContentSession &, bool editable);
 
 } // namespace nexora::editor

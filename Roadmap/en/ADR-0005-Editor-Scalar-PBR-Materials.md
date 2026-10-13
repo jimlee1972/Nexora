@@ -48,8 +48,11 @@ live Mesh Renderer, writable project/content, matching entity/document/project g
 same live typed payload in Content and catalog. Requests own the complete selected-key vector;
 selection drift or an unsupported reference on any target rejects the entire batch. Bounded atomic
 opaque add/replace records one metadata Undo/Redo; equal batches preserve pending Redo. Mixed
-references/presence show Mixed. Removing the reference remains separate work. Missing references
-stay stored and are shown honestly.
+references/presence show Mixed. Unassigned explicitly removes supported references across the complete
+selection using one bounded metadata Undo/Redo; absent references preserve unrelated Redo. Removal
+requires current keys, live Mesh Renderers and writable Content/project generation, but does not
+require source/catalog resolution. Missing references stay stored and visible until an explicit clear;
+unsupported versions remain protected. No material source file or legacy mesh/shader value changes.
 
 ## Drawing and remaining gates
 

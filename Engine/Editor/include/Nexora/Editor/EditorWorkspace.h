@@ -344,6 +344,9 @@ public:
   // Bounded add/replace of one shared payload across unique live entities. One metadata Undo;
   // validation or a no-op preserves every payload and pending Redo.
   bool SetOpaqueComponents(std::span<const NodeKey> entities, const OpaqueComponent &component);
+  // Atomic removal of one type from a bounded unique live batch. Absent payloads are a no-op;
+  // unrelated components remain owned and changed batches share one metadata Undo.
+  bool RemoveOpaqueComponents(std::span<const NodeKey> entities, runtime::TypeId type);
   struct OpaqueComponentEdit final {
     NodeKey entity;
     OpaqueComponent expected;

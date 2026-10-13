@@ -49,6 +49,24 @@ void CheckOpaqueBatch() {
               scene.SetOpaqueComponents(keys, replacement) && scene.Redo() &&
               scene.Transform(first)->x == 5,
           "equal opaque batch consumed unrelated Runtime Redo");
+  const auto remove_first = scene.OpaqueComponents(keys[0]);
+  const auto remove_second = scene.OpaqueComponents(keys[1]);
+  const auto remove_world = world.SaveScene(id);
+  auto remaining = *remove_second;
+  std::erase_if(remaining, [](const auto &component) { return component.type == 1; });
+  Require(scene.RemoveOpaqueComponents(keys, 1) && scene.OpaqueComponents(keys[0])->empty() &&
+              scene.OpaqueComponents(keys[1]) == remaining && world.SaveScene(id) == remove_world &&
+              scene.Undo() && scene.OpaqueComponents(keys[0]) == remove_first &&
+              scene.OpaqueComponents(keys[1]) == remove_second && scene.Redo(),
+          "opaque removal lost unrelated bytes/Runtime or failed one Undo/Redo");
+  Require(scene.SetTransform(first, runtime::Transform{9, 0, 0}) && scene.Undo(),
+          "opaque removal pending Runtime Redo fixture failed");
+  Require(!scene.RemoveOpaqueComponents({}, 1) && !scene.RemoveOpaqueComponents(keys, 0) &&
+              !scene.RemoveOpaqueComponents(std::array{keys[0], keys[0]}, 1) &&
+              !scene.RemoveOpaqueComponents(std::array{keys[0], stale}, 1) &&
+              scene.RemoveOpaqueComponents(keys, 1) && scene.Redo() &&
+              scene.Transform(first)->x == 9 && scene.OpaqueComponents(keys[1]) == remaining,
+          "invalid/absent opaque removal changed payloads or consumed pending Redo");
 }
 } // namespace
 int main() {

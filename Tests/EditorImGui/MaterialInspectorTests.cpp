@@ -3,6 +3,7 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 
 namespace {
@@ -13,6 +14,10 @@ void Require(bool value, const char *message) {
 void WriteMaterial(const std::filesystem::path &path, float red) {
   std::ofstream(path) << "NEXORA_MATERIAL 1 base_color " << red
                       << " 0.2 0.3 metallic 0.4 roughness 0.6 occlusion 1 emission 0 0 0\n";
+}
+std::string ReadBytes(const std::filesystem::path &path) {
+  std::ifstream input(path, std::ios::binary);
+  return {std::istreambuf_iterator<char>(input), {}};
 }
 } // namespace
 
@@ -58,11 +63,11 @@ int main() {
     float pointer_scale = 1;
     ui.SetDisplay(1280, 1600, pointer_scale);
     const auto draw = [&](const editor::MaterialAssetCatalog *catalog = nullptr,
-                          bool content_available = true) {
+                          bool content_available = true, bool catalog_available = true) {
       ui.BeginFrame();
       ui.DrawProductShell(shell, &scene, &workspace, content_available ? &content : nullptr,
                           nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                          catalog ? catalog : &materials);
+                          catalog_available ? (catalog ? catalog : &materials) : nullptr);
       static_cast<void>(ui.EndFrame());
     };
     draw();
@@ -75,7 +80,7 @@ int main() {
     Access::FocusInspector(ui);
     draw();
     draw();
-    const auto click = [&](std::size_t control) {
+    const auto click = [&](std::size_t control, bool catalog_available = true) {
       const auto point = Access::InspectorMaterialPosition(ui, control);
       Require(point.has_value(), "material control unavailable");
       Nexora::Window::WindowEvent pointer;
@@ -87,10 +92,10 @@ int main() {
       button.value0 = 0;
       button.value1 = 1;
       ui.ProcessEvents(std::array{pointer, button});
-      draw();
+      draw(nullptr, true, catalog_available);
       button.value1 = 0;
       ui.ProcessEvents(std::array{button});
-      draw();
+      draw(nullptr, true, catalog_available);
     };
     // The popup's owner may become unavailable between frames. Disabled styling is not an
     // ownership guard: do not dereference unavailable Content or revive a queued assignment.
@@ -375,6 +380,138 @@ int main() {
     key = *scene.Key(entity);
     Require(scene.OpaqueComponents(key)->front() == unsupported,
             "unknown-version bytes changed on reload");
+    // Explicit removal uses document-owned supported references, including missing sources.
+    const auto clear_first = scene.Create("Known clear target");
+    const auto clear_second = scene.Create("Missing clear target");
+    const std::array clear_keys{*scene.Key(clear_first), *scene.Key(clear_second)};
+    const runtime::AssetUuid missing_asset{0x1122334455667788ULL, 0x99aabbccddeeff00ULL};
+    const editor::OpaqueComponent other_payload{991, "Other plugin", {0, 7, 255}};
+    Require(
+        scene.SetMeshRenderers(clear_keys, std::array{std::optional{mesh}, std::optional{mesh}}) &&
+            scene.SetOpaqueComponent(clear_keys[0], editor::MaterialAssetReference(asset)) &&
+            scene.SetOpaqueComponent(clear_keys[1],
+                                     editor::MaterialAssetReference(missing_asset)) &&
+            scene.SetOpaqueComponent(clear_keys[0], other_payload) && scene.Save(path),
+        "material clear owning fixture failed");
+    const auto source_before_clear = ReadBytes(source);
+    const auto first_before_clear = scene.OpaqueComponents(clear_keys[0]);
+    const auto second_before_clear = scene.OpaqueComponents(clear_keys[1]);
+    Require(scene.Select(std::array{clear_first}), "single clear selection failed");
+    pointer_scale = 1;
+    ui.SetDisplay(1280, 1600, pointer_scale);
+    Access::FocusInspector(ui);
+    draw();
+    draw();
+    click(0);
+    draw();
+    click(2);
+    Require(!editor::ReadMaterialAssetReference(scene, clear_keys[0]) &&
+                scene.OpaqueComponents(clear_keys[0]) == std::vector{other_payload} &&
+                scene.Undo() && !scene.Dirty() &&
+                scene.OpaqueComponents(clear_keys[0]) == first_before_clear,
+            "actual single clear lost opaque data or failed Undo");
+    Require(scene.Select(std::array{clear_first, clear_second}), "multi clear selection failed");
+    for (const float scale : {1.F, 2.F}) {
+      pointer_scale = scale;
+      ui.SetDisplay(1280, 1600, scale);
+      Access::FocusInspector(ui);
+      draw();
+      draw();
+      Require(Access::InspectorMaterialLabel(ui) == "Mixed", "clear mixed label wrong");
+      click(0);
+      draw();
+      click(2);
+      Require(!editor::ReadMaterialAssetReference(scene, clear_keys[0]) &&
+                  !editor::ReadMaterialAssetReference(scene, clear_keys[1]),
+              "actual multi clear did not remove both supported references");
+      Require(scene.OpaqueComponents(clear_keys[0]) == std::vector{other_payload} &&
+                  scene.OpaqueComponents(clear_keys[1])->empty() &&
+                  scene.MeshRenderer(clear_keys[0])->mesh == mesh.mesh &&
+                  scene.MeshRenderer(clear_keys[1])->material.shader == mesh.material.shader,
+              "actual multi clear changed unrelated opaque/mesh/shader values");
+      // Deferred edits publish after this frame's widgets; the next frame observes their label.
+      draw();
+      Require(Access::InspectorMaterialLabel(ui) == "Unassigned",
+              "actual multi clear label did not update on the next frame");
+      Require(scene.Undo() && !scene.Dirty() &&
+                  scene.OpaqueComponents(clear_keys[0]) == first_before_clear &&
+                  scene.OpaqueComponents(clear_keys[1]) == second_before_clear && scene.Redo() &&
+                  scene.Undo(),
+              "actual multi clear failed one atomic Undo/Redo transaction");
+    }
+    const auto reject_clear = [&](std::span<const editor::SceneDocument::NodeKey> requested,
+                                  std::uint64_t generation) {
+      Access::QueueInspectorMaterialClear(ui, requested, generation);
+      draw();
+      Require(!scene.Dirty() && scene.OpaqueComponents(clear_keys[0]) == first_before_clear &&
+                  scene.OpaqueComponents(clear_keys[1]) == second_before_clear,
+              "rejected clear partially removed material references");
+    };
+    auto stale_clear = clear_keys[1];
+    ++stale_clear.entity_generation;
+    reject_clear(std::array{clear_keys[0]}, 7);
+    reject_clear(std::array{clear_keys[0], clear_keys[0]}, 7);
+    reject_clear(std::array{clear_keys[0], stale_clear}, 7);
+    reject_clear(clear_keys, 6);
+    Access::QueueInspectorMaterialClear(ui, clear_keys, 7);
+    ui.ProcessEvents(std::array{lost, focus});
+    draw();
+    Require(!scene.Dirty() && scene.OpaqueComponents(clear_keys[0]) == first_before_clear,
+            "clear revived after focus cancellation");
+    Access::QueueInspectorMaterialClear(ui, clear_keys, 7);
+    Require(content.Open(workspace, assets, 7, false, &error), "clear read-only fixture failed");
+    draw();
+    Require(content.Open(workspace, assets, 7, true, &error), "clear read-only restore failed");
+    draw();
+    Require(!scene.Dirty() && scene.OpaqueComponents(clear_keys[0]) == first_before_clear,
+            "read-only clear revived or mutated metadata");
+    Require(scene.Redo() && scene.Undo() && !scene.Dirty(),
+            "rejected clears consumed pending material Redo");
+    // Real popup clearing remains usable with no catalog borrow.
+    Access::FocusInspector(ui);
+    draw(nullptr, true, false);
+    draw(nullptr, true, false);
+    click(0, false);
+    draw(nullptr, true, false);
+    click(2, false);
+    Require(!editor::ReadMaterialAssetReference(scene, clear_keys[0]) &&
+                !editor::ReadMaterialAssetReference(scene, clear_keys[1]) &&
+                scene.OpaqueComponents(clear_keys[0]) == std::vector{other_payload} &&
+                scene.Save(path),
+            "catalog-unavailable actual clearing or save failed");
+    Require(scene.SetTransform(clear_first, runtime::Transform{9, 0, 0}) && scene.Undo(),
+            "absent clear pending Redo fixture failed");
+    Access::QueueInspectorMaterialClear(ui, clear_keys, 7);
+    draw();
+    Require(!scene.Dirty() && scene.Redo() && scene.Transform(clear_first)->x == 9 && scene.Undo(),
+            "all-absent clear consumed unrelated Runtime Redo");
+    Require(scene.Reload(path), "clear save/reopen failed");
+    const std::array reopened_clear{*scene.Key(clear_first), *scene.Key(clear_second)};
+    Require(!editor::ReadMaterialAssetReference(scene, reopened_clear[0]) &&
+                !editor::ReadMaterialAssetReference(scene, reopened_clear[1]) &&
+                scene.OpaqueComponents(reopened_clear[0]) == std::vector{other_payload},
+            "reopen restored removed material or erased unrelated plugin data");
+    Require(scene.SetOpaqueComponent(reopened_clear[0], editor::MaterialAssetReference(asset)) &&
+                scene.Select(std::array{clear_first, entity}) && scene.Save(path),
+            "late unsupported clear fixture failed");
+    Access::QueueInspectorMaterialClear(ui, std::array{reopened_clear[0], *scene.Key(entity)}, 7);
+    draw();
+    Require(!scene.Dirty() &&
+                editor::ReadMaterialAssetReference(scene, reopened_clear[0]) == asset &&
+                scene.OpaqueComponents(*scene.Key(entity))->front() == unsupported,
+            "late unsupported clear removed supported first target or unknown data");
+    Require(scene.SetOpaqueComponent(reopened_clear[1],
+                                     editor::MaterialAssetReference(missing_asset)) &&
+                scene.SetMeshRenderer(reopened_clear[1], std::nullopt) &&
+                scene.Select(std::array{clear_first, clear_second}) && scene.Save(path),
+            "late missing Mesh Renderer clear fixture failed");
+    Access::QueueInspectorMaterialClear(ui, reopened_clear, 7);
+    draw();
+    Require(!scene.Dirty() &&
+                editor::ReadMaterialAssetReference(scene, reopened_clear[0]) == asset &&
+                editor::ReadMaterialAssetReference(scene, reopened_clear[1]) == missing_asset &&
+                ReadBytes(source) == source_before_clear,
+            "late missing component clear changed references or source material bytes");
     workspace = {};
     std::filesystem::remove_all(root);
     std::cout << "Material Inspector contracts passed\n";

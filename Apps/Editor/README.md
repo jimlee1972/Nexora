@@ -793,8 +793,11 @@ The application publishes a generation-scoped material catalog alongside its mes
 activation and successful Content changes. Inspector single/multiple-object assignment persists
 versioned UUID references through one atomic document Undo/Redo and save/reopen, preserving legacy
 shader IDs. Mixed references/presence show Mixed; missing Mesh Renderers or unsupported references
-reject the entire batch. Valid
-`.nmaterial` scalar assets produce actual per-batch Presentation PBR slots in Scene View. A palette
+reject the entire batch.
+Unassigned clears supported references for the complete selection in one Undo/Redo, including
+missing-source/catalog cases, while protecting unknown versions and retaining unrelated opaque data.
+Saved/reopened references remain absent; mesh/shader values and source material files stay unchanged.
+Valid `.nmaterial` scalar assets produce actual per-batch Presentation PBR slots in Scene View. A palette
 reserves neutral fallback slot zero and at most 63 unique authored UUIDs; unresolved/over-budget
 references remain stored. Authored slots use white instance tint so selection does not recolor the
 material; ground, proxies and gizmos retain their existing tint. With no resolved materials the
