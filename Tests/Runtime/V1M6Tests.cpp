@@ -194,13 +194,19 @@ int Run() {
               play.PlayWorld()->FindEntity(pie_entity_id)->transform.x == 1.5 &&
               world.FindEntity(pie_entity_id)->transform.x == 1.0,
           "PIE tick leaked into the Editor World");
-  Require(play.Pause() && !play.Tick() && play.Step() && play.Stats().fixed_ticks == 2 &&
+  Require(play.Pause() && !play.AcceptsInput() && !play.Tick() && play.Step() &&
+              !play.AcceptsInput() && play.Stats().fixed_ticks == 2 &&
               play.Stats().manual_steps == 1 &&
               play.PlayWorld()->FindEntity(pie_entity_id)->transform.x == 2.0,
           "PIE pause/step did not execute exactly one fixed tick");
+  play.SetInputFocus(true);
+  Require(!play.AcceptsInput(), "paused PIE session reacquired input before Resume");
   play.SetInputFocus(false);
-  Require(!play.AcceptsInput() && play.Resume() && !play.Step() && play.Tick(),
+  Require(!play.AcceptsInput() && play.Resume() && !play.AcceptsInput() && !play.Step() &&
+              play.Tick(),
           "PIE focus or resume policy failed");
+  play.SetInputFocus(true);
+  Require(play.AcceptsInput(), "resumed PIE session could not explicitly reacquire input");
   Require(play.Stop() && play.State() == PlayState::Stopped && play.PlayWorld() == nullptr &&
               world.FindEntity(pie_entity_id)->transform.x == 1.0 && !play.AcceptsInput(),
           "default PIE stop did not discard Play World changes");
@@ -250,11 +256,15 @@ int Run() {
   Require(play.PollDebugger(debugger) && play.State() == PlayState::Paused &&
               play.LastPauseReason() == PauseReason::DebuggerBreak && !play.AcceptsInput(),
           "debugger break did not cross the adapter as a safe pause reason");
-  Require(play.Resume(), "PIE did not resume after debugger pause");
+  play.SetInputFocus(true);
+  Require(!play.AcceptsInput() && play.Resume() && !play.AcceptsInput(),
+          "debugger-paused PIE session reacquired or retained input across Resume");
+  play.SetInputFocus(true);
+  Require(play.AcceptsInput(), "debugger Resume could not explicitly reacquire input");
   fail_next = true;
   Require(!play.Tick() && play.State() == PlayState::Paused &&
               play.LastPauseReason() == PauseReason::RuntimeFailure && play.Stats().crashes == 1 &&
-              play.Resume() && play.Tick(),
+              !play.AcceptsInput() && play.Resume() && !play.AcceptsInput() && play.Tick(),
           "runtime failure was not contained for session recovery");
   Require(play.Stop(), "recovered PIE session could not stop cleanly");
 

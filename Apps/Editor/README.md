@@ -217,6 +217,10 @@ Release wins over all other events in that batch, regardless of ordering. Subseq
 neutral until the owner explicitly reacquires focus; reacquisition still suppresses its first batch.
 The sequence advances for neutral batches and previously copied snapshots remain unchanged.
 
+Runtime `PlaySession` releases its own focus on Pause and accepts focus grants only while Playing.
+Resume requires explicit owner reacquisition. The native forwarding adapter also clears its separate
+held input state when the session is paused, so manual Step never reuses a captured key batch.
+
 ### Scoped build output-to-Console ingress
 
 The native owner forwards its current BuildProcess retained merged stdout/stderr to the same

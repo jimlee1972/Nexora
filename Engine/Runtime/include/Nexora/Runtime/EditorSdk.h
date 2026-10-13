@@ -378,9 +378,12 @@ public:
   [[nodiscard]] std::vector<TransformApplyDiff> PreviewTransformApplyBack() const;
   [[nodiscard]] RuntimeInspectionSnapshot Inspect() const;
   bool PollDebugger(DebuggerAdapter &debugger);
-  void SetInputFocus(bool focused) noexcept { input_focused_ = focused && play_world_.has_value(); }
+  // Paused/manual-step sessions cannot capture input. Resume requires explicit reacquisition.
+  void SetInputFocus(bool focused) noexcept {
+    input_focused_ = focused && play_world_.has_value() && state_ == PlayState::Playing;
+  }
   [[nodiscard]] bool AcceptsInput() const noexcept {
-    return input_focused_ && state_ != PlayState::Stopped;
+    return input_focused_ && state_ == PlayState::Playing;
   }
   // Nonzero after first successful Start; changes on each new isolated session, not on Stop.
   [[nodiscard]] std::uint64_t Generation() const noexcept { return generation_; }

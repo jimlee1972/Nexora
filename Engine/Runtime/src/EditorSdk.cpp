@@ -904,6 +904,7 @@ bool PlaySession::Pause() noexcept {
   if (state_ != PlayState::Playing)
     return false;
   state_ = PlayState::Paused;
+  input_focused_ = false;
   pause_reason_ = PauseReason::User;
   return true;
 }

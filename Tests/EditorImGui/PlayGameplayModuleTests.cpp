@@ -139,6 +139,8 @@ int main() {
                 host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
                 snapshot.move_x == 0 && play.Pause(),
             "deferred focus loss retained a held key");
+    play.SetInputFocus(true);
+    Require(!play.AcceptsInput(), "paused native Play owner admitted explicit focus");
     editor::preview::ForwardPlayInput(play, module, true, std::array{right});
     Require(!play.AcceptsInput() &&
                 host.capture_input(host.context, 0, &snapshot) == NEXORA_GAMEPLAY_OK &&
@@ -146,7 +148,8 @@ int main() {
             "paused forwarding admitted gameplay movement");
     editor::PlayInputBindings rebound;
     rebound.controls[1][0] = editor::PlayInputControl::B;
-    Require(play.Resume(), "rebound callback fixture resume failed");
+    Require(play.Resume() && !play.AcceptsInput(),
+            "rebound callback fixture resumed with stale input focus");
     editor::preview::ForwardPlayInput(play, module, true, {}, rebound);
     auto custom = right;
     custom.value0 = static_cast<int>(Nexora::Window::Key::B);
