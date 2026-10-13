@@ -13,6 +13,12 @@ target_include_directories(NexoraStagedUploadAllocationTests PRIVATE
 nexora_apply_defaults(NexoraStagedUploadAllocationTests)
 add_test(NAME window_presentation.staged_upload_allocation COMMAND NexoraStagedUploadAllocationTests)
 
+add_executable(NexoraSceneGeometryUploadKeyTests SceneGeometryUploadKeyTests.cpp)
+target_include_directories(NexoraSceneGeometryUploadKeyTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
+target_link_libraries(NexoraSceneGeometryUploadKeyTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraSceneGeometryUploadKeyTests)
+add_test(NAME window_presentation.scene_geometry_upload_key COMMAND NexoraSceneGeometryUploadKeyTests)
+
 add_executable(NexoraSceneInstanceTests SceneInstanceTests.cpp)
 target_include_directories(NexoraSceneInstanceTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
 target_link_libraries(NexoraSceneInstanceTests PRIVATE Nexora::Presentation)
