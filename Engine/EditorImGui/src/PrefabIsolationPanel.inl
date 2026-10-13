@@ -636,14 +636,14 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
                              choice.property.field == property->field;
                     });
                 const bool chosen = found != state.prefab_choices.end();
-                const char *label = !chosen ? "Choose..."
-                                    : found->decision == PrefabRebaseDecision::KeepLocal
-                                        ? "Keep local"
-                                        : "Take source";
+                const char *choice_label = !chosen ? "Choose..."
+                                           : found->decision == PrefabRebaseDecision::KeepLocal
+                                               ? "Keep local"
+                                               : "Take source";
                 ImGui::PushID(index);
                 ImGui::SetNextItemWidth(-1);
                 ImGui::BeginDisabled(!interaction || confirming);
-                const bool opened = ImGui::BeginCombo("##rebase-choice", label);
+                const bool opened = ImGui::BeginCombo("##rebase-choice", choice_label);
                 const auto combo_low = ImGui::GetItemRectMin(),
                            combo_high = ImGui::GetItemRectMax();
                 state.prefab_choice_positions.emplace_back(

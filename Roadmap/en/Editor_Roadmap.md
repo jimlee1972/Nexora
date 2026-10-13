@@ -145,6 +145,11 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
   and new validation are recorded in the [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
   This integration repair does not accept target-host or graphical milestones.
 
+- ✅ Prefab rebase choice labels no longer shadow the outer row label, restoring MSVC
+  `/W4 /WX` admission without changing widget text, IDs, consent or authoring behavior.
+  [Cross-platform repair evidence](../../Tools/Build/evidence/EditorEDM0-PrefabRebaseLabel-MSVC-2026-10-13.md).
+  Supporting compiler repair does not accept physical-host or graphical milestones.
+
 ### ED-M1 — Project and asset workspace
 
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the
