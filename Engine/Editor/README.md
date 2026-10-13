@@ -1379,11 +1379,38 @@ resets observations and sampling origin without resuming Capture or freeing rend
 copies latest values and consumes history spans synchronously; no borrow survives a widget call.
 The two-series plot identifies byte units and elapsed time, preserving pause gaps and missing data.
 
-This channel is live-only. Existing wall-time CSV/JSON, process-memory and GPU timing schemas,
-imports and export controls remain unchanged; their missing fields are not inferred from this scope.
+The graphical channel remains live-only; explicit core interchange is described below. Existing
+wall-time CSV/JSON, process-memory and GPU timing schemas, imports and export controls remain unchanged; their missing fields are not inferred from this scope.
 The public C++ ProfileSession layout grows by fixed bounded storage and consumers must rebuild.
-Stable C/Zig/scene schemas and module dependencies are unchanged. Persistence of this separate scope,
-whole-device memory instrumentation and physical acceptance remain separate work.
+Stable C/Zig/scene schemas and module dependencies are unchanged. Graphical export/import controls, whole-device memory instrumentation and physical acceptance
+remain separate work.
+
+## Retained mesh memory capture interchange
+
+`MeshMemoryCapture` owns up to 600 ordered observations of one native surface stream and its
+independent dropped count. `ExportMeshMemoryJson` explicitly writes `.nexora/mesh-memory.json`
+under the project writer lease and resolved recovery; `ImportMeshMemoryJson` reads at most 192 KiB
+into an owning capture, including for read-only observers. Neither API accesses native resources.
+Schema 1 identifies `NexoraEditor`, `retained_mesh_memory`, current native surface retained geometry,
+owned CPU comparison-key payload excluding allocator overhead, byte units and elapsed milliseconds
+since the first observation after Clear/domain change. The destination project UUID identifies the
+export destination only: this retained surface history can span projects. No surface domain,
+absolute clock, native handle, device identity, texture/frame-upload bytes, RSS or total VRAM is
+serialized or inferred. Existing wall/RSS/GPU capture files remain independent.
+
+Sequences, both byte fields and drops use lossless decimal strings; elapsed time retains finite
+double precision. Zero is measured, paired null values are unavailable. Shared validation rejects
+empty/over-600 histories, partial availability, zero/nonincreasing sequences and nonfinite,
+negative or nonincreasing times. The bounded nonrecursive schema-token reader accepts reordered
+fields and equivalent ASCII escapes; wrong project/source/scope/unit, unknown/duplicate/missing
+fields, invalid samples and trailing data reject. Occupied staging, unsafe metadata/destination,
+failed replacement and recovery preserve previous files and unrelated staging. Failed import
+returns no replacement and never mutates previously returned captures. Closed workspaces reject IO;
+read-only projects may import but cannot export. All IO is externally serialized on the owner
+thread; concurrent filesystem substitution is outside this contract. Sample spans are synchronous
+borrows, imports own their storage, and no borrow/native owner survives these calls. Additive C++
+APIs require consumer rebuild without changing stable C/Zig/scene schemas or module dependencies.
+Graphical buttons/static publication, whole-device metrics and physical calibration remain open.
 
 ## Completed native GPU profile history
 

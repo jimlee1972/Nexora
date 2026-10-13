@@ -387,6 +387,15 @@ add_test(NAME editor.process_memory_json_schema
 add_test(NAME editor.process_memory_json_schema_optimized
   COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/ProcessMemoryJsonTests.py" "$<TARGET_FILE:NexoraProcessMemoryCaptureTests>")
 
+add_executable(NexoraMeshMemoryCaptureTests MeshMemoryCaptureTests.cpp)
+target_link_libraries(NexoraMeshMemoryCaptureTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraMeshMemoryCaptureTests)
+add_test(NAME editor.mesh_memory_capture COMMAND NexoraMeshMemoryCaptureTests)
+add_test(NAME editor.mesh_memory_json_schema
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/MeshMemoryJsonTests.py" "$<TARGET_FILE:NexoraMeshMemoryCaptureTests>")
+add_test(NAME editor.mesh_memory_json_schema_optimized
+  COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/MeshMemoryJsonTests.py" "$<TARGET_FILE:NexoraMeshMemoryCaptureTests>")
+
 add_executable(NexoraGpuProfileTests GpuProfileTests.cpp)
 target_link_libraries(NexoraGpuProfileTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraGpuProfileTests)

@@ -164,6 +164,11 @@ struct MeshMemorySample final {
   double elapsed_ms{};
   std::optional<std::uint64_t> native_allocation_bytes, cpu_key_payload_bytes;
 };
+// Owning capture of one retained native surface stream. Process-local domains are not persisted.
+struct MeshMemoryCapture final {
+  std::vector<MeshMemorySample> samples;
+  std::uint64_t older_samples_dropped{};
+};
 [[nodiscard]] NEXORA_EDITOR_API bool
 ValidateMeshMemorySamples(std::span<const MeshMemorySample> samples) noexcept;
 

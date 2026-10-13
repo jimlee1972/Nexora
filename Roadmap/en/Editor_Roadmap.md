@@ -32,7 +32,7 @@ automated **and** target-host gate, so overall graphical acceptance remains **0/
 | ED-M3 PIE/debugging | Portable `PlaySession`, structured bounded Console records, owning inspection snapshots, debugger adapter/pause reasons, failure recovery, and deterministic transform conflict rejection exist. The graphical Console shows bounded records and Editor diagnostics; a docked Game panel controls an isolated clone and copied inspection snapshot. Bounded native camera/OBJ Game View and frozen scalar PBR materials are implemented; complete materials/multiple canvases, complete gameplay services/expanded input, complete log routing, and native debugger integration remain open. | [ ] |
 | ED-M4 prefab/scenes | Portable override diff/revert/apply, variants, and nested rebase exist. Native additive tabs, owning/reference documents, coordinated Save All and named composition reopen are accepted on Linux Xvfb. Graphical prefab, migration/recovery, semantic/provider conflicts and full target-host acceptance remain open. | [ ] |
 | ED-M5 specialized tools | Stable capability IDs and honest implemented/read-only/unavailable states exist. No production graphical reference tool has passed edit-preview-save acceptance. | [ ] |
-| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Retained native mesh allocation and CPU-key bytes have a separate scoped live history. Native Vulkan/DX12/Metal command-buffer GPU intervals have a separate bounded live history and schema-1 JSON capture with honest unavailable/software status. Project-scoped signed package installation and explicit session enable/revoke are supported on Linux. Build/deploy/log, physical GPU calibration, arbitrary capture import, and persistent plugin-manager trust/recovery remain open. | [ ] |
+| ED-M6 build/profile/extensions | Portable build manifests/checksums and bounded monotonic profile capture exist. A docked Profiler plots live Editor frame processing time with pause/clear and dropped counts, and shows real current process resident bytes plus observed peak. CSV and schema-1 wall-time JSON export/import are available, alongside separate bounded process-memory JSON traces. Retained native mesh allocation and CPU-key bytes have a separate scoped live history and explicit core schema-1 JSON interchange; graphical mesh import/export controls remain open. Native Vulkan/DX12/Metal command-buffer GPU intervals have a separate bounded live history and schema-1 JSON capture with honest unavailable/software status. Project-scoped signed package installation and explicit session enable/revoke are supported on Linux. Build/deploy/log, physical GPU calibration, arbitrary capture import, and persistent plugin-manager trust/recovery remain open. | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy, trust/signature policy, and telemetry opt-in tests exist. Graphical scale/soak, migration/corruption, keyboard, and screen-reader audits remain open. | [ ] |
 
 The focused [Dear ImGui plan](Editor_ImGui_Integration_Plan.md) contains the granular checked ED-M0
@@ -1172,10 +1172,18 @@ creates property widgets; unknown components retain raw data instead of being si
     CPU comparison-key payload bytes from copied public Presentation diagnostics. Fixed bounded
     history identifies current-surface/geometry scope, byte units and elapsed time; domain changes,
     pause/Clear, monotonic throttling, dropped counts, zero and unavailable gaps preserve ownership.
-    Real 1x/2x controls and Vulkan allocation/pixel/teardown checks exercise the path. This live-only
-    channel does not infer total VRAM/RSS or change existing capture schemas; persistence and broader
-    allocator/device instrumentation remain open.
+    Real 1x/2x controls and Vulkan allocation/pixel/teardown checks exercise the path. This graphical
+    channel does not infer total VRAM/RSS or change existing capture schemas; graphical persistence
+    controls and broader allocator/device instrumentation remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM6-MeshMemory-2026-10-13.md).
+  - ✅ Retained mesh memory has independent core schema-1 JSON export/import with owning bounded
+    captures, lossless native allocation/CPU-key byte values and sequence/drop IDs, precise monotonic elapsed
+    time and paired unavailable samples. Scope is current-surface retained geometry and owned CPU-key
+    payload, excluding RSS/total VRAM; destination UUID is provenance and native domains are omitted.
+    Atomic writer/recovery/read-only/unsafe-file/corruption/600-sample/192-KiB preservation tests,
+    normal/optimized independent JSON readers and real Vulkan allocation/pixel/drain round trips pass.
+    Graphical controls/static display, whole-device profiling and physical acceptance remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM6-MeshMemoryCapture-2026-10-13.md).
   - ✅ Profiler process-memory traces now retain at most 600 real RSS/working-set attempts with
     elapsed time, unavailable reads and independent eviction counts. Separate schema-1 project JSON
     export/import preserves uint64 precision, source/scope/units and pause gaps; import is owning and
