@@ -322,19 +322,73 @@ void Run(const std::filesystem::path &capture) {
     submit(i % 2 != 0);
   Require(UploadTrace::creations == slots && UploadTrace::violations == 0,
           "steady scene draws allocated buffers or overwrote pending GPU memory");
+  // Keep geometry fixed while changing actual instance tint/translation. Cached geometry must
+  // remain resident, but the two-point native pixel oracle must still observe each new instance.
+  submit(false);
+  instances[0].model_transform =
+      std::array<float, 16>{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+  const auto submitInstance = [&](bool green) {
+    Require(surface->Acquire() == SurfaceStatus::Ready, "cached geometry acquire failed");
+    instances[0].color[0] = green ? 0 : 1;
+    instances[0].color[1] = green ? 1 : 0;
+    (*instances[0].model_transform)[3] = green ? 0.75F : 0;
+    Require(surface->DrawScene(draw) == SurfaceStatus::Ready &&
+                surface->Present() == SurfaceStatus::Ready,
+            "cached geometry instance submit failed");
+    Pixels(display, native, width, height, green);
+  };
+  for (int i = 0; i < 6; ++i)
+    submitInstance(i % 2 != 0);
+  const auto warmCache = surface->Diagnostics().sceneGeometryUploadCache;
+  for (int i = 0; i < 30; ++i)
+    submitInstance(i % 2 != 0);
+  const auto steadyCache = surface->Diagnostics().sceneGeometryUploadCache;
+  Require(steadyCache.available && steadyCache.uploads == warmCache.uploads &&
+              steadyCache.hits == warmCache.hits + 30 &&
+              steadyCache.retainedCpuBytes ==
+                  slots * (vertices.size() * sizeof(SceneVertex) + sizeof(indices)) &&
+              UploadTrace::creations == slots && UploadTrace::violations == 0,
+          "unchanged geometry was recopied, lost its bounded key or cached changed instances");
+  // A larger instance region replaces the buffer even though its geometry prefix is identical.
+  std::vector<SceneInstance> manyInstances(64, instances[0]);
+  draw.instances = manyInstances;
+  const auto beforeInstanceGrowth = surface->Diagnostics().sceneGeometryUploadCache;
+  for (int i = 0; i < 6; ++i) {
+    Require(surface->Acquire() == SurfaceStatus::Ready &&
+                surface->DrawScene(draw) == SurfaceStatus::Ready &&
+                surface->Present() == SurfaceStatus::Ready,
+            "unchanged geometry instance growth failed");
+    Pixels(display, native, width, height, true);
+  }
+  Require(UploadTrace::creations == 2 * slots &&
+              surface->Diagnostics().sceneGeometryUploadCache.uploads >=
+                  beforeInstanceGrowth.uploads + slots &&
+              surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes ==
+                  steadyCache.retainedCpuBytes,
+          "instance growth reused a retired geometry allocation or changed its bounded key");
+  draw.instances = instances;
+  instances[0].model_transform.reset();
+  const auto beforeVertexGrowth = UploadTrace::creations;
   vertices.resize(300);
   for (int i = 0; i < 6; ++i)
     submit(i % 2 != 0);
-  Require(UploadTrace::creations == 2 * slots && UploadTrace::buffers.size() == slots,
+  Require(UploadTrace::creations == beforeVertexGrowth + slots &&
+              UploadTrace::buffers.size() == slots,
           "larger scenes did not replace only their completed slots");
+  const auto afterVertexGrowth = UploadTrace::creations;
   const auto retained = UploadTrace::buffers;
   Require(surface->Acquire() == SurfaceStatus::Ready, "failed growth acquire failed");
   vertices.resize(3000);
   draw.vertices = vertices;
   UploadTrace::failNextAllocation = true;
+  const auto beforeFailure = surface->Diagnostics().sceneGeometryUploadCache;
   Require(surface->DrawScene(draw) == SurfaceStatus::DeviceLost &&
               !UploadTrace::failNextAllocation && UploadTrace::buffers == retained,
           "failed growth destroyed the old allocation or leaked staged storage");
+  const auto failedCache = surface->Diagnostics().sceneGeometryUploadCache;
+  Require(failedCache.uploads == beforeFailure.uploads && failedCache.hits == beforeFailure.hits &&
+              failedCache.retainedCpuBytes == beforeFailure.retainedCpuBytes,
+          "failed growth changed the retained geometry key or upload counters");
   vertices.resize(300);
   draw.vertices = vertices;
   Require(surface->DrawScene(draw) == SurfaceStatus::Ready &&
@@ -342,7 +396,7 @@ void Run(const std::filesystem::path &capture) {
           "failed grow consumed the frame or prevented a smaller retry");
   Pixels(display, native, width, height, true);
   const auto after_failure = UploadTrace::creations;
-  Require(after_failure == 2 * slots + 1 && UploadTrace::memory.size() == slots,
+  Require(after_failure == afterVertexGrowth + 1 && UploadTrace::memory.size() == slots,
           "failed growth lost allocation/memory accounting");
   vertices.resize(3000);
   for (int i = 0; i < 6; ++i)
@@ -385,6 +439,7 @@ void Run(const std::filesystem::path &capture) {
     submit(i % 2 != 0);
   Require(UploadTrace::creations == peak_creations && UploadTrace::buffers.size() == slots,
           "shrinking or scene-free frames discarded reusable storage");
+  const auto beforeResize = surface->Diagnostics().sceneGeometryUploadCache;
   Require(windows->Resize(window.handle, 800, 600) == Window::WindowError::None,
           "upload reuse window resize failed");
   static_cast<void>(windows->PumpEvents());
@@ -397,6 +452,8 @@ void Run(const std::filesystem::path &capture) {
   Require(UploadTrace::creations == peak_creations + slots &&
               UploadTrace::buffers.size() == slots && UploadTrace::memory.size() == slots,
           "resize did not drain and rebuild its upload generation");
+  Require(surface->Diagnostics().sceneGeometryUploadCache.uploads >= beforeResize.uploads + slots,
+          "resize reused geometry from a retired GPU allocation");
   Require(surface->NotifyWindowExtent(0, 0) == SurfaceStatus::ZeroExtent &&
               surface->Acquire() == SurfaceStatus::ZeroExtent,
           "zero extent did not suspend upload work");
@@ -414,6 +471,8 @@ void Run(const std::filesystem::path &capture) {
               UploadTrace::queryPools.empty() && UploadTrace::pendingQueries.empty() &&
               UploadTrace::queryCommands.empty() && UploadTrace::violations == 0,
           "resize/teardown leaked storage or freed it before GPU completion");
+  Require(surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes == 0,
+          "teardown retained owning geometry comparison bytes");
   // Existing consumers opt out: no query resources or completed timing stream are created.
   auto disabled = std::make_unique<VulkanSurface>(
       SurfaceDescriptor{window.handle, width, height, 2, PresentMode::Immediate, ColorSpace::Srgb,

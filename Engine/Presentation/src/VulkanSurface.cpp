@@ -34,6 +34,7 @@
 #include <cstdio>
 #include <cstring>
 #include <limits>
+#include <new>
 #include <optional>
 #include <unordered_map>
 #include <vector>
@@ -521,6 +522,25 @@ public:
     const auto toneOffset = data.pbr ? materialOffset + materialCount * materialStride
                                      : instanceOffset + instanceBytes.size();
     const auto bytes = toneOffset + (data.hdr ? sizeof(toneVertices) : 0);
+    const auto geometryBytes = vertexBytes.size() + indexBytes.size();
+    const bool reuseGeometry =
+        frame.sceneUpload && frame.sceneCapacity >= bytes &&
+        frame.sceneGeometryBytes == geometryBytes &&
+        frame.sceneGeometryVertexBytes == vertexBytes.size() &&
+        std::memcmp(frame.sceneGeometry.get(), vertexBytes.data(), vertexBytes.size()) == 0 &&
+        std::memcmp(frame.sceneGeometry.get() + vertexBytes.size(), indexBytes.data(),
+                    indexBytes.size()) == 0;
+    // Stage a bounded owning key before any replacement. A GPU grow invalidates its old key;
+    // the candidate survives that invalidation and is published only after the geometry write.
+    std::unique_ptr<std::byte[]> geometryCandidate;
+    if (!reuseGeometry) {
+      geometryCandidate.reset(new (std::nothrow) std::byte[geometryBytes]);
+      if (!geometryCandidate)
+        return SurfaceStatus::DeviceLost;
+      std::memcpy(geometryCandidate.get(), vertexBytes.data(), vertexBytes.size());
+      std::memcpy(geometryCandidate.get() + vertexBytes.size(), indexBytes.data(),
+                  indexBytes.size());
+    }
     frame.toneVertexOffset = toneOffset;
     const auto uploadStatus = EnsureSceneUpload(frame, bytes);
     if (uploadStatus != SurfaceStatus::Ready)
@@ -528,9 +548,8 @@ public:
     void *mapped{};
     if (vkMapMemory(device_, frame.sceneMemory, 0, bytes, 0, &mapped) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
-    std::memcpy(mapped, vertexBytes.data(), vertexBytes.size());
-    std::memcpy(static_cast<std::byte *>(mapped) + vertexBytes.size(), indexBytes.data(),
-                indexBytes.size());
+    if (!reuseGeometry)
+      std::memcpy(mapped, geometryCandidate.get(), geometryBytes);
     std::memcpy(static_cast<std::byte *>(mapped) + instanceOffset, instanceBytes.data(),
                 instanceBytes.size());
     if (data.pbr) {
@@ -548,6 +567,18 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
     vkUnmapMemory(device_, frame.sceneMemory);
+    auto &geometryCache = diagnostics_.sceneGeometryUploadCache;
+    geometryCache.available = true;
+    if (reuseGeometry)
+      ++geometryCache.hits;
+    else {
+      ++geometryCache.uploads;
+      geometryCache.retainedCpuBytes =
+          geometryCache.retainedCpuBytes - frame.sceneGeometryBytes + geometryBytes;
+      frame.sceneGeometry = std::move(geometryCandidate);
+      frame.sceneGeometryBytes = geometryBytes;
+      frame.sceneGeometryVertexBytes = vertexBytes.size();
+    }
     if (data.shadow && !reuseTargets) {
       const auto status = CreateShadowTargets(frame, data.shadow->resolution);
       if (status != SurfaceStatus::Ready)
@@ -1113,6 +1144,8 @@ private:
     VkBuffer sceneUpload{};
     VkDeviceMemory sceneMemory{};
     VkDeviceSize sceneCapacity{};
+    std::unique_ptr<std::byte[]> sceneGeometry;
+    std::size_t sceneGeometryBytes{}, sceneGeometryVertexBytes{};
     std::vector<VkDescriptorSet> pbrDescriptors;
     VkImage sceneDepth{};
     VkDeviceMemory sceneDepthMemory{};
@@ -1268,6 +1301,9 @@ private:
     frame.sceneUpload = VK_NULL_HANDLE;
     frame.sceneMemory = VK_NULL_HANDLE;
     frame.sceneCapacity = 0;
+    diagnostics_.sceneGeometryUploadCache.retainedCpuBytes -= frame.sceneGeometryBytes;
+    frame.sceneGeometry.reset();
+    frame.sceneGeometryBytes = frame.sceneGeometryVertexBytes = 0;
   }
   void DestroySceneFrame(Frame &frame) {
     DestroySceneTargets(frame);

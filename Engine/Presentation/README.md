@@ -90,15 +90,27 @@ fence-protected frame slot. Acquire waits that slot before any write or replacem
 Scene-free frames retain capacity. Growth stages a new bound buffer/memory pair before releasing the
 old pair, so allocation failure preserves the old upload for a corrected smaller draw. Descriptor
 budgets cap each retained buffer at 8 MiB (up to three slots); temporary replacement may hold both
-old and new allocations. Every accepted submission still copies fresh geometry and packed instances.
+old and new allocations. Each slot also retains an exact owning vertex/index byte key (at most
+5 MiB per slot, up to three slots). Matching geometry skips its GPU prefix write only when the
+same upload allocation is still large enough. Instances, material parameters and tone vertices
+remain fresh per draw. No hashes, borrowed geometry or asset IDs determine this reuse.
+Changed geometry stages a new CPU key before GPU replacement and publishes it only after a successful
+mapped write. A failed grow preserves the previous key/allocation; growth driven solely by more
+instances still copies geometry into the replacement. One staged key can temporarily coexist with
+the retained keys, adding at most5 MiB. CPU payload keys are released with their GPU allocation.
 Resize/recovery drains GPU work and releases all slot uploads; teardown is idempotent, including an
-abandoned recording. Scene color/depth targets remain per-draw resources. This reuses upload capacity
+abandoned recording. Scene color/depth targets follow the existing offscreen reuse rules. This reuses upload capacity
 and does not provide persistent per-asset GPU geometry caching. Public descriptors, shaders and
 submission order are unchanged. `window_presentation.vulkan_scene_upload_reuse` compiles the actual
 private adapter with test-only Vulkan call tracing. It verifies 100 steady draws without new buffer
 allocations, maximum descriptor capacity, changed pixels, failed growth, slot fencing, resize and
 leak-free teardown.
-No tracing or native handles are exported by the production API.
+`SurfaceDiagnostics::sceneGeometryUploadCache` exposes copied availability, actual geometry
+prefix-write/reuse counts and retained CPU payload bytes. Availability becomes true after Vulkan
+first writes a Scene upload; other backends leave it false. Counts include writes/reuse preceding a
+later draw failure and remain cumulative through resize; retained CPU bytes return to zero at
+teardown. These bytes are not GPU-memory measurements. This public C++ diagnostics layout requires
+consumers to rebuild; the stable C ABI is unchanged. No tracing or native handles are exported.
 
 An application with unsaved work may call `CancelCloseRequest()` after `BeginFrame()` reports a user
 close and before the next frame, then render its confirmation dialog. The call fails when the native
