@@ -144,6 +144,11 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md)。
   此整合修復不接受 target-host 或圖形化 milestone。
 
+- ✅ Prefab rebase choice label 現不再遮蔽外層 row label，恢復 MSVC `/W4 /WX`
+  admission；widget 文字、ID、consent 與 authoring 行為保持一致。
+  [跨平台修復證據](../../Tools/Build/evidence/EditorEDM0-PrefabRebaseLabel-MSVC-2026-10-13.md)。
+  此支援性編譯修復不接受實體主機或圖形化 milestone。
+
 ### ED-M1 — Project 與 Asset workspace
 
 - ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，
