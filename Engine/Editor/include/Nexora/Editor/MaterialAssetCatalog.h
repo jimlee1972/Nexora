@@ -43,5 +43,12 @@ NEXORA_EDITOR_API bool AssignMaterialAsset(SceneDocument &, SceneDocument::NodeK
                                            runtime::AssetUuid, std::uint64_t expected_generation,
                                            const ProjectContentSession &,
                                            const MaterialAssetCatalog &, bool editable);
+// All keys must match the complete current selection. Initial/mixed references commit atomically;
+// unsupported payloads on any target reject the whole request before one metadata Undo.
+NEXORA_EDITOR_API bool AssignMaterialAssets(SceneDocument &,
+                                            std::span<const SceneDocument::NodeKey>,
+                                            runtime::AssetUuid, std::uint64_t expected_generation,
+                                            const ProjectContentSession &,
+                                            const MaterialAssetCatalog &, bool editable);
 
 } // namespace nexora::editor

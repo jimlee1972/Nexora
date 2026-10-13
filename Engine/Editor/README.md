@@ -991,6 +991,13 @@ not execute or decode these plugin bytes. SetOpaqueComponent validates the full 
 checks document/entity generations, and records a separate metadata Undo entry without consuming
 Runtime SceneEditor history. Equal values are a no-op. Delete/Undo and clipboard/duplicate/create
 Undo/Redo retain exact bytes; failed paste capacity checks occur before any entities are created.
+SetOpaqueComponents validates a nonempty batch of at most 4096 unique live generation keys and the
+complete prospective store before adding/replacing a shared payload. It stages owning node and
+previous-payload storage before one metadata Undo publication; a late capacity/key rejection leaves
+all earlier targets and Redo intact. Equal batches preserve unrelated Runtime Redo. This generic
+boundary grants no access or schema authority: material assignment separately requires exact current
+selection, writable Content, current catalog payload identity and valid supported references on every
+Mesh Renderer. Inspection of those references copies only bounded metadata, including exact byte count.
 OpaqueComponents returns owning complete payloads. InspectOpaqueComponents returns owning names,
 full-width type/entity IDs, byte counts and only the first 64 bytes, avoiding full-payload copies each
 GUI frame. Inspection does not grant project write permission.

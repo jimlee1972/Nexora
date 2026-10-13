@@ -242,6 +242,9 @@ public:
   [[nodiscard]] static std::string_view InspectorMeshLabel(const EditorImGuiHost &host) noexcept;
   static void QueueInspectorMaterial(EditorImGuiHost &host, SceneDocument::NodeKey entity,
                                      runtime::AssetUuid asset, std::uint64_t generation) noexcept;
+  static void QueueInspectorMaterials(EditorImGuiHost &host,
+                                      std::span<const SceneDocument::NodeKey> entities,
+                                      runtime::AssetUuid asset, std::uint64_t generation);
   [[nodiscard]] static std::string_view
   InspectorMaterialLabel(const EditorImGuiHost &host) noexcept;
   // Control 0: combo; 1: first available typed material in its popup.

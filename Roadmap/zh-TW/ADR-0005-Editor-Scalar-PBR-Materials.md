@@ -39,9 +39,11 @@ UUID 的 high、low uint64。Zero UUID、錯誤 type／name、截斷與不支援
 不變。未來 Runtime／cook consumer 需要另外明確整合。
 
 Catalog 只在目前非零 project generation 解析 UUID；snapshot 在 reimport／unload 後仍擁有材質
-資料。Inspector 指派要求單選且具有 live Mesh Renderer、可寫 project／content、相符的 entity／
-document／project generation，以及 Content 與 catalog 中相同的 live typed payload。成功指派
-使用既有 opaque-component Undo transaction。多選與移除參照另行處理。缺失參照保留且誠實顯示。
+資料。Inspector 指派要求每個選取物件皆具有 live Mesh Renderer、可寫 project／content、相符
+entity／document／project generation，以及 Content 與 catalog 中相同的 live typed payload。
+Request 擁有完整 selected-key vector；選取變動或任一目標含不支援參照時拒絕整批。有界 atomic
+opaque add／replace 只產生一步 metadata Undo／Redo；相同值保留待執行 Redo。不同參照或 presence
+顯示 Mixed。移除參照仍另行處理。缺失參照保留且誠實顯示。
 
 ## 繪製與剩餘 gate
 
