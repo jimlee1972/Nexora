@@ -133,6 +133,12 @@ target_link_libraries(NexoraSceneMeshPreviewTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraSceneMeshPreviewTests)
 add_test(NAME editor.scene_mesh_preview_geometry COMMAND NexoraSceneMeshPreviewTests)
 
+add_executable(NexoraSceneMeshAllocationTests SceneMeshAllocationTests.cpp)
+target_include_directories(NexoraSceneMeshAllocationTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraSceneMeshAllocationTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraSceneMeshAllocationTests)
+add_test(NAME editor.scene_mesh_allocation_failure COMMAND NexoraSceneMeshAllocationTests)
+
 add_executable(NexoraGameViewPreviewTests GameViewPreviewTests.cpp)
 target_include_directories(NexoraGameViewPreviewTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraGameViewPreviewTests PRIVATE Nexora::EditorImGui)

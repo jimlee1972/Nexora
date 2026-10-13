@@ -427,6 +427,13 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   [證據](../../Tools/Build/evidence/EditorEDM2-NativeGeometryReuse-2026-10-13.md)。
   Persistent per-asset GPU residency 與完整 target-host ED-M2 驗收仍待完成。
 
+- ✅ Scene／Game frame geometry append 現會先準備兩份有上限的容量，再發布 vertex／index。
+  Allocation 失敗回傳既有 unavailable-mesh fallback，保留原內容／range 並允許重試；容量
+  足夠時不會配置。獨立 real-vector fault tests 涵蓋兩個放大點、原 attribute 保留及重試的
+  index rebasing。此項支援 ED-M2 失敗處理；persistent per-asset GPU residency 與完整
+  圖形化驗收仍待完成。
+  [證據](../../Tools/Build/evidence/EditorEDM2-GeometryAllocation-2026-10-13.md)。
+
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
   Undo／Redo。預設名稱隨型別選擇調整，自訂名稱保留。Owning queued request 重新核對

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <new>
 
 namespace nexora::editor::preview {
 
@@ -14,8 +15,8 @@ struct MeshRange final {
   std::uint32_t firstIndex{}, indexCount{};
 };
 
-// Frame-owned combined geometry. Publication validates the complete append before mutation;
-// indices remain absolute within the shared 16-bit upload used by Presentation batches.
+// Frame-owned combined geometry. Publication validates and prepares both capacities before
+// mutation; indices remain absolute within the shared 16-bit upload used by Presentation batches.
 struct Geometry final {
   std::vector<Nexora::Presentation::SceneVertex> vertices;
   std::vector<std::uint16_t> indices;
@@ -39,6 +40,18 @@ struct Geometry final {
       for (const auto value : vertex.uv)
         if (!std::isfinite(value))
           return std::nullopt;
+    }
+    // Allocation failure is the same unavailable-mesh fallback as a rejected input. Preparing
+    // both vectors first preserves published ranges even if only the first reserve succeeds.
+    // Keep geometric growth within the upload limits rather than reallocating every mesh.
+    try {
+      if (const auto required = vertices.size() + mesh.vertices.size();
+          required > vertices.capacity())
+        vertices.reserve(std::max(required, std::min<std::size_t>(65535, vertices.capacity() * 2)));
+      if (const auto required = indices.size() + mesh.indices.size(); required > indices.capacity())
+        indices.reserve(std::max(required, std::min<std::size_t>(1048576, indices.capacity() * 2)));
+    } catch (const std::bad_alloc &) {
+      return std::nullopt;
     }
     const auto base = vertices.size();
     const MeshRange range{static_cast<std::uint32_t>(indices.size()),
