@@ -82,6 +82,29 @@ See `CLAUDE.md` for the longer architecture and milestone guidance shared by clo
 
 ## Automated Pull Request Workflow
 
+### Standing project authorization
+
+The user granted the following ongoing authorization on 2026-10-14 for
+`jimlee1972/Nexora`. Apply it to subsequent tasks in this project unless the user revokes
+or narrows it; do not ask the user to repeat authorization for actions within this scope.
+
+- After the applicable local validation passes, automatically commit the requested changes,
+  push a feature branch to this repository, and create a PR targeting `main`.
+- After local validation passes and the PR is created, enable squash auto-merge for PRs
+  created by this agent's work when GitHub's required-check protection gates the actual merge.
+  Actual merging must wait for all applicable CI checks to pass. If that protection is absent
+  or cannot be verified, wait for CI success before merging. Never bypass required CI checks
+  or branch protection, merge after failed validation, or automatically merge another
+  contributor's PR.
+- Synchronize Beads to this repository's existing remote and `refs/dolt/data`. The user
+  understands and authorizes that `bd dolt push` synchronizes the full task database, not just
+  the current task. Never add secrets, credentials, private personal data, or private notes.
+- Verify that Git and Beads destinations belong to `jimlee1972/Nexora` before publishing;
+  this authorization does not extend to other repositories or newly selected remotes.
+- This records user authorization; it does not disable or override platform approval,
+  sandbox, or network policies. If an action remains blocked, preserve the completed work
+  and report the action and the stated reason.
+
 For every development task in this repository:
 
 1. Follow all existing AGENTS.md and CLAUDE.md instructions.
@@ -91,7 +114,8 @@ For every development task in this repository:
 5. Update related documentation when necessary.
 6. Commit changes to a feature branch.
 7. Push the branch and create a PR targeting main.
-8. Enable GitHub auto-merge using squash merging:
+8. Enable GitHub auto-merge using squash merging, subject to the standing authorization's
+   CI/protection gate above:
    gh pr merge --auto --squash
 9. Never bypass required CI checks or branch protection.
 10. Never automatically merge PRs created by other contributors.
