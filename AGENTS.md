@@ -90,9 +90,12 @@ or narrows it; do not ask the user to repeat authorization for actions within th
 
 - After the applicable local validation passes, automatically commit the requested changes,
   push a feature branch to this repository, and create a PR targeting `main`.
-- After required PR checks pass, enable squash auto-merge for PRs created by this agent's work.
-  Never bypass required CI checks or branch protection, merge after failed validation, or
-  automatically merge another contributor's PR.
+- After local validation passes and the PR is created, enable squash auto-merge for PRs
+  created by this agent's work when GitHub's required-check protection gates the actual merge.
+  Actual merging must wait for all applicable CI checks to pass. If that protection is absent
+  or cannot be verified, wait for CI success before merging. Never bypass required CI checks
+  or branch protection, merge after failed validation, or automatically merge another
+  contributor's PR.
 - Synchronize Beads to this repository's existing remote and `refs/dolt/data`. The user
   understands and authorizes that `bd dolt push` synchronizes the full task database, not just
   the current task. Never add secrets, credentials, private personal data, or private notes.
@@ -111,7 +114,8 @@ For every development task in this repository:
 5. Update related documentation when necessary.
 6. Commit changes to a feature branch.
 7. Push the branch and create a PR targeting main.
-8. Enable GitHub auto-merge using squash merging:
+8. Enable GitHub auto-merge using squash merging, subject to the standing authorization's
+   CI/protection gate above:
    gh pr merge --auto --squash
 9. Never bypass required CI checks or branch protection.
 10. Never automatically merge PRs created by other contributors.
