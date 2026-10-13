@@ -16,8 +16,11 @@ vertex interval 與 locally rebased index slice 構成 owning immutable key。Fi
 
 ## Ownership 與上限
 
-Adapter 每次提交最多處理 64 個 batch、保留 64 個 entry。更大的 draw 使用既有
-combined upload；重複 batch range 共用 admission。常駐 native memory allocation requirement
+Adapter 處理每次提交的完整 4,096 個 batch、保留 64 個 entry。有上限的 64-range memo
+限制 admission／key 工作量，所有 binding 都能重用各自的成功／失敗結果。更多 distinct
+range 個別使用 legacy geometry，先前 range 仍保留 residency。Slot metadata 使用 4 KiB，
+每個 batch 最多掃描 64 個 memo entry，不配置 heap。重複 range 共用 admission。
+常駐 native memory allocation requirement
 上限 32 MiB，另有最多 8 MiB 的 staged candidate。Key 另持有 CPU payload，以各自 native
 allocation 為上限。這些是 cache 專屬限制；既有 frame upload、target 與 texture 有獨立預算。
 Host-visible coherent immutable buffer 不代表 device-local VRAM。

@@ -273,9 +273,11 @@ changes, repeated instances and identical asset content. Changed reimport/frozen
 coexist, and missing assets cannot recover geometry by identity alone. Materials and instances
 continue to update every draw. Main/shadow/reflection select the same retained geometry.
 
-The native adapters handle up to 64 batches per draw with 64 entries and a 32 MiB resident native allocation
+The native adapters handle all 4,096 batches per draw with 64 entries and a 32 MiB resident native allocation
 budget plus at most 8 MiB of staged native allocation. Keys own separate CPU payloads bounded by
-their native allocations. Larger draws, exhausted current-draw leases and failed candidate
+their native allocations. A fixed 64-range memo bounds native admissions and key construction;
+duplicate success/failure ranges reuse their result anywhere in the 4,096 bindings. Additional
+distinct ranges, exhausted current-draw leases and failed candidate
 allocation/mapping/completion fall back to the validated combined upload. These limits exclude
 the existing independently bounded frame uploads, targets and textures. Host-visible coherent
 buffers and copied `sceneGeometryResidency` observations are not device-local VRAM measurements.
@@ -293,7 +295,9 @@ geometry, fresh materials/instances, allocation and mapping failures, completion
 legacy switching, eviction, resize and teardown. See
 [ADR-0008](../../Roadmap/en/ADR-0008-Editor-Mesh-Geometry-Residency.md).
 Native DX12 PBR and Metal Scene/UI/shadow/reflection pixel fixtures request supported residency;
-portable tests also cover duplicate success/failure admissions, legacy clearing and the 64-batch limit.
+portable tests also cover duplicate success/failure admissions, legacy clearing, the 64-range work
+limit and all 4,096 binding slots. The private slot array uses 4 KiB; each batch scans at most 64
+memo records without heap allocation. Extra ranges fall back individually while prior ranges stay cached.
 Driver-internal allocation overhead and real hardware OOM are outside these cache observations.
 Broader residency policy and full target-host ED-M2 acceptance remain open.
 

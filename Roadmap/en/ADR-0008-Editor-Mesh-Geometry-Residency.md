@@ -18,8 +18,11 @@ from an ID alone or from a missing current CPU payload. Submesh ranges may occup
 
 ## Ownership and bounds
 
-The adapters handle up to 64 batches per submission with 64 resident entries. Larger draws
-use the legacy combined upload. Duplicate batch ranges share an admission. Resident native memory
+The adapters handle all 4,096 batches per submission with 64 resident entries. A fixed 64-range
+memo bounds admission/key work and preserves each success/failure result across every binding.
+Additional distinct ranges use legacy geometry individually; prior ranges remain resident.
+Slot metadata uses 4 KiB and each batch scans at most 64 memo entries without heap allocation.
+Duplicate batch ranges share an admission. Resident native memory
 allocation requirements are capped at 32 MiB, with an additional staged candidate capped at 8 MiB.
 Keys own separate CPU payloads bounded by their native allocations. These are cache-specific
 limits; existing frame uploads, targets and textures have independent budgets. Host-visible

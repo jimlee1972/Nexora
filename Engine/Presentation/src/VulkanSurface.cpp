@@ -1165,7 +1165,7 @@ private:
     VkDeviceMemory sceneMemory{};
     VkDeviceSize sceneCapacity{};
     detail::SceneGeometryUploadKey sceneGeometry;
-    std::array<std::uint8_t, 64> meshBindings{};
+    detail::MeshResidencyBindings meshBindings{};
     std::vector<VkDescriptorSet> pbrDescriptors;
     VkImage sceneDepth{};
     VkDeviceMemory sceneDepthMemory{};

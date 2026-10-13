@@ -443,7 +443,8 @@ Vulkan, DX12 and Metal Scene/Game preview now request optional immutable mesh ge
 surface capability. Exact-content keys reuse unchanged meshes when the combined frame layout or
 instance/material data changes; frozen Play geometry can coexist with reimported Editor versions.
 Current CPU catalog payloads are still required, so unavailable assets follow existing proxy/omission
-rules. The first adapter bounds 64 batches/entries and 32 MiB of resident native allocations, with a
+rules. The adapters support 4,096 batches while bounding distinct-range admissions/entries to 64
+and resident native allocations to 32 MiB, with a
 bounded staged candidate; unsupported/large/failed admissions retain legacy uploads. Resize retains
 immutable entries, and completion-safe eviction/shutdown release ownership. CPU/native cache
 diagnostics are not VRAM measurements. Full material/shader authoring, broader cache policy and ED-M2 acceptance remain open; see

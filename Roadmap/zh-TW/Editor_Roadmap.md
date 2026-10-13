@@ -450,6 +450,13 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   policy、authored material／shader workflow 與完整 ED-M2 驗收仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md)。
 
+- ✅ Native Scene／Game mesh residency 現可解析完整 4,096 個有效 batch binding，key／
+  native admission 工作量仍限制為 64 個 distinct range。固定 memo 的成功／失敗結果保留
+  大量重複場景的重用；額外 range 個別回退，不會失去先前命中。Portable full-limit／
+  partial-fallback contract 與真正 Vulkan／DX12／Metal pixels 涵蓋此路徑。更完整的 policy、
+  production material／shader authoring 與 target-host ED-M2 驗收仍待完成。
+  [證據](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md)。
+
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
   Undo／Redo。預設名稱隨型別選擇調整，自訂名稱保留。Owning queued request 重新核對

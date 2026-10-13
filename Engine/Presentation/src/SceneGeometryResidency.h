@@ -90,8 +90,9 @@ private:
 
 // All callers first validate the complete submission. Adapters retain native resources through
 // the callback; duplicate ranges share a result, including a failed admission's legacy fallback.
+using MeshResidencyBindings = std::array<std::uint8_t, 4096>;
 template <class Retain>
-bool PrepareMeshResidencyBindings(const SceneDrawData &data, std::array<std::uint8_t, 64> &bindings,
+bool PrepareMeshResidencyBindings(const SceneDrawData &data, MeshResidencyBindings &bindings,
                                   SceneGeometryResidencyDiagnostics &stats, Retain retain) {
   bindings.fill(UINT8_MAX);
   if (!data.retainMeshGeometry)
@@ -104,22 +105,33 @@ bool PrepareMeshResidencyBindings(const SceneDrawData &data, std::array<std::uin
       data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
   if (batches.size() > bindings.size())
     return false;
+  struct RangeMemo final {
+    std::uint32_t firstIndex{}, indexCount{};
+    std::uint8_t slot{UINT8_MAX};
+  };
+  std::array<RangeMemo, 64> memo{};
+  std::size_t ranges{};
   bool complete = true;
   for (std::size_t index = 0; index < batches.size(); ++index) {
     std::optional<std::size_t> duplicate;
-    for (std::size_t prior = 0; prior < index; ++prior)
-      if (batches[prior].firstIndex == batches[index].firstIndex &&
-          batches[prior].indexCount == batches[index].indexCount) {
+    for (std::size_t prior = 0; prior < ranges; ++prior)
+      if (memo[prior].firstIndex == batches[index].firstIndex &&
+          memo[prior].indexCount == batches[index].indexCount) {
         duplicate = prior;
         break;
       }
     if (duplicate) {
-      bindings[index] = bindings[*duplicate];
+      bindings[index] = memo[*duplicate].slot;
       if (bindings[index] != UINT8_MAX)
         ++stats.hits;
-    } else if (const auto view = MeshGeometryView::From(data, batches[index])) {
-      if (const auto slot = retain(*view))
-        bindings[index] = static_cast<std::uint8_t>(*slot);
+    } else if (ranges < memo.size()) {
+      auto &range = memo[ranges++];
+      range.firstIndex = batches[index].firstIndex;
+      range.indexCount = batches[index].indexCount;
+      if (const auto view = MeshGeometryView::From(data, batches[index]))
+        if (const auto slot = retain(*view))
+          range.slot = static_cast<std::uint8_t>(*slot);
+      bindings[index] = range.slot;
     }
     complete = complete && bindings[index] != UINT8_MAX;
   }

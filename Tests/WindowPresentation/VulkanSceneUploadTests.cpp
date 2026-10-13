@@ -348,6 +348,27 @@ void RunResidency() {
               before.nativeAllocationBytes <= 32 * 1024 * 1024 && before.retainedCpuBytes > 0 &&
               surface->Diagnostics().sceneGeometryUploadCache.uploads == 0,
           "mesh residency did not skip combined geometry uploads across frame slots");
+  {
+    std::array<SceneMeshBatch, 4096> repeated{};
+    std::ranges::fill(repeated, SceneMeshBatch{0, 3, 1, 1});
+    repeated[0] = batches[0];
+    repeated[1] = batches[1];
+    std::array<SceneInstance, 2> repeatedInstances{};
+    repeatedInstances[1].translation[0] = 3;
+    draw.batches = repeated;
+    draw.instances = repeatedInstances;
+    for (unsigned frame = 0; frame < 3; ++frame) {
+      repeatedInstances[0].translation[0] = frame % 2 ? 0.75F : 0;
+      submit(frame % 2 != 0);
+    }
+    const auto dense = surface->Diagnostics().sceneGeometryResidency;
+    Require(dense.uploads == before.uploads && dense.hits >= before.hits + 3 * 4094 &&
+                dense.nativeAllocationBytes == before.nativeAllocationBytes &&
+                surface->Diagnostics().sceneGeometryUploadCache.uploads == 0,
+            "4096 batches repeated admission, changed resident ownership or used legacy geometry");
+    draw.batches = batches;
+    draw.instances = instances;
+  }
   for (std::size_t i = 0; i < 3; ++i)
     std::swap(vertices[i], vertices[i + 3]);
   submit(false);

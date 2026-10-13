@@ -25,7 +25,7 @@ void CheckBindings() {
   SceneDrawData draw{vertices, indices};
   draw.batches = batches;
   draw.retainMeshGeometry = true;
-  std::array<std::uint8_t, 64> bindings{};
+  MeshResidencyBindings bindings{};
   SceneGeometryResidencyDiagnostics stats;
   unsigned calls = 0;
   const auto retain = [&](const auto &) -> std::optional<std::size_t> {
@@ -40,12 +40,27 @@ void CheckBindings() {
   Require(!PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 0 &&
               std::ranges::all_of(bindings, [](auto slot) { return slot == UINT8_MAX; }),
           "legacy draw retained stale mesh bindings or invoked native admission");
-  std::array<SceneMeshBatch, 65> large{};
+  std::array<SceneMeshBatch, 4096> large{};
   std::ranges::fill(large, SceneMeshBatch{0, 3, 0, 1});
   draw.batches = large;
   draw.retainMeshGeometry = true;
-  Require(!PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 0,
-          "oversized draw exceeded the bounded admission work instead of using legacy geometry");
+  Require(PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 1 &&
+              std::ranges::all_of(bindings, [](auto slot) { return slot == 7; }),
+          "4096 identical ranges fell back to legacy or repeated native admission");
+  std::array<std::uint16_t, 65 * 3> distinctIndices{};
+  for (std::size_t i = 0; i < distinctIndices.size(); ++i)
+    distinctIndices[i] = static_cast<std::uint16_t>(i % 3);
+  draw.indices = distinctIndices;
+  for (std::size_t i = 0; i < 65; ++i)
+    large[i] = {static_cast<std::uint32_t>(i * 3), 3, 0, 1};
+  // Memoized successes and failures must remain usable after an additional range falls back.
+  for (std::size_t i = 65; i < large.size(); ++i)
+    large[i] = i % 2 ? large[0] : large[1];
+  calls = 0;
+  Require(!PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 64 &&
+              bindings[0] == 7 && bindings[1] == UINT8_MAX && bindings[64] == UINT8_MAX &&
+              bindings[4095] == 7 && bindings[4094] == UINT8_MAX,
+          "distinct-range cap lost partial reuse, failed-range memo or bounded native work");
 }
 void Run() {
   std::array<SceneVertex, 6> vertices{};

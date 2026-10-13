@@ -167,3 +167,9 @@ lease 與 legacy-prefix invalidation 保留最新 frame data 及 resize 重用�
 admission tests 及 Vulkan tracing 保留 allocation／completion 失敗證據。實際 hardware OOM、
 更完整的 policy 及完整 target-host 驗收仍待完成。
 [證據](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md)。
+
+✅ 全部 native adapter 現以固定 metadata 解析 4,096 個 mesh binding，每次最多對 64 個
+distinct range 進行 admission。大量重複 batch 保留 exact geometry 重用；額外 range 個別
+回退，保留先前成功／失敗 memo 結果。Portable full-limit 上限與真正 native pixels 驗證此
+擴充，不增加 GPU entry／memory 上限。
+[證據](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md)。
