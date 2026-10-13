@@ -151,6 +151,22 @@ struct ProcessMemoryCapture final {
 [[nodiscard]] NEXORA_EDITOR_API bool
 ValidateProcessMemorySamples(std::span<const ProcessMemorySample> samples) noexcept;
 
+// Copied Presentation retained-mesh allocation observations, not process RSS or total device VRAM.
+// The process-local owner domain is neither a native handle nor persistent project identity.
+struct MeshMemoryObservation final {
+  std::uint64_t surface_domain{};
+  std::optional<std::uint64_t> native_allocation_bytes, cpu_key_payload_bytes;
+  std::optional<std::uint64_t> observed_peak_native_bytes, observed_peak_cpu_bytes;
+  std::uint64_t attempts{}, successful_samples{};
+};
+struct MeshMemorySample final {
+  std::uint64_t sequence{};
+  double elapsed_ms{};
+  std::optional<std::uint64_t> native_allocation_bytes, cpu_key_payload_bytes;
+};
+[[nodiscard]] NEXORA_EDITOR_API bool
+ValidateMeshMemorySamples(std::span<const MeshMemorySample> samples) noexcept;
+
 enum class GpuProfileSource : std::uint8_t {
   Unavailable,
   VulkanTimestamps,
@@ -202,6 +218,21 @@ public:
   }
   [[nodiscard]] std::uint64_t MemoryDroppedCount() const noexcept { return memory_dropped_; }
 
+  // Application owner supplies copied native diagnostics after successful Present; no native IO.
+  // Both metrics must be available/unavailable together. Domain changes reset this stream only.
+  bool ObserveMeshMemory(std::uint64_t surface_domain, std::chrono::steady_clock::time_point now,
+                         std::optional<std::uint64_t> native_allocation_bytes,
+                         std::optional<std::uint64_t> cpu_key_payload_bytes) noexcept;
+  static constexpr auto kMeshMemorySampleInterval = std::chrono::milliseconds(250);
+  static constexpr std::size_t kMaximumMeshMemorySamples = 600;
+  [[nodiscard]] MeshMemoryObservation MeshMemory() const noexcept { return mesh_memory_; }
+  [[nodiscard]] std::span<const MeshMemorySample> MeshMemorySamples() const noexcept {
+    return {mesh_memory_samples_.data(), mesh_memory_sample_count_};
+  }
+  [[nodiscard]] std::uint64_t MeshMemoryDroppedCount() const noexcept {
+    return mesh_memory_dropped_;
+  }
+
   // Consume copied completed native results on the owner thread, never native handles.
   // Domain changes clear GPU history; paused ingestion still advances its completion watermark.
   bool ObserveGpuFrame(std::uint64_t domain, GpuProfileSource source, bool software_rasterizer,
@@ -223,6 +254,14 @@ private:
   std::size_t memory_sample_count_{};
   std::uint64_t memory_dropped_{};
   std::optional<std::chrono::steady_clock::time_point> memory_origin_;
+
+  MeshMemoryObservation mesh_memory_;
+  std::array<MeshMemorySample, kMaximumMeshMemorySamples> mesh_memory_samples_{};
+  std::size_t mesh_memory_sample_count_{};
+  std::uint64_t mesh_memory_dropped_{};
+  std::optional<std::chrono::steady_clock::time_point> mesh_memory_origin_;
+  std::optional<std::chrono::steady_clock::time_point> next_mesh_memory_sample_;
+  std::optional<std::chrono::steady_clock::time_point> last_mesh_memory_sample_;
 
   GpuProfileObservation gpu_;
   std::uint64_t gpu_domain_{};

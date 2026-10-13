@@ -334,6 +334,14 @@ void ProfileSession::Clear() noexcept {
   // Keep the native completion watermark so Clear cannot re-admit an old completed result.
   next_memory_sample_.reset();
   last_memory_sample_.reset();
+  const auto mesh_domain = mesh_memory_.surface_domain;
+  mesh_memory_ = {};
+  mesh_memory_.surface_domain = mesh_domain;
+  mesh_memory_sample_count_ = 0;
+  mesh_memory_dropped_ = 0;
+  mesh_memory_origin_.reset();
+  next_mesh_memory_sample_.reset();
+  last_mesh_memory_sample_.reset();
 }
 
 bool ProfileSession::SampleProcessMemory(std::chrono::steady_clock::time_point now,
@@ -373,6 +381,82 @@ bool ProfileSession::SampleProcessMemory(std::chrono::steady_clock::time_point n
         ++memory_dropped_;
     }
     memory_samples_[memory_sample_count_++] = {memory_.attempts, elapsed, memory_.resident_bytes};
+  }
+  return true;
+}
+
+bool ValidateMeshMemorySamples(std::span<const MeshMemorySample> samples) noexcept {
+  if (samples.empty() || samples.size() > ProfileSession::kMaximumMeshMemorySamples)
+    return false;
+  std::uint64_t previous_sequence = 0;
+  double previous_elapsed = -1;
+  for (const auto &sample : samples) {
+    if (!sample.sequence || sample.sequence <= previous_sequence ||
+        !std::isfinite(sample.elapsed_ms) || sample.elapsed_ms < 0 ||
+        sample.elapsed_ms <= previous_elapsed ||
+        sample.native_allocation_bytes.has_value() != sample.cpu_key_payload_bytes.has_value())
+      return false;
+    previous_sequence = sample.sequence;
+    previous_elapsed = sample.elapsed_ms;
+  }
+  return true;
+}
+
+bool ProfileSession::ObserveMeshMemory(
+    std::uint64_t surface_domain, std::chrono::steady_clock::time_point now,
+    std::optional<std::uint64_t> native_allocation_bytes,
+    std::optional<std::uint64_t> cpu_key_payload_bytes) noexcept {
+  if (!surface_domain || native_allocation_bytes.has_value() != cpu_key_payload_bytes.has_value())
+    return false;
+  if (surface_domain != mesh_memory_.surface_domain) {
+    mesh_memory_ = {};
+    mesh_memory_.surface_domain = surface_domain;
+    mesh_memory_sample_count_ = 0;
+    mesh_memory_dropped_ = 0;
+    mesh_memory_origin_.reset();
+    next_mesh_memory_sample_.reset();
+    last_mesh_memory_sample_.reset();
+  }
+  if (!capturing_ || (last_mesh_memory_sample_ && now <= *last_mesh_memory_sample_) ||
+      (next_mesh_memory_sample_ && now < *next_mesh_memory_sample_))
+    return false;
+  last_mesh_memory_sample_ = now;
+  next_mesh_memory_sample_ =
+      now > std::chrono::steady_clock::time_point::max() - kMeshMemorySampleInterval
+          ? std::chrono::steady_clock::time_point::max()
+          : now + kMeshMemorySampleInterval;
+  mesh_memory_.native_allocation_bytes = native_allocation_bytes;
+  mesh_memory_.cpu_key_payload_bytes = cpu_key_payload_bytes;
+  if (mesh_memory_.attempts != std::numeric_limits<std::uint64_t>::max())
+    ++mesh_memory_.attempts;
+  if (native_allocation_bytes) {
+    if (mesh_memory_.successful_samples != std::numeric_limits<std::uint64_t>::max())
+      ++mesh_memory_.successful_samples;
+    mesh_memory_.observed_peak_native_bytes =
+        std::max(mesh_memory_.observed_peak_native_bytes.value_or(0), *native_allocation_bytes);
+    mesh_memory_.observed_peak_cpu_bytes =
+        std::max(mesh_memory_.observed_peak_cpu_bytes.value_or(0), *cpu_key_payload_bytes);
+  }
+  if (!mesh_memory_origin_)
+    mesh_memory_origin_ = now;
+  const double elapsed =
+      std::chrono::duration<double, std::milli>(now.time_since_epoch()).count() -
+      std::chrono::duration<double, std::milli>(mesh_memory_origin_->time_since_epoch()).count();
+  const auto capacity = std::min(capacity_, kMaximumMeshMemorySamples);
+  if (capacity &&
+      (mesh_memory_sample_count_ == 0 ||
+       (mesh_memory_.attempts > mesh_memory_samples_[mesh_memory_sample_count_ - 1].sequence &&
+        elapsed > mesh_memory_samples_[mesh_memory_sample_count_ - 1].elapsed_ms))) {
+    if (mesh_memory_sample_count_ == capacity) {
+      std::move(mesh_memory_samples_.begin() + 1,
+                mesh_memory_samples_.begin() + mesh_memory_sample_count_,
+                mesh_memory_samples_.begin());
+      --mesh_memory_sample_count_;
+      if (mesh_memory_dropped_ != std::numeric_limits<std::uint64_t>::max())
+        ++mesh_memory_dropped_;
+    }
+    mesh_memory_samples_[mesh_memory_sample_count_++] = {
+        mesh_memory_.attempts, elapsed, native_allocation_bytes, cpu_key_payload_bytes};
   }
   return true;
 }

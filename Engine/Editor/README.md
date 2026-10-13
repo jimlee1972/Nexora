@@ -1305,9 +1305,12 @@ nonzero project generation. Import/catalog operations perform no native GPU work
 Renderer dependency uses the shared material-validation policy; application drawing uses Renderer
 tangent generation and existing Presentation PBR bindings.
 
-`AssignMaterialAsset` requires one selected live Mesh Renderer, writable Content, an editable host,
-live entity/document/project generations and the same owning typed payload in catalog and Content.
-It commits one `SceneDocument::SetOpaqueComponent` Undo. Identical assignments preserve Redo.
+AssignMaterialAssets requires the complete selected live Mesh Renderer set, writable Content, an
+editable host, live entity/document/project generations and the same owning typed payload in catalog
+and Content. It commits one bounded atomic SetOpaqueComponents metadata Undo; the single-object
+wrapper follows that same boundary. Identical assignments preserve Redo. ClearMaterialAssets removes
+supported references in one metadata transaction, including missing-source/catalog cases, while
+protecting unsupported payloads and retaining unrelated data.
 The Editor-owned `editor.material.asset` component stores a versioned UUID independently of the
 unchanged legacy shader ID; missing resources and unsupported component versions retain all bytes.
 Per-frame reference inspection copies only bounded opaque metadata prefixes and requires exact
@@ -1315,8 +1318,8 @@ Per-frame reference inspection copies only bounded opaque metadata prefixes and 
 versions/type-name collisions reject assignment. Scene container and stable C/Zig
 schemas stay unchanged. Application-owned Game material snapshots freeze converted values and
 mesh-entity assignments before Play; reimport/deletion/reassignment cannot alter that session.
-Material catalogs do not borrow Runtime Worlds or contain native resources. Multi-selection,
-reference removal, textures, shader graphs and the shipped-game/cook consumer remain separate work.
+Material catalogs do not borrow Runtime Worlds or contain native resources. Texture/shader graphs
+and the shipped-game/cook consumer remain separate work.
 
 ## Process-memory capture persistence
 
@@ -1356,6 +1359,31 @@ not erase it, and root/UUID changes or detachment clear it and pending requests.
 time horizontally, breaks lines at unavailable attempts and shows MiB as 1,048,576 bytes. Graphical
 controls follow project access and modal/recovery/close gates. Existing schema-1 wall-time CSV/JSON
 readers/writers are unchanged; Arbitrary captures and physical-host acceptance remain open; GPU traces use a separate schema.
+
+## Retained native mesh memory observations
+
+ProfileSession::ObserveMeshMemory receives copied Presentation diagnostics on the application owner
+thread after successful Present: a nonzero process-local surface domain, steady time, actual retained
+native allocation bytes and CPU comparison-key payload bytes. Both values are available/unavailable
+together; zero is valid. No native handles, GPU reads or module dependency enter Editor core. The
+metrics describe the current surface's immutable geometry cache, across project changes, excluding
+textures, frame uploads, heap overhead and total device-local VRAM. They do not belong to a project
+or replace process RSS/working-set measurements.
+
+Each capturing stream samples at most once per 250 ms with strictly increasing steady time. New
+owner domains reset this stream's latest/peak/history/drop/clock state, including while paused;
+malformed/zero domains and partial metric pairs reject without disturbing prior state. Unavailable
+observations create gaps while retaining observed peaks. Fixed storage keeps min(frame_capacity,600)
+records, with saturating independent eviction counts; capacity zero retains latest/peak only. Clear
+resets observations and sampling origin without resuming Capture or freeing renderer resources. UI
+copies latest values and consumes history spans synchronously; no borrow survives a widget call.
+The two-series plot identifies byte units and elapsed time, preserving pause gaps and missing data.
+
+This channel is live-only. Existing wall-time CSV/JSON, process-memory and GPU timing schemas,
+imports and export controls remain unchanged; their missing fields are not inferred from this scope.
+The public C++ ProfileSession layout grows by fixed bounded storage and consumers must rebuild.
+Stable C/Zig/scene schemas and module dependencies are unchanged. Persistence of this separate scope,
+whole-device memory instrumentation and physical acceptance remain separate work.
 
 ## Completed native GPU profile history
 

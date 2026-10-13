@@ -372,6 +372,15 @@ frame may sample immediately. Scope remains process-wide across project switches
 does not measure GPU memory or allocator ownership. The bounded shutdown diagnostic reports
 scope/unit, attempt/success counts and latest/peak, without paths or project data.
 
+A separate live Profiler channel copies Presentation's actual retained native mesh allocation bytes
+and CPU comparison-key payload bytes after successful Present. It identifies the current native
+surface's geometry cache and samples at most every 250 ms into a fixed 600-record history. Missing
+observations break plotted lines, zero is valid, domain changes separate owners and Capture/Clear
+control observations without releasing resources. Native byte counts include adapter allocation
+requirements; CPU values exclude allocator overhead. The channel excludes textures/frame uploads,
+process RSS and total device-local VRAM, and remains live-only. Existing exports retain their own
+wall/process/GPU scope. C++ ProfileSession consumers must rebuild; stable C/scene formats do not change.
+
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.
 

@@ -158,6 +158,8 @@ int main(int argc, char **argv) {
     auto *display = XOpenDisplay(nullptr);
     Require(display != nullptr, "native material display failed");
     const auto native = reinterpret_cast<::Window>(windows->NativeHandle(window.handle));
+    editor::ProfileSession mesh_profile;
+    unsigned memory_observations = 0;
     const auto submit = [&](unsigned expected, const std::filesystem::path &capture) {
       const auto palette = editor::preview::PrepareMaterialPalette(f.scene, f.materials, 7, ids);
       Require(palette.authored && palette.materials.size() == 3 && palette.unavailable == 0,
@@ -172,6 +174,7 @@ int main(int argc, char **argv) {
       draw.batches = batches;
       draw.materials = palette.materials;
       draw.pbr = true;
+      draw.retainMeshGeometry = surface->SupportsSceneGeometryResidency();
       draw.cameraPosition = {0, 0, 3};
       draw.light_direction[0] = draw.light_direction[1] = 0;
       draw.light_direction[2] = -1;
@@ -181,6 +184,18 @@ int main(int argc, char **argv) {
                   surface->Present() == SurfaceStatus::Ready,
               "native source PBR submission failed");
       Pixels(display, native, expected, capture);
+      const auto memory = surface->Diagnostics().sceneGeometryResidency;
+      Require(memory.available && memory.nativeAllocationBytes > 0 && memory.retainedCpuBytes > 0 &&
+                  memory.retainedCpuBytes <= memory.nativeAllocationBytes &&
+                  mesh_profile.ObserveMeshMemory(
+                      1,
+                      std::chrono::steady_clock::time_point{} +
+                          std::chrono::milliseconds(250 * memory_observations++),
+                      memory.nativeAllocationBytes, memory.retainedCpuBytes) &&
+                  mesh_profile.MeshMemory().native_allocation_bytes ==
+                      memory.nativeAllocationBytes &&
+                  mesh_profile.MeshMemory().cpu_key_payload_bytes == memory.retainedCpuBytes,
+              "actual retained native allocation bytes did not reach Profiler observations");
     };
     const std::filesystem::path capture = argc > 1 ? argv[1] : "";
     submit(0, capture.empty() ? capture : capture.parent_path() / "assigned.ppm");
@@ -201,6 +216,22 @@ int main(int argc, char **argv) {
     Require(f.scene.Reload(saved), "native saved UUID reopen after reimport failed");
     submit(2, {});
     Require(surface->Diagnostics().sceneDrawCalls == 5, "native material scene count failed");
+    Require(mesh_profile.MeshMemorySamples().size() == 5 &&
+                editor::ValidateMeshMemorySamples(mesh_profile.MeshMemorySamples()),
+            "native allocation history was not monotonic/owning");
+    Require(surface->DrainAndDestroy() == SurfaceStatus::Ready,
+            "native mesh-memory surface drain failed");
+    const auto drained = surface->Diagnostics().sceneGeometryResidency;
+    Require(!drained.nativeAllocationBytes && !drained.retainedCpuBytes &&
+                mesh_profile.ObserveMeshMemory(
+                    1, std::chrono::steady_clock::time_point{} + std::chrono::milliseconds(1500),
+                    drained.available ? std::optional<std::uint64_t>{drained.nativeAllocationBytes}
+                                      : std::nullopt,
+                    drained.available ? std::optional<std::uint64_t>{drained.retainedCpuBytes}
+                                      : std::nullopt) &&
+                (!mesh_profile.MeshMemory().native_allocation_bytes ||
+                 *mesh_profile.MeshMemory().native_allocation_bytes == 0),
+            "native teardown did not publish released/unavailable allocations");
     surface.reset();
     XCloseDisplay(display);
     windows->Destroy(window.handle);
