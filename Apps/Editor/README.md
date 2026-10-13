@@ -212,6 +212,11 @@ default remains0. No C/Gameplay ABI declaration, capability bit or module depend
 C++ consumers rebuild. This routes one source among logical lanes, without simultaneous physical
 users, gamepad, relative-pointer or pointer-look claims.
 
+Focus loss or a pressed Escape revokes `PlayInputState` before discarding the acquisition batch.
+Release wins over all other events in that batch, regardless of ordering. Subsequent batches stay
+neutral until the owner explicitly reacquires focus; reacquisition still suppresses its first batch.
+The sequence advances for neutral batches and previously copied snapshots remain unchanged.
+
 ### Scoped build output-to-Console ingress
 
 The native owner forwards its current BuildProcess retained merged stdout/stderr to the same

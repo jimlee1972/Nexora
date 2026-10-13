@@ -37,21 +37,24 @@ public:
     using namespace Nexora::Window;
     if (++snapshot_.sequence == 0)
       ++snapshot_.sequence;
-    if (!focused_ || acquired_) {
+    if (!focused_)
+      return;
+    // Release always wins, including the deliberately discarded acquisition batch. Otherwise a
+    // blur/Escape received while acquiring leaves the owner focused for later key batches.
+    for (const auto &event : events) {
+      if ((event.type == WindowEventType::FocusChanged && !event.value0) ||
+          (event.type == WindowEventType::Key &&
+           event.value0 == static_cast<std::int32_t>(Key::Escape) && event.value1)) {
+        SetFocused(false);
+        return;
+      }
+    }
+    if (acquired_) {
       acquired_ = false;
       return;
     }
     for (const auto &event : events) {
-      if (event.type == WindowEventType::FocusChanged && !event.value0) {
-        SetFocused(false);
-        return;
-      }
       if (event.type == WindowEventType::Key) {
-        const auto key = static_cast<Key>(event.value0);
-        if (key == Key::Escape && event.value1) {
-          SetFocused(false);
-          return;
-        }
         if (event.value0 > 0 && static_cast<std::size_t>(event.value0) < keys_.size())
           keys_[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
       } else if (event.type == WindowEventType::PointerButton && event.value0 >= 0 &&
