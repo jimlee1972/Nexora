@@ -460,6 +460,14 @@ creates property widgets; unknown components retain raw data instead of being si
   [ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
   [Evidence](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md).
 
+- ✅ DX12 and Metal now implement the same optional immutable mesh residency used by Vulkan.
+  Shared bounded admission reuses duplicate success/failure ranges; owning native buffers, allocation
+  requirement/size accounting and completion-gated LRU preserve current draw leases. Fresh DX12
+  palette/shadow constants and Metal current UI retirements remain valid while cached/legacy draws
+  switch. Native PBR/Metal visual guards exercise residency, shadow/reflection and released ownership.
+  Broader residency policy, authored material/shader workflows and full ED-M2 acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md).
+
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
   Default names follow type choices while custom names remain. Queued owning requests recheck

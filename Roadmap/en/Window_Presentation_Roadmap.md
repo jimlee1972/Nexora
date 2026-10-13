@@ -167,3 +167,11 @@ tracing/pixels and portable contracts cover canonical identity, changed geometry
 allocation/mapping/completion failure and memory bounds. DX12/Metal residency remains open.
 [ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
 [Evidence](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md).
+
+✅ DX12/Metal now support immutable mesh residency with Vulkan's shared canonical keys and
+bounded duplicate/failure admissions. Native requirement/size accounting, completed retirement,
+current-draw leases and legacy-prefix invalidation preserve fresh frame data and resize reuse.
+DX12 native PBR and Metal Scene/UI/shadow/reflection guards request residency and switch modes;
+portable admission tests and Vulkan tracing retain allocation/completion failure evidence. Actual
+hardware OOM, broader policy and full target-host acceptance remain open.
+[Evidence](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md).

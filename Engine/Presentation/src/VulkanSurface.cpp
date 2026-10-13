@@ -1418,39 +1418,9 @@ private:
     return plan->slot;
   }
   bool PrepareMeshResidency(Frame &frame, const SceneDrawData &data) {
-    frame.meshBindings.fill(UINT8_MAX);
-    if (!data.retainMeshGeometry)
-      return false;
-    diagnostics_.sceneGeometryResidency.available = true;
-    const SceneMeshBatch whole{
-        0, static_cast<std::uint32_t>(data.indices.size()), 0,
-        static_cast<std::uint32_t>(std::max<std::size_t>(1, data.instances.size())), 0};
-    const auto batches =
-        data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
-    // Bound key construction and native admissions per draw; larger submissions keep legacy
-    // uploads.
-    if (batches.size() > frame.meshBindings.size())
-      return false;
-    bool complete = true;
-    for (std::size_t index = 0; index < batches.size(); ++index) {
-      std::optional<std::size_t> duplicate;
-      for (std::size_t prior = 0; prior < index; ++prior)
-        if (batches[prior].firstIndex == batches[index].firstIndex &&
-            batches[prior].indexCount == batches[index].indexCount) {
-          duplicate = prior;
-          break;
-        }
-      if (duplicate) {
-        frame.meshBindings[index] = frame.meshBindings[*duplicate];
-        if (frame.meshBindings[index] != UINT8_MAX)
-          ++diagnostics_.sceneGeometryResidency.hits;
-      } else if (const auto view = detail::MeshGeometryView::From(data, batches[index])) {
-        if (const auto slot = RetainMesh(*view))
-          frame.meshBindings[index] = static_cast<std::uint8_t>(*slot);
-      }
-      complete = complete && frame.meshBindings[index] != UINT8_MAX;
-    }
-    return complete;
+    return detail::PrepareMeshResidencyBindings(
+        data, frame.meshBindings, diagnostics_.sceneGeometryResidency,
+        [this](const auto &view) { return RetainMesh(view); });
   }
   std::uint32_t BindSceneMesh(Frame &frame, const SceneMeshBatch &batch, std::size_t ordinal,
                               VkDeviceSize indexOffset, VkDeviceSize instanceOffset) {

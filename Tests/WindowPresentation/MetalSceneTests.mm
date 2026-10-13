@@ -28,6 +28,11 @@
 using namespace Nexora;
 using namespace Nexora::Presentation;
 
+SurfaceStatus DrawRetained(ISurface &surface, SceneDrawData draw, bool retain = true) {
+  draw.retainMeshGeometry = retain && surface.SupportsSceneGeometryResidency();
+  return surface.DrawScene(draw);
+}
+
 int main(int argc, char **argv) {
   const auto fail = [](int line) {
     std::cerr << "Metal scene contract failed at line " << line << '\n';
@@ -125,14 +130,14 @@ int main(int argc, char **argv) {
       return fail(__LINE__);
     auto malformed = draw;
     malformed.model_view_projection[0] = std::numeric_limits<float>::quiet_NaN();
-    if (!require(surface->DrawScene(malformed), SurfaceStatus::InvalidDescriptor))
+    if (!require(DrawRetained(*surface, malformed), SurfaceStatus::InvalidDescriptor))
       return fail(__LINE__);
     instances[0].scale[0] = 0;
-    if (!require(surface->DrawScene(draw), SurfaceStatus::InvalidDescriptor))
+    if (!require(DrawRetained(*surface, draw), SurfaceStatus::InvalidDescriptor))
       return fail(__LINE__);
     instances[0].scale[0] = 1;
-    if (!require(surface->DrawScene(draw), SurfaceStatus::Ready) ||
-        !require(surface->DrawScene(draw), SurfaceStatus::InvalidDescriptor) ||
+    if (!require(DrawRetained(*surface, draw), SurfaceStatus::Ready) ||
+        !require(DrawRetained(*surface, draw), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->Present(), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
         !require(surface->CompositeScene(), SurfaceStatus::InvalidDescriptor))
@@ -151,14 +156,14 @@ int main(int argc, char **argv) {
     // surface.
     for (int i = 0; i < 6; ++i) {
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(draw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, draw, i % 3 == 0), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
     }
-    const auto geometryCache = surface->Diagnostics().sceneGeometryUploadCache;
+    const auto geometryCache = surface->Diagnostics().sceneGeometryResidency;
     if (!geometryCache.available || !geometryCache.hits || !geometryCache.uploads ||
-        !geometryCache.retainedCpuBytes)
+        !geometryCache.retainedCpuBytes || geometryCache.nativeAllocationBytes > 32 * 1024 * 1024)
       return fail(__LINE__);
     const auto captured = surface->ReadScenePixelsForTesting();
     if (captured.size() != 640U * 360U * 4U)
@@ -217,15 +222,15 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
       if (frame == 0) {
         materialRanges[1].materialIndex = 2;
-        if (!require(surface->DrawScene(materialDraw), SurfaceStatus::InvalidDescriptor))
+        if (!require(DrawRetained(*surface, materialDraw), SurfaceStatus::InvalidDescriptor))
           return fail(__LINE__);
         materialRanges[1].materialIndex = 1;
         materialSlots[1].textureId = 987;
-        if (!require(surface->DrawScene(materialDraw), SurfaceStatus::InvalidDescriptor))
+        if (!require(DrawRetained(*surface, materialDraw), SurfaceStatus::InvalidDescriptor))
           return fail(__LINE__);
         materialSlots[1].textureId = 0;
       }
-      if (!require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+      if (!require(DrawRetained(*surface, materialDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -316,11 +321,11 @@ int main(int argc, char **argv) {
         return fail(__LINE__);
       if (frame == 0) {
         materialSlots[0].normalTextureId = 987;
-        if (!require(surface->DrawScene(materialDraw), SurfaceStatus::InvalidDescriptor))
+        if (!require(DrawRetained(*surface, materialDraw), SurfaceStatus::InvalidDescriptor))
           return fail(__LINE__);
         materialSlots[0].normalTextureId = 0;
       }
-      if (!require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+      if (!require(DrawRetained(*surface, materialDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -358,7 +363,7 @@ int main(int argc, char **argv) {
     materialDraw.light_direction[2] = 0;
     materialDraw.light_color[0] = materialDraw.light_color[1] = materialDraw.light_color[2] = 1;
     if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-        !require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+        !require(DrawRetained(*surface, materialDraw), SurfaceStatus::Ready) ||
         !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
         !require(surface->Present(), SurfaceStatus::Ready))
       return fail(__LINE__);
@@ -382,10 +387,10 @@ int main(int argc, char **argv) {
       if (mode == 0) {
         auto invalid = materialDraw;
         invalid.environment->specularTextureId = 999;
-        if (!require(surface->DrawScene(invalid), SurfaceStatus::InvalidDescriptor))
+        if (!require(DrawRetained(*surface, invalid), SurfaceStatus::InvalidDescriptor))
           return fail(__LINE__);
       }
-      if (!require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+      if (!require(DrawRetained(*surface, materialDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -437,7 +442,7 @@ int main(int argc, char **argv) {
     for (const float exposure : {1.0F, 0.125F, 0.25F, 1.0F}) {
       materialDraw.exposure = exposure;
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(materialDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, materialDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->RenderUi(hdrUi), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
@@ -468,7 +473,7 @@ int main(int argc, char **argv) {
       PbrShadowFixtures::Fixture fixture(mode);
       auto shadowDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(shadowDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, shadowDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -493,7 +498,7 @@ int main(int argc, char **argv) {
       PbrBloomFixtures::Fixture fixture;
       auto bloomDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(bloomDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, bloomDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -514,7 +519,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 6; ++mode) {
       PbrOcclusionFixtures::Fixture fixture(mode >= 4 ? 100.0F / 3 : 1.0F);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw(mode, 640, 360)), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw(mode, 640, 360)), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -550,7 +555,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 2; ++mode) {
       PbrMipFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw()), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -580,7 +585,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 6; ++mode) {
       PbrPointLightFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw()), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -606,7 +611,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 4; ++mode) {
       PbrTwoSidedFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw()), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -634,7 +639,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 4; ++mode) {
       PbrAntiAliasFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw()), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -663,7 +668,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 12; ++mode) {
       PbrRefractionFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw()), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -694,7 +699,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 4; ++mode) {
       PbrWorldNormalFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw()), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw()), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -730,7 +735,7 @@ int main(int argc, char **argv) {
     for (unsigned mode = 0; mode < 6; ++mode) {
       PbrAtmosphereFixtures::Fixture fixture(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(fixture.Draw(mode)), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, fixture.Draw(mode)), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -756,7 +761,7 @@ int main(int argc, char **argv) {
       PbrWorldMappingFixtures::Fixture fixture(mode);
       auto mappingDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(mappingDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, mappingDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -782,7 +787,7 @@ int main(int argc, char **argv) {
       PbrTransparencyFixtures::Fixture fixture(mode);
       auto blendDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(blendDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, blendDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -808,7 +813,7 @@ int main(int argc, char **argv) {
       PbrReflectionFixtures::Fixture fixture(mode);
       auto reflectionDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(reflectionDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, reflectionDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -835,7 +840,7 @@ int main(int argc, char **argv) {
       PbrVegetationFixtures::Fixture fixture(mode);
       auto vegetationDraw = fixture.Draw(mode);
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(vegetationDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, vegetationDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -886,7 +891,7 @@ int main(int argc, char **argv) {
          {std::span<const std::uint16_t>(nearFirst), std::span<const std::uint16_t>(farFirst)}) {
       depthDraw.indices = order;
       if (!require(surface->Acquire(), SurfaceStatus::Ready) ||
-          !require(surface->DrawScene(depthDraw), SurfaceStatus::Ready) ||
+          !require(DrawRetained(*surface, depthDraw), SurfaceStatus::Ready) ||
           !require(surface->CompositeScene(), SurfaceStatus::Ready) ||
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
@@ -909,7 +914,7 @@ int main(int argc, char **argv) {
       return fail(__LINE__);
     draw.offscreen = false;
     draw.viewport = {100, 100, 400, 200};
-    if (!require(surface->DrawScene(draw), SurfaceStatus::Ready) ||
+    if (!require(DrawRetained(*surface, draw), SurfaceStatus::Ready) ||
         !require(surface->Present(), SurfaceStatus::Ready) ||
         !require(surface->DrainAndDestroy(), SurfaceStatus::Ready) ||
         !require(surface->DrainAndDestroy(), SurfaceStatus::Ready))
@@ -917,12 +922,15 @@ int main(int argc, char **argv) {
     // An abandoned recording must be dropped safely, without submitting it at destruction.
     if (surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes != 0)
       return fail(__LINE__);
+    if (surface->Diagnostics().sceneGeometryResidency.retainedCpuBytes != 0 ||
+        surface->Diagnostics().sceneGeometryResidency.nativeAllocationBytes != 0)
+      return fail(__LINE__);
     auto abandoned = std::make_unique<MetalSurface>(
         SurfaceDescriptor{window.handle, 800, 450, 2, PresentMode::VSync, ColorSpace::Srgb,
                           SurfaceBackend::Metal},
         *windows);
     if (!abandoned || !require(abandoned->Acquire(), SurfaceStatus::Ready) ||
-        !require(abandoned->DrawScene(draw), SurfaceStatus::Ready) ||
+        !require(DrawRetained(*abandoned, draw), SurfaceStatus::Ready) ||
         !require(abandoned->DrainAndDestroy(), SurfaceStatus::Ready))
       return fail(__LINE__);
     abandoned.reset();
