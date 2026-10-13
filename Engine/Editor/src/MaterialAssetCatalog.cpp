@@ -87,24 +87,14 @@ std::optional<runtime::AssetUuid> ReadMaterialAssetReference(const SceneDocument
   return std::nullopt;
 }
 
-bool AssignMaterialAsset(SceneDocument &scene, SceneDocument::NodeKey key, runtime::AssetUuid asset,
-                         std::uint64_t expected_generation, const ProjectContentSession &content,
-                         const MaterialAssetCatalog &catalog, bool editable) {
-  return AssignMaterialAssets(scene, std::array{key}, asset, expected_generation, content, catalog,
-                              editable);
-}
-
-bool AssignMaterialAssets(SceneDocument &scene, std::span<const SceneDocument::NodeKey> keys,
-                          runtime::AssetUuid asset, std::uint64_t expected_generation,
-                          const ProjectContentSession &content, const MaterialAssetCatalog &catalog,
-                          bool editable) {
+namespace {
+bool ValidateMaterialTargets(SceneDocument &scene, std::span<const SceneDocument::NodeKey> keys,
+                             std::uint64_t expected_generation,
+                             const ProjectContentSession &content, bool editable) {
   const auto selected = scene.Selection();
-  const auto *item = content.Browser().Find(asset);
-  const auto resolved = catalog.ResolveAsset(asset, expected_generation);
   if (!editable || !content.Writable() || keys.empty() || selected.size() != keys.size() ||
       keys.size() > UnknownComponentStore::kMaximumComponents ||
-      content.Browser().ProjectGeneration() != expected_generation || !item || !item->material ||
-      !resolved || resolved->material != item->material)
+      content.Browser().ProjectGeneration() != expected_generation || !expected_generation)
     return false;
   for (std::size_t index = 0; index < keys.size(); ++index) {
     const auto key = keys[index];
@@ -119,7 +109,34 @@ bool AssignMaterialAssets(SceneDocument &scene, std::span<const SceneDocument::N
           !ReadMaterialAssetReference(component))
         return false;
   }
+  return true;
+}
+} // namespace
+
+bool AssignMaterialAsset(SceneDocument &scene, SceneDocument::NodeKey key, runtime::AssetUuid asset,
+                         std::uint64_t expected_generation, const ProjectContentSession &content,
+                         const MaterialAssetCatalog &catalog, bool editable) {
+  return AssignMaterialAssets(scene, std::array{key}, asset, expected_generation, content, catalog,
+                              editable);
+}
+
+bool AssignMaterialAssets(SceneDocument &scene, std::span<const SceneDocument::NodeKey> keys,
+                          runtime::AssetUuid asset, std::uint64_t expected_generation,
+                          const ProjectContentSession &content, const MaterialAssetCatalog &catalog,
+                          bool editable) {
+  const auto *item = content.Browser().Find(asset);
+  const auto resolved = catalog.ResolveAsset(asset, expected_generation);
+  if (!item || !item->material || !resolved || resolved->material != item->material ||
+      !ValidateMaterialTargets(scene, keys, expected_generation, content, editable))
+    return false;
   return scene.SetOpaqueComponents(keys, MaterialAssetReference(asset));
+}
+
+bool ClearMaterialAssets(SceneDocument &scene, std::span<const SceneDocument::NodeKey> keys,
+                         std::uint64_t expected_generation, const ProjectContentSession &content,
+                         bool editable) {
+  return ValidateMaterialTargets(scene, keys, expected_generation, content, editable) &&
+         scene.RemoveOpaqueComponents(keys, kMaterialAssetReferenceType);
 }
 
 } // namespace nexora::editor

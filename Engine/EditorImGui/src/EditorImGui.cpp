@@ -381,12 +381,12 @@ struct EditorImGuiHost::State final {
   std::optional<InspectorMeshRequest> inspector_mesh_request;
   struct InspectorMaterialRequest final {
     std::vector<SceneDocument::NodeKey> entities;
-    runtime::AssetUuid asset;
+    std::optional<runtime::AssetUuid> asset;
     std::uint64_t generation{};
   };
   std::optional<InspectorMaterialRequest> inspector_material_request;
   std::string inspector_material_label;
-  std::array<std::optional<std::array<float, 2>>, 2> inspector_material_positions{};
+  std::array<std::optional<std::array<float, 2>>, 3> inspector_material_positions{};
   std::string inspector_mesh_label;
   std::array<std::optional<std::array<float, 2>>, 3> inspector_mesh_positions{};
   std::uint32_t inspector_selection = 0;
@@ -2859,6 +2859,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   std::optional<runtime::AssetUuid> material_reference;
   bool has_material_reference = false;
   bool material_reference_mixed = false;
+  bool unsupported_material_reference = false;
   for (std::size_t index = 0; index < keys.size(); ++index) {
     bool present = false;
     std::optional<runtime::AssetUuid> reference;
@@ -2868,6 +2869,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
             component.type_name == kMaterialAssetReferenceName) {
           present = true;
           reference = ReadMaterialAssetReference(component);
+          unsupported_material_reference |= !reference;
         }
       state.inspector_opaque_info.insert(state.inspector_opaque_info.end(),
                                          std::make_move_iterator(info->begin()),
@@ -3402,7 +3404,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
                                      : reference              ? "Missing material"
                                      : has_reference          ? "Unsupported material reference"
                                                               : "Unassigned";
-    ImGui::BeginDisabled(!editable || !content || !content->Writable() || !materials);
+    ImGui::BeginDisabled(!editable || !content || !content->Writable() ||
+                         unsupported_material_reference);
     const bool open = ImGui::BeginCombo("Material###editor.inspector.material.asset",
                                         state.inspector_material_label.c_str());
     const auto combo_min = ImGui::GetItemRectMin();
@@ -3410,6 +3413,13 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     state.inspector_material_positions[0] =
         std::array{(combo_min.x + combo_max.x) * 0.5F, (combo_min.y + combo_max.y) * 0.5F};
     if (open) {
+      if (ImGui::Selectable("Unassigned", !material_reference_mixed && !has_reference))
+        state.inspector_material_request =
+            typename StateT::InspectorMaterialRequest{keys, std::nullopt, generation};
+      const auto clear_min = ImGui::GetItemRectMin();
+      const auto clear_max = ImGui::GetItemRectMax();
+      state.inspector_material_positions[2] =
+          std::array{(clear_min.x + clear_max.x) * 0.5F, (clear_min.y + clear_max.y) * 0.5F};
       if (content && materials)
         for (const auto &candidate : content->Browser().Items()) {
           if (!candidate.material || !materials->ResolveAsset(candidate.id, generation))
@@ -3438,11 +3448,17 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   }
   if (state.inspector_material_request) {
     const auto request = std::exchange(state.inspector_material_request, std::nullopt);
-    const bool valid = editable && content && materials && request->entities == keys;
+    const bool valid =
+        editable && content && request->entities == keys && (!request->asset || materials);
     if (valid)
       CancelSceneGestures(state);
-    if (!valid || !AssignMaterialAssets(*scene, request->entities, request->asset,
-                                        request->generation, *content, *materials, editable))
+    const bool applied =
+        valid &&
+        (request->asset ? AssignMaterialAssets(*scene, request->entities, *request->asset,
+                                               request->generation, *content, *materials, editable)
+                        : ClearMaterialAssets(*scene, request->entities, request->generation,
+                                              *content, editable));
+    if (!applied)
       state.inspector_error = "Material edit rejected because its selection, asset, access or "
                               "generation is unavailable.";
     else
@@ -7985,6 +8001,12 @@ void EditorImGuiTestAccess::QueueInspectorMaterials(
     runtime::AssetUuid asset, std::uint64_t generation) {
   host.state_->inspector_material_request = EditorImGuiHost::State::InspectorMaterialRequest{
       {entities.begin(), entities.end()}, asset, generation};
+}
+void EditorImGuiTestAccess::QueueInspectorMaterialClear(
+    EditorImGuiHost &host, std::span<const SceneDocument::NodeKey> entities,
+    std::uint64_t generation) {
+  host.state_->inspector_material_request = EditorImGuiHost::State::InspectorMaterialRequest{
+      {entities.begin(), entities.end()}, std::nullopt, generation};
 }
 std::string_view
 EditorImGuiTestAccess::InspectorMaterialLabel(const EditorImGuiHost &host) noexcept {

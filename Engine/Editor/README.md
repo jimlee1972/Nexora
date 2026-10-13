@@ -998,6 +998,14 @@ all earlier targets and Redo intact. Equal batches preserve unrelated Runtime Re
 boundary grants no access or schema authority: material assignment separately requires exact current
 selection, writable Content, current catalog payload identity and valid supported references on every
 Mesh Renderer. Inspection of those references copies only bounded metadata, including exact byte count.
+RemoveOpaqueComponents validates a nonzero type and at most 4096 unique live keys, stages owning
+nodes/history and validates the remaining complete store before one metadata removal publication.
+Absent references preserve Redo; unrelated types remain exact, while Undo history owns the removed
+payloads for restoration. The generic boundary grants no schema/access authority. ClearMaterialAssets
+only removes supported exact schema-1 references after validating the complete current selection,
+live Mesh Renderers, nonzero project generation and writable Content. Source/catalog availability is
+irrelevant to clearing stored supported references; any unsupported reserved payload rejects every
+target. Legacy mesh/shader values and material files remain unchanged.
 OpaqueComponents returns owning complete payloads. InspectOpaqueComponents returns owning names,
 full-width type/entity IDs, byte counts and only the first 64 bytes, avoiding full-payload copies each
 GUI frame. Inspection does not grant project write permission.

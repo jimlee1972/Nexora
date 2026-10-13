@@ -1067,6 +1067,15 @@ metadata instead of copying unrelated plugin payloads. Valid Editor-owned schema
 inspection, while unknown payloads remain inspectable. Legacy shader IDs stay unchanged. Texture,
 graph and Game View material editing remain open.
 
+The Material dropdown also offers Unassigned for one or multiple selected Mesh Renderers. A clear
+request owns the complete selected-key vector and project generation; it invokes ClearMaterialAssets
+without borrowing a catalog or accessing files/GPU objects. Supported missing-source references can
+be cleared even when the catalog is unavailable. Unsupported reserved payloads disable the dropdown
+and remain protected by the authoring validation; one invalid target prevents all removal. Clearing
+uses one metadata Undo/Redo, saves/reopens as absent data and preserves unrelated opaque types and
+legacy mesh/shader values. Already-absent clearing preserves unrelated Redo. The label reflects a
+deferred publication on the next widget frame; blur/hidden/read-only/modal gates abandon clear drafts.
+
 Profiler Export memory and Import memory emit independent one-shot requests consumed by the
 application through `TakeMemoryExportRequest` / `TakeMemoryImportRequest`. Widgets perform no IO or
 OS sampling. `SetImportedMemoryCapture` validates an owning 1–600 sample snapshot; rejection preserves
