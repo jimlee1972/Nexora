@@ -223,6 +223,8 @@ public:
     @autoreleasepool {
       if (thread_ != std::this_thread::get_id())
         return SurfaceStatus::WrongThread;
+      if (drawData.retainMeshGeometry)
+        return SurfaceStatus::Unsupported;
       if (!drawable_ || !commands_ || sceneDrawn_ || !scenePipeline_)
         return SurfaceStatus::InvalidDescriptor;
       const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);

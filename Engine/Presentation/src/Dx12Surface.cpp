@@ -340,6 +340,8 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
+    if (drawData.retainMeshGeometry)
+      return SurfaceStatus::Unsupported;
     if (!acquired_ || sceneDrawn_ || compositeDrawn_ || !scenePipeline_ ||
         drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;

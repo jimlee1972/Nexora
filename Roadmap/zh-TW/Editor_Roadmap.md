@@ -434,6 +434,14 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   圖形化驗收仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM2-GeometryAllocation-2026-10-13.md)。
 
+- ✅ Vulkan Scene／Game preview 現支援可選的 immutable mesh geometry residency，不受
+  combined-upload layout 與 instance／material 更新影響。Exact owning content key、native／
+  CPU memory 上限、current-draw lease 與 completion-safe LRU retirement 保留 reimport／frozen
+  geometry 版本、admission 失敗回退、resize 重用與 teardown。Portable contract 及真正
+  native tracing／pixels 涵蓋這些路徑。DX12／Metal residency adapter 與完整 ED-M2 仍待完成。
+  [ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
+  [證據](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md)。
+
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
   Undo／Redo。預設名稱隨型別選擇調整，自訂名稱保留。Owning queued request 重新核對

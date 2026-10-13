@@ -1,6 +1,7 @@
 // Trace real Vulkan allocation/submission calls while compiling the private adapter, following
 // the Metal pixel-test pattern. Production exposes no native handles or test-only entry points.
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <unordered_map>
@@ -12,10 +13,15 @@ namespace UploadTrace {
 std::unordered_map<VkBuffer, VkDeviceSize> buffers;
 std::unordered_map<VkBuffer, VkDeviceMemory> bindings;
 std::unordered_set<VkDeviceMemory> memory;
-std::unordered_map<VkCommandBuffer, VkBuffer> commands;
+std::unordered_map<VkDeviceMemory, VkDeviceSize> meshMemory;
+std::unordered_map<VkCommandBuffer, std::unordered_set<VkBuffer>> commands;
 std::unordered_map<VkDeviceMemory, VkFence> pending;
 std::size_t creations{}, violations{};
 bool geometryAllocation{}, failNextAllocation{};
+bool immutableAllocation{}, failNextMeshMap{};
+std::size_t peakMeshBytes{};
+bool failNextIdle{};
+std::size_t idleFailures{}, idleCalls{};
 bool failNextQueryAllocation{}, failNextTimingRead{};
 std::size_t timingReadFailures{}, queryAllocationFailures{};
 std::unordered_set<VkQueryPool> queryPools;
@@ -61,6 +67,7 @@ VkResult CreateBuffer(VkDevice device, const VkBufferCreateInfo *info,
       result == VK_SUCCESS &&
       (info->usage & (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT)) ==
           (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+  immutableAllocation = geometryAllocation && !(info->usage & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   if (geometryAllocation) {
     buffers[*buffer] = info->size;
     ++creations;
@@ -78,6 +85,7 @@ void DestroyBuffer(VkDevice device, VkBuffer buffer, const VkAllocationCallbacks
 VkResult AllocateMemory(VkDevice device, const VkMemoryAllocateInfo *info,
                         const VkAllocationCallbacks *allocator, VkDeviceMemory *allocated) {
   const bool geometry = std::exchange(geometryAllocation, false);
+  const bool immutable = std::exchange(immutableAllocation, false);
   if (geometry && std::exchange(failNextAllocation, false)) {
     *allocated = VK_NULL_HANDLE;
     return VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -85,9 +93,19 @@ VkResult AllocateMemory(VkDevice device, const VkMemoryAllocateInfo *info,
   const auto result = vkAllocateMemory(device, info, allocator, allocated);
   if (geometry && result == VK_SUCCESS)
     memory.insert(*allocated);
+  if (immutable && result == VK_SUCCESS) {
+    meshMemory[*allocated] = info->allocationSize;
+    std::size_t total = 0;
+    for (const auto &[handle, bytes] : meshMemory) {
+      static_cast<void>(handle);
+      total += bytes;
+    }
+    peakMeshBytes = std::max(peakMeshBytes, total);
+  }
   return result;
 }
 void FreeMemory(VkDevice device, VkDeviceMemory allocated, const VkAllocationCallbacks *allocator) {
+  meshMemory.erase(allocated);
   if (memory.erase(allocated))
     violations += pending.contains(allocated);
   pending.erase(allocated);
@@ -104,6 +122,8 @@ VkResult MapMemory(VkDevice device, VkDeviceMemory allocated, VkDeviceSize offse
                    VkDeviceSize size, VkMemoryMapFlags flags, void **data) {
   if (memory.contains(allocated))
     violations += pending.contains(allocated);
+  if (meshMemory.contains(allocated) && std::exchange(failNextMeshMap, false))
+    return VK_ERROR_MEMORY_MAP_FAILED;
   return vkMapMemory(device, allocated, offset, size, flags, data);
 }
 VkResult WaitForFences(VkDevice device, std::uint32_t count, const VkFence *fences, VkBool32 all,
@@ -119,6 +139,11 @@ VkResult WaitForFences(VkDevice device, std::uint32_t count, const VkFence *fenc
   return result;
 }
 VkResult DeviceWaitIdle(VkDevice device) {
+  ++idleCalls;
+  if (std::exchange(failNextIdle, false)) {
+    ++idleFailures;
+    return VK_ERROR_DEVICE_LOST;
+  }
   const auto result = vkDeviceWaitIdle(device);
   if (result == VK_SUCCESS) {
     pending.clear();
@@ -128,8 +153,9 @@ VkResult DeviceWaitIdle(VkDevice device) {
 }
 void BindVertexBuffers(VkCommandBuffer command, std::uint32_t first, std::uint32_t count,
                        const VkBuffer *bound, const VkDeviceSize *offsets) {
-  if (first == 0 && count && buffers.contains(bound[0]))
-    commands[command] = bound[0];
+  for (std::uint32_t index = 0; index < count; ++index)
+    if (buffers.contains(bound[index]))
+      commands[command].insert(bound[index]);
   vkCmdBindVertexBuffers(command, first, count, bound, offsets);
 }
 VkResult ResetCommandBuffer(VkCommandBuffer command, VkCommandBufferResetFlags flags) {
@@ -159,9 +185,11 @@ VkResult QueueSubmit(VkQueue queue, std::uint32_t count, const VkSubmitInfo *sub
           pendingQueries[query->second] = fence;
         const auto command = commands.find(submits[i].pCommandBuffers[j]);
         if (command != commands.end()) {
-          const auto bound = bindings.find(command->second);
-          if (bound != bindings.end())
-            pending[bound->second] = fence;
+          for (const auto buffer : command->second) {
+            const auto bound = bindings.find(buffer);
+            if (bound != bindings.end())
+              pending[bound->second] = fence;
+          }
         }
       }
   return result;
@@ -224,7 +252,7 @@ unsigned Channel(unsigned long pixel, unsigned long mask) {
   return mask ? static_cast<unsigned>((pixel & mask) * 255 / mask) : 0;
 }
 void Pixels(Display *display, ::Window window, unsigned width, unsigned height, bool green,
-            const std::filesystem::path &capture = {}) {
+            const std::filesystem::path &capture = {}, std::optional<unsigned> blueMarker = {}) {
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
   while (std::chrono::steady_clock::now() < deadline) {
     XSync(display, False);
@@ -232,9 +260,17 @@ void Pixels(Display *display, ::Window window, unsigned width, unsigned height, 
     Require(image != nullptr, "upload reuse readback failed");
     const auto pixel = XGetPixel(image, green ? width * 3 / 4 : width / 2, height / 2);
     const auto empty = XGetPixel(image, green ? width / 2 : width * 3 / 4, height / 2);
-    const bool matches =
+    bool matches =
         green ? Channel(pixel, image->green_mask) > 180 && Channel(pixel, image->red_mask) < 20
               : Channel(pixel, image->red_mask) > 180 && Channel(pixel, image->green_mask) < 20;
+    if (blueMarker) {
+      const auto observed = static_cast<int>(Channel(pixel, image->blue_mask));
+      const float linear = static_cast<float>(*blueMarker) / 255;
+      const auto srgb =
+          static_cast<int>(std::lround(255 * (1.055F * std::pow(linear, 1 / 2.4F) - 0.055F)));
+      matches = matches && (std::abs(observed - static_cast<int>(*blueMarker)) <= 3 ||
+                            std::abs(observed - srgb) <= 3);
+    }
     const bool background =
         Channel(empty, image->red_mask) < 80 && Channel(empty, image->green_mask) < 80;
     if (matches && background && !capture.empty()) {
@@ -256,6 +292,173 @@ void Pixels(Display *display, ::Window window, unsigned width, unsigned height, 
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
   }
   throw std::runtime_error("reused scene storage retained stale geometry/instance pixels");
+}
+void RunResidency() {
+  auto windows = Window::CreateWindowSystem();
+  const auto window = windows->Create({"Nexora Vulkan mesh residency", 640, 480, true, true});
+  Require(static_cast<bool>(window), "mesh residency window creation failed");
+  auto surface = std::make_unique<VulkanSurface>(
+      SurfaceDescriptor{window.handle, 640, 480, 2, PresentMode::Immediate, ColorSpace::Srgb,
+                        SurfaceBackend::Vulkan},
+      *windows);
+  Display *display = XOpenDisplay(nullptr);
+  Require(display && surface->SupportsSceneGeometryResidency(), "mesh residency unavailable");
+  const auto native = reinterpret_cast<::Window>(windows->NativeHandle(window.handle));
+  const std::array<SceneVertex, 3> triangle{{{{-0.8F, -0.8F, 0.5F}, {0, 0, 1}},
+                                             {{0.8F, -0.8F, 0.5F}, {0, 0, 1}},
+                                             {{0, 0.8F, 0.5F}, {0, 0, 1}}}};
+  std::vector<SceneVertex> vertices(triangle.begin(), triangle.end());
+  for (auto vertex : triangle) {
+    vertex.position[0] += 3;
+    vertices.push_back(vertex);
+  }
+  std::array<std::uint16_t, 6> indices{0, 1, 2, 3, 4, 5};
+  std::array<SceneMeshBatch, 2> batches{{{0, 3, 0, 1}, {3, 3, 0, 1}}};
+  std::array<SceneInstance, 1> instances{};
+  std::array<SceneMaterial, 1> materials{};
+  SceneDrawData draw{vertices, indices, instances};
+  draw.batches = batches;
+  draw.materials = materials;
+  draw.retainMeshGeometry = true;
+  draw.light_direction[0] = draw.light_direction[1] = 0;
+  draw.light_direction[2] = -1;
+  draw.light_color[0] = draw.light_color[1] = draw.light_color[2] = 1;
+  unsigned width = 640, height = 480;
+  unsigned submission = 0;
+  const auto submit = [&](bool green, bool pixels = true, bool geometryShift = false) {
+    Require(surface->Acquire() == SurfaceStatus::Ready, "mesh residency acquire failed");
+    instances[0].translation[0] = green && !geometryShift ? 0.75F : 0;
+    materials[0].baseColor =
+        green ? std::array<float, 4>{0, 1, 0, 1} : std::array<float, 4>{1, 0, 0, 1};
+    // Adjacent blue codes differ under both supported display transfers. This excludes an
+    // asynchronously presented prior frame even when successive geometry/material poses match.
+    const unsigned marker = (++submission % 8 + 1) * 8;
+    materials[0].baseColor[2] = static_cast<float>(marker) / 255;
+    draw.vertices = vertices;
+    Require(surface->DrawScene(draw) == SurfaceStatus::Ready &&
+                surface->Present() == SurfaceStatus::Ready,
+            "mesh residency submit failed");
+    if (pixels)
+      Pixels(display, native, width, height, green, {}, marker);
+  };
+  for (int frame = 0; frame < 6; ++frame)
+    submit(frame % 2 != 0);
+  auto before = surface->Diagnostics().sceneGeometryResidency;
+  Require(before.available && before.uploads == 2 && before.hits >= 10 &&
+              before.nativeAllocationBytes <= 32 * 1024 * 1024 && before.retainedCpuBytes > 0 &&
+              surface->Diagnostics().sceneGeometryUploadCache.uploads == 0,
+          "mesh residency did not skip combined geometry uploads across frame slots");
+  for (std::size_t i = 0; i < 3; ++i)
+    std::swap(vertices[i], vertices[i + 3]);
+  submit(false);
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads,
+          "reordered combined upload reuploaded unchanged mesh content");
+  // Fail a new offscreen mesh admission while retaining the visible cached triangle.
+  vertices[0].uv[0] = 0.25F;
+  UploadTrace::failNextAllocation = true;
+  submit(false);
+  Require(!UploadTrace::failNextAllocation &&
+              surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads &&
+              surface->Diagnostics().sceneGeometryResidency.nativeAllocationBytes ==
+                  before.nativeAllocationBytes,
+          "failed cache allocation discarded residents instead of using the legacy fallback");
+  submit(true);
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads + 1,
+          "cache allocation failure prevented later retry");
+  before = surface->Diagnostics().sceneGeometryResidency;
+  vertices[0].uv[0] = 0.5F;
+  UploadTrace::failNextMeshMap = true;
+  submit(false);
+  Require(!UploadTrace::failNextMeshMap &&
+              surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads &&
+              surface->Diagnostics().sceneGeometryResidency.nativeAllocationBytes ==
+                  before.nativeAllocationBytes,
+          "failed candidate mapping mutated residency instead of falling back");
+  vertices[0].uv[0] = 0;
+  submit(false);
+  before = surface->Diagnostics().sceneGeometryResidency;
+  // Fill every frame slot with legacy keys, overwrite its old prefix with cached-mode instances,
+  // then request the original legacy geometry again. A surviving key would skip corrupted bytes.
+  for (const bool retained : {false, true, false}) {
+    draw.retainMeshGeometry = retained;
+    for (int frame = 0; frame < 6; ++frame)
+      submit(frame % 2 != 0);
+  }
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads &&
+              surface->Diagnostics().sceneGeometryUploadCache.uploads >= 4,
+          "legacy/cached switching retained stale prefix keys or reuploaded cached meshes");
+  draw.retainMeshGeometry = true;
+  before = surface->Diagnostics().sceneGeometryResidency;
+  for (std::size_t i = 3; i < 6; ++i)
+    vertices[i].position[0] += 0.75F;
+  submit(true, true, true);
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads + 1,
+          "changed visible geometry reused the old native buffer");
+  std::copy(triangle.begin(), triangle.end(), vertices.begin() + 3);
+  submit(false);
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads + 1,
+          "restored geometry could not reuse its immutable prior version");
+  // Large canonical intervals pressure the 32 MiB native allocation budget while rendering one
+  // triangle. Only an unreferenced vertex changes: pixels remain an independent ownership oracle.
+  vertices.assign(65535, {});
+  vertices[0] = triangle[0];
+  vertices[65534] = triangle[1];
+  vertices[1] = triangle[2];
+  const std::array<std::uint16_t, 3> wideIndices{0, 65534, 1};
+  draw.indices = wideIndices;
+  draw.batches = {};
+  for (int version = 0; version < 10; ++version) {
+    vertices[2].uv[0] = static_cast<float>(version);
+    submit(false);
+    const auto stats = surface->Diagnostics().sceneGeometryResidency;
+    std::size_t actual = 0;
+    for (const auto &[handle, bytes] : UploadTrace::meshMemory) {
+      static_cast<void>(handle);
+      actual += bytes;
+    }
+    Require(stats.nativeAllocationBytes <= 32 * 1024 * 1024 &&
+                stats.nativeAllocationBytes == actual &&
+                UploadTrace::peakMeshBytes <= 40 * 1024 * 1024 &&
+                stats.retainedCpuBytes <= 32 * 1024 * 1024 && UploadTrace::violations == 0,
+            "residency exceeded its budget or retired incomplete GPU references");
+  }
+  before = surface->Diagnostics().sceneGeometryResidency;
+  Require(before.evictions > 0, "native allocation budget never exercised eviction");
+  vertices[2].uv[0] = 11;
+  UploadTrace::failNextIdle = true;
+  submit(false);
+  const auto failed = surface->Diagnostics().sceneGeometryResidency;
+  Require(!UploadTrace::failNextIdle && UploadTrace::idleFailures == 1 &&
+              failed.uploads == before.uploads && failed.evictions == before.evictions &&
+              failed.retainedCpuBytes == before.retainedCpuBytes &&
+              failed.nativeAllocationBytes == before.nativeAllocationBytes,
+          "failed GPU completion published eviction or lost the retained cache");
+  submit(true);
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads + 1,
+          "completion failure prevented correct admission retry");
+  before = surface->Diagnostics().sceneGeometryResidency;
+  Require(windows->Resize(window.handle, 800, 600) == Window::WindowError::None,
+          "mesh residency resize failed");
+  static_cast<void>(windows->PumpEvents());
+  width = 800;
+  height = 600;
+  Require(surface->NotifyWindowExtent(width, height) == SurfaceStatus::Ready,
+          "mesh residency resize publication failed");
+  submit(false);
+  Require(surface->Diagnostics().sceneGeometryResidency.uploads == before.uploads &&
+              surface->Diagnostics().sceneGeometryResidency.nativeAllocationBytes ==
+                  before.nativeAllocationBytes,
+          "resize discarded immutable mesh residency");
+  Require(surface->DrainAndDestroy() == SurfaceStatus::Ready &&
+              surface->Diagnostics().sceneGeometryResidency.retainedCpuBytes == 0 &&
+              surface->Diagnostics().sceneGeometryResidency.nativeAllocationBytes == 0 &&
+              UploadTrace::buffers.empty() && UploadTrace::memory.empty() &&
+              UploadTrace::meshMemory.empty() && UploadTrace::pending.empty() &&
+              UploadTrace::violations == 0,
+          "mesh residency teardown leaked CPU/native allocations or pending references");
+  XCloseDisplay(display);
+  Require(windows->Destroy(window.handle) == Window::WindowError::None,
+          "mesh residency window teardown failed");
 }
 void Run(const std::filesystem::path &capture) {
   auto windows = Window::CreateWindowSystem();
@@ -497,7 +700,8 @@ void Run(const std::filesystem::path &capture) {
 int main(int argc, char **argv) {
   try {
     Run(argc == 2 ? std::filesystem::path(argv[1]) : std::filesystem::path{});
-    std::cout << "Vulkan fence-owned scene upload reuse contracts passed\n";
+    RunResidency();
+    std::cout << "Vulkan scene upload reuse and immutable mesh residency contracts passed\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

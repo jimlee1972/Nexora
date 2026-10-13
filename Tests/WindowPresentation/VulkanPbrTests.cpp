@@ -476,6 +476,7 @@ int main(int argc, char **argv) {
         splitReceiver = {{{0, 3, 0, 1, 0}, {3, 3, 0, 1, 0}, {6, 3, 0, 1, 2}, {9, 3, 0, 1, 1}}};
         draw.batches = splitReceiver;
       }
+      draw.retainMeshGeometry = surface->SupportsSceneGeometryResidency();
       Require(surface->Acquire() == SurfaceStatus::Ready, "PBR acquire failed");
       if (frame == 0) {
         materials[0].normalTextureId = 987;
@@ -857,12 +858,23 @@ int main(int argc, char **argv) {
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
     const auto geometryCache = surface->Diagnostics().sceneGeometryUploadCache;
-    Require(geometryCache.available && geometryCache.uploads > 0 && geometryCache.hits > 0 &&
-                geometryCache.retainedCpuBytes > 0,
-            "native PBR geometry uploads never reused their allocation-bound keys");
+    if (surface->SupportsSceneGeometryResidency()) {
+      const auto residency = surface->Diagnostics().sceneGeometryResidency;
+      Require(residency.available && residency.uploads > 0 && residency.hits > 0 &&
+                  residency.retainedCpuBytes > 0 &&
+                  residency.nativeAllocationBytes <= 32 * 1024 * 1024,
+              "native PBR passes never exercised bounded immutable mesh residency");
+    } else {
+      Require(geometryCache.available && geometryCache.uploads > 0 && geometryCache.hits > 0 &&
+                  geometryCache.retainedCpuBytes > 0,
+              "native PBR geometry uploads never reused their allocation-bound keys");
+    }
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
     Require(surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes == 0,
             "native PBR teardown retained CPU geometry keys");
+    Require(surface->Diagnostics().sceneGeometryResidency.retainedCpuBytes == 0 &&
+                surface->Diagnostics().sceneGeometryResidency.nativeAllocationBytes == 0,
+            "native PBR teardown retained immutable mesh buffers");
     surface.reset();
 #if !defined(_WIN32)
     XCloseDisplay(display);

@@ -689,6 +689,7 @@ Nexora::Presentation::SurfaceStatus DrawNativeScenePreview(
     draw.cameraPosition = {eye.x, eye.y, eye.z};
   }
   draw.vertices = lit_geometry ? lit_geometry->vertices : meshes.geometry.vertices;
+  draw.retainMeshGeometry = surface.SupportsSceneGeometryResidency();
   draw.indices = meshes.geometry.indices;
   draw.batches = batches;
   draw.instances = instances;
@@ -2787,7 +2788,9 @@ int RunGraphical(std::optional<ProjectState> project,
                                    ? "Add an active camera to the scene before Play."
                                    : "No resolved mesh geometry in the active Play scenes.");
       } else {
-        const auto status = created.surface->DrawScene(game.DrawData(*viewport));
+        auto draw = game.DrawData(*viewport);
+        draw.retainMeshGeometry = created.surface->SupportsSceneGeometryResidency();
+        const auto status = created.surface->DrawScene(draw);
         ui.SetNativeGameStatus(
             (game.unavailable
                  ? std::to_string(game.unavailable) +

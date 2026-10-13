@@ -103,6 +103,11 @@ SurfaceStatus RenderSurface::DrawScene(const SceneDrawData &draw_data) {
                                       : state_->surface->DrawScene(draw_data);
 }
 
+bool RenderSurface::SupportsSceneGeometryResidency() const noexcept {
+  return state_ && !state_->destroyed && state_->surface &&
+         state_->surface->SupportsSceneGeometryResidency();
+}
+
 bool RenderSurface::CloseRequested() const noexcept { return !state_ || state_->closeRequested; }
 
 bool RenderSurface::CancelCloseRequest() noexcept {

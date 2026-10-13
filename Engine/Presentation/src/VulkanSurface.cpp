@@ -5,6 +5,7 @@
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
+#include "SceneGeometryResidency.h"
 #include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "SceneTextureMipmaps.h"
@@ -37,10 +38,39 @@
 #include <limits>
 #include <optional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Nexora::Presentation {
 namespace {
+struct VulkanMeshAllocation final {
+  VkDevice device{};
+  VkBuffer buffer{};
+  VkDeviceMemory memory{};
+  VulkanMeshAllocation() = default;
+  VulkanMeshAllocation(const VulkanMeshAllocation &) = delete;
+  VulkanMeshAllocation &operator=(const VulkanMeshAllocation &) = delete;
+  VulkanMeshAllocation(VulkanMeshAllocation &&other) noexcept { *this = std::move(other); }
+  VulkanMeshAllocation &operator=(VulkanMeshAllocation &&other) noexcept {
+    if (this != &other) {
+      Reset();
+      device = other.device;
+      buffer = std::exchange(other.buffer, VK_NULL_HANDLE);
+      memory = std::exchange(other.memory, VK_NULL_HANDLE);
+    }
+    return *this;
+  }
+  ~VulkanMeshAllocation() { Reset(); }
+  explicit operator bool() const noexcept { return buffer && memory; }
+  void Reset() noexcept {
+    if (buffer)
+      vkDestroyBuffer(device, buffer, nullptr);
+    if (memory)
+      vkFreeMemory(device, memory, nullptr);
+    buffer = VK_NULL_HANDLE;
+    memory = VK_NULL_HANDLE;
+  }
+};
 bool Initialized(VkResult result, const char *operation) {
   if (result == VK_SUCCESS)
     return true;
@@ -50,6 +80,7 @@ bool Initialized(VkResult result, const char *operation) {
 }
 class VulkanSurface final : public ISurface {
 public:
+  bool SupportsSceneGeometryResidency() const noexcept override { return true; }
   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
         requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode),
@@ -200,6 +231,7 @@ public:
     if (vkWaitForFences(device_, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     CollectGpuTiming(frame);
+    meshResidency_.BeginFrame();
     DestroyFrameRetirements(frame);
     ++diagnostics_.fenceWaits;
     const auto result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, frame.available,
@@ -510,7 +542,9 @@ public:
       DestroySceneTargets(frame);
     const auto vertexBytes = std::as_bytes(data.vertices);
     const auto indexBytes = std::as_bytes(data.indices);
-    const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
+    const bool residentGeometry = PrepareMeshResidency(frame, data);
+    const auto instanceOffset =
+        residentGeometry ? 0 : (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
     VkPhysicalDeviceProperties deviceProperties{};
     vkGetPhysicalDeviceProperties(physical_, &deviceProperties);
     const auto alignment =
@@ -523,12 +557,13 @@ public:
                                      : instanceOffset + instanceBytes.size();
     const auto bytes = toneOffset + (data.hdr ? sizeof(toneVertices) : 0);
     const auto geometryBytes = vertexBytes.size() + indexBytes.size();
-    const bool reuseGeometry = frame.sceneUpload && frame.sceneCapacity >= bytes &&
+    const bool reuseGeometry = !residentGeometry && frame.sceneUpload &&
+                               frame.sceneCapacity >= bytes &&
                                frame.sceneGeometry.Matches(vertexBytes, indexBytes);
     // Stage a bounded owning key before any replacement. A GPU grow invalidates its old key;
     // the candidate survives that invalidation and is published only after the geometry write.
     detail::SceneGeometryUploadKey::Candidate geometryCandidate;
-    if (!reuseGeometry) {
+    if (!residentGeometry && !reuseGeometry) {
       geometryCandidate = detail::SceneGeometryUploadKey::Capture(vertexBytes, indexBytes);
       if (!geometryCandidate)
         return SurfaceStatus::DeviceLost;
@@ -540,7 +575,7 @@ public:
     void *mapped{};
     if (vkMapMemory(device_, frame.sceneMemory, 0, bytes, 0, &mapped) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
-    if (!reuseGeometry)
+    if (!residentGeometry && !reuseGeometry)
       std::memcpy(mapped, geometryCandidate.payload.get(), geometryBytes);
     std::memcpy(static_cast<std::byte *>(mapped) + instanceOffset, instanceBytes.data(),
                 instanceBytes.size());
@@ -560,7 +595,9 @@ public:
                   sizeof(toneVertices));
     vkUnmapMemory(device_, frame.sceneMemory);
     auto &geometryCache = diagnostics_.sceneGeometryUploadCache;
-    if (reuseGeometry)
+    if (residentGeometry)
+      frame.sceneGeometry.Clear(geometryCache);
+    else if (reuseGeometry)
       detail::SceneGeometryUploadKey::RecordHit(geometryCache);
     else
       frame.sceneGeometry.Commit(std::move(geometryCandidate), geometryCache);
@@ -801,11 +838,6 @@ public:
         {viewport->width, viewport->height}};
     vkCmdSetViewport(frame.commands, 0, 1, &nativeViewport);
     vkCmdSetScissor(frame.commands, 0, 1, &scissor);
-    const VkBuffer buffers[]{frame.sceneUpload, frame.sceneUpload};
-    const VkDeviceSize offsets[]{0, instanceOffset};
-    vkCmdBindVertexBuffers(frame.commands, 0, 2, buffers, offsets);
-    vkCmdBindIndexBuffer(frame.commands, frame.sceneUpload, vertexBytes.size(),
-                         VK_INDEX_TYPE_UINT16);
     std::array<float, 28> constants{};
     std::copy(std::begin(data.model_view_projection), std::end(data.model_view_projection),
               constants.begin());
@@ -867,8 +899,10 @@ public:
                                     0, 1, &descriptor, 0, nullptr);
             boundMaterial = batch.materialIndex;
           }
-          vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex,
-                           0, batch.firstInstance);
+          const auto firstIndex = BindSceneMesh(frame, batch, &batch - batches.data(),
+                                                vertexBytes.size(), instanceOffset);
+          vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, firstIndex, 0,
+                           batch.firstInstance);
         }
       }
       vkCmdEndRenderPass(frame.commands);
@@ -1092,6 +1126,7 @@ public:
       return SurfaceStatus::WrongThread;
     if (device_)
       vkDeviceWaitIdle(device_);
+    meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
     acquired_ = false;
     valid_ = false;
     DestroySwapchain();
@@ -1130,6 +1165,7 @@ private:
     VkDeviceMemory sceneMemory{};
     VkDeviceSize sceneCapacity{};
     detail::SceneGeometryUploadKey sceneGeometry;
+    std::array<std::uint8_t, 64> meshBindings{};
     std::vector<VkDescriptorSet> pbrDescriptors;
     VkImage sceneDepth{};
     VkDeviceMemory sceneDepthMemory{};
@@ -1334,6 +1370,100 @@ private:
     frame.sceneMemory = memory;
     frame.sceneCapacity = capacity;
     return SurfaceStatus::Ready;
+  }
+  std::optional<std::size_t> RetainMesh(const detail::MeshGeometryView &view) {
+    auto &stats = diagnostics_.sceneGeometryResidency;
+    if (const auto hit = meshResidency_.Find(view, stats))
+      return hit;
+    auto key = detail::MeshGeometryKey::Capture(view);
+    if (!key)
+      return std::nullopt;
+    VulkanMeshAllocation allocation;
+    allocation.device = device_;
+    VkDeviceSize capacity = 4096;
+    while (capacity < key.Bytes())
+      capacity *= 2;
+    VkBufferCreateInfo create{};
+    create.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    create.size = capacity;
+    create.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    create.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (vkCreateBuffer(device_, &create, nullptr, &allocation.buffer) != VK_SUCCESS)
+      return std::nullopt;
+    VkMemoryRequirements requirements{};
+    vkGetBufferMemoryRequirements(device_, allocation.buffer, &requirements);
+    const auto plan = meshResidency_.Plan(requirements.size);
+    if (!plan)
+      return std::nullopt;
+    const auto type =
+        FindMemoryType(requirements.memoryTypeBits,
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (type == UINT32_MAX)
+      return std::nullopt;
+    const VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                        requirements.size, type};
+    if (vkAllocateMemory(device_, &allocate, nullptr, &allocation.memory) != VK_SUCCESS ||
+        vkBindBufferMemory(device_, allocation.buffer, allocation.memory, 0) != VK_SUCCESS)
+      return std::nullopt;
+    void *mapped{};
+    if (vkMapMemory(device_, allocation.memory, 0, key.Bytes(), 0, &mapped) != VK_SUCCESS)
+      return std::nullopt;
+    std::memcpy(mapped, key.Data(), key.Bytes());
+    vkUnmapMemory(device_, allocation.memory);
+    // Never retire a resource referenced by this unsubmitted draw (the plan excludes leases).
+    // Prior frames may still reference victims; immutable allocations do not use frame-slot fences.
+    if (plan->retire.any() && vkDeviceWaitIdle(device_) != VK_SUCCESS)
+      return std::nullopt;
+    meshResidency_.Commit(*plan, std::move(key), std::move(allocation), requirements.size, stats);
+    return plan->slot;
+  }
+  bool PrepareMeshResidency(Frame &frame, const SceneDrawData &data) {
+    frame.meshBindings.fill(UINT8_MAX);
+    if (!data.retainMeshGeometry)
+      return false;
+    diagnostics_.sceneGeometryResidency.available = true;
+    const SceneMeshBatch whole{
+        0, static_cast<std::uint32_t>(data.indices.size()), 0,
+        static_cast<std::uint32_t>(std::max<std::size_t>(1, data.instances.size())), 0};
+    const auto batches =
+        data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
+    // Bound key construction and native admissions per draw; larger submissions keep legacy
+    // uploads.
+    if (batches.size() > frame.meshBindings.size())
+      return false;
+    bool complete = true;
+    for (std::size_t index = 0; index < batches.size(); ++index) {
+      std::optional<std::size_t> duplicate;
+      for (std::size_t prior = 0; prior < index; ++prior)
+        if (batches[prior].firstIndex == batches[index].firstIndex &&
+            batches[prior].indexCount == batches[index].indexCount) {
+          duplicate = prior;
+          break;
+        }
+      if (duplicate) {
+        frame.meshBindings[index] = frame.meshBindings[*duplicate];
+        if (frame.meshBindings[index] != UINT8_MAX)
+          ++diagnostics_.sceneGeometryResidency.hits;
+      } else if (const auto view = detail::MeshGeometryView::From(data, batches[index])) {
+        if (const auto slot = RetainMesh(*view))
+          frame.meshBindings[index] = static_cast<std::uint8_t>(*slot);
+      }
+      complete = complete && frame.meshBindings[index] != UINT8_MAX;
+    }
+    return complete;
+  }
+  std::uint32_t BindSceneMesh(Frame &frame, const SceneMeshBatch &batch, std::size_t ordinal,
+                              VkDeviceSize indexOffset, VkDeviceSize instanceOffset) {
+    const auto slot = ordinal < frame.meshBindings.size() ? frame.meshBindings[ordinal] : UINT8_MAX;
+    const auto *resident = slot == UINT8_MAX ? nullptr : &meshResidency_.At(slot);
+    const VkBuffer geometry = resident ? resident->resource.buffer : frame.sceneUpload;
+    const VkBuffer buffers[]{geometry, frame.sceneUpload};
+    const VkDeviceSize offsets[]{0, instanceOffset};
+    vkCmdBindVertexBuffers(frame.commands, 0, 2, buffers, offsets);
+    vkCmdBindIndexBuffer(frame.commands, geometry,
+                         resident ? resident->key.VertexBytes() : indexOffset,
+                         VK_INDEX_TYPE_UINT16);
+    return resident ? 0 : batch.firstIndex;
   }
   void DestroyFrameRetirements(Frame &frame) {
     if (frame.uiFramebuffer)
@@ -1883,10 +2013,6 @@ private:
     const VkRect2D scissor{{0, 0}, {resolution, resolution}};
     vkCmdSetViewport(frame.commands, 0, 1, &viewport);
     vkCmdSetScissor(frame.commands, 0, 1, &scissor);
-    const VkBuffer buffers[]{frame.sceneUpload, frame.sceneUpload};
-    const VkDeviceSize offsets[]{0, instanceOffset};
-    vkCmdBindVertexBuffers(frame.commands, 0, 2, buffers, offsets);
-    vkCmdBindIndexBuffer(frame.commands, frame.sceneUpload, indexOffset, VK_INDEX_TYPE_UINT16);
     std::array<float, 28> constants{};
     std::copy(data.shadow->lightViewProjection.begin(), data.shadow->lightViewProjection.end(),
               constants.begin());
@@ -1908,7 +2034,9 @@ private:
                                 &frame.pbrDescriptors[batch.materialIndex], 0, nullptr);
         boundMaterial = batch.materialIndex;
       }
-      vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+      const auto firstIndex =
+          BindSceneMesh(frame, batch, &batch - batches.data(), indexOffset, instanceOffset);
+      vkCmdDrawIndexed(frame.commands, batch.indexCount, batch.instanceCount, firstIndex, 0,
                        batch.firstInstance);
     }
     vkCmdEndRenderPass(frame.commands);
@@ -2700,6 +2828,7 @@ private:
   VkPipelineLayout tonePipelineLayout_{};
   bool transferTarget_{};
   SurfaceDiagnostics diagnostics_{};
+  detail::SceneGeometryResidency<VulkanMeshAllocation> meshResidency_;
 };
 } // namespace
 
