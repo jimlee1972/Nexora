@@ -726,7 +726,11 @@ acceptance is tracked separately in the Editor roadmap; the Runtime tests valida
 
 `PlaySession` is the portable PIE ownership contract. It owns an isolated `WorldKind::Play` clone;
 `Tick` runs only while playing, `Step` runs exactly one fixed update while paused, and input focus
-starts released until explicitly granted by editor policy. Stopping discards runtime mutations by
+starts released until explicitly granted by editor policy while Playing. Pause releases focus;
+paused/manual-step sessions reject focus acquisition, and Resume leaves focus released until the
+owner explicitly reacquires it. Debugger breaks and runtime failures follow the same released-focus
+policy. This admission flag does not clear a caller's separate device buffer; adapters still revoke
+their held controls when forwarding the paused session state. Stopping discards runtime mutations by
 default. The only supported apply-back policy copies changed transforms for stable entity IDs;
 runtime-created entities and all other component mutations remain isolated and are discarded.
 Transform apply-back is a deterministic stable-ID diff against the source transform snapshot. It

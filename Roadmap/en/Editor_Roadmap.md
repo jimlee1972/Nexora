@@ -787,6 +787,11 @@ creates property widgets; unknown components retain raw data instead of being si
     reacquisition, whose first batch is still discarded. State and actual gameplay callback tests
     cover owning snapshots, advancing sequences and neutral selected/unselected users.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayAcquisitionRelease-Linux-2026-10-13.md).
+  - ✅ Runtime PlaySession now releases focus on Pause and admits input only while Playing.
+    Paused/manual-step focus requests remain neutral; Resume requires explicit reacquisition,
+    including after debugger breaks and Runtime failure. Existing portable and actual host fixtures
+    preserve fixed-step counts, Editor/Play isolation and apply-back semantics.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPauseFocus-Linux-2026-10-13.md).
   - ✅ Selecting a Game entity now opens a read-only Play Inspector with copied local/world poses,
     parent and scene state, Camera/Light values, and full-width mesh/shader IDs. The Game panel shows
     pause reasons and callback failure counts; per-frame and fixed callback failures both release input.

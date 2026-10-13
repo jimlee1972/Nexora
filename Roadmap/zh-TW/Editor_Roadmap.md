@@ -742,6 +742,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   第一批仍會丟棄。State 與真正 gameplay callback 測試涵蓋 owning snapshot、持續遞增
   sequence，以及 selected／unselected user 的中立輸入。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayAcquisitionRelease-Linux-2026-10-13.md)。
+- ✅ Runtime PlaySession 現會在 Pause 釋放 focus，且僅在 Playing 接受輸入。
+  Paused／manual-step 的 focus 請求維持中立；Resume 需明確重新取得焦點，debugger break
+  與 Runtime failure 也遵守此政策。既有 portable 與真正 host fixture 保留 fixed-step 次數、
+  Editor／Play 隔離及 apply-back 語意。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPauseFocus-Linux-2026-10-13.md)。
 - ✅ 選取 Game entity 現會開啟唯讀 Play Inspector，顯示複製的 local／world pose、parent、
   scene state、Camera／Light 與完整寬度的 mesh／shader ID。Game panel 顯示暫停原因及 callback
   失敗次數；每 frame 與 fixed callback 失敗皆會釋放 input。快照在元件移除與 Stop 後仍有效，
