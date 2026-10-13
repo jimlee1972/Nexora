@@ -231,6 +231,11 @@ target_link_libraries(NexoraProcessMemoryProfileTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraProcessMemoryProfileTests)
 add_test(NAME editor.process_memory_profile COMMAND NexoraProcessMemoryProfileTests)
 
+add_executable(NexoraMeshMemoryProfileTests MeshMemoryProfileTests.cpp)
+target_link_libraries(NexoraMeshMemoryProfileTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraMeshMemoryProfileTests)
+add_test(NAME editor.mesh_memory_profile COMMAND NexoraMeshMemoryProfileTests)
+
 add_executable(NexoraInspectorBatchTests InspectorBatchTests.cpp)
 target_link_libraries(NexoraInspectorBatchTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraInspectorBatchTests)

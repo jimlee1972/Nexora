@@ -210,6 +210,7 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> profile_capture_position;
   std::optional<std::array<float, 2>> profile_clear_position;
   ProcessMemoryObservation profile_memory;
+  MeshMemoryObservation profile_mesh_memory;
   GpuProfileObservation profile_gpu;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
@@ -4642,6 +4643,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_capture_position.reset();
   state_->profile_clear_position.reset();
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
+  state_->profile_mesh_memory = profile ? profile->MeshMemory() : MeshMemoryObservation{};
   state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
   state_->gpu_control_positions = {};
   state_->chrome_positions = {};
@@ -5576,6 +5578,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->profile_clear_position = std::array{(memory_clear_min.x + memory_clear_max.x) * 0.5F,
                                                   (memory_clear_min.y + memory_clear_max.y) * 0.5F};
       state_->profile_memory = profile->ProcessMemory();
+      state_->profile_mesh_memory = profile->MeshMemory();
       state_->profile_gpu = profile->GpuTiming();
       const auto samples = profile->Samples();
       ImGui::SameLine();
@@ -5835,6 +5838,73 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::PopID();
       };
       memory_plot(profile->MemorySamples(), profile->MemoryDroppedCount(), "Resident memory (MiB)");
+      ImGui::SeparatorText("Retained mesh memory (live)");
+      const auto mesh_memory = state_->profile_mesh_memory;
+      if (mesh_memory.native_allocation_bytes) {
+        ImGui::Text("Native allocations: %llu bytes | CPU key payloads: %llu bytes",
+                    static_cast<unsigned long long>(*mesh_memory.native_allocation_bytes),
+                    static_cast<unsigned long long>(*mesh_memory.cpu_key_payload_bytes));
+        ImGui::Text("Observed peaks: native %llu bytes | CPU keys %llu bytes",
+                    static_cast<unsigned long long>(*mesh_memory.observed_peak_native_bytes),
+                    static_cast<unsigned long long>(*mesh_memory.observed_peak_cpu_bytes));
+      } else {
+        ImGui::TextDisabled("Latest unavailable: no retained-mesh observation.");
+        if (mesh_memory.observed_peak_native_bytes)
+          ImGui::Text("Observed peak native allocation: %llu bytes",
+                      static_cast<unsigned long long>(*mesh_memory.observed_peak_native_bytes));
+      }
+      ImGui::TextDisabled("Source: Presentation allocations owned by the current native surface.");
+      ImGui::TextDisabled("Includes retained mesh buffers; excludes textures, frame uploads and "
+                          "total device VRAM.");
+      ImGui::TextDisabled(
+          "CPU key payloads exclude allocator overhead; separate from process resident memory.");
+      ImGui::TextDisabled(
+          "250 ms sampling; Capture/Clear affect observations. Mesh memory is live-only.");
+      const auto mesh_history = profile->MeshMemorySamples();
+      ImGui::Text("%zu mesh-memory observations retained | %llu older observations dropped",
+                  mesh_history.size(),
+                  static_cast<unsigned long long>(profile->MeshMemoryDroppedCount()));
+      if (!mesh_history.empty()) {
+        std::uint64_t maximum_bytes = 1;
+        for (const auto &sample : mesh_history)
+          if (sample.native_allocation_bytes)
+            maximum_bytes = std::max(
+                {maximum_bytes, *sample.native_allocation_bytes, *sample.cpu_key_payload_bytes});
+        const auto low = ImGui::GetCursorScreenPos();
+        const ImVec2 size(std::max(1.F, ImGui::GetContentRegionAvail().x), 90);
+        ImGui::InvisibleButton("mesh-memory-plot", size);
+        auto *draw = ImGui::GetWindowDrawList();
+        draw->AddRectFilled(low, {low.x + size.x, low.y + size.y},
+                            ImGui::GetColorU32(ImGuiCol_FrameBg));
+        const auto first = mesh_history.front().elapsed_ms;
+        const auto range = std::max(1., mesh_history.back().elapsed_ms - first);
+        std::array<std::optional<ImVec2>, 2> previous;
+        for (const auto &sample : mesh_history) {
+          if (!sample.native_allocation_bytes) {
+            previous = {};
+            continue;
+          }
+          const std::array values{*sample.native_allocation_bytes, *sample.cpu_key_payload_bytes};
+          for (std::size_t series = 0; series < values.size(); ++series) {
+            const ImVec2 point(
+                low.x + static_cast<float>((sample.elapsed_ms - first) / range) * (size.x - 1),
+                low.y + (1 - static_cast<float>(static_cast<double>(values[series]) /
+                                                static_cast<double>(maximum_bytes))) *
+                            (size.y - 1));
+            const auto color =
+                ImGui::GetColorU32(series == 0 ? ImGuiCol_PlotLines : ImGuiCol_PlotHistogram);
+            if (previous[series])
+              draw->AddLine(*previous[series], point, color);
+            draw->AddCircleFilled(point, 2, color);
+            previous[series] = point;
+          }
+        }
+        ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_PlotLines), "Native allocations");
+        ImGui::SameLine();
+        ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram), "CPU key payloads");
+        ImGui::TextDisabled("Elapsed time including pause gaps; shared byte scale, missing "
+                            "observations break lines.");
+      }
       if (state_->imported_memory) {
         ImGui::SeparatorText("Imported process memory (static)");
         ImGui::TextDisabled("Process-wide trace; project identity denotes export destination, not "
@@ -7669,6 +7739,10 @@ EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexce
 ProcessMemoryObservation
 EditorImGuiTestAccess::ProfileMemory(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_memory;
+}
+MeshMemoryObservation
+EditorImGuiTestAccess::ProfileMeshMemory(const EditorImGuiHost &host) noexcept {
+  return host.state_->profile_mesh_memory;
 }
 GpuProfileObservation EditorImGuiTestAccess::ProfileGpu(const EditorImGuiHost &host) noexcept {
   return host.state_->profile_gpu;

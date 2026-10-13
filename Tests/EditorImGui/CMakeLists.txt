@@ -73,6 +73,12 @@ target_link_libraries(NexoraProcessMemoryDisplayTests PRIVATE Nexora::EditorImGu
 nexora_apply_defaults(NexoraProcessMemoryDisplayTests)
 add_test(NAME editor.process_memory_display COMMAND NexoraProcessMemoryDisplayTests)
 
+add_executable(NexoraMeshMemoryDisplayTests MeshMemoryDisplayTests.cpp)
+target_include_directories(NexoraMeshMemoryDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraMeshMemoryDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraMeshMemoryDisplayTests)
+add_test(NAME editor.mesh_memory_display COMMAND NexoraMeshMemoryDisplayTests)
+
 add_executable(NexoraEditorContextLifetimeTests ContextLifetimeTests.cpp)
 target_link_libraries(NexoraEditorContextLifetimeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraEditorContextLifetimeTests)

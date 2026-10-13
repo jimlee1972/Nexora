@@ -1247,3 +1247,15 @@ Successful rebase changes properties and retained reference as one document Undo
 remains explicit Save, which archives the previous exact variant and permits clean reopen. Source
 apply retains its separate confirmation and publication boundary. Structural identity reconciliation,
 persistent live instances and complete nested authoring remain separate work.
+
+## Retained native mesh memory Profiler
+
+The application supplies copied native allocation/CPU-key byte observations through ProfileSession.
+Widgets never query Presentation or retain a native owner. The live mesh section copies latest/peak
+values, plots bounded history in native-allocation and CPU-key series and names byte/elapsed-time
+units. Gaps break both lines; zero is available. Source is retained geometry owned by the current
+native surface, excluding textures/frame uploads, total device VRAM and process resident memory.
+Capture/Clear apply to observations; a new surface domain cannot retain another owner's latest/peak.
+Clear does not release renderer resources or static imported captures. This channel is live-only;
+existing wall/RSS/GPU import/export controls retain their original source/scope. C++ ProfileSession
+layout/storage changes require rebuilds, while stable C/scene schemas and module dependencies remain.

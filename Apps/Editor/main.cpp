@@ -2833,6 +2833,14 @@ int RunGraphical(std::optional<ProjectState> project,
     // OS observation belongs to the application, after a successfully presented frame. The
     // owner throttles reads independently of frame rate; drawing widgets only copies its result.
     static_cast<void>(profile.SampleProcessMemory(std::chrono::steady_clock::now()));
+    const auto retained_meshes = created.surface->Diagnostics().sceneGeometryResidency;
+    static_cast<void>(profile.ObserveMeshMemory(
+        created.surface->UiResourceDomain(), std::chrono::steady_clock::now(),
+        retained_meshes.available
+            ? std::optional<std::uint64_t>{retained_meshes.nativeAllocationBytes}
+            : std::nullopt,
+        retained_meshes.available ? std::optional<std::uint64_t>{retained_meshes.retainedCpuBytes}
+                                  : std::nullopt));
     if (frames % 60 == 0) {
       const bool was_empty = local_diagnostics.Events().empty();
       if (local_diagnostics.Record("frame.presented") && was_empty)
