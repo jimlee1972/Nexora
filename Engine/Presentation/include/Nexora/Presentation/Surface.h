@@ -68,6 +68,13 @@ struct SceneGeometryUploadCacheDiagnostics final {
   std::uint64_t uploads{}, hits{}, retainedCpuBytes{};
 };
 
+// Immutable mesh buffers. Native allocation bytes include the adapter's allocation requirements;
+// they are not a device-local VRAM measurement. Comparison keys own separate CPU payloads.
+struct SceneGeometryResidencyDiagnostics final {
+  bool available{};
+  std::uint64_t uploads{}, hits{}, evictions{}, retainedCpuBytes{}, nativeAllocationBytes{};
+};
+
 struct SurfaceDiagnostics final {
   SurfaceGpuTiming gpuTiming;
   std::uint64_t acquiredFrames = 0;
@@ -94,6 +101,7 @@ struct SurfaceDiagnostics final {
   std::uint64_t recoverablePresentFrames = 0;
   SurfaceDeviceInfo device;
   SceneGeometryUploadCacheDiagnostics sceneGeometryUploadCache;
+  SceneGeometryResidencyDiagnostics sceneGeometryResidency;
 };
 
 struct UiVertex final {
@@ -427,6 +435,9 @@ struct SceneDrawData final {
   std::optional<SceneScreenSpaceOcclusion> screenSpaceOcclusion{}; // Absent preserves existing HDR.
   std::optional<SceneAtmosphere> atmosphere{};             // Finite bounded HDR distance haze.
   std::optional<ScenePlanarReflection> planarReflection{}; // Borrowed geometry, scalar mask copy.
+  // Optional exact-content mesh residency. Always provide current geometry; unavailable meshes
+  // cannot be recovered by an ID alone. Unsupported adapters report Unsupported when requested.
+  bool retainMeshGeometry{};
 };
 
 // Call only after material/batch validation. Returned values own their scalar storage.
@@ -465,6 +476,7 @@ enum class SurfaceStatus : std::uint8_t {
 // be called by the window owner and only records the newest extent for the next Acquire/Present.
 class NEXORA_PRESENTATION_API ISurface {
 public:
+  [[nodiscard]] virtual bool SupportsSceneGeometryResidency() const noexcept { return false; }
   virtual ~ISurface() = default;
   [[nodiscard]] virtual std::thread::id RenderThread() const noexcept = 0;
   virtual SurfaceStatus NotifyWindowExtent(std::uint32_t width, std::uint32_t height) noexcept = 0;

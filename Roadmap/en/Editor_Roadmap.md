@@ -452,6 +452,14 @@ creates property widgets; unknown components retain raw data instead of being si
   ED-M2 failure handling; persistent per-asset GPU residency and full graphical acceptance remain open.
   [Evidence](../../Tools/Build/evidence/EditorEDM2-GeometryAllocation-2026-10-13.md).
 
+- ✅ Vulkan Scene/Game preview now supports optional immutable mesh geometry residency, independent
+  of combined-upload layout and instance/material updates. Exact owning content keys, bounded
+  native/CPU memory, current-draw leases and completion-safe LRU retirement preserve reimport/frozen
+  geometry versions, failed admission fallback, resize reuse and teardown. Portable contracts and
+  native tracing/pixels cover these paths. DX12/Metal residency adapters and full ED-M2 remain open.
+  [ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md).
+
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.
   Default names follow type choices while custom names remain. Queued owning requests recheck

@@ -149,5 +149,13 @@ Editor Scene／Game 現透過 CPU gate 使用精確 matrix；physical-display／
 ✅ Vulkan Scene／Game upload 現會重用 fence-protected frame slot 的有界容量。穩定、縮小
 或沒有 Scene 的 frame 保留配置；放大時先完成新配置才釋放舊配置，resize／teardown 會等待
 GPU 完成。Native call tracing 與像素測試驗證 100 個穩定 frame、最大 descriptor 預算、
-放大失敗及無洩漏生命週期。每次 draw 仍複製最新 geometry；persistent per-asset GPU cache
-及完整圖形化驗收仍待完成。
+放大失敗及無洩漏生命週期。Legacy draw 仍複製最新 geometry；可選的 Vulkan mesh residency
+擴充如下。跨 backend persistent per-asset GPU cache 及完整圖形化驗收仍待完成。
+
+✅ Vulkan 現可選擇保留 exact immutable mesh geometry，不受 combined frame layout 影響。
+Editor Scene／Game 透過 capability 啟用；有上限的 key／native allocation、current-draw lease
+及 completion-safe LRU eviction 保留失敗回退、resize 重用與 teardown。真正 native tracing／
+pixels 及 portable contract 涵蓋 canonical identity、geometry 變更、最新參數、allocation／
+mapping／completion 失敗與 memory 上限。DX12／Metal residency 仍待完成。
+[ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
+[證據](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md)。

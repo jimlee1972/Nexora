@@ -19,6 +19,12 @@ target_link_libraries(NexoraSceneGeometryUploadKeyTests PRIVATE Nexora::Presenta
 nexora_apply_defaults(NexoraSceneGeometryUploadKeyTests)
 add_test(NAME window_presentation.scene_geometry_upload_key COMMAND NexoraSceneGeometryUploadKeyTests)
 
+add_executable(NexoraSceneGeometryResidencyTests SceneGeometryResidencyTests.cpp)
+target_include_directories(NexoraSceneGeometryResidencyTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
+target_link_libraries(NexoraSceneGeometryResidencyTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraSceneGeometryResidencyTests)
+add_test(NAME window_presentation.scene_geometry_residency COMMAND NexoraSceneGeometryResidencyTests)
+
 add_executable(NexoraSceneInstanceTests SceneInstanceTests.cpp)
 target_include_directories(NexoraSceneInstanceTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
 target_link_libraries(NexoraSceneInstanceTests PRIVATE Nexora::Presentation)

@@ -157,4 +157,13 @@ consume exact matrices through the CPU gate; physical-display/GPU acceptance rem
 Steady, smaller and Scene-free frames retain allocation; growth stages replacement before retiring
 old storage, and resize/teardown drains GPU work. Native call tracing and pixels verify 100 steady
 frames, maximum descriptor budgets, failed growth and leak-free lifetime. Fresh geometry is still
-copied per draw; persistent per-asset GPU caching and full graphical acceptance remain open.
+copied per legacy draw; optional Vulkan mesh residency is extended below. Cross-backend
+persistent per-asset GPU caching and full graphical acceptance remain open.
+
+✅ Vulkan now optionally retains exact immutable mesh geometry independently of combined frame
+layout. Editor Scene/Game use the capability; bounded keys/native allocations, current-draw leases
+and completion-safe LRU eviction preserve failure fallback, resize reuse and teardown. Native
+tracing/pixels and portable contracts cover canonical identity, changed geometry, fresh parameters,
+allocation/mapping/completion failure and memory bounds. DX12/Metal residency remains open.
+[ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
+[Evidence](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md).
