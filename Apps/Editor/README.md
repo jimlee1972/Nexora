@@ -437,16 +437,16 @@ No source IO occurs in rendering or picking. Portable append/picking tests and a
 distinct triangle/quad OBJ assets verify geometry ranges, actual silhouette selection, Center scale/
 rotation, preview/release pixel equality, and one-step Undo. Closed-form three-level mirrored/sheared
 fixtures distinguish exact silhouette hits from lossy TRS misses and check owning matrix conversion.
-Material shaders and cross-backend per-resource GPU caching remain open.
+Material shaders and broader per-resource residency policy remain open.
 
-Vulkan Scene/Game preview now requests optional immutable mesh geometry residency through the
+Vulkan, DX12 and Metal Scene/Game preview now request optional immutable mesh geometry residency through the
 surface capability. Exact-content keys reuse unchanged meshes when the combined frame layout or
 instance/material data changes; frozen Play geometry can coexist with reimported Editor versions.
 Current CPU catalog payloads are still required, so unavailable assets follow existing proxy/omission
 rules. The first adapter bounds 64 batches/entries and 32 MiB of resident native allocations, with a
 bounded staged candidate; unsupported/large/failed admissions retain legacy uploads. Resize retains
 immutable entries, and completion-safe eviction/shutdown release ownership. CPU/native cache
-diagnostics are not VRAM measurements. DX12/Metal cache adapters and full ED-M2 remain open; see
+diagnostics are not VRAM measurements. Full material/shader authoring, broader cache policy and ED-M2 acceptance remain open; see
 [ADR-0008](../../Roadmap/en/ADR-0008-Editor-Mesh-Geometry-Residency.md).
 
 Frame geometry append prepares both bounded vector capacities before publishing any vertices or

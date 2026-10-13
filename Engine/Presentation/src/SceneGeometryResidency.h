@@ -88,6 +88,44 @@ private:
   std::uint64_t fingerprint_{};
 };
 
+// All callers first validate the complete submission. Adapters retain native resources through
+// the callback; duplicate ranges share a result, including a failed admission's legacy fallback.
+template <class Retain>
+bool PrepareMeshResidencyBindings(const SceneDrawData &data, std::array<std::uint8_t, 64> &bindings,
+                                  SceneGeometryResidencyDiagnostics &stats, Retain retain) {
+  bindings.fill(UINT8_MAX);
+  if (!data.retainMeshGeometry)
+    return false;
+  stats.available = true;
+  const SceneMeshBatch whole{
+      0, static_cast<std::uint32_t>(data.indices.size()), 0,
+      static_cast<std::uint32_t>(std::max<std::size_t>(1, data.instances.size())), 0};
+  const auto batches =
+      data.batches.empty() ? std::span<const SceneMeshBatch>(&whole, 1) : data.batches;
+  if (batches.size() > bindings.size())
+    return false;
+  bool complete = true;
+  for (std::size_t index = 0; index < batches.size(); ++index) {
+    std::optional<std::size_t> duplicate;
+    for (std::size_t prior = 0; prior < index; ++prior)
+      if (batches[prior].firstIndex == batches[index].firstIndex &&
+          batches[prior].indexCount == batches[index].indexCount) {
+        duplicate = prior;
+        break;
+      }
+    if (duplicate) {
+      bindings[index] = bindings[*duplicate];
+      if (bindings[index] != UINT8_MAX)
+        ++stats.hits;
+    } else if (const auto view = MeshGeometryView::From(data, batches[index])) {
+      if (const auto slot = retain(*view))
+        bindings[index] = static_cast<std::uint8_t>(*slot);
+    }
+    complete = complete && bindings[index] != UINT8_MAX;
+  }
+  return complete;
+}
+
 // Resource is an owning movable native allocation with a boolean validity check. Native
 // adapters stage allocation/copy before Commit and complete prior GPU work before any eviction.
 template <class Resource> class SceneGeometryResidency final {

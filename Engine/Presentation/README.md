@@ -262,8 +262,8 @@ followed by a successful draw. DX12 execution acceptance and authored-mesh Edito
 
 `SceneDrawData::retainMeshGeometry` requests exact-content geometry retention. Query
 `SupportsSceneGeometryResidency()` on the surface or `RenderSurface` first; the default is false,
-Vulkan supplies the first adapter, and DX12/Metal reject unsupported requests while preserving
-their existing legacy draws. Editor Scene/Game use the capability. Public C++ consumers rebuild;
+Vulkan, DX12 and Metal implement the optional adapter. Other surfaces keep the default capability
+and report Unsupported when requested. Editor Scene/Game use the capability. Public C++ consumers rebuild;
 stable C/Zig, serialized assets and shader inputs do not change.
 
 Current vertex/index spans remain required, borrowed only for the call and fully validated before
@@ -273,12 +273,16 @@ changes, repeated instances and identical asset content. Changed reimport/frozen
 coexist, and missing assets cannot recover geometry by identity alone. Materials and instances
 continue to update every draw. Main/shadow/reflection select the same retained geometry.
 
-Vulkan handles up to 64 batches per draw with 64 entries and a 32 MiB resident native allocation
+The native adapters handle up to 64 batches per draw with 64 entries and a 32 MiB resident native allocation
 budget plus at most 8 MiB of staged native allocation. Keys own separate CPU payloads bounded by
 their native allocations. Larger draws, exhausted current-draw leases and failed candidate
 allocation/mapping/completion fall back to the validated combined upload. These limits exclude
 the existing independently bounded frame uploads, targets and textures. Host-visible coherent
 buffers and copied `sceneGeometryResidency` observations are not device-local VRAM measurements.
+DX12 counts `GetResourceAllocationInfo` requirements; Metal preflights heap buffer requirements
+and counts the admitted buffer's `allocatedSize`. Every adapter shares duplicate-range admission
+and legacy fallback. DX12 retains fresh palette/shadow constants before the instance region;
+Metal waits only submitted command buffers, preserving retirements used by the current UI recording.
 
 LRU planning preserves old ownership until allocation/copy succeeds and prior GPU users complete.
 Current unsubmitted draw leases exclude victims. Resize retains the immutable cache after draining
@@ -288,7 +292,10 @@ reuse. Portable ownership/budget tests and native tracing/pixels cover layout in
 geometry, fresh materials/instances, allocation and mapping failures, completion failure,
 legacy switching, eviction, resize and teardown. See
 [ADR-0008](../../Roadmap/en/ADR-0008-Editor-Mesh-Geometry-Residency.md).
-DX12/Metal residency adapters and full target-host ED-M2 acceptance remain open.
+Native DX12 PBR and Metal Scene/UI/shadow/reflection pixel fixtures request supported residency;
+portable tests also cover duplicate success/failure admissions, legacy clearing and the 64-batch limit.
+Driver-internal allocation overhead and real hardware OOM are outside these cache observations.
+Broader residency policy and full target-host ED-M2 acceptance remain open.
 
 ## Metal Showcase scene and frame ownership
 

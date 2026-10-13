@@ -4,8 +4,8 @@
 
 Add `SceneDrawData::retainMeshGeometry` and a default-false
 `ISurface::SupportsSceneGeometryResidency()` capability, forwarded by `RenderSurface`. Editor
-Scene/Game submissions request the optimization only when supported. Vulkan supplies the first
-native adapter; DX12/Metal retain existing draws and explicitly reject an unsupported request.
+Scene/Game submissions request the optimization only when supported. Vulkan, DX12 and Metal
+provide native adapters; other surfaces retain the default-false capability and unsupported request.
 Public C++ consumers rebuild. Stable C/Zig, serialized asset identities, shaders and module
 dependencies do not change.
 
@@ -18,7 +18,7 @@ from an ID alone or from a missing current CPU payload. Submesh ranges may occup
 
 ## Ownership and bounds
 
-The first adapter handles up to 64 batches per submission with 64 resident entries. Larger draws
+The adapters handle up to 64 batches per submission with 64 resident entries. Larger draws
 use the legacy combined upload. Duplicate batch ranges share an admission. Resident native memory
 allocation requirements are capped at 32 MiB, with an additional staged candidate capped at 8 MiB.
 Keys own separate CPU payloads bounded by their native allocations. These are cache-specific
@@ -43,5 +43,9 @@ Portable tests cover canonical layout independence, exact comparison despite a h
 owning payloads, entry/memory bounds, LRU and unsubmitted leases, abandoned plans and teardown.
 Real Vulkan tracing/pixels cover reorder, changed geometry, fresh instances/materials, allocation
 failure fallback/retry, legacy switching, budget eviction, completion failure, resize and cleanup.
-Run full Linux Development/Shipping and hosted CI. DX12/Metal adapters, broader residency policy
-and full target-host ED-M2 acceptance remain open.
+DX12 uses owning upload buffers with allocation requirements; Metal preflights buffer requirements
+and counts admitted `allocatedSize`. Fresh palette/shadow data precede DX12 instances; Metal waits
+only submitted buffers and preserves current UI retirements. The shared admission helper bounds work
+and reuses duplicate success/failure results. Hosted native DX12 PBR and Metal pixel fixtures request
+residency without changing their visual guards. Run full Linux Development/Shipping and hosted CI.
+Broader residency policy and full target-host ED-M2 acceptance remain open.

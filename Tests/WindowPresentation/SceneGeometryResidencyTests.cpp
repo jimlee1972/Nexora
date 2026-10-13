@@ -18,6 +18,35 @@ struct Destroy {
 };
 using Resource = std::unique_ptr<int, Destroy>;
 using Cache = SceneGeometryResidency<Resource>;
+void CheckBindings() {
+  std::array<SceneVertex, 3> vertices{};
+  std::array<std::uint16_t, 6> indices{0, 1, 2, 2, 1, 0};
+  std::array<SceneMeshBatch, 4> batches{{{0, 3, 0, 1}, {0, 3, 0, 1}, {3, 3, 0, 1}, {3, 3, 0, 1}}};
+  SceneDrawData draw{vertices, indices};
+  draw.batches = batches;
+  draw.retainMeshGeometry = true;
+  std::array<std::uint8_t, 64> bindings{};
+  SceneGeometryResidencyDiagnostics stats;
+  unsigned calls = 0;
+  const auto retain = [&](const auto &) -> std::optional<std::size_t> {
+    return ++calls == 1 ? std::optional<std::size_t>(7) : std::nullopt;
+  };
+  Require(!PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 2 &&
+              bindings[0] == 7 && bindings[1] == 7 && bindings[2] == UINT8_MAX &&
+              bindings[3] == UINT8_MAX && stats.hits == 1 && stats.available,
+          "duplicate ranges repeated admission or lost failed-admission legacy fallback");
+  draw.retainMeshGeometry = false;
+  calls = 0;
+  Require(!PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 0 &&
+              std::ranges::all_of(bindings, [](auto slot) { return slot == UINT8_MAX; }),
+          "legacy draw retained stale mesh bindings or invoked native admission");
+  std::array<SceneMeshBatch, 65> large{};
+  std::ranges::fill(large, SceneMeshBatch{0, 3, 0, 1});
+  draw.batches = large;
+  draw.retainMeshGeometry = true;
+  Require(!PrepareMeshResidencyBindings(draw, bindings, stats, retain) && calls == 0,
+          "oversized draw exceeded the bounded admission work instead of using legacy geometry");
+}
 void Run() {
   std::array<SceneVertex, 6> vertices{};
   vertices[1].position[0] = vertices[4].position[0] = 1;
@@ -108,6 +137,7 @@ void Run() {
 int main() {
   try {
     Run();
+    CheckBindings();
     std::cout << "Canonical mesh residency, budget and lease contracts passed\n";
     return 0;
   } catch (const std::exception &error) {

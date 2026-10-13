@@ -4,6 +4,7 @@
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
+#include "SceneGeometryResidency.h"
 #include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrMetalShaders.h"
@@ -25,8 +26,13 @@
 
 namespace Nexora::Presentation {
 namespace {
+struct MetalMeshAllocation final {
+  id<MTLBuffer> buffer = nil;
+  explicit operator bool() const noexcept { return buffer != nil; }
+};
 class MetalSurface final : public ISurface {
 public:
+  bool SupportsSceneGeometryResidency() const noexcept override { return true; }
   MetalSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
         gpuTimingEnabled_(descriptor.enableGpuTiming) {
@@ -107,6 +113,7 @@ public:
         inflight_[frame_] = nil;
         retiredTextures_[frame_].clear();
       }
+      meshResidency_.BeginFrame();
       drawable_ = [layer_ nextDrawable];
       if (!drawable_)
         return SurfaceStatus::OutOfDate;
@@ -223,8 +230,6 @@ public:
     @autoreleasepool {
       if (thread_ != std::this_thread::get_id())
         return SurfaceStatus::WrongThread;
-      if (drawData.retainMeshGeometry)
-        return SurfaceStatus::Unsupported;
       if (!drawable_ || !commands_ || sceneDrawn_ || !scenePipeline_)
         return SurfaceStatus::InvalidDescriptor;
       const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
@@ -318,12 +323,17 @@ public:
         return SurfaceStatus::InvalidDescriptor;
       const auto instanceBytes =
           std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
-      const auto instanceOffset = (vertices.size() + indices.size() + 3) & ~std::size_t{3};
+      const bool residentGeometry = detail::PrepareMeshResidencyBindings(
+          drawData, meshBindings_, diagnostics_.sceneGeometryResidency,
+          [this](const auto &view) { return RetainMesh(view); });
+      const auto instanceOffset =
+          residentGeometry ? 0 : (vertices.size() + indices.size() + 3) & ~std::size_t{3};
       const auto required = instanceOffset + instanceBytes.size();
-      const bool reuseGeometry = sceneUploads_[frame_] && sceneCapacity_[frame_] >= required &&
+      const bool reuseGeometry = !residentGeometry && sceneUploads_[frame_] &&
+                                 sceneCapacity_[frame_] >= required &&
                                  sceneGeometry_[frame_].Matches(vertices, indices);
       detail::SceneGeometryUploadKey::Candidate geometryCandidate;
-      if (!reuseGeometry) {
+      if (!residentGeometry && !reuseGeometry) {
         geometryCandidate = detail::SceneGeometryUploadKey::Capture(vertices, indices);
         if (!geometryCandidate)
           return SurfaceStatus::DeviceLost;
@@ -340,10 +350,12 @@ public:
         sceneCapacity_[frame_] = capacity;
       }
       auto *storage = static_cast<std::byte *>(sceneUploads_[frame_].contents);
-      if (!reuseGeometry)
+      if (!residentGeometry && !reuseGeometry)
         std::memcpy(storage, geometryCandidate.payload.get(), geometryCandidate.bytes);
       std::memcpy(storage + instanceOffset, instanceBytes.data(), instanceBytes.size());
-      if (reuseGeometry)
+      if (residentGeometry)
+        sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
+      else if (reuseGeometry)
         detail::SceneGeometryUploadKey::RecordHit(diagnostics_.sceneGeometryUploadCache);
       else
         sceneGeometry_[frame_].Commit(std::move(geometryCandidate),
@@ -393,7 +405,6 @@ public:
                                          static_cast<double>(viewport->height), 0, 1}];
         [encoder setScissorRect:MTLScissorRect{viewport->x, viewport->y, viewport->width,
                                                viewport->height}];
-        [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:drawData.pbr ? 2 : 0];
         [encoder setVertexBuffer:sceneUploads_[frame_]
                           offset:instanceOffset
                          atIndex:drawData.pbr ? 3 : 1];
@@ -504,15 +515,18 @@ public:
               const auto id = material.textureId ? material.textureId : UINT64_MAX;
               [encoder setFragmentTexture:sceneTextures_.at(id) atIndex:0];
             }
-            [encoder
-                drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                           indexCount:batch.indexCount
-                            indexType:MTLIndexTypeUInt16
-                          indexBuffer:sceneUploads_[frame_]
-                    indexBufferOffset:vertices.size() + batch.firstIndex * sizeof(std::uint16_t)
-                        instanceCount:batch.instanceCount
-                           baseVertex:0
-                         baseInstance:batch.firstInstance];
+            const auto geometry = MeshBuffer(static_cast<std::size_t>(&batch - batches.data()));
+            [encoder setVertexBuffer:geometry offset:0 atIndex:drawData.pbr ? 2 : 0];
+            const auto indexOffset = MeshIndexOffset(
+                batch, static_cast<std::size_t>(&batch - batches.data()), vertices.size());
+            [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                indexCount:batch.indexCount
+                                 indexType:MTLIndexTypeUInt16
+                               indexBuffer:geometry
+                         indexBufferOffset:indexOffset
+                             instanceCount:batch.instanceCount
+                                baseVertex:0
+                              baseInstance:batch.firstInstance];
           }
         }
         [encoder endEncoding];
@@ -629,6 +643,7 @@ public:
       commands_ = nil;
       valid_ = false;
       const bool drained = DrainFrames();
+      meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
       for (std::size_t i = 0; i < kFrames; ++i) {
         uiUploads_[i] = nil;
         sceneUploads_[i] = nil;
@@ -682,6 +697,63 @@ private:
     }
     detail::PublishGpuTiming(diagnostics_.gpuTiming, source, timingSequences_[slot], measured);
     timingSequences_[slot] = 0;
+  }
+  bool CompleteSubmittedMeshes() {
+    for (std::size_t slot = 0; slot < kFrames; ++slot) {
+      if (!inflight_[slot])
+        continue;
+      [inflight_[slot] waitUntilCompleted];
+      ++diagnostics_.fenceWaits;
+      CollectGpuTiming(slot);
+      if (inflight_[slot].status == MTLCommandBufferStatusError) {
+        diagnostics_.lastPlatformResult = static_cast<std::int64_t>(inflight_[slot].error.code);
+        return false;
+      }
+      inflight_[slot] = nil;
+      // Only submitted/completed slots may release retirements. The current recording can
+      // still reference textures retired by an earlier UI draw in this same frame.
+      retiredTextures_[slot].clear();
+    }
+    return true;
+  }
+  std::optional<std::size_t> RetainMesh(const detail::MeshGeometryView &view) {
+    auto &stats = diagnostics_.sceneGeometryResidency;
+    if (const auto hit = meshResidency_.Find(view, stats))
+      return hit;
+    auto key = detail::MeshGeometryKey::Capture(view);
+    if (!key)
+      return std::nullopt;
+    std::size_t capacity = 4096;
+    while (capacity < key.Bytes())
+      capacity *= 2;
+    const auto requirements =
+        [device_ heapBufferSizeAndAlignWithLength:capacity options:MTLResourceStorageModeShared];
+    if (!meshResidency_.Plan(requirements.size))
+      return std::nullopt;
+    MetalMeshAllocation allocation;
+    allocation.buffer = [device_ newBufferWithLength:capacity options:MTLResourceStorageModeShared];
+    if (!allocation.buffer || !allocation.buffer.contents)
+      return std::nullopt;
+    const auto bytes = allocation.buffer.allocatedSize;
+    const auto plan = meshResidency_.Plan(bytes);
+    if (!plan || bytes < key.Bytes())
+      return std::nullopt;
+    std::memcpy(allocation.buffer.contents, key.Data(), key.Bytes());
+    if (plan->retire.any() && !CompleteSubmittedMeshes())
+      return std::nullopt;
+    meshResidency_.Commit(*plan, std::move(key), std::move(allocation), bytes, stats);
+    return plan->slot;
+  }
+  id<MTLBuffer> MeshBuffer(std::size_t ordinal) const {
+    if (ordinal < meshBindings_.size() && meshBindings_[ordinal] != UINT8_MAX)
+      return meshResidency_.At(meshBindings_[ordinal]).resource.buffer;
+    return sceneUploads_[frame_];
+  }
+  NSUInteger MeshIndexOffset(const SceneMeshBatch &batch, std::size_t ordinal,
+                             std::size_t vertexBytes) const {
+    if (ordinal < meshBindings_.size() && meshBindings_[ordinal] != UINT8_MAX)
+      return meshResidency_.At(meshBindings_[ordinal]).key.VertexBytes();
+    return vertexBytes + batch.firstIndex * sizeof(std::uint16_t);
   }
   bool DrainFrames() {
     bool success = true;
@@ -842,7 +914,6 @@ private:
     std::copy(draw.shadow->lightViewProjection.begin(), draw.shadow->lightViewProjection.end(),
               constants.begin());
     [encoder setVertexBytes:constants.data() length:sizeof(constants) atIndex:0];
-    [encoder setVertexBuffer:sceneUploads_[frame_] offset:0 atIndex:2];
     [encoder setVertexBuffer:sceneUploads_[frame_] offset:instanceOffset atIndex:3];
     const SceneMeshBatch whole{
         0, static_cast<std::uint32_t>(draw.indices.size()), 0,
@@ -860,12 +931,15 @@ private:
       const auto id = material.textureId ? material.textureId : UINT64_MAX;
       [encoder setFragmentTexture:sceneSrgbTextures_.at(id) atIndex:0];
       [encoder setFragmentSamplerState:uiSampler_ atIndex:0];
+      const auto geometry = MeshBuffer(static_cast<std::size_t>(&batch - batches.data()));
+      [encoder setVertexBuffer:geometry offset:0 atIndex:2];
+      const auto indexOffset = MeshIndexOffset(
+          batch, static_cast<std::size_t>(&batch - batches.data()), draw.vertices.size_bytes());
       [encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                           indexCount:batch.indexCount
                            indexType:MTLIndexTypeUInt16
-                         indexBuffer:sceneUploads_[frame_]
-                   indexBufferOffset:draw.vertices.size_bytes() +
-                                     batch.firstIndex * sizeof(std::uint16_t)
+                         indexBuffer:geometry
+                   indexBufferOffset:indexOffset
                        instanceCount:batch.instanceCount
                           baseVertex:0
                         baseInstance:batch.firstInstance];
@@ -1225,6 +1299,8 @@ private:
   CAMetalLayer *layer_ = nil;
   id<CAMetalDrawable> drawable_ = nil;
   SurfaceDiagnostics diagnostics_{};
+  detail::SceneGeometryResidency<MetalMeshAllocation> meshResidency_;
+  std::array<std::uint8_t, 64> meshBindings_{};
   std::uint64_t timingSequence_{};
   std::array<std::uint64_t, kFrames> timingSequences_{};
 };

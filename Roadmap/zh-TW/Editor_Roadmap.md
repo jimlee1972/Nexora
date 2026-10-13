@@ -442,6 +442,14 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   [ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
   [證據](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md)。
 
+- ✅ DX12 與 Metal 現實作與 Vulkan 相同的可選 immutable mesh residency。共用有界
+  admission 重用重複 range 的成功／失敗結果；owning native buffer、allocation requirement／
+  size 計量及 completion-gated LRU 保留目前 draw lease。Cached／legacy 切換時，DX12
+  palette／shadow constant 持續更新，Metal 保留目前 UI retirement。Native PBR／Metal
+  視覺 guard 涵蓋 residency、shadow／reflection 與 ownership 釋放。更完整的 residency
+  policy、authored material／shader workflow 與完整 ED-M2 驗收仍待完成。
+  [證據](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md)。
+
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步
   Undo／Redo。預設名稱隨型別選擇調整，自訂名稱保留。Owning queued request 重新核對

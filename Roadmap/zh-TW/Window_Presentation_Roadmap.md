@@ -159,3 +159,11 @@ pixels 及 portable contract 涵蓋 canonical identity、geometry 變更、最�
 mapping／completion 失敗與 memory 上限。DX12／Metal residency 仍待完成。
 [ADR-0008](ADR-0008-Editor-Mesh-Geometry-Residency.md) ·
 [證據](../../Tools/Build/evidence/EditorEDM2-VulkanMeshResidency-2026-10-13.md)。
+
+✅ DX12／Metal 現支援 immutable mesh residency，共用 Vulkan 的 canonical key 及有界
+重複／失敗 admission。Native requirement／size 計量、completed retirement、current-draw
+lease 與 legacy-prefix invalidation 保留最新 frame data 及 resize 重用。DX12 native PBR
+與 Metal Scene／UI／shadow／reflection guard 會要求 residency 並切換模式；portable
+admission tests 及 Vulkan tracing 保留 allocation／completion 失敗證據。實際 hardware OOM、
+更完整的 policy 及完整 target-host 驗收仍待完成。
+[證據](../../Tools/Build/evidence/EditorEDM2-NativeMeshResidency-2026-10-13.md)。

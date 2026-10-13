@@ -476,7 +476,8 @@ int main(int argc, char **argv) {
         splitReceiver = {{{0, 3, 0, 1, 0}, {3, 3, 0, 1, 0}, {6, 3, 0, 1, 2}, {9, 3, 0, 1, 1}}};
         draw.batches = splitReceiver;
       }
-      draw.retainMeshGeometry = surface->SupportsSceneGeometryResidency();
+      // Exercise cached/legacy transitions on completed frame slots without changing pixels.
+      draw.retainMeshGeometry = surface->SupportsSceneGeometryResidency() && frame % 7 != 0;
       Require(surface->Acquire() == SurfaceStatus::Ready, "PBR acquire failed");
       if (frame == 0) {
         materials[0].normalTextureId = 987;

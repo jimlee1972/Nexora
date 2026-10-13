@@ -6,6 +6,7 @@
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
+#include "SceneGeometryResidency.h"
 #include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrHlslShaders.h"
@@ -36,8 +37,13 @@ std::unique_ptr<ISurface> CreateVulkanSurface(const SurfaceDescriptor &, Window:
 namespace {
 using Microsoft::WRL::ComPtr;
 constexpr UINT kMaximumFrames = 3;
+struct Dx12MeshAllocation final {
+  ComPtr<ID3D12Resource> buffer;
+  explicit operator bool() const noexcept { return buffer.Get() != nullptr; }
+};
 class Dx12Surface final : public ISurface {
 public:
+  bool SupportsSceneGeometryResidency() const noexcept override { return true; }
   Dx12Surface(const SurfaceDescriptor &d, Window::IWindowSystem &windows)
       : renderThread_(std::this_thread::get_id()),
         window_(static_cast<HWND>(windows.NativeHandle(d.window))), width_(d.width),
@@ -147,6 +153,7 @@ public:
       ++diagnostics_.fenceWaits;
     }
     CollectGpuTiming(frame_);
+    meshResidency_.BeginFrame();
     retired_[frame_].clear();
     freeUiDescriptors_.insert(freeUiDescriptors_.end(), retiredUiDescriptors_[frame_].begin(),
                               retiredUiDescriptors_[frame_].end());
@@ -340,8 +347,6 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (drawData.retainMeshGeometry)
-      return SurfaceStatus::Unsupported;
     if (!acquired_ || sceneDrawn_ || compositeDrawn_ || !scenePipeline_ ||
         drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
@@ -434,7 +439,11 @@ public:
         std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
     const auto vertexBytes = std::as_bytes(drawData.vertices);
     const auto indexBytes = std::as_bytes(drawData.indices);
-    const auto instanceOffset = (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
+    const bool residentGeometry = detail::PrepareMeshResidencyBindings(
+        drawData, meshBindings_, diagnostics_.sceneGeometryResidency,
+        [this](const auto &view) { return RetainMesh(view); });
+    const auto instanceOffset =
+        residentGeometry ? 0 : (vertexBytes.size() + indexBytes.size() + 3) & ~std::size_t{3};
     struct SceneConstants final {
       float mvp[16];
       float lightDirection[3];
@@ -459,10 +468,11 @@ public:
     const auto toneOffset = kGeometryOffset + instanceOffset + instanceBytes.size();
     const auto required = toneOffset + (drawData.hdr ? sizeof(toneVertices) : 0);
     const bool reuseGeometry =
-        sceneUploads_[frame_].Get() && sceneUploadCapacity_[frame_] >= required &&
+        !residentGeometry && sceneUploads_[frame_].Get() &&
+        sceneUploadCapacity_[frame_] >= required &&
         sceneGeometry_[frame_].Matches(vertexBytes, indexBytes, kGeometryOffset);
     detail::SceneGeometryUploadKey::Candidate geometryCandidate;
-    if (!reuseGeometry) {
+    if (!residentGeometry && !reuseGeometry) {
       geometryCandidate =
           detail::SceneGeometryUploadKey::Capture(vertexBytes, indexBytes, kGeometryOffset);
       if (!geometryCandidate)
@@ -493,7 +503,7 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + shadowOffset, shadowConstants.data(),
                   sizeof(shadowConstants));
     }
-    if (!reuseGeometry)
+    if (!residentGeometry && !reuseGeometry)
       std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset,
                   geometryCandidate.payload.get(), geometryCandidate.bytes);
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + instanceOffset,
@@ -502,7 +512,9 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
     sceneUploads_[frame_]->Unmap(0, nullptr);
-    if (reuseGeometry)
+    if (residentGeometry)
+      sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
+    else if (reuseGeometry)
       detail::SceneGeometryUploadKey::RecordHit(diagnostics_.sceneGeometryUploadCache);
     else
       sceneGeometry_[frame_].Commit(std::move(geometryCandidate),
@@ -675,18 +687,7 @@ public:
                              static_cast<LONG>(viewport->x + viewport->width),
                              static_cast<LONG>(viewport->y + viewport->height)};
     commands_->RSSetScissorRects(1, &scissor);
-    const D3D12_VERTEX_BUFFER_VIEW vertexView{geometryBase, static_cast<UINT>(vertexBytes.size()),
-                                              sizeof(SceneVertex)};
-    const D3D12_INDEX_BUFFER_VIEW indexView{geometryBase + vertexBytes.size(),
-                                            static_cast<UINT>(indexBytes.size()),
-                                            DXGI_FORMAT_R16_UINT};
     commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    const D3D12_VERTEX_BUFFER_VIEW views[]{vertexView,
-                                           {geometryBase + instanceOffset,
-                                            static_cast<UINT>(instanceBytes.size()),
-                                            sizeof(SceneInstanceUpload)}};
-    commands_->IASetVertexBuffers(0, 2, views);
-    commands_->IASetIndexBuffer(&indexView);
     const SceneMeshBatch whole{0, static_cast<std::uint32_t>(drawData.indices.size()), 0,
                                static_cast<std::uint32_t>(instances.size()), 0};
     const auto batches =
@@ -796,8 +797,11 @@ public:
             }
             boundMaterial = batch.materialIndex;
           }
-          commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex,
-                                          0, batch.firstInstance);
+          const auto firstIndex = BindSceneMesh(
+              batch, static_cast<std::size_t>(&batch - batches.data()), geometryBase,
+              vertexBytes.size(), indexBytes.size(), instanceOffset, instances.size());
+          commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, firstIndex, 0,
+                                          batch.firstInstance);
         }
       }
     }
@@ -899,6 +903,7 @@ public:
     }
     for (UINT slot = 0; slot < frames_; ++slot)
       CollectGpuTiming(slot);
+    meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
     gpuQueries_.Reset();
     gpuReadback_.Reset();
     acquired_ = false;
@@ -1428,14 +1433,6 @@ private:
     const D3D12_RECT scissor{0, 0, static_cast<LONG>(resolution), static_cast<LONG>(resolution)};
     commands_->RSSetViewports(1, &viewport);
     commands_->RSSetScissorRects(1, &scissor);
-    const D3D12_VERTEX_BUFFER_VIEW vertices[]{
-        {geometry, static_cast<UINT>(vertexSize), sizeof(SceneVertex)},
-        {geometry + instanceOffset, static_cast<UINT>(instanceCount * sizeof(SceneInstanceUpload)),
-         sizeof(SceneInstanceUpload)}};
-    const D3D12_INDEX_BUFFER_VIEW indices{geometry + vertexSize, static_cast<UINT>(indexSize),
-                                          DXGI_FORMAT_R16_UINT};
-    commands_->IASetVertexBuffers(0, 2, vertices);
-    commands_->IASetIndexBuffer(&indices);
     commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     const SceneMeshBatch whole{0, static_cast<std::uint32_t>(draw.indices.size()), 0,
                                static_cast<std::uint32_t>(instanceCount), 0};
@@ -1458,7 +1455,10 @@ private:
         commands_->SetGraphicsRootDescriptorTable(2, handle);
         boundMaterial = batch.materialIndex;
       }
-      commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, batch.firstIndex, 0,
+      const auto firstIndex =
+          BindSceneMesh(batch, static_cast<std::size_t>(&batch - batches.data()), geometry,
+                        vertexSize, indexSize, instanceOffset, instanceCount);
+      commands_->DrawIndexedInstanced(batch.indexCount, batch.instanceCount, firstIndex, 0,
                                       batch.firstInstance);
     }
     D3D12_RESOURCE_BARRIER barrier{};
@@ -1477,6 +1477,76 @@ private:
     if (sceneUploads_[frame_].Get() != before)
       sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
     return true;
+  }
+  bool CompleteSubmittedWork() {
+    if (!queue_ || !fence_ || !event_ || FAILED(queue_->Signal(fence_.Get(), ++fenceValue_)) ||
+        FAILED(fence_->SetEventOnCompletion(fenceValue_, event_)) ||
+        WaitForSingleObject(event_, INFINITE) != WAIT_OBJECT_0)
+      return false;
+    const auto completed = fence_->GetCompletedValue();
+    return completed != UINT64_MAX && completed >= fenceValue_;
+  }
+  std::optional<std::size_t> RetainMesh(const detail::MeshGeometryView &view) {
+    auto &stats = diagnostics_.sceneGeometryResidency;
+    if (const auto hit = meshResidency_.Find(view, stats))
+      return hit;
+    auto key = detail::MeshGeometryKey::Capture(view);
+    if (!key)
+      return std::nullopt;
+    std::size_t capacity = 4096;
+    while (capacity < key.Bytes())
+      capacity *= 2;
+    D3D12_RESOURCE_DESC desc{};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Width = capacity;
+    desc.Height = 1;
+    desc.DepthOrArraySize = desc.MipLevels = 1;
+    desc.SampleDesc.Count = 1;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    const auto requirements = device_->GetResourceAllocationInfo(0, 1, &desc);
+    const auto plan = meshResidency_.Plan(requirements.SizeInBytes);
+    if (!plan)
+      return std::nullopt;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_UPLOAD;
+    heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+    Dx12MeshAllocation allocation;
+    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
+                                                D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                                IID_PPV_ARGS(&allocation.buffer))))
+      return std::nullopt;
+    void *mapped{};
+    const D3D12_RANGE noRead{0, 0};
+    if (FAILED(allocation.buffer->Map(0, &noRead, &mapped)))
+      return std::nullopt;
+    std::memcpy(mapped, key.Data(), key.Bytes());
+    allocation.buffer->Unmap(0, nullptr);
+    if (plan->retire.any() && !CompleteSubmittedWork())
+      return std::nullopt;
+    meshResidency_.Commit(*plan, std::move(key), std::move(allocation), requirements.SizeInBytes,
+                          stats);
+    return plan->slot;
+  }
+  std::uint32_t BindSceneMesh(const SceneMeshBatch &batch, std::size_t ordinal,
+                              D3D12_GPU_VIRTUAL_ADDRESS frameGeometry, std::size_t vertexBytes,
+                              std::size_t indexBytes, std::size_t instanceOffset,
+                              std::size_t instanceCount) {
+    const auto slot = ordinal < meshBindings_.size() ? meshBindings_[ordinal] : UINT8_MAX;
+    const auto *resident = slot == UINT8_MAX ? nullptr : &meshResidency_.At(slot);
+    const auto geometry =
+        resident ? resident->resource.buffer->GetGPUVirtualAddress() : frameGeometry;
+    const auto vertices = resident ? resident->key.VertexBytes() : vertexBytes;
+    const auto indices = resident ? resident->key.Bytes() - vertices : indexBytes;
+    const D3D12_VERTEX_BUFFER_VIEW views[]{
+        {geometry, static_cast<UINT>(vertices), sizeof(SceneVertex)},
+        {frameGeometry + instanceOffset,
+         static_cast<UINT>(instanceCount * sizeof(SceneInstanceUpload)),
+         sizeof(SceneInstanceUpload)}};
+    const D3D12_INDEX_BUFFER_VIEW indexView{geometry + vertices, static_cast<UINT>(indices),
+                                            DXGI_FORMAT_R16_UINT};
+    commands_->IASetVertexBuffers(0, 2, views);
+    commands_->IASetIndexBuffer(&indexView);
+    return resident ? 0 : batch.firstIndex;
   }
   bool CreateUploadAllocation(ComPtr<ID3D12Resource> &resource, std::size_t &capacity,
                               std::size_t required) {
@@ -1741,6 +1811,8 @@ private:
   uint64_t fenceValue_{};
   std::array<uint64_t, kMaximumFrames> fenceValues_{};
   SurfaceDiagnostics diagnostics_{};
+  detail::SceneGeometryResidency<Dx12MeshAllocation> meshResidency_;
+  std::array<std::uint8_t, 64> meshBindings_{};
   ComPtr<IDXGIFactory6> factory_;
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D12CommandQueue> queue_;

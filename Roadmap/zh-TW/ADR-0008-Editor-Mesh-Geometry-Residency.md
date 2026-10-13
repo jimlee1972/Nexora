@@ -4,8 +4,8 @@
 
 新增 `SceneDrawData::retainMeshGeometry` 與預設 false 的
 `ISurface::SupportsSceneGeometryResidency()` capability，由 `RenderSurface` 轉送。
-Editor Scene／Game 只在 backend 支援時要求最佳化。Vulkan 提供第一份 native adapter；
-DX12／Metal 保留既有 draw，並明確拒絕尚未支援的要求。Public C++ consumer 須重新建置。
+Editor Scene／Game 只在 backend 支援時要求最佳化。Vulkan、DX12 與 Metal 提供 native adapter；
+其他 surface 保留預設 false 的 capability 與 unsupported request。Public C++ consumer 須重新建置。
 Stable C／Zig、serialized asset identity、shader 與 module dependency 不變。
 
 Adapter 仍在 cache admission 前驗證完整目前提交。每個 batch 的 referenced contiguous
@@ -16,7 +16,7 @@ vertex interval 與 locally rebased index slice 構成 owning immutable key。Fi
 
 ## Ownership 與上限
 
-第一份 adapter 每次提交最多處理 64 個 batch、保留 64 個 entry。更大的 draw 使用既有
+Adapter 每次提交最多處理 64 個 batch、保留 64 個 entry。更大的 draw 使用既有
 combined upload；重複 batch range 共用 admission。常駐 native memory allocation requirement
 上限 32 MiB，另有最多 8 MiB 的 staged candidate。Key 另持有 CPU payload，以各自 native
 allocation 為上限。這些是 cache 專屬限制；既有 frame upload、target 與 texture 有獨立預算。
@@ -40,5 +40,9 @@ Portable tests 涵蓋跨 layout canonical identity、hash collision 下的完整
 payload、entry／memory 上限、LRU／unsubmitted lease、abandoned plan 與 teardown。
 真正 Vulkan tracing／pixels 涵蓋 reorder、geometry 變更、instance／material 更新、配置
 失敗回退／重試、legacy 切換、budget eviction、completion 失敗、resize 與清理。
-執行完整 Linux Development／Shipping 及 hosted CI。DX12／Metal adapter、更完整的 residency
-policy 與完整 target-host ED-M2 驗收仍待完成。
+DX12 以 owning upload buffer 的 allocation requirement 計量；Metal 預先查詢 buffer
+requirement，並計入 admitted `allocatedSize`。DX12 instance 前仍更新 palette／shadow data；
+Metal 只等待 submitted buffer，保留目前 UI retirement。共用 admission helper 限制工作量，
+重用重複 range 的成功／失敗結果。Hosted native DX12 PBR 與 Metal pixels 透過 capability
+要求 residency，不更改既有視覺 guard。執行完整 Linux Development／Shipping 及 hosted CI。
+更完整的 residency policy 與完整 target-host ED-M2 驗收仍待完成。
