@@ -1939,6 +1939,34 @@ int RunGraphical(std::optional<ProjectState> project,
             "Profiler",
             loaded ? "Native GPU timing trace imported; live capture unchanged." : error);
       }
+      if (auto request = ui.TakeMeshMemoryExportRequest()) {
+        std::string error;
+        const bool current = request->project == project->workspace.Project().id &&
+                             request->root == project->workspace.Root();
+        const bool saved =
+            current && project->workspace.ExportMeshMemoryJson(
+                           profile.MeshMemorySamples(), profile.MeshMemoryDroppedCount(), &error);
+        if (!saved && error.empty())
+          error = "Mesh memory export request belongs to another project.";
+        ui.SetProfileExportStatus(saved ? "Saved .nexora/mesh-memory.json" : error);
+        log(saved ? nexora::runtime::RuntimeLogSeverity::Info
+                  : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", saved ? "Retained mesh memory trace exported." : error);
+      }
+      if (auto request = ui.TakeMeshMemoryImportRequest()) {
+        std::string error;
+        const bool current = request->project == project->workspace.Project().id &&
+                             request->root == project->workspace.Root();
+        auto capture = current ? project->workspace.ImportMeshMemoryJson(&error) : std::nullopt;
+        const bool loaded =
+            capture && ui.SetImportedMeshMemoryCapture(*request, std::move(*capture));
+        if (!loaded && error.empty())
+          error = "Mesh memory import scope or snapshot was rejected.";
+        ui.SetProfileExportStatus(loaded ? "Loaded .nexora/mesh-memory.json (static)" : error);
+        log(loaded ? nexora::runtime::RuntimeLogSeverity::Info
+                   : nexora::runtime::RuntimeLogSeverity::Error,
+            "Profiler", loaded ? "Retained mesh memory imported; live capture unchanged." : error);
+      }
       if (ui.TakeMemoryExportRequest()) {
         std::string error;
         const bool saved = project->workspace.ExportProcessMemoryJson(

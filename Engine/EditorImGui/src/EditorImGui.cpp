@@ -201,6 +201,11 @@ struct EditorImGuiHost::State final {
   std::optional<FrameProcessingCapture> imported_profile;
   std::filesystem::path profile_project_root;
   std::string profile_project_id;
+  std::optional<MeshMemoryCaptureRequest> mesh_memory_export_request, mesh_memory_import_request;
+  std::optional<MeshMemoryCapture> imported_mesh_memory;
+  std::array<std::optional<std::array<float, 2>>, 3> mesh_memory_control_positions{};
+  std::array<ImGuiID, 3> mesh_memory_control_ids{};
+  bool mesh_capture_allowed = false, mesh_export_allowed = false;
   std::string profile_export_status;
   std::optional<std::array<float, 2>> profile_export_position;
   std::optional<std::array<float, 2>> profile_json_export_position;
@@ -4253,6 +4258,9 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
         if (state_->game_input_save_requested)
           state_->game_input_binding_status.clear();
         state_->game_input_save_requested.reset();
+        state_->mesh_memory_export_request.reset();
+        state_->mesh_memory_import_request.reset();
+        state_->mesh_capture_allowed = state_->mesh_export_allowed = false;
         state_->native_pointer.reset();
         state_->game_input_focused = false;
         CancelSceneGestures(*state_);
@@ -4645,11 +4653,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->profile_memory = profile ? profile->ProcessMemory() : ProcessMemoryObservation{};
   state_->profile_mesh_memory = profile ? profile->MeshMemory() : MeshMemoryObservation{};
   state_->profile_gpu = profile ? profile->GpuTiming() : GpuProfileObservation{};
+  state_->mesh_memory_control_positions = {};
   state_->gpu_control_positions = {};
   state_->chrome_positions = {};
+  const auto cancel_mesh_gesture = [&] {
+    const auto active = ImGui::GetCurrentContext()->ActiveId;
+    if (active &&
+        std::find(state_->mesh_memory_control_ids.begin(), state_->mesh_memory_control_ids.end(),
+                  active) != state_->mesh_memory_control_ids.end())
+      ImGui::ClearActiveID();
+  };
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
+    cancel_mesh_gesture();
     state_->profile_project_root = profile_root;
     state_->profile_project_id = profile_id;
     state_->imported_chrome_trace.reset();
@@ -4661,6 +4678,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (chrome_window && ImGui::GetCurrentContext()->ActiveIdWindow == chrome_window)
       ImGui::ClearActiveID();
     state_->imported_memory.reset();
+    state_->imported_mesh_memory.reset();
+    state_->mesh_memory_export_request.reset();
+    state_->mesh_memory_import_request.reset();
     state_->imported_gpu.reset();
     state_->gpu_export_requested = false;
     state_->gpu_import_requested = false;
@@ -4843,6 +4863,23 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool interaction_blocked = external_modal_open || rename_open ||
                                    state_->content_rename_target ||
                                    state_->prefab_override_confirm || state_->prefab_rebase_confirm;
+  state_->mesh_capture_allowed = profile && workspace && !workspace->Root().empty() &&
+                                 state_->app_focused && !interaction_blocked &&
+                                 !state_->close_prompt_requested;
+  state_->mesh_export_allowed = state_->mesh_capture_allowed && workspace->Writable() &&
+                                !profile->MeshMemorySamples().empty();
+  if (!state_->mesh_export_allowed) {
+    if (const auto active = ImGui::GetCurrentContext()->ActiveId;
+        active && active == state_->mesh_memory_control_ids[0])
+      ImGui::ClearActiveID();
+    state_->mesh_memory_export_request.reset();
+  }
+  if (!state_->mesh_capture_allowed) {
+    cancel_mesh_gesture();
+    state_->mesh_memory_export_request.reset();
+    state_->mesh_memory_import_request.reset();
+  }
+
   const bool scene_editable = rename_editable && !rename_open && !state_->prefab_override_confirm &&
                               !state_->prefab_rebase_confirm;
   if (const auto *payload = ImGui::GetDragDropPayload();
@@ -5705,6 +5742,35 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       gpu_position(2);
       ImGui::EndDisabled();
       ImGui::EndDisabled();
+      state_->mesh_export_allowed = state_->mesh_capture_allowed && workspace->Writable() &&
+                                    !profile->MeshMemorySamples().empty();
+      if (!state_->mesh_export_allowed)
+        state_->mesh_memory_export_request.reset();
+      const auto mesh_position = [&](std::size_t index) {
+        state_->mesh_memory_control_ids[index] = ImGui::GetItemID();
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->mesh_memory_control_positions[index] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      ImGui::BeginDisabled(!state_->mesh_export_allowed);
+      if (ImGui::Button("Export mesh memory"))
+        state_->mesh_memory_export_request =
+            MeshMemoryCaptureRequest{workspace->Project().id, workspace->Root()};
+      mesh_position(0);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->mesh_capture_allowed);
+      if (ImGui::Button("Import mesh memory"))
+        state_->mesh_memory_import_request =
+            MeshMemoryCaptureRequest{workspace->Project().id, workspace->Root()};
+      mesh_position(1);
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!state_->imported_mesh_memory);
+      if (ImGui::Button("Clear mesh import"))
+        state_->imported_mesh_memory.reset();
+      mesh_position(2);
+      ImGui::EndDisabled();
+      ImGui::EndDisabled();
       ImGui::Text("Source: %s%s", gpu_source_name(gpu.source),
                   gpu.software_rasterizer ? " (software rasterizer)" : "");
       if (gpu.milliseconds)
@@ -5858,52 +5924,73 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                           "total device VRAM.");
       ImGui::TextDisabled(
           "CPU key payloads exclude allocator overhead; separate from process resident memory.");
-      ImGui::TextDisabled(
-          "250 ms sampling; Capture/Clear affect observations. Mesh memory is live-only.");
-      const auto mesh_history = profile->MeshMemorySamples();
-      ImGui::Text("%zu mesh-memory observations retained | %llu older observations dropped",
-                  mesh_history.size(),
-                  static_cast<unsigned long long>(profile->MeshMemoryDroppedCount()));
-      if (!mesh_history.empty()) {
-        std::uint64_t maximum_bytes = 1;
-        for (const auto &sample : mesh_history)
-          if (sample.native_allocation_bytes)
-            maximum_bytes = std::max(
-                {maximum_bytes, *sample.native_allocation_bytes, *sample.cpu_key_payload_bytes});
-        const auto low = ImGui::GetCursorScreenPos();
-        const ImVec2 size(std::max(1.F, ImGui::GetContentRegionAvail().x), 90);
-        ImGui::InvisibleButton("mesh-memory-plot", size);
-        auto *draw = ImGui::GetWindowDrawList();
-        draw->AddRectFilled(low, {low.x + size.x, low.y + size.y},
-                            ImGui::GetColorU32(ImGuiCol_FrameBg));
-        const auto first = mesh_history.front().elapsed_ms;
-        const auto range = std::max(1., mesh_history.back().elapsed_ms - first);
-        std::array<std::optional<ImVec2>, 2> previous;
-        for (const auto &sample : mesh_history) {
-          if (!sample.native_allocation_bytes) {
-            previous = {};
-            continue;
+      ImGui::TextDisabled("250 ms sampling; Capture/Clear affect live observations; mesh file "
+                          "actions are explicit.");
+      const auto mesh_plot = [](std::span<const MeshMemorySample> mesh_history,
+                                std::uint64_t dropped, const char *id) {
+        ImGui::PushID(id);
+        ImGui::Text("%zu mesh-memory observations retained | %llu older observations dropped",
+                    mesh_history.size(), static_cast<unsigned long long>(dropped));
+        if (!mesh_history.empty()) {
+          std::uint64_t maximum_bytes = 1;
+          for (const auto &sample : mesh_history)
+            if (sample.native_allocation_bytes)
+              maximum_bytes = std::max(
+                  {maximum_bytes, *sample.native_allocation_bytes, *sample.cpu_key_payload_bytes});
+          ImGui::TextDisabled("Plot scale: 0-%llu bytes",
+                              static_cast<unsigned long long>(maximum_bytes));
+          const auto low = ImGui::GetCursorScreenPos();
+          const ImVec2 size(std::max(1.F, ImGui::GetContentRegionAvail().x), 90);
+          ImGui::InvisibleButton("mesh-memory-plot", size);
+          auto *draw = ImGui::GetWindowDrawList();
+          draw->AddRectFilled(low, {low.x + size.x, low.y + size.y},
+                              ImGui::GetColorU32(ImGuiCol_FrameBg));
+          const auto first = mesh_history.front().elapsed_ms;
+          const auto range = std::max(1., mesh_history.back().elapsed_ms - first);
+          std::array<std::optional<ImVec2>, 2> previous;
+          for (const auto &sample : mesh_history) {
+            if (!sample.native_allocation_bytes) {
+              previous = {};
+              continue;
+            }
+            const std::array values{*sample.native_allocation_bytes, *sample.cpu_key_payload_bytes};
+            for (std::size_t series = 0; series < values.size(); ++series) {
+              const ImVec2 point(
+                  low.x + static_cast<float>((sample.elapsed_ms - first) / range) * (size.x - 1),
+                  low.y + (1 - static_cast<float>(static_cast<double>(values[series]) /
+                                                  static_cast<double>(maximum_bytes))) *
+                              (size.y - 1));
+              const auto color =
+                  ImGui::GetColorU32(series == 0 ? ImGuiCol_PlotLines : ImGuiCol_PlotHistogram);
+              if (previous[series])
+                draw->AddLine(*previous[series], point, color);
+              draw->AddCircleFilled(point, 2, color);
+              previous[series] = point;
+            }
           }
-          const std::array values{*sample.native_allocation_bytes, *sample.cpu_key_payload_bytes};
-          for (std::size_t series = 0; series < values.size(); ++series) {
-            const ImVec2 point(
-                low.x + static_cast<float>((sample.elapsed_ms - first) / range) * (size.x - 1),
-                low.y + (1 - static_cast<float>(static_cast<double>(values[series]) /
-                                                static_cast<double>(maximum_bytes))) *
-                            (size.y - 1));
-            const auto color =
-                ImGui::GetColorU32(series == 0 ? ImGuiCol_PlotLines : ImGuiCol_PlotHistogram);
-            if (previous[series])
-              draw->AddLine(*previous[series], point, color);
-            draw->AddCircleFilled(point, 2, color);
-            previous[series] = point;
-          }
+          ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_PlotLines), "Native allocations");
+          ImGui::SameLine();
+          ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram), "CPU key payloads");
+          ImGui::TextDisabled("Elapsed time including pause gaps; shared byte scale, missing "
+                              "observations break lines.");
         }
-        ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_PlotLines), "Native allocations");
-        ImGui::SameLine();
-        ImGui::TextColored(ImGui::GetStyleColorVec4(ImGuiCol_PlotHistogram), "CPU key payloads");
-        ImGui::TextDisabled("Elapsed time including pause gaps; shared byte scale, missing "
-                            "observations break lines.");
+        ImGui::PopID();
+      };
+      mesh_plot(profile->MeshMemorySamples(), profile->MeshMemoryDroppedCount(), "live");
+      if (state_->imported_mesh_memory) {
+        ImGui::SeparatorText("Imported retained mesh memory (static)");
+        ImGui::TextDisabled(
+            "Saved surface geometry allocations and CPU keys, not current RSS/VRAM.");
+        ImGui::TextDisabled("Export project denotes destination, not allocation ownership.");
+        const auto &last = state_->imported_mesh_memory->samples.back();
+        if (last.native_allocation_bytes)
+          ImGui::Text("Latest saved: native %llu bytes | CPU keys %llu bytes",
+                      static_cast<unsigned long long>(*last.native_allocation_bytes),
+                      static_cast<unsigned long long>(*last.cpu_key_payload_bytes));
+        else
+          ImGui::TextDisabled("Latest saved allocation/key observation unavailable.");
+        mesh_plot(state_->imported_mesh_memory->samples,
+                  state_->imported_mesh_memory->older_samples_dropped, "import");
       }
       if (state_->imported_memory) {
         ImGui::SeparatorText("Imported process memory (static)");
@@ -6874,6 +6961,28 @@ bool EditorImGuiHost::SetImportedGpuCapture(GpuTimingCapture capture) {
   state_->imported_gpu = std::move(capture);
   return true;
 }
+std::optional<MeshMemoryCaptureRequest> EditorImGuiHost::TakeMeshMemoryExportRequest() {
+  auto request = std::exchange(state_->mesh_memory_export_request, std::nullopt);
+  return state_->mesh_export_allowed && state_->app_focused && !state_->close_prompt_requested
+             ? request
+             : std::nullopt;
+}
+std::optional<MeshMemoryCaptureRequest> EditorImGuiHost::TakeMeshMemoryImportRequest() {
+  auto request = std::exchange(state_->mesh_memory_import_request, std::nullopt);
+  return state_->mesh_capture_allowed && state_->app_focused && !state_->close_prompt_requested
+             ? request
+             : std::nullopt;
+}
+bool EditorImGuiHost::SetImportedMeshMemoryCapture(const MeshMemoryCaptureRequest &request,
+                                                   MeshMemoryCapture capture) {
+  if (!state_->mesh_capture_allowed || !state_->app_focused || state_->close_prompt_requested ||
+      request.root.empty() || request.root != state_->profile_project_root ||
+      request.project.ToString() != state_->profile_project_id ||
+      !ValidateMeshMemorySamples(capture.samples))
+    return false;
+  state_->imported_mesh_memory = std::move(capture);
+  return true;
+}
 void EditorImGuiHost::OpenChromeTraceImport() noexcept { state_->chrome_trace_open = true; }
 std::optional<ChromeTraceImportRequest> EditorImGuiHost::TakeChromeTraceImportRequest() {
   return std::exchange(state_->chrome_trace_request, std::nullopt);
@@ -7757,6 +7866,28 @@ EditorImGuiTestAccess::GpuControlPosition(const EditorImGuiHost &host,
 const GpuTimingCapture *
 EditorImGuiTestAccess::ImportedGpuCapture(const EditorImGuiHost &host) noexcept {
   return host.state_->imported_gpu ? &*host.state_->imported_gpu : nullptr;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::MeshMemoryControlPosition(const EditorImGuiHost &host,
+                                                 std::size_t control) noexcept {
+  return control < host.state_->mesh_memory_control_positions.size()
+             ? host.state_->mesh_memory_control_positions[control]
+             : std::nullopt;
+}
+void EditorImGuiTestAccess::ScrollProfilerToMeshControls(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.profiler");
+  auto *window = ImGui::FindWindowByName(name.c_str());
+  const auto point = host.state_->mesh_memory_control_positions[0];
+  if (window && point) {
+    const float target = std::clamp(window->Scroll.y + (*point)[1] - window->InnerRect.Min.y - 40.F,
+                                    0.F, window->ScrollMax.y);
+    ImGui::SetScrollY(window, target);
+  }
+}
+const MeshMemoryCapture *
+EditorImGuiTestAccess::ImportedMeshMemoryCapture(const EditorImGuiHost &host) noexcept {
+  return host.state_->imported_mesh_memory ? &*host.state_->imported_mesh_memory : nullptr;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProfileJsonExportPosition(const EditorImGuiHost &host) noexcept {

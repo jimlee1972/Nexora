@@ -378,8 +378,8 @@ surface's geometry cache and samples at most every 250 ms into a fixed 600-recor
 observations break plotted lines, zero is valid, domain changes separate owners and Capture/Clear
 control observations without releasing resources. Native byte counts include adapter allocation
 requirements; CPU values exclude allocator overhead. The channel excludes textures/frame uploads,
-process RSS and total device-local VRAM, and remains live-only. Existing exports retain their own
-wall/process/GPU scope. C++ ProfileSession consumers must rebuild; stable C/scene formats do not change.
+process RSS and total device-local VRAM. Explicit mesh export/import uses its separate schema-1
+file and owning static display; existing exports retain their own wall/process/GPU scope. C++ ProfileSession consumers must rebuild; stable C/scene formats do not change.
 
 This is an ED-M1 graphical foundation, not ED-M1 acceptance. Physical-display and Windows
 fresh-project workflow acceptance remain open.
@@ -886,3 +886,17 @@ Shutdown cancels and drains the job while the JobSystem remains alive. See the
 [owning coordinator contract](../../Engine/Editor/StaticProjectExport.md#graphical-staticview-export-coordinator).
 This is verified StaticView data export; executable compilation, target/device/remote deployment,
 signing and the complete Build workflow remain open.
+
+
+## Scoped retained mesh memory file actions
+
+The Profiler's Export mesh memory/Import mesh memory requests own project UUID/root copies.
+The authoring owner consumes each once, verifies the current project again, then calls bounded core
+`.nexora/mesh-memory.json` IO and publishes the owning static result against that same scope. There
+are no widget-side filesystem/native reads or asynchronous native borrows. Failed IO/publication
+reports an error while preserving prior static imports and live observations; explicit Clear mesh
+import affects only that static channel. Writer/read-only/recovery/focus/modal/close/project changes
+follow the GUI/core gates; no capture is written implicitly. Source scope excludes RSS, total VRAM,
+textures/frame uploads and allocator overhead, and export destination is not allocation ownership.
+The existing core schema1 and stable C/Zig/scene formats/dependencies are unchanged; additive host
+C++ APIs require a matching rebuild. Physical device-memory calibration remains separate work.
