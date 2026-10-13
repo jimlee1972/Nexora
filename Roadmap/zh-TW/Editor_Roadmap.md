@@ -412,7 +412,7 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   Instance／material 仍逐幀更新；放大、resize 與 teardown 使 allocation-bound 重用失效。
   Native pixels 與 tracing 驗證 instance 變更、geometry／instance-only 放大、放大失敗保留
   及 payload 釋放。Copied diagnostics 區分 uploads／hits 與 CPU payload bytes，不推論 GPU
-  memory；其他 backend 回報 unavailable。
+  memory；跨 backend 重用擴充如下。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM2-VulkanGeometryReuse-Linux-2026-10-13.md)。
   Persistent per-asset GPU cache 與完整圖形化驗收仍待完成。
 - ✅ DX12 Scene／UI upload 放大現會在 staged allocation 成功後，一起提交 resource 與容量。
@@ -420,6 +420,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   在 allocation 前拒絕。Portable ownership／fault tests 與 fresh hosted native runtime
   檢查保留既有 descriptor 及 fence 約定。
   [證據](../../Tools/Build/evidence/EditorEDM2-Dx12UploadGrowth-2026-10-13.md)。
+- ✅ Vulkan、DX12 與 Metal 現共用 exact owning geometry upload key，包含 vertex／index 分界
+  與 destination offset。DX12 palette／shadow layout 變更會拒絕 wrong-region 重用；
+  replacement／resize／teardown 清除 key，失敗保留原狀態，instance／material 持續更新。
+  Portable key tests 與真正 native pixels／diagnostics 驗證重用及 payload 釋放。
+  [證據](../../Tools/Build/evidence/EditorEDM2-NativeGeometryReuse-2026-10-13.md)。
+  Persistent per-asset GPU residency 與完整 target-host ED-M2 驗收仍待完成。
 
 - ✅ Hierarchy 現可選擇 Empty、Camera 或 Light，套用於 Create root／Create child 及
   Ctrl+Shift+N。Camera／Light 以 identity local TRS 初始化，並具完整 stable-ID 的單步

@@ -106,8 +106,8 @@ private adapter with test-only Vulkan call tracing. It verifies 100 steady draws
 allocations, maximum descriptor capacity, changed pixels, failed growth, slot fencing, resize and
 leak-free teardown.
 `SurfaceDiagnostics::sceneGeometryUploadCache` exposes copied availability, actual geometry
-prefix-write/reuse counts and retained CPU payload bytes. Availability becomes true after Vulkan
-first writes a Scene upload; other backends leave it false. Counts include writes/reuse preceding a
+prefix-write/reuse counts and retained CPU payload bytes. Availability becomes true after Vulkan,
+DX12 or Metal first writes a Scene upload; unused/unsupported paths leave it false. Counts include writes/reuse preceding a
 later draw failure and remain cumulative through resize; retained CPU bytes return to zero at
 teardown. These bytes are not GPU-memory measurements. This public C++ diagnostics layout requires
 consumers to rebuild; the stable C ABI is unchanged. No tracing or native handles are exported.
@@ -120,6 +120,15 @@ the old resource only after the caller's existing owning-slot fence wait. UI rea
 advance only for committed replacements. The shared private helper's portable owning-resource tests
 exercise partial failure, smaller retry, empty success, overflow and lifetime conservation; actual
 DX12 runtime validation is recorded separately. No public layout, C ABI or submission ordering changes.
+
+All three native adapters use the same private exact owning geometry key. Vertex bytes, index bytes,
+their boundary and the GPU destination offset must match. DX12 keys include the palette/shadow-derived
+geometry offset, so changing constant layout cannot reuse bytes from the wrong region. Each adapter
+also checks a live sufficiently large allocation and clears its key on successful replacement;
+failed growth preserves the old key. Resize drains GPU work and clears keys, while DX12/Metal can
+retain upload capacity. Instance/material/tone data still refresh per draw. Keys stay within the
+existing5 MiB CPU payload limit per slot, with one staged candidate; teardown frees them. Public
+descriptors, diagnostics layouts and stable C ABI are unchanged by this cross-backend extension.
 
 An application with unsaved work may call `CancelCloseRequest()` after `BeginFrame()` reports a user
 close and before the next frame, then render its confirmation dialog. The call fails when the native

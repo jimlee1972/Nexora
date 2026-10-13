@@ -856,7 +856,13 @@ int main(int argc, char **argv) {
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,
             "PBR counters mismatch");
+    const auto geometryCache = surface->Diagnostics().sceneGeometryUploadCache;
+    Require(geometryCache.available && geometryCache.uploads > 0 && geometryCache.hits > 0 &&
+                geometryCache.retainedCpuBytes > 0,
+            "native PBR geometry uploads never reused their allocation-bound keys");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "PBR teardown failed");
+    Require(surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes == 0,
+            "native PBR teardown retained CPU geometry keys");
     surface.reset();
 #if !defined(_WIN32)
     XCloseDisplay(display);

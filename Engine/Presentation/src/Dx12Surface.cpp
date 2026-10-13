@@ -6,6 +6,7 @@
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
+#include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrHlslShaders.h"
 #include "SceneTextureMipmaps.h"
@@ -455,6 +456,16 @@ public:
     const std::size_t kGeometryOffset = shadowOffset + (drawData.shadow ? 256 : 0);
     const auto toneOffset = kGeometryOffset + instanceOffset + instanceBytes.size();
     const auto required = toneOffset + (drawData.hdr ? sizeof(toneVertices) : 0);
+    const bool reuseGeometry =
+        sceneUploads_[frame_].Get() && sceneUploadCapacity_[frame_] >= required &&
+        sceneGeometry_[frame_].Matches(vertexBytes, indexBytes, kGeometryOffset);
+    detail::SceneGeometryUploadKey::Candidate geometryCandidate;
+    if (!reuseGeometry) {
+      geometryCandidate =
+          detail::SceneGeometryUploadKey::Capture(vertexBytes, indexBytes, kGeometryOffset);
+      if (!geometryCandidate)
+        return SurfaceStatus::DeviceLost;
+    }
     toneOffsets_[frame_] = toneOffset;
     if (!EnsureSceneUpload(required))
       return SurfaceStatus::DeviceLost;
@@ -480,16 +491,20 @@ public:
       std::memcpy(static_cast<std::byte *>(mapped) + shadowOffset, shadowConstants.data(),
                   sizeof(shadowConstants));
     }
-    std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset, vertexBytes.data(),
-                vertexBytes.size());
-    std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + vertexBytes.size(),
-                indexBytes.data(), indexBytes.size());
+    if (!reuseGeometry)
+      std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset,
+                  geometryCandidate.payload.get(), geometryCandidate.bytes);
     std::memcpy(static_cast<std::byte *>(mapped) + kGeometryOffset + instanceOffset,
                 instanceBytes.data(), instanceBytes.size());
     if (drawData.hdr)
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
     sceneUploads_[frame_]->Unmap(0, nullptr);
+    if (reuseGeometry)
+      detail::SceneGeometryUploadKey::RecordHit(diagnostics_.sceneGeometryUploadCache);
+    else
+      sceneGeometry_[frame_].Commit(std::move(geometryCandidate),
+                                    diagnostics_.sceneGeometryUploadCache);
     std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
     if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
       ++additional;
@@ -896,6 +911,8 @@ public:
       upload.Reset();
     for (auto &upload : sceneUploads_)
       upload.Reset();
+    for (auto &key : sceneGeometry_)
+      key.Clear(diagnostics_.sceneGeometryUploadCache);
     uiTextures_.clear();
     sceneTextures_.clear();
     linearSceneTextures_.clear();
@@ -1452,7 +1469,12 @@ private:
     return true;
   }
   bool EnsureSceneUpload(std::size_t required) {
-    return CreateUploadAllocation(sceneUploads_[frame_], sceneUploadCapacity_[frame_], required);
+    const auto before = sceneUploads_[frame_].Get();
+    if (!CreateUploadAllocation(sceneUploads_[frame_], sceneUploadCapacity_[frame_], required))
+      return false;
+    if (sceneUploads_[frame_].Get() != before)
+      sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
+    return true;
   }
   bool CreateUploadAllocation(ComPtr<ID3D12Resource> &resource, std::size_t &capacity,
                               std::size_t required) {
@@ -1684,6 +1706,7 @@ private:
     for (UINT slot = 0; slot < frames_; ++slot) {
       CollectGpuTiming(slot);
       ResetSceneTargets(slot);
+      sceneGeometry_[slot].Clear(diagnostics_.sceneGeometryUploadCache);
     }
     for (auto &b : buffers_)
       b.Reset();
@@ -1771,6 +1794,7 @@ private:
   bool sceneAntiAliasing_ = false;
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
+  std::array<detail::SceneGeometryUploadKey, kMaximumFrames> sceneGeometry_;
   std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};
 };
 } // namespace

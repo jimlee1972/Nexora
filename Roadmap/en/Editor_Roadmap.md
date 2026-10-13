@@ -430,7 +430,7 @@ creates property widgets; unknown components retain raw data instead of being si
   CPU key. Instances/materials remain fresh; growth, resize and teardown invalidate allocation-bound
   reuse. Native pixels and tracing verify changed instances, geometry and instance-only growth,
   failed growth conservation and released payloads. Copied diagnostics distinguish uploads/hits and
-  CPU payload bytes from GPU memory; other backends report unavailable.
+  CPU payload bytes from GPU memory; cross-backend reuse is extended below.
   [Linux evidence](../../Tools/Build/evidence/EditorEDM2-VulkanGeometryReuse-Linux-2026-10-13.md).
   Persistent per-asset GPU caching and full graphical acceptance remain open.
 - ✅ DX12 Scene/UI upload growth now commits resource and capacity together after a successful
@@ -438,6 +438,12 @@ creates property widgets; unknown components retain raw data instead of being si
   never reuse stale capacity and overflow rejects before allocation. Portable ownership/fault tests
   and fresh hosted native runtime checks preserve existing descriptor and fence contracts.
   [Evidence](../../Tools/Build/evidence/EditorEDM2-Dx12UploadGrowth-2026-10-13.md).
+- ✅ Vulkan, DX12 and Metal now share exact owning geometry upload keys, including vertex/index
+  boundary and destination offset. DX12 palette/shadow layout changes invalidate wrong-region reuse;
+  replacement/resize/teardown clear keys and failure preserves old state. Instances/materials remain
+  fresh. Portable key tests and real native pixels/diagnostics validate reuse and released payloads.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-NativeGeometryReuse-2026-10-13.md).
+  Persistent per-asset GPU residency and full target-host ED-M2 acceptance remain open.
 
 - ✅ Hierarchy now selects Empty, Camera or Light for Create root / Create child and Ctrl+Shift+N.
   Camera/Light are initialized at identity local TRS as one complete stable-ID Undo/Redo transaction.

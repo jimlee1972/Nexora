@@ -156,6 +156,10 @@ int main(int argc, char **argv) {
           !require(surface->Present(), SurfaceStatus::Ready))
         return fail(__LINE__);
     }
+    const auto geometryCache = surface->Diagnostics().sceneGeometryUploadCache;
+    if (!geometryCache.available || !geometryCache.hits || !geometryCache.uploads ||
+        !geometryCache.retainedCpuBytes)
+      return fail(__LINE__);
     const auto captured = surface->ReadScenePixelsForTesting();
     if (captured.size() != 640U * 360U * 4U)
       return fail(__LINE__);
@@ -911,6 +915,8 @@ int main(int argc, char **argv) {
         !require(surface->DrainAndDestroy(), SurfaceStatus::Ready))
       return fail(__LINE__);
     // An abandoned recording must be dropped safely, without submitting it at destruction.
+    if (surface->Diagnostics().sceneGeometryUploadCache.retainedCpuBytes != 0)
+      return fail(__LINE__);
     auto abandoned = std::make_unique<MetalSurface>(
         SurfaceDescriptor{window.handle, 800, 450, 2, PresentMode::VSync, ColorSpace::Srgb,
                           SurfaceBackend::Metal},

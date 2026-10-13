@@ -4,6 +4,7 @@
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
 #include "PbrMaterialUpload.h"
+#include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "ScenePbrMetalShaders.h"
 #include "SceneTextureMipmaps.h"
@@ -85,6 +86,8 @@ public:
           dirty_ = false;
           if (!DrainFrames())
             return SurfaceStatus::DeviceLost;
+          for (auto &key : sceneGeometry_)
+            key.Clear(diagnostics_.sceneGeometryUploadCache);
           if (width_ && height_) {
             layer_.drawableSize = CGSizeMake(width_, height_);
             ++diagnostics_.resizeGenerations;
@@ -315,20 +318,34 @@ public:
           std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
       const auto instanceOffset = (vertices.size() + indices.size() + 3) & ~std::size_t{3};
       const auto required = instanceOffset + instanceBytes.size();
-      if (sceneCapacity_[frame_] < required) {
+      const bool reuseGeometry = sceneUploads_[frame_] && sceneCapacity_[frame_] >= required &&
+                                 sceneGeometry_[frame_].Matches(vertices, indices);
+      detail::SceneGeometryUploadKey::Candidate geometryCandidate;
+      if (!reuseGeometry) {
+        geometryCandidate = detail::SceneGeometryUploadKey::Capture(vertices, indices);
+        if (!geometryCandidate)
+          return SurfaceStatus::DeviceLost;
+      }
+      if (!sceneUploads_[frame_] || sceneCapacity_[frame_] < required) {
         auto capacity = std::size_t{4096};
         while (capacity < required)
           capacity *= 2;
         auto buffer = [device_ newBufferWithLength:capacity options:MTLResourceStorageModeShared];
         if (!buffer)
           return SurfaceStatus::DeviceLost;
+        sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
         sceneUploads_[frame_] = buffer;
         sceneCapacity_[frame_] = capacity;
       }
       auto *storage = static_cast<std::byte *>(sceneUploads_[frame_].contents);
-      std::memcpy(storage, vertices.data(), vertices.size());
-      std::memcpy(storage + vertices.size(), indices.data(), indices.size());
+      if (!reuseGeometry)
+        std::memcpy(storage, geometryCandidate.payload.get(), geometryCandidate.bytes);
       std::memcpy(storage + instanceOffset, instanceBytes.data(), instanceBytes.size());
+      if (reuseGeometry)
+        detail::SceneGeometryUploadKey::RecordHit(diagnostics_.sceneGeometryUploadCache);
+      else
+        sceneGeometry_[frame_].Commit(std::move(geometryCandidate),
+                                      diagnostics_.sceneGeometryUploadCache);
       if (drawData.shadow && !RecordShadow(drawData, instanceOffset))
         return SurfaceStatus::DeviceLost;
       const bool reflection = drawData.planarReflection.has_value();
@@ -613,6 +630,7 @@ public:
       for (std::size_t i = 0; i < kFrames; ++i) {
         uiUploads_[i] = nil;
         sceneUploads_[i] = nil;
+        sceneGeometry_[i].Clear(diagnostics_.sceneGeometryUploadCache);
         sceneDepths_[i] = nil;
         shadowColors_[i] = shadowDepths_[i] = nil;
         sceneColors_[i] = nil;
@@ -1190,6 +1208,7 @@ private:
 #endif
   id<MTLDepthStencilState> depthState_ = nil, blendDepthState_ = nil;
   std::array<id<MTLBuffer>, kFrames> sceneUploads_{};
+  std::array<detail::SceneGeometryUploadKey, kFrames> sceneGeometry_{};
   std::array<std::size_t, kFrames> sceneCapacity_{};
   std::array<id<MTLTexture>, kFrames> sceneDepths_{};
   std::array<id<MTLTexture>, kFrames> sceneColors_{}, refractionColors_{}, reflectionColors_{};
