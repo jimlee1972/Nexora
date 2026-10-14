@@ -154,6 +154,8 @@ public:
   // reject the whole snapshot. No retained World pointers or persistent transform cache.
   [[nodiscard]] std::optional<std::vector<SceneWorldPose>> SceneWorldPoses(Id scene) const;
   [[nodiscard]] std::size_t ActiveSceneCount() const;
+  // Owner-thread scalar count over active scenes; no allocations, entity traversal or borrows.
+  [[nodiscard]] std::size_t ActiveEntityCount() const noexcept;
   [[nodiscard]] World CloneForPlay() const;
   [[nodiscard]] WorldKind Kind() const noexcept { return kind_; }
 

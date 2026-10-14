@@ -1,8 +1,6 @@
 #include "Nexora/Foundation/GameplayABI.h"
 #include <cstdint>
-#if defined(NEXORA_FIXTURE_SCENES)
 #include <cstdio>
-#endif
 
 namespace {
 constexpr std::uint64_t TransformType() {
@@ -16,6 +14,7 @@ constexpr std::uint64_t TransformType() {
 }
 struct State {
   NexoraGameplayHostV3 host;
+  std::uint64_t updates;
 };
 struct Position {
   double x, y, z;
@@ -29,6 +28,7 @@ int32_t Create(void **state, const NexoraGameplayHostV3 *host) {
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   auto *created = static_cast<State *>(memory);
   created->host = *host;
+  created->updates = 0;
   *state = created;
   return NEXORA_GAMEPLAY_OK;
 }
@@ -80,6 +80,11 @@ int32_t Start(void *opaque) {
 #endif
   std::fprintf(stderr, "play scene fixture evidence: loaded=1 activated=1 spawned=1 despawned=1\n");
 #endif
+  NexoraFrameDiagnostics diagnostics{};
+  if (!host.get_diagnostics ||
+      host.get_diagnostics(host.context, &diagnostics) != NEXORA_GAMEPLAY_OK ||
+      diagnostics.frame != 0 || diagnostics.scene_entities == 0 || diagnostics.debug_lines != 0)
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   const char message[] = "Editor gameplay fixture started";
   host.log(host.context, 1, message, sizeof(message) - 1);
   return NEXORA_GAMEPLAY_OK;
@@ -100,7 +105,19 @@ int32_t Fixed(void *opaque, double seconds) {
 #endif
   return host.write_component(host.context, 20, TransformType(), &pose, sizeof(pose));
 }
-int32_t Update(void *, double) { return NEXORA_GAMEPLAY_OK; }
+int32_t Update(void *opaque, double) {
+  auto &state = *static_cast<State *>(opaque);
+  NexoraFrameDiagnostics diagnostics{};
+  if (state.host.get_diagnostics(state.host.context, &diagnostics) != NEXORA_GAMEPLAY_OK ||
+      diagnostics.frame != ++state.updates || diagnostics.scene_entities == 0 ||
+      diagnostics.debug_lines != 0)
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+  if (state.updates == 1)
+    std::fprintf(stderr, "play diagnostics fixture evidence: frame=1 entities=%llu errors=%llu\n",
+                 static_cast<unsigned long long>(diagnostics.scene_entities),
+                 static_cast<unsigned long long>(diagnostics.api_errors));
+  return NEXORA_GAMEPLAY_OK;
+}
 void Stop(void *) {}
 void Destroy(void *opaque) {
   const auto host = static_cast<State *>(opaque)->host;

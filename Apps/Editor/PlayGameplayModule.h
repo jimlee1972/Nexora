@@ -7,8 +7,10 @@
 #include "PlaySceneServices.h"
 #include <algorithm>
 #include <bit>
+#include <cmath>
 #include <filesystem>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <new>
 #include <string>
@@ -100,7 +102,14 @@ public:
   bool FixedUpdate(double seconds) {
     return !IsLoaded() || !module_.SupportsFixedUpdate() || module_.FixedUpdate(seconds);
   }
-  bool Update(double seconds) { return !IsLoaded() || module_.Update(seconds); }
+  bool Update(double seconds) {
+    if (!IsLoaded())
+      return true;
+    if (!std::isfinite(seconds) || seconds < 0)
+      return false;
+    Increment(diagnostics_frame_);
+    return module_.Update(seconds);
+  }
   void Unload() noexcept {
     input_.SetFocused(false);
     input_user_ = 0;
@@ -111,9 +120,20 @@ public:
       ::operator delete(pointer, std::align_val_t(allocation.alignment));
     allocations_.clear();
     bytes_ = 0;
+    diagnostics_frame_ = diagnostics_errors_ = 0;
   }
 
 private:
+  friend struct PlayGameplayDiagnosticsTestAccess;
+  static void Increment(std::uint64_t &value) noexcept {
+    if (value != std::numeric_limits<std::uint64_t>::max())
+      ++value;
+  }
+  int32_t RecordResult(int32_t result) noexcept {
+    if (result != NEXORA_GAMEPLAY_OK)
+      Increment(diagnostics_errors_);
+    return result;
+  }
   struct Allocation final {
     std::uint64_t owner;
     std::size_t size, alignment;
@@ -154,20 +174,22 @@ private:
                              std::uint32_t size) -> int32_t {
       try {
         const auto *world = Self(context).world_;
-        return world ? game::ReadGameplayComponent(*world, entity, type, data, size)
-                     : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+        return Self(context).RecordResult(
+            world ? game::ReadGameplayComponent(*world, entity, type, data, size)
+                  : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
       } catch (...) {
-        return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+        return Self(context).RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
       }
     };
     host.write_component = [](void *context, std::uint64_t entity, std::uint64_t type,
                               const void *data, std::uint32_t size) -> int32_t {
       try {
         auto *world = Self(context).world_;
-        return world ? game::WriteGameplayComponent(*world, entity, type, data, size)
-                     : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+        return Self(context).RecordResult(
+            world ? game::WriteGameplayComponent(*world, entity, type, data, size)
+                  : NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
       } catch (...) {
-        return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+        return Self(context).RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
       }
     };
     host.allocate = [](void *context, std::uint64_t owner, std::uint64_t size,
@@ -204,7 +226,7 @@ private:
     host.capture_input = [](void *context, std::uint32_t user,
                             NexoraInputSnapshot *snapshot) -> int32_t {
       if (!snapshot || user >= PlayInputBindings::kMaximumUsers)
-        return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+        return Self(context).RecordResult(NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
       const auto &self = Self(context);
       auto copied = self.input_.Snapshot();
       if (user != self.input_user_) {
@@ -216,26 +238,38 @@ private:
     };
     host.load_scene = [](void *context, const char *name, std::uint32_t length,
                          std::uint32_t persistent, std::uint64_t *scene) -> int32_t {
-      return Self(context).scenes_.Load(name, length, persistent, scene);
+      return Self(context).RecordResult(
+          Self(context).scenes_.Load(name, length, persistent, scene));
     };
     host.activate_scene = [](void *context, std::uint64_t scene) -> int32_t {
-      return Self(context).scenes_.Activate(scene);
+      return Self(context).RecordResult(Self(context).scenes_.Activate(scene));
     };
     host.spawn_entity = [](void *context, std::uint64_t scene,
                            const NexoraEntitySpawnDescriptor *descriptor,
                            std::uint64_t *entity) -> int32_t {
-      return Self(context).scenes_.Spawn(scene, descriptor, entity);
+      return Self(context).RecordResult(Self(context).scenes_.Spawn(scene, descriptor, entity));
     };
     host.despawn_entity = [](void *context, std::uint64_t entity) -> int32_t {
-      return Self(context).scenes_.Despawn(entity);
+      return Self(context).RecordResult(Self(context).scenes_.Despawn(entity));
     };
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
     host.raycast = [](void *context, const NexoraRaycastRequest *request,
                       NexoraRaycastHit *hit) -> int32_t {
-      return Self(context).scenes_.Raycast(request, hit);
+      return Self(context).RecordResult(Self(context).scenes_.Raycast(request, hit));
     };
 #endif
-    // Asset resolution, debug drawing and diagnostics callbacks remain unavailable.
+    host.get_diagnostics = [](void *context, NexoraFrameDiagnostics *output) -> int32_t {
+      auto &self = Self(context);
+      if (!output)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
+      if (!self.world_)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+      // No host mutex reentry, allocation or retained World/entity borrow.
+      *output = {self.diagnostics_frame_, self.world_->ActiveEntityCount(), 0,
+                 self.diagnostics_errors_};
+      return NEXORA_GAMEPLAY_OK;
+    };
+    // Asset resolution and debug drawing remain unavailable.
     return host;
   }
   runtime::World *world_{};
@@ -246,6 +280,7 @@ private:
   PlaySceneServices scenes_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
+  std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
   runtime::GameplayModuleHost module_;
 };
 } // namespace nexora::editor::preview

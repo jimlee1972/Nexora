@@ -482,7 +482,8 @@ are rejected visibly. Module logs enter the bounded Console; failed callbacks pa
 Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
 and message sizes, supports the shared component wire set, and advertises implemented Scene API
 and host allocator capabilities. With gameplay simulation enabled, bounded CPU AABB Physics spawn
-and copied raycast are also available; other optional services remain unavailable. Click a playing
+and copied raycast/Play diagnostics are also available; asset resolution/debug drawing remain
+unavailable. Click a playing
 Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
 recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
 controls; other captured keys/text do not reach authoring shortcuts. The default user-zero input
@@ -511,10 +512,36 @@ Authored cloned entities can be despawned in Play, while Editor data/Undo remain
 calls are synchronous on the serialized game thread, borrow wire pointers only for the call and
 return scalar IDs. Module Stop/Destroy still have access; the owner clears binding/quotas after
 Unload and before clone destruction. Stop discards created/deleted entities; transform Apply Changes
-continues excluding creation/deletion. Asset resolution, debug drawing and diagnostics slots
+continues excluding creation/deletion. Asset resolution and debug drawing slots
 remain null; raycast is null when gameplay simulation is disabled. Modules must check each optional
 callback. Stable C/Zig layout and scene formats are
 unchanged. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
+
+### Play copied diagnostics
+
+The V3 `get_diagnostics` slot returns an owning `NexoraFrameDiagnostics` on the serialized owner
+thread. `frame` counts admitted finite/nonnegative Update invocations of this module binding,
+advancing before the module callback, including a callback that reports failure. Create/Start see
+zero; fixed ticks and paused Steps do not advance it. This is a gameplay Update sequence, not a
+render/presentation, fixed-tick, wall-clock or GPU timestamp. Nonloaded/invalid Update attempts do
+not advance it.
+
+`scene_entities` sums current entity-vector sizes in active scenes of the bound Play clone.
+Inactive/unloading/unloaded scenes are excluded immediately; spawn/despawn and activation are
+visible on the next query. The query allocates nothing, traverses scene records only and retains
+no World/entity borrow. `debug_lines` is zero because debug drawing remains unavailable.
+`api_errors` counts non-OK results returned by the host's integer-result service callbacks,
+including rejected diagnostic requests. It excludes void log/deallocate operations, pointer-result
+allocation, gameplay callback failures and all external/process/native validation errors. Those
+existing diagnostics keep their separate channels. Successful observations do not change counters.
+
+Both counters saturate at UINT64_MAX and reset per binding. Create/Start and Stop/Destroy may query
+the bound World; state clears after module destruction and before clone teardown. A null output
+returns InvalidArgument; an unbound host returns Lifecycle without changing output bytes. No module
+host mutex is queried recursively from the callback. The caller must stop using copied callback
+pointers before the embedding object dies. Stable C wires/capability bits, source formats and
+Editor authoring/history remain unchanged. Matching C++ consumers rebuild for the additive Runtime
+count query; native debugger/IDE and expanded device services remain separate work.
 
 ### Play CPU collider queries
 

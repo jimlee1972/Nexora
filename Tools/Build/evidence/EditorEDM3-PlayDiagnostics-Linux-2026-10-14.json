@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "beads": "nexora-rd7.2.6",
+  "initial_base": "015bc87abed188f5d391d0a514c4c10890cf928f",
+  "scope": "owning-play-v3-diagnostics",
+  "source_sha256": {
+    "Apps/Editor/PlayGameplayModule.h": "b9ca1b8364fd136e3980513a5281dfb236c1b53cd4aa1a77e7202e344076d914",
+    "Engine/Runtime/include/Nexora/Runtime/Runtime.h": "fd87bc9336366f25cb96ce0ac3ccfddea5f758b0d4699d9b1554c9b4591f43a2",
+    "Engine/Runtime/src/Runtime.cpp": "b9d0cacba8880c0025a861507a29922fad3d7023fac95068a915308e5cc9b5a8",
+    "Tests/EditorImGui/PlayDiagnosticsTests.cpp": "3a8363063df3c9902c07331fbb235e4080a90f473369aab3e8c10ad9ced80e93",
+    "Tests/EditorImGui/PlayGameplayFixture.cpp": "3d8a79e0b60866064703d0a8c959dc76f96e9f5c4836025cf53367381231aa5d",
+    "Tests/EditorImGui/PlaySceneServicesTests.cpp": "13e38ac3f71581367263a158aaef6c24b05bbdc09ebdb52ba07313e6a2c43209",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "7d9008d9fb5e854dd106123849a49d2150827bae97cbc355ddade6fca47858a4",
+    "Tests/EditorImGui/CMakeLists.txt": "f5e962555ff573e4676f8ab85f847ffe8d7e2faae3f183d0ef2f1e0cdb2ae51e"
+  },
+  "counter_scope": {
+    "frame": "Admitted finite nonnegative module Update invocations, including callback failure; no advance for fixed ticks, absent modules or invalid deltas.",
+    "scene_entities": "Current active-scene entity sizes in the bound isolated Play World; O(scene count), allocation-free.",
+    "debug_lines": "Zero; debug drawing callback remains unavailable.",
+    "api_errors": "Non-OK results of integer-result host service callbacks. Excludes void/pointer-result operations, module callback failures and external/native errors.",
+    "overflow": "Frame and API-error counters saturate at UINT64_MAX.",
+    "lifetime": "Reset per module binding; available during Create/Start/Stop/Destroy; cleared after destruction before clone teardown."
+  },
+  "validation": {
+    "initial_old_host": {
+      "expected_failure": "diagnostics module load failed",
+      "ctest_exit": 8
+    },
+    "targeted_after_restoration": {
+      "passed": 4,
+      "seconds": 0.11
+    },
+    "native_after_restoration": {
+      "passed": 4,
+      "seconds": 18.47,
+      "cases": [
+        "editor.linux_native_gameplay_module",
+        "editor.linux_native_play_scene_services",
+        "editor.linux_native_play_physics_services",
+        "editor.linux_native_game_input"
+      ]
+    },
+    "controlled_fault": {
+      "change": "Force only published scene_entities to zero",
+      "expected_failure": "Create diagnostics not reset or active-only",
+      "restored_source_matches": true
+    },
+    "repeated_module_cycles": 32,
+    "saturation": "Actual Update/rejected-request callbacks tested at and beyond UINT64_MAX.",
+    "full_linux": {
+      "configure": "passed",
+      "integration_build_actions": 471,
+      "ctest_passed": 263,
+      "ctest_total": 263,
+      "ctest_seconds": 833.07,
+      "skipped": 0
+    },
+    "shipping": {
+      "configure": "passed",
+      "build_actions": 74,
+      "editor_imgui_sdk": "disabled",
+      "integration_build_actions": 14,
+      "latest_integration_build_actions": 20
+    },
+    "documentation": {
+      "passed": 16
+    },
+    "development_build_actions": 490,
+    "final_source_checks": "8 hashes, 6 touched C++ formatting, evidence links, synchronized roadmaps, unchanged root README and clean diff checks pass",
+    "initial_d6ea_linux": {
+      "configure": "passed",
+      "integration_build_actions": 447,
+      "ctest_passed": 256,
+      "ctest_total": 256,
+      "ctest_seconds": 812.15,
+      "skipped": 0
+    }
+  },
+  "limitations": [
+    "Gameplay counters are not render/presentation/GPU/timing/process memory telemetry.",
+    "Native debugger/IDE, additional device owners, asset resolution and debug drawing remain open.",
+    "Physical milestone acceptance remains 0/8."
+  ],
+  "integrated_base": "20736fcaa98ead96e9aec2e8f1a7486a2153d181",
+  "integration_followup": {
+    "base": "20736fcaa98ead96e9aec2e8f1a7486a2153d181",
+    "reason": "Upstream PR591 merged while PR593 CI was running; all diagnostic source hashes unchanged.",
+    "validation": "Full Linux263/263833.07s, Shipping20actions pass; diagnostic8 source hashes unchanged."
+  }
+}
