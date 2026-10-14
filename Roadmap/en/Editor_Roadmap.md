@@ -1339,6 +1339,14 @@ creates property widgets; unknown components retain raw data instead of being si
     These are bounded-by-input correctness foundations; complete frame/memory budgets, production
     asset scale, soak and physical-host acceptance remain open.
 
+  - ✅ A scoped Linux native gate now repeats 32 Play/capture/motion/Escape/Pause/Step/Resume/Stop
+    sessions in one Editor process. Real C-ABI callbacks verify fresh clone state and neutral ordered
+    teardown while World/provider remain alive; native pixels and authoring bytes are checked.
+    A 4 MiB touched module allocation, four warmup cycles and a 32 MiB warmed RSS growth envelope retain
+    every raw sample. This small two-entity dataset establishes a bounded CI lifecycle guard;
+    production assets, total allocation/GPU budgets, long-duration and physical soak remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-NativePlaySoak-Linux-2026-10-14.md).
+
   - ✅ A serial 100k-node product-shell scale/lifecycle gate now records flat roots and the expanded
     99,998-node chain at 1x/2x DPI over two fresh project/World/document/host cycles. Six warmup frames
     precede twelve measured CPU draws per case; schema-1 records retain sorted samples, nearest-rank

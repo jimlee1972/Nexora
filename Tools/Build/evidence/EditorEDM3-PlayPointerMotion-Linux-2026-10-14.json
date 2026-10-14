@@ -28,7 +28,7 @@
     "units": "native client pixels right/down; wheel horizontal/vertical 120-unit steps; raw left/right/middle/back/forward bits0..4",
     "bounds": "motion +/-65536 pixels and wheel +/-122880 units per axis",
     "ownership": "owning non-consuming copies, shared legacy batch sequence; owner admission mutations may neutralize; context alive through Stop/Destroy; serialized game thread",
-    "compatibility": "C/Zig field-end guards; exact original152 and older2D160 host prefixes, future output suffix preserved; older2D positive probe retained"
+    "compatibility": "C/Zig field-end guards; exact original136 and older2D144 host prefixes on64-bit (pointer host152), future output suffix preserved; older2D positive probe retained"
   },
   "validation": {
     "real_zig": "0.14.0 (ziglang package); enabled in local Development",
