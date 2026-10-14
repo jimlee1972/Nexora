@@ -81,11 +81,31 @@ produce roots. Iterative frame-local work preserves expansion, depth and child f
 filtering keeps its existing flat input order. Returned rows borrow the caller-owned Nodes
 snapshot only while that snapshot and its document name views remain valid. No links, names,
 topology or World pointers are retained between calls. Per-parent hash entries and child vectors
-are removed; lookup/expansion maps, snapshots and other shell work still scale with input.
+are removed; lookup/link buffers, snapshots and other shell work still scale with input.
 This is an internal UI implementation change with no public layout, module or wire-format change.
 Scoped before/after CPU shell evidence belongs in
 [the hierarchy child-link record](../../Tools/Build/evidence/EditorEDM7-HierarchyChildLinks-Linux-2026-10-13.md);
 it does not establish total process-memory, native GPU or physical-host budgets.
+
+Expansion membership is resolved through that same current slot lookup, with exact entity and
+document generation checks. Call-local link flags and copied row decisions replace the second
+expanded-key hash set and each submitted widget's repeated linear membership scan. Keyboard
+expansion changes rebuild the row projection before clipping; actual arrow collapse retains a
+guarded event-time erase lookup. Filtering stays flat, and read-only projects may still change
+view expansion without authoring or IO. Link flags are call-local and returned row flags belong
+to the caller's frame-local projection; no persistent projection cache is added. Authoritative
+expansion-key view state and existing ImGui storage keep their existing lifetimes. Remaining
+lookup/pruning, selection and other shell work still scale with input. Private test-only
+accessors observe actual rendered branch storage and root-arrow positions; matching test consumers
+rebuild, with no public host layout, stable C/Gameplay ABI, module or wire-format change.
+
+`NexoraDeepHierarchyTests --benchmark-end` is an additional manual CPU diagnostic over the expanded
+chain's end viewport, without changing selection. Each of four fresh 1x/2x, two-cycle cases settles
+six initial frames to establish scrolling, then six post-scroll warmups and twelve timed draws.
+The final root must remain submitted, all100k logical rows stay available with fewer than128 widgets,
+source/history stay unchanged and each teardown releases all ImGui payload. The standard eight-case
+CTest scale gate and deadlines remain unchanged. This supplements its start-viewport samples;
+ImGui payload excludes STL/World/document/process memory, native GPU and physical-host budgets.
 
 ## Ownership and lifetime
 

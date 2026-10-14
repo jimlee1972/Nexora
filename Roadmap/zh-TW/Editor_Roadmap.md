@@ -1299,6 +1299,12 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   觀察改善，但部分 flat samples 較慢。Lookup／pruning 與其他 O(n) work 仍存在，
   不推論 total-memory／GPU／production／physical budget。
   [證據](../../Tools/Build/evidence/EditorEDM7-HierarchyChildLinks-Linux-2026-10-13.md)。
+- ✅ Hierarchy projection 經 current slot lookup 驗證完整 scoped expansion key，
+  複製 call-local row decision 供 widget 繪製重用，移除額外 expanded-key hash set 與逐列
+  linear search。Keyboard rebuild、pointer toggle、read-only view、stale generation 與同 ID
+  reload 保留實際 widget state；原有100k lifecycle 與起點／底部 viewport CPU 對照通過，
+  原始較慢 samples 亦保留。其餘 O(n) work、完整 production／memory／GPU／physical budget
+  仍待完成。[證據](../../Tools/Build/evidence/EditorEDM7-HierarchyExpansion-Linux-2026-10-14.md)。
 - ✅ Top-down Scene overview 改用 owning bulk world pose 與 iterative indexed ancestry，
   保留 exact affine origin 與既有 TRS approximation；marker、Frame all、prospective drag ancestry
   避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證

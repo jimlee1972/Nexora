@@ -1317,6 +1317,13 @@ creates property widgets; unknown components retain raw data instead of being si
     samples pass; deep-chain observations improve while some flat samples regress. Lookup/pruning
     and other O(n) work remain; no total-memory/GPU/production/physical budget is inferred.
     [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyChildLinks-Linux-2026-10-13.md).
+  - ✅ Hierarchy projection resolves full scoped expansion keys through its current slot lookup,
+    copies call-local row decisions and reuses them during widget drawing. It removes the extra
+    expanded-key hash set and repeated per-widget linear search; keyboard rebuilds, pointer toggles,
+    read-only views, stale generations and same-ID reload preserve actual widget state. Original
+    100k lifecycle checks plus start/end viewport CPU samples pass with raw regressions retained;
+    remaining O(n) work and full production/memory/GPU/physical budgets stay open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyExpansion-Linux-2026-10-14.md).
   - ✅ Top-down Scene overview now resolves owning bulk world poses with iterative indexed ancestry,
     preserving exact affine origins and the existing TRS approximation. Marker traversal, Frame all
     and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and
