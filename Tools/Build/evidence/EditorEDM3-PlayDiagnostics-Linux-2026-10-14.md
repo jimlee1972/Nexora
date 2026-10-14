@@ -1,7 +1,8 @@
 # ED-M3 copied Play diagnostics — 2026-10-14
 
 Beads: `nexora-rd7.2.6`. Initial base: main `015bc87a`; prepared in an isolated worktree while
-PR592 ran CI. Integrated merged PR592/main `d6ea19a8` with unchanged diagnostic source hashes;
+PR592 ran CI. Integrated merged PR592/main `d6ea19a8`, then upstream PR591/main `20736fca`,
+with unchanged diagnostic source hashes;
 final complete local validation passes before publication.
 [Raw validation scope and source hashes](EditorEDM3-PlayDiagnostics-Linux-2026-10-14.json).
 
@@ -51,12 +52,13 @@ Console, pause/step/stop and pixel checks. These are Linux cloud runs, not physi
 
 ## Final gates
 
-- `cmake --preset linux-development`: pass on merged main `d6ea19a8` plus this change.
-- `cmake --build --preset linux-development`: pass,447 integration rebuild actions.
-- `ctest --preset linux-development --output-on-failure`:256/256,812.15s,no skips.
+- `cmake --preset linux-development`: pass on current main `20736fca` plus this change.
+- `cmake --build --preset linux-development`: pass,471 integration rebuild actions after upstream20736.
+- `ctest --preset linux-development --output-on-failure`:263/263,833.07s,no skips.
+  Earlier mainD6EA gate also passed256/256,812.15s.
   This includes the mandatory native diagnostic callback checks and the merged hierarchy storage fix.
 - `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping`: pass,
-  14 integration rebuild actions after the initial74-action build. Minimal/Monolithic with
+  20 rebuild actions after upstream20736, following initial74 and D6EA integration14. Minimal/Monolithic with
   Editor/ImGui/SDK off; this does not establish a Shipping graphical Editor.
 - `ctest --preset linux-development -R '^editor.play_(diagnostics|gameplay_module|scene_services|physics_services)$' --output-on-failure`:
   4/4,0.11s after controlled fault restoration.

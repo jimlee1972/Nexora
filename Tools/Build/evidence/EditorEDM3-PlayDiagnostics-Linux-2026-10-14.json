@@ -49,28 +49,42 @@
     "saturation": "Actual Update/rejected-request callbacks tested at and beyond UINT64_MAX.",
     "full_linux": {
       "configure": "passed",
-      "integration_build_actions": 447,
-      "ctest_passed": 256,
-      "ctest_total": 256,
-      "ctest_seconds": 812.15,
+      "integration_build_actions": 471,
+      "ctest_passed": 263,
+      "ctest_total": 263,
+      "ctest_seconds": 833.07,
       "skipped": 0
     },
     "shipping": {
       "configure": "passed",
       "build_actions": 74,
       "editor_imgui_sdk": "disabled",
-      "integration_build_actions": 14
+      "integration_build_actions": 14,
+      "latest_integration_build_actions": 20
     },
     "documentation": {
       "passed": 16
     },
     "development_build_actions": 490,
-    "final_source_checks": "8 hashes, 6 touched C++ formatting, evidence links, synchronized roadmaps, unchanged root README and clean diff checks pass"
+    "final_source_checks": "8 hashes, 6 touched C++ formatting, evidence links, synchronized roadmaps, unchanged root README and clean diff checks pass",
+    "initial_d6ea_linux": {
+      "configure": "passed",
+      "integration_build_actions": 447,
+      "ctest_passed": 256,
+      "ctest_total": 256,
+      "ctest_seconds": 812.15,
+      "skipped": 0
+    }
   },
   "limitations": [
     "Gameplay counters are not render/presentation/GPU/timing/process memory telemetry.",
     "Native debugger/IDE, additional device owners, asset resolution and debug drawing remain open.",
     "Physical milestone acceptance remains 0/8."
   ],
-  "integrated_base": "d6ea19a85753eb5eb520997d00da70443b82c4d3"
+  "integrated_base": "20736fcaa98ead96e9aec2e8f1a7486a2153d181",
+  "integration_followup": {
+    "base": "20736fcaa98ead96e9aec2e8f1a7486a2153d181",
+    "reason": "Upstream PR591 merged while PR593 CI was running; all diagnostic source hashes unchanged.",
+    "validation": "Full Linux263/263833.07s, Shipping20actions pass; diagnostic8 source hashes unchanged."
+  }
 }
