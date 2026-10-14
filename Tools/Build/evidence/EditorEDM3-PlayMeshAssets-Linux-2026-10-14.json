@@ -54,7 +54,6 @@
     }
   },
   "pending": [
-    "Wait for PR593 merge and prove dependency base tree and final source tree equivalence before publication; rerun validation if source differs.",
     "Final-head hosted CI, own PR merge and branch cleanup."
   ],
   "upstream_20736_validation": {
@@ -98,5 +97,16 @@
     "documentation_tests": 16,
     "formatted_cpp_files": 7,
     "source_config_hashes": 9
+  },
+  "merged_base": {
+    "commit": "ffc8932ed8865e0e58297ed515ff262ee967ec53",
+    "tree": "e22f21560a81f9a10bf1b615ebda907339d7e792"
+  },
+  "validated_tree_equivalence": {
+    "validated_commit": "d0ad328308f4d7f3f5cb9a55e76db6e14e8b3a1c",
+    "validated_tree": "8e485e707440895553b4d460aceb6f6182b671aa",
+    "rebased_commit_before_metadata": "ad03447c4b9d84cdf3b6e8780e34336f2b8e9b50",
+    "rebased_tree": "8e485e707440895553b4d460aceb6f6182b671aa",
+    "source_config_hashes_unchanged": 9
   }
 }

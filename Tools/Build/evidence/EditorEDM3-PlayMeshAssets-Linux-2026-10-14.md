@@ -2,8 +2,8 @@
 
 Beads: `nexora-rd7.2.7`. Initial base: merged PR592/main `d6ea19a8`; upstream PR591/main
 `20736fca` is integrated. Prepared separately from immutable PR593 diagnostics; validated dependency commit `06bbf8f7` is
-now integrated. Publication waits for its merge and proven base/source tree equivalence; any source
-difference requires integration and revalidation. [Raw scope and staged source hashes](EditorEDM3-PlayMeshAssets-Linux-2026-10-14.json).
+now integrated. PR593 merged as `ffc8932e`; its tree matches the reviewed dependency exactly. Only the asset
+commit was replayed onto main, preserving the complete validated tree and all nine source hashes. [Raw scope and staged source hashes](EditorEDM3-PlayMeshAssets-Linux-2026-10-14.json).
 
 ## Change and ownership
 
@@ -64,6 +64,7 @@ After integrating upstream20736, targeted Play and actual native mesh tests pass
   `clang-format --dry-run --Werror`; nine source/config hashes, translated evidence links,
   unchanged root README and `git diff --check` pass.
 
-Publication waits for PR593 merge and proof that its base tree and this validated source remain
-identical after replay onto main. Any source difference requires integration and revalidation.
+PR593 merge `ffc8932e` has exactly the reviewed dependency tree `e22f2156`. Replaying only
+the asset change onto it preserves validated tree `8e485e70` byte-for-byte, with all nine code/config
+hashes unchanged. This publication update changes evidence metadata only; documentation checks pass.
 Final-head hosted CI and own PR delivery remain pending; full ED-M3/physical0/8 stay open.
