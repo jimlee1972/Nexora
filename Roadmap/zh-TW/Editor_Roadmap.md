@@ -1305,6 +1305,11 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   reload 保留實際 widget state；原有100k lifecycle 與起點／底部 viewport CPU 對照通過，
   原始較慢 samples 亦保留。其餘 O(n) work、完整 production／memory／GPU／physical budget
   仍待完成。[證據](../../Tools/Build/evidence/EditorEDM7-HierarchyExpansion-Linux-2026-10-14.md)。
+- ✅ Hierarchy branch widget 使用 draw-local storage，保留無關 window state，並於每次
+  TreeNode 呼叫後還原 storage pointer。實際 widget outcome 可觀測；1x／2x 重複 reload／
+  replacement、scope、滑鼠／鍵盤、read-only 與 detach 測試通過。兩節點重載256次不再
+  保留過期 generation entry，原有100k lifecycle 通過；此為 widget-cache lifetime 保證，
+  完整 process／GPU／physical budget 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM7-HierarchyWidgetStorage-Linux-2026-10-14.md)。
 - ✅ Top-down Scene overview 改用 owning bulk world pose 與 iterative indexed ancestry，
   保留 exact affine origin 與既有 TRS approximation；marker、Frame all、prospective drag ancestry
   避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證

@@ -1324,6 +1324,12 @@ creates property widgets; unknown components retain raw data instead of being si
     100k lifecycle checks plus start/end viewport CPU samples pass with raw regressions retained;
     remaining O(n) work and full production/memory/GPU/physical budgets stay open.
     [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyExpansion-Linux-2026-10-14.md).
+  - ✅ Hierarchy branch widgets use draw-local storage, preserving unrelated window state and
+    restoring its pointer after each TreeNode call. Actual widget outcomes remain observable;
+    repeated reload/replacement, scope, pointer/keyboard, read-only and detach cases pass at 1x/2x.
+    A two-node 256-reload probe no longer retains obsolete generation entries; original 100k
+    lifecycle checks pass. This bounds widget-cache lifetime, not total process/GPU/physical budgets.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyWidgetStorage-Linux-2026-10-14.md).
   - ✅ Top-down Scene overview now resolves owning bulk world poses with iterative indexed ancestry,
     preserving exact affine origins and the existing TRS approximation. Marker traversal, Frame all
     and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and
