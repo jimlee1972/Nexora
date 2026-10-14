@@ -74,6 +74,19 @@ retain their document borrow lifetime and are consumed synchronously by hierarch
 measurement and before/after shell results identify scope; shell p95 can vary and no whole-frame/
 process-memory/GPU/physical acceptance is inferred. C++ SceneDocument consumers must rebuild.
 
+Unfiltered hierarchy row projection builds one current ID-to-snapshot-slot lookup and a
+contiguous array of first-child/next-sibling indices. Reverse input traversal preserves exact
+Runtime root/sibling order even when children precede parents; missing metadata parents still
+produce roots. Iterative frame-local work preserves expansion, depth and child flags, while
+filtering keeps its existing flat input order. Returned rows borrow the caller-owned Nodes
+snapshot only while that snapshot and its document name views remain valid. No links, names,
+topology or World pointers are retained between calls. Per-parent hash entries and child vectors
+are removed; lookup/expansion maps, snapshots and other shell work still scale with input.
+This is an internal UI implementation change with no public layout, module or wire-format change.
+Scoped before/after CPU shell evidence belongs in
+[the hierarchy child-link record](../../Tools/Build/evidence/EditorEDM7-HierarchyChildLinks-Linux-2026-10-13.md);
+it does not establish total process-memory, native GPU or physical-host budgets.
+
 ## Ownership and lifetime
 
 `Review newer source` in a bound scene Inspector explicitly requests an owning three-way Core
