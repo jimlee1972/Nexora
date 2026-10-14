@@ -1,6 +1,8 @@
 #include "Nexora/EditorImGui/TwoDPanel.h"
+#include <cmath>
 #include <imgui.h>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 using namespace nexora;
 namespace {
@@ -27,7 +29,8 @@ void Run() {
   twod::Sprite s;
   s.atlas = atlas->id;
   s.region = 1;
-  Check(bool(doc.AddSprite(s)), "sprite fixture");
+  const auto spriteId = doc.AddSprite(s);
+  Check(bool(spriteId), "sprite fixture");
   auto withSprite = doc.Save();
   editor::imgui::TwoDPanelState panel;
   const auto frame = [&](bool allowed) {
@@ -66,6 +69,19 @@ void Run() {
     frame(true);
   }
   Check(panel.preview.RegionId() == 1U, "graphical animation preview");
+  Check(doc.SetCollider(*spriteId, {}), "preview collider");
+  const auto authored = doc.Save();
+  panel.camera.verticalSize = 0;
+  panel.camera.center = {std::numeric_limits<float>::quiet_NaN(),
+                         std::numeric_limits<float>::infinity()};
+  panel.requestedTab = editor::imgui::TwoDPanelTab::Scene;
+  frame(true);
+  frame(true);
+  Check(std::isfinite(panel.camera.verticalSize) && panel.camera.verticalSize > 0 &&
+            std::isfinite(panel.camera.center.x) && std::isfinite(panel.camera.center.y) &&
+            doc.Save() == authored,
+        "invalid preview camera or authoring mutation");
+
   ImGui::DestroyContext();
 }
 } // namespace

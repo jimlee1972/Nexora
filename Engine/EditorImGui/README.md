@@ -13,7 +13,9 @@ Mutation buttons require both current caller authorization and a writable docume
 requests; the owning project application must revalidate path/access/revision before publication.
 No UI widget writes a project file or acquires a lease. TwoDPanelState borrows no World/asset pointer;
 replace/reset it when changing document scope to clear selection, playback and pending requests.
-Graphical control tests exercise Undo/Redo and permission rejection; Linux native Studio acceptance
+Camera preview fields are kept finite and within supported preview bounds; collider projection
+follows the same rotated orthographic camera as Sprite extraction. Graphical control tests exercise
+Undo/Redo, invalid preview-camera admission and permission rejection; Linux native Studio acceptance
 covers actual previews plus save/reopen. Windows physical DPI/input and full main Editor acceptance
 remain separate. See [tools](../../Tools/TwoD/README.md) and [contracts](../TwoD/README.md).
 

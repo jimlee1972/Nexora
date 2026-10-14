@@ -1,5 +1,6 @@
 #include "Nexora/EditorImGui/TwoDPanel.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <imgui.h>
 namespace nexora::editor::imgui {
@@ -121,6 +122,16 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
       }
       ImGui::DragFloat2("Camera center", &state.camera.center.x, 0.05F);
       ImGui::DragFloat("View height", &state.camera.verticalSize, 0.1F, 0.1F, 1000);
+      auto &camera = state.camera;
+      if (!std::isfinite(camera.center.x) || !std::isfinite(camera.center.y) ||
+          std::abs(camera.center.x) > 1000000 || std::abs(camera.center.y) > 1000000)
+        camera.center = {};
+      if (!std::isfinite(camera.verticalSize))
+        camera.verticalSize = 20;
+      camera.verticalSize = std::clamp(camera.verticalSize, 0.1F, 1000.0F);
+      if (!std::isfinite(camera.rotationRadians) || std::abs(camera.rotationRadians) > 1000000)
+        camera.rotationRadians = 0;
+
       const auto origin = ImGui::GetCursorScreenPos();
       auto size = ImGui::GetContentRegionAvail();
       size.x = std::clamp(size.x, 64.0F, 4096.0F);
@@ -143,9 +154,13 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
           Frame(*draw, *frame, origin);
       }
       const auto scale = double(state.camera.height) / state.camera.verticalSize;
+      const double cosine = std::cos(state.camera.rotationRadians),
+                   sine = std::sin(state.camera.rotationRadians);
       const auto p = [&](math::Vector2 v) {
-        return ImVec2(origin.x + float((v.x - state.camera.center.x) * scale) + size.x / 2,
-                      origin.y - float((v.y - state.camera.center.y) * scale) + size.y / 2);
+        const double x = double(v.x) - state.camera.center.x,
+                     y = double(v.y) - state.camera.center.y;
+        return ImVec2(origin.x + float((cosine * x + sine * y) * scale) + size.x / 2,
+                      origin.y - float((-sine * x + cosine * y) * scale) + size.y / 2);
       };
       if (auto shapes = doc.Scene().CollisionShapes())
         for (const auto &shape : *shapes) {
@@ -154,8 +169,9 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
                             IM_COL32(80, 255, 120, 255), 32);
           else {
             auto bounds = twod::ShapeBounds(shape);
-            draw->AddRect(p({bounds.minimum.x, bounds.maximum.y}),
-                          p({bounds.maximum.x, bounds.minimum.y}), IM_COL32(80, 255, 120, 255));
+            draw->AddQuad(p(bounds.minimum), p({bounds.maximum.x, bounds.minimum.y}),
+                          p(bounds.maximum), p({bounds.minimum.x, bounds.maximum.y}),
+                          IM_COL32(80, 255, 120, 255));
           }
         }
       draw->PopClipRect();
