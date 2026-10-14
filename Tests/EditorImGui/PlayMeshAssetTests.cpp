@@ -91,7 +91,7 @@ int main() {
       Require(module.Load(*play.PlayWorld(), Loader, frozen) && created.value == resource &&
                   started.value == resource,
               "Create/Start did not receive exact frozen mesh handles");
-      Require(host.resolve_asset && !host.debug_draw_line, "asset service availability incorrect");
+      Require(host.resolve_asset && host.debug_draw_line, "asset service availability incorrect");
       NexoraFrameDiagnostics before_errors{};
       Require(host.get_diagnostics &&
                   host.get_diagnostics(host.context, &before_errors) == NEXORA_GAMEPLAY_OK,

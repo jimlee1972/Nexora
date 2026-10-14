@@ -831,7 +831,7 @@ creates property widgets; unknown components retain raw data instead of being si
     quotas. World allocation rejects ID exhaustion without wrapping. Portable and actual dynamic
     Xvfb fixtures preserve Editor bytes across repeated Play lifecycles. Optional CPU Physics
     queries and copied diagnostics are described below; mesh resolution is described above.
-    Other asset types and debug drawing remain unavailable.
+    Other asset types remain unavailable; bounded opaque debug lines are described below.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
   - ✅ Optional Play Physics spawn now owns at most 256 live local AABB bindings and exposes
     copied real CPU PhysicsWorld raycast results. Eight current affine-transformed corners preserve
@@ -841,6 +841,13 @@ creates property widgets; unknown components retain raw data instead of being si
     Actual V3, simulation-OFF and dynamic native Game fixtures cover queries and unchanged Editor
     data. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md).
     Rigid-body/backend stepping, authored collider import and full gameplay/input remain open.
+  - ✅ The V3 Play debug-line callback now copies at most 256 finite opaque world-space requests,
+    with bounded gameplay duration, exact expiry, failure accounting and binding teardown. Native
+    Game View draws frame-owned depth-tested ribbons through its existing scene pass, including
+    camera-only scenes. Pause/Step, 32 lifecycles, invalid/full queue and unchanged source/Undo are
+    covered; actual mesh-free native pixels verify the callback. Opaque lit ribbons retain current
+    camera/geometry limits; alpha/HUD strokes, full gameplay/devices and physical acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayDebugLines-Linux-2026-10-14.md).
   - ✅ The existing V3 Play diagnostics callback now returns owning gameplay Update sequence,
     active-clone entity count and scoped service-error counters, with saturation and per-binding
     reset. Create/Stop/Destroy, scene transitions, failure/reload and 32 isolated cycles preserve

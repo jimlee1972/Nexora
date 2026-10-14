@@ -1,5 +1,6 @@
 """Native Play camera/mesh pixels, pause/step/stop, and unchanged Editor scene."""
 import argparse
+from functools import partial
 import os
 from pathlib import Path
 import re
@@ -23,7 +24,13 @@ def main():
     parser.add_argument('--scene-services', action='store_true')
     parser.add_argument('--physics-services', action='store_true')
     parser.add_argument('--mesh-assets', action='store_true')
+    parser.add_argument('--debug-lines', action='store_true')
     args = parser.parse_args()
+    # Debug ribbons can project to a single pixel; sparse mesh sampling can skip every line.
+    capture_pixels = partial(scene_region_pixels, stride=1 if args.debug_lines else 3)
+    if args.debug_lines and (not args.module or args.materials or args.scene_services or
+                             args.input_routing or args.mesh_assets):
+        parser.error('--debug-lines requires an independent debug line module fixture')
     if args.mesh_assets and (not args.module or args.materials or args.scene_services or args.input_routing):
         parser.error('--mesh-assets requires an independent mesh asset module fixture')
     if args.physics_services and not args.scene_services:
@@ -112,28 +119,32 @@ def main():
         viewport = wait_view(b'native game viewport')
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
-            pixels = scene_region_pixels(display, window, viewport)
+            pixels = capture_pixels(display, window, viewport)
             # Bright warm Lambertian geometry, surrounded by the dark Game canvas.
-            bright = sum((r > 150 and r > 2 * g and r > 2 * b) if args.materials else
+            bright = sum((g > 80 and g > 2 * r and g > 2 * b) if args.debug_lines else
+                         (r > 150 and r > 2 * g and r > 2 * b) if args.materials else
                          (r > 100 and g > 90 and b > 75 and r > b + 10)
                          for r, g, b in zip(pixels[::3], pixels[1::3], pixels[2::3]))
             if bright > 20:
                 break
             time.sleep(0.1)
         else:
-            raise RuntimeError('Play camera did not rasterize imported OBJ pixels')
+            from collections import Counter
+            colors = Counter(zip(pixels[::3], pixels[1::3], pixels[2::3])).most_common(12)
+            raise RuntimeError(f'Play camera did not rasterize expected native geometry pixels: '
+                               f'{colors}; {captured!r}')
         if args.module and not args.input_routing:
-            first = scene_region_pixels(display, window, viewport)
+            first = capture_pixels(display, window, viewport)
             time.sleep(0.6)
-            if scene_region_pixels(display, window, viewport) == first:
+            if capture_pixels(display, window, viewport) == first:
                 raise RuntimeError('Loaded gameplay fixed callback did not move the native mesh')
         if args.input_routing:
             movement_key = 'b' if args.project_bindings else 'd'
-            first = scene_region_pixels(display, window, viewport)
+            first = capture_pixels(display, window, viewport)
             send('keydown', movement_key)
             time.sleep(0.3)
             send('keyup', movement_key)
-            if scene_region_pixels(display, window, viewport) != first:
+            if capture_pixels(display, window, viewport) != first:
                 raise RuntimeError('Uncaptured Game input reached the module')
             x, y, width, height = viewport
             send('mousemove', '--window', window, x + width // 2, y + height // 2)
@@ -143,30 +154,30 @@ def main():
                 send('keydown', 'd')
                 time.sleep(0.25)
                 send('keyup', 'd')
-                if scene_region_pixels(display, window, viewport) != first:
+                if capture_pixels(display, window, viewport) != first:
                     raise RuntimeError('Persisted bindings still admitted old D movement')
             send('keydown', movement_key)
             time.sleep(0.45)
-            if scene_region_pixels(display, window, viewport) == first:
+            if capture_pixels(display, window, viewport) == first:
                 raise RuntimeError('Captured bound movement did not drive the native mesh')
             send('key', '--delay', '80', 'Escape')
             time.sleep(0.2)
-            released = scene_region_pixels(display, window, viewport)
+            released = capture_pixels(display, window, viewport)
             time.sleep(0.3)
-            if scene_region_pixels(display, window, viewport) != released:
+            if capture_pixels(display, window, viewport) != released:
                 raise RuntimeError('Escape retained a held movement key')
             send('keyup', movement_key)
             send('click', 1)
             time.sleep(0.2)
         send('key', '--delay', '80', 'F6')
         time.sleep(0.3)
-        paused = scene_region_pixels(display, window, viewport)
+        paused = capture_pixels(display, window, viewport)
         if args.materials:
             # Disk changes are not assumed to imply a watcher publication; portable tests
             # separately exercise actual catalog reimport, deletion and reassignment.
             material_path.write_text(material_source(1))
         time.sleep(0.2)
-        if scene_region_pixels(display, window, viewport) != paused:
+        if capture_pixels(display, window, viewport) != paused:
             raise RuntimeError('Paused Game View was not stable')
         send('key', '--delay', '80', 'F10')
         time.sleep(0.3)
@@ -195,6 +206,10 @@ def main():
                 rb'spawned=[1-9][0-9]* replaced_clone=1', captured) or
                 b'play mesh asset fixture teardown: stop=1 destroy=1' not in captured):
             raise RuntimeError('Actual resolved mesh did not survive native spawn/render/teardown')
+        if args.debug_lines and (not re.search(
+                rb'play debug line fixture evidence: meshes=0 lines=[1-9][0-9]*', captured) or
+                b'play debug line fixture teardown: stop=1 destroy=1' not in captured):
+            raise RuntimeError('Actual debug lines did not survive native render/teardown')
         if args.scene_services and b'play scene fixture evidence: loaded=1 activated=1 ' \
                 b'spawned=1 despawned=1' not in captured:
             raise RuntimeError('Actual dynamic Play scene callbacks did not execute successfully')
@@ -217,7 +232,7 @@ def main():
             viewport = wait_view(b'native game viewport')
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
-                pixels = scene_region_pixels(display, window, viewport)
+                pixels = capture_pixels(display, window, viewport)
                 green = sum(g > 150 and g > 2 * r and g > 2 * b
                             for r, g, b in zip(pixels[::3], pixels[1::3], pixels[2::3]))
                 if green > 20:
@@ -246,7 +261,7 @@ def main():
             send('key', '--delay', '80', 'F5')
             viewport = wait_view(b'native game viewport')
             time.sleep(0.25)
-            first = scene_region_pixels(display, window, viewport)
+            first = capture_pixels(display, window, viewport)
             x, y, width, height = viewport
             send('mousemove', '--window', window, x + width // 2, y + height // 2)
             send('click', 1)
@@ -254,11 +269,11 @@ def main():
             send('keydown', 'd')
             time.sleep(0.25)
             send('keyup', 'd')
-            if scene_region_pixels(display, window, viewport) != first:
+            if capture_pixels(display, window, viewport) != first:
                 raise RuntimeError('Read-only reopen restored old D instead of project bindings')
             send('keydown', 'b')
             time.sleep(0.45)
-            if scene_region_pixels(display, window, viewport) == first:
+            if capture_pixels(display, window, viewport) == first:
                 raise RuntimeError('Read-only reopen did not load B movement and saved gameplay module')
             send('keyup', 'b')
             send('key', '--delay', '80', 'Escape')
@@ -285,9 +300,9 @@ def main():
             send('key', '--delay', '80', 'F5')
             viewport = wait_view(b'native game viewport')
             time.sleep(0.2)
-            first = scene_region_pixels(display, window, viewport)
+            first = capture_pixels(display, window, viewport)
             time.sleep(0.6)
-            if scene_region_pixels(display, window, viewport) == first:
+            if capture_pixels(display, window, viewport) == first:
                 raise RuntimeError('Reopened project did not load its persisted gameplay library')
             send('key', '--delay', '80', 'F5')
             time.sleep(0.2)

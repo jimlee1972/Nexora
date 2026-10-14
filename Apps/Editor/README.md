@@ -481,9 +481,9 @@ retain inspection-only Play. Canonical paths outside the project and failed ABI/
 are rejected visibly. Module logs enter the bounded Console; failed callbacks pause Play.
 Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
 and message sizes, supports the shared component wire set, and advertises implemented Scene API
-and host allocator capabilities. With gameplay simulation enabled, bounded CPU AABB Physics spawn
-and copied raycast, Play diagnostics and frozen mesh UUID resolution are also available;
-debug drawing remains unavailable. Click a playing
+and host allocator capabilities. Play diagnostics, frozen mesh UUID resolution and bounded opaque
+debug lines are available as described below. Gameplay simulation additionally enables bounded
+CPU AABB Physics spawn and copied raycast. Click a playing
 Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
 recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
 controls; other captured keys/text do not reach authoring shortcuts. The default user-zero input
@@ -518,6 +518,38 @@ wires/capability bits, UUID/resource derivation, scene/project formats and modul
 unchanged. Matching private C++ application consumers rebuild. Material/texture/audio resolution,
 dynamic materials and full gameplay/expanded devices remain open.
 
+### Bounded Play debug lines
+
+The existing V3 `debug_draw_line` copies an opaque world-space request on the serialized owner
+thread into a fixed 256-entry queue. `rgba` is 0xRRGGBBAA with alpha 255; RGB bytes become linear
+instance tint factors. Reject nonfinite coordinates, absolute coordinates above 99,999, segments
+of length at most 0.000001, nonopaque alpha and durations outside finite [0,3600] seconds with
+InvalidArgument. Null input also returns InvalidArgument; an unbound clone or a full queue returns
+Lifecycle. Rejection preserves the queue and contributes to `api_errors`. This callback introduces
+no allocation, source IO, World/entity borrow or stable ABI/capability change.
+
+The application advances the queue once before fixed ticks and Update in each playing frame,
+using its admitted gameplay delta. Positive durations expire at the exact remaining-time boundary;
+zero-duration lines survive until the next advance. Use a positive duration for startup lines that
+must survive the first playing boundary. Paused rendering and fixed Step never age requests; Step
+callbacks may append lines. Invalid deltas leave the queue intact. Stop/Destroy retain access, then
+Unload and failed startup clear all entries. Queue capacity is per current binding, not historical.
+`DebugLines()` borrows only until the next queue mutation; frame preparation copies all geometry.
+
+Game View appends camera-facing, two-sided, depth-tested 0.06-world-unit ribbons to its existing
+single native scene submission. A camera with no meshes can display them. Ribbons use ordinary
+neutral-slot Lambert/PBR lighting and opaque tint; they are not an unlit HUD, alpha blend, fixed
+pixel-width stroke or occlusion override. Native Scene canvas precedence and unsupported-backend
+fallback remain unchanged. Existing 65,535-vertex/1,048,576-index/4096-instance budgets apply;
+authored meshes take priority, and omitted debug requests are reported. The full 256-line queue
+adds at most 1024 vertices/3072 indices/256 instances. Temporary ribbon arrays are reused within
+frame preparation; empty queues return before scratch allocation. Segment-direction tangents remain
+orthogonal to camera-facing normals for PBR. Frames containing debug geometry use fence-owned uploads instead of retaining
+transient combined meshes in the immutable geometry cache; other native ownership is unchanged.
+
+[Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayDebugLines-Linux-2026-10-14.md).
+Complete gameplay, expanded devices, hot reload and physical-host acceptance remain open.
+
 ### Play scene/entity services
 
 The V3 embedding binds only a Play-kind World; static and relative dynamic loads reject an Editor
@@ -539,8 +571,8 @@ Authored cloned entities can be despawned in Play, while Editor data/Undo remain
 calls are synchronous on the serialized game thread, borrow wire pointers only for the call and
 return scalar IDs. Module Stop/Destroy still have access; the owner clears binding/quotas after
 Unload and before clone destruction. Stop discards created/deleted entities; transform Apply Changes
-continues excluding creation/deletion. The debug drawing slot
-remains null; raycast is null when gameplay simulation is disabled. Modules must check each optional
+continues excluding creation/deletion. Debug line admission is described below;
+raycast is null when gameplay simulation is disabled. Modules must check each optional
 callback. Stable C/Zig layout and scene formats are
 unchanged. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
 
@@ -556,7 +588,8 @@ not advance it.
 `scene_entities` sums current entity-vector sizes in active scenes of the bound Play clone.
 Inactive/unloading/unloaded scenes are excluded immediately; spawn/despawn and activation are
 visible on the next query. The query allocates nothing, traverses scene records only and retains
-no World/entity borrow. `debug_lines` is zero because debug drawing remains unavailable.
+no World/entity borrow. `debug_lines` counts currently retained debug requests, including requests
+omitted by camera/clipping/render budgets; it is not a native draw/pixel count.
 `api_errors` counts non-OK results returned by the host's integer-result service callbacks,
 including rejected diagnostic requests. It excludes void log/deallocate operations, pointer-result
 allocation, gameplay callback failures and all external/process/native validation errors. Those
@@ -602,8 +635,8 @@ Actual V3 and Linux dynamic/native Game fixtures verify copied hit distance/poin
 despawn misses, ownership, transform/shear updates, tie resolution, quotas, unload, Stop/Destroy,
 unchanged Editor bytes and real normal Game movement. Enabled and simulation-OFF tests are recorded
 in [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md).
-Rigid-body/backend integration, authored collider import, asset resolution, debug drawing,
-diagnostics and complete gameplay/input acceptance remain open.
+Rigid-body/backend integration, authored collider import, non-mesh asset resolution,
+native debugger and complete gameplay/input acceptance remain open.
 
 Play inspection uses one owning Runtime snapshot per UI frame. Selecting a Game entity switches
 Inspector to read-only Play mode: local/world transforms, parent/scene state, Camera/Light payloads,

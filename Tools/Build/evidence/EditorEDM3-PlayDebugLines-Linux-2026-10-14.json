@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "beads": "nexora-rd7.2.8",
+  "scope": "bounded-opaque-play-debug-lines",
+  "initial_main": "ffc8932ed8865e0e58297ed515ff262ee967ec53",
+  "reviewed_dependency": "77243d473d107ae9af694e254f6b9b48d24190ab",
+  "source_sha256": {
+    "Apps/Editor/PlayDebugLines.h": "484ffcdce6b613f045ea738c6e27cd4bdaa9841a22a240acac1cd51aa5aa672e",
+    "Apps/Editor/PlayGameplayModule.h": "cd4b7ddbfcb98e9eb82e89061304f0dbf24453ae4893ca9844e31a20546c26ee",
+    "Apps/Editor/GameViewPreview.h": "fadb52e2f0c426c4a9b3766fbbd413019ef8b2520b42673fbf060c08a4d3b848",
+    "Apps/Editor/main.cpp": "a40479fe7e6a9e9f82a9df25766985adf8671edc8c92477697e958db8af632bb",
+    "Tests/EditorImGui/PlayDebugLineTests.cpp": "c13f543c4b0946cb91716914f86ea7e312da7c3249ba3ff6ebcd97754d07c935",
+    "Tests/EditorImGui/PlayDebugLineFixture.cpp": "7c58a0d12d6a296eeabeaa1c5bd5a141dde1c7886baa5a5e0148d21dfd6c7bb6",
+    "Tests/EditorImGui/PlayDiagnosticsTests.cpp": "e4a023cabd9488e504ce52395d7fe955eb40694e51c0bfb09e1ff40d8691cd3f",
+    "Tests/EditorImGui/PlayMeshAssetTests.cpp": "39b4c143664ba643e257e1610030d9876688be1f71a3254f3d8258d56a44353d",
+    "Tests/EditorImGui/PlaySceneServicesTests.cpp": "bcc5d45a7bc04e3392aa918de0e17c03df6baf96e3786c54d854181d87bb9ebb",
+    "Tests/EditorImGui/CMakeLists.txt": "7f8f3e4a86206fff7a5c03bf53bf5effd212cf035dc3bd952506335f2fc4f727",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "ece5a5659c75a1c5262d7b587110b575b79bc73929e755b4a35c87136260b623",
+    "Tests/EditorImGui/LinuxNativeScenePreview.py": "d9aa032187615a9e6d5ab3720f809bc66af89bd1c7812f354671cda6f8f8469d"
+  },
+  "contract": {
+    "capacity": 256,
+    "coordinates_absolute_max": 99999,
+    "minimum_length_exclusive": 1e-06,
+    "duration_seconds": [
+      0,
+      3600
+    ],
+    "color": "0xRRGGBBAA, alpha255, RGB linear instance factors",
+    "clock": "Owner advances once before fixed ticks and Update in playing frame. Paused rendering and fixed Step do not age requests. Zero survives until next advance.",
+    "diagnostics": "debug_lines counts retained requests, not rendered pixels; integer service failures count in api_errors.",
+    "render": "Frame-owned two-sided depth-tested camera-facing0.06world-unit ribbons, existing neutral Lambert/PBR slot and single scene submission. Debug frames use fence-owned mutable upload rather than immutable combined-geometry retention. Segment-direction tangents remain orthogonal to camera-facing normals. Empty queues return before scratch allocation.",
+    "full_queue_geometry": {
+      "vertices": 1024,
+      "indices": 3072,
+      "instances": 256
+    },
+    "lifetime": "Copied fixed storage survives Stop/Destroy, cleared after Unload/failed startup; authoring scene and Undo unchanged.",
+    "exclusions": [
+      "alpha/HUD/unlit or fixed-pixel strokes",
+      "simultaneous native Scene/Game canvases",
+      "full gameplay/devices/hot reload/native debugger",
+      "physical host or full milestone acceptance"
+    ]
+  },
+  "validation": {
+    "old_host_regression": {
+      "expected_failure": "Play debug line service unavailable",
+      "ctest_exit": 8
+    },
+    "controlled_no_expiry_fault": {
+      "expected_failure": "duration expiry/order/boundary is wrong",
+      "ctest_exit": 8,
+      "restored": true
+    },
+    "focused_after_restoration": {
+      "passed": 7,
+      "seconds": 5.45,
+      "native_debug_seconds": 5.29,
+      "play_cycles": 32
+    },
+    "native": "C-ABI-only fixture removes only clone mesh, draws moving green lines via Fixed/Update, validates copied diagnostics and Stop/Destroy; actual pixels, Pause/Step/Stop, source bytes and Core/gameplay Console pass. Dense pixel sampling prevents thin-line aliasing.",
+    "development_build_actions": 254,
+    "shipping_build_actions": 7,
+    "pre_review_full_linux": {
+      "passed": 267,
+      "seconds": 838.92,
+      "skipped": 0,
+      "build_actions": 254
+    },
+    "old_default_tangent_regression": {
+      "expected_failure": "PBR ribbon tangent is not orthogonal to its normal",
+      "ctest_exit": 8
+    },
+    "documentation_tests": 16,
+    "post_review_focused": {
+      "passed": 7,
+      "seconds": 5.49,
+      "native_debug_seconds": 5.32
+    },
+    "post_review_development_build_actions": 281,
+    "post_review_shipping_build_actions": 7,
+    "final_linux": {
+      "passed": 267,
+      "seconds": 845.17,
+      "skipped": 0,
+      "native_debug_seconds": 5.29,
+      "build_actions": 281,
+      "base": "f637eea5b6830c05f0c7e4cfead4c800a1862dfb"
+    },
+    "formatted_cpp_files": 9,
+    "final_documentation_tests": 16
+  },
+  "pending": [
+    "Final-head hosted CI and own PR merge/branch deletion"
+  ],
+  "pre_review_source_sha256": {
+    "Apps/Editor/PlayDebugLines.h": "484ffcdce6b613f045ea738c6e27cd4bdaa9841a22a240acac1cd51aa5aa672e",
+    "Apps/Editor/PlayGameplayModule.h": "cd4b7ddbfcb98e9eb82e89061304f0dbf24453ae4893ca9844e31a20546c26ee",
+    "Apps/Editor/GameViewPreview.h": "375f3bf3ecdff060aebfaca6477af053ded8d4c1d32756587d10b3eda516c121",
+    "Apps/Editor/main.cpp": "a40479fe7e6a9e9f82a9df25766985adf8671edc8c92477697e958db8af632bb",
+    "Tests/EditorImGui/PlayDebugLineTests.cpp": "98fdd1358893bed022986bb4a5b273e236b6819cf90fb014ac921172d1068da2",
+    "Tests/EditorImGui/PlayDebugLineFixture.cpp": "7c58a0d12d6a296eeabeaa1c5bd5a141dde1c7886baa5a5e0148d21dfd6c7bb6",
+    "Tests/EditorImGui/PlayDiagnosticsTests.cpp": "e4a023cabd9488e504ce52395d7fe955eb40694e51c0bfb09e1ff40d8691cd3f",
+    "Tests/EditorImGui/PlayMeshAssetTests.cpp": "39b4c143664ba643e257e1610030d9876688be1f71a3254f3d8258d56a44353d",
+    "Tests/EditorImGui/PlaySceneServicesTests.cpp": "bcc5d45a7bc04e3392aa918de0e17c03df6baf96e3786c54d854181d87bb9ebb",
+    "Tests/EditorImGui/CMakeLists.txt": "7f8f3e4a86206fff7a5c03bf53bf5effd212cf035dc3bd952506335f2fc4f727",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "ece5a5659c75a1c5262d7b587110b575b79bc73929e755b4a35c87136260b623",
+    "Tests/EditorImGui/LinuxNativeScenePreview.py": "d9aa032187615a9e6d5ab3720f809bc66af89bd1c7812f354671cda6f8f8469d"
+  },
+  "merged_dependency": {
+    "commit": "f637eea5b6830c05f0c7e4cfead4c800a1862dfb",
+    "tree": "ff28f5cc6b2aa7662912099e28e6a9d7eec0839f",
+    "reviewed_dependency_tree_equal": true,
+    "replay_source_hashes_preserved": 12
+  },
+  "host": {
+    "os": "Linux6.18.44",
+    "compiler": "GCC14.2.0 (Debian14.2.0-19)",
+    "cmake": "4.4.4",
+    "clang_format": "23.1.3",
+    "python": "3.12.14",
+    "native": "Xvfb, Vulkan lavapipe(lvp_icd.json)",
+    "development_options_on": [
+      "NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL",
+      "NEXORA_ENABLE_EDITOR_SDK",
+      "NEXORA_ENABLE_SLANG",
+      "NEXORA_ENABLE_VULKAN_BACKEND",
+      "NEXORA_ENABLE_GAMEPLAY_SIMULATION",
+      "NEXORA_FEATURE_SCALAR_MATERIAL_TOOL"
+    ]
+  }
+}

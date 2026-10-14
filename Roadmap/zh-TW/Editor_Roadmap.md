@@ -783,7 +783,7 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   callback 仍可使用服務，新 binding 重設配額。World ID 耗盡會拒絕配置，不會回繞。
   Portable 與真正 Xvfb 動態模組測試涵蓋重複 Play lifecycle、Editor bytes 未變動。
   Optional CPU Physics query 與 copied diagnostics 詳列於下方，mesh resolution 如上所述；
-  其他 asset type 與 debug drawing 仍不可用。
+  其他 asset type 仍不可用；有界不透明 debug line 詳列於下方。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md)。
 - ✅ Optional Play Physics spawn 現擁有最多 256 個 live local AABB binding，提供真正 CPU
   PhysicsWorld raycast 的 copied result。八個角點透過目前 affine matrix 保留 inherited
@@ -793,6 +793,13 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   native Game fixture 涵蓋 query、Editor 資料未變動；詳見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md)。
   Rigid-body／backend stepping、authored collider import 與完整 gameplay／input 仍待完成。
+- ✅ V3 Play debug-line callback 現複製最多256條有限值不透明世界座標線段，具備有界
+  gameplay 有效期、精確到期、錯誤計數及 binding teardown。Native Game View 透過既有 scene
+  pass 繪製 frame-owned depth-tested ribbon，只有 camera 的場景也可顯示。測試涵蓋 Pause／
+  Step、32次 lifecycle、無效／滿載 queue 與 source／Undo 未變動；真正無 mesh 的 native 像素
+  驗證 callback。Opaque lit ribbon 保留目前 camera／geometry 限制；alpha／HUD 線條、完整
+  gameplay／裝置與實機驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayDebugLines-Linux-2026-10-14.md)。
 - ✅ 既有 V3 Play diagnostics callback 現回傳 owning gameplay Update sequence、active
   clone entity count 與限定 scope 的 service-error counter，具飽和與 per-binding reset。
   Create／Stop／Destroy、scene transition、failure／reload 與32次隔離 lifecycle 保留 authoring

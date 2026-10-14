@@ -83,7 +83,7 @@ def scene_pixels(display_name: str, window: int, viewport: tuple[int, int, int, 
 
 
 def scene_region_pixels(display_name: str, window: int,
-                        viewport: tuple[int, int, int, int]):
+                        viewport: tuple[int, int, int, int], stride: int = 3):
     x11 = ctypes.CDLL("libX11.so.6")
     x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
     x11.XOpenDisplay.restype = ctypes.c_void_p
@@ -106,8 +106,8 @@ def scene_region_pixels(display_name: str, window: int,
             x, y, width, height = viewport
             center_x, center_y = x + width // 2, y + height // 2
             pixels = []
-            for py in range(max(y, center_y - 110), min(y + height, center_y + 90), 3):
-                for px in range(max(x, center_x - 90), min(x + width, center_x + 90), 3):
+            for py in range(max(y, center_y - 110), min(y + height, center_y + 90), stride):
+                for px in range(max(x, center_x - 90), min(x + width, center_x + 90), stride):
                     pixel = x11.XGetPixel(image, px, py)
                     pixels.extend(channel(pixel, mask) for mask in
                                   (image.contents.red_mask, image.contents.green_mask,
