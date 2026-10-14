@@ -154,6 +154,28 @@ void CheckViewportPixels(Display *display, ::Window window, unsigned width, unsi
   }
   throw std::runtime_error("scene viewport draw escaped its clipped render rectangle");
 }
+
+void CheckConcurrentPixels(Display *display, ::Window window, unsigned width, unsigned height) {
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+  while (std::chrono::steady_clock::now() < deadline) {
+    XSync(display, False);
+    auto *image = XGetImage(display, window, 0, 0, width, height, AllPlanes, ZPixmap);
+    Require(image != nullptr, "concurrent viewport readback failed");
+    const auto left = XGetPixel(image, width / 4, height / 2);
+    const auto right = XGetPixel(image, width * 15 / 16, height / 2);
+    const auto outside = XGetPixel(image, width / 2, height / 8);
+    const bool valid =
+        Channel(left, image->red_mask) > 180 && Channel(left, image->green_mask) < 100 &&
+        Channel(right, image->green_mask) > 180 && Channel(right, image->red_mask) < 100 &&
+        Channel(outside, image->blue_mask) > 220 && Channel(outside, image->red_mask) < 10;
+    XDestroyImage(image);
+    if (valid)
+      return;
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  throw std::runtime_error("concurrent scene uploads aliased or lost UI pixels");
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -264,6 +286,41 @@ int main(int argc, char **argv) {
     Require(surface->Present() == SurfaceStatus::Ready, "viewport present failed");
     CheckViewportPixels(display, native, width, height);
     draw.viewport = {};
+    // Scene and Game each need an independent bounded upload after the single UI pass.
+    {
+      const auto w = static_cast<float>(width), h = static_cast<float>(height);
+      const std::array<Presentation::UiVertex, 4> uiVertices{{{{0, 0}, {0, 0}, 0xffff0000U},
+                                                              {{w, 0}, {0, 0}, 0xffff0000U},
+                                                              {{w, h}, {0, 0}, 0xffff0000U},
+                                                              {{0, h}, {0, 0}, 0xffff0000U}}};
+      const std::array<std::uint16_t, 6> uiIndices{0, 1, 2, 0, 2, 3};
+      const std::array uiCommands{Presentation::UiDrawCommand{0, 0, width, height, 901, 6, 0, 0}};
+      const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
+                                           std::byte{255}};
+      const std::array uiUploads{Presentation::UiTextureUpload{901, 1, 1, 4, white}};
+      const Presentation::UiDrawData ui{uiVertices, std::as_bytes(std::span(uiIndices)), uiCommands,
+                                        uiUploads};
+      Require(surface->Acquire() == SurfaceStatus::Ready, "concurrent viewport acquire failed");
+      Require(surface->RenderUi(ui) == SurfaceStatus::Ready, "concurrent viewport UI failed");
+      auto left = draw, right = draw;
+      left.viewport = {0, height / 4, width / 2, height / 2};
+      right.viewport = {width / 2, height / 4, width - width / 2, height / 2};
+      left.base_color[0] = 0.8F;
+      left.base_color[1] = 0.1F;
+      Require(surface->DrawScene(left) == SurfaceStatus::Ready, "first concurrent scene failed");
+      Require(surface->DrawScene(left) == SurfaceStatus::InvalidDescriptor,
+              "overlapping view consumed second admission");
+      auto shifted = vertices;
+      for (auto &vertex : shifted)
+        vertex.position[0] += 0.9F;
+      right.vertices = shifted;
+      Require(surface->DrawScene(right) == SurfaceStatus::Ready,
+              "second bounded Scene/Game viewport is unavailable");
+      Require(surface->DrawScene(right) == SurfaceStatus::InvalidDescriptor,
+              "third scene viewport accepted");
+      Require(surface->Present() == SurfaceStatus::Ready, "concurrent viewport present failed");
+      CheckConcurrentPixels(display, native, width, height);
+    }
     // One triangle upload, two hardware instances, with independent transforms and tints.
     // Three uint16 indices also exercise the instance-buffer's four-byte alignment.
     std::array<Presentation::SceneInstance, 2> instances{
@@ -604,15 +661,15 @@ int main(int argc, char **argv) {
                   std::isfinite(*diagnostics.gpuTiming.milliseconds) &&
                   *diagnostics.gpuTiming.milliseconds >= 0,
               "real completed Vulkan query timing unavailable or invalid");
-    Require(diagnostics.sceneDrawCalls == 27 && diagnostics.sceneInstances == 38 &&
-                diagnostics.acquiredFrames == 27 && diagnostics.presentedFrames == 27 &&
+    Require(diagnostics.sceneDrawCalls == 29 && diagnostics.sceneInstances == 40 &&
+                diagnostics.acquiredFrames == 28 && diagnostics.presentedFrames == 28 &&
                 diagnostics.resizeGenerations == 3 && diagnostics.sceneTextureUploads == 4 &&
                 diagnostics.sceneOffscreenDrawCalls == 5 && diagnostics.sceneComposites == 5,
             "native scene counters or resize evidence mismatch");
     Require(surface->Acquire() == SurfaceStatus::Ready, "abandoned frame acquire failed");
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "scene teardown failed");
     Require(
-        surface->Diagnostics().gpuTiming.completedSubmission == 27 &&
+        surface->Diagnostics().gpuTiming.completedSubmission == 28 &&
             (!surface->Diagnostics().gpuTiming.milliseconds ||
              std::isfinite(*surface->Diagnostics().gpuTiming.milliseconds)),
         "drain did not collect latest completed submission or abandoned recording changed timing");
@@ -626,7 +683,8 @@ int main(int argc, char **argv) {
     XCloseDisplay(display);
     Require(windows->Destroy(created.handle) == Window::WindowError::None,
             "window teardown failed");
-    std::cout << "PASS: 27 scene submissions including affine mesh/normal oracles, mesh batches, "
+    std::cout << "PASS: 29 scene submissions including concurrent viewports, affine mesh/normal "
+                 "oracles, mesh batches, "
                  "independent batch materials, rotated native instances and UV "
                  "texture pixels, "
                  "depth-order invariance, lighting, matrix translation, "

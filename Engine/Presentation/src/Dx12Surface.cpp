@@ -12,6 +12,7 @@
 #include "ScenePbrHlslShaders.h"
 #include "SceneTextureMipmaps.h"
 #include "SceneToneHlslShaders.h"
+#include "SceneViewAdmission.h"
 #include "StagedUploadAllocation.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
@@ -44,6 +45,7 @@ struct Dx12MeshAllocation final {
 class Dx12Surface final : public ISurface {
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return true; }
+  bool SupportsBoundedSceneViews() const noexcept override { return true; }
   Dx12Surface(const SurfaceDescriptor &d, Window::IWindowSystem &windows)
       : renderThread_(std::this_thread::get_id()),
         window_(static_cast<HWND>(windows.NativeHandle(d.window))), width_(d.width),
@@ -179,6 +181,8 @@ public:
     ++diagnostics_.acquiredFrames;
     acquired_ = true;
     sceneDrawn_ = sceneOffscreen_ = sceneComposited_ = uiDrawn_ = compositeDrawn_ = false;
+    sceneViews_.Reset();
+    sceneViewSlot_ = 0;
     return SurfaceStatus::Ready;
   }
   SurfaceStatus CompositeRgba8(std::span<const std::byte> pixels, std::uint32_t width,
@@ -359,17 +363,18 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || sceneDrawn_ || compositeDrawn_ || !scenePipeline_ ||
-        drawData.vertices.empty() || drawData.indices.empty())
+    if (!acquired_ || compositeDrawn_ || !scenePipeline_ || drawData.vertices.empty() ||
+        drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
-    if (!viewport ||
+    if (!viewport || !sceneViews_.CanSubmit(drawData, width_, height_, uiDrawn_) ||
         (uiDrawn_ &&
          (drawData.offscreen || (drawData.viewport.x == 0 && drawData.viewport.y == 0 &&
                                  drawData.viewport.width == 0 && drawData.viewport.height == 0))) ||
         (drawData.offscreen && (drawData.viewport.x != 0 || drawData.viewport.y != 0 ||
                                 drawData.viewport.width != 0 || drawData.viewport.height != 0)))
       return SurfaceStatus::InvalidDescriptor;
+    sceneViewSlot_ = sceneViews_.Count();
     if (drawData.vertices.size() > 65535 || drawData.indices.size() > 1048576 ||
         drawData.indices.size() % 3 != 0 || drawData.instances.size() > 4096 ||
         !ValidateSceneMeshBatches(drawData.batches, drawData.indices.size(),
@@ -480,9 +485,9 @@ public:
     const auto toneOffset = kGeometryOffset + instanceOffset + instanceBytes.size();
     const auto required = toneOffset + (drawData.hdr ? sizeof(toneVertices) : 0);
     const bool reuseGeometry =
-        !residentGeometry && sceneUploads_[frame_].Get() &&
-        sceneUploadCapacity_[frame_] >= required &&
-        sceneGeometry_[frame_].Matches(vertexBytes, indexBytes, kGeometryOffset);
+        !residentGeometry && ActiveSceneUpload().allocation.Get() &&
+        ActiveSceneUpload().capacity >= required &&
+        ActiveSceneUpload().geometry.Matches(vertexBytes, indexBytes, kGeometryOffset);
     detail::SceneGeometryUploadKey::Candidate geometryCandidate;
     if (!residentGeometry && !reuseGeometry) {
       geometryCandidate =
@@ -495,7 +500,7 @@ public:
       return SurfaceStatus::DeviceLost;
     void *mapped = nullptr;
     D3D12_RANGE noRead{0, 0};
-    if (FAILED(sceneUploads_[frame_]->Map(0, &noRead, &mapped)))
+    if (FAILED(ActiveSceneUpload().allocation->Map(0, &noRead, &mapped)))
       return SurfaceStatus::DeviceLost;
     for (std::size_t slot = 0; slot < std::max<std::size_t>(drawData.materials.size(), 1); ++slot) {
       const auto material = ResolveSceneMaterial(drawData, slot);
@@ -523,14 +528,14 @@ public:
     if (drawData.hdr)
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
-    sceneUploads_[frame_]->Unmap(0, nullptr);
+    ActiveSceneUpload().allocation->Unmap(0, nullptr);
     if (residentGeometry)
-      sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
+      ActiveSceneUpload().geometry.Clear(diagnostics_.sceneGeometryUploadCache);
     else if (reuseGeometry)
       detail::SceneGeometryUploadKey::RecordHit(diagnostics_.sceneGeometryUploadCache);
     else
-      sceneGeometry_[frame_].Commit(std::move(geometryCandidate),
-                                    diagnostics_.sceneGeometryUploadCache);
+      ActiveSceneUpload().geometry.Commit(std::move(geometryCandidate),
+                                          diagnostics_.sceneGeometryUploadCache);
     std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
     if (drawData.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
       ++additional;
@@ -592,7 +597,7 @@ public:
     // A failed partial recording must never publish an incomplete target set for later reuse.
     targets.reusable = false;
     D3D12_CPU_DESCRIPTOR_HANDLE reflectionRtv{};
-    const auto base = sceneUploads_[frame_]->GetGPUVirtualAddress();
+    const auto base = ActiveSceneUpload().allocation->GetGPUVirtualAddress();
     const auto geometryBase = base + kGeometryOffset;
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
     rtv.ptr += SIZE_T(frame_) * increment_;
@@ -820,6 +825,7 @@ public:
     if (drawData.shadow) {
       ++diagnostics_.sceneShadowPasses;
     }
+    static_cast<void>(sceneViews_.Commit(drawData, width_, height_, uiDrawn_));
     sceneDrawn_ = true;
     targets.reusable = drawData.offscreen;
     targets.hdr = drawData.hdr;
@@ -876,9 +882,9 @@ public:
       commands_->RSSetViewports(1, &viewport);
       commands_->RSSetScissorRects(1, &scissor);
       commands_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-      const D3D12_VERTEX_BUFFER_VIEW vertices{sceneUploads_[frame_]->GetGPUVirtualAddress() +
-                                                  toneOffsets_[frame_],
-                                              sizeof(toneVertices), 4 * sizeof(float)};
+      const D3D12_VERTEX_BUFFER_VIEW vertices{
+          ActiveSceneUpload().allocation->GetGPUVirtualAddress() + toneOffsets_[frame_],
+          sizeof(toneVertices), 4 * sizeof(float)};
       commands_->IASetVertexBuffers(0, 1, &vertices);
       commands_->DrawInstanced(3, 1, 0, 0);
       sceneComposited_ = true;
@@ -954,10 +960,12 @@ public:
       d.Reset();
     for (auto &upload : uiUploads_)
       upload.Reset();
-    for (auto &upload : sceneUploads_)
-      upload.Reset();
-    for (auto &key : sceneGeometry_)
-      key.Clear(diagnostics_.sceneGeometryUploadCache);
+    for (auto &frame : sceneUploads_)
+      for (auto &upload : frame) {
+        upload.allocation.Reset();
+        upload.geometry.Clear(diagnostics_.sceneGeometryUploadCache);
+        upload.capacity = 0;
+      }
     uiTextures_.clear();
     sceneTextures_.clear();
     linearSceneTextures_.clear();
@@ -1525,11 +1533,12 @@ private:
     return true;
   }
   bool EnsureSceneUpload(std::size_t required) {
-    const auto before = sceneUploads_[frame_].Get();
-    if (!CreateUploadAllocation(sceneUploads_[frame_], sceneUploadCapacity_[frame_], required))
+    const auto before = ActiveSceneUpload().allocation.Get();
+    if (!CreateUploadAllocation(ActiveSceneUpload().allocation, ActiveSceneUpload().capacity,
+                                required))
       return false;
-    if (sceneUploads_[frame_].Get() != before)
-      sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
+    if (ActiveSceneUpload().allocation.Get() != before)
+      ActiveSceneUpload().geometry.Clear(diagnostics_.sceneGeometryUploadCache);
     return true;
   }
   bool CompleteSubmittedWork() {
@@ -1841,7 +1850,8 @@ private:
     for (UINT slot = 0; slot < frames_; ++slot) {
       CollectGpuTiming(slot);
       ResetSceneTargets(slot);
-      sceneGeometry_[slot].Clear(diagnostics_.sceneGeometryUploadCache);
+      for (auto &upload : sceneUploads_[slot])
+        upload.geometry.Clear(diagnostics_.sceneGeometryUploadCache);
     }
     for (auto &b : buffers_)
       b.Reset();
@@ -1932,9 +1942,16 @@ private:
   SceneScreenSpaceOcclusion sceneOcclusion_{0};
   bool sceneAntiAliasing_ = false;
   ComPtr<ID3D12RootSignature> scenePbrRootSignature_;
-  std::array<ComPtr<ID3D12Resource>, kMaximumFrames> sceneUploads_;
-  std::array<detail::SceneGeometryUploadKey, kMaximumFrames> sceneGeometry_;
-  std::array<std::size_t, kMaximumFrames> sceneUploadCapacity_{};
+  struct SceneUploadSlot final {
+    ComPtr<ID3D12Resource> allocation;
+    detail::SceneGeometryUploadKey geometry;
+    std::size_t capacity{};
+  };
+  std::array<std::array<SceneUploadSlot, detail::SceneViewAdmission::kMaximumViews>, kMaximumFrames>
+      sceneUploads_;
+  SceneUploadSlot &ActiveSceneUpload() noexcept { return sceneUploads_[frame_][sceneViewSlot_]; }
+  detail::SceneViewAdmission sceneViews_;
+  std::size_t sceneViewSlot_{};
 };
 } // namespace
 std::unique_ptr<ISurface> CreateSurface(const SurfaceDescriptor &d, Window::IWindowSystem &w) {

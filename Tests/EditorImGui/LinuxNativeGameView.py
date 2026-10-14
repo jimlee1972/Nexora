@@ -25,7 +25,11 @@ def main():
     parser.add_argument('--physics-services', action='store_true')
     parser.add_argument('--mesh-assets', action='store_true')
     parser.add_argument('--debug-lines', action='store_true')
+    parser.add_argument('--concurrent-views', action='store_true')
     args = parser.parse_args()
+    if args.concurrent_views and (not args.module or args.materials or args.scene_services or
+                                  args.input_routing or args.mesh_assets or args.debug_lines):
+        parser.error('--concurrent-views requires an independent gameplay module fixture')
     # Debug ribbons can project to a single pixel; sparse mesh sampling can skip every line.
     capture_pixels = partial(scene_region_pixels, stride=1 if args.debug_lines else 3)
     if args.debug_lines and (not args.module or args.materials or args.scene_services or
@@ -45,6 +49,21 @@ def main():
     (root / '.nexora/scenes').mkdir(parents=True)
     (root / 'project.nexora').write_text('schema=1\nname=Game View Acceptance\n')
     (root / '.nexora/workspace').write_text('schema=1\n')
+    if args.concurrent_views:
+        layout = 'schema=1\n'
+        for name, panel in [('Project', 'project'), ('Hierarchy', 'hierarchy'),
+                            ('Inspector', 'inspector'), ('Console', 'console'),
+                            ('Content', 'content'), ('Scene', 'scene'), ('Game', 'game'),
+                            ('Profiler', 'profiler'), ('Build', 'build')]:
+            layout += f'[Window][{name}###nexora.{panel}]\n'
+            if panel == 'scene':
+                layout += 'Pos=0,40\nSize=620,640\nCollapsed=0\n'
+            elif panel == 'game':
+                layout += 'Pos=640,40\nSize=620,640\nCollapsed=0\n'
+            else:
+                layout += 'Pos=0,700\nSize=100,20\nCollapsed=1\n'
+            layout += '\n'
+        (root / '.nexora/editor-layout.ini').write_text(layout)
     if args.project_bindings:
         if not args.input_routing:
             parser.error('--project-bindings requires --input-routing')
@@ -117,6 +136,25 @@ def main():
         send('windowfocus', window)
         send('key', '--delay', '80', 'F5')
         viewport = wait_view(b'native game viewport')
+        scene_viewport = None
+        if args.concurrent_views:
+            scene_viewport = wait_view(b'native scene viewport')
+            sx, sy, sw, sh = scene_viewport
+            gx, gy, gw, gh = viewport
+            if sx < gx + gw and gx < sx + sw and sy < gy + gh and gy < sy + sh:
+                raise RuntimeError('Concurrent native viewports overlap')
+            scene_deadline = time.monotonic() + 3
+            while time.monotonic() < scene_deadline:
+                scene_before = capture_pixels(display, window, scene_viewport)
+                if sum(b >= 105 and b >= r + 35 and b >= g + 10
+                       for r, g, b in zip(scene_before[::3], scene_before[1::3], scene_before[2::3])) >= 20:
+                    break
+                time.sleep(0.05)
+            else:
+                from collections import Counter
+                colors = Counter(zip(scene_before[::3], scene_before[1::3], scene_before[2::3])).most_common(8)
+                raise RuntimeError(f'Concurrent Scene canvas did not rasterize source geometry: '
+                                   f'{scene_viewport}; {colors}; {captured!r}')
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             pixels = capture_pixels(display, window, viewport)
@@ -138,6 +176,8 @@ def main():
             time.sleep(0.6)
             if capture_pixels(display, window, viewport) == first:
                 raise RuntimeError('Loaded gameplay fixed callback did not move the native mesh')
+            if args.concurrent_views and capture_pixels(display, window, scene_viewport) != scene_before:
+                raise RuntimeError('Play motion changed the concurrent Editor Scene pixels')
         if args.input_routing:
             movement_key = 'b' if args.project_bindings else 'd'
             first = capture_pixels(display, window, viewport)
@@ -179,6 +219,31 @@ def main():
         time.sleep(0.2)
         if capture_pixels(display, window, viewport) != paused:
             raise RuntimeError('Paused Game View was not stable')
+        if args.concurrent_views:
+            # Move the real floating Game window over Scene and restore it. Both native draws
+            # must decline overlap, then recover without corrupting the paused Game image.
+            send('mousemove', '--window', window, 900, 50)
+            send('mousedown', 1)
+            time.sleep(0.1)
+            send('mousemove', '--sync', '--window', window, 300, 180)
+            time.sleep(0.1)
+            send('mouseup', 1)
+            time.sleep(0.3)
+            if editor.poll() is not None:
+                raise RuntimeError('Overlapping native windows terminated the Editor')
+            if capture_pixels(display, window, scene_viewport) == scene_before:
+                raise RuntimeError('Game window did not actually overlap the Scene canvas')
+            send('mousemove', '--window', window, 300, 180)
+            send('mousedown', 1)
+            time.sleep(0.1)
+            send('mousemove', '--sync', '--window', window, 900, 50)
+            time.sleep(0.1)
+            send('mouseup', 1)
+            time.sleep(0.3)
+            if capture_pixels(display, window, viewport) != paused:
+                raise RuntimeError('Concurrent view restoration changed paused Game pixels')
+            if capture_pixels(display, window, scene_viewport) != scene_before:
+                raise RuntimeError('Concurrent view restoration changed Editor Scene pixels')
         send('key', '--delay', '80', 'F10')
         time.sleep(0.3)
         send('key', '--delay', '80', 'F5')

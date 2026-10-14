@@ -31,6 +31,12 @@ target_link_libraries(NexoraSceneInstanceTests PRIVATE Nexora::Presentation)
 nexora_apply_defaults(NexoraSceneInstanceTests)
 add_test(NAME window_presentation.scene_instance_contract COMMAND NexoraSceneInstanceTests)
 
+add_executable(NexoraSceneViewAdmissionTests SceneViewAdmissionTests.cpp)
+target_include_directories(NexoraSceneViewAdmissionTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/src")
+target_link_libraries(NexoraSceneViewAdmissionTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraSceneViewAdmissionTests)
+add_test(NAME window_presentation.scene_view_admission COMMAND NexoraSceneViewAdmissionTests)
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
    NEXORA_ENABLE_VULKAN_BACKEND)
   find_package(X11 REQUIRED)

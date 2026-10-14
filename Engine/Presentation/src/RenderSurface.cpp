@@ -120,6 +120,11 @@ bool RenderSurface::SupportsSceneGeometryResidency() const noexcept {
          state_->surface->SupportsSceneGeometryResidency();
 }
 
+bool RenderSurface::SupportsBoundedSceneViews() const noexcept {
+  return state_ && !state_->destroyed && state_->surface &&
+         state_->surface->SupportsBoundedSceneViews();
+}
+
 bool RenderSurface::CloseRequested() const noexcept { return !state_ || state_->closeRequested; }
 
 bool RenderSurface::CancelCloseRequest() noexcept {

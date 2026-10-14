@@ -10,6 +10,7 @@
 #include "ScenePbrMetalShaders.h"
 #include "SceneTextureMipmaps.h"
 #include "SceneToneMetalShaders.h"
+#include "SceneViewAdmission.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
 #import <Cocoa/Cocoa.h>
@@ -33,6 +34,7 @@ struct MetalMeshAllocation final {
 class MetalSurface final : public ISurface {
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return true; }
+  bool SupportsBoundedSceneViews() const noexcept override { return true; }
   MetalSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
         gpuTimingEnabled_(descriptor.enableGpuTiming) {
@@ -92,8 +94,9 @@ public:
           dirty_ = false;
           if (!DrainFrames())
             return SurfaceStatus::DeviceLost;
-          for (auto &key : sceneGeometry_)
-            key.Clear(diagnostics_.sceneGeometryUploadCache);
+          for (auto &frame : sceneUploads_)
+            for (auto &upload : frame)
+              upload.geometry.Clear(diagnostics_.sceneGeometryUploadCache);
           if (width_ && height_) {
             layer_.drawableSize = CGSizeMake(width_, height_);
             ++diagnostics_.resizeGenerations;
@@ -121,6 +124,8 @@ public:
       if (!commands_)
         return SurfaceStatus::DeviceLost;
       uiRendered_ = sceneDrawn_ = sceneOffscreen_ = sceneComposited_ = false;
+      sceneViews_.Reset();
+      sceneViewSlot_ = 0;
       ++diagnostics_.acquiredFrames;
       return SurfaceStatus::Ready;
     }
@@ -144,6 +149,10 @@ public:
           return SurfaceStatus::DeviceLost;
         [encoder endEncoding];
       }
+#if defined(NEXORA_METAL_SCENE_TESTING)
+      if (!sceneOffscreen_)
+        compositedTesting_ = drawable_.texture;
+#endif
       [commands_ presentDrawable:drawable_];
       [commands_ commit];
       timingSequences_[frame_] =
@@ -242,14 +251,16 @@ public:
     @autoreleasepool {
       if (thread_ != std::this_thread::get_id())
         return SurfaceStatus::WrongThread;
-      if (!drawable_ || !commands_ || sceneDrawn_ || !scenePipeline_)
+      if (!drawable_ || !commands_ || !scenePipeline_)
         return SurfaceStatus::InvalidDescriptor;
       const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
       const bool defaultViewport = drawData.viewport.x == 0 && drawData.viewport.y == 0 &&
                                    drawData.viewport.width == 0 && drawData.viewport.height == 0;
-      if (!viewport || (uiRendered_ && (drawData.offscreen || defaultViewport)) ||
+      if (!viewport || !sceneViews_.CanSubmit(drawData, width_, height_, uiRendered_) ||
+          (uiRendered_ && (drawData.offscreen || defaultViewport)) ||
           (drawData.offscreen && !defaultViewport) || !ValidateScene(drawData))
         return SurfaceStatus::InvalidDescriptor;
+      sceneViewSlot_ = sceneViews_.Count();
       const auto textureId = drawData.textureId ? drawData.textureId : UINT64_MAX;
       const bool needsWhite =
           drawData.pbr || textureId == UINT64_MAX ||
@@ -341,37 +352,37 @@ public:
       const auto instanceOffset =
           residentGeometry ? 0 : (vertices.size() + indices.size() + 3) & ~std::size_t{3};
       const auto required = instanceOffset + instanceBytes.size();
-      const bool reuseGeometry = !residentGeometry && sceneUploads_[frame_] &&
-                                 sceneCapacity_[frame_] >= required &&
-                                 sceneGeometry_[frame_].Matches(vertices, indices);
+      const bool reuseGeometry = !residentGeometry && ActiveSceneUpload().allocation &&
+                                 ActiveSceneUpload().capacity >= required &&
+                                 ActiveSceneUpload().geometry.Matches(vertices, indices);
       detail::SceneGeometryUploadKey::Candidate geometryCandidate;
       if (!residentGeometry && !reuseGeometry) {
         geometryCandidate = detail::SceneGeometryUploadKey::Capture(vertices, indices);
         if (!geometryCandidate)
           return SurfaceStatus::DeviceLost;
       }
-      if (!sceneUploads_[frame_] || sceneCapacity_[frame_] < required) {
+      if (!ActiveSceneUpload().allocation || ActiveSceneUpload().capacity < required) {
         auto capacity = std::size_t{4096};
         while (capacity < required)
           capacity *= 2;
         auto buffer = [device_ newBufferWithLength:capacity options:MTLResourceStorageModeShared];
         if (!buffer)
           return SurfaceStatus::DeviceLost;
-        sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
-        sceneUploads_[frame_] = buffer;
-        sceneCapacity_[frame_] = capacity;
+        ActiveSceneUpload().geometry.Clear(diagnostics_.sceneGeometryUploadCache);
+        ActiveSceneUpload().allocation = buffer;
+        ActiveSceneUpload().capacity = capacity;
       }
-      auto *storage = static_cast<std::byte *>(sceneUploads_[frame_].contents);
+      auto *storage = static_cast<std::byte *>(ActiveSceneUpload().allocation.contents);
       if (!residentGeometry && !reuseGeometry)
         std::memcpy(storage, geometryCandidate.payload.get(), geometryCandidate.bytes);
       std::memcpy(storage + instanceOffset, instanceBytes.data(), instanceBytes.size());
       if (residentGeometry)
-        sceneGeometry_[frame_].Clear(diagnostics_.sceneGeometryUploadCache);
+        ActiveSceneUpload().geometry.Clear(diagnostics_.sceneGeometryUploadCache);
       else if (reuseGeometry)
         detail::SceneGeometryUploadKey::RecordHit(diagnostics_.sceneGeometryUploadCache);
       else
-        sceneGeometry_[frame_].Commit(std::move(geometryCandidate),
-                                      diagnostics_.sceneGeometryUploadCache);
+        ActiveSceneUpload().geometry.Commit(std::move(geometryCandidate),
+                                            diagnostics_.sceneGeometryUploadCache);
       if (drawData.shadow && !RecordShadow(drawData, instanceOffset))
         return SurfaceStatus::DeviceLost;
       const bool reflection = drawData.planarReflection.has_value();
@@ -417,7 +428,7 @@ public:
                                          static_cast<double>(viewport->height), 0, 1}];
         [encoder setScissorRect:MTLScissorRect{viewport->x, viewport->y, viewport->width,
                                                viewport->height}];
-        [encoder setVertexBuffer:sceneUploads_[frame_]
+        [encoder setVertexBuffer:ActiveSceneUpload().allocation
                           offset:instanceOffset
                          atIndex:drawData.pbr ? 3 : 1];
 
@@ -543,6 +554,7 @@ public:
         }
         [encoder endEncoding];
       }
+      static_cast<void>(sceneViews_.Commit(drawData, width_, height_, uiRendered_));
       sceneDrawn_ = true;
       sceneOffscreen_ = drawData.offscreen;
       sceneHdr_ = drawData.hdr;
@@ -619,7 +631,7 @@ public:
                                        options:MTLResourceStorageModeShared];
     auto command = [queue_ commandBuffer];
     auto encoder = [command blitCommandEncoder];
-    auto texture = sceneHdr_ ? compositedTesting_ : sceneColors_[frame_];
+    auto texture = !sceneOffscreen_ || sceneHdr_ ? compositedTesting_ : sceneColors_[frame_];
     if (!buffer || !encoder || !texture)
       return {};
     [encoder copyFromTexture:texture
@@ -678,8 +690,11 @@ public:
       meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
       for (std::size_t i = 0; i < kFrames; ++i) {
         uiUploads_[i] = nil;
-        sceneUploads_[i] = nil;
-        sceneGeometry_[i].Clear(diagnostics_.sceneGeometryUploadCache);
+        for (auto &upload : sceneUploads_[i]) {
+          upload.allocation = nil;
+          upload.geometry.Clear(diagnostics_.sceneGeometryUploadCache);
+          upload.capacity = 0;
+        }
         sceneDepths_[i] = nil;
         shadowColors_[i] = shadowDepths_[i] = nil;
         sceneColors_[i] = nil;
@@ -781,7 +796,7 @@ private:
   id<MTLBuffer> MeshBuffer(std::size_t ordinal) const {
     if (ordinal < meshBindings_.size() && meshBindings_[ordinal] != UINT8_MAX)
       return meshResidency_.At(meshBindings_[ordinal]).resource.buffer;
-    return sceneUploads_[frame_];
+    return ActiveSceneUpload().allocation;
   }
   NSUInteger MeshIndexOffset(const SceneMeshBatch &batch, std::size_t ordinal,
                              std::size_t vertexBytes) const {
@@ -948,7 +963,7 @@ private:
     std::copy(draw.shadow->lightViewProjection.begin(), draw.shadow->lightViewProjection.end(),
               constants.begin());
     [encoder setVertexBytes:constants.data() length:sizeof(constants) atIndex:0];
-    [encoder setVertexBuffer:sceneUploads_[frame_] offset:instanceOffset atIndex:3];
+    [encoder setVertexBuffer:ActiveSceneUpload().allocation offset:instanceOffset atIndex:3];
     const SceneMeshBatch whole{
         0, static_cast<std::uint32_t>(draw.indices.size()), 0,
         static_cast<std::uint32_t>(std::max<std::size_t>(draw.instances.size(), 1)), 0};
@@ -1334,9 +1349,19 @@ private:
   id<MTLTexture> compositedTesting_ = nil;
 #endif
   id<MTLDepthStencilState> depthState_ = nil, blendDepthState_ = nil;
-  std::array<id<MTLBuffer>, kFrames> sceneUploads_{};
-  std::array<detail::SceneGeometryUploadKey, kFrames> sceneGeometry_{};
-  std::array<std::size_t, kFrames> sceneCapacity_{};
+  struct SceneUploadSlot final {
+    id<MTLBuffer> allocation = nil;
+    detail::SceneGeometryUploadKey geometry;
+    std::size_t capacity{};
+  };
+  std::array<std::array<SceneUploadSlot, detail::SceneViewAdmission::kMaximumViews>, kFrames>
+      sceneUploads_{};
+  SceneUploadSlot &ActiveSceneUpload() noexcept { return sceneUploads_[frame_][sceneViewSlot_]; }
+  const SceneUploadSlot &ActiveSceneUpload() const noexcept {
+    return sceneUploads_[frame_][sceneViewSlot_];
+  }
+  detail::SceneViewAdmission sceneViews_;
+  std::size_t sceneViewSlot_{};
   std::array<id<MTLTexture>, kFrames> sceneDepths_{};
   std::array<id<MTLTexture>, kFrames> sceneColors_{}, refractionColors_{}, reflectionColors_{};
   std::unordered_map<std::uint64_t, id<MTLTexture>> sceneTextures_;

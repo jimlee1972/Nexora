@@ -429,13 +429,15 @@ public:
   // Empty when the panel is not drawn; the value resets at BeginFrame().
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   SceneCanvasViewport() const noexcept;
-  // Current frame's Game canvas. Only published during Play when the native Scene canvas is hidden.
+  // Current frame's Game canvas during Play. Concurrent Scene needs the supplied backend
+  // capability and disjoint physical rectangles; overlapping native views fall back to UI.
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
   NativeGameViewport() const noexcept;
   // Preview-only choice for the current Play session; zero requests the automatic active camera.
   // The application revalidates it against the live World after commands and fixed ticks.
   [[nodiscard]] runtime::Id GameCameraSelection() const noexcept;
   void SetNativeGameStatus(std::string message, bool available = true);
+  void SetConcurrentNativeViews(bool available) noexcept;
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;
   [[nodiscard]] NativeSceneOrbit GetNativeSceneOrbit() const noexcept;

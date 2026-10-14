@@ -24,7 +24,9 @@ material remain shared for the submission; transform and tint remain per instanc
 
 The spans are borrowed only during DrawScene; the frame fence protects the copied GPU uploads
 after the call returns. Resize, recovery,
-offscreen composition, clipping, UI ordering, and one-scene-submission-per-frame rules are unchanged.
+offscreen composition, clipping and UI ordering retain their rules. The later bounded after-UI
+two-view exception is specified by [ADR-0009](ADR-0009-Editor-Concurrent-Canvases.md); other modes
+retain one scene submission per frame.
 sceneDrawCalls counts accepted submissions and sceneInstances counts uploaded instance records.
 
 ## Consequences and gates
