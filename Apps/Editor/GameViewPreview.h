@@ -4,6 +4,7 @@
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Runtime/EditorSdk.h"
 #include "Nexora/Runtime/RenderSync.h"
+#include "PlayDebugLines.h"
 #include "SceneMeshPreview.h"
 #include <cstring>
 #include <unordered_map>
@@ -50,6 +51,7 @@ struct GameFrame final {
   std::vector<Nexora::Presentation::SceneMeshBatch> batches;
   std::size_t unavailable{};
   std::size_t unavailable_materials{};
+  std::size_t debug_lines{}, unavailable_debug_lines{};
   std::vector<Nexora::Presentation::SceneMaterial> materials;
   std::array<float, 3> camera_position{};
   bool pbr{};
@@ -179,5 +181,77 @@ struct GameFrame final {
     }
   }
   return frame;
+}
+
+// Append opaque, depth-tested, camera-facing 0.06-world-unit ribbons to the same scene pass.
+// Ordinary batch-zero shading preserves the existing material policy. No native/UI pass or
+// borrowed line storage survives this call. Geometry/instance limits take priority over debug.
+inline void AppendGameDebugLines(GameFrame &frame, std::span<const NexoraDebugLine> lines) {
+  if (!frame.camera || lines.empty())
+    return;
+  const auto count = std::min(lines.size(), PlayDebugLines::kCapacity);
+  frame.unavailable_debug_lines += lines.size() - count;
+  frame.instances.reserve(std::min<std::size_t>(4096, frame.instances.size() + count));
+  frame.batches.reserve(std::min<std::size_t>(4096, frame.batches.size() + count));
+  MeshGeometry ribbon;
+  ribbon.vertices.resize(4);
+  ribbon.indices = {0, 1, 2, 2, 1, 3, 2, 1, 0, 3, 1, 2};
+  for (const auto &line : lines.first(count)) {
+    if (!ValidPlayDebugLine(line) || frame.instances.size() >= 4096 ||
+        frame.batches.size() >= 4096) {
+      ++frame.unavailable_debug_lines;
+      continue;
+    }
+    const std::array<double, 3> start{line.start.x, line.start.y, line.start.z},
+        end{line.end.x, line.end.y, line.end.z};
+    std::array<double, 3> direction{}, view{}, side{};
+    for (std::size_t i = 0; i < 3; ++i) {
+      direction[i] = end[i] - start[i];
+      view[i] = frame.camera_position[i] - (start[i] + end[i]) * 0.5;
+    }
+    const auto cross = [](const auto &a, const auto &b) {
+      return std::array<double, 3>{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2],
+                                   a[0] * b[1] - a[1] * b[0]};
+    };
+    const auto length = [](const auto &v) { return std::hypot(v[0], v[1], v[2]); };
+    side = cross(direction, view);
+    if (length(side) < 1e-12) {
+      const std::array<double, 3> axis = std::abs(direction[0]) < std::abs(direction[1])
+                                             ? std::array<double, 3>{1, 0, 0}
+                                             : std::array<double, 3>{0, 1, 0};
+      side = cross(direction, axis);
+    }
+    const auto side_length = length(side);
+    auto normal = cross(side, direction);
+    const auto normal_length = length(normal);
+    for (std::size_t vertex = 0; vertex < 4; ++vertex) {
+      auto &value = ribbon.vertices[vertex];
+      for (std::size_t coordinate = 0; coordinate < 3; ++coordinate) {
+        value.position[coordinate] =
+            static_cast<float>((vertex < 2 ? start[coordinate] : end[coordinate]) +
+                               (vertex % 2 ? 0.03 : -0.03) * side[coordinate] / side_length);
+        value.normal[coordinate] = static_cast<float>(normal[coordinate] / normal_length);
+      }
+    }
+    const auto range = frame.geometry.Append(ribbon);
+    if (!range) {
+      ++frame.unavailable_debug_lines;
+      continue;
+    }
+    // A camera-facing normal may parallel the default +X tangent. The segment direction
+    // always lies in the ribbon plane and supplies a finite orthogonal PBR tangent.
+    const auto direction_length = length(direction);
+    for (auto &vertex : std::span{frame.geometry.vertices}.last(4))
+      for (std::size_t coordinate = 0; coordinate < 3; ++coordinate)
+        vertex.tangent[coordinate] = static_cast<float>(direction[coordinate] / direction_length);
+    Nexora::Presentation::SceneInstance instance;
+    instance.color[0] = static_cast<float>((line.rgba >> 24) & 255U) / 255;
+    instance.color[1] = static_cast<float>((line.rgba >> 16) & 255U) / 255;
+    instance.color[2] = static_cast<float>((line.rgba >> 8) & 255U) / 255;
+    frame.batches.push_back({range->firstIndex, range->indexCount,
+                             static_cast<std::uint32_t>(frame.instances.size()), 1, 0});
+    frame.instances.push_back(instance);
+    ++frame.debug_lines;
+  }
 }
 } // namespace nexora::editor::preview

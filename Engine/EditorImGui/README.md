@@ -390,7 +390,11 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   current exact affine World poses; its slot is null when stripped. The V3 diagnostics callback
   publishes copied Play Update/active-entity/result-error counters with explicit application scope.
   Mesh UUID resolution shares native Game View's immutable owning CPU catalog, frozen before module
-  Create/Start. Debug drawing remains unavailable. UI receives copied values, never World storage.
+  Create/Start. Bounded opaque V3 debug lines are copied into frame-owned, depth-tested Game View
+  ribbons in the existing native scene pass; the queue ages only before playing-frame ticks, never
+  paused rendering/Step. Debug counts describe retained requests rather than rendered pixels.
+  See the [application contract](../../Apps/Editor/README.md#bounded-play-debug-lines).
+  UI receives copied values, never World storage.
   Clicking a playing Game canvas captures keyboard input; Escape, pointer exit, hiding Game,
   Pause/Stop, recovery/close prompts, and native focus loss release it. Captured keys/text do not
   reach authoring shortcuts; F5/F6/F10 remain Editor controls. Acquisition discards that frame's

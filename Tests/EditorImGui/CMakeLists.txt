@@ -169,6 +169,16 @@ target_link_libraries(NexoraPlayDiagnosticsTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayDiagnosticsTests)
 add_test(NAME editor.play_diagnostics COMMAND NexoraPlayDiagnosticsTests)
 
+add_executable(NexoraPlayDebugLineTests PlayDebugLineTests.cpp)
+target_include_directories(NexoraPlayDebugLineTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayDebugLineTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayDebugLineTests)
+add_test(NAME editor.play_debug_lines COMMAND NexoraPlayDebugLineTests)
+
+add_library(NexoraPlayDebugLineFixture MODULE PlayDebugLineFixture.cpp)
+target_link_libraries(NexoraPlayDebugLineFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayDebugLineFixture)
+
 add_executable(NexoraBuildConsoleIngressTests BuildConsoleIngressTests.cpp)
 target_include_directories(NexoraBuildConsoleIngressTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraBuildConsoleIngressTests PRIVATE Nexora::EditorImGui)
@@ -389,6 +399,13 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
       --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_play_mesh_assets PROPERTIES TIMEOUT 45)
+
+  add_test(NAME editor.linux_native_play_debug_lines
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+      --debug-lines --module "$<TARGET_FILE:NexoraPlayDebugLineFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_debug_lines PROPERTIES TIMEOUT 45)
 
   add_test(
     NAME editor.linux_native_play_scene_services

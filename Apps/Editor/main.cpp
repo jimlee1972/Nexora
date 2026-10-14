@@ -2124,6 +2124,7 @@ int RunGraphical(std::optional<ProjectState> project,
           std::clamp(std::chrono::duration<double>(play_now - last_play_frame).count(), 0.0, 0.25);
       last_play_frame = play_now;
       if (play.State() == nexora::runtime::PlayState::Playing) {
+        static_cast<void>(gameplay.AdvanceDebugLines(elapsed));
         play_accumulator += elapsed;
         for (int tick = 0; tick < 4 && play_accumulator >= 1.0 / 60.0; ++tick) {
           if (!play.Tick()) {
@@ -2814,23 +2815,30 @@ int RunGraphical(std::optional<ProjectState> project,
     if (const auto viewport = ui.NativeGameViewport(); viewport && play.PlayWorld() &&
                                                        play_meshes && play_materials &&
                                                        !ui.NativeScenePreviewViewport()) {
-      const auto game = nexora::editor::preview::BuildGameFrame(
+      auto game = nexora::editor::preview::BuildGameFrame(
           *play.PlayWorld(), play.Inspect(), *play_meshes,
           static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection(),
           &*play_materials);
+      nexora::editor::preview::AppendGameDebugLines(game, gameplay.DebugLines());
       if (!game.camera || game.instances.empty()) {
-        ui.SetNativeGameStatus(!game.camera
-                                   ? "Add an active camera to the scene before Play."
-                                   : "No resolved mesh geometry in the active Play scenes.");
+        ui.SetNativeGameStatus(
+            !game.camera ? "Add an active camera to the scene before Play."
+                         : "No resolved mesh geometry or debug lines in the active Play scenes.");
       } else {
         auto draw = game.DrawData(*viewport);
-        draw.retainMeshGeometry = created.surface->SupportsSceneGeometryResidency();
+        // Debug geometry changes with lifetime/camera; use the fence-owned upload path rather
+        // than retaining each transient combination in the immutable geometry cache.
+        draw.retainMeshGeometry =
+            !game.debug_lines && created.surface->SupportsSceneGeometryResidency();
         const auto status = created.surface->DrawScene(draw);
         ui.SetNativeGameStatus(
-            (game.unavailable
-                 ? std::to_string(game.unavailable) +
-                       " mesh renderers could not be displayed (asset, budget, or transform). "
-                 : "") +
+            (game.unavailable_debug_lines ? std::to_string(game.unavailable_debug_lines) +
+                                                " debug lines could not be displayed. "
+                                          : "") +
+                (game.unavailable
+                     ? std::to_string(game.unavailable) +
+                           " mesh renderers could not be displayed (asset, budget, or transform). "
+                     : "") +
                 (game.unavailable_materials ? std::to_string(game.unavailable_materials) +
                                                   " materials use fallback shading."
                                             : ""),

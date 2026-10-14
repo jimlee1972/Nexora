@@ -4,6 +4,7 @@
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "PlayDebugLines.h"
 #include "PlayInputState.h"
 #include "PlaySceneServices.h"
 #include <algorithm>
@@ -121,6 +122,17 @@ public:
     Increment(diagnostics_frame_);
     return module_.Update(seconds);
   }
+  // The owner calls once before fixed ticks and Update in a playing frame. Paused Steps and
+  // rendering never advance time; invalid deltas leave the owning queue unchanged.
+  bool AdvanceDebugLines(double seconds) noexcept {
+    if (!std::isfinite(seconds) || seconds < 0)
+      return false;
+    debug_lines_.Advance(seconds);
+    return true;
+  }
+  [[nodiscard]] std::span<const NexoraDebugLine> DebugLines() const noexcept {
+    return debug_lines_.Lines();
+  }
   void Unload() noexcept {
     input_.SetFocused(false);
     input_user_ = 0;
@@ -128,6 +140,7 @@ public:
     scenes_.Clear();
     world_ = nullptr;
     mesh_assets_.reset();
+    debug_lines_.Clear();
     for (const auto &[pointer, allocation] : allocations_)
       ::operator delete(pointer, std::align_val_t(allocation.alignment));
     allocations_.clear();
@@ -293,11 +306,18 @@ private:
       if (!self.world_)
         return self.RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
       // No host mutex reentry, allocation or retained World/entity borrow.
-      *output = {self.diagnostics_frame_, self.world_->ActiveEntityCount(), 0,
-                 self.diagnostics_errors_};
+      *output = {self.diagnostics_frame_, self.world_->ActiveEntityCount(),
+                 self.DebugLines().size(), self.diagnostics_errors_};
       return NEXORA_GAMEPLAY_OK;
     };
-    // Debug drawing remains unavailable.
+    host.debug_draw_line = [](void *context, const NexoraDebugLine *line) -> int32_t {
+      auto &self = Self(context);
+      if (!line)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
+      if (!self.world_)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+      return self.RecordResult(self.debug_lines_.Add(*line));
+    };
     return host;
   }
   runtime::World *world_{};
@@ -307,6 +327,7 @@ private:
   PlayInputState input_;
   std::uint32_t input_user_{};
   PlaySceneServices scenes_;
+  PlayDebugLines debug_lines_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
   std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
