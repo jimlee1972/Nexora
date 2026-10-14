@@ -85,6 +85,10 @@ struct GameplayBridge::State {
   std::array<SpatialIndex, 2> indices;
   std::array<bool, 2> ready{};
 
+  State(runtime::World &w, SpriteScene &s, ClipResolver resolve, Tilemap *t, InstancePool *p)
+      : world(w), scene(s), clips(std::move(resolve)), tiles(t), pool(p),
+        indices{SpatialIndex{4}, SpatialIndex{4}} {}
+
   bool Live(runtime::Id entity) const {
     const auto *s = world.FindScene(scene.SceneId());
     return s && s->state != runtime::SceneState::Unloading &&
