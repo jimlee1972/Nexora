@@ -724,41 +724,54 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
     return rows;
   }
 
-  std::unordered_map<runtime::Id, const SceneDocument::NodeView *> by_id;
-  std::unordered_map<runtime::Id, std::vector<const SceneDocument::NodeView *>> children;
+  std::unordered_map<runtime::Id, std::size_t> by_id;
   by_id.reserve(nodes.size());
-  children.reserve(nodes.size());
-  for (const auto &node : nodes)
-    by_id.emplace(node.id, &node);
+  for (std::size_t i = 0; i < nodes.size(); ++i)
+    by_id.emplace(nodes[i].id, i);
   std::unordered_set<runtime::Id> expanded;
   expanded.reserve(state.hierarchy_expanded.size());
   for (const auto &key : state.hierarchy_expanded)
     expanded.insert(key.id);
-  for (const auto &node : nodes) {
-    const auto parent = node.parent != 0 && by_id.contains(node.parent) ? node.parent : 0;
-    children[parent].push_back(&node);
+  const auto end = nodes.size();
+  struct Links final {
+    std::size_t first_child;
+    std::size_t next_sibling;
+  };
+  std::vector<Links> links(nodes.size(), {end, end});
+  std::size_t first_root = end;
+  // Prepend in reverse input order: roots and each child group retain exact Runtime order,
+  // including children stored before their parent and parents absent from document metadata.
+  for (std::size_t i = nodes.size(); i > 0;) {
+    --i;
+    const auto parent = by_id.find(nodes[i].parent);
+    auto &first = nodes[i].parent != 0 && parent != by_id.end() ? links[parent->second].first_child
+                                                                : first_root;
+    links[i].next_sibling = first;
+    first = i;
   }
 
-  // Borrowed nodes live for this synchronous call. Reverse pushes preserve exact sibling order;
-  // explicit work storage grows with input, so a valid deep tree cannot exhaust the native stack.
+  // All links and borrows are frame-local. Explicit work storage grows with input, so a valid
+  // deep tree cannot exhaust the native stack. Returned rows borrow the caller-owned snapshot;
+  // the index links retain no topology or name view after this call.
   struct Pending final {
-    const SceneDocument::NodeView *node;
+    std::size_t slot;
     std::uint32_t depth;
   };
   std::vector<Pending> pending;
   pending.reserve(nodes.size());
-  if (const auto roots = children.find(0); roots != children.end())
-    for (const auto *node : std::views::reverse(roots->second))
-      pending.push_back({node, 0});
+  if (first_root != end)
+    pending.push_back({first_root, 0});
   while (!pending.empty()) {
     const auto current = pending.back();
     pending.pop_back();
-    const auto group = children.find(current.node->id);
-    const bool has_children = group != children.end() && !group->second.empty();
-    rows.push_back({current.node, current.depth, has_children});
-    if (has_children && expanded.contains(current.node->id))
-      for (const auto *node : std::views::reverse(group->second))
-        pending.push_back({node, current.depth + 1});
+    const auto &node = nodes[current.slot];
+    const auto &link = links[current.slot];
+    const bool has_children = link.first_child != end;
+    rows.push_back({&node, current.depth, has_children});
+    if (link.next_sibling != end)
+      pending.push_back({link.next_sibling, current.depth});
+    if (has_children && expanded.contains(node.id))
+      pending.push_back({link.first_child, current.depth + 1});
   }
   return rows;
 }

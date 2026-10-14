@@ -1292,6 +1292,13 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   原有100k ImGui lifecycle 與 scoped31-sample Nodes 前後量測通過，明示 CPU／allocator scope；
   O(n) 驗證／其他 frame work 與完整 production／GPU／memory／soak budget 仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM7-HierarchyNodeIndex-Linux-2026-10-13.md)。
+- ✅ 未篩選 hierarchy rows 改用 call-local 連續 first-child／next-sibling index，
+  取代 parent-to-child-vector hash map；保留精確 input sibling／root order、orphan root、
+  child-before-parent storage、expansion／depth／filter 與 reparent／Undo 語意。原有真正100k
+  deep／flat clipping／source／history／lifecycle 與前後 CPU shell 量測通過；deep-chain
+  觀察改善，但部分 flat samples 較慢。Lookup／pruning 與其他 O(n) work 仍存在，
+  不推論 total-memory／GPU／production／physical budget。
+  [證據](../../Tools/Build/evidence/EditorEDM7-HierarchyChildLinks-Linux-2026-10-13.md)。
 - ✅ Top-down Scene overview 改用 owning bulk world pose 與 iterative indexed ancestry，
   保留 exact affine origin 與既有 TRS approximation；marker、Frame all、prospective drag ancestry
   避免重複 parent-chain lookup。真正 100,000-node Runtime／deep／flat ImGui fixture 驗證

@@ -9,10 +9,13 @@
 #include <cstddef>
 #include <cstdlib>
 #include <fstream>
+#include <initializer_list>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <ranges>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 using namespace nexora;
@@ -175,6 +178,88 @@ void Flat() {
   f.Preserved();
 }
 
+void MixedTopology() {
+  runtime::World world;
+  const auto sid = world.LoadScene("Mixed topology");
+  editor::SceneDocument scene(world, sid);
+  editor::imgui::EditorImGuiHost ui;
+  const auto a = scene.Create("Root A"), b = scene.Create("Root B");
+  const auto a1 = scene.Create("Child A1", a), b1 = scene.Create("Child B1", b);
+  const auto a2 = scene.Create("Child A2", a), leaf = scene.Create("Leaf", a1);
+  const auto orphan = scene.Create("Orphan");
+  const auto foreign = world.CreateEntity(sid).id;
+  Require(a && b && a1 && b1 && a2 && leaf && orphan && foreign, "mixed hierarchy creation failed");
+  runtime::WorldCommandBuffer commands;
+  commands.SetParent(orphan, foreign, false); // Its Runtime parent has no document metadata.
+  Require(commands.Apply(world), "untracked parent setup failed");
+  const std::array expanded{*scene.Key(a), *scene.Key(a1), *scene.Key(b)};
+  Access::SetHierarchyExpanded(ui, expanded);
+  const auto check = [&](std::initializer_list<std::pair<runtime::Id, std::uint32_t>> expected) {
+    const auto rows = Access::HierarchyRows(ui, scene);
+    Require(rows.size() == expected.size(), "mixed hierarchy cardinality changed");
+    std::size_t i = 0;
+    for (const auto &[id, depth] : expected) {
+      Require(rows[i].key == *scene.Key(id) && rows[i].depth == depth,
+              "mixed hierarchy root/sibling order, depth or key changed");
+      ++i;
+    }
+  };
+  check({{a, 0}, {a1, 1}, {leaf, 2}, {a2, 1}, {b, 0}, {b1, 1}, {orphan, 0}});
+  const auto observed = Access::HierarchyRows(ui, scene);
+  Require(observed[0].has_children && observed[1].has_children && !observed[2].has_children &&
+              observed[4].has_children && !observed.back().has_children,
+          "mixed hierarchy child flags changed");
+  Require(scene.Move(a2, a, 0), "mixed sibling reorder failed");
+  check({{a, 0}, {a2, 1}, {a1, 1}, {leaf, 2}, {b, 0}, {b1, 1}, {orphan, 0}});
+  Require(scene.Move(a1, b, 0), "mixed reparent failed");
+  check({{a, 0}, {a2, 1}, {b, 0}, {a1, 1}, {leaf, 2}, {b1, 1}, {orphan, 0}});
+  Require(scene.Undo(), "mixed reparent undo failed");
+  check({{a, 0}, {a2, 1}, {a1, 1}, {leaf, 2}, {b, 0}, {b1, 1}, {orphan, 0}});
+  Access::SetHierarchyExpanded(ui, {});
+  check({{a, 0}, {b, 0}, {orphan, 0}});
+  Access::SetHierarchyFilter(ui, "child");
+  const auto filtered = Access::HierarchyRows(ui, scene);
+  const auto nodes = scene.Nodes();
+  std::vector<editor::SceneDocument::NodeKey> expected_filter;
+  for (const auto &node : nodes)
+    if (node.name.starts_with("Child"))
+      expected_filter.push_back(node.Key());
+  Require(filtered.size() == expected_filter.size(), "mixed filter cardinality changed");
+  for (std::size_t i = 0; i < filtered.size(); ++i)
+    Require(filtered[i].key == expected_filter[i] && filtered[i].depth == 0 &&
+                !filtered[i].has_children,
+            "filter lost input order or flat row semantics");
+  // The earlier copied row remains independent of later topology/expansion/filter changes.
+  Require(observed[1].key.id == a1 && observed[1].depth == 1 && observed[1].has_children,
+          "owning hierarchy observation changed");
+
+  runtime::World reversed_world;
+  const auto reversed_sid = reversed_world.LoadScene("Child before parent");
+  editor::SceneDocument reversed(reversed_world, reversed_sid);
+  const std::array<std::pair<runtime::Id, runtime::Id>, 6> records{
+      {{20, 30}, {10, 0}, {30, 10}, {40, 0}, {50, 10}, {60, 40}}};
+  std::string source = "NEXORA_EDITOR_SCENE 3\n";
+  for (const auto &[id, parent] : std::views::reverse(records))
+    source += "node " + std::to_string(id) + " " + std::to_string(parent) + " Node\n";
+  source += "world\nNEXORA_SCENE 3 \"Child before parent\" 0 6\n";
+  for (const auto &[id, parent] : records)
+    source += std::to_string(id) + " " + std::to_string(parent) +
+              " 0 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n";
+  Require(reversed.ReloadBytes(source), "child-before-parent source rejected");
+  Access::SetHierarchyFilter(ui, "");
+  const std::array reversed_expanded{*reversed.Key(10), *reversed.Key(30), *reversed.Key(40)};
+  Access::SetHierarchyExpanded(ui, reversed_expanded);
+  const auto reversed_rows = Access::HierarchyRows(ui, reversed);
+  const std::array<runtime::Id, 6> order{10, 30, 20, 50, 40, 60};
+  const std::array<std::uint32_t, 6> depths{0, 1, 2, 1, 0, 1};
+  Require(reversed_rows.size() == order.size(), "child-before-parent cardinality changed");
+  for (std::size_t i = 0; i < order.size(); ++i)
+    Require(reversed_rows[i].key == *reversed.Key(order[i]) && reversed_rows[i].depth == depths[i],
+            "child-before-parent traversal depends on metadata or input parent order");
+  Require(!reversed.Dirty() && !reversed.Undo() && !reversed.Redo(),
+          "hierarchy observation changed clean source/history");
+}
+
 // Only ImGui allocations are measured. World/document/container allocations and native GPU
 // resources are outside this counter; reporting this as total process memory would be misleading.
 struct AllocationStats final {
@@ -300,11 +385,16 @@ void Benchmark() {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--topology") {
+      MixedTopology();
+      return 0;
+    }
     if (argc == 2 && std::string_view(argv[1]) == "--benchmark") {
       Benchmark();
       return 0;
     }
-    Require(argc == 1, "expected no arguments or --benchmark");
+    Require(argc == 1, "expected no arguments, --benchmark or --topology");
+    MixedTopology();
     Deep(1);
     Deep(2);
     Flat();

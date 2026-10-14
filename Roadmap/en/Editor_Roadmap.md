@@ -1310,6 +1310,13 @@ creates property widgets; unknown components retain raw data instead of being si
     checks and scoped31-sample Nodes before/after measurements pass with honest CPU/allocator scope;
     O(n) validation/other frame work and complete production/GPU/memory/soak budgets remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyNodeIndex-Linux-2026-10-13.md).
+  - ✅ Unfiltered hierarchy rows now use call-local contiguous first-child/next-sibling indices
+    instead of a parent-to-child-vector hash map. Exact input sibling/root order, orphan roots,
+    child-before-parent storage, expansion/depth/filter and reparent/Undo semantics are preserved.
+    Existing real100k deep/flat clipping/source/history/lifecycle checks and before/after CPU shell
+    samples pass; deep-chain observations improve while some flat samples regress. Lookup/pruning
+    and other O(n) work remain; no total-memory/GPU/production/physical budget is inferred.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyChildLinks-Linux-2026-10-13.md).
   - ✅ Top-down Scene overview now resolves owning bulk world poses with iterative indexed ancestry,
     preserving exact affine origins and the existing TRS approximation. Marker traversal, Frame all
     and prospective drag ancestry avoid repeated parent-chain lookup. Real 100,000-node Runtime and
