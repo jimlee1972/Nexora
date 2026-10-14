@@ -94,9 +94,9 @@ expansion changes rebuild the row projection before clipping; actual arrow colla
 guarded event-time erase lookup. Filtering stays flat, and read-only projects may still change
 view expansion without authoring or IO. Link flags are call-local and returned row flags belong
 to the caller's frame-local projection; no persistent projection cache is added. Authoritative
-expansion-key view state and existing ImGui storage keep their existing lifetimes. Remaining
+expansion-key view state keeps its existing lifetime; branch storage is scoped as described below. Remaining
 lookup/pruning, selection and other shell work still scale with input. Private test-only
-accessors observe actual rendered branch storage and root-arrow positions; matching test consumers
+accessors observe actual rendered branch outcomes and root-arrow positions; matching test consumers
 rebuild, with no public host layout, stable C/Gameplay ABI, module or wire-format change.
 
 `NexoraDeepHierarchyTests --benchmark-end` is an additional manual CPU diagnostic over the expanded
@@ -106,6 +106,22 @@ The final root must remain submitted, all100k logical rows stay available with f
 source/history stay unchanged and each teardown releases all ImGui payload. The standard eight-case
 CTest scale gate and deadlines remain unchanged. This supplements its start-viewport samples;
 ImGui payload excludes STL/World/document/process memory, native GPU and physical-host budgets.
+
+Hierarchy branch widgets use a dedicated per-draw `ImGuiStorage` only during each synchronous
+`TreeNodeEx` call. A scoped guard captures the original window's storage slot, selects the local
+store and restores the captured pointer on normal return or unwinding. Other header/window widget
+storage stays intact. The temporary tree table grows only with submitted branch widgets and is
+released before drawing returns, so obsolete generation-qualified IDs do not accumulate through
+reload/replacement cycles. Authoritative full NodeKey expansion state still owns view behavior.
+
+Actual `TreeNodeEx` results are copied alongside rendered row keys/positions for inspection;
+this oracle does not recompute the projection. Observations own scalar keys/coordinates/optional
+booleans only, reset on each shell draw and never retain document/name/World/native borrows.
+Their vector may retain the peak submitted-row capacity until host destruction; this differs
+from accumulating obsolete generation entries. Fixed-input reload/replacement tests also preserve
+an unrelated window-storage marker and require the original storage pointer after drawing.
+These are scoped UI storage/lifecycle guarantees, not total process-memory or physical-soak budgets.
+[Regression and scale evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyWidgetStorage-Linux-2026-10-14.md).
 
 ## Ownership and lifetime
 

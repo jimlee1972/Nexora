@@ -1,0 +1,471 @@
+{
+  "schema": 1,
+  "beads": "nexora-0ua.1.11",
+  "base_commit": "015bc87abed188f5d391d0a514c4c10890cf928f",
+  "scope": "hierarchy-widget-storage-lifecycle",
+  "candidate_cpp_sha256": {
+    "Engine/EditorImGui/src/EditorImGui.cpp": "7e28692193bc5e55575bdaff46710039ab80343efc83bc62b887d1d4c906d061",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "d893e245898c971d97c9eabc1c3017c0d99a04881d8388a79fd10de4e995dac0",
+    "Tests/EditorImGui/HierarchyNavigationTests.cpp": "c7b89d9e49176b55f17fb37b0223a177bfd5b6a5b40d1fa6788ef6d63d23d7fd"
+  },
+  "host": {
+    "os": "Linux 6.18.44",
+    "cpu": "AMD EPYC 9V74",
+    "visible_cpus": 5,
+    "cpu_quota": 4,
+    "compiler": "GCC 14.2.0",
+    "configuration": "Development"
+  },
+  "two_node_probe": {
+    "1": {
+      "before": {
+        "initial_entries": 2,
+        "samples": [
+          {
+            "reloads": 64,
+            "entries": 66,
+            "capacity": 90,
+            "nodes": 2
+          },
+          {
+            "reloads": 128,
+            "entries": 130,
+            "capacity": 135,
+            "nodes": 2
+          },
+          {
+            "reloads": 192,
+            "entries": 194,
+            "capacity": 202,
+            "nodes": 2
+          },
+          {
+            "reloads": 256,
+            "entries": 258,
+            "capacity": 303,
+            "nodes": 2
+          }
+        ],
+        "actual_widget_checks_passed": true
+      },
+      "after": {
+        "initial_entries": 0,
+        "samples": [
+          {
+            "reloads": 64,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          },
+          {
+            "reloads": 128,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          },
+          {
+            "reloads": 192,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          },
+          {
+            "reloads": 256,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          }
+        ],
+        "actual_widget_checks_passed": true
+      }
+    },
+    "2": {
+      "before": {
+        "initial_entries": 2,
+        "samples": [
+          {
+            "reloads": 64,
+            "entries": 66,
+            "capacity": 90,
+            "nodes": 2
+          },
+          {
+            "reloads": 128,
+            "entries": 130,
+            "capacity": 135,
+            "nodes": 2
+          },
+          {
+            "reloads": 192,
+            "entries": 194,
+            "capacity": 202,
+            "nodes": 2
+          },
+          {
+            "reloads": 256,
+            "entries": 258,
+            "capacity": 303,
+            "nodes": 2
+          }
+        ],
+        "actual_widget_checks_passed": true
+      },
+      "after": {
+        "initial_entries": 0,
+        "samples": [
+          {
+            "reloads": 64,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          },
+          {
+            "reloads": 128,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          },
+          {
+            "reloads": 192,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          },
+          {
+            "reloads": 256,
+            "entries": 0,
+            "capacity": 0,
+            "nodes": 2
+          }
+        ],
+        "actual_widget_checks_passed": true
+      }
+    }
+  },
+  "lifecycle_cases": [
+    {
+      "scope": "hierarchy-window-storage",
+      "dpi": 1,
+      "macos": false,
+      "reload_cycles": 128,
+      "replacement_cycles": 32,
+      "baseline_entries": 1,
+      "maximum_entries": 1
+    },
+    {
+      "scope": "hierarchy-window-storage",
+      "dpi": 1,
+      "macos": true,
+      "reload_cycles": 128,
+      "replacement_cycles": 32,
+      "baseline_entries": 1,
+      "maximum_entries": 1
+    },
+    {
+      "scope": "hierarchy-window-storage",
+      "dpi": 2,
+      "macos": false,
+      "reload_cycles": 128,
+      "replacement_cycles": 32,
+      "baseline_entries": 1,
+      "maximum_entries": 1
+    },
+    {
+      "scope": "hierarchy-window-storage",
+      "dpi": 2,
+      "macos": true,
+      "reload_cycles": 128,
+      "replacement_cycles": 32,
+      "baseline_entries": 1,
+      "maximum_entries": 1
+    }
+  ],
+  "scale_cases": [
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "flat-roots",
+      "cycle": 0,
+      "dpi": 1.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 821.291,
+      "p95_ms": 953.201,
+      "max_ms": 953.201,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 4256,
+      "imgui_peak_bytes": 311489,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        808.366,
+        808.62,
+        815.649,
+        815.894,
+        819.136,
+        821.291,
+        832.397,
+        833.546,
+        842.735,
+        886.075,
+        928.932,
+        953.201
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "flat-roots",
+      "cycle": 0,
+      "dpi": 2.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 871.515,
+      "p95_ms": 954.306,
+      "max_ms": 954.306,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 4256,
+      "imgui_peak_bytes": 409793,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        792.121,
+        805.04,
+        825.117,
+        836.047,
+        841.017,
+        871.515,
+        872.974,
+        888.77,
+        905.49,
+        939.353,
+        944.304,
+        954.306
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "expanded-chain",
+      "cycle": 0,
+      "dpi": 1.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 912.203,
+      "p95_ms": 949.273,
+      "max_ms": 949.273,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 3724,
+      "imgui_peak_bytes": 291527,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        871.974,
+        884.656,
+        889.712,
+        897.246,
+        905.231,
+        912.203,
+        917.788,
+        921.325,
+        925.025,
+        935.383,
+        935.993,
+        949.273
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "expanded-chain",
+      "cycle": 0,
+      "dpi": 2.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 916.088,
+      "p95_ms": 961.322,
+      "max_ms": 961.322,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 3724,
+      "imgui_peak_bytes": 389831,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        872.97,
+        902.271,
+        908.232,
+        912.531,
+        913.672,
+        916.088,
+        918.176,
+        919.891,
+        921.287,
+        934.116,
+        934.334,
+        961.322
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "flat-roots",
+      "cycle": 1,
+      "dpi": 1.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 847.674,
+      "p95_ms": 904.735,
+      "max_ms": 904.735,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 4256,
+      "imgui_peak_bytes": 311489,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        805.166,
+        810.7,
+        814.681,
+        830.428,
+        836.597,
+        847.674,
+        848.523,
+        859.709,
+        862.145,
+        871.114,
+        877.57,
+        904.735
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "flat-roots",
+      "cycle": 1,
+      "dpi": 2.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 835.745,
+      "p95_ms": 862.125,
+      "max_ms": 862.125,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 4256,
+      "imgui_peak_bytes": 409793,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        815.552,
+        819.065,
+        819.663,
+        820.757,
+        824.057,
+        835.745,
+        836.455,
+        839.981,
+        840.035,
+        840.681,
+        849.996,
+        862.125
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "expanded-chain",
+      "cycle": 1,
+      "dpi": 1.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 897.469,
+      "p95_ms": 1001.033,
+      "max_ms": 1001.033,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 3724,
+      "imgui_peak_bytes": 291527,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        879.254,
+        888.3,
+        889.232,
+        891.774,
+        893.854,
+        897.469,
+        914.665,
+        918.245,
+        933.546,
+        975.903,
+        976.026,
+        1001.033
+      ]
+    },
+    {
+      "schema": 1,
+      "scope": "cpu-imgui-product-shell",
+      "nodes": 100000,
+      "dataset": "expanded-chain",
+      "cycle": 1,
+      "dpi": 2.0,
+      "logical_width": 1280,
+      "logical_height": 900,
+      "warmup_frames": 6,
+      "samples": 12,
+      "p50_ms": 910.721,
+      "p95_ms": 975.76,
+      "max_ms": 975.76,
+      "max_hierarchy_widgets": 44,
+      "max_vertices": 3724,
+      "imgui_peak_bytes": 389831,
+      "imgui_retained_bytes": 0,
+      "sorted_frame_ms": [
+        882.797,
+        888.342,
+        888.516,
+        900.155,
+        908.854,
+        910.721,
+        922.87,
+        923.633,
+        929.56,
+        943.24,
+        949.767,
+        975.76
+      ]
+    }
+  ],
+  "negative_controls": {
+    "old_renderer": "hierarchy window storage grew from 2 to 4 obsolete generation entries",
+    "bypass_storage_guard": "hierarchy window storage grew from 2 to 4 obsolete generation entries"
+  },
+  "limitations": [
+    "Window storage entry/capacity counts are not total process memory.",
+    "CPU shell and ImGui allocator samples exclude native GPU, presentation and physical-host acceptance.",
+    "Row observation vector can retain peak submitted-row capacity until host destruction."
+  ],
+  "validation": {
+    "linux_development_configure": "passed",
+    "linux_development_build_actions": 294,
+    "linux_development_ctest": {
+      "passed": 255,
+      "total": 255,
+      "seconds": 806.6,
+      "skipped": 0
+    },
+    "linux_shipping_build_actions": 5,
+    "documentation_tests": 16,
+    "targeted_tests": 3
+  }
+}

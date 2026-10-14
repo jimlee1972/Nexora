@@ -43,6 +43,11 @@
 namespace nexora::editor::imgui {
 static_assert(sizeof(ImWchar) == 4, "Editor text input must preserve all Unicode scalar values");
 struct EditorImGuiHost::State final {
+  struct HierarchyRowObservation final {
+    SceneDocument::NodeKey key;
+    std::array<float, 2> position;
+    std::optional<bool> expanded;
+  };
   struct HierarchySelectionRequest final {
     SceneDocument::NodeKey entity;
     bool additive = false;
@@ -248,7 +253,7 @@ struct EditorImGuiHost::State final {
   std::optional<SceneDocument::NodeKey> hierarchy_navigation_cursor;
   std::uint64_t hierarchy_navigation_generation{};
   std::string hierarchy_navigation_filter;
-  std::vector<std::pair<SceneDocument::NodeKey, std::array<float, 2>>> hierarchy_row_positions;
+  std::vector<HierarchyRowObservation> hierarchy_row_observations;
   std::vector<SceneDocument::NodeKey> hierarchy_expanded;
   std::optional<HierarchySelectionRequest> hierarchy_selection_request;
   std::optional<HierarchyMoveRequest> hierarchy_move_request;
@@ -712,6 +717,23 @@ struct HierarchyRow final {
   bool expanded = false;
 };
 
+// Only the synchronous TreeNode call uses this store. Capture the slot itself so unwinding
+// restores the original window's pointer, independently of the current-window stack.
+class ScopedHierarchyStorage final {
+public:
+  explicit ScopedHierarchyStorage(ImGuiStorage &storage)
+      : slot_(ImGui::GetCurrentWindow()->DC.StateStorage), previous_(slot_) {
+    ImGui::SetStateStorage(&storage);
+  }
+  ~ScopedHierarchyStorage() { slot_ = previous_; }
+  ScopedHierarchyStorage(const ScopedHierarchyStorage &) = delete;
+  ScopedHierarchyStorage &operator=(const ScopedHierarchyStorage &) = delete;
+
+private:
+  ImGuiStorage *&slot_;
+  ImGuiStorage *previous_;
+};
+
 template <typename StateT>
 std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
                                              std::span<const SceneDocument::NodeView> nodes,
@@ -884,7 +906,7 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
                                    bool retain_rename) {
   state.hierarchy_visible_rows = 0;
   state.hierarchy_rendered_rows = 0;
-  state.hierarchy_row_positions.clear();
+  state.hierarchy_row_observations.clear();
   state.hierarchy_selection = 0;
   if (scene == nullptr) {
     state.hierarchy_selection_anchor.reset();
@@ -1364,6 +1386,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     ImGui::EndDragDropTarget();
   };
 
+  ImGuiStorage tree_storage;
   ImGuiListClipper clipper;
   clipper.Begin(static_cast<int>(rows.size()));
   if (reveal) {
@@ -1395,11 +1418,17 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       const auto tree_id = "##hierarchy-" + std::to_string(node.id) + "-" +
                            std::to_string(node.entity_generation) + "-" +
                            std::to_string(node.document_generation);
-      const bool open = ImGui::TreeNodeEx(tree_id.c_str(), flags, "%.*s",
-                                          static_cast<int>(node.name.size()), node.name.data());
+      bool open;
+      {
+        ScopedHierarchyStorage storage_scope(tree_storage);
+        open = ImGui::TreeNodeEx(tree_id.c_str(), flags, "%.*s", static_cast<int>(node.name.size()),
+                                 node.name.data());
+      }
       const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
-      state.hierarchy_row_positions.push_back(
-          {key, {(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F}});
+      state.hierarchy_row_observations.push_back(
+          {key,
+           {(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F},
+           filter.empty() && row.has_children ? std::optional{open} : std::nullopt});
       if (reveal == key)
         ImGui::SetScrollHereY();
       const bool toggled = ImGui::IsItemToggledOpen();
@@ -7943,10 +7972,10 @@ std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::HierarchyRowPosition(const EditorImGuiHost &host,
                                             SceneDocument::NodeKey key) noexcept {
   const auto row =
-      std::ranges::find(host.state_->hierarchy_row_positions, key,
-                        &decltype(host.state_->hierarchy_row_positions)::value_type::first);
-  return row == host.state_->hierarchy_row_positions.end() ? std::nullopt
-                                                           : std::optional{row->second};
+      std::ranges::find(host.state_->hierarchy_row_observations, key,
+                        &decltype(host.state_->hierarchy_row_observations)::value_type::key);
+  return row == host.state_->hierarchy_row_observations.end() ? std::nullopt
+                                                              : std::optional{row->position};
 }
 void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
@@ -7957,17 +7986,10 @@ void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
 std::optional<bool> EditorImGuiTestAccess::HierarchyRowExpanded(const EditorImGuiHost &host,
                                                                 SceneDocument::NodeKey key) {
   Activate(host.state_->context);
-  if (!HierarchyRowPosition(host, key))
-    return std::nullopt;
-  const auto name = PanelWindowName("nexora.hierarchy");
-  auto *window = ImGui::FindWindowByName(name.c_str());
-  if (!window)
-    return std::nullopt;
-  const auto id = "##hierarchy-" + std::to_string(key.id) + "-" +
-                  std::to_string(key.entity_generation) + "-" +
-                  std::to_string(key.document_generation);
-  const auto open = window->StateStorage.GetInt(window->GetID(id.c_str()), -1);
-  return open < 0 ? std::nullopt : std::optional{open != 0};
+  const auto row =
+      std::ranges::find(host.state_->hierarchy_row_observations, key,
+                        &decltype(host.state_->hierarchy_row_observations)::value_type::key);
+  return row == host.state_->hierarchy_row_observations.end() ? std::nullopt : row->expanded;
 }
 
 std::optional<std::array<float, 2>>
@@ -7989,6 +8011,31 @@ void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.scene");
   ImGui::SetWindowFocus(name.c_str());
+}
+
+std::optional<EditorHierarchyStorageTestState>
+EditorImGuiTestAccess::HierarchyStorage(const EditorImGuiHost &host) {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.hierarchy");
+  auto *window = ImGui::FindWindowByName(name.c_str());
+  if (!window)
+    return std::nullopt;
+  const auto marker = window->StateStorage.GetInt(window->GetID("##test-storage-marker"), -1);
+  return EditorHierarchyStorageTestState{
+      static_cast<std::size_t>(window->StateStorage.Data.Size),
+      static_cast<std::size_t>(window->StateStorage.Data.Capacity),
+      window->DC.StateStorage == &window->StateStorage,
+      marker == -1 ? std::nullopt : std::optional{marker}};
+}
+
+bool EditorImGuiTestAccess::SeedHierarchyStorageMarker(EditorImGuiHost &host, int value) {
+  Activate(host.state_->context);
+  const auto name = PanelWindowName("nexora.hierarchy");
+  auto *window = ImGui::FindWindowByName(name.c_str());
+  if (!window)
+    return false;
+  window->StateStorage.SetInt(window->GetID("##test-storage-marker"), value);
+  return true;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept {

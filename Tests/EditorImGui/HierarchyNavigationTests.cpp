@@ -440,14 +440,95 @@ void ExpansionPresentations() {
     for (const bool macos : {false, true})
       ExpansionPresentation(dpi, macos);
 }
+
+void StorageLifecycle(float dpi, bool macos) {
+  Fixture f(dpi, macos);
+  constexpr int marker = 0x4e58;
+  Require(Access::SeedHierarchyStorageMarker(f.ui, marker), "storage marker setup failed");
+  const auto initial = Access::HierarchyStorage(f.ui);
+  Require(initial && initial->window_storage_active && initial->marker == marker,
+          "initial hierarchy window storage is not active");
+  std::size_t maximum_entries = initial->entries;
+  const auto check = [&] {
+    const auto storage = Access::HierarchyStorage(f.ui);
+    Require(storage && storage->window_storage_active && storage->marker == marker,
+            "tree drawing replaced the caller's storage or erased unrelated widget state");
+    maximum_entries = std::max(maximum_entries, storage->entries);
+    if (storage->entries > initial->entries)
+      throw std::runtime_error("hierarchy window storage grew from " +
+                               std::to_string(initial->entries) + " to " +
+                               std::to_string(storage->entries) + " obsolete generation entries");
+  };
+  for (int cycle = 0; cycle < 128; ++cycle) {
+    Require(f.scene.Reload(f.root / "Content/Main.scene"), "storage lifecycle reload failed");
+    const auto root = *f.scene.Key(f.roots.front()), child = *f.scene.Key(f.child);
+    Access::SetHierarchyExpanded(f.ui, std::array{root, child});
+    f.Draw();
+    Require(Access::HierarchyRowExpanded(f.ui, root) == std::optional{true} &&
+                Access::HierarchyRowExpanded(f.ui, child) == std::optional{true},
+            "storage lifecycle changed actual branch expansion");
+    check();
+    Access::QueueHierarchyExpansion(f.ui, root, false);
+    f.Draw();
+    Require(Access::HierarchyRowExpanded(f.ui, root) == std::optional{false},
+            "storage lifecycle collapse was not rendered");
+    check();
+  }
+  for (int cycle = 0; cycle < 32; ++cycle) {
+    Require(f.scene.Select(std::array{f.roots.front()}) && f.scene.DeleteSelection(),
+            "storage replacement delete failed");
+    f.Draw();
+    check();
+    const auto replacement = f.scene.Create("Replacement root");
+    Require(replacement && f.scene.Create("Replacement child", replacement),
+            "storage replacement creation failed");
+    const auto key = *f.scene.Key(replacement);
+    Access::SetHierarchyExpanded(f.ui, std::array{key});
+    const auto before = f.world.SaveScene(f.scene_id);
+    f.Draw();
+    f.FocusHierarchy();
+    f.Press(Key::End); // The appended replacement branch must actually enter the clipper range.
+    Require(Access::HierarchyRowExpanded(f.ui, key) == std::optional{true},
+            "replacement branch was not rendered open");
+    Require(f.world.SaveScene(f.scene_id) == before, "replacement observation changed the World");
+    check();
+    Require(f.scene.Reload(f.root / "Content/Main.scene"), "replacement restore failed");
+    f.Draw();
+    check();
+  }
+  f.document = nullptr;
+  f.Draw();
+  check();
+  f.document = &f.scene;
+  f.active = &f.observer;
+  f.Draw();
+  check();
+  Require(!f.scene.Dirty() && !f.scene.Undo() && !f.scene.Redo() &&
+              f.world.SaveScene(f.scene_id) == f.baseline,
+          "widget storage lifecycle changed saved source/history");
+  std::cout << "{\"scope\":\"hierarchy-window-storage\",\"dpi\":" << dpi
+            << ",\"macos\":" << (macos ? "true" : "false")
+            << ",\"reload_cycles\":128,\"replacement_cycles\":32,\"baseline_entries\":"
+            << initial->entries << ",\"maximum_entries\":" << maximum_entries << "}\n";
+}
+void StorageLifecycles() {
+  for (const float dpi : {1.F, 2.F})
+    for (const bool macos : {false, true})
+      StorageLifecycle(dpi, macos);
+}
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--storage") {
+      StorageLifecycles();
+      return 0;
+    }
     if (argc == 2 && std::string_view(argv[1]) == "--expansion") {
       ExpansionPresentations();
       return 0;
     }
-    Require(argc == 1, "expected no arguments or --expansion");
+    Require(argc == 1, "expected no arguments, --expansion or --storage");
+    StorageLifecycles();
     ExpansionPresentations();
     Navigation(1, false);
     Navigation(2, false);
