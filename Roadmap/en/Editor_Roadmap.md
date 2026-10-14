@@ -882,6 +882,13 @@ creates property widgets; unknown components retain raw data instead of being si
     unload reset their respective identity. Default user0 and the stable C ABI remain compatible;
     no selection is persisted. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md).
     Simultaneous device owners, gamepads and pointer-look remain open.
+  - ✅ Game bindings now expose middle/back/forward pointer buttons alongside left/right, using
+    the existing copied action bits and schema-1 names. Defaults remain unchanged and movement
+    stays keyboard-only. Portable 32-cycle held/release/reset checks, rendered 1x/2x selection,
+    owning persistence and actual X11 gameplay pixels cover the supporting slice. Win32 normalizes
+    XBUTTON1/2 and wheel axes; native message checks require hosted Windows acceptance. Gamepad,
+    pointer look, simultaneous device owners and full milestone acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPointerButtons-Linux-2026-10-14.md).
   - ✅ Play input acquisition now honors native blur and pressed Escape before suppressing the
     first batch. Release wins regardless of event order; later batches remain neutral until explicit
     reacquisition, whose first batch is still discarded. State and actual gameplay callback tests

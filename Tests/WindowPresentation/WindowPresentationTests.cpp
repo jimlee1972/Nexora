@@ -316,6 +316,34 @@ int main() {
   auto hwnd = static_cast<HWND>(nativeWindows->NativeHandle(eventWindow.handle));
   assert(hwnd);
 
+  const std::array downMessages{WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_XBUTTONDOWN,
+                                WM_XBUTTONDOWN};
+  const std::array upMessages{WM_LBUTTONUP, WM_RBUTTONUP, WM_MBUTTONUP, WM_XBUTTONUP, WM_XBUTTONUP};
+  for (std::size_t index = 0; index < downMessages.size(); ++index) {
+    const WPARAM buttons = index < 3 ? 0 : MAKEWPARAM(0, index - 2);
+    const auto pressed = SendMessageW(hwnd, downMessages[index], buttons, 0);
+    const auto released = SendMessageW(hwnd, upMessages[index], buttons, 0);
+    if (index >= 3)
+      assert(pressed == TRUE && released == TRUE);
+    const auto translated = nativeWindows->PumpEvents();
+    assert(translated.size() == 2);
+    for (std::size_t edge = 0; edge < translated.size(); ++edge) {
+      assert(translated[edge].window == eventWindow.handle);
+      assert(translated[edge].type == Window::WindowEventType::PointerButton);
+      assert(translated[edge].value0 == static_cast<std::int32_t>(index));
+      assert(translated[edge].value1 == (edge == 0 ? 1 : 0));
+    }
+  }
+  for (const auto message : {WM_MOUSEWHEEL, WM_MOUSEHWHEEL}) {
+    for (const auto delta : {-120, 120}) {
+      SendMessageW(hwnd, message, MAKEWPARAM(0, delta), 0);
+      const auto wheel = nativeWindows->PumpEvents();
+      assert(wheel.size() == 1 && wheel[0].type == Window::WindowEventType::Wheel);
+      assert(wheel[0].value0 == (message == WM_MOUSEHWHEEL ? delta : 0));
+      assert(wheel[0].value1 == (message == WM_MOUSEWHEEL ? delta : 0));
+    }
+  }
+
   SendMessageW(hwnd, WM_CHAR, 0xD83D, 0);
   assert(nativeWindows->PumpEvents().empty());
   SendMessageW(hwnd, WM_CHAR, 0xDE80, 0);

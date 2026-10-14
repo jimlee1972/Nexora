@@ -247,6 +247,12 @@ target_compile_definitions(NexoraPlayInputFixture PRIVATE NEXORA_FIXTURE_INPUT_O
 target_link_libraries(NexoraPlayInputFixture PRIVATE Nexora::Foundation)
 nexora_apply_defaults(NexoraPlayInputFixture)
 
+add_library(NexoraPlayPointerFixture MODULE PlayGameplayFixture.cpp)
+target_compile_definitions(NexoraPlayPointerFixture PRIVATE
+  NEXORA_FIXTURE_INPUT_ONLY=1 NEXORA_FIXTURE_POINTER_ONLY=1)
+target_link_libraries(NexoraPlayPointerFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayPointerFixture)
+
 if(WIN32)
   add_executable(NexoraEditorWindowsDpiImeTests WindowsDpiImeTests.cpp)
   target_include_directories(NexoraEditorWindowsDpiImeTests
@@ -450,6 +456,12 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_game_input PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_native_play_pointer_buttons
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+      --input-routing --pointer-buttons --module "$<TARGET_FILE:NexoraPlayPointerFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_pointer_buttons PROPERTIES TIMEOUT 45)
   add_test(
     NAME editor.linux_native_project_input
     COMMAND "${Python3_EXECUTABLE}"

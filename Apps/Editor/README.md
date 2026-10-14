@@ -877,6 +877,12 @@ explicit Apply. Read-only inspection permits these settings. Switching/detaching
 session state before project settings are restored; new Play sessions within the same project retain it. The finite keyboard/mouse control
 set excludes the reserved Escape/F5/F6/F10 Editor controls.
 
+All five common pointer buttons can bind to the existing five button actions: left, right,
+middle, back and forward. Movement remains keyboard-only. Defaults are unchanged, so the three
+additional buttons remain unbound until explicitly selected. The same acquisition, focus, user
+switch, Pause/Stop and profile-replacement reset rules apply to every held button. Pointer look,
+gamepad and simultaneous independent device owners remain separate work.
+
 `ForwardPlayInput` sends the copied profile through `PlayGameplayModule` before processing every
 native input batch, including deferred rendering. `PlayInputState` translates platform-independent
 Window keys/buttons to profile controls and publishes the same selected-user `NexoraInputSnapshot`

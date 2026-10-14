@@ -144,6 +144,55 @@ int main() {
     Require(input.Snapshot().buttons == 0 && input.Snapshot().move_x == 1,
             "unbound buttons still fired or changed movement mapping");
 
+    for (int cycle = 0; cycle < 32; ++cycle) {
+      preview::PlayInputState pointer;
+      PlayInputBindings pointer_bindings;
+      for (std::size_t index = 4; index < pointer_bindings.controls.size(); ++index)
+        pointer_bindings.controls[index] = {
+            static_cast<Control>(static_cast<int>(Control::MouseLeft) + index - 4), Control::None};
+      Require(pointer.SetBindings(pointer_bindings), "five-button profile rejected");
+      pointer.SetFocused(true);
+      pointer.Process(std::array{Mouse(2, true), Mouse(3, true), Mouse(4, true)});
+      pointer.Process({});
+      Require(pointer.Snapshot().buttons == 0, "pointer acquisition retained held buttons");
+      for (int button = 0; button < 5; ++button) {
+        const auto expected = 1U << button;
+        pointer.Process(
+            std::array{Mouse(button, true), Mouse(-1, true), Mouse(5, true), Mouse(1000000, true)});
+        const auto held_pointer = pointer.Snapshot();
+        pointer.Process({});
+        Require(pointer.Snapshot().buttons == expected && held_pointer.buttons == expected &&
+                    held_pointer.reserved == 0,
+                "pointer index mapped to the wrong copied action");
+        pointer.Process(std::array{Mouse(button, false)});
+        Require(pointer.Snapshot().buttons == 0 && held_pointer.buttons == expected,
+                "pointer release retained held state or changed an owning snapshot");
+        auto bad_pointer = pointer_bindings;
+        bad_pointer.controls[0][0] = pointer_bindings.controls[4 + button][0];
+        Require(!pointer.SetBindings(bad_pointer), "pointer movement binding admitted");
+      }
+      pointer.Process(std::array{Mouse(0, true), Mouse(1, true), Mouse(2, true), Mouse(3, true),
+                                 Mouse(4, true)});
+      Require(pointer.Snapshot().buttons == 31, "simultaneous pointer buttons lost an owner");
+      Require(pointer.SetBindings(pointer_bindings) && pointer.Snapshot().buttons == 31,
+              "unchanged pointer bindings cleared held input");
+      pointer.Process(std::array{KeyEvent(Key::Escape, true)});
+      pointer.Process(std::array{Mouse(3, true), Mouse(4, true)});
+      Require(pointer.Snapshot().buttons == 0, "released pointer admitted later held input");
+      pointer.SetFocused(true);
+      pointer.Process({});
+      pointer.Process(std::array{Mouse(4, true)});
+      Require(pointer.SetBindings({}) && pointer.Snapshot().buttons == 0,
+              "pointer profile replacement retained held input");
+      Require(pointer.SetBindings(pointer_bindings), "pointer blur profile reset failed");
+      pointer.Process({});
+      pointer.Process(std::array{Mouse(2, true), Mouse(3, true), Mouse(4, true)});
+      Require(pointer.Snapshot().buttons == 28, "pointer blur fixture did not acquire buttons");
+      pointer.Process(std::array{lost});
+      pointer.Process(std::array{Mouse(2, true), Mouse(3, true), Mouse(4, true)});
+      Require(pointer.Snapshot().buttons == 0, "native blur retained extra pointer buttons");
+    }
+
     runtime::World world;
     const auto scene = world.LoadScene("Game input");
     Require(world.Activate(scene), "activate failed");

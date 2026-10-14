@@ -833,6 +833,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   保持相容，selection 不會持久化。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md)。
   同時多裝置 owner、gamepad 與 pointer-look 仍待完成。
+- ✅ Game 綁定現可選中鍵／返回鍵／前進鍵，以及既有左／右鍵，沿用 copied action bit 與
+  schema-1 控制名稱。預設不變，movement 仍限鍵盤。Portable 32次 held／release／reset、
+  rendered 1x／2x 選取、owning 持久化與真正 X11 gameplay 像素涵蓋此支援性切片。
+  Win32 正規化 XBUTTON1／2 與滾輪軸；原生訊息檢查仍需 hosted Windows 驗收。Gamepad、
+  pointer look、同時多裝置 owner 與完整里程碑仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPointerButtons-Linux-2026-10-14.md)。
 - ✅ Play input acquisition 現會先處理 native 失焦與按下 Escape，再丟棄第一批輸入。
   不論事件順序，release 都優先；後續批次維持中立，直到明確重新取得 focus，而重新取得的
   第一批仍會丟棄。State 與真正 gameplay callback 測試涵蓋 owning snapshot、持續遞增

@@ -254,7 +254,11 @@ def main():
         require(b'node ' + node + b' 0 ' + expected_name + b'\n' in partial[3] and
                 re.search(rb'^' + node + rb' 0 ' + expected_position + rb' ', partial[3], re.M) and
                 partial[2] == child_asset[2] and opaque in partial[3],
-                'Actual selected revert changed an unselected value, stable identity or unknown bytes')
+                'Actual selected revert changed an unselected value, stable identity or unknown bytes; '
+                f'name_first={selected_name} expected_name={expected_name!r} '
+                f'expected_position={expected_position!r} '
+                f'metadata_match={partial[2] == child_asset[2]} opaque_retained={opaque in partial[3]} '
+                f'actual_prefix={partial[3][:2048]!r}')
         click(window, 88, 200)
         start = len(captured)
         click(window, 110, 177)
