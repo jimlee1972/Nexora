@@ -1,10 +1,11 @@
 # Nexora 2D Engine Roadmap
 
-> Version: v1.2 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-14
+> Version: v1.3 | Status: cloud and local Windows slices verified; PC product gates open | Updated: 2026-10-15
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
 > have portable/Linux functional evidence. M6 physical minimum-PC 60 FPS and M7 clean Windows
-> runtime/Shipping remain **NOT RUN**. This is not full Windows PC product acceptance.
+> runtime/Shipping remain unaccepted (M6 **NOT ACCEPTED**, M7 **NOT RUN**). Local Windows
+> screening is recorded below; this is not full Windows PC product acceptance.
 
 ## 1. Scope and baseline
 
@@ -31,8 +32,8 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M3 | P0 | Lightweight 2D collision/queries | Circle/AABB overlap, filters, range queries, spatial index and swept checks for fast movement | Compare indexed results with an independent brute-force oracle; cover boundaries, filtering, fast motion and insert/remove | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
-| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Cloud implementation verified; physical Windows gate NOT RUN |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | Cloud implementation verified; physical Windows gate NOT RUN |
+| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | Local Cooked Shipping/Studio/Zig slice verified; clean Windows gate NOT RUN |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
@@ -142,6 +143,25 @@ attachment and game production content are separate integrations.
 
 [Retained Zig/Linux acceptance](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 records the complete suite, initial GUI failures/retry and Shipping scope.
+
+## 9. Local Windows developer-PC slice (2026-10-14–15)
+
+✅ The physical AMD FX-6100 / GTX 960 / Windows 10 host ran the complete MSVC Development
+suite, native DX12 Studio document lifecycle, a 600-frame Monolithic Shipping Zig consumer,
+and an isolated Cooked Shipping package with async-load/hash/corruption checks. Six mixed
+native Shipping workloads retain CPU/GPU/frame-time distributions and process memory samples.
+[Windows evidence](../../Engine/TwoD/evidence/Windows-2026-10-14/acceptance.md) records exact
+commands, device/driver, pre-run screening budgets, raw results and the MSVC fixture repair.
+
+M6 remains **NOT ACCEPTED**: all cases exceed the predeclared screening budget; 10,000 normal/
+sparse objects have whole-frame p95 53.68/61.00 ms, with GPU p95 below 0.8 ms. This screening
+does not declare product minimum hardware or validate sustained integrated UI/VFX/allocator budgets. M7 clean Windows remains **NOT RUN**;
+actual keyboard/controller, audible playback, clean-host redistributables, display/DPI transitions
+and separate Windows Vulkan execution remain open. Computer Use initialization failed, so no
+physical-input or screenshot acceptance is inferred. Native Zig movement was synthetic input.
+The user explicitly limited this run to available local-host checks. Progress stays **9/11,
+P0 6/8 (82%)**; Beads parent `nexora-j4q` stays open, with this slice in `nexora-j4q.1`
+and the CPU/pacing follow-up in `nexora-j4q.2`.
 
 - [Roadmap index](../ReadMe.md)
 - [V1 Complete Plan](Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md)

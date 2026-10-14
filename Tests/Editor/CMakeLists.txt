@@ -287,7 +287,12 @@ if(WIN32)
 endif()
 nexora_apply_defaults(NexoraParserRobustnessTests)
 add_test(NAME editor.parser_robustness COMMAND NexoraParserRobustnessTests)
-set_tests_properties(editor.parser_robustness PROPERTIES TIMEOUT 300)
+# Keep the CI deadline unchanged while allowing bounded full-strength runs on slower hosts.
+set(NEXORA_PARSER_ROBUSTNESS_TIMEOUT 300 CACHE STRING "Parser mutation test timeout in seconds")
+if(NOT NEXORA_PARSER_ROBUSTNESS_TIMEOUT MATCHES "^[1-9][0-9]*$")
+  message(FATAL_ERROR "NEXORA_PARSER_ROBUSTNESS_TIMEOUT must be a positive integer")
+endif()
+set_tests_properties(editor.parser_robustness PROPERTIES TIMEOUT ${NEXORA_PARSER_ROBUSTNESS_TIMEOUT})
 
 add_executable(NexoraEditorAffineGizmoTests AffineGizmoTests.cpp)
 target_link_libraries(NexoraEditorAffineGizmoTests PRIVATE Nexora::Editor)

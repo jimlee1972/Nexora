@@ -82,6 +82,8 @@ native presentation on an equipped host.
 CTest `twod.cloud_native` retains CSV, native Studio log, source/cooked assets, saved document and
 `acceptance.json` under `build/<preset>/artifacts/twod-cloud/`. `twod.native_pixels` retains its
 cross-atlas alpha/HUD capture under `artifacts/twod-native/`. Missing Xvfb is a local skip and a CI
-failure; no skipped test constitutes acceptance. Physical PC 60 FPS and clean Windows acceptance
-remain NOT RUN. See [module contracts](../../Engine/TwoD/README.md) and
+failure; no skipped test constitutes acceptance. [Local Windows evidence](../../Engine/TwoD/evidence/Windows-2026-10-14/acceptance.md)
+retains native DX12 screening, Studio save/reopen and Monolithic Cooked Shipping checks on a
+developer PC. Minimum-PC 60 FPS remains NOT ACCEPTED; clean Windows acceptance remains NOT RUN.
+See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).

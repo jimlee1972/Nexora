@@ -1,10 +1,11 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.2 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-14
+> 版本：v1.3 | 狀態：雲端與本機 Windows 切片已驗證，PC 產品 gate 待完成 | 更新：2026-10-15
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
 > Portable／Linux 功能證據。M6 最低規格實體 PC 60 FPS 與 M7 乾淨 Windows
-> Runtime／Shipping 仍為 **NOT RUN**；這不是完整 Windows PC 產品驗收。
+> Runtime／Shipping 仍未驗收（M6 **NOT ACCEPTED**、M7 **NOT RUN**）。本機 Windows
+> Screening 已保留於下方；這不是完整 Windows PC 產品驗收。
 
 ## 1. 範圍與基線
 
@@ -30,8 +31,8 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
-| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 雲端實作已驗證；實體 Windows gate 為 NOT RUN |
-| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 雲端實作已驗證；實體 Windows gate 為 NOT RUN |
+| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 本機 Cooked Shipping／Studio／Zig 切片已驗證；乾淨 Windows gate 為 NOT RUN |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M10 | P1，條件式 | Tilemap | 圖層、繪製、碰撞資料、區塊載入／剔除 | 實作繪製、圖層／碰撞資料及區塊載入／剔除，通過 Undo／儲存／重開及區塊邊界渲染／查詢測試；決定延後仍維持未驗收 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -130,6 +131,24 @@ ID／Handle 而不重複建立內容；C／C++／Zig 布局及橋接負面契約
 
 [保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
+
+## 9. 本機 Windows 開發 PC 切片（2026-10-14–15）
+
+✅ 實體 AMD FX-6100／GTX 960／Windows 10 主機執行完整 MSVC Development 測試、
+原生 DX12 Studio 文件生命週期、600 幀 Monolithic Shipping Zig Consumer，以及隔離的
+Cooked Shipping 封裝、非同步載入／雜湊／損毀拒絕。六種混合原生 Shipping 負載保留
+CPU／GPU／幀時間分布與 Process 記憶體採樣。
+[Windows 證據](../../Engine/TwoD/evidence/Windows-2026-10-14/acceptance.md) 記錄精確指令、
+硬體／Driver、量測前固定的 Screening 預算、原始結果及 MSVC Fixture 修正。
+
+M6 維持 **NOT ACCEPTED**：各案例皆超出量測前固定的 Screening 預算；10,000 一般／
+稀疏物件的整幀 p95 為 53.68／61.00 ms，GPU p95 小於 0.8 ms。這次 Screening
+沒有宣告產品最低硬體，也沒有驗證持續的完整 UI／VFX／配置負載預算。M7 乾淨 Windows 維持 **NOT RUN**；實際鍵鼠／手把、
+可聽音效、乾淨主機 Redistributable、顯示／DPI 切換及獨立 Windows Vulkan 執行仍待驗證。
+Computer Use 初始化失敗，不推定實際輸入或擷取圖驗收通過；Zig 移動使用合成方向輸入。
+使用者明確限定本次完成目前主機可驗證部分。進度保持 **9/11、P0 6/8（82%）**；
+Beads 父任務 `nexora-j4q` 保持開啟，本切片由 `nexora-j4q.1` 追蹤；
+CPU／幀節奏 follow-up 為 `nexora-j4q.2`。
 
 - [Roadmap 索引](../ReadMe.md)
 - [V1 完整規劃書](跨平台3D_Engine_V1_完整規劃書_v1_2.md)

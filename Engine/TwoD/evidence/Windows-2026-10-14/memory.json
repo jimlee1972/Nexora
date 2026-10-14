@@ -1,0 +1,8 @@
+{
+  "process_peak_working_set_bytes": 87240704,
+  "samples": 702,
+  "sample_interval_ms": 100,
+  "monitoring_start_delay_seconds": 17.8798097,
+  "elapsed_seconds": 104.9291799,
+  "scope": "OS lifetime peak process working set observed externally while running; not GPU memory or allocator accounting"
+}

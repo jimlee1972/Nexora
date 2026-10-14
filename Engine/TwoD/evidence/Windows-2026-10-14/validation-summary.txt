@@ -1,0 +1,29 @@
+Final command: ctest --preset windows-showcase-development --output-on-failure
+Configuration: /O2 Development; assertions enabled; parser 2000 mutations/900 s; hierarchy scale 3; capture generator 90 s.
+
+ 83/237 Test  #83: runtime.plugin_lifecycle ........................   Passed    1.41 sec
+ 84/237 Test  #84: runtime.plugin_lifecycle_c_abi ..................   Passed    0.04 sec
+ 85/237 Test  #85: runtime.plugin_service_ownership ................   Passed    0.23 sec
+ 88/237 Test  #88: twod.runtime_contracts ..........................   Passed    0.07 sec
+ 89/237 Test  #89: twod.gameplay_bridge ............................   Passed    0.15 sec
+ 90/237 Test  #90: twod.authoring_contracts ........................   Passed    0.14 sec
+ 91/237 Test  #91: twod.asset_tool .................................   Passed    0.60 sec
+ 92/237 Test  #92: twod.cpu_stress .................................   Passed    0.96 sec
+ 93/237 Test  #93: twod.graphical_controls .........................   Passed    0.12 sec
+137/237 Test #137: editor.parser_robustness ........................   Passed  205.48 sec
+154/237 Test #154: editor.mesh_memory_json_schema ..................   Passed   24.28 sec
+155/237 Test #155: editor.mesh_memory_json_schema_optimized ........   Passed   24.06 sec
+171/237 Test #171: editor.deep_hierarchy ...........................   Passed  209.28 sec
+172/237 Test #172: editor.hierarchy_scale_lifecycle ................   Passed  703.03 sec
+173/237 Test #173: editor.overview_pose_snapshot ...................   Passed  158.62 sec
+
+100% tests passed out of 237
+
+Label Time Summary:
+dx12              =   4.24 sec*proc (1 test)
+editor            = 703.03 sec*proc (1 test)
+native-display    =   4.24 sec*proc (1 test)
+scale             = 703.03 sec*proc (1 test)
+showcase          =   4.24 sec*proc (1 test)
+
+Total Test time (real) = 2065.07 sec
