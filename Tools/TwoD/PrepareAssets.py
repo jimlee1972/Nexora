@@ -118,6 +118,7 @@ def images(manifest, root):
     return output
 
 def compile_manifest(manifest, root, compiler, output):
+    root = root.resolve(strict=True)
     kind = manifest['type']
     if kind == 'atlas':
         parts = images(manifest, root)

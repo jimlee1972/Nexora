@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 import struct
+import os
 import sys
 import tempfile
 import zlib
@@ -30,6 +31,11 @@ def main():
         manifest['images'][0] = {'path':'sheet.png','regions':[{'id':4,'rect':[1,1,1,1]},{'id':3,'rect':[0,1,1,1]},{'id':2,'rect':[1,0,1,1]},{'id':1,'rect':[0,0,1,1]}]}
         assets.compile_manifest(manifest, root, compiler, output)
         assert output.read_bytes() == first
+        if os.name != 'nt':
+            alias = root/'root-alias'
+            alias.symlink_to(root, target_is_directory=True)
+            assets.compile_manifest(manifest, alias, compiler, output)
+            assert output.read_bytes() == first
         for bad in [png[:-1], png+b'trailing', b'not a png']:
             try: assets.png(bad)
             except ValueError: pass

@@ -65,7 +65,7 @@ void Run() {
     frame(true);
     frame(true);
   }
-  Check(panel.preview.RegionId() == 1, "graphical animation preview");
+  Check(panel.preview.RegionId() == 1U, "graphical animation preview");
   ImGui::DestroyContext();
 }
 } // namespace

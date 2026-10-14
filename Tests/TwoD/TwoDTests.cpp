@@ -101,10 +101,10 @@ void Animation() {
   u = animation.Advance(1.25);
   Require(u && u->region == 1 && u->events == std::vector<std::string>{"first", "second", "first"},
           "loop event trace");
-  Require(!animation.Advance(1e9) && animation.RegionId() == 1, "event budget mutation");
+  Require(!animation.Advance(1e9) && animation.RegionId() == 1U, "event budget mutation");
   auto invalid = clip;
   invalid.frames[0].seconds = 0;
-  Require(!animation.Play(invalid) && animation.RegionId() == 1, "invalid switch mutation");
+  Require(!animation.Play(invalid) && animation.RegionId() == 1U, "invalid switch mutation");
   clip.loop = false;
   Require(animation.Play(clip, 2), "one shot");
   u = animation.Advance(10);
