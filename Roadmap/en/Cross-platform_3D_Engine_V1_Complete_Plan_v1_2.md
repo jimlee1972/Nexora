@@ -5,8 +5,9 @@
 
 > **Focused 2D extension:** [2D Engine Roadmap](2D_Roadmap.md) tracks scene Sprite rendering,
 > frame animation, Atlas/import, lightweight collision, bulk updates, batching, performance,
-> Windows Shipping and 2D authoring. It reuses V1 foundations and excludes gameplay. All 11
-> dedicated capability milestones await acceptance; this does not revise V1 foundation completion.
+> Windows Shipping and 2D authoring. It reuses V1 foundations and excludes gameplay. ✅ 9/11
+> capabilities have portable/Linux acceptance; physical PC performance and clean Windows remain
+> NOT RUN. This does not revise V1 foundation completion.
 
 > This document is the **V1 Master Plan**. It integrates the previous complete engine architecture analysis, Architecture Completion Baseline, Scene/World/Streaming/HLOD, Input, UI, Physics, Animation, Audio, DataTable, Editor, Asset/Bundle, Build/CI, as well as the latest **Plugin SDK / Bridge Layer / Third-Party Extensions / Video & Media Framework**.
 >

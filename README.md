@@ -12,6 +12,7 @@ with Node + Component authoring and data-oriented runtime storage.
 
 An executable engine/runtime baseline, native Showcase, and editor foundations are available.
 V1 portable contract foundations are delivered; V2 is in progress, and V3 remains planned.
+Optional 2D sprites, assets, queries and authoring tools are available; physical PC acceptance remains open.
 Production platform coverage, final Showcase art/performance acceptance, and graphical editor
 milestone acceptance remain in progress. Foundation delivery does not imply full product acceptance.
 
@@ -54,6 +55,7 @@ Data-oriented Runtime 儲存。
 
 目前已有可執行的 Engine／Runtime 基線、原生 Showcase 與 Editor 基礎。
 V1 Portable Contract 基礎已交付；V2 施工中，V3 仍在規劃階段。
+可選的 2D Sprite、資產、查詢與製作工具已提供；實體 PC 驗收仍待完成。
 正式平台支援、Showcase 最終美術／效能驗收及圖形化 Editor 里程碑驗收仍待完成。
 基礎交付不代表完整產品驗收。
 

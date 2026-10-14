@@ -1,0 +1,24 @@
+{
+  "type": "clip",
+  "id": [
+    503,
+    504
+  ],
+  "atlas": [
+    501,
+    502
+  ],
+  "loop": true,
+  "frames": [
+    {
+      "region": 1,
+      "seconds": 0.15,
+      "event": "frame_one"
+    },
+    {
+      "region": 2,
+      "seconds": 0.15,
+      "event": "frame_two"
+    }
+  ]
+}

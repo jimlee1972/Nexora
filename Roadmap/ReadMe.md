@@ -2,7 +2,7 @@
 
 ## Progress snapshot / 進度紀錄
 
-Updated / 更新日期：2026-10-13（Asia/Taipei）
+Updated / 更新日期：2026-10-14（UTC）
 
 | Roadmap / 規劃 | Progress / 進度 | Basis / 計算與驗收範圍 |
 | --- | ---: | --- |
@@ -14,7 +14,7 @@ Updated / 更新日期：2026-10-13（Asia/Taipei）
 | ✅ Window / Native Presentation | **100% implementation / 實作** | WP-M0–M4 implemented; remaining target-host gates tracked separately / WP-M0～M4 已實作，剩餘 target-host gate 獨立追蹤 |
 | V1 Visual Identity Showcase / V1 視覺特色 Showcase | **71.4%** | 5/7 milestones accepted, equal milestone count; VIS-M3 and VIS-M6 pending / 依里程碑數等權計算，VIS-M3 與 VIS-M6 待驗收 |
 | Graphical Editor / 圖形化 Editor | **0% acceptance / 驗收** | 0/8 graphical milestones accepted; implementation slices already exist / 圖形化里程碑已驗收 0/8，已有實作切片 |
-| 2D Engine / 2D 引擎 | **0% acceptance / 驗收** | 0/11 dedicated capability milestones accepted; engine-only Windows PC scope, Tilemap conditional / 專屬能力里程碑已驗收 0/11；僅引擎層 Windows PC 範圍，Tilemap 為條件式 |
+| 2D Engine / 2D 引擎 | **82% capability acceptance / 能力驗收** | 9/11 portable/Linux milestones; P0 6/8; physical PC 60 FPS and clean Windows NOT RUN / Portable／Linux 9/11、P0 6/8；實體 PC 60 FPS 及乾淨 Windows 未執行 |
 | Focused Roadmaps AI Plan / 聚焦 Roadmap AI 施工規劃 | **60%** | Mean of API 100%, Zig 100%, Editor 0%, rounded down to 10% / 三者平均後向下取整至 10% |
 | ✅ Transform Rotation and Scale / Transform 旋轉與縮放 | **100% planned phases / 計畫階段** | All five phases complete; graphical Editor acceptance remains separate / 五個階段完成，圖形 Editor 驗收另計 |
 | ✅ Entity Parenting / Entity 父子階層 | **100% planned phases / 計畫階段** | 4/4 runtime, wire, Editor data-model and render-sync phases complete / runtime、wire、Editor 資料模型及渲染同步四階段完成 |
@@ -29,7 +29,7 @@ and their AI companion plans track the same delivery and must not be counted twi
 Update this snapshot and both language indexes when the underlying acceptance changes; partial
 implementation does not complete an enclosing milestone.
 
-The 2D roadmap is an independent capability extension. Its planning does not change V1 foundation
+The 2D roadmap is an independent capability extension. Its delivery does not change V1 foundation
 acceptance or the existing API/Zig/Editor average in the focused AI plan.
 
 百分比以既有文件的驗收狀態為準，不代表投入工時或剩餘工作量。下方中英文來源連結保留詳細
@@ -37,7 +37,7 @@ acceptance or the existing API/Zig/Editor average in the focused AI plan.
 不可重複加總為整體進度。來源驗收改變時，同步更新本紀錄及雙語索引；部分實作不代表整個
 里程碑完成。待量化項目先保留驗收狀態，待定義明確分母與權重後再記錄百分比。
 
-2D Roadmap 為獨立能力擴充；新增規劃不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
+2D Roadmap 為獨立能力擴充；交付不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
 
 ## English
 
@@ -69,7 +69,7 @@ code and tag changes retain full validation; roadmap implementation acceptance r
 | V1 Visual Showcase Long-Term Plan | **Linux/Windows developer, clean-VM and physical-display slices verified; final acceptance pending** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | V1 Visual Identity Showcase Roadmap | **71.4% milestone acceptance (5/7); ✅ Art direction confirmed; free-asset shortlist recorded; ✅ VIS-M0–M2 / VIS-M4–M5 accepted (5/7); quality/release evidence retained; golden-hour environment/HDR Linux 97/97 + 100s native evidence retained; reference art and physical performance pending** | [V1 Visual Identity Showcase Roadmap](en/V1-Visual-Identity-Roadmap.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
-| 2D Engine Roadmap | **0% acceptance (0/11); engine capabilities only** | [2D Engine Roadmap](en/2D_Roadmap.md) |
+| 2D Engine Roadmap | **82% portable/Linux capability acceptance (9/11); PC host gates open** | [2D Engine Roadmap](en/2D_Roadmap.md) |
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui Integration Plan | **In progress; ✅ WP0 baseline, Linux Vulkan validation and native atlas lifetime slices; target-host gates open** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution Plan | **In progress; Linux Vulkan Phase 2 and Windows/DX12 Phase 3 accepted; Metal/full parity pending** | [V2-M3 GPU-Driven Native Execution Plan](en/V2-M3_GPU_Driven_Native_Execution_Plan.md) |
@@ -131,7 +131,7 @@ Roadmap 狀態。細部任務完成紀錄與驗證資料保留在相關 Roadmap�
 | V1 可視化展示 Demo 長期規劃 | **Linux／Windows 開發機、乾淨 VM 與實體顯示切片已驗證；最終驗收待完成** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | V1 視覺特色 Showcase Roadmap | **71.4% 里程碑驗收（5/7）；✅ 美術方向已確認；已記錄免費素材候選；✅ VIS-M0–M2／VIS-M4–M5 已驗收（5/7）；品質／交付證據已齊備；實機美術／效能待驗收** | [Nexora V1 視覺特色 Showcase Roadmap](zh-TW/V1-Visual-Identity-Roadmap.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
-| 2D 引擎 Roadmap | **0% 驗收（0/11）；僅引擎能力** | [2D 引擎 Roadmap](zh-TW/2D_Roadmap.md) |
+| 2D 引擎 Roadmap | **82% Portable／Linux 能力驗收（9/11）；PC 主機 gate 待完成** | [2D 引擎 Roadmap](zh-TW/2D_Roadmap.md) |
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui 整合計畫 | **施工中；✅ WP0 baseline、Linux Vulkan validation 與 native atlas lifetime slice，target-host gate 待完成** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |
 | V2-M3 GPU-Driven Native Execution 計畫 | **施工中；Linux Vulkan Phase 2 與 Windows/DX12 Phase 3 已驗收；Metal／完整 parity 待完成** | [V2-M3 GPU-Driven Native Execution 計畫](zh-TW/V2-M3_GPU_Driven_Native_Execution_Plan.md) |

@@ -1,5 +1,23 @@
 # Editor Core contract
 
+## 2D authoring document
+
+✅ TwoDDocument is compiled only with NEXORA_ENABLE_2D and owns an isolated Runtime World,
+SpriteScene, Atlas, clip and Tilemap. It uses Runtime UndoStack with whole-document snapshots,
+bounded to 256 transactions and 64 MiB retained bytes; a new transaction resets older history when the count/memory limit is reached. A single
+transaction exceeding the memory budget rejects without changing the document. Invalid edits restore the previous snapshot and do not record history.
+Reopen validates all codecs, UUID/frame/region references and scene membership in a staging World
+before publishing. Read-only documents reject mutations/history/reopen; saved bytes are owning,
+and Dirty compares the current canonical snapshot with the last MarkSaved snapshot. Reopen clears
+history and marks saved only after acceptance. StartPlay loads a distinct Play World; runtime
+changes never mutate the authoring document. Owner-thread only; no disk IO or project lease override.
+
+The [2D Studio](../../Tools/TwoD/README.md) uses this document through the existing EditorImGuiHost.
+A main-project host must retain its existing access, recovery, lease and generation checks before
+import/save publication. This isolated tool does not complete the main graphical Editor milestones.
+Editor optionally depends on TwoD; Runtime/Shipping depend on neither document nor GUI.
+
+
 ## External Chrome duration import
 
 `ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`

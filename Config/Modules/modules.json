@@ -129,7 +129,8 @@
         "Core",
         "Foundation",
         "Runtime",
-        "Cryptography"
+        "Cryptography",
+        "TwoD"
       ]
     },
     {
@@ -188,6 +189,14 @@
         "Runtime",
         "Renderer",
         "RHI",
+        "Presentation"
+      ]
+    },
+    {
+      "name": "TwoD",
+      "feature": "NEXORA_ENABLE_2D",
+      "dependencies": [
+        "Runtime",
         "Presentation"
       ]
     }

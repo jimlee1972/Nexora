@@ -53,6 +53,11 @@ public:
   [[nodiscard]] SurfaceStatus CompositeRgba8(std::span<const std::byte> pixels, std::uint32_t width,
                                              std::uint32_t height);
   [[nodiscard]] SurfaceStatus RenderUi(const UiDrawData &draw_data);
+  // Scene Sprite triangles already projected by the 2D camera, followed by optional HUD/UI.
+  // Shares the native unlit triangle pipeline, with one upload/render pass per acquired frame.
+  [[nodiscard]] SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids);
+  [[nodiscard]] SurfaceStatus DrawSprites(const UiDrawData &sprites,
+                                          const UiDrawData &overlay = {});
   [[nodiscard]] SurfaceStatus DrawScene(const SceneDrawData &draw_data);
   [[nodiscard]] bool SupportsSceneGeometryResidency() const noexcept;
   [[nodiscard]] SurfaceStatus CompositeScene();

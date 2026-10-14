@@ -98,6 +98,18 @@ SurfaceStatus RenderSurface::RenderUi(const UiDrawData &draw_data) {
                                       : state_->surface->RenderUi(draw_data);
 }
 
+SurfaceStatus RenderSurface::ReleaseSpriteTextures(std::span<const std::uint64_t> ids) {
+  return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
+                                      : state_->surface->ReleaseSpriteTextures(ids);
+}
+
+SurfaceStatus RenderSurface::DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay) {
+  if (!state_ || state_->destroyed)
+    return SurfaceStatus::SurfaceLost;
+  auto prepared = PrepareSpriteDraws(sprites, overlay, state_->frame.width, state_->frame.height);
+  return prepared ? RenderUi(prepared->View()) : SurfaceStatus::InvalidDescriptor;
+}
+
 SurfaceStatus RenderSurface::DrawScene(const SceneDrawData &draw_data) {
   return !state_ || state_->destroyed ? SurfaceStatus::SurfaceLost
                                       : state_->surface->DrawScene(draw_data);

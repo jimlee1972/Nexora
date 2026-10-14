@@ -1,0 +1,13 @@
+{
+  "schema": "nexora.twod.package.v1",
+  "files": {
+    "NexoraTwoDBenchmark": "9e311787fd8affe54d31f1101e252fc8dd9ae6dd85622312726e61298990292c",
+    "assets/atlas.nxcook": "c446ad04a2b67a6d7c617beea9fdc3355e1ad365f8f192318eae04ea29510ca9",
+    "assets/clip.nxcook": "7cf3bfe2b304001474e3a1e98a160e7c211ed82555cab9f5a07e716d822352cc"
+  },
+  "runtime": "NexoraTwoDBenchmark",
+  "editor_required": false,
+  "system_runtime_dependencies": "Use the target OS runtime and native graphics driver.",
+  "windows_clean_machine_acceptance": "NOT RUN",
+  "acceptance": "PASS: staged CPU runtime and corruption rejection"
+}

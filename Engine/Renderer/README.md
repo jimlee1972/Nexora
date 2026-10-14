@@ -1,5 +1,15 @@
 # Nexora rendering contracts (V1-M2 / V1-M3 / V2-M2 / V2-M3)
 
+## Dedicated 2D extraction
+
+✅ The optional [TwoD module](../TwoD/README.md) extracts existing World affine poses through a
+rotated orthographic camera, preserves stable alpha/Y/layer order, culls offscreen sprites, and
+merges only adjacent matching atlas batches. It submits backend-neutral triangles through the
+existing Presentation unlit path; Renderer/RHI do not acquire a private 2D backend or new native
+public types. Mixed stress retains CPU/GPU intervals and covered-AABB diagnostics. Linux Vulkan
+correctness does not establish Windows target performance or calibrated fragment overdraw.
+
+
 This slice establishes the backend-neutral contracts, a validation backend, and the native
 offscreen execution path used by the V1-M3 platform gates.
 

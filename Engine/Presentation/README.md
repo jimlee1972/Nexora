@@ -1,5 +1,25 @@
 # Nexora Presentation contract (WP-M4)
 
+## Shared 2D Sprite submission
+
+✅ `RenderSurface::DrawSprites` validates/rebases projected Sprite and optional HUD triangles into
+one native RenderUi pass with a background. `PrepareSpriteDraws` owns geometry/commands but borrows
+pixel spans; call/render before their owners expire. It checks finite coordinates, extents, indices,
+clips, texture aliases and aggregate budgets before dispatch. Empty Sprite packets still draw the
+background. This shares the native unlit pipeline; no backend types enter public headers.
+
+UiTextureUpload adds default-false nearest and immutable fields. Default callers retain mutable
+linear behavior. Immutable texture IDs name unique pixel generations: repeated compatible uploads
+reuse the native image; changed bytes require a new ID. Width/height/sampling alias failures reject
+before rendering. Call ReleaseSpriteTextures on the render owner thread between frames; it drains
+submitted work and releases only immutable UI/Sprite textures, never scene-material textures.
+Missing retired IDs are harmless; mutable IDs and acquired-frame retirement reject. The caller
+retires old generations and refreshes all uploads after surface recreation. Vulkan/DX12/Metal
+implement sampling/residency/retirement; the dedicated 2D native capture gate currently proves
+Linux Vulkan only. Public C++ consumers require rebuilds; C/Gameplay ABI is unchanged.
+See [TwoD contracts](../TwoD/README.md) for ordering, color and ownership details.
+
+
 DX12 surface diagnostics report the selected presentation mode used by `Present`: VSync uses
 sync interval 1; Immediate uses 0 and requests tearing when the DXGI factory supports it.
 This observation does not guarantee a display refresh rate or exclude compositor pacing.
