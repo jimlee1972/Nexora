@@ -52,3 +52,7 @@ if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   target_compile_definitions(NexoraEditorImGui PUBLIC NEXORA_EDITOR_IMGUI_STATIC=1)
 endif()
 nexora_apply_defaults(NexoraEditorImGui)
+
+if(NEXORA_ENABLE_2D)
+  target_sources(NexoraEditorImGui PRIVATE src/TwoDPanel.cpp)
+endif()

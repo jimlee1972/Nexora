@@ -1,5 +1,25 @@
 # Editor Dear ImGui host contract
 
+## 2D Studio panel
+
+✅ The optional DrawTwoDPanel consumes TwoDDocument and caller-owned session state inside the
+existing host frame. Scene/Atlas/Animation/Tilemap tabs provide editing, orthographic Sprite and
+collision preview, region selection, frame/event playback, painting and chunk loading. A native
+atlas handle must be registered with this host before preview and unregistered between frames.
+RegisterNativeTexture now accepts default-false nearest sampling; its existing 1024-pixel, 64-slot,
+16 MiB budget is unchanged. Studio downsamples larger previews without changing cooked/runtime data.
+
+Mutation buttons require both current caller authorization and a writable document. IO buttons emit
+requests; the owning project application must revalidate path/access/revision before publication.
+No UI widget writes a project file or acquires a lease. TwoDPanelState borrows no World/asset pointer;
+replace/reset it when changing document scope to clear selection, playback and pending requests.
+Camera preview fields are kept finite and within supported preview bounds; collider projection
+follows the same rotated orthographic camera as Sprite extraction. Graphical control tests exercise
+Undo/Redo, invalid preview-camera admission and permission rejection; Linux native Studio acceptance
+covers actual previews plus save/reopen. Windows physical DPI/input and full main Editor acceptance
+remain separate. See [tools](../../Tools/TwoD/README.md) and [contracts](../TwoD/README.md).
+
+
 ## External Chrome duration inspection
 
 The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration

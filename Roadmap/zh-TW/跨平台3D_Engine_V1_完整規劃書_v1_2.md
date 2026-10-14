@@ -5,7 +5,8 @@
 
 > **聚焦 2D 擴充：** [2D 引擎 Roadmap](2D_Roadmap.md) 追蹤場景 Sprite、逐格動畫、Atlas／匯入、
 > 輕量碰撞、大量更新、批次、效能、Windows Shipping 與 2D 製作工具。沿用 V1 基礎，不含 Gameplay；
-> 11 個專屬能力里程碑均待驗收，不改寫 V1 基礎完成狀態。
+> ✅ 9/11 能力已有 Portable／Linux 驗收；實體 PC 效能與乾淨 Windows 仍為 NOT RUN，
+> 不改寫 V1 基礎完成狀態。
 
 > 本文件為 **V1 Master Plan**。它整合先前完整引擎架構分析、Architecture Completion Baseline、Scene/World/Streaming/HLOD、Input、UI、Physics、Animation、Audio、DataTable、Editor、Asset/Bundle、Build/CI，以及最新的 **Plugin SDK / Bridge Layer / 第三方擴充 / Video & Media Framework**。
 >

@@ -418,7 +418,8 @@ public:
   // 64 live registrations and 16 MiB combined pixels; zero means invalid/capacity exhausted.
   // Register/unregister between frames. IDs share the host's monotonic generation namespace.
   [[nodiscard]] std::uint64_t RegisterNativeTexture(std::uint32_t width, std::uint32_t height,
-                                                    std::span<const std::byte> pixels);
+                                                    std::span<const std::byte> pixels,
+                                                    bool nearest = false);
   [[nodiscard]] bool UnregisterTexture(std::uint64_t texture_id) noexcept;
   [[nodiscard]] std::string SaveLayout() const;
   [[nodiscard]] bool LoadLayout(std::string_view layout);

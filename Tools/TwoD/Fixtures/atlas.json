@@ -1,0 +1,18 @@
+{
+  "type": "atlas",
+  "id": [
+    501,
+    502
+  ],
+  "width": 16,
+  "nearest": true,
+  "images": [
+    {
+      "path": "sheet.png",
+      "grid": [
+        2,
+        2
+      ]
+    }
+  ]
+}

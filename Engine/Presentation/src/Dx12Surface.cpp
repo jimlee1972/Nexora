@@ -287,6 +287,13 @@ public:
     if (!acquired_ || uiDrawn_ || compositeDrawn_ || (sceneOffscreen_ && !sceneComposited_) ||
         drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
+    for (const auto &upload : drawData.textureUploads) {
+      const auto previous = uiTextures_.find(upload.textureId);
+      if (previous != uiTextures_.end() && previous->second.immutable &&
+          (!upload.immutable || previous->second.width != upload.width ||
+           previous->second.height != upload.height || previous->second.nearest != upload.nearest))
+        return SurfaceStatus::InvalidDescriptor;
+    }
     for (const auto &upload : drawData.textureUploads)
       if (!UploadUiTexture(upload))
         return SurfaceStatus::DeviceLost;
@@ -330,6 +337,11 @@ public:
         ++diagnostics_.nativeUiRejectedTextures;
         continue;
       }
+      commands_->SetGraphicsRootSignature(texture->second.nearest ? uiNearestRootSignature_.Get()
+                                                                  : uiRootSignature_.Get());
+      commands_->SetPipelineState(texture->second.nearest ? uiNearestPipeline_.Get()
+                                                          : uiPipeline_.Get());
+      commands_->SetGraphicsRoot32BitConstants(0, 4, transform, 0);
       auto descriptor = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
       descriptor.ptr += static_cast<UINT64>(texture->second.descriptor) * uiDescriptorIncrement_;
       commands_->SetGraphicsRootDescriptorTable(1, descriptor);
@@ -891,6 +903,32 @@ public:
     return SurfaceStatus::Ready;
   }
   SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
+  SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (destroyed_)
+      return SurfaceStatus::SurfaceLost;
+    if (acquired_)
+      return SurfaceStatus::InvalidDescriptor;
+    for (auto id : ids) {
+      const auto it = uiTextures_.find(id);
+      if (!id || (it != uiTextures_.end() && !it->second.immutable))
+        return SurfaceStatus::InvalidDescriptor;
+    }
+    const auto value = ++fenceValue_;
+    if (FAILED(queue_->Signal(fence_.Get(), value)) ||
+        FAILED(fence_->SetEventOnCompletion(value, event_)) ||
+        WaitForSingleObject(event_, INFINITE) != WAIT_OBJECT_0)
+      return SurfaceStatus::DeviceLost;
+    for (auto id : ids) {
+      const auto it = uiTextures_.find(id);
+      if (it == uiTextures_.end())
+        continue;
+      freeUiDescriptors_.push_back(it->second.descriptor);
+      uiTextures_.erase(it);
+    }
+    return SurfaceStatus::Ready;
+  }
   SurfaceStatus DrainAndDestroy() override {
     if (destroyed_)
       return SurfaceStatus::Ready;
@@ -928,6 +966,8 @@ public:
     for (auto &descriptors : retiredUiDescriptors_)
       descriptors.clear();
     freeUiDescriptors_.clear();
+    uiNearestPipeline_.Reset();
+    uiNearestRootSignature_.Reset();
     uiPipeline_.Reset();
     uiRootSignature_.Reset();
     uiDescriptors_.Reset();
@@ -1005,6 +1045,8 @@ private:
     UINT descriptor{};
     UINT srgbDescriptor{};
     std::uint32_t mipLevels{1};
+    std::uint32_t width{}, height{};
+    bool nearest{}, immutable{};
   };
   bool OnThread() const { return std::this_thread::get_id() == renderThread_; }
   bool CreateUiResources() {
@@ -1049,6 +1091,14 @@ private:
                                             signature->GetBufferSize(),
                                             IID_PPV_ARGS(&uiRootSignature_))))
       return false;
+    sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+    signature.Reset();
+    if (FAILED(D3D12SerializeRootSignature(&root, D3D_ROOT_SIGNATURE_VERSION_1, &signature,
+                                           &errors)) ||
+        FAILED(device_->CreateRootSignature(0, signature->GetBufferPointer(),
+                                            signature->GetBufferSize(),
+                                            IID_PPV_ARGS(&uiNearestRootSignature_))))
+      return false;
     constexpr char shader[] = R"(
       cbuffer Transform : register(b0) { float2 scale; float2 translate; };
       struct VSInput { float2 position : POSITION; float2 uv : TEXCOORD0; float4 color : COLOR0; };
@@ -1091,7 +1141,11 @@ private:
     pipeline.NumRenderTargets = 1;
     pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     pipeline.SampleDesc.Count = 1;
-    return SUCCEEDED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiPipeline_)));
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiPipeline_))))
+      return false;
+    pipeline.pRootSignature = uiNearestRootSignature_.Get();
+    return SUCCEEDED(
+        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiNearestPipeline_)));
   }
   // A self-contained indexed/lit/depth-tested pipeline for the Rendering Room, independent of the
   // 2D CreateUiResources() pipeline above and of the offscreen rhi::Device (which this surface does
@@ -1587,6 +1641,13 @@ private:
             (linear ? SceneLinearTextureByteSize(upload.width, upload.height, mipLevels)
                     : SceneRgbaTextureByteSize(upload.width, upload.height, mipLevels)))
       return false;
+    if (!scene) {
+      const auto previous = textures.find(upload.textureId);
+      if (previous != textures.end() && previous->second.immutable)
+        return upload.immutable && previous->second.width == upload.width &&
+               previous->second.height == upload.height &&
+               previous->second.nearest == upload.nearest;
+    }
     const UINT descriptorCount = scene && !linear ? 2U : 1U;
     if (freeUiDescriptors_.size() + 4096U - nextUiDescriptor_ < descriptorCount)
       return false;
@@ -1695,7 +1756,9 @@ private:
       view.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
       device_->CreateShaderResourceView(resource.Get(), &view, cpu);
     }
-    textures[upload.textureId] = {resource, descriptor, srgbDescriptor, mipLevels};
+    textures[upload.textureId] = {
+        resource,     descriptor,    srgbDescriptor, mipLevels,
+        upload.width, upload.height, upload.nearest, !scene && upload.immutable};
     retired_[frame_].push_back(staging);
     if (scene)
       ++diagnostics_.sceneTextureUploads;
@@ -1839,6 +1902,8 @@ private:
   ComPtr<ID3D12PipelineState> shadowPipeline_;
   ComPtr<ID3D12DescriptorHeap> uiDescriptors_;
   ComPtr<ID3D12RootSignature> uiRootSignature_;
+  ComPtr<ID3D12RootSignature> uiNearestRootSignature_;
+  ComPtr<ID3D12PipelineState> uiNearestPipeline_;
   ComPtr<ID3D12PipelineState> uiPipeline_;
   ComPtr<ID3D12GraphicsCommandList> commands_;
   std::array<ComPtr<ID3D12CommandAllocator>, kMaximumFrames> allocators_;

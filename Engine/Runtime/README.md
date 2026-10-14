@@ -1,5 +1,16 @@
 # V1-M4 through V1-M12 runtime contracts
 
+## Optional 2D capabilities
+
+✅ [Nexora::TwoD](../TwoD/README.md) augments Runtime World identities and affine poses with Sprite
+and collider metadata, codecs, frame animation, circle/AABB indexing, generational transient pools
+and fixed-step ranges. Runtime does not depend on this optional module or Presentation/Editor.
+Atlas/clip import and Cook reuse Runtime's existing dependency/hash/generation admission; packaged
+validation reads cooked blobs through Core VFS asynchronously. Existing World wire schema remains
+unchanged; NX2S schema 2 wraps it and validates metadata in a staging World. Editor Restore and
+isolated Play retain existing WorldKind restrictions. No gameplay or new physics dependency is added.
+
+
 ## Shader artifact admission and replacement
 
 `ShaderArtifactSlot` accepts an RHI `ShaderModuleArtifact` after backend-format and canonical

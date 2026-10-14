@@ -12,6 +12,7 @@
 #include <optional>
 #include <span>
 #include <thread>
+#include <vector>
 
 namespace Nexora::Presentation {
 
@@ -127,6 +128,9 @@ struct UiTextureUpload final {
   std::uint32_t height{};
   std::uint32_t rowPitch{};
   std::span<const std::byte> pixels;
+  bool nearest{};
+  // Immutable generations may reuse a resident ID. Changed pixels require a fresh ID.
+  bool immutable{};
 };
 
 // Borrowed tightly packed little-endian linear RGBA16F mip chain, largest level first.
@@ -459,6 +463,21 @@ struct UiDrawData final {
   bool indices32Bit = false;
 };
 
+// Geometry owns its bytes; texture pixel spans still borrow the input owners until submission.
+// The reserved white texture UINT64_MAX-1 is used only by the scene background.
+struct PreparedSpriteDraws final {
+  std::vector<UiVertex> vertices;
+  std::vector<std::uint32_t> indices;
+  std::vector<UiDrawCommand> commands;
+  std::vector<UiTextureUpload> textureUploads;
+  [[nodiscard]] UiDrawData View() const noexcept {
+    return {vertices, std::as_bytes(std::span(indices)), commands, textureUploads, true};
+  }
+};
+[[nodiscard]] NEXORA_PRESENTATION_API std::optional<PreparedSpriteDraws>
+PrepareSpriteDraws(const UiDrawData &sprites, const UiDrawData &overlay, std::uint32_t width,
+                   std::uint32_t height);
+
 enum class SurfaceStatus : std::uint8_t {
   Ready,
   ZeroExtent,
@@ -488,6 +507,10 @@ public:
   // Records textured indexed UI geometry directly into the acquired presentation image. All spans
   // are borrowed for this call; texture IDs are generation-checked opaque values.
   virtual SurfaceStatus RenderUi(const UiDrawData &) { return SurfaceStatus::Unsupported; }
+  // Owner thread, between frames; drains submitted work before reclaiming immutable textures.
+  virtual SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t>) {
+    return SurfaceStatus::Unsupported;
+  }
   // Draws one indexed, depth-tested, lit mesh into the acquired image or, when offscreen is
   // requested, a fence-owned private color/depth target requiring CompositeScene. Backends without
   // a real geometry pipeline report Unsupported rather than silently falling back to a 2D
