@@ -884,7 +884,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::ProfileSession profile{240};
   std::optional<Nexora::Presentation::SceneViewport> native_scene_viewport_reported;
   std::optional<NativeSceneMeshes> native_scene_meshes;
-  std::optional<nexora::editor::MeshAssetCatalog> play_meshes;
+  std::shared_ptr<const nexora::editor::MeshAssetCatalog> play_meshes;
   std::optional<nexora::editor::preview::MaterialPalette> play_materials;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport_reported;
   std::size_t unavailable_meshes = 0;
@@ -2053,6 +2053,13 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       switch (ui.TakePlayCommand()) {
       case nexora::editor::imgui::PlayCommand::Start: {
+        auto frozen_meshes = nexora::editor::preview::FreezeGameMeshes(
+            meshes, content.Browser().ProjectGeneration());
+        if (!frozen_meshes) {
+          ui.SetGameplayStatus("Play mesh snapshot is unavailable; refresh the project assets.");
+          log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Play mesh snapshot failed.");
+          break;
+        }
         auto frozen_materials = nexora::editor::preview::FreezeGameMaterials(
             active_scene(), materials, content.Browser().ProjectGeneration());
         if (!frozen_materials) {
@@ -2067,7 +2074,7 @@ int RunGraphical(std::optional<ProjectState> project,
           std::string gameplay_error;
           if (!ui.GameplayLibrary().empty() &&
               !gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
-                                     ui.GameplayLibrary(), gameplay_error)) {
+                                     ui.GameplayLibrary(), gameplay_error, frozen_meshes)) {
             static_cast<void>(play.Stop());
             ui.SetGameplayStatus(gameplay_error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);
@@ -2076,7 +2083,7 @@ int RunGraphical(std::optional<ProjectState> project,
           ui.SetGameplayStatus(gameplay.IsLoaded()
                                    ? "Gameplay module running."
                                    : "Inspection only: no gameplay library selected.");
-          play_meshes = meshes;
+          play_meshes = std::move(frozen_meshes);
           play_materials = std::move(frozen_materials);
           play_accumulator = 0.0;
           last_play_frame = std::chrono::steady_clock::now();

@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "beads": "nexora-rd7.2.7",
+  "initial_base": "d6ea19a85753eb5eb520997d00da70443b82c4d3",
+  "upstream_base": "20736fcaa98ead96e9aec2e8f1a7486a2153d181",
+  "scope": "frozen-play-mesh-uuid-resolution",
+  "pre_diagnostics_source_sha256": {
+    "Apps/Editor/GameViewPreview.h": "526d1b8451aa817431be0f169476a1bb90f2dbc33b47ec002da6fb39bc8cf94a",
+    "Apps/Editor/PlayGameplayModule.h": "4d4426fc928d8d1dfd434942c1c52895902647b46aacfd61d322072496af7df8",
+    "Apps/Editor/main.cpp": "8a986e464f2be3222093a10fe324f76022197913007a545d925de23975f33142",
+    "Tests/EditorImGui/PlayMeshAssetTests.cpp": "7d040709e4beb7d06d2adaf66a72f5b69d7fdbe042ccf8579ea2062a45591fd6",
+    "Tests/EditorImGui/PlayMeshAssetFixture.cpp": "654915538c7a34bba547ee29a067f4613187b6e66d54df689c0a56cc2b6de5aa",
+    "Tests/EditorImGui/PlaySceneServicesTests.cpp": "57dc1943a4ec6191877e05d63328d5b88d3de2dafa0aec0ffa3630c40deddb5c",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "f4b6f569861199b4888a40aff6f51d9b8186e1549cab250e1f7ac0f9f050c8ca",
+    "Tests/EditorImGui/CMakeLists.txt": "8efb518e9cf3f4d4d410150bee8d7552553a7640479a400ca28312c79223cfec"
+  },
+  "contract": {
+    "catalog": "Single immutable owning CPU catalog snapshot shared by module binding and native Game renderer, prepared before module Create/Start.",
+    "identity": "Exact high/low UUID lookup including collision recheck; existing full-width stable MeshResourceId.",
+    "errors": {
+      "null_output_or_zero_unknown_uuid": "InvalidArgument, output unchanged",
+      "unbound_world": "Lifecycle, output unchanged",
+      "missing_provider": "Unsupported, output unchanged",
+      "supplied_generation_zero": "Load rejected"
+    },
+    "lifetime": "Catalog retained through module Stop/Destroy and released after Unload; failures release their catalog.",
+    "scope_exclusions": [
+      "Material/texture/audio asset resolution",
+      "Dynamic material graphs",
+      "Total memory/GPU/physical-host acceptance"
+    ]
+  },
+  "pre_integration_validation": {
+    "old_host_initial_availability": {
+      "expected_failure": "Play mesh asset resolver is unavailable",
+      "ctest_exit": 8,
+      "build_actions": 13
+    },
+    "portable_tests_after_fault_restoration": {
+      "passed": 4,
+      "seconds": 0.13,
+      "play_cycles": 32
+    },
+    "failed_start_catalog_release": "Additional weak ownership assertion passed in standalone regression.",
+    "native_dynamic_mesh": {
+      "passed": 1,
+      "seconds": 4.85,
+      "fixture": "Resolves during Create/Start, compares against clone MeshRenderer wire, spawns real mesh, deletes clone original, moves dynamic mesh and observes Stop/Destroy."
+    },
+    "controlled_fault": {
+      "change": "Use folded resource lookup without full UUID identity check",
+      "expected_failure": "rejected asset request changed output/result",
+      "restored": true
+    }
+  },
+  "pending": [
+    "Final-head hosted CI, own PR merge and branch cleanup."
+  ],
+  "upstream_20736_validation": {
+    "target_and_native_passed": 5,
+    "seconds": 5.17,
+    "build_actions": 83,
+    "documentation_tests": 16
+  },
+  "source_sha256": {
+    "Apps/Editor/GameViewPreview.h": "526d1b8451aa817431be0f169476a1bb90f2dbc33b47ec002da6fb39bc8cf94a",
+    "Apps/Editor/PlayGameplayModule.h": "3d87a0c1fdfebbfdc0e2bcd1cce6b4298d4cb784502233f5a132376aca1ef52c",
+    "Apps/Editor/main.cpp": "8a986e464f2be3222093a10fe324f76022197913007a545d925de23975f33142",
+    "Tests/EditorImGui/PlayMeshAssetTests.cpp": "e79aecd62104f13bed08beaa79a99bb9c0e069d92e728089b35101235ac361e7",
+    "Tests/EditorImGui/PlayMeshAssetFixture.cpp": "654915538c7a34bba547ee29a067f4613187b6e66d54df689c0a56cc2b6de5aa",
+    "Tests/EditorImGui/PlaySceneServicesTests.cpp": "a3b0f22fa5fa5e242933b71e27548707f999401a28870bc1093f1f1100124209",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "cfe83ba128ccdc3e4ce10ee7662d34eeea3360f17afc82831b047ecc5ad32189",
+    "Tests/EditorImGui/CMakeLists.txt": "142f232dadeab069273cd0e340b07754df15c44a9cbf0b20d5b6e25313fd398b",
+    "Tests/EditorImGui/PlayDiagnosticsTests.cpp": "b24e02dbbc854078ab073f597a0e9f661de899f4a888c032c0653b57ccb5b52b"
+  },
+  "diagnostics_dependency": {
+    "commit": "06bbf8f7e6d01497d7d6ad460bdc7a71a3239b26",
+    "tree": "e22f21560a81f9a10bf1b615ebda907339d7e792",
+    "integration_tests_passed": 6,
+    "integration_seconds": 4.95,
+    "counter_checks": "Four invalid UUID/output requests add four errors; provider-absent request adds one. Native module diagnostic marker required."
+  },
+  "validation": {
+    "full_linux": {
+      "configure": "passed",
+      "build_actions": 412,
+      "ctest_passed": 265,
+      "ctest_total": 265,
+      "seconds": 826.04,
+      "skipped": 0
+    },
+    "shipping": {
+      "configure": "passed",
+      "build_actions": 29,
+      "editor_imgui_sdk": "disabled"
+    },
+    "documentation_tests": 16,
+    "formatted_cpp_files": 7,
+    "source_config_hashes": 9
+  },
+  "merged_base": {
+    "commit": "ffc8932ed8865e0e58297ed515ff262ee967ec53",
+    "tree": "e22f21560a81f9a10bf1b615ebda907339d7e792"
+  },
+  "validated_tree_equivalence": {
+    "validated_commit": "d0ad328308f4d7f3f5cb9a55e76db6e14e8b3a1c",
+    "validated_tree": "8e485e707440895553b4d460aceb6f6182b671aa",
+    "rebased_commit_before_metadata": "ad03447c4b9d84cdf3b6e8780e34336f2b8e9b50",
+    "rebased_tree": "8e485e707440895553b4d460aceb6f6182b671aa",
+    "source_config_hashes_unchanged": 9
+  }
+}

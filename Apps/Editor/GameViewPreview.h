@@ -10,6 +10,18 @@
 
 namespace nexora::editor::preview {
 
+// One immutable owning CPU catalog serves module startup and rendering throughout this Play
+// binding. Reimport/clear of the authoring catalog cannot change it; no native resource is
+// borrowed.
+[[nodiscard]] inline std::shared_ptr<const MeshAssetCatalog>
+FreezeGameMeshes(const MeshAssetCatalog &catalog, std::uint64_t generation) noexcept try {
+  if (!generation || catalog.Generation() != generation)
+    return {};
+  return std::make_shared<const MeshAssetCatalog>(catalog);
+} catch (...) {
+  return {};
+}
+
 // Freeze converted material values and authoring assignments before Start. There are no catalog,
 // document or native-resource borrows; cloned Runtime IDs identify this one Play session only.
 [[nodiscard]] inline std::optional<MaterialPalette>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
@@ -32,8 +33,13 @@ public:
   PlayGameplayModule &operator=(const PlayGameplayModule &) = delete;
 
   bool LoadRelative(runtime::World &world, const std::filesystem::path &root,
-                    std::string_view relative, std::string &error) try {
+                    std::string_view relative, std::string &error,
+                    std::shared_ptr<const MeshAssetCatalog> assets = {}) try {
     Unload();
+    if (assets && !assets->Generation()) {
+      error = "Play mesh snapshot is unavailable.";
+      return false;
+    }
     const std::filesystem::path name{std::u8string(relative.begin(), relative.end())};
     if (name.empty() || name.is_absolute() || name.has_root_name()) {
       error = "Choose a gameplay library relative to the project root.";
@@ -57,6 +63,7 @@ public:
       return false;
     }
     world_ = &world;
+    mesh_assets_ = std::move(assets);
     if (!module_.Load(library)) {
       Unload();
       error = "Gameplay library could not start (path, ABI, or lifecycle failure).";
@@ -69,11 +76,15 @@ public:
     return false;
   }
   // Static loader overload is useful for embedding tests; it has the same owning lifetime.
-  bool Load(runtime::World &world, NexoraGameModuleLoadV3Fn loader) {
+  bool Load(runtime::World &world, NexoraGameModuleLoadV3Fn loader,
+            std::shared_ptr<const MeshAssetCatalog> assets = {}) {
     Unload();
+    if (assets && !assets->Generation())
+      return false;
     if (!scenes_.Bind(world))
       return false;
     world_ = &world;
+    mesh_assets_ = std::move(assets);
     if (module_.Load(loader))
       return true;
     Unload();
@@ -116,6 +127,7 @@ public:
     module_.Unload();
     scenes_.Clear();
     world_ = nullptr;
+    mesh_assets_.reset();
     for (const auto &[pointer, allocation] : allocations_)
       ::operator delete(pointer, std::align_val_t(allocation.alignment));
     allocations_.clear();
@@ -236,6 +248,22 @@ private:
       *snapshot = copied;
       return NEXORA_GAMEPLAY_OK;
     };
+    host.resolve_asset = [](void *context, std::uint64_t high, std::uint64_t low,
+                            NexoraAssetHandle *output) -> int32_t {
+      auto &self = Self(context);
+      if (!output || (!high && !low))
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
+      if (!self.world_)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+      if (!self.mesh_assets_)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_UNSUPPORTED);
+      const auto asset =
+          self.mesh_assets_->ResolveAsset({high, low}, self.mesh_assets_->Generation());
+      if (!asset)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
+      *output = {asset->resource};
+      return self.RecordResult(NEXORA_GAMEPLAY_OK);
+    };
     host.load_scene = [](void *context, const char *name, std::uint32_t length,
                          std::uint32_t persistent, std::uint64_t *scene) -> int32_t {
       return Self(context).RecordResult(
@@ -269,10 +297,11 @@ private:
                  self.diagnostics_errors_};
       return NEXORA_GAMEPLAY_OK;
     };
-    // Asset resolution and debug drawing remain unavailable.
+    // Debug drawing remains unavailable.
     return host;
   }
   runtime::World *world_{};
+  std::shared_ptr<const MeshAssetCatalog> mesh_assets_;
   LogSink log_;
   LogRejectionSink rejected_log_;
   PlayInputState input_;

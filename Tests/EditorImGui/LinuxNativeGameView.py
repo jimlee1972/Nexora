@@ -22,7 +22,10 @@ def main():
     parser.add_argument('--materials', action='store_true')
     parser.add_argument('--scene-services', action='store_true')
     parser.add_argument('--physics-services', action='store_true')
+    parser.add_argument('--mesh-assets', action='store_true')
     args = parser.parse_args()
+    if args.mesh_assets and (not args.module or args.materials or args.scene_services or args.input_routing):
+        parser.error('--mesh-assets requires an independent mesh asset module fixture')
     if args.physics_services and not args.scene_services:
         parser.error('--physics-services requires --scene-services and its independent fixture')
     if args.scene_services and (not args.module or args.materials or args.input_routing):
@@ -187,6 +190,11 @@ def main():
         if args.module and not re.search(
                 rb'play diagnostics fixture evidence: frame=1 entities=[1-9][0-9]* errors=[0-9]+', captured):
             raise RuntimeError('Actual gameplay module did not observe copied Play diagnostics')
+        if args.mesh_assets and (not re.search(
+                rb'play mesh asset fixture evidence: create=1 start=1 resolved=[1-9][0-9]* '
+                rb'spawned=[1-9][0-9]* replaced_clone=1', captured) or
+                b'play mesh asset fixture teardown: stop=1 destroy=1' not in captured):
+            raise RuntimeError('Actual resolved mesh did not survive native spawn/render/teardown')
         if args.scene_services and b'play scene fixture evidence: loaded=1 activated=1 ' \
                 b'spawned=1 despawned=1' not in captured:
             raise RuntimeError('Actual dynamic Play scene callbacks did not execute successfully')
