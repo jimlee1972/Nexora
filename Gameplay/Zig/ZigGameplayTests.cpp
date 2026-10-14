@@ -71,7 +71,7 @@ void Deallocate(void *context, std::uint64_t owner, void *allocation, std::uint6
 int main() {
   HostState state;
   NexoraGameplayHostV3 api{};
-  api.struct_size = sizeof(api);
+  api.struct_size = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
   api.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
   api.capabilities = NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR;
   api.context = &state;

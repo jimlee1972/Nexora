@@ -596,7 +596,8 @@ NexoraGameplayHostV3 MakeHost(ShowcaseHostContext &context) {
           &ResolveAsset,
           &Raycast,
           &DebugDrawLine,
-          &GetDiagnostics};
+          &GetDiagnostics,
+          nullptr};
 }
 
 bool NearlyEqual(double left, double right) { return std::abs(left - right) < 0.000001; }

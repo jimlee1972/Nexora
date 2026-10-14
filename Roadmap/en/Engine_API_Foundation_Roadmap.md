@@ -103,3 +103,13 @@ The historical Linux verification above remains clean for the API-M5/M6 changes.
 Windows run additionally passed the full `windows-zig-showcase` CTest suite (26/26), including the
 Zig ABI smoke test and the headless Showcase validation. Linux/macOS/Android/iOS and the windowed
 native backend remain outside that local Windows result.
+
+
+## Optional Zig 2D engine API (2026-10-14)
+
+✅ The original V3 prefix now has an optional, size/capability/version-gated 2D extension.
+Copied Sprite/collider/camera, animation event buffers, query snapshots, Tilemap and generational
+pool batches reach the existing TwoD services. Actual Zig static/dynamic/reload and wire-layout
+contracts pass; Linux native input acceptance presents 600 frames with Zig movement.
+See [Zig usage](../../Gameplay/Zig/README.md) and [2D roadmap](2D_Roadmap.md). This additive
+engine-control scope leaves the original roadmap percentage and physical Windows gates unchanged.

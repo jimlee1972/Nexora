@@ -121,3 +121,13 @@ operator attestations remain pending; this does not complete V1's final acceptan
 reset tour progress and the exact sampled M5/M6 rejection inputs/outputs. Source/package hashes use
 pinned LF bytes. Baseline e4a140139189 passes Linux Development 77/77 and Shipping package CI;
 physical-display and clean-host final gates remain pending.
+
+
+## Optional Zig 2D engine API (2026-10-14)
+
+✅ The original V3 prefix now has an optional, size/capability/version-gated 2D extension.
+Copied Sprite/collider/camera, animation event buffers, query snapshots, Tilemap and generational
+pool batches reach the existing TwoD services. Actual Zig static/dynamic/reload and wire-layout
+contracts pass; Linux native input acceptance presents 600 frames with Zig movement.
+See [Zig usage](../../Gameplay/Zig/README.md) and [2D roadmap](2D_Roadmap.md). This additive
+engine-control scope leaves the original roadmap percentage and physical Windows gates unchanged.

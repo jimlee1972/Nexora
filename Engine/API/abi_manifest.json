@@ -328,6 +328,186 @@
       "threading": "game_thread",
       "errors": "NexoraGameplayResult",
       "determinism": "frame_snapshot"
+    },
+    {
+      "name": "NexoraGameplayHostV3.get_twod_api",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_api_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.set_sprite",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "sprite_nullable_for_removal_context_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.get_sprite",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_sprite_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.set_collider",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "collider_nullable_for_removal_context_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.get_collider",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_collider_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.set_camera",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_camera_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.get_camera",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_camera_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.play_animation",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.pause_animation",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.advance_animation",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_result_nonnull_events_nullable_only_with_zero_capacity",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.rebuild_queries",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.overlap",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_shape_count_nonnull_hits_nullable_only_with_zero_capacity",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "explicit_query_snapshot"
+    },
+    {
+      "name": "NexoraTwoDApiV1.sweep",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_request_count_nonnull_hits_nullable_only_with_zero_capacity",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "explicit_query_snapshot"
+    },
+    {
+      "name": "NexoraTwoDApiV1.paint_tiles",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull_tiles_nonnull_when_count_nonzero",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.set_chunk_loaded",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.get_tile",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_and_tile_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.create_instances",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull_instances_handles_nonnull_when_count_nonzero",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.destroy_instances",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull_handles_nonnull_when_count_nonzero",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.read_instances",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull_instances_handles_nonnull_when_count_nonzero",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraTwoDApiV1.write_instances",
+      "since": 3,
+      "ownership": "copied_wires_host_owned_context",
+      "nullability": "context_nonnull_instances_handles_nonnull_when_count_nonzero",
+      "threading": "serialized_owner_thread",
+      "errors": "NexoraGameplayResult",
+      "determinism": "ordered_owner_thread_state"
     }
   ]
 }

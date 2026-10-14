@@ -57,9 +57,12 @@ bool Tilemap::SetChunkLoaded(ChunkKey chunk, bool loaded) {
   }
   return true;
 }
-std::optional<SpriteFrame> Tilemap::Extract(const Camera &camera,
-                                            const AtlasResolver &resolve) const {
-  if (!Valid())
+std::optional<TilemapInstances> Tilemap::Collect(const Camera &camera) const {
+  if (!Valid() || !std::isfinite(camera.center.x) || !std::isfinite(camera.center.y) ||
+      !std::isfinite(camera.verticalSize) || camera.verticalSize < 0.00001F ||
+      camera.verticalSize > 1e6F || !std::isfinite(camera.rotationRadians) ||
+      std::abs(camera.rotationRadians) > 1e6F || !camera.width || !camera.height ||
+      camera.width > 16384 || camera.height > 16384)
     return std::nullopt;
   std::vector<SpriteInstance> instances;
   instances.reserve(tiles_.size());
@@ -95,10 +98,17 @@ std::optional<SpriteFrame> Tilemap::Extract(const Camera &camera,
       instances.push_back({TileId(t), s, runtime::ToMatrix(transform)});
     }
   }
-  auto frame = ExtractSprites(instances, camera, resolve);
+  return TilemapInstances{std::move(instances), loaded, chunkCulled};
+}
+std::optional<SpriteFrame> Tilemap::Extract(const Camera &camera,
+                                            const AtlasResolver &resolve) const {
+  auto inputs = Collect(camera);
+  if (!inputs)
+    return std::nullopt;
+  auto frame = ExtractSprites(inputs->instances, camera, resolve);
   if (frame) {
-    frame->statistics.input = loaded;
-    frame->statistics.culled += chunkCulled;
+    frame->statistics.input = inputs->loaded;
+    frame->statistics.culled += inputs->chunkCulled;
   }
   return frame;
 }

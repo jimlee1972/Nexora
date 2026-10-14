@@ -1,0 +1,98 @@
+#include "nexora/nexora.h"
+#include <array>
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+extern "C" uint64_t NexoraTwoDLayout(uint32_t);
+extern "C" int32_t NexoraTwoDProbe(const NexoraGameplayHostV3 *);
+int main() {
+  uint32_t index{};
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDSprite));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, atlas_high));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, atlas_low));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, region));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, flags));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, size));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, pivot));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, color));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, layer));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSprite, order));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDCollider));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCollider, kind));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCollider, offset));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCollider, half_extent));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCollider, radius));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCollider, group));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCollider, mask));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDCamera));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCamera, center));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCamera, vertical_size));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDCamera, rotation_radians));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDShape));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDShape, exclude_id));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDShape, geometry));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDSweep));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSweep, from));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSweep, to));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSweep, radius));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSweep, group));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDSweep, mask));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDHit));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDHit, id));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDHit, fraction));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDEvent));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDEvent, length));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDEvent, name));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDAnimationResult));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDAnimationResult, region));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDAnimationResult, finished));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDAnimationResult, event_count));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDAnimationResult, reserved));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDTile));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDTile, x));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDTile, y));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDTile, layer));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDTile, region));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDTile, collision));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDInstanceHandle));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDInstanceHandle, owner));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDInstanceHandle, index));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDInstanceHandle, generation));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDInstance));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDInstance, transform));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDInstance, sprite));
+  assert(NexoraTwoDLayout(index++) == sizeof(NexoraTwoDApiV1));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, struct_size));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, abi_version));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, context));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, set_sprite));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, get_sprite));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, set_collider));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, get_collider));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, set_camera));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, get_camera));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, play_animation));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, pause_animation));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, advance_animation));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, rebuild_queries));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, overlap));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, sweep));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, paint_tiles));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, set_chunk_loaded));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, get_tile));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, create_instances));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, destroy_instances));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, read_instances));
+  assert(NexoraTwoDLayout(index++) == offsetof(NexoraTwoDApiV1, write_instances));
+  assert(NexoraTwoDLayout(index) == UINT64_MAX);
+  NexoraGameplayHostV3 host{};
+  host.struct_size = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
+  host.abi_version = 3;
+  host.capabilities = NEXORA_GAMEPLAY_CAPABILITY_2D_API;
+  alignas(NexoraGameplayHostV3) std::array<std::byte, NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE> prefix{};
+  std::memcpy(prefix.data(), &host, prefix.size());
+  assert(NexoraTwoDProbe(reinterpret_cast<const NexoraGameplayHostV3 *>(prefix.data())) == 0);
+  host.struct_size = sizeof(host);
+  assert(NexoraTwoDProbe(&host) == 0);
+}

@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "language": "Zig 0.14",
+  "api": 1,
+  "native_frames": 0,
+  "movement_frames": 60,
+  "entity_x": 1.0,
+  "visible": 34,
+  "reloaded": true,
+  "allocations_balanced": true,
+  "physical_windows": "NOT RUN",
+  "artifact_sha256": "bcc5e0d296fb0289827f6c2e2bd2db3fb9780e490f2231e87caf836f569b3f6c",
+  "scope": "isolated Monolithic Linux binary with static Zig object; no Editor/Nexora development shared libraries",
+  "runtime_dependencies": "host C/C++/X11 runtime and the workspace-provisioned Vulkan loader; this is not clean-Windows acceptance"
+}

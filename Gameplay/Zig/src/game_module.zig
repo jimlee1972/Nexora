@@ -42,7 +42,7 @@ var observed_start_count: u32 = 0;
 var observed_elapsed_seconds: f64 = 0;
 
 fn create(module_state: *?*anyopaque, host: *const GameplayHost) callconv(.c) i32 {
-    if (host.abi_version != abi_version or host.struct_size < @sizeOf(GameplayHost)) return -1;
+    if (host.abi_version != abi_version or host.struct_size < nexora.host_v3_base_size) return -1;
     if ((host.capabilities & 4) == 0) return -2;
     const allocate = host.allocate orelse return -2;
     const allocation = allocate(host.context, @intFromEnum(nexora.AllocationOwner.gameplay_state),

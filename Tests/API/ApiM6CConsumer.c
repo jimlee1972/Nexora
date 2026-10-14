@@ -18,6 +18,16 @@ _Static_assert(sizeof(NexoraTransformV2) == 80 && offsetof(NexoraTransformV2, ro
 _Static_assert(sizeof(NexoraParent) == 16 && offsetof(NexoraParent, keep_local) == 8 &&
                    offsetof(NexoraParent, reserved) == 12,
                "NexoraParent changed");
+_Static_assert(sizeof(NexoraTwoDSprite) == 64 && offsetof(NexoraTwoDSprite, color) == 40,
+               "2D Sprite wire changed");
+_Static_assert(sizeof(NexoraTwoDCollider) == 32 && sizeof(NexoraTwoDCamera) == 16 &&
+                   sizeof(NexoraTwoDSweep) == 28 && sizeof(NexoraTwoDEvent) == 260 &&
+                   sizeof(NexoraTwoDTile) == 20 && sizeof(NexoraTwoDInstance) == 144 &&
+                   sizeof(NexoraTwoDInstanceHandle) == 16,
+               "2D wire changed");
+_Static_assert(offsetof(NexoraGameplayHostV3, get_twod_api) ==
+                   offsetof(NexoraGameplayHostV3, get_diagnostics) + sizeof(void (*)(void)),
+               "original V3 prefix changed");
 
 int main(void) {
   NexoraGameplayHostV3 host = {0};

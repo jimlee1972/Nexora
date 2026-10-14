@@ -9,6 +9,7 @@
  * every function-pointer export. Append fields to versioned structures; do
  * not reorder, remove, or change the meaning of existing fields.
  */
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -29,7 +30,8 @@ typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_STATE_MIGRATION = 1u << 0,
   NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE = 1u << 1,
   NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2,
-  NEXORA_GAMEPLAY_CAPABILITY_SCENE_API = 1u << 3
+  NEXORA_GAMEPLAY_CAPABILITY_SCENE_API = 1u << 3,
+  NEXORA_GAMEPLAY_CAPABILITY_2D_API = 1u << 4
 } NexoraGameplayCapability;
 
 typedef enum NexoraAllocationOwner {
@@ -164,6 +166,97 @@ enum NexoraSpawnComponent {
   NEXORA_SPAWN_PHYSICS = 1u << 3
 };
 
+/* Optional 2D extension. All values are copied; context remains host-owned. */
+#define NEXORA_2D_API_VERSION 1u
+typedef struct NexoraVec2 {
+  float x, y;
+} NexoraVec2;
+typedef struct NexoraTwoDSprite {
+  uint64_t atlas_high, atlas_low;
+  uint32_t region, flags; /* flip X=1, flip Y=2, Y-sort=4, visible=8 */
+  NexoraVec2 size, pivot;
+  float color[4];
+  int32_t layer, order;
+} NexoraTwoDSprite;
+typedef struct NexoraTwoDCollider {
+  uint32_t kind; /* circle=0, axis-aligned box=1 */
+  NexoraVec2 offset, half_extent;
+  float radius;
+  uint32_t group, mask;
+} NexoraTwoDCollider;
+typedef struct NexoraTwoDCamera {
+  NexoraVec2 center;
+  float vertical_size, rotation_radians; /* viewport stays engine-owned */
+} NexoraTwoDCamera;
+typedef struct NexoraTwoDShape {
+  uint64_t exclude_id;         /* same query namespace; zero excludes nothing */
+  NexoraTwoDCollider geometry; /* offset is world center */
+} NexoraTwoDShape;
+typedef struct NexoraTwoDSweep {
+  NexoraVec2 from, to;
+  float radius;
+  uint32_t group, mask;
+} NexoraTwoDSweep;
+typedef struct NexoraTwoDHit {
+  uint64_t id;
+  double fraction;
+} NexoraTwoDHit;
+typedef struct NexoraTwoDEvent {
+  uint32_t length;
+  char name[256];
+} NexoraTwoDEvent;
+typedef struct NexoraTwoDAnimationResult {
+  uint32_t region, finished, event_count, reserved;
+} NexoraTwoDAnimationResult;
+typedef struct NexoraTwoDTile {
+  int32_t x, y, layer;
+  uint32_t region, collision; /* zero region erases; collision is 0/1 */
+} NexoraTwoDTile;
+typedef struct NexoraTwoDInstanceHandle {
+  uint64_t owner;
+  uint32_t index, generation;
+} NexoraTwoDInstanceHandle;
+typedef struct NexoraTwoDInstance {
+  NexoraTransformV2 transform;
+  NexoraTwoDSprite sprite;
+} NexoraTwoDInstance;
+typedef struct NexoraTwoDApiV1 {
+  uint32_t struct_size, abi_version;
+  void *context;
+  int32_t (*set_sprite)(void *context, uint64_t entity,
+                        const NexoraTwoDSprite *sprite); /* null removes */
+  int32_t (*get_sprite)(void *context, uint64_t entity, NexoraTwoDSprite *sprite);
+  int32_t (*set_collider)(void *context, uint64_t entity,
+                          const NexoraTwoDCollider *collider); /* null removes */
+  int32_t (*get_collider)(void *context, uint64_t entity, NexoraTwoDCollider *collider);
+  int32_t (*set_camera)(void *context, const NexoraTwoDCamera *camera);
+  int32_t (*get_camera)(void *context, NexoraTwoDCamera *camera);
+  int32_t (*play_animation)(void *context, uint64_t entity, uint64_t clip_high, uint64_t clip_low,
+                            double speed);
+  int32_t (*pause_animation)(void *context, uint64_t entity, uint32_t paused);
+  /* Null events/capacity zero probes without advancing. Short buffers publish only result. */
+  int32_t (*advance_animation)(void *context, uint64_t entity, double seconds,
+                               NexoraTwoDEvent *events, uint32_t capacity,
+                               NexoraTwoDAnimationResult *result);
+  /* source: scene colliders=0, optional Tilemap=1; IDs never mix namespaces. */
+  int32_t (*rebuild_queries)(void *context, uint32_t source);
+  int32_t (*overlap)(void *context, uint32_t source, const NexoraTwoDShape *shape, uint64_t *hits,
+                     uint32_t capacity, uint32_t *count);
+  int32_t (*sweep)(void *context, uint32_t source, const NexoraTwoDSweep *request,
+                   NexoraTwoDHit *hits, uint32_t capacity, uint32_t *count);
+  int32_t (*paint_tiles)(void *context, const NexoraTwoDTile *tiles, uint32_t count);
+  int32_t (*set_chunk_loaded)(void *context, int32_t chunk_x, int32_t chunk_y, uint32_t loaded);
+  int32_t (*get_tile)(void *context, int32_t x, int32_t y, int32_t layer, NexoraTwoDTile *tile);
+  int32_t (*create_instances)(void *context, const NexoraTwoDInstance *instances, uint32_t count,
+                              NexoraTwoDInstanceHandle *handles);
+  int32_t (*destroy_instances)(void *context, const NexoraTwoDInstanceHandle *handles,
+                               uint32_t count);
+  int32_t (*read_instances)(void *context, const NexoraTwoDInstanceHandle *handles, uint32_t count,
+                            NexoraTwoDInstance *instances);
+  int32_t (*write_instances)(void *context, const NexoraTwoDInstanceHandle *handles, uint32_t count,
+                             const NexoraTwoDInstance *instances);
+} NexoraTwoDApiV1;
+
 typedef struct NexoraGameplayHostV3 {
   uint32_t struct_size;
   uint32_t abi_version;
@@ -189,7 +282,12 @@ typedef struct NexoraGameplayHostV3 {
   int32_t (*raycast)(void *context, const NexoraRaycastRequest *request, NexoraRaycastHit *hit);
   int32_t (*debug_draw_line)(void *context, const NexoraDebugLine *line);
   int32_t (*get_diagnostics)(void *context, NexoraFrameDiagnostics *diagnostics);
+  /* Read only after checking struct_size and CAPABILITY_2D_API. Caller sets api.struct_size. */
+  int32_t (*get_twod_api)(void *context, NexoraTwoDApiV1 *api);
 } NexoraGameplayHostV3;
+
+/* The original V3 prefix remains sufficient for modules that do not request extensions. */
+#define NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE offsetof(NexoraGameplayHostV3, get_twod_api)
 
 typedef struct NexoraGameModuleV3 {
   uint32_t struct_size;

@@ -3,7 +3,8 @@
 `Nexora::TwoD` is the optional `NEXORA_ENABLE_2D` module. It depends on Runtime and
 Presentation, requires Asset Pipeline and Window Presentation, and is removed from headless
 and Dedicated builds. Runtime remains independent of TwoD, Presentation and Editor. Public C++
-consumers must rebuild; the stable C/Zig ABI and schema-3 World format are unchanged.
+consumers must rebuild; the original C/Zig V3 prefix and schema-3 World format are preserved.
+The optional append-only 2D ABI extension is described below.
 
 ## Ownership and execution
 
@@ -104,3 +105,59 @@ These establish portable/Linux correctness. Physical minimum-PC 60 FPS and clean
 DX12/Vulkan integration (keyboard/controller, text/audio, loading/save, display/DPI and shutdown)
 remain **NOT RUN**. Software Vulkan timings are not a PC performance guarantee. Follow the
 [bilingual 2D roadmap](../../Roadmap/en/2D_Roadmap.md) and its linked acceptance evidence.
+
+## C ABI and Zig gameplay control
+
+`GameplayBridge` supplies the canonical `NexoraTwoDApiV1` table from
+[`nexora.h`](../API/include/nexora/nexora.h). The host appends `get_twod_api` to its
+`NexoraGameplayHostV3` and advertises `NEXORA_GAMEPLAY_CAPABILITY_2D_API` only when the live
+bridge is attached. Check host structure size **before** reading the appended callback, then
+check capability and the returned table's version/size. `nexora.getTwoD` performs those checks
+and rejects missing callbacks. The original V3 prefix is still sufficient for other modules;
+TwoD-off hosts leave the callback null and the capability unset. Runtime has no dependency on
+TwoD. The original ABI baseline is retained alongside an additive 2D V1 wire baseline.
+
+The bridge borrows the supplied World, its matching SpriteScene and optional Tilemap/InstancePool;
+reject a mismatched World/scene at construction. ClipResolver returns immutable host-owned clips;
+Play validates their UUID/Atlas identity and copies a clip into its animator. Unavailable clips,
+Tilemap or pool return `UNSUPPORTED`. Loading/cooking/asset generations remain host responsibilities;
+the module cannot read native paths, upload textures, or hold renderer pointers through this table.
+The host retains the table/context and services until all modules and callbacks have stopped.
+The module may retain the copied table until destroy. Destroy the bridge before its borrowed owners.
+
+All callbacks execute synchronously on the construction thread. Wrong-thread or bridge reentry
+returns `LIFECYCLE`; resolver exceptions are contained at the C boundary. Never run a module
+callback concurrently with extraction, pool ForEach, World mutation, asset publication or teardown.
+Every descriptor/buffer is borrowed only during its call. Outputs are copied and may be retained.
+The caller must provide correctly aligned, valid, nonaliasing buffers for their advertised capacity.
+No native object, C++ pointer or exception crosses the API; its context is an opaque borrowed token.
+
+| Operation | Contract |
+| --- | --- |
+| Sprite/collider set/get | Existing members of the bound scene only; null setter removes (idempotently). Unknown flags/kinds, invalid geometry or missing entities reject. Sprite fields cover Atlas UUID/region, size/pivot, tint, layer/order/Y sort, visibility and flips. |
+| Camera set/get | Center, orthographic vertical size and radians; finite/bounded, height at least 1e-5. Viewport dimensions remain host-owned and come from `RenderCamera` for the current surface. |
+| Animation Play/Pause/Advance | UUID resolves through the host, speed/loop/event rules reuse Animator. Play resets region and clock; pause preserves time. Removing/changing the Sprite Atlas discards its playback. Explicit Advance controls time; rendering does not advance animation again. |
+| Animation buffers | Null events with capacity zero probes the result without advancing. Short nonnull buffers return `UNSUPPORTED` with required event count/result and consume no time/events. Retry the same delta after allocating enough capacity. Success with a nonnull buffer commits even when event count is zero. At most 65,536 events; each name is 0..256 ASCII bytes with explicit length and no required terminator. Invalid input leaves outputs unchanged. |
+| Query rebuild/overlap/sweep | Rebuild once after World/transform or collider mutations, then query the immutable snapshot many times. Metadata changes through the bridge invalidate it; external World changes require an explicit rebuild. Missing snapshot returns `LIFECYCLE`. Scene source 0 and Tilemap source 1 keep separate ID namespaces. Overlaps sort by ID; sweeps by fraction/ID. |
+| Query buffers | Null hits/capacity zero probes count. Short nonnull buffers return `UNSUPPORTED` and publish only required count, no partial hits. Invalid input leaves count/hits unchanged. At most 100,000 hits; caller interprets identities within the selected namespace. |
+| Tilemap | Atomic paint batches, region zero erases, collision 0/1; read cell and load/unload chunks. Uses existing Tilemap limits. `Collect` returns owning loaded visible-chunk inputs for one globally sorted extraction with scene/pool instances; unloaded chunks never appear. |
+| Transient pool batches | Create/read/write/destroy up to 100,000 copied instances per call using host-budgeted InstancePool. Handles carry owner/index/generation, never World IDs. Stale/foreign/duplicate writes or destroys, invalid transforms/Sprites and exhausted capacity reject the whole batch. Buffers remain unchanged on rejection. Transform writes normalize quaternions. Read may repeat a valid handle. No entity state is duplicated into the pool. |
+
+`INVALID_ARGUMENT` covers rejected descriptors/IDs/geometry; `UNSUPPORTED` covers absent optional
+services, unavailable assets and insufficient output/table capacity; `LIFECYCLE` covers execution
+violations and caught host exceptions. A failed rebuild preserves the previous query snapshot.
+There is no blanket rollback across several successful API calls made by a module.
+After entity destruction the host calls `ForgetEntity` for every `LastDestroyed()` ID, including
+descendants, before saving or retiring the scene. Unloading a module does not destroy host-owned
+entities, animation state, tiles or pool instances. Reload can reuse migrated IDs/handles; the
+host reclaims content at scene/session teardown. If new content must be rolled back after a
+failed module start, the embedding owns that transaction.
+
+The [Zig sample and usage guide](../../Gameplay/Zig/README.md) exercise static/dynamic loading,
+fixed input/Transform/Sprite/animation/query control, bulk pool updates, Tilemap and migration.
+`twod.gameplay_bridge` tests failures, buffer retries, query snapshots, lifetime cleanup,
+thread/reentry, atomic batches and stale handles. The real Zig compiler checks every wire size
+and field offset against C++ in `gameplay.zig_twod_wire_layout`; C11 and metadata gates also run.
+Linux/Xvfb/Vulkan `gameplay.zig_twod_native` holds a normalized D key through 600 presented frames
+and verifies Zig movement, reload and balanced allocation. This is engine control evidence,
+not game rules or a physical-PC performance result.

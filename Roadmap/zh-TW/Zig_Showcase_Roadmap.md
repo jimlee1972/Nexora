@@ -131,3 +131,12 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 導覽重播歸零與 M5／M6 指定拒絕案例的實際輸入／輸出。Source／package hash 採固定 LF 位元組。
 基底 e4a140139189 通過 Linux Development 77/77 與 Shipping package CI；
 實體顯示與乾淨主機最終 gate 仍待驗收。
+
+
+## 可選 Zig 2D 引擎介面（2026-10-14）
+
+✅ 原 V3 前綴新增可選、大小／能力／版本檢查的 2D 擴充。複製的 Sprite／Collider／
+相機、動畫事件緩衝、查詢快照、Tilemap 與世代池化批次沿用既有 TwoD 服務。實際 Zig
+靜態／動態／Reload 及布局契約通過；Linux 原生輸入驗收呈現 600 幀並確認 Zig 移動。
+見 [Zig 使用範例](../../Gameplay/Zig/README.md)與[2D Roadmap](2D_Roadmap.md)。此引擎
+控制擴充不改變本 Roadmap 原進度，也不代表實體 Windows gate 已完成。

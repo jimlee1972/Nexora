@@ -1,0 +1,95 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "structures": {
+    "NexoraTwoDSprite": [
+      "atlas_high",
+      "atlas_low",
+      "region",
+      "flags",
+      "size",
+      "pivot",
+      "color",
+      "layer",
+      "order"
+    ],
+    "NexoraTwoDCollider": [
+      "kind",
+      "offset",
+      "half_extent",
+      "radius",
+      "group",
+      "mask"
+    ],
+    "NexoraTwoDCamera": [
+      "center",
+      "vertical_size",
+      "rotation_radians"
+    ],
+    "NexoraTwoDShape": [
+      "exclude_id",
+      "geometry"
+    ],
+    "NexoraTwoDSweep": [
+      "from",
+      "to",
+      "radius",
+      "group",
+      "mask"
+    ],
+    "NexoraTwoDHit": [
+      "id",
+      "fraction"
+    ],
+    "NexoraTwoDEvent": [
+      "length",
+      "name"
+    ],
+    "NexoraTwoDAnimationResult": [
+      "region",
+      "finished",
+      "event_count",
+      "reserved"
+    ],
+    "NexoraTwoDTile": [
+      "x",
+      "y",
+      "layer",
+      "region",
+      "collision"
+    ],
+    "NexoraTwoDInstanceHandle": [
+      "owner",
+      "index",
+      "generation"
+    ],
+    "NexoraTwoDInstance": [
+      "transform",
+      "sprite"
+    ],
+    "NexoraTwoDApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "set_sprite",
+      "get_sprite",
+      "set_collider",
+      "get_collider",
+      "set_camera",
+      "get_camera",
+      "play_animation",
+      "pause_animation",
+      "advance_animation",
+      "rebuild_queries",
+      "overlap",
+      "sweep",
+      "paint_tiles",
+      "set_chunk_loaded",
+      "get_tile",
+      "create_instances",
+      "destroy_instances",
+      "read_instances",
+      "write_instances"
+    ]
+  }
+}
