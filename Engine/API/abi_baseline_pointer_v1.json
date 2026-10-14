@@ -1,0 +1,21 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "host_suffix": [
+    "get_twod_api",
+    "capture_pointer_input"
+  ],
+  "structures": {
+    "NexoraPointerInputSnapshotV1": [
+      "struct_size",
+      "abi_version",
+      "sequence",
+      "delta_x",
+      "delta_y",
+      "wheel_x",
+      "wheel_y",
+      "buttons",
+      "reserved"
+    ]
+  }
+}

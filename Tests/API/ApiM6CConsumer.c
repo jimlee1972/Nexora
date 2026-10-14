@@ -29,6 +29,13 @@ _Static_assert(offsetof(NexoraGameplayHostV3, get_twod_api) ==
                    offsetof(NexoraGameplayHostV3, get_diagnostics) + sizeof(void (*)(void)),
                "original V3 prefix changed");
 
+_Static_assert(sizeof(NexoraPointerInputSnapshotV1) == 56 &&
+                   offsetof(NexoraPointerInputSnapshotV1, sequence) == 8 &&
+                   offsetof(NexoraPointerInputSnapshotV1, delta_x) == 16 &&
+                   offsetof(NexoraPointerInputSnapshotV1, wheel_y) == 40 &&
+                   offsetof(NexoraPointerInputSnapshotV1, buttons) == 48,
+               "pointer V1 wire changed");
+
 int main(void) {
   NexoraGameplayHostV3 host = {0};
   NexoraGameModuleV3 module = {0};
@@ -36,5 +43,11 @@ int main(void) {
   host.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
   module.struct_size = (uint32_t)sizeof(module);
   module.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
+  NexoraPointerInputSnapshotV1 pointer = {0};
+  pointer.struct_size = (uint32_t)sizeof(pointer);
+  pointer.sequence = 97;
+  if (NexoraCapturePointerInputV1(&host, 0, &pointer) != NEXORA_GAMEPLAY_ERROR_UNSUPPORTED ||
+      pointer.sequence != 97)
+    return 1;
   return host.struct_size == 0 || module.struct_size == 0;
 }

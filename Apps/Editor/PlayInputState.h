@@ -2,6 +2,7 @@
 #include "Nexora/Editor/PlayInputBindings.h"
 #include "Nexora/Foundation/GameplayABI.h"
 #include "Nexora/Window/Window.h"
+#include <algorithm>
 #include <array>
 #include <span>
 
@@ -10,6 +11,8 @@ namespace nexora::editor::preview {
 // held state; the acquisition frame is discarded so clicking to capture does not fire in-game.
 class PlayInputState final {
 public:
+  static constexpr double kMaximumPointerDelta = 65536.0;
+  static constexpr double kMaximumWheelUnits = 122880.0;
   bool SetBindings(const PlayInputBindings &bindings) noexcept {
     if (!bindings.Valid())
       return false;
@@ -20,6 +23,7 @@ public:
       snapshot_.move_x = snapshot_.move_y = 0;
       snapshot_.buttons = 0;
       acquired_ = focused_;
+      ResetPointer(true);
     }
     return true;
   }
@@ -28,19 +32,23 @@ public:
       keys_.fill(false);
       buttons_ = 0;
       acquired_ = focused;
+      ResetPointer(true);
     }
     focused_ = focused;
     snapshot_.move_x = snapshot_.move_y = 0;
     snapshot_.buttons = 0;
+    ResetPointer(false);
   }
   void Process(std::span<const Nexora::Window::WindowEvent> events) noexcept {
     using namespace Nexora::Window;
+    ResetPointer(false);
     if (++snapshot_.sequence == 0)
       ++snapshot_.sequence;
     if (!focused_)
       return;
     // Release always wins, including the deliberately discarded acquisition batch. Otherwise a
     // blur/Escape received while acquiring leaves the owner focused for later key batches.
+    bool domain_changed = false;
     for (const auto &event : events) {
       if ((event.type == WindowEventType::FocusChanged && !event.value0) ||
           (event.type == WindowEventType::Key &&
@@ -48,13 +56,29 @@ public:
         SetFocused(false);
         return;
       }
+      domain_changed |= ChangesPointerDomain(event.type);
     }
+    if (domain_changed)
+      pointer_anchored_ = false;
     if (acquired_) {
       acquired_ = false;
+      for (const auto &event : events) {
+        if (ChangesPointerDomain(event.type))
+          pointer_anchored_ = false;
+        else if (event.type == WindowEventType::Pointer)
+          TrackPointer(event.value0, event.value1, false);
+      }
       return;
     }
     for (const auto &event : events) {
-      if (event.type == WindowEventType::Key) {
+      if (ChangesPointerDomain(event.type)) {
+        pointer_anchored_ = false;
+      } else if (event.type == WindowEventType::Pointer) {
+        TrackPointer(event.value0, event.value1, !domain_changed);
+      } else if (event.type == WindowEventType::Wheel && !domain_changed) {
+        wheel_x_ = std::clamp(wheel_x_ + event.value0, -kMaximumWheelUnits, kMaximumWheelUnits);
+        wheel_y_ = std::clamp(wheel_y_ + event.value1, -kMaximumWheelUnits, kMaximumWheelUnits);
+      } else if (event.type == WindowEventType::Key) {
         if (event.value0 > 0 && static_cast<std::size_t>(event.value0) < keys_.size())
           keys_[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
       } else if (event.type == WindowEventType::PointerButton && event.value0 >= 0 &&
@@ -122,8 +146,43 @@ public:
         snapshot_.buttons |= 1U << (index - 4);
   }
   [[nodiscard]] NexoraInputSnapshot Snapshot() const noexcept { return snapshot_; }
+  [[nodiscard]] NexoraPointerInputSnapshotV1 PointerSnapshot() const noexcept {
+    return {sizeof(NexoraPointerInputSnapshotV1),
+            NEXORA_POINTER_INPUT_ABI_VERSION,
+            snapshot_.sequence,
+            delta_x_,
+            delta_y_,
+            wheel_x_,
+            wheel_y_,
+            (buttons_ >> 1U) & 31U,
+            0};
+  }
 
 private:
+  static bool ChangesPointerDomain(Nexora::Window::WindowEventType type) noexcept {
+    using Nexora::Window::WindowEventType;
+    return type == WindowEventType::Resized || type == WindowEventType::DpiChanged ||
+           type == WindowEventType::DisplayChanged;
+  }
+  void ResetPointer(bool reset_anchor) noexcept {
+    delta_x_ = delta_y_ = wheel_x_ = wheel_y_ = 0;
+    if (reset_anchor)
+      pointer_anchored_ = false;
+  }
+  void TrackPointer(std::int32_t x, std::int32_t y, bool accumulate) noexcept {
+    if (accumulate && pointer_anchored_) {
+      const auto dx = static_cast<double>(static_cast<std::int64_t>(x) - pointer_x_);
+      const auto dy = static_cast<double>(static_cast<std::int64_t>(y) - pointer_y_);
+      delta_x_ = std::clamp(delta_x_ + dx, -kMaximumPointerDelta, kMaximumPointerDelta);
+      delta_y_ = std::clamp(delta_y_ + dy, -kMaximumPointerDelta, kMaximumPointerDelta);
+    }
+    pointer_x_ = x;
+    pointer_y_ = y;
+    pointer_anchored_ = true;
+  }
+  bool pointer_anchored_{};
+  std::int32_t pointer_x_{}, pointer_y_{};
+  double delta_x_{}, delta_y_{}, wheel_x_{}, wheel_y_{};
   bool focused_{}, acquired_{};
   std::array<bool, static_cast<std::size_t>(Nexora::Window::Key::F12) + 1> keys_{};
   std::uint32_t buttons_{};

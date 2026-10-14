@@ -170,8 +170,9 @@ private:
     NexoraGameplayHostV3 host{};
     host.struct_size = sizeof(host);
     host.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
-    host.capabilities =
-        NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR | NEXORA_GAMEPLAY_CAPABILITY_SCENE_API;
+    host.capabilities = NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR |
+                        NEXORA_GAMEPLAY_CAPABILITY_SCENE_API |
+                        NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
     host.context = this;
     host.log = [](void *context, std::uint32_t level, const char *message, std::uint32_t length) {
       try {
@@ -256,6 +257,23 @@ private:
       auto copied = self.input_.Snapshot();
       if (user != self.input_user_) {
         copied.move_x = copied.move_y = 0;
+        copied.buttons = 0;
+      }
+      *snapshot = copied;
+      return NEXORA_GAMEPLAY_OK;
+    };
+    host.capture_pointer_input = [](void *context, std::uint32_t user,
+                                    NexoraPointerInputSnapshotV1 *snapshot) -> int32_t {
+      auto &self = Self(context);
+      if (!snapshot || user >= PlayInputBindings::kMaximumUsers)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT);
+      if (snapshot->struct_size < sizeof(*snapshot))
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_UNSUPPORTED);
+      if (!self.world_)
+        return self.RecordResult(NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+      auto copied = self.input_.PointerSnapshot();
+      if (user != self.input_user_) {
+        copied.delta_x = copied.delta_y = copied.wheel_x = copied.wheel_y = 0;
         copied.buttons = 0;
       }
       *snapshot = copied;

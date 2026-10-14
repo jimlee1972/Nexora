@@ -508,6 +508,16 @@
       "threading": "serialized_owner_thread",
       "errors": "NexoraGameplayResult",
       "determinism": "ordered_owner_thread_state"
+    },
+    {
+      "name": "NexoraGameplayHostV3.capture_pointer_input",
+      "since": 3,
+      "extension": "pointer_input_v1",
+      "ownership": "copied_snapshot_host_owned_context",
+      "nullability": "context_nonnull_snapshot_nonnull_caller_sized",
+      "threading": "serialized_game_thread",
+      "errors": "NexoraGameplayResult_no_partial_output",
+      "determinism": "owning_batch_sequence_nonconsuming_reads"
     }
   ]
 }
