@@ -1,3 +1,4 @@
+#include "Nexora/TwoD/GameplayBridge.h"
 #include "nexora/nexora.h"
 #include <array>
 #include <cassert>
@@ -95,4 +96,17 @@ int main() {
   assert(NexoraTwoDProbe(reinterpret_cast<const NexoraGameplayHostV3 *>(prefix.data())) == 0);
   host.struct_size = sizeof(host);
   assert(NexoraTwoDProbe(&host) == 0);
+  nexora::runtime::World world;
+  const auto sceneId = world.LoadScene("Legacy 2D prefix");
+  nexora::twod::SpriteScene scene(world, sceneId);
+  nexora::twod::GameplayBridge bridge(world, scene);
+  host.context = &bridge;
+  host.get_twod_api = [](void *context, NexoraTwoDApiV1 *api) {
+    return static_cast<nexora::twod::GameplayBridge *>(context)->GetApi(api);
+  };
+  host.struct_size = NEXORA_GAMEPLAY_HOST_V3_2D_SIZE;
+  alignas(NexoraGameplayHostV3) std::array<std::byte, NEXORA_GAMEPLAY_HOST_V3_2D_SIZE> oldTwoD{};
+  std::memcpy(oldTwoD.data(), &host, oldTwoD.size());
+  assert(NexoraTwoDProbe(reinterpret_cast<const NexoraGameplayHostV3 *>(oldTwoD.data())) == 1 &&
+         "a later optional suffix must not reject a valid legacy 2D host");
 }

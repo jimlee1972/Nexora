@@ -839,6 +839,14 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Win32 正規化 XBUTTON1／2 與滾輪軸；原生訊息檢查仍需 hosted Windows 驗收。Gamepad、
   pointer look、同時多裝置 owner 與完整里程碑仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPointerButtons-Linux-2026-10-14.md)。
+- ✅ Play 現提供可選協商的 copied pointer motion／wheel snapshot，保留原始 V3 prefix、
+  legacy input 與舊 2D host。有限 native client-pixel delta、水平／垂直 wheel unit 與 raw held bit
+  在 Fixed／Update 共用不消耗的 batch sequence。Acquisition、release、座標 domain 變更、logical
+  user 與 Pause／Step／Stop 安全重設。C11／C++／真正 Zig 檢查、32輪 state／provider lifecycle
+  與真正 X11 C-ABI 驅動的 Game 像素涵蓋此支援性切片。Cursor lock、raw relative input、gamepad
+  與完整 pointer-look／ED-M3 驗收仍待完成。
+  [ADR-0010](ADR-0010-Play-Pointer-Input.md)、
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPointerMotion-Linux-2026-10-14.md)。
 - ✅ Play input acquisition 現會先處理 native 失焦與按下 Escape，再丟棄第一批輸入。
   不論事件順序，release 都優先；後續批次維持中立，直到明確重新取得 focus，而重新取得的
   第一批仍會丟棄。State 與真正 gameplay callback 測試涵蓋 owning snapshot、持續遞增

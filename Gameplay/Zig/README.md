@@ -84,3 +84,24 @@ the host. The bridge itself is synchronous, owner-thread only and rejects reentr
 See [TwoD ownership/error contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md). Physical Windows performance, clean-host packaging,
 main Editor project/Play attachment and a production game's content remain separate work.
+
+## Optional Play pointer snapshots
+
+`nx.capturePointerInput(host, user, &snapshot)` negotiates the appended pointer callback by its own
+field end, ABI version, capability and non-null function. Initialize
+`var snapshot = nx.PointerInputSnapshotV1{};` (caller size defaults to the known wire size).
+Handle Unsupported on older hosts without reading their absent suffix; the original V3 base stays
+compatible. `getTwoD` likewise checks only its own field end, so adding later extensions cannot
+reject an otherwise valid older 2D host.
+
+A successful call copies native client-pixel X/Y deltas, horizontal/vertical 120-unit wheel values,
+five raw held button bits and the legacy batch sequence. Results own their data; errors preserve
+output and larger buffers keep unknown suffixes. Fixed and Update see the same non-consuming batch;
+deduplicate displacement by sequence and do not multiply it by seconds. A Fixed-only consumer can
+miss batches without a fixed tick; use Update to cover those batches too. Editor focus/owner changes
+can revoke an already copied current batch; previously returned values remain owning snapshots.
+The provider/context remains valid through Stop/Destroy on the serialized game thread. Other logical
+users receive neutral input. See the [Editor contract](../../Apps/Editor/README.md#optional-copied-play-pointer-input)
+for bounds, acquisition/release and coordinate-domain resets. No raw mouse lock or native object is
+exposed. `gameplay.zig_pointer_wire_layout` runs real Zig/C++ layout and negotiation vectors;
+`gameplay.zig_twod_wire_layout` includes a positive exact-size older 2D host case.

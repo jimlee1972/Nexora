@@ -889,6 +889,15 @@ creates property widgets; unknown components retain raw data instead of being si
     XBUTTON1/2 and wheel axes; native message checks require hosted Windows acceptance. Gamepad,
     pointer look, simultaneous device owners and full milestone acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPointerButtons-Linux-2026-10-14.md).
+  - ✅ Play exposes optional negotiated copied pointer motion/wheel snapshots, preserving the
+    original V3 prefix, legacy input and older 2D hosts. Bounded native client-pixel deltas,
+    horizontal/vertical wheel units and raw held bits share non-consuming batch sequences across
+    Fixed/Update. Acquisition, release, coordinate-domain changes, logical users and Pause/Step/Stop
+    reset safely. C11/C++/real Zig checks, 32 state/provider lifecycles and actual X11 C-ABI-driven
+    Game pixels cover this supporting slice. Cursor lock, raw relative input, gamepad and full
+    pointer-look/ED-M3 acceptance remain open.
+    [ADR-0010](ADR-0010-Play-Pointer-Input.md),
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPointerMotion-Linux-2026-10-14.md).
   - ✅ Play input acquisition now honors native blur and pressed Escape before suppressing the
     first batch. Release wins regardless of event order; later batches remain neutral until explicit
     reacquisition, whose first batch is still discarded. State and actual gameplay callback tests

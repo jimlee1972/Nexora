@@ -31,7 +31,8 @@ typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_FIXED_UPDATE = 1u << 1,
   NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2,
   NEXORA_GAMEPLAY_CAPABILITY_SCENE_API = 1u << 3,
-  NEXORA_GAMEPLAY_CAPABILITY_2D_API = 1u << 4
+  NEXORA_GAMEPLAY_CAPABILITY_2D_API = 1u << 4,
+  NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT = 1u << 5
 } NexoraGameplayCapability;
 
 typedef enum NexoraAllocationOwner {
@@ -82,8 +83,12 @@ typedef struct NexoraGameModuleV2 {
 
 typedef int32_t (*NexoraGameModuleLoadFn)(uint32_t requested_abi, NexoraGameModuleV2 *module);
 
-typedef struct NexoraVec3 { double x, y, z; } NexoraVec3;
-typedef struct NexoraAssetHandle { uint64_t value; } NexoraAssetHandle;
+typedef struct NexoraVec3 {
+  double x, y, z;
+} NexoraVec3;
+typedef struct NexoraAssetHandle {
+  uint64_t value;
+} NexoraAssetHandle;
 typedef struct NexoraEntitySpawnDescriptor {
   uint32_t struct_size;
   uint32_t components;
@@ -103,6 +108,21 @@ typedef struct NexoraInputSnapshot {
   uint32_t buttons;
   uint32_t reserved;
 } NexoraInputSnapshot;
+
+#define NEXORA_POINTER_INPUT_ABI_VERSION 1u
+/* Caller sets struct_size. Motion is per native batch in client pixels; wheel is in Window
+ * 120-unit steps. Repeated reads never consume it. buttons: left/right/middle/back/forward bits. */
+typedef struct NexoraPointerInputSnapshotV1 {
+  uint32_t struct_size;
+  uint32_t abi_version;
+  uint64_t sequence;
+  double delta_x;
+  double delta_y;
+  double wheel_x;
+  double wheel_y;
+  uint32_t buttons;
+  uint32_t reserved;
+} NexoraPointerInputSnapshotV1;
 typedef struct NexoraRaycastRequest {
   NexoraVec3 origin;
   NexoraVec3 direction;
@@ -270,8 +290,8 @@ typedef struct NexoraGameplayHostV3 {
   void *(*allocate)(void *context, uint64_t owner, uint64_t size, uint64_t alignment);
   void (*deallocate)(void *context, uint64_t owner, void *allocation, uint64_t size,
                      uint64_t alignment);
-  int32_t (*load_scene)(void *context, const char *name, uint32_t name_length,
-                        uint32_t persistent, uint64_t *scene);
+  int32_t (*load_scene)(void *context, const char *name, uint32_t name_length, uint32_t persistent,
+                        uint64_t *scene);
   int32_t (*activate_scene)(void *context, uint64_t scene);
   int32_t (*spawn_entity)(void *context, uint64_t scene,
                           const NexoraEntitySpawnDescriptor *descriptor, uint64_t *entity);
@@ -284,10 +304,29 @@ typedef struct NexoraGameplayHostV3 {
   int32_t (*get_diagnostics)(void *context, NexoraFrameDiagnostics *diagnostics);
   /* Read only after checking struct_size and CAPABILITY_2D_API. Caller sets api.struct_size. */
   int32_t (*get_twod_api)(void *context, NexoraTwoDApiV1 *api);
+  /* Optional suffix: inspect size/capability before reading. Caller sets snapshot.struct_size. */
+  int32_t (*capture_pointer_input)(void *context, uint32_t user,
+                                   NexoraPointerInputSnapshotV1 *snapshot);
 } NexoraGameplayHostV3;
 
 /* The original V3 prefix remains sufficient for modules that do not request extensions. */
 #define NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE offsetof(NexoraGameplayHostV3, get_twod_api)
+#define NEXORA_GAMEPLAY_HOST_V3_2D_SIZE                                                            \
+  (offsetof(NexoraGameplayHostV3, get_twod_api) + sizeof(((NexoraGameplayHostV3 *)0)->get_twod_api))
+#define NEXORA_GAMEPLAY_HOST_V3_POINTER_SIZE                                                       \
+  (offsetof(NexoraGameplayHostV3, capture_pointer_input) +                                         \
+   sizeof(((NexoraGameplayHostV3 *)0)->capture_pointer_input))
+
+/* Safe with an original V3 prefix or an older 2D-only host. No output is touched when absent. */
+static inline int32_t NexoraCapturePointerInputV1(const NexoraGameplayHostV3 *host, uint32_t user,
+                                                  NexoraPointerInputSnapshotV1 *snapshot) {
+  if (!host || host->struct_size < NEXORA_GAMEPLAY_HOST_V3_POINTER_SIZE ||
+      host->abi_version != NEXORA_GAMEPLAY_ABI_VERSION ||
+      !(host->capabilities & NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT) ||
+      !host->capture_pointer_input)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  return host->capture_pointer_input(host->context, user, snapshot);
+}
 
 typedef struct NexoraGameModuleV3 {
   uint32_t struct_size;

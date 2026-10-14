@@ -208,8 +208,8 @@ The existing `capture_input(user,snapshot)` callback accepts0–3. The selected 
 held values; every other user receives a neutral owning value with the same frame sequence and zero
 reserved field. Repeated capture does not consume input. Out-of-range/null capture rejects before
 writing output; invalid owner forwarding revokes focus while retaining the selected identity. The
-default remains0. No C/Gameplay ABI declaration, capability bit or module dependency changes; public
-C++ consumers rebuild. This routes one source among logical lanes, without simultaneous physical
+default remains0. The logical-user selector preserves the legacy input wire and module dependencies;
+public C++ consumers rebuild. This routes one source among logical lanes, without simultaneous physical
 users, gamepad, relative-pointer or pointer-look claims.
 
 Focus loss or a pressed Escape revokes `PlayInputState` before discarding the acquisition batch.
@@ -1012,3 +1012,35 @@ follow the GUI/core gates; no capture is written implicitly. Source scope exclud
 textures/frame uploads and allocator overhead, and export destination is not allocation ownership.
 The existing core schema1 and stable C/Zig/scene formats/dependencies are unchanged; additive host
 C++ APIs require a matching rebuild. Physical device-memory calibration remains separate work.
+
+## Optional copied Play pointer input
+
+The V3 host appends `capture_pointer_input` after `get_twod_api`, advertised by
+`NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT`. Check the end of this optional field before reading it,
+then ABI version, capability and callback; `NexoraCapturePointerInputV1` performs that negotiation.
+The original V3 required prefix and `NexoraInputSnapshot` remain unchanged. Old 2D hosts continue
+to negotiate using the end of their own callback. C++ host consumers rebuild.
+
+Callers provide aligned `NexoraPointerInputSnapshotV1` storage with `struct_size` set. Success copies
+the known 56-byte V1 prefix and leaves larger-buffer suffixes intact; errors preserve all output.
+The embedding owns the context through Stop/Destroy, serializes calls on its game thread, and
+revokes input before teardown. No native window, event buffer, ownership transfer or deferred work
+crosses the boundary. An unbound owner rejects with Lifecycle; null/user>=4 rejects InvalidArgument;
+a short output rejects Unsupported. Missing providers return Unsupported through the helper.
+
+The selected user0–3 gets native client-pixel deltas (right/down positive), horizontal/vertical
+Window wheel units (120 per notch), and raw held left/right/middle/back/forward bits0–4, independent
+of profile action bits. Other users get neutral copies with the same legacy batch sequence. Reads
+are non-consuming: apply displacement once per sequence across Fixed/Update, without multiplying
+by tick duration. Consume in Update as well if using Fixed: some batches have no fixed tick.
+An empty batch clears deltas/wheel while retaining held buttons. Owner focus or
+admission mutations may neutralize the current snapshot without advancing its batch sequence.
+Motion saturates at +/-65,536 pixels/axis and wheel at +/-122,880 units/axis.
+
+Acquisition suppresses input and may seed the pointer anchor; otherwise the first sample anchors.
+Blur/Escape wins the whole batch. Focus/user/profile replacement, Pause and Stop reset impulses and
+anchor. Resize/DPI/display changes suppress that batch's motion/wheel and invalidate the anchor at
+the domain event; only later pointer samples can establish a new anchor. Normal key/button release
+processing continues. Resume requires reacquisition. This adds bounded native motion, not cursor
+locking, raw/unbounded relative input, gamepads or complete pointer-look acceptance. See
+[ADR-0010](../../Roadmap/en/ADR-0010-Play-Pointer-Input.md).

@@ -32,6 +32,9 @@ if manifest["abi"]["major"] != baseline["major"]:
 extension = json.loads((root / "Engine/API/abi_baseline_twod_v1.json").read_text(encoding="utf-8"))
 structures = dict(baseline["structures"])
 structures.update(extension["structures"])
+pointer_extension = json.loads((root / "Engine/API/abi_baseline_pointer_v1.json").read_text(encoding="utf-8"))
+structures.update(pointer_extension["structures"])
+structures["NexoraGameplayHostV3"] = structures["NexoraGameplayHostV3"] + pointer_extension["host_suffix"]
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:

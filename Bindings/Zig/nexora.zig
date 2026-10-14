@@ -11,6 +11,7 @@ pub const Result = enum(i32) {
 
 pub const scene_api_capability: u64 = 1 << 3;
 pub const twod_api_capability: u64 = 1 << 4;
+pub const pointer_input_capability: u64 = 1 << 5;
 
 pub const AllocationOwner = enum(u64) {
     unknown = 0,
@@ -28,6 +29,17 @@ pub const EntitySpawnDescriptor = extern struct {
     bounds_minimum: Vec3 = .{}, bounds_maximum: Vec3 = .{},
 };
 pub const InputSnapshot = extern struct { sequence: u64 = 0, move_x: f64 = 0, move_y: f64 = 0, buttons: u32 = 0, reserved: u32 = 0 };
+pub const PointerInputSnapshotV1 = extern struct {
+    struct_size: u32 = @sizeOf(PointerInputSnapshotV1),
+    abi_version: u32 = 1,
+    sequence: u64 = 0,
+    delta_x: f64 = 0,
+    delta_y: f64 = 0,
+    wheel_x: f64 = 0,
+    wheel_y: f64 = 0,
+    buttons: u32 = 0,
+    reserved: u32 = 0,
+};
 pub const RaycastRequest = extern struct { origin: Vec3 = .{}, direction: Vec3 = .{}, distance: f64 = 0 };
 pub const RaycastHit = extern struct { entity: u64 = 0, distance: f64 = 0, point: Vec3 = .{} };
 pub const DebugLine = extern struct { start: Vec3 = .{}, end: Vec3 = .{}, rgba: u32 = 0, duration_seconds: f32 = 0 };
@@ -77,9 +89,19 @@ pub const GameplayHostV3 = extern struct {
     debug_draw_line: ?*const fn (?*anyopaque, *const DebugLine) callconv(.c) i32,
     get_diagnostics: ?*const fn (?*anyopaque, *FrameDiagnostics) callconv(.c) i32,
     get_twod_api: ?*const fn (?*anyopaque, *TwoDApiV1) callconv(.c) i32 = null,
+    capture_pointer_input: ?*const fn (?*anyopaque, u32, *PointerInputSnapshotV1) callconv(.c) i32 = null,
 };
 
 pub const host_v3_base_size: u32 = @offsetOf(GameplayHostV3, "get_twod_api");
+pub const host_v3_twod_size: u32 = @offsetOf(GameplayHostV3, "get_twod_api") + @sizeOf(@FieldType(GameplayHostV3, "get_twod_api"));
+pub const host_v3_pointer_size: u32 = @offsetOf(GameplayHostV3, "capture_pointer_input") + @sizeOf(@FieldType(GameplayHostV3, "capture_pointer_input"));
+
+pub fn capturePointerInput(host: *const GameplayHostV3, user: u32, output: *PointerInputSnapshotV1) i32 {
+    if (host.struct_size < host_v3_pointer_size or host.abi_version != abi_version or
+        (host.capabilities & pointer_input_capability) == 0) return -2;
+    const capture = host.capture_pointer_input orelse return -2;
+    return capture(host.context, user, output);
+}
 
 pub const Vec2 = extern struct { x: f32 = 0, y: f32 = 0 };
 pub const TwoDSprite = extern struct {
@@ -175,7 +197,7 @@ pub const TwoDInstance = extern struct {
 
 /// Always inspect the V3 prefix before reading the optional appended callback.
 pub fn getTwoD(host: *const GameplayHostV3) ?TwoDApiV1 {
-    if (host.abi_version != abi_version or host.struct_size < @sizeOf(GameplayHostV3) or
+    if (host.abi_version != abi_version or host.struct_size < host_v3_twod_size or
         (host.capabilities & twod_api_capability) == 0) return null;
     const get = host.get_twod_api orelse return null;
     var api = TwoDApiV1{};

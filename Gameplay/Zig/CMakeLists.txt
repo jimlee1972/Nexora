@@ -133,6 +133,23 @@ if(BUILD_TESTING)
   endif()
   nexora_apply_defaults(NexoraZigGameplayTests)
   add_test(NAME gameplay.zig_abi_smoke COMMAND NexoraZigGameplayTests)
+  get_filename_component(pointer_object_extension "${NEXORA_ZIG_SAMPLE_OBJECT}" LAST_EXT)
+  set(pointer_object "${CMAKE_CURRENT_BINARY_DIR}/zig_pointer_layout${pointer_object_extension}")
+  set(pointer_object_args ${NEXORA_ZIG_BUILD_OBJ_ARGS})
+  list(TRANSFORM pointer_object_args REPLACE "src/game_module.zig" "src/pointer_layout.zig")
+  list(TRANSFORM pointer_object_args REPLACE "-femit-bin=.*" "-femit-bin=${pointer_object}")
+  add_custom_command(OUTPUT "${pointer_object}"
+    COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${pointer_object_args}
+    DEPENDS src/pointer_layout.zig "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+            "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h" VERBATIM)
+  set_source_files_properties("${pointer_object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+  add_executable(NexoraZigPointerLayoutTests PointerLayoutTests.cpp "${pointer_object}")
+  target_link_libraries(NexoraZigPointerLayoutTests PRIVATE Nexora::Foundation)
+  if(WIN32)
+    target_link_libraries(NexoraZigPointerLayoutTests PRIVATE ntdll)
+  endif()
+  nexora_apply_defaults(NexoraZigPointerLayoutTests)
+  add_test(NAME gameplay.zig_pointer_wire_layout COMMAND NexoraZigPointerLayoutTests)
 endif()
 
 # A separate 2D module uses the same C++ process owner and V3 lifecycle as the 3D sample.
