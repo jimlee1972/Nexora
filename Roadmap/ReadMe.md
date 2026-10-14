@@ -97,7 +97,7 @@ and DX12/Vulkan/Metal target-tier parity are the remaining acceptance gates.
 6. The focused capability roadmaps — API foundation, window/presentation, Zig showcase, and editor delivery.
 7. The V1 Visual Showcase Long-Term Plan — the windowed `NexoraShowcase` demo product this complements the Zig Showcase Roadmap with.
 8. The focused-roadmaps AI plan — dependency-aware AI execution, evidence, and review policy.
-9. The 2D Engine Roadmap — P0/P1 sprite, asset, query, performance, Windows packaging and authoring capabilities; gameplay excluded.
+9. The 2D Engine Roadmap — P0/P1 sprite, asset, query, performance, Windows packaging and authoring capabilities and C/Zig engine control; game rules excluded.
 
 The documents are planning artifacts. They do not themselves authorize commands, credentials, publishing, or changes to external systems.
 
@@ -158,7 +158,7 @@ DX12／Vulkan／Metal target-tier parity。
 6. 聚焦能力 Roadmap：API 基礎、Window/Presentation、Zig Showcase 與 Editor 交付。
 7. V1 可視化展示 Demo 長期規劃：與 Zig Showcase Roadmap 互補的視窗化 `NexoraShowcase` 展示產品規劃。
 8. 聚焦 Roadmap AI 施工規劃：具依賴順序的 AI 執行、證據與審查制度。
-9. 2D 引擎 Roadmap：P0／P1 Sprite、資產、查詢、效能、Windows 打包與製作工具能力，不含 Gameplay。
+9. 2D 引擎 Roadmap：P0／P1 Sprite、資產、查詢、效能、Windows 打包與製作工具與 C／Zig 引擎控制能力，不含遊戲規則。
 
 這些文件是規劃資料，不會自行授權命令、憑證、發布或外部系統變更。
 

@@ -5,6 +5,7 @@ if(NOT NEXORA_ZIG_EXECUTABLE)
   unset(NEXORA_ZIG_EXECUTABLE CACHE)
   find_program(NEXORA_ZIG_EXECUTABLE NAMES zig)
 endif()
+
 if(NOT NEXORA_ZIG_EXECUTABLE)
   message(FATAL_ERROR "Zig compiler was not found; set NEXORA_ZIG_EXECUTABLE to the zig executable path")
 endif()
@@ -132,4 +133,54 @@ if(BUILD_TESTING)
   endif()
   nexora_apply_defaults(NexoraZigGameplayTests)
   add_test(NAME gameplay.zig_abi_smoke COMMAND NexoraZigGameplayTests)
+endif()
+
+# A separate 2D module uses the same C++ process owner and V3 lifecycle as the 3D sample.
+if(NEXORA_ENABLE_2D)
+  get_filename_component(twod_object_extension "${NEXORA_ZIG_SAMPLE_OBJECT}" LAST_EXT)
+  set(twod_object "${CMAKE_CURRENT_BINARY_DIR}/zig_twod${twod_object_extension}")
+  set(twod_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigTwoD${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(twod_object_args ${NEXORA_ZIG_BUILD_OBJ_ARGS})
+  list(TRANSFORM twod_object_args REPLACE "src/game_module.zig" "src/twod_module.zig")
+  list(TRANSFORM twod_object_args REPLACE "-femit-bin=.*" "-femit-bin=${twod_object}")
+  add_custom_command(OUTPUT "${twod_object}"
+    COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${twod_object_args}
+    DEPENDS src/twod_module.zig "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+            "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h"
+    COMMENT "Building Zig 2D gameplay module" VERBATIM)
+  set_source_files_properties("${twod_object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+  if(APPLE)
+    add_custom_command(OUTPUT "${twod_library}"
+      COMMAND "${CMAKE_CXX_COMPILER}" -dynamiclib "${twod_object}" -o "${twod_library}"
+      DEPENDS "${twod_object}" VERBATIM)
+  else()
+    set(twod_library_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
+    list(TRANSFORM twod_library_args REPLACE "src/game_module.zig" "src/twod_module.zig")
+    list(TRANSFORM twod_library_args REPLACE "-femit-bin=.*" "-femit-bin=${twod_library}")
+    add_custom_command(OUTPUT "${twod_library}"
+      COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${twod_library_args}
+      DEPENDS src/twod_module.zig "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+              "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h" VERBATIM)
+  endif()
+  add_custom_target(NexoraZigTwoDSharedBuild DEPENDS "${twod_library}")
+  add_executable(NexoraZigTwoD TwoDHost.cpp "${twod_object}")
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Shipping")
+    add_dependencies(NexoraZigTwoD NexoraZigTwoDSharedBuild)
+  endif()
+  target_link_libraries(NexoraZigTwoD PRIVATE Nexora::TwoD)
+  if(WIN32)
+    target_link_libraries(NexoraZigTwoD PRIVATE ntdll)
+  endif()
+  nexora_apply_defaults(NexoraZigTwoD)
+  if(BUILD_TESTING)
+    add_test(NAME gameplay.zig_twod_static COMMAND NexoraZigTwoD --frames 60)
+    add_test(NAME gameplay.zig_twod_dynamic COMMAND NexoraZigTwoD --frames 60 --module "${twod_library}")
+    add_executable(NexoraZigTwoDLayoutTests TwoDLayoutTests.cpp "${twod_object}")
+    target_link_libraries(NexoraZigTwoDLayoutTests PRIVATE Nexora::TwoD)
+    if(WIN32)
+      target_link_libraries(NexoraZigTwoDLayoutTests PRIVATE ntdll)
+    endif()
+    nexora_apply_defaults(NexoraZigTwoDLayoutTests)
+    add_test(NAME gameplay.zig_twod_wire_layout COMMAND NexoraZigTwoDLayoutTests)
+  endif()
 endif()

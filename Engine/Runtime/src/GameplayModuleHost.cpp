@@ -20,7 +20,7 @@
 namespace nexora::runtime {
 namespace {
 
-constexpr std::size_t kRequiredHostSize = sizeof(NexoraGameplayHostV3);
+constexpr std::size_t kRequiredHostSize = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
 constexpr std::size_t kRequiredModuleSize = sizeof(NexoraGameModuleV3);
 constexpr auto kLoaderSymbol = "NexoraGameModuleLoad";
 

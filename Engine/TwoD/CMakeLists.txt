@@ -1,6 +1,6 @@
 include(NexoraTarget)
 add_library(NexoraTwoD ${NEXORA_MODULE_LIBRARY_TYPE}
-  src/Assets.cpp src/Scene.cpp src/Queries.cpp src/Lifecycle.cpp src/Tilemap.cpp)
+  src/Assets.cpp src/Scene.cpp src/Queries.cpp src/Lifecycle.cpp src/Tilemap.cpp src/GameplayBridge.cpp)
 add_library(Nexora::TwoD ALIAS NexoraTwoD)
 target_include_directories(NexoraTwoD PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
 target_link_libraries(NexoraTwoD PUBLIC Nexora::Runtime Nexora::Presentation)

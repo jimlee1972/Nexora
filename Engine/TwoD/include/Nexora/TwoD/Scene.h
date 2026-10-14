@@ -78,6 +78,7 @@ public:
   [[nodiscard]] static std::optional<SpriteScene> Load(runtime::World &world,
                                                        std::span<const std::byte> snapshot);
   [[nodiscard]] runtime::Id SceneId() const noexcept { return scene_; }
+  [[nodiscard]] runtime::World &WorldOwner() const noexcept { return *world_; }
 
 private:
   runtime::World *world_;

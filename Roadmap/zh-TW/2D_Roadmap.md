@@ -1,6 +1,6 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.1 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-14
+> 版本：v1.2 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-14
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
 > Portable／Linux 功能證據。M6 最低規格實體 PC 60 FPS 與 M7 乾淨 Windows
@@ -12,7 +12,7 @@
 正交相機、Unlit 材質、實例化、VFX Sprite、UI／文字、輸入、音效、非同步資產、序列化與
 打包已有規劃或切片。可選 TwoD 模組已提供場景 Sprite 擷取與輕量 2D 查詢，沿用 World、
 資產、Core VFS、原生 Presentation 與 EditorImGuiHost。實體 PC 效能及乾淨 Windows
-整合維持獨立；不替換 Jolt，也不加入 Gameplay。
+整合維持獨立；不替換 Jolt；Gameplay 規則維持範圍外。
 
 範圍包含可重用的渲染、資產、查詢、Runtime 生命週期、效能分析、打包與製作工具。
 Gameplay 規則、戰鬥、刷怪邏輯、成長與遊戲內容不列入本 Roadmap。
@@ -56,7 +56,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 - Editor 管理製作 Metadata／Transaction；Shipping 不得依賴其 UI 或工具。
 - 後續公共 C++／C ABI、序列化與 Optional Module 變更須審查 Contract；模組相依登錄
   `Config/Modules/modules.json` 並提供 Feature Option。TwoD 以 Feature 控制，依賴 Runtime／Presentation；
-  Editor 條件式依賴 TwoD。公共 C++ 新增需重建 Consumer；C／Zig ABI 不變。
+  Editor 條件式依賴 TwoD。公共 C++ 新增需重建 Consumer；原 V3 C／Zig 前綴保留，新增可選 2D 擴充。
 
 ## 5. 效能與平台證據
 
@@ -111,6 +111,25 @@ UI／文字、實際音效、載入失敗／重載／存檔、原生 DX12／Vulk
 指令、平台範圍、擷取圖與負載 CSV。參閱 [模組 Contract](../../Engine/TwoD/README.md) 與
 [工具](../../Tools/TwoD/README.md)。產生的報告位於 `build/<preset>/artifacts/`。
 雲端可執行工作已完成；實體目標主機 follow-up 保留於 Beads。
+
+## 8. Zig 引擎控制擴充（2026-10-14）
+
+✅ C ABI 以附加欄位、能力／大小／版本檢查，讓 Zig 控制 Sprite／Collider／正交相機、
+Clip 播放／暫停／推進與有序事件緩衝、快照式重疊／掃掠查詢、Tilemap 繪製／區塊狀態，
+以及具世代識別的原子池化批次。Runtime 不依賴 TwoD；未啟用的 Host 不宣告此能力，
+既有 V3 Consumer 保留原前綴。
+✅ 實際 Zig 0.14 Consumer 透過靜態／動態模組控制既有 World 與 2D 擷取，Reload 遷移
+ID／Handle 而不重複建立內容；C／C++／Zig 布局及橋接負面契約通過。Linux／Xvfb／Vulkan
+輸入驗收呈現 600 幀，確認標準化 D 鍵經 Zig 移動實體。見
+[使用範例](../../Gameplay/Zig/README.md)與[契約](../../Engine/TwoD/README.md)。
+
+本項補上應用 Gameplay 使用的引擎介面，遊戲規則仍不列入；不提高既有 9/11 里程碑
+計數，也不代表 M6／M7 實體 Windows 驗收。主 Editor 專案／Play 掛接與正式遊戲內容
+屬於另外的整合工作。
+
+
+[保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
+記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
 
 - [Roadmap 索引](../ReadMe.md)
 - [V1 完整規劃書](跨平台3D_Engine_V1_完整規劃書_v1_2.md)

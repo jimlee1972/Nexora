@@ -217,6 +217,12 @@ int main() {
   assert(!host.IsLoaded() && !host.SupportsFixedUpdate());
   host.Unload();
 
+  auto original_api = api;
+  original_api.struct_size = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
+  nexora::runtime::GameplayModuleHost original_host(original_api);
+  assert(original_host.Load(LoadFirst));
+  original_host.Unload();
+
   auto undersized_api = api;
   undersized_api.struct_size =
       sizeof(undersized_api.struct_size) + sizeof(undersized_api.abi_version);

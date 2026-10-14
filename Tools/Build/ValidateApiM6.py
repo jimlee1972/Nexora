@@ -29,7 +29,10 @@ for entry in exports:
 if manifest["abi"]["major"] != baseline["major"]:
     raise SystemExit("ABI manifest major differs from compatibility baseline")
 
-for structure, expected_fields in baseline["structures"].items():
+extension = json.loads((root / "Engine/API/abi_baseline_twod_v1.json").read_text(encoding="utf-8"))
+structures = dict(baseline["structures"])
+structures.update(extension["structures"])
+for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:
         raise SystemExit(f"baseline structure is absent: {structure}")

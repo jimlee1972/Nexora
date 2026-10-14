@@ -11,6 +11,10 @@ struct Tile final {
 };
 using TileKey = std::tuple<std::int32_t, std::int32_t, std::int32_t>;
 using ChunkKey = std::pair<std::int32_t, std::int32_t>;
+struct TilemapInstances final {
+  std::vector<SpriteInstance> instances;
+  std::size_t loaded{}, chunkCulled{};
+};
 class NEXORA_2D_API Tilemap final {
 public:
   AssetId atlas;
@@ -21,6 +25,8 @@ public:
   bool SetChunkLoaded(ChunkKey chunk, bool loaded);
   [[nodiscard]] const std::map<TileKey, Tile> &Tiles() const noexcept { return tiles_; }
   [[nodiscard]] std::optional<SpriteFrame> Extract(const Camera &, const AtlasResolver &) const;
+  // Owning visible-chunk inputs for a single globally sorted scene/pool/Tilemap extraction.
+  [[nodiscard]] std::optional<TilemapInstances> Collect(const Camera &) const;
   [[nodiscard]] std::optional<std::vector<Shape>> CollisionShapes() const;
   [[nodiscard]] bool Valid() const noexcept;
   [[nodiscard]] static ChunkKey Chunk(std::int32_t x, std::int32_t y) noexcept;

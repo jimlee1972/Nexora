@@ -10,6 +10,7 @@ pub const Result = enum(i32) {
 };
 
 pub const scene_api_capability: u64 = 1 << 3;
+pub const twod_api_capability: u64 = 1 << 4;
 
 pub const AllocationOwner = enum(u64) {
     unknown = 0,
@@ -75,7 +76,122 @@ pub const GameplayHostV3 = extern struct {
     raycast: ?*const fn (?*anyopaque, *const RaycastRequest, *RaycastHit) callconv(.c) i32,
     debug_draw_line: ?*const fn (?*anyopaque, *const DebugLine) callconv(.c) i32,
     get_diagnostics: ?*const fn (?*anyopaque, *FrameDiagnostics) callconv(.c) i32,
+    get_twod_api: ?*const fn (?*anyopaque, *TwoDApiV1) callconv(.c) i32 = null,
 };
+
+pub const host_v3_base_size: u32 = @offsetOf(GameplayHostV3, "get_twod_api");
+
+pub const Vec2 = extern struct { x: f32 = 0, y: f32 = 0 };
+pub const TwoDSprite = extern struct {
+    atlas_high: u64 = 0,
+    atlas_low: u64 = 0,
+    region: u32 = 0,
+    flags: u32 = 8,
+    size: Vec2 = .{ .x = 1, .y = 1 },
+    pivot: Vec2 = .{ .x = 0.5, .y = 0.5 },
+    color: [4]f32 = .{ 1, 1, 1, 1 },
+    layer: i32 = 0,
+    order: i32 = 0,
+};
+pub const TwoDCollider = extern struct {
+    kind: u32 = 0,
+    offset: Vec2 = .{},
+    half_extent: Vec2 = .{ .x = 0.5, .y = 0.5 },
+    radius: f32 = 0.5,
+    group: u32 = 1,
+    mask: u32 = 0xffffffff,
+};
+pub const TwoDCamera = extern struct {
+    center: Vec2 = .{},
+    vertical_size: f32 = 20,
+    rotation_radians: f32 = 0,
+};
+pub const TwoDShape = extern struct {
+    exclude_id: u64 = 0,
+    geometry: TwoDCollider = .{},
+};
+pub const TwoDSweep = extern struct {
+    from: Vec2 = .{},
+    to: Vec2 = .{},
+    radius: f32 = 0,
+    group: u32 = 1,
+    mask: u32 = 0xffffffff,
+};
+pub const TwoDHit = extern struct {
+    id: u64 = 0,
+    fraction: f64 = 0,
+};
+pub const TwoDEvent = extern struct {
+    length: u32 = 0,
+    name: [256]u8 = @splat(0),
+};
+pub const TwoDAnimationResult = extern struct {
+    region: u32 = 0,
+    finished: u32 = 0,
+    event_count: u32 = 0,
+    reserved: u32 = 0,
+};
+pub const TwoDTile = extern struct {
+    x: i32 = 0,
+    y: i32 = 0,
+    layer: i32 = 0,
+    region: u32 = 0,
+    collision: u32 = 0,
+};
+pub const TwoDApiV1 = extern struct {
+    struct_size: u32 = @sizeOf(TwoDApiV1),
+    abi_version: u32 = 1,
+    context: ?*anyopaque = null,
+    set_sprite: ?*const fn (?*anyopaque, u64, ?*const TwoDSprite) callconv(.c) i32 = null,
+    get_sprite: ?*const fn (?*anyopaque, u64, *TwoDSprite) callconv(.c) i32 = null,
+    set_collider: ?*const fn (?*anyopaque, u64, ?*const TwoDCollider) callconv(.c) i32 = null,
+    get_collider: ?*const fn (?*anyopaque, u64, *TwoDCollider) callconv(.c) i32 = null,
+    set_camera: ?*const fn (?*anyopaque, *const TwoDCamera) callconv(.c) i32 = null,
+    get_camera: ?*const fn (?*anyopaque, *TwoDCamera) callconv(.c) i32 = null,
+    play_animation: ?*const fn (?*anyopaque, u64, u64, u64, f64) callconv(.c) i32 = null,
+    pause_animation: ?*const fn (?*anyopaque, u64, u32) callconv(.c) i32 = null,
+    advance_animation: ?*const fn (?*anyopaque, u64, f64, ?[*]TwoDEvent, u32, *TwoDAnimationResult) callconv(.c) i32 = null,
+    rebuild_queries: ?*const fn (?*anyopaque, u32) callconv(.c) i32 = null,
+    overlap: ?*const fn (?*anyopaque, u32, *const TwoDShape, ?[*]u64, u32, *u32) callconv(.c) i32 = null,
+    sweep: ?*const fn (?*anyopaque, u32, *const TwoDSweep, ?[*]TwoDHit, u32, *u32) callconv(.c) i32 = null,
+    paint_tiles: ?*const fn (?*anyopaque, ?[*]const TwoDTile, u32) callconv(.c) i32 = null,
+    set_chunk_loaded: ?*const fn (?*anyopaque, i32, i32, u32) callconv(.c) i32 = null,
+    get_tile: ?*const fn (?*anyopaque, i32, i32, i32, *TwoDTile) callconv(.c) i32 = null,
+    create_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstance, u32, ?[*]TwoDInstanceHandle) callconv(.c) i32 = null,
+    destroy_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32) callconv(.c) i32 = null,
+    read_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32, ?[*]TwoDInstance) callconv(.c) i32 = null,
+    write_instances: ?*const fn (?*anyopaque, ?[*]const TwoDInstanceHandle, u32, ?[*]const TwoDInstance) callconv(.c) i32 = null,
+};
+
+pub const TwoDInstanceHandle = extern struct {
+    owner: u64 = 0,
+    index: u32 = 0,
+    generation: u32 = 0,
+};
+pub const TwoDInstance = extern struct {
+    transform: TransformV2 = .{},
+    sprite: TwoDSprite = .{},
+};
+
+/// Always inspect the V3 prefix before reading the optional appended callback.
+pub fn getTwoD(host: *const GameplayHostV3) ?TwoDApiV1 {
+    if (host.abi_version != abi_version or host.struct_size < @sizeOf(GameplayHostV3) or
+        (host.capabilities & twod_api_capability) == 0) return null;
+    const get = host.get_twod_api orelse return null;
+    var api = TwoDApiV1{};
+    if (get(host.context, &api) != 0 or api.abi_version != 1 or
+        api.struct_size < @sizeOf(TwoDApiV1)) return null;
+    inline for (@typeInfo(TwoDApiV1).@"struct".fields[3..]) |field| {
+        if (@field(api, field.name) == null) return null;
+    }
+    return api;
+}
+
+pub fn componentType(comptime text: []const u8) u64 {
+    var hash: u64 = 14695981039346656037;
+    for (text) |byte| { hash ^= byte; hash *%= 1099511628211; }
+    return hash;
+}
 
 pub const GameModuleV3 = extern struct {
     struct_size: u32,

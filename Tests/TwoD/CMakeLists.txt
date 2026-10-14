@@ -2,6 +2,10 @@ add_executable(NexoraTwoDTests TwoDTests.cpp)
 target_link_libraries(NexoraTwoDTests PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraTwoDTests)
 add_test(NAME twod.runtime_contracts COMMAND NexoraTwoDTests)
+add_executable(NexoraTwoDGameplayTests GameplayBridgeTests.cpp)
+target_link_libraries(NexoraTwoDGameplayTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraTwoDGameplayTests)
+add_test(NAME twod.gameplay_bridge COMMAND NexoraTwoDGameplayTests)
 if(NEXORA_ENABLE_EDITOR)
   add_executable(NexoraTwoDAuthoringTests AuthoringTests.cpp)
   target_link_libraries(NexoraTwoDAuthoringTests PRIVATE Nexora::Editor)
@@ -18,6 +22,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_
     --native-test "$<TARGET_FILE:NexoraTwoDNativeTests>"
     --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/twod-native")
   set_tests_properties(twod.native_pixels PROPERTIES LABELS "twod;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+  if(TARGET NexoraZigTwoD)
+    add_test(NAME gameplay.zig_twod_native COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/ZigNativeAcceptance.py" --app "$<TARGET_FILE:NexoraZigTwoD>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/zig-twod")
+    set_tests_properties(gameplay.zig_twod_native PROPERTIES LABELS "twod;zig;vulkan;virtual-display"
+      SKIP_RETURN_CODE 77 TIMEOUT 45)
+  endif()
 endif()
 add_test(NAME twod.asset_tool COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AssetToolTests.py" "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
 add_test(NAME twod.cpu_stress COMMAND NexoraTwoDBenchmark --frames 8 --report "${CMAKE_BINARY_DIR}/twod-cpu-stress.csv")

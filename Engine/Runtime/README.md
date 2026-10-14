@@ -1022,3 +1022,15 @@ Courtyard original leaf and mote masks extend that same verified art generation 
 127/128 depending on metadata 119. The converter retains both RGBA/hash entries; Showcase owns
 eight surface payloads (six detail maps and two masks), borrowing them for native submission.
 Wind timing and deterministic particle positions are application state, not persistent NXAB fields.
+
+
+### Optional V3 2D extension (2026-10-14)
+
+The canonical host table now appends `get_twod_api` with a separate 2D capability bit.
+`NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE` preserves the original V3 required prefix for modules without
+extensions. The original Zig sample accepts that prefix and never accesses the tail; the 2D
+binding checks full host size, capability and returned table version/size before use. Existing
+C++ host/table consumers must rebuild. Runtime depends on no TwoD implementation; hosts with
+TwoD disabled advertise no 2D capability. The optional module supplies owner-thread copied wires
+for Sprite/collider/camera, animation, query snapshots, Tilemap and generational pool batches.
+See [TwoD contracts](../TwoD/README.md) and the [Zig consumer](../../Gameplay/Zig/README.md).

@@ -1,6 +1,6 @@
 # Nexora 2D Engine Roadmap
 
-> Version: v1.1 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-14
+> Version: v1.2 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-14
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
 > have portable/Linux functional evidence. M6 physical minimum-PC 60 FPS and M7 clean Windows
@@ -62,7 +62,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 - Editor owns authoring metadata/transactions. Shipping must not depend on its UI or tools.
 - Future public C++/C ABI, serialization and optional-module changes need contract review; module
   dependencies belong in `Config/Modules/modules.json` with feature options. TwoD is feature-gated with Runtime/Presentation dependencies; Editor
-  conditionally depends on it. Public C++ additions require consumer rebuilds; C/Zig ABI is unchanged.
+  conditionally depends on it. Public C++ additions require consumer rebuilds; the original V3 C/Zig prefix is preserved with an optional 2D extension.
 
 ## 5. Performance and platform evidence
 
@@ -122,6 +122,26 @@ Retained [Linux acceptance record](../../Engine/TwoD/evidence/Linux-2026-10-14/a
 contains commands, platform scope, captures and workload CSV. See [module contracts](../../Engine/TwoD/README.md)
 and [tools](../../Tools/TwoD/README.md). Generated reports remain under `build/<preset>/artifacts/`.
 The cloud executable work is complete; Beads keeps physical target-host follow-ups open.
+
+
+## 8. Zig engine-control extension (2026-10-14)
+
+✅ An append-only, capability/size/version-gated C ABI now exposes Sprite/collider/camera, clip
+Play/Pause/Advance with ordered event buffers, cached overlap/sweep queries, Tilemap painting/chunk
+state and atomic generational pool batches to Zig. Runtime does not depend on TwoD; disabled
+hosts expose no capability. Original V3 consumers retain their prefix.
+✅ The actual Zig 0.14 consumer drives the existing World and 2D extraction in static/dynamic
+modules, migrates IDs/handles without duplicate content, and passes C/C++/Zig wire and bridge
+negative contracts. Linux/Xvfb/Vulkan input acceptance presents 600 frames and verifies normalized
+D-key movement through Zig. See [usage](../../Gameplay/Zig/README.md) and
+[contracts](../../Engine/TwoD/README.md).
+
+This adds the engine interface for application gameplay; game rules remain excluded. It does
+not increase the 9/11 milestone count or accept physical Windows M6/M7. Main Editor project/Play
+attachment and game production content are separate integrations.
+
+[Retained Zig/Linux acceptance](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
+records the complete suite, initial GUI failures/retry and Shipping scope.
 
 - [Roadmap index](../ReadMe.md)
 - [V1 Complete Plan](Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md)
