@@ -51,4 +51,6 @@ Required evidence: portable admission boundaries/overflow/mode/reset, meaningful
 upload-alias regressions, distinct native PBR/geometry/UI pixels on Vulkan/DX12/Metal, repeated
 frames/resize/drain ownership, and actual simultaneous Editor Scene/Game with Play motion,
 pause/step/stop and unchanged authoring source/Undo. Run complete Linux Development and Shipping,
-then every applicable final-head hosted CI job. Current validation is still in progress.
+then every applicable final-head hosted CI job. Vulkan core/synchronization validation must also
+reject pipeline/render-pass incompatibility: clear/load passes share identical dependencies,
+including color reads, as well as compatible attachments. Current validation is still in progress.

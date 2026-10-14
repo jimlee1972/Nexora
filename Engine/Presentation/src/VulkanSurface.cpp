@@ -2357,7 +2357,8 @@ private:
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
             VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         0};
     VkRenderPassCreateInfo pass{};
@@ -2371,9 +2372,8 @@ private:
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneRenderPass_) != VK_SUCCESS)
       return false;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    auto overlayDependency = dependency;
-    overlayDependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    pass.pDependencies = &overlayDependency;
+    // Clear/load passes share pipelines, so their dependencies must also match. Keep the
+    // load pass's color-read synchronization in both compatible render passes.
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneOverlayRenderPass_) != VK_SUCCESS)
       return false;
     const auto makeShader = [&](const std::uint32_t *code, std::size_t bytes, VkShaderModule &out) {

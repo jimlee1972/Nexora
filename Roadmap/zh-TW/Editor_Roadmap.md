@@ -763,7 +763,8 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   Vulkan／DX12／Metal adapter 分開擁有 protecting-frame upload；Vulkan 額外分開 descriptor／
   target。無效／重疊／第三個 view 不消耗 admission。Linux native 像素驗證獨立 geometry／
   instance／64槽 PBR palette、UI 保留、Play 移動、Pause／Step／Stop 及重疊後恢復。
-  Portable 1x／2x 測試在每個 scale 涵蓋32次 lifecycle、authoring／Undo 未變動。HDR／shadow
+  Portable 1x／2x 測試在每個 scale 涵蓋32次 lifecycle、authoring／Undo 未變動。
+  Khronos core／同步驗證涵蓋 clear／load pass 共用 pipeline 的相容性。HDR／shadow
   多 view、一般浮動視窗遮擋與實機驗收仍待完成。
   [ADR-0009](ADR-0009-Editor-Concurrent-Canvases.md)、
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-ConcurrentCanvases-Linux-2026-10-14.md)。

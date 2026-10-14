@@ -84,3 +84,23 @@ to do.`, establishing unchanged Linux build inputs. The paired JSON records pre/
 The final Metal source requires actual final-head hosted macOS compilation and pixels before merge;
 no local macOS execution is claimed. All 19 final file hashes, documentation/format and native-host
 CI still gate delivery.
+
+## Khronos validation regression
+
+Initial published head `aeddd64` failed the push Xvfb job's native core/synchronization validation:
+`VUID-vkCmdDrawIndexed-renderPass-02684`. Pixel oracles passed, but the clear render pass used to
+create shared pipelines omitted the overlay/load pass's color-read destination access. Different
+subpass dependencies made these render passes incompatible. This is a source defect, not a flaky
+test; the failing head must not merge. Reproduction with the installed local Khronos layer failed
+both Vulkan Scene/PBR tests in **9.05s** (CTest exit8).
+
+The fix preserves color-read synchronization in both render passes and removes the divergent
+overlay dependency. The existing pixel fixture now doubles as the permanent regression under
+the existing CI validation step; no validation filter or workflow was weakened. With the same
+layer and synchronization validation enabled, Vulkan Scene/PBR and both Renderer checks pass
+**4/4,10.39s**, with verified layer loading and no `Validation Error`, `VUID-` or `SYNC-HAZARD-`.
+The final complete Development gate passes **271/271,840.60s**, no skips. The fix rebuild
+completed274 actions; the subsequent configure/build reported no work. Shipping passes9 actions.
+Native concurrent Editor5.75s, Vulkan PBR7.49s and portable UI0.19s pass. Docs16, formatting16,
+source/config hashes19 and local links273 pass. All new-head hosted CI still gates merge; earlier
+hosted results establish the previous source only.

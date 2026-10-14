@@ -46,4 +46,6 @@ Stable C／Zig layout、asset／resource identity、source format、shader 與 m
 必要證據包含 portable admission 邊界／overflow／mode／reset、有意義的舊 guard 與 upload alias
 回歸、Vulkan／DX12／Metal 不同的原生 PBR／geometry／UI 像素、重複 frame／resize／drain ownership，
 以及真正 Editor Scene／Game 同時顯示的 Play 移動、pause／step／stop、authoring source／Undo
-未變動。執行完整 Linux Development／Shipping 與最終來源的全部 hosted CI。目前驗證仍進行中。
+未變動。執行完整 Linux Development／Shipping 與最終來源的全部 hosted CI。Vulkan core／同步
+驗證也必須拒絕 pipeline／render-pass 不相容；clear／load pass 除 attachment 相容，還共用
+包含 color read 的相同 dependency。目前驗證仍進行中。

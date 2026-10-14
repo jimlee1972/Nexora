@@ -807,7 +807,8 @@ creates property widgets; unknown components retain raw data instead of being si
     separates descriptors/targets. Invalid/overlapping/third views preserve admission. Linux native
     pixels verify independent geometry/instances/64-slot PBR palettes, UI preservation, Play motion,
     Pause/Step/Stop and overlap recovery. Portable 1x/2x tests cover32 lifecycles per scale and unchanged
-    authoring/Undo. HDR/shadow multi-view, general floating-window occlusion and physical acceptance
+    authoring/Undo. Khronos core/synchronization validation covers shared clear/load pipeline
+    compatibility. HDR/shadow multi-view, general floating-window occlusion and physical acceptance
     remain open. [ADR-0009](ADR-0009-Editor-Concurrent-Canvases.md),
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConcurrentCanvases-Linux-2026-10-14.md).
   - ✅ Game View now offers a clipped Preview camera chooser with Automatic as the default and

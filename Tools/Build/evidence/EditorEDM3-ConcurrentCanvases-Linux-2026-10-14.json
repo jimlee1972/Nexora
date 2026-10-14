@@ -13,7 +13,7 @@
     "Engine/Presentation/src/MetalSurface.mm": "5c09497b2b2fe428a11b60e56867616e8af0f05a69c4de9f9bbbefae14ddd9c8",
     "Engine/Presentation/src/RenderSurface.cpp": "acc02352591cf782f63ffaed01f4b104b1a80b02f93d9e044a2338d173762a52",
     "Engine/Presentation/src/SceneViewAdmission.h": "254142cb6f53ec1175061a6e92baa45e3b2502dc3514d8ca45ac0d6dc541013b",
-    "Engine/Presentation/src/VulkanSurface.cpp": "1cfba07f1f470e6e64a4f51f2670b5dab70a1aad0c40d247b88abc684a68f994",
+    "Engine/Presentation/src/VulkanSurface.cpp": "f85828add7ee80898681004070b8830f8052544f398faac4c749e5a1a850e86a",
     "Tests/EditorImGui/CMakeLists.txt": "eca5af7f06c594b2146e1b5387674b5d32dce4a5ce9ef8763754765225e7fe6f",
     "Tests/EditorImGui/ConcurrentGameViewTests.cpp": "94b4436a2a2fcb4386ffb472aae3c4bc72ab064b801b876fa69f0124daaafe0c",
     "Tests/EditorImGui/LinuxNativeGameView.py": "d04327d4a9172ceff69b9a48b3277fd199341ff3a23de5df0bd16be593ef9b6a",
@@ -120,7 +120,7 @@
       "post_fix_linux_development_build": "ninja: no work to do.",
       "post_fix_linux_shipping_build": "ninja: no work to do."
     },
-    "final_linux": {
+    "pre_validation_fix_linux": {
       "passed": 271,
       "seconds": 836.25,
       "skipped": 0,
@@ -132,6 +132,40 @@
       "base": "82f02460d597d986a0c4471c2eeb7f6f4146e7e0",
       "includes_upstream_twod_gameplay_bridge": true,
       "metal_source_at_linux_gate": "a388ac9a40b40fb86c6e43e36629257f8bf1303af3bf0116b62d6a316f2f361e"
+    },
+    "render_pass_compatibility": {
+      "initial_head": "aeddd64ffb0b4c51e9034c8e58895574b57a38ef",
+      "failed_push_run": 38543803067,
+      "failed_job": 115784998490,
+      "vuid": "VUID-vkCmdDrawIndexed-renderPass-02684",
+      "local_reproduction": {
+        "failed": 2,
+        "seconds": 9.05,
+        "ctest_exit": 8
+      },
+      "fix": "Identical clear/load render-pass dependencies retain color-read synchronization for shared pipelines.",
+      "restored": {
+        "passed": 4,
+        "seconds": 10.39,
+        "khronos_layer_loaded": true,
+        "synchronization_validation": true,
+        "validation_errors": 0
+      },
+      "full_gates": "Development271/271840.60s,no skips; Shipping9actions; docs16; format16; source hashes19; local links273."
+    },
+    "final_linux": {
+      "passed": 271,
+      "seconds": 840.6,
+      "skipped": 0,
+      "base": "82f02460d597d986a0c4471c2eeb7f6f4146e7e0",
+      "validation_fix_build_actions": 274,
+      "final_configure_build": "ninja: no work to do.",
+      "shipping_actions": 9,
+      "native_editor_seconds": 5.75,
+      "vulkan_pbr_seconds": 7.49,
+      "ui_seconds": 0.19,
+      "includes_metal_const_correction": true,
+      "includes_render_pass_compatibility_fix": true
     }
   },
   "host": {

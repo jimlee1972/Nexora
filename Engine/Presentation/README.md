@@ -277,6 +277,8 @@ creating the next direct target cannot release the first recorded view. DX12/Met
 shared depth ownership while using distinct mutable uploads. Offscreen/HDR/shadow targets stay
 exclusive. Existing mesh-residency leases cover both unsubmitted views until the next frame.
 Resize/recovery/drain account for both slots, and abandoned recordings never submit freed resources.
+Vulkan clear/load scene render passes share identical subpass dependencies, including color reads,
+so their shared pipelines remain render-pass compatible while preserving load synchronization.
 GPU timing remains the existing whole-command-buffer interval. These are scoped frame/cache bounds,
 not total native memory or physical GPU measurements.
 
