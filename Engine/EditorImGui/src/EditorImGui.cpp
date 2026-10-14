@@ -281,6 +281,7 @@ struct EditorImGuiHost::State final {
   std::optional<SceneFileToken> native_scene_frame_all_request, native_scene_frame_all_apply;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
+  bool concurrent_native_views{}, overlapping_native_views{};
   bool game_was_running = false;
   std::optional<std::array<float, 2>> hierarchy_cut_position;
   std::optional<std::array<float, 2>> content_add_mesh_position;
@@ -4348,6 +4349,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->inspector_reset_positions = {};
   state_->inspector_clipboard_positions = {};
   state_->native_game_viewport.reset();
+  state_->overlapping_native_views = false;
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
   state_->native_scene_drag_preview.reset();
@@ -5501,14 +5503,27 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (game_running)
         ImGui::TextDisabled(state_->game_input_focused ? "Game input captured | Escape releases"
                                                        : "Click Game canvas to capture input");
-      if (game_running && state_->native_game_available && !NativeScenePreviewViewport()) {
+      if (game_running && state_->native_game_available &&
+          (!NativeScenePreviewViewport() || state_->concurrent_native_views)) {
         ImGui::TextDisabled("Play camera | Assets frozen at Play start");
         if (!state_->native_game_status.empty())
           ImGui::TextWrapped("%s", state_->native_game_status.c_str());
         const auto available = ImGui::GetContentRegionAvail();
-        ImGui::InvisibleButton("##game-native-preview", {std::max(available.x, 1.0F), 180.0F});
-        CaptureCanvasViewport(state_->native_game_viewport, ImGui::GetItemRectMin(),
-                              ImGui::GetItemRectMax());
+        const auto position = ImGui::GetCursorScreenPos();
+        const ImVec2 size{std::max(available.x, 1.0F), 180.0F};
+        std::optional<Nexora::Presentation::SceneViewport> candidate;
+        CaptureCanvasViewport(candidate, position, {position.x + size.x, position.y + size.y});
+        const auto scene_view = NativeScenePreviewViewport();
+        if (candidate && scene_view &&
+            Nexora::Presentation::SceneViewportsOverlap(*candidate, *scene_view)) {
+          // Suppress both native draws so one cannot overwrite the other window's UI fallback.
+          state_->overlapping_native_views = true;
+          ImGui::TextWrapped("Separate the Scene and Game previews to display both in 3D.");
+          DrawPlayOverview(snapshot);
+        } else {
+          ImGui::InvisibleButton("##game-native-preview", size);
+          state_->native_game_viewport = candidate;
+        }
       } else {
         if (game_running)
           ImGui::TextWrapped("%s",
@@ -7357,6 +7372,9 @@ void EditorImGuiHost::SetNativeGameStatus(std::string message, bool available) {
   state_->native_game_status = std::move(message);
   state_->native_game_available = available;
 }
+void EditorImGuiHost::SetConcurrentNativeViews(bool available) noexcept {
+  state_->concurrent_native_views = available;
+}
 
 std::optional<Nexora::Presentation::SceneViewport>
 EditorImGuiHost::SceneCanvasViewport() const noexcept {
@@ -7401,7 +7419,9 @@ bool EditorImGuiHost::SetNativeSceneOrbit(NativeSceneOrbit orbit) noexcept {
 
 std::optional<Nexora::Presentation::SceneViewport>
 EditorImGuiHost::NativeScenePreviewViewport() const noexcept {
-  return state_->native_scene_preview ? state_->scene_canvas_viewport : std::nullopt;
+  return state_->native_scene_preview && !state_->overlapping_native_views
+             ? state_->scene_canvas_viewport
+             : std::nullopt;
 }
 
 std::optional<NativeScenePickRequest> EditorImGuiHost::NativeScenePick() const noexcept {

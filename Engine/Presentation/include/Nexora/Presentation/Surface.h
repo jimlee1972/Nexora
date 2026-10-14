@@ -331,6 +331,15 @@ struct SceneViewport final {
   std::uint32_t height{};
 };
 
+// Rectangles use physical pixels; touching edges and empty rectangles do not overlap.
+[[nodiscard]] constexpr bool SceneViewportsOverlap(SceneViewport a, SceneViewport b) noexcept {
+  return a.width && a.height && b.width && b.height &&
+         static_cast<std::uint64_t>(a.x) < static_cast<std::uint64_t>(b.x) + b.width &&
+         static_cast<std::uint64_t>(b.x) < static_cast<std::uint64_t>(a.x) + a.width &&
+         static_cast<std::uint64_t>(a.y) < static_cast<std::uint64_t>(b.y) + b.height &&
+         static_cast<std::uint64_t>(b.y) < static_cast<std::uint64_t>(a.y) + a.height;
+}
+
 [[nodiscard]] constexpr std::optional<SceneViewport>
 ResolveSceneViewport(SceneViewport viewport, std::uint32_t surface_width,
                      std::uint32_t surface_height) noexcept {
@@ -496,6 +505,9 @@ enum class SurfaceStatus : std::uint8_t {
 class NEXORA_PRESENTATION_API ISurface {
 public:
   [[nodiscard]] virtual bool SupportsSceneGeometryResidency() const noexcept { return false; }
+  // Two disjoint explicit direct LDR/non-shadow viewports after one UI submission. Other scene
+  // modes retain one submission per frame. Each view owns distinct fence-protected uploads.
+  [[nodiscard]] virtual bool SupportsBoundedSceneViews() const noexcept { return false; }
   virtual ~ISurface() = default;
   [[nodiscard]] virtual std::thread::id RenderThread() const noexcept = 0;
   virtual SurfaceStatus NotifyWindowExtent(std::uint32_t width, std::uint32_t height) noexcept = 0;

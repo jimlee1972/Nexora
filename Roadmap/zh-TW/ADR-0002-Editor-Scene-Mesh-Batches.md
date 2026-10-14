@@ -21,7 +21,9 @@ Vulkan 與 DX12 在配置或錄製前驗證所有範圍，只上傳一次陣列�
 material 為整次提交共用；transform 與 tint 維持每個 instance 獨立。
 
 Span 只在 DrawScene 呼叫期間借用；返回後由 frame fence 保護已複製的 GPU 上傳。Resize、復原、offscreen
-合成、裁切、UI 次序及每幀一次 scene 提交規則維持原約定。sceneDrawCalls 計算成功提交次數，
+合成、裁切及 UI 次序維持原約定。後續有界的 UI 後雙 view 例外詳見
+[ADR-0009](ADR-0009-Editor-Concurrent-Canvases.md)；其他模式仍為每幀一次 scene 提交。
+sceneDrawCalls 計算成功提交次數，
 sceneInstances 計算上傳的 instance 記錄數量。
 
 ## 影響及驗證

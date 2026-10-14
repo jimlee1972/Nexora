@@ -259,6 +259,35 @@ process module paths and records that DLL's SHA-256. The hosted Vulkan gate sele
 Mesa lavapipe ICD outside the package and requires software-driver diagnostics, preserving distinct
 physical-display/clean-host attestations.
 
+## Bounded concurrent scene views
+
+`SupportsBoundedSceneViews()` is default-false on ISurface and forwarded by RenderSurface. Native
+Vulkan/DX12/Metal adapters support at most two explicit, disjoint direct LDR/non-shadow viewports
+after the single UI submission. Touching edges are allowed. Implicit full-surface, offscreen, HDR,
+shadow and before-UI workflows remain exclusive. All original descriptor/budget validation runs;
+failed geometry, overlap and a third view return InvalidDescriptor without consuming admission.
+Admission commits only after successful recording and resets on successful Acquire. Unsupported
+adapters keep their capability false. This rebuild-required C++ capability changes no stable C wire,
+asset identity, shader or module dependency.
+
+Each protecting-frame/view slot owns its mutable scene upload and geometry-prefix key. The second
+slot grows lazily and retains existing per-view limits. Vulkan separately owns each view's scene
+targets, bindings and PBR descriptors, with two bounded 64-material descriptor groups per frame;
+creating the next direct target cannot release the first recorded view. DX12/Metal retain serial
+shared depth ownership while using distinct mutable uploads. Offscreen/HDR/shadow targets stay
+exclusive. Existing mesh-residency leases cover both unsubmitted views until the next frame.
+Resize/recovery/drain account for both slots, and abandoned recordings never submit freed resources.
+Vulkan clear/load scene render passes share identical subpass dependencies, including color reads,
+so their shared pipelines remain render-pass compatible while preserving load synchronization.
+GPU timing remains the existing whole-command-buffer interval. These are scoped frame/cache bounds,
+not total native memory or physical GPU measurements.
+
+Editor publishes paired native rectangles only when disjoint. Overlap suppresses both native draws
+and shows UI fallback so a scene cannot overwrite its companion window. Game retains its isolated
+Play World, frozen assets and frame-owned geometry. HDR multi-view, arbitrary counts and general
+floating-window occlusion remain open. See [ADR-0009](../../Roadmap/en/ADR-0009-Editor-Concurrent-Canvases.md)
+and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConcurrentCanvases-Linux-2026-10-14.md).
+
 ## Native mesh batches
 
 `SceneDrawData::batches` optionally selects up to 4,096 `SceneMeshBatch` index/instance ranges.
@@ -267,11 +296,12 @@ Indices address the complete shared vertex upload; ranges may overlap for submes
 geometry. Vulkan and DX12 validate every range, including arithmetic overflow, before GPU allocation
 or recording. Invalid descriptors leave the frame available for a corrected submission.
 Empty batches retain the existing whole-mesh/all-instances draw; empty instances still select one
-identity transform. Total upload limits remain 65,535 vertices, 1,048,576 indices, and 4,096 instances.
+identity transform. Upload limits per scene view remain 65,535 vertices, 1,048,576 indices, and 4,096 instances.
 The MVP, lighting, texture, and base material remain common, with per-instance transform/tint.
-All draws share one depth attachment; legacy geometry uses the fence-owned upload allocation.
+Within a submission, draws share one depth attachment; legacy geometry uses fence-owned uploads.
 Optional immutable mesh residency is described below. Clipping, offscreen copy,
-UI order, resize/recovery, and one Scene submission per frame keep their existing rules.
+UI order and resize/recovery retain their rules. The bounded concurrent-view exception below
+extends direct after-UI submissions; other scene modes retain one submission per frame.
 `sceneDrawCalls` counts submissions, and `sceneInstances` counts uploaded records even when a range
 is referenced more than once. The descriptor is a C++ boundary requiring consumer rebuild; no
 serialized asset format or stable C ABI changed. See [ADR-0002](../../Roadmap/en/ADR-0002-Editor-Scene-Mesh-Batches.md).

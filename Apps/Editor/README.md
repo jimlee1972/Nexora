@@ -491,6 +491,25 @@ snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shif
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
 device-specific rebinding, multiple users, and module hot reload remain open.
 
+### Concurrent native Scene and Game previews
+
+The render owner supplies `SupportsBoundedSceneViews()` before each UI frame. When both native
+panels are visible and their clipped physical-pixel rectangles do not overlap, Scene renders the
+current Editor World and Game independently renders the isolated post-tick Play World. They share
+one acquired frame/UI submission with separate scene uploads. The Play camera chooser, frozen
+mesh/material snapshots, debug ribbons, input focus, Pause/Step/Stop and source/Undo isolation keep
+their existing behavior. A view with no renderable geometry does not consume scene admission.
+
+Unsupported backends retain Scene/map precedence. Overlapping native rectangles suppress both native
+draws and show an actionable UI/inspection fallback; moving the windows apart restores the pair.
+This avoids fatal overlap descriptors and native draws covering the other panel's fallback. The
+bounded path admits only two explicit direct LDR/non-shadow views after UI. Full-surface, offscreen,
+HDR and shadow workflows stay exclusive. General floating-window occlusion, advanced multi-view
+materials/HDR and physical-host acceptance remain open. No source format or stable C ABI changes.
+
+See [ADR-0009](../../Roadmap/en/ADR-0009-Editor-Concurrent-Canvases.md) and
+[Linux evidence](../../Tools/Build/evidence/EditorEDM3-ConcurrentCanvases-Linux-2026-10-14.md).
+
 ### Frozen Play mesh resolution
 
 Before cloning Play, `FreezeGameMeshes` validates the current project generation and copies the
@@ -536,8 +555,8 @@ callbacks may append lines. Invalid deltas leave the queue intact. Stop/Destroy 
 Unload and failed startup clear all entries. Queue capacity is per current binding, not historical.
 `DebugLines()` borrows only until the next queue mutation; frame preparation copies all geometry.
 
-Game View appends camera-facing, two-sided, depth-tested 0.06-world-unit ribbons to its existing
-single native scene submission. A camera with no meshes can display them. Ribbons use ordinary
+Game View appends camera-facing, two-sided, depth-tested 0.06-world-unit ribbons to the Game
+view's existing native scene submission. A camera with no meshes can display them. Ribbons use ordinary
 neutral-slot Lambert/PBR lighting and opaque tint; they are not an unlit HUD, alpha blend, fixed
 pixel-width stroke or occlusion override. Native Scene canvas precedence and unsupported-backend
 fallback remain unchanged. Existing 65,535-vertex/1,048,576-index/4096-instance budgets apply;
@@ -929,8 +948,8 @@ Portable tests exercise actual reimport/deletion/reassignment, dedup/budget/miss
 legacy full-width shader IDs, camera/tangent values and Pause/Step/Stop isolation. Linux Xvfb tests
 acknowledge red native Vulkan Game pixels, preserve them through a paused source edit, then reopen
 read-only and acknowledge fresh green pixels with unchanged authored bytes. This does not accept
-texture/shader graphs, simultaneous native Scene/Game canvases, dynamic material references or
-physical-host output. See [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md).
+texture/shader graphs, dynamic material references or physical-host output. Bounded concurrent
+Scene/Game views are described below. See [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameMaterials-Linux-2026-10-09.md).
 
 The Profiler memory controls save/load a separate `.nexora/process-memory.json` trace through the
 current ProjectWorkspace on the application thread. Both requests are consumed independently of

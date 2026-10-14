@@ -1377,6 +1377,7 @@ int RunGraphical(std::optional<ProjectState> project,
     static_cast<void>(profile.ObserveGpuFrame(
         created.surface->UiResourceDomain(), gpu_source, native_gpu.softwareRasterizer,
         {native_gpu.gpuTiming.completedSubmission, native_gpu.gpuTiming.milliseconds}));
+    ui.SetConcurrentNativeViews(created.surface->SupportsBoundedSceneViews());
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
@@ -2812,9 +2813,9 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
-    if (const auto viewport = ui.NativeGameViewport(); viewport && play.PlayWorld() &&
-                                                       play_meshes && play_materials &&
-                                                       !ui.NativeScenePreviewViewport()) {
+    if (const auto viewport = ui.NativeGameViewport();
+        viewport && play.PlayWorld() && play_meshes && play_materials &&
+        (!ui.NativeScenePreviewViewport() || created.surface->SupportsBoundedSceneViews())) {
       auto game = nexora::editor::preview::BuildGameFrame(
           *play.PlayWorld(), play.Inspect(), *play_meshes,
           static_cast<float>(viewport->width) / viewport->height, ui.GameCameraSelection(),

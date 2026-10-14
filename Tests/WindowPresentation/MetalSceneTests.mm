@@ -1,3 +1,4 @@
+#include "SceneViewPairFixture.h"
 #define NEXORA_METAL_SCENE_TESTING 1
 // Compile the real private adapter into this test to read back GPU output without adding public
 // handles.
@@ -885,6 +886,32 @@ int main(int argc, char **argv) {
       }
       if (mode == 5 && (region != windReference || region == windMoved))
         return fail(__LINE__);
+    }
+    for (unsigned pair = 0; pair < 7; ++pair) {
+      if (pair == 6 && (!require(surface->NotifyWindowExtent(0, 0), SurfaceStatus::ZeroExtent) ||
+                        !require(surface->Acquire(), SurfaceStatus::ZeroExtent) ||
+                        !require(surface->NotifyWindowExtent(640, 360), SurfaceStatus::Ready)))
+        return fail(__LINE__);
+      SceneViewPairFixture fixture;
+      const auto mode = pair % 3;
+      if (!fixture.Draw(*surface, mode, 640, 360, pair >= 3)) {
+        std::cerr << fixture.failure << '\n';
+        return fail(__LINE__);
+      }
+      const auto pixels = surface->ReadScenePixelsForTesting();
+      if (pixels.size() != 640 * 360 * 4)
+        return fail(__LINE__);
+      const auto read = [&](unsigned x, unsigned y) {
+        const auto offset = (y * 640 + x) * 4;
+        return std::array<unsigned, 3>{std::to_integer<unsigned>(pixels[offset + 2]),
+                                       std::to_integer<unsigned>(pixels[offset + 1]),
+                                       std::to_integer<unsigned>(pixels[offset])};
+      };
+      if (!SceneViewPairFixture::Pixels(read(160, 180), read(mode < 2 ? 371 : 480, 180),
+                                        read(320, 54))) {
+        std::cerr << "concurrent Metal PBR uploads aliased or UI was lost\n";
+        return fail(__LINE__);
+      }
     }
     std::array<SceneVertex, 6> layered{};
     for (std::size_t i = 0; i < 3; ++i) {

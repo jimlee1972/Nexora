@@ -375,8 +375,12 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   and CPU mesh/material snapshots frozen at Start; editor reimport/deletion/reassignment cannot
   change Play assets. Stop releases those snapshots and discards the
   clone. No World borrow survives frame preparation. Missing cameras/geometry show an actionable
-  status. Unsupported backends retain the X/Z map. One native 3D draw is available per window/frame:
-  a simultaneously visible native Scene canvas takes precedence and Game falls back to its map.
+  status. Unsupported backends retain the X/Z map. The caller supplies the bounded concurrent-view
+  capability each frame; disjoint native Scene/Game rectangles can both be published. Overlap
+  suppresses both native rectangles and shows the Game inspection map with an actionable message,
+  preserving UI pixels. Without the capability, visible native Scene keeps precedence. BeginFrame
+  clears prior Game/overlap observations; clipping/DPI, Pause/Step/Stop and input ownership remain
+  scoped to current panels. See [ADR-0009](../../Roadmap/en/ADR-0009-Editor-Concurrent-Canvases.md).
   The Game panel's optional UTF-8 gameplay-library field emits a project-relative path and is
   disabled during Play. The application restores the project setting with its generation; otherwise
   project generation changes reset the field. The application

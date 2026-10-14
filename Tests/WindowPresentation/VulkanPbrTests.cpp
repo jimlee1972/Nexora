@@ -14,6 +14,7 @@
 #include "PbrVegetationFixtures.h"
 #include "PbrWorldMappingFixtures.h"
 #include "PbrWorldNormalFixtures.h"
+#include "SceneViewPairFixture.h"
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -866,7 +867,29 @@ int main(int argc, char **argv) {
         static_cast<void>(Read(display, native, width, height, capture));
       }
     }
-    Require(surface->Diagnostics().sceneDrawCalls == 105 &&
+    for (unsigned pair = 0; pair < 7; ++pair) {
+      if (pair == 6) {
+        Require(surface->NotifyWindowExtent(0, 0) == SurfaceStatus::ZeroExtent &&
+                    surface->Acquire() == SurfaceStatus::ZeroExtent &&
+                    surface->NotifyWindowExtent(width, height) == SurfaceStatus::Ready,
+                "concurrent view zero-extent recovery failed");
+      }
+      SceneViewPairFixture fixture;
+      const auto mode = pair % 3;
+      const bool drawn = fixture.Draw(*surface, mode, width, height, pair >= 3);
+      Require(drawn,
+              fixture.failure.empty() ? "concurrent PBR draw failed" : fixture.failure.data());
+      bool pixels = false;
+      const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
+      while (!pixels && std::chrono::steady_clock::now() < deadline) {
+        const auto sample = Read(display, native, width, height, {});
+        pixels = SceneViewPairFixture::Pixels(sample[0], sample[mode < 2 ? 5 : 1], sample[2]);
+        if (!pixels)
+          std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+      Require(pixels, "concurrent PBR geometry/instance/material uploads aliased or UI was lost");
+    }
+    Require(surface->Diagnostics().sceneDrawCalls == 119 &&
                 surface->Diagnostics().sceneComposites == 95 &&
                 surface->Diagnostics().sceneShadowPasses == 11 &&
                 surface->Diagnostics().sceneShadowInstances == 32,

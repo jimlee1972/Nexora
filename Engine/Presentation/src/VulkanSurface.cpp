@@ -9,6 +9,7 @@
 #include "SceneGeometryUploadKey.h"
 #include "SceneInstanceUpload.h"
 #include "SceneTextureMipmaps.h"
+#include "SceneViewAdmission.h"
 
 #include "ScenePbrVulkanShaders.h"
 #include "SceneToneVulkanShaders.h"
@@ -81,6 +82,7 @@ bool Initialized(VkResult result, const char *operation) {
 class VulkanSurface final : public ISurface {
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return true; }
+  bool SupportsBoundedSceneViews() const noexcept override { return true; }
   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
         requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode),
@@ -272,6 +274,8 @@ public:
                          1, &toRender);
     transferTarget_ = false;
     sceneRendered_ = false;
+    sceneViews_.Reset();
+    sceneViewSlot_ = 0;
     sceneOffscreen_ = sceneComposited_ = false;
     acquired_ = true;
     ++diagnostics_.acquiredFrames;
@@ -360,15 +364,15 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &data) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
-    if (!acquired_ || !scenePipeline_ || sceneRendered_ || transferTarget_ ||
-        data.vertices.empty() || data.indices.empty() || data.vertices.size() > 65535 ||
-        data.indices.size() > 1048576 || data.indices.size() % 3 != 0)
+    if (!acquired_ || !scenePipeline_ || transferTarget_ || data.vertices.empty() ||
+        data.indices.empty() || data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
+        data.indices.size() % 3 != 0)
       return SurfaceStatus::InvalidDescriptor;
     if ((data.hdr && (!sceneHdrPipeline_ || !tonePipeline_)) || (data.shadow && !shadowPipeline_))
       return SurfaceStatus::Unsupported;
     const auto viewport = ResolveSceneViewport(data.viewport, width_, height_);
     const bool afterUi = frames_[frame_].uiFramebuffer != VK_NULL_HANDLE;
-    if (!viewport ||
+    if (!viewport || !sceneViews_.CanSubmit(data, width_, height_, afterUi) ||
         (afterUi && (data.offscreen || (data.viewport.x == 0 && data.viewport.y == 0 &&
                                         data.viewport.width == 0 && data.viewport.height == 0))) ||
         (data.offscreen && (data.viewport.x != 0 || data.viewport.y != 0 ||
@@ -480,6 +484,7 @@ public:
         data.instances.empty() ? std::span<const SceneInstance>(&identity, 1) : data.instances;
     const auto instanceBytes =
         std::as_bytes(std::span<const SceneInstanceUpload>(*packedInstances));
+    sceneViewSlot_ = sceneViews_.Count();
     auto &frame = frames_[frame_];
     std::size_t additional = needsWhite && !sceneTextures_.contains(UINT64_MAX) ? 1 : 0;
     if (data.pbr && !sceneTextures_.contains(UINT64_MAX - 1))
@@ -531,11 +536,13 @@ public:
     const bool refraction = HasSceneRefraction(data);
     const bool reflection = data.planarReflection.has_value();
     const auto shadowResolution = data.shadow ? data.shadow->resolution : 0U;
-    const bool reuseTargets =
-        data.offscreen && frame.sceneTargetsReusable && frame.sceneTargetsHdr == data.hdr &&
-        frame.sceneTargetsWidth == width_ && frame.sceneTargetsHeight == height_ &&
-        frame.sceneTargetsShadowResolution == shadowResolution &&
-        frame.sceneTargetsReflection == reflection && frame.sceneTargetsRefraction == refraction;
+    const bool reuseTargets = data.offscreen && Scene(frame).sceneTargetsReusable &&
+                              Scene(frame).sceneTargetsHdr == data.hdr &&
+                              Scene(frame).sceneTargetsWidth == width_ &&
+                              Scene(frame).sceneTargetsHeight == height_ &&
+                              Scene(frame).sceneTargetsShadowResolution == shadowResolution &&
+                              Scene(frame).sceneTargetsReflection == reflection &&
+                              Scene(frame).sceneTargetsRefraction == refraction;
     if (reuseTargets)
       DestroySceneBindings(frame);
     else
@@ -557,9 +564,9 @@ public:
                                      : instanceOffset + instanceBytes.size();
     const auto bytes = toneOffset + (data.hdr ? sizeof(toneVertices) : 0);
     const auto geometryBytes = vertexBytes.size() + indexBytes.size();
-    const bool reuseGeometry = !residentGeometry && frame.sceneUpload &&
-                               frame.sceneCapacity >= bytes &&
-                               frame.sceneGeometry.Matches(vertexBytes, indexBytes);
+    const bool reuseGeometry = !residentGeometry && Scene(frame).sceneUpload &&
+                               Scene(frame).sceneCapacity >= bytes &&
+                               Scene(frame).sceneGeometry.Matches(vertexBytes, indexBytes);
     // Stage a bounded owning key before any replacement. A GPU grow invalidates its old key;
     // the candidate survives that invalidation and is published only after the geometry write.
     detail::SceneGeometryUploadKey::Candidate geometryCandidate;
@@ -568,12 +575,12 @@ public:
       if (!geometryCandidate)
         return SurfaceStatus::DeviceLost;
     }
-    frame.toneVertexOffset = toneOffset;
+    Scene(frame).toneVertexOffset = toneOffset;
     const auto uploadStatus = EnsureSceneUpload(frame, bytes);
     if (uploadStatus != SurfaceStatus::Ready)
       return uploadStatus;
     void *mapped{};
-    if (vkMapMemory(device_, frame.sceneMemory, 0, bytes, 0, &mapped) != VK_SUCCESS)
+    if (vkMapMemory(device_, Scene(frame).sceneMemory, 0, bytes, 0, &mapped) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     if (!residentGeometry && !reuseGeometry)
       std::memcpy(mapped, geometryCandidate.payload.get(), geometryBytes);
@@ -593,14 +600,14 @@ public:
     if (data.hdr)
       std::memcpy(static_cast<std::byte *>(mapped) + toneOffset, toneVertices.data(),
                   sizeof(toneVertices));
-    vkUnmapMemory(device_, frame.sceneMemory);
+    vkUnmapMemory(device_, Scene(frame).sceneMemory);
     auto &geometryCache = diagnostics_.sceneGeometryUploadCache;
     if (residentGeometry)
-      frame.sceneGeometry.Clear(geometryCache);
+      Scene(frame).sceneGeometry.Clear(geometryCache);
     else if (reuseGeometry)
       detail::SceneGeometryUploadKey::RecordHit(geometryCache);
     else
-      frame.sceneGeometry.Commit(std::move(geometryCandidate), geometryCache);
+      Scene(frame).sceneGeometry.Commit(std::move(geometryCandidate), geometryCache);
     if (data.shadow && !reuseTargets) {
       const auto status = CreateShadowTargets(frame, data.shadow->resolution);
       if (status != SurfaceStatus::Ready)
@@ -611,13 +618,14 @@ public:
     if (refraction && !CreateRefractionTarget(frame))
       return SurfaceStatus::DeviceLost;
     if (data.pbr) {
-      frame.pbrDescriptors.resize(materialCount);
+      Scene(frame).pbrDescriptors.resize(materialCount);
       std::vector<VkDescriptorSetLayout> layouts(materialCount, pbrMaterialLayout_);
       const VkDescriptorSetAllocateInfo allocate{
           VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, pbrMaterialPool_,
           static_cast<std::uint32_t>(materialCount), layouts.data()};
-      if (vkAllocateDescriptorSets(device_, &allocate, frame.pbrDescriptors.data()) != VK_SUCCESS) {
-        frame.pbrDescriptors.clear();
+      if (vkAllocateDescriptorSets(device_, &allocate, Scene(frame).pbrDescriptors.data()) !=
+          VK_SUCCESS) {
+        Scene(frame).pbrDescriptors.clear();
         return SurfaceStatus::DeviceLost;
       }
       for (std::size_t slot = 0; slot < materialCount; ++slot) {
@@ -634,7 +642,7 @@ public:
                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
           writes[map] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                          nullptr,
-                         frame.pbrDescriptors[slot],
+                         Scene(frame).pbrDescriptors[slot],
                          map,
                          0,
                          1,
@@ -653,7 +661,7 @@ public:
                              VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
           writes[5 + map] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                              nullptr,
-                             frame.pbrDescriptors[slot],
+                             Scene(frame).pbrDescriptors[slot],
                              5 + map,
                              0,
                              1,
@@ -663,11 +671,12 @@ public:
                              nullptr};
         }
         images[7] = {shadowSampler_,
-                     data.shadow ? frame.shadowColorView : linearSceneTextures_.at(UINT64_MAX).view,
+                     data.shadow ? Scene(frame).shadowColorView
+                                 : linearSceneTextures_.at(UINT64_MAX).view,
                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
         writes[8] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                      nullptr,
-                     frame.pbrDescriptors[slot],
+                     Scene(frame).pbrDescriptors[slot],
                      8,
                      0,
                      1,
@@ -675,15 +684,15 @@ public:
                      &images[7],
                      nullptr,
                      nullptr};
-        images[8] = {
-            uiSampler_,
-            reflection && material.reflectionRole == SceneReflectionRole::Receiver
-                ? frame.reflectionView
-                : (refraction ? frame.refractionView : linearSceneTextures_.at(UINT64_MAX).view),
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+        images[8] = {uiSampler_,
+                     reflection && material.reflectionRole == SceneReflectionRole::Receiver
+                         ? Scene(frame).reflectionView
+                         : (refraction ? Scene(frame).refractionView
+                                       : linearSceneTextures_.at(UINT64_MAX).view),
+                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
         writes[9] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                      nullptr,
-                     frame.pbrDescriptors[slot],
+                     Scene(frame).pbrDescriptors[slot],
                      9,
                      0,
                      1,
@@ -691,11 +700,12 @@ public:
                      &images[8],
                      nullptr,
                      nullptr};
-        const VkDescriptorBufferInfo info{frame.sceneUpload, materialOffset + slot * materialStride,
+        const VkDescriptorBufferInfo info{Scene(frame).sceneUpload,
+                                          materialOffset + slot * materialStride,
                                           sizeof(PbrMaterialUpload)};
         writes[4] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                      nullptr,
-                     frame.pbrDescriptors[slot],
+                     Scene(frame).pbrDescriptors[slot],
                      4,
                      0,
                      1,
@@ -717,50 +727,55 @@ public:
       image.samples = VK_SAMPLE_COUNT_1_BIT;
       image.tiling = VK_IMAGE_TILING_OPTIMAL;
       image.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-      if (vkCreateImage(device_, &image, nullptr, &frame.sceneDepth) != VK_SUCCESS)
+      if (vkCreateImage(device_, &image, nullptr, &Scene(frame).sceneDepth) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
       VkMemoryRequirements requirements{};
-      vkGetImageMemoryRequirements(device_, frame.sceneDepth, &requirements);
+      vkGetImageMemoryRequirements(device_, Scene(frame).sceneDepth, &requirements);
       const auto depthMemory =
           FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
       if (depthMemory == UINT32_MAX)
         return SurfaceStatus::Unsupported;
       VkMemoryAllocateInfo allocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
                                     requirements.size, depthMemory};
-      if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneDepthMemory) != VK_SUCCESS ||
-          vkBindImageMemory(device_, frame.sceneDepth, frame.sceneDepthMemory, 0) != VK_SUCCESS)
+      if (vkAllocateMemory(device_, &allocate, nullptr, &Scene(frame).sceneDepthMemory) !=
+              VK_SUCCESS ||
+          vkBindImageMemory(device_, Scene(frame).sceneDepth, Scene(frame).sceneDepthMemory, 0) !=
+              VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
       VkImageViewCreateInfo view{};
       view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-      view.image = frame.sceneDepth;
+      view.image = Scene(frame).sceneDepth;
       view.viewType = VK_IMAGE_VIEW_TYPE_2D;
       view.format = VK_FORMAT_D32_SFLOAT;
       view.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
-      if (vkCreateImageView(device_, &view, nullptr, &frame.sceneDepthView) != VK_SUCCESS)
+      if (vkCreateImageView(device_, &view, nullptr, &Scene(frame).sceneDepthView) != VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
       if (data.offscreen) {
         image.format = data.hdr ? VK_FORMAT_R16G16B16A16_SFLOAT : swapchainFormat_;
         image.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                       VK_IMAGE_USAGE_SAMPLED_BIT;
-        if (vkCreateImage(device_, &image, nullptr, &frame.sceneColor) != VK_SUCCESS)
+        if (vkCreateImage(device_, &image, nullptr, &Scene(frame).sceneColor) != VK_SUCCESS)
           return SurfaceStatus::DeviceLost;
-        vkGetImageMemoryRequirements(device_, frame.sceneColor, &requirements);
+        vkGetImageMemoryRequirements(device_, Scene(frame).sceneColor, &requirements);
         allocate.allocationSize = requirements.size;
         allocate.memoryTypeIndex =
             FindMemoryType(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         if (allocate.memoryTypeIndex == UINT32_MAX)
           return SurfaceStatus::Unsupported;
-        if (vkAllocateMemory(device_, &allocate, nullptr, &frame.sceneColorMemory) != VK_SUCCESS ||
-            vkBindImageMemory(device_, frame.sceneColor, frame.sceneColorMemory, 0) != VK_SUCCESS)
+        if (vkAllocateMemory(device_, &allocate, nullptr, &Scene(frame).sceneColorMemory) !=
+                VK_SUCCESS ||
+            vkBindImageMemory(device_, Scene(frame).sceneColor, Scene(frame).sceneColorMemory, 0) !=
+                VK_SUCCESS)
           return SurfaceStatus::DeviceLost;
-        view.image = frame.sceneColor;
+        view.image = Scene(frame).sceneColor;
         view.format = image.format;
         view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-        if (vkCreateImageView(device_, &view, nullptr, &frame.sceneColorView) != VK_SUCCESS)
+        if (vkCreateImageView(device_, &view, nullptr, &Scene(frame).sceneColorView) != VK_SUCCESS)
           return SurfaceStatus::DeviceLost;
       }
-      const VkImageView attachments[] = {
-          data.offscreen ? frame.sceneColorView : imageViews_[imageIndex_], frame.sceneDepthView};
+      const VkImageView attachments[] = {data.offscreen ? Scene(frame).sceneColorView
+                                                        : imageViews_[imageIndex_],
+                                         Scene(frame).sceneDepthView};
       VkFramebufferCreateInfo framebuffer{};
       framebuffer.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebuffer.renderPass =
@@ -770,14 +785,15 @@ public:
       framebuffer.width = width_;
       framebuffer.height = height_;
       framebuffer.layers = 1;
-      if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.sceneFramebuffer) !=
+      if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &Scene(frame).sceneFramebuffer) !=
           VK_SUCCESS)
         return SurfaceStatus::DeviceLost;
       if (reflection) {
-        const VkImageView reflectedAttachments[]{frame.reflectionView, frame.sceneDepthView};
+        const VkImageView reflectedAttachments[]{Scene(frame).reflectionView,
+                                                 Scene(frame).sceneDepthView};
         framebuffer.pAttachments = reflectedAttachments;
-        if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.reflectionFramebuffer) !=
-            VK_SUCCESS)
+        if (vkCreateFramebuffer(device_, &framebuffer, nullptr,
+                                &Scene(frame).reflectionFramebuffer) != VK_SUCCESS)
           return SurfaceStatus::DeviceLost;
       }
     }
@@ -793,7 +809,7 @@ public:
       color.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
       color.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
       color.srcQueueFamilyIndex = color.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      color.image = frame.sceneColor;
+      color.image = Scene(frame).sceneColor;
       color.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
       const auto previousStages = reuseTargets ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                                                      VK_PIPELINE_STAGE_TRANSFER_BIT |
@@ -803,13 +819,13 @@ public:
                            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr,
                            1, &color);
     }
-    frame.sceneTargetsReusable = data.offscreen;
-    frame.sceneTargetsHdr = data.hdr;
-    frame.sceneTargetsWidth = width_;
-    frame.sceneTargetsHeight = height_;
-    frame.sceneTargetsShadowResolution = shadowResolution;
-    frame.sceneTargetsReflection = reflection;
-    frame.sceneTargetsRefraction = refraction;
+    Scene(frame).sceneTargetsReusable = data.offscreen;
+    Scene(frame).sceneTargetsHdr = data.hdr;
+    Scene(frame).sceneTargetsWidth = width_;
+    Scene(frame).sceneTargetsHeight = height_;
+    Scene(frame).sceneTargetsShadowResolution = shadowResolution;
+    Scene(frame).sceneTargetsReflection = reflection;
+    Scene(frame).sceneTargetsRefraction = refraction;
     std::array<VkClearValue, 2> clears{};
     clears[0].color = {{0.025F, 0.045F, 0.09F, data.hdr ? 65504.0F : 1.0F}};
     clears[1].depthStencil = {1.0F, 0};
@@ -817,7 +833,8 @@ public:
     begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     begin.renderPass =
         data.hdr ? sceneHdrRenderPass_ : (afterUi ? sceneOverlayRenderPass_ : sceneRenderPass_);
-    begin.framebuffer = reflection ? frame.reflectionFramebuffer : frame.sceneFramebuffer;
+    begin.framebuffer =
+        reflection ? Scene(frame).reflectionFramebuffer : Scene(frame).sceneFramebuffer;
     begin.renderArea.extent = {width_, height_};
     begin.clearValueCount = 2;
     begin.pClearValues = clears.data();
@@ -855,13 +872,14 @@ public:
       if (scenePass == 1) {
         FinishReflection(frame);
         begin.renderPass = sceneHdrRenderPass_;
-        begin.framebuffer = frame.sceneFramebuffer;
+        begin.framebuffer = Scene(frame).sceneFramebuffer;
         vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
       }
       for (unsigned phase = 0; phase < 2; ++phase) {
         if (phase == 1 && refraction) {
           vkCmdEndRenderPass(frame.commands);
-          CaptureRefraction(frame, mirrorPass ? frame.reflectionColor : frame.sceneColor);
+          CaptureRefraction(frame,
+                            mirrorPass ? Scene(frame).reflectionColor : Scene(frame).sceneColor);
           begin.renderPass = sceneHdrLoadRenderPass_;
           vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
         }
@@ -893,7 +911,7 @@ public:
             vkCmdPushConstants(frame.commands, pipelineLayout, stages, 0, sizeof(constants),
                                constants.data());
             const auto id = material.textureId ? material.textureId : UINT64_MAX;
-            const auto descriptor = data.pbr ? frame.pbrDescriptors[batch.materialIndex]
+            const auto descriptor = data.pbr ? Scene(frame).pbrDescriptors[batch.materialIndex]
                                              : sceneTextures_.at(id).descriptor;
             vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                     0, 1, &descriptor, 0, nullptr);
@@ -907,6 +925,7 @@ public:
       }
       vkCmdEndRenderPass(frame.commands);
     }
+    static_cast<void>(sceneViews_.Commit(data, width_, height_, afterUi));
     sceneRendered_ = true;
     sceneOffscreen_ = data.offscreen;
     sceneHdr_ = data.hdr;
@@ -937,7 +956,7 @@ public:
       barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     }
-    barriers[0].image = frame.sceneColor;
+    barriers[0].image = Scene(frame).sceneColor;
     barriers[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -949,7 +968,7 @@ public:
     VkImageCopy copy{};
     copy.srcSubresource = copy.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
     copy.extent = {width_, height_, 1};
-    vkCmdCopyImage(frame.commands, frame.sceneColor, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    vkCmdCopyImage(frame.commands, Scene(frame).sceneColor, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    images_[imageIndex_], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
     barriers[1].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barriers[1].dstAccessMask =
@@ -1181,20 +1200,7 @@ public:
   }
 
 private:
-  struct Frame {
-    VkCommandBuffer commands{};
-    VkSemaphore available{};
-    VkSemaphore finished{};
-    VkFence fence{};
-    VkQueryPool timestamps{};
-    std::uint64_t timingSequence{};
-    std::chrono::steady_clock::time_point submittedAt{};
-    VkBuffer upload{};
-    VkDeviceMemory uploadMemory{};
-    VkBuffer uiUpload{};
-    VkDeviceMemory uiMemory{};
-    VkDeviceSize uiCapacity{};
-    VkFramebuffer uiFramebuffer{};
+  struct SceneFrame {
     VkBuffer sceneUpload{};
     VkDeviceMemory sceneMemory{};
     VkDeviceSize sceneCapacity{};
@@ -1225,6 +1231,22 @@ private:
     VkImage sceneColor{};
     VkDeviceMemory sceneColorMemory{};
     VkImageView sceneColorView{};
+  };
+  struct Frame {
+    VkCommandBuffer commands{};
+    VkSemaphore available{};
+    VkSemaphore finished{};
+    VkFence fence{};
+    VkQueryPool timestamps{};
+    std::uint64_t timingSequence{};
+    std::chrono::steady_clock::time_point submittedAt{};
+    VkBuffer upload{};
+    VkDeviceMemory uploadMemory{};
+    VkBuffer uiUpload{};
+    VkDeviceMemory uiMemory{};
+    VkDeviceSize uiCapacity{};
+    VkFramebuffer uiFramebuffer{};
+    std::array<SceneFrame, detail::SceneViewAdmission::kMaximumViews> scenes;
     std::vector<VkBuffer> retiredBuffers;
     std::vector<VkDeviceMemory> retiredBufferMemory;
     std::vector<VkImage> retiredImages;
@@ -1232,6 +1254,7 @@ private:
     std::vector<VkDeviceMemory> retiredImageMemory;
     std::vector<VkDescriptorSet> retiredDescriptors;
   };
+  SceneFrame &Scene(Frame &frame) noexcept { return frame.scenes[sceneViewSlot_]; }
   struct UiTexture final {
     VkImage image{};
     VkImageView view{};
@@ -1273,98 +1296,102 @@ private:
     frame.timingSequence = 0;
   }
   void DestroySceneBindings(Frame &frame) {
-    if (frame.toneDescriptor)
-      vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &frame.toneDescriptor);
-    if (frame.toneFramebuffer)
-      vkDestroyFramebuffer(device_, frame.toneFramebuffer, nullptr);
-    frame.toneDescriptor = VK_NULL_HANDLE;
-    frame.toneFramebuffer = VK_NULL_HANDLE;
-    if (!frame.pbrDescriptors.empty())
+    if (Scene(frame).toneDescriptor)
+      vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &Scene(frame).toneDescriptor);
+    if (Scene(frame).toneFramebuffer)
+      vkDestroyFramebuffer(device_, Scene(frame).toneFramebuffer, nullptr);
+    Scene(frame).toneDescriptor = VK_NULL_HANDLE;
+    Scene(frame).toneFramebuffer = VK_NULL_HANDLE;
+    if (!Scene(frame).pbrDescriptors.empty())
       vkFreeDescriptorSets(device_, pbrMaterialPool_,
-                           static_cast<std::uint32_t>(frame.pbrDescriptors.size()),
-                           frame.pbrDescriptors.data());
-    frame.pbrDescriptors.clear();
+                           static_cast<std::uint32_t>(Scene(frame).pbrDescriptors.size()),
+                           Scene(frame).pbrDescriptors.data());
+    Scene(frame).pbrDescriptors.clear();
   }
   void DestroySceneTargets(Frame &frame) {
-    frame.sceneTargetsReusable = false;
+    Scene(frame).sceneTargetsReusable = false;
     DestroySceneBindings(frame);
-    if (frame.shadowFramebuffer)
-      vkDestroyFramebuffer(device_, frame.shadowFramebuffer, nullptr);
-    if (frame.shadowColorView)
-      vkDestroyImageView(device_, frame.shadowColorView, nullptr);
-    if (frame.shadowDepthView)
-      vkDestroyImageView(device_, frame.shadowDepthView, nullptr);
-    if (frame.shadowColor)
-      vkDestroyImage(device_, frame.shadowColor, nullptr);
-    if (frame.shadowDepth)
-      vkDestroyImage(device_, frame.shadowDepth, nullptr);
-    if (frame.shadowColorMemory)
-      vkFreeMemory(device_, frame.shadowColorMemory, nullptr);
-    if (frame.shadowDepthMemory)
-      vkFreeMemory(device_, frame.shadowDepthMemory, nullptr);
-    frame.shadowFramebuffer = VK_NULL_HANDLE;
-    frame.shadowColorView = frame.shadowDepthView = VK_NULL_HANDLE;
-    frame.shadowColor = frame.shadowDepth = VK_NULL_HANDLE;
-    frame.shadowColorMemory = frame.shadowDepthMemory = VK_NULL_HANDLE;
-    if (frame.sceneFramebuffer)
-      vkDestroyFramebuffer(device_, frame.sceneFramebuffer, nullptr);
-    if (frame.sceneColorView)
-      vkDestroyImageView(device_, frame.sceneColorView, nullptr);
-    if (frame.sceneColor)
-      vkDestroyImage(device_, frame.sceneColor, nullptr);
-    if (frame.sceneColorMemory)
-      vkFreeMemory(device_, frame.sceneColorMemory, nullptr);
-    frame.sceneColorView = VK_NULL_HANDLE;
-    frame.sceneColor = VK_NULL_HANDLE;
-    frame.sceneColorMemory = VK_NULL_HANDLE;
-    if (frame.reflectionFramebuffer)
-      vkDestroyFramebuffer(device_, frame.reflectionFramebuffer, nullptr);
-    if (frame.reflectionView)
-      vkDestroyImageView(device_, frame.reflectionView, nullptr);
-    if (frame.reflectionColor)
-      vkDestroyImage(device_, frame.reflectionColor, nullptr);
-    if (frame.reflectionMemory)
-      vkFreeMemory(device_, frame.reflectionMemory, nullptr);
-    frame.reflectionFramebuffer = VK_NULL_HANDLE;
-    frame.reflectionView = VK_NULL_HANDLE;
-    frame.reflectionColor = VK_NULL_HANDLE;
-    frame.reflectionMemory = VK_NULL_HANDLE;
-    if (frame.refractionView)
-      vkDestroyImageView(device_, frame.refractionView, nullptr);
-    if (frame.refractionColor)
-      vkDestroyImage(device_, frame.refractionColor, nullptr);
-    if (frame.refractionMemory)
-      vkFreeMemory(device_, frame.refractionMemory, nullptr);
-    frame.refractionView = VK_NULL_HANDLE;
-    frame.refractionColor = VK_NULL_HANDLE;
-    frame.refractionMemory = VK_NULL_HANDLE;
-    if (frame.sceneDepthView)
-      vkDestroyImageView(device_, frame.sceneDepthView, nullptr);
-    if (frame.sceneDepth)
-      vkDestroyImage(device_, frame.sceneDepth, nullptr);
-    if (frame.sceneDepthMemory)
-      vkFreeMemory(device_, frame.sceneDepthMemory, nullptr);
-    frame.sceneFramebuffer = VK_NULL_HANDLE;
-    frame.sceneDepthView = VK_NULL_HANDLE;
-    frame.sceneDepth = VK_NULL_HANDLE;
-    frame.sceneDepthMemory = VK_NULL_HANDLE;
+    if (Scene(frame).shadowFramebuffer)
+      vkDestroyFramebuffer(device_, Scene(frame).shadowFramebuffer, nullptr);
+    if (Scene(frame).shadowColorView)
+      vkDestroyImageView(device_, Scene(frame).shadowColorView, nullptr);
+    if (Scene(frame).shadowDepthView)
+      vkDestroyImageView(device_, Scene(frame).shadowDepthView, nullptr);
+    if (Scene(frame).shadowColor)
+      vkDestroyImage(device_, Scene(frame).shadowColor, nullptr);
+    if (Scene(frame).shadowDepth)
+      vkDestroyImage(device_, Scene(frame).shadowDepth, nullptr);
+    if (Scene(frame).shadowColorMemory)
+      vkFreeMemory(device_, Scene(frame).shadowColorMemory, nullptr);
+    if (Scene(frame).shadowDepthMemory)
+      vkFreeMemory(device_, Scene(frame).shadowDepthMemory, nullptr);
+    Scene(frame).shadowFramebuffer = VK_NULL_HANDLE;
+    Scene(frame).shadowColorView = Scene(frame).shadowDepthView = VK_NULL_HANDLE;
+    Scene(frame).shadowColor = Scene(frame).shadowDepth = VK_NULL_HANDLE;
+    Scene(frame).shadowColorMemory = Scene(frame).shadowDepthMemory = VK_NULL_HANDLE;
+    if (Scene(frame).sceneFramebuffer)
+      vkDestroyFramebuffer(device_, Scene(frame).sceneFramebuffer, nullptr);
+    if (Scene(frame).sceneColorView)
+      vkDestroyImageView(device_, Scene(frame).sceneColorView, nullptr);
+    if (Scene(frame).sceneColor)
+      vkDestroyImage(device_, Scene(frame).sceneColor, nullptr);
+    if (Scene(frame).sceneColorMemory)
+      vkFreeMemory(device_, Scene(frame).sceneColorMemory, nullptr);
+    Scene(frame).sceneColorView = VK_NULL_HANDLE;
+    Scene(frame).sceneColor = VK_NULL_HANDLE;
+    Scene(frame).sceneColorMemory = VK_NULL_HANDLE;
+    if (Scene(frame).reflectionFramebuffer)
+      vkDestroyFramebuffer(device_, Scene(frame).reflectionFramebuffer, nullptr);
+    if (Scene(frame).reflectionView)
+      vkDestroyImageView(device_, Scene(frame).reflectionView, nullptr);
+    if (Scene(frame).reflectionColor)
+      vkDestroyImage(device_, Scene(frame).reflectionColor, nullptr);
+    if (Scene(frame).reflectionMemory)
+      vkFreeMemory(device_, Scene(frame).reflectionMemory, nullptr);
+    Scene(frame).reflectionFramebuffer = VK_NULL_HANDLE;
+    Scene(frame).reflectionView = VK_NULL_HANDLE;
+    Scene(frame).reflectionColor = VK_NULL_HANDLE;
+    Scene(frame).reflectionMemory = VK_NULL_HANDLE;
+    if (Scene(frame).refractionView)
+      vkDestroyImageView(device_, Scene(frame).refractionView, nullptr);
+    if (Scene(frame).refractionColor)
+      vkDestroyImage(device_, Scene(frame).refractionColor, nullptr);
+    if (Scene(frame).refractionMemory)
+      vkFreeMemory(device_, Scene(frame).refractionMemory, nullptr);
+    Scene(frame).refractionView = VK_NULL_HANDLE;
+    Scene(frame).refractionColor = VK_NULL_HANDLE;
+    Scene(frame).refractionMemory = VK_NULL_HANDLE;
+    if (Scene(frame).sceneDepthView)
+      vkDestroyImageView(device_, Scene(frame).sceneDepthView, nullptr);
+    if (Scene(frame).sceneDepth)
+      vkDestroyImage(device_, Scene(frame).sceneDepth, nullptr);
+    if (Scene(frame).sceneDepthMemory)
+      vkFreeMemory(device_, Scene(frame).sceneDepthMemory, nullptr);
+    Scene(frame).sceneFramebuffer = VK_NULL_HANDLE;
+    Scene(frame).sceneDepthView = VK_NULL_HANDLE;
+    Scene(frame).sceneDepth = VK_NULL_HANDLE;
+    Scene(frame).sceneDepthMemory = VK_NULL_HANDLE;
   }
   void DestroySceneUpload(Frame &frame) {
-    if (frame.sceneUpload)
-      vkDestroyBuffer(device_, frame.sceneUpload, nullptr);
-    if (frame.sceneMemory)
-      vkFreeMemory(device_, frame.sceneMemory, nullptr);
-    frame.sceneUpload = VK_NULL_HANDLE;
-    frame.sceneMemory = VK_NULL_HANDLE;
-    frame.sceneCapacity = 0;
-    frame.sceneGeometry.Clear(diagnostics_.sceneGeometryUploadCache);
+    if (Scene(frame).sceneUpload)
+      vkDestroyBuffer(device_, Scene(frame).sceneUpload, nullptr);
+    if (Scene(frame).sceneMemory)
+      vkFreeMemory(device_, Scene(frame).sceneMemory, nullptr);
+    Scene(frame).sceneUpload = VK_NULL_HANDLE;
+    Scene(frame).sceneMemory = VK_NULL_HANDLE;
+    Scene(frame).sceneCapacity = 0;
+    Scene(frame).sceneGeometry.Clear(diagnostics_.sceneGeometryUploadCache);
   }
   void DestroySceneFrame(Frame &frame) {
-    DestroySceneTargets(frame);
-    DestroySceneUpload(frame);
+    const auto selected = sceneViewSlot_;
+    for (sceneViewSlot_ = 0; sceneViewSlot_ < frame.scenes.size(); ++sceneViewSlot_) {
+      DestroySceneTargets(frame);
+      DestroySceneUpload(frame);
+    }
+    sceneViewSlot_ = selected;
   }
   SurfaceStatus EnsureSceneUpload(Frame &frame, VkDeviceSize required) {
-    if (frame.sceneCapacity >= required)
+    if (Scene(frame).sceneCapacity >= required)
       return SurfaceStatus::Ready;
     // Descriptor budgets bound this geometric growth to 8 MiB per fence-owned frame slot.
     VkDeviceSize capacity = 4096;
@@ -1402,9 +1429,9 @@ private:
     // Acquire waited this slot's fence. Keep its old allocation until replacement succeeds;
     // another in-flight slot's storage is never touched, and a failed grow can retry a small draw.
     DestroySceneUpload(frame);
-    frame.sceneUpload = buffer;
-    frame.sceneMemory = memory;
-    frame.sceneCapacity = capacity;
+    Scene(frame).sceneUpload = buffer;
+    Scene(frame).sceneMemory = memory;
+    Scene(frame).sceneCapacity = capacity;
     return SurfaceStatus::Ready;
   }
   std::optional<std::size_t> RetainMesh(const detail::MeshGeometryView &view) {
@@ -1455,15 +1482,16 @@ private:
   }
   bool PrepareMeshResidency(Frame &frame, const SceneDrawData &data) {
     return detail::PrepareMeshResidencyBindings(
-        data, frame.meshBindings, diagnostics_.sceneGeometryResidency,
+        data, Scene(frame).meshBindings, diagnostics_.sceneGeometryResidency,
         [this](const auto &view) { return RetainMesh(view); });
   }
   std::uint32_t BindSceneMesh(Frame &frame, const SceneMeshBatch &batch, std::size_t ordinal,
                               VkDeviceSize indexOffset, VkDeviceSize instanceOffset) {
-    const auto slot = ordinal < frame.meshBindings.size() ? frame.meshBindings[ordinal] : UINT8_MAX;
+    const auto slot =
+        ordinal < Scene(frame).meshBindings.size() ? Scene(frame).meshBindings[ordinal] : UINT8_MAX;
     const auto *resident = slot == UINT8_MAX ? nullptr : &meshResidency_.At(slot);
-    const VkBuffer geometry = resident ? resident->resource.buffer : frame.sceneUpload;
-    const VkBuffer buffers[]{geometry, frame.sceneUpload};
+    const VkBuffer geometry = resident ? resident->resource.buffer : Scene(frame).sceneUpload;
+    const VkBuffer buffers[]{geometry, Scene(frame).sceneUpload};
     const VkDeviceSize offsets[]{0, instanceOffset};
     vkCmdBindVertexBuffers(frame.commands, 0, 2, buffers, offsets);
     vkCmdBindIndexBuffer(frame.commands, geometry,
@@ -1982,13 +2010,13 @@ private:
     };
     if (!create(VK_FORMAT_R32_SFLOAT,
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_IMAGE_ASPECT_COLOR_BIT, frame.shadowColor, frame.shadowColorMemory,
-                frame.shadowColorView) ||
+                VK_IMAGE_ASPECT_COLOR_BIT, Scene(frame).shadowColor, Scene(frame).shadowColorMemory,
+                Scene(frame).shadowColorView) ||
         !create(VK_FORMAT_D32_SFLOAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                VK_IMAGE_ASPECT_DEPTH_BIT, frame.shadowDepth, frame.shadowDepthMemory,
-                frame.shadowDepthView))
+                VK_IMAGE_ASPECT_DEPTH_BIT, Scene(frame).shadowDepth, Scene(frame).shadowDepthMemory,
+                Scene(frame).shadowDepthView))
       return SurfaceStatus::DeviceLost;
-    const std::array attachments{frame.shadowColorView, frame.shadowDepthView};
+    const std::array attachments{Scene(frame).shadowColorView, Scene(frame).shadowDepthView};
     const VkFramebufferCreateInfo framebuffer{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                                               nullptr,
                                               0,
@@ -1998,7 +2026,8 @@ private:
                                               resolution,
                                               resolution,
                                               1};
-    if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &frame.shadowFramebuffer) != VK_SUCCESS)
+    if (vkCreateFramebuffer(device_, &framebuffer, nullptr, &Scene(frame).shadowFramebuffer) !=
+        VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     return SurfaceStatus::Ready;
   }
@@ -2013,7 +2042,7 @@ private:
     barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = frame.shadowColor;
+    barrier.image = Scene(frame).shadowColor;
     barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     const auto previousStages = reuseTargets ? VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                                                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -2028,7 +2057,7 @@ private:
     const VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                       nullptr,
                                       shadowRenderPass_,
-                                      frame.shadowFramebuffer,
+                                      Scene(frame).shadowFramebuffer,
                                       {{0, 0}, {resolution, resolution}},
                                       2,
                                       clears.data()};
@@ -2057,7 +2086,7 @@ private:
       if (boundMaterial != batch.materialIndex) {
         vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 scenePbrPipelineLayout_, 0, 1,
-                                &frame.pbrDescriptors[batch.materialIndex], 0, nullptr);
+                                &Scene(frame).pbrDescriptors[batch.materialIndex], 0, nullptr);
         boundMaterial = batch.materialIndex;
       }
       const auto firstIndex =
@@ -2076,9 +2105,9 @@ private:
     ++diagnostics_.sceneShadowPasses;
   }
   bool CreateRefractionTarget(Frame &frame, bool reflection = false) {
-    auto &target = reflection ? frame.reflectionColor : frame.refractionColor;
-    auto &memory = reflection ? frame.reflectionMemory : frame.refractionMemory;
-    auto &targetView = reflection ? frame.reflectionView : frame.refractionView;
+    auto &target = reflection ? Scene(frame).reflectionColor : Scene(frame).refractionColor;
+    auto &memory = reflection ? Scene(frame).reflectionMemory : Scene(frame).refractionMemory;
+    auto &targetView = reflection ? Scene(frame).reflectionView : Scene(frame).refractionView;
     const bool reused = target != VK_NULL_HANDLE;
     // CaptureRefraction returns the snapshot to this layout and synchronizes its next copy.
     // Keep it intact until that copy instead of issuing another discard transition.
@@ -2153,7 +2182,7 @@ private:
     barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     barriers[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    barriers[1].image = frame.refractionColor;
+    barriers[1].image = Scene(frame).refractionColor;
     barriers[1].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     barriers[1].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -2166,7 +2195,7 @@ private:
     copy.srcSubresource = copy.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
     copy.extent = {width_, height_, 1};
     vkCmdCopyImage(frame.commands, source, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   frame.refractionColor, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+                   Scene(frame).refractionColor, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
     for (auto &barrier : barriers) {
       std::swap(barrier.oldLayout, barrier.newLayout);
       std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
@@ -2183,7 +2212,7 @@ private:
     depth.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
     depth.oldLayout = depth.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     depth.srcQueueFamilyIndex = depth.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    depth.image = frame.sceneDepth;
+    depth.image = Scene(frame).sceneDepth;
     depth.subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1};
     vkCmdPipelineBarrier(
         frame.commands,
@@ -2198,14 +2227,14 @@ private:
       barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     }
     auto &color = barriers[0];
-    color.image = frame.reflectionColor;
+    color.image = Scene(frame).reflectionColor;
     color.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     color.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     color.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     color.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     color.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     auto &depth = barriers[1];
-    depth.image = frame.sceneDepth;
+    depth.image = Scene(frame).sceneDepth;
     depth.oldLayout = depth.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     depth.srcAccessMask =
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -2223,13 +2252,13 @@ private:
     const VkDescriptorSetAllocateInfo allocation{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
                                                  nullptr, uiDescriptorPool_, 1,
                                                  &uiDescriptorLayout_};
-    if (vkAllocateDescriptorSets(device_, &allocation, &frame.toneDescriptor) != VK_SUCCESS)
+    if (vkAllocateDescriptorSets(device_, &allocation, &Scene(frame).toneDescriptor) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
-    const VkDescriptorImageInfo image{uiSampler_, frame.sceneColorView,
+    const VkDescriptorImageInfo image{uiSampler_, Scene(frame).sceneColorView,
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     const VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                      nullptr,
-                                     frame.toneDescriptor,
+                                     Scene(frame).toneDescriptor,
                                      0,
                                      0,
                                      1,
@@ -2247,7 +2276,7 @@ private:
                                          width_,
                                          height_,
                                          1};
-    if (vkCreateFramebuffer(device_, &target, nullptr, &frame.toneFramebuffer) != VK_SUCCESS)
+    if (vkCreateFramebuffer(device_, &target, nullptr, &Scene(frame).toneFramebuffer) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -2256,7 +2285,7 @@ private:
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcQueueFamilyIndex = barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = frame.sceneColor;
+    barrier.image = Scene(frame).sceneColor;
     barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
@@ -2264,7 +2293,7 @@ private:
     VkRenderPassBeginInfo begin{};
     begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     begin.renderPass = uiRenderPass_;
-    begin.framebuffer = frame.toneFramebuffer;
+    begin.framebuffer = Scene(frame).toneFramebuffer;
     begin.renderArea.extent = {width_, height_};
     vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, tonePipeline_);
@@ -2273,7 +2302,7 @@ private:
     vkCmdSetViewport(frame.commands, 0, 1, &viewport);
     vkCmdSetScissor(frame.commands, 0, 1, &scissor);
     vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, tonePipelineLayout_, 0,
-                            1, &frame.toneDescriptor, 0, nullptr);
+                            1, &Scene(frame).toneDescriptor, 0, nullptr);
     const auto settings = PackToneParameters(
         sceneExposure_,
         swapchainFormat_ != VK_FORMAT_B8G8R8A8_SRGB && swapchainFormat_ != VK_FORMAT_R8G8B8A8_SRGB,
@@ -2281,7 +2310,8 @@ private:
         sceneOcclusion_);
     vkCmdPushConstants(frame.commands, tonePipelineLayout_, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(settings), settings.data());
-    vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.sceneUpload, &frame.toneVertexOffset);
+    vkCmdBindVertexBuffers(frame.commands, 0, 1, &Scene(frame).sceneUpload,
+                           &Scene(frame).toneVertexOffset);
     vkCmdDraw(frame.commands, 3, 1, 0, 0);
     vkCmdEndRenderPass(frame.commands);
     sceneComposited_ = true;
@@ -2327,7 +2357,8 @@ private:
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
             VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+        VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
         0};
     VkRenderPassCreateInfo pass{};
@@ -2341,9 +2372,8 @@ private:
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneRenderPass_) != VK_SUCCESS)
       return false;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-    auto overlayDependency = dependency;
-    overlayDependency.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    pass.pDependencies = &overlayDependency;
+    // Clear/load passes share pipelines, so their dependencies must also match. Keep the
+    // load pass's color-read synchronization in both compatible render passes.
     if (vkCreateRenderPass(device_, &pass, nullptr, &sceneOverlayRenderPass_) != VK_SUCCESS)
       return false;
     const auto makeShader = [&](const std::uint32_t *code, std::size_t bytes, VkShaderModule &out) {
@@ -2457,12 +2487,17 @@ private:
         VK_SUCCESS)
       return false;
     const std::array poolSizes{
-        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64 * kMaxFrames},
-        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 9 * 64 * kMaxFrames}};
-    const VkDescriptorPoolCreateInfo pool{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,     nullptr,
-        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, 64 * kMaxFrames,
-        static_cast<std::uint32_t>(poolSizes.size()),      poolSizes.data()};
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                             64 * kMaxFrames * detail::SceneViewAdmission::kMaximumViews},
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                             9 * 64 * kMaxFrames * detail::SceneViewAdmission::kMaximumViews}};
+    const VkDescriptorPoolCreateInfo pool{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                          nullptr,
+                                          VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                                          64 * kMaxFrames *
+                                              detail::SceneViewAdmission::kMaximumViews,
+                                          static_cast<std::uint32_t>(poolSizes.size()),
+                                          poolSizes.data()};
     if (vkCreateDescriptorPool(device_, &pool, nullptr, &pbrMaterialPool_) != VK_SUCCESS)
       return false;
     const VkPushConstantRange pbrPush{VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
@@ -2839,6 +2874,8 @@ private:
   VkPipelineLayout scenePbrPipelineLayout_{};
   VkDescriptorSetLayout pbrMaterialLayout_{};
   VkDescriptorPool pbrMaterialPool_{};
+  detail::SceneViewAdmission sceneViews_;
+  std::size_t sceneViewSlot_{};
   bool sceneRendered_{};
   bool sceneOffscreen_{}, sceneComposited_{}, sceneHdr_{};
   float sceneExposure_ = 1.0F;
