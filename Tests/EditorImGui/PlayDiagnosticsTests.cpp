@@ -76,7 +76,7 @@ int main() {
       Require(created.frame == 0 && created.scene_entities == 1 && created.api_errors == 0 &&
                   created.debug_lines == 0,
               "Create diagnostics not reset or active-only");
-      Require(!host.resolve_asset && !host.debug_draw_line, "unavailable service advertised");
+      Require(host.resolve_asset && !host.debug_draw_line, "unavailable service advertised");
       Require(play.Tick() && Read().frame == 0, "optional fixed tick invented an update frame");
       Require(module.Update(0.1) && updated.frame == 1, "Update callback frame was stale");
       Require(!module.Update(-1) && !module.Update(std::numeric_limits<double>::quiet_NaN()) &&

@@ -772,12 +772,18 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   測試與 Xvfb 真實動態 library 已驗證 mesh 移動、Pause／Step／Stop、Editor 場景未變動。
   host 現也提供下述有界 Scene API 與 optional CPU collider query；rigid-body integration、
   擴充 input 裝置與 hot reload 仍待完成。
+- ✅ 既有 V3 mesh UUID resolution 與 native Game View 共用 immutable owning CPU catalog，
+  在 module Create／Start 前凍結並保留至 Stop／Destroy。完整64-bit handle 可生成／繪製真正
+  clone mesh；folded UUID collision 與 unavailable request 保留 output。Reimport／replacement、
+  failure／unload 與32次 Play lifecycle 保留 source／Undo。其他 asset type、動態材質與完整
+  gameplay 仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayMeshAssets-Linux-2026-10-14.md)。
 - ✅ 真正的 Play V3 host 現可載入／啟用空的記憶體 scene，並在隔離 clone 生成／刪除
   已驗證的 Camera／Light／Mesh entity。UTF-8 名稱、descriptor 值與 lifetime admission 配額
   皆有界；拒絕操作會保留 output 與 World 資料。原子刪除包含 descendants，Stop／Destroy
   callback 仍可使用服務，新 binding 重設配額。World ID 耗盡會拒絕配置，不會回繞。
   Portable 與真正 Xvfb 動態模組測試涵蓋重複 Play lifecycle、Editor bytes 未變動。
-  Optional CPU Physics query 與 copied diagnostics 詳列於下方；asset resolution／debug drawing 仍不可用。
+  Optional CPU Physics query 與 copied diagnostics 詳列於下方，mesh resolution 如上所述；
+  其他 asset type 與 debug drawing 仍不可用。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md)。
 - ✅ Optional Play Physics spawn 現擁有最多 256 個 live local AABB binding，提供真正 CPU
   PhysicsWorld raycast 的 copied result。八個角點透過目前 affine matrix 保留 inherited

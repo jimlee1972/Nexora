@@ -482,14 +482,41 @@ are rejected visibly. Module logs enter the bounded Console; failed callbacks pa
 Stop/window shutdown unload the module before destroying the clone. The host bounds allocation
 and message sizes, supports the shared component wire set, and advertises implemented Scene API
 and host allocator capabilities. With gameplay simulation enabled, bounded CPU AABB Physics spawn
-and copied raycast/Play diagnostics are also available; asset resolution/debug drawing remain
-unavailable. Click a playing
+and copied raycast, Play diagnostics and frozen mesh UUID resolution are also available;
+debug drawing remains unavailable. Click a playing
 Game canvas to capture input; Escape, pointer exit, hiding Game, Pause/Stop,
 recovery/close prompts, and window blur release it and clear held controls. F5/F6/F10 remain Play
 controls; other captured keys/text do not reach authoring shortcuts. The default user-zero input
 snapshot maps WASD/arrows to movement axes and Space/left mouse/right mouse/Shift/Ctrl to button
 bits 1/2/4/8/16, with one frame sequence and no borrowed input data. Gamepad, pointer motion/look,
 device-specific rebinding, multiple users, and module hot reload remain open.
+
+### Frozen Play mesh resolution
+
+Before cloning Play, `FreezeGameMeshes` validates the current project generation and copies the
+published CPU mesh catalog into one immutable owning instance. The module binding and native
+Game View share that instance, including during module Create/Start. Copy failure rejects Start
+before changing the World. Authoring reimport/delete/replacement and later project publication
+cannot change an existing binding. This is the existing Play catalog copy shared by two consumers,
+not a growing per-request cache. Geometry is owning CPU data; no filename, World/entity or native
+resource borrow crosses the callback.
+
+The existing V3 `resolve_asset(high,low,out)` callback resolves imported mesh UUIDs only and returns
+the exact persistent 64-bit `MeshResourceId` used by Play mesh spawn/render. The catalog verifies
+the full UUID after resource lookup, so colliding folded identities cannot alias another asset.
+Zero/unknown/non-mesh UUIDs or null output return InvalidArgument; an unbound World returns
+Lifecycle, and an embedding without a mesh provider returns Unsupported. Failed calls leave output
+unchanged. A supplied snapshot must be immutable and have nonzero generation; the native application
+uses `FreezeGameMeshes`, which also checks the current project generation. Static and dynamic loads
+retain the catalog through Stop/Destroy, then release it before clone destruction. A failed load
+also releases it. Calls are serialized on the owner thread and perform no source IO or asset import.
+
+The application publishes the same snapshot to the renderer only after successful module startup.
+Inspection-only Play uses the same freeze boundary. Existing geometry/source budgets and native
+residency ownership stay unchanged; this is not a total memory/GPU/physical-soak claim. Stable C
+wires/capability bits, UUID/resource derivation, scene/project formats and module dependencies are
+unchanged. Matching private C++ application consumers rebuild. Material/texture/audio resolution,
+dynamic materials and full gameplay/expanded devices remain open.
 
 ### Play scene/entity services
 
@@ -512,8 +539,8 @@ Authored cloned entities can be despawned in Play, while Editor data/Undo remain
 calls are synchronous on the serialized game thread, borrow wire pointers only for the call and
 return scalar IDs. Module Stop/Destroy still have access; the owner clears binding/quotas after
 Unload and before clone destruction. Stop discards created/deleted entities; transform Apply Changes
-continues excluding creation/deletion. Asset resolution and debug drawing slots
-remain null; raycast is null when gameplay simulation is disabled. Modules must check each optional
+continues excluding creation/deletion. The debug drawing slot
+remains null; raycast is null when gameplay simulation is disabled. Modules must check each optional
 callback. Stable C/Zig layout and scene formats are
 unchanged. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
 

@@ -818,13 +818,20 @@ creates property widgets; unknown components retain raw data instead of being si
     mesh movement, Pause/Step/Stop, and an unchanged authored scene. This initial component-oriented
     host now also provides the bounded Scene API and optional CPU collider queries below;
     rigid-body integration, expanded input devices and hot reload remain open.
+  - ✅ Existing V3 mesh UUID resolution uses the same immutable owning CPU catalog as native Game
+    View, frozen before module Create/Start and retained through Stop/Destroy. Exact full-width
+    handles support real clone mesh spawn/render; folded-UUID collisions and unavailable requests
+    preserve outputs. Reimport/replacement, failure/unload and32 Play cycles preserve source/Undo.
+    Other asset types, dynamic materials and full gameplay remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayMeshAssets-Linux-2026-10-14.md).
   - ✅ The actual Play V3 host now loads/activates empty in-memory scenes and spawns/despawns
     validated Camera/Light/Mesh entities in the isolated clone. UTF-8 names, descriptor values and
     lifetime admission quotas are bounded; outputs and World data survive rejected operations.
     Atomic deletion cascades, Stop/Destroy callbacks retain service access, and new bindings reset
     quotas. World allocation rejects ID exhaustion without wrapping. Portable and actual dynamic
     Xvfb fixtures preserve Editor bytes across repeated Play lifecycles. Optional CPU Physics
-    queries and copied diagnostics are described below; asset resolution/debug drawing remain unavailable.
+    queries and copied diagnostics are described below; mesh resolution is described above.
+    Other asset types and debug drawing remain unavailable.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
   - ✅ Optional Play Physics spawn now owns at most 256 live local AABB bindings and exposes
     copied real CPU PhysicsWorld raycast results. Eight current affine-transformed corners preserve

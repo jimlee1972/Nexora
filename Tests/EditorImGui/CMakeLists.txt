@@ -194,6 +194,16 @@ target_link_libraries(NexoraPlayPhysicsServicesTests PRIVATE Nexora::EditorImGui
 nexora_apply_defaults(NexoraPlayPhysicsServicesTests)
 add_test(NAME editor.play_physics_services COMMAND NexoraPlayPhysicsServicesTests)
 
+add_executable(NexoraPlayMeshAssetTests PlayMeshAssetTests.cpp)
+target_include_directories(NexoraPlayMeshAssetTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayMeshAssetTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayMeshAssetTests)
+add_test(NAME editor.play_mesh_assets COMMAND NexoraPlayMeshAssetTests)
+
+add_library(NexoraPlayMeshAssetFixture MODULE PlayMeshAssetFixture.cpp)
+target_link_libraries(NexoraPlayMeshAssetFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayMeshAssetFixture)
+
 add_library(NexoraPlayGameplayFixture MODULE PlayGameplayFixture.cpp)
 target_link_libraries(NexoraPlayGameplayFixture PRIVATE Nexora::Foundation)
 nexora_apply_defaults(NexoraPlayGameplayFixture)
@@ -373,6 +383,13 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_gameplay_module PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_native_play_mesh_assets
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+      --mesh-assets --module "$<TARGET_FILE:NexoraPlayMeshAssetFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_mesh_assets PROPERTIES TIMEOUT 45)
+
   add_test(
     NAME editor.linux_native_play_scene_services
     COMMAND "${Python3_EXECUTABLE}"
