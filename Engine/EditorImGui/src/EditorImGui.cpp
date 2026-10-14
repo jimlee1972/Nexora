@@ -709,6 +709,7 @@ struct HierarchyRow final {
   const SceneDocument::NodeView *node = nullptr;
   std::uint32_t depth = 0;
   bool has_children = false;
+  bool expanded = false;
 };
 
 template <typename StateT>
@@ -728,16 +729,20 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
   by_id.reserve(nodes.size());
   for (std::size_t i = 0; i < nodes.size(); ++i)
     by_id.emplace(nodes[i].id, i);
-  std::unordered_set<runtime::Id> expanded;
-  expanded.reserve(state.hierarchy_expanded.size());
-  for (const auto &key : state.hierarchy_expanded)
-    expanded.insert(key.id);
   const auto end = nodes.size();
   struct Links final {
     std::size_t first_child;
     std::size_t next_sibling;
+    bool expanded = false;
   };
   std::vector<Links> links(nodes.size(), {end, end});
+  // Reuse the current slot lookup instead of allocating another hash node per expanded key.
+  // Full scope equality prevents a reused entity ID from opening a replacement document/node.
+  for (const auto &key : state.hierarchy_expanded) {
+    const auto current = by_id.find(key.id);
+    if (current != by_id.end() && nodes[current->second].Key() == key)
+      links[current->second].expanded = true;
+  }
   std::size_t first_root = end;
   // Prepend in reverse input order: roots and each child group retain exact Runtime order,
   // including children stored before their parent and parents absent from document metadata.
@@ -767,10 +772,10 @@ std::vector<HierarchyRow> BuildHierarchyRows(const StateT &state,
     const auto &node = nodes[current.slot];
     const auto &link = links[current.slot];
     const bool has_children = link.first_child != end;
-    rows.push_back({&node, current.depth, has_children});
+    rows.push_back({&node, current.depth, has_children, link.expanded});
     if (link.next_sibling != end)
       pending.push_back({link.next_sibling, current.depth});
-    if (has_children && expanded.contains(node.id))
+    if (has_children && link.expanded)
       pending.push_back({link.first_child, current.depth + 1});
   }
   return rows;
@@ -1375,8 +1380,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       if (indent > 0.0F)
         ImGui::Indent(indent);
 
-      const auto expanded = std::ranges::find(state.hierarchy_expanded, key);
-      const bool is_expanded = expanded != state.hierarchy_expanded.end();
+      const bool is_expanded = row.expanded;
       ImGuiTreeNodeFlags flags =
           ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_NoTreePushOnOpen;
       if (filter.empty() && row.has_children) {
@@ -1406,8 +1410,11 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       if (filter.empty() && row.has_children && toggled) {
         if (open && !is_expanded)
           state.hierarchy_expanded.push_back(key);
-        else if (!open && is_expanded)
-          state.hierarchy_expanded.erase(expanded);
+        else if (!open && is_expanded) {
+          const auto expanded = std::ranges::find(state.hierarchy_expanded, key);
+          if (expanded != state.hierarchy_expanded.end())
+            state.hierarchy_expanded.erase(expanded);
+        }
       }
       handle_drag(node);
       if (indent > 0.0F)
@@ -7945,6 +7952,37 @@ void EditorImGuiTestAccess::FocusHierarchy(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.hierarchy");
   ImGui::SetWindowFocus(name.c_str());
+}
+
+std::optional<bool> EditorImGuiTestAccess::HierarchyRowExpanded(const EditorImGuiHost &host,
+                                                                SceneDocument::NodeKey key) {
+  Activate(host.state_->context);
+  if (!HierarchyRowPosition(host, key))
+    return std::nullopt;
+  const auto name = PanelWindowName("nexora.hierarchy");
+  auto *window = ImGui::FindWindowByName(name.c_str());
+  if (!window)
+    return std::nullopt;
+  const auto id = "##hierarchy-" + std::to_string(key.id) + "-" +
+                  std::to_string(key.entity_generation) + "-" +
+                  std::to_string(key.document_generation);
+  const auto open = window->StateStorage.GetInt(window->GetID(id.c_str()), -1);
+  return open < 0 ? std::nullopt : std::optional{open != 0};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::HierarchyRootArrowPosition(const EditorImGuiHost &host,
+                                                  SceneDocument::NodeKey key) {
+  Activate(host.state_->context);
+  const auto position = HierarchyRowPosition(host, key);
+  if (!position)
+    return std::nullopt;
+  const auto name = PanelWindowName("nexora.hierarchy");
+  auto *window = ImGui::FindWindowByName(name.c_str());
+  if (!window)
+    return std::nullopt;
+  return std::array{window->WorkRect.Min.x + ImGui::GetTreeNodeToLabelSpacing() * 0.5F,
+                    (*position)[1]};
 }
 
 void EditorImGuiTestAccess::FocusScene(EditorImGuiHost &host) noexcept {

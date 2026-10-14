@@ -183,6 +183,12 @@ public:
   [[nodiscard]] static bool HierarchyDragActive(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   HierarchyRowPosition(const EditorImGuiHost &host, SceneDocument::NodeKey key) noexcept;
+  // Read actual ImGui storage for a rendered branch, rather than rebuilding its projection.
+  [[nodiscard]] static std::optional<bool> HierarchyRowExpanded(const EditorImGuiHost &host,
+                                                                SceneDocument::NodeKey key);
+  // Logical pointer position for a rendered root branch's arrow.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  HierarchyRootArrowPosition(const EditorImGuiHost &host, SceneDocument::NodeKey key);
   static void FocusScene(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabSourceInspectionPosition(const EditorImGuiHost &host) noexcept;

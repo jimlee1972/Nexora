@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <string_view>
 
 namespace {
 using namespace nexora;
@@ -350,9 +351,104 @@ void Gates() {
                                std::to_string(gate));
   }
 }
+void ExpansionPresentation(float dpi, bool macos) {
+  Fixture f(dpi, macos);
+  auto key = *f.scene.Key(f.roots.front());
+  const auto expect = [&](bool open) {
+    Require(Access::HierarchyRowExpanded(f.ui, key) == std::optional{open},
+            "actual rendered branch expansion disagrees with current scoped state");
+  };
+  expect(false);
+  Access::SetHierarchyExpanded(f.ui, std::array{key, *f.scene.Key(f.child)});
+  f.Draw();
+  expect(true);
+  Require(Access::HierarchyRowExpanded(f.ui, *f.scene.Key(f.child)) == std::optional{true},
+          "expanded descendant widget was not open");
+  Access::QueueHierarchyExpansion(f.ui, key, false);
+  f.Draw();
+  expect(false);
+  Require(!Access::HierarchyRowExpanded(f.ui, *f.scene.Key(f.child)),
+          "clipped descendant exposed old widget expansion");
+  auto wrong_entity = key;
+  ++wrong_entity.entity_generation;
+  auto wrong_document = key;
+  ++wrong_document.document_generation;
+  Access::SetHierarchyExpanded(f.ui, std::array{wrong_entity, wrong_document});
+  f.Draw();
+  expect(false);
+  Access::SetHierarchyExpanded(f.ui, std::array{wrong_entity, key, wrong_document});
+  f.Draw();
+  expect(true);
+  const auto old_key = key;
+  Require(f.scene.Reload(f.root / "Content/Main.scene"), "same-ID expansion reload failed");
+  key = *f.scene.Key(f.roots.front());
+  f.Draw();
+  Require(key != old_key && !Access::HierarchyRowExpanded(f.ui, old_key),
+          "old scoped widget survived replacement");
+  expect(false);
+  f.FocusHierarchy();
+  f.Press(Key::Home);
+  f.Press(Key::RightArrow);
+  expect(true);
+  f.Press(Key::LeftArrow);
+  expect(false);
+  const auto click_arrow = [&] {
+    const auto position = Access::HierarchyRootArrowPosition(f.ui, key);
+    Require(position.has_value(), "root arrow is not rendered");
+    Nexora::Window::WindowEvent pointer, button;
+    pointer.type = Nexora::Window::WindowEventType::Pointer;
+    pointer.value0 = static_cast<int>((*position)[0] * dpi);
+    pointer.value1 = static_cast<int>((*position)[1] * dpi);
+    button.type = Nexora::Window::WindowEventType::PointerButton;
+    button.value0 = 0;
+    button.value1 = 1;
+    f.ui.ProcessEvents(std::array{pointer, button});
+    f.Draw();
+    button.value1 = 0;
+    f.ui.ProcessEvents(std::array{button});
+    f.Draw();
+  };
+  click_arrow();
+  expect(true);
+  // Distinct clicks: a rapid second click intentionally begins Hierarchy Rename.
+  for (int i = 0; i < 25; ++i)
+    f.Draw();
+  click_arrow();
+  expect(false);
+  f.active = &f.observer;
+  f.Draw();
+  for (int i = 0; i < 25; ++i)
+    f.Draw();
+  click_arrow();
+  expect(true);
+  for (int i = 0; i < 25; ++i)
+    f.Draw();
+  click_arrow();
+  expect(false);
+  f.document = nullptr;
+  f.Draw();
+  Require(!Access::HierarchyRowExpanded(f.ui, key), "detached scene exposed old widget state");
+  f.document = &f.scene;
+  f.Draw();
+  expect(false);
+  Require(!f.scene.Dirty() && !f.scene.Undo() && !f.scene.Redo() &&
+              f.world.SaveScene(f.scene_id) == f.baseline,
+          "expansion observation changed saved source or authoring history");
+}
+void ExpansionPresentations() {
+  for (const float dpi : {1.F, 2.F})
+    for (const bool macos : {false, true})
+      ExpansionPresentation(dpi, macos);
+}
 } // namespace
-int main() {
+int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--expansion") {
+      ExpansionPresentations();
+      return 0;
+    }
+    Require(argc == 1, "expected no arguments or --expansion");
+    ExpansionPresentations();
     Navigation(1, false);
     Navigation(2, false);
     Navigation(1, true);

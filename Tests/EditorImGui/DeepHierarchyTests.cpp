@@ -2,6 +2,7 @@
 #include "TemporaryDirectoryCleanup.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <algorithm>
 #include <chrono>
@@ -305,12 +306,14 @@ struct AllocatorScope final {
 double Percentile(const std::vector<double> &sorted, double fraction) {
   return sorted[static_cast<std::size_t>(std::ceil(fraction * sorted.size())) - 1];
 }
-void Benchmark() {
+void Benchmark(bool at_end = false) {
   constexpr int kSamples = 12;
   constexpr int kCycles = 2;
   AllocatorScope allocator;
   for (int cycle = 0; cycle < kCycles; ++cycle) {
     for (const bool deep : {false, true}) {
+      if (at_end && !deep)
+        continue;
       for (const float scale : {1.F, 2.F}) {
         allocator.stats.peak_bytes = 0;
         std::vector<double> milliseconds;
@@ -335,6 +338,16 @@ void Benchmark() {
           }
           // Six production-shell draws settle docking/focus/atlas before timing starts.
           f.Settled();
+          if (at_end) {
+            auto *window = ImGui::FindWindowByName("Hierarchy###nexora.hierarchy");
+            Require(window && window->ScrollMax.y > 0, "end benchmark has no scrollable hierarchy");
+            ImGui::SetScrollY(window, window->ScrollMax.y);
+            // The initial six draws establish the scroll range; six more warm up the end view.
+            for (int i = 0; i < 6; ++i)
+              f.Draw();
+            Require(window->Scroll.y > 0 && f.scene.Selection().empty(),
+                    "end benchmark did not scroll without changing selection");
+          }
           for (int sample = 0; sample < kSamples; ++sample) {
             const auto begin = std::chrono::steady_clock::now();
             f.Draw();
@@ -347,6 +360,10 @@ void Benchmark() {
             Require(state.hierarchy_visible_rows == kCount && state.hierarchy_rendered_rows > 0 &&
                         state.hierarchy_rendered_rows < 128,
                     "scale benchmark lost real 100k rows or bounded widget clipping");
+            if (at_end)
+              Require(Access::HierarchyRowPosition(f.ui, *f.scene.Key(kFirst + kCount - 1)) &&
+                          f.scene.Selection().empty(),
+                      "end benchmark lost the final root or changed selection");
             maximum_rows =
                 std::max(maximum_rows, static_cast<std::size_t>(state.hierarchy_rendered_rows));
             auto *draw = ImGui::GetDrawData();
@@ -364,7 +381,8 @@ void Benchmark() {
         std::cout
             << std::fixed << std::setprecision(3)
             << "{\"schema\":1,\"scope\":\"cpu-imgui-product-shell\",\"nodes\":" << kCount
-            << ",\"dataset\":\"" << (deep ? "expanded-chain" : "flat-roots")
+            << ",\"dataset\":\""
+            << (at_end ? "expanded-chain-end" : (deep ? "expanded-chain" : "flat-roots"))
             << "\",\"cycle\":" << cycle << ",\"dpi\":" << scale
             << ",\"logical_width\":1280,\"logical_height\":900,\"warmup_frames\":6,\"samples\":"
             << kSamples << ",\"p50_ms\":" << Percentile(milliseconds, .5)
@@ -393,7 +411,11 @@ int main(int argc, char **argv) {
       Benchmark();
       return 0;
     }
-    Require(argc == 1, "expected no arguments, --benchmark or --topology");
+    if (argc == 2 && std::string_view(argv[1]) == "--benchmark-end") {
+      Benchmark(true);
+      return 0;
+    }
+    Require(argc == 1, "expected no arguments, --benchmark, --benchmark-end or --topology");
     MixedTopology();
     Deep(1);
     Deep(2);
