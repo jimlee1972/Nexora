@@ -1,16 +1,18 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.0｜狀態：規劃中，僅涵蓋引擎能力｜更新：2026-10-13
+> 版本：v1.1 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-14
 
-> **進度：0% 驗收**（11 個能力里程碑已驗收 0 個，依里程碑數等權計算）。
-> 尚未記錄專屬 2D 驗收證據。既有基礎交付不計為 2D 里程碑完成；這不代表引擎沒有可重用支援。
+> **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
+> Portable／Linux 功能證據。M6 最低規格實體 PC 60 FPS 與 M7 乾淨 Windows
+> Runtime／Shipping 仍為 **NOT RUN**；這不是完整 Windows PC 產品驗收。
 
 ## 1. 範圍與基線
 
 在 V1 基礎上補齊大量 Sprite、俯視視角、單機 Windows PC 應用需要的引擎能力。
 正交相機、Unlit 材質、實例化、VFX Sprite、UI／文字、輸入、音效、非同步資產、序列化與
-打包已有規劃或切片，完整 2D 整合仍待驗證。VFX／UI Sprite 不等於場景 Sprite Renderer；
-Jolt 3D 不等於原生 2D 碰撞支援。尚未確認的能力先盤點再補做；不必等待完整 V2／V3。
+打包已有規劃或切片。可選 TwoD 模組已提供場景 Sprite 擷取與輕量 2D 查詢，沿用 World、
+資產、Core VFS、原生 Presentation 與 EditorImGuiHost。實體 PC 效能及乾淨 Windows
+整合維持獨立；不替換 Jolt，也不加入 Gameplay。
 
 範圍包含可重用的渲染、資產、查詢、Runtime 生命週期、效能分析、打包與製作工具。
 Gameplay 規則、戰鬥、刷怪邏輯、成長與遊戲內容不列入本 Roadmap。
@@ -22,17 +24,17 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 
 | ID | 優先順序 | 能力 | 必要內容 | 驗收條件 | 目前判斷 |
 | --- | --- | --- | --- | --- | --- |
-| 2D-M0 | P0 | 場景 Sprite Renderer | 圖集區域、Pivot、翻轉、顏色／透明度、排序層與穩定 Y 軸排序；沿用 Transform／正交相機 | 原生畫面驗證 UV、Pivot、翻轉、透明度及重疊排序；儲存／重開保留欄位 | 尚未確認完整專用規格 |
-| 2D-M1 | P0 | Sprite 逐格動畫 | 逐格時間／播放速度、循環、切換、動畫事件，與骨架動畫分開 | 幀／事件紀錄驗證循環邊界、切換、暫停／恢復與大時間步進，事件不重複 | 尚未確認專用 Sprite 動畫路徑 |
-| 2D-M2 | P0 | 2D 資產管線 | 切圖、可重現 Atlas 打包、匯入／取樣設定、透明邊緣處理與穩定引用 | 相同輸入／設定／工具版本重複產生一致 Atlas 版面、區域及輸出雜湊；匯入／Cook／重新匯入保留引用；原生取樣無邊緣滲色；無效輸入保留已發布資產 | 已有通用基礎；2D 流程待盤點 |
-| 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | Jolt 3D 不能作為此能力已有的證明 |
-| 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | 架構已有方向；容量待量測 |
-| 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | 已有通用渲染；2D 路徑待驗證 |
-| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 實際容量必須量測 |
-| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 既有子系統切片仍需完整 2D 驗收 |
-| 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | 尚未確認完整圖形化 2D 流程 |
-| 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | 尚未確認專用工具 |
-| 2D-M10 | P1，條件式 | Tilemap | 圖層、繪製、碰撞資料、區塊載入／剔除 | 實作繪製、圖層／碰撞資料及區塊載入／剔除，通過 Undo／儲存／重開及區塊邊界渲染／查詢測試；決定延後仍維持未驗收 | 地圖製作採 Tile 時才需要 |
+| ✅ 2D-M0 | P0 | 場景 Sprite Renderer | 圖集區域、Pivot、翻轉、顏色／透明度、排序層與穩定 Y 軸排序；沿用 Transform／正交相機 | 原生畫面驗證 UV、Pivot、翻轉、透明度及重疊排序；儲存／重開保留欄位 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M1 | P0 | Sprite 逐格動畫 | 逐格時間／播放速度、循環、切換、動畫事件，與骨架動畫分開 | 幀／事件紀錄驗證循環邊界、切換、暫停／恢復與大時間步進，事件不重複 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M2 | P0 | 2D 資產管線 | 切圖、可重現 Atlas 打包、匯入／取樣設定、透明邊緣處理與穩定引用 | 相同輸入／設定／工具版本重複產生一致 Atlas 版面、區域及輸出雜湊；匯入／Cook／重新匯入保留引用；原生取樣無邊緣滲色；無效輸入保留已發布資產 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 雲端實作已驗證；實體 Windows gate 為 NOT RUN |
+| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 雲端實作已驗證；實體 Windows gate 為 NOT RUN |
+| ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
+| ✅ 2D-M10 | P1，條件式 | Tilemap | 圖層、繪製、碰撞資料、區塊載入／剔除 | 實作繪製、圖層／碰撞資料及區塊載入／剔除，通過 Undo／儲存／重開及區塊邊界渲染／查詢測試；決定延後仍維持未驗收 | ✅ Portable／Linux 能力驗收；證據見下方 |
 
 ## 3. 依賴與施工順序
 
@@ -53,7 +55,8 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 - 查詢回傳通用重疊／命中資料，由應用解釋；完整 2D 剛體延後，本計畫不選定新物理相依。
 - Editor 管理製作 Metadata／Transaction；Shipping 不得依賴其 UI 或工具。
 - 後續公共 C++／C ABI、序列化與 Optional Module 變更須審查 Contract；模組相依登錄
-  `Config/Modules/modules.json` 並提供 Feature Option。本次文件變更不新增模組或改既有 Runtime Contract。
+  `Config/Modules/modules.json` 並提供 Feature Option。TwoD 以 Feature 控制，依賴 Runtime／Presentation；
+  Editor 條件式依賴 TwoD。公共 C++ 新增需重建 Consumer；C／Zig ABI 不變。
 
 ## 5. 效能與平台證據
 
@@ -72,12 +75,42 @@ Linux 可驗證 Portable Contract 與 Vulkan 正確性；Windows 實體 PC／乾
 
 ## 6. 狀態、延後範圍與相關文件
 
-11 個里程碑只在本 Roadmap 等權計算；P0 依實際已驗收數另報 x/8，目前為 0/8，全部取得證據才是 8/8。
+11 個里程碑只在本 Roadmap 等權計算；P0 依實際已驗收數另報 x/8，目前為 6/8，全部取得證據才是 8/8。
 延後 Tilemap 保留在分母直到經審查修訂範圍。
 完成規劃不改 V1 基礎、Editor 或聚焦 AI 規劃百分比。細部驗收保留在模組／工具文件或證據目錄；
 Beads 仍是持久任務追蹤來源。
 
 延後：完整 2D 剛體、多人網路、額外平台，以及超出所列 P1 流程的進階製作功能。
+
+## 7. 雲端交付與保留證據
+
+✅ M0／M5：Affine 正交擷取、Pivot／UV／翻轉、Tint／Alpha、穩定 Layer／Order／Y 排序、
+相鄰 Atlas 批次、剔除、共用原生 DrawSprites／HUD、最近點／線性取樣、Immutable 常駐與
+GPU 安全退役。`twod.native_pixels` 驗證 Linux Vulkan 實際像素，包括跨 Atlas 透明重疊、
+Gutter 與 Chunk 邊界。
+✅ M1／M2：可重現 PNG 矩形／Grid 切片、Canonical Pack／Import／Cook／Reimport、UUID
+參照與 Codec；Loop／Switch／Pause／大步長／事件紀錄及無效發布拒絕。`twod.asset_tool`、
+`twod.runtime_contracts` 與 Cooked 原生雲端驗收保留證據。
+✅ M3／M4：獨立暴力比對的 Circle／AABB／Mask 查詢與精確 Point／Disc Sweep；原子重建、
+世代批次建立／回收、過期／外部 Handle／重入拒絕及 Fixed-step 分割等價。混合負載實際更新、
+查詢、動畫、回收與重載。
+✅ M8／M9／M10：沿用 Editor World／UndoStack／ImGui Host，提供獨立 2D Document 與
+Studio 頁籤、Sprite／Collider／正交預覽、Atlas／Clip 逐格事件控制及分層 Tilemap 繪製。
+存檔／重開、Undo／Redo、唯讀／無效編輯拒絕、隔離 Play 及負座標 Chunk 畫面／查詢邊界
+通過。完整主 Editor 里程碑驗收與 Project Lease 整合仍獨立追蹤。
+
+M6 雲端切片：✅ CPU／GPU 時間、Load／Reload 尖峰、Process RSS、批次、AABB 覆蓋、
+Sparse／Overlap 情境皆可重現。硬體／最低規格／尖峰預算仍為 TBD；軟體 Vulkan 數據不代表
+實體 PC 60 FPS gate 通過。
+M7 雲端切片：✅ Linux Monolithic Shipping 已用 Cooked Hash、Core 非同步載入、損毀拒絕
+及不依賴 Editor／Development Engine Library 的獨立封裝驗證。乾淨 Windows 的鍵鼠／手把、
+UI／文字、實際音效、載入失敗／重載／存檔、原生 DX12／Vulkan、顯示／DPI 及關閉仍為
+**NOT RUN**；CI 的 Windows 編譯不等於這項驗收。
+
+保留的 [Linux 驗收紀錄](../../Engine/TwoD/evidence/Linux-2026-10-14/acceptance.md) 包含
+指令、平台範圍、擷取圖與負載 CSV。參閱 [模組 Contract](../../Engine/TwoD/README.md) 與
+[工具](../../Tools/TwoD/README.md)。產生的報告位於 `build/<preset>/artifacts/`。
+雲端可執行工作已完成；實體目標主機 follow-up 保留於 Beads。
 
 - [Roadmap 索引](../ReadMe.md)
 - [V1 完整規劃書](跨平台3D_Engine_V1_完整規劃書_v1_2.md)

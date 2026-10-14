@@ -43,10 +43,11 @@ milestone 進度。
 
 ## 2. 架構邊界
 
-聚焦 [2D 引擎 Roadmap](2D_Roadmap.md) 新增規劃中的 Sprite／Pivot／排序／碰撞製作（2D-M8）、
-Atlas／逐格動畫工具（2D-M9）與條件式 Tilemap（2D-M10）。Runtime Contract 就緒後，沿用
-ED-M1 資產、ED-M2 場景 Transaction 與 ED-M5 工具能力；重用 Undo／儲存／重開及隔離 Play，
-不另建 Editor，也不將規劃中的流程計為 ED 驗收。Runtime／Shipping 2D 驗收維持獨立。
+✅ [2D 引擎 Roadmap](2D_Roadmap.md) 的 M8／M9／M10 已有 Portable／Linux 能力驗收：
+TwoDDocument 沿用 Runtime World／UndoStack，2D Studio Panel 沿用既有 EditorImGuiHost，
+提供 Sprite／碰撞預覽、Atlas／動畫控制及 Tilemap 繪製。Undo／存檔／重開、唯讀拒絕與隔離
+Play 通過。嵌入主專案時仍須保留 ED-M1 資產、ED-M2 Transaction 與 ED-M5 Path／Access／Lease
+檢查；獨立工具不代表整個 ED 里程碑驗收。Windows 實體與 Runtime／Shipping gate 仍分開。
 
 ```text
 NexoraEditor (tool process)

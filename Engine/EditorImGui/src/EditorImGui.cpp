@@ -125,6 +125,7 @@ struct EditorImGuiHost::State final {
     std::vector<std::byte> pixels;
     std::uint32_t generation = 0;
     std::uint32_t uploaded_generation = 0;
+    bool nearest = false;
   };
   std::vector<NativeTextureSlot> native_textures{{}}; // Slot zero is the font atlas.
   std::size_t native_texture_bytes = 0;
@@ -7214,7 +7215,8 @@ std::uint64_t EditorImGuiHost::RegisterTexture(nexora::rhi::Device &device,
 }
 
 std::uint64_t EditorImGuiHost::RegisterNativeTexture(std::uint32_t width, std::uint32_t height,
-                                                     std::span<const std::byte> pixels) {
+                                                     std::span<const std::byte> pixels,
+                                                     bool nearest) {
   constexpr std::size_t maximum_bytes = 16U * 1024U * 1024U;
   if (width == 0 || height == 0 || width > 1024 || height > 1024 ||
       pixels.size() != static_cast<std::size_t>(width) * height * 4U ||
@@ -7231,7 +7233,8 @@ std::uint64_t EditorImGuiHost::RegisterNativeTexture(std::uint32_t width, std::u
                                 height,
                                 {pixels.begin(), pixels.end()},
                                 static_cast<std::uint32_t>(state_->next_texture_generation),
-                                0};
+                                0,
+                                nearest};
   if (index == textures.size())
     textures.push_back(std::move(slot));
   else
@@ -7500,8 +7503,8 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
   for (std::uint32_t index = 1; index < state_->native_textures.size(); ++index) {
     const auto &texture = state_->native_textures[index];
     if (texture.generation != 0 && texture.uploaded_generation != texture.generation)
-      uploads.push_back(
-          {TextureId(index, 1), texture.width, texture.height, texture.width * 4U, texture.pixels});
+      uploads.push_back({TextureId(index, 1), texture.width, texture.height, texture.width * 4U,
+                         texture.pixels, texture.nearest});
   }
   const auto status = surface.RenderUi(
       {vertices, indices, commands, uploads, sizeof(ImDrawIdx) == sizeof(std::uint32_t)});

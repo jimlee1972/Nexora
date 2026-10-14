@@ -45,11 +45,12 @@ Build a standalone `NexoraEditor` with a Unity/Unreal-like workflow—not a clai
 
 ## 2. Architecture boundaries
 
-The focused [2D Engine Roadmap](2D_Roadmap.md) adds planned Sprite/pivot/order/collision authoring
-(2D-M8), Atlas/frame-animation tools (2D-M9), and conditional Tilemap (2D-M10). These consume
-ED-M1 assets, ED-M2 scene transactions and ED-M5 tool capabilities after their runtime contracts
-exist. Reuse Undo/save/reopen and isolated Play; do not introduce a separate Editor or count these
-planned workflows as accepted ED milestones. Runtime/Shipping 2D acceptance remains separate.
+✅ The [2D Engine Roadmap](2D_Roadmap.md) now has portable/Linux M8/M9/M10 capability
+acceptance: TwoDDocument reuses Runtime World/UndoStack and the 2D Studio panel uses the existing
+EditorImGuiHost for Sprite/collision preview, Atlas/animation controls and Tilemap painting.
+Undo/save/reopen, read-only rejection and isolated Play pass. A main-project embedding must retain
+its ED-M1 asset, ED-M2 transaction and ED-M5 path/access/lease checks; this isolated tool does not
+complete an enclosing ED milestone. Windows physical and Runtime/Shipping gates remain separate.
 
 ```text
 NexoraEditor (tool process)

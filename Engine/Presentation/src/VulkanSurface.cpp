@@ -974,6 +974,13 @@ public:
         frames_[frame_].uiFramebuffer || drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
+    for (const auto &upload : drawData.textureUploads) {
+      const auto previous = uiTextures_.find(upload.textureId);
+      if (previous != uiTextures_.end() && previous->second.immutable &&
+          (!upload.immutable || previous->second.width != upload.width ||
+           previous->second.height != upload.height || previous->second.nearest != upload.nearest))
+        return SurfaceStatus::InvalidDescriptor;
+    }
     for (const auto &upload : drawData.textureUploads)
       if (!UploadUiTexture(frame, upload))
         return SurfaceStatus::DeviceLost;
@@ -1119,6 +1126,33 @@ public:
     return SurfaceStatus::Ready;
   }
   SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
+  SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
+    if (!OnThread())
+      return SurfaceStatus::WrongThread;
+    if (destroyed_)
+      return SurfaceStatus::SurfaceLost;
+    if (acquired_)
+      return SurfaceStatus::InvalidDescriptor;
+    for (auto id : ids) {
+      const auto it = uiTextures_.find(id);
+      if (!id || (it != uiTextures_.end() && !it->second.immutable))
+        return SurfaceStatus::InvalidDescriptor;
+    }
+    if (vkDeviceWaitIdle(device_) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
+    for (auto id : ids) {
+      const auto it = uiTextures_.find(id);
+      if (it == uiTextures_.end())
+        continue;
+      auto &t = it->second;
+      vkFreeDescriptorSets(device_, uiDescriptorPool_, 1, &t.descriptor);
+      vkDestroyImageView(device_, t.view, nullptr);
+      vkDestroyImage(device_, t.image, nullptr);
+      vkFreeMemory(device_, t.memory, nullptr);
+      uiTextures_.erase(it);
+    }
+    return SurfaceStatus::Ready;
+  }
   SurfaceStatus DrainAndDestroy() override {
     if (destroyed_)
       return SurfaceStatus::Ready;
@@ -1205,6 +1239,8 @@ private:
     VkDeviceMemory memory{};
     VkDescriptorSet descriptor{};
     std::uint32_t mipLevels{1};
+    std::uint32_t width{}, height{};
+    bool nearest{}, immutable{};
   };
   static constexpr std::size_t kMaxFrames = 3;
   bool OnThread() const noexcept { return thread_ == std::this_thread::get_id(); }
@@ -1501,7 +1537,18 @@ private:
             (linear ? SceneLinearTextureByteSize(upload.width, upload.height, mipLevels)
                     : SceneRgbaTextureByteSize(upload.width, upload.height, mipLevels)))
       return false;
+    if (!scene) {
+      const auto previous = textures.find(upload.textureId);
+      if (previous != textures.end() && previous->second.immutable)
+        return upload.immutable && previous->second.width == upload.width &&
+               previous->second.height == upload.height &&
+               previous->second.nearest == upload.nearest;
+    }
     UiTexture next;
+    next.width = upload.width;
+    next.height = upload.height;
+    next.nearest = upload.nearest;
+    next.immutable = !scene && upload.immutable;
     next.mipLevels = mipLevels;
     VkBuffer staging{};
     VkDeviceMemory stagingMemory{};
@@ -1628,8 +1675,8 @@ private:
       frame.retiredImageMemory.push_back(previous->second.memory);
       frame.retiredDescriptors.push_back(previous->second.descriptor);
     }
-    const VkDescriptorImageInfo imageInfo{uiSampler_, next.view,
-                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    const VkDescriptorImageInfo imageInfo{!scene && upload.nearest ? uiNearestSampler_ : uiSampler_,
+                                          next.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = next.descriptor;
@@ -1713,6 +1760,9 @@ private:
     environmentSampler_ = VK_NULL_HANDLE;
     if (uiDescriptorPool_)
       vkDestroyDescriptorPool(device_, uiDescriptorPool_, nullptr);
+    if (uiNearestSampler_)
+      vkDestroySampler(device_, uiNearestSampler_, nullptr);
+    uiNearestSampler_ = VK_NULL_HANDLE;
     if (uiSampler_)
       vkDestroySampler(device_, uiSampler_, nullptr);
     if (uiDescriptorLayout_)
@@ -1747,6 +1797,12 @@ private:
       sampler.maxLod = VK_LOD_CLAMP_NONE;
       if (vkCreateSampler(device_, &sampler, nullptr, &uiSampler_) != VK_SUCCESS)
         return false;
+      sampler.magFilter = sampler.minFilter = VK_FILTER_NEAREST;
+      sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+      if (vkCreateSampler(device_, &sampler, nullptr, &uiNearestSampler_) != VK_SUCCESS)
+        return false;
+      sampler.magFilter = sampler.minFilter = VK_FILTER_LINEAR;
+      sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
       sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
       if (vkCreateSampler(device_, &sampler, nullptr, &environmentSampler_) != VK_SUCCESS)
         return false;
@@ -2769,6 +2825,7 @@ private:
   VkDescriptorSetLayout uiDescriptorLayout_{};
   VkDescriptorPool uiDescriptorPool_{};
   VkSampler uiSampler_{};
+  VkSampler uiNearestSampler_{};
   VkSampler environmentSampler_{};
   VkPipelineLayout uiPipelineLayout_{};
   VkRenderPass uiRenderPass_{};

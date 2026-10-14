@@ -165,6 +165,14 @@ public:
         return SurfaceStatus::InvalidDescriptor;
       if (!ValidateUi(drawData))
         return SurfaceStatus::InvalidDescriptor;
+      for (const auto &upload : drawData.textureUploads) {
+        const auto previous = uiTextureMetadata_.find(upload.textureId);
+        if (previous != uiTextureMetadata_.end() && previous->second.immutable &&
+            (!upload.immutable || previous->second.width != upload.width ||
+             previous->second.height != upload.height ||
+             previous->second.nearest != upload.nearest))
+          return SurfaceStatus::InvalidDescriptor;
+      }
       for (const auto &upload : drawData.textureUploads)
         if (!UploadUiTexture(upload))
           return SurfaceStatus::DeviceLost;
@@ -204,6 +212,10 @@ public:
           ++diagnostics_.nativeUiRejectedTextures;
           continue;
         }
+        [encoder setFragmentSamplerState:uiTextureMetadata_.at(command.textureId).nearest
+                                             ? uiNearestSampler_
+                                             : uiSampler_
+                                 atIndex:0];
         [encoder setFragmentTexture:texture->second atIndex:0];
         const MTLScissorRect scissor{static_cast<NSUInteger>(command.clipX),
                                      static_cast<NSUInteger>(command.clipY), command.clipWidth,
@@ -632,6 +644,26 @@ public:
   }
 #endif
   SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
+  SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
+    if (thread_ != std::this_thread::get_id())
+      return SurfaceStatus::WrongThread;
+    if (destroyed_)
+      return SurfaceStatus::SurfaceLost;
+    if (drawable_ || commands_)
+      return SurfaceStatus::InvalidDescriptor;
+    for (auto id : ids) {
+      const auto it = uiTextureMetadata_.find(id);
+      if (!id || (it != uiTextureMetadata_.end() && !it->second.immutable))
+        return SurfaceStatus::InvalidDescriptor;
+    }
+    if (!DrainFrames())
+      return SurfaceStatus::DeviceLost;
+    for (auto id : ids) {
+      uiTextures_.erase(id);
+      uiTextureMetadata_.erase(id);
+    }
+    return SurfaceStatus::Ready;
+  }
   SurfaceStatus DrainAndDestroy() override {
     @autoreleasepool {
       if (destroyed_)
@@ -669,6 +701,8 @@ public:
 #endif
       depthState_ = nil;
       uiSampler_ = nil;
+      uiNearestSampler_ = nil;
+      uiTextureMetadata_.clear();
       environmentSampler_ = shadowSampler_ = nil;
       layer_ = nil;
       queue_ = nil;
@@ -1223,6 +1257,10 @@ private:
     sampler.mipFilter = MTLSamplerMipFilterLinear;
     sampler.lodMaxClamp = 10;
     uiSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
+    sampler.minFilter = sampler.magFilter = MTLSamplerMinMagFilterNearest;
+    sampler.mipFilter = MTLSamplerMipFilterNearest;
+    uiNearestSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
+    sampler.minFilter = sampler.magFilter = MTLSamplerMinMagFilterLinear;
     sampler.sAddressMode = MTLSamplerAddressModeRepeat;
     sampler.mipFilter = MTLSamplerMipFilterLinear;
     sampler.lodMaxClamp = 8;
@@ -1233,20 +1271,27 @@ private:
         MTLSamplerAddressModeClampToBorderColor;
     sampler.borderColor = MTLSamplerBorderColorOpaqueWhite;
     shadowSampler_ = [device_ newSamplerStateWithDescriptor:sampler];
-    return uiPipeline_ != nil && uiSampler_ != nil && environmentSampler_ != nil &&
-           shadowSampler_ != nil;
+    return uiPipeline_ != nil && uiNearestSampler_ != nil && uiSampler_ != nil &&
+           environmentSampler_ != nil && shadowSampler_ != nil;
   }
   bool UploadUiTexture(const UiTextureUpload &upload) {
     if (upload.textureId == 0 || upload.width == 0 || upload.height == 0 ||
         upload.rowPitch != upload.width * 4U ||
         upload.pixels.size() != static_cast<std::size_t>(upload.rowPitch) * upload.height)
       return false;
+    const auto previousMetadata = uiTextureMetadata_.find(upload.textureId);
+    if (previousMetadata != uiTextureMetadata_.end() && previousMetadata->second.immutable)
+      return upload.immutable && previousMetadata->second.width == upload.width &&
+             previousMetadata->second.height == upload.height &&
+             previousMetadata->second.nearest == upload.nearest;
     id<MTLTexture> texture = CreateTexture(upload);
     if (!texture)
       return false;
     if (const auto previous = uiTextures_.find(upload.textureId); previous != uiTextures_.end())
       retiredTextures_[frame_].push_back(previous->second);
     uiTextures_[upload.textureId] = texture;
+    uiTextureMetadata_[upload.textureId] = {upload.width, upload.height, upload.nearest,
+                                            upload.immutable};
     ++diagnostics_.nativeUiTextureUploads;
     return true;
   }
@@ -1265,6 +1310,12 @@ private:
   id<MTLCommandBuffer> commands_ = nil;
   id<MTLRenderPipelineState> uiPipeline_ = nil;
   id<MTLSamplerState> uiSampler_ = nil;
+  id<MTLSamplerState> uiNearestSampler_ = nil;
+  struct UiTextureMetadata {
+    std::uint32_t width{}, height{};
+    bool nearest{}, immutable{};
+  };
+  std::unordered_map<std::uint64_t, UiTextureMetadata> uiTextureMetadata_;
   id<MTLSamplerState> environmentSampler_ = nil, shadowSampler_ = nil;
   id<MTLRenderPipelineState> shadowPipeline_ = nil;
   std::array<id<MTLTexture>, kFrames> shadowColors_{}, shadowDepths_{};
