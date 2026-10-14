@@ -1319,6 +1319,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   navigation、collapse、filter、replacement 與 1x／2x；overview pose traversal 另行驗收。
   完整 frame／memory budget、production asset scale、soak 與實體 host 驗收仍待完成。
 
+- ✅ Scoped Linux 原生 gate 現在同一個 Editor 程序重複32輪
+  Play／capture／motion／Escape／Pause／Step／Resume／Stop。真正 C-ABI callback 驗證 fresh clone
+  以及 World／provider 仍有效時的中立、依序 teardown；檢查原生像素與 authoring bytes。
+  每輪觸碰4MiB module allocation，暖機4輪後套用32MiB RSS 成長 envelope，保留全部原始樣本。
+  此兩 entity 小資料集建立有界 CI lifecycle guard；production asset、總 allocation／GPU budget、
+  長時間與實機 soak 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-NativePlaySoak-Linux-2026-10-14.md)。
+
 - ✅ Serial 100k-node product-shell scale／lifecycle gate 現會在 1x／2x DPI，透過兩次全新
   project／World／document／host cycle 量測 flat roots 與 expanded 99,998-node chain。
   每個 case 先 warmup 六個 frame，再量測十二次完整 CPU draw；schema-1 record 保留排序後

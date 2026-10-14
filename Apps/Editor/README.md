@@ -1044,3 +1044,22 @@ the domain event; only later pointer samples can establish a new anchor. Normal 
 processing continues. Resume requires reacquisition. This adds bounded native motion, not cursor
 locking, raw/unbounded relative input, gamepads or complete pointer-look acceptance. See
 [ADR-0010](../../Roadmap/en/ADR-0010-Play-Pointer-Input.md).
+
+## Scoped native Play lifecycle gate
+
+`editor.linux_native_play_soak` runs 32 Play sessions in one Linux Editor process with disjoint
+Scene/Game canvases, a real C-ABI library and a two-entity/one-triangle project. Each module touches
+4 MiB of host-owned allocation. Fresh clone poses, capture/motion pixels, Escape release, Pause,
+exactly one neutral manual Fixed step, Resume, held-button Stop and ordered neutral Stop/Destroy
+callbacks are observed; native authoring Scene pixels and source scene/mesh bytes remain unchanged. Startup waits for the actual
+native Scene viewport before issuing controls. No authoring/apply-back operation is requested.
+
+The test samples `/proc/<pid>/status` VmRSS after each Stop and 100 ms of event processing. Four warmup
+cycles precede the retained envelope: its baseline is the larger of cycles 3/4, and the peak of
+cycles 5–32 must remain within 32 MiB above that baseline. All 32 raw samples are reported. This is
+current-process resident-set growth for this small dataset, including shared/native mappings; it
+is not live allocation ownership, VRAM, a proof of all leak freedom or a production-scale budget.
+The 240-second whole-case deadline is a CI liveness guard, while individual observed transitions
+have bounded deadlines. Fixture output is bounded to 4 MiB per stream and Vulkan validation errors
+fail acceptance. Project/document/plugin/device-loss, large content, long-duration and physical
+host soak remain separate gates.
