@@ -597,6 +597,14 @@ std::size_t World::ActiveSceneCount() const {
                     [](const auto &scene) { return scene.state == SceneState::Active; }));
 }
 
+std::size_t World::ActiveEntityCount() const noexcept {
+  std::size_t count = 0;
+  for (const auto &scene : scenes_)
+    if (scene.state == SceneState::Active)
+      count += scene.entities.size();
+  return count;
+}
+
 World World::CloneForPlay() const {
   World clone{WorldKind::Play};
   clone.next_id_ = next_id_;

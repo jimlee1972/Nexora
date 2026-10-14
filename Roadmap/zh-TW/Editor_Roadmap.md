@@ -776,7 +776,7 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   皆有界；拒絕操作會保留 output 與 World 資料。原子刪除包含 descendants，Stop／Destroy
   callback 仍可使用服務，新 binding 重設配額。World ID 耗盡會拒絕配置，不會回繞。
   Portable 與真正 Xvfb 動態模組測試涵蓋重複 Play lifecycle、Editor bytes 未變動。
-  Optional CPU Physics query 詳列於下方；其他 optional callback 仍不可用。
+  Optional CPU Physics query 與 copied diagnostics 詳列於下方；asset resolution／debug drawing 仍不可用。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md)。
 - ✅ Optional Play Physics spawn 現擁有最多 256 個 live local AABB binding，提供真正 CPU
   PhysicsWorld raycast 的 copied result。八個角點透過目前 affine matrix 保留 inherited
@@ -786,6 +786,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   native Game fixture 涵蓋 query、Editor 資料未變動；詳見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md)。
   Rigid-body／backend stepping、authored collider import 與完整 gameplay／input 仍待完成。
+- ✅ 既有 V3 Play diagnostics callback 現回傳 owning gameplay Update sequence、active
+  clone entity count 與限定 scope 的 service-error counter，具飽和與 per-binding reset。
+  Create／Stop／Destroy、scene transition、failure／reload 與32次隔離 lifecycle 保留 authoring
+  bytes；真正 native gameplay／scene／physics／input fixture 使用此 callback。計數不含
+  render／GPU／timing／process 指標，debugger 與完整 gameplay 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayDiagnostics-Linux-2026-10-14.md)。
 - ✅ Local BuildProcess merged output 現透過 scope／operation cursor 進入 owning 圖形化
   Runtime Console。每次 poll 最多消耗 16 KiB raw bytes，escaped chunk 符合 16 KiB record
   預算；原始位元組遺失與 Console record drop 分開計量。重複／stale snapshot 不重送；

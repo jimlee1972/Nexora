@@ -184,6 +184,9 @@ def main():
         forwarded, retained, dropped, gameplay = map(int, producer.groups())
         if forwarded < 1 or retained < 1 or dropped != 0 or (args.module and gameplay < 1):
             raise RuntimeError('Native Core/gameplay producer did not reach bounded Console records')
+        if args.module and not re.search(
+                rb'play diagnostics fixture evidence: frame=1 entities=[1-9][0-9]* errors=[0-9]+', captured):
+            raise RuntimeError('Actual gameplay module did not observe copied Play diagnostics')
         if args.scene_services and b'play scene fixture evidence: loaded=1 activated=1 ' \
                 b'spawned=1 despawned=1' not in captured:
             raise RuntimeError('Actual dynamic Play scene callbacks did not execute successfully')

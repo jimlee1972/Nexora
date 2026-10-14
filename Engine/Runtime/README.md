@@ -66,6 +66,15 @@ remain synchronous on the World owner thread, and normal successful insertion st
 borrows. `runtime.world_identity_exhaustion` covers the last allocation, repeated failed creation,
 import/replacement and owning clone behavior without changing serialized schemas or stable C ABI.
 
+## Active entity observation
+
+`World::ActiveEntityCount` returns a scalar sum of entity-vector sizes in active scene records.
+It allocates nothing, performs O(scene count) work and returns no entity/scene borrow; inactive,
+unloading and unloaded scenes are excluded. Call synchronously on the World owner thread.
+Editor Play uses this query for the existing copied V3 diagnostics wire, without traversing entity
+transforms or caching an Editor/Play snapshot. This additive C++ query requires matching Runtime
+consumers to rebuild; it changes no World layout, stable C wire or serialized format.
+
 ## Editor scene owner teardown
 
 `World::RemoveEditorScene` releases an Editor scene record after the host has destroyed its

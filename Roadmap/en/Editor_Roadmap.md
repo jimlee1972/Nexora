@@ -823,7 +823,7 @@ creates property widgets; unknown components retain raw data instead of being si
     Atomic deletion cascades, Stop/Destroy callbacks retain service access, and new bindings reset
     quotas. World allocation rejects ID exhaustion without wrapping. Portable and actual dynamic
     Xvfb fixtures preserve Editor bytes across repeated Play lifecycles. Optional CPU Physics
-    queries are described below; other optional callbacks remain unavailable.
+    queries and copied diagnostics are described below; asset resolution/debug drawing remain unavailable.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlaySceneServices-Linux-2026-10-09.md).
   - ✅ Optional Play Physics spawn now owns at most 256 live local AABB bindings and exposes
     copied real CPU PhysicsWorld raycast results. Eight current affine-transformed corners preserve
@@ -833,6 +833,12 @@ creates property widgets; unknown components retain raw data instead of being si
     Actual V3, simulation-OFF and dynamic native Game fixtures cover queries and unchanged Editor
     data. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPhysicsServices-Linux-2026-10-09.md).
     Rigid-body/backend stepping, authored collider import and full gameplay/input remain open.
+  - ✅ The existing V3 Play diagnostics callback now returns owning gameplay Update sequence,
+    active-clone entity count and scoped service-error counters, with saturation and per-binding
+    reset. Create/Stop/Destroy, scene transitions, failure/reload and 32 isolated cycles preserve
+    authoring bytes. Actual native gameplay/scene/physics/input fixtures consume the callback.
+    Counters exclude render/GPU/timing/process metrics; debugger and full gameplay remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayDiagnostics-Linux-2026-10-14.md).
   - ✅ Local BuildProcess merged output now reaches the owning graphical Runtime Console through
     scope/operation cursors. Each poll consumes at most 16 KiB raw bytes; escaped chunks fit 16 KiB
     records. Raw-byte loss is distinct from Console record drops. Repeated/stale snapshots do not

@@ -367,8 +367,9 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   The application-owned host supports shared component wires, bounded owner-checked allocation
   and bounded Scene API load/activate/spawn/despawn in the isolated Play World. Optional gameplay
   simulation provides bounded owning CPU AABB collider spawn and copied real raycast results from
-  current exact affine World poses; its slot is null when stripped. Other optional service slots
-  remain unavailable. UI receives copied inspection values, never World storage.
+  current exact affine World poses; its slot is null when stripped. The existing V3 diagnostics
+  callback publishes copied Play Update/active-entity/result-error counters with explicit scope
+  in the application contract; asset resolution and debug drawing remain unavailable. UI receives copied inspection values, never World storage.
   Clicking a playing Game canvas captures keyboard input; Escape, pointer exit, hiding Game,
   Pause/Stop, recovery/close prompts, and native focus loss release it. Captured keys/text do not
   reach authoring shortcuts; F5/F6/F10 remain Editor controls. Acquisition discards that frame's
