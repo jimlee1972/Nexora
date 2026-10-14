@@ -46,6 +46,9 @@ enum class PlayInputControl : std::uint8_t {
   RightControl,
   MouseLeft,
   MouseRight,
+  MouseMiddle,
+  MouseBack,
+  MouseForward,
   Count
 };
 enum class PlayInputAction : std::uint8_t {
@@ -81,8 +84,7 @@ struct PlayInputBindings final {
     for (std::size_t action = 0; action < controls.size(); ++action)
       for (const auto control : controls[action]) {
         const auto value = static_cast<std::size_t>(control);
-        if (value >= used.size() ||
-            (action < 4 && (control == Control::MouseLeft || control == Control::MouseRight)))
+        if (value >= used.size() || (action < 4 && control >= Control::MouseLeft))
           return false;
         if (control == Control::None)
           continue;

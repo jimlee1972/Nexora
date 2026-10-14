@@ -6188,9 +6188,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (control >= PlayInputControl::A && control <= PlayInputControl::Z)
           return std::string(1, static_cast<char>('A' + static_cast<int>(control) -
                                                   static_cast<int>(PlayInputControl::A)));
-        constexpr const char *names[] = {"Left arrow", "Right arrow", "Up arrow",    "Down arrow",
-                                         "Space",      "Left Shift",  "Right Shift", "Left Ctrl",
-                                         "Right Ctrl", "Left mouse",  "Right mouse"};
+        constexpr const char *names[] = {
+            "Left arrow",  "Right arrow",  "Up arrow",   "Down arrow",   "Space",
+            "Left Shift",  "Right Shift",  "Left Ctrl",  "Right Ctrl",   "Left mouse",
+            "Right mouse", "Middle mouse", "Back mouse", "Forward mouse"};
         if (control >= PlayInputControl::Left && control < PlayInputControl::Count)
           return names[static_cast<std::size_t>(control) -
                        static_cast<std::size_t>(PlayInputControl::Left)];
@@ -6229,9 +6230,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                     binding = control;
                     state_->game_input_binding_error.clear();
                   }
-                  const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
-                  state_->game_input_choice_positions.push_back(
-                      {control, {(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F}});
+                  if (ImGui::IsItemVisible()) {
+                    const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+                    state_->game_input_choice_positions.push_back(
+                        {control, {(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F}});
+                  }
                 }
               ImGui::EndCombo();
             }

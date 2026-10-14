@@ -58,7 +58,7 @@ public:
         if (event.value0 > 0 && static_cast<std::size_t>(event.value0) < keys_.size())
           keys_[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
       } else if (event.type == WindowEventType::PointerButton && event.value0 >= 0 &&
-                 event.value0 < 2) {
+                 event.value0 < 5) {
         const auto bit = 2U << event.value0;
         if (event.value1)
           buttons_ |= bit;
@@ -69,8 +69,9 @@ public:
     const auto down = [&](PlayInputControl control) {
       if (control == PlayInputControl::None)
         return false;
-      if (control == PlayInputControl::MouseLeft || control == PlayInputControl::MouseRight)
-        return (buttons_ & (control == PlayInputControl::MouseLeft ? 2U : 4U)) != 0;
+      if (control >= PlayInputControl::MouseLeft && control < PlayInputControl::Count)
+        return (buttons_ & (2U << (static_cast<unsigned>(control) -
+                                   static_cast<unsigned>(PlayInputControl::MouseLeft)))) != 0;
       Key key = Key::Unknown;
       if (control >= PlayInputControl::A && control <= PlayInputControl::Z)
         key = static_cast<Key>(static_cast<int>(Key::A) + static_cast<int>(control) -

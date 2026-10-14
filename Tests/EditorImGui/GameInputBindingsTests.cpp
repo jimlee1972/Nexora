@@ -87,7 +87,33 @@ struct Fixture final {
   }
   void Choose(std::size_t control, Control choice) {
     Click(control);
-    const auto point = Access::GameInputChoicePosition(ui, choice);
+    auto point = Access::GameInputChoicePosition(ui, choice);
+    for (int attempt = 0; !point && attempt < 12; ++attempt) {
+      std::optional<std::array<float, 2>> row;
+      int first = -1;
+      for (int value = 0; value < static_cast<int>(Control::Count); ++value)
+        if (const auto position =
+                Access::GameInputChoicePosition(ui, static_cast<Control>(value))) {
+          if (first < 0) {
+            first = value;
+            row = position;
+          } else if (value == first + 1)
+            row = position;
+        }
+      Require(row.has_value(), "no rendered input choice available for scrolling");
+      WindowEvent hover, wheel;
+      hover.type = WindowEventType::Pointer;
+      hover.value0 = static_cast<int>((*row)[0] * dpi);
+      hover.value1 = static_cast<int>((*row)[1] * dpi);
+      wheel.type = WindowEventType::Wheel;
+      wheel.value1 = static_cast<int>(choice) < first ? 360 : -360;
+      ui.ProcessEvents(std::array{hover});
+      Draw();
+      ui.ProcessEvents(std::array{wheel});
+      Draw();
+      Draw();
+      point = Access::GameInputChoicePosition(ui, choice);
+    }
     if (!point) {
       std::string visible;
       for (int c = 0; c < static_cast<int>(Control::Count); ++c)
@@ -121,6 +147,21 @@ void Run(float dpi, bool macos) {
   Fixture f(dpi, macos);
   const PlayInputBindings defaults;
   const bool originally_dirty = f.document->Dirty();
+  f.Open();
+  f.Choose(9, Control::MouseMiddle);
+  f.Choose(13, Control::MouseBack);
+  f.Choose(15, Control::MouseForward);
+  Require(f.ui.GameInputBindings() == defaults, "pointer draft published before Apply");
+  f.Click(19);
+  auto pointer_profile = defaults;
+  pointer_profile.controls[4][0] = Control::MouseMiddle;
+  pointer_profile.controls[6][0] = Control::MouseBack;
+  pointer_profile.controls[7][0] = Control::MouseForward;
+  Require(f.ui.GameInputBindings() == pointer_profile && f.document->Dirty() == originally_dirty &&
+              !f.ui.TakeGameInputBindingsSaveRequest(),
+          "rendered pointer selection failed or changed authoring/persistence");
+  Require(f.ui.SetGameInputBindings(defaults, f.workspace), "pointer profile reset failed");
+  f.FocusGame();
   f.Open();
   f.Choose(3, Control::B); // Right primary, retain Right-arrow alternate.
   Require(f.ui.GameInputBindings() == defaults, "editing draft published before Apply");

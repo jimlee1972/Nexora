@@ -15,6 +15,7 @@ constexpr std::uint64_t TransformType() {
 struct State {
   NexoraGameplayHostV3 host;
   std::uint64_t updates;
+  std::uint32_t last_buttons{};
 };
 struct Position {
   double x, y, z;
@@ -99,7 +100,16 @@ int32_t Fixed(void *opaque, double seconds) {
   NexoraInputSnapshot input{};
   if (!host.capture_input || host.capture_input(host.context, 0, &input) != NEXORA_GAMEPLAY_OK)
     return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+#if defined(NEXORA_FIXTURE_POINTER_ONLY)
+  auto &state = *static_cast<State *>(opaque);
+  if (input.buttons != state.last_buttons) {
+    std::fprintf(stderr, "pointer input buttons=%u\n", input.buttons);
+    state.last_buttons = input.buttons;
+  }
+  pose.x += seconds * ((input.buttons & 14U) ? 1 : 0);
+#else
   pose.x += seconds * input.move_x * 2;
+#endif
 #else
   pose.x += seconds * 0.5;
 #endif

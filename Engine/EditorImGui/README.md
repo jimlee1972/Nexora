@@ -412,7 +412,10 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   rendering is deferred or the client extent is zero; these batches do not tick Play or need an
   ImGui frame. A session-only User0–3 selector routes that single keyboard/mouse owner; selection releases
   capture and project changes reset it. Other users receive neutral copied frames through the
-  existing host callback. Simultaneous device owners, gamepad and pointer motion/look remain open.
+  existing host callback. Binding choices include left/right/middle/back/forward pointer buttons,
+  while movement remains keyboard-only. New buttons are unbound by default and share the same
+  capture, release and profile-replacement rules. Simultaneous device owners, gamepad and pointer
+  motion/look remain open.
   Game uses bounded native scalar PBR slots when authored materials resolve, Renderer tangents and
   exact affine world matrices, without editor proxies or gizmos. Missing/budget-rejected materials
   use neutral slots; no resolved authored material retains Lambert shading. The application owns

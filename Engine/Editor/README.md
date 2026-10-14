@@ -1241,6 +1241,9 @@ lifetime and publication; this value type performs no persistence or transmissio
 `ProjectWorkspace::SavePlayInputBindings` explicitly publishes `.nexora/play-input.ini` under the
 writer lease with resolved recovery and a verified metadata directory/file. The schema-1 ASCII
 format has one header and nine named action records, each containing two stable control names.
+`MouseMiddle`, `MouseBack` and `MouseForward` extend the admitted names without changing the
+schema or existing names/defaults. Like left/right mouse, they bind only to button actions;
+movement remains keyboard-only. Older readers reject unsupported names and preserve the file.
 Serialization is deterministic; reads permit reordered action records, CRLF and no final LF, but
 reject unknown/missing/duplicate fields, extra records, NUL, invalid controls, duplicate concrete
 controls and mouse-axis mappings. `kMaximumPlayInputSettingsBytes` is 1,024; a fixed 1,025-byte read

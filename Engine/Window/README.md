@@ -12,11 +12,15 @@ pump or system destruction. Destroy removes queued events and no callback or def
 
 Pointer `value0`/`value1` are native client pixels. UI consumers convert with the current
 frame DPI; Window and RenderSurface keep native coordinates for other consumers.
+For `PointerButton`, `value0` identifies left/right/middle/back/forward as 0/1/2/3/4 and
+`value1` is 1 for press, 0 for release. Win32 XBUTTON1/2 and X11 buttons8/9 map to back/forward;
+Cocoa uses the matching native button numbers. Wheel events remain separate from held buttons.
+Wheel `value0` is horizontal and `value1` vertical, in signed 120-unit steps (or finer deltas).
 
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
 native IME candidate positioning. X11 provides close, configure, focus, physical-key, XIM-backed
 UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; X11 buttons 2 and 3
-map to the shared right-button index 1 and middle-button index 2 respectively. Each committed Unicode
+map to the shared middle-button index 2 and right-button index 1 respectively. Each committed Unicode
 scalar is a separate `Text` event, while candidate positioning reports `Unsupported`. An X11 input
 context is owned per window and is destroyed before that window or the display connection.
 X11 reports modifier flags after the key transition and tracks paired left/right modifier keys so
