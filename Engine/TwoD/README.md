@@ -25,10 +25,14 @@ atlas generations, surface recreation and HUD resources; the two largest IDs are
 The caller retires superseded IDs; there is no unbounded automatic generation cache. Resize keeps
 resident atlases. A new surface requires uploads again. UI fonts remain mutable by default.
 
-`DrawSprites` validates/rebases Sprite triangles plus optional HUD data into one native RenderUi
-pass, with an opaque background. Do not issue another RenderUi in that acquired frame. The existing
-Vulkan/DX12/Metal native unlit triangle pipeline handles RGBA alpha and per-texture nearest/linear
-sampling. It does not allocate backend objects in public headers or implement a private renderer.
+`SpriteFrame::Draw` requests native GPU instancing through `DrawSprites`: each visible Sprite
+becomes one 44-byte affine/UV/tint record; native vertex shaders generate six Quad corners.
+Vulkan, DX12 and Metal issue instanced draws. The existing extraction retains CPU triangle geometry
+for Editor ImGui preview and inspection; projection, sorting, culling, animation and script updates
+still run on CPU. GPU submission does not upload that expanded Sprite geometry. This is CPU-driven
+GPU instancing, not GPU simulation, compute culling or indirect drawing. The borrowed overlay uses
+the indexed UI pipeline in the same native pass, after the instanced Sprites and background.
+Atlas lifetime/sampling and linear blending remain shared with Presentation.
 Sprite batching merges only adjacent matching atlas IDs after `(layer, order, descending world Y,
 entity ID)` sorting; it never groups translucent geometry across intervening layers. A rotated
 orthographic camera projects affine-transformed Sprite corners and culls offscreen bounds.
@@ -104,10 +108,13 @@ rejection, then runs without Editor or development engine libraries.
 These establish portable/Linux correctness. The [local Windows record](evidence/Windows-2026-10-14/acceptance.md)
 also verifies MSVC contracts, physical DX12 mixed stress, Studio save/reopen and staged Monolithic
 Shipping with Cooked loading/corruption rejection, plus 600 native Zig frames using synthetic input.
-Physical minimum-PC 60 FPS remains **NOT ACCEPTED**; clean Windows DX12/Vulkan integration
-(actual keyboard/controller, audible playback, display/DPI transitions and prerequisites) remains
-**NOT RUN**. Local developer-PC execution is not clean-host evidence. Software Vulkan timings
-are not a PC performance guarantee. Follow the
+Physical minimum-PC 60 FPS remains **NOT ACCEPTED**. The separate
+[Windows VM slice](evidence/Windows-VirtualBox-2026-10-15/acceptance.md) passes prerequisite/CPU checks
+after Runtime installation, but native DX12 fails and Vulkan is unavailable; M7 remains
+**PARTIAL / NOT ACCEPTED**. Actual keyboard/controller, audible playback and display/DPI checks
+remain open. Both frozen Windows executables predate GPU instancing; neither validates
+current-main rendering performance. Local developer-PC execution is not clean-host evidence.
+Software Vulkan timings are not a PC performance guarantee. Follow the
 [bilingual 2D roadmap](../../Roadmap/en/2D_Roadmap.md) and its linked acceptance evidence.
 
 ## C ABI and Zig gameplay control
@@ -156,6 +163,14 @@ descendants, before saving or retiring the scene. Unloading a module does not de
 entities, animation state, tiles or pool instances. Reload can reuse migrated IDs/handles; the
 host reclaims content at scene/session teardown. If new content must be rolled back after a
 failed module start, the embedding owns that transaction.
+
+The optional Editor's `TwoDPlayContext` supplies an owning isolated document snapshot with
+frozen Atlas/Clip, copied Tilemap and a fresh 1..4096-slot pool around this bridge. It combines
+scene/pool/loaded tiles through the existing extraction path with a shared 100,000-input cap.
+Modules must stop before the context is destroyed; owning extracted frames retain Atlas pixels
+afterward. Source history, source assets and native texture ownership remain separate. See the
+[Editor contract](../Editor/README.md#owning-isolated-2d-play-context). This prerequisite does
+not attach the bridge to the main project Editor or complete its Game View/reload acceptance.
 
 The [Zig sample and usage guide](../../Gameplay/Zig/README.md) exercise static/dynamic loading,
 fixed input/Transform/Sprite/animation/query control, bulk pool updates, Tilemap and migration.

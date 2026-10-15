@@ -597,6 +597,7 @@ NexoraGameplayHostV3 MakeHost(ShowcaseHostContext &context) {
           &Raycast,
           &DebugDrawLine,
           &GetDiagnostics,
+          nullptr,
           nullptr};
 }
 

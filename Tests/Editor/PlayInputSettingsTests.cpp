@@ -185,6 +185,31 @@ void Run() {
               !legacy_reader.LoadPlayInputBindings(&error) && error.empty() &&
               !fs::exists(legacy / ".nexora"),
           "legacy read created metadata or failed defaulting");
+  auto extended = profile;
+  extended.controls[4] = {PlayInputControl::MouseMiddle, PlayInputControl::None};
+  extended.controls[5] = {PlayInputControl::MouseBack, PlayInputControl::None};
+  extended.controls[6] = {PlayInputControl::MouseForward, PlayInputControl::None};
+  Require(workspace.SavePlayInputBindings(extended, &error) &&
+              workspace.LoadPlayInputBindings(&error) == extended &&
+              observer.LoadPlayInputBindings(&error) == extended && owning == profile,
+          "extended pointer names did not round-trip or mutated an owning legacy profile");
+  const auto extended_bytes = Read(path);
+  Require(extended_bytes.starts_with("schema=1\n") &&
+              extended_bytes.find("MouseMiddle") != std::string::npos &&
+              extended_bytes.find("MouseBack") != std::string::npos &&
+              extended_bytes.find("MouseForward") != std::string::npos &&
+              !observer.SavePlayInputBindings(extended, &error) && Read(path) == extended_bytes,
+          "pointer schema changed or read-only publication modified settings");
+  auto invalid_pointer = extended;
+  invalid_pointer.controls[0][0] = PlayInputControl::MouseBack;
+  Require(!workspace.SavePlayInputBindings(invalid_pointer, &error) && Read(path) == extended_bytes,
+          "pointer movement replaced last-good settings");
+  invalid_pointer = extended;
+  invalid_pointer.controls[4][1] = PlayInputControl::MouseForward;
+  Require(!workspace.SavePlayInputBindings(invalid_pointer, &error) && Read(path) == extended_bytes,
+          "duplicate pointer control replaced last-good settings");
+  Require(workspace.SavePlayInputBindings(profile, &error) && Read(path) == committed,
+          "legacy profile bytes changed after extended pointer round-trip");
 }
 } // namespace
 int main() {

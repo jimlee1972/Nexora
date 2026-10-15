@@ -49,6 +49,12 @@ TwoDDocument 沿用 Runtime World／UndoStack，2D Studio Panel 沿用既有 Edi
 Play 通過。嵌入主專案時仍須保留 ED-M1 資產、ED-M2 Transaction 與 ED-M5 Path／Access／Lease
 檢查；獨立工具不代表整個 ED 里程碑驗收。Windows 實體與 Runtime／Shipping gate 仍分開。
 
+✅ 擁有式隔離 `TwoDPlayContext` 現可快照文件 World／Sprite／碰撞資料、凍結 Atlas／Clip、
+複製 Tilemap／區塊狀態，並擁有新的有限物件池與 2D Gameplay Bridge。實際 V3 Callback
+生命週期與來源 Undo／Redo 保全已有驗證，Linux 原生像素涵蓋凍結／動畫／保留及新 Session
+Atlas。這是整合前置項；主專案 Host 接線、專案／Cooked 世代擷取，以及整合 Game
+預覽／Reload 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
+
 ```text
 NexoraEditor (tool process)
   UI shell + docking + commands + workspace persistence
@@ -833,6 +839,20 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   保持相容，selection 不會持久化。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md)。
   同時多裝置 owner、gamepad 與 pointer-look 仍待完成。
+- ✅ Game 綁定現可選中鍵／返回鍵／前進鍵，以及既有左／右鍵，沿用 copied action bit 與
+  schema-1 控制名稱。預設不變，movement 仍限鍵盤。Portable 32次 held／release／reset、
+  rendered 1x／2x 選取、owning 持久化與真正 X11 gameplay 像素涵蓋此支援性切片。
+  Win32 正規化 XBUTTON1／2 與滾輪軸；原生訊息檢查仍需 hosted Windows 驗收。Gamepad、
+  pointer look、同時多裝置 owner 與完整里程碑仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPointerButtons-Linux-2026-10-14.md)。
+- ✅ Play 現提供可選協商的 copied pointer motion／wheel snapshot，保留原始 V3 prefix、
+  legacy input 與舊 2D host。有限 native client-pixel delta、水平／垂直 wheel unit 與 raw held bit
+  在 Fixed／Update 共用不消耗的 batch sequence。Acquisition、release、座標 domain 變更、logical
+  user 與 Pause／Step／Stop 安全重設。C11／C++／真正 Zig 檢查、32輪 state／provider lifecycle
+  與真正 X11 C-ABI 驅動的 Game 像素涵蓋此支援性切片。Cursor lock、raw relative input、gamepad
+  與完整 pointer-look／ED-M3 驗收仍待完成。
+  [ADR-0010](ADR-0010-Play-Pointer-Input.md)、
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM3-PlayPointerMotion-Linux-2026-10-14.md)。
 - ✅ Play input acquisition 現會先處理 native 失焦與按下 Escape，再丟棄第一批輸入。
   不論事件順序，release 都優先；後續批次維持中立，直到明確重新取得 focus，而重新取得的
   第一批仍會丟棄。State 與真正 gameplay callback 測試涵蓋 owning snapshot、持續遞增
@@ -1304,6 +1324,29 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   真正 100,000-node ImGui fixture 在 3D-preview layout 驗證 deep／flat order、clipping、
   navigation、collapse、filter、replacement 與 1x／2x；overview pose traversal 另行驗收。
   完整 frame／memory budget、production asset scale、soak 與實體 host 驗收仍待完成。
+
+- ✅ Scoped Linux 原生 gate 現在同一個 Editor 程序重複32輪
+  Play／capture／motion／Escape／Pause／Step／Resume／Stop。真正 C-ABI callback 驗證 fresh clone
+  以及 World／provider 仍有效時的中立、依序 teardown；檢查原生像素與 authoring bytes。
+  每輪觸碰4MiB module allocation，暖機4輪後套用32MiB RSS 成長 envelope，保留全部原始樣本。
+  此兩 entity 小資料集建立有界 CI lifecycle guard；production asset、總 allocation／GPU budget、
+  長時間與實機 soak 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-NativePlaySoak-Linux-2026-10-14.md)。
+
+- ✅ Play host allocation observation 現可區分 module 成對釋放，以及 Stop／Destroy 或
+  Create／Start 失敗後的 fallback reclamation。Owning current／last-teardown snapshot 保留
+  payload 數量／bytes、peak 與被拒請求；cleanup 後透過有界 Gameplay Console warning 回報
+  遺留 payload。32 次 success／retained／failed-load case 涵蓋精確 ownership、quota、
+  isolation 與失敗的 log sink。此觀測僅計 embedding 追蹤的 host payload；總 allocator／RSS／GPU
+  與 production／實機 budget 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-PlayHostAllocations-Linux-2026-10-15.md)。
+
+- ✅ Game 面板現可開啟唯讀 Play host memory 視窗，精確顯示 live／peak payload、被拒請求
+  與最近 teardown 回收量。Owning UUID／root／Content／Play scope 排除過期與複製專案資料；
+  真正 1x／2x 控制涵蓋失敗載入、Pause／Stop、重複 session、唯讀存取及 scope／gesture 更換。
+  原生 Xvfb／Vulkan 驗收檢查實際顯示數字、像素、restart、Console 回收與來源保留。
+  此觀測僅計被追蹤的 host payload，與 RSS／GPU／總 allocator 及 production／實機 budget 分開。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-PlayHostMemoryUI-Linux-2026-10-15.md)。
 
 - ✅ Serial 100k-node product-shell scale／lifecycle gate 現會在 1x／2x DPI，透過兩次全新
   project／World／document／host cycle 量測 flat roots 與 expanded 99,998-node chain。

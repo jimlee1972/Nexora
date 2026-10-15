@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "beads": "nexora-rd7.2.9",
+  "base": "ed698e7ed36db3a3763cc4fcd019924ff6a37e07",
+  "scope": "normalized-five-button-pointer-play-bindings",
+  "source_sha256": {
+    "Apps/Editor/PlayInputState.h": "60928bd738c83ad2ec407f19a48ab21d05e937d0a7deddc71f29b45d4a0f7068",
+    "Engine/Editor/include/Nexora/Editor/PlayInputBindings.h": "1657428f323088f2e7b41569235ac4c4a015ffa67d0198ec1320adede35da796",
+    "Engine/Editor/src/ProjectInputBindings.cpp": "b89d27563c8742e4b2d2009c71b1dc2e1949c43a86f2dfd2d4c9bd13a488ac02",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "457a85399a4f30d229c22631bab9e9e5b6bdb129e8a82a70e6db8eba00ef2381",
+    "Engine/Window/include/Nexora/Window/Window.h": "5aea4aafc2bd7e55d0da46a195c8a8b9b3bd703f81b72e7c6f8bca4fa6c6ee4a",
+    "Engine/Window/src/Win32Window.cpp": "40dea1290edcf8c079b83b919c566e62196b0cefc4e0195aa4e1e1b9f16aac1a",
+    "Engine/Window/src/X11Window.cpp": "f76c9bff388193c602053caeecaed479ebfb570cedee296851fa788b7fee83b5",
+    "Tests/Editor/PlayInputSettingsTests.cpp": "da5ed543dd3d257729b8c95a2e43cdcf5e83eab04e1c2fec9bf893a957784aa9",
+    "Tests/EditorImGui/CMakeLists.txt": "48aed78b3e45144e97287cffeebf12d3f77c44d4f3500909ab4680fdeae271b2",
+    "Tests/EditorImGui/GameInputBindingsTests.cpp": "6d64efb533a16bfea906be762a6094dc74a723d074899a1f91e7e5f5eeff46a1",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "70fad4fd9449e1603eeb180b17b7a1b5f44e137d2edb8bedece995f66059bb66",
+    "Tests/EditorImGui/PlayGameplayFixture.cpp": "c3d91ccb9f462684a1fdc95f2bb5106e36b3788545485c1a216bbc9687edd7f2",
+    "Tests/EditorImGui/PlayInputStateTests.cpp": "da1e75b9b30d9bdf33638abb36eb40f5f3f69e7a8f8f9737f3029ca52d7b1ef1",
+    "Tests/WindowPresentation/WindowPresentationTests.cpp": "fa68f66f5bc950d8292bbd686a8455e96941cd7a6b2d1023e4b11d6f69e220a9",
+    "Tests/EditorImGui/LinuxPrefabIsolation.py": "1f3c60f10685d234daf4b542d1323ef251db119133cdc1826b14684c36e21dfd"
+  },
+  "contract": {
+    "pointer_indices": "left0/right1/middle2/back3/forward4; press1/release0",
+    "native": "Win32 XBUTTON1/2 and X11 buttons8/9 normalize to3/4; Cocoa existing buttonNumber path unchanged. Win32 Wheel axes corrected to horizontal value0 / vertical value1.",
+    "profile": "Append MouseMiddle/MouseBack/MouseForward names; old control values/defaults and schema1 bytes preserved. Movement remains keyboard-only; each concrete control has one owner.",
+    "lifetime": "Existing acquisition/blur/Escape/user/Stop/profile reset rules apply to all five held buttons; snapshots own copied action bits, sequence monotonic and reserved0.",
+    "ui": "Actual wheel events scroll clipped combo entries; coordinate records include visible items only. Widgets publish an owning profile or scoped save request, never file IO.",
+    "compatibility": "No gameplay C/Zig wire, module graph, shader or scene schema change. Older profile readers reject new unknown names and preserve files."
+  },
+  "validation": {
+    "old_production": {
+      "expected_failure": "Captured pointer button2 did not drive gameplay",
+      "ctest_exit": 8,
+      "seconds": 1.85,
+      "only_fixture_built": true
+    },
+    "old_side_index_fault": {
+      "expected_failure": "Captured pointer button8 did not drive gameplay",
+      "ctest_exit": 8,
+      "seconds": 2.42,
+      "restored_byte_for_byte": true,
+      "restored_x11_sha256": "f76c9bff388193c602053caeecaed479ebfb570cedee296851fa788b7fee83b5"
+    },
+    "restored_focus": {
+      "passed": 5,
+      "seconds": 5.05,
+      "native_seconds": 4.84,
+      "ui_seconds": 0.19
+    },
+    "strengthened_native_escape": {
+      "passed": 1,
+      "seconds": 5.58,
+      "asserts": "Real X11 middle/back/forward move native mesh only when captured, release stops, held back+Escape stops, copied action masks2/4/8 observed, authored scene and persisted profile bytes unchanged."
+    },
+    "portable_cycles": 32,
+    "portable_buttons": 5,
+    "ui_configurations": [
+      "1x portable Ctrl",
+      "2x portable Ctrl",
+      "1x synthetic macOS Cmd"
+    ],
+    "native_windows": "Hosted-only: actual SendMessageW five-button press/release plus positive/negative vertical/horizontal wheel messages in existing Window contract test. Not run locally.",
+    "full_linux": {
+      "passed": 272,
+      "seconds": 861.1,
+      "skipped": 0,
+      "configure_build": "pass; ninja: no work to do.",
+      "prefab_isolation_seconds": 88.36,
+      "pointer_native_seconds": 5.58,
+      "ui_seconds": 0.2,
+      "source_inputs": 15
+    },
+    "shipping": {
+      "passed": true,
+      "actions": 21,
+      "editor": "OFF",
+      "link_mode": "Monolithic"
+    },
+    "documentation": {
+      "tests": 16,
+      "formatted_files": 12,
+      "local_links": 275
+    },
+    "first_full_linux": {
+      "passed": 271,
+      "failed": 1,
+      "total": 272,
+      "seconds": 802.44,
+      "failed_test": "editor.linux_prefab_isolation",
+      "message": "Actual selected revert changed an unselected value, stable identity or unknown bytes",
+      "pointer_native_seconds": 5.54,
+      "ui_seconds": 0.22,
+      "source_inputs_unchanged": true
+    },
+    "prefab_diagnostics": {
+      "original_fixture_sha256": "bcf90916bf0a4149fd994bdc37d278ca29433be72bd60cb60901e4934f120202",
+      "baseline": "Exact clean ed698e7e build (28 actions); external logging only. Complete position-first and name-first flows passed; selected/unselected values, identities and opaque bytes correct.",
+      "feature": "Unchanged fourteen implementation/config inputs, same external logging; full position-first flow passed.",
+      "cause": "Original first-gate failure not reproduced; no prefab behavior fix claimed.",
+      "repository_change": "Only append expected/actual prefix (2048 bytes), field-order and conservation flags to the existing failure message. No assertion, timing or selection change."
+    }
+  },
+  "pending": [
+    "All applicable final-head hosted CI including Win32 native messages",
+    "Own PR merge/exact-tree proof and remote/local branch deletion"
+  ],
+  "exclusions": [
+    "Gamepad and physical devices",
+    "Pointer motion/look and ABI expansion",
+    "Simultaneous device owners",
+    "Full ED-M3/physical milestone acceptance"
+  ],
+  "host": {
+    "platform": "Linux x86_64",
+    "compiler": "GCC14.2.0",
+    "cmake": "4.4.4",
+    "clang_format": "23.1.3",
+    "native": "Xvfb/Vulkan lavapipe",
+    "development": "Modular graphical shell/SDK/Slang/Vulkan/gameplay simulation/scalar material enabled",
+    "shipping": "Minimal/Monolithic Editor/ImGui/SDK off"
+  }
+}

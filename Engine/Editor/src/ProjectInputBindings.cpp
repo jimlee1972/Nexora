@@ -9,13 +9,13 @@ namespace {
 constexpr std::array<std::string_view, PlayInputBindings::kActions> kActions{
     "left", "right", "forward", "backward", "action", "primary", "secondary", "sprint", "modifier"};
 constexpr std::array<std::string_view, static_cast<std::size_t>(PlayInputControl::Count)> kControls{
-    "None",      "A",         "B",         "C",          "D",           "E",
-    "F",         "G",         "H",         "I",          "J",           "K",
-    "L",         "M",         "N",         "O",          "P",           "Q",
-    "R",         "S",         "T",         "U",          "V",           "W",
-    "X",         "Y",         "Z",         "Left",       "Right",       "Up",
-    "Down",      "Space",     "LeftShift", "RightShift", "LeftControl", "RightControl",
-    "MouseLeft", "MouseRight"};
+    "None",      "A",          "B",           "C",          "D",           "E",
+    "F",         "G",          "H",           "I",          "J",           "K",
+    "L",         "M",          "N",           "O",          "P",           "Q",
+    "R",         "S",          "T",           "U",          "V",           "W",
+    "X",         "Y",          "Z",           "Left",       "Right",       "Up",
+    "Down",      "Space",      "LeftShift",   "RightShift", "LeftControl", "RightControl",
+    "MouseLeft", "MouseRight", "MouseMiddle", "MouseBack",  "MouseForward"};
 bool Fail(std::string *error, std::string_view message) {
   if (error)
     *error = message;

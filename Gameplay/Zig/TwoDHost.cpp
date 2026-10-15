@@ -303,6 +303,11 @@ int main(int argc, char **argv) {
       Check(std::abs(transform->x - double(frames) / 60) < 1e-9, "Zig Transform control");
     module.Unload();
     Check(context.allocated == context.freed, "Zig state allocation leak");
+    const auto gpu =
+        native ? surface.surface->Diagnostics() : Nexora::Presentation::SurfaceDiagnostics{};
+    if (native)
+      Check(gpu.spriteInstancedDrawCalls >= rendered && gpu.spriteGpuInstances >= rendered * 32,
+            "Zig batches must reach native GPU instancing");
     if (native)
       Check(surface.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready,
             "surface shutdown");
@@ -311,6 +316,9 @@ int main(int argc, char **argv) {
         "{\"status\":\"PASS\",\"language\":\"Zig 0.14\",\"api\":1,\"native_frames\":" +
         std::to_string(rendered) + ",\"movement_frames\":" + std::to_string(movementFrames) +
         ",\"entity_x\":" + std::to_string(transform->x) +
+        ",\"sprite_instanced_draws\":" + std::to_string(gpu.spriteInstancedDrawCalls) +
+        ",\"sprite_gpu_instances\":" + std::to_string(gpu.spriteGpuInstances) +
+        ",\"sprite_instance_upload_bytes\":" + std::to_string(gpu.spriteInstanceUploadBytes) +
         ",\"visible\":" + std::to_string(visible) +
         ",\"reloaded\":" + (reloaded ? "true" : "false") +
         ",\"allocations_balanced\":true,\"physical_windows\":\"NOT RUN\"}\n";

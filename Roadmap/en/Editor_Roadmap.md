@@ -52,6 +52,13 @@ Undo/save/reopen, read-only rejection and isolated Play pass. A main-project emb
 its ED-M1 asset, ED-M2 transaction and ED-M5 path/access/lease checks; this isolated tool does not
 complete an enclosing ED milestone. Windows physical and Runtime/Shipping gates remain separate.
 
+✅ An owning isolated `TwoDPlayContext` now snapshots document World/Sprite/collider state,
+freezes Atlas/Clip, copies Tilemap/chunk state and owns a fresh bounded pool/2D gameplay bridge.
+Actual V3 callback lifetimes and source Undo/Redo conservation are verified, with Linux native
+frozen/animated/retained/new-session Atlas pixels. This is an integration prerequisite; main
+project host routing, project/cooked generation capture and integrated Game preview/reload remain
+open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+
 ```text
 NexoraEditor (tool process)
   UI shell/docking/commands/workspace persistence
@@ -882,6 +889,22 @@ creates property widgets; unknown components retain raw data instead of being si
     unload reset their respective identity. Default user0 and the stable C ABI remain compatible;
     no selection is persisted. [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayInputUsers-Linux-2026-10-12.md).
     Simultaneous device owners, gamepads and pointer-look remain open.
+  - ✅ Game bindings now expose middle/back/forward pointer buttons alongside left/right, using
+    the existing copied action bits and schema-1 names. Defaults remain unchanged and movement
+    stays keyboard-only. Portable 32-cycle held/release/reset checks, rendered 1x/2x selection,
+    owning persistence and actual X11 gameplay pixels cover the supporting slice. Win32 normalizes
+    XBUTTON1/2 and wheel axes; native message checks require hosted Windows acceptance. Gamepad,
+    pointer look, simultaneous device owners and full milestone acceptance remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPointerButtons-Linux-2026-10-14.md).
+  - ✅ Play exposes optional negotiated copied pointer motion/wheel snapshots, preserving the
+    original V3 prefix, legacy input and older 2D hosts. Bounded native client-pixel deltas,
+    horizontal/vertical wheel units and raw held bits share non-consuming batch sequences across
+    Fixed/Update. Acquisition, release, coordinate-domain changes, logical users and Pause/Step/Stop
+    reset safely. C11/C++/real Zig checks, 32 state/provider lifecycles and actual X11 C-ABI-driven
+    Game pixels cover this supporting slice. Cursor lock, raw relative input, gamepad and full
+    pointer-look/ED-M3 acceptance remain open.
+    [ADR-0010](ADR-0010-Play-Pointer-Input.md),
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM3-PlayPointerMotion-Linux-2026-10-14.md).
   - ✅ Play input acquisition now honors native blur and pressed Escape before suppressing the
     first batch. Release wins regardless of event order; later batches remain neutral until explicit
     reacquisition, whose first batch is still discarded. State and actual gameplay callback tests
@@ -1322,6 +1345,31 @@ creates property widgets; unknown components retain raw data instead of being si
     and replacement at 1x/2x in the 3D-preview layout; overview pose traversal is a separate gate.
     These are bounded-by-input correctness foundations; complete frame/memory budgets, production
     asset scale, soak and physical-host acceptance remain open.
+
+  - ✅ A scoped Linux native gate now repeats 32 Play/capture/motion/Escape/Pause/Step/Resume/Stop
+    sessions in one Editor process. Real C-ABI callbacks verify fresh clone state and neutral ordered
+    teardown while World/provider remain alive; native pixels and authoring bytes are checked.
+    A 4 MiB touched module allocation, four warmup cycles and a 32 MiB warmed RSS growth envelope retain
+    every raw sample. This small two-entity dataset establishes a bounded CI lifecycle guard;
+    production assets, total allocation/GPU budgets, long-duration and physical soak remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-NativePlaySoak-Linux-2026-10-14.md).
+
+  - ✅ Play host allocation observations now distinguish paired module releases from fallback
+    reclamation after Stop/Destroy or failed Create/Start. Owning current/last-teardown snapshots
+    retain payload counts/bytes, peaks and rejected requests; one bounded Gameplay Console warning
+    reports retained payload after cleanup. Thirty-two repeated success/retained/failed-load cases
+    cover exact ownership, quota, isolation and a failing log sink. This measures only the embedding's
+    tracked host payload; total allocator/RSS/GPU and production/physical budgets remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-PlayHostAllocations-Linux-2026-10-15.md).
+
+  - ✅ The Game panel now opens a read-only Play host memory window with exact live/peak payload,
+    rejected-call and last-teardown recovery counts. Owning UUID/root/Content/Play-scoped
+    publication excludes stale data and copied-project identities; real 1x/2x controls exercise
+    failed loads, Pause/Stop, repeated sessions, read-only access and scope/gesture replacement.
+    Native Xvfb/Vulkan acceptance checks presented numbers, pixels, restart, Console recovery and
+    source preservation. These are tracked host payload observations, separate from RSS/GPU/total
+    allocator and production/physical budgets.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-PlayHostMemoryUI-Linux-2026-10-15.md).
 
   - ✅ A serial 100k-node product-shell scale/lifecycle gate now records flat roots and the expanded
     99,998-node chain at 1x/2x DPI over two fresh project/World/document/host cycles. Six warmup frames

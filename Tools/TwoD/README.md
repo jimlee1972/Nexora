@@ -84,6 +84,8 @@ CTest `twod.cloud_native` retains CSV, native Studio log, source/cooked assets, 
 cross-atlas alpha/HUD capture under `artifacts/twod-native/`. Missing Xvfb is a local skip and a CI
 failure; no skipped test constitutes acceptance. [Local Windows evidence](../../Engine/TwoD/evidence/Windows-2026-10-14/acceptance.md)
 retains native DX12 screening, Studio save/reopen and Monolithic Cooked Shipping checks on a
-developer PC. Minimum-PC 60 FPS remains NOT ACCEPTED; clean Windows acceptance remains NOT RUN.
-See [module contracts](../../Engine/TwoD/README.md) and
+developer PC. Minimum-PC 60 FPS remains NOT ACCEPTED. A [frozen Windows VM package slice](../../Engine/TwoD/evidence/Windows-VirtualBox-2026-10-15/acceptance.md)
+passes prerequisite/hash/CPU/corrupt-cook checks after VC++ Runtime installation; native DX12 fails
+and Vulkan is unavailable. M7 remains NOT ACCEPTED. Both frozen executables predate GPU instancing
+and do not validate current-main rendering. See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).

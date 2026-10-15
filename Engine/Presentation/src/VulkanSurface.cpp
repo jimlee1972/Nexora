@@ -14,6 +14,7 @@
 #include "ScenePbrVulkanShaders.h"
 #include "SceneToneVulkanShaders.h"
 #include "SceneVulkanShaders.h"
+#include "SpriteVulkanShaders.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
 #include "UiVulkanShaders.h"
@@ -992,6 +993,8 @@ public:
     if ((sceneOffscreen_ && !sceneComposited_) || !acquired_ || transferTarget_ ||
         frames_[frame_].uiFramebuffer || drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
+    if (!ValidateSpriteInstances(drawData))
+      return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
     for (const auto &upload : drawData.textureUploads) {
       const auto previous = uiTextures_.find(upload.textureId);
@@ -1004,7 +1007,10 @@ public:
       if (!UploadUiTexture(frame, upload))
         return SurfaceStatus::DeviceLost;
     const auto vertexBytes = std::as_bytes(drawData.vertices);
-    const auto required = vertexBytes.size() + drawData.indices.size();
+    const auto instanceBytes = std::as_bytes(drawData.spriteInstances);
+    const auto instanceOffset =
+        (vertexBytes.size() + drawData.indices.size() + 3U) & ~std::size_t(3);
+    const auto required = instanceOffset + instanceBytes.size();
     if (!EnsureUiUpload(frame, required))
       return SurfaceStatus::DeviceLost;
     void *mapped = nullptr;
@@ -1013,7 +1019,11 @@ public:
     std::memcpy(mapped, vertexBytes.data(), vertexBytes.size());
     std::memcpy(static_cast<std::byte *>(mapped) + vertexBytes.size(), drawData.indices.data(),
                 drawData.indices.size());
+    if (!instanceBytes.empty())
+      std::memcpy(static_cast<std::byte *>(mapped) + instanceOffset, instanceBytes.data(),
+                  instanceBytes.size());
     vkUnmapMemory(device_, frame.uiMemory);
+    diagnostics_.spriteInstanceUploadBytes += instanceBytes.size();
 
     VkImageView attachment = imageViews_[imageIndex_];
     VkFramebufferCreateInfo framebufferCreate{};
@@ -1064,8 +1074,19 @@ public:
       const VkRect2D scissor{{command.clipX, command.clipY},
                              {command.clipWidth, command.clipHeight}};
       vkCmdSetScissor(frame.commands, 0, 1, &scissor);
-      vkCmdDrawIndexed(frame.commands, command.elementCount, 1, command.indexOffset,
-                       command.vertexOffset, 0);
+      if (command.instanceCount) {
+        vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, spritePipeline_);
+        const VkDeviceSize offset = instanceOffset;
+        vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.uiUpload, &offset);
+        vkCmdDraw(frame.commands, 6, command.instanceCount, 0, command.firstInstance);
+        ++diagnostics_.spriteInstancedDrawCalls;
+        diagnostics_.spriteGpuInstances += command.instanceCount;
+      } else {
+        vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_GRAPHICS, uiPipeline_);
+        vkCmdBindVertexBuffers(frame.commands, 0, 1, &frame.uiUpload, &vertexOffset);
+        vkCmdDrawIndexed(frame.commands, command.elementCount, 1, command.indexOffset,
+                         command.vertexOffset, 0);
+      }
       ++diagnostics_.nativeUiDrawCalls;
     }
     vkCmdEndRenderPass(frame.commands);
@@ -1736,6 +1757,9 @@ private:
     DestroyFrameRetirements(frame);
   }
   void DestroyUiResources(bool preserve_textures = false) {
+    if (spritePipeline_)
+      vkDestroyPipeline(device_, spritePipeline_, nullptr);
+    spritePipeline_ = VK_NULL_HANDLE;
     if (uiPipeline_)
       vkDestroyPipeline(device_, uiPipeline_, nullptr);
     if (uiPipelineLayout_)
@@ -1892,7 +1916,7 @@ private:
     if (!makeShader(ui_vert, sizeof(ui_vert), vertex) ||
         !makeShader(ui_frag, sizeof(ui_frag), fragment))
       return false;
-    const VkPipelineShaderStageCreateInfo stages[] = {
+    VkPipelineShaderStageCreateInfo stages[] = {
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
          VK_SHADER_STAGE_VERTEX_BIT, vertex, "main", nullptr},
         { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -1902,8 +1926,7 @@ private:
           fragment,
           "main",
           nullptr }};
-    const VkVertexInputBindingDescription vertexBinding{0, sizeof(UiVertex),
-                                                        VK_VERTEX_INPUT_RATE_VERTEX};
+    VkVertexInputBindingDescription vertexBinding{0, sizeof(UiVertex), VK_VERTEX_INPUT_RATE_VERTEX};
     const VkVertexInputAttributeDescription attributes[] = {
         {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UiVertex, position)},
         {1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(UiVertex, uv)},
@@ -1970,7 +1993,37 @@ private:
         vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &uiPipeline_);
     vkDestroyShaderModule(device_, fragment, nullptr);
     vkDestroyShaderModule(device_, vertex, nullptr);
-    return Initialized(result, "vkCreateGraphicsPipelines (UI)");
+    if (!Initialized(result, "vkCreateGraphicsPipelines (UI)"))
+      return false;
+    vertex = fragment = VK_NULL_HANDLE;
+    if (!makeShader(sprite_vert, sizeof(sprite_vert), vertex) ||
+        !makeShader(ui_frag, sizeof(ui_frag), fragment)) {
+      if (vertex)
+        vkDestroyShaderModule(device_, vertex, nullptr);
+      if (fragment)
+        vkDestroyShaderModule(device_, fragment, nullptr);
+      return false;
+    }
+    stages[0].module = vertex;
+    stages[1].module = fragment;
+    vertexBinding.stride = sizeof(SpriteGpuInstance);
+    vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+    const VkVertexInputAttributeDescription instanceAttributes[] = {
+        {0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteGpuInstance, origin)},
+        {1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteGpuInstance, axisX)},
+        {2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(SpriteGpuInstance, axisY)},
+        {3, 0, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SpriteGpuInstance, uv)},
+        { 4,
+          0,
+          VK_FORMAT_R8G8B8A8_UNORM,
+          offsetof(SpriteGpuInstance, color) }};
+    vertexInput.vertexAttributeDescriptionCount = 5;
+    vertexInput.pVertexAttributeDescriptions = instanceAttributes;
+    const auto spriteResult =
+        vkCreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline, nullptr, &spritePipeline_);
+    vkDestroyShaderModule(device_, fragment, nullptr);
+    vkDestroyShaderModule(device_, vertex, nullptr);
+    return Initialized(spriteResult, "vkCreateGraphicsPipelines (Sprite instances)");
   }
 #endif
   SurfaceStatus CreateShadowTargets(Frame &frame, std::uint32_t resolution) {
@@ -2865,6 +2918,7 @@ private:
   VkPipelineLayout uiPipelineLayout_{};
   VkRenderPass uiRenderPass_{};
   VkPipeline uiPipeline_{};
+  VkPipeline spritePipeline_{};
   VkPipelineLayout scenePipelineLayout_{};
   VkRenderPass sceneRenderPass_{};
   VkRenderPass sceneOverlayRenderPass_{};

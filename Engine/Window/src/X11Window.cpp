@@ -397,14 +397,17 @@ public:
           event.value0 = native.xbutton.button == 6 ? -120 : native.xbutton.button == 7 ? 120 : 0;
           event.value1 = native.xbutton.button == 4 ? 120 : native.xbutton.button == 5 ? -120 : 0;
           emit = native.type == ButtonPress;
-        } else {
+        } else if ((native.xbutton.button >= 1 && native.xbutton.button <= 3) ||
+                   native.xbutton.button == 8 || native.xbutton.button == 9) {
           event.type = WindowEventType::PointerButton;
-          event.value0 = native.xbutton.button == 2 ? 2
-                         : native.xbutton.button == 3
-                             ? 1
-                             : static_cast<std::int32_t>(native.xbutton.button - 1U);
+          event.value0 = native.xbutton.button == 2   ? 2
+                         : native.xbutton.button == 3 ? 1
+                         : native.xbutton.button == 1
+                             ? 0
+                             : static_cast<std::int32_t>(native.xbutton.button - 5U);
           event.value1 = native.type == ButtonPress;
-        }
+        } else
+          emit = false;
         break;
       default:
         emit = false;

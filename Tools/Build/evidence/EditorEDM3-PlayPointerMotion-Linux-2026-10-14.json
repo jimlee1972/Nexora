@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "beads": "nexora-rd7.2.10",
+  "base": "7f49087b23fb6fcbc1c4ebc49aaf25eaf3f68dc8",
+  "scope": "optional-negotiated-copied-play-pointer-motion-wheel",
+  "source_sha256": {
+    "Apps/Editor/PlayGameplayModule.h": "9e1d26f95af773b2aa0b225357a36f9a182ca0fe63c8d0b1f989b97774372f5c",
+    "Apps/Editor/PlayInputState.h": "dba37c347d345e958f9fec194db8db21731f15d606211ad1ef50253f643408ad",
+    "Bindings/Zig/nexora.zig": "fb2432aa4a3da4345ed6f66864bdd2e2996c522e22b507fcf9c4a68d229bed77",
+    "Engine/API/abi_manifest.json": "0194aff9fc0195cfa1a024877b5e6b45eb48e32d3bc21ada819a1ad171ff12cd",
+    "Engine/API/include/nexora/nexora.h": "df149e65566fefddb2566ac647d42de6e2c1448e613a25680b3a846b668b5bbe",
+    "Gameplay/Zig/CMakeLists.txt": "929bf7f97f4c8ef1190ca9ce276ffb6a45c60c23d0ed07094f7295ddbe390728",
+    "Gameplay/Zig/TwoDLayoutTests.cpp": "127b482ed044477745b66c70c2d18e2e8d5e98eef8299b12f0c29c999eb2ca5e",
+    "Tests/API/ApiM6CConsumer.c": "5a0ffb90bec1977ae0a1d3b7796d9446e4381cec9d0ed243f43285b991fa996e",
+    "Tests/EditorImGui/CMakeLists.txt": "50875ca42c912ba573bd06122398883b5e2c358f7a32ad9f5faff8435f730205",
+    "Tests/EditorImGui/LinuxNativeGameView.py": "d812ea08570178dcf957e600bfa77b942c1341c48df3d9517c30b8042afe5adc",
+    "Tests/EditorImGui/PlayGameplayFixture.cpp": "063e7c1bf7ea773fea076fff21ce73c4c2f66a71ecb70fe20c22e03fc80a0bf6",
+    "Tools/Build/ValidateApiM6.py": "ab0fde0788ecdd04238b13204f715a49dd5bf2ddc62c5affeb212cab29637691",
+    "Engine/API/abi_baseline_pointer_v1.json": "ac19c16d34bc21923a22611e59a41290be9782f51f0150014347def41f9a3ed5",
+    "Gameplay/Zig/PointerLayoutTests.cpp": "82d9d005114543be371293a394476111695da492d85d34f86fd8b7d5b02786df",
+    "Gameplay/Zig/src/pointer_layout.zig": "5ca0bc1ce1ae5704be3941a9340a225dc4f31e7d6896712c676a07e368a1734b",
+    "Tests/EditorImGui/PlayPointerInputTests.cpp": "4ff0b6003e0eb9fb12fc76c7ff334d957c7098010ff2ad0fb211cf2afabf79c5",
+    "Tests/EditorImGui/PlaySceneServicesTests.cpp": "a816c54e9516a8d2118eb9e0f41b24fec5947f973ac2403f48b53df53ba969de",
+    "Apps/Showcase/main.cpp": "46284d76a867dfcb76a6e758abcbbf49b4430676d2208ab770c0c0e4a9d5f25c"
+  },
+  "contract": {
+    "wire": "56-byte caller-sized PointerInputSnapshotV1, capability bit5, optional callback after get_twod_api; required V3 prefix and legacy input unchanged",
+    "units": "native client pixels right/down; wheel horizontal/vertical 120-unit steps; raw left/right/middle/back/forward bits0..4",
+    "bounds": "motion +/-65536 pixels and wheel +/-122880 units per axis",
+    "ownership": "owning non-consuming copies, shared legacy batch sequence; owner admission mutations may neutralize; context alive through Stop/Destroy; serialized game thread",
+    "compatibility": "C/Zig field-end guards; exact original136 and older2D144 host prefixes on64-bit (pointer host152), future output suffix preserved; older2D positive probe retained"
+  },
+  "validation": {
+    "real_zig": "0.14.0 (ziglang package); enabled in local Development",
+    "old_twod_guard": {
+      "expected_failure": "a later optional suffix must not reject a valid legacy 2D host",
+      "ctest_exit": 8,
+      "seconds": 0.01,
+      "restored_passed": 1
+    },
+    "state_provider": {
+      "cycles": 32,
+      "logical_users": 4,
+      "focused_tests": 5,
+      "seconds": 0.04
+    },
+    "native": {
+      "passed": 1,
+      "seconds": 6.18,
+      "motion": [
+        40,
+        -20
+      ],
+      "wheel_vectors": [
+        [
+          0,
+          120
+        ],
+        [
+          0,
+          -120
+        ],
+        [
+          -120,
+          0
+        ],
+        [
+          120,
+          0
+        ]
+      ],
+      "asserts": "Actual dynamically loaded C-ABI module changes native Game mesh pixels only under capture; repeated reads same sequence; Fixed/Update dedup; empty batches stable, Escape released, Pause/Step neutral, authored scene unchanged",
+      "consumer_regression": "An initial Fixed-only restored run missed a no-fixed-tick batch (1.59s); consumer now also reads Update with sequence dedup. Three consecutive native passes:5.95/5.82/5.98s before strengthened Pause/Step check."
+    },
+    "missing_provider_fault": {
+      "ctest_exit": 8,
+      "seconds": 12.53,
+      "observation": "Withholding pointer capability prevented module start/native Game viewport. Provider restored byte-for-byte; this is a negotiation fault, not a successful pointer operation.",
+      "restored_provider_sha256": "9e1d26f95af773b2aa0b225357a36f9a182ca0fe63c8d0b1f989b97774372f5c"
+    },
+    "full_linux": {
+      "passed": 304,
+      "seconds": 980.97,
+      "skipped": 0,
+      "zig": "ON (real0.14.0)",
+      "showcase": "ON",
+      "build_actions": 15,
+      "pointer_native_seconds": 6.14,
+      "scene_services_seconds": 0.03,
+      "prefab_isolation_seconds": 89.2,
+      "commands": [
+        "cmake --preset linux-development -DNEXORA_BUILD_SHOWCASE=ON",
+        "cmake --build --preset linux-development",
+        "ctest --preset linux-development --output-on-failure"
+      ]
+    },
+    "shipping": {
+      "passed": true,
+      "actions": 10,
+      "link_mode": "Monolithic",
+      "zig": "ON",
+      "showcase": "ON",
+      "compiler": "Zig0.14.0"
+    },
+    "documentation": {
+      "tests": 16,
+      "formatted_files": 10,
+      "markdown_links_reviewed": 283,
+      "root_readme_unchanged": true
+    },
+    "first_full_linux": {
+      "passed": 279,
+      "failed": 1,
+      "total": 280,
+      "seconds": 859.65,
+      "failed_test": "editor.play_scene_services",
+      "reason": "Old exact capability expectation omitted the newly implemented pointer bit; updated expected complete mask and require nonnull callback. All other tests passed."
+    },
+    "interrupted_rerun": "After the scene-services expected-mask fix, stopped the early rerun before editing C++ to explicitly initialize Showcase optional pointer suffix null under -Werror. Final Dev now enables Showcase as well as real Zig.",
+    "initial_shipping": {
+      "passed": true,
+      "actions": 12,
+      "preset": "linux-shipping",
+      "link_mode": "Monolithic",
+      "zig": "OFF (real Zig layout/lifecycle tested in Development)"
+    }
+  },
+  "exclusions": [
+    "physical cursor lock/raw unbounded relative input",
+    "application pointer-look sensitivity/inversion",
+    "gamepad or simultaneous physical device owners",
+    "physical Windows/macOS/GPU acceptance",
+    "full ED-M3 or whole Editor Roadmap completion"
+  ]
+}

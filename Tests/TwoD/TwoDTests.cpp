@@ -280,6 +280,46 @@ void Scene() {
       {}, 100, 100);
   Require(merged && merged->commands.size() == 2 && merged->indices.size() == 18,
           "native scene composition");
+  auto compact = Nexora::Presentation::PrepareSpriteDraws(
+      {frame->vertices, std::as_bytes(std::span(frame->indices)), frame->batches, uploads, true},
+      {}, 100, 100, true);
+  Require(compact && compact->spriteInstances.size() == 2 && compact->vertices.size() == 4 &&
+              compact->indices.size() == 6 && compact->commands[1].instanceCount == 2,
+          "compact GPU instance packet");
+  const auto &instance = compact->spriteInstances[0];
+  Near(instance.origin[0], frame->vertices[0].position[0], "instance origin");
+  Near(instance.origin[0] + instance.axisX[0] + instance.axisY[0], frame->vertices[2].position[0],
+       "instance affine corner");
+  Require(Nexora::Presentation::ValidateSpriteInstances(compact->View()), "valid instance range");
+  auto invalid = *compact;
+  invalid.commands[1].firstInstance = UINT32_MAX;
+  Require(!Nexora::Presentation::ValidateSpriteInstances(invalid.View()),
+          "instance range overflow");
+  invalid = *compact;
+  invalid.commands[1].instanceCount = UINT32_MAX;
+  Require(!Nexora::Presentation::ValidateSpriteInstances(invalid.View()),
+          "instance count overflow");
+  invalid = *compact;
+  invalid.spriteInstances[0].axisX[0] = std::numeric_limits<float>::infinity();
+  Require(!Nexora::Presentation::ValidateSpriteInstances(invalid.View()), "nonfinite instance");
+  auto nonquad = frame->vertices;
+  nonquad[2].position[0] += 10;
+  Require(!Nexora::Presentation::PrepareSpriteDraws(
+              {nonquad, std::as_bytes(std::span(frame->indices)), frame->batches, uploads, true},
+              {}, 100, 100, true),
+          "non-affine quad must reject rather than change geometry");
+
+  auto boundary = *compact;
+  boundary.spriteInstances.resize(100000);
+  boundary.commands[1].firstInstance = 99999;
+  boundary.commands[1].instanceCount = 1;
+  Require(Nexora::Presentation::ValidateSpriteInstances(boundary.View()), "last bounded instance");
+  boundary.commands[1].instanceCount = 2;
+  Require(!Nexora::Presentation::ValidateSpriteInstances(boundary.View()), "end range overflow");
+  boundary.spriteInstances.resize(100001);
+  boundary.commands[1].instanceCount = 1;
+  Require(!Nexora::Presentation::ValidateSpriteInstances(boundary.View()),
+          "instance payload budget");
   auto invalidCommand = frame->batches;
   invalidCommand[0].elementCount = 999;
   Require(!Nexora::Presentation::PrepareSpriteDraws({frame->vertices,

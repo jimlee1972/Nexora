@@ -1034,3 +1034,15 @@ C++ host/table consumers must rebuild. Runtime depends on no TwoD implementation
 TwoD disabled advertise no 2D capability. The optional module supplies owner-thread copied wires
 for Sprite/collider/camera, animation, query snapshots, Tilemap and generational pool batches.
 See [TwoD contracts](../TwoD/README.md) and the [Zig consumer](../../Gameplay/Zig/README.md).
+
+## Optional embedding-owned pointer input
+
+V3's optional `capture_pointer_input` suffix follows `get_twod_api`; its capability is independent
+of legacy input and 2D. The required V3 prefix, original snapshot and ABI major remain compatible.
+`NexoraCapturePointerInputV1` checks size before accessing the suffix, then version/capability/callback.
+Other embeddings leave both the pointer capability and callback absent until they implement it.
+The graphical Editor supplies copied caller-sized V1 snapshots, preserving outputs on errors and
+unknown larger-buffer suffixes. Context remains embedding-owned through Stop/Destroy, with serialized
+game-thread calls and input revoked before teardown. No Runtime-to-Window dependency is introduced.
+See [the owning Editor contract](../../Apps/Editor/README.md#optional-copied-play-pointer-input) for
+native units/bounds, logical users, non-consuming batch sequences and focus/domain reset behavior.

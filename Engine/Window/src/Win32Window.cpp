@@ -13,6 +13,7 @@
 #include <vector>
 #include <windows.h>
 #include <windowsx.h>
+
 #include <imm.h>
 
 namespace Nexora::Window {
@@ -440,10 +441,19 @@ private:
                                                             : 2,
                  m == WM_LBUTTONDOWN || m == WM_RBUTTONDOWN || m == WM_MBUTTONDOWN);
       return 0;
+    case WM_XBUTTONDOWN:
+    case WM_XBUTTONUP: {
+      const auto extraButton = GET_XBUTTON_WPARAM(w);
+      if (extraButton != XBUTTON1 && extraButton != XBUTTON2)
+        return DefWindowProcW(h, m, w, l);
+      self->Push(h, WindowEventType::PointerButton, extraButton == XBUTTON1 ? 3 : 4,
+                 m == WM_XBUTTONDOWN);
+      return TRUE;
+    }
     case WM_MOUSEWHEEL:
     case WM_MOUSEHWHEEL:
-      self->Push(h, WindowEventType::Wheel, m == WM_MOUSEWHEEL ? GET_WHEEL_DELTA_WPARAM(w) : 0,
-                 m == WM_MOUSEHWHEEL ? GET_WHEEL_DELTA_WPARAM(w) : 0);
+      self->Push(h, WindowEventType::Wheel, m == WM_MOUSEHWHEEL ? GET_WHEEL_DELTA_WPARAM(w) : 0,
+                 m == WM_MOUSEWHEEL ? GET_WHEEL_DELTA_WPARAM(w) : 0);
       return 0;
     case WM_NCDESTROY:
       self->ClearPendingText(h);

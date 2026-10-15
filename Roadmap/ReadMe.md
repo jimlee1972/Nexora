@@ -2,7 +2,7 @@
 
 ## Progress snapshot / 進度紀錄
 
-Updated / 更新日期：2026-10-14（UTC）
+Updated / 更新日期：2026-10-15（UTC）
 
 | Roadmap / 規劃 | Progress / 進度 | Basis / 計算與驗收範圍 |
 | --- | ---: | --- |
@@ -14,7 +14,7 @@ Updated / 更新日期：2026-10-14（UTC）
 | ✅ Window / Native Presentation | **100% implementation / 實作** | WP-M0–M4 implemented; remaining target-host gates tracked separately / WP-M0～M4 已實作，剩餘 target-host gate 獨立追蹤 |
 | V1 Visual Identity Showcase / V1 視覺特色 Showcase | **71.4%** | 5/7 milestones accepted, equal milestone count; VIS-M3 and VIS-M6 pending / 依里程碑數等權計算，VIS-M3 與 VIS-M6 待驗收 |
 | Graphical Editor / 圖形化 Editor | **0% acceptance / 驗收** | 0/8 graphical milestones accepted; implementation slices already exist / 圖形化里程碑已驗收 0/8，已有實作切片 |
-| 2D Engine / 2D 引擎 | **82% capability acceptance / 能力驗收** | 9/11 portable/Linux milestones; P0 6/8; local Windows DX12 screening retained; minimum-PC 60 FPS unaccepted and clean Windows NOT RUN / Portable／Linux 9/11、P0 6/8；本機 Windows DX12 Screening 已記錄，最低 PC 60 FPS 未驗收、乾淨 Windows 未執行 |
+| 2D Engine / 2D 引擎 | **82% capability acceptance / 能力驗收** | 9/11 portable/Linux milestones; P0 6/8; local DX12 screening over budget; physical PC gate open; clean VM CPU slice passed, native DX12 failed, Vulkan unavailable; M7 NOT ACCEPTED / Portable／Linux 9/11、P0 6/8；本機 DX12 Screening 超出預算；實體 PC gate 待完成；乾淨 VM CPU 切片通過、原生 DX12 失敗、Vulkan 不可用；M7 尚未通過 |
 | Focused Roadmaps AI Plan / 聚焦 Roadmap AI 施工規劃 | **60%** | Mean of API 100%, Zig 100%, Editor 0%, rounded down to 10% / 三者平均後向下取整至 10% |
 | ✅ Transform Rotation and Scale / Transform 旋轉與縮放 | **100% planned phases / 計畫階段** | All five phases complete; graphical Editor acceptance remains separate / 五個階段完成，圖形 Editor 驗收另計 |
 | ✅ Entity Parenting / Entity 父子階層 | **100% planned phases / 計畫階段** | 4/4 runtime, wire, Editor data-model and render-sync phases complete / runtime、wire、Editor 資料模型及渲染同步四階段完成 |
@@ -29,7 +29,8 @@ and their AI companion plans track the same delivery and must not be counted twi
 Update this snapshot and both language indexes when the underlying acceptance changes; partial
 implementation does not complete an enclosing milestone.
 
-The 2D roadmap is an independent capability extension. Its delivery does not change V1 foundation
+The 2D roadmap is an independent capability extension. Its Zig batches now drive native GPU
+instancing, with Linux pixel/input evidence; physical Windows gates remain open. Its delivery does not change V1 foundation
 acceptance or the existing API/Zig/Editor average in the focused AI plan.
 
 百分比以既有文件的驗收狀態為準，不代表投入工時或剩餘工作量。下方中英文來源連結保留詳細
@@ -37,7 +38,7 @@ acceptance or the existing API/Zig/Editor average in the focused AI plan.
 不可重複加總為整體進度。來源驗收改變時，同步更新本紀錄及雙語索引；部分實作不代表整個
 里程碑完成。待量化項目先保留驗收狀態，待定義明確分母與權重後再記錄百分比。
 
-2D Roadmap 為獨立能力擴充；交付不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
+2D Roadmap 為獨立能力擴充；Zig 批次已接入原生 GPU Instancing，具有 Linux 像素／輸入證據，Windows 實體 Gate 仍待驗收；交付不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
 
 ## English
 

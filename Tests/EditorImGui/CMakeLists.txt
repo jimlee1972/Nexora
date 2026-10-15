@@ -177,6 +177,23 @@ target_link_libraries(NexoraPlayDiagnosticsTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayDiagnosticsTests)
 add_test(NAME editor.play_diagnostics COMMAND NexoraPlayDiagnosticsTests)
 
+add_executable(NexoraPlayAllocationTests PlayAllocationTests.cpp)
+target_include_directories(NexoraPlayAllocationTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayAllocationTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayAllocationTests)
+add_test(NAME editor.play_host_allocations COMMAND NexoraPlayAllocationTests)
+
+add_executable(NexoraPlayMemoryDisplayTests PlayMemoryDisplayTests.cpp)
+target_include_directories(NexoraPlayMemoryDisplayTests PRIVATE
+  "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraPlayMemoryDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayMemoryDisplayTests)
+add_test(NAME editor.play_host_memory_ui COMMAND NexoraPlayMemoryDisplayTests)
+
+add_library(NexoraPlayMemoryFixture MODULE PlayMemoryFixture.cpp)
+target_link_libraries(NexoraPlayMemoryFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayMemoryFixture)
+
 add_executable(NexoraPlayDebugLineTests PlayDebugLineTests.cpp)
 target_include_directories(NexoraPlayDebugLineTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraPlayDebugLineTests PRIVATE Nexora::EditorImGui)
@@ -250,10 +267,31 @@ target_link_libraries(NexoraPlayInputStateTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayInputStateTests)
 add_test(NAME editor.play_input_state COMMAND NexoraPlayInputStateTests)
 
+add_executable(NexoraPlayPointerInputTests PlayPointerInputTests.cpp)
+target_include_directories(NexoraPlayPointerInputTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayPointerInputTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayPointerInputTests)
+add_test(NAME editor.play_pointer_input COMMAND NexoraPlayPointerInputTests)
+
 add_library(NexoraPlayInputFixture MODULE PlayGameplayFixture.cpp)
 target_compile_definitions(NexoraPlayInputFixture PRIVATE NEXORA_FIXTURE_INPUT_ONLY=1)
 target_link_libraries(NexoraPlayInputFixture PRIVATE Nexora::Foundation)
 nexora_apply_defaults(NexoraPlayInputFixture)
+
+add_library(NexoraPlayPointerFixture MODULE PlayGameplayFixture.cpp)
+target_compile_definitions(NexoraPlayPointerFixture PRIVATE
+  NEXORA_FIXTURE_INPUT_ONLY=1 NEXORA_FIXTURE_POINTER_ONLY=1)
+target_link_libraries(NexoraPlayPointerFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayPointerFixture)
+
+add_library(NexoraPlayPointerMotionFixture MODULE PlayGameplayFixture.cpp)
+target_compile_definitions(NexoraPlayPointerMotionFixture PRIVATE NEXORA_FIXTURE_POINTER_MOTION=1)
+target_link_libraries(NexoraPlayPointerMotionFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayPointerMotionFixture)
+
+add_library(NexoraPlaySoakFixture MODULE PlaySoakFixture.cpp)
+target_link_libraries(NexoraPlaySoakFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlaySoakFixture)
 
 if(WIN32)
   add_executable(NexoraEditorWindowsDpiImeTests WindowsDpiImeTests.cpp)
@@ -273,6 +311,12 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_native_play_soak
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativePlaySoak.py"
+      --module "$<TARGET_FILE:NexoraPlaySoakFixture>" --editor "$<TARGET_FILE:NexoraEditor>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_soak PROPERTIES TIMEOUT 240 RUN_SERIAL TRUE
+    LABELS "editor;soak;vulkan;virtual-display")
   add_test(NAME editor.linux_prefab_isolation
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabIsolation.py"
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
@@ -406,6 +450,13 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_gameplay_module PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_play_host_memory
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPlayHostMemory.py"
+      --module "$<TARGET_FILE:NexoraPlayMemoryFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_play_host_memory PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE
+    LABELS "editor;vulkan;virtual-display")
   add_test(NAME editor.linux_native_concurrent_game_views
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
       --concurrent-views --module "$<TARGET_FILE:NexoraPlayGameplayFixture>"
@@ -458,6 +509,18 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_game_input PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_native_play_pointer_buttons
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+      --input-routing --pointer-buttons --module "$<TARGET_FILE:NexoraPlayPointerFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_pointer_buttons PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_native_play_pointer_motion
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
+      --input-routing --pointer-motion --module "$<TARGET_FILE:NexoraPlayPointerMotionFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_native_play_pointer_motion PROPERTIES TIMEOUT 45)
   add_test(
     NAME editor.linux_native_project_input
     COMMAND "${Python3_EXECUTABLE}"

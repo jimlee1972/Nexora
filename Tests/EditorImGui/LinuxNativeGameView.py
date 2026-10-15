@@ -19,6 +19,8 @@ def main():
         parser.add_argument('--' + argument, required=True)
     parser.add_argument('--module')
     parser.add_argument('--input-routing', action='store_true')
+    parser.add_argument('--pointer-buttons', action='store_true')
+    parser.add_argument('--pointer-motion', action='store_true')
     parser.add_argument('--project-bindings', action='store_true')
     parser.add_argument('--materials', action='store_true')
     parser.add_argument('--scene-services', action='store_true')
@@ -27,6 +29,11 @@ def main():
     parser.add_argument('--debug-lines', action='store_true')
     parser.add_argument('--concurrent-views', action='store_true')
     args = parser.parse_args()
+    if args.pointer_motion and (not args.input_routing or not args.module or
+                                args.project_bindings or args.pointer_buttons):
+        parser.error('--pointer-motion requires its independent input-routing fixture')
+    if args.pointer_buttons and (not args.input_routing or not args.module or args.project_bindings):
+        parser.error('--pointer-buttons requires its independent input-routing fixture')
     if args.concurrent_views and (not args.module or args.materials or args.scene_services or
                                   args.input_routing or args.mesh_assets or args.debug_lines):
         parser.error('--concurrent-views requires an independent gameplay module fixture')
@@ -64,6 +71,12 @@ def main():
                 layout += 'Pos=0,700\nSize=100,20\nCollapsed=1\n'
             layout += '\n'
         (root / '.nexora/editor-layout.ini').write_text(layout)
+    if args.pointer_buttons:
+        (root / '.nexora/play-input.ini').write_text(
+            'schema=1\nleft=A,Left\nright=D,Right\nforward=W,Up\nbackward=S,Down\n'
+            'action=Space,None\nprimary=MouseMiddle,None\nsecondary=MouseBack,None\n'
+            'sprint=MouseForward,None\nmodifier=LeftControl,RightControl\n')
+        pointer_settings = (root / '.nexora/play-input.ini').read_bytes()
     if args.project_bindings:
         if not args.input_routing:
             parser.error('--project-bindings requires --input-routing')
@@ -178,7 +191,73 @@ def main():
                 raise RuntimeError('Loaded gameplay fixed callback did not move the native mesh')
             if args.concurrent_views and capture_pixels(display, window, scene_viewport) != scene_before:
                 raise RuntimeError('Play motion changed the concurrent Editor Scene pixels')
-        if args.input_routing:
+        if args.pointer_motion:
+            x, y, width, height = viewport
+            cx, cy = x + width // 2, y + height // 2
+            first = capture_pixels(display, window, viewport)
+            send('mousemove', '--window', window, cx, cy)
+            send('click', 4)
+            time.sleep(.2)
+            if capture_pixels(display, window, viewport) != first:
+                raise RuntimeError('Uncaptured motion/wheel reached gameplay')
+            send('click', 1)
+            time.sleep(.2)
+            # A seed after acquisition also covers platforms without a capture-click Pointer event.
+            send('mousemove', '--window', window, cx + 1, cy + 1)
+            time.sleep(.15)
+            for operation in [('mousemove', '--window', window, cx + 41, cy - 19),
+                              ('click', 4), ('click', 5), ('click', 6), ('click', 7)]:
+                before = capture_pixels(display, window, viewport)
+                send(*operation)
+                time.sleep(.2)
+                if capture_pixels(display, window, viewport) == before:
+                    raise RuntimeError(f'Captured pointer operation did not move pixels: {operation}')
+                settled = capture_pixels(display, window, viewport)
+                time.sleep(.15)
+                if capture_pixels(display, window, viewport) != settled:
+                    raise RuntimeError('A pointer displacement was replayed in an empty batch')
+            send('key', '--delay', '80', 'Escape')
+            time.sleep(.15)
+            released = capture_pixels(display, window, viewport)
+            send('mousemove', '--window', window, cx - 20, cy + 20)
+            send('click', 4)
+            time.sleep(.2)
+            if capture_pixels(display, window, viewport) != released:
+                raise RuntimeError('Escape retained pointer motion/wheel capture')
+        elif args.pointer_buttons:
+            first = capture_pixels(display, window, viewport)
+            for button in (2, 8, 9):
+                send('mousedown', button)
+                time.sleep(0.15)
+                send('mouseup', button)
+            if capture_pixels(display, window, viewport) != first:
+                raise RuntimeError('Uncaptured pointer buttons reached gameplay')
+            x, y, width, height = viewport
+            send('mousemove', '--window', window, x + width // 2, y + height // 2)
+            send('click', 1)
+            time.sleep(0.2)
+            for button in (2, 8, 9):
+                before = capture_pixels(display, window, viewport)
+                send('mousedown', button)
+                time.sleep(0.25)
+                if capture_pixels(display, window, viewport) == before:
+                    raise RuntimeError(f'Captured pointer button {button} did not drive gameplay')
+                send('mouseup', button)
+                time.sleep(0.15)
+                released = capture_pixels(display, window, viewport)
+                time.sleep(0.15)
+                if capture_pixels(display, window, viewport) != released:
+                    raise RuntimeError(f'Pointer button {button} release retained movement')
+            send('mousedown', 8)
+            time.sleep(0.2)
+            send('key', '--delay', '80', 'Escape')
+            time.sleep(0.15)
+            escaped = capture_pixels(display, window, viewport)
+            time.sleep(0.25)
+            if capture_pixels(display, window, viewport) != escaped:
+                raise RuntimeError('Escape retained a held side button')
+            send('mouseup', 8)
+        elif args.input_routing:
             movement_key = 'b' if args.project_bindings else 'd'
             first = capture_pixels(display, window, viewport)
             send('keydown', movement_key)
@@ -212,6 +291,10 @@ def main():
         send('key', '--delay', '80', 'F6')
         time.sleep(0.3)
         paused = capture_pixels(display, window, viewport)
+        if args.pointer_motion:
+            send('mousemove', '--window', window, cx + 20, cy - 10)
+            send('click', 1)
+            send('click', 4)
         if args.materials:
             # Disk changes are not assumed to imply a watcher publication; portable tests
             # separately exercise actual catalog reimport, deletion and reassignment.
@@ -246,6 +329,8 @@ def main():
                 raise RuntimeError('Concurrent view restoration changed Editor Scene pixels')
         send('key', '--delay', '80', 'F10')
         time.sleep(0.3)
+        if args.pointer_motion and capture_pixels(display, window, viewport) != paused:
+            raise RuntimeError('Paused manual Step replayed pointer displacement')
         send('key', '--delay', '80', 'F5')
         time.sleep(0.3)
         if scene.read_bytes() != baseline:
@@ -253,6 +338,22 @@ def main():
         request_window_close(str(window), env)
         _, stderr = editor.communicate(timeout=15)
         captured += stderr
+        if args.pointer_motion:
+            records = [tuple(map(int, match)) for match in re.findall(
+                rb'pointer motion evidence: dx=(-?\d+) dy=(-?\d+) wx=(-?\d+) wy=(-?\d+)', captured)]
+            if not any(dx == 40 and dy == -20 for dx, dy, wx, wy in records):
+                raise RuntimeError(f'Native motion did not reach copied C ABI: {records}')
+            for axis, value in ((2, 120), (2, -120), (3, 120), (3, -120)):
+                if not any(record[axis] == value for record in records):
+                    raise RuntimeError(f'Native wheel axis/sign missing: {axis}, {value}; {records}')
+            print(f'Copied C-ABI pointer motion/wheel records: {records}; '
+                  'native pixels, empty batches, Escape, Pause/Step and source preservation passed')
+        if args.pointer_buttons:
+            for mask in (2, 4, 8):
+                if f'pointer input buttons={mask}\n'.encode() not in captured:
+                    raise RuntimeError(f'Copied gameplay pointer action {mask} was not observed')
+            if (root / '.nexora/play-input.ini').read_bytes() != pointer_settings:
+                raise RuntimeError('Pointer Play changed persisted bindings')
         if editor.returncode != 0 or b'pie_steps=1' not in captured:
             raise RuntimeError(f'Game View shutdown/step failed: {captured!r}')
         producer = re.search(rb'console producer evidence: source=core_async_log '

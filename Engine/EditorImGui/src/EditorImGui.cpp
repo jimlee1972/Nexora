@@ -225,6 +225,12 @@ struct EditorImGuiHost::State final {
   GpuProfileObservation profile_gpu;
   std::array<char, 1024> gameplay_library{};
   std::string gameplay_status;
+  std::optional<PlayHostMemoryObservation> play_memory;
+  std::uint64_t play_memory_scope_generation{};
+  bool play_memory_open{};
+  std::optional<std::array<float, 2>> play_memory_button;
+  ImGuiID play_memory_button_id{};
+  std::string play_memory_text;
   std::uint64_t gameplay_project_generation{};
   bool close_prompt_requested = false;
   bool recovery_prompt_opened = false;
@@ -4672,6 +4678,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->game_camera_positions.clear();
   state_->game_input_binding_positions = {};
   state_->game_input_user_positions = {};
+  state_->play_memory_button.reset();
+  state_->play_memory_text.clear();
   state_->game_input_choice_positions.clear();
   if (!game_running || state_->game_camera_generation != play->Generation())
     state_->game_camera_selection = 0;
@@ -4717,6 +4725,23 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   };
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
+  const auto memory_generation = content ? content->Browser().ProjectGeneration() : 0;
+  if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id ||
+      memory_generation != state_->play_memory_scope_generation) {
+    const auto *window = ImGui::FindWindowByName("Play host memory###nexora.play.memory");
+    if (ImGui::GetActiveID() == state_->play_memory_button_id ||
+        (window && ImGui::GetCurrentContext()->ActiveIdWindow == window))
+      ImGui::ClearActiveID();
+    state_->play_memory_open = false;
+    state_->play_memory_scope_generation = memory_generation;
+  }
+  if (state_->play_memory &&
+      (!workspace || !play || state_->play_memory->project != workspace->Project().id ||
+       state_->play_memory->root != profile_root ||
+       state_->play_memory->project_generation != memory_generation ||
+       state_->play_memory->play_generation != play->Generation() ||
+       (state_->play_memory->current && !game_running)))
+    state_->play_memory.reset();
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id) {
     cancel_mesh_gesture();
     state_->profile_project_root = profile_root;
@@ -5353,7 +5378,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (!play || play->State() != runtime::PlayState::Playing || !state_->app_focused)
     state_->game_input_focused = false;
   const auto game_window = PanelWindowName("nexora.game");
-  if (game_running && !state_->game_was_running)
+  if (game_running && !state_->game_was_running && !state_->play_memory_open)
     ImGui::SetNextWindowFocus();
   state_->game_was_running = game_running;
   if (ImGui::Begin(game_window.c_str())) {
@@ -5461,6 +5486,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::SameLine();
         ImGui::Text("| %s", PauseReasonLabel(play->LastPauseReason()));
       }
+      ImGui::SameLine();
+      if (ImGui::SmallButton("Host memory###game.host.memory")) {
+        state_->play_memory_open = true;
+        state_->game_input_focused = false;
+      }
+      const auto memory_min = ImGui::GetItemRectMin(), memory_max = ImGui::GetItemRectMax();
+      state_->play_memory_button =
+          std::array{(memory_min.x + memory_max.x) * .5F, (memory_min.y + memory_max.y) * .5F};
+      state_->play_memory_button_id = ImGui::GetItemID();
       ImGui::Text("Fixed ticks: %llu | Steps: %llu | Callback failures: %llu",
                   static_cast<unsigned long long>(play->Stats().fixed_ticks),
                   static_cast<unsigned long long>(play->Stats().manual_steps),
@@ -5566,6 +5600,49 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   if (!game_canvas_visible)
     state_->game_input_focused = false;
+  if (state_->play_memory_open) {
+    ImGui::SetNextWindowSize({590, 330}, ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, {.5F, .5F});
+    if (ImGui::Begin("Play host memory###nexora.play.memory", &state_->play_memory_open,
+                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking)) {
+      auto &text = state_->play_memory_text;
+      text = "Play host allocation payload (bytes)\n";
+      text +=
+          "Excludes allocator/map overhead, process RSS, native/GPU and non-host resources.\n\n";
+      if (!state_->play_memory)
+        text += "Observation unavailable for the current project/session.";
+      else {
+        const auto &value = *state_->play_memory;
+        text += "Play session: " + std::to_string(value.play_generation) + "\n";
+        text += game_running
+                    ? (play->State() == runtime::PlayState::Paused ? "Paused\n" : "Playing\n")
+                    : "Stopped\n";
+        const auto counters = [&](const PlayHostAllocationCounters &c, bool completed) {
+          text += completed ? "Reclaimed: " : "Live: ";
+          text += std::to_string(completed ? c.reclaimed_allocations : c.live_allocations) +
+                  " allocations | " + std::to_string(completed ? c.reclaimed_bytes : c.live_bytes) +
+                  " payload bytes\nPeak: " + std::to_string(c.peak_allocations) +
+                  " allocations | " + std::to_string(c.peak_bytes) +
+                  " payload bytes\nRejected: " + std::to_string(c.rejected_allocations) +
+                  " allocations | " + std::to_string(c.rejected_deallocations) + " deallocations\n";
+        };
+        if (value.current)
+          counters(*value.current, false);
+        else
+          text += "Current: no loaded gameplay module.\n";
+        text += "\nLast teardown: ";
+        if (value.last_teardown) {
+          text += "completed\n";
+          counters(*value.last_teardown, true);
+        } else
+          text += "unavailable for this project.\n";
+      }
+      ImGui::PushTextWrapPos(0);
+      ImGui::TextUnformatted(text.c_str());
+      ImGui::PopTextWrapPos();
+    }
+    ImGui::End();
+  }
   const auto console_window = PanelWindowName("nexora.console");
   if (ImGui::Begin(console_window.c_str())) {
     if (console == nullptr) {
@@ -6188,9 +6265,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         if (control >= PlayInputControl::A && control <= PlayInputControl::Z)
           return std::string(1, static_cast<char>('A' + static_cast<int>(control) -
                                                   static_cast<int>(PlayInputControl::A)));
-        constexpr const char *names[] = {"Left arrow", "Right arrow", "Up arrow",    "Down arrow",
-                                         "Space",      "Left Shift",  "Right Shift", "Left Ctrl",
-                                         "Right Ctrl", "Left mouse",  "Right mouse"};
+        constexpr const char *names[] = {
+            "Left arrow",  "Right arrow",  "Up arrow",   "Down arrow",   "Space",
+            "Left Shift",  "Right Shift",  "Left Ctrl",  "Right Ctrl",   "Left mouse",
+            "Right mouse", "Middle mouse", "Back mouse", "Forward mouse"};
         if (control >= PlayInputControl::Left && control < PlayInputControl::Count)
           return names[static_cast<std::size_t>(control) -
                        static_cast<std::size_t>(PlayInputControl::Left)];
@@ -6229,9 +6307,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                     binding = control;
                     state_->game_input_binding_error.clear();
                   }
-                  const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
-                  state_->game_input_choice_positions.push_back(
-                      {control, {(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F}});
+                  if (ImGui::IsItemVisible()) {
+                    const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+                    state_->game_input_choice_positions.push_back(
+                        {control, {(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F}});
+                  }
                 }
               ImGui::EndCombo();
             }
@@ -6969,6 +7049,31 @@ void EditorImGuiHost::SetGameplayLibrary(std::string_view library,
 }
 void EditorImGuiHost::SetGameplayStatus(std::string message) {
   state_->gameplay_status = std::move(message);
+}
+bool EditorImGuiHost::SetPlayHostMemory(std::optional<PlayHostMemoryObservation> observation) {
+  if (!observation) {
+    state_->play_memory.reset();
+    state_->play_memory_text.clear();
+    state_->play_memory_open = false;
+    return true;
+  }
+  const auto valid = [](const PlayHostAllocationCounters &c) {
+    return c.live_allocations <= c.peak_allocations && c.live_bytes <= c.peak_bytes &&
+           c.reclaimed_allocations <= c.peak_allocations && c.reclaimed_bytes <= c.peak_bytes &&
+           (!c.live_allocations == !c.live_bytes) && (!c.peak_allocations == !c.peak_bytes) &&
+           (!c.reclaimed_allocations == !c.reclaimed_bytes);
+  };
+  const auto &value = *observation;
+  if (value.project.IsNil() || !value.root.is_absolute() || value.root.native().size() > 4096 ||
+      !value.project_generation ||
+      (value.current && (!valid(*value.current) || value.current->reclaimed_allocations ||
+                         value.current->reclaimed_bytes)) ||
+      (value.last_teardown &&
+       (!valid(*value.last_teardown) || value.last_teardown->live_allocations ||
+        value.last_teardown->live_bytes)))
+    return false;
+  state_->play_memory = std::move(observation);
+  return true;
 }
 
 std::optional<PlayTransformReview> EditorImGuiHost::TakePlayApplyRequest() {
@@ -7783,6 +7888,28 @@ void EditorImGuiTestAccess::FocusGame(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.game");
   ImGui::SetWindowFocus(name.c_str());
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::PlayMemoryButton(const EditorImGuiHost &host) noexcept {
+  return host.state_->play_memory_button;
+}
+std::string_view EditorImGuiTestAccess::PlayMemoryText(const EditorImGuiHost &host) noexcept {
+  return host.state_->play_memory_text;
+}
+bool EditorImGuiTestAccess::PlayMemoryOpen(const EditorImGuiHost &host) noexcept {
+  return host.state_->play_memory_open;
+}
+std::optional<PlayHostMemoryObservation>
+EditorImGuiTestAccess::PlayMemory(const EditorImGuiHost &host) {
+  return host.state_->play_memory;
+}
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::PlayMemoryRect(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto *window = ImGui::FindWindowByName("Play host memory###nexora.play.memory");
+  if (!host.state_->play_memory_open || !window || !window->Active)
+    return {};
+  return std::array{window->Pos.x, window->Pos.y, window->Size.x, window->Size.y};
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::GameInputUserPosition(const EditorImGuiHost &host,

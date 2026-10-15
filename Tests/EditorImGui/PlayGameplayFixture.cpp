@@ -15,6 +15,8 @@ constexpr std::uint64_t TransformType() {
 struct State {
   NexoraGameplayHostV3 host;
   std::uint64_t updates;
+  std::uint32_t last_buttons{};
+  std::uint64_t pointer_sequence{};
 };
 struct Position {
   double x, y, z;
@@ -23,12 +25,19 @@ int32_t Create(void **state, const NexoraGameplayHostV3 *host) {
   if (!host || !host->allocate || !host->deallocate || !host->read_component ||
       !host->write_component)
     return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+#if defined(NEXORA_FIXTURE_POINTER_MOTION)
+  if (host->struct_size < NEXORA_GAMEPLAY_HOST_V3_POINTER_SIZE ||
+      !(host->capabilities & NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT) ||
+      !host->capture_pointer_input)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+#endif
   auto *memory = host->allocate(host->context, 7, sizeof(State), alignof(State));
   if (!memory)
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   auto *created = static_cast<State *>(memory);
   created->host = *host;
   created->updates = 0;
+  created->pointer_sequence = 0;
   *state = created;
   return NEXORA_GAMEPLAY_OK;
 }
@@ -91,21 +100,61 @@ int32_t Start(void *opaque) {
 }
 int32_t Fixed(void *opaque, double seconds) {
   auto &host = static_cast<State *>(opaque)->host;
+#if defined(NEXORA_FIXTURE_POINTER_MOTION)
+  static_cast<void>(seconds);
+#endif
   Position pose{};
   const auto read = host.read_component(host.context, 20, TransformType(), &pose, sizeof(pose));
   if (read != NEXORA_GAMEPLAY_OK)
     return read;
-#if defined(NEXORA_FIXTURE_INPUT_ONLY)
+#if defined(NEXORA_FIXTURE_POINTER_MOTION)
+  auto &state = *static_cast<State *>(opaque);
+  NexoraPointerInputSnapshotV1 input{}, repeat{};
+  input.struct_size = repeat.struct_size = sizeof(input);
+  NexoraInputSnapshot legacy{};
+  if (NexoraCapturePointerInputV1(&host, 0, &input) != NEXORA_GAMEPLAY_OK ||
+      NexoraCapturePointerInputV1(&host, 0, &repeat) != NEXORA_GAMEPLAY_OK ||
+      host.capture_input(host.context, 0, &legacy) != NEXORA_GAMEPLAY_OK ||
+      input.sequence != repeat.sequence || input.delta_x != repeat.delta_x ||
+      input.delta_y != repeat.delta_y || input.wheel_x != repeat.wheel_x ||
+      input.wheel_y != repeat.wheel_y || input.sequence != legacy.sequence)
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+  if (state.pointer_sequence != input.sequence) {
+    state.pointer_sequence = input.sequence;
+    // Displacement is already integrated over the input batch; never multiply by tick time.
+    pose.x += input.delta_x * .01 + input.wheel_y / 600.0;
+    pose.y -= input.delta_y * .01 + input.wheel_x / 600.0;
+    if (input.delta_x || input.delta_y || input.wheel_x || input.wheel_y)
+      std::fprintf(stderr, "pointer motion evidence: dx=%.0f dy=%.0f wx=%.0f wy=%.0f\n",
+                   input.delta_x, input.delta_y, input.wheel_x, input.wheel_y);
+  }
+#elif defined(NEXORA_FIXTURE_INPUT_ONLY)
   NexoraInputSnapshot input{};
   if (!host.capture_input || host.capture_input(host.context, 0, &input) != NEXORA_GAMEPLAY_OK)
     return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+#if defined(NEXORA_FIXTURE_POINTER_ONLY)
+  auto &state = *static_cast<State *>(opaque);
+  if (input.buttons != state.last_buttons) {
+    std::fprintf(stderr, "pointer input buttons=%u\n", input.buttons);
+    state.last_buttons = input.buttons;
+  }
+  pose.x += seconds * ((input.buttons & 14U) ? 1 : 0);
+#else
   pose.x += seconds * input.move_x * 2;
+#endif
 #else
   pose.x += seconds * 0.5;
 #endif
   return host.write_component(host.context, 20, TransformType(), &pose, sizeof(pose));
 }
 int32_t Update(void *opaque, double) {
+#if defined(NEXORA_FIXTURE_POINTER_MOTION)
+  // Some input batches have no fixed tick. Variable Update must consume them too;
+  // sequence deduplication prevents a second application when Fixed already ran.
+  const auto motion = Fixed(opaque, 0);
+  if (motion != NEXORA_GAMEPLAY_OK)
+    return motion;
+#endif
   auto &state = *static_cast<State *>(opaque);
   NexoraFrameDiagnostics diagnostics{};
   if (state.host.get_diagnostics(state.host.context, &diagnostics) != NEXORA_GAMEPLAY_OK ||

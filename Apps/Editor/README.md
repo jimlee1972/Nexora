@@ -208,8 +208,8 @@ The existing `capture_input(user,snapshot)` callback accepts0–3. The selected 
 held values; every other user receives a neutral owning value with the same frame sequence and zero
 reserved field. Repeated capture does not consume input. Out-of-range/null capture rejects before
 writing output; invalid owner forwarding revokes focus while retaining the selected identity. The
-default remains0. No C/Gameplay ABI declaration, capability bit or module dependency changes; public
-C++ consumers rebuild. This routes one source among logical lanes, without simultaneous physical
+default remains0. The logical-user selector preserves the legacy input wire and module dependencies;
+public C++ consumers rebuild. This routes one source among logical lanes, without simultaneous physical
 users, gamepad, relative-pointer or pointer-look claims.
 
 Focus loss or a pressed Escape revokes `PlayInputState` before discarding the acquisition batch.
@@ -877,6 +877,12 @@ explicit Apply. Read-only inspection permits these settings. Switching/detaching
 session state before project settings are restored; new Play sessions within the same project retain it. The finite keyboard/mouse control
 set excludes the reserved Escape/F5/F6/F10 Editor controls.
 
+All five common pointer buttons can bind to the existing five button actions: left, right,
+middle, back and forward. Movement remains keyboard-only. Defaults are unchanged, so the three
+additional buttons remain unbound until explicitly selected. The same acquisition, focus, user
+switch, Pause/Stop and profile-replacement reset rules apply to every held button. Pointer look,
+gamepad and simultaneous independent device owners remain separate work.
+
 `ForwardPlayInput` sends the copied profile through `PlayGameplayModule` before processing every
 native input batch, including deferred rendering. `PlayInputState` translates platform-independent
 Window keys/buttons to profile controls and publishes the same selected-user `NexoraInputSnapshot`
@@ -1006,3 +1012,105 @@ follow the GUI/core gates; no capture is written implicitly. Source scope exclud
 textures/frame uploads and allocator overhead, and export destination is not allocation ownership.
 The existing core schema1 and stable C/Zig/scene formats/dependencies are unchanged; additive host
 C++ APIs require a matching rebuild. Physical device-memory calibration remains separate work.
+
+## Optional copied Play pointer input
+
+The V3 host appends `capture_pointer_input` after `get_twod_api`, advertised by
+`NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT`. Check the end of this optional field before reading it,
+then ABI version, capability and callback; `NexoraCapturePointerInputV1` performs that negotiation.
+The original V3 required prefix and `NexoraInputSnapshot` remain unchanged. Old 2D hosts continue
+to negotiate using the end of their own callback. C++ host consumers rebuild.
+
+Callers provide aligned `NexoraPointerInputSnapshotV1` storage with `struct_size` set. Success copies
+the known 56-byte V1 prefix and leaves larger-buffer suffixes intact; errors preserve all output.
+The embedding owns the context through Stop/Destroy, serializes calls on its game thread, and
+revokes input before teardown. No native window, event buffer, ownership transfer or deferred work
+crosses the boundary. An unbound owner rejects with Lifecycle; null/user>=4 rejects InvalidArgument;
+a short output rejects Unsupported. Missing providers return Unsupported through the helper.
+
+The selected user0–3 gets native client-pixel deltas (right/down positive), horizontal/vertical
+Window wheel units (120 per notch), and raw held left/right/middle/back/forward bits0–4, independent
+of profile action bits. Other users get neutral copies with the same legacy batch sequence. Reads
+are non-consuming: apply displacement once per sequence across Fixed/Update, without multiplying
+by tick duration. Consume in Update as well if using Fixed: some batches have no fixed tick.
+An empty batch clears deltas/wheel while retaining held buttons. Owner focus or
+admission mutations may neutralize the current snapshot without advancing its batch sequence.
+Motion saturates at +/-65,536 pixels/axis and wheel at +/-122,880 units/axis.
+
+Acquisition suppresses input and may seed the pointer anchor; otherwise the first sample anchors.
+Blur/Escape wins the whole batch. Focus/user/profile replacement, Pause and Stop reset impulses and
+anchor. Resize/DPI/display changes suppress that batch's motion/wheel and invalidate the anchor at
+the domain event; only later pointer samples can establish a new anchor. Normal key/button release
+processing continues. Resume requires reacquisition. This adds bounded native motion, not cursor
+locking, raw/unbounded relative input, gamepads or complete pointer-look acceptance. See
+[ADR-0010](../../Roadmap/en/ADR-0010-Play-Pointer-Input.md).
+
+## Scoped native Play lifecycle gate
+
+### Host allocation ownership observations
+
+The Game panel's **Host memory** button opens a read-only window with live/peak payload bytes and
+allocation counts, rejected calls, and the latest completed teardown's recovered payload. Playing
+and Paused retain live values; Stopped/failed Create/Start show no loaded module and the completed
+teardown separately. Unavailable values are explicit. Counts use lossless decimal uint64 text;
+the view does not present these bytes as process RSS, allocator overhead or GPU usage.
+
+The application publishes owning `PlayHostMemoryObservation` copies before drawing, through
+`PlayHostMemoryPresenter`. Bind the new project scope before accepting Play commands. UUID,
+canonical root, Content generation and Play generation are rechecked by the UI; no World/module
+borrow survives publication. Project/root/generation replacement or detachment closes the window
+and excludes previous teardown data, including a copied project with the same UUID. A same-root,
+same-UUID read-only workspace may inspect the same scope. A monotonically saturating teardown
+sequence distinguishes completed attempts; the presenter hides teardown at sequence exhaustion
+rather than wrapping or relabelling old content. Widget rendering does no allocator/OS/IO queries.
+Current-frame gameplay changes become visible through the next owner publication.
+
+The window is session-only and omitted from saved layout state; opening it releases Game capture
+without issuing a Play command or changing authoring/history. No file action or telemetry transport
+is added. Test builds support opt-in `NEXORA_PLAY_MEMORY_UI_TEST_EVIDENCE` for bounded geometry/text
+observations of the actual drawn controls, following the existing native UI acceptance mechanism.
+`editor.play_host_memory_ui` exercises real 1x/2x controls and scoped provider lifecycles;
+`editor.linux_play_host_memory` checks native pixels, exact presented values, Pause/Stop/restart,
+balanced fallback recovery and unchanged source bytes through an independent C-ABI fixture.
+
+`PlayGameplayModule::Allocations()` returns an owning, owner-thread snapshot of the current
+session's live allocation count/payload bytes, observed peaks, and saturating rejected allocation
+and deallocation counts. The existing per-request 16 MiB, session 64 MiB and alignment limits stay
+in force. Only a successful tracked allocation or an exact pointer/owner/size/alignment release
+changes live totals; a null, unknown or mismatched release is rejected. These bytes exclude map
+nodes, allocator overhead, native allocations, RSS and GPU memory. No C/Zig wire fields change.
+
+Stop/Destroy retain access to the World and allocator. After those callbacks finish, Unload
+reclaims any remaining tracked payload, revokes the World and allocator services, and retains
+`LastTeardownAllocations()` with zero live totals plus the exact reclaimed count/bytes and session
+peaks/rejections. Failed Create/Start loads receive the same fallback cleanup. New bound sessions
+start with zero current counters; the last teardown snapshot remains until another bound session
+ends. Repeated Unload preserves that report and produces no duplicate warning. Calls retained
+after revocation cannot allocate and do not change the completed session's report; callback
+contexts must never outlive their owning host. Serialize observation and callbacks with teardown.
+
+If fallback reclamation was needed, one bounded Warning enters the existing Gameplay/Core Console
+producer after cleanup. A throwing log sink cannot interrupt reclamation. This distinguishes
+module-paired releases from host recovery; it does not prove that a module freed non-host resources
+or that the process is leak-free. The observer does not authorize callback or log-sink reentry.
+`editor.play_host_allocations` covers 32 paired/retained/failed-load sessions, exact ownership and
+quota failures, copied snapshots, Console severity, repeated cleanup and a failing sink.
+
+### Native process residency
+
+`editor.linux_native_play_soak` runs 32 Play sessions in one Linux Editor process with disjoint
+Scene/Game canvases, a real C-ABI library and a two-entity/one-triangle project. Each module touches
+4 MiB of host-owned allocation. Fresh clone poses, capture/motion pixels, Escape release, Pause,
+exactly one neutral manual Fixed step, Resume, held-button Stop and ordered neutral Stop/Destroy
+callbacks are observed; native authoring Scene pixels and source scene/mesh bytes remain unchanged. Startup waits for the actual
+native Scene viewport before issuing controls. No authoring/apply-back operation is requested.
+
+The test samples `/proc/<pid>/status` VmRSS after each Stop and 100 ms of event processing. Four warmup
+cycles precede the retained envelope: its baseline is the larger of cycles 3/4, and the peak of
+cycles 5–32 must remain within 32 MiB above that baseline. All 32 raw samples are reported. This is
+current-process resident-set growth for this small dataset, including shared/native mappings; it
+is not live allocation ownership, VRAM, a proof of all leak freedom or a production-scale budget.
+The 240-second whole-case deadline is a CI liveness guard, while individual observed transitions
+have bounded deadlines. Fixture output is bounded to 4 MiB per stream and Vulkan validation errors
+fail acceptance. Project/document/plugin/device-loss, large content, long-duration and physical
+host soak remain separate gates.
