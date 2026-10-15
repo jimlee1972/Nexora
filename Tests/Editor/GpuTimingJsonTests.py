@@ -7,6 +7,8 @@ import sys
 import tempfile
 import uuid
 
+from CaptureTimeout import capture_timeout
+
 
 def require(condition, message):
     if not condition:
@@ -27,7 +29,7 @@ def reject_constant(value):
 
 with tempfile.TemporaryDirectory(prefix="nexora-gpu-json-") as temporary:
     output = Path(temporary) / "capture.json"
-    subprocess.run([sys.argv[1], str(output)], check=True, timeout=30)
+    subprocess.run([sys.argv[1], str(output)], check=True, timeout=capture_timeout())
     capture = json.loads(output.read_text(encoding="utf-8"), object_pairs_hook=unique_object,
                          parse_constant=reject_constant)
 require(set(capture) == {"schema", "source", "metric", "scope", "unit", "export_project_uuid",

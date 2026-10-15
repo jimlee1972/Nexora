@@ -1,0 +1,35 @@
+{
+  "schema": "nexora.twod.windows.screening.v1",
+  "source": "ed698e7ed36db3a3763cc4fcd019924ff6a37e07",
+  "cpu": "AMD FX(tm)-6100 Six-Core Processor",
+  "gpu": "NVIDIA GeForce GTX 960",
+  "driver": "32.0.15.8180",
+  "os": "Microsoft Windows 10 家用版",
+  "os_version": "10.0.19045",
+  "ram_bytes": 17134051328,
+  "backend": "DX12",
+  "build": "Shipping / Monolithic / MSVC 19.44",
+  "viewport": [
+    640,
+    480
+  ],
+  "present_mode": "VSync (RenderSurfaceDescriptor default)",
+  "workloads": [
+    "100",
+    "1000",
+    "5000",
+    "10000",
+    "1000-overlap",
+    "10000-sparse"
+  ],
+  "measured_frames_per_case": 600,
+  "warmup_frames_per_case": 4,
+  "screening_budget_ms": {
+    "frame_max": 33.34,
+    "frame_p95": 16.67,
+    "frame_p99": 16.67
+  },
+  "minimum_product_spec_declared": false,
+  "clean_host": false,
+  "scope": "Developer physical-PC screening; no universal minimum-spec or complete M6/M7 acceptance"
+}

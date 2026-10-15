@@ -1,0 +1,12 @@
+{
+  "schema": "nexora.twod.package.v1",
+  "files": {
+    "NexoraTwoDBenchmark.exe": "7bde35870dda93c7ddfacefb38ecc3827aa60c4b98433e83654bf5ec4da941ba",
+    "assets/atlas.nxcook": "c446ad04a2b67a6d7c617beea9fdc3355e1ad365f8f192318eae04ea29510ca9",
+    "assets/clip.nxcook": "7cf3bfe2b304001474e3a1e98a160e7c211ed82555cab9f5a07e716d822352cc"
+  },
+  "runtime": "NexoraTwoDBenchmark.exe",
+  "editor_required": false,
+  "system_runtime_dependencies": "Use the target OS runtime and native graphics driver.",
+  "windows_clean_machine_acceptance": "NOT RUN"
+}

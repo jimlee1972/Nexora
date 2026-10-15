@@ -394,6 +394,9 @@ int Run() {
 
   const auto iterations = Iterations();
   for (auto &target : targets) {
+    const auto started = std::chrono::steady_clock::now();
+    std::cout << "Parser robustness: " << target.name << " x " << iterations << " started"
+              << std::endl;
     // A different, fixed seed per target keeps failures reproducible by name and iteration.
     std::mt19937_64 rng(std::hash<std::string>{}(target.name) ^ 0x4E455830ULL);
     for (std::uint64_t index = 0; index < iterations; ++index) {
@@ -407,6 +410,9 @@ int Run() {
         return 1;
       }
     }
+    std::cout << "Parser robustness: " << target.name << " passed in "
+              << std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count()
+              << " seconds" << std::endl;
   }
   std::cout << "Parser robustness: " << targets.size() << " parsers x " << iterations
             << " mutations passed\n";

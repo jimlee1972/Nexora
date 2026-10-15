@@ -1,0 +1,42 @@
+{
+  "schema": "nexora.twod.windows.host.v1",
+  "source_commit": "ed698e7ed36db3a3763cc4fcd019924ff6a37e07",
+  "dirty_runtime_fixture_sha256": "01673f4a38b4bc0ec0cc821fab21bd55577b501d5dc03016afbecfe828a1eb90",
+  "test_patch_files": [
+    "Tests/Runtime/PluginLifecycleFixture.cpp",
+    "Tests/Editor/ParserRobustnessTests.cpp",
+    "Tests/Editor/CMakeLists.txt",
+    "Tests/EditorImGui/CMakeLists.txt",
+    "Tests/Editor/CaptureTimeout.py",
+    "Tests/Editor/ProcessMemoryJsonTests.py",
+    "Tests/Editor/MeshMemoryJsonTests.py",
+    "Tests/Editor/GpuTimingJsonTests.py"
+  ],
+  "development_optimization": "/O2, no NDEBUG or fast-math",
+  "local_parser_timeout_seconds": 900,
+  "ci_parser_timeout_seconds": 300,
+  "local_hierarchy_deadline_multiplier": 3,
+  "ci_hierarchy_deadline_multiplier": 1,
+  "local_capture_generator_timeout_seconds": 90,
+  "ci_capture_generator_timeout_seconds": 30,
+  "initial_suite": "Stopped after two MSVC/Ninja environment failures and parser/deep-hierarchy timeouts; not all registered cases ran",
+  "platform": "Windows 10 / physical GTX 960 / native DX12",
+  "windows_development_ctest": {
+    "status": "PASS",
+    "tests": 237,
+    "skipped": [],
+    "elapsed_seconds": 2065.07
+  },
+  "shipping_cooked_staging": "PASS",
+  "studio_native_save_reopen": "PASS",
+  "zig_native_frames": 600,
+  "zig_input": "synthetic, not a physical keyboard test",
+  "minimum_pc_m6": "NOT ACCEPTED",
+  "clean_host_m7": "NOT RUN",
+  "windows_vulkan": "NOT RUN",
+  "physical_keyboard_controller_audio_multimonitor_dpi": "NOT RUN",
+  "computer_use": "Node helper crashed during @oai/sky initialization; no screenshot or key injection evidence",
+  "runtime_changes": "None. Test-only constexpr mode branches, parser progress and positive bounded local deadlines support validation; all CI defaults are unchanged.",
+  "scope": "Local developer-PC functional slice. Original executable JSON hard-codes physical_windows=NOT RUN; retained unchanged, supplemented by actual host metadata.",
+  "linux_gate": "Required Linux presets run in PR CI; not executed by this Windows host."
+}

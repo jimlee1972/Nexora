@@ -111,9 +111,16 @@ generations, and records 100/1,000/5,000/10,000, overlap and sparse cases.
 ✅ Monolithic Linux Shipping is staged with cooked assets, SHA-256 manifest and corruption
 rejection, then runs without Editor or development engine libraries.
 
-These establish portable/Linux correctness. Physical minimum-PC 60 FPS and clean Windows
-DX12/Vulkan integration (keyboard/controller, text/audio, loading/save, display/DPI and shutdown)
-remain **NOT RUN**. Software Vulkan timings are not a PC performance guarantee. Follow the
+These establish portable/Linux correctness. The [local Windows record](evidence/Windows-2026-10-14/acceptance.md)
+also verifies MSVC contracts, physical DX12 mixed stress, Studio save/reopen and staged Monolithic
+Shipping with Cooked loading/corruption rejection, plus 600 native Zig frames using synthetic input.
+Physical minimum-PC 60 FPS remains **NOT ACCEPTED**. The separate
+[Windows VM slice](evidence/Windows-VirtualBox-2026-10-15/acceptance.md) passes prerequisite/CPU checks
+after Runtime installation, but native DX12 fails and Vulkan is unavailable; M7 remains
+**PARTIAL / NOT ACCEPTED**. Actual keyboard/controller, audible playback and display/DPI checks
+remain open. Both frozen Windows executables predate GPU instancing; neither validates
+current-main rendering performance. Local developer-PC execution is not clean-host evidence.
+Software Vulkan timings are not a PC performance guarantee. Follow the
 [bilingual 2D roadmap](../../Roadmap/en/2D_Roadmap.md) and its linked acceptance evidence.
 
 ## C ABI and Zig gameplay control

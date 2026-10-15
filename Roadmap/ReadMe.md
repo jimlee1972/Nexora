@@ -14,7 +14,7 @@ Updated / 更新日期：2026-10-15（UTC）
 | ✅ Window / Native Presentation | **100% implementation / 實作** | WP-M0–M4 implemented; remaining target-host gates tracked separately / WP-M0～M4 已實作，剩餘 target-host gate 獨立追蹤 |
 | V1 Visual Identity Showcase / V1 視覺特色 Showcase | **71.4%** | 5/7 milestones accepted, equal milestone count; VIS-M3 and VIS-M6 pending / 依里程碑數等權計算，VIS-M3 與 VIS-M6 待驗收 |
 | Graphical Editor / 圖形化 Editor | **0% acceptance / 驗收** | 0/8 graphical milestones accepted; implementation slices already exist / 圖形化里程碑已驗收 0/8，已有實作切片 |
-| 2D Engine / 2D 引擎 | **82% capability acceptance / 能力驗收** | 9/11 portable/Linux milestones; P0 6/8; physical PC gate open; clean VM CPU slice passed, native DX12 failed, Vulkan unavailable; M7 NOT ACCEPTED / Portable／Linux 9/11、P0 6/8；實體 PC gate 待完成；乾淨 VM CPU 切片通過、原生 DX12 失敗、Vulkan 不可用；M7 尚未通過 |
+| 2D Engine / 2D 引擎 | **82% capability acceptance / 能力驗收** | 9/11 portable/Linux milestones; P0 6/8; local DX12 screening over budget; physical PC gate open; clean VM CPU slice passed, native DX12 failed, Vulkan unavailable; M7 NOT ACCEPTED / Portable／Linux 9/11、P0 6/8；本機 DX12 Screening 超出預算；實體 PC gate 待完成；乾淨 VM CPU 切片通過、原生 DX12 失敗、Vulkan 不可用；M7 尚未通過 |
 | Focused Roadmaps AI Plan / 聚焦 Roadmap AI 施工規劃 | **60%** | Mean of API 100%, Zig 100%, Editor 0%, rounded down to 10% / 三者平均後向下取整至 10% |
 | ✅ Transform Rotation and Scale / Transform 旋轉與縮放 | **100% planned phases / 計畫階段** | All five phases complete; graphical Editor acceptance remains separate / 五個階段完成，圖形 Editor 驗收另計 |
 | ✅ Entity Parenting / Entity 父子階層 | **100% planned phases / 計畫階段** | 4/4 runtime, wire, Editor data-model and render-sync phases complete / runtime、wire、Editor 資料模型及渲染同步四階段完成 |

@@ -119,3 +119,33 @@ not introduce `NDEBUG` or fast-math. It applies with both single- and multi-conf
 之外明確指定 MSVC `/O2` 或其他支援編譯器 `-O2`；Development／Debug 維持既有設定。
 保留描述資料驗證、assertion 與精確浮點語意，不加入 `NDEBUG` 或 fast-math；單一與多重
 configuration generator 均適用。效能改善需由目標主機實测驗證，不能由旗標直接宣稱驗收。
+
+## Parser soak on local hosts
+
+`editor.parser_robustness` retains its deterministic seeds, assertions and default 2,000 mutations
+per parser. It prints each parser's start and elapsed completion time for timeout diagnosis.
+`NEXORA_PARSER_ROBUSTNESS_TIMEOUT` is a positive integer in seconds (default 300); zero and malformed
+values reject at configure time. A slower local host can explicitly select a larger bounded deadline
+without lowering iterations. CI keeps its 300-second default. Retain the selected deadline and any
+original timeout in host acceptance evidence; a successful run does not retroactively erase failure.
+
+`editor.parser_robustness` 保留固定 seed、斷言及預設每個 Parser 2,000 次變異，並輸出各
+Parser 的開始及完成耗時，方便診斷 Timeout。`NEXORA_PARSER_ROBUSTNESS_TIMEOUT` 為秒數
+正整數，預設 300；零或格式錯誤會在 Configure 拒絕。較慢的本機可明確選用較大的有界
+時間上限，不降低 Iteration；CI 保持 300 秒預設。驗收證據須記錄所用上限與原始 Timeout，
+後續成功不回溯抹除失敗。
+
+For the three large Editor hierarchy/pose correctness runs,
+`NEXORA_EDITOR_HIERARCHY_TIMEOUT_SCALE` is a positive integer multiplier (default 1) of the
+existing aggregate deadlines. It does not change the 100,000-node fixtures, sample counts or
+assertions, and does not redefine a frame-time acceptance budget. C++ capture JSON validators
+use `NEXORA_CAPTURE_TIMEOUT_SECONDS` from their process environment (positive finite seconds,
+default 30) for the generator child. Schema/precision/rejection checks still run, including under
+Python `-O`. Record local overrides and original failures; CI retains all defaults.
+
+三項大型 Editor 階層／Pose 正確性測試可用 `NEXORA_EDITOR_HIERARCHY_TIMEOUT_SCALE`
+正整數倍率調整既有整體期限，預設 1。10 萬節點 Fixture、Sample 數及斷言都不變，亦不
+重新定義產品幀時間預算。C++ Capture JSON 驗證器從 Process 環境讀取
+`NEXORA_CAPTURE_TIMEOUT_SECONDS`，須為正且有限的秒數，預設 30，僅控制產生器 Child 的
+期限；Schema／精度／無效資料拒絕檢查照常執行，包含 Python `-O`。須記錄本機 Override
+與原始失敗；CI 維持所有預設。

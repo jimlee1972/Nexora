@@ -1,0 +1,82 @@
+{
+  "schema": "nexora.twod.windows.screening-result.v1",
+  "native_functional_status": "PASS",
+  "screening_budget_status": "EXCEEDED",
+  "elapsed_seconds": 104.9291799,
+  "process_working_set_sample_peak_bytes": 87240704,
+  "process_memory_samples": 702,
+  "process_memory_sample_interval_ms": 100,
+  "process_memory_monitor_start_delay_seconds": 17.8798097,
+  "memory_scope": "OS lifetime peak process working set observed externally while running; not GPU memory or allocator accounting",
+  "command": [
+    "NexoraTwoDBenchmark.exe",
+    "--native",
+    "--frames",
+    "600",
+    "--atlas",
+    "assets/atlas.nxcook",
+    "--clip",
+    "assets/clip.nxcook",
+    "--report",
+    "shipping-native-stress.csv"
+  ],
+  "dll_search_path": "Windows system directories only",
+  "workloads": [
+    {
+      "objects": 100,
+      "sparse": false,
+      "overlap": false,
+      "frame_p95_ms": 30.6794,
+      "frame_p99_ms": 38.7323,
+      "frame_max_ms": 53.0901,
+      "within_screening_budget": false
+    },
+    {
+      "objects": 1000,
+      "sparse": false,
+      "overlap": false,
+      "frame_p95_ms": 31.4456,
+      "frame_p99_ms": 39.7287,
+      "frame_max_ms": 134.609,
+      "within_screening_budget": false
+    },
+    {
+      "objects": 5000,
+      "sparse": false,
+      "overlap": false,
+      "frame_p95_ms": 28.3256,
+      "frame_p99_ms": 39.3565,
+      "frame_max_ms": 49.0094,
+      "within_screening_budget": false
+    },
+    {
+      "objects": 10000,
+      "sparse": false,
+      "overlap": false,
+      "frame_p95_ms": 53.6789,
+      "frame_p99_ms": 67.7445,
+      "frame_max_ms": 106.811,
+      "within_screening_budget": false
+    },
+    {
+      "objects": 1000,
+      "sparse": false,
+      "overlap": true,
+      "frame_p95_ms": 28.9648,
+      "frame_p99_ms": 42.0964,
+      "frame_max_ms": 110.023,
+      "within_screening_budget": false
+    },
+    {
+      "objects": 10000,
+      "sparse": true,
+      "overlap": false,
+      "frame_p95_ms": 60.9977,
+      "frame_p99_ms": 80.9242,
+      "frame_max_ms": 118.577,
+      "within_screening_budget": false
+    }
+  ],
+  "physical_minimum_pc_acceptance": "NOT ACCEPTED: measured budgets exceeded; product minimum specification and complete integrated workload not declared",
+  "clean_windows_shipping": "NOT RUN"
+}
