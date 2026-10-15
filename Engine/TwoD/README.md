@@ -114,13 +114,18 @@ rejection, then runs without Editor or development engine libraries.
 These establish portable/Linux correctness. The [local Windows record](evidence/Windows-2026-10-14/acceptance.md)
 also verifies MSVC contracts, physical DX12 mixed stress, Studio save/reopen and staged Monolithic
 Shipping with Cooked loading/corruption rejection, plus 600 native Zig frames using synthetic input.
-Physical minimum-PC 60 FPS remains **NOT ACCEPTED**. The separate
-[Windows VM slice](evidence/Windows-VirtualBox-2026-10-15/acceptance.md) passes prerequisite/CPU checks
-after Runtime installation, but native DX12 fails and Vulkan is unavailable; M7 remains
-**PARTIAL / NOT ACCEPTED**. Actual keyboard/controller, audible playback and display/DPI checks
-remain open. Both frozen Windows executables predate GPU instancing; neither validates
-current-main rendering performance. Local developer-PC execution is not clean-host evidence.
-Software Vulkan timings are not a PC performance guarantee. Follow the
+Physical minimum-PC 60 FPS remains **NOT ACCEPTED**. The
+[current-main Windows VM slice](evidence/Windows-VirtualBox-Current-2026-10-16/acceptance.md)
+passes CPU/cooked/hash/corruption checks, DX12 software draw/present and Zig instancing/reload;
+a visible 1,800-frame desktop run and separately verified human D/W movement/Escape are retained.
+The guest keeps the previously installed VC++ Runtime and has no developer tools on PATH. This
+supersedes the older frozen VM package's native failure only for the newly hashed binary.
+Separate Monolithic Development Studio also has human four-tab/text/preview and Save/Open evidence,
+independent read-only file checks and a repaired close-button path verified to exit 0. These are
+supporting authoring checks. M7 remains **PARTIAL / NOT ACCEPTED**: controller, audible device audio, integrated product/UI/text/
+save/shutdown, display/DPI and Windows Vulkan acceptance stay open. Existing Benchmark/Zig tools
+have no audible device output. Software VM rendering does not accept physical-PC performance.
+The older physical developer-PC screening predates GPU instancing. Follow the
 [bilingual 2D roadmap](../../Roadmap/en/2D_Roadmap.md) and its linked acceptance evidence.
 
 ## C ABI and Zig gameplay control

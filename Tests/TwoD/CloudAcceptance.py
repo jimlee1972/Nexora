@@ -8,8 +8,10 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import time
 sys.path.insert(0, str(Path(__file__).parents[1]/'Showcase'))
 from LinuxVirtualDisplaySmoke import start_xvfb, unavailable
+from LinuxShowcaseInteraction import request_window_close, screenshot
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
@@ -22,6 +24,9 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     xvfb = shutil.which('Xvfb')
     if not xvfb: return unavailable('Xvfb missing for 2D acceptance')
+    xdotool = shutil.which('xdotool')
+    if args.studio and not xdotool:
+        return unavailable('xdotool missing for Studio close acceptance')
     server, display = start_xvfb(xvfb, '1280x900x24')
     try:
         if display is None: return unavailable('2D acceptance display unavailable')
@@ -50,6 +55,48 @@ def main():
             if run.returncode or 'Validation Error' in run.stdout+run.stderr:
                 print(run.stdout+run.stderr)
                 raise RuntimeError(f'2D native acceptance failed: {run.returncode}')
+        if args.studio:
+            command = [args.studio, '--workspace', str(workspace), '--atlas', 'atlas.nx2atlas',
+                       '--clip', 'clip.nx2clip']
+            close_log = output/'studio-close.log'
+            close_log.unlink(missing_ok=True)
+            process = subprocess.Popen(command, env=env, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, text=True)
+            try:
+                window = subprocess.check_output([xdotool, 'search', '--sync', '--onlyvisible',
+                    '--name', '^Nexora 2D Studio$'], env=env, text=True, timeout=10).splitlines()[0]
+                previous_display = os.environ.get('DISPLAY')
+                os.environ['DISPLAY'] = display  # The existing X11 capture helper opens this display.
+                try:
+                    deadline = time.monotonic() + 15
+                    while True:
+                        if process.poll() is not None:
+                            raise RuntimeError('Studio exited before its close request')
+                        captured = screenshot(int(window), 1100, 800, output/'studio-before-close.png')
+                        # Initial black/white window buffers are uniform; wait for rendered UI.
+                        if len(set(captured)) > 16:
+                            break
+                        if time.monotonic() >= deadline:
+                            raise RuntimeError('Studio did not present UI before its close request')
+                        time.sleep(0.1)
+                finally:
+                    if previous_display is None:
+                        os.environ.pop('DISPLAY', None)
+                    else:
+                        os.environ['DISPLAY'] = previous_display
+                request_window_close(int(window), display)
+                stdout, stderr = process.communicate(timeout=10)
+                close_log.write_text(stdout + stderr, encoding='utf-8')
+                if (process.returncode != 0 or 'Validation Error' in stdout + stderr or
+                        '2D Studio native preview and document lifecycle passed' not in stdout):
+                    raise RuntimeError(f'Studio normal close failed ({process.returncode}): {stderr}')
+                commands.append(command)
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                if not close_log.exists():
+                    stdout, stderr = process.communicate(timeout=3)
+                    close_log.write_text(stdout + stderr, encoding='utf-8')
         rows = list(csv.DictReader((output/'stress.csv').open()))
         assert len(rows) == 6 and all(row['native']=='1' for row in rows)
         assert [int(row['objects']) for row in rows] == [100,1000,5000,10000,1000,10000]
@@ -60,7 +107,8 @@ def main():
         report = {'schema':'nexora.twod.cloud.v1', 'status':'PASS', 'platform':'Linux/X11/Vulkan',
                   'display':'virtual', 'physical_minimum_pc_60fps':'NOT RUN',
                   'windows_clean_machine_shipping':'NOT RUN', 'commands':commands,
-                  'mixed_workloads':rows, 'studio_executed':bool(args.studio)}
+                  'mixed_workloads':rows, 'studio_executed':bool(args.studio),
+                  'studio_normal_close_executed':bool(args.studio)}
         (output/'acceptance.json').write_text(json.dumps(report, indent=2)+'\n')
         print('Linux 2D native mixed stress and authoring acceptance passed')
         return 0

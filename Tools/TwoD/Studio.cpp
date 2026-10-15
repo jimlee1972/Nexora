@@ -136,6 +136,8 @@ int main(int argc, char **argv) {
     for (std::uint32_t frame = 0; !surface.surface->CloseRequested() && (!frames || frame < frames);
          ++frame) {
       auto status = surface.surface->BeginFrame();
+      if (surface.surface->CloseRequested())
+        break;
       if (status == SurfaceStatus::ZeroExtent || status == SurfaceStatus::OutOfDate) {
         --frame;
         continue;

@@ -1,11 +1,12 @@
 # Nexora 2D Engine Roadmap
 
-> Version: v1.5 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-15
+> Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-16
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
 > have portable/Linux functional evidence. M6 local DX12 screening exceeded its budgets; physical minimum-PC acceptance remains open.
-> M7 clean Windows runtime/Shipping is **PARTIAL / NOT ACCEPTED** after VM prerequisite/CPU
-> checks; native DX12 failed and Vulkan was unavailable. This is not full Windows PC product acceptance.
+> M7 clean Windows runtime/Shipping remains **PARTIAL / NOT ACCEPTED**. The rebuilt current-main VM
+> package passes CPU, native software DX12, Zig instancing and human keyboard movement; full device/product
+> integration and Vulkan remain open. This is not full Windows PC product acceptance.
 
 ## 1. Scope and baseline
 
@@ -33,7 +34,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
 | 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM prerequisites/CPU slice passed after Runtime installation; native DX12 failed, Vulkan unavailable; M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | Rebuilt VM CPU/software DX12/Zig and human keyboard slice passed with existing Runtime; full product/device gates and Vulkan open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
@@ -221,6 +222,33 @@ P0 6/8 (82%)**; Beads parent `nexora-j4q` stays open, with this slice in `nexora
 and the CPU/pacing follow-up in `nexora-j4q.2`.
 
 The frozen executable used for this physical run predates the GPU instancing addition above; these measurements do not validate current-main rendering performance.
+
+
+## 12. Rebuilt Windows VirtualBox M7 slice (2026-10-15–16)
+
+✅ Source `350c40ee` was rebuilt as Monolithic Shipping and admitted by four guest SHA-256 checks.
+Six CPU cases (48 measured frames each), six native DX12 cases (eight each), Cooked asynchronous
+load/reload and corrupt-Atlas rejection pass. The Microsoft Basic Render Driver software path
+presents 120-frame and 1,800-frame Zig GPU-instancing runs; another 1,800-frame run completes on
+the visible guest desktop. The older binary's `stress draw` failure is not reproduced by this package;
+no root-cause fix is inferred. A human confirms D/W movement and Escape exit; its independent report
+retains 353 frames, 48 movement frames, positive entity X, exit 0 and balanced allocations.
+It exits before reload, which remains covered by the separate scripted runs.
+
+✅ Separate Monolithic Development Studio passes synthetic save/reopen and independent read-only
+reopen. A human confirms all four tabs/text/preview and Add sprite / Save / Open; the changed file's
+hash is preserved on independent reopen. The original close button exits 1; a two-line tool fix
+rechecks close after native event pumping. The rebuilt binary then exits 0 on the user's close,
+leaves no Studio process and preserves the document. Linux native close regression is added to
+`twod.cloud_native`; full PR CI validates it. This is supporting authoring evidence, not full M7.
+
+[Current-package VM evidence](../../Engine/TwoD/evidence/Windows-VirtualBox-Current-2026-10-16/acceptance.md)
+retains exact builds, hashes, raw results, screenshot and remaining scope. This guest retains the
+previously installed VC++ Runtime, with no developer tools on PATH. M7 remains **PARTIAL / NOT ACCEPTED**:
+controller, audible platform audio, integrated product/UI/text/save/shutdown and display/DPI gates
+remain open. Existing Benchmark/Zig programs do not produce device audio; Runtime's AudioEngine
+performs no device I/O. `nexora-j4q.7` tracks the missing integrated acceptance flow.
+M6 physical performance and 9/11, P0 6/8 (82%) stay unchanged.
 
 - [Roadmap index](../ReadMe.md)
 - [V1 Complete Plan](Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md)

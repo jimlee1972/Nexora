@@ -1,11 +1,12 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.5 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-15
+> 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-16
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
 > Portable／Linux 功能證據。M6 本機 DX12 Screening 超出預算，最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
-> Runtime／Shipping 已執行 VM 相依／CPU 切片，為 **PARTIAL／NOT ACCEPTED**；
-> 原生 DX12 失敗、Vulkan 不可用，這不是完整 Windows PC 產品驗收。
+> Runtime／Shipping 維持 **PARTIAL／NOT ACCEPTED**；重建的目前 main VM 封裝已通過 CPU、
+> 原生軟體 DX12、Zig Instancing 及人工鍵盤移動，完整裝置／產品整合與 Vulkan 仍待完成。
+> 這不是完整 Windows PC 產品驗收。
 
 ## 1. 範圍與基線
 
@@ -32,7 +33,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
-| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 安裝 Runtime 後 VM 相依／CPU 切片通過；原生 DX12 失敗、Vulkan 不可用；M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 既有 Runtime 下，重建 VM CPU／軟體 DX12／Zig 與人工鍵盤切片通過；完整產品／裝置 gate 與 Vulkan 待完成；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M10 | P1，條件式 | Tilemap | 圖層、繪製、碰撞資料、區塊載入／剔除 | 實作繪製、圖層／碰撞資料及區塊載入／剔除，通過 Undo／儲存／重開及區塊邊界渲染／查詢測試；決定延後仍維持未驗收 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -204,6 +205,29 @@ Beads 父任務 `nexora-j4q` 保持開啟，本切片由 `nexora-j4q.1` 追蹤�
 CPU／幀節奏 follow-up 為 `nexora-j4q.2`。
 
 本次實體量測的凍結執行檔早於上方 GPU Instancing 更新，這些結果不驗證目前 main 的渲染效能。
+
+
+## 12. 重建版本的 Windows VirtualBox M7 切片（2026-10-15–16）
+
+✅ 從 `350c40ee` 重建 Monolithic Shipping，客體核對四個 SHA-256 一致。六組 CPU 負載
+（各 48 個量測幀）、六組原生 DX12 負載（各八幀）、Cooked 非同步載入／Reload 與損毀 Atlas
+拒絕皆通過。Microsoft Basic Render Driver 軟體路徑完成 120／1,800 幀 Zig GPU Instancing，
+另一次客體桌面可見視窗也完成 1,800 幀。舊執行檔的 `stress draw` 失敗在這個封裝未重現，
+但不推定已定位或修復其根因。使用者確認 D／W 移動及 Esc 結束正常；獨立報告記錄 353 幀、
+48 個移動幀、正值 Entity X、退出碼 0 與配置平衡。本次提早結束而未 Reload，另由合成輸入測試驗證。
+
+✅ 獨立 Monolithic Development Studio 通過合成存檔／重開與另一程序唯讀重開。使用者確認
+四分頁／文字／預覽及 Add sprite → Save → Open；新雜湊由獨立重開保持一致。原版按關閉鍵退出碼
+為 1，已以兩行工具修正，在原生事件泵送後重查 CloseRequested。重建後由使用者關閉，退出碼 0、
+無殘留 Studio 程序且文件不變。`twod.cloud_native` 補上 Linux 原生關閉回歸，交由完整 PR CI 驗證。
+這是獨立製作工具證據，不代表完整 M7 通過。
+
+[目前封裝 VM 證據](../../Engine/TwoD/evidence/Windows-VirtualBox-Current-2026-10-16/acceptance.md)
+保留精確建置、雜湊、原始結果、畫面及範圍。Guest 保留上次安裝的 VC++ Runtime，PATH 無開發工具。
+M7 維持 **PARTIAL／NOT ACCEPTED**：手把、可聽平台音訊、完整產品／UI／文字／存檔／釋放與
+顯示／DPI gate 仍待完成。現有 Benchmark／Zig 程式不輸出裝置音訊，Runtime AudioEngine
+亦不做裝置 I/O；缺少的整合驗收流程由 `nexora-j4q.7` 追蹤。
+M6 實體效能與 9/11、P0 6/8（82%）不變。
 
 - [Roadmap 索引](../ReadMe.md)
 - [V1 完整規劃書](跨平台3D_Engine_V1_完整規劃書_v1_2.md)
