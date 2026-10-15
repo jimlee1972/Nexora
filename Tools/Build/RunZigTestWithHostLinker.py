@@ -24,11 +24,19 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     assembly = output / "tests.s"
     binary = output / "tests"
-    # Preserve builtin.is_test and Zig's standard runner. Like the existing Zig object
-    # consumers, omit stack-probe thunks that require Zig's separately linked compiler-rt.
-    subprocess.run([args.zig, "test", "-fno-stack-check", *arguments, "-lc", "--test-no-exec",
+    runtime_root = output / "compiler-runtime.zig"
+    runtime_object = output / "compiler-runtime.o"
+    runtime_root.write_text("// Root for Zig's bundled compiler-rt.\n", encoding="utf-8")
+    # Preserve builtin.is_test, Debug instrumentation and Zig's standard runner.
+    subprocess.run([args.zig, "test", *arguments, "-lc", "--test-no-exec",
                     "-fno-emit-bin", f"-femit-asm={assembly}"], check=True)
-    link = [args.cxx, str(assembly), "-o", str(binary)]
+    # Assembly emission does not bundle compiler-rt. UBSan's float diagnostics need
+    # Zig's quad-precision conversion routines, which Apple Clang does not provide.
+    subprocess.run([args.zig, "build-obj", str(runtime_root), "-OReleaseFast", "-fPIC",
+                    "-fcompiler-rt", f"-femit-bin={runtime_object}",
+                    "--cache-dir", str(output / "runtime-cache"),
+                    "--global-cache-dir", str(output / "runtime-global-cache")], check=True)
+    link = [args.cxx, str(assembly), str(runtime_object), "-o", str(binary)]
     if args.sysroot:
         link.extend(["-isysroot", args.sysroot])
     subprocess.run(link, check=True)

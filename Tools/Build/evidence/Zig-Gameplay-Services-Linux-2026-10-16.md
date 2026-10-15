@@ -119,6 +119,17 @@ build (`-j 4`) and the complete CTest preset (`--output-on-failure -j 4`) passed
 no failures or skips, 61.12 seconds. This restores the initial base configuration; the expanded
 331-test application acceptance above is retained separately. No Runtime/TwoD behavior changed.
 
+The first hosted Apple run of the helper exposed two compiler-rt conversions used by Zig's UBSan
+diagnostics (`__extenddftf2` and `__extendxftf2`) that Apple Clang does not supply. The helper now
+builds an empty Zig object with `-fcompiler-rt` and links that bundled runtime alongside the test
+assembly. Debug assertions, UBSan diagnostics and default stack-probe instrumentation are retained.
+A Linux cross-build of this runtime for macOS ARM64 succeeded; inspection of its Mach-O symbol
+table confirmed both missing symbols are defined in sections, not unresolved references. This is
+object-level evidence only, not native Apple execution.
+With bundled compiler-rt and default Debug instrumentation, all eight helper invocations and the
+expected-failure exit check passed again. The same base Linux Development configure/full-build/
+CTest gate also passed again: **195/195**, no failures or skips, 70.53 seconds.
+
 ## Limits
 
 No physical audio device/controller, readable production Chinese font/artwork, Windows/macOS/mobile
