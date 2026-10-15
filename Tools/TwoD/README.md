@@ -44,6 +44,12 @@ is bounded to 256 transactions and 64 MiB retained bytes. A new transaction rese
 64 MiB rejects. Reopen clears history after validation.
 An empty document can be opened without an atlas, then imported through the configured paths.
 
+Studio checks `CloseRequested()` again after `BeginFrame()` pumps native events. A normal close
+leaves the frame loop before validating acquisition status, then drains/destroys the surface;
+unrelated acquire/render/present failures still fail. Linux `twod.cloud_native` additionally waits
+for a rendered Studio window, sends `WM_DELETE_WINDOW`, and requires exit 0 plus the completed
+native/document lifecycle message. This covers the Windows VM close-button exit-1 regression.
+
 Use a dedicated authoring directory. Paths are relative to that directory, canonicalized again
 before IO and rejected if they escape it. Existing project lease/recovery policy remains the
 responsibility of a host embedding the public panel; this tool does not acquire or override a
@@ -82,10 +88,13 @@ native presentation on an equipped host.
 CTest `twod.cloud_native` retains CSV, native Studio log, source/cooked assets, saved document and
 `acceptance.json` under `build/<preset>/artifacts/twod-cloud/`. `twod.native_pixels` retains its
 cross-atlas alpha/HUD capture under `artifacts/twod-native/`. Missing Xvfb is a local skip and a CI
-failure; no skipped test constitutes acceptance. [Local Windows evidence](../../Engine/TwoD/evidence/Windows-2026-10-14/acceptance.md)
-retains native DX12 screening, Studio save/reopen and Monolithic Cooked Shipping checks on a
-developer PC. Minimum-PC 60 FPS remains NOT ACCEPTED. A [frozen Windows VM package slice](../../Engine/TwoD/evidence/Windows-VirtualBox-2026-10-15/acceptance.md)
-passes prerequisite/hash/CPU/corrupt-cook checks after VC++ Runtime installation; native DX12 fails
-and Vulkan is unavailable. M7 remains NOT ACCEPTED. Both frozen executables predate GPU instancing
-and do not validate current-main rendering. See [module contracts](../../Engine/TwoD/README.md) and
+failure; no skipped test constitutes acceptance. [Local physical Windows evidence](../../Engine/TwoD/evidence/Windows-2026-10-14/acceptance.md)
+retains older developer-PC DX12 screening. The [rebuilt Windows VM slice](../../Engine/TwoD/evidence/Windows-VirtualBox-Current-2026-10-16/acceptance.md)
+passes CPU/cooked/corruption checks, native Microsoft software DX12, Zig GPU instancing and visible
+desktop presentation; a human also confirms actual keyboard movement/Escape. It uses the existing
+VC++ Runtime prerequisite. Separate Monolithic Development Studio also has human four-tab/text/preview and Save/Open evidence,
+independent read-only file checks and a repaired close-button path verified to exit 0. These are
+supporting authoring checks. Full M7 remains PARTIAL / NOT ACCEPTED; controller, audible device audio,
+integrated product/UI/text/save/shutdown and display/DPI stay open. Windows Vulkan is unavailable.
+Software VM timing is not physical M6 acceptance. See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).
