@@ -1,0 +1,188 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "host_suffix": [
+    "get_services_api"
+  ],
+  "structures": {
+    "NexoraContentAsset": [
+      "high",
+      "low",
+      "kind",
+      "count",
+      "width",
+      "height",
+      "atlas_high",
+      "atlas_low"
+    ],
+    "NexoraGameplayContentApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "register_atlas",
+      "register_clip",
+      "list_assets",
+      "describe_asset"
+    ],
+    "NexoraUiRect": [
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "NexoraUiGlyph": [
+      "codepoint",
+      "advance",
+      "x",
+      "y",
+      "width",
+      "height",
+      "u0",
+      "v0",
+      "u1",
+      "v1"
+    ],
+    "NexoraUiFontV1": [
+      "struct_size",
+      "width",
+      "height",
+      "reserved",
+      "texture_id",
+      "pixel_size",
+      "line_height",
+      "rgba",
+      "rgba_length",
+      "glyphs",
+      "glyph_count",
+      "reserved2"
+    ],
+    "NexoraGameplayUiApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "begin_frame",
+      "panel",
+      "text",
+      "button",
+      "end_frame",
+      "get_font",
+      "has_glyph",
+      "register_font"
+    ],
+    "NexoraGameplayInputBindingV1": [
+      "struct_size",
+      "abi_version",
+      "device",
+      "device_id",
+      "control",
+      "scale",
+      "deadzone",
+      "reserved"
+    ],
+    "NexoraGameplayActionStateV1": [
+      "struct_size",
+      "abi_version",
+      "sequence",
+      "value",
+      "held",
+      "pressed",
+      "released"
+    ],
+    "NexoraGameplayDeviceStateV1": [
+      "struct_size",
+      "abi_version",
+      "sequence",
+      "active_device",
+      "device_id",
+      "focused",
+      "reserved"
+    ],
+    "NexoraGameplayPointerStateV1": [
+      "struct_size",
+      "abi_version",
+      "sequence",
+      "x",
+      "y",
+      "delta_x",
+      "delta_y",
+      "wheel_x",
+      "wheel_y",
+      "buttons",
+      "focused"
+    ],
+    "NexoraGameplayInputApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "read_action",
+      "bind",
+      "clear_bindings",
+      "read_device",
+      "read_pointer"
+    ],
+    "NexoraStorageInfoV1": [
+      "struct_size",
+      "abi_version",
+      "schema_version",
+      "payload_size"
+    ],
+    "NexoraStorageApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "save",
+      "load",
+      "remove",
+      "exists"
+    ],
+    "NexoraAudioPlayDesc": [
+      "asset",
+      "bus",
+      "loop",
+      "gain"
+    ],
+    "NexoraGameplayAudioApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "play",
+      "stop",
+      "set_paused",
+      "set_gain",
+      "set_bus_gain",
+      "is_playing",
+      "output_available",
+      "stop_all",
+      "register_wave",
+      "remove_asset"
+    ],
+    "NexoraGameplayServicesApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "get_input_api",
+      "get_ui_api",
+      "get_audio_api",
+      "get_storage_api",
+      "get_content_api"
+    ]
+  },
+  "zig_names": {
+    "NexoraGameplayServicesApiV1": "GameplayServicesApiV1",
+    "NexoraGameplayContentApiV1": "content.Api",
+    "NexoraContentAsset": "content.Asset",
+    "NexoraGameplayInputApiV1": "input.Api",
+    "NexoraGameplayPointerStateV1": "input.PointerState",
+    "NexoraGameplayInputBindingV1": "input.Binding",
+    "NexoraGameplayActionStateV1": "input.ActionState",
+    "NexoraGameplayDeviceStateV1": "input.DeviceState",
+    "NexoraGameplayUiApiV1": "ui.Api",
+    "NexoraUiRect": "ui.Rect",
+    "NexoraGameplayAudioApiV1": "audio.Api",
+    "NexoraAudioPlayDesc": "audio.PlayDesc",
+    "NexoraUiFontV1": "ui.Font",
+    "NexoraUiGlyph": "ui.Glyph",
+    "NexoraStorageApiV1": "storage.Api",
+    "NexoraStorageInfoV1": "storage.Info"
+  }
+}

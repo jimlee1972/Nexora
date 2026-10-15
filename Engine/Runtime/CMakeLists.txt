@@ -90,3 +90,10 @@ if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   target_compile_definitions(NexoraRuntime PUBLIC NEXORA_RUNTIME_STATIC=1)
 endif()
 nexora_apply_defaults(NexoraRuntime)
+
+target_sources(NexoraRuntime PRIVATE src/GameplayInput.cpp)
+
+target_sources(NexoraRuntime PRIVATE src/GameplayStorage.cpp)
+target_sources(NexoraRuntime PRIVATE src/GameplayGamepad.cpp)
+
+target_sources(NexoraRuntime PRIVATE src/GameplayAudio.cpp)

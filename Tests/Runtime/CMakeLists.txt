@@ -257,6 +257,9 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
         "$<TARGET_FILE:NexoraProjectPackageTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
   endif()
   if(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
+    add_library(NexoraProjectPlayerGameplayFixture MODULE ProjectPlayerGameplayFixture.cpp)
+    target_link_libraries(NexoraProjectPlayerGameplayFixture PRIVATE Nexora::Foundation)
+    nexora_apply_defaults(NexoraProjectPlayerGameplayFixture)
     add_executable(NexoraNativeProjectPlayerTests NativeProjectPlayerTests.cpp)
     target_include_directories(NexoraNativeProjectPlayerTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/ProjectPlayer")
     target_link_libraries(NexoraNativeProjectPlayerTests PRIVATE Nexora::Runtime Nexora::Presentation)
@@ -273,9 +276,25 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
           COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/NativeProjectPlayerLinux.py"
             --fixture "$<TARGET_FILE:NexoraNativeProjectPlayerTests>"
             --player "$<TARGET_FILE:NexoraProjectPlayer>"
+            --gameplay-fixture "$<TARGET_FILE:NexoraProjectPlayerGameplayFixture>"
             --xvfb "${NEXORA_PLAYER_XVFB}" --xdotool "${NEXORA_PLAYER_XDOTOOL}")
         set_tests_properties(runtime.linux_native_static_player PROPERTIES TIMEOUT 60 LABELS "vulkan;virtual-display")
       endif()
     endif()
   endif()
 endif()
+
+add_executable(NexoraGameplayInputTests GameplayInputTests.cpp)
+target_link_libraries(NexoraGameplayInputTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayInputTests)
+add_test(NAME runtime.gameplay_action_input COMMAND NexoraGameplayInputTests)
+
+add_executable(NexoraGameplayAudioTests GameplayAudioTests.cpp)
+target_link_libraries(NexoraGameplayAudioTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayAudioTests)
+add_test(NAME runtime.gameplay_audio COMMAND NexoraGameplayAudioTests)
+
+add_executable(NexoraGameplayStorageTests GameplayStorageTests.cpp)
+target_link_libraries(NexoraGameplayStorageTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayStorageTests)
+add_test(NAME runtime.gameplay_persistent_storage COMMAND NexoraGameplayStorageTests)

@@ -24,9 +24,56 @@ struct StaticView final {
   std::array<float, 3> light_direction{-0.4F, -1, -0.2F};
   std::array<float, 3> light_color{1, 0.95F, 0.85F};
 
+  // Preserve admitted immutable assets while refreshing the module-owned world's authored poses.
+  // Destruction of an admitted object fails visibly; dynamic mesh admission is unsupported.
+  bool RefreshWorld(const runtime::LoadedStaticProject &project, const runtime::World &world) {
+    const auto items = project.RenderItems();
+    if (items.size() != instances.size())
+      return false;
+    for (std::size_t index = 0; index < items.size(); ++index) {
+      const auto *entity = world.FindEntity(items[index].entity);
+      const auto matrix = world.WorldMatrix(items[index].entity);
+      if (!entity || !entity->mesh_renderer || !matrix)
+        return false;
+      std::array<float, 16> affine;
+      for (std::size_t row = 0; row < 4; ++row)
+        for (std::size_t column = 0; column < 4; ++column) {
+          const auto value = (*matrix)[column * 4 + row];
+          if (!std::isfinite(value) || std::abs(value) > std::numeric_limits<float>::max())
+            return false;
+          affine[row * 4 + column] = static_cast<float>(value);
+        }
+      instances[index].model_transform = affine;
+      if (!Nexora::Presentation::ValidateSceneInstance(instances[index]))
+        return false;
+    }
+    if (light) {
+      const auto *entity = world.FindEntity(light);
+      const auto pose = world.WorldTransform(light);
+      if (!entity || !entity->light || !pose || !std::isfinite(entity->light_data.intensity) ||
+          entity->light_data.intensity < 0 || entity->light_data.intensity > 65504)
+        return false;
+      runtime::Transform orientation;
+      orientation.qx = pose->qx;
+      orientation.qy = pose->qy;
+      orientation.qz = pose->qz;
+      orientation.qw = pose->qw;
+      const auto rotation = runtime::ToMatrix(orientation);
+      for (std::size_t coordinate = 0; coordinate < 3; ++coordinate) {
+        light_color[coordinate] = entity->light_data.intensity;
+        light_direction[coordinate] = static_cast<float>(-rotation[8 + coordinate]);
+      }
+    }
+    return true;
+  }
+
   [[nodiscard]] std::optional<Nexora::Presentation::SceneDrawData>
   DrawData(const runtime::LoadedStaticProject &project, float aspect) const {
-    const auto view = runtime::CameraView(project.WorldView(), camera, aspect);
+    return DrawData(project.WorldView(), aspect);
+  }
+  [[nodiscard]] std::optional<Nexora::Presentation::SceneDrawData>
+  DrawData(const runtime::World &world, float aspect) const {
+    const auto view = runtime::CameraView(world, camera, aspect);
     if (!view)
       return std::nullopt;
     Nexora::Presentation::SceneDrawData draw;

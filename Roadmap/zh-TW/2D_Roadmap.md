@@ -237,3 +237,16 @@ M6 實體效能與 9/11、P0 6/8（82%）不變。
 - [Renderer](../../Engine/Renderer/README.md)、[Runtime](../../Engine/Runtime/README.md)
   與 [Editor Contract](../../Engine/Editor/README.md)
 - [英文版](../en/2D_Roadmap.md)
+
+## Zig 執行期服務整合（2026-10-16）
+
+✅ 可選 Zig 服務已串接可重綁的鍵盤／滑鼠／手把動作快照、失焦／斷線重設、指標位置／位移／滾輪、
+使用自備 UTF-8 字形圖集的原生 UI packet、PCM／WAV 音樂音效控制、自訂 schema 永久存檔，以及既有
+cooked Atlas／Clip 註冊。2D 模組主機接收原生事件、保留可重綁 UI 動作、呈現 UI overlay，並解析
+已註冊素材；啟動測試素材不再是唯一載入途徑。ProjectPlayer 可明確載入 V3 遊戲模組以使用既有
+StaticView adapter，不會宣告尚未支援的 UI／2D／content 服務。詳見
+[Zig 契約](../../Gameplay/Zig/README.md#optional-zig-gameplay-services) 與
+[Linux 驗收](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-2026-10-16.md)。
+
+此功能支援遊戲作者使用 Zig，未新增戰鬥規則或正式美術。M6／M7 與 82% 能力摘要維持不變：
+實體 Windows 效能、裝置音訊／手把、字型外觀、完整 2D 專案匯出與乾淨主機產品驗收仍是獨立關卡。

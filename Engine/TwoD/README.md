@@ -191,3 +191,16 @@ and field offset against C++ in `gameplay.zig_twod_wire_layout`; C11 and metadat
 Linux/Xvfb/Vulkan `gameplay.zig_twod_native` holds a normalized D key through 600 presented frames
 and verifies Zig movement, reload and balanced allocation. This is engine control evidence,
 not game rules or a physical-PC performance result.
+
+## Optional gameplay UI
+
+The optional C/Zig HUD, menu, supplied-font and native overlay contract is documented in
+[GameplayUi.md](GameplayUi.md). `GameplayUi` stays within TwoD's existing Runtime/Presentation
+dependencies; the host supplies immutable rasterized fonts and frame input, and retains owning
+`GameplayUiFrame` snapshots through native drawing. No gameplay rules or font substitutes are added.
+
+## Optional gameplay content
+
+[GameplayContent.md](GameplayContent.md) documents cooked Atlas/Clip registration through Zig,
+UUID discovery, dependency validation and owning native resolver generations. It reuses the existing
+2D codecs and Sprite pipeline, with no additional module dependency or game-specific C++ loading.

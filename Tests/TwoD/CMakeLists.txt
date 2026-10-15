@@ -68,3 +68,27 @@ if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   nexora_apply_defaults(NexoraTwoDPanelTests)
   add_test(NAME twod.graphical_controls COMMAND NexoraTwoDPanelTests)
 endif()
+add_executable(NexoraGameplayUiTests GameplayUiTests.cpp)
+target_link_libraries(NexoraGameplayUiTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraGameplayUiTests)
+add_test(NAME twod.gameplay_ui COMMAND NexoraGameplayUiTests)
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(gameplay.zig_ui_wire_layout
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-ui-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-ui-global-cache"
+    "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep ui
+    "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayUiLayout.zig"
+    "-Mui=${PROJECT_SOURCE_DIR}/Bindings/Zig/ui.zig" -lc)
+endif()
+add_executable(NexoraGameplayContentTests GameplayContentTests.cpp)
+target_link_libraries(NexoraGameplayContentTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraGameplayContentTests)
+add_test(NAME twod.gameplay_content COMMAND NexoraGameplayContentTests)
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(gameplay.zig_content_wire_layout
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-content-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-content-global-cache"
+    "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep content
+    "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayContentLayout.zig"
+    "-Mcontent=${PROJECT_SOURCE_DIR}/Bindings/Zig/content.zig" -lc)
+endif()

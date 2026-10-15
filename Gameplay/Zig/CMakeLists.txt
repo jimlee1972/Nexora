@@ -201,3 +201,42 @@ if(NEXORA_ENABLE_2D)
     add_test(NAME gameplay.zig_twod_wire_layout COMMAND NexoraZigTwoDLayoutTests)
   endif()
 endif()
+
+# Track every included wire module when compiling consumers of the canonical Zig module.
+file(GLOB gameplay_wire_dependencies CONFIGURE_DEPENDS
+  "${PROJECT_SOURCE_DIR}/Bindings/Zig/*.zig"
+  "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/gameplay_*.h")
+add_custom_command(OUTPUT "${NEXORA_ZIG_SAMPLE_OBJECT}" APPEND DEPENDS ${gameplay_wire_dependencies})
+add_custom_command(OUTPUT "${NEXORA_ZIG_SHARED_LIBRARY}" APPEND DEPENDS ${gameplay_wire_dependencies})
+if(BUILD_TESTING)
+  add_custom_command(OUTPUT "${pointer_object}" APPEND DEPENDS ${gameplay_wire_dependencies})
+endif()
+if(NEXORA_ENABLE_2D)
+  add_custom_command(OUTPUT "${twod_object}" APPEND DEPENDS ${gameplay_wire_dependencies})
+  add_custom_command(OUTPUT "${twod_library}" APPEND DEPENDS ${gameplay_wire_dependencies})
+endif()
+if(BUILD_TESTING AND NEXORA_ENABLE_2D)
+  set(services_object "${CMAKE_CURRENT_BINARY_DIR}/zig_services${twod_object_extension}")
+  set(services_args ${NEXORA_ZIG_BUILD_OBJ_ARGS})
+  list(TRANSFORM services_args REPLACE "src/game_module.zig" "src/services_consumer.zig")
+  list(TRANSFORM services_args REPLACE "-femit-bin=.*" "-femit-bin=${services_object}")
+  add_custom_command(OUTPUT "${services_object}"
+    COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${services_args}
+    DEPENDS src/services_consumer.zig ${gameplay_wire_dependencies}
+            "${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig"
+            "${PROJECT_SOURCE_DIR}/Engine/API/include/nexora/nexora.h" VERBATIM)
+  set_source_files_properties("${services_object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+  add_executable(NexoraZigServicesTests ServicesConsumerTests.cpp "${services_object}")
+  target_link_libraries(NexoraZigServicesTests PRIVATE Nexora::TwoD)
+  if(WIN32)
+    target_link_libraries(NexoraZigServicesTests PRIVATE ntdll)
+  endif()
+  nexora_apply_defaults(NexoraZigServicesTests)
+  add_test(NAME gameplay.zig_services_consumer COMMAND NexoraZigServicesTests)
+  foreach(wire input ui audio storage content)
+    nexora_add_zig_test(gameplay.zig_${wire}_wrapper
+        "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
+        --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-test-${wire}"
+        --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-${wire}")
+  endforeach()
+endif()

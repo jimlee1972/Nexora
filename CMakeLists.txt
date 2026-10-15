@@ -145,6 +145,7 @@ include(NexoraFeatures)
 include(NexoraModuleGraph)
 include(NexoraSlang)
 include(NexoraMimalloc)
+include(NexoraZigTests)
 
 # Fetch mimalloc before nexora_configure_build() applies our warnings-as-errors
 # flags directory-wide; mimalloc's own C sources aren't -Wpedantic clean.

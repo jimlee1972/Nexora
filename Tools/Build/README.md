@@ -5,6 +5,17 @@ detection` job uses the complete Git diff, validates changed Markdown, and selec
 documentation-only run or all existing build, test, and package jobs. `CI result` always reports a
 final result and fails if change detection or any selected job fails or is cancelled.
 
+## Native Zig test linking
+
+`nexora_add_zig_test` runs ordinary `zig test` on Linux and Windows. On macOS,
+`RunZigTestWithHostLinker.py` asks Zig 0.14 to emit assembly for its standard test runner, then
+builds Zig's bundled compiler-rt object, then uses the configured C++ compiler and optional SDK
+sysroot to assemble/link and execute it. The compiler-rt object supplies quad-precision conversions
+used by Zig's UBSan diagnostics that Apple Clang's runtime does not provide.
+This avoids Zig's Mach-O libSystem resolution failure with newer Apple SDKs. Each test owns a
+separate output directory. Compile, link and test failures remain failures; tests are not skipped.
+Debug assertions, UBSan diagnostics and stack-probe instrumentation retain Zig's defaults.
+
 ## Documentation-only scope
 
 - All changed paths must end in `.md` (case insensitive).

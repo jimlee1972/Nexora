@@ -56,7 +56,7 @@ def pixels(display_name, window, width, height):
 
 def main():
     parser = argparse.ArgumentParser()
-    for name in ("fixture", "player", "xvfb", "xdotool"):
+    for name in ("fixture", "player", "xvfb", "xdotool", "gameplay-fixture"):
         parser.add_argument("--" + name, required=True)
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="nexora-native-player-") as temporary:
@@ -133,7 +133,34 @@ def main():
             bounded_report = json.loads(bounded.stdout)
             require(bounded_report["presented_frames"] == 4 and bounded_report["drained"],
                     "bounded native run did not present exactly four frames and drain")
-            for arguments in (["--frames=0"], ["--frames=1000001"], ["--frames=-1"],
+            gameplay = subprocess.run([args.player, "--run-package", str(package), "--backend=vulkan",
+                                       "--frames=30", "--gameplay-module=" + args.gameplay_fixture,
+                                       "--save-directory=" + str(root / "saved games")],
+                                      env=environment, capture_output=True, text=True, timeout=15)
+            require(gameplay.returncode == 0, gameplay.stderr)
+            gameplay_report = json.loads(gameplay.stdout)
+            require(gameplay_report["gameplay_loaded"] and gameplay_report["gameplay_updates"] == 30 and
+                    gameplay_report["gameplay_fixed_updates"] > 0 and
+                    gameplay_report["presented_frames"] == 30 and gameplay_report["drained"],
+                    f"gameplay module did not update alongside real presentation: {gameplay_report}")
+            require("world=1 spawn=1 component=1 authored_pose=1" in gameplay.stderr and
+                    "despawn=1" in gameplay.stderr and "destroy: released=1" in gameplay.stderr,
+                    "gameplay host lifecycle/callback evidence missing")
+            require("player storage roundtrip: schema=7 removed=1" in gameplay.stderr,
+                    "explicit save directory did not provide real storage")
+            for module_path in (str(root / "missing.so"), str(package)):
+                invalid = subprocess.run([args.player, "--run-package", str(package), "--frames=1",
+                                          "--gameplay-module=" + module_path], env=environment,
+                                         capture_output=True, text=True, timeout=5)
+                require(invalid.returncode == 1 and not invalid.stdout, "invalid module reported success")
+            verifier_module = subprocess.run([args.player, "--verify-package", str(package),
+                                              "--gameplay-module=" + args.gameplay_fixture],
+                                             capture_output=True, text=True, timeout=3)
+            require(verifier_module.returncode == 2 and not verifier_module.stdout,
+                    "verification accepted executable module option")
+            for arguments in (["--save-directory=x"], ["--save-directory="],
+                              ["--gameplay-module="],
+                              ["--gameplay-module=a", "--gameplay-module=b"], ["--frames=0"], ["--frames=1000001"], ["--frames=-1"],
                               ["--frames=2", "--frames=3"], ["--backend=unknown"]):
                 invalid = subprocess.run([args.player, "--run-package", str(package), *arguments],
                                          env=environment, capture_output=True, text=True, timeout=3)

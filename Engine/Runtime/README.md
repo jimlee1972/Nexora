@@ -1,5 +1,11 @@
 # V1-M4 through V1-M12 runtime contracts
 
+## Gameplay action input
+
+The additive C/Zig action input service and native Linux gamepad adapter are documented in
+[GameplayInput.md](GameplayInput.md), including ownership, focus/disconnect transitions,
+rebinding, copied snapshots and platform acceptance limits.
+
 ## Optional 2D capabilities
 
 ✅ [Nexora::TwoD](../TwoD/README.md) augments Runtime World identities and affine poses with Sprite
@@ -1046,3 +1052,43 @@ unknown larger-buffer suffixes. Context remains embedding-owned through Stop/Des
 game-thread calls and input revoked before teardown. No Runtime-to-Window dependency is introduced.
 See [the owning Editor contract](../../Apps/Editor/README.md#optional-copied-play-pointer-input) for
 native units/bounds, logical users, non-consuming batch sequences and focus/domain reset behavior.
+
+## Durable Zig gameplay slots
+
+`GameplayStorage` exposes `nexora/gameplay_storage.h` through a versioned, synchronous C table;
+`Bindings/Zig/storage.zig` provides the matching extern table and bounded slice helpers. The host
+owns the directory, project scope and payload limit (default 16 MiB, maximum 64 MiB). Configure a
+dedicated trusted directory per scope and serialize one service/writer on its construction thread.
+Table/context borrows expire with the service. No payload buffer or gameplay pointer is retained.
+The module owns its payload schema and serialization; this API is separate from the module's
+`save_state`/`load_state` hot-reload migration callbacks.
+
+Keys accept 1..64 ASCII letters, digits, underscores and hyphens, never paths. A little-endian
+versioned envelope stores schema, bounded payload length, exact scope/key identity and CRC32.
+`load(NULL, 0, info)` probes only after full validation; a too-small copy, corruption, foreign scope,
+invalid table/info header or other error preserves every output. `exists` validates committed data,
+returning zero for a missing slot and an error for corruption. Files are opaque to gameplay.
+Save writes and flushes a separate temporary file before atomic replacement (POSIX file/directory
+fsync; Windows FlushFileBuffers and MoveFileEx write-through). A failed interrupted write cannot
+promote its temporary file during a later load; a subsequent save discards a regular stale temporary
+file. Symlink slot/temp targets reject. Trusted parent-directory ownership is required; the service
+is not a sandbox against another process concurrently replacing directory ancestors. Remove deletes
+the committed slot and does not promote orphan files. Filesystem/backend failures return IO errors;
+a directory-flush failure after replacement may report failure after the new data is visible, so a
+caller may safely retry the same save. CRC32 detects accidental corruption, not hostile tampering.
+`runtime.gameplay_persistent_storage` covers restart persistence, binary/empty payloads, probing,
+bounded output preservation, overwrite, corruption, scope/key identity, traversal, symlinks,
+stale/orphan temporary files, deletion and owner-thread rejection.
+
+## Negotiated Zig gameplay services
+
+The V3 host has an appended `get_services_api` capability. `GameplayServices` copies independently
+optional input, UI, audio, storage and content tables on the serialized construction thread;
+missing tables return Unsupported without modifying output. The aggregate borrows its registered
+contexts, which must outlive module Stop/Destroy. It owns no gameplay objects, device, directory
+or renderer. The original V3/2D/pointer prefixes remain valid and require no service capability.
+See [Zig authoring and examples](../../Gameplay/Zig/README.md#optional-zig-gameplay-services),
+[action/pointer input](GameplayInput.md), [device audio](GameplayAudio.md),
+[UI/font ownership](../TwoD/GameplayUi.md) and [cooked 2D content](../TwoD/GameplayContent.md).
+The existing residency-only `presentation::AudioEngine` is unchanged; `GameplayAudio` supplies
+separate PCM mixing/output for explicitly attached gameplay hosts.

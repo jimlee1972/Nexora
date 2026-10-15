@@ -126,3 +126,16 @@ API-M1～M4 是 Zig Showcase 與 Editor 共用前置；API-M5/M6 讓兩者只能
 
 2026-10-15 的 GPU Instancing 交付沿用上述 V1 池化批次，不改 C／Zig Wire Layout。
 原生 2D 繪製／上傳證據及後續 GPU API 範圍見 [2D Roadmap](2D_Roadmap.md)。
+
+## 可選 Zig 遊戲服務（2026-10-16）
+
+✅ V3 尾端新增服務協商，分別提供 C11／Zig 動作與指標輸入、HUD／選單／字型圖集、音訊、
+永久槽位存檔，以及 cooked Atlas／Clip 註冊介面。Zig 可自行設定操作、提交 UTF-8 UI、複製
+內嵌字型／WAV／2D cooked 素材、控制聲音，以及保存／還原自訂 schema 的資料，無須遊戲專用 C++。
+主機 ownership、序列化呼叫、錯誤輸出保留與舊前綴協商約定見
+[Zig 使用說明](../../Gameplay/Zig/README.md#optional-zig-gameplay-services)。
+
+驗收使用真實 Zig／C++ 每個欄位的布局與呼叫（`gameplay.zig_services_consumer`）、各服務的失敗與
+生命週期測試、ProjectPlayer 動態 V3 模組啟動，以及 Linux 原生呈現。
+[驗收紀錄](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-2026-10-16.md) 保留完整 preset 結果與限制。
+原有 API-M1–M6 完成比例維持不變；不代表 Windows 裝置輸出、實體手把、遊戲美術或 Editor Play 整合已驗收。

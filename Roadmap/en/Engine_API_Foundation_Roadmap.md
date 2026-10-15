@@ -117,3 +117,18 @@ engine-control scope leaves the original roadmap percentage and physical Windows
 The 2026-10-15 GPU-instancing delivery reuses these copied V1 pool batches without changing
 any C/Zig wire layout. Native 2D draw/upload evidence and remaining GPU API scope are tracked
 in the [2D roadmap](2D_Roadmap.md).
+
+## Optional Zig gameplay services (2026-10-16)
+
+✅ The append-only V3 services negotiation now exposes independent C11/Zig action/pointer input,
+HUD/menu/font atlas, audio, permanent-slot storage and cooked Atlas/Clip registration tables.
+Zig authors can bind controls, submit UTF-8 UI, copy embedded font/WAV/cooked 2D assets, control
+voices and save/resume schema-owned bytes without game-specific C++ code. Host ownership,
+serialized callbacks, failure preservation and old-prefix negotiation are documented in
+[the Zig guide](../../Gameplay/Zig/README.md#optional-zig-gameplay-services).
+
+Acceptance uses real Zig/C++ every-field layouts and calls (`gameplay.zig_services_consumer`),
+per-service failure/lifetime tests, dynamic V3 module launch in ProjectPlayer and Linux native
+presentation. The [acceptance record](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-2026-10-16.md)
+records the complete presets and limitations. The existing API-M1–M6 percentage stays unchanged;
+this does not accept Windows device output, physical controllers, game artwork or Editor Play integration.

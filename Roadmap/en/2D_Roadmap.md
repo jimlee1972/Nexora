@@ -258,3 +258,18 @@ M6 physical performance and 9/11, P0 6/8 (82%) stay unchanged.
 - [Renderer](../../Engine/Renderer/README.md), [Runtime](../../Engine/Runtime/README.md) and
   [Editor contracts](../../Engine/Editor/README.md)
 - [Traditional Chinese edition](../zh-TW/2D_Roadmap.md)
+
+## Zig runtime service integration (2026-10-16)
+
+✅ The optional Zig service slice now reaches rebindable keyboard/mouse/gamepad action snapshots,
+focus/disconnect resets, pointer position/delta/wheel, native UI packets with supplied UTF-8 glyph
+atlases, PCM/WAV music/SFX controls, schema-owned durable saves and existing cooked Atlas/Clip
+registration. The 2D module host feeds native events, reserves rebindable UI actions, renders its
+UI overlay, and resolves registered content; the startup fixture is no longer its only content path.
+ProjectPlayer can explicitly load V3 gameplay for its existing StaticView adapter; it advertises
+no unsupported UI/2D/content table. See [Zig contracts](../../Gameplay/Zig/README.md#optional-zig-gameplay-services)
+and [Linux acceptance](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-2026-10-16.md).
+
+This supports game-author Zig code; it adds no combat rules or formal artwork. M6/M7 and the
+82% capability summary remain unchanged: physical Windows performance, device audio/controllers,
+font appearance, full 2D project export and clean-host product acceptance remain separate gates.
