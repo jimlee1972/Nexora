@@ -1327,6 +1327,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   長時間與實機 soak 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-NativePlaySoak-Linux-2026-10-14.md)。
 
+- ✅ Play host allocation observation 現可區分 module 成對釋放，以及 Stop／Destroy 或
+  Create／Start 失敗後的 fallback reclamation。Owning current／last-teardown snapshot 保留
+  payload 數量／bytes、peak 與被拒請求；cleanup 後透過有界 Gameplay Console warning 回報
+  遺留 payload。32 次 success／retained／failed-load case 涵蓋精確 ownership、quota、
+  isolation 與失敗的 log sink。此觀測僅計 embedding 追蹤的 host payload；總 allocator／RSS／GPU
+  與 production／實機 budget 仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-PlayHostAllocations-Linux-2026-10-15.md)。
+
 - ✅ Serial 100k-node product-shell scale／lifecycle gate 現會在 1x／2x DPI，透過兩次全新
   project／World／document／host cycle 量測 flat roots 與 expanded 99,998-node chain。
   每個 case 先 warmup 六個 frame，再量測十二次完整 CPU draw；schema-1 record 保留排序後

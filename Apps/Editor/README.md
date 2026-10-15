@@ -1047,6 +1047,33 @@ locking, raw/unbounded relative input, gamepads or complete pointer-look accepta
 
 ## Scoped native Play lifecycle gate
 
+### Host allocation ownership observations
+
+`PlayGameplayModule::Allocations()` returns an owning, owner-thread snapshot of the current
+session's live allocation count/payload bytes, observed peaks, and saturating rejected allocation
+and deallocation counts. The existing per-request 16 MiB, session 64 MiB and alignment limits stay
+in force. Only a successful tracked allocation or an exact pointer/owner/size/alignment release
+changes live totals; a null, unknown or mismatched release is rejected. These bytes exclude map
+nodes, allocator overhead, native allocations, RSS and GPU memory. No C/Zig wire fields change.
+
+Stop/Destroy retain access to the World and allocator. After those callbacks finish, Unload
+reclaims any remaining tracked payload, revokes the World and allocator services, and retains
+`LastTeardownAllocations()` with zero live totals plus the exact reclaimed count/bytes and session
+peaks/rejections. Failed Create/Start loads receive the same fallback cleanup. New bound sessions
+start with zero current counters; the last teardown snapshot remains until another bound session
+ends. Repeated Unload preserves that report and produces no duplicate warning. Calls retained
+after revocation cannot allocate and do not change the completed session's report; callback
+contexts must never outlive their owning host. Serialize observation and callbacks with teardown.
+
+If fallback reclamation was needed, one bounded Warning enters the existing Gameplay/Core Console
+producer after cleanup. A throwing log sink cannot interrupt reclamation. This distinguishes
+module-paired releases from host recovery; it does not prove that a module freed non-host resources
+or that the process is leak-free. The observer does not authorize callback or log-sink reentry.
+`editor.play_host_allocations` covers 32 paired/retained/failed-load sessions, exact ownership and
+quota failures, copied snapshots, Console severity, repeated cleanup and a failing sink.
+
+### Native process residency
+
 `editor.linux_native_play_soak` runs 32 Play sessions in one Linux Editor process with disjoint
 Scene/Game canvases, a real C-ABI library and a two-entity/one-triangle project. Each module touches
 4 MiB of host-owned allocation. Fresh clone poses, capture/motion pixels, Escape release, Pause,

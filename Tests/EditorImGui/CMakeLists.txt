@@ -169,6 +169,12 @@ target_link_libraries(NexoraPlayDiagnosticsTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayDiagnosticsTests)
 add_test(NAME editor.play_diagnostics COMMAND NexoraPlayDiagnosticsTests)
 
+add_executable(NexoraPlayAllocationTests PlayAllocationTests.cpp)
+target_include_directories(NexoraPlayAllocationTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+target_link_libraries(NexoraPlayAllocationTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayAllocationTests)
+add_test(NAME editor.play_host_allocations COMMAND NexoraPlayAllocationTests)
+
 add_executable(NexoraPlayDebugLineTests PlayDebugLineTests.cpp)
 target_include_directories(NexoraPlayDebugLineTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraPlayDebugLineTests PRIVATE Nexora::EditorImGui)

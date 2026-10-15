@@ -24,6 +24,11 @@ namespace nexora::editor::preview {
 // Unload must precede PlaySession::Stop: destroy callbacks may still read/write that World.
 class PlayGameplayModule final {
 public:
+  struct AllocationSnapshot final {
+    std::uint64_t live_allocations{}, live_bytes{}, peak_allocations{}, peak_bytes{};
+    std::uint64_t rejected_allocations{}, rejected_deallocations{};
+    std::uint64_t reclaimed_allocations{}, reclaimed_bytes{};
+  };
   using LogSink = std::function<void(std::uint32_t, std::string)>;
   using LogRejectionSink = std::function<void()>;
   static constexpr std::size_t kMaximumLogMessageBytes = 4096;
@@ -111,6 +116,11 @@ public:
     input_.Process(events);
   }
   [[nodiscard]] bool IsLoaded() const noexcept { return module_.IsLoaded(); }
+  // Owning payload-only observations; no native/allocator overhead, RSS or GPU inference.
+  [[nodiscard]] AllocationSnapshot Allocations() const noexcept { return allocation_stats_; }
+  [[nodiscard]] AllocationSnapshot LastTeardownAllocations() const noexcept {
+    return last_allocation_stats_;
+  }
   bool FixedUpdate(double seconds) {
     return !IsLoaded() || !module_.SupportsFixedUpdate() || module_.FixedUpdate(seconds);
   }
@@ -137,6 +147,7 @@ public:
     input_.SetFocused(false);
     input_user_ = 0;
     module_.Unload();
+    const bool had_session = world_ != nullptr;
     scenes_.Clear();
     world_ = nullptr;
     mesh_assets_.reset();
@@ -145,6 +156,25 @@ public:
       ::operator delete(pointer, std::align_val_t(allocation.alignment));
     allocations_.clear();
     bytes_ = 0;
+    const auto retained = allocation_stats_;
+    allocation_stats_ = {};
+    if (had_session) {
+      last_allocation_stats_ = retained;
+      last_allocation_stats_.reclaimed_allocations = retained.live_allocations;
+      last_allocation_stats_.reclaimed_bytes = retained.live_bytes;
+      last_allocation_stats_.live_allocations = last_allocation_stats_.live_bytes = 0;
+      // Call the existing bounded Console sink only after reclamation and revocation. A failing
+      // sink must never interrupt Unload, and repeated Unload must not duplicate this warning.
+      if (retained.live_allocations && log_) {
+        try {
+          log_(static_cast<std::uint32_t>(core::LogLevel::Warning),
+               "Play teardown reclaimed " + std::to_string(retained.live_allocations) +
+                   " host allocations (" + std::to_string(retained.live_bytes) +
+                   " payload bytes) left after module callbacks.");
+        } catch (...) {
+        }
+      }
+    }
     diagnostics_frame_ = diagnostics_errors_ = 0;
   }
 
@@ -221,31 +251,50 @@ private:
     host.allocate = [](void *context, std::uint64_t owner, std::uint64_t size,
                        std::uint64_t alignment) -> void * {
       auto &self = Self(context);
-      if (!size || size > 16 * 1024 * 1024 || !std::has_single_bit(alignment) ||
-          alignment < alignof(void *) || alignment > 4096 || size > 64 * 1024 * 1024 - self.bytes_)
+      if (!self.world_)
         return nullptr;
+      if (!size || size > 16 * 1024 * 1024 || !std::has_single_bit(alignment) ||
+          alignment < alignof(void *) || alignment > 4096 ||
+          size > 64 * 1024 * 1024 - self.bytes_) {
+        Increment(self.allocation_stats_.rejected_allocations);
+        return nullptr;
+      }
       auto *pointer =
           ::operator new(static_cast<std::size_t>(size), std::align_val_t(alignment), std::nothrow);
-      if (!pointer)
+      if (!pointer) {
+        Increment(self.allocation_stats_.rejected_allocations);
         return nullptr;
+      }
       try {
         self.allocations_.emplace(pointer, Allocation{owner, static_cast<std::size_t>(size),
                                                       static_cast<std::size_t>(alignment)});
         self.bytes_ += size;
+        auto &stats = self.allocation_stats_;
+        ++stats.live_allocations;
+        stats.live_bytes = self.bytes_;
+        stats.peak_allocations = std::max(stats.peak_allocations, stats.live_allocations);
+        stats.peak_bytes = std::max(stats.peak_bytes, stats.live_bytes);
         return pointer;
       } catch (...) {
         ::operator delete(pointer, std::align_val_t(alignment));
+        Increment(self.allocation_stats_.rejected_allocations);
         return nullptr;
       }
     };
     host.deallocate = [](void *context, std::uint64_t owner, void *pointer, std::uint64_t size,
                          std::uint64_t alignment) {
       auto &self = Self(context);
+      if (!self.world_)
+        return;
       const auto found = self.allocations_.find(pointer);
       if (found == self.allocations_.end() || found->second.owner != owner ||
-          found->second.size != size || found->second.alignment != alignment)
+          found->second.size != size || found->second.alignment != alignment) {
+        Increment(self.allocation_stats_.rejected_deallocations);
         return;
+      }
       self.bytes_ -= found->second.size;
+      --self.allocation_stats_.live_allocations;
+      self.allocation_stats_.live_bytes = self.bytes_;
       ::operator delete(pointer, std::align_val_t(found->second.alignment));
       self.allocations_.erase(found);
     };
@@ -348,6 +397,7 @@ private:
   PlayDebugLines debug_lines_;
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
+  AllocationSnapshot allocation_stats_{}, last_allocation_stats_{};
   std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
   runtime::GameplayModuleHost module_;
 };

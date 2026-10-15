@@ -1347,6 +1347,14 @@ creates property widgets; unknown components retain raw data instead of being si
     production assets, total allocation/GPU budgets, long-duration and physical soak remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-NativePlaySoak-Linux-2026-10-14.md).
 
+  - ✅ Play host allocation observations now distinguish paired module releases from fallback
+    reclamation after Stop/Destroy or failed Create/Start. Owning current/last-teardown snapshots
+    retain payload counts/bytes, peaks and rejected requests; one bounded Gameplay Console warning
+    reports retained payload after cleanup. Thirty-two repeated success/retained/failed-load cases
+    cover exact ownership, quota, isolation and a failing log sink. This measures only the embedding's
+    tracked host payload; total allocator/RSS/GPU and production/physical budgets remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-PlayHostAllocations-Linux-2026-10-15.md).
+
   - ✅ A serial 100k-node product-shell scale/lifecycle gate now records flat roots and the expanded
     99,998-node chain at 1x/2x DPI over two fresh project/World/document/host cycles. Six warmup frames
     precede twelve measured CPU draws per case; schema-1 records retain sorted samples, nearest-rank
