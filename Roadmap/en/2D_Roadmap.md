@@ -140,6 +140,14 @@ This adds the engine interface for application gameplay; game rules remain exclu
 not increase the 9/11 milestone count or accept physical Windows M6/M7. Main Editor project/Play
 attachment and game production content are separate integrations.
 
+✅ The optional Editor now provides an owning `TwoDPlayContext` prerequisite: isolated document
+World/Sprite/collider state, frozen Atlas/Clip, copied Tilemap/chunks and a fresh bounded pool
+with the canonical 2D bridge. Real module callbacks, 32 session lifetimes, owning frames and
+source/history preservation are verified; Linux native pixels distinguish frozen red, animated
+and retained green, and new-session blue under the same Atlas UUID. Main project/cooked-asset
+admission and integrated Game preview/reload remain open; milestone counts are unchanged.
+[Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+
 [Retained Zig/Linux acceptance](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 records the complete suite, initial GUI failures/retry and Shipping scope.
 

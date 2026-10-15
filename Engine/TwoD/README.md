@@ -157,6 +157,14 @@ entities, animation state, tiles or pool instances. Reload can reuse migrated ID
 host reclaims content at scene/session teardown. If new content must be rolled back after a
 failed module start, the embedding owns that transaction.
 
+The optional Editor's `TwoDPlayContext` supplies an owning isolated document snapshot with
+frozen Atlas/Clip, copied Tilemap and a fresh 1..4096-slot pool around this bridge. It combines
+scene/pool/loaded tiles through the existing extraction path with a shared 100,000-input cap.
+Modules must stop before the context is destroyed; owning extracted frames retain Atlas pixels
+afterward. Source history, source assets and native texture ownership remain separate. See the
+[Editor contract](../Editor/README.md#owning-isolated-2d-play-context). This prerequisite does
+not attach the bridge to the main project Editor or complete its Game View/reload acceptance.
+
 The [Zig sample and usage guide](../../Gameplay/Zig/README.md) exercise static/dynamic loading,
 fixed input/Transform/Sprite/animation/query control, bulk pool updates, Tilemap and migration.
 `twod.gameplay_bridge` tests failures, buffer retries, query snapshots, lifetime cleanup,

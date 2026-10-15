@@ -52,6 +52,13 @@ Undo/save/reopen, read-only rejection and isolated Play pass. A main-project emb
 its ED-M1 asset, ED-M2 transaction and ED-M5 path/access/lease checks; this isolated tool does not
 complete an enclosing ED milestone. Windows physical and Runtime/Shipping gates remain separate.
 
+✅ An owning isolated `TwoDPlayContext` now snapshots document World/Sprite/collider state,
+freezes Atlas/Clip, copies Tilemap/chunk state and owns a fresh bounded pool/2D gameplay bridge.
+Actual V3 callback lifetimes and source Undo/Redo conservation are verified, with Linux native
+frozen/animated/retained/new-session Atlas pixels. This is an integration prerequisite; main
+project host routing, project/cooked generation capture and integrated Game preview/reload remain
+open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+
 ```text
 NexoraEditor (tool process)
   UI shell/docking/commands/workspace persistence
