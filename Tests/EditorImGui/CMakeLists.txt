@@ -175,6 +175,17 @@ target_link_libraries(NexoraPlayAllocationTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayAllocationTests)
 add_test(NAME editor.play_host_allocations COMMAND NexoraPlayAllocationTests)
 
+add_executable(NexoraPlayMemoryDisplayTests PlayMemoryDisplayTests.cpp)
+target_include_directories(NexoraPlayMemoryDisplayTests PRIVATE
+  "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraPlayMemoryDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraPlayMemoryDisplayTests)
+add_test(NAME editor.play_host_memory_ui COMMAND NexoraPlayMemoryDisplayTests)
+
+add_library(NexoraPlayMemoryFixture MODULE PlayMemoryFixture.cpp)
+target_link_libraries(NexoraPlayMemoryFixture PRIVATE Nexora::Foundation)
+nexora_apply_defaults(NexoraPlayMemoryFixture)
+
 add_executable(NexoraPlayDebugLineTests PlayDebugLineTests.cpp)
 target_include_directories(NexoraPlayDebugLineTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraPlayDebugLineTests PRIVATE Nexora::EditorImGui)
@@ -431,6 +442,13 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
             --xvfb "${NEXORA_XVFB_EXECUTABLE}"
             --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_native_gameplay_module PROPERTIES TIMEOUT 45)
+  add_test(NAME editor.linux_play_host_memory
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPlayHostMemory.py"
+      --module "$<TARGET_FILE:NexoraPlayMemoryFixture>"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_play_host_memory PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE
+    LABELS "editor;vulkan;virtual-display")
   add_test(NAME editor.linux_native_concurrent_game_views
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameView.py"
       --concurrent-views --module "$<TARGET_FILE:NexoraPlayGameplayFixture>"

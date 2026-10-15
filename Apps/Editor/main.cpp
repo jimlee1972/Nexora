@@ -27,6 +27,7 @@
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Runtime/EditorSdk.h"
 #include "PlayGameplayModule.h"
+#include "PlayHostMemoryPresenter.h"
 #include "PlayInputForwarding.h"
 #include "SceneFileContinuation.h"
 #include "SceneMeshPreview.h"
@@ -744,6 +745,7 @@ int RunGraphical(std::optional<ProjectState> project,
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
   std::string extension_test_geometry;
   std::uint64_t extension_test_revision{};
+  std::string play_memory_test_geometry, play_memory_test_text;
 #endif
   struct PendingProject final {
     ProjectState candidate;
@@ -919,6 +921,7 @@ int RunGraphical(std::optional<ProjectState> project,
         core_logs.Write(static_cast<nexora::core::LogLevel>(level), "Gameplay", std::move(message));
       },
       [&] { core_logs.ReportRejected(); });
+  nexora::editor::preview::PlayHostMemoryPresenter play_memory;
   log(nexora::runtime::RuntimeLogSeverity::Info, "Editor", "Graphical session started.");
   const auto view_base = [](const std::filesystem::path &relative) {
     return relative == ".nexora/scenes/Main.scene"
@@ -1378,6 +1381,8 @@ int RunGraphical(std::optional<ProjectState> project,
         created.surface->UiResourceDomain(), gpu_source, native_gpu.softwareRasterizer,
         {native_gpu.gpuTiming.completedSubmission, native_gpu.gpuTiming.milliseconds}));
     ui.SetConcurrentNativeViews(created.surface->SupportsBoundedSceneViews());
+    if (!project)
+      static_cast<void>(ui.SetPlayHostMemory(play_memory.Observe(gameplay, nullptr, 0, play)));
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
@@ -1491,6 +1496,10 @@ int RunGraphical(std::optional<ProjectState> project,
         prefab_rebase_review.reset();
         prefab_rebase_scope.reset();
       }
+      // Project activation may have completed after BeginFrame. Bind its diagnostics before
+      // DrawProductShell can accept the first Play command, including a failed initial load.
+      static_cast<void>(ui.SetPlayHostMemory(play_memory.Observe(
+          gameplay, &project->workspace, content.Browser().ProjectGeneration(), play)));
       ui.DrawProductShell(shell, &active_scene(), &project->workspace, &content, &recent_projects,
                           &imports, &console, &play, &profile, &meshes, &materials);
       if (const auto request = ui.TakePrefabPlacementSourceRequest()) {
@@ -2740,6 +2749,31 @@ int RunGraphical(std::optional<ProjectState> project,
       std::cerr << " artifact_verified=0\n";
     }
     static_cast<void>(ui.EndFrame());
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_PLAY_MEMORY_UI_TEST_EVIDENCE")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      std::ostringstream geometry;
+      geometry << "play memory ui dpi=" << dpi;
+      if (const auto point = Access::PlayMemoryButton(ui))
+        geometry << " button=" << (*point)[0] << ',' << (*point)[1];
+      if (const auto rect = Access::PlayMemoryRect(ui))
+        geometry << " window=" << (*rect)[0] << ',' << (*rect)[1] << ',' << (*rect)[2] << ','
+                 << (*rect)[3];
+      if (const auto observation = Access::PlayMemory(ui))
+        geometry << " scope_session=" << observation->play_generation
+                 << " current=" << observation->current.has_value();
+      if (geometry.str() != play_memory_test_geometry) {
+        play_memory_test_geometry = geometry.str();
+        std::cerr << play_memory_test_geometry << '\n';
+      }
+      const auto text = Access::PlayMemoryText(ui);
+      if (text != play_memory_test_text) {
+        play_memory_test_text = text;
+        if (!text.empty())
+          std::cerr << "play memory text begin\n" << text << "\nplay memory text end\n";
+      }
+    }
+#endif
     // A surface-level loss (the window vanished, the swapchain went out of date) is recoverable and
     // is resolved by the next BeginFrame, which also pumps a pending close request. Anything else,
     // device loss included, is a real failure.

@@ -1049,6 +1049,30 @@ locking, raw/unbounded relative input, gamepads or complete pointer-look accepta
 
 ### Host allocation ownership observations
 
+The Game panel's **Host memory** button opens a read-only window with live/peak payload bytes and
+allocation counts, rejected calls, and the latest completed teardown's recovered payload. Playing
+and Paused retain live values; Stopped/failed Create/Start show no loaded module and the completed
+teardown separately. Unavailable values are explicit. Counts use lossless decimal uint64 text;
+the view does not present these bytes as process RSS, allocator overhead or GPU usage.
+
+The application publishes owning `PlayHostMemoryObservation` copies before drawing, through
+`PlayHostMemoryPresenter`. Bind the new project scope before accepting Play commands. UUID,
+canonical root, Content generation and Play generation are rechecked by the UI; no World/module
+borrow survives publication. Project/root/generation replacement or detachment closes the window
+and excludes previous teardown data, including a copied project with the same UUID. A same-root,
+same-UUID read-only workspace may inspect the same scope. A monotonically saturating teardown
+sequence distinguishes completed attempts; the presenter hides teardown at sequence exhaustion
+rather than wrapping or relabelling old content. Widget rendering does no allocator/OS/IO queries.
+Current-frame gameplay changes become visible through the next owner publication.
+
+The window is session-only and omitted from saved layout state; opening it releases Game capture
+without issuing a Play command or changing authoring/history. No file action or telemetry transport
+is added. Test builds support opt-in `NEXORA_PLAY_MEMORY_UI_TEST_EVIDENCE` for bounded geometry/text
+observations of the actual drawn controls, following the existing native UI acceptance mechanism.
+`editor.play_host_memory_ui` exercises real 1x/2x controls and scoped provider lifecycles;
+`editor.linux_play_host_memory` checks native pixels, exact presented values, Pause/Stop/restart,
+balanced fallback recovery and unchanged source bytes through an independent C-ABI fixture.
+
 `PlayGameplayModule::Allocations()` returns an owning, owner-thread snapshot of the current
 session's live allocation count/payload bytes, observed peaks, and saturating rejected allocation
 and deallocation counts. The existing per-request 16 MiB, session 64 MiB and alignment limits stay

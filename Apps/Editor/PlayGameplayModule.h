@@ -121,6 +121,12 @@ public:
   [[nodiscard]] AllocationSnapshot LastTeardownAllocations() const noexcept {
     return last_allocation_stats_;
   }
+  [[nodiscard]] std::uint64_t AllocationTeardownSequence() const noexcept {
+    return allocation_teardown_sequence_;
+  }
+  [[nodiscard]] bool IsBoundTo(const runtime::World *world) const noexcept {
+    return world && world_ == world;
+  }
   bool FixedUpdate(double seconds) {
     return !IsLoaded() || !module_.SupportsFixedUpdate() || module_.FixedUpdate(seconds);
   }
@@ -159,6 +165,7 @@ public:
     const auto retained = allocation_stats_;
     allocation_stats_ = {};
     if (had_session) {
+      Increment(allocation_teardown_sequence_);
       last_allocation_stats_ = retained;
       last_allocation_stats_.reclaimed_allocations = retained.live_allocations;
       last_allocation_stats_.reclaimed_bytes = retained.live_bytes;
@@ -398,6 +405,7 @@ private:
   std::unordered_map<void *, Allocation> allocations_;
   std::uint64_t bytes_{};
   AllocationSnapshot allocation_stats_{}, last_allocation_stats_{};
+  std::uint64_t allocation_teardown_sequence_{};
   std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
   runtime::GameplayModuleHost module_;
 };
