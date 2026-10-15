@@ -78,7 +78,8 @@ int main() {
   std::vector<unsigned char> copied_wave(std::begin(wav), std::end(wav));
   assert(api.register_wave(api.context, 10, copied_wave.data(),
                            static_cast<std::uint32_t>(copied_wave.size())) == 0);
-  std::fill(copied_wave.begin(), copied_wave.end(), 0); // No caller bytes retained.
+  // No caller bytes retained.
+  std::fill(copied_wave.begin(), copied_wave.end(), static_cast<unsigned char>(0));
   assert(api.register_wave(api.context, 10, nullptr, 1) == -1);
   assert(api.register_wave(api.context, 0, wav, sizeof(wav)) == -1);
   assert(api.register_wave(api.context, 10, wav, 64u * 1024u * 1024u + 1) == -1);

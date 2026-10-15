@@ -90,6 +90,15 @@ Foundation and API include directories. This checks the portable controller fall
 it is not a macOS execution result. Linux native tests used the provisioned lavapipe ICD and
 local socket permission; the sequential rerun used a writable temporary Mesa shader cache.
 
+A subsequent MSVC build reached the new Runtime tests and diagnosed implicit narrowing in two
+fixtures: `std::fill` deduced an `int` for unsigned WAV bytes, and fixed four-byte storage buffers
+passed `size_t` lengths into the 32-bit C ABI. The fixtures now use an explicit unsigned-byte
+fill value and a compile-time 32-bit payload length. Runtime code and test assertions are unchanged.
+After this test-only correction, Development configure and the full build passed again;
+`ctest --preset linux-development --output-on-failure -R '^runtime\.gameplay_(audio|persistent_storage)$'`
+passed both affected tests (2/2). The 331-test acceptance above remains the full runtime gate;
+this follow-up checks the changed fixtures without repeating unrelated native UI acceptance.
+
 ## Limits
 
 No physical audio device/controller, readable production Chinese font/artwork, Windows/macOS/mobile
