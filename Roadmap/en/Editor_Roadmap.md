@@ -1355,6 +1355,15 @@ creates property widgets; unknown components retain raw data instead of being si
     tracked host payload; total allocator/RSS/GPU and production/physical budgets remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-PlayHostAllocations-Linux-2026-10-15.md).
 
+  - ✅ The Game panel now opens a read-only Play host memory window with exact live/peak payload,
+    rejected-call and last-teardown recovery counts. Owning UUID/root/Content/Play-scoped
+    publication excludes stale data and copied-project identities; real 1x/2x controls exercise
+    failed loads, Pause/Stop, repeated sessions, read-only access and scope/gesture replacement.
+    Native Xvfb/Vulkan acceptance checks presented numbers, pixels, restart, Console recovery and
+    source preservation. These are tracked host payload observations, separate from RSS/GPU/total
+    allocator and production/physical budgets.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-PlayHostMemoryUI-Linux-2026-10-15.md).
+
   - ✅ A serial 100k-node product-shell scale/lifecycle gate now records flat roots and the expanded
     99,998-node chain at 1x/2x DPI over two fresh project/World/document/host cycles. Six warmup frames
     precede twelve measured CPU draws per case; schema-1 records retain sorted samples, nearest-rank

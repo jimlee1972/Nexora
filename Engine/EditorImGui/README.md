@@ -1337,6 +1337,31 @@ remains explicit Save, which archives the previous exact variant and permits cle
 apply retains its separate confirmation and publication boundary. Structural identity reconciliation,
 persistent live instances and complete nested authoring remain separate work.
 
+## Scoped Play host memory inspection
+
+The Game panel's Host memory control opens a nonmodal, read-only window; it does not emit a Play,
+authoring, file or capture command. Opening releases Game input. An already open inspection stays
+visible across Play/Pause/Stop. The window is not saved in layout settings. No native/allocator/OS
+read or workspace borrow enters its text rendering; the application supplies copied observations.
+
+`SetPlayHostMemory` atomically copies project UUID/root, Content generation, Play generation and
+optional current/last-teardown counters. Nil identities, nonabsolute/oversized roots, zero project
+generation and inconsistent live/peak/reclaimed count/byte pairs reject without replacing the
+prior observation. Rejection counts may reach UINT64_MAX and render losslessly. Current data cannot
+contain reclaimed payload, and a completed teardown cannot contain live payload. Draw rechecks all
+scope fields against the active workspace/Content/Play owner and excludes stale or detached data.
+Explicit clear closes the window and clears copied text. Project UUID/root/Content-generation
+replacement closes the window and cancels its active press, preventing release against a new scope.
+Read-only projects can inspect; opening does not grant writer access.
+
+The view labels bytes as tracked Play host allocation payload, with current live/peak/rejection
+counts and last completed recovery separated. Missing modules and unavailable teardown/observations
+are explicit; it does not infer process RSS, total allocator/native/GPU usage or leak freedom.
+C++ UI consumers rebuild; the C/Zig and persisted scene/capture formats remain unchanged. The
+[embedding contract](../../Apps/Editor/README.md#host-allocation-ownership-observations) defines
+the owner publication phase and teardown freshness policy. Full production/physical budgets remain
+separate acceptance work.
+
 ## Retained native mesh memory Profiler
 
 The application supplies copied native allocation/CPU-key byte observations through ProfileSession.

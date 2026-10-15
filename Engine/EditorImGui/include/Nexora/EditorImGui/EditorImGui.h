@@ -266,6 +266,20 @@ struct MeshMemoryCaptureRequest final {
   foundation::Uuid project;
   std::filesystem::path root;
 };
+// Copied host payload observations. No allocator, World or module borrow enters the UI.
+struct PlayHostAllocationCounters final {
+  std::uint64_t live_allocations{}, live_bytes{}, peak_allocations{}, peak_bytes{};
+  std::uint64_t rejected_allocations{}, rejected_deallocations{};
+  std::uint64_t reclaimed_allocations{}, reclaimed_bytes{};
+  friend bool operator==(const PlayHostAllocationCounters &,
+                         const PlayHostAllocationCounters &) = default;
+};
+struct PlayHostMemoryObservation final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  std::uint64_t project_generation{}, play_generation{};
+  std::optional<PlayHostAllocationCounters> current, last_teardown;
+};
 class NEXORA_EDITOR_IMGUI_API EditorImGuiHost final {
 public:
   EditorImGuiHost();
@@ -333,6 +347,9 @@ public:
   [[nodiscard]] std::optional<PlayTransformReview> TakePlayApplyRequest();
   [[nodiscard]] std::string_view GameplayLibrary() const noexcept;
   void SetGameplayStatus(std::string message);
+  // Atomic owning publication; invalid values preserve the previous observation. Draw checks
+  // UUID/root/Content generation/Play generation again and clears stale or detached scopes.
+  bool SetPlayHostMemory(std::optional<PlayHostMemoryObservation> observation);
   void SetGameplayLibrary(std::string_view library, std::uint64_t project_generation = 0);
   [[nodiscard]] bool GameInputFocused() const noexcept;
   [[nodiscard]] std::uint32_t GameInputUser() const noexcept;

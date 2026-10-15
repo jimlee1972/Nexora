@@ -115,6 +115,11 @@ public:
   [[nodiscard]] static std::optional<std::filesystem::path>
   ContentFocusedFolder(const EditorImGuiHost &host);
   static void FocusGame(EditorImGuiHost &host) noexcept;
+  static std::optional<std::array<float, 2>> PlayMemoryButton(const EditorImGuiHost &) noexcept;
+  static std::string_view PlayMemoryText(const EditorImGuiHost &) noexcept;
+  static bool PlayMemoryOpen(const EditorImGuiHost &) noexcept;
+  static std::optional<PlayHostMemoryObservation> PlayMemory(const EditorImGuiHost &);
+  static std::optional<std::array<float, 4>> PlayMemoryRect(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   GameInputUserPosition(const EditorImGuiHost &host,
                         std::optional<std::uint32_t> user = {}) noexcept;

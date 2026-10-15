@@ -1335,6 +1335,13 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   與 production／實機 budget 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-PlayHostAllocations-Linux-2026-10-15.md)。
 
+- ✅ Game 面板現可開啟唯讀 Play host memory 視窗，精確顯示 live／peak payload、被拒請求
+  與最近 teardown 回收量。Owning UUID／root／Content／Play scope 排除過期與複製專案資料；
+  真正 1x／2x 控制涵蓋失敗載入、Pause／Stop、重複 session、唯讀存取及 scope／gesture 更換。
+  原生 Xvfb／Vulkan 驗收檢查實際顯示數字、像素、restart、Console 回收與來源保留。
+  此觀測僅計被追蹤的 host payload，與 RSS／GPU／總 allocator 及 production／實機 budget 分開。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-PlayHostMemoryUI-Linux-2026-10-15.md)。
+
 - ✅ Serial 100k-node product-shell scale／lifecycle gate 現會在 1x／2x DPI，透過兩次全新
   project／World／document／host cycle 量測 flat roots 與 expanded 99,998-node chain。
   每個 case 先 warmup 六個 frame，再量測十二次完整 CPU draw；schema-1 record 保留排序後
