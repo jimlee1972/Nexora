@@ -150,6 +150,13 @@ and retained green, and new-session blue under the same Atlas UUID. Main project
 admission and integrated Game preview/reload remain open; milestone counts are unchanged.
 [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
+✅ `TwoDPlayAssets` now freezes a bounded cooked Atlas/Clip closure from an explicit Runtime
+asset generation, validates dependencies and frame regions, and retains owning payloads across
+replacement, collection and store destruction. Temporary pins/residency balance on success and
+failure. This prerequisite does not establish project/source provenance or attach main Editor
+Play/Game preview; those integrations remain open and milestone counts are unchanged.
+[Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md).
+
 [Retained Zig/Linux acceptance](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 records the complete suite, initial GUI failures/retry and Shipping scope.
 

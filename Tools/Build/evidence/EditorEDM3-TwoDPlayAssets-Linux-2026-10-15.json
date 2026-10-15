@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "task": "nexora-zih.2",
+  "base": "3cb44bcd28a34a620ce67daaa54c5e7fd908b9ab",
+  "source_sha256": {
+    "Engine/Editor/include/Nexora/Editor/TwoDPlayAssets.h": "add30cd3822948b305825ae28e302a3c3e87a1da026cd7baea733f2824114d2d",
+    "Engine/Editor/src/TwoDPlayAssets.cpp": "7f532f69846307f4983465651c9af6c1a8bf41ee29d2ca89c3ca9fbab3946807",
+    "Engine/Editor/CMakeLists.txt": "77485f9c79edc380b9cb9401b65464612fd6f737369cfa947e1497972c6e3a08",
+    "Tests/TwoD/PlayAssetTests.cpp": "eaa29a78f986292b928f27b4059e0aea228a4881bf4c6847f380255824815e08",
+    "Tests/TwoD/CMakeLists.txt": "b3247af139da306736cd443ed61bb4c3c69a44f934e7a48664ee00f278b89a61"
+  },
+  "local_platform": "Linux",
+  "development": {
+    "configure": "passed",
+    "build_actions": 573,
+    "initial_ctest": {
+      "passed": 310,
+      "failed": 1,
+      "total": 311,
+      "skipped": 0,
+      "seconds": 1104.28,
+      "failure": "editor.linux_build_process_console"
+    },
+    "same_source_targeted_rerun": {
+      "passed": 1,
+      "total": 1,
+      "seconds": 7.41
+    },
+    "all_distinct_cases_observed_passing": 311,
+    "clean_first_full_run": false
+  },
+  "focused_ctest": {
+    "passed": 1,
+    "total": 1,
+    "seconds": 0.18
+  },
+  "shipping": {
+    "configure": "passed",
+    "build_actions": 18,
+    "scope": "Minimal Monolithic; excludes Editor and testing"
+  },
+  "feature_off": {
+    "configure": "passed",
+    "graphical_shell": true,
+    "new_source_and_test_absent": true,
+    "build_or_tests_run": false
+  },
+  "documentation": {
+    "unit_tests": 16,
+    "markdown_files": 7,
+    "root_readme_unchanged": true
+  },
+  "clang_width_syntax": "passed",
+  "formatted_cpp_files": 3,
+  "existing_native_play_soak": {
+    "cycles": 32,
+    "elapsed_seconds": 82.352,
+    "growth_limit": 33554432,
+    "lifecycle_records": 128,
+    "module_touched_bytes": 4194304,
+    "pixels_input_pause_step_discard": "passed",
+    "rss_after_stop": [
+      165543936,
+      169746432,
+      169746432,
+      169746432,
+      169750528,
+      169750528,
+      170782720,
+      169750528,
+      173436928,
+      173441024,
+      170582016,
+      169758720,
+      173445120,
+      171753472,
+      169816064,
+      169320448,
+      173506560,
+      173506560,
+      169820160,
+      169820160,
+      169820160,
+      172425216,
+      169832448,
+      170057728,
+      169824256,
+      169824256,
+      173510656,
+      173899776,
+      174673920,
+      173899776,
+      173899776,
+      173899776
+    ],
+    "rss_scope": "current_process_resident_set",
+    "rss_unit": "bytes",
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "validation_errors": 0,
+    "warm_baseline": 169746432,
+    "warmed_end": 173899776,
+    "warmed_peak": 174673920,
+    "warmup_cycles": 4
+  },
+  "remaining": [
+    "Project UUID/root/source revision and lease/access/recovery admission",
+    "Main Editor Play World and Game UI attachment",
+    "Integrated preview and hot reload",
+    "Physical Windows M6/M7 acceptance"
+  ]
+}

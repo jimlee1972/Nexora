@@ -59,6 +59,36 @@ project-scoped cooked asset capture, integrated Game UI/preview, full hot reload
 acceptance remain open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
 
+### Frozen cooked 2D Play assets
+
+`TwoDPlayAssets::Capture` owns an immutable CPU Atlas/Clip dependency closure from an explicit,
+nonzero `AssetGenerationStore` generation. Clip roots automatically include their Atlas. Duplicate
+or zero roots, missing assets, unsupported types, mismatched payload UUIDs, noncanonical dependency
+lists and missing frame regions reject the complete candidate. Runtime's store supplies already
+hash-verified cooked envelopes; capture additionally checks the schema and 2D codecs. It neither
+falls back to the active generation nor reads source files.
+
+The caller serializes capture with every mutation of the borrowed store. Capture temporarily pins
+the selected generation and balances each successful Load with Release, including early failure
+and C++ exception unwinding. Existing external pins/resident references survive. Successful results
+retain no store borrow or pin: decoded immutable payloads survive collection, rollback, store
+destruction and later same-UUID asset replacement. Returned shared owners can outlive the snapshot
+and serve the existing ClipResolver; surface texture allocation remains the rendering host's job.
+
+At most 4096 unique assets and 64 MiB of combined cooked payload bytes are admitted, including
+dependencies. Callers may reduce either bound. Empty closures are valid for an existing generation;
+zero budgets and attempts to raise the maximum reject. PayloadBytes counts unique serialized payload
+lengths, not allocator capacity, RSS or VRAM. Allocation exceptions propagate after temporary store
+ownership unwinds; validation failures return null and an optional diagnostic. No scene, source,
+authoring history, native GPU object or existing snapshot is mutated.
+
+This is a cooked-generation ownership prerequisite. The caller must establish project UUID/root,
+current Content/source revision, lease/access/recovery and package provenance before using it in
+main Editor Play. This API grants no project authority and does not attach `TwoDPlayContext` to the
+main Play World, Game UI or reload controls. `twod.play_assets` covers the real importer/cook/bundle/
+store path, 4096/4097-asset boundary, exact payload budget, failures with external references,
+generation replacement/collection and canonical gameplay consumption after store destruction.
+
 ## External Chrome duration import
 
 `ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`

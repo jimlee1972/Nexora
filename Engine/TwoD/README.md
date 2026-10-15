@@ -1,5 +1,11 @@
 # Nexora 2D contracts
 
+The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closures from one
+explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
+validates frame regions, bounds unique payload/count totals and preserves external residency/pins.
+See the [Editor ownership contract](../Editor/README.md#frozen-cooked-2d-play-assets).
+Project provenance and main Editor Play/Game attachment remain separate work.
+
 `Nexora::TwoD` is the optional `NEXORA_ENABLE_2D` module. It depends on Runtime and
 Presentation, requires Asset Pipeline and Window Presentation, and is removed from headless
 and Dedicated builds. Runtime remains independent of TwoD, Presentation and Editor. Public C++

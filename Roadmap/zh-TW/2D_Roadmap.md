@@ -137,6 +137,12 @@ Linux 原生像素區分相同 Atlas UUID 下的凍結紅、動畫及保留綠�
 [證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
 
 
+✅ `TwoDPlayAssets` 現可從明確 Runtime 資產世代凍結有限的 Cooked Atlas／Clip 相依閉包，
+驗證相依與 Frame Region，並於替換、世代回收及 Store 銷毀後保留擁有式資料。
+成功／失敗皆平衡暫時 Pin 與 Resident 引用。這是整合前置項，不代表專案／來源准入，
+也未接上主 Editor Play／Game 預覽；相關整合仍待完成，里程碑計數不變。
+[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md)。
+
 [保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
 
