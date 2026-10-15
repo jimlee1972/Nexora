@@ -291,6 +291,8 @@ public:
     if (!acquired_ || uiDrawn_ || compositeDrawn_ || (sceneOffscreen_ && !sceneComposited_) ||
         drawData.vertices.empty() || drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
+    if (!ValidateSpriteInstances(drawData))
+      return SurfaceStatus::InvalidDescriptor;
     for (const auto &upload : drawData.textureUploads) {
       const auto previous = uiTextures_.find(upload.textureId);
       if (previous != uiTextures_.end() && previous->second.immutable &&
@@ -302,7 +304,9 @@ public:
       if (!UploadUiTexture(upload))
         return SurfaceStatus::DeviceLost;
     const auto vertices = std::as_bytes(drawData.vertices);
-    const auto required = vertices.size() + drawData.indices.size();
+    const auto instances = std::as_bytes(drawData.spriteInstances);
+    const auto instanceOffset = (vertices.size() + drawData.indices.size() + 3U) & ~std::size_t(3);
+    const auto required = instanceOffset + instances.size();
     if (!EnsureUiUpload(required))
       return SurfaceStatus::DeviceLost;
     void *mapped = nullptr;
@@ -312,7 +316,11 @@ public:
     std::memcpy(mapped, vertices.data(), vertices.size());
     std::memcpy(static_cast<std::byte *>(mapped) + vertices.size(), drawData.indices.data(),
                 drawData.indices.size());
+    if (!instances.empty())
+      std::memcpy(static_cast<std::byte *>(mapped) + instanceOffset, instances.data(),
+                  instances.size());
     uiUploads_[frame_]->Unmap(0, nullptr);
+    diagnostics_.spriteInstanceUploadBytes += instances.size();
     auto rtv = heap_->GetCPUDescriptorHandleForHeapStart();
     rtv.ptr += SIZE_T(frame_) * increment_;
     commands_->OMSetRenderTargets(1, &rtv, FALSE, nullptr);
@@ -343,8 +351,10 @@ public:
       }
       commands_->SetGraphicsRootSignature(texture->second.nearest ? uiNearestRootSignature_.Get()
                                                                   : uiRootSignature_.Get());
-      commands_->SetPipelineState(texture->second.nearest ? uiNearestPipeline_.Get()
-                                                          : uiPipeline_.Get());
+      commands_->SetPipelineState(
+          command.instanceCount
+              ? (texture->second.nearest ? spriteNearestPipeline_.Get() : spritePipeline_.Get())
+              : (texture->second.nearest ? uiNearestPipeline_.Get() : uiPipeline_.Get()));
       commands_->SetGraphicsRoot32BitConstants(0, 4, transform, 0);
       auto descriptor = uiDescriptors_->GetGPUDescriptorHandleForHeapStart();
       descriptor.ptr += static_cast<UINT64>(texture->second.descriptor) * uiDescriptorIncrement_;
@@ -353,8 +363,19 @@ public:
                                command.clipX + static_cast<LONG>(command.clipWidth),
                                command.clipY + static_cast<LONG>(command.clipHeight)};
       commands_->RSSetScissorRects(1, &scissor);
-      commands_->DrawIndexedInstanced(command.elementCount, 1, command.indexOffset,
-                                      command.vertexOffset, 0);
+      if (command.instanceCount) {
+        const D3D12_VERTEX_BUFFER_VIEW instanceView{
+            uiUploads_[frame_]->GetGPUVirtualAddress() + instanceOffset,
+            static_cast<UINT>(instances.size()), sizeof(SpriteGpuInstance)};
+        commands_->IASetVertexBuffers(0, 1, &instanceView);
+        commands_->DrawInstanced(6, command.instanceCount, 0, command.firstInstance);
+        ++diagnostics_.spriteInstancedDrawCalls;
+        diagnostics_.spriteGpuInstances += command.instanceCount;
+      } else {
+        commands_->IASetVertexBuffers(0, 1, &vertexView);
+        commands_->DrawIndexedInstanced(command.elementCount, 1, command.indexOffset,
+                                        command.vertexOffset, 0);
+      }
       ++diagnostics_.nativeUiDrawCalls;
     }
     uiDrawn_ = true;
@@ -977,6 +998,8 @@ public:
     uiNearestPipeline_.Reset();
     uiNearestRootSignature_.Reset();
     uiPipeline_.Reset();
+    spritePipeline_.Reset();
+    spriteNearestPipeline_.Reset();
     uiRootSignature_.Reset();
     uiDescriptors_.Reset();
     scenePipeline_.Reset();
@@ -1112,6 +1135,13 @@ private:
       struct VSInput { float2 position : POSITION; float2 uv : TEXCOORD0; float4 color : COLOR0; };
       struct PSInput { float4 position : SV_Position; float2 uv : TEXCOORD0; float4 color : COLOR0; };
       PSInput VSMain(VSInput input) { PSInput output; output.position = float4(input.position * scale + translate, 0, 1); output.uv = input.uv; output.color = input.color; return output; }
+      struct SpriteInput { float2 origin : POSITION; float2 axisX : TEXCOORD0; float2 axisY : TEXCOORD1; float4 uv : TEXCOORD2; float4 color : COLOR0; };
+      PSInput SpriteMain(SpriteInput input, uint id : SV_VertexID) {
+        const float2 corners[6] = {float2(0,0),float2(1,0),float2(1,1),float2(0,0),float2(1,1),float2(0,1)};
+        float2 corner = corners[id]; PSInput output;
+        output.position = float4((input.origin + input.axisX * corner.x + input.axisY * corner.y) * scale + translate, 0, 1);
+        output.uv = lerp(input.uv.xy, input.uv.zw, corner); output.color = input.color; return output;
+      }
       Texture2D texture0 : register(t0); SamplerState sampler0 : register(s0);
       float4 PSMain(PSInput input) : SV_Target { return input.color * texture0.Sample(sampler0, input.uv); }
     )";
@@ -1152,8 +1182,31 @@ private:
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiPipeline_))))
       return false;
     pipeline.pRootSignature = uiNearestRootSignature_.Get();
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiNearestPipeline_))))
+      return false;
+    vertex.Reset();
+    if (FAILED(D3DCompile(shader, sizeof(shader), "NexoraSprite", nullptr, nullptr, "SpriteMain",
+                          "vs_5_0", 0, 0, &vertex, &errors)))
+      return false;
+    const D3D12_INPUT_ELEMENT_DESC instanceInputs[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(SpriteGpuInstance, origin),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(SpriteGpuInstance, axisX),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(SpriteGpuInstance, axisY),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"TEXCOORD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, offsetof(SpriteGpuInstance, uv),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1},
+        {"COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, offsetof(SpriteGpuInstance, color),
+         D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1}};
+    pipeline.InputLayout = {instanceInputs, static_cast<UINT>(std::size(instanceInputs))};
+    pipeline.VS = {vertex->GetBufferPointer(), vertex->GetBufferSize()};
+    pipeline.pRootSignature = uiRootSignature_.Get();
+    if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&spritePipeline_))))
+      return false;
+    pipeline.pRootSignature = uiNearestRootSignature_.Get();
     return SUCCEEDED(
-        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiNearestPipeline_)));
+        device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&spriteNearestPipeline_)));
   }
   // A self-contained indexed/lit/depth-tested pipeline for the Rendering Room, independent of the
   // 2D CreateUiResources() pipeline above and of the offscreen rhi::Device (which this surface does
@@ -1915,6 +1968,7 @@ private:
   ComPtr<ID3D12RootSignature> uiNearestRootSignature_;
   ComPtr<ID3D12PipelineState> uiNearestPipeline_;
   ComPtr<ID3D12PipelineState> uiPipeline_;
+  ComPtr<ID3D12PipelineState> spritePipeline_, spriteNearestPipeline_;
   ComPtr<ID3D12GraphicsCommandList> commands_;
   std::array<ComPtr<ID3D12CommandAllocator>, kMaximumFrames> allocators_;
   std::array<ComPtr<ID3D12Resource>, kMaximumFrames> buffers_;

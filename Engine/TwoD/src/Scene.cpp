@@ -374,7 +374,7 @@ SpriteFrame::Draw(Nexora::Presentation::RenderSurface &surface,
                   const Nexora::Presentation::UiDrawData &overlay) const {
   auto uploads = Uploads();
   return surface.DrawSprites({vertices, std::as_bytes(std::span(indices)), batches, uploads, true},
-                             overlay);
+                             overlay, true);
 }
 std::optional<Bytes> SpriteScene::Snapshot() const {
   auto world = world_->SaveScene(scene_, 16 * 1024 * 1024);

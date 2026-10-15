@@ -6,7 +6,8 @@
 namespace Nexora::Presentation {
 std::optional<PreparedSpriteDraws> PrepareSpriteDraws(const UiDrawData &sprites,
                                                       const UiDrawData &overlay,
-                                                      std::uint32_t width, std::uint32_t height) {
+                                                      std::uint32_t width, std::uint32_t height,
+                                                      bool instanceQuads) {
   if (!width || !height || width > 16384 || height > 16384)
     return std::nullopt;
   PreparedSpriteDraws result;
@@ -22,6 +23,11 @@ std::optional<PreparedSpriteDraws> PrepareSpriteDraws(const UiDrawData &sprites,
   result.textureUploads.push_back({whiteId, 1, 1, 4, white, true, true});
   std::map<std::uint64_t, UiTextureUpload> textures;
   for (const auto *packet : {&sprites, &overlay}) {
+    if (!packet->spriteInstances.empty() || !ValidateSpriteInstances(*packet))
+      return std::nullopt;
+    for (const auto &command : packet->commands)
+      if (command.instanceCount)
+        return std::nullopt;
     const auto stride = packet->indices32Bit ? 4U : 2U;
     if (packet->indices.size() % stride ||
         packet->vertices.size() > 1000000 - result.vertices.size() ||
@@ -73,6 +79,49 @@ std::optional<PreparedSpriteDraws> PrepareSpriteDraws(const UiDrawData &sprites,
                        upload.pixels.end())))
         return std::nullopt;
     }
+    if (instanceQuads && packet == &sprites) {
+      for (auto command : packet->commands) {
+        if (command.elementCount % 6)
+          return std::nullopt;
+        command.firstInstance = static_cast<std::uint32_t>(result.spriteInstances.size());
+        const auto end = command.indexOffset + command.elementCount;
+        for (std::size_t i = command.indexOffset; i < end; i += 6) {
+          if (result.spriteInstances.size() >= 100000)
+            return std::nullopt;
+          const auto at = [&](unsigned n) -> const UiVertex & {
+            return packet
+                ->vertices[std::size_t(std::int64_t(indices[i + n]) + command.vertexOffset)];
+          };
+          const auto &a = at(0), &b = at(1), &c = at(2), &d = at(5);
+          if (indices[i] != indices[i + 3] || indices[i + 2] != indices[i + 4] ||
+              a.color != b.color || a.color != c.color || a.color != d.color ||
+              a.uv[0] != d.uv[0] || b.uv[0] != c.uv[0] || a.uv[1] != b.uv[1] || c.uv[1] != d.uv[1])
+            return std::nullopt;
+          SpriteGpuInstance instance;
+          for (unsigned axis = 0; axis < 2; ++axis) {
+            instance.origin[axis] = a.position[axis];
+            instance.axisX[axis] = b.position[axis] - a.position[axis];
+            instance.axisY[axis] = d.position[axis] - a.position[axis];
+            const auto expected = double(b.position[axis]) + d.position[axis] - a.position[axis];
+            if (std::abs(expected - c.position[axis]) > 1e-4 * std::max(1.0, std::abs(expected)))
+              return std::nullopt;
+          }
+          instance.uv[0] = a.uv[0];
+          instance.uv[1] = a.uv[1];
+          instance.uv[2] = c.uv[0];
+          instance.uv[3] = c.uv[1];
+          instance.color = a.color;
+          result.spriteInstances.push_back(instance);
+        }
+        command.instanceCount =
+            static_cast<std::uint32_t>(result.spriteInstances.size()) - command.firstInstance;
+        command.elementCount = 6;
+        command.indexOffset = 0;
+        command.vertexOffset = 0;
+        result.commands.push_back(command);
+      }
+      continue;
+    }
     const auto vertexBase = static_cast<std::int32_t>(result.vertices.size());
     const auto indexBase = static_cast<std::uint32_t>(result.indices.size());
     result.vertices.insert(result.vertices.end(), packet->vertices.begin(), packet->vertices.end());
@@ -92,6 +141,8 @@ std::optional<PreparedSpriteDraws> PrepareSpriteDraws(const UiDrawData &sprites,
     (void)id;
     result.textureUploads.push_back(texture);
   }
+  if (!ValidateSpriteInstances(result.View()))
+    return std::nullopt;
   return result;
 }
 } // namespace Nexora::Presentation

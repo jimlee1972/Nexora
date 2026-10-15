@@ -1,6 +1,6 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.2 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-14
+> 版本：v1.3 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-15
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
 > Portable／Linux 功能證據。M6 最低規格實體 PC 60 FPS 與 M7 乾淨 Windows
@@ -130,6 +130,26 @@ ID／Handle 而不重複建立內容；C／C++／Zig 布局及橋接負面契約
 
 [保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
+
+## 9. Zig 控制 GPU Instancing（2026-10-15）
+
+✅ `SpriteFrame::Draw` 現在以 44 bytes 的 Affine／UV／Tint 資料提交至原生
+Vulkan／DX12／Metal 的 Instance-rate Vertex Pipeline，由 Vertex ID 產生六個 Quad 頂點。
+沿用 Zig V1 的批次建立／讀取／更新／刪除，不改 C ABI。投影、剔除、排序及更新仍在 CPU；
+CPU 三角形快照仍供 Editor 預覽及檢查。只有透明排序後相鄰且 Atlas 相容的 Sprite 才共用
+Draw；背景／HUD、不可變 Atlas 世代、最近點／線性取樣與 In-flight Buffer 所有權皆保留。
+無效／非 Affine Quad 或溢位 Instance 範圍在原生提交前拒絕。
+
+✅ Linux Vulkan 像素驗證涵蓋單次 256 Instances、跨 Atlas 透明排序、HUD、UV 翻轉、
+線性取樣與 Tilemap 區塊變更。實際 Zig 輸入／Reload 驗證呈現 600 幀，並檢查原生
+Instanced Draw／Instance 數量／上傳 Bytes。使用方法見
+[Zig 文件](../../Gameplay/Zig/README.md#gpu-instanced-2d-rendering-from-zig)、
+[Presentation Contract](../../Engine/Presentation/README.md) 及
+[驗收紀錄](../../Engine/TwoD/evidence/GPU-Instancing-Linux-2026-10-15/acceptance.md)。
+
+這補齊既有 M5 的原生實例化能力，不增加 9/11、P0 6/8。Windows 實體 M6／M7 維持
+NOT RUN。Compute 模擬／剔除、Indirect Draw、Script 自有 GPU Buffer 與通用
+Mesh／Material Instancing 留待此 2D 切片之後實作。
 
 - [Roadmap 索引](../ReadMe.md)
 - [V1 完整規劃書](跨平台3D_Engine_V1_完整規劃書_v1_2.md)
