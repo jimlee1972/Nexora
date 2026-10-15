@@ -55,6 +55,12 @@ Play 通過。嵌入主專案時仍須保留 ED-M1 資產、ED-M2 Transaction �
 Atlas。這是整合前置項；主專案 Host 接線、專案／Cooked 世代擷取，以及整合 Game
 預覽／Reload 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
 
+✅ `TwoDPlayAssets` 現可從明確 Runtime 資產世代凍結有限的 Cooked Atlas／Clip 相依閉包，
+驗證相依與 Frame Region，並於替換、世代回收及 Store 銷毀後保留擁有式資料。
+成功／失敗皆平衡暫時 Pin 與 Resident 引用。這是整合前置項，不代表專案／來源准入，
+也未接上主 Editor Play／Game 預覽；相關整合仍待完成，里程碑計數不變。
+[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md)。
+
 ```text
 NexoraEditor (tool process)
   UI shell + docking + commands + workspace persistence

@@ -59,6 +59,13 @@ frozen/animated/retained/new-session Atlas pixels. This is an integration prereq
 project host routing, project/cooked generation capture and integrated Game preview/reload remain
 open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
+✅ `TwoDPlayAssets` now freezes a bounded cooked Atlas/Clip closure from an explicit Runtime
+asset generation, validates dependencies and frame regions, and retains owning payloads across
+replacement, collection and store destruction. Temporary pins/residency balance on success and
+failure. This prerequisite does not establish project/source provenance or attach main Editor
+Play/Game preview; those integrations remain open and milestone counts are unchanged.
+[Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md).
+
 ```text
 NexoraEditor (tool process)
   UI shell/docking/commands/workspace persistence
