@@ -15,8 +15,10 @@ public:
   bool Poll(GameplayInput &input, std::uint32_t user = 0);
 
 private:
+#if defined(__linux__)
   std::array<int, 4> descriptors_{{-1, -1, -1, -1}};
   std::chrono::steady_clock::time_point next_scan_{};
+#endif
   std::thread::id owner_;
 };
 } // namespace nexora::runtime

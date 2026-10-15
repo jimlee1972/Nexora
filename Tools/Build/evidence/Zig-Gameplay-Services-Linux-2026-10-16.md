@@ -54,6 +54,42 @@ pairs also passed the repository documentation validator. The initial full test 
 a missing `clang++` in the environment; after provisioning Clang 19.1.7, the complete preset
 was rerun successfully. Native checks ran with local socket permission, not a skipped Xvfb run.
 
+## Expanded application and cross-platform compile follow-up
+
+Hosted CI identified three warning-as-error integration failures: Showcase omitted the appended
+V3 service callback initializer, MSVC rejected a font-validation local that hid a state member,
+and Clang rejected unused Linux-only controller fields in the portable fallback. The fixes add
+the explicit null callback, rename the local codepoint variable and guard platform-only fields.
+No gameplay behavior or service contract changes.
+
+The follow-up enables both Showcase and the graphical Editor, retaining the Zig, Slang and native
+ProjectPlayer options above:
+
+```sh
+cmake --preset linux-development -DNEXORA_BUILD_SHOWCASE=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
+cmake --build --preset linux-development -j 4
+ctest --preset linux-development --output-on-failure -j 4
+ctest --preset linux-development --rerun-failed --output-on-failure -j 1
+cmake --preset linux-shipping -DNEXORA_BUILD_SHOWCASE=ON
+cmake --build --preset linux-shipping -j 2
+build/linux-shipping/Gameplay/Zig/NexoraZigTwoD --frames 60
+```
+
+Development configure/build passed. All **331 tests have passing results**: the full parallel
+run passed 322/331 (621.21 seconds); nine Editor native UI/display tests failed under concurrent
+software rendering and all nine passed when rerun sequentially (239.79 seconds), without source
+changes. These were prefab isolation, plugin manager, Xvfb lifetime, scene files, build process
+console, native scene preview/center, native gameplay module and prefab placement overrides.
+The record does not claim a clean parallel 331/331 run. The suite includes 100k-node hierarchy
+lifecycle and native Play soak acceptance. Shipping configure/build including Showcase passed;
+the 60-frame Zig smoke again reported PASS, successful reload and balanced allocations.
+
+Clang 19.1.7 also passed `-std=c++20 -Wall -Wextra -Wpedantic -Werror -U__linux__ -fsyntax-only`
+on `Engine/Runtime/src/GameplayGamepad.cpp`, with the repository's Runtime, Renderer, RHI, Core,
+Foundation and API include directories. This checks the portable controller fallback on Linux;
+it is not a macOS execution result. Linux native tests used the provisioned lavapipe ICD and
+local socket permission; the sequential rerun used a writable temporary Mesa shader cache.
+
 ## Limits
 
 No physical audio device/controller, readable production Chinese font/artwork, Windows/macOS/mobile

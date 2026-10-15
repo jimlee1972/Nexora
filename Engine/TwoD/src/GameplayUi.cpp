@@ -287,16 +287,16 @@ struct GameplayUi::State final {
         return false;
     std::sort(font.glyphs.begin(), font.glyphs.end(),
               [](const auto &a, const auto &b) { return a.codepoint < b.codepoint; });
-    std::uint32_t previous = UINT32_MAX;
+    std::uint32_t previousCodepoint = UINT32_MAX;
     for (const auto &g : font.glyphs) {
       if (!g.codepoint || g.codepoint > 0x10FFFF ||
-          (g.codepoint >= 0xD800 && g.codepoint <= 0xDFFF) || previous == g.codepoint ||
+          (g.codepoint >= 0xD800 && g.codepoint <= 0xDFFF) || previousCodepoint == g.codepoint ||
           !Finite(g.advance) || g.advance < 0 || !Finite(g.x) || !Finite(g.y) || !Finite(g.width) ||
           !Finite(g.height) || g.width < 0 || g.height < 0 || !std::isfinite(g.u0) ||
           !std::isfinite(g.v0) || !std::isfinite(g.u1) || !std::isfinite(g.v1) || g.u0 < 0 ||
           g.v0 < 0 || g.u1 > 1 || g.v1 > 1 || g.u0 > g.u1 || g.v0 > g.v1)
         return false;
-      previous = g.codepoint;
+      previousCodepoint = g.codepoint;
     }
     fonts.push_back(std::make_shared<const GameplayUiFont>(std::move(font)));
     return true;
