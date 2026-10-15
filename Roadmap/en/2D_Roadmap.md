@@ -1,10 +1,11 @@
 # Nexora 2D Engine Roadmap
 
-> Version: v1.3 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-15
+> Version: v1.4 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-15
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
-> have portable/Linux functional evidence. M6 physical minimum-PC 60 FPS and M7 clean Windows
-> runtime/Shipping remain **NOT RUN**. This is not full Windows PC product acceptance.
+> have portable/Linux functional evidence. M6 physical minimum-PC acceptance remains open.
+> M7 clean Windows runtime/Shipping is **PARTIAL / NOT ACCEPTED** after VM prerequisite/CPU
+> checks; native DX12 failed and Vulkan was unavailable. This is not full Windows PC product acceptance.
 
 ## 1. Scope and baseline
 
@@ -32,7 +33,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
 | 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Cloud implementation verified; physical Windows gate NOT RUN |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | Cloud implementation verified; physical Windows gate NOT RUN |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM prerequisites/CPU slice passed after Runtime installation; native DX12 failed, Vulkan unavailable; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
@@ -114,9 +115,10 @@ M6 cloud slice: ✅ CPU/GPU timing, load/reload spikes, process RSS, batches, AA
 and overlap scenarios are reproducible. Hardware/minimum-spec/frame-spike budgets remain TBD;
 software Vulkan results do not accept the physical 60 FPS gate.
 M7 cloud slice: ✅ Linux Monolithic Shipping staged with cooked hashes, Core asynchronous loading,
-corruption rejection and no Editor/development engine library dependency. Windows clean-machine
-input/controller, UI/text, actual audio, async failure/reload/save, native DX12/Vulkan, display/DPI
-and shutdown are **NOT RUN**. Windows backend compilation in CI is not that acceptance.
+corruption rejection and no Editor/development engine library dependency. Section 10 records
+partial Windows VM prerequisite/CPU checks; native DX12 failed and Vulkan was unavailable.
+Input/controller, UI/text, actual audio, save/reopen, display/DPI and full product shutdown remain
+unverified. **M7 is NOT ACCEPTED**; Windows backend compilation in CI is not that acceptance.
 
 Retained [Linux acceptance record](../../Engine/TwoD/evidence/Linux-2026-10-14/acceptance.md)
 contains commands, platform scope, captures and workload CSV. See [module contracts](../../Engine/TwoD/README.md)
@@ -169,8 +171,28 @@ See [usage](../../Gameplay/Zig/README.md#gpu-instanced-2d-rendering-from-zig),
 [acceptance](../../Engine/TwoD/evidence/GPU-Instancing-Linux-2026-10-15/acceptance.md).
 
 This completes the native instancing addition to accepted M5, without increasing 9/11 or
-P0 6/8. Physical Windows M6/M7 remain NOT RUN. Compute simulation/culling, indirect draws,
+P0 6/8. Physical Windows M6/M7 remain unaccepted; the older VM package slice below does not
+validate this instancing addition. Compute simulation/culling, indirect draws,
 script-owned GPU buffers and general Mesh/Material instancing are deferred beyond this 2D slice.
+
+## 10. Windows VirtualBox partial acceptance (2026-10-15)
+
+✅ A frozen Monolithic Shipping package has matching EXE/Atlas/Clip hashes in the Windows 10
+VirtualBox guest. After explicit installation of Microsoft-signed VC++ Runtime 14.51.36247.0,
+two configurations each pass six CPU workloads, cooked asynchronous load/reload and corrupt-Atlas
+rejection. The original baseline launch failed with `0xC0000135` due to missing Runtime DLLs.
+[Acceptance and raw evidence](../../Engine/TwoD/evidence/Windows-VirtualBox-2026-10-15/acceptance.md)
+retain exact runtime provenance, commands, hashes, exits and limitations.
+
+**M7 remains PARTIAL / NOT ACCEPTED.** With 3D off, the software DX12 path fails at `stress draw`;
+with 3D on, the VirtualBox adapter rejects DX12 device creation (`0x887A0004`) and the application
+fails at `stress acquire`. Vulkan loader/ICD were absent and the tested package had Vulkan disabled.
+Physical input/controller, audio, UI/text visuals, VM Studio save/reopen, display/DPI and successful
+native presentation remain unverified. The frozen executable predates the latest instancing code;
+this slice does not validate current main. M6 stays open; progress remains **9/11, P0 6/8 (82%)**.
+
+The VM was shut down normally and restored to 3D off/64 MiB VRAM, retaining the installed Runtime.
+Beads parent `nexora-j4q` remains open; execution is `nexora-j4q.4`. Work stops here at the user's request.
 
 - [Roadmap index](../ReadMe.md)
 - [V1 Complete Plan](Cross-platform_3D_Engine_V1_Complete_Plan_v1_2.md)
