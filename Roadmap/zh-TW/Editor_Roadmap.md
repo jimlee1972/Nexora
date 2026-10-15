@@ -49,6 +49,12 @@ TwoDDocument 沿用 Runtime World／UndoStack，2D Studio Panel 沿用既有 Edi
 Play 通過。嵌入主專案時仍須保留 ED-M1 資產、ED-M2 Transaction 與 ED-M5 Path／Access／Lease
 檢查；獨立工具不代表整個 ED 里程碑驗收。Windows 實體與 Runtime／Shipping gate 仍分開。
 
+✅ 擁有式隔離 `TwoDPlayContext` 現可快照文件 World／Sprite／碰撞資料、凍結 Atlas／Clip、
+複製 Tilemap／區塊狀態，並擁有新的有限物件池與 2D Gameplay Bridge。實際 V3 Callback
+生命週期與來源 Undo／Redo 保全已有驗證，Linux 原生像素涵蓋凍結／動畫／保留及新 Session
+Atlas。這是整合前置項；主專案 Host 接線、專案／Cooked 世代擷取，以及整合 Game
+預覽／Reload 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
+
 ```text
 NexoraEditor (tool process)
   UI shell + docking + commands + workspace persistence

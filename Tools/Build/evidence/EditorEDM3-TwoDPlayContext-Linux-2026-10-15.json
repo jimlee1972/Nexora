@@ -1,0 +1,156 @@
+{
+  "scope": "isolated TwoDDocument Play prerequisite; main project attachment remains open",
+  "source_sha256": {
+    "Engine/Editor/include/Nexora/Editor/TwoDPlayContext.h": "2fe596b6a8f25029f3cbd58f94768ed9d6de5eb2c471c7d263256b0e4417e86d",
+    "Engine/Editor/src/TwoDPlayContext.cpp": "8c03fb5da8d2267837ccdbbbf9e48dd3c47a96048fc571400219691878157cac",
+    "Engine/Editor/CMakeLists.txt": "092b8c7bc45f4e40e3657cc2f8935afdda5a42b7a7385a03ae409b32ba16d6e0",
+    "Tests/TwoD/PlayContextTests.cpp": "5eddd2e61b0702e6fa68f45f1153c19db7285eb849ea4a545405e034c9918fa9",
+    "Tests/TwoD/CMakeLists.txt": "e6733522f99cd4f1417eb67d62313ff5f1278bdc18ca4455d5daf2635a0ae437"
+  },
+  "preflight": {
+    "portable_ctest_seconds": 1.27,
+    "native_ctest_seconds": 1.74,
+    "total_ctest_seconds": 3.02,
+    "note": "Preflight precedes the final owned-scene activation assertion and structured native sample output. Final full gate is pending."
+  },
+  "native_report": {
+    "command": [
+      "/workspace/Nexora/build/linux-development/Tests/TwoD/NexoraTwoDPlayContextNativeTests",
+      "/workspace/Nexora/build/linux-development/artifacts/twod-play-context/scene.ppm"
+    ],
+    "exit_code": 0,
+    "acceptance_passed": true,
+    "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+    "physical_display_verified": false,
+    "validation_layer_requested": true
+  },
+  "final_gates": {
+    "linux_development": {
+      "configure": "passed",
+      "build_actions": 570,
+      "ctest_passed": 310,
+      "ctest_skipped": 0,
+      "ctest_seconds": 1050.27,
+      "play_context_ctest_seconds": 1.52,
+      "play_context_native_ctest_seconds": 1.77,
+      "hierarchy_100k_seconds": 161.04,
+      "existing_native_play_soak_seconds": 82.05
+    },
+    "linux_shipping": {
+      "configure": "passed",
+      "build": "passed; final incremental no work to do",
+      "prior_build_actions": 7,
+      "configuration": "Shipping",
+      "link_mode": "Monolithic",
+      "profile": "Minimal",
+      "editor": false,
+      "testing": false
+    },
+    "two_d_off": {
+      "graphical_editor_configure": "passed",
+      "new_implementation_and_test_targets": "absent",
+      "build": "not run; configuration boundary only"
+    },
+    "documentation_routing_tests": 16,
+    "markdown_files_checked": 7,
+    "cpp_files_format_checked": 3
+  },
+  "pre_order_source_sha256": {
+    "Engine/Editor/include/Nexora/Editor/TwoDPlayContext.h": "2fe596b6a8f25029f3cbd58f94768ed9d6de5eb2c471c7d263256b0e4417e86d",
+    "Engine/Editor/src/TwoDPlayContext.cpp": "8002c523ae6f35daf117dc949522a51fb4c04e27809ab48a7cdd90e4a13891a8",
+    "Engine/Editor/CMakeLists.txt": "092b8c7bc45f4e40e3657cc2f8935afdda5a42b7a7385a03ae409b32ba16d6e0",
+    "Tests/TwoD/PlayContextTests.cpp": "3948cdb82a45f168c1833871ec23a5d99435a46703b65702d2f9cf340d762c63",
+    "Tests/TwoD/CMakeLists.txt": "e6733522f99cd4f1417eb67d62313ff5f1278bdc18ca4455d5daf2635a0ae437"
+  },
+  "ordering_regression": {
+    "before": "failed 0.01s: Play changed the existing entity-ID transparency tie order",
+    "scope": "valid scene storage20,10 vs independent existing SpriteScene entity-ID order10,20",
+    "fix": "sort owning pose snapshot by entity ID before draw namespace assignment",
+    "full_gate": "final restarted310/310 pass; initial interrupted gate excluded",
+    "before_source_cpp_sha256": "8002c523ae6f35daf117dc949522a51fb4c04e27809ab48a7cdd90e4a13891a8",
+    "regression_test_sha256": "5eddd2e61b0702e6fa68f45f1153c19db7285eb849ea4a545405e034c9918fa9"
+  },
+  "native_rgb_report": {
+    "rgb": [
+      [
+        255,
+        0,
+        0
+      ],
+      [
+        255,
+        0,
+        0
+      ],
+      [
+        0,
+        255,
+        0
+      ],
+      [
+        0,
+        255,
+        0
+      ],
+      [
+        0,
+        0,
+        255
+      ]
+    ],
+    "native_texture_uploads": 3,
+    "source_bytes": "unchanged"
+  },
+  "native_capture_sha256": "6e3b5976f79c900b911f5f883bd72863609a7051fc7042c5fe33d29362c15969",
+  "existing_native_play_soak": {
+    "cycles": 32,
+    "elapsed_seconds": 81.966,
+    "growth_limit": 33554432,
+    "lifecycle_records": 128,
+    "module_touched_bytes": 4194304,
+    "pixels_input_pause_step_discard": "passed",
+    "rss_after_stop": [
+      169127936,
+      169644032,
+      170504192,
+      173330432,
+      169893888,
+      169648128,
+      173334528,
+      170708992,
+      169652224,
+      169697280,
+      173338624,
+      171171840,
+      169656320,
+      169709568,
+      173395968,
+      169713664,
+      170303488,
+      171667456,
+      169713664,
+      169713664,
+      173400064,
+      173400064,
+      169713664,
+      169713664,
+      169713664,
+      169713664,
+      169717760,
+      170770432,
+      170770432,
+      170770432,
+      170770432,
+      174473216
+    ],
+    "rss_scope": "current_process_resident_set",
+    "rss_unit": "bytes",
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "validation_errors": 0,
+    "warm_baseline": 173330432,
+    "warmed_end": 174473216,
+    "warmed_peak": 174473216,
+    "warmup_cycles": 4
+  }
+}

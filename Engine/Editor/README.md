@@ -17,6 +17,44 @@ A main-project host must retain its existing access, recovery, lease and generat
 import/save publication. This isolated tool does not complete the main graphical Editor milestones.
 Editor optionally depends on TwoD; Runtime/Shipping depend on neither document nor GUI.
 
+### Owning isolated 2D Play context
+
+`TwoDPlayContext::Create` captures a `TwoDDocument` into a distinct Play World, activates its scene and owns its
+Sprite/collider metadata, immutable copied Atlas/Clip, copied Tilemap (including unloaded chunks),
+fresh InstancePool and canonical GameplayBridge. Source snapshots are capped at 64 MiB; the
+pool budget is 1..4096, default 4096. Creation fails atomically without changing source bytes,
+Dirty, read-only mode or Undo/Redo. It may inspect read-only documents. No document reference,
+source span, filesystem path, project lease or native renderer is retained.
+
+The context is a noncopyable/nonmovable owner-thread object. Its World may be mutated only in
+serialized gameplay/owner phases. `GetApi` reuses the canonical size/version, copied output,
+wrong-thread and C exception boundaries. Clip lookup matches the full UUID against the frozen
+clip; authoring replacement, Undo, document destruction and rendering never change its clock or
+assets. Tile/pool changes remain in this session. Pool handles from another context reject.
+Removing World entities requires `ForgetEntity` for every destroyed descendant before further
+use. The caller must unload all modules and finish callbacks **before destroying the context**;
+copied C tables are borrowed and must not be invoked afterward. Stop/Destroy can still use the
+services. Context destruction then releases bridge, pool/tiles/assets/metadata before World.
+This owner does not load, reload or automatically stop a gameplay module.
+
+`ExtractFrame` collects scene poses, transient instances and loaded visible tiles into one
+globally sorted frame, with distinct draw-only tie identities and a shared 100,000-instance
+limit. Scene ties preserve existing entity-ID order even when storage order differs; equally
+sorted pool inputs follow scene inputs, then tiles, with stable order within each namespace.
+Invalid extent/texture, overflow, allocation or extraction failure returns unavailable.
+It performs no IO, tick/animation advancement or GPU work. Unknown Atlas/region references use
+the existing unavailable accounting. Frames retain immutable Atlas owners after context/source
+destruction. The presentation host supplies a nonzero fresh surface-local texture ID for each
+Atlas generation, excluding the two reserved largest IDs, and retires native textures after work
+completes. A new context can contain changed pixels under the same asset UUID and needs a new ID.
+
+`twod.play_context` exercises 32 actual V3 module lifetimes, source replacement/history,
+failed Start, stale handles and copied extraction. `twod.play_context_native` uses X11/Vulkan
+pixels for frozen red, animated green, retained green after owner destruction and new-session
+blue. These are prerequisite ownership/renderer contracts; main project Editor routing,
+project-scoped cooked asset capture, integrated Game UI/preview, full hot reload and physical
+acceptance remain open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+
 
 ## External Chrome duration import
 

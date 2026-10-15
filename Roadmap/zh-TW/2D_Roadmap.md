@@ -127,6 +127,13 @@ ID／Handle 而不重複建立內容；C／C++／Zig 布局及橋接負面契約
 計數，也不代表 M6／M7 實體 Windows 驗收。主 Editor 專案／Play 掛接與正式遊戲內容
 屬於另外的整合工作。
 
+✅ 可選 Editor 現提供擁有式 `TwoDPlayContext` 前置項：隔離文件 World／Sprite／碰撞資料、
+凍結 Atlas／Clip、複製 Tilemap／區塊，並以新的有限物件池包住標準 2D Bridge。
+實際模組 Callback、32 次 Session 生命週期、擁有式繪圖資料與來源／History 保全已有驗證；
+Linux 原生像素區分相同 Atlas UUID 下的凍結紅、動畫及保留綠、新 Session 藍。
+主專案／Cooked 資產准入與整合 Game 預覽／Reload 仍待完成；里程碑數不變。
+[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
+
 
 [保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
