@@ -65,8 +65,8 @@ int32_t Start(void *) {
 int32_t Update(void *, double delta) {
   std::array<NexoraTwoDEvent, 2> events{};
   NexoraTwoDAnimationResult result{};
-  const auto status =
-      api.advance_animation(api.context, entity, delta, events.data(), events.size(), &result);
+  const auto status = api.advance_animation(api.context, entity, delta, events.data(),
+                                            static_cast<std::uint32_t>(events.size()), &result);
   if (status || result.region != 2 || result.event_count != 1 || events[0].length != 5 ||
       std::string_view(events[0].name, events[0].length) != "green")
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
@@ -218,8 +218,8 @@ void Run() {
     const NexoraTwoDShape query{0, {0, {0, 0}, {0.5F, 0.5F}, 0.1F, 1, UINT32_MAX}};
     std::array<std::uint64_t, 4> hits{};
     std::uint32_t hitCount{};
-    Check(api.overlap(api.context, 0, &query, hits.data(), hits.size(), &hitCount) ==
-                  NEXORA_GAMEPLAY_OK &&
+    Check(api.overlap(api.context, 0, &query, hits.data(), static_cast<std::uint32_t>(hits.size()),
+                      &hitCount) == NEXORA_GAMEPLAY_OK &&
               hitCount == 1 && hits[0] == entity,
           "copied collider lost its isolated World identity");
     const auto beforeAdvance = context->ExtractFrame(320, 240, cycle + 100);
@@ -341,7 +341,8 @@ void Run() {
   std::vector<NexoraTwoDTile> cells;
   for (int i = 0; i < 99999; ++i)
     cells.push_back({i % 317 - 158, i / 317 - 158, 0, 1, 0});
-  Check(limitApi.paint_tiles(limitApi.context, cells.data(), cells.size()) == NEXORA_GAMEPLAY_OK &&
+  Check(limitApi.paint_tiles(limitApi.context, cells.data(),
+                             static_cast<std::uint32_t>(cells.size())) == NEXORA_GAMEPLAY_OK &&
             limited->Tiles().Tiles().size() == 99999,
         "frame budget tile preparation");
   const auto exact = limited->ExtractFrame(320, 240, 43);

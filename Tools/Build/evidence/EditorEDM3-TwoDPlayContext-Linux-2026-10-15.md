@@ -59,18 +59,24 @@ to the actual existing contract; pixel, quota and source-conservation checks wer
 The initial full gate was interrupted during hierarchy scale testing to add and fix the
 non-ID-storage transparency regression; it is not counted as a completed full run.
 
+Initial source `eb766960` passed Linux310/310 but hosted Windows MSVC14.51 /W4 /WX rejected
+three implicit size_t-to-uint32 test capacities (events2, hits4, cells99999), C4267. Explicit
+casts now state those bounded widths; no warning policy, production code or assertion changed.
+Clang `-Werror=shorten-64-to-32` syntax validation and a complete restarted Linux gate pass.
+Companion JSON preserves the earlier gate and exact failure run/job separately.
+
 ## Final gates
 
 - `cmake --preset linux-development`; `cmake --build --preset linux-development`: passed,
   **570 build actions**, graphical shell/real Zig/Slang enabled.
-- `ctest --preset linux-development`: final restarted run **310/310, zero skipped, 1050.27 s**.
-  New portable/native tests **1.52/1.77 s**, including the independent storage-order regression.
+- `ctest --preset linux-development`: final restarted run **310/310, zero skipped, 1056.48 s**.
+  New portable/native tests **1.40/1.75 s**, including the independent storage-order regression.
   Native RGB samples are exactly red/red/green/green/blue, three verified texture uploads,
   unchanged source bytes, no stderr, Khronos validation requested. Companion JSON retains the
   structured report, capture hash and all five unchanged final source/test hashes.
-- Existing 100k hierarchy lifecycle **161.04 s** and native Play soak **82.05 s** pass.
+- Existing 100k hierarchy lifecycle **165.97 s** and native Play soak **82.00 s** pass.
   The latter retains 32 cycles/128 records, source pixels/bytes and zero validation errors;
-  warmed RSS peak growth **1142784 bytes** is within its unchanged 33554432-byte guard.
+  warmed RSS peak growth **5025792 bytes** is within its unchanged 33554432-byte guard.
   This observation is not a cause/fix or proof of all-memory leak freedom.
 - `cmake --preset linux-shipping`; `cmake --build --preset linux-shipping`: passed;
   prescribed Minimal Monolithic, Editor/testing excluded. Initial incremental build had seven
