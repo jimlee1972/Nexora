@@ -25,3 +25,13 @@ add_test(NAME api.m6_manifest_compatibility
 if(TARGET NexoraApiFoundationSample)
   add_test(NAME samples.api_foundation COMMAND NexoraApiFoundationSample)
 endif()
+
+if(NEXORA_ZIG_EXECUTABLE)
+  add_test(NAME api.gameplay_input_zig_abi
+    COMMAND "${CMAKE_COMMAND}" -E env
+      "ZIG_GLOBAL_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/zig-global-cache"
+      "ZIG_LOCAL_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/zig-local-cache"
+      "${NEXORA_ZIG_EXECUTABLE}" test -I "${PROJECT_SOURCE_DIR}/Engine/API/include"
+      --dep input "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayInputAbi.zig"
+      "-Minput=${PROJECT_SOURCE_DIR}/Bindings/Zig/input.zig" -lc)
+endif()

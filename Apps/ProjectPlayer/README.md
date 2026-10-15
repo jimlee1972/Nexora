@@ -25,9 +25,9 @@ macOS execution have not been performed in this cloud environment.
 Unknown opaque records remain present but inactive. Scalar material bindings override StaticView
 appearance explicitly while preserving full legacy shader IDs; an unimplemented nonzero legacy
 shader without such a binding rejects. No project source directory is required to verify an
-already-produced package. The player does not compile/export an Editor project, load gameplay,
-deploy an application. Verification itself opens no native window. Optional native StaticView
-rendering is described below; gameplay/build/deploy workflows remain open.
+already-produced package. Verification does not load gameplay. The player does not compile/export
+an Editor project or deploy an application. Verification itself opens no native window. Optional native StaticView
+rendering and explicit gameplay-module attachment are described below; build/deploy workflows remain open.
 
 See [the Runtime package contract](../../Engine/Runtime/ProjectPackage.md) for the wire, limits,
 resource collision policy and ownership. Linux cloud CLI acceptance covers real cooked artifacts,
@@ -52,7 +52,7 @@ with an actual backend reason. Invalid/duplicate options exit 2. A verification-
 reports native rendering unavailable rather than pretending to draw.
 
 The adapter consumes only the public owning Runtime package and public Presentation contracts.
-It has no Editor, SDK, source directory, Showcase or gameplay dependency. Its CPU candidate owns
+It has no Editor, SDK, source directory or Showcase dependency. Its CPU candidate owns
 converted geometry, tangents, exact affine instances, scalar PBR materials and diagnostic IDs.
 Input storage is borrowed only during preparation. Draw descriptors borrow those immutable vectors
 for one serialized owner-thread DrawScene call; the owning loaded World supplies the camera view.
@@ -73,8 +73,8 @@ Presentation default directional light is used. Runtime currently stores intensi
 does not invent authored light colors or evaluate all production lighting types.
 
 StaticView preserves full legacy shader IDs and explicitly uses the resolved scalar override or
-neutral material; absent-plugin opaque components remain inactive and are counted. It runs no plugin
-or gameplay code and writes no package/source data. Native window acquire/draw/present and teardown
+neutral material; absent-plugin opaque components remain inactive and are counted. Without an explicit module option it runs no plugin
+or gameplay code. It writes no package/source data. Native window acquire/draw/present and teardown
 use RenderSurface. Surface/resize recovery remains adapter-owned; device loss is a visible failure.
 The GPU surface drains before its window/resources are released, including failed draws.
 
@@ -89,3 +89,50 @@ and resized projection. Linux Xvfb tests inspect actual red/green scalar materia
 WM_DELETE_WINDOW, drain, exactly four successful presents and unchanged package bytes. Hosted
 desktop CI compiles this optional path on Windows/macOS/Linux; physical displays, hardware calibration
 and other-platform native pixel acceptance remain separate.
+
+## Explicit gameplay module (Zig V3 ABI)
+
+✅ Native runs can explicitly attach a separately built Zig gameplay dynamic library:
+
+```sh
+NexoraProjectPlayer --run-package project.nxproject --gameplay-module=/absolute/path/to/game.so
+NexoraProjectPlayer --run-package project.nxproject --gameplay-module=/absolute/path/to/game.so --save-directory=/absolute/path/to/saves
+```
+
+The module path is trusted executable code selected by the caller. Package verification never
+loads modules, and neither packages nor their opaque components trigger module discovery.
+`--gameplay-module` and `--save-directory` are native-run options; duplicate/empty options reject.
+A save directory requires an explicit module. No save directory or save file is invented by default.
+Storage slots use the package project UUID as their scope; the caller owns the directory and must
+provide a dedicated directory per project and avoid simultaneous writers to it.
+
+The player clones the verified scene into an owning Play `GameWorld`, preserving authored entity
+IDs. The V3 host supplies copied component access, logical entity spawn/despawn, scene creation and
+activation, allocation, native input snapshots and diagnostics. The legacy V3 snapshot maps held WASD to
+movement axes and Space to button bit zero; focus loss clears held controls and reserved stays zero. Authored mesh transforms, camera and
+light poses are refreshed from this World before drawing. Invalid or destroyed admitted render
+objects fail the run visibly. The immutable StaticView mesh/material palette does not admit new
+rendered entities; rendered/physics spawn flags, mesh-resource replacement, asset resolution,
+raycast, debug drawing, 2D and UI return unsupported or have no advertised extension. This is a
+module launch path for the existing static package renderer, not a complete 2D project exporter.
+
+The optional services extension exposes rebindable input actions from native key/mouse/focus events
+and the Linux gamepad adapter. The input service also exposes native pointer coordinates,
+per-frame motion, mouse buttons and horizontal/vertical wheel values through `read_pointer`.
+Repeated reads preserve the frame snapshot; focus loss clears held buttons and motion. Audio control uses the real output service; unavailable devices are
+reported and playback returns unsupported. This package format contains no audio assets, so no
+sound content is auto-registered. UI is absent. Persistent storage is exposed only with the explicit
+save directory and stays separate from hot-reload `save_state`.
+
+Callbacks run serially on the native owner thread: fixed updates at 60 Hz with a 250 ms frame clamp,
+then update and draw. Suspended acquisition does not invoke updates; elapsed time is clamped when
+rendering resumes. Callback/load failures produce no success JSON. Stop/destroy/unload complete
+before native surface teardown and before the copied World and services are released, including
+exception unwinding. Successful reports include actual gameplay update/fixed-update counts.
+
+Acceptance: the Linux native test loads a real fixture dynamic library, exercises logical spawn,
+component read/write, authored-pose changes, input/services negotiation, explicit storage roundtrip,
+fixed/update callbacks, despawn, stop/destroy and real presentation. It also rejects missing/nonmodule
+libraries, verifier module options and duplicate/empty CLI options, and checks unchanged package bytes.
+The fixture follows the same V3 C ABI consumed by Zig; this does not claim additional 2D assets or
+other-platform execution acceptance.

@@ -1,6 +1,31 @@
 //! Thin Zig declarations for the canonical `nexora/nexora.h` ABI.
 //! Field order is checked against Engine/API/abi_baseline_v3.json in CTest.
 pub const abi_version: u32 = 3;
+pub const input = @import("input.zig");
+pub const ui = @import("ui.zig");
+pub const audio = @import("audio.zig");
+pub const storage = @import("storage.zig");
+pub const content = @import("content.zig");
+pub const services_api_capability: u64 = 1 << 6;
+pub const GameplayServicesApiV1 = extern struct {
+    struct_size: u32 = @sizeOf(GameplayServicesApiV1),
+    abi_version: u32 = 1,
+    context: ?*anyopaque = null,
+    get_input_api: ?*const fn (?*anyopaque, *input.Api) callconv(.c) i32 = null,
+    get_ui_api: ?*const fn (?*anyopaque, *ui.Api) callconv(.c) i32 = null,
+    get_audio_api: ?*const fn (?*anyopaque, *audio.Api) callconv(.c) i32 = null,
+    get_storage_api: ?*const fn (?*anyopaque, *storage.Api) callconv(.c) i32 = null,
+    get_content_api: ?*const fn (?*anyopaque, *content.Api) callconv(.c) i32 = null,
+};
+pub const host_v3_services_size: u32 = @offsetOf(GameplayHostV3, "get_services_api") + @sizeOf(@FieldType(GameplayHostV3, "get_services_api"));
+pub fn getServices(host: *const GameplayHostV3) ?GameplayServicesApiV1 {
+    if (host.struct_size < host_v3_services_size or host.abi_version != abi_version or
+        (host.capabilities & services_api_capability) == 0) return null;
+    const get = host.get_services_api orelse return null;
+    var api = GameplayServicesApiV1{};
+    if (get(host.context, &api) != 0 or api.struct_size < @sizeOf(GameplayServicesApiV1) or api.abi_version != 1) return null;
+    return api;
+}
 
 pub const Result = enum(i32) {
     ok = 0,
@@ -19,14 +44,19 @@ pub const AllocationOwner = enum(u64) {
     state_migration = 2,
 };
 
-
 pub const Vec3 = extern struct { x: f64 = 0, y: f64 = 0, z: f64 = 0 };
 pub const AssetHandle = extern struct { value: u64 = 0 };
 pub const EntitySpawnDescriptor = extern struct {
-    struct_size: u32 = @sizeOf(EntitySpawnDescriptor), components: u32 = 0,
-    position: Vec3 = .{}, camera_fov_degrees: f64 = 0, light_intensity: f32 = 0,
-    reserved: u32 = 0, mesh: AssetHandle = .{}, material: AssetHandle = .{},
-    bounds_minimum: Vec3 = .{}, bounds_maximum: Vec3 = .{},
+    struct_size: u32 = @sizeOf(EntitySpawnDescriptor),
+    components: u32 = 0,
+    position: Vec3 = .{},
+    camera_fov_degrees: f64 = 0,
+    light_intensity: f32 = 0,
+    reserved: u32 = 0,
+    mesh: AssetHandle = .{},
+    material: AssetHandle = .{},
+    bounds_minimum: Vec3 = .{},
+    bounds_maximum: Vec3 = .{},
 };
 pub const InputSnapshot = extern struct { sequence: u64 = 0, move_x: f64 = 0, move_y: f64 = 0, buttons: u32 = 0, reserved: u32 = 0 };
 pub const PointerInputSnapshotV1 = extern struct {
@@ -90,6 +120,7 @@ pub const GameplayHostV3 = extern struct {
     get_diagnostics: ?*const fn (?*anyopaque, *FrameDiagnostics) callconv(.c) i32,
     get_twod_api: ?*const fn (?*anyopaque, *TwoDApiV1) callconv(.c) i32 = null,
     capture_pointer_input: ?*const fn (?*anyopaque, u32, *PointerInputSnapshotV1) callconv(.c) i32 = null,
+    get_services_api: ?*const fn (?*anyopaque, *GameplayServicesApiV1) callconv(.c) i32 = null,
 };
 
 pub const host_v3_base_size: u32 = @offsetOf(GameplayHostV3, "get_twod_api");
@@ -211,7 +242,10 @@ pub fn getTwoD(host: *const GameplayHostV3) ?TwoDApiV1 {
 
 pub fn componentType(comptime text: []const u8) u64 {
     var hash: u64 = 14695981039346656037;
-    for (text) |byte| { hash ^= byte; hash *%= 1099511628211; }
+    for (text) |byte| {
+        hash ^= byte;
+        hash *%= 1099511628211;
+    }
     return hash;
 }
 

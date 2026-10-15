@@ -12,7 +12,8 @@ namespace {
 int Usage() {
   std::cerr << "Usage: NexoraProjectPlayer --verify-package PACKAGE\n"
                "       NexoraProjectPlayer --run-package PACKAGE [--frames=N] "
-               "[--backend=automatic|vulkan|dx12|metal]\n";
+               "[--backend=automatic|vulkan|dx12|metal] [--gameplay-module=PATH] "
+               "[--save-directory=PATH]\n";
   return 2;
 }
 
@@ -89,7 +90,7 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
     return Usage();
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)
   nexora::player::NativeOptions options;
-  bool has_frames{}, has_backend{};
+  bool has_frames{}, has_backend{}, has_gameplay{}, has_save_directory{};
   for (int index = 3; index < argc; ++index) {
     const std::basic_string_view<Char> value(argv[index]);
     if (value.size() > 9 && EqualAscii(value.substr(0, 9), "--frames=")) {
@@ -123,9 +124,21 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
         options.backend = SurfaceBackend::Metal;
       else
         return Usage();
+    } else if (value.size() > 18 && EqualAscii(value.substr(0, 18), "--gameplay-module=")) {
+      if (has_gameplay)
+        return Usage();
+      has_gameplay = true;
+      options.gameplay_module = std::filesystem::absolute(ArgumentPath(argv[index] + 18));
+    } else if (value.size() > 17 && EqualAscii(value.substr(0, 17), "--save-directory=")) {
+      if (has_save_directory)
+        return Usage();
+      has_save_directory = true;
+      options.save_directory = ArgumentPath(argv[index] + 17);
     } else
       return Usage();
   }
+  if (has_save_directory && !has_gameplay)
+    return Usage();
   std::string error;
   const auto project = nexora::runtime::ReadStaticProjectPackage(ArgumentPath(argv[2]), &error);
   if (!project) {

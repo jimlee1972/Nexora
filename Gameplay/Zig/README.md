@@ -136,3 +136,85 @@ users receive neutral input. See the [Editor contract](../../Apps/Editor/README.
 for bounds, acquisition/release and coordinate-domain resets. No raw mouse lock or native object is
 exposed. `gameplay.zig_pointer_wire_layout` runs real Zig/C++ layout and negotiation vectors;
 `gameplay.zig_twod_wire_layout` includes a positive exact-size older 2D host case.
+
+## Optional Zig gameplay services
+
+`nx.getServices(host)` negotiates the appended V3 services field by size, version and capability.
+Older V3, 2D-only and pointer-only hosts return `null`; their existing features remain usable.
+Each service negotiates separately and may return Unsupported. Reacquire every borrowed table
+when creating/reloading a module; retain none after host teardown. C++ hosts can compose
+`runtime::GameplayServices` from the public service tables; no gameplay rules belong in that owner.
+
+```zig
+const services = nx.getServices(host) orelse return -2;
+var actions = nx.input.Api{};
+if (services.get_input_api.?(services.context, &actions) != 0) return -2;
+// Bindings are additive. Clear the action first when replacing all of its controls.
+if (actions.clear(0, 1) != 0) return -1;
+const binding = nx.input.Binding{ .device = .keyboard, .control = nx.input.Key.space };
+if (actions.rebind(0, 1, &binding) != 0) return -1;
+var state = nx.input.ActionState{};
+if (actions.action(0, 1, &state) != 0) return -1;
+// Fixed/Update see the same non-consuming sequence: deduplicate one-shot transitions yourself.
+```
+
+The [input contract](../../Engine/Runtime/GameplayInput.md) covers action states, deadzones,
+multiple users, active device, focus and disconnect behavior. Native Linux gamepads use physical
+joystick controls, which games can rebind; device mappings and physical device acceptance are
+host concerns. Keyboard/mouse feeds use Window events. Existing `capture_input` keeps its original
+WASD/Space meanings.
+
+`nx.ui.Api` submits HUD panels, UTF-8 labels and stable-ID buttons. `registerFont` copies a cooked
+RGBA atlas and `nx.ui.Glyph` metrics supplied by Zig (including `@embedFile` data); font handles
+and GPU texture lifetime remain host-owned. Missing glyphs return Unsupported. Chinese text
+requires an actual font atlas covering those codepoints. This bridge does not rasterize TTF,
+shape complex scripts, supply commercial artwork or invent replacement glyphs. The
+[UI contract](../../Engine/TwoD/GameplayUi.md) defines per-frame begin/end, button navigation,
+texture ID reservation, budgets and owning native overlay snapshots.
+
+`nx.audio.Api.registerWave(asset_id, @embedFile("sound.wav"))` copies PCM16/float32 WAV data.
+`playSound`, `stopVoice`, `pauseVoice`, `setVoiceGain` and `setBusGain` expose music/SFX control;
+`outputAvailable` detects actual host output. The [audio contract](../../Engine/Runtime/GameplayAudio.md)
+provides Linux ALSA output and portable host sinks. Unavailable output returns Unsupported;
+CPU mixing tests do not establish physical audio-device acceptance.
+
+```zig
+var saves = nx.storage.Api{};
+if (services.get_storage_api.?(services.context, &saves) != 0) return -2;
+// Serialize gameplay data explicitly; never store pointers, API tables or ephemeral handles.
+if (saves.saveSlot("resume", 1, encoded_state) != 0) return -1;
+var info = nx.storage.Info{};
+if (saves.probe("resume", &info) != 0) return -1;
+// Allocate a bounded buffer from info.payload_size, validate schema, then loadSlot.
+```
+
+Permanent slots survive module/process lifetime; they are independent of `save_state` reload
+migration. Save-and-exit only exits after successful `saveSlot`; resume validates the game's
+schema and reconstructs World entities/pool handles. The host chooses a writable directory and
+project scope. See the [storage contract](../../Engine/Runtime/README.md#durable-zig-gameplay-slots).
+The 2D host enables slots with `--save-directory PATH`; `--audio` explicitly requests device
+output. Services are exposed to static and dynamically loaded Zig modules without adding game
+mechanics. Asset cooking remains the existing pipeline; a game authors its own content.
+
+`gameplay.zig_services_consumer` runs real Zig negotiation, every service wire field layout,
+input transitions, Chinese-codepoint atlas registration, UI command generation, voice controls
+and save/reopen across separate storage owners. Per-service C++ contracts and Zig wrapper tests
+cover invalid arguments and buffer/lifetime behavior. The fixture glyph is wire acceptance data,
+not visual typography acceptance. [ProjectPlayer](../../Apps/ProjectPlayer/README.md#explicit-gameplay-module-zig-v3-abi)
+can explicitly load a V3 Zig library for the existing native StaticView adapter; dynamic 2D
+content and arbitrary runtime mesh residency remain outside that adapter's contract.
+
+The 2D sample reserves input actions 253/254/255/256 for next/previous/activate/cancel UI navigation.
+Their keyboard and raw gamepad bindings are editable through the same Zig input table.
+Pointer snapshots expose native client pixels and 120-unit wheel deltas through `input.Api.pointer`;
+the legacy optional pointer callback is also wired on this host.
+
+`nx.content.Api` registers existing cooked `.nx2atlas` and `.nx2clip` bytes directly from Zig
+(for example `@embedFile`), and describes/lists their UUIDs. The 2D host's Sprite and animation
+resolvers use this same registry, so content is no longer restricted to its startup fixture.
+Registration copies/decodes bytes before returning and publishes immutable generations atomically;
+clips require a registered atlas and valid regions. Reuse the existing asset compiler/cook pipeline,
+then set the returned IDs through `nx.TwoDApiV1`. The host reserves texture IDs for loaded atlases;
+keep UI font texture IDs outside its documented range. See
+[content contracts](../../Engine/TwoD/GameplayContent.md). ProjectPlayer's StaticView host does not
+advertise this optional 2D service; `NexoraZigTwoD --module PATH` is the 2D module host.

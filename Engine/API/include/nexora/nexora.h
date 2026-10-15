@@ -11,6 +11,7 @@
  */
 #include <stddef.h>
 #include <stdint.h>
+#include "gameplay_services.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +33,8 @@ typedef enum NexoraGameplayCapability {
   NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR = 1u << 2,
   NEXORA_GAMEPLAY_CAPABILITY_SCENE_API = 1u << 3,
   NEXORA_GAMEPLAY_CAPABILITY_2D_API = 1u << 4,
-  NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT = 1u << 5
+  NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT = 1u << 5,
+  NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API = 1u << 6
 } NexoraGameplayCapability;
 
 typedef enum NexoraAllocationOwner {
@@ -307,6 +309,8 @@ typedef struct NexoraGameplayHostV3 {
   /* Optional suffix: inspect size/capability before reading. Caller sets snapshot.struct_size. */
   int32_t (*capture_pointer_input)(void *context, uint32_t user,
                                    NexoraPointerInputSnapshotV1 *snapshot);
+  /* Optional host services; original V3/2D/pointer prefixes remain supported. */
+  int32_t (*get_services_api)(void *context, NexoraGameplayServicesApiV1 *api);
 } NexoraGameplayHostV3;
 
 /* The original V3 prefix remains sufficient for modules that do not request extensions. */
@@ -316,6 +320,18 @@ typedef struct NexoraGameplayHostV3 {
 #define NEXORA_GAMEPLAY_HOST_V3_POINTER_SIZE                                                       \
   (offsetof(NexoraGameplayHostV3, capture_pointer_input) +                                         \
    sizeof(((NexoraGameplayHostV3 *)0)->capture_pointer_input))
+
+#define NEXORA_GAMEPLAY_HOST_V3_SERVICES_SIZE \
+  (offsetof(NexoraGameplayHostV3, get_services_api) + sizeof(((NexoraGameplayHostV3 *)0)->get_services_api))
+
+static inline int32_t NexoraGetGameplayServicesV1(const NexoraGameplayHostV3 *host,
+                                                  NexoraGameplayServicesApiV1 *api) {
+  if (!host || host->struct_size < NEXORA_GAMEPLAY_HOST_V3_SERVICES_SIZE ||
+      host->abi_version != NEXORA_GAMEPLAY_ABI_VERSION ||
+      !(host->capabilities & NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API) || !host->get_services_api)
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+  return host->get_services_api(host->context, api);
+}
 
 /* Safe with an original V3 prefix or an older 2D-only host. No output is touched when absent. */
 static inline int32_t NexoraCapturePointerInputV1(const NexoraGameplayHostV3 *host, uint32_t user,

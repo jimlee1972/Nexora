@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GameplayPlayer.h"
 #include "Nexora/Presentation/RenderSurface.h"
 #include "StaticView.h"
 
@@ -11,15 +12,26 @@ namespace nexora::player {
 
 struct NativeOptions final {
   Nexora::Presentation::SurfaceBackend backend{Nexora::Presentation::SurfaceBackend::Automatic};
+  std::filesystem::path save_directory;
+  std::filesystem::path
+      gameplay_module;            // Explicit trusted executable code; never package discovery.
   std::uint32_t maximum_frames{}; // Zero runs until a real close request.
 };
 
 inline int RunNative(const runtime::LoadedStaticProject &project, NativeOptions options) {
   using namespace Nexora::Presentation;
   std::string error;
-  const auto view = PrepareStaticView(project, &error);
+  auto view = PrepareStaticView(project, &error);
   if (!view) {
     std::cerr << "Native StaticView admission failed: " << error << '\n';
+    return 1;
+  }
+  PlayerGameplay gameplay;
+  runtime::GameplayModuleHost module(gameplay.Host());
+  const bool has_gameplay = !options.gameplay_module.empty();
+  if (has_gameplay && (!gameplay.Initialize(project, options.save_directory) ||
+                       !module.Load(options.gameplay_module))) {
+    std::cerr << "ProjectPlayer gameplay initialization failed\n";
     return 1;
   }
   const auto created = CreateRenderSurface(
@@ -28,11 +40,18 @@ inline int RunNative(const runtime::LoadedStaticProject &project, NativeOptions 
     std::cerr << "Native ProjectPlayer unavailable: " << created.reason << '\n';
     return 1;
   }
+  struct UnloadBeforeSurface final {
+    runtime::GameplayModuleHost &module;
+    ~UnloadBeforeSurface() { module.Unload(); }
+  } unload_before_surface{module};
   auto &surface = *created.surface;
   std::uint64_t frames{};
   bool failed{};
   auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
   std::uint64_t reported_resize = UINT64_MAX;
+  auto previous_tick = std::chrono::steady_clock::now();
+  double accumulator{}, audio_accumulator{};
+  constexpr double fixed_delta = 1.0 / 60.0;
   while (!options.maximum_frames || frames < options.maximum_frames) {
     if (options.maximum_frames && std::chrono::steady_clock::now() > deadline) {
       std::cerr << "Native ProjectPlayer stalled beyond its bounded run deadline\n";
@@ -42,6 +61,10 @@ inline int RunNative(const runtime::LoadedStaticProject &project, NativeOptions 
     const auto acquired = surface.BeginFrame();
     if (surface.CloseRequested())
       break;
+    // BeginFrame owns a fresh event batch even when presentation is suspended.
+    // Consume focus/release events before a retry can replace that batch.
+    if (has_gameplay)
+      gameplay.CaptureNativeInput(surface);
     const auto action = RecoveryAction(acquired);
     if (action == SurfaceAction::Suspend || action == SurfaceAction::RecreateSurface) {
       // Acquisition owns surface recreation. Device loss never retries a dead device.
@@ -58,9 +81,48 @@ inline int RunNative(const runtime::LoadedStaticProject &project, NativeOptions 
       failed = true;
       break;
     }
+    if (has_gameplay) {
+      const auto now = std::chrono::steady_clock::now();
+      const auto delta = std::min(std::chrono::duration<double>(now - previous_tick).count(), 0.25);
+      previous_tick = now;
+      accumulator += delta;
+      while (accumulator >= fixed_delta) {
+        if (module.SupportsFixedUpdate()) {
+          if (!module.FixedUpdate(fixed_delta)) {
+            failed = true;
+            break;
+          }
+          ++gameplay.fixed_updates;
+        }
+        accumulator -= fixed_delta;
+      }
+      if (failed || !module.Update(delta)) {
+        std::cerr << "ProjectPlayer gameplay callback failed\n";
+        failed = true;
+        break;
+      }
+      ++gameplay.updates;
+      // Output is optional; the service reports unsupported when a device cannot be opened.
+      audio_accumulator += delta * 48000.0;
+      while (audio_accumulator >= 1) {
+        const auto samples = static_cast<std::uint32_t>(std::min(audio_accumulator, 4096.0));
+        if (!gameplay.audio.Pump(samples)) {
+          audio_accumulator = 0;
+          break;
+        }
+        audio_accumulator -= samples;
+      }
+      gameplay.world.EndFrame();
+      if (!view->RefreshWorld(project, gameplay.world.InternalWorld())) {
+        std::cerr << "ProjectPlayer gameplay invalidated admitted StaticView objects\n";
+        failed = true;
+        break;
+      }
+    }
     const auto extent = surface.FrameInfo();
-    const auto draw = view->DrawData(project, static_cast<float>(extent.width) /
-                                                  static_cast<float>(extent.height));
+    const auto &draw_world = has_gameplay ? gameplay.world.InternalWorld() : project.WorldView();
+    const auto draw = view->DrawData(draw_world, static_cast<float>(extent.width) /
+                                                     static_cast<float>(extent.height));
     if (!draw) {
       std::cerr << "Native ProjectPlayer camera projection failed after resize\n";
       failed = true;
@@ -90,6 +152,7 @@ inline int RunNative(const runtime::LoadedStaticProject &project, NativeOptions 
       break;
     }
   }
+  module.Unload(); // Stop/destroy code before draining or destroying native resources.
   const auto observed = surface.Diagnostics();
   const auto drained = surface.DrainAndDestroy();
   if (drained != SurfaceStatus::Ready || failed || !observed.presentedFrames ||
@@ -99,9 +162,12 @@ inline int RunNative(const runtime::LoadedStaticProject &project, NativeOptions 
     return 1;
   }
   std::cout << "{\"status\":\"RENDERED_STATIC_VIEW\",\"native_rendering\":true,"
-               "\"gameplay_loaded\":false,\"requested_backend\":\""
-            << ToString(options.backend) << "\",\"render_instances\":" << view->instances.size()
-            << ",\"camera\":\"" << view->camera << "\",\"light\":\"" << view->light
+               "\"gameplay_loaded\":"
+            << (has_gameplay ? "true" : "false") << ",\"gameplay_updates\":" << gameplay.updates
+            << ",\"gameplay_fixed_updates\":" << gameplay.fixed_updates
+            << ",\"requested_backend\":\"" << ToString(options.backend)
+            << "\",\"render_instances\":" << view->instances.size() << ",\"camera\":\""
+            << view->camera << "\",\"light\":\"" << view->light
             << "\",\"presented_frames\":" << observed.presentedFrames
             << ",\"scene_draw_calls\":" << observed.sceneDrawCalls
             << ",\"software_rasterizer\":" << (observed.softwareRasterizer ? "true" : "false")

@@ -1,3 +1,4 @@
+#include "GameplayPlayer.h"
 #include "StaticView.h"
 #include <fstream>
 #include <iostream>
@@ -97,6 +98,79 @@ StaticProjectPackage Fixture(Options options = {}) {
   package.assets.push_back(Cook(package.scene, kCookedSceneType, bytes.Value(), dependencies));
   return package;
 }
+void LegacyInput() {
+  nexora::player::PlayerGameplay context;
+  using Nexora::Window::Key;
+  using Nexora::Window::WindowEvent;
+  using Nexora::Window::WindowEventType;
+  std::array<WindowEvent, 3> pressed{};
+  const std::array keys{Key::D, Key::W, Key::Space};
+  for (std::size_t index = 0; index < pressed.size(); ++index) {
+    pressed[index].type = WindowEventType::Key;
+    pressed[index].value0 = static_cast<std::int32_t>(keys[index]);
+    pressed[index].value1 = 1;
+  }
+  context.CaptureEvents(pressed, true, 7);
+  const auto host = context.Host();
+  NexoraInputSnapshot captured{};
+  Require(host.capture_input(host.context, 0, &captured) == NEXORA_GAMEPLAY_OK &&
+              captured.sequence == 7 && captured.move_x == 1 && captured.move_y == 1 &&
+              captured.buttons == 1 && captured.reserved == 0,
+          "legacy V3 WASD/Space snapshot changed meaning");
+  context.CaptureEvents({}, true, 8);
+  Require(context.input.move_x == 1 && context.input.buttons == 1,
+          "legacy held keys lost between native events");
+  pressed[0].value1 = 0;
+  context.CaptureEvents(std::span(pressed).first(1), true, 9);
+  Require(context.input.move_x == 0 && context.input.move_y == 1,
+          "legacy key release did not clear movement");
+  context.CaptureEvents({}, false, 10);
+  Require(context.input.move_x == 0 && context.input.move_y == 0 && context.input.buttons == 0 &&
+              context.input.reserved == 0,
+          "legacy input did not clear held controls on focus loss");
+  context.CaptureEvents({}, true, 11);
+  Require(context.input.move_y == 0 && context.input.buttons == 0,
+          "legacy held controls revived on focus regain");
+  pressed[0].value0 = static_cast<std::int32_t>(Key::A);
+  pressed[0].value1 = 1;
+  pressed[1].value0 = static_cast<std::int32_t>(Key::S);
+  context.CaptureEvents(std::span(pressed).first(2), true, 12);
+  Require(context.input.move_x == -1 && context.input.move_y == -1 && context.input.buttons == 0,
+          "legacy A/S movement signs changed");
+  std::array<WindowEvent, 3> pointer_events{};
+  pointer_events[0].type = WindowEventType::Pointer;
+  pointer_events[0].value0 = 123;
+  pointer_events[0].value1 = 456;
+  pointer_events[1].type = WindowEventType::Wheel;
+  pointer_events[1].value0 = -120;
+  pointer_events[1].value1 = 240;
+  pointer_events[2].type = WindowEventType::PointerButton;
+  pointer_events[2].value1 = 1;
+  context.CaptureEvents(pointer_events, true, 13);
+  const auto input_api = context.actions.Api();
+  NexoraGameplayPointerStateV1 pointer{};
+  pointer.struct_size = sizeof(pointer);
+  pointer.abi_version = 1;
+  Require(input_api.read_pointer(input_api.context, 0, &pointer) == NEXORA_GAMEPLAY_OK &&
+              pointer.x == 123 && pointer.y == 456 && pointer.wheel_x == -120 &&
+              pointer.wheel_y == 240 && pointer.buttons == 1 && pointer.focused == 1,
+          "native pointer/wheel events lost coordinates or wheel axes");
+  Require(input_api.read_pointer(input_api.context, 0, &pointer) == NEXORA_GAMEPLAY_OK &&
+              pointer.wheel_y == 240,
+          "native pointer capture consumed wheel input");
+  pointer_events[0].value0 = 130;
+  pointer_events[0].value1 = 450;
+  context.CaptureEvents(std::span(pointer_events).first(1), true, 14);
+  Require(input_api.read_pointer(input_api.context, 0, &pointer) == NEXORA_GAMEPLAY_OK &&
+              pointer.delta_x == 7 && pointer.delta_y == -6 && pointer.wheel_x == 0 &&
+              pointer.wheel_y == 0 && pointer.buttons == 1,
+          "native pointer motion did not preserve coordinates/clear per-frame wheel");
+  context.CaptureEvents({}, false, 15);
+  Require(input_api.read_pointer(input_api.context, 0, &pointer) == NEXORA_GAMEPLAY_OK &&
+              pointer.buttons == 0 && pointer.focused == 0 && pointer.delta_x == 0 &&
+              pointer.delta_y == 0,
+          "native pointer focus loss did not clear buttons and motion");
+}
 void Contracts() {
   auto package = Fixture({.shear = true});
   auto loaded = LoadStaticProjectPackage(package);
@@ -121,6 +195,23 @@ void Contracts() {
               first->cameraPosition[2] == 5 && !view->DrawData(*loaded, 0) &&
               loaded->InactiveComponentCount() == 1,
           "native camera/resize/inactive contract failed");
+  World clone{WorldKind::Play};
+  const auto snapshot = loaded->WorldView().SaveScene(loaded->SceneId());
+  Require(snapshot && clone.LoadSceneSnapshot(*snapshot), "gameplay world clone failed");
+  Require(view->RefreshWorld(*loaded, clone), "cloned authored scene did not refresh");
+  const auto entity = loaded->RenderItems()[0].entity;
+  const auto before = (*view->instances[0].model_transform)[3];
+  auto transform = clone.FindEntity(entity)->transform;
+  transform.x += 2;
+  WorldCommandBuffer changed;
+  changed.SetTransform(entity, transform);
+  Require(changed.Apply(clone) && view->RefreshWorld(*loaded, clone) &&
+              (*view->instances[0].model_transform)[3] != before,
+          "gameplay pose write did not refresh admitted instance");
+  WorldCommandBuffer removed;
+  removed.DestroyEntity(entity);
+  Require(removed.Apply(clone) && !view->RefreshWorld(*loaded, clone),
+          "destroyed authored instance silently drew stale geometry");
   loaded.reset();
   package.assets.clear();
   Require(view->vertices[0].position[0] == -0.7F && view->materials[1].emission[0] == 1 &&
@@ -157,6 +248,7 @@ int Run(const std::filesystem::path &destination = {}) try {
     Require(bool(output), "actual native fixture file write failed");
     return 0;
   }
+  LegacyInput();
   Contracts();
   std::cout << "Actual native StaticView admission/ownership contracts passed\n";
   return 0;

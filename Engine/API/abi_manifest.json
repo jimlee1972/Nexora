@@ -518,6 +518,339 @@
       "threading": "serialized_game_thread",
       "errors": "NexoraGameplayResult_no_partial_output",
       "determinism": "owning_batch_sequence_nonconsuming_reads"
+    },
+    {
+      "name": "NexoraGameplayHostV3.get_services_api",
+      "since": 3,
+      "ownership": "borrowed_host_table",
+      "nullability": "output_nonnull",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; output preserved on failure",
+      "determinism": "service_negotiation"
+    },
+    {
+      "name": "NexoraGameplayContentApiV1.register_atlas",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayContentApiV1.register_clip",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayContentApiV1.list_assets",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; short buffer publishes required count only",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayContentApiV1.describe_asset",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.begin_frame",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.panel",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.text",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.button",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.end_frame",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.get_font",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.has_glyph",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayUiApiV1.register_font",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayInputApiV1.read_action",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayInputApiV1.bind",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayInputApiV1.clear_bindings",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayInputApiV1.read_device",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayInputApiV1.read_pointer",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraStorageApiV1.save",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraStorageResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraStorageApiV1.load",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraStorageResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraStorageApiV1.remove",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraStorageResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraStorageApiV1.exists",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraStorageResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.play",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.stop",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.set_paused",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.set_gain",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.set_bus_gain",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.is_playing",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.output_available",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.stop_all",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.register_wave",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayAudioApiV1.remove_asset",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "host_input_or_external_io"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_input_api",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_ui_api",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_audio_api",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_storage_api",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_content_api",
+      "since": 3,
+      "ownership": "copied_wires; borrowed_host_context",
+      "nullability": "see service contract for probe and buffer rules",
+      "threading": "host_serialized_owner_thread",
+      "errors": "NexoraGameplayResult; outputs preserved on failure",
+      "determinism": "copied_frame_state"
     }
   ]
 }

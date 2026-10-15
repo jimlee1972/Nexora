@@ -1,7 +1,14 @@
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Game/GameplayHostBridge.h"
+#include "Nexora/Runtime/GameplayAudio.h"
+#include "Nexora/Runtime/GameplayGamepad.h"
+#include "Nexora/Runtime/GameplayInput.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "Nexora/Runtime/GameplayServices.h"
+#include "Nexora/Runtime/GameplayStorage.h"
 #include "Nexora/TwoD/GameplayBridge.h"
+#include "Nexora/TwoD/GameplayContent.h"
+#include "Nexora/TwoD/GameplayUi.h"
 #include <array>
 #include <charconv>
 #include <chrono>
@@ -25,6 +32,7 @@ struct Context {
   runtime::World &world;
   twod::GameplayBridge &bridge;
   runtime::Id scene;
+  runtime::GameplayServices &services;
   NexoraInputSnapshot input{};
   std::size_t allocated{}, freed{};
 };
@@ -42,8 +50,39 @@ NexoraGameplayHostV3 Host(Context &c) {
   h.struct_size = sizeof(h);
   h.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
   h.capabilities = NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR |
-                   NEXORA_GAMEPLAY_CAPABILITY_SCENE_API | NEXORA_GAMEPLAY_CAPABILITY_2D_API;
+                   NEXORA_GAMEPLAY_CAPABILITY_SCENE_API | NEXORA_GAMEPLAY_CAPABILITY_2D_API |
+                   NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API |
+                   NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
   h.context = &c;
+  h.capture_pointer_input = [](void *p, uint32_t user, NexoraPointerInputSnapshotV1 *out) {
+    return Call(p, [&](auto &s) -> int32_t {
+      if (!out)
+        return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
+      if (out->struct_size < sizeof(*out))
+        return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+      NexoraGameplayPointerStateV1 pointer{};
+      pointer.struct_size = sizeof(pointer);
+      pointer.abi_version = 1;
+      const auto &api = s.services.input;
+      const auto result = api.read_pointer(api.context, user, &pointer);
+      if (result != 0)
+        return result;
+      const NexoraPointerInputSnapshotV1 snapshot{out->struct_size,
+                                                  1,
+                                                  pointer.sequence,
+                                                  pointer.delta_x,
+                                                  pointer.delta_y,
+                                                  pointer.wheel_x,
+                                                  pointer.wheel_y,
+                                                  pointer.buttons,
+                                                  0};
+      std::memcpy(out, &snapshot, sizeof(snapshot));
+      return NEXORA_GAMEPLAY_OK;
+    });
+  };
+  h.get_services_api = [](void *p, NexoraGameplayServicesApiV1 *api) {
+    return Call(p, [&](auto &s) { return s.services.GetApi(api); });
+  };
   h.get_twod_api = [](void *p, NexoraTwoDApiV1 *api) {
     return Call(p, [&](auto &s) { return s.bridge.GetApi(api); });
   };
@@ -128,21 +167,27 @@ NexoraGameplayHostV3 Host(Context &c) {
 
 int main(int argc, char **argv) {
   try {
-    bool native{}, interactive{}, requireMovement{};
+    bool native{}, interactive{}, requireMovement{}, audioOutput{};
     unsigned frames = 60;
-    std::string report, library;
+    std::string report, library, saveDirectory;
     for (int i = 1; i < argc; ++i) {
       const std::string_view arg(argv[i]);
       if (arg == "--native")
         native = true;
+      else if (arg == "--audio")
+        audioOutput = true;
       else if (arg == "--interactive") {
         native = interactive = true;
         frames = 0;
       } else if (arg == "--require-movement")
         requireMovement = true;
-      else if ((arg == "--frames" || arg == "--report" || arg == "--module") && i + 1 < argc) {
+      else if ((arg == "--frames" || arg == "--report" || arg == "--module" ||
+                arg == "--save-directory") &&
+               i + 1 < argc) {
         const std::string_view value(argv[++i]);
-        if (arg == "--report")
+        if (arg == "--save-directory")
+          saveDirectory = value;
+        else if (arg == "--report")
           report = value;
         else if (arg == "--module")
           library = value;
@@ -179,19 +224,70 @@ int main(int argc, char **argv) {
     auto atlas = std::make_shared<const twod::Atlas>(std::move(*packed));
     auto clip = std::make_shared<const twod::Clip>(
         twod::Clip{{3, 4}, atlas->id, true, {{1, 0.1, "step"}, {2, 0.1, "step"}}});
+    twod::GameplayContent content;
+    NexoraGameplayContentApiV1 contentApi{};
+    contentApi.struct_size = sizeof(contentApi);
+    contentApi.abi_version = 1;
+    Check(content.GetApi(&contentApi) == 0, "content service negotiation");
+    const auto atlasBytes = twod::EncodeAtlas(*atlas);
+    const auto clipBytes = twod::EncodeClip(*clip);
+    uint64_t assetHigh{}, assetLow{};
+    Check(contentApi.register_atlas(contentApi.context, atlasBytes.data(), atlasBytes.size(),
+                                    &assetHigh, &assetLow) == 0,
+          "sample cooked Atlas registration");
+    Check(contentApi.register_clip(contentApi.context, clipBytes.data(), clipBytes.size(),
+                                   &assetHigh, &assetLow) == 0,
+          "sample cooked Clip registration");
     twod::GameplayBridge bridge(
-        world, scene, [clip](auto id) { return id == clip->id ? clip : nullptr; }, &tiles, &pool);
-    Context context{world, bridge, sceneId};
+        world, scene, [&content](auto id) { return content.ResolveClip(id); }, &tiles, &pool);
+    runtime::GameplayInput input;
+    runtime::NativeGameplayGamepad gamepads;
+    runtime::GameplayAudio audio;
+    twod::GameplayUi ui;
+    runtime::GameplayServices services;
+    services.content = contentApi;
+    services.input = input.Api();
+    services.audio = audio.Api();
+    const auto bindUi = [&](uint32_t action, uint32_t device, uint32_t control) {
+      NexoraGameplayInputBindingV1 binding{};
+      binding.struct_size = sizeof(binding);
+      binding.abi_version = 1;
+      binding.device = device;
+      binding.control = control;
+      binding.scale = 1;
+      Check(services.input.bind(services.input.context, 0, action, &binding) == 0, "UI binding");
+    };
+    bindUi(253, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_DOWN_ARROW);
+    bindUi(253, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_TAB);
+    bindUi(254, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_UP_ARROW);
+    bindUi(255, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_ENTER);
+    bindUi(256, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_ESCAPE);
+    // Raw joystick button defaults are user-rebindable, rather than assuming a controller model.
+    bindUi(253, NEXORA_INPUT_DEVICE_GAMEPAD, 13);
+    bindUi(254, NEXORA_INPUT_DEVICE_GAMEPAD, 12);
+    bindUi(255, NEXORA_INPUT_DEVICE_GAMEPAD, 0);
+    bindUi(256, NEXORA_INPUT_DEVICE_GAMEPAD, 1);
+    services.ui.struct_size = sizeof(services.ui);
+    services.ui.abi_version = 1;
+    Check(ui.GetApi(&services.ui) == 0, "UI service negotiation");
+    std::unique_ptr<runtime::GameplayStorage> storage;
+    if (!saveDirectory.empty()) {
+      storage = std::make_unique<runtime::GameplayStorage>(saveDirectory, "nexora.zig.twod");
+      services.storage.struct_size = sizeof(services.storage);
+      services.storage.abi_version = 1;
+      Check(storage->GetApi(services.storage) == 0, "storage service negotiation");
+    }
+    if (audioOutput) {
+      std::string reason;
+      Check(audio.OpenDefaultOutput(reason), reason.c_str());
+    }
+    Context context{world, bridge, sceneId, services};
     runtime::GameplayModuleHost module(Host(context));
     Check(library.empty() ? module.Load(NexoraGameModuleLoad) : module.Load(library),
           "Zig module load");
     Check(scene.Sprites().size() == 1 && pool.Size() == 32, "Zig authored content");
     const auto entity = scene.Sprites().begin()->first;
-    const twod::AtlasResolver resolver = [atlas](auto id) -> std::optional<twod::AtlasBinding> {
-      if (id != atlas->id)
-        return std::nullopt;
-      return twod::AtlasBinding{atlas, 100};
-    };
+    const twod::AtlasResolver resolver = [&content](auto id) { return content.ResolveAtlas(id); };
     Nexora::Presentation::RenderSurfaceResult surface;
     if (native) {
       Nexora::Presentation::RenderSurfaceDescriptor d;
@@ -206,12 +302,57 @@ int main(int argc, char **argv) {
     std::size_t visible{};
     twod::FixedStepper step;
     auto lastTime = std::chrono::steady_clock::now();
-    bool reloaded{};
+    bool reloaded{}, focused{true};
+    double audioFrames{};
+    twod::GameplayUiInput uiInput;
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
+      Check(input.BeginFrame(), "input frame");
+      (void)gamepads.Poll(input);
+      uiInput.pointer_pressed = uiInput.pointer_released = false;
       if (native) {
         const auto status = surface.surface->BeginFrame();
         if (surface.surface->CloseRequested())
           break;
+        for (const auto &event : surface.surface->Events()) {
+          if (event.type == Nexora::Window::WindowEventType::FocusChanged) {
+            focused = event.value0 != 0;
+            Check(input.SetFocused(focused), "input focus");
+            uiInput.focused = focused;
+            if (!focused) {
+              keys.fill(false);
+              uiInput.pointer_down = false;
+              uiInput.pointer_pressed = uiInput.pointer_released = false;
+            }
+          }
+          if (event.type == Nexora::Window::WindowEventType::Pointer) {
+            uiInput.pointer_x = static_cast<float>(event.value0);
+            uiInput.pointer_y = static_cast<float>(event.value1);
+            Check(input.SubmitPointer(0, uiInput.pointer_x, uiInput.pointer_y), "pointer input");
+          }
+          if (event.type == Nexora::Window::WindowEventType::Wheel)
+            Check(input.SubmitPointer(0, uiInput.pointer_x, uiInput.pointer_y, event.value0,
+                                      event.value1),
+                  "wheel input");
+          if (event.type == Nexora::Window::WindowEventType::PointerButton && focused &&
+              event.value0 >= 0 && event.value0 < 5) {
+            Check(input.Submit(0, NEXORA_INPUT_DEVICE_MOUSE, 0, static_cast<uint32_t>(event.value0),
+                               event.value1 ? 1.F : 0.F),
+                  "mouse input");
+            if (event.value0 == 0) {
+              uiInput.pointer_pressed |= event.value1 && !uiInput.pointer_down;
+              uiInput.pointer_released |= !event.value1 && uiInput.pointer_down;
+              uiInput.pointer_down = event.value1 != 0;
+            }
+          }
+          if (event.type == Nexora::Window::WindowEventType::Key && event.value0 >= 0 &&
+              static_cast<std::size_t>(event.value0) < keys.size())
+            if (focused) {
+              keys[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
+              Check(input.Submit(0, NEXORA_INPUT_DEVICE_KEYBOARD, 0,
+                                 static_cast<uint32_t>(event.value0), event.value1 ? 1.F : 0.F),
+                    "key input");
+            }
+        }
         if (status == Nexora::Presentation::SurfaceStatus::ZeroExtent ||
             status == Nexora::Presentation::SurfaceStatus::Occluded ||
             status == Nexora::Presentation::SurfaceStatus::OutOfDate) {
@@ -221,14 +362,19 @@ int main(int argc, char **argv) {
           continue;
         }
         Check(status == Nexora::Presentation::SurfaceStatus::Ready, "surface acquire");
-        for (const auto &event : surface.surface->Events()) {
-          if (event.type == Nexora::Window::WindowEventType::FocusChanged && !event.value0)
-            keys.fill(false);
-          if (event.type == Nexora::Window::WindowEventType::Key && event.value0 >= 0 &&
-              static_cast<std::size_t>(event.value0) < keys.size())
-            keys[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
-        }
       }
+      const auto pressed = [&](uint32_t action) {
+        NexoraGameplayActionStateV1 state{};
+        state.struct_size = sizeof(state);
+        state.abi_version = 1;
+        Check(services.input.read_action(services.input.context, 0, action, &state) == 0,
+              "UI action");
+        return state.pressed != 0;
+      };
+      uiInput.navigate = pressed(253) ? 1 : pressed(254) ? -1 : 0;
+      uiInput.activate = pressed(255);
+      uiInput.cancel = pressed(256);
+      ui.BeginInput(uiInput);
       ++context.input.sequence;
       const auto held = [&](Nexora::Window::Key key) {
         return keys[static_cast<std::size_t>(key)] ? 1.0 : 0.0;
@@ -283,11 +429,21 @@ int main(int argc, char **argv) {
       visible = extracted->statistics.visible;
       Check(visible > 0 && extracted->statistics.unavailable == 0, "Zig Sprite asset resolution");
       if (native) {
-        Check(extracted->Draw(*surface.surface) == Nexora::Presentation::SurfaceStatus::Ready,
+        const auto overlay = ui.Frame();
+        Check(extracted->Draw(*surface.surface, overlay.DrawData()) ==
+                  Nexora::Presentation::SurfaceStatus::Ready,
               "native Sprite draw");
         Check(surface.surface->EndFrame() == Nexora::Presentation::SurfaceStatus::Ready,
               "native present");
         ++rendered;
+      }
+      if (audioOutput) {
+        audioFrames += delta * 48000.0;
+        while (audioFrames >= 1) {
+          const auto count = static_cast<uint32_t>(std::min(audioFrames, 4096.0));
+          Check(audio.Pump(count), "audio output");
+          audioFrames -= count;
+        }
       }
       world.EndFrame();
       if (interactive && held(Nexora::Window::Key::Escape))
