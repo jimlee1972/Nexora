@@ -29,7 +29,8 @@ and their AI companion plans track the same delivery and must not be counted twi
 Update this snapshot and both language indexes when the underlying acceptance changes; partial
 implementation does not complete an enclosing milestone.
 
-The 2D roadmap is an independent capability extension. Its delivery does not change V1 foundation
+The 2D roadmap is an independent capability extension. Its Zig batches now drive native GPU
+instancing, with Linux pixel/input evidence; physical Windows gates remain open. Its delivery does not change V1 foundation
 acceptance or the existing API/Zig/Editor average in the focused AI plan.
 
 百分比以既有文件的驗收狀態為準，不代表投入工時或剩餘工作量。下方中英文來源連結保留詳細
@@ -37,7 +38,7 @@ acceptance or the existing API/Zig/Editor average in the focused AI plan.
 不可重複加總為整體進度。來源驗收改變時，同步更新本紀錄及雙語索引；部分實作不代表整個
 里程碑完成。待量化項目先保留驗收狀態，待定義明確分母與權重後再記錄百分比。
 
-2D Roadmap 為獨立能力擴充；交付不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
+2D Roadmap 為獨立能力擴充；Zig 批次已接入原生 GPU Instancing，具有 Linux 像素／輸入證據，Windows 實體 Gate 仍待驗收；交付不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
 
 ## English
 

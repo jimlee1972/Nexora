@@ -87,6 +87,9 @@ struct SurfaceDiagnostics final {
   PresentMode negotiatedPresentMode = PresentMode::VSync;
   std::uint64_t surfaceRecoveries = 0;
   std::uint64_t nativeUiDrawCalls = 0;
+  std::uint64_t spriteInstancedDrawCalls = 0;
+  std::uint64_t spriteGpuInstances = 0;
+  std::uint64_t spriteInstanceUploadBytes = 0;
   std::uint64_t nativeUiBufferReallocations = 0;
   std::uint64_t nativeUiTextureUploads = 0;
   std::uint64_t nativeUiRejectedTextures = 0;
@@ -111,6 +114,17 @@ struct UiVertex final {
   std::uint32_t color{};
 };
 
+// Screen-space affine Quad, expanded by vertex ID in the native vertex shader.
+// UV is (u0,v0,u1,v1); negative UV spans preserve flips. Packed tint matches UiVertex.
+struct SpriteGpuInstance final {
+  float origin[2]{};
+  float axisX[2]{};
+  float axisY[2]{};
+  float uv[4]{};
+  std::uint32_t color{};
+};
+static_assert(sizeof(SpriteGpuInstance) == 44);
+
 struct UiDrawCommand final {
   std::int32_t clipX{};
   std::int32_t clipY{};
@@ -120,6 +134,9 @@ struct UiDrawCommand final {
   std::uint32_t elementCount{};
   std::uint32_t indexOffset{};
   std::int32_t vertexOffset{};
+  // Nonzero selects six generated vertices per instance; index/vertex offsets must be zero.
+  std::uint32_t instanceCount{};
+  std::uint32_t firstInstance{};
 };
 
 struct UiTextureUpload final {
@@ -470,7 +487,32 @@ struct UiDrawData final {
   std::span<const UiDrawCommand> commands;
   std::span<const UiTextureUpload> textureUploads;
   bool indices32Bit = false;
+  std::span<const SpriteGpuInstance> spriteInstances{};
 };
+// Shared bounded validation before any native upload or command recording.
+[[nodiscard]] inline bool ValidateSpriteInstances(const UiDrawData &data) noexcept {
+  if (data.spriteInstances.size() > 100000 || data.commands.size() > 100000)
+    return false;
+  for (const auto &v : data.spriteInstances) {
+    for (const auto *pair : {v.origin, v.axisX, v.axisY})
+      for (unsigned i = 0; i < 2; ++i)
+        if (!std::isfinite(pair[i]) || std::abs(pair[i]) > 1e12F)
+          return false;
+    for (float f : v.uv)
+      if (!std::isfinite(f) || std::abs(f) > 1e12F)
+        return false;
+  }
+  for (const auto &c : data.commands) {
+    if (c.instanceCount) {
+      if (c.elementCount != 6 || c.indexOffset || c.vertexOffset ||
+          c.firstInstance > data.spriteInstances.size() ||
+          c.instanceCount > data.spriteInstances.size() - c.firstInstance)
+        return false;
+    } else if (c.firstInstance)
+      return false;
+  }
+  return true;
+}
 
 // Geometry owns its bytes; texture pixel spans still borrow the input owners until submission.
 // The reserved white texture UINT64_MAX-1 is used only by the scene background.
@@ -479,13 +521,15 @@ struct PreparedSpriteDraws final {
   std::vector<std::uint32_t> indices;
   std::vector<UiDrawCommand> commands;
   std::vector<UiTextureUpload> textureUploads;
+  std::vector<SpriteGpuInstance> spriteInstances;
   [[nodiscard]] UiDrawData View() const noexcept {
-    return {vertices, std::as_bytes(std::span(indices)), commands, textureUploads, true};
+    return {vertices,       std::as_bytes(std::span(indices)), commands, textureUploads, true,
+            spriteInstances};
   }
 };
 [[nodiscard]] NEXORA_PRESENTATION_API std::optional<PreparedSpriteDraws>
 PrepareSpriteDraws(const UiDrawData &sprites, const UiDrawData &overlay, std::uint32_t width,
-                   std::uint32_t height);
+                   std::uint32_t height, bool instanceQuads = false);
 
 enum class SurfaceStatus : std::uint8_t {
   Ready,

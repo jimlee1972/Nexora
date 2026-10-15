@@ -103,10 +103,12 @@ SurfaceStatus RenderSurface::ReleaseSpriteTextures(std::span<const std::uint64_t
                                       : state_->surface->ReleaseSpriteTextures(ids);
 }
 
-SurfaceStatus RenderSurface::DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay) {
+SurfaceStatus RenderSurface::DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay,
+                                         bool instanceQuads) {
   if (!state_ || state_->destroyed)
     return SurfaceStatus::SurfaceLost;
-  auto prepared = PrepareSpriteDraws(sprites, overlay, state_->frame.width, state_->frame.height);
+  auto prepared = PrepareSpriteDraws(sprites, overlay, state_->frame.width, state_->frame.height,
+                                     instanceQuads);
   return prepared ? RenderUi(prepared->View()) : SurfaceStatus::InvalidDescriptor;
 }
 

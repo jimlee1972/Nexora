@@ -140,3 +140,11 @@ GTX 960 開發主機驗收涵蓋八個房間、primitive/texture/instance render
 靜態／動態／Reload 及布局契約通過；Linux 原生輸入驗收呈現 600 幀並確認 Zig 移動。
 見 [Zig 使用範例](../../Gameplay/Zig/README.md)與[2D Roadmap](2D_Roadmap.md)。此引擎
 控制擴充不改變本 Roadmap 原進度，也不代表實體 Windows gate 已完成。
+
+## 2D GPU Instancing 後續交付（2026-10-15）
+
+✅ 沿用 Zig V1 Instance 批次 API，透過 `SpriteFrame::Draw` 接入 CPU 驅動的原生 GPU
+Instancing。Linux 像素驗證涵蓋單次 256 Instances 與跨 Atlas／HUD 透明排序；實際 Zig
+輸入／Reload 驗證呈現 600 幀並記錄原生 Instance 計數。詳見
+[2D 範圍與平台限制](2D_Roadmap.md) 及 [使用方式](../../Gameplay/Zig/README.md)。
+不新增 ABI 或通用 Mesh／Material／Compute／Indirect API，也不代表 Windows 實體驗收。

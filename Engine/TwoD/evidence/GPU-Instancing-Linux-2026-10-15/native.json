@@ -1,0 +1,1 @@
+{"status":"PASS","language":"Zig 0.14","api":1,"native_frames":600,"movement_frames":496,"entity_x":8.266667,"sprite_instanced_draws":600,"sprite_gpu_instances":20254,"sprite_instance_upload_bytes":891176,"visible":33,"reloaded":true,"allocations_balanced":true,"physical_windows":"NOT RUN"}

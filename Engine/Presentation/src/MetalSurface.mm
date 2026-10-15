@@ -172,7 +172,7 @@ public:
       if (!drawable_ || !commands_ || uiRendered_ || (sceneOffscreen_ && !sceneComposited_) ||
           drawData.vertices.empty() || drawData.indices.empty())
         return SurfaceStatus::InvalidDescriptor;
-      if (!ValidateUi(drawData))
+      if (!ValidateUi(drawData) || !ValidateSpriteInstances(drawData))
         return SurfaceStatus::InvalidDescriptor;
       for (const auto &upload : drawData.textureUploads) {
         const auto previous = uiTextureMetadata_.find(upload.textureId);
@@ -186,7 +186,10 @@ public:
         if (!UploadUiTexture(upload))
           return SurfaceStatus::DeviceLost;
       const auto vertices = std::as_bytes(drawData.vertices);
-      const auto required = vertices.size() + drawData.indices.size();
+      const auto instances = std::as_bytes(drawData.spriteInstances);
+      const auto instanceOffset =
+          (vertices.size() + drawData.indices.size() + 3U) & ~std::size_t(3);
+      const auto required = instanceOffset + instances.size();
       if (uiCapacity_[frame_] < required) {
         uiCapacity_[frame_] = 4096;
         while (uiCapacity_[frame_] < required)
@@ -200,6 +203,10 @@ public:
       std::memcpy(uiUploads_[frame_].contents, vertices.data(), vertices.size());
       std::memcpy(static_cast<std::byte *>(uiUploads_[frame_].contents) + vertices.size(),
                   drawData.indices.data(), drawData.indices.size());
+      if (!instances.empty())
+        std::memcpy(static_cast<std::byte *>(uiUploads_[frame_].contents) + instanceOffset,
+                    instances.data(), instances.size());
+      diagnostics_.spriteInstanceUploadBytes += instances.size();
       MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
       pass.colorAttachments[0].texture = drawable_.texture;
       pass.colorAttachments[0].loadAction = sceneDrawn_ ? MTLLoadActionLoad : MTLLoadActionClear;
@@ -230,16 +237,30 @@ public:
                                      static_cast<NSUInteger>(command.clipY), command.clipWidth,
                                      command.clipHeight};
         [encoder setScissorRect:scissor];
-        [encoder
-            drawIndexedPrimitives:MTLPrimitiveTypeTriangle
-                       indexCount:command.elementCount
-                        indexType:drawData.indices32Bit ? MTLIndexTypeUInt32 : MTLIndexTypeUInt16
-                      indexBuffer:uiUploads_[frame_]
-                indexBufferOffset:vertices.size() +
-                                  command.indexOffset *
-                                      (drawData.indices32Bit ? 4U : 2U)instanceCount:1
-                       baseVertex:command.vertexOffset
-                     baseInstance:0];
+        if (command.instanceCount) {
+          [encoder setRenderPipelineState:spritePipeline_];
+          [encoder setVertexBuffer:uiUploads_[frame_] offset:instanceOffset atIndex:0];
+          [encoder drawPrimitives:MTLPrimitiveTypeTriangle
+                      vertexStart:0
+                      vertexCount:6
+                    instanceCount:command.instanceCount
+                     baseInstance:command.firstInstance];
+          ++diagnostics_.spriteInstancedDrawCalls;
+          diagnostics_.spriteGpuInstances += command.instanceCount;
+        } else {
+          [encoder setRenderPipelineState:uiPipeline_];
+          [encoder setVertexBuffer:uiUploads_[frame_] offset:0 atIndex:0];
+          [encoder
+              drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                         indexCount:command.elementCount
+                          indexType:drawData.indices32Bit ? MTLIndexTypeUInt32 : MTLIndexTypeUInt16
+                        indexBuffer:uiUploads_[frame_]
+                  indexBufferOffset:vertices.size() +
+                                    command.indexOffset *
+                                        (drawData.indices32Bit ? 4U : 2U)instanceCount:1
+                         baseVertex:command.vertexOffset
+                       baseInstance:0];
+        }
         ++diagnostics_.nativeUiDrawCalls;
       }
       [encoder endEncoding];
@@ -706,6 +727,7 @@ public:
       sceneSrgbTextures_.clear();
       sceneTextures_.clear();
       uiPipeline_ = nil;
+      spritePipeline_ = nil;
       scenePipeline_ = nil;
       scenePbrPipeline_ = nil;
       sceneHdrBlendPipeline_ = nil;
@@ -911,9 +933,12 @@ private:
           static_cast<std::uint32_t>(command.clipY) >= height_ ||
           command.clipWidth > width_ - static_cast<std::uint32_t>(command.clipX) ||
           command.clipHeight > height_ - static_cast<std::uint32_t>(command.clipY) ||
-          command.indexOffset > data.indices.size() / indexSize ||
-          command.elementCount > data.indices.size() / indexSize - command.indexOffset)
+          (!command.instanceCount &&
+           (command.indexOffset > data.indices.size() / indexSize ||
+            command.elementCount > data.indices.size() / indexSize - command.indexOffset)))
         return false;
+      if (command.instanceCount)
+        continue;
       for (std::size_t i = command.indexOffset; i < command.indexOffset + command.elementCount;
            ++i) {
         std::uint32_t index = 0;
@@ -1234,6 +1259,13 @@ private:
       vertex Output uiVertex(Input input [[stage_in]], constant float4 &transform [[buffer(1)]]) {
         Output output; output.position = float4(input.position * transform.xy + transform.zw, 0.0, 1.0); output.uv = input.uv; output.color = input.color; return output;
       }
+      struct SpriteInput { float2 origin [[attribute(0)]]; float2 axisX [[attribute(1)]]; float2 axisY [[attribute(2)]]; float4 uv [[attribute(3)]]; float4 color [[attribute(4)]]; };
+      vertex Output spriteVertex(SpriteInput input [[stage_in]], uint id [[vertex_id]], constant float4 &transform [[buffer(1)]]) {
+        const float2 corners[6] = {float2(0,0),float2(1,0),float2(1,1),float2(0,0),float2(1,1),float2(0,1)};
+        float2 corner = corners[id]; Output output;
+        output.position = float4((input.origin + input.axisX * corner.x + input.axisY * corner.y) * transform.xy + transform.zw, 0, 1);
+        output.uv = mix(input.uv.xy,input.uv.zw,corner); output.color = input.color; return output;
+      }
       fragment float4 uiFragment(Output input [[stage_in]], texture2d<float> image [[texture(0)]], sampler imageSampler [[sampler(0)]]) { return input.color * image.sample(imageSampler, input.uv); }
     )";
     NSError *error = nil;
@@ -1264,6 +1296,26 @@ private:
     vertices.layouts[0].stride = sizeof(UiVertex);
     pipeline.vertexDescriptor = vertices;
     uiPipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    pipeline.vertexFunction = [library newFunctionWithName:@"spriteVertex"];
+    MTLVertexDescriptor *instanceDescriptor = [MTLVertexDescriptor vertexDescriptor];
+    const NSUInteger offsets[] = {
+        offsetof(SpriteGpuInstance, origin), offsetof(SpriteGpuInstance, axisX),
+        offsetof(SpriteGpuInstance, axisY), offsetof(SpriteGpuInstance, uv),
+        offsetof(SpriteGpuInstance, color)};
+    for (NSUInteger i = 0; i < 5; ++i) {
+      instanceDescriptor.attributes[i].format =
+          i < 3 ? MTLVertexFormatFloat2
+                : (i == 3 ? MTLVertexFormatFloat4 : MTLVertexFormatUChar4Normalized);
+      instanceDescriptor.attributes[i].offset = offsets[i];
+      instanceDescriptor.attributes[i].bufferIndex = 0;
+    }
+    instanceDescriptor.layouts[0].stride = sizeof(SpriteGpuInstance);
+    instanceDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerInstance;
+    instanceDescriptor.layouts[0].stepRate = 1;
+    pipeline.vertexDescriptor = instanceDescriptor;
+    spritePipeline_ = [device_ newRenderPipelineStateWithDescriptor:pipeline error:&error];
+    if (!spritePipeline_)
+      return false;
     MTLSamplerDescriptor *sampler = [MTLSamplerDescriptor new];
     sampler.minFilter = MTLSamplerMinMagFilterLinear;
     sampler.magFilter = MTLSamplerMinMagFilterLinear;
@@ -1324,6 +1376,7 @@ private:
   id<MTLCommandQueue> queue_ = nil;
   id<MTLCommandBuffer> commands_ = nil;
   id<MTLRenderPipelineState> uiPipeline_ = nil;
+  id<MTLRenderPipelineState> spritePipeline_ = nil;
   id<MTLSamplerState> uiSampler_ = nil;
   id<MTLSamplerState> uiNearestSampler_ = nil;
   struct UiTextureMetadata {

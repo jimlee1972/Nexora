@@ -131,3 +131,11 @@ pool batches reach the existing TwoD services. Actual Zig static/dynamic/reload 
 contracts pass; Linux native input acceptance presents 600 frames with Zig movement.
 See [Zig usage](../../Gameplay/Zig/README.md) and [2D roadmap](2D_Roadmap.md). This additive
 engine-control scope leaves the original roadmap percentage and physical Windows gates unchanged.
+
+## 2D GPU instancing follow-through (2026-10-15)
+
+✅ The unchanged Zig V1 instance batches now reach native CPU-driven GPU instancing via
+`SpriteFrame::Draw`. Linux pixel acceptance verifies a 256-instance batch plus transparent
+cross-Atlas/HUD ordering; a 600-frame real Zig input/reload run records native instance counters.
+See [2D scope and platform limits](2D_Roadmap.md) and [usage](../../Gameplay/Zig/README.md).
+This adds no new ABI or general Mesh/Material/Compute/Indirect API and accepts no physical Windows gate.

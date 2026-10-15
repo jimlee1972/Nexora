@@ -49,6 +49,9 @@ def main():
             raise RuntimeError(f"Zig 2D exited {process.returncode}: {stderr}")
         evidence = json.loads(report.read_text(encoding="utf-8"))
         if (evidence["status"] != "PASS" or evidence["native_frames"] != 600 or
+                evidence["sprite_instanced_draws"] < 600 or
+                evidence["sprite_gpu_instances"] < 600 * 32 or
+                evidence["sprite_instance_upload_bytes"] != evidence["sprite_gpu_instances"] * 44 or
                 evidence["movement_frames"] == 0 or evidence["entity_x"] <= 0 or
                 not evidence["reloaded"] or not evidence["allocations_balanced"] or
                 evidence["physical_windows"] != "NOT RUN"):
