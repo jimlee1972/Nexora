@@ -234,8 +234,8 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
   nexora_apply_defaults(NexoraZigServicesTests)
   add_test(NAME gameplay.zig_services_consumer COMMAND NexoraZigServicesTests)
   foreach(wire input ui audio storage content)
-    add_test(NAME gameplay.zig_${wire}_wrapper
-      COMMAND "${NEXORA_ZIG_EXECUTABLE}" test "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
+    nexora_add_zig_test(gameplay.zig_${wire}_wrapper
+        "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
         --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-test-${wire}"
         --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-${wire}")
   endforeach()

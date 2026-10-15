@@ -73,7 +73,7 @@ target_link_libraries(NexoraGameplayUiTests PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraGameplayUiTests)
 add_test(NAME twod.gameplay_ui COMMAND NexoraGameplayUiTests)
 if(NEXORA_ZIG_EXECUTABLE)
-  add_test(NAME gameplay.zig_ui_wire_layout COMMAND "${NEXORA_ZIG_EXECUTABLE}" test
+  nexora_add_zig_test(gameplay.zig_ui_wire_layout
     --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-ui-cache"
     --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-ui-global-cache"
     "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep ui
@@ -85,7 +85,7 @@ target_link_libraries(NexoraGameplayContentTests PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraGameplayContentTests)
 add_test(NAME twod.gameplay_content COMMAND NexoraGameplayContentTests)
 if(NEXORA_ZIG_EXECUTABLE)
-  add_test(NAME gameplay.zig_content_wire_layout COMMAND "${NEXORA_ZIG_EXECUTABLE}" test
+  nexora_add_zig_test(gameplay.zig_content_wire_layout
     --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-content-cache"
     --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-content-global-cache"
     "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep content

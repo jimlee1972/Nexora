@@ -99,6 +99,26 @@ After this test-only correction, Development configure and the full build passed
 passed both affected tests (2/2). The 331-test acceptance above remains the full runtime gate;
 this follow-up checks the changed fixtures without repeating unrelated native UI acceptance.
 
+## Standalone Zig test runner linking follow-up
+
+Hosted macOS Development reached CTest but eight new standalone Zig tests failed to resolve
+libSystem symbols with Zig 0.14's Mach-O linker. The existing gameplay objects already use the
+host linker on Apple platforms. Standalone tests now use the same ownership of the final link:
+Zig emits assembly for its real standard test runner, and the configured Apple C++ compiler
+assembles/links it against the host SDK. Linux and Windows retain ordinary `zig test` commands.
+The test runner, assertions and failure exit status are preserved; no test is skipped.
+
+On Linux, the host-link helper successfully compiled, linked and executed all eight affected
+invocations (five wrapper roots, input ABI, UI layout and content layout). A temporary intentional
+failing Zig test returned exit 1 through the helper, proving failures are not converted to success.
+These checks validate the helper path on Linux; Apple SDK linking is accepted only by hosted macOS CI.
+
+After this test-harness change, `cmake --preset linux-development` with
+`-DNEXORA_BUILD_SHOWCASE=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF`, the full Development
+build (`-j 4`) and the complete CTest preset (`--output-on-failure -j 4`) passed: **195/195**,
+no failures or skips, 61.12 seconds. This restores the initial base configuration; the expanded
+331-test application acceptance above is retained separately. No Runtime/TwoD behavior changed.
+
 ## Limits
 
 No physical audio device/controller, readable production Chinese font/artwork, Windows/macOS/mobile

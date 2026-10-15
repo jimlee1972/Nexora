@@ -103,6 +103,10 @@ Mesh/Material instancing API are outside this delivered 2D slice.
 
 ## Validation
 
+Standalone Zig wrapper/layout tests use the normal Zig runner. On macOS, the
+[host-link helper](../../Tools/Build/README.md#native-zig-test-linking) uses the configured Apple
+compiler for the final link to avoid Zig 0.14's libSystem resolution issue with newer SDKs.
+
 - `gameplay.zig_abi_smoke`: original V3 prefix compatibility and shared lifecycle vectors.
 - `gameplay.zig_twod_static` / `gameplay.zig_twod_dynamic`: actual Zig input, transforms,
   animation/query calls, pool batches, reload without duplicate content and allocator balance.

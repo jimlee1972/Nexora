@@ -27,11 +27,10 @@ if(TARGET NexoraApiFoundationSample)
 endif()
 
 if(NEXORA_ZIG_EXECUTABLE)
-  add_test(NAME api.gameplay_input_zig_abi
-    COMMAND "${CMAKE_COMMAND}" -E env
-      "ZIG_GLOBAL_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/zig-global-cache"
-      "ZIG_LOCAL_CACHE_DIR=${CMAKE_CURRENT_BINARY_DIR}/zig-local-cache"
-      "${NEXORA_ZIG_EXECUTABLE}" test -I "${PROJECT_SOURCE_DIR}/Engine/API/include"
+  nexora_add_zig_test(api.gameplay_input_zig_abi
+      --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-cache"
+      --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-local-cache"
+      -I "${PROJECT_SOURCE_DIR}/Engine/API/include"
       --dep input "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayInputAbi.zig"
       "-Minput=${PROJECT_SOURCE_DIR}/Bindings/Zig/input.zig" -lc)
 endif()
