@@ -397,18 +397,27 @@ void Native(const char *capture) {
   runtime::GameplayModuleHost module(Host(*context));
   Check(module.Load(Loader), "native gameplay callbacks");
   std::vector<std::array<unsigned, 3>> samples;
+  std::uint64_t expectedDraws{}, expectedInstances{}, expectedUploadBytes{};
   const auto draw = [&](const twod::SpriteFrame &frame, unsigned color, bool save) {
     auto uploads = frame.Uploads();
     auto packet = PrepareSpriteDraws(
         {frame.vertices, std::as_bytes(std::span(frame.indices)), frame.batches, uploads, true}, {},
-        320, 240);
-    Check(bool(packet), "native combined frame packet");
+        320, 240, true);
+    Check(packet && packet->spriteInstances.size() == frame.statistics.visible &&
+              packet->vertices.size() == 4 && packet->indices.size() == 6,
+          "native compact instanced frame packet");
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
     do {
       static_cast<void>(windows->PumpEvents());
       Check(surface->Acquire() == SurfaceStatus::Ready, "native acquire");
       Check(surface->RenderUi(packet->View()) == SurfaceStatus::Ready, "native draw");
       Check(surface->Present() == SurfaceStatus::Ready, "native present");
+      expectedDraws += static_cast<std::uint64_t>(
+          std::count_if(packet->commands.begin(), packet->commands.end(),
+                        [](const auto &command) { return command.instanceCount != 0; }));
+      expectedInstances += static_cast<std::uint64_t>(packet->spriteInstances.size());
+      expectedUploadBytes +=
+          static_cast<std::uint64_t>(packet->spriteInstances.size()) * sizeof(SpriteGpuInstance);
       XSync(display, False);
       auto *image = XGetImage(display, native, 0, 0, 320, 240, AllPlanes, ZPixmap);
       Check(image != nullptr, "native pixels");
@@ -470,6 +479,12 @@ void Native(const char *capture) {
             // Two frozen Atlas generations plus PrepareSpriteDraws' immutable white background.
             surface->Diagnostics().nativeUiTextureUploads == 3,
         "native immutable generations/retirement");
+  const auto diagnostics = surface->Diagnostics();
+  Check(expectedDraws >= 5 && expectedInstances >= 13 &&
+            diagnostics.spriteInstancedDrawCalls == expectedDraws &&
+            diagnostics.spriteGpuInstances == expectedInstances &&
+            diagnostics.spriteInstanceUploadBytes == expectedUploadBytes,
+        "native instanced draws, instances and exact upload bytes");
   XCloseDisplay(display);
   Check(surface->DrainAndDestroy() == SurfaceStatus::Ready, "native surface teardown");
   surface.reset();
@@ -481,7 +496,11 @@ void Native(const char *capture) {
       std::cout << ',';
     std::cout << '[' << samples[i][0] << ',' << samples[i][1] << ',' << samples[i][2] << ']';
   }
-  std::cout << "],\"native_texture_uploads\":3,\"source_bytes\":\"unchanged\"}\n";
+  std::cout << "],\"native_texture_uploads\":3,\"instanced_draws\":"
+            << diagnostics.spriteInstancedDrawCalls
+            << ",\"gpu_instances\":" << diagnostics.spriteGpuInstances
+            << ",\"instance_upload_bytes\":" << diagnostics.spriteInstanceUploadBytes
+            << ",\"source_bytes\":\"unchanged\"}\n";
   std::cout << "2D Play native pixels: frozen red, animated green, retained green, new-session "
                "blue; source preserved\n";
 }

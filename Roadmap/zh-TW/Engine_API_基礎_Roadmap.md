@@ -123,3 +123,6 @@ API-M1～M4 是 Zig Showcase 與 Editor 共用前置；API-M5/M6 讓兩者只能
 靜態／動態／Reload 及布局契約通過；Linux 原生輸入驗收呈現 600 幀並確認 Zig 移動。
 見 [Zig 使用範例](../../Gameplay/Zig/README.md)與[2D Roadmap](2D_Roadmap.md)。此引擎
 控制擴充不改變本 Roadmap 原進度，也不代表實體 Windows gate 已完成。
+
+2026-10-15 的 GPU Instancing 交付沿用上述 V1 池化批次，不改 C／Zig Wire Layout。
+原生 2D 繪製／上傳證據及後續 GPU API 範圍見 [2D Roadmap](2D_Roadmap.md)。

@@ -113,3 +113,7 @@ pool batches reach the existing TwoD services. Actual Zig static/dynamic/reload 
 contracts pass; Linux native input acceptance presents 600 frames with Zig movement.
 See [Zig usage](../../Gameplay/Zig/README.md) and [2D roadmap](2D_Roadmap.md). This additive
 engine-control scope leaves the original roadmap percentage and physical Windows gates unchanged.
+
+The 2026-10-15 GPU-instancing delivery reuses these copied V1 pool batches without changing
+any C/Zig wire layout. Native 2D draw/upload evidence and remaining GPU API scope are tracked
+in the [2D roadmap](2D_Roadmap.md).

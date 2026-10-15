@@ -43,7 +43,9 @@ limit. Scene ties preserve existing entity-ID order even when storage order diff
 sorted pool inputs follow scene inputs, then tiles, with stable order within each namespace.
 Invalid extent/texture, overflow, allocation or extraction failure returns unavailable.
 It performs no IO, tick/animation advancement or GPU work. Unknown Atlas/region references use
-the existing unavailable accounting. Frames retain immutable Atlas owners after context/source
+the existing unavailable accounting. The CPU triangle snapshot remains available for inspection;
+`SpriteFrame::Draw` uses the current native 44-byte GPU instance path. Frames retain immutable
+Atlas owners after context/source
 destruction. The presentation host supplies a nonzero fresh surface-local texture ID for each
 Atlas generation, excluding the two reserved largest IDs, and retires native textures after work
 completes. A new context can contain changed pixels under the same asset UUID and needs a new ID.
@@ -51,7 +53,8 @@ completes. A new context can contain changed pixels under the same asset UUID an
 `twod.play_context` exercises 32 actual V3 module lifetimes, source replacement/history,
 failed Start, stale handles and copied extraction. `twod.play_context_native` uses X11/Vulkan
 pixels for frozen red, animated green, retained green after owner destruction and new-session
-blue. These are prerequisite ownership/renderer contracts; main project Editor routing,
+blue, with exact native instanced draw/instance/upload-byte counters. These are prerequisite
+ownership/renderer contracts; main project Editor routing,
 project-scoped cooked asset capture, integrated Game UI/preview, full hot reload and physical
 acceptance remain open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 

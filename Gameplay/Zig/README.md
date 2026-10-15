@@ -70,6 +70,37 @@ survives old-module stop/destroy; the host clears it when the scene/pool is reti
 module start may have made earlier successful calls, so multi-call content rollback belongs to
 the host. The bridge itself is synchronous, owner-thread only and rejects reentry.
 
+## GPU-instanced 2D rendering from Zig
+
+The existing `TwoDApiV1` pool calls control CPU-driven GPU-instanced Sprites. A host using
+`SpriteFrame::Draw` automatically compacts the visible scene/pool/tile Quads into native instance
+records; no per-object draw call or GPU pointer is required in Zig. Set Atlas/region, Transform,
+size/pivot, flip, tint and sorting fields through the same copied `TwoDInstance` values:
+
+```zig
+var values: [32]nx.TwoDInstance = @splat(.{});
+var handles: [32]nx.TwoDInstanceHandle = undefined;
+for (&values, 0..) |*value, i| {
+    value.sprite = sprite; // A valid cooked Atlas UUID and region resolved by the host.
+    value.transform.position.x = @as(f64, @floatFromInt(i));
+}
+if (api.create_instances.?(api.context, &values, values.len, &handles) != 0) return -1;
+// In a later update: change values, then upload the copied batch to the host.
+if (api.write_instances.?(api.context, &handles, values.len, &values) != 0) return -1;
+// When retired: destroy_instances(context, &handles, handles.len).
+```
+
+See the compiler-tested [consumer](src/twod_module.zig) for complete initialization, movement,
+read/write/destroy, error handling and reload migration. Counts are bounded by host pool capacity
+and 100,000 instances per call/render packet; capacity is not a frame-rate guarantee. Handles are
+CPU pool handles, not GPU buffers. The host retains the same pool across a successful reload and
+reacquires API pointers; it owns final cleanup and native texture/buffer retirement.
+
+Only adjacent Atlas-compatible Sprites after transparent sorting share an instanced draw. Different
+Atlas generations or intervening layers split batches; UI stays ordered after Sprites. Zig still
+updates/simulates on CPU. Compute shaders, script-owned GPU buffers, indirect draws and a general
+Mesh/Material instancing API are outside this delivered 2D slice.
+
 ## Validation
 
 - `gameplay.zig_abi_smoke`: original V3 prefix compatibility and shared lifecycle vectors.

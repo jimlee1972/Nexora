@@ -25,10 +25,14 @@ atlas generations, surface recreation and HUD resources; the two largest IDs are
 The caller retires superseded IDs; there is no unbounded automatic generation cache. Resize keeps
 resident atlases. A new surface requires uploads again. UI fonts remain mutable by default.
 
-`DrawSprites` validates/rebases Sprite triangles plus optional HUD data into one native RenderUi
-pass, with an opaque background. Do not issue another RenderUi in that acquired frame. The existing
-Vulkan/DX12/Metal native unlit triangle pipeline handles RGBA alpha and per-texture nearest/linear
-sampling. It does not allocate backend objects in public headers or implement a private renderer.
+`SpriteFrame::Draw` requests native GPU instancing through `DrawSprites`: each visible Sprite
+becomes one 44-byte affine/UV/tint record; native vertex shaders generate six Quad corners.
+Vulkan, DX12 and Metal issue instanced draws. The existing extraction retains CPU triangle geometry
+for Editor ImGui preview and inspection; projection, sorting, culling, animation and script updates
+still run on CPU. GPU submission does not upload that expanded Sprite geometry. This is CPU-driven
+GPU instancing, not GPU simulation, compute culling or indirect drawing. The borrowed overlay uses
+the indexed UI pipeline in the same native pass, after the instanced Sprites and background.
+Atlas lifetime/sampling and linear blending remain shared with Presentation.
 Sprite batching merges only adjacent matching atlas IDs after `(layer, order, descending world Y,
 entity ID)` sorting; it never groups translucent geometry across intervening layers. A rotated
 orthographic camera projects affine-transformed Sprite corners and culls offscreen bounds.

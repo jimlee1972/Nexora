@@ -108,6 +108,16 @@ int main(int argc, char **argv) {
     s.region = 1;
     s.size = {4, 4};
     Check(sprites.Set(world.CreateEntity(scene).id, s), "red");
+    // A real multi-instance batch before two cross-atlas transparent batches.
+    for (unsigned i = 1; i < 256; ++i) {
+      const auto id = world.CreateEntity(scene).id;
+      Check(sprites.Set(id, s), "opaque instance");
+      if (i == 255) {
+        runtime::WorldCommandBuffer commands;
+        commands.SetTransform(id, {4.5, 0, 0});
+        Check(commands.Apply(world), "last instance transform");
+      }
+    }
     s.atlas = green->id;
     Check(sprites.Set(world.CreateEntity(scene).id, s), "green");
     s.atlas = red->id;
@@ -132,11 +142,23 @@ int main(int argc, char **argv) {
                              blue->rgba, true,        true};
     auto packet = PrepareSpriteDraws(
         {frame->vertices, std::as_bytes(std::span(frame->indices)), frame->batches, uploads, true},
-        {hv, std::as_bytes(std::span(hi)), std::span(&hc, 1), std::span(&hu, 1), false}, 320, 240);
-    Check(bool(packet), "prepare packet");
+        {hv, std::as_bytes(std::span(hi)), std::span(&hc, 1), std::span(&hu, 1), false}, 320, 240,
+        true);
+    Check(bool(packet) && packet->spriteInstances.size() == 258 && packet->vertices.size() == 8 &&
+              packet->indices.size() == 12 && packet->commands[1].instanceCount == 256 &&
+              packet->commands[2].firstInstance == 256,
+          "compact instance packet plus legacy HUD");
+    auto malformed = *packet;
+    malformed.commands[1].instanceCount = UINT32_MAX;
+    Check(surface->RenderUi(malformed.View()) == SurfaceStatus::InvalidDescriptor,
+          "malformed instances before acquire");
     const auto render = [&] {
       static_cast<void>(windows->PumpEvents());
       Check(surface->Acquire() == SurfaceStatus::Ready, "acquire");
+      const auto uploadsBefore = surface->Diagnostics().nativeUiTextureUploads;
+      Check(surface->RenderUi(malformed.View()) == SurfaceStatus::InvalidDescriptor &&
+                surface->Diagnostics().nativeUiTextureUploads == uploadsBefore,
+            "invalid instance range must not upload or consume an acquired frame");
       Check(surface->ReleaseSpriteTextures(std::span<const std::uint64_t>{}) ==
                 SurfaceStatus::InvalidDescriptor,
             "retirement during frame");
@@ -149,10 +171,21 @@ int main(int argc, char **argv) {
     Check(diagnostics.nativeUiTextureUploads == 4 && diagnostics.nativeUiRejectedTextures == 0 &&
               diagnostics.nativeUiDrawCalls == 40,
           "immutable atlas upload/batches");
+    Check(diagnostics.spriteInstancedDrawCalls == 24 && diagnostics.spriteGpuInstances == 8 * 258 &&
+              diagnostics.spriteInstanceUploadBytes == 8 * 258 * sizeof(SpriteGpuInstance),
+          "native instanced draws and exact compact upload bytes");
     auto *display = XOpenDisplay(nullptr);
     Check(display != nullptr, "display");
     const auto native = reinterpret_cast<::Window>(windows->NativeHandle(created.handle));
     Pixels(display, native, argv[1]);
+    WaitPixels(
+        display, native,
+        [&](XImage *image) {
+          const auto last = XGetPixel(image, 268, 120);
+          return Channel(last, image->red_mask) > 250 && Channel(last, image->green_mask) < 3 &&
+                 Channel(last, image->blue_mask) < 3;
+        },
+        "last GPU instance in the batch must use its own transform");
     const std::uint64_t release = 101;
     Check(surface->ReleaseSpriteTextures(std::span(&release, 1)) == SurfaceStatus::Ready,
           "retire generation");
@@ -194,7 +227,7 @@ int main(int argc, char **argv) {
       auto cu = cf->Uploads();
       auto cp = PrepareSpriteDraws(
           {cf->vertices, std::as_bytes(std::span(cf->indices)), cf->batches, cu, true}, {}, 320,
-          240);
+          240, true);
       Check(bool(cp), "checker packet");
       for (unsigned i = 0; i < 3; ++i) {
         Check(surface->Acquire() == SurfaceStatus::Ready, "checker acquire");
@@ -233,7 +266,8 @@ int main(int argc, char **argv) {
     Check(bool(lf), "linear extraction");
     auto lu = lf->Uploads();
     auto lp = PrepareSpriteDraws(
-        {lf->vertices, std::as_bytes(std::span(lf->indices)), lf->batches, lu, true}, {}, 320, 240);
+        {lf->vertices, std::as_bytes(std::span(lf->indices)), lf->batches, lu, true}, {}, 320, 240,
+        true);
     Check(bool(lp), "linear packet");
     for (unsigned i = 0; i < 3; ++i) {
       Check(surface->Acquire() == SurfaceStatus::Ready, "linear acquire");
@@ -265,7 +299,7 @@ int main(int argc, char **argv) {
       auto tu = tf->Uploads();
       auto tp = PrepareSpriteDraws(
           {tf->vertices, std::as_bytes(std::span(tf->indices)), tf->batches, tu, true}, {}, 320,
-          240);
+          240, true);
       Check(bool(tp), "tile packet");
       for (unsigned i = 0; i < 3; ++i) {
         Check(surface->Acquire() == SurfaceStatus::Ready, "tile acquire");

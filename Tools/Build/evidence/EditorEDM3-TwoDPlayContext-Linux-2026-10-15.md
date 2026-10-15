@@ -65,22 +65,32 @@ casts now state those bounded widths; no warning policy, production code or asse
 Clang `-Werror=shorten-64-to-32` syntax validation and a complete restarted Linux gate pass.
 Companion JSON preserves the earlier gate and exact failure run/job separately.
 
+The repaired `a284cc76` head then passed all 36 hosted checks on base `aeb162f7`, including
+eight zero-skip desktop/Xvfb logs. The final merge guard detected main advancing to `15e7cd46`
+(PR605 native GPU instancing), so this earlier green source was not merged. Current main was
+integrated without conflicts. CPU SpriteFrame snapshots remain compatible; the context's native
+fixture now explicitly requests compact GPU submission and verifies actual instanced draws,
+instance counts and exact 44-byte payload uploads as well as every prior RGB/source check.
+The pre-integration gate remains separate in companion JSON. Current-main full gates below were rerun
+before publishing the integration. This consumes PR605's renderer, without re-delivering it.
+
 ## Final gates
 
 - `cmake --preset linux-development`; `cmake --build --preset linux-development`: passed,
   **570 build actions**, graphical shell/real Zig/Slang enabled.
-- `ctest --preset linux-development`: final restarted run **310/310, zero skipped, 1056.48 s**.
-  New portable/native tests **1.40/1.75 s**, including the independent storage-order regression.
+- `ctest --preset linux-development`: final restarted run **310/310, zero skipped, 1047.90 s**.
+  New portable/native tests **1.28/1.56 s**, including the independent storage-order regression.
   Native RGB samples are exactly red/red/green/green/blue, three verified texture uploads,
-  unchanged source bytes, no stderr, Khronos validation requested. Companion JSON retains the
+  unchanged source bytes, no stderr, Khronos validation requested. Current-main native submission
+  verifies **6 instanced draws / 16 instances / 704 bytes**, including one bounded readback retry,
+  exactly 44 bytes per submitted instance. Companion JSON retains the
   structured report, capture hash and all five unchanged final source/test hashes.
-- Existing 100k hierarchy lifecycle **165.97 s** and native Play soak **82.00 s** pass.
+- Existing 100k hierarchy lifecycle **157.95 s** and native Play soak **81.81 s** pass.
   The latter retains 32 cycles/128 records, source pixels/bytes and zero validation errors;
-  warmed RSS peak growth **5025792 bytes** is within its unchanged 33554432-byte guard.
+  warmed RSS peak growth **5193728 bytes** is within its unchanged 33554432-byte guard.
   This observation is not a cause/fix or proof of all-memory leak freedom.
 - `cmake --preset linux-shipping`; `cmake --build --preset linux-shipping`: passed;
-  prescribed Minimal Monolithic, Editor/testing excluded. Initial incremental build had seven
-  actions, final rerun had no work. It does not compile/test this Editor-only class.
+  prescribed Minimal Monolithic, Editor/testing excluded. Current-main incremental build had 18 actions. It does not compile/test this Editor-only class.
 - Fresh Development configure with `NEXORA_ENABLE_2D=OFF` and graphical shell ON: passed,
   optional implementation/test targets absent. Initial fresh-cache attempts needed the same
   explicit cloud X11/Vulkan/Slang/Zig paths as the working cache; no source workaround or
