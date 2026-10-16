@@ -86,3 +86,12 @@ Physical Windows XInput polling/model compatibility, audible waveOut playback/re
 DPI/display changes, CJK/font appearance and clean-host integrated product acceptance remain
 **NOT RUN**. Software Vulkan and ALSA null do not accept those gates or physical minimum-PC M6.
 M7 is **PARTIAL / NOT ACCEPTED**; 9/11 (82%) remains unchanged.
+
+
+The existing Windows Shipping CI job additionally builds the static 2D host/compiler, stages a
+clean `NexoraTwoD-Shipping/` directory, and runs the CPU/cooked-service package checks without
+physical-device claims. `twod-windows-shipping` uploads that package and separate evidence.
+Each package includes a hashed `README.txt` with launch command/controls and explicit target-host
+prerequisites. Local validation of this CI/staging addition: workflow YAML parsing, all 16
+DocumentationCI routing tests, both product CTests and isolated Shipping CPU/native flow pass.
+No C++ runtime behavior or required-check protection changes in this addition.

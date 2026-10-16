@@ -83,6 +83,22 @@ def stage(runtime: Path, compiler: Path, output: Path, allow_development=False):
         audio.writeframes(b''.join(struct.pack('<h', int(3276 * math.sin(i * 2 * math.pi * 440 / 48000)))
                                    for i in range(4800)))
     files.append(tone)
+    guide = output / 'README.txt'
+    prefix = '.\\' if sys.platform == 'win32' else './'
+    save_path = '.\\saves' if sys.platform == 'win32' else './saves'
+    guide.write_text(
+        'Nexora cooked 2D service validation fixture\n\n'
+        'From a writable extracted package directory, run:\n'
+        f'{prefix}{target.name} --validation-package . --save-directory {save_path} --audio --interactive\n\n'
+        'WASD or slot-0 left stick moves; Space/A pauses animation.\n'
+        'Click SAVE/OPEN to save/restore position. Esc or window close saves and exits.\n'
+        'Use a dedicated writable save directory. Restart resumes the position slot.\n'
+        'The target OS C/C++ runtime and graphics/audio drivers are prerequisites.\n'
+        'If output is unavailable, --audio fails; omitting it does not verify sound.\n'
+        'No physical audibility, controller, DPI, minimum-PC or clean-host gate is accepted by CI.\n'
+        'This is an engine fixture, not a complete game or generic project export.\n',
+        encoding='utf-8')
+    files.append(guide)
     hashes = {path.relative_to(output).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
               for path in files}
     manifest = {'schema': 'nexora.twod.service-acceptance.v1', 'runtime': target.name,

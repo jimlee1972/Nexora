@@ -160,3 +160,10 @@ audio submission and teardown. Reports/screenshots live under `artifacts/twod-pr
 isolated Shipping test uses `ProductAcceptance.py --shipping --native` with the same options.
 Software Vulkan, fixture text and null audio do not accept physical Windows devices, DPI/font
 appearance, minimum-PC performance or the full M7 target-host gate.
+
+
+The existing Windows Shipping CI job also builds/stages this host, runs CPU cooked-service checks
+without device/audio claims, and uploads the `twod-windows-shipping` artifact. Its clean
+`NexoraTwoD-Shipping/` package includes `README.txt` with the native interactive command and controls;
+acceptance logs/test copies are stored separately. The target host still needs OS runtime/drivers,
+physical sound/controller checks and DPI/clean-machine acceptance. CI does not mark M7 accepted.

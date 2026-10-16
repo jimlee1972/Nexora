@@ -325,6 +325,12 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
       - run: cmake --preset windows-showcase-shipping
       - run: cmake --build --preset windows-showcase-shipping --target NexoraShowcasePackageShippingEvidence --parallel 4
+      - name: Build standalone 2D Shipping validation host
+        run: cmake --build --preset windows-showcase-shipping --target NexoraZigTwoD NexoraTwoDAssetCompiler --parallel 4
+      - name: Stage standalone cooked 2D Shipping package
+        run: python Tools/TwoD/StageProductValidation.py --runtime build/windows-showcase-shipping/bin/NexoraZigTwoD.exe --compiler build/windows-showcase-shipping/bin/NexoraTwoDAssetCompiler.exe --output build/windows-showcase-shipping/package/NexoraTwoD-Shipping
+      - name: Verify cooked 2D Shipping services without device claims
+        run: python Tests/TwoD/ProductAcceptance.py --app build/windows-showcase-shipping/bin/NexoraZigTwoD.exe --compiler build/windows-showcase-shipping/bin/NexoraTwoDAssetCompiler.exe --evidence-dir build/windows-showcase-shipping/artifacts/twod-product-shipping --shipping
       - name: Native Windows isolated-copy visual acceptance
         shell: pwsh
         run: |
@@ -341,6 +347,13 @@ jobs:
           path: |
             build/windows-showcase-shipping/package/NexoraShowcase-Shipping*
             build/windows-showcase-shipping/artifacts/showcase-windows-v1/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: twod-windows-shipping
+          path: |
+            build/windows-showcase-shipping/package/NexoraTwoD-Shipping/
+            build/windows-showcase-shipping/artifacts/twod-product-shipping/
 
   # Windows Vulkan parity: same Full Shipping package, but with the Vulkan backend ON so the
   # packaged app can be accepted with `accept-v1.ps1 -Backend vulkan` on a machine with a Vulkan GPU.
