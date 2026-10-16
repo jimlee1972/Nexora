@@ -17,6 +17,8 @@
 **Baseline: Entered after V1 / Architecture Completion Baseline was completed and passed the Gate**
 **Positioning: Scale-Up / GPU-Driven / Large World / Networking / Production Tooling**
 
+> **V2 graphics scope extension (2026-10-16):** The [V2 Advanced Graphics Capability Plan](V2_Advanced_Graphics_Capability_Plan.md) adds V2-GFX-1 through V2-GFX-5 as open V2 final-acceptance gates: parallel command recording and CPU-overhead measurements, tessellation, Enhanced Barriers, DXR through DXR 1.2/SER, Mesh Shader, VRS, Sampler Feedback, Work Graphs, SM 6.9 and SM 6.10 Preview. Advanced paths are capability-dependent with tested fallbacks. The plan governs these additions over older scope matrices; they are not delivered functionality. The historical 46% is the original 6/13 milestone ratio, excluding this extension.
+
 ---
 
 # I. V2 Positioning
@@ -231,6 +233,18 @@ Temporal Upscaler Interface             ✅
 Hardware Ray Tracing                    △ Optional plugin/profile
 Path Tracing                            ❌ V2 core
 ```
+
+Planned V2 graphics additions (all open; acceptance is defined in the linked V2-GFX plan):
+
+| Gate | Added rendering scope |
+| --- | --- |
+| V2-GFX-1 | Parallel recording, capability matrix, measured CPU overhead |
+| V2-GFX-2 | Tessellation, Enhanced Barriers |
+| V2-GFX-3 | DXR baseline through DXR 1.2, optional SER |
+| V2-GFX-4 | Mesh Shader, VRS, Sampler Feedback, Ultimate coverage |
+| V2-GFX-5 | Work Graphs, SM 6.9, SM 6.10 Preview |
+
+
 
 ## World / Streaming
 

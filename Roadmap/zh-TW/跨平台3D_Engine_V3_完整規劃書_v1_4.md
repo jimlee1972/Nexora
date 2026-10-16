@@ -18,6 +18,8 @@
 > Distributed Production Infrastructure
 > ```
 
+> **V2／V3 圖形邊界更新（2026-10-16）：** DXR 基礎至 DXR 1.2／SER、Mesh Shader、VRS、Sampler Feedback、Work Graphs、Enhanced Barriers、Tessellation、平行命令錄製與 SM 6.9／6.10 Preview 的首次交付，改由 [V2 進階圖形能力計畫](V2_Advanced_Graphics_Capability_Plan.md) 負責。V3 延伸 V2 基礎；下文相關規劃不代表首次實作仍延至 V3，也不構成完成證據。V2-GFX 全部待完成；Path Tracing 與其他 V3 專屬系統維持原範圍。
+
 ---
 
 # 一、V3 不改變的核心哲學
