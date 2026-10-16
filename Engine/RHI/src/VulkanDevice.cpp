@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -275,6 +276,12 @@ public:
 
 private:
   friend class VulkanDevice;
+  [[nodiscard]] VkDescriptorSet SnapshotComputeBindings();
+  static constexpr std::uint32_t ComputeSetsPerPool = 32;
+  std::array<BufferHandle, 4> storage_buffers_{};
+  std::array<bool, 4> storage_bound_{};
+  std::vector<VkDescriptorPool> compute_descriptor_pools_;
+  std::uint32_t compute_sets_in_last_pool_{ComputeSetsPerPool};
   VulkanDevice &device_;
   VkCommandPool command_pool_{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
@@ -371,8 +378,6 @@ private:
   VkShaderModule compute_shader_module_{VK_NULL_HANDLE};
   VkPipelineLayout pipeline_layout_{VK_NULL_HANDLE};
   VkDescriptorSetLayout compute_descriptor_set_layout_{VK_NULL_HANDLE};
-  VkDescriptorPool compute_descriptor_pool_{VK_NULL_HANDLE};
-  VkDescriptorSet compute_descriptor_set_{VK_NULL_HANDLE};
   VkPipelineLayout compute_pipeline_layout_{VK_NULL_HANDLE};
   VkRenderPass rgba_render_pass_{VK_NULL_HANDLE};
   VkRenderPass bgra_render_pass_{VK_NULL_HANDLE};
@@ -749,17 +754,6 @@ void VulkanDevice::CreateUniformResources() {
   Check(functions_.CreateDescriptorSetLayout(device_, &compute_layout_info, nullptr,
                                              &compute_descriptor_set_layout_),
         "vkCreateDescriptorSetLayout(compute)");
-  const VkDescriptorPoolSize compute_pool_size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4};
-  const VkDescriptorPoolCreateInfo compute_pool_info{
-      VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, 0, 1, 1, &compute_pool_size};
-  Check(functions_.CreateDescriptorPool(device_, &compute_pool_info, nullptr,
-                                        &compute_descriptor_pool_),
-        "vkCreateDescriptorPool(compute)");
-  const VkDescriptorSetAllocateInfo compute_set_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                                     nullptr, compute_descriptor_pool_, 1,
-                                                     &compute_descriptor_set_layout_};
-  Check(functions_.AllocateDescriptorSets(device_, &compute_set_info, &compute_descriptor_set_),
-        "vkAllocateDescriptorSets(compute)");
   const VkPipelineLayoutCreateInfo compute_pipeline_layout_info{
       VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       nullptr,
@@ -1463,8 +1457,6 @@ VulkanDevice::~VulkanDevice() {
     functions_.DestroyPipelineLayout(device_, pipeline_layout_, nullptr);
   if (compute_pipeline_layout_ != VK_NULL_HANDLE)
     functions_.DestroyPipelineLayout(device_, compute_pipeline_layout_, nullptr);
-  if (compute_descriptor_pool_ != VK_NULL_HANDLE)
-    functions_.DestroyDescriptorPool(device_, compute_descriptor_pool_, nullptr);
   if (compute_descriptor_set_layout_ != VK_NULL_HANDLE)
     functions_.DestroyDescriptorSetLayout(device_, compute_descriptor_set_layout_, nullptr);
   if (descriptor_pool_ != VK_NULL_HANDLE)
@@ -1523,6 +1515,8 @@ VulkanCommandList::~VulkanCommandList() {
     device_.functions_.FreeCommandBuffers(device_.device_, command_pool_, 1, &command_buffer_);
   if (command_pool_ != VK_NULL_HANDLE)
     device_.functions_.DestroyCommandPool(device_.device_, command_pool_, nullptr);
+  for (const auto pool : compute_descriptor_pools_)
+    device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
   if (indirect_buffer_ != VK_NULL_HANDLE)
     device_.functions_.DestroyBuffer(device_.device_, indirect_buffer_, nullptr);
   if (indirect_memory_ != VK_NULL_HANDLE)
@@ -1588,9 +1582,6 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
       throw std::logic_error("Vulkan compute pipeline cannot be bound during rendering");
     device_.functions_.CmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
                                        record.pipeline);
-    device_.functions_.CmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                             device_.compute_pipeline_layout_, 0, 1,
-                                             &device_.compute_descriptor_set_, 0, nullptr);
     pipeline_bound_ = true;
     pipeline_type_ = PipelineType::Compute;
     return;
@@ -1618,19 +1609,58 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
 void VulkanCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
   if (submitted_ || rendering_ || binding >= 4)
     throw std::logic_error("invalid Vulkan storage-buffer binding");
-  auto &record = device_.ValidateBuffer(buffer);
-  const VkDescriptorBufferInfo buffer_info{record.buffer, 0, record.descriptor.size};
-  const VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                   nullptr,
-                                   device_.compute_descriptor_set_,
-                                   binding,
-                                   0,
-                                   1,
-                                   VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                   nullptr,
-                                   &buffer_info,
-                                   nullptr};
-  device_.functions_.UpdateDescriptorSets(device_.device_, 1, &write, 0, nullptr);
+  (void)device_.ValidateBuffer(buffer);
+  storage_buffers_[binding] = buffer;
+  storage_bound_[binding] = true;
+}
+
+VkDescriptorSet VulkanCommandList::SnapshotComputeBindings() {
+  // A recorded dispatch owns its descriptor contents. Updating a previously bound set would
+  // change earlier dispatches and invalidate command buffers without update-after-bind support.
+  std::array<VkDescriptorBufferInfo, 4> buffers{};
+  for (std::size_t index = 0; index < buffers.size(); ++index) {
+    if (!storage_bound_[index])
+      throw std::logic_error("Vulkan dispatch requires all four storage-buffer bindings");
+    const auto &record = device_.ValidateBuffer(storage_buffers_[index]);
+    buffers[index] = {record.buffer, 0, record.descriptor.size};
+  }
+  if (compute_sets_in_last_pool_ == ComputeSetsPerPool) {
+    const VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4 * ComputeSetsPerPool};
+    const VkDescriptorPoolCreateInfo info{
+        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, 0, ComputeSetsPerPool, 1, &size};
+    VkDescriptorPool pool = VK_NULL_HANDLE;
+    Check(device_.functions_.CreateDescriptorPool(device_.device_, &info, nullptr, &pool),
+          "vkCreateDescriptorPool(command list compute)");
+    try {
+      compute_descriptor_pools_.push_back(pool);
+    } catch (...) {
+      device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
+      throw;
+    }
+    compute_sets_in_last_pool_ = 0;
+  }
+  const VkDescriptorSetAllocateInfo info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
+                                         compute_descriptor_pools_.back(), 1,
+                                         &device_.compute_descriptor_set_layout_};
+  VkDescriptorSet set = VK_NULL_HANDLE;
+  Check(device_.functions_.AllocateDescriptorSets(device_.device_, &info, &set),
+        "vkAllocateDescriptorSets(dispatch)");
+  ++compute_sets_in_last_pool_;
+  std::array<VkWriteDescriptorSet, 4> writes{};
+  for (std::uint32_t index = 0; index < writes.size(); ++index)
+    writes[index] = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                     nullptr,
+                     set,
+                     index,
+                     0,
+                     1,
+                     VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                     nullptr,
+                     &buffers[index],
+                     nullptr};
+  device_.functions_.UpdateDescriptorSets(
+      device_.device_, static_cast<std::uint32_t>(writes.size()), writes.data(), 0, nullptr);
+  return set;
 }
 
 void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
@@ -1707,6 +1737,10 @@ void VulkanCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
   if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
       groups_x == 0 || groups_y == 0 || groups_z == 0)
     throw std::logic_error("invalid Vulkan dispatch");
+  const auto descriptors = SnapshotComputeBindings();
+  device_.functions_.CmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
+                                           device_.compute_pipeline_layout_, 0, 1, &descriptors, 0,
+                                           nullptr);
   device_.functions_.CmdDispatch(command_buffer_, groups_x, groups_y, groups_z);
   ++dispatches_;
 }

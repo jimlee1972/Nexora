@@ -18,6 +18,38 @@ fallback 選擇；PSO 建立前檢查；以及納入完整能力要求的 PSO ca
 artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執行仍待完成。
 能力檢查測試或裝置硬體查詢不構成任何原生進階功能完成的證據。
 
+✅ Vulkan Compute Descriptor 隔離為下一個已交付前置項目：以 Command List 自有 Pool
+及每次 Dispatch 不可變的綁定快照，取代裝置共用的可變 Set。原生測試於序列與四個 worker
+錄製模式比對 320 組不同 workload，涵蓋每份 List 40 次 Dispatch（跨越單一 Pool 的 32 Set
+容量）、最後只綁定但不 Dispatch、所有 worker join 後反向提交、確認完成才銷毀，以及
+缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
+Snapshot 中平行錄製能力仍未啟用／未實作；RenderGraph 排程與其他後端 worker 所有權尚未完成。
+
+### Descriptor 隔離證據 — 2026-10-16
+
+來源 branch：`feat/v2-parallel-command-recording`，基於已合併的能力檢查基礎 `4972c14b`。
+Beads：`nexora-45y.2.1`；父任務 `nexora-45y.2` 維持待完成。
+要求 native 的 Linux 命令為
+`ctest --preset linux-development -R '^renderer\.(vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven)$' --output-on-failure`，
+使用下方相同的 Slang 2026.18 artifact 與 Mesa lavapipe 24.0.5 環境。
+四項測試全數通過且零略過（0.82 秒）；Descriptor 隔離測試耗時 0.27 秒。
+完整 `cmake --preset linux-development`、`cmake --build --preset linux-development --parallel 4`
+與 `ctest --preset linux-development --output-on-failure` gate 通過：171 項通過、4 項明確略過
+（三項顯示測試與未提供 artifact 的本 native 測試），共 175 項，77.42 秒。
+上述獨立要求 native 的執行已實際執行隔離測試且未略過。
+此為軟體裝置正確性證據，不構成 CPU 開銷下降或實體 GPU 效能宣稱。
+本機未安裝 Vulkan Validation Layer；GPU validation 與 target-host gate 維持待完成。
+未調整 SDK／compiler 基線或 feature 預設值。Pool 目前隨單次使用的 List，在同步 native fence
+完成後回收；非同步 worker 重用仍屬獨立 gate。
+
+初次 hosted Linux push gate 發現獨立的 2D 原生輸入時序假設：兩次皆為 341/342 通過，
+本次新增 Descriptor 測試均成功；相同 PR head 的 Linux gate 則通過。Product driver 現在
+先確認真實位移及 checksum 正確的 SAVE，才執行 OPEN，不再從固定延遲推定位移。
+修正後五次原生驗收、第一次輸入未送達的恢復、所有輸入未送達的拒絕，以及本機啟用 Zig 的
+**190/190 完整 gate（無略過／失敗、135.96 秒）**均通過；保留原有 native 斷言並新增
+精確還原比對。詳見 [2D 驗收修正](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md#movement-and-save-acknowledgement-follow-up)。
+修正後 head 仍須通過最終 hosted CI。
+
 ### 驗收證據 — 2026-10-16
 
 來源 branch：`feat/v2-graphics-capabilities`，基於 `5f3da989`。

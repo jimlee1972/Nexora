@@ -55,6 +55,12 @@ Linux native Vulkan admission passed; parallel recording and the five full graph
 open. See the paired graphics plans above for retained evidence. Portable 測試與 Linux native
 Vulkan 能力檢查已通過；平行錄製與五個完整圖形 gate 仍待完成，驗收證據見上述雙語計畫。
 
+✅ V2-GFX-1 Vulkan descriptor isolation / Vulkan Descriptor 隔離（2026-10-16）：immutable
+per-dispatch snapshots passed 320 exact CPU/native-software comparisons in serial and four-worker
+recording; full graph parallelism and performance acceptance remain open. 每次 Dispatch 的不可變
+快照已於序列／四個 worker 錄製通過 320 組 CPU／原生軟體裝置精確比對；完整圖形排程平行化
+與效能驗收仍待完成。詳細證據見上述雙語圖形計畫。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

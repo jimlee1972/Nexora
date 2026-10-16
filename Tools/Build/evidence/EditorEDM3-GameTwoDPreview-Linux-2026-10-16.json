@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task": "nexora-zih.6",
-  "base": "4972c14bf7aee39809ee419df90cfc039469589f",
+  "base": "be3b53a7b3b46ef931d0a0b3f7c2627fb8a5c6d9",
   "local_platform": "Linux",
   "source_sha256": {
     "Apps/Editor/PlayGameplayModule.h": "53ec8fb8f82cb7272e44966eed8b22d61bb06c4bb7f0e358164276013ccac2b6",
@@ -43,7 +43,7 @@
     "zig_gameplay": false,
     "tests_passed": 4,
     "tests_total": 4,
-    "seconds": 0.2,
+    "seconds": 0.21,
     "twod_tests_absent": true,
     "no_twod_dynamic_dependency": true,
     "binary_dependency_tables_checked": [
@@ -72,6 +72,45 @@
     "image_extent": 1024,
     "shared_gui_cpu_bytes": 16777216,
     "gpu_cache": "Existing bounded cache, retirement behind surface fences; no immediate GPU free or RSS/VRAM bound at Stop claimed"
+  },
+  "integration_source_sha256": {
+    "Engine/RHI/src/VulkanDevice.cpp": "3646bb7cfe450bfc1c2eaefe2e47a8604c2863b5f88372f503104228fea4fbda",
+    "Tests/Renderer/VulkanDescriptorIsolationTests.cpp": "132200f1d745a5bd22e028ebb72429885dd1003e7d804a7b18b09e8b313de4a9",
+    "Tests/Renderer/CMakeLists.txt": "56076726a42c671107c67ea62af6800500943e31375fb8c307268cc60dd8f003",
+    "Tests/TwoD/ProductAcceptance.py": "8b65fd45ea4a663920ebfdf914cc08cfe25a20591a306068b7d3590253a8bc44"
+  },
+  "previous_base_validation": {
+    "head": "bc0040c900875702ba7d1fe819cae310495e221b",
+    "base": "4972c14bf7aee39809ee419df90cfc039469589f",
+    "development": {
+      "configure": "passed",
+      "build": "passed",
+      "passed": 336,
+      "total": 336,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 1138.27,
+      "clean_full_run": true
+    },
+    "push_ci": {
+      "jobs_passed": 18,
+      "linux_tests": 343,
+      "windows_tests": 289,
+      "macos_tests": 287,
+      "xvfb_tests": 187
+    },
+    "first_pr_linux": {
+      "passed": 342,
+      "total": 343,
+      "failed_test": "twod.cooked_product_native",
+      "message": "native keyboard did not move Zig entity",
+      "local_rechecks": [
+        5.5,
+        5.17,
+        5.21
+      ]
+    },
+    "retry": "One old-base failed-job rerun accepted; superseded by integrating main PR618 and fresh combined-source gates"
   },
   "initial_head_validation": {
     "head": "7b2659c14cad06fea43f354776bb2b457f33d950",
@@ -127,14 +166,26 @@
       "Tests/EditorImGui/LinuxNativeGameTwoD.py": "8affd003e234a8b43a22f5e9cbcf570411ef4de906e25ac2bd982dd446455995"
     }
   },
+  "integration_focused": {
+    "passed": 5,
+    "total": 5,
+    "seconds": 67.31,
+    "scope": [
+      "Vulkan descriptor isolation:320 exact serial/four-worker dispatches",
+      "Standalone native movement/SAVE/OPEN acknowledgement",
+      "Editor 2D CPU/new Play owner",
+      "Native64-image/font DPI/domain",
+      "Actual Editor32cycles2D"
+    ]
+  },
   "development": {
     "configure": "passed",
     "build": "passed",
-    "passed": 336,
-    "total": 336,
+    "passed": 337,
+    "total": 337,
     "failed": 0,
     "skipped": 0,
-    "seconds": 1138.27,
+    "seconds": 1132.84,
     "clean_full_run": true
   },
   "native_main_game_twod": {
@@ -142,7 +193,7 @@
     "actual_view_clicks": 32,
     "alpha_pool_atlases": 2,
     "cycles": 32,
-    "elapsed_seconds": 58.876,
+    "elapsed_seconds": 58.929,
     "native_game_pixels": "passed",
     "pause_step_input_stop": "passed",
     "phases": [
@@ -167,56 +218,57 @@
   },
   "existing_native_play_soak": {
     "cycles": 32,
-    "elapsed_seconds": 82.363,
+    "elapsed_seconds": 82.36,
     "growth_limit": 33554432,
     "lifecycle_records": 128,
     "module_touched_bytes": 4194304,
     "pixels_input_pause_step_discard": "passed",
     "rss_after_stop": [
-      118337536,
-      122540032,
-      122540032,
-      126144512,
-      122540032,
-      122540032,
-      125665280,
-      122540032,
-      124080128,
-      122540032,
-      122540032,
-      122544128,
-      122544128,
-      124862464,
-      122544128,
-      126230528,
-      124837888,
-      122544128,
-      122544128,
-      122544128,
-      122544128,
-      123322368,
-      125755392,
-      122765312,
-      124690432,
-      126230528,
-      122544128,
-      125550592,
-      122601472,
-      122601472,
-      122601472,
-      125505536
+      118542336,
+      122740736,
+      122740736,
+      122740736,
+      126427136,
+      122740736,
+      126427136,
+      123244544,
+      126427136,
+      126427136,
+      122740736,
+      125693952,
+      126431232,
+      123305984,
+      122740736,
+      122740736,
+      124051456,
+      124407808,
+      126427136,
+      122740736,
+      122740736,
+      126427136,
+      122740736,
+      122740736,
+      122740736,
+      122740736,
+      125362176,
+      122892288,
+      126427136,
+      122740736,
+      123465728,
+      122757120
     ],
     "rss_scope": "current_process_resident_set",
     "rss_unit": "bytes",
     "source_bytes": "unchanged",
     "source_pixels": "unchanged",
     "validation_errors": 0,
-    "warm_baseline": 126144512,
-    "warmed_end": 125505536,
-    "warmed_peak": 126230528,
+    "warm_baseline": 122740736,
+    "warmed_end": 122757120,
+    "warmed_peak": 126431232,
     "warmup_cycles": 4
   },
   "review_focused": {
+    "base": "4972c14bf7aee39809ee419df90cfc039469589f",
     "passed": 3,
     "total": 3,
     "seconds": 62.65,
@@ -239,6 +291,7 @@
     "Final native Step assertion requires a red/green Clip-region transition, not an arbitrary pixel difference.",
     "Initial PR619 Windows compilation found valid MSVC /WX C4456: the new frame local shadowed the existing outer frame. Renamed that Sprite snapshot reference to sprite_frame. Initial-head CI cannot substitute for corrected-head checks.",
     "Accepted two valid P2 review findings: reset selection/focus for new sessions or immutable Play owner changes; allow Metal65 UI uploads for64 images plus font and reject66 before upload. Added actual default/view-cycle, owner-replacement, native DPI/domain full-cache and Metal adapter boundary cases. Repeated complete Development, Shipping and actual graphical feature-OFF gates after all fixes.",
-    "The name-only complete gate was intentionally interrupted before adding the two P2 fixes and is not counted as a successful complete validation. Additional Linux local-shadow syntax audit found no shadows in added code; one existing main.cpp shadow was left unchanged."
+    "The name-only complete gate was intentionally interrupted before adding the two P2 fixes and is not counted as a successful complete validation. Additional Linux local-shadow syntax audit found no shadows in added code; one existing main.cpp shadow was left unchanged.",
+    "Corrected bc0040c9 push CI18/18 passed including Linux343/343. First PR Linux342/343 failed only unchanged standalone native keyboard acceptance; local3 repeats passed15.89s and one complete failed-job retry was accepted. Before final delivery, main PR618 merged be3b53a7 with Vulkan descriptor isolation and the exact native movement/SAVE acknowledgement fix. Cleanly integrated main, preserved all16 Editor source hashes and repeated combined337-case Development plus focused5, Shipping and actual graphical feature-OFF. Old-base retry is superseded, never final combined-source acceptance."
   ]
 }

@@ -1,6 +1,6 @@
 # Bounded main Editor 2D Game View — Linux, 2026-10-16
 
-Beads: `nexora-zih.6`, supporting `nexora-zih`. Base: `4972c14bf7aee39809ee419df90cfc039469589f` (after PR615 RHI capability admission).
+Beads: `nexora-zih.6`, supporting `nexora-zih`. Base: `be3b53a7b3b46ef931d0a0b3f7c2627fb8a5c6d9` (after PR618 Vulkan descriptors/native input acknowledgement).
 
 The actual project Editor offers explicit 3D/2D Game view selection, preserving the 3D default.
 The same Play clone/scene/pool supplies an owning canonical Sprite frame with frozen multi-Atlas
@@ -35,24 +35,27 @@ source; the aborted old-base run is not counted as a successful complete validat
 Final validation on the source hashes in the [machine-readable record](EditorEDM3-GameTwoDPreview-Linux-2026-10-16.json):
 
 - `cmake --preset linux-development`, `cmake --build --preset linux-development`,
-  `ctest --preset linux-development`: **336/336 passed**, zero skips, **1138.27 seconds**.
-- Final native 2D acceptance: **32 cycles**, **58.876 seconds**, zero Vulkan
+  `ctest --preset linux-development`: **337/337 passed**, zero skips, **1132.84 seconds**.
+- Combined-source focused gate: **5/5**, **67.31 seconds**, including the actual
+  Vulkan 320-dispatch serial/four-worker oracle and native movement/SAVE/OPEN acknowledgement,
+  plus the three Editor CPU/native regressions. This includes main PR618's integration.
+- Final native 2D acceptance: **32 cycles**, **58.929 seconds**, zero Vulkan
   validation errors, unchanged source bytes/pixels. Manual Step changes the opaque Clip region
   from green to red; native palette is sRGB.
   All 32 sessions start in 3D and require actual explicit 2D clicks.
-- Review-focused tests: **3/3**, **62.65 seconds**, including full-cache image/font uploads at DPI
-  rebuild and surface-domain change. The CPU test additionally replaces the immutable Play owner.
+- The Editor regressions include full-cache image/font uploads at DPI rebuild and surface-domain
+  change; the CPU test additionally replaces the immutable Play owner.
   Native Metal adapter coverage checks 65 uploads accepted/66 rejected; Linux cannot run that
   adapter, so its runtime result belongs to the applicable macOS gate.
 - Existing native 3D Play soak: **32 cycles**, **128 lifecycle records**, unchanged source bytes/pixels,
-  zero validation errors. Warmed peak RSS growth **86,016 bytes**
+  zero validation errors. Warmed peak RSS growth **3,690,496 bytes**
   is within the **33,554,432-byte** regression guard; no leak-freedom claim.
 - `cmake --preset linux-shipping`, `cmake --build --preset linux-shipping`: passed.
   This Minimal Monolithic configuration excludes Editor/testing.
 - Actual graphical feature-OFF build at `/tmp/nexora-editor-20261016/2d-off` with
   `NEXORA_ENABLE_2D=OFF`, `NEXORA_ENABLE_ZIG_GAMEPLAY=OFF`: built `NexoraEditor` and
   `NexoraPlayGameplayModuleTests`, `NexoraPlayDiagnosticsTests`, `NexoraPlaySceneServicesTests`,
-  `NexoraGameCameraTests`. Four tests passed, **0.20 seconds**; no 2D tests were registered.
+  `NexoraGameCameraTests`. Four tests passed, **0.21 seconds**; no 2D tests were registered.
   Editor, EditorCore and EditorImGui dynamic dependency tables contain no TwoD dependency.
 - Documentation tooling: **16/16** tests; **ten** changed Markdown files pass validation.
   Thirteen touched C++/Objective-C++ files pass clang-format. Root README is unchanged.
@@ -66,6 +69,14 @@ then fixed two valid P2 findings: reset 2D selection/input focus for a new sessi
 owner and admit Metal's 64 image uploads plus the font. Added the lifecycle/full-cache regressions
 above and repeated the complete Development, Shipping and actual graphical feature-OFF gates.
 Initial-head results are preserved separately in the JSON and do not substitute for corrected-head CI.
+
+Corrected head `bc0040c9` passed the complete local 336-case gate in 1138.27 seconds and all
+18 push CI jobs, including Linux 343/343. Its first PR Linux run passed 342/343 and failed only
+the unchanged standalone native keyboard acceptance; three local repeats passed, and one complete
+failed-job retry was accepted. Main then merged PR618's Vulkan descriptor isolation and the native
+input/SAVE acknowledgement fix at `be3b53a7`. Integrated that main cleanly, kept all 16 Editor
+source hashes unchanged, and repeated the combined-source 337-case gate and supporting checks.
+The old-base retry is superseded and is not final combined-source acceptance.
 
 The preview admits up to4096 scene/pool inputs, 100,000 poses and 16,384-pixel extents. It shares
 the GUI's 64 live images, 1024x1024-image and 16MiB CPU-copy limits. Cached Atlas registrations

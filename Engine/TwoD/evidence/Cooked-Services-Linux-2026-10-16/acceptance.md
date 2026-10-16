@@ -135,3 +135,43 @@ failure; its isolated recheck passes in 38.86 seconds. The corrected 2D native c
 that full gate. Isolated Shipping CPU/native acceptance also passes: 900 frames, 114 movement
 frames, one SAVE and one OPEN, and final 800x600 output. This is not reported as a new clean
 313/313 run. The pre-correction same-head push CI run38865655927 independently passes all jobs.
+
+
+## Movement and SAVE acknowledgement follow-up
+
+PR #618's original push workflow `38918493994` failed `twod.cooked_product_native` twice
+(jobs `117032296232` and `117046283419`), each with 341/342 tests passing and the same
+"native keyboard did not move Zig entity" assertion. The identical head's PR Linux workflow
+passed. Eight consecutive local original-harness runs also passed; the specific CI event-loss
+cause was not reproduced or attributed to an X11/runtime bug.
+
+The test previously assumed one XTEST D press plus 150 ms proved native movement before
+SAVE/OPEN. It now uses a five-second bounded acknowledgement loop: refocus, pulse the physical
+key, click SAVE, then require an actual CRC-valid schema-1 position slot with positive X.
+It releases D before OPEN and additionally requires final X to match that acknowledged save.
+All existing movement, frame, UI, resize, audio-submission, reload, corrupt-data and teardown
+assertions remain. A failed acknowledgement retains the host's stderr in `native.log`.
+No application, input-service, native backend, storage format or production CLI changed.
+
+Native verification uses Zig 0.14.0, Xvfb 21.1.12, xdotool 3.20160805.1 and Mesa lavapipe 24.0.5,
+with the existing `ProductAcceptance.py --app .../NexoraZigTwoD --compiler .../NexoraTwoDAssetCompiler
+--evidence-dir <fresh-directory> --native` command. The fixed driver passes five consecutive
+native runs in 34.54 seconds, each retaining all 900 frame, movement, Save/Open and 800x600 checks.
+A task-local xdotool wrapper deliberately dropped the first `keydown d`: the original harness
+failed its movement assertion, while the new driver passed with real subsequent XTEST input
+and two native SAVE clicks. This is a controlled missed-first-input experiment, not proof of
+what happened inside the earlier CI X server. Dropping every D press fails the new bounded
+movement/save acknowledgement; no successful acceptance report is emitted.
+
+The tools/compiler and wrapper live outside the repository. This is Linux software-device
+harness evidence and does not close physical Windows, audibility, DPI or M6/M7 acceptance.
+
+The follow-up full Linux gate passes **190/190, zero failures/skips, 135.96 seconds**:
+`cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON`,
+`cmake --build --preset linux-development --parallel 4`, and
+`ctest --preset linux-development --output-on-failure`.
+The cloud cache keeps Graphical Editor and Slang optional features off; canonical precompiled
+Slang artifacts are supplied to native RHI tests, and the native product command above is run
+separately. This local 190-test scope is not the 342-test hosted desktop configuration.
+Xvfb and xdotool are extracted into a task-local prefix; the execution needs socket permission.
+No repository preset, feature default or CI job has been relaxed.
