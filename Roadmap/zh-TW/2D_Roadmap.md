@@ -146,8 +146,15 @@ Linux 原生像素區分相同 Atlas UUID 下的凍結紅、動畫及保留綠�
 
 ✅ 可選專案索引與同步／背景重新匯入現可保留不可變 Atlas／Clip 型別資料；初始內嵌
 UUID、既有 Sidecar、容量上限與原子 Clip 相依更新，於無效、過期或取消的發布中保留
-原模型及歷史。這是專案資產前置項；限定專案的 Cook／凍結准入及主 Editor Play／Game
-預覽／Reload 仍待完成，里程碑計數不變。[證據](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md)。
+原模型及歷史。這是專案資產前置項；主 Editor Play／Game 預覽／Reload 仍待完成。
+限定專案的 Cook／凍結准入由下述擷取擁有者提供，里程碑計數不變。[證據](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md)。
+
+✅ `ProjectTwoDPlayAssets` 可對目前專案選定的 Atlas／Clip 依賴閉包進行 cook 並凍結，
+檢查專案 UUID／根目錄、Content 世代／修訂、寫入權限／復原狀態，以及精確來源／sidecar
+與依賴的一致性。擁有式觀察值在啟動前重新驗證；專案銷毀後仍可保留凍結資料。
+主 Editor Play／Game 接線、整合預覽與 reload 仍未完成，ED／2D 里程碑計數不變。
+參見[擷取契約](../../Engine/Editor/README.md#project-scoped-cooked-2d-play-capture)與
+[驗證紀錄](../../Tools/Build/evidence/EditorEDM3-ProjectTwoDPlayAssets-Linux-2026-10-16.md)。
 
 [保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
