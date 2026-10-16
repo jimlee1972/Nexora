@@ -238,6 +238,7 @@ public:
   ~D3D12CommandList() override = default;
 
   void Transition(const Barrier &barrier) override;
+  void TransitionBuffer(const BufferBarrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
@@ -828,6 +829,29 @@ void D3D12CommandList::Transition(const Barrier &barrier) {
   native.Transition.StateBefore = ToState(barrier.before);
   native.Transition.StateAfter = ToState(barrier.after);
   list_->ResourceBarrier(1, &native);
+  ++barriers_;
+}
+
+void D3D12CommandList::TransitionBuffer(const BufferBarrier &barrier) {
+  if (submitted_ || rendering_)
+    throw std::logic_error("buffer barriers require an open command list outside rendering");
+  if (!IsValidBufferBarrier(barrier))
+    throw std::invalid_argument("invalid buffer barrier");
+  const auto state = barrier.after == BufferAccess::IndirectRead
+                         ? D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT
+                     : barrier.after == BufferAccess::StorageReadWrite
+                         ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+                         : D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+                               D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+  auto *resource = device_.PrepareBuffer(list_.Get(), barrier.buffer, state);
+  // PrepareBuffer handles uploads and actual native state transitions. A same-state UAV
+  // dependency still needs ordering, including conservative Undefined -> UAV declarations.
+  if (barrier.after == BufferAccess::StorageReadWrite) {
+    D3D12_RESOURCE_BARRIER native{};
+    native.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    native.UAV.pResource = resource;
+    list_->ResourceBarrier(1, &native);
+  }
   ++barriers_;
 }
 

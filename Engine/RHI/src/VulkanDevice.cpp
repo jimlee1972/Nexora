@@ -253,6 +253,7 @@ public:
   ~VulkanCommandList() override;
 
   void Transition(const Barrier &barrier) override;
+  void TransitionBuffer(const BufferBarrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
@@ -1547,6 +1548,46 @@ void VulkanCommandList::Transition(const Barrier &barrier) {
   native.subresourceRange.layerCount = 1;
   device_.functions_.CmdPipelineBarrier(command_buffer_, source.stages, destination.stages, 0, 0,
                                         nullptr, 0, nullptr, 1, &native);
+  ++barriers_;
+}
+
+void VulkanCommandList::TransitionBuffer(const BufferBarrier &barrier) {
+  if (submitted_ || rendering_)
+    throw std::logic_error("buffer barriers require an open command list outside rendering");
+  if (!IsValidBufferBarrier(barrier))
+    throw std::invalid_argument("invalid buffer barrier");
+  auto &buffer = device_.ValidateBuffer(barrier.buffer);
+  const auto scope = [](BufferAccess access) -> StageAccess {
+    switch (access) {
+    case BufferAccess::Undefined:
+      return {VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+              VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT};
+    case BufferAccess::ShaderRead:
+      return {VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+              VK_ACCESS_SHADER_READ_BIT};
+    case BufferAccess::StorageReadWrite:
+      return {VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                  VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+              VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT};
+    case BufferAccess::IndirectRead:
+      return {VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT};
+    }
+    throw std::invalid_argument("invalid buffer access");
+  };
+  const auto source = scope(barrier.before);
+  const auto destination = scope(barrier.after);
+  VkBufferMemoryBarrier native{};
+  native.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+  native.srcAccessMask = source.access;
+  native.dstAccessMask = destination.access;
+  // All logical queues currently share one native family and synchronous submission.
+  native.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  native.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  native.buffer = buffer.buffer;
+  native.size = VK_WHOLE_SIZE;
+  device_.functions_.CmdPipelineBarrier(command_buffer_, source.stages, destination.stages, 0, 0,
+                                        nullptr, 1, &native, 0, nullptr);
   ++barriers_;
 }
 

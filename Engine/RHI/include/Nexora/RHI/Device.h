@@ -25,6 +25,9 @@ class NEXORA_RHI_API CommandList {
 public:
   virtual ~CommandList() = default;
   virtual void Transition(const Barrier &barrier) = 0;
+  virtual void TransitionBuffer(const BufferBarrier &) {
+    throw std::logic_error("buffer barriers are unsupported");
+  }
   virtual void BeginRendering(const RenderingInfo &info) = 0;
   virtual void BindPipeline(PipelineHandle pipeline) = 0;
   virtual void BindVertexBuffer(BufferHandle, std::uint64_t = 0) {

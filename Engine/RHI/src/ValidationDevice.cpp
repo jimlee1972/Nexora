@@ -15,6 +15,7 @@ class ValidationCommandList final : public CommandList {
 public:
   explicit ValidationCommandList(ValidationDevice &device) : device_(device) {}
   void Transition(const Barrier &barrier) override;
+  void TransitionBuffer(const BufferBarrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void BindVertexBuffer(BufferHandle buffer, std::uint64_t offset) override;
@@ -265,6 +266,15 @@ void ValidationCommandList::Transition(const Barrier &barrier) {
   device_.Transition(barrier);
   ++barriers_;
 }
+void ValidationCommandList::TransitionBuffer(const BufferBarrier &barrier) {
+  if (submitted_ || rendering_)
+    throw std::logic_error("buffer barriers require an open command list outside rendering");
+  if (!IsValidBufferBarrier(barrier))
+    throw std::invalid_argument("invalid buffer barrier");
+  device_.ValidateBuffer(barrier.buffer, 0);
+  ++barriers_;
+}
+
 void ValidationCommandList::BeginRendering(const RenderingInfo &info) {
   if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
     throw std::logic_error("invalid BeginRendering");

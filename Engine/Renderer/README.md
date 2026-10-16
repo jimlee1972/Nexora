@@ -201,7 +201,7 @@ full range a `DrawIndirect(command_count)` reads against the bound buffer with t
 rejects an undersized buffer instead of reading past it; a buffer that cannot hold one draw does not
 bind.
 
-`RecordGPUDrivenCompute()` and `RecordGPUDrivenIndirect()` are the per-pass stage recorders for RenderGraph compute and graphics callbacks; `RecordGPUDrivenExecution()` delegates to those same functions for callers holding both command lists. Passes bind their own pipeline and buffers before recording. The stage recorders do not submit, allocate, synchronize, or read back resources. RenderGraph owns only resources declared to it; buffers captured by callbacks remain caller-owned and must stay valid through graph execution. Storage-buffer uses are not currently declared to RenderGraph, so it does not retain those buffers or emit per-buffer ownership barriers; callers must provide the required lifetime and synchronization. The focused Linux Vulkan gate runs these recorders with Slang 2026.18 on Mesa lavapipe and compares bounded readbacks against the CPU reference, ; the full development preset gate also passes in GitHub Actions (run 36609837931). Physical-GPU performance and other native backend parity require separate evidence.
+`RecordGPUDrivenCompute()` and `RecordGPUDrivenIndirect()` are the per-pass stage recorders for RenderGraph compute and graphics callbacks; `RecordGPUDrivenExecution()` delegates to those same functions for callers holding both command lists. Passes bind their own pipeline and buffers before recording. The stage recorders do not submit, allocate, synchronize, or read back resources. RenderGraph owns only resources declared to it; buffers captured by callbacks remain caller-owned and must stay valid through graph execution. Passes now declare imported buffer reads/writes explicitly; RenderGraph derives their hazards and emits whole-buffer dependencies before callbacks. Hidden callback accesses remain the caller's responsibility, and the graph never retains or destroys imported buffers. The focused Linux Vulkan gate runs these recorders with Slang 2026.18 on Mesa lavapipe and compares bounded readbacks against the CPU reference; the full development preset gate also passes in GitHub Actions (run 36609837931). Physical-GPU performance and other native backend parity require separate evidence.
 
 RenderGraph tracks a logical owner queue for every resource. A use on a different compute/graphics
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
@@ -248,3 +248,42 @@ External HDR imports describe the actual `Rgba16Float` format. Main requests Sha
 inputs; legacy RGBA8 copy inputs request CopySource. The Presentation owner records the physical
 barriers and fullscreen exposure/ACES/display pass before UI. Logical counters continue to describe
 successful real callbacks; format metadata never grants access to native resource handles.
+
+## V2 graph buffer dependencies and compiled synchronization
+
+`ImportBuffer` borrows a generational handle, an initial GPU access scope and logical queue.
+The default `Undefined` scope conservatively synchronizes prior GPU work; it does not discard data.
+Explicit initial scopes are caller entry contracts on every execution. Each physical imported
+buffer or texture has one graph ID; duplicate imports are rejected to prevent hidden aliases.
+Buffers have no transient allocation or subrange tracking in this slice. Callers retain the device,
+resources and captured callback data through completion and serialize graph mutation/execution.
+
+`PassDescriptor::buffer_reads` accepts `ShaderRead` or `IndirectRead`; `buffer_writes` accepts
+`StorageReadWrite`. A buffer appears once per pass; a storage declaration includes its reads.
+The callback still receives the texture-handle span and captures its borrowed buffer handles.
+Every actual GPU access must be declared; callback captures cannot be inferred. External-owner
+passes/execution reject RHI buffers. Existing aggregate fields and texture-only statistics retain
+meaning; appended buffer statistics count whole-buffer barriers and logical queue handoffs.
+
+`Compile` infers texture and buffer RAW/WAR/WAW edges and orders read/read uses that differ in
+state/access or logical queue, waiting for all earlier readers. Same-queue, same-state readers
+remain reorderable. A deterministic topological order fixes immutable per-pass barrier plans,
+including same-access storage WAW dependencies and the first use of each buffer (which validates
+stale handles before its callback). Failed compilation invalidates execution. Execution replays
+those plans without recomputing ownership, submits serially, and waits idle before releasing
+transients, including on exceptions. Callback failure stops submission and successors; it does not
+roll back native recording state or prior submitted passes. After failed native recording, callers
+must recreate affected resources and rebuild the graph before retrying: waiting idle does not undo
+unsubmitted native state/upload preparation. Successful repeated buffer execution with default
+`Undefined` remains conservative.
+
+`renderer.graph_buffer_dependencies` covers hazards, read/read handoffs, cycles, declarations,
+aliases, stale imports, repeated execution, callback failure and initial transient queue ownership.
+`renderer.contracts` exercises native whole-buffer WAW/RAW recording on each required host backend.
+`renderer.v2_gpu_driven` declares actual input/output/indirect buffers, recomputes twice with WAW
+ordering, derives the graphics dependency from its indirect read, and compares test-only readbacks
+to the CPU reference on Vulkan/D3D12. Production passes perform no readback.
+
+Execution is still serial. Logical queues currently alias one synchronous native queue; these
+plans do not implement asynchronous queue-family ownership transfers, parallel recording,
+Enhanced Barriers, aliasing, or fence-retired worker reuse. Their capability gates remain open.

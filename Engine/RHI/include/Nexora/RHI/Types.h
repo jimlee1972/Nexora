@@ -68,6 +68,12 @@ struct GraphicsRequirements final {
   friend bool operator==(const GraphicsRequirements &, const GraphicsRequirements &) = default;
 };
 enum class QueueType : std::uint8_t { Graphics, Compute, Copy };
+// Whole-buffer GPU dependency scopes. Undefined is conservative prior access, not discard.
+enum class BufferAccess : std::uint8_t { Undefined, ShaderRead, StorageReadWrite, IndirectRead };
+constexpr bool IsValidQueue(QueueType queue) noexcept { return queue <= QueueType::Copy; }
+constexpr bool IsValidBufferAccess(BufferAccess access) noexcept {
+  return access <= BufferAccess::IndirectRead;
+}
 enum class ResourceState : std::uint8_t {
   Undefined,
   CopySource,
@@ -121,4 +127,16 @@ struct Barrier final {
   QueueType source_queue{QueueType::Graphics};
   QueueType destination_queue{QueueType::Graphics};
 };
+struct BufferBarrier final {
+  BufferHandle buffer;
+  BufferAccess before{BufferAccess::Undefined};
+  BufferAccess after{BufferAccess::Undefined};
+  QueueType source_queue{QueueType::Graphics};
+  QueueType destination_queue{QueueType::Graphics};
+};
+constexpr bool IsValidBufferBarrier(const BufferBarrier &barrier) noexcept {
+  return barrier.buffer.IsValid() && IsValidBufferAccess(barrier.before) &&
+         IsValidBufferAccess(barrier.after) && barrier.after != BufferAccess::Undefined &&
+         IsValidQueue(barrier.source_queue) && IsValidQueue(barrier.destination_queue);
+}
 } // namespace nexora::rhi

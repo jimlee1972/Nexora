@@ -85,6 +85,7 @@ public:
   ~MetalCommandList() override;
 
   void Transition(const Barrier &barrier) override;
+  void TransitionBuffer(const BufferBarrier &barrier) override;
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
@@ -505,6 +506,21 @@ void MetalCommandList::Transition(const Barrier &barrier) {
   (void)device_.RecordTransition(barrier);
   // Metal's hazard tracking orders accesses across encoders and command buffers. The
   // render-graph state transition remains explicit for validation and diagnostics.
+  ++barriers_;
+}
+
+void MetalCommandList::TransitionBuffer(const BufferBarrier &barrier) {
+  if (submitted_ || rendering_)
+    throw std::logic_error("buffer barriers require an open command list outside rendering");
+  if (!IsValidBufferBarrier(barrier))
+    throw std::invalid_argument("invalid buffer barrier");
+  (void)device_.ValidateBuffer(barrier.buffer);
+  // Tracked shared buffers are synchronized across encoder boundaries on the native queue.
+  if (compute_encoder_) {
+    [compute_encoder_ endEncoding];
+    compute_encoder_ = nil;
+    pipeline_bound_ = false;
+  }
   ++barriers_;
 }
 
