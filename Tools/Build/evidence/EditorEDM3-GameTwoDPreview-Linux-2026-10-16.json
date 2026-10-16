@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "task": "nexora-zih.6",
+  "base": "4972c14bf7aee39809ee419df90cfc039469589f",
+  "local_platform": "Linux",
+  "source_sha256": {
+    "Apps/Editor/PlayGameplayModule.h": "53ec8fb8f82cb7272e44966eed8b22d61bb06c4bb7f0e358164276013ccac2b6",
+    "Apps/Editor/PlayTwoDServices.h": "ce6ab414e1b355affe364dfa74677fb593c7a68ddb7cc692567a092edd817ce6",
+    "Apps/Editor/GameTwoDTextures.h": "9ea5607146fafc120be0cdd344e05c514cecf25333f13ef7229248d07f44ab8f",
+    "Apps/Editor/main.cpp": "53d2f23a124d51a2afbcaa613cae8f1642c3d52eb5adaa405084fd9572560438",
+    "Config/Modules/modules.json": "6ecaee42b9e248ce7c691b1b610fc23d25f3afcc28cd8c6189173770514c7414",
+    "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "f0d0301dff809d77fd63ae04e7b0aaedf4f77f047196de767ef0b5d8add0fea0",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "ceee74c874f7cc0308b885c63ad7d012948c4aa932c8b5a27532a2a24fa190e5",
+    "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "c916222e294916f25095026123a9863c88fd1b422653bd28f58d5b1a567fa853",
+    "Tests/EditorImGui/CMakeLists.txt": "aabfb5366b2beb77f4f67ca88c6c7706ecfb75845758a29a8f421f8fe6591dab",
+    "Tests/EditorImGui/PlayTwoDServicesTests.cpp": "44085793b661a4d6fcffa674e13a8965a73119e3463c436d4b2361b1f4ca26de",
+    "Tests/EditorImGui/PlayTwoDPreviewFixture.cpp": "c272818c59aaa0949f32eb444b77135d8d6a7694d8545a91bef48b34bda22b42",
+    "Tests/EditorImGui/GameTwoDPreviewTests.cpp": "a592701602fd27571096d6141ede719c4e30a07eb3ca6ce25c5551c78f112354",
+    "Tests/EditorImGui/LinuxNativeGameTwoD.py": "8affd003e234a8b43a22f5e9cbcf570411ef4de906e25ac2bd982dd446455995"
+  },
+  "focused": {
+    "passed": 3,
+    "total": 3,
+    "seconds": 0.13,
+    "additional_overlap": {
+      "passed": 1,
+      "total": 1,
+      "seconds": 0.03
+    }
+  },
+  "shipping": {
+    "configure": "passed",
+    "build": "passed",
+    "scope": "Minimal Monolithic excludes Editor/testing"
+  },
+  "feature_off": {
+    "configure": "passed",
+    "build": "passed",
+    "graphical_editor_built": true,
+    "zig_gameplay": false,
+    "tests_passed": 4,
+    "tests_total": 4,
+    "seconds": 0.09,
+    "twod_tests_absent": true,
+    "no_twod_dynamic_dependency": true,
+    "binary_dependency_tables_checked": [
+      "Editor",
+      "EditorCore",
+      "EditorImGui"
+    ]
+  },
+  "documentation": {
+    "unit_tests": 16,
+    "root_readme_unchanged": true,
+    "changed_markdown_files": 9
+  },
+  "milestones_changed": false,
+  "remaining": [
+    "Authored Sprite persistence",
+    "Tilemap binding",
+    "Seamless integrated DLL reload",
+    "Physical target-host acceptance"
+  ],
+  "limits": {
+    "sprite_inputs": 4096,
+    "scene_entities": 100000,
+    "extent": 16384,
+    "shared_gui_images": 64,
+    "image_extent": 1024,
+    "shared_gui_cpu_bytes": 16777216,
+    "gpu_cache": "Existing bounded cache, retirement behind surface fences; no immediate GPU free or RSS/VRAM bound at Stop claimed"
+  },
+  "development": {
+    "configure": "passed",
+    "build": "passed",
+    "passed": 336,
+    "total": 336,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1119.64,
+    "clean_full_run": true
+  },
+  "native_main_game_twod": {
+    "actual_view_click": "passed",
+    "alpha_pool_atlases": 2,
+    "cycles": 32,
+    "elapsed_seconds": 36.373,
+    "native_game_pixels": "passed",
+    "pause_step_input_stop": "passed",
+    "phases": [
+      {
+        "base": 2592,
+        "blended": 2592,
+        "pool": 2592,
+        "region": "red"
+      },
+      {
+        "base": 2592,
+        "blended": 2592,
+        "pool": 2592,
+        "region": "green"
+      }
+    ],
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "swapchain_encoding": "sRGB",
+    "validation_errors": 0
+  },
+  "existing_native_play_soak": {
+    "cycles": 32,
+    "elapsed_seconds": 82.553,
+    "growth_limit": 33554432,
+    "lifecycle_records": 128,
+    "module_touched_bytes": 4194304,
+    "pixels_input_pause_step_discard": "passed",
+    "rss_after_stop": [
+      122007552,
+      126205952,
+      126205952,
+      122519552,
+      126205952,
+      122519552,
+      124682240,
+      126205952,
+      123215872,
+      126205952,
+      123199488,
+      126210048,
+      124178432,
+      122523648,
+      126210048,
+      126210048,
+      122830848,
+      126210048,
+      122523648,
+      122523648,
+      122523648,
+      122523648,
+      122523648,
+      122527744,
+      122527744,
+      122585088,
+      122527744,
+      122650624,
+      123416576,
+      122650624,
+      126337024,
+      122650624
+    ],
+    "rss_scope": "current_process_resident_set",
+    "rss_unit": "bytes",
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "validation_errors": 0,
+    "warm_baseline": 126205952,
+    "warmed_end": 122650624,
+    "warmed_peak": 126337024,
+    "warmup_cycles": 4
+  },
+  "provenance": [
+    "Initial ordered AssetUuid map failed compilation; replaced with its existing hash.",
+    "Initial fixture assumed separate scene/entity namespaces; corrected to the actual mesh entity ID.",
+    "Initial native palette assumed UNORM. Captured pixels match the supported sRGB attachment; select one coherent palette using the known background and verify linear/sRGB colors within two code values.",
+    "Old-base 335-case complete gate intentionally interrupted when PR615 advanced main. Fast-forwarded to 4972c14b, reviewed RHI admission changes and repeated complete Development, Shipping and actual graphical feature-OFF gates.",
+    "Final native Step assertion requires a red/green Clip-region transition, not an arbitrary pixel difference."
+  ]
+}

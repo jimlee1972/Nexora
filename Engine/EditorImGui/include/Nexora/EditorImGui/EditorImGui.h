@@ -433,7 +433,8 @@ public:
                                               nexora::rhi::TextureHandle texture);
   // Native RenderSurface images own a tight linear RGBA8 copy. Maximum 1024x1024,
   // 64 live registrations and 16 MiB combined pixels; zero means invalid/capacity exhausted.
-  // Register/unregister between frames. IDs share the host's monotonic generation namespace.
+  // Register on the owner thread before Render, including during frame assembly. Unregister
+  // between frames. IDs share the host's monotonic generation namespace.
   [[nodiscard]] std::uint64_t RegisterNativeTexture(std::uint32_t width, std::uint32_t height,
                                                     std::span<const std::byte> pixels,
                                                     bool nearest = false);
@@ -454,6 +455,15 @@ public:
   // The application revalidates it against the live World after commands and fixed ticks.
   [[nodiscard]] runtime::Id GameCameraSelection() const noexcept;
   void SetNativeGameStatus(std::string message, bool available = true);
+  // Optional UI Sprite canvas; 3D remains the default. Availability is supplied before BeginFrame.
+  void SetGameTwoDAvailable(bool available) noexcept;
+  void SetGameTwoDStatus(std::string message);
+  [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>
+  GameTwoDViewport() const noexcept;
+  // During this GUI frame, after Play commands/ticks and before EndFrame. Copies at most4096
+  // indexed uniform-tint quads into the Game window draw list; textures must be live native IDs.
+  // Malformed/stale packets reject before appending. No uploads, instances or borrowed data remain.
+  bool DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData &);
   void SetConcurrentNativeViews(bool available) noexcept;
   void SetNativeScenePreview(bool enabled) noexcept;
   void SetNativeScenePreviewAvailable(bool available) noexcept;

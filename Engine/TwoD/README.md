@@ -8,7 +8,9 @@ The Editor also offers project-scoped source/cooked admission through
 `ProjectTwoDPlayAssets`; see the [project capture contract](../Editor/README.md#project-scoped-cooked-2d-play-capture).
 The main Editor now binds an optional canonical bridge to its existing Play clone with frozen
 project assets and fresh Sprite/pool state; see the [host contract](../../Apps/Editor/README.md#optional-2d-services-in-project-play).
-Main Game View 2D rendering, Tilemap configuration and seamless reload remain separate work.
+The bounded main Game View now draws frozen multi-Atlas Sprite/pool frames through the existing
+GUI compositor; [contract and native acceptance](../../Apps/Editor/README.md#bounded-2d-game-view).
+Tilemap configuration, authored Sprite persistence, seamless reload and physical gates remain open.
 
 `Nexora::TwoD` is the optional `NEXORA_ENABLE_2D` module. It depends on Runtime and
 Presentation, requires Asset Pipeline and Window Presentation, and is removed from headless
