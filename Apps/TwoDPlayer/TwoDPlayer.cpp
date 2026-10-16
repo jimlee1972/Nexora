@@ -449,7 +449,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     Nexora::Presentation::RenderSurfaceResult surface;
     if (native) {
       Nexora::Presentation::RenderSurfaceDescriptor d;
-      d.title = project ? project->title : "Nexora Zig 2D";
+      d.title = project ? std::string_view(project->title) : std::string_view("Nexora Zig 2D");
       d.width = 640;
       d.height = 480;
       surface = Nexora::Presentation::CreateRenderSurface(d);

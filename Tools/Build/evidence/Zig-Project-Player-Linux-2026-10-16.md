@@ -55,6 +55,16 @@ Final Linux results:
   passed Shipping process restart/save/corruption checks. Changed-document validation and
   `git diff --check` passed.
 
+The first hosted macOS compile identified a conditional-expression temporary behind the native
+window title's `string_view`. The host now explicitly borrows the owning project string or the
+static sample literal. The subsequent full Linux build, Clang 19 `-Wdangling-assignment-gsl`
+warning check, and five CPU/native project/static/dynamic Zig tests passed. No warning was disabled.
+MSVC also diagnosed a private service-table template variable shadowing caller globals after
+Editor integration instantiated it in more consumers. Descriptive private names fix that warning
+without altering the wire or disabling checks. The subsequent full Linux build, six service/
+project/native tests and the affected memory-UI test passed; Shipping rebuilt successfully.
+Hosted platform checks must pass on these corrections before merge.
+
 Commands for reproduction:
 
 ```sh
