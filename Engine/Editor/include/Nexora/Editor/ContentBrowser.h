@@ -17,6 +17,7 @@
 #include <vector>
 
 namespace nexora::editor {
+class TwoDAssetPayload;
 
 enum class ThumbnailState { Loading, Ready, Failed };
 
@@ -30,6 +31,7 @@ struct ContentItem final {
   std::shared_ptr<const MeshGeometry> mesh{};
   // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
   std::shared_ptr<const MaterialAsset> material{};
+  std::shared_ptr<const TwoDAssetPayload> twod{};
 };
 
 struct Breadcrumb final {
@@ -76,7 +78,8 @@ public:
   bool PublishArtifact(runtime::AssetUuid id, std::string artifact_hash, ThumbnailState thumbnail,
                        std::string *error = nullptr,
                        std::shared_ptr<const MeshGeometry> mesh = nullptr,
-                       std::shared_ptr<const MaterialAsset> material = nullptr);
+                       std::shared_ptr<const MaterialAsset> material = nullptr,
+                       std::shared_ptr<const TwoDAssetPayload> twod = nullptr);
 
 private:
   bool Commit(std::vector<ContentItem> next, std::string *error);
@@ -131,6 +134,7 @@ struct ReimportResult final {
   std::shared_ptr<const MeshGeometry> mesh{};
   // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
   std::shared_ptr<const MaterialAsset> material{};
+  std::shared_ptr<const TwoDAssetPayload> twod{};
 };
 
 class NEXORA_EDITOR_API ReimportTransaction final {

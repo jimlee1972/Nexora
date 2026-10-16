@@ -57,7 +57,7 @@ endif()
 nexora_apply_defaults(NexoraEditorCore)
 
 if(NEXORA_ENABLE_2D)
-  target_sources(NexoraEditorCore PRIVATE src/TwoDDocument.cpp src/TwoDPlayContext.cpp src/TwoDPlayAssets.cpp)
+  target_sources(NexoraEditorCore PRIVATE src/TwoDDocument.cpp src/TwoDPlayContext.cpp src/TwoDPlayAssets.cpp src/TwoDAssetImport.cpp)
   target_link_libraries(NexoraEditorCore PUBLIC Nexora::TwoD)
   target_compile_definitions(NexoraEditorCore PUBLIC NEXORA_HAS_2D=1)
 endif()

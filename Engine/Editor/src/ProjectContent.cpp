@@ -99,10 +99,11 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
     const auto path = std::filesystem::path("Content") /
                       std::filesystem::path(
                           std::u8string(entry.relative_path.begin(), entry.relative_path.end()));
-    if (!ContentPath(path) || entry.id == runtime::AssetUuid{} || !dependencies.Set(entry.id, {}))
+    if (!ContentPath(path) || entry.id == runtime::AssetUuid{} ||
+        !dependencies.Set(entry.id, detail::TwoDDependencies(entry.twod)))
       return Fail("asset index contains an invalid entry", error);
     items.push_back({entry.id, path.lexically_normal(), entry.type, entry.artifact_hash,
-                     ThumbnailFor(entry.state), entry.mesh, entry.material});
+                     ThumbnailFor(entry.state), entry.mesh, entry.material, entry.twod});
   }
 
   auto browser = browser_;
@@ -390,10 +391,11 @@ bool ProjectContentSession::Reimport(runtime::AssetUuid asset, std::string *erro
   const auto &artifact_hash = imported.artifact_hash;
   auto candidate = browser_;
   if (!candidate.PublishArtifact(asset, artifact_hash, ThumbnailState::Ready, error, imported.mesh,
-                                 imported.material))
+                                 imported.material, imported.twod))
     return Fail(error && !error->empty() ? *error : "reimport asset publication failed", error);
   ReimportTransaction transaction(browser_.ProjectGeneration(), asset, item->artifact_hash);
-  const auto dependencies = dependencies_.Forward(asset);
+  const auto dependencies =
+      imported.twod ? detail::TwoDDependencies(imported.twod) : dependencies_.Forward(asset);
   if (!transaction.Stage({browser_.ProjectGeneration(),
                           asset,
                           source_hash,
@@ -516,7 +518,7 @@ bool ProjectContentSession::PollReimport(std::string *error) {
   std::string publish_error;
   if (!candidate.PublishArtifact(pending_reimport_->asset, result->reimport->artifact_hash,
                                  ThumbnailState::Ready, &publish_error, result->reimport->mesh,
-                                 result->reimport->material))
+                                 result->reimport->material, result->reimport->twod))
     return finish(ImportOperationState::Failed, ImportDiagnosticSeverity::Error,
                   "reimport.publish_failed", publish_error, error);
   ReimportTransaction transaction(pending_reimport_->project_generation, pending_reimport_->asset,

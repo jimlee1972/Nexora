@@ -66,6 +66,12 @@ failure. This prerequisite does not establish project/source provenance or attac
 Play/Game preview; those integrations remain open and milestone counts are unchanged.
 [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md).
 
+✅ Optional project indexing and synchronous/queued reimport now retain typed immutable
+Atlas/Clip payloads. Initial embedded UUIDs, authoritative sidecars, capacity budgets and atomic
+Clip dependencies preserve prior model/history on invalid, stale or cancelled publication.
+This is a project asset prerequisite; scoped cook/freeze admission and main Editor Play/Game
+preview/reload remain open. Milestone counts are unchanged. [Evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
+
 ```text
 NexoraEditor (tool process)
   UI shell/docking/commands/workspace persistence

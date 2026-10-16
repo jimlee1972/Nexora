@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "task": "nexora-zih.3",
+  "base": "4743cc2bd6da24547a4b3ded0dabc3914917aa8f",
+  "local_platform": "Linux",
+  "source_sha256": {
+    "Engine/Editor/CMakeLists.txt": "11fa177d5e6311e5b71cecd6d54ecc4d6ac3879bf8b859a3526754fea5fc6dca",
+    "Engine/Editor/include/Nexora/Editor/TwoDAssetImport.h": "8b1196e1183a4bb9aa8caf6e413573024b36ea4b2236df77b6a4f6a631f0f80d",
+    "Engine/Editor/src/TwoDAssetImport.cpp": "f2eb1af3e39694b164c2488965db9cd90b7881a825df41d1275d62cfd7defad5",
+    "Engine/Editor/include/Nexora/Editor/ContentBrowser.h": "fde9168b1ec07be595668301ecb27c55ca13d736cc2a555838ee9248ceb73202",
+    "Engine/Editor/include/Nexora/Editor/EditorWorkspace.h": "a580d33d787143b9332cb0461e29604f309681579b8277398b32a1875ac9a5ff",
+    "Engine/Editor/src/AssetImport.cpp": "6121e7cfac2fbac773c6f8bb34a1f0787a682ec8065d37fd4560d7e33aab7af2",
+    "Engine/Editor/src/ContentBrowser.cpp": "64a8b59d239fad6396faae06ea8c20aab2fd4a65671817722454d1dbdbf2c1f7",
+    "Engine/Editor/src/EditorWorkspace.cpp": "acd96b83978592e5406df9d3d477f3040c01ba6553e9197f878ad25c796414b8",
+    "Engine/Editor/src/ProjectContent.cpp": "f475804baf053b96cdb66acce6384b7360725477243f08526aabdbba86573c79",
+    "Engine/Editor/src/ReimportSource.h": "2fd98a2bc8cb4dbd5e4507291570f4fac78ed8b568ab512faf09a706903fb990",
+    "Tests/TwoD/CMakeLists.txt": "f29e7e2160794ab8787613e8fb302ad8be4afc724d8e944518c1ba29b62b8399",
+    "Tests/TwoD/ContentImportTests.cpp": "2f0cc1624e480d713f406533441c252a2d9e45118e666257bea55774c541a1c5"
+  },
+  "development": {
+    "configure": "passed",
+    "build": "passed",
+    "initial_ctest": {
+      "passed": 325,
+      "failed": 1,
+      "total": 326,
+      "skipped": 0,
+      "seconds": 1051.43,
+      "failure": "build.v2_production_toolchain",
+      "cause": "clang++ unavailable in reset executor"
+    },
+    "sdk_repair": "real Clang19.1.7 restored outside repository",
+    "targeted_same_source_rerun": {
+      "passed": 1,
+      "total": 1,
+      "seconds": 0.37
+    },
+    "all_distinct_cases_observed_passing": 326,
+    "clean_first_full_run": false,
+    "initial_interrupted_run": "stopped to repair feature-OFF forward declaration; not a completed gate"
+  },
+  "focused": {
+    "passed": 1,
+    "total": 1,
+    "seconds": 1.02,
+    "full_run_seconds": 1.04
+  },
+  "shipping": {
+    "configure": "passed",
+    "build": "passed",
+    "scope": "Minimal Monolithic excludes Editor/testing"
+  },
+  "feature_off": {
+    "configure": "passed",
+    "graphical_shell": true,
+    "zig_gameplay": false,
+    "editor_core_built": true,
+    "regressions_passed": 2,
+    "regressions_total": 2,
+    "seconds": 3.96,
+    "new_source_and_test_absent": true,
+    "no_native_twod_dependency": true,
+    "standalone_generic_source_probe": "passed"
+  },
+  "documentation": {
+    "unit_tests": 16,
+    "markdown_files": 7,
+    "root_readme_unchanged": true
+  },
+  "clang_syntax_and_width": "passed",
+  "formatted_cpp_files": 10,
+  "native_play_soak": {
+    "cycles": 32,
+    "elapsed_seconds": 81.697,
+    "growth_limit": 33554432,
+    "lifecycle_records": 128,
+    "module_touched_bytes": 4194304,
+    "pixels_input_pause_step_discard": "passed",
+    "rss_after_stop": [
+      142221312,
+      142929920,
+      142934016,
+      142934016,
+      142938112,
+      142938112,
+      142938112,
+      147681280,
+      149942272,
+      147009536,
+      147009536,
+      150700032,
+      150700032,
+      150757376,
+      147070976,
+      147070976,
+      150757376,
+      147070976,
+      148164608,
+      149692416,
+      147456000,
+      147070976,
+      149364736,
+      147099648,
+      150757376,
+      147664896,
+      148123648,
+      151810048,
+      151064576,
+      148123648,
+      148123648,
+      151810048
+    ],
+    "rss_scope": "current_process_resident_set",
+    "rss_unit": "bytes",
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "validation_errors": 0,
+    "warm_baseline": 142934016,
+    "warmed_end": 151810048,
+    "warmed_peak": 151810048,
+    "warmup_cycles": 4
+  },
+  "remaining": [
+    "Project-scoped cook/freeze provenance",
+    "Main Editor Play World and Game UI routing",
+    "Integrated preview and hot reload",
+    "Physical acceptance"
+  ]
+}

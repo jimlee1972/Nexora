@@ -27,6 +27,7 @@
 #include <vector>
 
 namespace nexora::editor {
+class TwoDAssetPayload;
 
 struct GizmoOperation;
 enum class GizmoPivot;
@@ -212,6 +213,7 @@ struct AssetEntry final {
   std::shared_ptr<const MeshGeometry> mesh{};
   // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
   std::shared_ptr<const MaterialAsset> material{};
+  std::shared_ptr<const TwoDAssetPayload> twod{};
 };
 
 class NEXORA_EDITOR_API AssetWorkspace final {
@@ -223,7 +225,7 @@ public:
   // existing index.
   // Ordinary asset sources use fixed-size binary read chunks and incremental hashes, with
   // cancellation checks between reads. Failed/cancelled entries never carry a partial artifact.
-  // OBJ/material parsing retains its bounded source/payload policy; live publication is
+  // Typed mesh/material/2D parsing retains bounded source/payload policies; live publication is
   // caller-owned.
   bool ImportTree(const std::filesystem::path &content_root, Cancelled cancelled = {},
                   Progress progress = {},
