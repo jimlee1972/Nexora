@@ -145,6 +145,7 @@ authorization, an open writer workspace and writable Content session at the same
 a nonzero matching expected project generation, a nonzero cooked generation and nonempty unique
 roots. The current on-disk project descriptor must agree with the workspace UUID/name/schema.
 Recovery, external workspace changes, pending reimport and unresolved Content conflicts reject.
+Both Pending and Compare remain unresolved, including conflicts outside the selected closure.
 The host still supplies current stopped-Play/modal/document policy; this API does not grant it.
 Workspace ownership retains its existing writer lease; capture acquires no new lease.
 

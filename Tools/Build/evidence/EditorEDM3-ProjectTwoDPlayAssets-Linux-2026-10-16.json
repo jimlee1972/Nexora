@@ -6,25 +6,32 @@
   "source_sha256": {
     "Engine/Editor/CMakeLists.txt": "76cd87267c5438e0a86f738e37cd15e1f150d9ad508ec08c843a7a5c0acfdf82",
     "Engine/Editor/include/Nexora/Editor/ProjectTwoDPlayAssets.h": "602c151e34627fa4af3ebea75fec047b1c6e445010d108238de0835fb9359e2a",
-    "Engine/Editor/src/ProjectTwoDPlayAssets.cpp": "b640349d75becfd1cbc4a3ab0ba397a2ea0775c40de4d9c032b285d423d0698d",
+    "Engine/Editor/src/ProjectTwoDPlayAssets.cpp": "b657910662e1c472d9800509571a687db6dd8d2b8703e9b606d6473e58ec376a",
     "Tests/TwoD/CMakeLists.txt": "85aa9694ca8f76f1f551003529253b00cfda4f581fa00c1cc371df700d12d2e1",
-    "Tests/TwoD/ProjectPlayAssetTests.cpp": "cba4f457f7f8ab282c2599c899691201464c6722d189cd041bafc40126e3ebaf"
+    "Tests/TwoD/ProjectPlayAssetTests.cpp": "e84c12f6a05fca3cc38609601221bf1ccc8b1b339b02382200585b493eb82b6f"
   },
   "development": {
     "configure": "passed",
     "build": "passed",
-    "ctest": "passed",
-    "total": 332,
-    "passed": 332,
-    "failed": 0,
-    "skipped": 0,
-    "seconds": 1065.07
-  },
-  "focused": {
-    "passed": 1,
-    "total": 1,
-    "seconds": 0.02,
-    "full_run_seconds": 0.01
+    "initial_full_ctest": {
+      "passed": 331,
+      "failed": 1,
+      "total": 332,
+      "skipped": 0,
+      "seconds": 1059.22,
+      "failure": "editor.linux_native_scene_center",
+      "diagnostic": "center gesture did not undo in one step; saved scene differs from expected baseline"
+    },
+    "new_project_capture_seconds": 0.01,
+    "same_source_targeted_retry": {
+      "test": "editor.linux_native_scene_center",
+      "passed": 1,
+      "total": 1,
+      "seconds": 22.56
+    },
+    "clean_first_full_run": false,
+    "all_distinct_cases_observed_passing": 332,
+    "source_or_settings_changed_for_retry": false
   },
   "shipping": {
     "configure": "passed",
@@ -59,7 +66,53 @@
     "Game View preview and complete hot reload/Stop wiring",
     "Physical acceptance"
   ],
-  "native_play_soak": {
+  "existing_native_twod": [
+    {
+      "rgb": [
+        [
+          255,
+          0,
+          0
+        ],
+        [
+          255,
+          0,
+          0
+        ],
+        [
+          0,
+          255,
+          0
+        ],
+        [
+          0,
+          255,
+          0
+        ],
+        [
+          0,
+          0,
+          255
+        ]
+      ],
+      "native_texture_uploads": 3,
+      "instanced_draws": 5,
+      "gpu_instances": 13,
+      "instance_upload_bytes": 572,
+      "source_bytes": "unchanged"
+    }
+  ],
+  "pre_compare_fix_development": {
+    "configure": "passed",
+    "build": "passed",
+    "ctest": "passed",
+    "total": 332,
+    "passed": 332,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1065.07
+  },
+  "pre_compare_fix_native_play_soak": {
     "cycles": 32,
     "elapsed_seconds": 82.481,
     "growth_limit": 33554432,
@@ -110,40 +163,75 @@
     "warmed_peak": 147324928,
     "warmup_cycles": 4
   },
-  "existing_native_twod": [
-    {
-      "rgb": [
-        [
-          255,
-          0,
-          0
-        ],
-        [
-          255,
-          0,
-          0
-        ],
-        [
-          0,
-          255,
-          0
-        ],
-        [
-          0,
-          255,
-          0
-        ],
-        [
-          0,
-          0,
-          255
-        ]
-      ],
-      "native_texture_uploads": 3,
-      "instanced_draws": 5,
-      "gpu_instances": 13,
-      "instance_upload_bytes": 572,
-      "source_bytes": "unchanged"
-    }
-  ]
+  "review_fix": {
+    "initial_head": "10f870c19a46d81394e217c1d7d49d87361a0794",
+    "finding": "Compare remains an unresolved conflict in EditorImGui ActionableConflict",
+    "fix": "Reject Pending and Compare in shared capture/Matches scope admission",
+    "regression": "Unrelated out-of-closure Compare rejects Capture and Matches; Keep restores exact baseline admission",
+    "url": "https://github.com/jimlee1972/Nexora/pull/613#discussion_r4292994932"
+  },
+  "pre_compare_fix_source_sha256": {
+    "Engine/Editor/CMakeLists.txt": "76cd87267c5438e0a86f738e37cd15e1f150d9ad508ec08c843a7a5c0acfdf82",
+    "Engine/Editor/include/Nexora/Editor/ProjectTwoDPlayAssets.h": "602c151e34627fa4af3ebea75fec047b1c6e445010d108238de0835fb9359e2a",
+    "Engine/Editor/src/ProjectTwoDPlayAssets.cpp": "b640349d75becfd1cbc4a3ab0ba397a2ea0775c40de4d9c032b285d423d0698d",
+    "Tests/TwoD/CMakeLists.txt": "85aa9694ca8f76f1f551003529253b00cfda4f581fa00c1cc371df700d12d2e1",
+    "Tests/TwoD/ProjectPlayAssetTests.cpp": "cba4f457f7f8ab282c2599c899691201464c6722d189cd041bafc40126e3ebaf"
+  },
+  "focused_before_review_fix": {
+    "passed": 1,
+    "total": 1,
+    "seconds": 0.02,
+    "full_run_seconds": 0.01
+  },
+  "native_play_soak": {
+    "cycles": 32,
+    "elapsed_seconds": 81.772,
+    "growth_limit": 33554432,
+    "lifecycle_records": 128,
+    "module_touched_bytes": 4194304,
+    "pixels_input_pause_step_discard": "passed",
+    "rss_after_stop": [
+      138461184,
+      146350080,
+      146350080,
+      145285120,
+      142663680,
+      142663680,
+      142663680,
+      145551360,
+      145432576,
+      142667776,
+      143478784,
+      142819328,
+      146358272,
+      142671872,
+      146415616,
+      146423808,
+      142737408,
+      143704064,
+      146423808,
+      146423808,
+      142737408,
+      146423808,
+      143314944,
+      142737408,
+      143249408,
+      143708160,
+      146427904,
+      146427904,
+      143798272,
+      147873792,
+      147873792,
+      147873792
+    ],
+    "rss_scope": "current_process_resident_set",
+    "rss_unit": "bytes",
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "validation_errors": 0,
+    "warm_baseline": 146350080,
+    "warmed_end": 147873792,
+    "warmed_peak": 147873792,
+    "warmup_cycles": 4
+  }
 }

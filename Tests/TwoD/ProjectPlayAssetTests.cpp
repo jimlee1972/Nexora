@@ -199,6 +199,15 @@ void Rejections(const std::filesystem::path &root) {
   Check(!editor::ProjectTwoDPlayAssets::Capture(fixture.workspace, readOnly, projectGeneration, 71,
                                                 roots, true),
         "read-only Content admitted");
+  Check(fixture.content.Conflicts().Detect(otherId, "editor", "disk", true),
+        "unrelated conflict fixture");
+  Check(fixture.content.Conflicts().Resolve(otherId, editor::DirtyConflictChoice::Compare),
+        "unresolved Compare fixture");
+  Check(!fixture.Capture() && !captured->Matches(fixture.workspace, fixture.content, true),
+        "Compare conflict outside the selected closure admitted");
+  Check(fixture.content.Conflicts().Resolve(otherId, editor::DirtyConflictChoice::Keep) &&
+            fixture.Capture() && captured->Matches(fixture.workspace, fixture.content, true),
+        "resolved unrelated conflict did not restore admission");
   Check(fixture.content.Conflicts().Detect(atlasId, "editor", "disk", true), "conflict fixture");
   Check(!fixture.Capture(), "unresolved source conflict admitted");
   Check(fixture.content.Conflicts().Resolve(atlasId, editor::DirtyConflictChoice::Keep),

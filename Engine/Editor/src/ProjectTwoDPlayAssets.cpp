@@ -28,7 +28,8 @@ bool Allowed(const ProjectWorkspace &workspace, const ProjectContentSession &con
          content.Browser().ProjectGeneration() && !workspace.HasRecoveryJournal() &&
          !workspace.HasExternalChange() && !content.ReimportBusy() &&
          std::ranges::none_of(content.Conflicts().Conflicts(), [](const auto &conflict) {
-           return conflict.choice == DirtyConflictChoice::Pending;
+           return conflict.choice == DirtyConflictChoice::Pending ||
+                  conflict.choice == DirtyConflictChoice::Compare;
          });
 }
 std::optional<runtime::ByteBuffer> Read(const std::filesystem::path &root,
