@@ -119,3 +119,19 @@ The existing CI cleanup helper has a separate exact allowlist for this goal's
 current-head push/PR runs, forks, contributors, other branches and ref-advancement races are kept.
 Tests exercise the actual cleanup helper with those guards. No required check is disabled, and
 no broader feature-branch policy or other-session allowlist is added by this goal.
+
+## Native acceptance readiness correction
+
+The initial PR CI Linux Development run 38865662727 passed 337/338 tests but failed
+`twod.cooked_product_native` with no observed keyboard movement. The harness sent a single
+directed XSendEvent key press as soon as the window mapped, before requiring a presented UI
+frame. It now waits up to eight seconds for the same supplied-glyph pixel oracle, then refocuses
+the window and sends XTEST keyboard input. All movement, Save/Open, resize, audio-submission,
+reload and teardown assertions remain required. Five consecutive corrected native runs pass
+(31.14 seconds total). The original 313/313 gate above predates this harness-only correction.
+Configure/build pass again. The post-correction full gate executes all 313 tests in 1008.76
+seconds: 312 pass, with only the pre-existing `editor.linux_scene_files` xdotool window-operation
+failure; its isolated recheck passes in 38.86 seconds. The corrected 2D native case passes in
+that full gate. Isolated Shipping CPU/native acceptance also passes: 900 frames, 114 movement
+frames, one SAVE and one OPEN, and final 800x600 output. This is not reported as a new clean
+313/313 run. The pre-correction same-head push CI run38865655927 independently passes all jobs.

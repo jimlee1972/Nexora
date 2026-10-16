@@ -137,16 +137,24 @@ def native(app, compiler, package, base_env, audio):
             subprocess.run([xdotool, *arguments], env=env, check=True, capture_output=True, timeout=3)
 
         send('windowfocus', '--sync', window)
-        send('keydown', '--window', window, 'd')
+        # Mapping precedes Vulkan initialization. Require the actual supplied glyph before
+        # testing input instead of treating a visible window as a ready frame loop.
+        deadline = time.monotonic() + 8
+        while True:
+            assert process.poll() is None, 'native product exited before its first UI frame'
+            capture = screenshot(int(window), 640, 480, package / 'native-ui.png')
+            def bright(x, y):
+                offset = y * (640 * 3 + 1) + 1 + x * 3
+                return sum(capture[offset:offset + 3]) / 3
+            # Linear font sampling blends the one-pixel stroke edge with the panel.
+            if (bright(12, 12) < 150 and bright(15, 12) > 230 and
+                    bright(12, 15) > bright(15, 15) + 40 and bright(15, 15) < 150):
+                break
+            assert time.monotonic() < deadline, 'native supplied 2 glyph mismatch'
+            time.sleep(.02)
+        send('windowfocus', '--sync', window)
+        send('keydown', 'd')  # XTEST input goes to the focused, already-presenting window.
         time.sleep(.15)
-        capture = screenshot(int(window), 640, 480, package / 'native-ui.png')
-        def bright(x, y):
-            offset = y * (640 * 3 + 1) + 1 + x * 3
-            return sum(capture[offset:offset + 3]) / 3
-        assert bright(12, 12) < 150 and bright(15, 12) > 230
-        # The UI font uses linear sampling; the one-pixel stroke edge blends with the panel.
-        assert bright(12, 15) > bright(15, 15) + 40 and bright(15, 15) < 150, \
-            'native supplied 2 glyph mismatch'
         for x in (200, 280):  # SAVE then OPEN, each with distinct native press/release frames.
             send('mousemove', '--window', window, str(x), '20')
             send('mousedown', '1')
