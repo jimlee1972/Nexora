@@ -18,7 +18,7 @@ services; Stop/Destroy callbacks retain the World and pool. Generic despawn forw
 Validation on the recorded source hashes in the [machine-readable record](EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.json):
 
 - `cmake --preset linux-development`, `cmake --build --preset linux-development`,
-  `ctest --preset linux-development`: passed, **333/333**, zero skips, **1084.36 seconds**.
+  `ctest --preset linux-development`: passed, **333/333**, zero skips, **1068.91 seconds**.
 - New `editor.play_twod_services`: passed in 0.05 seconds. Its 32 cycles cover real Play clones,
   project freeze/revalidation, external owner destruction, failed Create/Start, module replacement,
   descendant cleanup, pool handle isolation, wrong-thread bridge rejection, short API output
@@ -27,17 +27,25 @@ Validation on the recorded source hashes in the [machine-readable record](Editor
   required fixed-update callback on two `PlaySession::Start` calls; corrected before these passes
   and the complete gate. No failing full-run case required a retry.
 - Existing native 3D Play soak: 32 cycles, 128 lifecycle records, source bytes/pixels unchanged,
-  zero validation errors. Warmed peak RSS growth **3,690,496 bytes**, below **33,554,432**.
+  zero validation errors. Warmed peak RSS growth **147,456 bytes**, below **33,554,432**.
   This is a bounded regression guard, not a leak-freedom or new native 2D Game View claim.
 - `cmake --preset linux-shipping`, `cmake --build --preset linux-shipping`: passed.
   This Minimal Monolithic configuration excludes Editor/testing.
 - Existing graphical feature-OFF build at `/tmp/nexora-editor-20261016/2d-off`, configured with
   `NEXORA_ENABLE_2D=OFF`, `NEXORA_ENABLE_ZIG_GAMEPLAY=OFF`: built `NexoraEditor`,
   `NexoraPlayGameplayModuleTests`, `NexoraPlayDiagnosticsTests`, `NexoraPlaySceneServicesTests`.
-  Three host/service tests passed, 0.05 seconds; optional 2D tests were absent and no TwoD dynamic
+  Three host/service tests passed, 0.16 seconds; optional 2D tests were absent and no TwoD dynamic
   dependency was present. This is an actual Editor build, not configure-only evidence.
 - Documentation tooling: 16/16 tests; eight changed Markdown documents pass validation.
   Five touched C++ files pass clang-format; root README is unchanged.
+
+The initial full gate passed 333/333 in 1084.36 seconds on `cb6b7916`. PR review then found
+that EditorApp directly used TwoD without declaring its direct module/target dependency. The
+corrected source declares `EditorApp -> TwoD`, links the graphical executable only under the
+2D feature gate, and links the new optional test directly. The complete Development, Shipping
+and actual graphical feature-OFF gates above were repeated after that fix. Both full runs passed
+without retries; initial evidence is retained separately in the JSON. Hosted checks for the
+initial head do not substitute for corrected-head CI.
 
 All calls serialize on the Editor owner thread. Bind requires an active scene in a Play World;
 the caller owns immediate project authorization/revalidation. API operations affect only that

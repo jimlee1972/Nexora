@@ -777,7 +777,7 @@ add_test(NAME editor.mesh_memory_capture_display COMMAND NexoraMeshMemoryCapture
 if(NEXORA_ENABLE_2D)
   add_executable(NexoraPlayTwoDServicesTests PlayTwoDServicesTests.cpp)
   target_include_directories(NexoraPlayTwoDServicesTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
-  target_link_libraries(NexoraPlayTwoDServicesTests PRIVATE Nexora::EditorImGui)
+  target_link_libraries(NexoraPlayTwoDServicesTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
   nexora_apply_defaults(NexoraPlayTwoDServicesTests)
   add_test(NAME editor.play_twod_services COMMAND NexoraPlayTwoDServicesTests)
 endif()

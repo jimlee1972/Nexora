@@ -250,6 +250,9 @@ provide inspection-only Play.
 
 ### Optional 2D services in project Play
 
+`EditorApp` declares its direct dependency on the optional `TwoD` module in the module graph;
+the graphical executable links `Nexora::TwoD` explicitly only when 2D is enabled.
+
 With `NEXORA_ENABLE_2D`, selecting a gameplay library in a project containing typed Atlas/Clip
 Content now prepares `PlayTwoDBinding` at Play start. `CapturePlayTwoD` selects all recognized
 2D sources, capped at 4096, including recognized sources with unavailable typed payloads so they
