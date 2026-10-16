@@ -57,7 +57,10 @@ def local(root, name):
 
 def dependencies(binary, destination, allow_development, redist):
     if sys.platform == 'win32':
-        output = subprocess.check_output(['dumpbin', '/DEPENDENTS', str(binary)], text=True)
+        # Only dependency names are ASCII. The source path in dumpbin's heading can use a
+        # different Windows console encoding from Python's locale (notably CJK directories).
+        output = subprocess.check_output(['dumpbin', '/DEPENDENTS', str(binary)]).decode(
+            'ascii', errors='replace')
         names = re.findall(r'^\s*(\S+\.dll)\s*$', output, re.MULTILINE | re.IGNORECASE)
         for name in names:
             lower = name.lower()

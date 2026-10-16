@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('export_game', ROOT / 'Tools/TwoD/ExportGame.py')
@@ -41,6 +42,21 @@ def run(app, manifest, saves, success=True, loaded=None, native=False):
 def acceptance(args):
     with tempfile.TemporaryDirectory(prefix='nexora-game-project-') as temporary:
         root = Path(temporary)
+        # MSVC's heading can contain bytes undefined in Python's Windows codepage. Import
+        # names still need strict admission; replacing heading text must not hide unknown DLLs.
+        heading = b'Dump of file C:\\unicode-\x81\x9d\\module.dll\r\n'
+        with mock.patch.object(exporter.sys, 'platform', 'win32'):
+            with mock.patch.object(exporter.subprocess, 'check_output',
+                                   return_value=heading + b'    KERNEL32.dll\r\n'):
+                exporter.dependencies(root / 'module.dll', root, False, None)
+            with mock.patch.object(exporter.subprocess, 'check_output',
+                                   return_value=heading + b'    unknown-third-party.dll\r\n'):
+                try:
+                    exporter.dependencies(root / 'module.dll', root, False, None)
+                except ValueError:
+                    pass
+                else:
+                    raise AssertionError('unknown DLL was hidden by heading decoding')
         source = root / 'source Unicode 遊戲'
         source.mkdir()
         shutil.copy2(args.module, source / args.module.name)

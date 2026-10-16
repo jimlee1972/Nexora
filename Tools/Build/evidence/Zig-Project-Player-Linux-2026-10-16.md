@@ -67,6 +67,11 @@ The next hosted macOS run compiled successfully and exposed a test-only lexical 
 between `/var` and its canonical `/private/var` directory. The assertion now compares canonical
 paths, and a non-Windows directory-alias case reproduces that normalization on Linux. The
 manifest test passes locally. Product path admission is unchanged.
+Windows GDI corpus baking passed in hosted CTest. A separate Unicode-source export exposed
+`dumpbin` output bytes that Python's CP1252 decoder could not read. Dependency parsing now replaces
+only undecodable heading text while still rejecting unknown DLL imports. A mocked native-tool
+output case covers undefined codepage bytes and preserves that rejection; hosted Windows still
+exercises the real tool and Unicode directories.
 Hosted platform checks must pass on these corrections before merge.
 
 Commands for reproduction:
