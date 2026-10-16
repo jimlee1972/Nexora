@@ -244,6 +244,9 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
   entries.reserve(files.size());
   std::size_t mesh_bytes{};
   std::size_t material_count{};
+#if defined(NEXORA_HAS_2D)
+  std::size_t twod_bytes{}, twod_count{};
+#endif
   for (std::size_t index = 0; index < files.size(); ++index) {
     const auto relative = PathUtf8(std::filesystem::relative(files[index], root, ec));
     if (ec) {
@@ -253,6 +256,27 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
     }
     auto type = Lower(PathUtf8(files[index].extension()));
     auto id = DerivedAssetIdentity(relative);
+    std::optional<detail::ReimportSource> staged;
+    const auto discover_two_d = [&] {
+      staged = detail::ReadReimportSource(files[index], type, {}, cancelled);
+      if (staged->cancelled)
+        return true;
+      if (!staged->error.empty()) {
+        if (error)
+          *error =
+              "2D source identity could not be admitted for " + relative + ": " + staged->error;
+        return false;
+      }
+#if defined(NEXORA_HAS_2D)
+      id = staged->twod->Id();
+#endif
+      if (used_ids.contains(id)) {
+        if (error)
+          *error = "2D source UUID is duplicated: " + relative;
+        return false;
+      }
+      return true;
+    };
     if (identity_mode != AssetIdentityMode::DerivedFromPath) {
       const auto existing = identities.find(relative);
       if (existing != identities.end()) {
@@ -281,6 +305,16 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
             progress(index + 1, files.size());
           continue;
         }
+        if (detail::IsTwoDSource(type)) {
+          if (!discover_two_d())
+            return false;
+          if (staged->cancelled) {
+            entries.push_back({id, relative, std::move(type), {}, ImportState::Cancelled, {}});
+            if (progress)
+              progress(index + 1, files.size());
+            continue;
+          }
+        }
         std::string identity_error;
         if (!WriteAssetIdentity(IdentitySidecar(files[index]), id, type, identity_error)) {
           if (error)
@@ -288,6 +322,14 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
           return false;
         }
         used_ids.insert(id);
+      }
+    } else {
+      if (detail::IsTwoDSource(type) && !discover_two_d())
+        return false;
+      if ((!staged || !staged->cancelled) && !used_ids.insert(id).second) {
+        if (error)
+          *error = "asset identity UUID is duplicated: " + relative;
+        return false;
       }
     }
     AssetEntry entry{id, relative, std::move(type), {}, ImportState::Pending, {}};
@@ -298,7 +340,9 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
         progress(index + 1, files.size());
       continue;
     }
-    auto imported = detail::ReadReimportSource(files[index], entry.type, entry.id, cancelled);
+    auto imported = staged
+                        ? std::move(*staged)
+                        : detail::ReadReimportSource(files[index], entry.type, entry.id, cancelled);
     if (imported.cancelled) {
       entry.state = ImportState::Cancelled;
     } else if (!imported.error.empty()) {
@@ -320,14 +364,30 @@ bool AssetWorkspace::ImportTree(const std::filesystem::path &content_root, Cance
         entry.state = ImportState::Imported;
       }
       if (entry.state == ImportState::Imported) {
+        bool twod_budget_exceeded{};
+#if defined(NEXORA_HAS_2D)
+        twod_budget_exceeded = imported.twod && (twod_count == kMaximumWorkspaceTwoDAssets ||
+                                                 imported.twod->RetainedBytes() >
+                                                     kMaximumWorkspaceTwoDBytes - twod_bytes);
+#endif
         if (imported.material && material_count == kMaximumWorkspaceMaterials) {
           entry.state = ImportState::Failed;
           entry.error = "Workspace scalar PBR materials exceed the 4096 asset budget.";
+        } else if (twod_budget_exceeded) {
+          entry.state = ImportState::Failed;
+          entry.error = "Workspace 2D payloads exceed the 4096 asset or 64 MiB budget.";
         } else {
           entry.artifact_hash = std::move(imported.artifact_hash);
           if (imported.material)
             ++material_count;
           entry.material = std::move(imported.material);
+#if defined(NEXORA_HAS_2D)
+          if (imported.twod) {
+            ++twod_count;
+            twod_bytes += imported.twod->RetainedBytes();
+          }
+#endif
+          entry.twod = std::move(imported.twod);
         }
       }
     }

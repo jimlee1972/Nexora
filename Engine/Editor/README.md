@@ -89,6 +89,54 @@ main Play World, Game UI or reload controls. `twod.play_assets` covers the real 
 store path, 4096/4097-asset boundary, exact payload budget, failures with external references,
 generation replacement/collection and canonical gameplay consumption after store destruction.
 
+### Typed project 2D source import
+
+✅ With `NEXORA_ENABLE_2D`, indexing and synchronous/queued reimport now carry an owning
+immutable `TwoDAssetPayload` through `AssetEntry`, `ContentItem` and `ReimportResult`.
+`ImportTwoDAsset` borrows normalized `.nx2atlas`/`.nx2clip` bytes only during the call and uses
+the existing TwoD codecs. It performs no IO, GPU work, publication or dependent-file reads.
+Payload construction is private and noncopyable; consumers retain shared const owners and can
+borrow immutable Atlas/Clip owners independently. An optional expected UUID must match exactly;
+zero permits initial embedded-identity discovery. Cancellation is checked before/after bounded
+decode, and the source reader also checks between binary chunks. Failed/cancelled reads expose
+no typed payload or partial hashes. Allocation/callback exceptions follow the existing C++ boundary.
+
+New valid self-identifying 2D sources use their embedded UUID when creating the first sidecar,
+including uppercase filename extensions. `DerivedFromPath` compatibility mode likewise uses the
+embedded identity for these optional types, without writing metadata; other types retain derived
+identities. Duplicate embedded IDs or a malformed new identity abort indexing and preserve the
+previous index. As with the existing sequential sidecar writer, valid earlier sidecars may already
+have been created; this is not a multi-file filesystem rollback. The invalid/colliding new sidecar
+is not created. Read-only indexing never creates missing metadata. Existing sidecar identities and
+importer types remain authoritative across rename; source mismatch/invalid data becomes a failed
+entry with no payload/hash. Older generic sidecars whose UUID disagrees are diagnosed, never
+silently rewritten or migrated. Source bytes and references are not rewritten.
+
+Each source is capped at 64 MiB before allocation when size is available and during chunk reads.
+An indexed typed set and each live/retained Undo Content snapshot admit at most 4096 payloads and
+64 MiB of capacity accounting: payload/Atlas/Clip objects, vector capacities and event string
+capacities plus terminators. Inline string space is conservatively counted again; shared control
+blocks/allocator overhead are excluded. This is not RSS/VRAM or a bound on separately retained
+external snapshots. Valid identities beyond the sorted import budget remain failed indexed rows.
+Content Reset, Discover and PublishArtifact enforce matching typed UUID/importer and the same
+limits. Publication also checks the retained Undo set before changing revision/hash/pointers;
+successful reimport updates its payload so path Undo retains the newest admitted version.
+
+Clip Atlas UUID dependencies enter the initial project graph and replace previous dependencies
+atomically on successful synchronous/queued reimport. Workers only stage; authoring publication
+retains current project/path/artifact/source-size/time/settings/dependency checks, and cancellation,
+staleness, invalid input, cycles or budget failure preserve the prior model/graph. Atlas existence,
+type and frame-region closure are resolved separately by cooked Play capture; source import does
+not load dependencies or claim complete project provenance. Models serialize on the authoring
+thread and immutable owners survive model/index destruction. With 2D off, these file types keep
+generic streaming/index behavior and no TwoD implementation dependency is introduced.
+
+Public C++ consumers rebuild for appended payload fields and PublishArtifact's new optional
+parameter. Existing source/wire/C/Zig codecs, generic/Mesh/Material behavior, project lease/access
+checks and optional module dependencies remain unchanged. Main Editor Play/Game routing,
+project-scoped cook/freeze admission and integrated preview/reload remain open. See
+[typed source evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
+
 ## External Chrome duration import
 
 `ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`

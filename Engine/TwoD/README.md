@@ -48,6 +48,11 @@ linear blend. PNG preparation preserves byte values and does not perform color-p
 
 ## Assets, animation and queries
 
+✅ The optional Editor indexes/reimports `.nx2atlas`/`.nx2clip` as immutable typed payloads with
+embedded UUID/sidecar consistency, bounded capacity and atomic Clip dependency publication.
+No source identity is silently rewritten. See the [project source contract](../Editor/README.md#typed-project-2d-source-import).
+This does not attach main Editor Play/Game preview or accept project-scoped cooked provenance.
+
 Atlas packing uses canonical region-ID order, bounded shelf layout and one-pixel extruded gutters.
 PNG rectangle/grid slicing is provided by [PrepareAssets.py](../../Tools/TwoD/PrepareAssets.py);
 packing and validation use the C++ module. `.nx2atlas` and `.nx2clip` register with the existing

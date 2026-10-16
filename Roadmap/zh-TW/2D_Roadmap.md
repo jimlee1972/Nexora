@@ -144,6 +144,11 @@ Linux 原生像素區分相同 Atlas UUID 下的凍結紅、動畫及保留綠�
 也未接上主 Editor Play／Game 預覽；相關整合仍待完成，里程碑計數不變。
 [證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md)。
 
+✅ 可選專案索引與同步／背景重新匯入現可保留不可變 Atlas／Clip 型別資料；初始內嵌
+UUID、既有 Sidecar、容量上限與原子 Clip 相依更新，於無效、過期或取消的發布中保留
+原模型及歷史。這是專案資產前置項；限定專案的 Cook／凍結准入及主 Editor Play／Game
+預覽／Reload 仍待完成，里程碑計數不變。[證據](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md)。
+
 [保留的 Zig／Linux 驗收](../../Engine/TwoD/evidence/Zig-Linux-2026-10-14/acceptance.md)
 記錄完整測試、首次 GUI 失敗／重跑與 Shipping 範圍。
 

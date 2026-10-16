@@ -1,5 +1,8 @@
 #include "Nexora/Editor/ContentBrowser.h"
 #include "Nexora/Foundation/Types.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/TwoDAssetImport.h"
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -37,6 +40,26 @@ bool WithinMaterialBudget(std::span<const ContentItem> items, runtime::AssetUuid
   }
   return true;
 }
+bool WithinTwoDBudget(std::span<const ContentItem> items, runtime::AssetUuid replacement = {},
+                      const std::shared_ptr<const TwoDAssetPayload> &payload = {}) {
+#if defined(NEXORA_HAS_2D)
+  std::size_t remaining = kMaximumWorkspaceTwoDBytes, count{};
+#endif
+  for (const auto &item : items) {
+    const auto &value = item.id == replacement && payload ? payload : item.twod;
+    if (!value)
+      continue;
+#if defined(NEXORA_HAS_2D)
+    if (value->Id() != item.id || value->Type() != item.type ||
+        ++count > kMaximumWorkspaceTwoDAssets || value->RetainedBytes() > remaining)
+      return false;
+    remaining -= value->RetainedBytes();
+#else
+    return false;
+#endif
+  }
+  return true;
+}
 std::string Lower(std::string_view value) {
   std::string result(value);
   std::ranges::transform(result, result.begin(),
@@ -59,7 +82,7 @@ ContentBrowserModel::ContentBrowserModel(std::uint64_t project_generation)
 }
 bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
                                 std::uint64_t project_generation) {
-  if (!WithinMeshBudget(items) || !WithinMaterialBudget(items))
+  if (!WithinMeshBudget(items) || !WithinMaterialBudget(items) || !WithinTwoDBudget(items))
     return false;
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> ids;
   std::unordered_set<std::string> paths;
@@ -82,7 +105,7 @@ bool ContentBrowserModel::Discover(ContentItem item) {
     return false;
   auto next = items_;
   next.push_back(item);
-  if (!WithinMeshBudget(next) || !WithinMaterialBudget(next))
+  if (!WithinMeshBudget(next) || !WithinMaterialBudget(next) || !WithinTwoDBudget(next))
     return false;
   // Discovery is not an authoring command. Preserve the earlier command's Undo snapshot too.
   if (!undo_.empty()) {
@@ -92,7 +115,8 @@ bool ContentBrowserModel::Discover(ContentItem item) {
       return false;
     auto previous = undo_;
     previous.push_back(item);
-    if (!WithinMeshBudget(previous) || !WithinMaterialBudget(previous))
+    if (!WithinMeshBudget(previous) || !WithinMaterialBudget(previous) ||
+        !WithinTwoDBudget(previous))
       return false;
     std::ranges::sort(previous, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
     undo_ = std::move(previous);
@@ -312,7 +336,8 @@ bool ContentBrowserModel::Undo() {
 bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string artifact_hash,
                                           ThumbnailState thumbnail, std::string *error,
                                           std::shared_ptr<const MeshGeometry> mesh,
-                                          std::shared_ptr<const MaterialAsset> material) {
+                                          std::shared_ptr<const MaterialAsset> material,
+                                          std::shared_ptr<const TwoDAssetPayload> twod) {
   const auto found = std::ranges::find(items_, id, &ContentItem::id);
   if (found == items_.end() || artifact_hash.empty()) {
     if (error)
@@ -329,11 +354,18 @@ bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string art
       *error = "Live or retained Undo scalar PBR materials exceed the 4096 asset budget.";
     return false;
   }
+  if (!WithinTwoDBudget(items_, id, twod) || !WithinTwoDBudget(undo_, id, twod)) {
+    if (error)
+      *error = "Live or retained Undo 2D payloads exceed their budget or identity/type contract.";
+    return false;
+  }
   ++revision_;
   if (mesh)
     found->mesh = std::move(mesh);
   if (material)
     found->material = std::move(material);
+  if (twod)
+    found->twod = std::move(twod);
   found->artifact_hash = std::move(artifact_hash);
   found->thumbnail = thumbnail;
   const auto undo = std::ranges::find(undo_, id, &ContentItem::id);
@@ -342,6 +374,7 @@ bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string art
     undo->thumbnail = thumbnail;
     undo->mesh = found->mesh;
     undo->material = found->material;
+    undo->twod = found->twod;
   }
   if (error)
     error->clear();

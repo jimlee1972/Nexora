@@ -3,6 +3,13 @@
 #include "Nexora/Editor/MaterialImport.h"
 #include "Nexora/Editor/MeshImport.h"
 #include "Nexora/Runtime/AssetPipeline.h"
+#if defined(NEXORA_HAS_2D)
+#include "Nexora/Editor/TwoDAssetImport.h"
+#else
+namespace nexora::editor {
+class TwoDAssetPayload;
+}
+#endif
 
 #include <array>
 #include <cctype>
@@ -24,10 +31,30 @@ struct ReimportSource final {
   std::string artifact_hash;
   std::shared_ptr<const MeshGeometry> mesh;
   std::shared_ptr<const MaterialAsset> material;
+  std::shared_ptr<const TwoDAssetPayload> twod;
   std::string error;
   bool cancelled{};
   bool read_failed{};
 };
+
+inline bool IsTwoDSource(std::string_view type) {
+#if defined(NEXORA_HAS_2D)
+  return type == ".nx2atlas" || type == ".nx2clip";
+#else
+  static_cast<void>(type);
+  return false;
+#endif
+}
+inline std::vector<runtime::AssetUuid>
+TwoDDependencies(const std::shared_ptr<const TwoDAssetPayload> &payload) {
+#if defined(NEXORA_HAS_2D)
+  if (payload)
+    return payload->Dependencies();
+#else
+  static_cast<void>(payload);
+#endif
+  return {};
+}
 
 inline std::uint64_t HashSourceChunk(std::string_view bytes, std::uint64_t seed) {
   for (const unsigned char byte : bytes) {
@@ -44,9 +71,9 @@ inline std::string SourceHashHex(std::uint64_t value) {
 }
 
 // Shared staging path for indexing, synchronous authoring requests and background jobs. Ordinary
-// assets retain only a fixed read chunk and incremental hashes; OBJ/material parsing retains
-// bounded source bytes. Publication is a separate revision-checked authoring-thread transaction.
-// Partial hashes never escape a failed or cancelled read.
+// assets retain only a fixed read chunk and incremental hashes; typed mesh/material/2D parsing
+// retains bounded source bytes. Publication is a separate revision-checked authoring-thread
+// transaction. Partial hashes never escape a failed or cancelled read.
 inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std::string type,
                                          runtime::AssetUuid asset,
                                          const std::function<bool()> &cancelled = {}) {
@@ -65,11 +92,14 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
     result.cancelled = true;
     return result;
   }
-  const auto typed_source = type == ".obj" || type == ".nmaterial";
-  const auto source_budget =
-      type == ".nmaterial" ? kMaximumMaterialSourceBytes : kMaximumObjSourceBytes;
-  const auto budget_error = type == ".nmaterial" ? "Material source exceeds the 64 KiB limit."
-                                                 : "OBJ source exceeds the 16 MiB limit.";
+  const auto two_d_source = IsTwoDSource(type);
+  const auto typed_source = type == ".obj" || type == ".nmaterial" || two_d_source;
+  const auto source_budget = two_d_source           ? std::size_t{64 * 1024 * 1024}
+                             : type == ".nmaterial" ? kMaximumMaterialSourceBytes
+                                                    : kMaximumObjSourceBytes;
+  const auto budget_error = two_d_source           ? "2D source exceeds the 64 MiB limit."
+                            : type == ".nmaterial" ? "Material source exceeds the 64 KiB limit."
+                                                   : "OBJ source exceeds the 16 MiB limit.";
   // Reject known oversized typed sources before reading/allocating their payload.
   // The streaming guard below still handles growth and unavailable size metadata.
   if (typed_source) {
@@ -134,6 +164,20 @@ inline ReimportSource ReadReimportSource(const std::filesystem::path &path, std:
     }
     result.material = std::make_shared<const MaterialAsset>(std::move(*parsed.material));
   }
+#if defined(NEXORA_HAS_2D)
+  if (two_d_source) {
+    auto parsed = ImportTwoDAsset(type, std::as_bytes(std::span(source_bytes)), asset, cancelled);
+    if (parsed.cancelled || !parsed.payload) {
+      result.cancelled = parsed.cancelled;
+      result.error = std::move(parsed.error);
+      return result;
+    }
+    result.twod = std::move(parsed.payload);
+    if (asset == runtime::AssetUuid{})
+      artifact_hash = HashSourceChunk(
+          source_bytes, HashSourceChunk(result.twod->Id().ToString(), 1469598103934665603ULL));
+  }
+#endif
   result.source_hash = SourceHashHex(source_hash);
   result.artifact_hash = SourceHashHex(artifact_hash);
   return result;

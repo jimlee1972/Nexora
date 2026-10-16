@@ -258,12 +258,13 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
              return;
            }
            if (!imported.error.empty()) {
-             implementation->FinishFailed(operation,
-                                          imported.read_failed ? "reimport.read_failed"
-                                          : request.type == ".nmaterial"
-                                              ? "reimport.material_failed"
-                                              : "reimport.mesh_failed",
-                                          imported.error, source, request.asset);
+             implementation->FinishFailed(
+                 operation,
+                 imported.read_failed                 ? "reimport.read_failed"
+                 : request.type == ".nmaterial"       ? "reimport.material_failed"
+                 : detail::IsTwoDSource(request.type) ? "reimport.twod_failed"
+                                                      : "reimport.mesh_failed",
+                 imported.error, source, request.asset);
              return;
            }
            implementation->Progress(operation, ImportStage::Staging, 2, 4);
@@ -272,11 +273,13 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
                                  std::move(imported.source_hash),
                                  std::move(request.settings_hash),
                                  std::move(imported.artifact_hash),
-                                 std::move(request.dependencies),
+                                 imported.twod ? detail::TwoDDependencies(imported.twod)
+                                               : std::move(request.dependencies),
                                  {},
                                  false,
                                  std::move(imported.mesh),
-                                 std::move(imported.material)};
+                                 std::move(imported.material),
+                                 std::move(imported.twod)};
            if (token.IsCancellationRequested()) {
              implementation->FinishCancelled(operation);
              return;
