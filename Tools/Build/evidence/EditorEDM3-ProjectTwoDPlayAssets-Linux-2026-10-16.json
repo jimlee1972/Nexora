@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "task": "nexora-zih.4",
+  "base": "5201d9f6e02d2a24406004174a50f61ad9cebf9b",
+  "local_platform": "Linux",
+  "source_sha256": {
+    "Engine/Editor/CMakeLists.txt": "76cd87267c5438e0a86f738e37cd15e1f150d9ad508ec08c843a7a5c0acfdf82",
+    "Engine/Editor/include/Nexora/Editor/ProjectTwoDPlayAssets.h": "602c151e34627fa4af3ebea75fec047b1c6e445010d108238de0835fb9359e2a",
+    "Engine/Editor/src/ProjectTwoDPlayAssets.cpp": "b640349d75becfd1cbc4a3ab0ba397a2ea0775c40de4d9c032b285d423d0698d",
+    "Tests/TwoD/CMakeLists.txt": "85aa9694ca8f76f1f551003529253b00cfda4f581fa00c1cc371df700d12d2e1",
+    "Tests/TwoD/ProjectPlayAssetTests.cpp": "cba4f457f7f8ab282c2599c899691201464c6722d189cd041bafc40126e3ebaf"
+  },
+  "development": {
+    "configure": "passed",
+    "build": "passed",
+    "ctest": "passed",
+    "total": 332,
+    "passed": 332,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1065.07
+  },
+  "focused": {
+    "passed": 1,
+    "total": 1,
+    "seconds": 0.02,
+    "full_run_seconds": 0.01
+  },
+  "shipping": {
+    "configure": "passed",
+    "build": "passed",
+    "scope": "Minimal Monolithic excludes Editor/testing"
+  },
+  "feature_off": {
+    "configure": "passed",
+    "graphical_shell": true,
+    "zig_gameplay": false,
+    "editor_core_built": true,
+    "tests_passed": 2,
+    "tests_total": 2,
+    "seconds": 2.49,
+    "new_source_and_test_absent": true,
+    "no_native_twod_dependency": true
+  },
+  "documentation": {
+    "unit_tests": 16,
+    "changed_markdown_files": 7,
+    "root_readme_unchanged": true
+  },
+  "clang_syntax_and_width": "passed",
+  "formatted_cpp_files": 3,
+  "provenance": [
+    "Initial test compilation rejected a combined CTAD declaration of different-sized arrays; declarations separated.",
+    "Initial focused execution rejected extension-renamed source; Runtime registry uses filename extension. Adapter now supplies a logical key from the validated sidecar importer, retaining the physical path separately.",
+    "Final source path limit includes the Content prefix and sidecar suffix. Full gate compiled that corrected source; hashes record final five source/build files."
+  ],
+  "remaining": [
+    "Main Editor Play World and gameplay API attachment",
+    "Game View preview and complete hot reload/Stop wiring",
+    "Physical acceptance"
+  ],
+  "native_play_soak": {
+    "cycles": 32,
+    "elapsed_seconds": 82.481,
+    "growth_limit": 33554432,
+    "lifecycle_records": 128,
+    "module_touched_bytes": 4194304,
+    "pixels_input_pause_step_discard": "passed",
+    "rss_after_stop": [
+      138354688,
+      142495744,
+      142495744,
+      142499840,
+      142499840,
+      146186240,
+      146186240,
+      144797696,
+      142503936,
+      146190336,
+      142503936,
+      142508032,
+      145129472,
+      146194432,
+      146247680,
+      143552512,
+      142569472,
+      142569472,
+      146255872,
+      146255872,
+      146255872,
+      142569472,
+      142569472,
+      142569472,
+      146255872,
+      146255872,
+      146255872,
+      142569472,
+      142569472,
+      145829888,
+      147173376,
+      147324928
+    ],
+    "rss_scope": "current_process_resident_set",
+    "rss_unit": "bytes",
+    "source_bytes": "unchanged",
+    "source_pixels": "unchanged",
+    "validation_errors": 0,
+    "warm_baseline": 142499840,
+    "warmed_end": 147324928,
+    "warmed_peak": 147324928,
+    "warmup_cycles": 4
+  },
+  "existing_native_twod": [
+    {
+      "rgb": [
+        [
+          255,
+          0,
+          0
+        ],
+        [
+          255,
+          0,
+          0
+        ],
+        [
+          0,
+          255,
+          0
+        ],
+        [
+          0,
+          255,
+          0
+        ],
+        [
+          0,
+          0,
+          255
+        ]
+      ],
+      "native_texture_uploads": 3,
+      "instanced_draws": 5,
+      "gpu_instances": 13,
+      "instance_upload_bytes": 572,
+      "source_bytes": "unchanged"
+    }
+  ]
+}

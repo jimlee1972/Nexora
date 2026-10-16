@@ -55,8 +55,8 @@ failed Start, stale handles and copied extraction. `twod.play_context_native` us
 pixels for frozen red, animated green, retained green after owner destruction and new-session
 blue, with exact native instanced draw/instance/upload-byte counters. These are prerequisite
 ownership/renderer contracts; main project Editor routing,
-project-scoped cooked asset capture, integrated Game UI/preview, full hot reload and physical
-acceptance remain open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+integrated Game UI/preview, full hot reload and physical acceptance remain open.
+Project-scoped cooked asset capture is supplied by the separate owner described below. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
 
 ### Frozen cooked 2D Play assets
@@ -134,8 +134,52 @@ generic streaming/index behavior and no TwoD implementation dependency is introd
 Public C++ consumers rebuild for appended payload fields and PublishArtifact's new optional
 parameter. Existing source/wire/C/Zig codecs, generic/Mesh/Material behavior, project lease/access
 checks and optional module dependencies remain unchanged. Main Editor Play/Game routing,
-project-scoped cook/freeze admission and integrated preview/reload remain open. See
+integrated preview/reload remain open; scoped cook/freeze admission is described below. See
 [typed source evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
+
+### Project-scoped cooked 2D Play capture
+
+`ProjectTwoDPlayAssets::Capture` connects admitted project Content to the existing Runtime
+importer/cooker/bundle/generation-store path and `TwoDPlayAssets`. It requires explicit host
+authorization, an open writer workspace and writable Content session at the same canonical root,
+a nonzero matching expected project generation, a nonzero cooked generation and nonempty unique
+roots. The current on-disk project descriptor must agree with the workspace UUID/name/schema.
+Recovery, external workspace changes, pending reimport and unresolved Content conflicts reject.
+The host still supplies current stopped-Play/modal/document policy; this API does not grant it.
+Workspace ownership retains its existing writer lease; capture acquires no new lease.
+
+Only the selected Atlas/Clip closure is cooked. Each source must have a persistent matching
+schema-1 UUID/importer sidecar, a ready typed immutable Content owner, a matching artifact and
+exact source bytes equal to that owner's canonical encoding. Clip dependencies must agree with
+the current graph; cooked capture additionally checks Atlas type and frame-region closure.
+Authoritative sidecar importer types survive filename-extension changes. Paths stay below Content;
+unsafe traversal, symlink components/leaves, nonregular files, hard links and oversized reads reject.
+Reads are bounded even if a file grows. No source, sidecar, cache file, Content/history, shared
+Runtime store, World or GPU object is modified. Cooking uses a private in-memory cache/store.
+
+Calls serialize with all project/Content owners on the authoring thread. The immutable result
+owns project UUID/root, Content generation/revision, exact source/sidecar baselines and the frozen
+cooked closure; no workspace/Content/store/file borrow survives. `Matches` repeats current scope,
+model/graph and exact file checks immediately before activation. Any Content revision change
+invalidates an observation, including unrelated authoring; graph changes are checked separately.
+A restored exact file/graph baseline can match again if Content revision is unchanged. Permission
+checks are observations, not durable authority or a transaction against hostile concurrent filesystem
+replacement. Allocation exceptions propagate and ordinary validation failures return null/false
+with an optional diagnostic. Failed candidates never replace a caller's retained snapshot.
+
+Limits may only lower 4096 unique assets and 64 MiB of combined source lengths and, separately, cooked payload lengths.
+Exact source baselines retain at most 64 MiB and sidecars at most 4096 bytes per admitted asset;
+frozen decoded payloads are separately owned. These are logical lengths, not vector capacity,
+allocator/RSS/VRAM or an all-external-snapshot bound. Temporary cooking holds additional copies.
+The cooked generation is an explicit host label scoped by project identity/generation, not a
+reservation in a global store. After successful activation, reimport/project shutdown cannot
+change retained pixels/Clips; Stop/reload policy and native texture retirement remain host duties.
+
+`twod.project_play_assets` covers actual filesystem/sidecars and Runtime cooking, source and
+scope staleness, dependency/region rejection, exact byte/count budgets, alias rejection where the
+platform permits creating fixtures, pending publication and canonical gameplay consumption after
+all project/cook owners die. This supports main Editor integration; it does not attach the API,
+Play World, Game View or reload controls and accepts no enclosing milestone.
 
 ## External Chrome duration import
 

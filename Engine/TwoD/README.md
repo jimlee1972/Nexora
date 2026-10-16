@@ -4,7 +4,9 @@ The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closu
 explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
 validates frame regions, bounds unique payload/count totals and preserves external residency/pins.
 See the [Editor ownership contract](../Editor/README.md#frozen-cooked-2d-play-assets).
-Project provenance and main Editor Play/Game attachment remain separate work.
+The Editor also offers project-scoped source/cooked admission through
+`ProjectTwoDPlayAssets`; see the [project capture contract](../Editor/README.md#project-scoped-cooked-2d-play-capture).
+Main Editor Play/Game attachment remains separate work.
 
 `Nexora::TwoD` is the optional `NEXORA_ENABLE_2D` module. It depends on Runtime and
 Presentation, requires Asset Pipeline and Window Presentation, and is removed from headless
@@ -51,7 +53,8 @@ linear blend. PNG preparation preserves byte values and does not perform color-p
 ✅ The optional Editor indexes/reimports `.nx2atlas`/`.nx2clip` as immutable typed payloads with
 embedded UUID/sidecar consistency, bounded capacity and atomic Clip dependency publication.
 No source identity is silently rewritten. See the [project source contract](../Editor/README.md#typed-project-2d-source-import).
-This does not attach main Editor Play/Game preview or accept project-scoped cooked provenance.
+Project capture checks current source/sidecar/Content scope before cooking; main Editor Play/Game
+preview remains separate.
 
 Atlas packing uses canonical region-ID order, bounded shelf layout and one-pixel extruded gutters.
 PNG rectangle/grid slicing is provided by [PrepareAssets.py](../../Tools/TwoD/PrepareAssets.py);

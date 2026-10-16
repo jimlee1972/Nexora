@@ -69,8 +69,16 @@ Play/Game preview; those integrations remain open and milestone counts are uncha
 ✅ Optional project indexing and synchronous/queued reimport now retain typed immutable
 Atlas/Clip payloads. Initial embedded UUIDs, authoritative sidecars, capacity budgets and atomic
 Clip dependencies preserve prior model/history on invalid, stale or cancelled publication.
-This is a project asset prerequisite; scoped cook/freeze admission and main Editor Play/Game
-preview/reload remain open. Milestone counts are unchanged. [Evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
+This is a project asset prerequisite; main Editor Play/Game preview/reload remain open.
+Scoped cook/freeze admission is supplied by the following capture owner. Milestone counts are unchanged. [Evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
+
+✅ `ProjectTwoDPlayAssets` now cooks and freezes the selected current project Atlas/Clip closure
+with project UUID/root, Content generation/revision, writer/access/recovery, exact source/sidecar
+and dependency admission. Owning observations revalidate before activation and retain frozen data
+after project destruction. Main Play/Game attachment and integrated preview/reload remain open;
+ED/2D milestone counts are unchanged. See the [capture contract](../../Engine/Editor/README.md#project-scoped-cooked-2d-play-capture)
+and [evidence](../../Tools/Build/evidence/EditorEDM3-ProjectTwoDPlayAssets-Linux-2026-10-16.md).
+
 
 ```text
 NexoraEditor (tool process)
