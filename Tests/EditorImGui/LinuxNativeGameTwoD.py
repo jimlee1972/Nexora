@@ -61,16 +61,17 @@ def colors(pixels):
     # Choose one coherent expected palette from the dominant known canvas background.
     mode = encoding(pixels)
     if mode == 'unavailable':
-        return dict(base=0, blended=0, pool=0)
+        return dict(base=0, blended=0, pool=0, hud=0)
     convert = srgb if mode == 'sRGB' else lambda value: value
     base = [convert(c) for c in ((255, 0, 0), (0, 255, 0))]
     blended = [convert(c) for c in ((127, 0, 128), (0, 127, 128))]
     pool = convert((5, 10, 148))
-    result = dict(base=0, blended=0, pool=0)
+    result = dict(base=0, blended=0, pool=0, hud=0)
     for pixel in zip(pixels[::3], pixels[1::3], pixels[2::3]):
         result['base'] += any(close(pixel, c) for c in base)
         result['blended'] += any(close(pixel, c) for c in blended)
         result['pool'] += close(pixel, pool)
+        result['hud'] += close(pixel, convert((255, 0, 255)))
     return result
 
 
@@ -199,7 +200,7 @@ def main():
             send('key', '--delay', '30', 'F6')
             wait(lambda: value('state') == (2,), 'Play did not pause')
             wait(lambda: all(v > 50 for v in colors(pixels()).values()),
-                 'Actual native multi-Atlas/alpha/pool pixels are absent')
+                 'Actual native multi-Atlas/alpha/pool/HUD pixels are absent')
             paused = pixels()
             pump(.15)
             if pixels() != paused:

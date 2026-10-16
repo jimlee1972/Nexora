@@ -360,10 +360,29 @@ feedback in the host loop; physical latency/FPS/audibility remain unaccepted. Se
 ✅ Final queued-audio integration gate: 313/313 Linux Development tests, zero failures/skips;
 Shipping/isolated native package and strict Windows cross-compilation pass. Physical gates and 82% are unchanged.
 
-
 ✅ Native cooked-service input acknowledgement follow-up: the acceptance driver now requires
 positive keyboard-driven position in a CRC-valid SAVE publication before OPEN, then compares the
 restored position. Five native repetitions pass; a deliberately missed first D press recovers,
 while missing every press still fails. The local Zig-enabled full gate passes 190/190 without
 skips. This is a supporting harness correction; M6/M7 and 9/11 (82%) are unchanged.
 See the linked cooked-service acceptance evidence for CI failures, scope and controlled experiments.
+
+## General Zig project Player and Windows delivery tools (2026-10-16)
+
+✅ `NexoraTwoDPlayer` and native ProjectPlayer's explicit 2D mode load a separately built trusted
+V3 module and project-owned Atlas/Clip, WAV and font atlases without the fixed sample scene/counts.
+Fresh-directory export, MSVC CRT staging, a launcher and hash inventory support Shipping delivery.
+The Windows font baker checks a real selected font against a bounded UTF-8 BMP corpus; missing
+glyphs fail. User-scoped permanent saves remain module-schema-owned and separate from migration.
+
+✅ The main Editor composes scene/pool sprites plus gameplay UI in the selected 2D Game View using
+the frozen project asset owner, without duplicating sprites in the HUD submission. Focus/acquisition-gated actions, native audio control/retry and project-scoped
+storage remain valid through Stop/Destroy, and native texture retirement is host-owned. CPU and
+Linux Vulkan pixels validate 32 Play lifetimes; real Zig Shipping export and independent module
+restart/corruption checks validate the general Player path. See the [acceptance record](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)
+and [Windows checklist](../../Tools/TwoD/WindowsAcceptance.md).
+
+Formal art/fonts/game rules and physical Windows sound, XInput devices, focus/DPI, clean-machine
+runtime and minimum-PC acceptance require the actual project/target host. Authored Sprite
+persistence, Editor Tilemap binding and seamless reload remain open. M6/M7 and **9/11 (82%)**
+are unchanged. Hosted MSVC CI and software Vulkan are not physical product acceptance.

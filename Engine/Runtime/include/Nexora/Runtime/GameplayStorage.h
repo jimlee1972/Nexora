@@ -3,10 +3,15 @@
 #include "nexora/gameplay_storage.h"
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
 namespace nexora::runtime {
+// Resolves a per-user directory without creating it. Portable lower-case scope, 1..128 bytes.
+// Throws for invalid scope or unavailable environment. No executable/source directory fallback.
+[[nodiscard]] NEXORA_RUNTIME_API std::filesystem::path
+UserGameplaySaveDirectory(std::string_view scope);
 // Dedicated host-owned directory, never shared by simultaneous service instances/writers.
 // Configure from trusted host paths, never from gameplay input. Owner serializes all calls.
 class NEXORA_RUNTIME_API GameplayStorage final {

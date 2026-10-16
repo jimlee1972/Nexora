@@ -132,3 +132,11 @@ per-service failure/lifetime tests, dynamic V3 module launch in ProjectPlayer an
 presentation. The [acceptance record](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-2026-10-16.md)
 records the complete presets and limitations. The existing API-M1–M6 percentage stays unchanged;
 this does not accept Windows device output, physical controllers, game artwork or Editor Play integration.
+
+
+✅ The subsequent project-host integration now supplies the existing services in main Editor 2D
+Play and in a generic, Editor-free project Player. It adds no C/Zig wire change: frozen asset
+ownership, capture-gated input, Game View UI/Sprite composition, native audio retry, durable user
+slots and explicit trusted-module export stay embedding responsibilities. Real Zig Shipping
+launch, independent-module restart/corruption and Linux native Editor pixels have acceptance;
+physical Windows devices/DPI/clean-host remain separate. [Evidence](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md).

@@ -52,13 +52,13 @@ Play 通過。嵌入主專案時仍須保留 ED-M1 資產、ED-M2 Transaction �
 ✅ 擁有式隔離 `TwoDPlayContext` 現可快照文件 World／Sprite／碰撞資料、凍結 Atlas／Clip、
 複製 Tilemap／區塊狀態，並擁有新的有限物件池與 2D Gameplay Bridge。實際 V3 Callback
 生命週期與來源 Undo／Redo 保全已有驗證，Linux 原生像素涵蓋凍結／動畫／保留及新 Session
-Atlas。這是整合前置項；專案／Cooked 擷取與主 host API 掛接見下段，整合 Game
-預覽／Reload 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
+Atlas。這是整合前置項；專案／Cooked 擷取、主 host API 掛接與 Game
+預覽見下段，無縫 Reload 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
 
 ✅ `TwoDPlayAssets` 現可從明確 Runtime 資產世代凍結有限的 Cooked Atlas／Clip 相依閉包，
 驗證相依與 Frame Region，並於替換、世代回收及 Store 銷毀後保留擁有式資料。
 成功／失敗皆平衡暫時 Pin 與 Resident 引用。這是整合前置項，不代表專案／來源准入，
-也未接上主 Editor Play／Game 預覽；相關整合仍待完成，里程碑計數不變。
+本身未接上主 Editor Play／Game 預覽；相關 host 擴充見下段，里程碑計數不變。
 [證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md)。
 
 ✅ 可選專案索引與同步／背景重新匯入現可保留不可變 Atlas／Clip 型別資料；初始內嵌
@@ -90,6 +90,13 @@ Pause／Step／輸入、作者端檔案及並存 3D 來源像素不變，Vulkan 
 [契約](../../Apps/Editor/README.md#bounded-2d-game-view)與
 [證據](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md)。
 
+
+✅ 同一個主 Play 擁有者現在可在所選 2D Game 畫布加入 gameplay UI 疊圖，重新配置不可變 UI
+紋理 ID，並在幀之間釋放；場景／物件池精靈沿用上述畫布，不在 HUD 提交中重複繪製。選用的輸入／UI／音訊／永久存檔
+服務遵守既有擷取、使用者與焦點規則。CPU 與 Linux Vulkan 原生像素涵蓋 32 輪生命週期、
+新 ID、資料持有、裁切與輸入撤銷。這不代表 Windows 實體裝置／DPI 驗收，也不新增 ED／2D
+已完成里程碑。[契約](../../Apps/Editor/README.md#2d-game-view-and-optional-play-gameplay-services)。
+[證據](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)。
 
 ```text
 NexoraEditor (tool process)

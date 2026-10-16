@@ -56,14 +56,14 @@ complete an enclosing ED milestone. Windows physical and Runtime/Shipping gates 
 freezes Atlas/Clip, copies Tilemap/chunk state and owns a fresh bounded pool/2D gameplay bridge.
 Actual V3 callback lifetimes and source Undo/Redo conservation are verified, with Linux native
 frozen/animated/retained/new-session Atlas pixels. This is an integration prerequisite; main
-project/cooked capture and main host API attachment are described below; integrated Game preview/reload remain
-open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+project/cooked capture, main host API attachment and Game preview are described below; seamless
+reload remains open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
 ✅ `TwoDPlayAssets` now freezes a bounded cooked Atlas/Clip closure from an explicit Runtime
 asset generation, validates dependencies and frame regions, and retains owning payloads across
 replacement, collection and store destruction. Temporary pins/residency balance on success and
 failure. This prerequisite does not establish project/source provenance or attach main Editor
-Play/Game preview; those integrations remain open and milestone counts are unchanged.
+Play/Game preview by itself; those host extensions are described below and milestone counts are unchanged.
 [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md).
 
 ✅ Optional project indexing and synchronous/queued reimport now retain typed immutable
@@ -97,6 +97,15 @@ validation errors. Authored Sprite persistence, Tilemap binding, seamless DLL re
 acceptance remain open; ED/2D milestone counts are unchanged. [Contract](../../Apps/Editor/README.md#bounded-2d-game-view)
 and [evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md).
 
+
+✅ The same main Play owner now adds gameplay UI to the selected 2D Game canvas, remaps immutable
+UI texture identities and retires them between frames. Scene/pool sprites use the canvas above
+and are not duplicated in the HUD submission.
+Optional input/UI/audio/storage services respect existing capture/user/focus policy. CPU and
+Linux Vulkan native pixels cover 32 sessions, fresh IDs, retained owners, clipping and input
+revocation. This does not accept Windows physical devices/DPI or complete an ED/2D milestone.
+[Contract](../../Apps/Editor/README.md#2d-game-view-and-optional-play-gameplay-services).
+[Evidence](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md).
 
 ```text
 NexoraEditor (tool process)

@@ -7760,7 +7760,7 @@ std::optional<NativeSceneDragRequest> EditorImGuiHost::NativeSceneDragPreview() 
 
 Nexora::Presentation::SurfaceStatus
 EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width,
-                        std::uint32_t height) {
+                        std::uint32_t height, const Nexora::Presentation::UiDrawData &overlay) {
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
   const auto domain = surface.UiResourceDomain();
@@ -7827,7 +7827,7 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
   }
   // ImGui legitimately produces no geometry while windows are still sizing themselves (the first
   // frame), and the surface contract rejects empty draw data. Nothing to draw is not a failure.
-  if (vertices.empty() || indices.empty() || commands.empty())
+  if ((vertices.empty() || indices.empty() || commands.empty()) && overlay.commands.empty())
     return Nexora::Presentation::SurfaceStatus::Ready;
   std::vector<Nexora::Presentation::UiTextureUpload> uploads;
   if (state_->surface_font_generation != state_->font_generation) {
@@ -7846,8 +7846,10 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
       uploads.push_back({TextureId(index, 1), texture.width, texture.height, texture.width * 4U,
                          texture.pixels, texture.nearest});
   }
-  const auto status = surface.RenderUi(
-      {vertices, indices, commands, uploads, sizeof(ImDrawIdx) == sizeof(std::uint32_t)});
+  const Nexora::Presentation::UiDrawData data{vertices, indices, commands, uploads,
+                                              sizeof(ImDrawIdx) == sizeof(std::uint32_t)};
+  const auto status =
+      overlay.commands.empty() ? surface.RenderUi(data) : surface.DrawSprites(data, overlay, false);
   if (status == Nexora::Presentation::SurfaceStatus::Ready) {
     state_->surface_font_generation = state_->font_generation;
     for (auto &texture : state_->native_textures)

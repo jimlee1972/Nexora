@@ -86,11 +86,13 @@ struct Fixture final {
     ui.DrawProductShell(shell, &document, &workspace, &content, nullptr, nullptr, nullptr, &play);
     if (submit) {
       if (const auto viewport = ui.GameTwoDViewport()) {
-        const auto frame =
+        auto frame =
             module.ExtractTwoDFrame(viewport->width, viewport->height,
                                     [&](const auto &atlas) { return textures.Resolve(atlas); });
         Check(frame && frame->statistics.visible == 2 && frame->retainedAtlases.size() == 2,
               "multi-Atlas extraction");
+        if (const auto hud = module.TwoDFrame({0, 0, viewport->width, viewport->height}, false))
+          Check(textures.AppendUi(*frame, hud->data), "HUD native registration and append");
         const Nexora::Presentation::UiDrawData packet{
             frame->vertices, std::as_bytes(std::span(frame->indices)), frame->batches, {}, true};
         auto malformed = frame->batches;
@@ -105,7 +107,11 @@ struct Fixture final {
         rejected.commands = malformed;
         Check(!ui.DrawGameTwoDSprites(rejected) && Access::GameTwoDVertices(ui) == before,
               "invalid texture appended partial geometry");
-        Check(ui.DrawGameTwoDSprites(packet) && Access::GameTwoDVertices(ui) == before + 8 &&
+        std::size_t submitted_vertices{};
+        for (const auto &command : frame->batches)
+          submitted_vertices += command.elementCount / 6 * 4;
+        Check(ui.DrawGameTwoDSprites(packet) &&
+                  Access::GameTwoDVertices(ui) == before + submitted_vertices &&
                   !ui.DrawGameTwoDSprites(packet),
               "Game Sprite append or duplicate admission");
       }
@@ -148,7 +154,7 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &library
                          [&](auto &, double seconds) { return f.module.FixedUpdate(seconds); }) &&
             f.module.LoadRelative(*f.play.PlayWorld(), library.parent_path(),
                                   library.filename().string(), error, {}, *binding) &&
-            f.play.Pause(),
+            f.module.Update(0) && f.play.Pause(),
         "fixture module load");
   for (unsigned frame = 0; frame < 5; ++frame)
     f.Draw();
@@ -239,7 +245,7 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &library
                      [&](auto &, double seconds) { return f.module.FixedUpdate(seconds); }) &&
             f.module.LoadRelative(*f.play.PlayWorld(), library.parent_path(),
                                   library.filename().string(), error, {}, *binding) &&
-            f.play.Pause(),
+            f.module.Update(0) && f.play.Pause(),
         "second Play session");
   for (unsigned frame = 0; frame < 4; ++frame)
     f.Draw();

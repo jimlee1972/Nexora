@@ -123,3 +123,35 @@ if(TARGET NexoraZigTwoD AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
     set_tests_properties(twod.cooked_product_native PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77 LABELS "twod;zig;vulkan;virtual-display")
   endif()
 endif()
+
+if(TARGET NexoraTwoDPlayer AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+  add_library(NexoraTwoDProjectFixture SHARED ProjectModule.cpp)
+  # This independent gameplay module consumes only the public C ABI. Linking Foundation
+  # retains an unnecessary engine DSO under sanitizers and breaks its relocated source copy.
+  target_include_directories(NexoraTwoDProjectFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
+  nexora_apply_defaults(NexoraTwoDProjectFixture)
+  add_test(NAME twod.project_export COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ProjectAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --module "$<TARGET_FILE:NexoraTwoDProjectFixture>")
+  set_tests_properties(twod.project_export PROPERTIES TIMEOUT 90 LABELS "twod;project;export")
+endif()
+if(WIN32)
+  add_test(NAME twod.windows_font_bake COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/FontBakeAcceptance.py")
+  set_tests_properties(twod.windows_font_bake PROPERTIES TIMEOUT 60 LABELS "twod;font;windows")
+endif()
+if(TARGET NexoraTwoDPlayerHost)
+  add_executable(NexoraTwoDProjectManifestTests ProjectManifestTests.cpp)
+  target_link_libraries(NexoraTwoDProjectManifestTests PRIVATE NexoraTwoDPlayerHost)
+  nexora_apply_defaults(NexoraTwoDProjectManifestTests)
+  add_test(NAME twod.project_manifest COMMAND NexoraTwoDProjectManifestTests)
+endif()
+
+if(TARGET NexoraTwoDProjectFixture AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+   NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+  add_test(NAME twod.project_export_native COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ProjectAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --module "$<TARGET_FILE:NexoraTwoDProjectFixture>" --native)
+  set_tests_properties(twod.project_export_native PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77
+    LABELS "twod;project;export;vulkan;virtual-display")
+endif()

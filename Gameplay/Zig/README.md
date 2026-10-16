@@ -32,7 +32,7 @@ build/linux-shipping/Gameplay/Zig/NexoraZigTwoD --frames 60
 
 Shipping links the Zig object statically and does not require the Development module library.
 The same V3 create/start/fixed/update/stop/destroy contract applies. Keep the bridge and its
-borrowed owners alive until module unload. The procedural two-region Atlas/clip in `TwoDHost.cpp`
+borrowed owners alive until module unload. The procedural two-region Atlas/clip in the shared `Apps/TwoDPlayer/TwoDPlayer.cpp` sample path
 are bounded validation fixtures; production content still uses the existing cook/generation
 pipeline and an embedding-owned Atlas/Clip resolver.
 
@@ -242,3 +242,23 @@ performs immutable cooked/module reload and verifies storage-owner reopen after 
 Ordinary source-free procedural sample mode remains available without this flag. This explicit
 fixture does not attach main Editor project Play or export arbitrary games. See
 [integrated tool commands and acceptance scope](../../Tools/TwoD/README.md#integrated-cooked-service-validation).
+
+
+## Exporting your own Windows game
+
+Use [NexoraTwoDPlayer](../../Apps/TwoDPlayer/README.md) to load your own separately built V3 Zig
+DLL with an explicit game manifest, cooked assets, WAV and rasterized CJK font atlas. The generic
+player builds without a Zig compiler, uses per-project user saves and has no fixed test scene or
+sample sprite-count requirement. `NexoraProjectPlayer --run-2d-project` provides the same host when
+native/2D support is enabled. `ExportGame.py` and `BakeWindowsFont.ps1` document the Windows/MSVC
+Shipping workflow. The original `NexoraZigTwoD` still runs its static/dynamic/reload fixtures through
+that shared host. Game logic remains Zig; engine executable, native device adapters, resource
+ownership and shutdown remain C++ host responsibilities.
+
+For an embedded Windows-baked atlas in Editor Play, `ui.registerBakedFont(texture_id,
+@embedFile("UI.nxfont"), scratch_glyphs, &font_handle)` decodes NXFONT1 little-endian metrics and
+registers copied buffers through the same UI table. Supply enough caller-owned `ui.Glyph` scratch
+entries for the corpus (maximum 65536); the helper allocates nothing and retains no input bytes.
+Errors preserve the output handle; scratch is work storage. The existing real Zig services
+consumer verifies successful CJK-codepoint decoding plus truncated bytes/undersized scratch.
+Standalone project manifests can instead preload that font and use `get_font(index)` directly.

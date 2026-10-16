@@ -1210,3 +1210,48 @@ The 240-second whole-case deadline is a CI liveness guard, while individual obse
 have bounded deadlines. Fixture output is bounded to 4 MiB per stream and Vulkan validation errors
 fail acceptance. Project/document/plugin/device-loss, large content, long-duration and physical
 host soak remain separate gates.
+
+
+### 2D Game View and optional Play gameplay services
+
+For a bound 2D owner, the same V3 host now advertises services for rebindable action/pointer input,
+immediate UI/font registration, native WAV audio controls and project-UUID-scoped permanent slots.
+Frozen Atlas/Clip assets remain read-only through the 2D bridge; a mutable content registration
+service is not advertised. Game modules may register their own embedded font/WAV buffers; Zig `ui.registerBakedFont`
+decodes the Windows baker format using caller-owned scratch without a game-side C++ parser. No
+production font or artwork is invented. Storage uses the per-user directory helper, not the project
+source; save schema/commit/error handling belongs to gameplay. Static-loader CPU tests never open
+an audio device. Real library loads try the native output, report availability through the audio
+API and retry output after failure at one-second intervals. Stop/Destroy precede service release.
+
+Only event batches admitted by the existing Play capture handshake reach the action/UI service.
+Blur/Escape, paused capture, user switch and discarded acquisition batches revoke held state;
+acquisition clicks do not activate UI. Native gamepads poll only during accepted capture. Pointer
+snapshots retain native client units; UI hit testing subtracts the Game viewport origin. Navigation
+actions 253..256 supply next/previous/activate/cancel defaults and can be rebound. Escape retains
+its Editor release-capture behavior. Game UI uses Game content pixels and supplies its own layout;
+it does not receive arbitrary Editor modal input.
+
+The explicit 3D/2D selection described above controls Game rendering. The 2D canvas resolves
+frozen Atlas owners and extracts the actual Play World poses plus pooled sprites in one sorted
+frame. Gameplay UI follows those sprites, clipped/offset to the same physical Game rectangle.
+The HUD submission contains no scene sprites, so translucent sprites draw only once. Switching
+back to 3D suppresses this HUD. Paused redraws
+retain completed UI without advancing module/animation/audio clocks. HUD quads join the same
+Game draw list, preserving Editor popup/window ordering, with a combined 4096-quad admission
+budget and shared GUI native-image limits. This Editor path makes no GPU
+Sprite-instancing performance claim. The standalone Player retains native Sprite instancing.
+
+Surface-local immutable texture IDs use fresh GUI reservations for every Play owner; module UI
+IDs are remapped away from Editor/frozen Sprite IDs. Frame snapshots retain Atlas/font owners
+through submission. The texture owner releases Sprite and HUD registrations together between
+acquired frames before the next BeginFrame. Canvas admission failures show an unavailable status;
+native surface failures stop the loop and final drain releases remaining GPU resources. All preparation/callbacks are serialized
+on the Editor owner thread and C++ consumers rebuild after the optional Render overload change.
+
+`editor.play_twod_services` covers extraction, bounded clips, retained owners, fresh identities,
+retirement, action acquisition/revocation and unchanged authoring history across 32 sessions.
+`editor.play_twod_native` uses the same host/ImGui composition on Linux Vulkan, checks actual red
+Sprite/UI pixels and viewport clipping, and retires textures across those sessions. This is native
+host integration evidence; Windows physical Game View/DPI/audio/controller acceptance remains
+in the [target-host list](../../Tools/TwoD/WindowsAcceptance.md).

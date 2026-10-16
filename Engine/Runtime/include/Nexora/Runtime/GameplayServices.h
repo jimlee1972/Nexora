@@ -21,8 +21,8 @@ public:
       return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
     if (output->struct_size < sizeof(*output) || output->abi_version != 1)
       return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-    const NexoraGameplayServicesApiV1 api{
-        sizeof(api),
+    const NexoraGameplayServicesApiV1 negotiated_table{
+        sizeof(NexoraGameplayServicesApiV1),
         1,
         this,
         [](void *p, NexoraGameplayInputApiV1 *v) { return Copy(p, v, &GameplayServices::input); },
@@ -32,7 +32,7 @@ public:
         [](void *p, NexoraGameplayContentApiV1 *v) {
           return Copy(p, v, &GameplayServices::content);
         }};
-    std::memcpy(output, &api, sizeof(api));
+    std::memcpy(output, &negotiated_table, sizeof(negotiated_table));
     return NEXORA_GAMEPLAY_OK;
   }
 
@@ -43,11 +43,11 @@ private:
     const auto &self = *static_cast<GameplayServices *>(p);
     if (std::this_thread::get_id() != self.owner_)
       return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
-    const auto &api = self.*member;
-    if (api.struct_size < sizeof(T) || api.abi_version != 1 || output->struct_size < sizeof(T) ||
-        output->abi_version != 1)
+    const auto &registered_table = self.*member;
+    if (registered_table.struct_size < sizeof(T) || registered_table.abi_version != 1 ||
+        output->struct_size < sizeof(T) || output->abi_version != 1)
       return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-    std::memcpy(output, &api, sizeof(api));
+    std::memcpy(output, &registered_table, sizeof(registered_table));
     return NEXORA_GAMEPLAY_OK;
   }
   const std::thread::id owner_{std::this_thread::get_id()};

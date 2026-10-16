@@ -1344,6 +1344,14 @@ int RunGraphical(std::optional<ProjectState> project,
   while (!exit_requested && !created.surface->CloseRequested() &&
          (frame_limit == 0 || frames < frame_limit)) {
     console_ingress.Poll();
+#if defined(NEXORA_HAS_2D)
+    const auto retired_two_d = gameplay.TakeRetiredTwoDTextures();
+    if (!retired_two_d.empty() && created.surface->ReleaseSpriteTextures(retired_two_d) !=
+                                      Nexora::Presentation::SurfaceStatus::Ready) {
+      result = 1;
+      break;
+    }
+#endif
     const auto begin_frame_status = created.surface->BeginFrame();
     if (created.surface->CloseRequested()) {
       if (project && has_unsaved_owned_scenes() && created.surface->CancelCloseRequest()) {
@@ -1365,6 +1373,11 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     if (action != Nexora::Presentation::SurfaceAction::Render || frame.width == 0 ||
         frame.height == 0) {
+#if defined(NEXORA_HAS_2D)
+      gameplay.SetGameViewport(
+          ui.GameTwoDViewport().value_or(
+              ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{})));
+#endif
       nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
                                                 created.surface->Events(), ui.GameInputBindings(),
                                                 ui.GameInputUser());
@@ -2163,6 +2176,11 @@ int RunGraphical(std::optional<ProjectState> project,
       case nexora::editor::imgui::PlayCommand::None:
         break;
       }
+#if defined(NEXORA_HAS_2D)
+      gameplay.SetGameViewport(
+          ui.GameTwoDViewport().value_or(
+              ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{})));
+#endif
       nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
                                                 created.surface->Events(), ui.GameInputBindings(),
                                                 ui.GameInputUser());
@@ -2794,6 +2812,9 @@ int RunGraphical(std::optional<ProjectState> project,
       if (!sprites) {
         ui.SetGameTwoDStatus("2D preview unavailable; check scene data and preview limits.");
       } else {
+        bool hud_ready = true;
+        if (const auto hud = gameplay.TwoDFrame({0, 0, viewport->width, viewport->height}, false))
+          hud_ready = game_two_d_textures.AppendUi(*sprites, hud->data);
         const auto &sprite_frame = *sprites;
         const Nexora::Presentation::UiDrawData packet{
             sprite_frame.vertices,
@@ -2801,7 +2822,7 @@ int RunGraphical(std::optional<ProjectState> project,
             sprite_frame.batches,
             {},
             true};
-        if (!ui.DrawGameTwoDSprites(packet))
+        if (!hud_ready || !ui.DrawGameTwoDSprites(packet))
           ui.SetGameTwoDStatus("2D preview could not be displayed.");
         else
           ui.SetGameTwoDStatus(sprite_frame.statistics.unavailable
@@ -2868,7 +2889,8 @@ int RunGraphical(std::optional<ProjectState> project,
       return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
              recovery == Nexora::Presentation::SurfaceAction::Suspend;
     };
-    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
+    if (const auto render_status =
+            ui.Render(*created.surface, frame.width, frame.height);
         render_status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(render_status))
         continue;

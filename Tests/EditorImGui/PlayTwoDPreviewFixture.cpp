@@ -19,6 +19,7 @@ struct Position {
 struct State {
   NexoraGameplayHostV3 host{};
   NexoraTwoDApiV1 api{};
+  NexoraGameplayUiApiV1 ui{};
   NexoraTwoDInstanceHandle pool{};
 };
 int32_t Create(void **output, const NexoraGameplayHostV3 *host) {
@@ -42,6 +43,14 @@ int32_t Create(void **output, const NexoraGameplayHostV3 *host) {
 }
 int32_t Start(void *opaque) {
   auto &s = *static_cast<State *>(opaque);
+  NexoraGameplayServicesApiV1 services{};
+  services.struct_size = sizeof(services);
+  services.abi_version = 1;
+  s.ui.struct_size = sizeof(s.ui);
+  s.ui.abi_version = 1;
+  if (NexoraGetGameplayServicesV1(&s.host, &services) ||
+      services.get_ui_api(services.context, &s.ui))
+    return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
   const NexoraTwoDSprite sprite{17, 23, 1, 8, {4, 4}, {.5F, .5F}, {1, 1, 1, 1}, 0, 0};
   auto pool_sprite = sprite;
   pool_sprite.atlas_high = 31;
@@ -64,6 +73,9 @@ int32_t Fixed(void *opaque, double seconds) {
 }
 int32_t Update(void *opaque, double seconds) {
   auto &s = *static_cast<State *>(opaque);
+  if (s.ui.begin_frame(s.ui.context, 640, 640) ||
+      s.ui.panel(s.ui.context, {250, 40, 16, 16}, 0xffff00ffU) || s.ui.end_frame(s.ui.context))
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   NexoraInputSnapshot input{};
   Position position{};
   if (s.host.capture_input(s.host.context, 0, &input) ||

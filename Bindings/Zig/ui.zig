@@ -56,6 +56,26 @@ pub const Api = extern struct {
         const font = Font{ .texture_id = texture_id, .width = width, .height = height, .pixel_size = pixel_size, .line_height = line_height, .rgba = rgba.ptr, .rgba_length = rgba.len, .glyphs = glyphs.ptr, .glyph_count = @intCast(glyphs.len) };
         return self.register_font.?(self.context, &font, handle);
     }
+    /// Register a BakeWindowsFont.ps1 NXFONT1 atlas, including @embedFile bytes.
+    /// Scratch glyphs are caller-owned work storage; the host copies both buffers before return.
+    /// Errors preserve handle; scratch may be overwritten after header/buffer admission.
+    pub fn registerBakedFont(self: *const Api, texture_id: u64, bytes: []const u8, scratch: []Glyph, handle: *u64) i32 {
+        const std = @import("std");
+        if (!self.valid() or bytes.len < 28 or !std.mem.eql(u8, bytes[0..8], "NXFONT1\x00")) return -1;
+        const width = bakedU32(bytes, 8);
+        const height = bakedU32(bytes, 12);
+        const count = bakedU32(bytes, 24);
+        if (width == 0 or width > 4096 or height == 0 or height > 4096 or
+            count == 0 or count > 65536 or count > scratch.len) return -1;
+        const rgba_size = @as(u64, width) * height * 4;
+        const rgba_start = 28 + @as(u64, count) * 40;
+        if (rgba_size > 16 * 1024 * 1024 or rgba_start + rgba_size != bytes.len) return -1;
+        for (scratch[0..count], 0..) |*glyph, index| {
+            const offset = 28 + index * 40;
+            glyph.* = .{ .codepoint = bakedU32(bytes, offset), .advance = bakedFloat(bytes, offset + 4), .x = bakedFloat(bytes, offset + 8), .y = bakedFloat(bytes, offset + 12), .width = bakedFloat(bytes, offset + 16), .height = bakedFloat(bytes, offset + 20), .u0 = bakedFloat(bytes, offset + 24), .v0 = bakedFloat(bytes, offset + 28), .u1 = bakedFloat(bytes, offset + 32), .v1 = bakedFloat(bytes, offset + 36) };
+        }
+        return self.registerFont(texture_id, width, height, bakedFloat(bytes, 16), bakedFloat(bytes, 20), bytes[@intCast(rgba_start)..], scratch[0..count], handle);
+    }
     pub fn label(self: *const Api, font: u64, size: f32, bounds: Rect, utf8: []const u8, rgba: u32) i32 {
         if (!self.valid() or utf8.len > 65536) return -1;
         return self.text.?(self.context, font, size, bounds, utf8.ptr, @intCast(utf8.len), rgba);
@@ -65,3 +85,10 @@ pub const Api = extern struct {
         return self.button.?(self.context, id, bounds, utf8.ptr, @intCast(utf8.len), font, size, @intFromBool(enabled), state);
     }
 };
+
+fn bakedU32(bytes: []const u8, offset: usize) u32 {
+    return @import("std").mem.readInt(u32, bytes[offset..][0..4], .little);
+}
+fn bakedFloat(bytes: []const u8, offset: usize) f32 {
+    return @bitCast(bakedU32(bytes, offset));
+}

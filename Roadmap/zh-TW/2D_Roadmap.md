@@ -327,9 +327,26 @@ Linux 軟體 Vulkan 像素／點擊／縮放與 Null 音訊，不代表 Windows 
 ✅ 最終佇列整合 Gate：Linux Development 313/313、無失敗／略過；Shipping／獨立原生封裝
 及嚴格 Windows 交叉編譯通過。實體 Gate 與 82% 不變。
 
-
 ✅ Cooked 服務原生輸入確認修正：驗收 driver 現在會先確認 CRC 正確的 SAVE 發布內容已包含
 鍵盤造成的正位移，再執行 OPEN 並比對還原位置。連續五次原生驗收通過；刻意讓第一次
 D press 未送達時可恢復，所有按鍵皆未送達時仍會失敗。本機啟用 Zig 的完整 gate 為
 190/190、無略過。此為驗收 harness 修正，M6／M7 與 9/11（82%）不變。
 CI 失敗、驗證範圍與受控實驗見上述 Cooked 服務驗收證據連結。
+
+## 通用 Zig 專案 Player 與 Windows 交付工具（2026-10-16）
+
+✅ `NexoraTwoDPlayer` 與原生 ProjectPlayer 的明確 2D 模式，可載入另外編譯的可信 V3 模組及
+專案自己的 Atlas／Clip、WAV、字型圖集，無須固定測試場景或精靈數量。全新目錄匯出、MSVC CRT
+複製、啟動器與 hash 清單支援 Shipping 交付。Windows 字型烘焙工具檢查指定真實字型與有界
+UTF-8 BMP 語料；缺字會失敗。使用者目錄中的永久存檔仍由模組定義 schema，與熱更新遷移分開。
+
+✅ 主 Editor 使用凍結專案素材，在所選 2D Game View 合成場景／物件池精靈與 gameplay UI，HUD
+提交不重複繪製精靈。通過焦點／
+擷取規則的動作輸入、原生音訊控制／重試與專案限定存檔保留到 Stop／Destroy；原生紋理由 host
+釋放。CPU 與 Linux Vulkan 像素驗證 32 輪 Play；真正 Zig Shipping 匯出及獨立模組的重啟／損壞
+測試驗證通用 Player 路徑。參見[驗收紀錄](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)與
+[Windows 實機清單](../../Tools/TwoD/WindowsAcceptance.md)。
+
+正式美術／字型／玩法，以及 Windows 實際聽音、XInput 裝置、焦點／DPI、乾淨電腦啟動與最低
+硬體驗收，仍需真正專案與目標機。作者端 Sprite 持久化、Editor Tilemap 掛接、無縫 reload
+仍未完成。M6／M7 與 **9/11（82%）** 不變；hosted MSVC CI 與軟體 Vulkan 不算實體產品驗收。

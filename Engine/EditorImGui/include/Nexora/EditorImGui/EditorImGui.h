@@ -492,7 +492,8 @@ public:
   // records directly into its acquired native GPU image. The RHI overload remains a headless
   // contract-test path.
   [[nodiscard]] Nexora::Presentation::SurfaceStatus
-  Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height);
+  Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height,
+         const Nexora::Presentation::UiDrawData &overlay = {});
   void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
   [[nodiscard]] bool ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;

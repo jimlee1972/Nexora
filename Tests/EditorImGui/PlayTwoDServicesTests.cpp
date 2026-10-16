@@ -5,12 +5,20 @@
 #include <iostream>
 #include <stdexcept>
 #include <thread>
+#if defined(NEXORA_PLAY_2D_NATIVE)
+#include "Nexora/EditorImGui/EditorImGui.h"
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#undef None
+#endif
 
 namespace {
 using namespace nexora;
 constexpr runtime::AssetUuid atlasId{17, 23}, clipId{19, 29};
 NexoraGameplayHostV3 host{};
 NexoraTwoDApiV1 api{};
+NexoraGameplayUiApiV1 ui{};
+NexoraGameplayInputApiV1 input{};
 NexoraTwoDInstanceHandle handle{}, previous{};
 runtime::Id parent{}, child{};
 bool fail_create{}, fail_start{}, stopped{}, destroyed{};
@@ -35,6 +43,23 @@ int32_t Create(void **state, const NexoraGameplayHostV3 *wire) {
   api.struct_size = sizeof(api);
   if (!(host.capabilities & NEXORA_GAMEPLAY_CAPABILITY_2D_API) || !host.get_twod_api ||
       host.get_twod_api(host.context, &api))
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+  NexoraGameplayServicesApiV1 services{};
+  services.struct_size = sizeof(services);
+  services.abi_version = 1;
+  ui = {};
+  ui.struct_size = sizeof(ui);
+  ui.abi_version = 1;
+  input = {};
+  input.struct_size = sizeof(input);
+  input.abi_version = 1;
+  NexoraStorageApiV1 storage{};
+  storage.struct_size = sizeof(storage);
+  storage.abi_version = 1;
+  if (!(host.capabilities & NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API) ||
+      NexoraGetGameplayServicesV1(&host, &services) || services.get_ui_api(services.context, &ui) ||
+      services.get_input_api(services.context, &input) ||
+      services.get_storage_api(services.context, &storage))
     return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   NexoraTwoDSprite missing{};
   NexoraTwoDInstance instance{};
@@ -61,6 +86,9 @@ int32_t Start(void *) {
 int32_t Update(void *, double seconds) {
   NexoraTwoDEvent event{};
   NexoraTwoDAnimationResult result{};
+  if (ui.begin_frame(ui.context, 320, 240) || ui.panel(ui.context, {0, 0, 320, 240}, 0x330000ffU) ||
+      ui.end_frame(ui.context))
+    return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
   const auto status = api.advance_animation(api.context, parent, seconds, &event, 1, &result);
   return status || result.event_count != 1 || event.length != 6 ||
                  std::string_view(event.name, event.length) != "frozen"
@@ -106,7 +134,97 @@ int32_t PlainLoader(std::uint32_t version, NexoraGameModuleV3 *module) {
   module->destroy = [](void *) {};
   return NEXORA_GAMEPLAY_OK;
 }
-void Run(const std::filesystem::path &root) {
+#if defined(NEXORA_PLAY_2D_NATIVE)
+Window FindNativeWindow(Display *display, Window parentWindow) {
+  char *name{};
+  if (XFetchName(display, parentWindow, &name) && name) {
+    const bool match = std::string_view(name) == "Editor Play 2D native";
+    XFree(name);
+    if (match)
+      return parentWindow;
+  }
+  Window root{}, parentResult{}, *children{};
+  unsigned count{};
+  if (!XQueryTree(display, parentWindow, &root, &parentResult, &children, &count))
+    return 0;
+  Window found{};
+  for (unsigned i = 0; i < count && !found; ++i)
+    found = FindNativeWindow(display, children[i]);
+  if (children)
+    XFree(children);
+  return found;
+}
+unsigned Channel(unsigned long pixel, unsigned long mask) {
+  while (mask && !(mask & 1)) {
+    mask >>= 1;
+    pixel >>= 1;
+  }
+  return mask ? static_cast<unsigned>((pixel & mask) * 255 / mask) : 0;
+}
+void NativeFrame(editor::imgui::EditorImGuiHost &uiHost, editor::ProductShell &shell,
+                 Nexora::Presentation::RenderSurface &surface,
+                 const editor::preview::PlayTwoDFrame &frame, Display *display,
+                 const std::filesystem::path &capture) {
+  using Nexora::Presentation::SurfaceStatus;
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  do {
+    const auto acquired = surface.BeginFrame();
+    if (acquired != SurfaceStatus::Ready) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      continue;
+    }
+    uiHost.SetDisplay(640, 480, 1);
+    uiHost.ProcessEvents(surface.Events());
+    uiHost.BeginFrame();
+    uiHost.DrawProductShell(shell);
+    static_cast<void>(uiHost.EndFrame());
+    Check(uiHost.Render(surface, 640, 480, frame.DrawData()) == SurfaceStatus::Ready,
+          "Editor 2D composed draw");
+    Check(surface.EndFrame() == SurfaceStatus::Ready, "Editor 2D native present");
+    XSync(display, False);
+    const auto window = FindNativeWindow(display, DefaultRootWindow(display));
+    if (!window)
+      continue;
+    auto *image = XGetImage(display, window, 0, 0, 640, 480, AllPlanes, ZPixmap);
+    Check(image != nullptr, "Editor native capture");
+    const auto pixel = XGetPixel(image, 200, 150);
+    const auto outside = XGetPixel(image, 10, 150);
+    const bool red = Channel(pixel, image->red_mask) > 250 &&
+                     Channel(pixel, image->green_mask) < 3 && Channel(pixel, image->blue_mask) < 3;
+    const bool bounded =
+        !(Channel(outside, image->red_mask) > 250 && Channel(outside, image->green_mask) < 3);
+    if (red && bounded && !capture.empty()) {
+      std::ofstream file(capture, std::ios::binary);
+      file << "P6\n640 480\n255\n";
+      for (unsigned y = 0; y < 480; ++y)
+        for (unsigned x = 0; x < 640; ++x) {
+          const auto value = XGetPixel(image, x, y);
+          const char rgb[]{static_cast<char>(Channel(value, image->red_mask)),
+                           static_cast<char>(Channel(value, image->green_mask)),
+                           static_cast<char>(Channel(value, image->blue_mask))};
+          file.write(rgb, 3);
+        }
+      Check(bool(file), "native screenshot publication");
+    }
+    XDestroyImage(image);
+    if (red && bounded)
+      return;
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  } while (std::chrono::steady_clock::now() < deadline);
+  throw std::runtime_error("Editor 2D Sprite/UI pixels or viewport clip mismatch");
+}
+#endif
+void Run(const std::filesystem::path &root, const std::filesystem::path &capture) {
+#if defined(NEXORA_PLAY_2D_NATIVE)
+  editor::imgui::EditorImGuiHost uiHost;
+  editor::ProductShell shell;
+  auto surface = Nexora::Presentation::CreateRenderSurface({"Editor Play 2D native", 640, 480});
+  Check(bool(surface), "Editor native surface");
+  Display *display = XOpenDisplay(nullptr);
+  Check(display != nullptr, "native X display");
+#else
+  static_cast<void>(capture);
+#endif
   runtime::World authoring;
   const auto scene = authoring.LoadScene("Main");
   Check(authoring.Activate(scene), "activate authoring");
@@ -152,6 +270,7 @@ void Run(const std::filesystem::path &root) {
   Check(!editor::preview::PlayTwoDServices::Bind(authoring, binding), "authoring World admitted");
   runtime::PlaySession play(authoring);
   editor::preview::PlayGameplayModule module;
+  std::uint64_t previousTexture{};
   for (unsigned cycle = 0; cycle < 32; ++cycle) {
     Check(play.Start(0.1, [](runtime::World &, double) { return true; }), "start Play clone");
     auto &world = *play.PlayWorld();
@@ -180,14 +299,58 @@ void Run(const std::filesystem::path &root) {
     std::thread worker([&] { cross_thread = api.set_camera(api.context, nullptr); });
     worker.join();
     Check(cross_thread == NEXORA_GAMEPLAY_ERROR_LIFECYCLE, "wrong-thread API admitted");
+    const NexoraGameplayInputBindingV1 keyBinding{
+        sizeof(keyBinding), 1, NEXORA_INPUT_DEVICE_KEYBOARD, 0, NEXORA_INPUT_KEY_A, 1, 0, 0};
+    Check(input.bind(input.context, 0, 42, &keyBinding) == 0, "action binding");
+    using namespace Nexora::Window;
+    WindowEvent press{};
+    press.type = WindowEventType::Key;
+    press.value0 = static_cast<int>(Key::A);
+    press.value1 = 1;
+    module.SetInputFocus(true);
+    module.ProcessInput(std::span(&press, 1)); // Acquisition batch is always discarded.
+    NexoraGameplayActionStateV1 action{};
+    action.struct_size = sizeof(action);
+    action.abi_version = 1;
+    Check(input.read_action(input.context, 0, 42, &action) == 0 && !action.held,
+          "acquisition leaked through services");
+    module.ProcessInput(std::span(&press, 1));
+    Check(input.read_action(input.context, 0, 42, &action) == 0 && action.held && action.pressed,
+          "accepted key missing from services");
+    module.SetInputFocus(false);
+    Check(input.read_action(input.context, 0, 42, &action) == 0 && !action.held,
+          "revocation retained service input");
     Check(module.Update(0.1), "frozen clip after project owners destroyed");
+    const auto frame = module.TwoDFrame({40, 30, 320, 240});
+    Check(frame && frame->sprites.statistics.visible == 3 && frame->data.commands.size() >= 2 &&
+              !frame->sprites.retainedAtlases.empty(),
+          "scene, pool and UI extraction");
+    const auto texture = frame->sprites.retainedAtlases.front().texture;
+    Check(texture && texture != previousTexture && !frame->data.uploads.empty() &&
+              frame->data.uploads.front().pixels[0] == std::byte{255},
+          "frozen texture ownership");
+    previousTexture = texture;
+#if defined(NEXORA_PLAY_2D_NATIVE)
+    NativeFrame(uiHost, shell, *surface.surface, *frame, display,
+                cycle == 31 ? capture : std::filesystem::path{});
+#endif
+    for (const auto &command : frame->data.commands)
+      Check(command.clipX >= 40 && command.clipY >= 30 &&
+                command.clipX + command.clipWidth <= 360 &&
+                command.clipY + command.clipHeight <= 270,
+            "Game viewport clipping");
     const auto render = [&] {
       return module.ExtractTwoDFrame(400, 300, [](const auto &) { return 7; });
     };
-    const auto frame = render();
-    Check(frame && frame->statistics.input == 3 && frame->statistics.visible == 3 &&
-              frame->vertices.size() == 12 && frame->indices.size() == 18,
+    const auto sprite_frame = render();
+    Check(sprite_frame && sprite_frame->statistics.input == 3 &&
+              sprite_frame->statistics.visible == 3 && sprite_frame->vertices.size() == 12 &&
+              sprite_frame->indices.size() == 18,
           "main Play scene/pool frame extraction");
+    const auto hud = module.TwoDFrame({40, 30, 320, 240}, false);
+    Check(hud && hud->sprites.statistics.visible == 0 && !hud->data.commands.empty() &&
+              hud->data.vertices.size() < frame->data.vertices.size(),
+          "selected Game canvas HUD duplicated scene sprites");
     if (cycle == 0) {
       bool rejected{};
       std::thread renderer([&] { rejected = !render(); });
@@ -215,6 +378,15 @@ void Run(const std::filesystem::path &root) {
           "descendant metadata not forgotten");
     // Restore the clone for teardown/reload callbacks; source state and history stay untouched.
     module.Unload();
+    const auto retired = module.TakeRetiredTwoDTextures();
+#if defined(NEXORA_PLAY_2D_NATIVE)
+    Check(surface.surface->ReleaseSpriteTextures(retired) ==
+              Nexora::Presentation::SurfaceStatus::Ready,
+          "native texture retirement");
+#endif
+    Check(std::find(retired.begin(), retired.end(), texture) != retired.end() &&
+              frame->data.uploads.front().pixels[0] == std::byte{255},
+          "retirement or frame lifetime");
     Check(play.Stop() && play.Start(0.1, [](runtime::World &, double) { return true; }),
           "fresh session after subtree deletion");
     Check(module.Load(*play.PlayWorld(), Loader, {}, binding), "fresh scene metadata");
@@ -234,14 +406,20 @@ void Run(const std::filesystem::path &root) {
             document.CaptureRuntimeScene() == baseline,
         "source Undo/Redo history changed");
   binding.assets.reset();
+#if defined(NEXORA_PLAY_2D_NATIVE)
+  Check(surface.surface->Diagnostics().nativeUiRejectedTextures == 0, "native stale texture");
+  XCloseDisplay(display);
+  Check(surface.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready,
+        "native drain");
+#endif
 }
 } // namespace
-int main() {
+int main(int argc, char **argv) {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-editor-play-2d-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
-    Run(root);
+    Run(root, argc > 1 ? argv[1] : std::filesystem::path{});
     std::filesystem::remove_all(root);
     std::cout << "Editor Play 2D: 32 real clone lifetimes, project freeze, descendant cleanup and "
                  "3D isolation passed\n";
