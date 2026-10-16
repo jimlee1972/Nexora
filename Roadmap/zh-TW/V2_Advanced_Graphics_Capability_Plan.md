@@ -25,6 +25,41 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### Buffer 相依與編譯後 Barrier 計畫 — 2026-10-17
+
+✅ 下一個 V2-GFX-1 前置項目已加入借用 Buffer 的明確讀寫宣告、Texture／Buffer 的
+RAW／WAR／WAW 邊、跨 Queue 或不同狀態／存取範圍的讀／讀排序，以及由 `Compile`
+建立的每個 Pass 不可變 Barrier 計畫。全 Buffer 相依對應真正的 Vulkan Memory Barrier、
+D3D12 狀態追蹤／UAV Barrier 與 Metal 追蹤式 Encoder 邊界。重複匯入別名會被拒絕，Buffer
+仍由呼叫者擁有；同狀態連續 Storage 寫入仍會產生 WAW Barrier。
+
+來源 branch：`feat/v2-graph-buffer-dependencies`，基底 `ee8b37d64c9342702b8ec176c6792f3148d79982`。
+Beads：`nexora-45y.2.2`；父任務 `nexora-45y.2` 與完整 V2-GFX-1 gate 維持待完成。
+
+- `cmake --preset linux-development` 與 `cmake --build --preset linux-development`：通過。
+- 在 Xvfb 下執行 `ctest --preset linux-development`，要求 native Slang 2026.18 SPIR-V，
+  使用 Mesa lavapipe 24.0.5 與 Zig 0.14.0：**191/191 通過，零失敗／略過，105.43 秒**。
+- 聚焦命令 `ctest --preset linux-development -R '^renderer\.(graph_buffer_dependencies|contracts|v2_gpu_driven)$' --output-on-failure`：
+  **3/3 通過，零略過，0.18 秒**。
+- `cmake --preset linux-shipping` 與 `cmake --build --preset linux-shipping`：通過，
+  Monolithic／Minimal 並啟用 LTO；因公開 C++ Command List 介面改變而要求此驗證。
+- 對本次 C++ 檔案執行 `clang-format --dry-run --Werror`，以及 `git diff --check`：通過。
+
+聚焦 Contract 在 Callback 前擷取精確 Handle／存取範圍／Queue，檢查重複重播計畫、
+同狀態 WAW、等待所有先前讀者的交接、循環、無效／重複宣告、過期匯入、Callback 失敗
+隔離與 Transient 初次使用的所有權。原生 GPU-driven 驗收已移除假 Texture 相依與手動
+Compute→Draw 邊，宣告四個真實 Buffer，執行兩次具 WAW 相依的 Compute 寫入，再由
+Indirect Read 推導相依，並要求 CPU／GPU 結果完全一致。正式錄製仍不讀回。
+原生 Smoke 已接入各平台要求的 `renderer.contracts`；本機僅證明 Vulkan 軟體裝置
+正確性。Windows／D3D12 與 macOS／Metal 結果須由 Hosted／目標主機執行取得；本機
+未執行 GPU Validation Layer，也不宣稱實體 GPU 效能。
+
+錄製／提交仍為序列，邏輯 Queue 仍對應單一同步原生 Queue。非同步 Queue Family 交接、
+Worker 生命週期／回收、同條件效能、更多 Buffer 存取類別、Transient Buffer 分配及完整
+平行排程仍待完成。未啟用任何進階 Feature Capability，未更改 Shader／Toolchain 基線，
+Stable C ABI 不變。詳見 [Renderer Contract](../../Engine/Renderer/README.md#v2-graph-buffer-dependencies-and-compiled-synchronization)
+與 [RHI 對應](../../Engine/RHI/README.md#whole-buffer-access-dependencies-v2-gfx-1-prerequisite)。
+
 ### Descriptor 隔離證據 — 2026-10-16
 
 來源 branch：`feat/v2-parallel-command-recording`，基於已合併的能力檢查基礎 `4972c14b`。

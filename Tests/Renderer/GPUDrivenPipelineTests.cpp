@@ -266,7 +266,8 @@ void TestDispatchPreconditionsOnVulkan() {
   Require(threw, "Vulkan Dispatch must reject a zero group count before touching the driver");
   device->DestroyBuffer(storage);
   device->DestroyPipeline(pipeline);
-}void TestNativeComputeOnBackend(rhi::Backend backend, std::string_view label) {
+}
+void TestNativeComputeOnBackend(rhi::Backend backend, std::string_view label) {
   const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
   const bool require_native = required && *required == '1';
   if (!rhi::IsBackendAvailable(backend)) {
@@ -353,24 +354,36 @@ void TestDispatchPreconditionsOnVulkan() {
       device->CreatePipeline({1, 1, rhi::TextureFormat::Rgba8Unorm, "native indirect"});
   const rhi::TextureDescriptor target_descriptor{1, 1, rhi::TextureFormat::Rgba8Unorm,
                                                  rhi::ResourceState::ShaderRead,
-                                                 "GPU-driven graph token"};
+                                                 "GPU-driven color target"};
   const auto target = device->CreateTexture(target_descriptor);
   RenderGraph graph;
   const auto token = graph.ImportTexture(target, target_descriptor);
-  const auto compute_pass = graph.AddPass(
-      {"GPU-driven compute",
-       rhi::QueueType::Compute,
-       {},
-       {{token, rhi::ResourceState::ShaderRead}},
-       [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle>) {
-         commands.BindStorageBuffer(0, input);
-         commands.BindStorageBuffer(1, visible);
-         commands.BindStorageBuffer(2, indirect);
-         commands.BindStorageBuffer(3, statistics);
-         commands.BindPipeline(pipeline);
-         RecordGPUDrivenCompute(commands, static_cast<std::uint32_t>(scene.objects.size()));
-       }});
-  const auto graphics_pass = graph.AddPass(
+  const auto graph_input = graph.ImportBuffer(input);
+  const auto graph_visible = graph.ImportBuffer(visible);
+  const auto graph_indirect = graph.ImportBuffer(indirect);
+  const auto graph_statistics = graph.ImportBuffer(statistics);
+  RenderGraph::PassDescriptor compute_pass{
+      "GPU-driven compute",
+      rhi::QueueType::Compute,
+      {},
+      {},
+      [&](rhi::CommandList &commands, std::span<const rhi::TextureHandle>) {
+        commands.BindStorageBuffer(0, input);
+        commands.BindStorageBuffer(1, visible);
+        commands.BindStorageBuffer(2, indirect);
+        commands.BindStorageBuffer(3, statistics);
+        commands.BindPipeline(pipeline);
+        RecordGPUDrivenCompute(commands, static_cast<std::uint32_t>(scene.objects.size()));
+      },
+      {},
+      {{graph_input, rhi::BufferAccess::ShaderRead}},
+      {{graph_visible, rhi::BufferAccess::StorageReadWrite},
+       {graph_indirect, rhi::BufferAccess::StorageReadWrite},
+       {graph_statistics, rhi::BufferAccess::StorageReadWrite}}};
+  (void)graph.AddPass(compute_pass);
+  compute_pass.name = "GPU-driven same-state recompute";
+  (void)graph.AddPass(std::move(compute_pass));
+  (void)graph.AddPass(
       {"GPU-driven indirect draw",
        rhi::QueueType::Graphics,
        {},
@@ -381,12 +394,16 @@ void TestDispatchPreconditionsOnVulkan() {
          commands.BindIndirectBuffer(indirect, 0, rhi::GPUDrivenIndirectCommandStride);
          RecordGPUDrivenIndirect(commands, static_cast<std::uint32_t>(scene.objects.size()));
          commands.EndRendering();
-       }});
-  graph.AddDependency(compute_pass, graphics_pass);
+       },
+       {},
+       {{graph_indirect, rhi::BufferAccess::IndirectRead}},
+       {}});
   graph.Compile();
   graph.Execute(*device);
-  Require(graph.GetStatistics().queue_transfer_count == 2,
-          "RenderGraph owns graphics-to-compute and compute-to-graphics queue transfers");
+  Require(graph.GetStatistics().queue_transfer_count == 0 &&
+              graph.GetStatistics().buffer_queue_transfer_count == 5 &&
+              graph.GetStatistics().buffer_barrier_count == 8,
+          "RenderGraph infers compute-to-indirect dependency and real buffer queue handoffs");
   Require(device->Diagnostics().readbacks == 0,
           "production RenderGraph passes do not read back GPU output");
   std::vector<std::uint32_t> output(scene.objects.size() * 5);
@@ -409,12 +426,14 @@ void TestDispatchPreconditionsOnVulkan() {
                                    arguments[base + 3], arguments[base + 4]});
   }
   Require(CompareGPUDrivenResults(reference, gpu_output).matches,
-          std::string("native ") + std::string(label) + " stages match CPU frustum, distance/LOD, Hi-Z, compaction, "
-          "classification, and indirect generation");
-  Require(device->Diagnostics().compute_dispatches == 1 && device->Diagnostics().readbacks == 3,
+          std::string("native ") + std::string(label) +
+              " stages match CPU frustum, distance/LOD, Hi-Z, compaction, "
+              "classification, and indirect generation");
+  Require(device->Diagnostics().compute_dispatches == 2 && device->Diagnostics().readbacks == 3,
           std::string(label) + " compute diagnostics distinguish dispatch from test-only readback");
   Require(device->Diagnostics().indirect_draw_calls == 1,
-          std::string(label) + " RenderGraph graphics pass consumes the compute stage before indirect drawing");
+          std::string(label) +
+              " RenderGraph graphics pass consumes the compute stage before indirect drawing");
   device->DestroyTexture(target);
   device->DestroyPipeline(graphics_pipeline);
   device->DestroyPipeline(pipeline);

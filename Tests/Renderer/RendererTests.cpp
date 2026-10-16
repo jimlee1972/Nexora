@@ -99,6 +99,32 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
     device->DestroyTexture(swapchain);
   }
   jobs.Stop();
+  // Exercise the portable buffer dependency entry point on each required native backend.
+  const auto buffer = device->CreateBuffer({64, "graph barrier smoke"});
+  renderer::RenderGraph graph;
+  const auto imported = graph.ImportBuffer(buffer);
+  for (const auto queue :
+       {rhi::QueueType::Compute, rhi::QueueType::Compute, rhi::QueueType::Graphics}) {
+    renderer::RenderGraph::PassDescriptor pass{
+        "buffer dependency",
+        queue,
+        {},
+        {},
+        [](rhi::CommandList &, std::span<const rhi::TextureHandle>) {}};
+    if (queue == rhi::QueueType::Compute)
+      pass.buffer_writes = {{imported, rhi::BufferAccess::StorageReadWrite}};
+    else
+      pass.buffer_reads = {{imported, rhi::BufferAccess::IndirectRead}};
+    (void)graph.AddPass(std::move(pass));
+  }
+  graph.Compile();
+  const auto before = device->Diagnostics();
+  graph.Execute(*device);
+  Require(graph.GetStatistics().buffer_barrier_count == 3 &&
+              graph.GetStatistics().buffer_queue_transfer_count == 2 &&
+              device->Diagnostics().barriers == before.barriers + 3,
+          "native whole-buffer WAW/RAW barriers were not recorded");
+  device->DestroyBuffer(buffer);
 }
 
 int RunTests() {

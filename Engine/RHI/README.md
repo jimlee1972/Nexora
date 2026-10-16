@@ -181,3 +181,27 @@ The appended `TextureFormat::Rgba16Float` describes Presentation-owned HDR resou
 RenderGraph's external executor. It does not extend the independent native RHI triangle pipeline:
 its allocation/format routing rejects RGBA16F explicitly rather than substituting RGBA8. The external
 owner allocates its float target and records native barriers; graph execution never allocates it.
+
+## Whole-buffer access dependencies (V2-GFX-1 prerequisite)
+
+`CommandList::TransitionBuffer` accepts backend-neutral `BufferBarrier` scopes: `ShaderRead`,
+`StorageReadWrite` and `IndirectRead`. `Undefined` is allowed only as the conservative prior scope,
+never a destination or a discard operation. Dependencies cover the entire buffer. Invalid handles,
+enums, rendering-scope recording and post-submission recording fail before native barrier emission.
+Access scopes describe GPU dependencies; unlike texture layouts, they are not a second global
+resource-state machine. Existing device diagnostics count texture and buffer barriers together.
+The default method throws for custom backends that do not implement the extension.
+
+Vulkan emits a whole-buffer memory barrier with shader/indirect stage and access masks, including
+same-access storage WAW dependencies. Unknown prior access uses all-command memory read/write
+scope. Logical queues share the existing native family, so queue-family indices remain ignored.
+D3D12 uses its actual tracked GPU buffer state and existing upload preparation, maps scopes to
+SRV/UAV/indirect states, and emits a UAV barrier for storage destinations even without a state
+change. Metal uses tracked shared-buffer hazards across encoder/command-buffer boundaries; a
+buffer dependency ends an active compute encoder and requires rebinding pipeline and buffers for
+subsequent dispatch. No native asynchronous multi-queue synchronization is implied.
+
+The caller owns buffers through submission completion and serializes resource uploads, mutation,
+destruction and submission against recording. Plans do not make D3D12 shared upload/state mutation
+safe for parallel recording. All C++ modules must rebuild for the extended virtual interface;
+the stable C ABI and shader artifact/profile requirements are unchanged.

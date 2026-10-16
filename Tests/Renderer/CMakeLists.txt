@@ -18,6 +18,11 @@ endif()
 nexora_apply_defaults(NexoraRendererTests)
 add_test(NAME renderer.contracts COMMAND NexoraRendererTests)
 
+add_executable(NexoraRenderGraphBufferTests RenderGraphBufferTests.cpp)
+target_link_libraries(NexoraRenderGraphBufferTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraRenderGraphBufferTests)
+add_test(NAME renderer.graph_buffer_dependencies COMMAND NexoraRenderGraphBufferTests)
+
 add_executable(NexoraGraphicsCapabilityTests GraphicsCapabilityTests.cpp)
 target_link_libraries(NexoraGraphicsCapabilityTests PRIVATE Nexora::Renderer)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND TARGET Nexora::Window)

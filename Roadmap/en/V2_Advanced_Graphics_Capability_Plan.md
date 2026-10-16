@@ -31,6 +31,43 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Buffer dependencies and compiled barrier plans — 2026-10-17
+
+✅ The next V2-GFX-1 prerequisite delivers explicit borrowed buffer read/write declarations,
+texture/buffer RAW/WAR/WAW edges, read/read queue or state/access ordering, and immutable per-pass
+barrier plans built by `Compile`. Whole-buffer dependencies map to real Vulkan memory barriers,
+D3D12 tracked states/UAV barriers and Metal tracked encoder boundaries. Imported aliases are
+rejected; buffers remain caller-owned. Same-state storage writes still emit WAW barriers.
+
+Source branch: `feat/v2-graph-buffer-dependencies`, base `ee8b37d64c9342702b8ec176c6792f3148d79982`.
+Beads: `nexora-45y.2.2`; parent `nexora-45y.2` and the full V2-GFX-1 gate remain open.
+
+- `cmake --preset linux-development` and `cmake --build --preset linux-development`: passed.
+- `ctest --preset linux-development` under Xvfb with native-required Slang 2026.18 SPIR-V,
+  Mesa lavapipe 24.0.5 and Zig 0.14.0: **191/191 passed, zero failures/skips, 105.43 seconds**.
+- Focused `ctest --preset linux-development -R '^renderer\.(graph_buffer_dependencies|contracts|v2_gpu_driven)$' --output-on-failure`:
+  **3/3 passed, zero skips, 0.18 seconds**.
+- `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping`: passed,
+  Monolithic/Minimal with LTO; required because the public C++ command-list interface changed.
+- `clang-format --dry-run --Werror` on touched C++ files and `git diff --check`: passed.
+
+The focused contract captures exact handles/access scopes/queues before callbacks, checks repeated
+plan replay, same-state WAW, all-reader handoffs, cycles, invalid/duplicate declarations, stale
+imports, callback failure containment and first-use transient ownership. Native GPU-driven
+acceptance removes the fake texture dependency and explicit compute-to-draw edge, declares all four
+buffers, performs two compute writes with WAW dependencies, derives the indirect-read edge and
+requires an exact CPU/GPU comparison. Normal recording remains readback-free. Native smoke coverage
+is wired into each required platform's `renderer.contracts`; this local run establishes Vulkan
+software-device correctness only. Windows/D3D12 and macOS/Metal results require hosted/target-host
+execution; no local GPU validation layer or physical-GPU performance claim is made.
+
+Recording/submission remains serial and native logical queues still alias one synchronous queue.
+Async queue-family transfers, worker lifetime/retirement, matched performance, broader buffer access
+classes, transient buffer allocation and full parallel scheduling remain open. No advanced feature
+capability is enabled, no shader/toolchain baseline changes, and the stable C ABI is unchanged.
+See the [Renderer contract](../../Engine/Renderer/README.md#v2-graph-buffer-dependencies-and-compiled-synchronization)
+and [RHI mapping](../../Engine/RHI/README.md#whole-buffer-access-dependencies-v2-gfx-1-prerequisite).
+
 ### Descriptor isolation evidence — 2026-10-16
 
 Source branch: `feat/v2-parallel-command-recording`, based on merged capability foundation `4972c14b`.
