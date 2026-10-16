@@ -17,6 +17,8 @@
 **基線：V1 / Architecture Completion Baseline 已完成並通過 Gate 後進入**  
 **定位：Scale-Up / GPU-Driven / Large World / Networking / Production Tooling**
 
+> **V2 圖形範圍擴充（2026-10-16）：** [V2 進階圖形能力計畫](V2_Advanced_Graphics_Capability_Plan.md) 新增 V2-GFX-1～V2-GFX-5，全部為 V2 最終驗收的待完成 gate：平行命令錄製與 CPU 開銷量測、Tessellation、Enhanced Barriers、DXR 基礎至 DXR 1.2／SER、Mesh Shader、VRS、Sampler Feedback、Work Graphs、SM 6.9 與 SM 6.10 Preview。進階路徑依能力啟用並須驗證 fallback。本計畫對新增項目的規範優先於舊 scope matrix，不代表已交付功能。既有 46% 為原始 6/13 里程碑比例，未計入本次擴充。
+
 ---
 
 # 一、V2 的定位
@@ -231,6 +233,18 @@ Temporal Upscaler Interface             ✅
 Hardware Ray Tracing                    △ Optional plugin/profile
 Path Tracing                            ❌ V2 core
 ```
+
+V2 新增圖形規劃（全部待完成；驗收依前述 V2-GFX 計畫）：
+
+| Gate | 新增渲染範圍 |
+| --- | --- |
+| V2-GFX-1 | 平行錄製、能力矩陣、CPU 開銷實測 |
+| V2-GFX-2 | Tessellation、Enhanced Barriers |
+| V2-GFX-3 | DXR 基礎至 DXR 1.2、可選 SER |
+| V2-GFX-4 | Mesh Shader、VRS、Sampler Feedback、Ultimate 覆蓋 |
+| V2-GFX-5 | Work Graphs、SM 6.9、SM 6.10 Preview |
+
+
 
 ## World / Streaming
 

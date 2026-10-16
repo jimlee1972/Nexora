@@ -40,6 +40,16 @@ acceptance or the existing API/Zig/Editor average in the focused AI plan.
 
 2D Roadmap 為獨立能力擴充；Zig 批次已接入原生 GPU Instancing，具有 Linux 像素／輸入證據，Windows 實體 Gate 仍待驗收；交付不改變 V1 基礎驗收，亦不納入聚焦 AI 規劃既有的 API／Zig／Editor 平均。
 
+V2 graphics extension / V2 圖形擴充（2026-10-16）：
+[V2 Advanced Graphics Capability Plan](en/V2_Advanced_Graphics_Capability_Plan.md) /
+[V2 進階圖形能力計畫](zh-TW/V2_Advanced_Graphics_Capability_Plan.md) adds five open V2-GFX gates
+for parallel recording, tessellation, DX12 Ultimate, Enhanced Barriers, Work Graphs and newer
+shader profiles. The existing 46% is the original 6/13 milestone ratio and excludes this extension;
+V2 final acceptance additionally requires all five gates.
+新增五個待完成 V2-GFX gate，涵蓋平行錄製、Tessellation、DX12 Ultimate、Enhanced Barriers、
+Work Graphs 與新 Shader profile。既有 46% 為原始 6/13 里程碑比例，未計入本次擴充；
+V2 最終驗收另須通過全部五個 gate。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

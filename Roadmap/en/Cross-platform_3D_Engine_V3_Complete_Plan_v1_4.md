@@ -18,6 +18,8 @@
 > Distributed Production Infrastructure
 > ```
 
+> **V2/V3 graphics boundary update (2026-10-16):** First delivery of DXR through DXR 1.2/SER, Mesh Shader, VRS, Sampler Feedback, Work Graphs, Enhanced Barriers, tessellation, parallel command recording and SM 6.9/6.10 Preview now belongs to the [V2 Advanced Graphics Capability Plan](V2_Advanced_Graphics_Capability_Plan.md). V3 extends those V2 foundations; references below do not defer their initial implementation to V3 or establish completion. All V2-GFX gates remain open. Path tracing and broader V3-only systems retain their existing scope.
+
 ---
 
 # I. Core Philosophies Unchanged in V3

@@ -8,6 +8,8 @@
 
 
 
+> **V2 graphics implementation extension (2026-10-16):** Follow the normative [V2 Advanced Graphics Capability Plan](V2_Advanced_Graphics_Capability_Plan.md). Implement V2-GFX-1 → V2-GFX-2 → V2-GFX-3/V2-GFX-4 → V2-GFX-5, with capability queries, pinned shader toolchains, fence-based lifetimes, native execution and fallback evidence. All five gates remain open and additionally gate V2 final acceptance/V2-M12; existing V2-M3 native parity remains required. The historical 46% covers only the original 13 milestones. No new capability is accepted by this planning update.
+
 ---
 
 # Development Environment and IDE Baseline (Normative)
