@@ -126,7 +126,9 @@ endif()
 
 if(TARGET NexoraTwoDPlayer AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
   add_library(NexoraTwoDProjectFixture SHARED ProjectModule.cpp)
-  target_link_libraries(NexoraTwoDProjectFixture PRIVATE Nexora::Foundation)
+  # This independent gameplay module consumes only the public C ABI. Linking Foundation
+  # retains an unnecessary engine DSO under sanitizers and breaks its relocated source copy.
+  target_include_directories(NexoraTwoDProjectFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
   nexora_apply_defaults(NexoraTwoDProjectFixture)
   add_test(NAME twod.project_export COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/ProjectAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"

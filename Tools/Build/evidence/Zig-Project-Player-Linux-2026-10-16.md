@@ -72,6 +72,12 @@ Windows GDI corpus baking passed in hosted CTest. A separate Unicode-source expo
 only undecodable heading text while still rejecting unknown DLL imports. A mocked native-tool
 output case covers undefined codepage bytes and preserves that rejection; hosted Windows still
 exercises the real tool and Unicode directories.
+The integrated sanitizer gate exposed an unnecessary Foundation link in the independent C ABI
+fixture: instrumentation retained that engine DSO when the test copied the module away from its
+build-tree relative RPATH. The fixture now includes only the public ABI headers. A locally built
+ASan/UBSan fixture resolves all dependencies without engine DSOs and passes the export dependency
+check; the full Development rebuild and all four project tests, including native export, pass.
+The product dependency admission rules remain unchanged. Hosted sanitizer CTest must pass.
 Hosted platform checks must pass on these corrections before merge.
 
 Commands for reproduction:
