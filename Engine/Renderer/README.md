@@ -11,6 +11,12 @@ without running callbacks or substituting shaders. Renderer callers own the chos
 artifact validation. RenderGraph scheduling, native barriers, descriptor ownership and submission
 lifetimes are unchanged by this capability foundation; parallel recording remains a separate gate.
 
+Vulkan compute dispatches now retain command-list-owned immutable descriptor snapshots, including
+when independent lists record concurrently against pre-created disjoint buffers. This closes the
+shared compute-set overwrite hazard; it does not change RenderGraph's serial execution, captured
+buffer ownership, resource-state planning or capability admission. See the RHI descriptor ownership
+contract and the paired V2 graphics plans for the focused native acceptance and remaining gates.
+
 ## Dedicated 2D extraction
 
 ✅ The optional [TwoD module](../TwoD/README.md) extracts existing World affine poses through a

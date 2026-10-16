@@ -59,6 +59,25 @@ if(APPLE AND NEXORA_ENABLE_NATIVE_BACKENDS)
   set_tests_properties(renderer.v2_gpu_driven PROPERTIES LABELS "metal;native-acceptance")
 endif()
 
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
+  add_executable(NexoraVulkanDescriptorIsolationTests VulkanDescriptorIsolationTests.cpp)
+  target_link_libraries(NexoraVulkanDescriptorIsolationTests PRIVATE Nexora::Renderer)
+  if(WIN32)
+    target_compile_definitions(NexoraVulkanDescriptorIsolationTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+  endif()
+  nexora_apply_defaults(NexoraVulkanDescriptorIsolationTests)
+  add_test(NAME renderer.vulkan_descriptor_isolation COMMAND NexoraVulkanDescriptorIsolationTests)
+  set_tests_properties(renderer.vulkan_descriptor_isolation PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "vulkan;native-acceptance")
+  if(NEXORA_ENABLE_SLANG)
+    add_dependencies(NexoraVulkanDescriptorIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+    set_property(TEST renderer.vulkan_descriptor_isolation APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
+      "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
+      "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  endif()
+endif()
+
 if(NEXORA_ENABLE_SLANG)
   add_executable(NexoraShaderReflectionContractTests ShaderReflectionCrossCompileTests.cpp)
   target_link_libraries(NexoraShaderReflectionContractTests PRIVATE Nexora::RHI)
