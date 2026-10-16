@@ -98,3 +98,21 @@ supporting authoring checks. Full M7 remains PARTIAL / NOT ACCEPTED; controller,
 integrated product/UI/text/save/shutdown and display/DPI stay open. Windows Vulkan is unavailable.
 Software VM timing is not physical M6 acceptance. See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).
+
+
+## Device audio probe
+
+`NexoraTwoDAudioProbe --frames 48000` submits a quiet 440 Hz tone through the default Linux ALSA
+or Windows waveOut output, closes/reopens it, and verifies unavailable playback after close.
+It links Runtime only and is included in Monolithic Shipping without Editor libraries. Use
+`--expect-unavailable` on a machine/configuration intentionally lacking output; ordinary device
+open/write failure exits nonzero. Frame count is 1..480000 at 48 kHz (default one second).
+The JSON reports device submission separately from `audible_acceptance: NOT VERIFIED`; a human
+must listen on the target device. No OS notification sound or null device counts as audible M7
+acceptance. The existing Zig 2D host's `--audio` uses this same backend, and still requires a
+module to register/play its WAV through the optional audio service.
+
+Linux `twod.audio_device_lifecycle` runs the actual ALSA adapter with a null output and an explicitly
+missing device, preserving JSON/stdout/stderr under `artifacts/twod-audio/`. This checks ownership,
+reopen and honest failure; it does not accept Windows playback or physical speakers. See the
+[device contract](../../Engine/Runtime/GameplayAudio.md).

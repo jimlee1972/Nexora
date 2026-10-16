@@ -25,8 +25,8 @@ public:
   bool RegisterWave(std::uint64_t asset, std::span<const std::byte> bytes);
   bool RemoveAsset(std::uint64_t asset);
   void SetOutput(Sink sink, void *context);
-  // Linux ALSA default device, dynamically loaded. Fails honestly on other
-  // platforms or when no output is available; an application may supply a sink.
+  // Linux ALSA or Windows waveOut default device, dynamically loaded. Fails
+  // when unavailable; other platforms require an application-provided sink.
   bool OpenDefaultOutput(std::string &error);
   void CloseOutput();
   // Mixes and submits up to 4096 stereo frames. No Zig callbacks or asset IO.

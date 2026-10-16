@@ -279,3 +279,17 @@ and [Linux acceptance](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-20
 This supports game-author Zig code; it adds no combat rules or formal artwork. M6/M7 and the
 82% capability summary remain unchanged: physical Windows performance, device audio/controllers,
 font appearance, full 2D project export and clean-host product acceptance remain separate gates.
+
+## Windows gameplay audio prerequisite (2026-10-16)
+
+`GameplayAudio` now has a synchronous Windows default-device waveOut adapter in addition to ALSA
+and portable host sinks. A Runtime-only `NexoraTwoDAudioProbe` submits a quiet tone, closes/reopens
+the device and reports output availability independently from human audibility. It is available
+in Editor-free Monolithic Shipping. The existing Zig host's explicit `--audio` path uses this
+adapter; modules still register/play their own WAV assets. No game rules are added.
+
+✅ Linux full gate (167 passed, three unrelated Vulkan skips), actual ALSA null/missing-device
+lifecycle, Windows cross-compilation/linking and isolated Monolithic Shipping checks passed.
+[Retained evidence](../../Engine/TwoD/evidence/Device-Audio-Linux-2026-10-16/acceptance.md). Windows native playback/audibility,
+controller, integrated product and display/DPI gates remain open; M6/M7 and **9/11 (82%)** are unchanged.
+See the [audio contract](../../Engine/Runtime/GameplayAudio.md).

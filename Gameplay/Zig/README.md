@@ -179,7 +179,7 @@ texture ID reservation, budgets and owning native overlay snapshots.
 `nx.audio.Api.registerWave(asset_id, @embedFile("sound.wav"))` copies PCM16/float32 WAV data.
 `playSound`, `stopVoice`, `pauseVoice`, `setVoiceGain` and `setBusGain` expose music/SFX control;
 `outputAvailable` detects actual host output. The [audio contract](../../Engine/Runtime/GameplayAudio.md)
-provides Linux ALSA output and portable host sinks. Unavailable output returns Unsupported;
+provides Linux ALSA, Windows waveOut output and portable host sinks. Unavailable output returns Unsupported;
 CPU mixing tests do not establish physical audio-device acceptance.
 
 ```zig

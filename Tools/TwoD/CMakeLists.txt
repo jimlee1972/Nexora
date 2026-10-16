@@ -9,3 +9,8 @@ endif()
 add_executable(NexoraTwoDBenchmark Benchmark.cpp)
 target_link_libraries(NexoraTwoDBenchmark PRIVATE Nexora::TwoD)
 nexora_apply_defaults(NexoraTwoDBenchmark)
+
+# Runtime-only device probe, also available in Editor-free Monolithic Shipping.
+add_executable(NexoraTwoDAudioProbe AudioProbe.cpp)
+target_link_libraries(NexoraTwoDAudioProbe PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraTwoDAudioProbe)

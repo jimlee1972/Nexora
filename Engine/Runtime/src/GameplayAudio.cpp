@@ -8,10 +8,26 @@
 #include <vector>
 #if defined(__linux__)
 #include <dlfcn.h>
+#elif defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
+#include <mmsystem.h>
 #endif
 
 namespace nexora::runtime {
 namespace {
+#if defined(_WIN32)
+template <typename Function> Function LoadWaveFunction(HMODULE library, const char *name) {
+  const auto address = GetProcAddress(library, name);
+  static_assert(sizeof(Function) == sizeof(address));
+  Function result{};
+  std::memcpy(&result, &address, sizeof(result));
+  return result;
+}
+#endif
 bool ValidGain(float gain) { return std::isfinite(gain) && gain >= 0 && gain <= 16; }
 std::uint16_t U16(const std::byte *p) {
   return static_cast<std::uint16_t>(std::to_integer<unsigned>(p[0]) |
@@ -54,6 +70,19 @@ struct GameplayAudio::Impl {
   Write write{};
   Recover recover{};
   Close close{};
+#elif defined(_WIN32)
+  HMODULE library{};
+  HWAVEOUT device{};
+  HANDLE completed{};
+  WAVEHDR header{};
+  std::array<std::int16_t, 8192> device_pcm{};
+  bool prepared{};
+  decltype(&waveOutOpen) open{};
+  decltype(&waveOutPrepareHeader) prepare{};
+  decltype(&waveOutWrite) write{};
+  decltype(&waveOutReset) reset{};
+  decltype(&waveOutUnprepareHeader) unprepare{};
+  decltype(&waveOutClose) close{};
 #endif
   Impl(GameplayAudio *host, std::uint32_t output_rate, std::uint32_t maximum)
       : owner(host), rate(output_rate), voices(maximum) {}
@@ -243,6 +272,24 @@ void GameplayAudio::CloseOutput() {
   if (impl_->library)
     dlclose(impl_->library);
   impl_->library = nullptr;
+#elif defined(_WIN32)
+  auto &s = *impl_;
+  if (s.device) {
+    // Reset returns pending buffers before the header/storage/event can expire.
+    (void)s.reset(s.device);
+    if (s.prepared)
+      (void)s.unprepare(s.device, &s.header, sizeof(s.header));
+    (void)s.close(s.device);
+  }
+  s.device = nullptr;
+  s.prepared = false;
+  s.header = {};
+  if (s.completed)
+    CloseHandle(s.completed);
+  s.completed = nullptr;
+  if (s.library)
+    FreeLibrary(s.library);
+  s.library = nullptr;
 #endif
 }
 bool GameplayAudio::OpenDefaultOutput(std::string &error) {
@@ -285,6 +332,82 @@ bool GameplayAudio::OpenDefaultOutput(std::string &error) {
         return false;
       else
         sent += static_cast<std::uint32_t>(count);
+    }
+    return true;
+  };
+  error.clear();
+  return true;
+#elif defined(_WIN32)
+  auto &s = *impl_;
+  // Load only the OS copy; never search the working directory for a device DLL.
+  s.library = LoadLibraryExW(L"winmm.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (!s.library) {
+    error = "Windows wave output library unavailable";
+    return false;
+  }
+  s.open = LoadWaveFunction<decltype(s.open)>(s.library, "waveOutOpen");
+  s.prepare = LoadWaveFunction<decltype(s.prepare)>(s.library, "waveOutPrepareHeader");
+  s.write = LoadWaveFunction<decltype(s.write)>(s.library, "waveOutWrite");
+  s.reset = LoadWaveFunction<decltype(s.reset)>(s.library, "waveOutReset");
+  s.unprepare = LoadWaveFunction<decltype(s.unprepare)>(s.library, "waveOutUnprepareHeader");
+  s.close = LoadWaveFunction<decltype(s.close)>(s.library, "waveOutClose");
+  if (!s.open || !s.prepare || !s.write || !s.reset || !s.unprepare || !s.close) {
+    error = "Windows wave output entry points unavailable";
+    CloseOutput();
+    return false;
+  }
+  s.completed = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+  if (!s.completed) {
+    error = "Windows wave output event unavailable";
+    CloseOutput();
+    return false;
+  }
+  WAVEFORMATEX format{};
+  format.wFormatTag = WAVE_FORMAT_PCM;
+  format.nChannels = 2;
+  format.nSamplesPerSec = s.rate;
+  format.wBitsPerSample = 16;
+  format.nBlockAlign = 4;
+  format.nAvgBytesPerSec = s.rate * format.nBlockAlign;
+  const auto opened = s.open(&s.device, WAVE_MAPPER, &format,
+                             reinterpret_cast<DWORD_PTR>(s.completed), 0, CALLBACK_EVENT);
+  if (opened != MMSYSERR_NOERROR) {
+    // No usable handle is owned after an unsuccessful open.
+    s.device = nullptr;
+    error = "Windows default stereo PCM output unavailable: " + std::to_string(opened);
+    CloseOutput();
+    return false;
+  }
+  s.header.lpData = reinterpret_cast<LPSTR>(s.device_pcm.data());
+  s.header.dwBufferLength = static_cast<DWORD>(sizeof(s.device_pcm));
+  const auto prepared = s.prepare(s.device, &s.header, sizeof(s.header));
+  if (prepared != MMSYSERR_NOERROR) {
+    error = "Windows wave output buffer preparation failed: " + std::to_string(prepared);
+    CloseOutput();
+    return false;
+  }
+  s.prepared = true;
+  s.sink_context = &s;
+  s.sink = [](void *ctx, const float *pcm, std::uint32_t frames, std::uint32_t) {
+    auto &self = *static_cast<Impl *>(ctx);
+    for (std::size_t i = 0; i < frames * 2; ++i) {
+      // Pump supplies clipped float stereo. Preserve both PCM16 endpoints.
+      const float scaled = std::clamp(pcm[i] * 32768.f, -32768.f, 32767.f);
+      self.device_pcm[i] = static_cast<std::int16_t>(scaled);
+    }
+    // A prepared header may be shortened, never enlarged beyond its prepared capacity.
+    self.header.dwBufferLength = frames * 4;
+    if (!ResetEvent(self.completed) ||
+        self.write(self.device, &self.header, sizeof(self.header)) != MMSYSERR_NOERROR)
+      return false;
+    // At the minimum 8 kHz, the maximum block lasts 512 ms. Bound waits to 2 s;
+    // the Pump failure path resets the device before releasing the borrowed buffer.
+    const auto deadline = GetTickCount64() + 2000;
+    while (!(self.header.dwFlags & WHDR_DONE)) {
+      const auto now = GetTickCount64();
+      if (now >= deadline ||
+          WaitForSingleObject(self.completed, static_cast<DWORD>(deadline - now)) != WAIT_OBJECT_0)
+        return false;
     }
     return true;
   };

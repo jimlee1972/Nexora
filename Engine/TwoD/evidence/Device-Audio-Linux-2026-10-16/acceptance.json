@@ -1,0 +1,59 @@
+{
+  "source_baseline": "8a077f50",
+  "scope": "Windows device output implementation; Linux correctness and Shipping evidence",
+  "development": {
+    "configure": "PASS",
+    "build": "PASS",
+    "ctest_registered": 170,
+    "passed": 167,
+    "failed": 0,
+    "skipped": [
+      "window_presentation.vulkan_scene",
+      "window_presentation.vulkan_pbr",
+      "window_presentation.vulkan_scene_upload_reuse"
+    ]
+  },
+  "alsa": {
+    "null": {
+      "device_output": "PASS",
+      "sample_rate": 48000,
+      "submitted_frames": 8194,
+      "reopened": true,
+      "audible_acceptance": "NOT VERIFIED"
+    },
+    "missing": {
+      "device_output": "UNAVAILABLE",
+      "audible_acceptance": "NOT VERIFIED"
+    },
+    "missing_requires_failure": true,
+    "scope": "ALSA null device lifecycle; physical audio and Windows NOT RUN"
+  },
+  "shipping": {
+    "null": {
+      "device_output": "PASS",
+      "sample_rate": 48000,
+      "submitted_frames": 8194,
+      "reopened": true,
+      "audible_acceptance": "NOT VERIFIED"
+    },
+    "missing": {
+      "device_output": "UNAVAILABLE",
+      "audible_acceptance": "NOT VERIFIED"
+    },
+    "missing_requires_failure": true,
+    "scope": "ALSA null device lifecycle; physical audio and Windows NOT RUN"
+  },
+  "windows_cross_compile": {
+    "compiler": "MinGW GCC 14-posix",
+    "audio_and_probe": "PASS",
+    "pe_imports": [
+      "KERNEL32.dll",
+      "msvcrt.dll"
+    ],
+    "executed": false
+  },
+  "physical_audibility": "NOT VERIFIED",
+  "windows_runtime": "NOT RUN",
+  "M6": "NOT ACCEPTED",
+  "M7": "PARTIAL / NOT ACCEPTED"
+}
