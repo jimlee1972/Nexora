@@ -34,19 +34,24 @@ output; a failed write disables the output until the host configures it again.
 Device-write failure consumes the mixed block rather than replaying it.
 
 Windows uses the default WinMM waveOut mapper with stereo PCM16 at the mixer's sample rate.
-`winmm.dll` is loaded from System32 only, without a new import-library dependency. A fixed
-4,096-frame PCM buffer/header belongs to the audio owner. Clipped stereo float samples are
-converted to PCM16, submitted once, and consumed before `Pump` returns. An auto-reset OS event
-signals completion; gameplay never runs on a device callback. The completion wait is bounded to
-two seconds per block. Write/wait failure disables output through the same `CloseOutput` path.
-Close resets outstanding device buffers before unpreparing the header, closing the device/event,
-and unloading the DLL. Close is idempotent; reopening creates a new device generation. Library,
-entry-point, event, device-open and header-preparation failures leave output unavailable. Device
-open/close/reset calls themselves may block in the OS/driver. This synchronous, single-buffer
-adapter favors explicit ownership over low latency; it does not provide streaming, device-change
-notifications, automatic reopen or a realtime audio thread. Buffer underruns between owner-loop
-calls remain possible. Stop gameplay callbacks/voices before final output shutdown. Closing or
-replacing output alone preserves active voice positions, matching portable host sinks.
+`winmm.dll` is loaded from System32 only, without a new import-library dependency. Four fixed
+4,096-frame PCM16 buffers/headers (64 KiB PCM total) belong to the audio owner. `Pump` copies its
+borrowed float input into the next available owned slot and submits it; it does not wait for that
+new block to finish playing. The device may consume those owned bytes after `Pump` returns.
+Only reuse of a still-pending slot waits, bounded to two seconds per block by an auto-reset OS
+completion event. This avoids render-plus-audio wait feedback when the application derives
+samples from elapsed frame time. No gameplay callback runs on a device thread.
+
+Write/wait failure disables output through `CloseOutput`. Close resets all outstanding buffers
+before unpreparing headers, closing the device/event, resetting the slot cursor and unloading the
+DLL. Partial preparation failure releases every successfully prepared header. Close is idempotent;
+reopening creates a new device generation. Library, entry-point, event, device-open and header
+preparation failures leave output unavailable. OS open/write/close/reset calls may still block.
+This is bounded queued submission, not streaming, device-change notification, automatic reopen
+or a realtime audio thread. Voice stop/pause/gain changes affect future mixed blocks; already queued
+copies may remain audible until consumed. Close resets/drops pending copies for output shutdown.
+Stop gameplay callbacks/voices before final output shutdown. Closing/replacing output preserves
+active voice positions without replaying discarded device blocks, matching portable sink behavior.
 
 Other platforms require a host sink and return an explicit unavailable backend error.
 A test sink or ALSA null output verifies submission/lifetime only; it is not evidence of audible
@@ -72,3 +77,9 @@ that result separately. It links Runtime only and is built in Editor-free Monoli
 Linux `twod.audio_device_lifecycle` uses actual ALSA null and missing-device configurations to
 verify submission across multiple blocks, reopen, idempotent close and nonzero failure without
 an explicit unavailable expectation. It cannot establish Windows runtime or speaker acceptance.
+
+
+`runtime.gameplay_audio_queue` executes the actual portable slot owner used by the Windows sink:
+four independent submissions without waits, borrowed-input copy lifetime, PCM16 endpoints/clipping,
+backpressure, timeout without overwriting pending storage, failed submit/retry, reset and invalid
+input. The fake device validates queue ownership/ordering, not Windows driver playback or FPS.

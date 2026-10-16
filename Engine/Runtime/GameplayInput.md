@@ -73,12 +73,47 @@ schema. This input provider does not own files or silently choose a save locatio
 nonblocking descriptors. It discovers reconnects at most once per second, drains at most 256 events
 per device per poll, handles initial axis/button state, normalizes signed axes, and calls
 `Disconnect` on EOF/removal. It requires the OS to grant device-read access. Call it on its creating
-thread once per input frame. Other platforms return false and require their own adapter; no
-controller is simulated. Actual hardware/gamepad-model compatibility is not claimed by Linux cloud
-unit tests.
+thread once per input frame.
+
+Windows dynamically loads System32 `xinput1_4.dll`, falling back to System32 `xinput9_1_0.dll`.
+No XInput import library or worker is added. Each `Poll` copies all four XInput user slots and
+submits their complete current state through the same provider. It intentionally does not skip
+unchanged packet numbers: a full sample after focus recovery restores currently held controls.
+Any unsuccessful slot read clears that slot via `Disconnect` across logical users, so a removed
+controller cannot leave a held action. A successfully loaded backend with no connected pads
+returns true; that is not physical-controller acceptance. Missing DLL/entry point, wrong thread
+or user outside 0..7 returns false. The adapter owns the DLL until destruction; it borrows the
+input provider only during Poll. One Poll submits all connected slots to its chosen logical user;
+the host clears prior routing before assigning another user. Destroy on the owner thread; when
+replacing an adapter while reusing input, the host disconnects its old slots first. Input submission may allocate in the
+owner loop and is not a realtime callback. Public C++ consumers must rebuild for the private
+Windows ownership member; no C/Zig wire layout changes.
+
+Windows controls are fixed by the adapter; Linux indices remain raw driver values:
+
+| Controls | Windows XInput mapping |
+| --- | --- |
+| 0..3 | A, B, X, Y |
+| 4..7 | Left shoulder, right shoulder, Back, Start |
+| 8..11 | Left/right thumb click, two reserved zero buttons |
+| 12..15 | D-pad up, down, left, right |
+| 32..37 | Left X, left Y, left trigger, right X, right Y, right trigger |
+
+Signed stick endpoints normalize to [-1,1], with Y down positive; triggers are [0,1]. Application
+bindings choose scale/deadzone; the adapter applies no hidden deadzone. XInput Guide/vendor controls,
+rumble, battery, DirectInput-only devices and platform remapping are outside this slice. Other
+platforms return false and require their own adapter; no controller is simulated. Actual
+hardware/gamepad-model compatibility is not claimed by Linux cloud unit tests.
 
 `runtime.gameplay_action_input` covers rebinding, held and both edge states, repeated reads,
 multiple contributing devices, active-device switching, deadzones, focus loss/recovery, disconnect,
 user bounds, invalid numeric values, future output tails and wrong-thread rejection.
 `api.gameplay_input_zig_abi` checks C/Zig sizes, alignment and every field offset and invokes all
 Zig convenience guards. Native gamepad physical-device acceptance remains a hardware gate.
+
+
+`runtime.gameplay_gamepad_routing` feeds copied XInput field samples through the actual provider:
+button/D-pad routing, reserved zeros, stick endpoints/fractions, independent triggers, held/edge
+behavior, focus recovery with unchanged state, disconnect, slot isolation, invalid user/device
+preservation and wrong-thread rejection. Linux runs this decoder/state test without simulating a
+native controller. Windows DLL polling and physical input still require target-host evidence.

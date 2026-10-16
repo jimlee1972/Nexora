@@ -1,14 +1,47 @@
 #include "Nexora/Runtime/GameplayGamepad.h"
+#include "GameplayXInputState.h"
 #include <algorithm>
 #include <cerrno>
+#include <cstring>
 #include <string>
 #if defined(__linux__)
 #include <fcntl.h>
 #include <linux/joystick.h>
 #include <unistd.h>
+#elif defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
+#include <xinput.h>
 #endif
 namespace nexora::runtime {
+#if defined(_WIN32)
+struct NativeGameplayGamepad::WindowsState {
+  HMODULE library{};
+  using Read = DWORD(WINAPI *)(DWORD, XINPUT_STATE *);
+  Read read{};
+  WindowsState() {
+    library = LoadLibraryExW(L"xinput1_4.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (!library)
+      library = LoadLibraryExW(L"xinput9_1_0.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+    if (library) {
+      const auto function = GetProcAddress(library, "XInputGetState");
+      static_assert(sizeof(function) == sizeof(read));
+      std::memcpy(&read, &function, sizeof(read));
+    }
+  }
+  ~WindowsState() {
+    if (library)
+      FreeLibrary(library);
+  }
+};
+NativeGameplayGamepad::NativeGameplayGamepad()
+    : windows_(std::make_unique<WindowsState>()), owner_(std::this_thread::get_id()) {}
+#else
 NativeGameplayGamepad::NativeGameplayGamepad() : owner_(std::this_thread::get_id()) {}
+#endif
 NativeGameplayGamepad::~NativeGameplayGamepad() {
 #if defined(__linux__)
   for (int descriptor : descriptors_)
@@ -53,6 +86,25 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
         input.Submit(user, 3, id, 32U + event.number,
                      std::clamp(static_cast<float>(event.value) / 32767.0F, -1.0F, 1.0F));
     }
+  }
+  return true;
+#elif defined(_WIN32)
+  if (!windows_->read)
+    return false;
+  for (std::uint32_t id = 0; id < 4; ++id) {
+    XINPUT_STATE state{};
+    if (windows_->read(id, &state) != ERROR_SUCCESS) {
+      if (!detail::SubmitXInputSample(input, user, id, nullptr))
+        return false;
+      continue;
+    }
+    const auto &pad = state.Gamepad;
+    const detail::XInputSample sample{pad.wButtons,
+                                      {pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY},
+                                      {pad.bLeftTrigger, pad.bRightTrigger}};
+    // Do not skip unchanged packets: focus recovery needs a fresh full snapshot.
+    if (!detail::SubmitXInputSample(input, user, id, &sample))
+      return false;
   }
   return true;
 #else

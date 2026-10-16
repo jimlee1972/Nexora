@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/GameplayAudio.h"
+#include "GameplayAudioQueue.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -74,9 +75,9 @@ struct GameplayAudio::Impl {
   HMODULE library{};
   HWAVEOUT device{};
   HANDLE completed{};
-  WAVEHDR header{};
-  std::array<std::int16_t, 8192> device_pcm{};
-  bool prepared{};
+  detail::GameplayAudioQueue queue;
+  std::array<WAVEHDR, detail::GameplayAudioQueue::Slots> headers{};
+  std::array<bool, detail::GameplayAudioQueue::Slots> prepared{};
   decltype(&waveOutOpen) open{};
   decltype(&waveOutPrepareHeader) prepare{};
   decltype(&waveOutWrite) write{};
@@ -277,13 +278,15 @@ void GameplayAudio::CloseOutput() {
   if (s.device) {
     // Reset returns pending buffers before the header/storage/event can expire.
     (void)s.reset(s.device);
-    if (s.prepared)
-      (void)s.unprepare(s.device, &s.header, sizeof(s.header));
+    for (std::size_t i = 0; i < s.headers.size(); ++i)
+      if (s.prepared[i])
+        (void)s.unprepare(s.device, &s.headers[i], sizeof(WAVEHDR));
     (void)s.close(s.device);
   }
   s.device = nullptr;
-  s.prepared = false;
-  s.header = {};
+  s.prepared = {};
+  s.headers = {};
+  s.queue.Reset();
   if (s.completed)
     CloseHandle(s.completed);
   s.completed = nullptr;
@@ -378,38 +381,39 @@ bool GameplayAudio::OpenDefaultOutput(std::string &error) {
     CloseOutput();
     return false;
   }
-  s.header.lpData = reinterpret_cast<LPSTR>(s.device_pcm.data());
-  s.header.dwBufferLength = static_cast<DWORD>(sizeof(s.device_pcm));
-  const auto prepared = s.prepare(s.device, &s.header, sizeof(s.header));
-  if (prepared != MMSYSERR_NOERROR) {
-    error = "Windows wave output buffer preparation failed: " + std::to_string(prepared);
-    CloseOutput();
-    return false;
+  for (std::size_t i = 0; i < s.headers.size(); ++i) {
+    auto &header = s.headers[i];
+    const auto buffer = s.queue.Buffer(i);
+    header.lpData = reinterpret_cast<LPSTR>(buffer.data());
+    header.dwBufferLength = static_cast<DWORD>(buffer.size_bytes());
+    const auto prepared = s.prepare(s.device, &header, sizeof(header));
+    if (prepared != MMSYSERR_NOERROR) {
+      error = "Windows wave output buffer preparation failed: " + std::to_string(prepared);
+      CloseOutput();
+      return false;
+    }
+    s.prepared[i] = true;
   }
-  s.prepared = true;
   s.sink_context = &s;
   s.sink = [](void *ctx, const float *pcm, std::uint32_t frames, std::uint32_t) {
     auto &self = *static_cast<Impl *>(ctx);
-    for (std::size_t i = 0; i < frames * 2; ++i) {
-      // Pump supplies clipped float stereo. Preserve both PCM16 endpoints.
-      const float scaled = std::clamp(pcm[i] * 32768.f, -32768.f, 32767.f);
-      self.device_pcm[i] = static_cast<std::int16_t>(scaled);
-    }
-    // A prepared header may be shortened, never enlarged beyond its prepared capacity.
-    self.header.dwBufferLength = frames * 4;
-    if (!ResetEvent(self.completed) ||
-        self.write(self.device, &self.header, sizeof(self.header)) != MMSYSERR_NOERROR)
-      return false;
-    // At the minimum 8 kHz, the maximum block lasts 512 ms. Bound waits to 2 s;
-    // the Pump failure path resets the device before releasing the borrowed buffer.
-    const auto deadline = GetTickCount64() + 2000;
-    while (!(self.header.dwFlags & WHDR_DONE)) {
-      const auto now = GetTickCount64();
-      if (now >= deadline ||
-          WaitForSingleObject(self.completed, static_cast<DWORD>(deadline - now)) != WAIT_OBJECT_0)
-        return false;
-    }
-    return true;
+    const detail::GameplayAudioQueue::Driver driver{
+        &self,
+        [](void *p, std::size_t slot) {
+          return (static_cast<Impl *>(p)->headers[slot].dwFlags & WHDR_INQUEUE) != 0;
+        },
+        [](void *p, std::size_t slot, std::uint32_t count) {
+          auto &output = *static_cast<Impl *>(p);
+          auto &header = output.headers[slot];
+          // Prepared capacity is fixed; each submitted block may be shortened.
+          header.dwBufferLength = count * 4;
+          return output.write(output.device, &header, sizeof(header)) == MMSYSERR_NOERROR;
+        },
+        [](void *p, std::uint32_t milliseconds) {
+          return WaitForSingleObject(static_cast<Impl *>(p)->completed, milliseconds) ==
+                 WAIT_OBJECT_0;
+        }};
+    return self.queue.Write({pcm, frames * 2}, frames, driver);
   };
   error.clear();
   return true;

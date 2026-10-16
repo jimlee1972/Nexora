@@ -113,7 +113,7 @@ CI 的 Windows 編譯不等於這項驗收。
 保留的 [Linux 驗收紀錄](../../Engine/TwoD/evidence/Linux-2026-10-14/acceptance.md) 包含
 指令、平台範圍、擷取圖與負載 CSV。參閱 [模組 Contract](../../Engine/TwoD/README.md) 與
 [工具](../../Tools/TwoD/README.md)。產生的報告位於 `build/<preset>/artifacts/`。
-雲端可執行工作已完成；實體目標主機 follow-up 保留於 Beads。
+上述已驗收雲端基線已完成；其餘產品／裝置整合切片與獨立實體目標主機 Gate 仍由 Beads 追蹤。
 
 ## 8. Zig 引擎控制擴充（2026-10-14）
 
@@ -267,3 +267,37 @@ StaticView adapter，不會宣告尚未支援的 UI／2D／content 服務。詳�
 Windows 交叉編譯／連結及獨立 Monolithic Shipping 檢查已通過。
 [保留證據](../../Engine/TwoD/evidence/Device-Audio-Linux-2026-10-16/acceptance.md)。Windows 原生播放／可聽音訊、手把、完整產品與顯示／DPI Gate 仍待完成；
 M6／M7 與 **9/11（82%）** 不變。參閱[音訊契約](../../Engine/Runtime/GameplayAudio.md)。
+
+## Windows 手把路由前置項（2026-10-16）
+
+原生 Gameplay Adapter 除 Linux Raw Joystick，現另動態輪詢 Windows XInput。每個 Slot 的完整
+快照沿用既有動作服務，支援重綁、失焦／斷線釋放與未改變 Packet 的恢復。互動 Zig 2D 移動／暫停
+也改用同一動作服務（WASD／Space 或預設左搖桿／A），保留非互動 Fixture 的確定性。
+Windows 實體手把／裝置及完整 M7 驗收仍待完成；9/11（82%）不變。
+
+✅ Linux Development 完整 Gate 為 311/311、無略過／失敗；Shipping 與 Windows 交叉編譯通過。
+[保留證據](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md)。
+參閱[輸入契約](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence)。
+
+## Cooked 服務整合驗證前置項（2026-10-16）
+
+既有真實 Zig 2D Host 新增明確的 `--validation-package` 模式：非同步雜湊／型別／身分／相依
+檢查的 Cooked Atlas／Clip、WAV 解碼／輸出、自備可讀 ASCII Fixture 字形、UI SAVE／OPEN、
+動作式原生鍵盤／手把路由、跨程序位置存檔／續開、不可變 Cooked／模組 Reload，以及依序停止
+Callback／音訊／Storage／Surface。可重現封裝拒絕 Editor 相依；一般使用要求獨立 Monolithic
+Shipping 執行檔，Development 測試副本另行標示。
+
+Fixture 驗證引擎服務整合，不新增遊戲規則、正式美術、通用專案匯出或主 Editor 專案 Play。
+Linux 軟體 Vulkan 像素／點擊／縮放與 Null 音訊，不代表 Windows 裝置、實體可聽音訊、DPI／
+字型外觀或乾淨主機通過。M6／M7 維持未驗收，**9/11（82%）** 不變。
+
+✅ 保留證據包含 311/311 Development、獨立 Shipping、900 幀原生 UI／Sprite、
+滑鼠 Save／Open、實際文字像素、縮放及損毀／缺少資料拒絕。
+[驗收](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md)；參閱[工具契約](../../Tools/TwoD/README.md#integrated-cooked-service-validation)。
+
+✅ Windows 音訊後續改用四個擁有式 PCM Slot，只在重用待完成 Slot 時等待，不再等待剛提交的
+區塊。實際可攜佇列驗證複製生命週期、端點、背壓／逾時、不覆寫待處理資料與重設，移除 Host
+迴圈明確的逐塊等待回授；實體延遲／FPS／可聽驗收仍未通過。詳見上述證據。
+
+✅ 最終佇列整合 Gate：Linux Development 313/313、無失敗／略過；Shipping／獨立原生封裝
+及嚴格 Windows 交叉編譯通過。實體 Gate 與 82% 不變。

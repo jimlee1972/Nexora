@@ -124,7 +124,8 @@ unverified. **M7 is NOT ACCEPTED**; Windows backend compilation in CI is not tha
 Retained [Linux acceptance record](../../Engine/TwoD/evidence/Linux-2026-10-14/acceptance.md)
 contains commands, platform scope, captures and workload CSV. See [module contracts](../../Engine/TwoD/README.md)
 and [tools](../../Tools/TwoD/README.md). Generated reports remain under `build/<preset>/artifacts/`.
-The cloud executable work is complete; Beads keeps physical target-host follow-ups open.
+The accepted cloud baseline above is complete. Beads also tracks the remaining product/device
+integration slices and their separate physical target-host gates.
 
 
 ## 8. Zig engine-control extension (2026-10-14)
@@ -293,3 +294,42 @@ lifecycle, Windows cross-compilation/linking and isolated Monolithic Shipping ch
 [Retained evidence](../../Engine/TwoD/evidence/Device-Audio-Linux-2026-10-16/acceptance.md). Windows native playback/audibility,
 controller, integrated product and display/DPI gates remain open; M6/M7 and **9/11 (82%)** are unchanged.
 See the [audio contract](../../Engine/Runtime/GameplayAudio.md).
+
+## Windows gamepad routing prerequisite (2026-10-16)
+
+The native gameplay adapter now dynamically polls Windows XInput in addition to Linux raw
+joysticks. Complete per-slot snapshots reuse the existing action provider for rebinding,
+focus/disconnect release and unchanged-packet recovery. Interactive Zig 2D movement/pause now
+uses the same action service (WASD/Space or the default left stick/A), preserving deterministic
+noninteractive fixtures. Native Windows controller/device and full M7 acceptance remain open;
+9/11 (82%) is unchanged.
+
+✅ Full Linux Development gate passes 311/311 with no skips/failures; Shipping and Windows
+cross-compilation pass. [Retained evidence](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md).
+See the [input contract](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence).
+
+## Integrated cooked service validation prerequisite (2026-10-16)
+
+The existing real Zig 2D host now has explicit `--validation-package` mode: async hash/type/identity/
+dependency-checked cooked Atlas/Clip, WAV decoding/output, a supplied readable ASCII fixture font,
+UI SAVE/OPEN, action-based native keyboard/gamepad routing, cross-process position-save/resume,
+immutable cooked/module reload and ordered callback/audio/storage/surface shutdown. Reproducible
+staging refuses Editor dependencies and requires an isolated Monolithic Shipping executable for
+normal use. Development test copies are labeled separately.
+
+The fixture validates engine service integration without adding game rules, production artwork,
+generic project export or main Editor project Play. Linux software Vulkan pixels/clicks/resize and
+null audio do not establish Windows devices, physical audibility, DPI/font appearance or clean-host
+acceptance. M6/M7 remain open and **9/11 (82%)** is unchanged.
+
+✅ Retained evidence covers 311/311 Development tests, isolated Shipping, 900 native UI/Sprite frames,
+mouse Save/Open, actual text pixels, resize and corrupt/missing-data rejection.
+[Acceptance](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md); see the [tool contract](../../Tools/TwoD/README.md#integrated-cooked-service-validation).
+
+✅ The Windows audio follow-up uses four owned PCM slots and waits on pending-slot reuse rather
+than on a newly submitted block. The actual portable queue verifies copy lifetime, endpoints,
+backpressure/timeout, no pending overwrite and reset. This removes the explicit per-block wait
+feedback in the host loop; physical latency/FPS/audibility remain unaccepted. See the linked evidence.
+
+✅ Final queued-audio integration gate: 313/313 Linux Development tests, zero failures/skips;
+Shipping/isolated native package and strict Windows cross-compilation pass. Physical gates and 82% are unchanged.
