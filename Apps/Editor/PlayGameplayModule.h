@@ -134,6 +134,16 @@ public:
     input_.Process(events);
   }
   [[nodiscard]] bool IsLoaded() const noexcept { return module_ && module_->IsLoaded(); }
+#if defined(NEXORA_HAS_2D)
+  [[nodiscard]] std::shared_ptr<const TwoDPlayAssets> TwoDAssets() const noexcept {
+    return two_d_ ? two_d_->Assets() : nullptr;
+  }
+  [[nodiscard]] std::optional<twod::SpriteFrame>
+  ExtractTwoDFrame(std::uint32_t width, std::uint32_t height,
+                   const PlayTwoDServices::TextureResolver &textures) {
+    return two_d_ ? two_d_->ExtractFrame(width, height, textures) : std::nullopt;
+  }
+#endif
   // Owning payload-only observations; no native/allocator overhead, RSS or GPU inference.
   [[nodiscard]] AllocationSnapshot Allocations() const noexcept { return allocation_stats_; }
   [[nodiscard]] AllocationSnapshot LastTeardownAllocations() const noexcept {

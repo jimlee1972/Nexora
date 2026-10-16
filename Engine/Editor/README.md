@@ -181,7 +181,9 @@ scope staleness, dependency/region rejection, exact byte/count budgets, alias re
 platform permits creating fixtures, pending publication and canonical gameplay consumption after
 all project/cook owners die. The main Editor now consumes this capture at Play start; see the
 [host contract](../../Apps/Editor/README.md#optional-2d-services-in-project-play). This capture API itself does not attach the API,
-Play World, Game View or reload controls and accepts no enclosing milestone.
+Play World, Game View or reload controls and accepts no enclosing milestone. The main application's
+[bounded 2D Game View](../../Apps/Editor/README.md#bounded-2d-game-view) now consumes its frozen data
+without adding GUI or native resource ownership to this capture API.
 
 ## External Chrome duration import
 

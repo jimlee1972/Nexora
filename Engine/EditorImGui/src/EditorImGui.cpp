@@ -287,6 +287,13 @@ struct EditorImGuiHost::State final {
   std::optional<SceneFileToken> native_scene_frame_all_request, native_scene_frame_all_apply;
   std::optional<Nexora::Presentation::SceneViewport> native_game_viewport;
   bool native_game_available = true;
+  bool game_two_d_available{}, game_two_d_selected{}, game_two_d_frame_open{}, game_two_d_drawn{};
+  std::string game_two_d_status;
+  std::optional<Nexora::Presentation::SceneViewport> game_two_d_viewport;
+  ImDrawList *game_two_d_draw_list{};
+  ImVec2 game_two_d_clip_min{}, game_two_d_clip_max{};
+  std::optional<std::array<float, 2>> game_view_combo;
+  std::array<std::optional<std::array<float, 2>>, 2> game_view_options;
   bool concurrent_native_views{}, overlapping_native_views{};
   bool game_was_running = false;
   std::optional<std::array<float, 2>> hierarchy_cut_position;
@@ -4355,6 +4362,12 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->inspector_reset_positions = {};
   state_->inspector_clipboard_positions = {};
   state_->native_game_viewport.reset();
+  state_->game_two_d_viewport.reset();
+  state_->game_two_d_draw_list = nullptr;
+  state_->game_two_d_frame_open = true;
+  state_->game_two_d_drawn = false;
+  state_->game_view_combo.reset();
+  state_->game_view_options = {};
   state_->overlapping_native_views = false;
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
@@ -5499,7 +5512,27 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                   static_cast<unsigned long long>(play->Stats().fixed_ticks),
                   static_cast<unsigned long long>(play->Stats().manual_steps),
                   static_cast<unsigned long long>(play->Stats().crashes));
-      if (game_running) {
+      if (game_running && state_->game_two_d_available) {
+        ImGui::BeginDisabled(interaction_blocked);
+        const bool open = ImGui::BeginCombo("View", state_->game_two_d_selected ? "2D" : "3D");
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->game_view_combo = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+        if (open) {
+          for (unsigned choice = 0; choice < 2; ++choice) {
+            if (ImGui::Selectable(choice ? "2D" : "3D",
+                                  state_->game_two_d_selected == bool(choice))) {
+              state_->game_two_d_selected = choice != 0;
+              state_->game_input_focused = false;
+            }
+            const auto a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+            state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
+          }
+          ImGui::EndCombo();
+        }
+        ImGui::EndDisabled();
+      }
+      const bool two_d = state_->game_two_d_available && state_->game_two_d_selected;
+      if (game_running && !two_d) {
         const auto label = [](runtime::Id camera) {
           return camera ? "Camera #" + std::to_string(camera) : std::string("Automatic");
         };
@@ -5537,8 +5570,29 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (game_running)
         ImGui::TextDisabled(state_->game_input_focused ? "Game input captured | Escape releases"
                                                        : "Click Game canvas to capture input");
-      if (game_running && state_->native_game_available &&
-          (!NativeScenePreviewViewport() || state_->concurrent_native_views)) {
+      if (game_running && two_d) {
+        ImGui::TextDisabled("2D Play camera | Assets frozen at Play start");
+        if (!state_->game_two_d_status.empty())
+          ImGui::TextWrapped("%s", state_->game_two_d_status.c_str());
+        const auto position = ImGui::GetCursorScreenPos();
+        const ImVec2 size{std::max(ImGui::GetContentRegionAvail().x, 1.0F), 180.0F};
+        CaptureCanvasViewport(state_->game_two_d_viewport, position,
+                              {position.x + size.x, position.y + size.y});
+        auto *list = ImGui::GetWindowDrawList();
+        state_->game_two_d_draw_list = list;
+        state_->game_two_d_clip_min = {std::max(position.x, list->GetClipRectMin().x),
+                                       std::max(position.y, list->GetClipRectMin().y)};
+        state_->game_two_d_clip_max = {std::min(position.x + size.x, list->GetClipRectMax().x),
+                                       std::min(position.y + size.y, list->GetClipRectMax().y)};
+        if (const auto scene_view = NativeScenePreviewViewport();
+            scene_view && state_->game_two_d_viewport &&
+            Nexora::Presentation::SceneViewportsOverlap(*scene_view, *state_->game_two_d_viewport))
+          state_->overlapping_native_views = true;
+        list->AddRectFilled(position, {position.x + size.x, position.y + size.y},
+                            IM_COL32(10, 20, 41, 255));
+        ImGui::InvisibleButton("##game-2d-preview", size);
+      } else if (game_running && state_->native_game_available &&
+                 (!NativeScenePreviewViewport() || state_->concurrent_native_views)) {
         ImGui::TextDisabled("Play camera | Assets frozen at Play start");
         if (!state_->native_game_status.empty())
           ImGui::TextWrapped("%s", state_->native_game_status.c_str());
@@ -7466,6 +7520,118 @@ bool EditorImGuiHost::SetSceneOverviewCamera(SceneOverviewCamera camera) noexcep
   return true;
 }
 
+void EditorImGuiHost::SetGameTwoDAvailable(bool available) noexcept {
+  state_->game_two_d_available = available;
+  if (!available) {
+    if (state_->game_two_d_selected)
+      state_->game_input_focused = false;
+    state_->game_two_d_selected = false;
+    state_->game_two_d_status.clear();
+  }
+}
+void EditorImGuiHost::SetGameTwoDStatus(std::string message) {
+  state_->game_two_d_status = std::move(message);
+}
+std::optional<Nexora::Presentation::SceneViewport>
+EditorImGuiHost::GameTwoDViewport() const noexcept {
+  return state_->game_two_d_viewport;
+}
+bool EditorImGuiHost::DrawGameTwoDSprites(const Nexora::Presentation::UiDrawData &packet) {
+  Activate(state_->context);
+  if (!state_->game_two_d_frame_open || state_->game_two_d_drawn || !state_->game_two_d_available ||
+      !state_->game_two_d_selected || !state_->game_two_d_viewport ||
+      !state_->game_two_d_draw_list || !packet.indices32Bit || !packet.textureUploads.empty() ||
+      !packet.spriteInstances.empty() || packet.vertices.size() > 4096 * 4 ||
+      packet.indices.size() > 4096 * 6 * sizeof(std::uint32_t) ||
+      packet.indices.size() % sizeof(std::uint32_t) || packet.commands.size() > 4096)
+    return false;
+  const auto viewport = *state_->game_two_d_viewport;
+  const auto scale = ImGui::GetIO().DisplayFramebufferScale;
+  if (!std::isfinite(scale.x) || !std::isfinite(scale.y) || scale.x <= 0 || scale.y <= 0)
+    return false;
+  const auto index_count = packet.indices.size() / sizeof(std::uint32_t);
+  const auto index = [&](std::size_t at) {
+    std::uint32_t value{};
+    std::memcpy(&value, packet.indices.data() + at * sizeof(value), sizeof(value));
+    return value;
+  };
+  for (const auto &v : packet.vertices)
+    if (!std::isfinite(v.position[0]) || !std::isfinite(v.position[1]) || !std::isfinite(v.uv[0]) ||
+        !std::isfinite(v.uv[1]) ||
+        std::abs((double(viewport.x) + v.position[0]) / scale.x) >
+            std::numeric_limits<float>::max() ||
+        std::abs((double(viewport.y) + v.position[1]) / scale.y) >
+            std::numeric_limits<float>::max())
+      return false;
+  std::size_t quads{};
+  for (const auto &command : packet.commands) {
+    if (!command.elementCount || command.elementCount % 6 || command.instanceCount ||
+        command.firstInstance || command.indexOffset > index_count ||
+        command.elementCount > index_count - command.indexOffset || command.clipX < 0 ||
+        command.clipY < 0 || !command.clipWidth || !command.clipHeight ||
+        std::uint64_t(command.clipX) + static_cast<float>(command.clipWidth) > viewport.width ||
+        std::uint64_t(command.clipY) + static_cast<float>(command.clipHeight) > viewport.height ||
+        command.elementCount / 6 > 4096 - quads)
+      return false;
+    quads += command.elementCount / 6;
+    const auto slot = static_cast<std::uint32_t>(command.textureId);
+    const auto generation = static_cast<std::uint32_t>(command.textureId >> 32U);
+    if (!slot || slot >= state_->native_textures.size() || !generation ||
+        state_->native_textures[slot].generation != generation)
+      return false;
+    const auto end = std::size_t(command.indexOffset) + command.elementCount;
+    for (std::size_t i = command.indexOffset; i < end; i += 6) {
+      for (unsigned corner = 0; corner < 6; ++corner) {
+        const auto at = std::int64_t(index(i + corner)) + command.vertexOffset;
+        if (at < 0 || std::uint64_t(at) >= packet.vertices.size())
+          return false;
+      }
+      if (index(i) != index(i + 3) || index(i + 2) != index(i + 4))
+        return false;
+      const auto color =
+          packet.vertices[std::size_t(std::int64_t(index(i)) + command.vertexOffset)].color;
+      for (unsigned corner : {1U, 2U, 5U})
+        if (packet.vertices[std::size_t(std::int64_t(index(i + corner)) + command.vertexOffset)]
+                .color != color)
+          return false;
+    }
+  }
+  auto *list = state_->game_two_d_draw_list;
+  list->PushClipRect(state_->game_two_d_clip_min, state_->game_two_d_clip_max, false);
+  for (const auto &command : packet.commands) {
+    list->PushClipRect({(float(viewport.x) + static_cast<float>(command.clipX)) / scale.x,
+                        (float(viewport.y) + static_cast<float>(command.clipY)) / scale.y},
+                       {(float(viewport.x) + static_cast<float>(command.clipX) +
+                         static_cast<float>(command.clipWidth)) /
+                            scale.x,
+                        (float(viewport.y) + static_cast<float>(command.clipY) +
+                         static_cast<float>(command.clipHeight)) /
+                            scale.y},
+                       true);
+    const auto end = std::size_t(command.indexOffset) + command.elementCount;
+    for (std::size_t i = command.indexOffset; i < end; i += 6) {
+      const auto &a = packet.vertices[std::size_t(std::int64_t(index(i)) + command.vertexOffset)];
+      const auto &b =
+          packet.vertices[std::size_t(std::int64_t(index(i + 1)) + command.vertexOffset)];
+      const auto &c =
+          packet.vertices[std::size_t(std::int64_t(index(i + 2)) + command.vertexOffset)];
+      const auto &d =
+          packet.vertices[std::size_t(std::int64_t(index(i + 5)) + command.vertexOffset)];
+      const auto point = [&](const auto &v) {
+        return ImVec2(static_cast<float>((double(viewport.x) + v.position[0]) / scale.x),
+                      static_cast<float>((double(viewport.y) + v.position[1]) / scale.y));
+      };
+      list->AddImageQuad(ImTextureID(command.textureId), point(a), point(b), point(c), point(d),
+                         {a.uv[0], a.uv[1]}, {b.uv[0], b.uv[1]}, {c.uv[0], c.uv[1]},
+                         {d.uv[0], d.uv[1]}, a.color);
+    }
+    list->PopClipRect();
+  }
+  list->PopClipRect();
+  state_->game_two_d_drawn = true;
+  return true;
+}
+
 std::optional<Nexora::Presentation::SceneViewport>
 EditorImGuiHost::NativeGameViewport() const noexcept {
   return state_->native_game_viewport;
@@ -7700,6 +7866,7 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 
 FrameMetrics EditorImGuiHost::EndFrame() {
   Activate(state_->context);
+  state_->game_two_d_frame_open = false;
   ImGui::Render();
   state_->surface = nullptr;
   const auto *draw = ImGui::GetDrawData();
@@ -8369,6 +8536,18 @@ void EditorImGuiTestAccess::QueueInspectorTransform(EditorImGuiHost &host,
                                                     runtime::Transform transform) noexcept {
   host.state_->inspector_transform_request.emplace(
       EditorImGuiHost::State::InspectorTransformRequest{{entity}, {transform}});
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GameViewPosition(const EditorImGuiHost &host,
+                                        std::optional<bool> two_d) noexcept {
+  return two_d ? host.state_->game_view_options[*two_d ? 1 : 0] : host.state_->game_view_combo;
+}
+
+std::size_t EditorImGuiTestAccess::GameTwoDVertices(const EditorImGuiHost &host) noexcept {
+  return host.state_->game_two_d_draw_list
+             ? static_cast<std::size_t>(host.state_->game_two_d_draw_list->VtxBuffer.Size)
+             : 0;
 }
 
 void EditorImGuiTestAccess::SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept {

@@ -4,6 +4,8 @@
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/ProjectTwoDPlayAssets.h"
 #include "Nexora/TwoD/GameplayBridge.h"
+#include <algorithm>
+#include <functional>
 #endif
 
 namespace nexora::editor::preview {
@@ -65,6 +67,46 @@ public:
   int32_t GetApi(NexoraTwoDApiV1 *output) noexcept { return bridge_.GetApi(output); }
   void ForgetEntity(runtime::Id entity) { bridge_.ForgetEntity(entity); }
   [[nodiscard]] const twod::SpriteScene &Scene() const noexcept { return scene_; }
+  [[nodiscard]] std::shared_ptr<const TwoDPlayAssets> Assets() const noexcept { return assets_; }
+  using TextureResolver = std::function<std::uint64_t(const twod::Atlas &)>;
+  // An owning, globally sorted CPU snapshot. Texture registration is host-owned and serialized.
+  [[nodiscard]] std::optional<twod::SpriteFrame>
+  ExtractFrame(std::uint32_t width, std::uint32_t height, const TextureResolver &textures) try {
+    if (!width || !height || width > 16384 || height > 16384 || !textures)
+      return {};
+    const auto camera = bridge_.RenderCamera(width, height);
+    if (scene_.Sprites().size() + pool_.Size() > 4096)
+      return {};
+    const auto &world = scene_.WorldOwner();
+    const auto *scene = world.FindScene(scene_.SceneId());
+    if (!scene || scene->state != runtime::SceneState::Active || scene->entities.size() > 100000)
+      return {};
+    auto poses = world.SceneWorldPoses(scene_.SceneId());
+    if (!poses || poses->size() > 100000)
+      return {};
+    std::sort(poses->begin(), poses->end(),
+              [](const auto &a, const auto &b) { return a.id < b.id; });
+    std::vector<twod::SpriteInstance> instances;
+    instances.reserve(scene_.Sprites().size() + pool_.Size());
+    for (const auto &pose : *poses)
+      if (const auto *sprite = scene_.Find(pose.id))
+        instances.push_back({instances.size() + 1, *sprite, pose.matrix});
+    pool_.ForEach([&](auto &instance) {
+      instances.push_back(
+          {instances.size() + 1, instance.sprite, runtime::ToMatrix(instance.transform)});
+    });
+    return twod::ExtractSprites(
+        instances, camera,
+        [assets = assets_, &textures](twod::AssetId id) -> std::optional<twod::AtlasBinding> {
+          const auto atlas = assets->Atlas(id);
+          if (!atlas)
+            return {};
+          const auto texture = textures(*atlas);
+          return texture ? std::optional{twod::AtlasBinding{atlas, texture}} : std::nullopt;
+        });
+  } catch (...) {
+    return {};
+  }
 
 private:
   PlayTwoDServices(runtime::World &world, const PlayTwoDBinding &binding)

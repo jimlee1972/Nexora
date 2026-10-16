@@ -6,6 +6,9 @@
 #include "BuildConsoleIngress.h"
 #include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
+#if defined(NEXORA_HAS_2D)
+#include "GameTwoDTextures.h"
+#endif
 #include "MaterialScenePreview.h"
 #include "Nexora/Editor/AdditiveSceneComposition.h"
 #include "Nexora/Editor/AdditiveSceneSession.h"
@@ -921,6 +924,12 @@ int RunGraphical(std::optional<ProjectState> project,
         core_logs.Write(static_cast<nexora::core::LogLevel>(level), "Gameplay", std::move(message));
       },
       [&] { core_logs.ReportRejected(); });
+#if defined(NEXORA_HAS_2D)
+  nexora::editor::preview::GameTwoDTextures game_two_d_textures(ui);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+  std::string game_two_d_test_geometry;
+#endif
+#endif
   nexora::editor::preview::PlayHostMemoryPresenter play_memory;
   log(nexora::runtime::RuntimeLogSeverity::Info, "Editor", "Graphical session started.");
   const auto view_base = [](const std::filesystem::path &relative) {
@@ -1383,6 +1392,11 @@ int RunGraphical(std::optional<ProjectState> project,
     ui.SetConcurrentNativeViews(created.surface->SupportsBoundedSceneViews());
     if (!project)
       static_cast<void>(ui.SetPlayHostMemory(play_memory.Observe(gameplay, nullptr, 0, play)));
+#if defined(NEXORA_HAS_2D)
+    if (game_two_d_textures.Sync(gameplay.TwoDAssets()))
+      ui.SetGameTwoDAvailable(false);
+    ui.SetGameTwoDAvailable(bool(gameplay.TwoDAssets()));
+#endif
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {
@@ -2771,8 +2785,57 @@ int RunGraphical(std::optional<ProjectState> project,
         std::cerr << "unavailable";
       std::cerr << " artifact_verified=0\n";
     }
+#if defined(NEXORA_HAS_2D)
+    if (const auto viewport = ui.GameTwoDViewport(); viewport && gameplay.TwoDAssets()) {
+      auto sprites =
+          gameplay.ExtractTwoDFrame(viewport->width, viewport->height, [&](const auto &atlas) {
+            return game_two_d_textures.Resolve(atlas);
+          });
+      if (!sprites) {
+        ui.SetGameTwoDStatus("2D preview unavailable; check scene data and preview limits.");
+      } else {
+        const auto &sprite_frame = *sprites;
+        const Nexora::Presentation::UiDrawData packet{
+            sprite_frame.vertices,
+            std::as_bytes(std::span(sprite_frame.indices)),
+            sprite_frame.batches,
+            {},
+            true};
+        if (!ui.DrawGameTwoDSprites(packet))
+          ui.SetGameTwoDStatus("2D preview could not be displayed.");
+        else
+          ui.SetGameTwoDStatus(sprite_frame.statistics.unavailable
+                                   ? std::to_string(sprite_frame.statistics.unavailable) +
+                                         " 2D sprites have unavailable assets."
+                                   : "");
+      }
+    }
+#endif
     static_cast<void>(ui.EndFrame());
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+#if defined(NEXORA_HAS_2D)
+    if (std::getenv("NEXORA_GAME_TWOD_UI_TEST_EVIDENCE")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      std::ostringstream observation;
+      observation << "game 2d ui state=" << static_cast<unsigned>(play.State())
+                  << " steps=" << play.Stats().manual_steps
+                  << " textures=" << game_two_d_textures.Size();
+      const auto point = [&](const char *name, std::optional<std::array<float, 2>> position) {
+        if (position)
+          observation << ' ' << name << '=' << (*position)[0] * dpi << ',' << (*position)[1] * dpi;
+      };
+      point("combo", Access::GameViewPosition(ui, std::nullopt));
+      point("three", Access::GameViewPosition(ui, false));
+      point("two", Access::GameViewPosition(ui, true));
+      if (const auto rect = ui.GameTwoDViewport())
+        observation << " viewport=" << rect->x << ',' << rect->y << ',' << rect->width << ','
+                    << rect->height;
+      if (observation.str() != game_two_d_test_geometry) {
+        game_two_d_test_geometry = observation.str();
+        std::cerr << game_two_d_test_geometry << '\n';
+      }
+    }
+#endif
     if (std::getenv("NEXORA_PLAY_MEMORY_UI_TEST_EVIDENCE")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       std::ostringstream geometry;
@@ -3021,6 +3084,9 @@ int RunGraphical(std::optional<ProjectState> project,
   for (std::size_t i = 0; i < nexora::editor::BuildProcess::kMaximumOutputBytes / (16 * 1024); ++i)
     static_cast<void>(build_console_ingress.Poll(final_build, project ? build_scope : 0));
   gameplay.Unload();
+#if defined(NEXORA_HAS_2D)
+  game_two_d_textures.Clear();
+#endif
   if (play.State() != nexora::runtime::PlayState::Stopped)
     static_cast<void>(play.Stop());
   if (result == 0 && project && project->workspace.Writable() && scene_composition &&

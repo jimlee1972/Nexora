@@ -295,6 +295,9 @@ public:
   // nullopt: combo; zero: Automatic; nonzero: visible candidate in the open popup.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   GameCameraPosition(const EditorImGuiHost &host, std::optional<runtime::Id> camera) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GameViewPosition(const EditorImGuiHost &host, std::optional<bool> two_d) noexcept;
+  [[nodiscard]] static std::size_t GameTwoDVertices(const EditorImGuiHost &host) noexcept;
   static void SelectPlayEntity(EditorImGuiHost &host, runtime::Id entity) noexcept;
   [[nodiscard]] static runtime::Id PlayInspectorEntity(const EditorImGuiHost &host) noexcept;
   static void
