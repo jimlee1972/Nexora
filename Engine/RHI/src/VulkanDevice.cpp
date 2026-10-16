@@ -3,6 +3,7 @@
 #endif
 
 #define VK_NO_PROTOTYPES
+#include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
 
 #include <vulkan/vulkan.h>
@@ -308,6 +309,7 @@ public:
   ~VulkanDevice() override;
 
   Backend GetBackend() const noexcept override { return Backend::Vulkan; }
+  DeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override;
   void DestroyTexture(TextureHandle texture) override;
   BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override;
@@ -355,6 +357,7 @@ private:
   VulkanFunctions functions_{};
   VkInstance instance_{VK_NULL_HANDLE};
   VkPhysicalDevice physical_device_{VK_NULL_HANDLE};
+  DeviceCapabilities capabilities_;
   VkDevice device_{VK_NULL_HANDLE};
   VkQueue graphics_queue_{VK_NULL_HANDLE};
   std::uint32_t graphics_queue_family_{};
@@ -563,6 +566,25 @@ void VulkanDevice::SelectPhysicalDevice() {
       if ((queues[index].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
         physical_device_ = candidate;
         graphics_queue_family_ = index;
+        capabilities_.backend = Backend::Vulkan;
+        capabilities_.software_device = properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU;
+        capabilities_.vendor_id = properties.vendorID;
+        capabilities_.device_id = properties.deviceID;
+        capabilities_.driver_version = properties.driverVersion;
+        capabilities_.dxil_shader_model_support = CapabilitySupport::Unsupported;
+        const bool compute = (queues[index].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Compute)] = {
+            compute ? CapabilitySupport::Supported : CapabilitySupport::Unsupported,
+            compute ? FeatureVersion{1, 0} : FeatureVersion{}, compute, true};
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::IndirectDraw)] = {
+            CapabilitySupport::Supported, {1, 0}, true, true};
+        const bool tessellation = features.features.tessellationShader == VK_TRUE;
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Tessellation)] = {
+            tessellation ? CapabilitySupport::Supported : CapabilitySupport::Unsupported,
+            tessellation ? FeatureVersion{1, 0} : FeatureVersion{}, false, false};
+        capabilities_
+            .features[static_cast<std::size_t>(GraphicsFeature::ParallelCommandRecording)] = {
+            CapabilitySupport::Supported, {1, 0}, false, false};
         return;
       }
     }
@@ -1119,6 +1141,7 @@ void VulkanDevice::DestroyBuffer(BufferHandle buffer) {
 }
 
 PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor) {
+  RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
   if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
     throw std::invalid_argument("pipeline hashes must be non-zero");
   if (descriptor.type == PipelineType::Compute) {

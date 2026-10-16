@@ -66,6 +66,12 @@ class NEXORA_RHI_API Device {
 public:
   virtual ~Device() = default;
   [[nodiscard]] virtual Backend GetBackend() const noexcept = 0;
+  // Immutable construction-time snapshot; unknown support fails closed. No compiler is probed.
+  [[nodiscard]] virtual DeviceCapabilities Capabilities() const noexcept {
+    DeviceCapabilities capabilities;
+    capabilities.backend = GetBackend();
+    return capabilities;
+  }
   [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDescriptor &descriptor) = 0;
   virtual void WriteTextureRgba8(TextureHandle, std::span<const std::byte>, std::uint32_t) {
     throw std::logic_error("texture uploads are unsupported");

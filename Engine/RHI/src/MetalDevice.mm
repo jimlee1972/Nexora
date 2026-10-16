@@ -5,6 +5,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 
+#include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
 
 #include <cstdlib>
@@ -139,6 +140,17 @@ public:
   ~MetalDevice() override = default;
 
   Backend GetBackend() const noexcept override { return Backend::Metal; }
+  DeviceCapabilities Capabilities() const noexcept override {
+    DeviceCapabilities result;
+    result.backend = Backend::Metal;
+    result.dxil_shader_model_support = CapabilitySupport::Unsupported;
+    for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})
+      result.features[static_cast<std::size_t>(feature)] = {
+          CapabilitySupport::Supported, {1, 0}, true, true};
+    result.features[static_cast<std::size_t>(GraphicsFeature::ParallelCommandRecording)] = {
+        CapabilitySupport::Supported, {1, 0}, false, false};
+    return result;
+  }
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override;
   void DestroyTexture(TextureHandle texture) override;
   BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override;
@@ -321,6 +333,7 @@ void MetalDevice::DestroyBuffer(BufferHandle buffer) {
 }
 
 PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor) {
+  RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
   if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
     throw std::invalid_argument("pipeline hashes must be non-zero");
   NSError *error = nil;

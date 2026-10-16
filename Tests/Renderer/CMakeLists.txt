@@ -18,6 +18,11 @@ endif()
 nexora_apply_defaults(NexoraRendererTests)
 add_test(NAME renderer.contracts COMMAND NexoraRendererTests)
 
+add_executable(NexoraGraphicsCapabilityTests GraphicsCapabilityTests.cpp)
+target_link_libraries(NexoraGraphicsCapabilityTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraGraphicsCapabilityTests)
+add_test(NAME renderer.graphics_capabilities COMMAND NexoraGraphicsCapabilityTests)
+
 add_executable(NexoraSceneFrameTests SceneFrameTests.cpp)
 target_link_libraries(NexoraSceneFrameTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraSceneFrameTests)

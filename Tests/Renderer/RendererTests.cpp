@@ -1,3 +1,4 @@
+#include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/ShaderReflection.h"
 #include "Nexora/Renderer/FramePipeline.h"
 #include "Nexora/Renderer/PipelineCache.h"
@@ -37,6 +38,41 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
   using namespace nexora;
   auto device = rhi::CreateDevice(backend);
   Require(device->GetBackend() == backend, "native backend factory returned the wrong backend");
+  const auto capabilities = device->Capabilities();
+  Require(capabilities.backend == backend && !capabilities.validation_only,
+          "native capability snapshot has wrong backend or reports a validation model");
+  std::cout << "Native capabilities backend=" << static_cast<unsigned>(backend)
+            << " software=" << capabilities.software_device << " vendor=" << capabilities.vendor_id
+            << " device=" << capabilities.device_id << " driver=" << capabilities.driver_version
+            << " shader_model=" << capabilities.highest_dxil_shader_model.major << '.'
+            << capabilities.highest_dxil_shader_model.minor << '\n';
+  for (std::size_t index = 0; index < rhi::GraphicsFeatureCount; ++index) {
+    const auto &feature = capabilities.features[index];
+    std::cout << "  feature=" << index << " support=" << static_cast<unsigned>(feature.support)
+              << " tier=" << feature.tier.major << '.' << feature.tier.minor
+              << " enabled=" << feature.enabled << " implemented=" << feature.implemented << '\n';
+  }
+  // These paths are planned, so hardware support must never bypass implementation admission.
+  for (const auto feature :
+       {rhi::GraphicsFeature::ParallelCommandRecording, rhi::GraphicsFeature::Tessellation,
+        rhi::GraphicsFeature::EnhancedBarriers, rhi::GraphicsFeature::RayTracing,
+        rhi::GraphicsFeature::MeshShader, rhi::GraphicsFeature::VariableRateShading,
+        rhi::GraphicsFeature::SamplerFeedback, rhi::GraphicsFeature::WorkGraphs,
+        rhi::GraphicsFeature::ShaderExecutionReordering}) {
+    rhi::PipelineDescriptor unsupported{rhi::TrianglePipelineLayout().layout_hash, 0x1234,
+                                        rhi::TextureFormat::Rgba8Unorm, "Unsupported feature"};
+    unsupported.graphics_requirements.minimum_tiers[static_cast<std::size_t>(feature)] = {1, 0};
+    Require(!rhi::CheckGraphicsRequirements(capabilities, unsupported.graphics_requirements)
+                 .Succeeded(),
+            "native capability query advertised an unimplemented advanced path");
+    bool rejected = false;
+    try {
+      (void)device->CreatePipeline(unsupported);
+    } catch (const std::invalid_argument &) {
+      rejected = true;
+    }
+    Require(rejected, "native pipeline creation bypassed feature admission");
+  }
   core::JobSystem jobs{2};
   jobs.Start();
   {

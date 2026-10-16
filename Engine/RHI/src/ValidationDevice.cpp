@@ -1,3 +1,4 @@
+#include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
 
 #include <algorithm>
@@ -67,6 +68,18 @@ private:
 class ValidationDevice final : public Device {
 public:
   Backend GetBackend() const noexcept override { return Backend::Null; }
+  DeviceCapabilities Capabilities() const noexcept override {
+    DeviceCapabilities result;
+    result.validation_only = true;
+    result.software_device = true;
+    result.dxil_shader_model_support = CapabilitySupport::Unsupported;
+    for (auto &feature : result.features)
+      feature.support = CapabilitySupport::Unsupported;
+    for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})
+      result.features[static_cast<std::size_t>(feature)] = {
+          CapabilitySupport::Supported, {1, 0}, true, true};
+    return result;
+  }
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override {
     if (descriptor.width == 0 || descriptor.height == 0)
       throw std::invalid_argument("invalid texture extent");
@@ -129,6 +142,7 @@ public:
     ++diagnostics_.readbacks;
   }
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
+    RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0) {
       throw std::invalid_argument("pipeline hashes must be non-zero");
     }

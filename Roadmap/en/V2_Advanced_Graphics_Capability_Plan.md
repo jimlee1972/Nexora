@@ -1,11 +1,62 @@
 # V2 Advanced Graphics Capability Plan
 
-Status: Planned; all V2-GFX gates below remain open. Added 2026-10-16.
+Status: V2-GFX-1 in progress; capability admission foundation validated on Linux.
+All five complete gates remain open.
+Added 2026-10-16.
 
 This is a normative V2 scope extension shared by the V2 Complete and AI implementation plans.
 It brings the missing DirectX-era rendering capabilities into V2 delivery. V3 may extend these
 systems but is no longer their first-delivery target. This document plans implementation; it
-does not claim native support or change current RHI contracts.
+does not claim that planned native paths are available. Delivered contract changes are tracked below.
+
+## V2-GFX-1 construction status
+
+✅ Capability admission is the first delivered portable/Linux implementation slice: independent device support/tier,
+enablement and backend implementation snapshots; guarded DX12 feature/Shader Model queries;
+Vulkan core capability discovery; explicit preferred/fallback selection; PSO creation admission;
+and complete capability requirements in PSO cache identity. Unknown support fails closed, numeric
+versions distinguish SM 6.10 from 6.9, and native feedback tiers 90/100 map to 0.9/1.0.
+
+Parallel recording, fence-retired worker descriptors and allocators, compiler/artifact matrix
+integration, CPU/GPU benchmarks and all V2-GFX-2 through
+V2-GFX-5 native execution remain open. No native advanced feature is marked complete by admission
+tests or device hardware queries.
+
+### Acceptance evidence — 2026-10-16
+
+Source branch: `feat/v2-graphics-capabilities`, based on `5f3da989`.
+Beads: `nexora-45y.1`; remaining execution gates are `nexora-45y.2` through `nexora-45y.6`.
+
+| Command / check | Observed result |
+| --- | --- |
+| `cmake --preset linux-development` | Passed; GNU 14.2, CMake 3.31.6, Ninja 1.11.1; isolated X11 development prefix in the local cache |
+| `cmake --build --preset linux-development --parallel 4` | Passed, including native Vulkan source and the new capability test |
+| `ctest --preset linux-development` | 0 failures: 171 passed, 3 display-dependent native Presentation tests skipped, 174 total; 72.77 seconds |
+| `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping --parallel 3` | Passed, Monolithic/Minimal with LTO |
+| Native-required `renderer.contracts`, `renderer.graphics_capabilities`, `renderer.v2_gpu_driven` | 3/3 passed, 0 skips; Mesa lavapipe 24.0.5, Slang 2026.18; 0.47 seconds |
+| Changed Markdown/bilingual pairing, `git diff --check`, touched-file clang-format 18.1.8 check | Passed |
+
+The production-toolchain test initially failed because `clang++` was absent; after preparing
+Clang 19.1.7 the complete development suite passed. Tool dependencies were installed/extracted
+outside the repository; no project SDK baseline or optional feature defaults changed.
+
+The native test uses Slang's existing `-target spirv -profile glsl_450
+-fvk-use-entrypoint-name` contract with `vertexMain`/`fragmentMain` and `computeMain` artifacts,
+`NEXORA_REQUIRE_NATIVE_BACKENDS=1`, the two `NEXORA_SLANG_*SPIRV_PATH` variables and a lavapipe ICD.
+It runs `ctest --preset linux-development -R '^renderer\.(contracts|graphics_capabilities|v2_gpu_driven)$' -V`.
+The retained capability output identifies backend Vulkan, software device, vendor 65541, device 0,
+driver 1; compute/indirect are supported, enabled and implemented at 1.0. Parallel recording and
+tessellation report support at 1.0 with no implementation/enablement. All other advanced features
+remain unknown and unavailable. Pipeline admission rejects every unimplemented advanced path
+before allocating a native PSO. The existing full GPU-driven reference comparison still passes.
+
+Portable tests additionally verify independent tier encodings (including feedback 90/100 and DXR
+1.2), unknown/unsupported/disabled/unimplemented failures, explicit fallback exhaustion, SM 6.10
+ordering and cached baseline PSOs failing to authorize an advanced requirement. A Windows or Apple
+native execution result and physical-GPU performance were not produced in this Linux environment;
+the existing platform CI/target-host gates remain required. The SwiftShader device initially
+available in the environment was rejected for lacking existing Vulkan baseline features; those
+requirements were not relaxed to get a pass.
 
 ## Baseline and scope
 
@@ -22,7 +73,7 @@ serial submission path, not an API-version claim.
 
 ## Delivery gates
 
-All rows are **planned**, including capability-dependent paths. A runtime fallback makes a device
+All complete gates remain **open**, including capability-dependent paths. A runtime fallback makes a device
 usable but does not complete the accelerated implementation or its target-host gate.
 
 | Gate | Planned V2 work | Dependencies | Acceptance and fallback |
