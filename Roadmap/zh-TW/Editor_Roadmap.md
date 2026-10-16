@@ -52,7 +52,7 @@ Play 通過。嵌入主專案時仍須保留 ED-M1 資產、ED-M2 Transaction �
 ✅ 擁有式隔離 `TwoDPlayContext` 現可快照文件 World／Sprite／碰撞資料、凍結 Atlas／Clip、
 複製 Tilemap／區塊狀態，並擁有新的有限物件池與 2D Gameplay Bridge。實際 V3 Callback
 生命週期與來源 Undo／Redo 保全已有驗證，Linux 原生像素涵蓋凍結／動畫／保留及新 Session
-Atlas。這是整合前置項；主專案 Host 接線、專案／Cooked 世代擷取，以及整合 Game
+Atlas。這是整合前置項；專案／Cooked 擷取與主 host API 掛接見下段，整合 Game
 預覽／Reload 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md)。
 
 ✅ `TwoDPlayAssets` 現可從明確 Runtime 資產世代凍結有限的 Cooked Atlas／Clip 相依閉包，
@@ -63,15 +63,23 @@ Atlas。這是整合前置項；主專案 Host 接線、專案／Cooked 世代�
 
 ✅ 可選專案索引與同步／背景重新匯入現可保留不可變 Atlas／Clip 型別資料；初始內嵌
 UUID、既有 Sidecar、容量上限與原子 Clip 相依更新，於無效、過期或取消的發布中保留
-原模型及歷史。這是專案資產前置項；主 Editor Play／Game 預覽／Reload 仍待完成。
+原模型及歷史。這是專案資產前置項；主 host API 掛接見下段，Game 預覽／Reload 仍待完成。
 限定專案的 Cook／凍結准入由下述擷取擁有者提供，里程碑計數不變。[證據](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md)。
 
 ✅ `ProjectTwoDPlayAssets` 可對目前專案選定的 Atlas／Clip 依賴閉包進行 cook 並凍結，
 檢查專案 UUID／根目錄、Content 世代／修訂、寫入權限／復原狀態，以及精確來源／sidecar
 與依賴的一致性。擁有式觀察值在啟動前重新驗證；專案銷毀後仍可保留凍結資料。
-主 Editor Play／Game 接線、整合預覽與 reload 仍未完成，ED／2D 里程碑計數不變。
+主 Editor host API 掛接見下段；整合 Game 預覽與 reload 仍未完成，ED／2D 里程碑計數不變。
 參見[擷取契約](../../Engine/Editor/README.md#project-scoped-cooked-2d-play-capture)與
 [驗證紀錄](../../Tools/Build/evidence/EditorEDM3-ProjectTwoDPlayAssets-Linux-2026-10-16.md)。
+
+✅ 主 Editor 的 Play 啟動流程已擷取並重新驗證專案 Atlas／Clip Content，將選用的 2D gameplay
+服務掛到實際複製的 World 與所選作用中場景。全新的 Sprite／碰撞中繼資料及有界 instance pool
+保留到模組 Stop／Destroy 結束；一般子樹 despawn 會清理每個被刪除的 ID。32 輪 CPU clone
+生命週期涵蓋完整模組替換、失敗載入清理及既有 3D host。Game View 的 2D 繪製、作者端 Sprite
+持久化、Tilemap 掛接、無縫 hot reload 與實體驗收仍未完成，ED／2D 里程碑計數不變。
+[契約](../../Apps/Editor/README.md#optional-2d-services-in-project-play)。
+[證據](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md)。
 
 ```text
 NexoraEditor (tool process)

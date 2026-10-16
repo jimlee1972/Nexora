@@ -6,7 +6,9 @@ validates frame regions, bounds unique payload/count totals and preserves extern
 See the [Editor ownership contract](../Editor/README.md#frozen-cooked-2d-play-assets).
 The Editor also offers project-scoped source/cooked admission through
 `ProjectTwoDPlayAssets`; see the [project capture contract](../Editor/README.md#project-scoped-cooked-2d-play-capture).
-Main Editor Play/Game attachment remains separate work.
+The main Editor now binds an optional canonical bridge to its existing Play clone with frozen
+project assets and fresh Sprite/pool state; see the [host contract](../../Apps/Editor/README.md#optional-2d-services-in-project-play).
+Main Game View 2D rendering, Tilemap configuration and seamless reload remain separate work.
 
 `Nexora::TwoD` is the optional `NEXORA_ENABLE_2D` module. It depends on Runtime and
 Presentation, requires Asset Pipeline and Window Presentation, and is removed from headless

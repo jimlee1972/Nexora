@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "task": "nexora-zih.5",
+  "base": "5f3da9895379af7324a73e232d53fb83ecdc5a40",
+  "local_platform": "Linux",
+  "source_sha256": {
+    "Apps/Editor/PlayTwoDServices.h": "d6f47edd99c41518b9d88b3d05d8667c566d50bc9d30b09f591aab804dc1ced6",
+    "Apps/Editor/PlayGameplayModule.h": "dee2f4d648ed0c80e8aee4e024dcbcde706127197c836ddd871b2461eab21ccb",
+    "Apps/Editor/PlaySceneServices.h": "c562bb2c9155290b0a0822993ada142192187185b070438f93af755f113371e0",
+    "Apps/Editor/main.cpp": "f6c65a8f5eb34aac6757836c61119f758ecb36b0165916b5cc7460a32a80a836",
+    "Tests/EditorImGui/PlayTwoDServicesTests.cpp": "a988c67b886e6aaf7a0249a5675dca88f91889a75ed4d6e8fac9d5a9f40fb6b9",
+    "Tests/EditorImGui/CMakeLists.txt": "3b8aa4c02d02d0334ec29755ef038d1ff1a4695a4f9b2f981a5a008361a15427"
+  },
+  "focused": {
+    "passed": 2,
+    "total": 2,
+    "seconds": 0.06,
+    "new_twod_test_seconds": 0.05,
+    "cycles": 32,
+    "skipped": 0
+  },
+  "development": {
+    "configure": "passed",
+    "build": "passed",
+    "passed": 333,
+    "total": 333,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1084.36,
+    "clean_full_run": true,
+    "new_test_marker": "Editor Play 2D: 32 real clone lifetimes, project freeze, descendant cleanup and 3D isolation passed"
+  },
+  "shipping": {
+    "configure": "passed",
+    "build": "passed",
+    "scope": "Minimal Monolithic excludes Editor/testing"
+  },
+  "feature_off": {
+    "configure": "passed",
+    "build": "passed",
+    "graphical_editor_built": true,
+    "zig_gameplay": false,
+    "tests_passed": 3,
+    "tests_total": 3,
+    "seconds": 0.05,
+    "new_test_absent": true,
+    "no_twod_dynamic_dependency": true
+  },
+  "documentation": {
+    "unit_tests": 16,
+    "root_readme_unchanged": true,
+    "changed_markdown_files": 8
+  },
+  "provenance": [
+    "Initial fixture compilation omitted the required PlaySession fixed-update callback; both Start calls were corrected before successful focused validation and the full gate."
+  ],
+  "remaining": [
+    "Main Game View 2D rendering and native pixel acceptance",
+    "Authored Sprite persistence and Tilemap binding",
+    "Seamless hot reload and native texture retirement",
+    "Physical target-host acceptance"
+  ],
+  "milestones_changed": false,
+  "existing_native_play_soak": [
+    {
+      "cycles": 32,
+      "elapsed_seconds": 82.385,
+      "growth_limit": 33554432,
+      "lifecycle_records": 128,
+      "module_touched_bytes": 4194304,
+      "pixels_input_pause_step_discard": "passed",
+      "rss_after_stop": [
+        118030336,
+        122228736,
+        122228736,
+        122228736,
+        123551744,
+        125915136,
+        122441728,
+        122228736,
+        122228736,
+        122228736,
+        125915136,
+        122232832,
+        122257408,
+        125919232,
+        125919232,
+        125919232,
+        123219968,
+        122253312,
+        122232832,
+        124850176,
+        122232832,
+        122232832,
+        122380288,
+        122232832,
+        122232832,
+        125919232,
+        125837312,
+        122290176,
+        123568128,
+        122290176,
+        122290176,
+        122310656
+      ],
+      "rss_scope": "current_process_resident_set",
+      "rss_unit": "bytes",
+      "source_bytes": "unchanged",
+      "source_pixels": "unchanged",
+      "validation_errors": 0,
+      "warm_baseline": 122228736,
+      "warmed_end": 122310656,
+      "warmed_peak": 125919232,
+      "warmup_cycles": 4
+    }
+  ]
+}

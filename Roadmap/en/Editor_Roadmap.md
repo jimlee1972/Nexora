@@ -56,7 +56,7 @@ complete an enclosing ED milestone. Windows physical and Runtime/Shipping gates 
 freezes Atlas/Clip, copies Tilemap/chunk state and owns a fresh bounded pool/2D gameplay bridge.
 Actual V3 callback lifetimes and source Undo/Redo conservation are verified, with Linux native
 frozen/animated/retained/new-session Atlas pixels. This is an integration prerequisite; main
-project host routing, project/cooked generation capture and integrated Game preview/reload remain
+project/cooked capture and main host API attachment are described below; integrated Game preview/reload remain
 open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
 ✅ `TwoDPlayAssets` now freezes a bounded cooked Atlas/Clip closure from an explicit Runtime
@@ -69,16 +69,23 @@ Play/Game preview; those integrations remain open and milestone counts are uncha
 ✅ Optional project indexing and synchronous/queued reimport now retain typed immutable
 Atlas/Clip payloads. Initial embedded UUIDs, authoritative sidecars, capacity budgets and atomic
 Clip dependencies preserve prior model/history on invalid, stale or cancelled publication.
-This is a project asset prerequisite; main Editor Play/Game preview/reload remain open.
+This is a project asset prerequisite; main host API attachment is described below, while Game preview/reload remain open.
 Scoped cook/freeze admission is supplied by the following capture owner. Milestone counts are unchanged. [Evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
 
 ✅ `ProjectTwoDPlayAssets` now cooks and freezes the selected current project Atlas/Clip closure
 with project UUID/root, Content generation/revision, writer/access/recovery, exact source/sidecar
 and dependency admission. Owning observations revalidate before activation and retain frozen data
-after project destruction. Main Play/Game attachment and integrated preview/reload remain open;
+after project destruction. Main host API attachment is described below; integrated Game preview/reload remain open;
 ED/2D milestone counts are unchanged. See the [capture contract](../../Engine/Editor/README.md#project-scoped-cooked-2d-play-capture)
 and [evidence](../../Tools/Build/evidence/EditorEDM3-ProjectTwoDPlayAssets-Linux-2026-10-16.md).
 
+✅ The main Editor Play start path now captures/revalidates project Atlas/Clip Content and binds
+optional 2D gameplay services to its actual cloned World and selected active scene. Fresh Sprite/
+collider metadata and a bounded instance pool survive through module Stop/Destroy; generic subtree
+despawn forgets every destroyed ID. Full module replacement and failed load cleanup are covered
+by 32 CPU clone lifetimes alongside the existing 3D host. Game View 2D rendering, authored Sprite
+persistence, Tilemap binding, seamless hot reload and physical acceptance remain open. No ED/2D
+milestone count changes. [Contract](../../Apps/Editor/README.md#optional-2d-services-in-project-play). [Evidence](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md).
 
 ```text
 NexoraEditor (tool process)

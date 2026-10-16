@@ -2078,13 +2078,36 @@ int RunGraphical(std::optional<ProjectState> project,
           log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", "Play material snapshot failed.");
           break;
         }
+        nexora::editor::preview::PlayTwoDBinding two_d;
+#if defined(NEXORA_HAS_2D)
+        if (!ui.GameplayLibrary().empty()) {
+          std::string error;
+          auto captured = nexora::editor::preview::CapturePlayTwoD(
+              project->workspace, content, active_scene(), scene_authoring_allowed(), error);
+          if (!captured) {
+            ui.SetGameplayStatus(error);
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", error);
+            break;
+          }
+          two_d = std::move(*captured);
+        }
+#endif
         if (play.Start(1.0 / 60.0, [&](nexora::runtime::World &, double seconds) {
               return gameplay.FixedUpdate(seconds);
             })) {
           std::string gameplay_error;
+#if defined(NEXORA_HAS_2D)
+          if (two_d.assets && !two_d.assets->Matches(project->workspace, content,
+                                                     scene_authoring_allowed(), &gameplay_error)) {
+            static_cast<void>(play.Stop());
+            ui.SetGameplayStatus(gameplay_error);
+            log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);
+            break;
+          }
+#endif
           if (!ui.GameplayLibrary().empty() &&
               !gameplay.LoadRelative(*play.PlayWorld(), project->workspace.Root(),
-                                     ui.GameplayLibrary(), gameplay_error, frozen_meshes)) {
+                                     ui.GameplayLibrary(), gameplay_error, frozen_meshes, two_d)) {
             static_cast<void>(play.Stop());
             ui.SetGameplayStatus(gameplay_error);
             log(nexora::runtime::RuntimeLogSeverity::Error, "PIE", gameplay_error);

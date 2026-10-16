@@ -7,6 +7,7 @@
 #include "PlayDebugLines.h"
 #include "PlayInputState.h"
 #include "PlaySceneServices.h"
+#include "PlayTwoDServices.h"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -15,6 +16,7 @@
 #include <limits>
 #include <memory>
 #include <new>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -33,14 +35,15 @@ public:
   using LogRejectionSink = std::function<void()>;
   static constexpr std::size_t kMaximumLogMessageBytes = 4096;
   explicit PlayGameplayModule(LogSink log = {}, LogRejectionSink rejected_log = {})
-      : log_(std::move(log)), rejected_log_(std::move(rejected_log)), module_(Host()) {}
+      : log_(std::move(log)), rejected_log_(std::move(rejected_log)) {}
   ~PlayGameplayModule() { Unload(); }
   PlayGameplayModule(const PlayGameplayModule &) = delete;
   PlayGameplayModule &operator=(const PlayGameplayModule &) = delete;
 
   bool LoadRelative(runtime::World &world, const std::filesystem::path &root,
                     std::string_view relative, std::string &error,
-                    std::shared_ptr<const MeshAssetCatalog> assets = {}) try {
+                    std::shared_ptr<const MeshAssetCatalog> assets = {},
+                    const PlayTwoDBinding &two_d = {}) try {
     Unload();
     if (assets && !assets->Generation()) {
       error = "Play mesh snapshot is unavailable.";
@@ -70,7 +73,13 @@ public:
     }
     world_ = &world;
     mesh_assets_ = std::move(assets);
-    if (!module_.Load(library)) {
+    if (!BindTwoD(world, two_d)) {
+      Unload();
+      error = "Play 2D services require a frozen asset snapshot and an active Play scene.";
+      return false;
+    }
+    module_.emplace(Host());
+    if (!module_->Load(library)) {
       Unload();
       error = "Gameplay library could not start (path, ABI, or lifecycle failure).";
       return false;
@@ -83,7 +92,8 @@ public:
   }
   // Static loader overload is useful for embedding tests; it has the same owning lifetime.
   bool Load(runtime::World &world, NexoraGameModuleLoadV3Fn loader,
-            std::shared_ptr<const MeshAssetCatalog> assets = {}) {
+            std::shared_ptr<const MeshAssetCatalog> assets = {},
+            const PlayTwoDBinding &two_d = {}) try {
     Unload();
     if (assets && !assets->Generation())
       return false;
@@ -91,8 +101,16 @@ public:
       return false;
     world_ = &world;
     mesh_assets_ = std::move(assets);
-    if (module_.Load(loader))
+    if (!BindTwoD(world, two_d)) {
+      Unload();
+      return false;
+    }
+    module_.emplace(Host());
+    if (module_->Load(loader))
       return true;
+    Unload();
+    return false;
+  } catch (...) {
     Unload();
     return false;
   }
@@ -115,7 +133,7 @@ public:
   void ProcessInput(std::span<const Nexora::Window::WindowEvent> events) noexcept {
     input_.Process(events);
   }
-  [[nodiscard]] bool IsLoaded() const noexcept { return module_.IsLoaded(); }
+  [[nodiscard]] bool IsLoaded() const noexcept { return module_ && module_->IsLoaded(); }
   // Owning payload-only observations; no native/allocator overhead, RSS or GPU inference.
   [[nodiscard]] AllocationSnapshot Allocations() const noexcept { return allocation_stats_; }
   [[nodiscard]] AllocationSnapshot LastTeardownAllocations() const noexcept {
@@ -128,7 +146,7 @@ public:
     return world && world_ == world;
   }
   bool FixedUpdate(double seconds) {
-    return !IsLoaded() || !module_.SupportsFixedUpdate() || module_.FixedUpdate(seconds);
+    return !IsLoaded() || !module_->SupportsFixedUpdate() || module_->FixedUpdate(seconds);
   }
   bool Update(double seconds) {
     if (!IsLoaded())
@@ -136,7 +154,7 @@ public:
     if (!std::isfinite(seconds) || seconds < 0)
       return false;
     Increment(diagnostics_frame_);
-    return module_.Update(seconds);
+    return module_->Update(seconds);
   }
   // The owner calls once before fixed ticks and Update in a playing frame. Paused Steps and
   // rendering never advance time; invalid deltas leave the owning queue unchanged.
@@ -152,7 +170,10 @@ public:
   void Unload() noexcept {
     input_.SetFocused(false);
     input_user_ = 0;
-    module_.Unload();
+    module_.reset();
+#if defined(NEXORA_HAS_2D)
+    two_d_.reset();
+#endif
     const bool had_session = world_ != nullptr;
     scenes_.Clear();
     world_ = nullptr;
@@ -200,6 +221,17 @@ private:
     std::uint64_t owner;
     std::size_t size, alignment;
   };
+  bool BindTwoD(runtime::World &world, const PlayTwoDBinding &binding) {
+#if defined(NEXORA_HAS_2D)
+    if (!binding.scene && !binding.assets)
+      return true;
+    two_d_ = PlayTwoDServices::Bind(world, binding);
+    return bool(two_d_);
+#else
+    static_cast<void>(world);
+    return !binding.scene;
+#endif
+  }
   static PlayGameplayModule &Self(void *context) {
     return *static_cast<PlayGameplayModule *>(context);
   }
@@ -210,6 +242,16 @@ private:
     host.capabilities = NEXORA_GAMEPLAY_CAPABILITY_HOST_ALLOCATOR |
                         NEXORA_GAMEPLAY_CAPABILITY_SCENE_API |
                         NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
+#if defined(NEXORA_HAS_2D)
+    if (two_d_) {
+      host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_2D_API;
+      host.get_twod_api = [](void *context, NexoraTwoDApiV1 *output) -> int32_t {
+        auto &self = Self(context);
+        return self.RecordResult(self.two_d_ ? self.two_d_->GetApi(output)
+                                             : NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+      };
+    }
+#endif
     host.context = this;
     host.log = [](void *context, std::uint32_t level, const char *message, std::uint32_t length) {
       try {
@@ -365,7 +407,19 @@ private:
       return Self(context).RecordResult(Self(context).scenes_.Spawn(scene, descriptor, entity));
     };
     host.despawn_entity = [](void *context, std::uint64_t entity) -> int32_t {
-      return Self(context).RecordResult(Self(context).scenes_.Despawn(entity));
+      auto &self = Self(context);
+#if defined(NEXORA_HAS_2D)
+      return self.RecordResult(self.scenes_.Despawn(
+          entity,
+          [](void *opaque, runtime::Id id) {
+            auto &owner = Self(opaque);
+            if (owner.two_d_)
+              owner.two_d_->ForgetEntity(id);
+          },
+          context));
+#else
+      return self.RecordResult(self.scenes_.Despawn(entity));
+#endif
     };
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
     host.raycast = [](void *context, const NexoraRaycastRequest *request,
@@ -407,6 +461,9 @@ private:
   AllocationSnapshot allocation_stats_{}, last_allocation_stats_{};
   std::uint64_t allocation_teardown_sequence_{};
   std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
-  runtime::GameplayModuleHost module_;
+#if defined(NEXORA_HAS_2D)
+  std::unique_ptr<PlayTwoDServices> two_d_;
+#endif
+  std::optional<runtime::GameplayModuleHost> module_;
 };
 } // namespace nexora::editor::preview

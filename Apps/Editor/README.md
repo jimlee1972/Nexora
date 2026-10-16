@@ -248,6 +248,47 @@ marker submission at 4096. This is the fallback for unavailable native Game rend
 camera/OBJ rendering and optional gameplay callbacks are described below; blank library paths
 provide inspection-only Play.
 
+### Optional 2D services in project Play
+
+With `NEXORA_ENABLE_2D`, selecting a gameplay library in a project containing typed Atlas/Clip
+Content now prepares `PlayTwoDBinding` at Play start. `CapturePlayTwoD` selects all recognized
+2D sources, capped at 4096, including recognized sources with unavailable typed payloads so they
+fail admission. It captures the active document's bounded Runtime scene identity and delegates
+writer/lease, project UUID/root, source/sidecar, conflict, generation and dependency validation to
+`ProjectTwoDPlayAssets`. The project Content generation is also the private cooked-generation
+label; it does not reserve a global Runtime generation. Capture errors are shown through the
+existing gameplay status/Console. Immediately after cloning, the host repeats `Matches` with
+current authoring authorization before module activation. No library or no 2D sources preserves
+the existing inspection/3D path. A project with 2D sources must pass capture even for a 3D library.
+
+`PlayTwoDServices` borrows that existing Play World and its selected active scene, retains the
+immutable cooked Atlas/Clip closure, and owns fresh Sprite/collider metadata, a 4096-instance pool
+and the canonical `GameplayBridge`. It creates no second World and copies no authoring Sprite
+metadata. Clip resolution survives project/index/store destruction. API entity operations are
+limited to the bound scene; scenes created through the generic scene service are not automatically
+2D scenes. Tilemap configuration is not supplied, so tile callbacks return `UNSUPPORTED`.
+Animation advances only when gameplay calls the 2D animation API; the host adds no second clock.
+
+`PlayGameplayModule` constructs the V3 host table after binding, advertising the 2D capability and
+getter only for an attached owner. Module load/replacement failures clear the candidate owner;
+Stop/Destroy callbacks still have their World, frozen assets and pool. The module is destroyed
+before the 2D services, which are destroyed before `PlaySession::Stop` releases the clone. Every
+ID in a successful generic despawn's `LastDestroyed`, including descendants, is forgotten by the
+2D bridge before subsequent queries. Other direct World destruction paths must still explicitly
+notify the bridge. All host calls serialize on the Editor owner thread. A copied 2D table expires
+when its module is destroyed; it must never be called after unloading or across sessions. Existing
+pool owner/generation validation rejects handles reused with a fresh session. Feature-OFF builds
+retain the ordinary host and do not include/link these optional services.
+
+`editor.play_twod_services` exercises actual project source/cook capture and the same host used by
+`NexoraEditor`, with 32 clone lifetimes, failed Create/Start, full module replacement, frozen
+animation after external owners die, descendant cleanup, fresh pool handles, wrong-thread bridge
+rejection, source/history conservation and capability-free 3D loads. This is CPU integration
+acceptance, not native main Game View 2D rendering. Authored Sprite persistence, Tilemap binding,
+2D Game View rendering/texture retirement, seamless hot reload and full physical acceptance remain
+open. ED/2D milestone counts do not change.
+[Linux validation](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md).
+
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
 entity name, supports plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips
 visible-row submission, and routes rename, sibling ordering, and drag/drop reparenting through the
