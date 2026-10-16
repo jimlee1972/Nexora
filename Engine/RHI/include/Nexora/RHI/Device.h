@@ -67,8 +67,8 @@ public:
   virtual ~Device() = default;
   [[nodiscard]] virtual Backend GetBackend() const noexcept = 0;
   // Immutable construction-time snapshot; unknown support fails closed. No compiler is probed.
-  [[nodiscard]] virtual DeviceCapabilities Capabilities() const noexcept {
-    DeviceCapabilities capabilities;
+  [[nodiscard]] virtual GraphicsDeviceCapabilities Capabilities() const noexcept {
+    GraphicsDeviceCapabilities capabilities;
     capabilities.backend = GetBackend();
     return capabilities;
   }

@@ -4,7 +4,7 @@
 #include <string>
 
 namespace nexora::rhi {
-CapabilityCheck CheckGraphicsRequirements(const DeviceCapabilities &capabilities,
+CapabilityCheck CheckGraphicsRequirements(const GraphicsDeviceCapabilities &capabilities,
                                           const GraphicsRequirements &requirements) noexcept {
   for (std::size_t index = 0; index < GraphicsFeatureCount; ++index) {
     const auto minimum = requirements.minimum_tiers[index];
@@ -34,7 +34,7 @@ CapabilityCheck CheckGraphicsRequirements(const DeviceCapabilities &capabilities
   return {};
 }
 
-GraphicsPathSelection SelectGraphicsPath(const DeviceCapabilities &capabilities,
+GraphicsPathSelection SelectGraphicsPath(const GraphicsDeviceCapabilities &capabilities,
                                          const GraphicsRequirements &preferred,
                                          const GraphicsRequirements &fallback) noexcept {
   const auto preferred_check = CheckGraphicsRequirements(capabilities, preferred);
@@ -47,7 +47,7 @@ GraphicsPathSelection SelectGraphicsPath(const DeviceCapabilities &capabilities,
 
 std::string_view CapabilityFailureName(CapabilityFailure failure) noexcept {
   switch (failure) {
-  case CapabilityFailure::None:
+  case CapabilityFailure::NoFailure:
     return "supported";
   case CapabilityFailure::UnknownSupport:
     return "device feature support is unknown";
@@ -69,7 +69,7 @@ std::string_view CapabilityFailureName(CapabilityFailure failure) noexcept {
   return "invalid capability failure";
 }
 
-void RequireGraphicsCapabilities(const DeviceCapabilities &capabilities,
+void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                  const GraphicsRequirements &requirements) {
   const auto check = CheckGraphicsRequirements(capabilities, requirements);
   if (!check.Succeeded())

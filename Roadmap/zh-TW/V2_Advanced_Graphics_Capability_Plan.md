@@ -27,14 +27,20 @@ Beads：`nexora-45y.1`；剩餘執行 gate 為 `nexora-45y.2`～`nexora-45y.6`�
 | --- | --- |
 | `cmake --preset linux-development` | 通過；GNU 14.2、CMake 3.31.6、Ninja 1.11.1；本機 cache 指定隔離的 X11 development prefix |
 | `cmake --build --preset linux-development --parallel 4` | 通過，包含原生 Vulkan 原始碼及新增能力測試 |
-| `ctest --preset linux-development` | 0 失敗：171 通過、3 個依賴顯示環境的 native Presentation 測試略過，共 174 項；72.77 秒 |
+| `ctest --preset linux-development` | 0 失敗：171 通過、3 個依賴顯示環境的 native Presentation 測試略過，共 174 項；75.62 秒 |
 | `cmake --preset linux-shipping` 與 `cmake --build --preset linux-shipping --parallel 3` | 通過，Monolithic／Minimal 並啟用 LTO |
-| 要求 native 的 `renderer.contracts`、`renderer.graphics_capabilities`、`renderer.v2_gpu_driven` | 3/3 通過，0 略過；Mesa lavapipe 24.0.5、Slang 2026.18；0.47 秒 |
+| 要求 native 的 `renderer.contracts`、`renderer.graphics_capabilities`、`renderer.v2_gpu_driven` | 3/3 通過，0 略過；Mesa lavapipe 24.0.5、Slang 2026.18；0.19 秒 |
 | 變更 Markdown／雙語配對、`git diff --check`、異動檔案 clang-format 18.1.8 檢查 | 通過 |
 
 Production toolchain 測試起初因環境缺少 `clang++` 失敗；準備 Clang 19.1.7 後，完整
 development 測試已通過。工具相依安裝／解壓於 repo 外，未調整專案 SDK 基線或 optional
 feature 預設值。
+
+首次 Windows CI 編譯發現新 snapshot 型別與 WinGDI 的 `DeviceCapabilities` 巨集撞名。
+型別已改為 `GraphicsDeviceCapabilities`，能力回歸測試也會先載入 Windows 標頭再載入
+公開 RHI 標頭。此修正保留 consumer 的 SDK 巨集，不採 undef 處理；失敗 enum 也使用
+`NoFailure`，避開 X11 的 `None`，Linux 啟用 Window 時會在 Xlib 後編譯能力檢查標頭。
+修正後 head 仍須通過最終平台 CI 驗收。
 
 原生測試沿用 Slang 的 `-target spirv -profile glsl_450 -fvk-use-entrypoint-name` contract，
 產生 `vertexMain`／`fragmentMain` 與 `computeMain` artifact，設定

@@ -34,8 +34,8 @@ using Microsoft::WRL::ComPtr;
 
 // Failure to query an optional feature leaves it Unknown, not Unsupported. In particular an old
 // SDK/runtime must not turn missing declarations or E_INVALIDARG into a hardware diagnosis.
-DeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1 &adapter) {
-  DeviceCapabilities result;
+GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1 &adapter) {
+  GraphicsDeviceCapabilities result;
   result.backend = Backend::Direct3D12;
   DXGI_ADAPTER_DESC1 identity{};
   if (SUCCEEDED(adapter.GetDesc1(&identity))) {
@@ -363,7 +363,7 @@ public:
   }
 
   Backend GetBackend() const noexcept override { return Backend::Direct3D12; }
-  DeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
+  GraphicsDeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
 
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override {
     if (descriptor.width == 0 || descriptor.height == 0)
@@ -776,7 +776,7 @@ private:
       throw std::runtime_error("WaitForSingleObject failed for D3D12 fence");
   }
 
-  DeviceCapabilities capabilities_;
+  GraphicsDeviceCapabilities capabilities_;
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D12CommandQueue> queue_;
   ComPtr<ID3D12DescriptorHeap> rtv_heap_;

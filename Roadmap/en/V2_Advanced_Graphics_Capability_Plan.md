@@ -31,14 +31,21 @@ Beads: `nexora-45y.1`; remaining execution gates are `nexora-45y.2` through `nex
 | --- | --- |
 | `cmake --preset linux-development` | Passed; GNU 14.2, CMake 3.31.6, Ninja 1.11.1; isolated X11 development prefix in the local cache |
 | `cmake --build --preset linux-development --parallel 4` | Passed, including native Vulkan source and the new capability test |
-| `ctest --preset linux-development` | 0 failures: 171 passed, 3 display-dependent native Presentation tests skipped, 174 total; 72.77 seconds |
+| `ctest --preset linux-development` | 0 failures: 171 passed, 3 display-dependent native Presentation tests skipped, 174 total; 75.62 seconds |
 | `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping --parallel 3` | Passed, Monolithic/Minimal with LTO |
-| Native-required `renderer.contracts`, `renderer.graphics_capabilities`, `renderer.v2_gpu_driven` | 3/3 passed, 0 skips; Mesa lavapipe 24.0.5, Slang 2026.18; 0.47 seconds |
+| Native-required `renderer.contracts`, `renderer.graphics_capabilities`, `renderer.v2_gpu_driven` | 3/3 passed, 0 skips; Mesa lavapipe 24.0.5, Slang 2026.18; 0.19 seconds |
 | Changed Markdown/bilingual pairing, `git diff --check`, touched-file clang-format 18.1.8 check | Passed |
 
 The production-toolchain test initially failed because `clang++` was absent; after preparing
 Clang 19.1.7 the complete development suite passed. Tool dependencies were installed/extracted
 outside the repository; no project SDK baseline or optional feature defaults changed.
+
+The first Windows CI compile found a WinGDI `DeviceCapabilities` macro collision with the new
+snapshot type. The type is now `GraphicsDeviceCapabilities`; the capability regression test also
+loads Windows headers before the public RHI headers. This preserves the SDK macro for consumers
+rather than undefining it. The failure enum likewise uses `NoFailure` instead of X11's `None`,
+and Linux builds with Window enabled compile the admission header after Xlib. Final platform CI
+acceptance remains required for the corrected head.
 
 The native test uses Slang's existing `-target spirv -profile glsl_450
 -fvk-use-entrypoint-name` contract with `vertexMain`/`fragmentMain` and `computeMain` artifacts,

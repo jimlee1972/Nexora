@@ -309,7 +309,7 @@ public:
   ~VulkanDevice() override;
 
   Backend GetBackend() const noexcept override { return Backend::Vulkan; }
-  DeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
+  GraphicsDeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override;
   void DestroyTexture(TextureHandle texture) override;
   BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override;
@@ -357,7 +357,7 @@ private:
   VulkanFunctions functions_{};
   VkInstance instance_{VK_NULL_HANDLE};
   VkPhysicalDevice physical_device_{VK_NULL_HANDLE};
-  DeviceCapabilities capabilities_;
+  GraphicsDeviceCapabilities capabilities_;
   VkDevice device_{VK_NULL_HANDLE};
   VkQueue graphics_queue_{VK_NULL_HANDLE};
   std::uint32_t graphics_queue_family_{};

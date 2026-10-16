@@ -140,8 +140,8 @@ public:
   ~MetalDevice() override = default;
 
   Backend GetBackend() const noexcept override { return Backend::Metal; }
-  DeviceCapabilities Capabilities() const noexcept override {
-    DeviceCapabilities result;
+  GraphicsDeviceCapabilities Capabilities() const noexcept override {
+    GraphicsDeviceCapabilities result;
     result.backend = Backend::Metal;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})

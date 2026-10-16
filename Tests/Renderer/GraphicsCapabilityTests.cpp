@@ -1,5 +1,17 @@
-#include "Nexora/RHI/Capabilities.h"
+#if defined(_WIN32)
+// Exercise public headers after WinGDI's DeviceCapabilities macro has already been defined.
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+
 #include "Nexora/Renderer/PipelineCache.h"
+
+#if defined(NEXORA_TEST_X11_HEADERS)
+#include <X11/Xlib.h>
+#endif
+
+#include "Nexora/RHI/Capabilities.h"
 
 #include "../../Engine/RHI/src/D3D12CapabilityMapping.h"
 
@@ -61,7 +73,7 @@ void TestAdmissionAndFallback() {
 }
 
 void TestTiersAndShaderModels() {
-  DeviceCapabilities capabilities;
+  GraphicsDeviceCapabilities capabilities;
   auto &rt = capabilities.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
   rt = {CapabilitySupport::Supported, {1, 1}, true, true};
   Require(

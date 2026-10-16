@@ -68,8 +68,8 @@ private:
 class ValidationDevice final : public Device {
 public:
   Backend GetBackend() const noexcept override { return Backend::Null; }
-  DeviceCapabilities Capabilities() const noexcept override {
-    DeviceCapabilities result;
+  GraphicsDeviceCapabilities Capabilities() const noexcept override {
+    GraphicsDeviceCapabilities result;
     result.validation_only = true;
     result.software_device = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;

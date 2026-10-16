@@ -48,7 +48,7 @@ struct GraphicsFeatureCapability final {
   bool enabled{};
   bool implemented{};
 };
-struct DeviceCapabilities final {
+struct GraphicsDeviceCapabilities final {
   Backend backend{Backend::Null};
   bool validation_only{};
   bool software_device{};
