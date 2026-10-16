@@ -95,3 +95,27 @@ Each package includes a hashed `README.txt` with launch command/controls and exp
 prerequisites. Local validation of this CI/staging addition: workflow YAML parsing, all 16
 DocumentationCI routing tests, both product CTests and isolated Shipping CPU/native flow pass.
 No C++ runtime behavior or required-check protection changes in this addition.
+
+
+## Bounded Windows audio queue follow-up
+
+Source review during integration found the initial Windows sink waited for the block it had just
+submitted. Combined with an interactive host deriving samples from prior elapsed frame time,
+that adds audio wait to the next frame's audio duration. The current sink instead copies/submits
+through four fixed owned slots and waits only when reusing a pending slot. No hardware FPS gain
+is claimed. Queue ownership, PCM16 conversion, four submissions without waits, pending-data
+preservation, timeout, failed submit/retry and reset run through the same portable queue used by
+Windows in `runtime.gameplay_audio_queue`. Native headers/events remain Windows-owned and reset
+before buffers expire. Stop/pause/gain affect future blocks; output close drops queued tails.
+The C ABI and external sink signature are unchanged. The final post-queue full Development gate passes **313/313, zero failures/skips, 1025.73 seconds**.
+Full Shipping rebuild and isolated CPU/native product acceptance pass again. MinGW strictly
+cross-compiles the queued backend and links the Windows audio probe. The 17 CI cleanup guard
+cases and 16 documentation-routing cases pass. Physical Windows driver/latency/FPS/audibility
+remain unverified; none of these fake-device or software/null runs accepts them.
+
+
+The existing CI cleanup helper has a separate exact allowlist for this goal's
+`feat/twod-cooked-services` branch. It can cancel only superseded same-repository owner-actor runs;
+current-head push/PR runs, forks, contributors, other branches and ref-advancement races are kept.
+Tests exercise the actual cleanup helper with those guards. No required check is disabled, and
+no broader feature-branch policy or other-session allowlist is added by this goal.

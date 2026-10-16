@@ -65,3 +65,9 @@ DPI/display, clean Windows Runtime prerequisites and physical M6 performance rem
 or separate integration gates. M7 remains **PARTIAL / NOT ACCEPTED**; 9/11 (82%) is unchanged.
 
 Machine-readable observed outcomes: [acceptance.json](acceptance.json).
+
+
+The original single-buffer completion wait recorded above is superseded by the bounded queued
+submission follow-up in [cooked service integration](../Cooked-Services-Linux-2026-10-16/acceptance.md).
+Current Windows output owns four slots and waits only on reuse/backpressure. The original source
+record and its platform/audibility limits remain unchanged; it is not latency/performance evidence.

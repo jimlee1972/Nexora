@@ -294,3 +294,10 @@ Linux 軟體 Vulkan 像素／點擊／縮放與 Null 音訊，不代表 Windows 
 ✅ 保留證據包含 311/311 Development、獨立 Shipping、900 幀原生 UI／Sprite、
 滑鼠 Save／Open、實際文字像素、縮放及損毀／缺少資料拒絕。
 [驗收](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md)；參閱[工具契約](../../Tools/TwoD/README.md#integrated-cooked-service-validation)。
+
+✅ Windows 音訊後續改用四個擁有式 PCM Slot，只在重用待完成 Slot 時等待，不再等待剛提交的
+區塊。實際可攜佇列驗證複製生命週期、端點、背壓／逾時、不覆寫待處理資料與重設，移除 Host
+迴圈明確的逐塊等待回授；實體延遲／FPS／可聽驗收仍未通過。詳見上述證據。
+
+✅ 最終佇列整合 Gate：Linux Development 313/313、無失敗／略過；Shipping／獨立原生封裝
+及嚴格 Windows 交叉編譯通過。實體 Gate 與 82% 不變。

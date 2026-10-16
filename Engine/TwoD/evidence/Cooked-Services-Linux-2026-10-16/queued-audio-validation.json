@@ -1,0 +1,27 @@
+{
+  "full_development": {
+    "passed": 313,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 1025.73
+  },
+  "shipping_build": "PASS",
+  "isolated_shipping_cpu_native": "PASS",
+  "portable_queue_lifetime_backpressure_timeout": "PASS",
+  "windows_queued_backend_cross_compile": "PASS",
+  "windows_probe_cross_link": "PASS",
+  "ci_cleanup_guards": {
+    "passed": 17,
+    "failed": 0
+  },
+  "documentation_routing": {
+    "passed": 16,
+    "failed": 0
+  },
+  "physical_windows_device_latency_fps_audibility": "NOT RUN",
+  "source_sha256": {
+    "Engine/Runtime/src/GameplayAudio.cpp": "998ac6429b6b9ded0b2f6d8fbbc5563cb8382014956d7dbdf8f76c5b7e65ea4a",
+    "Engine/Runtime/src/GameplayAudioQueue.h": "994bb05be310700bffdb5faf4fb194d538ca00cf4cc6c123a3bde0c2227dbb7c",
+    "Tests/Runtime/GameplayAudioQueueTests.cpp": "94d6af8b1829eecd6c1abee3325fda1ee0af90391c892448b14288d8f20f0a0d"
+  }
+}

@@ -325,3 +325,11 @@ acceptance. M6/M7 remain open and **9/11 (82%)** is unchanged.
 ✅ Retained evidence covers 311/311 Development tests, isolated Shipping, 900 native UI/Sprite frames,
 mouse Save/Open, actual text pixels, resize and corrupt/missing-data rejection.
 [Acceptance](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md); see the [tool contract](../../Tools/TwoD/README.md#integrated-cooked-service-validation).
+
+✅ The Windows audio follow-up uses four owned PCM slots and waits on pending-slot reuse rather
+than on a newly submitted block. The actual portable queue verifies copy lifetime, endpoints,
+backpressure/timeout, no pending overwrite and reset. This removes the explicit per-block wait
+feedback in the host loop; physical latency/FPS/audibility remain unaccepted. See the linked evidence.
+
+✅ Final queued-audio integration gate: 313/313 Linux Development tests, zero failures/skips;
+Shipping/isolated native package and strict Windows cross-compilation pass. Physical gates and 82% are unchanged.
