@@ -9,6 +9,7 @@
 #include "Nexora/TwoD/GameplayBridge.h"
 #include "Nexora/TwoD/GameplayContent.h"
 #include "Nexora/TwoD/GameplayUi.h"
+#include "TwoDValidation.h"
 #include <array>
 #include <charconv>
 #include <chrono>
@@ -169,7 +170,7 @@ int main(int argc, char **argv) {
   try {
     bool native{}, interactive{}, requireMovement{}, audioOutput{};
     unsigned frames = 60;
-    std::string report, library, saveDirectory;
+    std::string report, library, saveDirectory, validationPackage;
     for (int i = 1; i < argc; ++i) {
       const std::string_view arg(argv[i]);
       if (arg == "--native")
@@ -182,10 +183,12 @@ int main(int argc, char **argv) {
       } else if (arg == "--require-movement")
         requireMovement = true;
       else if ((arg == "--frames" || arg == "--report" || arg == "--module" ||
-                arg == "--save-directory") &&
+                arg == "--save-directory" || arg == "--validation-package") &&
                i + 1 < argc) {
         const std::string_view value(argv[++i]);
-        if (arg == "--save-directory")
+        if (arg == "--validation-package")
+          validationPackage = value;
+        else if (arg == "--save-directory")
           saveDirectory = value;
         else if (arg == "--report")
           report = value;
@@ -204,6 +207,13 @@ int main(int argc, char **argv) {
     core::Engine engine;
     core::EngineConfiguration configuration;
     configuration.worker_count = 2;
+    const bool validation = !validationPackage.empty();
+    if (validation) {
+      Check(library.empty() && !saveDirectory.empty(),
+            "validation package requires the static sample and an explicit save directory");
+      validationPackage = std::filesystem::canonical(validationPackage).string();
+      configuration.content_root = validationPackage;
+    }
     engine.Initialize(configuration);
     runtime::World world(runtime::WorldKind::Play);
     const auto sceneId = world.LoadScene("Zig 2D");
@@ -224,6 +234,21 @@ int main(int argc, char **argv) {
     auto atlas = std::make_shared<const twod::Atlas>(std::move(*packed));
     auto clip = std::make_shared<const twod::Clip>(
         twod::Clip{{3, 4}, atlas->id, true, {{1, 0.1, "step"}, {2, 0.1, "step"}}});
+    if (validation) {
+      const auto cookedAtlas = twod_validation::Cook(*engine.Services().vfs, validationPackage,
+                                                     "assets/atlas.nxcook", "sprite_atlas");
+      const auto cookedClip = twod_validation::Cook(*engine.Services().vfs, validationPackage,
+                                                    "assets/clip.nxcook", "sprite_clip");
+      auto decodedAtlas = twod::DecodeAtlas(cookedAtlas.payload);
+      auto decodedClip = twod::DecodeClip(cookedClip.payload);
+      Check(decodedAtlas && decodedClip && decodedAtlas->id == twod::AssetId{1, 2} &&
+                decodedClip->id == twod::AssetId{3, 4} && cookedAtlas.id == decodedAtlas->id &&
+                cookedClip.id == decodedClip->id && cookedAtlas.dependencies.empty() &&
+                cookedClip.dependencies == std::vector<twod::AssetId>{decodedClip->atlas},
+            "validation cooked identity/dependency closure");
+      atlas = std::make_shared<const twod::Atlas>(std::move(*decodedAtlas));
+      clip = std::make_shared<const twod::Clip>(std::move(*decodedClip));
+    }
     twod::GameplayContent content;
     NexoraGameplayContentApiV1 contentApi{};
     contentApi.struct_size = sizeof(contentApi);
@@ -248,25 +273,36 @@ int main(int argc, char **argv) {
     services.content = contentApi;
     services.input = input.Api();
     services.audio = audio.Api();
-    const auto bindUi = [&](uint32_t action, uint32_t device, uint32_t control) {
+    const auto bind = [&](uint32_t action, uint32_t device, uint32_t control, float scale = 1.F,
+                          float deadzone = 0.F) {
       NexoraGameplayInputBindingV1 binding{};
       binding.struct_size = sizeof(binding);
       binding.abi_version = 1;
       binding.device = device;
       binding.control = control;
-      binding.scale = 1;
+      binding.scale = scale;
+      binding.deadzone = deadzone;
       Check(services.input.bind(services.input.context, 0, action, &binding) == 0, "UI binding");
     };
-    bindUi(253, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_DOWN_ARROW);
-    bindUi(253, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_TAB);
-    bindUi(254, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_UP_ARROW);
-    bindUi(255, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_ENTER);
-    bindUi(256, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_ESCAPE);
+    // Sample-host actions 250..256 can be rebound through the existing input service.
+    bind(250, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_D);
+    bind(250, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_A, -1);
+    bind(251, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_W);
+    bind(251, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_S, -1);
+    bind(252, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_SPACE);
+    bind(250, NEXORA_INPUT_DEVICE_GAMEPAD, 32, 1, .2F);
+    bind(251, NEXORA_INPUT_DEVICE_GAMEPAD, 33, -1, .2F);
+    bind(252, NEXORA_INPUT_DEVICE_GAMEPAD, 0);
+    bind(253, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_DOWN_ARROW);
+    bind(253, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_TAB);
+    bind(254, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_UP_ARROW);
+    bind(255, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_ENTER);
+    bind(256, NEXORA_INPUT_DEVICE_KEYBOARD, NEXORA_INPUT_KEY_ESCAPE);
     // Raw joystick button defaults are user-rebindable, rather than assuming a controller model.
-    bindUi(253, NEXORA_INPUT_DEVICE_GAMEPAD, 13);
-    bindUi(254, NEXORA_INPUT_DEVICE_GAMEPAD, 12);
-    bindUi(255, NEXORA_INPUT_DEVICE_GAMEPAD, 0);
-    bindUi(256, NEXORA_INPUT_DEVICE_GAMEPAD, 1);
+    bind(253, NEXORA_INPUT_DEVICE_GAMEPAD, 13);
+    bind(254, NEXORA_INPUT_DEVICE_GAMEPAD, 12);
+    bind(255, NEXORA_INPUT_DEVICE_GAMEPAD, 0);
+    bind(256, NEXORA_INPUT_DEVICE_GAMEPAD, 1);
     services.ui.struct_size = sizeof(services.ui);
     services.ui.abi_version = 1;
     Check(ui.GetApi(&services.ui) == 0, "UI service negotiation");
@@ -277,9 +313,22 @@ int main(int argc, char **argv) {
       services.storage.abi_version = 1;
       Check(storage->GetApi(services.storage) == 0, "storage service negotiation");
     }
+    if (validation) {
+      Check(ui.RegisterFont(twod_validation::Font()), "validation raster font");
+      const auto wave =
+          twod_validation::Read(*engine.Services().vfs, validationPackage, "assets/tone.wav");
+      Check(audio.RegisterWave(1, wave), "validation WAV admission");
+    }
     if (audioOutput) {
       std::string reason;
-      Check(audio.OpenDefaultOutput(reason), reason.c_str());
+      const bool opened = audio.OpenDefaultOutput(reason);
+      Check(opened, reason.c_str());
+      if (validation) {
+        const NexoraAudioPlayDesc desc{1, NEXORA_AUDIO_BUS_SFX, 1, 1};
+        std::uint64_t voice{};
+        Check(services.audio.play(services.audio.context, &desc, &voice) == 0,
+              "validation device audio play");
+      }
     }
     Context context{world, bridge, sceneId, services};
     runtime::GameplayModuleHost module(Host(context));
@@ -287,6 +336,23 @@ int main(int argc, char **argv) {
           "Zig module load");
     Check(scene.Sprites().size() == 1 && pool.Size() == 32, "Zig authored content");
     const auto entity = scene.Sprites().begin()->first;
+    const auto restorePosition = [&](const std::array<double, 2> &xy) {
+      twod_validation::Restore(world, entity, xy);
+      NexoraTwoDApiV1 api{};
+      api.struct_size = sizeof(api);
+      api.abi_version = 1;
+      Check(bridge.GetApi(&api) == 0 && api.rebuild_queries(api.context, 0) == 0,
+            "validation restored query snapshot");
+    };
+    double initialX{};
+    bool resumed{};
+    if (validation) {
+      if (const auto saved = twod_validation::Load(services.storage)) {
+        restorePosition(*saved);
+        initialX = (*saved)[0];
+        resumed = true;
+      }
+    }
     const twod::AtlasResolver resolver = [&content](auto id) { return content.ResolveAtlas(id); };
     Nexora::Presentation::RenderSurfaceResult surface;
     if (native) {
@@ -298,7 +364,9 @@ int main(int argc, char **argv) {
       Check(bool(surface), "native 2D surface");
     }
     std::array<bool, static_cast<std::size_t>(Nexora::Window::Key::F12) + 1> keys{};
-    unsigned rendered{}, movementFrames{};
+    unsigned rendered{}, movementFrames{}, uiFrames{}, assetReloads{};
+    std::uint64_t submittedAudioFrames{};
+    unsigned uiSaves{}, uiOpens{};
     std::size_t visible{};
     twod::FixedStepper step;
     auto lastTime = std::chrono::steady_clock::now();
@@ -363,14 +431,15 @@ int main(int argc, char **argv) {
         }
         Check(status == Nexora::Presentation::SurfaceStatus::Ready, "surface acquire");
       }
-      const auto pressed = [&](uint32_t action) {
+      const auto actionState = [&](uint32_t action) {
         NexoraGameplayActionStateV1 state{};
         state.struct_size = sizeof(state);
         state.abi_version = 1;
         Check(services.input.read_action(services.input.context, 0, action, &state) == 0,
               "UI action");
-        return state.pressed != 0;
+        return state;
       };
+      const auto pressed = [&](uint32_t action) { return actionState(action).pressed != 0; };
       uiInput.navigate = pressed(253) ? 1 : pressed(254) ? -1 : 0;
       uiInput.activate = pressed(255);
       uiInput.cancel = pressed(256);
@@ -379,11 +448,9 @@ int main(int argc, char **argv) {
       const auto held = [&](Nexora::Window::Key key) {
         return keys[static_cast<std::size_t>(key)] ? 1.0 : 0.0;
       };
-      context.input.move_x =
-          interactive ? held(Nexora::Window::Key::D) - held(Nexora::Window::Key::A) : 1.0;
-      context.input.move_y =
-          interactive ? held(Nexora::Window::Key::W) - held(Nexora::Window::Key::S) : 0.0;
-      context.input.buttons = held(Nexora::Window::Key::Space) != 0 ? 1U : 0U;
+      context.input.move_x = interactive ? actionState(250).value : 1.0;
+      context.input.move_y = interactive ? actionState(251).value : 0.0;
+      context.input.buttons = actionState(252).held ? 1U : 0U;
       if (context.input.move_x || context.input.move_y)
         ++movementFrames;
       const auto now = std::chrono::steady_clock::now();
@@ -402,9 +469,41 @@ int main(int argc, char **argv) {
               "Zig reload");
         Check(scene.Sprites().size() == 1 && pool.Size() == 32, "reload duplicated content");
         reloaded = true;
+        if (validation) {
+          const auto before = content.ResolveAtlas(atlas->id);
+          const auto reloadAtlas = twod_validation::Cook(*engine.Services().vfs, validationPackage,
+                                                         "assets/atlas.nxcook", "sprite_atlas");
+          Check(reloadAtlas.id == atlas->id && reloadAtlas.dependencies.empty(),
+                "validation cooked reload identity");
+          Check(contentApi.register_atlas(contentApi.context, reloadAtlas.payload.data(),
+                                          reloadAtlas.payload.size(), &assetHigh, &assetLow) == 0,
+                "validation cooked reload");
+          const auto after = content.ResolveAtlas(atlas->id);
+          Check(before && after && before->texture == after->texture &&
+                    before->atlas == after->atlas,
+                "identical cooked reload changed immutable generation");
+          ++assetReloads;
+        }
       }
       const auto width = native ? surface.surface->FrameInfo().width : 640U;
       const auto height = native ? surface.surface->FrameInfo().height : 480U;
+      if (validation) {
+        const auto buttons =
+            twod_validation::Draw(ui, static_cast<float>(width), static_cast<float>(height));
+        ++uiFrames;
+        if (buttons.save) {
+          const auto value = world.WorldTransform(entity);
+          Check(bool(value), "validation UI save entity");
+          twod_validation::Save(services.storage, value->x, value->y);
+          ++uiSaves;
+        }
+        if (buttons.open) {
+          if (const auto saved = twod_validation::Load(services.storage)) {
+            restorePosition(*saved);
+            ++uiOpens;
+          }
+        }
+      }
       const auto camera = bridge.RenderCamera(width, height);
       // One extraction preserves transparent sorting across entities, transient instances and
       // tiles.
@@ -443,6 +542,7 @@ int main(int argc, char **argv) {
           const auto count = static_cast<uint32_t>(std::min(audioFrames, 4096.0));
           Check(audio.Pump(count), "audio output");
           audioFrames -= count;
+          submittedAudioFrames += count;
         }
       }
       world.EndFrame();
@@ -456,9 +556,26 @@ int main(int argc, char **argv) {
     if (requireMovement)
       Check(movementFrames > 0 && transform->x > 0, "native keyboard did not move Zig entity");
     if (!interactive)
-      Check(std::abs(transform->x - double(frames) / 60) < 1e-9, "Zig Transform control");
+      Check(std::abs(transform->x - initialX - double(frames) / 60) < 1e-8,
+            "Zig Transform control");
     module.Unload();
     Check(context.allocated == context.freed, "Zig state allocation leak");
+    Check(services.audio.stop_all(services.audio.context) == 0, "audio voice shutdown");
+    audio.CloseOutput();
+    bool saveReopened{};
+    if (validation) {
+      twod_validation::Save(services.storage, transform->x, transform->y);
+      // Stop every module callback before invalidating its borrowed storage table.
+      services.storage = {};
+      storage.reset();
+      runtime::GameplayStorage reopened(saveDirectory, "nexora.zig.twod");
+      const auto saved = twod_validation::Load(twod_validation::Storage(reopened));
+      Check(saved && (*saved)[0] == transform->x && (*saved)[1] == transform->y,
+            "validation save/reopen after owner destruction");
+      saveReopened = true;
+    }
+    const auto finalWidth = native ? surface.surface->FrameInfo().width : 640U;
+    const auto finalHeight = native ? surface.surface->FrameInfo().height : 480U;
     const auto gpu =
         native ? surface.surface->Diagnostics() : Nexora::Presentation::SurfaceDiagnostics{};
     if (native)
@@ -472,11 +589,25 @@ int main(int argc, char **argv) {
         "{\"status\":\"PASS\",\"language\":\"Zig 0.14\",\"api\":1,\"native_frames\":" +
         std::to_string(rendered) + ",\"movement_frames\":" + std::to_string(movementFrames) +
         ",\"entity_x\":" + std::to_string(transform->x) +
+        ",\"final_width\":" + std::to_string(finalWidth) +
+        ",\"final_height\":" + std::to_string(finalHeight) +
+        ",\"native_ui_draws\":" + std::to_string(gpu.nativeUiDrawCalls) +
+        ",\"native_ui_texture_uploads\":" + std::to_string(gpu.nativeUiTextureUploads) +
+        ",\"resize_generations\":" + std::to_string(gpu.resizeGenerations) +
         ",\"sprite_instanced_draws\":" + std::to_string(gpu.spriteInstancedDrawCalls) +
         ",\"sprite_gpu_instances\":" + std::to_string(gpu.spriteGpuInstances) +
         ",\"sprite_instance_upload_bytes\":" + std::to_string(gpu.spriteInstanceUploadBytes) +
         ",\"visible\":" + std::to_string(visible) +
         ",\"reloaded\":" + (reloaded ? "true" : "false") +
+        ",\"validation_package\":" + (validation ? "true" : "false") +
+        ",\"resumed\":" + (resumed ? "true" : "false") +
+        ",\"initial_x\":" + std::to_string(initialX) +
+        ",\"ui_frames\":" + std::to_string(uiFrames) + ",\"ui_saves\":" + std::to_string(uiSaves) +
+        ",\"ui_opens\":" + std::to_string(uiOpens) +
+        ",\"cooked_reloads\":" + std::to_string(assetReloads) +
+        ",\"audio_submitted_frames\":" + std::to_string(submittedAudioFrames) +
+        ",\"save_reopened\":" + (saveReopened ? "true" : "false") +
+        ",\"audible_acceptance\":\"NOT VERIFIED\"" +
         ",\"allocations_balanced\":true,\"physical_windows\":\"NOT RUN\"}\n";
     if (!report.empty()) {
       std::ofstream file(report);

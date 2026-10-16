@@ -109,10 +109,54 @@ It links Runtime only and is included in Monolithic Shipping without Editor libr
 open/write failure exits nonzero. Frame count is 1..480000 at 48 kHz (default one second).
 The JSON reports device submission separately from `audible_acceptance: NOT VERIFIED`; a human
 must listen on the target device. No OS notification sound or null device counts as audible M7
-acceptance. The existing Zig 2D host's `--audio` uses this same backend, and still requires a
-module to register/play its WAV through the optional audio service.
+acceptance. The existing Zig 2D host's `--audio` uses this same backend. Ordinary modules
+register/play their WAV through the optional service; the explicit cooked validation mode below
+also provisions its supplied WAV in the host fixture.
 
 Linux `twod.audio_device_lifecycle` runs the actual ALSA adapter with a null output and an explicitly
 missing device, preserving JSON/stdout/stderr under `artifacts/twod-audio/`. This checks ownership,
 reopen and honest failure; it does not accept Windows playback or physical speakers. See the
 [device contract](../../Engine/Runtime/GameplayAudio.md).
+
+## Integrated cooked service validation
+
+Build the optional real Zig consumer with `NEXORA_ENABLE_ZIG_GAMEPLAY=ON` and Zig 0.14. Then stage
+an Editor-free Monolithic Shipping host and reproducible fixture assets:
+
+```bash
+python3 Tools/TwoD/StageProductValidation.py --runtime build/linux-shipping/Gameplay/Zig/NexoraZigTwoD --compiler build/linux-development/Tools/TwoD/NexoraTwoDAssetCompiler --output work/twod-product
+work/twod-product/NexoraZigTwoD --validation-package work/twod-product --save-directory work/twod-product-saves --audio --interactive
+```
+
+Use a fresh package output and dedicated writable save directory. Windows uses the corresponding
+Shipping EXE and requires `dumpbin` in the staging developer shell to check imports; the staged
+application does not require that tool. Linux staging checks `ldd`. Development copies with engine
+libraries are permitted only by the internal test helper and explicitly labeled as such. No Editor
+library may be admitted. The staging tool supports Linux and Windows; it preserves target OS runtime
+and driver prerequisites and does not claim a clean Windows run.
+
+`--validation-package` is an explicit static-sample fixture mode. Atlas/Clip IDs are fixed to
+`[1,2]`/`[3,4]`, with `step` animation events. Assets pass real PNG preparation, import/Cook and
+hash/type/identity/dependency checks before registration; the host reads Atlas, Clip and WAV through
+Core VFS asynchronous IO. Missing/invalid data fails instead of falling back to the startup fixture.
+The mode adds readable 5x7 ASCII fixture text, native SAVE/OPEN buttons and optional WAV device
+playback. It does not supply production fonts/art or CJK typography. `--audio` explicitly requests
+output; omitting it still validates WAV decoding without claiming device submission.
+
+Interactive movement uses the existing keyboard/gamepad action bridge. SAVE records the current
+fixture entity position; OPEN restores it and rebuilds the query snapshot. Startup resumes a valid
+existing slot. Orderly exit saves, stops module callbacks and audio voices/output, destroys the old
+storage owner, verifies a fresh-owner reopen, then drains the native surface before engine shutdown.
+The app's schema-1 save stores two finite bounded little-endian float64 X/Y values, never entity
+IDs, pool handles or pointers. This is fixture state, not a generic project export or complete scene
+save. Corrupt/foreign save data rejects without silent replacement. Immutable byte-identical cooked
+reload and module migration keep resource owners/IDs stable.
+
+`twod.cooked_product_services` stages a Development test copy, runs two separate processes and
+checks save/resume plus corrupt Cook, wrong asset type, missing asynchronous WAV and corrupt save
+rejection. Linux also uses ALSA null output. `twod.cooked_product_native` additionally checks actual
+Vulkan text pixels, native mouse SAVE/OPEN, keyboard movement, 900 UI/Sprite frames, window resize,
+audio submission and teardown. Reports/screenshots live under `artifacts/twod-product*/`. An
+isolated Shipping test uses `ProductAcceptance.py --shipping --native` with the same options.
+Software Vulkan, fixture text and null audio do not accept physical Windows devices, DPI/font
+appearance, minimum-PC performance or the full M7 target-host gate.

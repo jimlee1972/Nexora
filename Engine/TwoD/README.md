@@ -128,8 +128,12 @@ supersedes the older frozen VM package's native failure only for the newly hashe
 Separate Monolithic Development Studio also has human four-tab/text/preview and Save/Open evidence,
 independent read-only file checks and a repaired close-button path verified to exit 0. These are
 supporting authoring checks. M7 remains **PARTIAL / NOT ACCEPTED**: controller, audible device audio, integrated product/UI/text/
-save/shutdown, display/DPI and Windows Vulkan acceptance stay open. Existing Benchmark/Zig tools
-have no audible device output. Software VM rendering does not accept physical-PC performance.
+save/shutdown, display/DPI and Windows Vulkan acceptance stay open. The older Benchmark/VM Zig fixtures
+have no audible device output. The new explicit cooked-service validation mode is documented
+[with the tools](../../Tools/TwoD/README.md#integrated-cooked-service-validation): it combines
+cooked async Atlas/Clip/WAV, supplied ASCII fixture UI, native input and durable position-save/reopen
+in the existing real Zig host. Linux software Vulkan and null-audio submission remain separate from
+physical-device/audibility and Windows target-host acceptance. Software VM rendering does not accept physical-PC performance.
 The older physical developer-PC screening predates GPU instancing. Follow the
 [bilingual 2D roadmap](../../Roadmap/en/2D_Roadmap.md) and its linked acceptance evidence.
 

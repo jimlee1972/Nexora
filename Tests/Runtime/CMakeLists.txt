@@ -298,3 +298,8 @@ add_executable(NexoraGameplayStorageTests GameplayStorageTests.cpp)
 target_link_libraries(NexoraGameplayStorageTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayStorageTests)
 add_test(NAME runtime.gameplay_persistent_storage COMMAND NexoraGameplayStorageTests)
+
+add_executable(NexoraGameplayGamepadTests GameplayGamepadTests.cpp)
+target_link_libraries(NexoraGameplayGamepadTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayGamepadTests)
+add_test(NAME runtime.gameplay_gamepad_routing COMMAND NexoraGameplayGamepadTests)

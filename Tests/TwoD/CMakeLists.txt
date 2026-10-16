@@ -104,3 +104,18 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
       --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/twod-audio")
   set_tests_properties(twod.audio_device_lifecycle PROPERTIES TIMEOUT 30 LABELS "twod;audio")
 endif()
+
+if(TARGET NexoraZigTwoD AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+  add_test(NAME twod.cooked_product_services COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ProductAcceptance.py" --app "$<TARGET_FILE:NexoraZigTwoD>"
+    --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>"
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/twod-product")
+  set_tests_properties(twod.cooked_product_services PROPERTIES TIMEOUT 90 LABELS "twod;zig")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+    add_test(NAME twod.cooked_product_native COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/ProductAcceptance.py" --app "$<TARGET_FILE:NexoraZigTwoD>"
+      --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>" --native
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/twod-product-native")
+    set_tests_properties(twod.cooked_product_native PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77 LABELS "twod;zig;vulkan;virtual-display")
+  endif()
+endif()
