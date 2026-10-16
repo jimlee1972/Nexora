@@ -179,7 +179,8 @@ change retained pixels/Clips; Stop/reload policy and native texture retirement r
 `twod.project_play_assets` covers actual filesystem/sidecars and Runtime cooking, source and
 scope staleness, dependency/region rejection, exact byte/count budgets, alias rejection where the
 platform permits creating fixtures, pending publication and canonical gameplay consumption after
-all project/cook owners die. This supports main Editor integration; it does not attach the API,
+all project/cook owners die. The main Editor now consumes this capture at Play start; see the
+[host contract](../../Apps/Editor/README.md#optional-2d-services-in-project-play). This capture API itself does not attach the API,
 Play World, Game View or reload controls and accepts no enclosing milestone.
 
 ## External Chrome duration import

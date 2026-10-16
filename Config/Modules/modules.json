@@ -139,7 +139,8 @@
       "dependencies": [
         "Editor",
         "Runtime",
-        "Core"
+        "Core",
+        "TwoD"
       ]
     },
     {

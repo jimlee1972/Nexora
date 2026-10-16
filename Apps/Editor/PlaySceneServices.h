@@ -115,7 +115,8 @@ public:
       return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
     }
   }
-  int32_t Despawn(std::uint64_t entity) noexcept {
+  int32_t Despawn(std::uint64_t entity, void (*forget)(void *, runtime::Id) = nullptr,
+                  void *context = nullptr) noexcept {
     if (!world_)
       return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
     try {
@@ -124,6 +125,9 @@ public:
       if (!commands.Apply(*world_))
         return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
       const auto destroyed = commands.LastDestroyed();
+      if (forget)
+        for (const auto id : destroyed)
+          forget(context, id);
       for (std::size_t i = 0; i < collider_count_;) {
         if (std::ranges::find(destroyed, colliders_[i].entity) != destroyed.end())
           colliders_[i] = colliders_[--collider_count_];
