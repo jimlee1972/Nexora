@@ -255,3 +255,15 @@ StaticView adapter，不會宣告尚未支援的 UI／2D／content 服務。詳�
 
 此功能支援遊戲作者使用 Zig，未新增戰鬥規則或正式美術。M6／M7 與 82% 能力摘要維持不變：
 實體 Windows 效能、裝置音訊／手把、字型外觀、完整 2D 專案匯出與乾淨主機產品驗收仍是獨立關卡。
+
+## Windows Gameplay 音訊前置項（2026-10-16）
+
+`GameplayAudio` 除 ALSA／可攜 Host Sink，現另提供同步 Windows 預設裝置 waveOut Adapter。
+僅連結 Runtime 的 `NexoraTwoDAudioProbe` 提交低音量測試音、關閉／重新開啟裝置，並將輸出可用性
+與人工可聽驗收分開回報；可用於不含 Editor 的 Monolithic Shipping。既有 Zig Host 明確指定的
+`--audio` 路徑沿用此 Adapter；模組仍需自行註冊／播放 WAV，不新增遊戲規則。
+
+✅ Linux 完整 Gate（167 通過、三項無關 Vulkan 略過）、實際 ALSA Null／缺少裝置生命週期、
+Windows 交叉編譯／連結及獨立 Monolithic Shipping 檢查已通過。
+[保留證據](../../Engine/TwoD/evidence/Device-Audio-Linux-2026-10-16/acceptance.md)。Windows 原生播放／可聽音訊、手把、完整產品與顯示／DPI Gate 仍待完成；
+M6／M7 與 **9/11（82%）** 不變。參閱[音訊契約](../../Engine/Runtime/GameplayAudio.md)。

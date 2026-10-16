@@ -96,3 +96,11 @@ if(NEXORA_ZIG_EXECUTABLE)
     "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayContentLayout.zig"
     "-Mcontent=${PROJECT_SOURCE_DIR}/Bindings/Zig/content.zig" -lc)
 endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_test(NAME twod.audio_device_lifecycle
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AudioDeviceAcceptance.py"
+      --probe "$<TARGET_FILE:NexoraTwoDAudioProbe>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/twod-audio")
+  set_tests_properties(twod.audio_device_lifecycle PROPERTIES TIMEOUT 30 LABELS "twod;audio")
+endif()
