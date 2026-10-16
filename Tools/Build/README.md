@@ -160,3 +160,9 @@ Python `-O`. Record local overrides and original failures; CI retains all defaul
 `NEXORA_CAPTURE_TIMEOUT_SECONDS`，須為正且有限的秒數，預設 30，僅控制產生器 Child 的
 期限；Schema／精度／無效資料拒絕檢查照常執行，包含 Python `-O`。須記錄本機 Override
 與原始失敗；CI 維持所有預設。
+
+
+The exact session-owned `feat/twod-cooked-services` branch uses the existing stale-run cleanup
+with a separate one-branch allowlist. Only repository-owner runs at superseded SHAs are eligible;
+current-head push/PR runs, contributor actors, forks, other branches and a branch that advances
+during inspection are retained. This does not change required checks or general branch policies.

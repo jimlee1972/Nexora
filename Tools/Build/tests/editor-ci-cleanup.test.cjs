@@ -118,3 +118,29 @@ test('published placement and cleanup branches trigger the same guarded exact gr
     await cleanup(f); assert.deepEqual(f.cancelled, [1, 2]);
   }
 });
+
+
+const twoDBranch = 'feat/twod-cooked-services';
+test('2D goal cancels only obsolete owner runs on its exact branch', async () => {
+  const f = fixture({current: twoDBranch, target: twoDBranch, actorRuns: true});
+  await cleanup(f);
+  assert.deepEqual(f.cancelled, [1, 2]);
+  assert(f.calls.every(([, args]) => !args.ref || args.ref === `heads/${twoDBranch}`));
+  assert(f.calls.every(([, args]) => !args.branch || args.branch === twoDBranch));
+});
+test('2D cleanup excludes contributors, forks and similarly named branches', async () => {
+  const cases = [
+    fixture({current: twoDBranch, actor: 'contributor'}),
+    fixture({pull: {head: {ref: twoDBranch, repo: {full_name: 'foreign/Nexora'}}}}),
+    fixture({current: `${twoDBranch}-other`}),
+  ];
+  for (const f of cases) {
+    await cleanup(f);
+    assert.deepEqual(f.calls, []);
+  }
+});
+test('2D branch advancement preserves every remaining run', async () => {
+  const f = fixture({current: twoDBranch, target: twoDBranch, advance: true});
+  await cleanup(f);
+  assert.deepEqual(f.cancelled, []);
+});

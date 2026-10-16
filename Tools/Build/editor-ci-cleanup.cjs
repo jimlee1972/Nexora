@@ -35,6 +35,9 @@ const currentSessionBranches = Object.freeze([
   'fix/editor-ci-cleanup-current-session-20261010',
 ]);
 
+// This 2D goal owns exactly this branch; no similarly named or other-session work is included.
+const twoDSessionBranches = Object.freeze(['feat/twod-cooked-services']);
+
 async function cleanup({github, context, core}) {
   const {owner, repo} = context.repo;
   const repository = `${owner}/${repo}`;
@@ -42,8 +45,10 @@ async function cleanup({github, context, core}) {
   if (pull && pull.head?.repo?.full_name !== repository) return;
   const branch = pull?.head?.ref || context.ref.replace(/^refs\/heads\//, '');
   const currentSession = currentSessionBranches.includes(branch);
-  if (currentSession && (!context.actor || context.actor !== owner)) return;
-  const branches = currentSession ? currentSessionBranches :
+  const twoDSession = twoDSessionBranches.includes(branch);
+  const ownerSession = currentSession || twoDSession;
+  if (ownerSession && (!context.actor || context.actor !== owner)) return;
+  const branches = twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
     sessionBranches.includes(branch) ? sessionBranches :
     branch.startsWith('codex/ed-m0-') ? legacyBranches : [];
   for (const candidate of branches) {
@@ -55,7 +60,7 @@ async function cleanup({github, context, core}) {
       for (const run of runs) {
         if (!['queued', 'in_progress'].includes(run.status) ||
             run.head_branch !== candidate || run.head_repository?.full_name !== repository ||
-            (currentSession && run.actor?.login !== context.actor) ||
+            (ownerSession && run.actor?.login !== context.actor) ||
             run.head_sha === head || run.id === context.runId) continue;
         const current = await github.rest.git.getRef({owner, repo, ref: `heads/${candidate}`});
         if (current.data.object.sha !== head) {
