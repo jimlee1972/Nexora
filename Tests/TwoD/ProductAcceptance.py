@@ -4,12 +4,15 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
+import zlib
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('product_stage', ROOT / 'Tools/TwoD/StageProductValidation.py')
@@ -105,6 +108,24 @@ def main():
     print(json.dumps(results))
 
 
+def saved_position(path):
+    """Observe a complete native SAVE publication, using the existing schema-1 envelope."""
+    if not path.exists():
+        return None
+    data = path.read_bytes()
+    assert len(data) >= 28 and data[:8] == b'NXSAVE\x01\x00', 'invalid native save envelope'
+    schema, scope_size, key_size, payload_size = struct.unpack_from('<4I', data, 8)
+    assert schema == 1 and payload_size == 16, 'invalid native position schema'
+    assert len(data) == 28 + scope_size + key_size + payload_size, 'invalid native save size'
+    assert (zlib.crc32(data[:-4]) == struct.unpack_from('<I', data, len(data) - 4)[0]), \
+        'invalid native save checksum'
+    offset = 24 + scope_size
+    assert data[offset:offset + key_size] == b'position', 'invalid native save key'
+    position = struct.unpack_from('<2d', data, offset + key_size)
+    assert all(math.isfinite(v) and abs(v) <= 1e6 for v in position), 'invalid native position'
+    return position
+
+
 def native(app, compiler, package, base_env, audio):
     # Reuse existing native screenshot/display helpers, not a second graphics test backend.
     sys.path.insert(0, str(ROOT / 'Tests/Showcase'))
@@ -152,17 +173,31 @@ def native(app, compiler, package, base_env, audio):
                 break
             assert time.monotonic() < deadline, 'native supplied 2 glyph mismatch'
             time.sleep(.02)
-        send('windowfocus', '--sync', window)
-        send('keydown', 'd')  # XTEST input goes to the focused, already-presenting window.
-        time.sleep(.15)
-        for x in (200, 280):  # SAVE then OPEN, each with distinct native press/release frames.
-            send('mousemove', '--window', window, str(x), '20')
+        # A visible glyph does not acknowledge keyboard input or a completed simulation tick.
+        # Observe real native movement through SAVE before OPEN can restore a zero position.
+        # Re-focus and pulse XTEST input within a bounded wait if startup focus consumed a press.
+        deadline = time.monotonic() + 5
+        saved = None
+        while saved is None or saved[0] <= 0:
+            assert process.poll() is None, 'native product exited before movement/save acknowledgement'
+            assert time.monotonic() < deadline, 'native movement/save acknowledgement timed out'
+            send('windowfocus', '--sync', window)
+            send('keyup', 'd')
+            send('keydown', 'd')
+            time.sleep(.05)
+            send('mousemove', '--window', window, '200', '20')
             send('mousedown', '1')
             time.sleep(.08)
             send('mouseup', '1')
             time.sleep(.08)
-        send('windowsize', window, '800', '600')
+            saved = saved_position(package / 'native-saves/position.nxsav')
         send('keyup', 'd')
+        send('mousemove', '--window', window, '280', '20')
+        send('mousedown', '1')
+        time.sleep(.08)
+        send('mouseup', '1')
+        time.sleep(.08)
+        send('windowsize', window, '800', '600')
         stdout, stderr = process.communicate(timeout=35)
         (package / 'native.log').write_text(stdout + stderr, encoding='utf-8')
         assert process.returncode == 0, stderr
@@ -170,15 +205,20 @@ def native(app, compiler, package, base_env, audio):
         assert value['native_frames'] == 900 and value['ui_frames'] == 900
         assert value['native_ui_draws'] >= 900 * 4 and value['native_ui_texture_uploads'] >= 2
         assert value['resize_generations'] >= 1 and value['entity_x'] > 0
+        assert abs(value['entity_x'] - saved[0]) < 1e-5, \
+            'native OPEN did not restore the acknowledged SAVE'
         assert value['final_width'] == 800 and value['final_height'] == 600
         assert value['ui_saves'] > 0 and value['ui_opens'] > 0 and value['save_reopened']
         assert value['audio_submitted_frames'] > 0 and value['cooked_reloads'] == 1
         assert value['audible_acceptance'] == 'NOT VERIFIED' and value['physical_windows'] == 'NOT RUN'
         return value
     finally:
-        if process and process.poll() is None:
-            process.kill()
-            process.communicate(timeout=3)
+        if process:
+            if process.poll() is None:
+                process.kill()
+            # Retain the host's own failure evidence even when an acknowledgement wait fails.
+            stdout, stderr = process.communicate(timeout=3)
+            (package / 'native.log').write_text(stdout + stderr, encoding='utf-8')
         server.terminate()
         server.communicate(timeout=3)
         if old_display is None:

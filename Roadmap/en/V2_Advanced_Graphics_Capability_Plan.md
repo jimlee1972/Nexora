@@ -22,6 +22,42 @@ integration, CPU/GPU benchmarks and all V2-GFX-2 through
 V2-GFX-5 native execution remain open. No native advanced feature is marked complete by admission
 tests or device hardware queries.
 
+✅ Vulkan compute descriptor isolation is the next delivered prerequisite: command-list-owned
+pools and immutable per-dispatch binding snapshots replace the shared mutable device set.
+The native test compares 320 unique workloads in serial/four-worker recording modes, including
+40 dispatches per list (crossing the 32-set pool boundary), final binding without dispatch,
+reverse ordered submission after all workers join, completion-before-destruction and missing/stale
+binding rejection. All output identities, classification data and indirect draw prefixes match
+CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
+RenderGraph scheduling and other backend worker ownership are not complete.
+
+### Descriptor isolation evidence — 2026-10-16
+
+Source branch: `feat/v2-parallel-command-recording`, based on merged capability foundation `4972c14b`.
+Beads: `nexora-45y.2.1`; parent `nexora-45y.2` remains open.
+The Linux native-required command is
+`ctest --preset linux-development -R '^renderer\.(vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven)$' --output-on-failure`
+with the same Slang 2026.18 artifacts and Mesa lavapipe 24.0.5 environment described below.
+All four tests passed with zero skips (0.82 seconds); descriptor isolation took 0.27 seconds.
+The full `cmake --preset linux-development`, `cmake --build --preset linux-development --parallel 4`
+and `ctest --preset linux-development --output-on-failure` gate passed: 171 passed, 4 explicit
+skips (three display tests plus this native test without artifacts), 175 total, 77.42 seconds.
+The separate native-required run above executes the isolation test without skipping.
+This is software-device correctness evidence, not a CPU-overhead or physical-GPU performance claim.
+No Vulkan validation layer is installed locally; GPU validation and target-host gates remain open.
+No SDK/compiler baseline or feature default changed. Pools currently retire with the single-use
+list after synchronous native fence completion; asynchronous worker reuse remains a separate gate.
+
+The initial hosted Linux push gate exposed an independent 2D native input timing assumption:
+341/342 passed twice, with the new descriptor test passing each time; the identical PR head's
+Linux gate passed. The product driver now waits for real movement and a checksum-valid SAVE
+before OPEN, rather than inferring movement from a fixed delay. Five corrected native runs,
+a missed-first-input recovery, an all-input-missing rejection and the local Zig-enabled full
+**190/190 gate (zero skips/failures, 135.96 seconds)** pass. This retains all original native
+assertions and adds exact restore comparison. See the
+[2D acceptance follow-up](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md#movement-and-save-acknowledgement-follow-up).
+Final hosted CI is still required for the corrected head.
+
 ### Acceptance evidence — 2026-10-16
 
 Source branch: `feat/v2-graphics-capabilities`, based on `5f3da989`.
