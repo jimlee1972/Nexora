@@ -42,6 +42,14 @@ Beads：`nexora-45y.2.1`；父任務 `nexora-45y.2` 維持待完成。
 未調整 SDK／compiler 基線或 feature 預設值。Pool 目前隨單次使用的 List，在同步 native fence
 完成後回收；非同步 worker 重用仍屬獨立 gate。
 
+初次 hosted Linux push gate 發現獨立的 2D 原生輸入時序假設：兩次皆為 341/342 通過，
+本次新增 Descriptor 測試均成功；相同 PR head 的 Linux gate 則通過。Product driver 現在
+先確認真實位移及 checksum 正確的 SAVE，才執行 OPEN，不再從固定延遲推定位移。
+修正後五次原生驗收、第一次輸入未送達的恢復、所有輸入未送達的拒絕，以及本機啟用 Zig 的
+**190/190 完整 gate（無略過／失敗、135.96 秒）**均通過；保留原有 native 斷言並新增
+精確還原比對。詳見 [2D 驗收修正](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md#movement-and-save-acknowledgement-follow-up)。
+修正後 head 仍須通過最終 hosted CI。
+
 ### 驗收證據 — 2026-10-16
 
 來源 branch：`feat/v2-graphics-capabilities`，基於 `5f3da989`。

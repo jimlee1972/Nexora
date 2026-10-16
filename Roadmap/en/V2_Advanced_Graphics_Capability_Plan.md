@@ -48,6 +48,16 @@ No Vulkan validation layer is installed locally; GPU validation and target-host 
 No SDK/compiler baseline or feature default changed. Pools currently retire with the single-use
 list after synchronous native fence completion; asynchronous worker reuse remains a separate gate.
 
+The initial hosted Linux push gate exposed an independent 2D native input timing assumption:
+341/342 passed twice, with the new descriptor test passing each time; the identical PR head's
+Linux gate passed. The product driver now waits for real movement and a checksum-valid SAVE
+before OPEN, rather than inferring movement from a fixed delay. Five corrected native runs,
+a missed-first-input recovery, an all-input-missing rejection and the local Zig-enabled full
+**190/190 gate (zero skips/failures, 135.96 seconds)** pass. This retains all original native
+assertions and adds exact restore comparison. See the
+[2D acceptance follow-up](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md#movement-and-save-acknowledgement-follow-up).
+Final hosted CI is still required for the corrected head.
+
 ### Acceptance evidence — 2026-10-16
 
 Source branch: `feat/v2-graphics-capabilities`, based on `5f3da989`.
