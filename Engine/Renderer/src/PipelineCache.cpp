@@ -11,8 +11,8 @@
 namespace nexora::renderer {
 PipelineCacheKey MakePipelineCacheKey(const rhi::PipelineDescriptor &descriptor,
                                       std::uint64_t shader_generation) noexcept {
-  return {descriptor.layout_hash, descriptor.shader_hash, shader_generation,
-          descriptor.color_format, descriptor.type};
+  return {descriptor.layout_hash,  descriptor.shader_hash, shader_generation,
+          descriptor.color_format, descriptor.type,        descriptor.graphics_requirements};
 }
 struct PipelineFuture::State final {
   std::atomic_bool ready{false};
@@ -51,6 +51,13 @@ struct PipelineCache::Implementation final {
       hash ^=
           static_cast<std::size_t>(key.color_format) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       hash ^= static_cast<std::size_t>(key.type) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
+      const auto mix_version = [&hash](rhi::FeatureVersion version) {
+        const auto value = (static_cast<std::size_t>(version.major) << 16U) | version.minor;
+        hash ^= value + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
+      };
+      for (const auto version : key.graphics_requirements.minimum_tiers)
+        mix_version(version);
+      mix_version(key.graphics_requirements.minimum_dxil_shader_model);
       return hash;
     }
   };

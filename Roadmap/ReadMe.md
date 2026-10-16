@@ -50,6 +50,11 @@ V2 final acceptance additionally requires all five gates.
 Work Graphs 與新 Shader profile。既有 46% 為原始 6/13 里程碑比例，未計入本次擴充；
 V2 最終驗收另須通過全部五個 gate。
 
+✅ V2-GFX-1 capability admission foundation / 能力檢查基礎（2026-10-16）：portable tests and
+Linux native Vulkan admission passed; parallel recording and the five full graphics gates remain
+open. See the paired graphics plans above for retained evidence. Portable 測試與 Linux native
+Vulkan 能力檢查已通過；平行錄製與五個完整圖形 gate 仍待完成，驗收證據見上述雙語計畫。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

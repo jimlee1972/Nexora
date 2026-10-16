@@ -1,5 +1,16 @@
 # Nexora rendering contracts (V1-M2 / V1-M3 / V2-M2 / V2-M3)
 
+## V2-GFX pipeline admission
+
+Pipeline cache keys now include all per-feature minimum tiers and the minimum DXIL device Shader
+Model from `PipelineDescriptor::graphics_requirements`, in addition to the existing complete
+layout/shader/generation/format/type identity. Failed capability admission remains a failed future;
+it cannot alias a successfully cached baseline PSO. Default requirements preserve existing callers.
+The RHI's explicit `SelectGraphicsPath` policy evaluates preferred and fallback requirement sets
+without running callbacks or substituting shaders. Renderer callers own the chosen variant and its
+artifact validation. RenderGraph scheduling, native barriers, descriptor ownership and submission
+lifetimes are unchanged by this capability foundation; parallel recording remains a separate gate.
+
 ## Dedicated 2D extraction
 
 ✅ The optional [TwoD module](../TwoD/README.md) extracts existing World affine poses through a

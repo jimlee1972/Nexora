@@ -5,7 +5,10 @@
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 
+#include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
+
+#include "D3D12CapabilityMapping.h"
 
 #include <d3d12.h>
 #include <d3dcompiler.h>
@@ -28,6 +31,98 @@
 namespace nexora::rhi {
 namespace {
 using Microsoft::WRL::ComPtr;
+
+// Failure to query an optional feature leaves it Unknown, not Unsupported. In particular an old
+// SDK/runtime must not turn missing declarations or E_INVALIDARG into a hardware diagnosis.
+GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1 &adapter) {
+  GraphicsDeviceCapabilities result;
+  result.backend = Backend::Direct3D12;
+  DXGI_ADAPTER_DESC1 identity{};
+  if (SUCCEEDED(adapter.GetDesc1(&identity))) {
+    result.software_device = (identity.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
+    result.vendor_id = identity.VendorId;
+    result.device_id = identity.DeviceId;
+  }
+  LARGE_INTEGER driver{};
+  if (SUCCEEDED(adapter.CheckInterfaceSupport(__uuidof(IDXGIDevice), &driver)))
+    result.driver_version = static_cast<std::uint64_t>(driver.QuadPart);
+  const auto report = [&result](GraphicsFeature feature, FeatureVersion tier, bool enabled = false,
+                                bool implemented = false) {
+    result.features[static_cast<std::size_t>(feature)] = {
+        tier == FeatureVersion{} ? CapabilitySupport::Unsupported : CapabilitySupport::Supported,
+        tier, enabled, implemented};
+  };
+  const auto report_native_tier = [&report](GraphicsFeature feature, std::uint32_t native_tier) {
+    if (const auto tier = detail::DecodeD3D12Tier(feature, native_tier))
+      report(feature, *tier);
+  };
+  report(GraphicsFeature::Compute, {1, 0}, true, true);
+  report(GraphicsFeature::IndirectDraw, {1, 0}, true, true);
+  // Creation requires feature level 11_0, which provides hull/domain hardware support.
+  report(GraphicsFeature::Tessellation, {1, 0}, true);
+  report(GraphicsFeature::ParallelCommandRecording, {1, 0});
+
+  // Numeric query values allow older SDK builds to query a newer runtime without referencing
+  // newer compiler enums. Retry lower known models when the runtime rejects a newer query.
+  constexpr unsigned shader_models[]{0x6a, 0x69, 0x68, 0x67, 0x66, 0x65,
+                                     0x64, 0x63, 0x62, 0x61, 0x60, 0x51};
+  for (const auto requested : shader_models) {
+    D3D12_FEATURE_DATA_SHADER_MODEL model{static_cast<D3D_SHADER_MODEL>(requested)};
+    if (SUCCEEDED(device.CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &model, sizeof(model)))) {
+      const auto actual = static_cast<unsigned>(model.HighestShaderModel);
+      if (actual >= 0x51 && actual <= requested) {
+        result.dxil_shader_model_support =
+            actual >= 0x60 ? CapabilitySupport::Supported : CapabilitySupport::Unsupported;
+        if (actual >= 0x60)
+          result.highest_dxil_shader_model = {static_cast<std::uint16_t>(actual >> 4U),
+                                              static_cast<std::uint16_t>(actual & 0xfU)};
+      }
+      break;
+    }
+  }
+#if defined(__ID3D12Device5_INTERFACE_DEFINED__)
+  D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5{};
+  if (SUCCEEDED(
+          device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5)))) {
+    report_native_tier(GraphicsFeature::RayTracing,
+                       static_cast<std::uint32_t>(options5.RaytracingTier));
+  }
+#endif
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+  D3D12_FEATURE_DATA_D3D12_OPTIONS6 options6{};
+  if (SUCCEEDED(
+          device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, sizeof(options6))))
+    report_native_tier(GraphicsFeature::VariableRateShading,
+                       static_cast<std::uint32_t>(options6.VariableShadingRateTier));
+#endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__)
+  D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7{};
+  if (SUCCEEDED(
+          device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7)))) {
+    report_native_tier(GraphicsFeature::MeshShader,
+                       static_cast<std::uint32_t>(options7.MeshShaderTier));
+    report_native_tier(GraphicsFeature::SamplerFeedback,
+                       static_cast<std::uint32_t>(options7.SamplerFeedbackTier));
+  }
+#endif
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  D3D12_FEATURE_DATA_D3D12_OPTIONS12 options12{};
+  if (SUCCEEDED(
+          device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, &options12, sizeof(options12))))
+    report(GraphicsFeature::EnhancedBarriers,
+           options12.EnhancedBarriersSupported ? FeatureVersion{1, 0} : FeatureVersion{});
+#endif
+#if defined(__ID3D12GraphicsCommandList10_INTERFACE_DEFINED__)
+  D3D12_FEATURE_DATA_D3D12_OPTIONS21 options21{};
+  if (SUCCEEDED(device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS21, &options21,
+                                           sizeof(options21)))) {
+    report_native_tier(GraphicsFeature::WorkGraphs,
+                       static_cast<std::uint32_t>(options21.WorkGraphsTier));
+  }
+#endif
+  // Ray-tracing tier or SM 6.9 alone does not prove an implemented/enabled SER path.
+  return result;
+}
 
 [[noreturn]] void ThrowHResult(HRESULT result, const char *operation) {
   throw std::runtime_error(std::string(operation) + " failed with HRESULT " +
@@ -218,6 +313,7 @@ public:
             "D3D12CreateDevice(WARP)");
     }
 
+    capabilities_ = QueryCapabilities(*device_.Get(), *selected.Get());
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     Check(device_->CreateCommandQueue(&queue_description, IID_PPV_ARGS(&queue_)),
@@ -267,6 +363,7 @@ public:
   }
 
   Backend GetBackend() const noexcept override { return Backend::Direct3D12; }
+  GraphicsDeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
 
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override {
     if (descriptor.width == 0 || descriptor.height == 0)
@@ -385,6 +482,7 @@ public:
   }
 
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
+    RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
       throw std::invalid_argument("pipeline hashes must be non-zero");
     PipelineRecord record;
@@ -678,6 +776,7 @@ private:
       throw std::runtime_error("WaitForSingleObject failed for D3D12 fence");
   }
 
+  GraphicsDeviceCapabilities capabilities_;
   ComPtr<ID3D12Device> device_;
   ComPtr<ID3D12CommandQueue> queue_;
   ComPtr<ID3D12DescriptorHeap> rtv_heap_;

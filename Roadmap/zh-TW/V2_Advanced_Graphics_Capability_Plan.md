@@ -1,10 +1,61 @@
 # V2 進階圖形能力計畫
 
-狀態：規劃中；以下 V2-GFX gate 全部待完成。新增日期：2026-10-16。
+狀態：V2-GFX-1 施工中；能力檢查基礎已通過 Linux 驗證。五個完整 gate 仍全部待完成。
+新增日期：2026-10-16。
 
 本文件為 V2 完整規劃與 AI 施工規劃共同採用的規範性範圍擴充，將尚缺的 DirectX 世代
 渲染能力納入 V2 交付。V3 可延伸這些系統，但不再是首次交付目標。本文件規劃後續實作，
-不宣稱已有原生支援，亦不直接變更目前的 RHI contract。
+不宣稱規劃中的原生路徑已可用；已交付的 contract 變更另記錄如下。
+
+## V2-GFX-1 施工狀態
+
+✅ 能力檢查為第一個已交付的 portable／Linux 實作切片：獨立記錄裝置支援／tier、啟用狀態與後端實作的 snapshot；
+有 SDK guard 的 DX12 feature／Shader Model 查詢；Vulkan 核心能力偵測；明確的優先／
+fallback 選擇；PSO 建立前檢查；以及納入完整能力要求的 PSO cache identity。未知支援
+一律拒絕啟用，數字版本可區分 SM 6.10 與 6.9，native feedback tier 90／100 對應 0.9／1.0。
+
+平行錄製、依 fence 回收的 worker descriptor／allocator、compiler／
+artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執行仍待完成。
+能力檢查測試或裝置硬體查詢不構成任何原生進階功能完成的證據。
+
+### 驗收證據 — 2026-10-16
+
+來源 branch：`feat/v2-graphics-capabilities`，基於 `5f3da989`。
+Beads：`nexora-45y.1`；剩餘執行 gate 為 `nexora-45y.2`～`nexora-45y.6`。
+
+| 命令／檢查 | 實際結果 |
+| --- | --- |
+| `cmake --preset linux-development` | 通過；GNU 14.2、CMake 3.31.6、Ninja 1.11.1；本機 cache 指定隔離的 X11 development prefix |
+| `cmake --build --preset linux-development --parallel 4` | 通過，包含原生 Vulkan 原始碼及新增能力測試 |
+| `ctest --preset linux-development` | 0 失敗：171 通過、3 個依賴顯示環境的 native Presentation 測試略過，共 174 項；75.62 秒 |
+| `cmake --preset linux-shipping` 與 `cmake --build --preset linux-shipping --parallel 3` | 通過，Monolithic／Minimal 並啟用 LTO |
+| 要求 native 的 `renderer.contracts`、`renderer.graphics_capabilities`、`renderer.v2_gpu_driven` | 3/3 通過，0 略過；Mesa lavapipe 24.0.5、Slang 2026.18；0.19 秒 |
+| 變更 Markdown／雙語配對、`git diff --check`、異動檔案 clang-format 18.1.8 檢查 | 通過 |
+
+Production toolchain 測試起初因環境缺少 `clang++` 失敗；準備 Clang 19.1.7 後，完整
+development 測試已通過。工具相依安裝／解壓於 repo 外，未調整專案 SDK 基線或 optional
+feature 預設值。
+
+首次 Windows CI 編譯發現新 snapshot 型別與 WinGDI 的 `DeviceCapabilities` 巨集撞名。
+型別已改為 `GraphicsDeviceCapabilities`，能力回歸測試也會先載入 Windows 標頭再載入
+公開 RHI 標頭。此修正保留 consumer 的 SDK 巨集，不採 undef 處理；失敗 enum 也使用
+`NoFailure`，避開 X11 的 `None`，Linux 啟用 Window 時會在 Xlib 後編譯能力檢查標頭。
+修正後 head 仍須通過最終平台 CI 驗收。
+
+原生測試沿用 Slang 的 `-target spirv -profile glsl_450 -fvk-use-entrypoint-name` contract，
+產生 `vertexMain`／`fragmentMain` 與 `computeMain` artifact，設定
+`NEXORA_REQUIRE_NATIVE_BACKENDS=1`、兩個 `NEXORA_SLANG_*SPIRV_PATH` 變數與 lavapipe ICD，
+執行 `ctest --preset linux-development -R '^renderer\.(contracts|graphics_capabilities|v2_gpu_driven)$' -V`。
+保留的能力輸出為 Vulkan backend、software device、vendor 65541、device 0、driver 1；
+Compute／Indirect 在 1.0 支援、已啟用且已實作。平行錄製與 Tessellation 回報支援 1.0，
+但未實作／啟用；其他進階能力維持 unknown 且不可用。Pipeline 檢查會在配置 native PSO 前
+拒絕所有尚未實作的進階路徑；既有完整 GPU-driven 參考比對仍通過。
+
+Portable 測試另覆蓋獨立 tier 編碼（含 feedback 90／100 與 DXR 1.2）、未知／不支援／
+停用／未實作的拒絕結果、明確 fallback 耗盡、SM 6.10 比較，以及已快取的基線 PSO
+不能放行進階要求。本 Linux 環境未產生 Windows／Apple native 執行結果或實體 GPU 效能
+證據，既有平台 CI／target-host gate 仍須完成。環境原有 SwiftShader 因缺少既有 Vulkan
+基線能力而被拒絕，未為取得通過結果而放寬要求。
 
 ## 基線與範圍
 
@@ -20,7 +71,7 @@ DX12 Ultimate 或更新 Shader 功能的驗收。
 
 ## 交付 Gate
 
-所有項目均為**規劃中**，包含依能力啟用的路徑。Runtime fallback 能讓裝置繼續執行，
+所有完整 gate 仍為**待完成**，包含依能力啟用的路徑。Runtime fallback 能讓裝置繼續執行，
 但不能取代加速路徑的實作或 target-host 驗收。
 
 | Gate | V2 預定工作 | 相依 | 驗收與 Fallback |

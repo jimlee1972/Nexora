@@ -1,5 +1,45 @@
 # Nexora RHI contracts (V1-M2)
 
+## V2-GFX capability admission foundation
+
+`Device::Capabilities()` returns an owning construction-time snapshot without recording or
+submitting work. Each feature independently records device/driver support (`Unknown`, `Unsupported`,
+`Supported`), its portable numeric tier, whether it is enabled on this device and whether the
+backend implements its execution path. Missing SDK queries, failed optional queries and unknown
+native tier values remain `Unknown`; they must not be diagnosed as unsupported hardware.
+`validation_only` distinguishes the synthetic validation model from native API execution;
+`software_device` identifies the validation model and native software adapters such as WARP/CPU
+Vulkan. Adapter vendor/device and the opaque backend driver identifier are diagnostic metadata.
+
+DX12 queries available RT, VRS, mesh, sampler-feedback, Enhanced Barrier and Work Graph tiers with
+SDK guards, plus the highest device Shader Model by retrying known query values through 6.10.
+Feedback's native 90/100 values map to portable 0.9/1.0; they are not tiers 9.0/10.0. Vulkan reports
+the selected queue's compute support, enabled indirect support and queried but disabled
+tessellation. Metal reports the existing compute/indirect implementation; unqueried advanced
+features stay unknown. No advanced path, including parallel recording or SER, is enabled by this
+foundation. SER is not inferred from RT tier or Shader Model.
+
+`PipelineDescriptor::graphics_requirements` defaults to no additional requirements, preserving
+existing aggregate callers. Nonzero `minimum_tiers` require the corresponding support, sufficient
+tier, implementation and enablement. `{0, 0}` is unused; `{1, 0}` represents a tierless requirement.
+The DXIL-only minimum Shader Model is compared numerically, so 6.10 is newer than 6.9; Vulkan,
+Metal and validation do not advertise DXIL support. This device limit does not prove compiler,
+preview opt-in, artifact presence, format or reflection compatibility. Existing artifact admission
+remains independently required; no shader profile or toolchain baseline is raised here.
+
+`CheckGraphicsRequirements` returns the first failing feature/reason deterministically.
+`SelectGraphicsPath` checks both caller-supplied requirement sets and reports preferred, fallback
+or unavailable; it never substitutes a shader or executes a path. All built-in devices enforce
+requirements before PSO allocation. Rejection throws `std::invalid_argument` and performs no
+submission. PSO cache identity includes the complete requirements, so a cached baseline pipeline
+cannot authorize an unsupported advanced variant. Capability queries are safe for concurrent reads
+after device construction; devices and the caller's snapshot copies own no shared mutable query
+state. This extends the C++ RHI interface; all modules must be rebuilt together. The stable C ABI
+is unchanged.
+
+The [V2 graphics plan](../../Roadmap/en/V2_Advanced_Graphics_Capability_Plan.md) retains the native
+feature gates, parallel allocator/descriptor lifetime work and performance acceptance separately.
+
 ## Completed
 
 - `Shaders/Triangle.slang` is the canonical graphics and compute acceptance shader.
