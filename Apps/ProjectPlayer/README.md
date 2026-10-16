@@ -136,3 +136,12 @@ fixed/update callbacks, despawn, stop/destroy and real presentation. It also rej
 libraries, verifier module options and duplicate/empty CLI options, and checks unchanged package bytes.
 The fixture follows the same V3 C ABI consumed by Zig; this does not claim additional 2D assets or
 other-platform execution acceptance.
+
+## Independent 2D game projects
+
+With native support and `NEXORA_ENABLE_2D=ON`, this executable also accepts
+`--run-2d-project game.nx2game` and delegates to the common engine-owned 2D Player host. That explicit
+mode loads the selected trusted V3 library, project-owned cooked assets, UI/audio/input and durable
+slots. It does not reinterpret StaticView packages or change verification-only behavior. See the
+[2D Player guide](../TwoDPlayer/README.md) for export, Windows/MSVC CRT staging, font baking, CLI
+options, limits and remaining physical acceptance.

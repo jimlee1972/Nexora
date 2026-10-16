@@ -139,3 +139,10 @@ API-M1～M4 是 Zig Showcase 與 Editor 共用前置；API-M5/M6 讓兩者只能
 生命週期測試、ProjectPlayer 動態 V3 模組啟動，以及 Linux 原生呈現。
 [驗收紀錄](../../Tools/Build/evidence/Zig-Gameplay-Services-Linux-2026-10-16.md) 保留完整 preset 結果與限制。
 原有 API-M1–M6 完成比例維持不變；不代表 Windows 裝置輸出、實體手把、遊戲美術或 Editor Play 整合已驗收。
+
+
+✅ 後續專案 host 整合已在主 Editor 2D Play 與通用、不依賴 Editor 的專案 Player 提供既有
+服務，沒有改動 C／Zig wire。凍結素材 ownership、通過擷取規則的輸入、Game View UI／精靈
+合成、原生音訊重試、使用者永久槽位與明確可信模組匯出，仍由 embedding 負責。真正 Zig
+Shipping 啟動、獨立模組重啟／損壞檢查及 Linux Editor 原生像素已有驗證；Windows 實體裝置／
+DPI／乾淨電腦驗收另列。[證據](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)。

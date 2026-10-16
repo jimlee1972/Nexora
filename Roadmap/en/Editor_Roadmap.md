@@ -56,26 +56,26 @@ complete an enclosing ED milestone. Windows physical and Runtime/Shipping gates 
 freezes Atlas/Clip, copies Tilemap/chunk state and owns a fresh bounded pool/2D gameplay bridge.
 Actual V3 callback lifetimes and source Undo/Redo conservation are verified, with Linux native
 frozen/animated/retained/new-session Atlas pixels. This is an integration prerequisite; main
-project/cooked capture and main host API attachment are described below; integrated Game preview/reload remain
-open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
+project/cooked capture, main host API attachment and Game preview are described below; seamless
+reload remains open. [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayContext-Linux-2026-10-15.md).
 
 ✅ `TwoDPlayAssets` now freezes a bounded cooked Atlas/Clip closure from an explicit Runtime
 asset generation, validates dependencies and frame regions, and retains owning payloads across
 replacement, collection and store destruction. Temporary pins/residency balance on success and
 failure. This prerequisite does not establish project/source provenance or attach main Editor
-Play/Game preview; those integrations remain open and milestone counts are unchanged.
+Play/Game preview by itself; those host extensions are described below and milestone counts are unchanged.
 [Evidence](../../Tools/Build/evidence/EditorEDM3-TwoDPlayAssets-Linux-2026-10-15.md).
 
 ✅ Optional project indexing and synchronous/queued reimport now retain typed immutable
 Atlas/Clip payloads. Initial embedded UUIDs, authoritative sidecars, capacity budgets and atomic
 Clip dependencies preserve prior model/history on invalid, stale or cancelled publication.
-This is a project asset prerequisite; main host API attachment is described below, while Game preview/reload remain open.
+This is a project asset prerequisite; main host API attachment is described below, while the Game preview extension is described below and seamless reload remains open.
 Scoped cook/freeze admission is supplied by the following capture owner. Milestone counts are unchanged. [Evidence](../../Tools/Build/evidence/EditorEDM1-TypedTwoDContent-Linux-2026-10-16.md).
 
 ✅ `ProjectTwoDPlayAssets` now cooks and freezes the selected current project Atlas/Clip closure
 with project UUID/root, Content generation/revision, writer/access/recovery, exact source/sidecar
 and dependency admission. Owning observations revalidate before activation and retain frozen data
-after project destruction. Main host API attachment is described below; integrated Game preview/reload remain open;
+after project destruction. Main host API attachment is described below; the Game preview extension is described below and seamless reload remains open;
 ED/2D milestone counts are unchanged. See the [capture contract](../../Engine/Editor/README.md#project-scoped-cooked-2d-play-capture)
 and [evidence](../../Tools/Build/evidence/EditorEDM3-ProjectTwoDPlayAssets-Linux-2026-10-16.md).
 
@@ -83,9 +83,17 @@ and [evidence](../../Tools/Build/evidence/EditorEDM3-ProjectTwoDPlayAssets-Linux
 optional 2D gameplay services to its actual cloned World and selected active scene. Fresh Sprite/
 collider metadata and a bounded instance pool survive through module Stop/Destroy; generic subtree
 despawn forgets every destroyed ID. Full module replacement and failed load cleanup are covered
-by 32 CPU clone lifetimes alongside the existing 3D host. Game View 2D rendering, authored Sprite
-persistence, Tilemap binding, seamless hot reload and physical acceptance remain open. No ED/2D
+by 32 CPU clone lifetimes alongside the existing 3D host. The native Game View extension is described below; authored Sprite persistence, Tilemap binding,
+seamless hot reload and physical acceptance remain open. No ED/2D
 milestone count changes. [Contract](../../Apps/Editor/README.md#optional-2d-services-in-project-play). [Evidence](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md).
+
+✅ The same main Play owner now extracts frozen Atlas scene/pool sprites and gameplay UI into a
+bounded Game View overlay, remaps immutable texture identities and retires them between frames.
+Optional input/UI/audio/storage services respect existing capture/user/focus policy. CPU and
+Linux Vulkan native pixels cover 32 sessions, fresh IDs, retained owners, clipping and input
+revocation. This does not accept Windows physical devices/DPI or complete an ED/2D milestone.
+[Contract](../../Apps/Editor/README.md#2d-game-view-and-optional-play-gameplay-services).
+[Evidence](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md).
 
 ```text
 NexoraEditor (tool process)

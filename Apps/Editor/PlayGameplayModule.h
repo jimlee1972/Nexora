@@ -73,7 +73,7 @@ public:
     }
     world_ = &world;
     mesh_assets_ = std::move(assets);
-    if (!BindTwoD(world, two_d)) {
+    if (!BindTwoD(world, two_d, true)) {
       Unload();
       error = "Play 2D services require a frozen asset snapshot and an active Play scene.";
       return false;
@@ -120,18 +120,45 @@ public:
     if (user >= PlayInputBindings::kMaximumUsers)
       return false;
     if (input_user_ != user) {
-      input_.SetFocused(false);
+      SetInputFocus(false);
       input_user_ = user;
     }
     return true;
   }
   [[nodiscard]] std::uint32_t InputUser() const noexcept { return input_user_; }
-  void SetInputFocus(bool focused) noexcept { input_.SetFocused(focused); }
+  void SetInputFocus(bool focused) noexcept {
+    input_.SetFocused(focused);
+#if defined(NEXORA_HAS_2D)
+    if (!focused && two_d_)
+      two_d_->RevokeInput();
+#endif
+  }
+#if defined(NEXORA_HAS_2D)
+  [[nodiscard]] std::optional<PlayTwoDFrame>
+  TwoDFrame(Nexora::Presentation::SceneViewport viewport) {
+    return two_d_ ? two_d_->ExtractFrame(viewport) : std::optional<PlayTwoDFrame>{};
+  }
+  void SetGameViewport(Nexora::Presentation::SceneViewport viewport) noexcept {
+    if (two_d_)
+      two_d_->SetViewport(viewport);
+  }
+  [[nodiscard]] std::vector<std::uint64_t> TakeRetiredTwoDTextures() noexcept {
+    std::vector<std::uint64_t> result;
+    result.swap(retired_two_d_textures_);
+    return result;
+  }
+#endif
   bool SetInputBindings(const PlayInputBindings &bindings) noexcept {
     return input_.SetBindings(bindings);
   }
   void ProcessInput(std::span<const Nexora::Window::WindowEvent> events) noexcept {
-    input_.Process(events);
+    const bool accepted = input_.Process(events);
+#if defined(NEXORA_HAS_2D)
+    if (two_d_)
+      two_d_->ProcessInput(events, accepted, input_user_);
+#else
+    static_cast<void>(accepted);
+#endif
   }
   [[nodiscard]] bool IsLoaded() const noexcept { return module_ && module_->IsLoaded(); }
   // Owning payload-only observations; no native/allocator overhead, RSS or GPU inference.
@@ -154,7 +181,13 @@ public:
     if (!std::isfinite(seconds) || seconds < 0)
       return false;
     Increment(diagnostics_frame_);
-    return module_->Update(seconds);
+    if (!module_->Update(seconds))
+      return false;
+#if defined(NEXORA_HAS_2D)
+    if (two_d_)
+      two_d_->UpdateAudio(seconds);
+#endif
+    return true;
   }
   // The owner calls once before fixed ticks and Update in a playing frame. Paused Steps and
   // rendering never advance time; invalid deltas leave the owning queue unchanged.
@@ -168,10 +201,16 @@ public:
     return debug_lines_.Lines();
   }
   void Unload() noexcept {
-    input_.SetFocused(false);
+    SetInputFocus(false);
     input_user_ = 0;
     module_.reset();
 #if defined(NEXORA_HAS_2D)
+    if (two_d_) {
+      try {
+        two_d_->RetireTextures(retired_two_d_textures_);
+      } catch (...) {
+      }
+    }
     two_d_.reset();
 #endif
     const bool had_session = world_ != nullptr;
@@ -221,14 +260,15 @@ private:
     std::uint64_t owner;
     std::size_t size, alignment;
   };
-  bool BindTwoD(runtime::World &world, const PlayTwoDBinding &binding) {
+  bool BindTwoD(runtime::World &world, const PlayTwoDBinding &binding, bool native = false) {
 #if defined(NEXORA_HAS_2D)
     if (!binding.scene && !binding.assets)
       return true;
-    two_d_ = PlayTwoDServices::Bind(world, binding);
+    two_d_ = PlayTwoDServices::Bind(world, binding, native);
     return bool(two_d_);
 #else
     static_cast<void>(world);
+    static_cast<void>(native);
     return !binding.scene;
 #endif
   }
@@ -244,7 +284,13 @@ private:
                         NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
 #if defined(NEXORA_HAS_2D)
     if (two_d_) {
-      host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_2D_API;
+      host.capabilities |=
+          NEXORA_GAMEPLAY_CAPABILITY_2D_API | NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API;
+      host.get_services_api = [](void *context, NexoraGameplayServicesApiV1 *output) -> int32_t {
+        auto &self = Self(context);
+        return self.RecordResult(self.two_d_ ? self.two_d_->GetServices(output)
+                                             : NEXORA_GAMEPLAY_ERROR_LIFECYCLE);
+      };
       host.get_twod_api = [](void *context, NexoraTwoDApiV1 *output) -> int32_t {
         auto &self = Self(context);
         return self.RecordResult(self.two_d_ ? self.two_d_->GetApi(output)
@@ -463,6 +509,7 @@ private:
   std::uint64_t diagnostics_frame_{}, diagnostics_errors_{};
 #if defined(NEXORA_HAS_2D)
   std::unique_ptr<PlayTwoDServices> two_d_;
+  std::vector<std::uint64_t> retired_two_d_textures_;
 #endif
   std::optional<runtime::GameplayModuleHost> module_;
 };

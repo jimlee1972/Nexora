@@ -287,9 +287,9 @@ retain the ordinary host and do not include/link these optional services.
 `NexoraEditor`, with 32 clone lifetimes, failed Create/Start, full module replacement, frozen
 animation after external owners die, descendant cleanup, fresh pool handles, wrong-thread bridge
 rejection, source/history conservation and capability-free 3D loads. This is CPU integration
-acceptance, not native main Game View 2D rendering. Authored Sprite persistence, Tilemap binding,
-2D Game View rendering/texture retirement, seamless hot reload and full physical acceptance remain
-open. ED/2D milestone counts do not change.
+acceptance. The native composition and additional services below extend this path. Authored Sprite
+persistence, Tilemap binding, seamless hot reload and full physical acceptance remain open.
+ED/2D milestone counts do not change.
 [Linux validation](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md).
 
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
@@ -1158,3 +1158,46 @@ The 240-second whole-case deadline is a CI liveness guard, while individual obse
 have bounded deadlines. Fixture output is bounded to 4 MiB per stream and Vulkan validation errors
 fail acceptance. Project/document/plugin/device-loss, large content, long-duration and physical
 host soak remain separate gates.
+
+
+### 2D Game View and optional Play gameplay services
+
+For a bound 2D owner, the same V3 host now advertises services for rebindable action/pointer input,
+immediate UI/font registration, native WAV audio controls and project-UUID-scoped permanent slots.
+Frozen Atlas/Clip assets remain read-only through the 2D bridge; a mutable content registration
+service is not advertised. Game modules may register their own embedded font/WAV buffers; Zig `ui.registerBakedFont`
+decodes the Windows baker format using caller-owned scratch without a game-side C++ parser. No
+production font or artwork is invented. Storage uses the per-user directory helper, not the project
+source; save schema/commit/error handling belongs to gameplay. Static-loader CPU tests never open
+an audio device. Real library loads try the native output, report availability through the audio
+API and retry output after failure at one-second intervals. Stop/Destroy precede service release.
+
+Only event batches admitted by the existing Play capture handshake reach the action/UI service.
+Blur/Escape, paused capture, user switch and discarded acquisition batches revoke held state;
+acquisition clicks do not activate UI. Native gamepads poll only during accepted capture. Pointer
+snapshots retain native client units; UI hit testing subtracts the Game viewport origin. Navigation
+actions 253..256 supply next/previous/activate/cancel defaults and can be rebound. Escape retains
+its Editor release-capture behavior. Game UI uses Game content pixels and supplies its own layout;
+it does not receive arbitrary Editor modal input.
+
+Game rendering resolves the frozen Atlas owners and extracts the actual Play World poses plus
+pooled sprites in one sorted frame. UI follows sprites, clipped/offset to the physical Game
+rectangle. A 3D module with no 2D geometry/UI preserves its existing 3D Game View. After a module
+uses 2D, an empty frame clears that Game content without selecting the 3D renderer. Paused redraws
+retain completed UI without advancing module/animation/audio clocks. The native ImGui submission
+combines Editor UI then bounded gameplay triangles in one packet; this Editor path makes no GPU
+Sprite-instancing performance claim. The standalone Player retains native Sprite instancing.
+
+Surface-local immutable texture IDs use fresh host reservations for every Play owner; module UI
+IDs are remapped away from Editor/frozen Sprite IDs. Frame snapshots retain Atlas/font owners
+through submission. Unload queues only its own reserved IDs; the main host releases them between
+acquired frames before the next BeginFrame. Failed native retirement/draw is visible and stops the
+loop; final surface drain releases remaining GPU resources. All preparation/callbacks are serialized
+on the Editor owner thread and C++ consumers rebuild after the optional Render overload change.
+
+`editor.play_twod_services` covers extraction, bounded clips, retained owners, fresh identities,
+retirement, action acquisition/revocation and unchanged authoring history across 32 sessions.
+`editor.play_twod_native` uses the same host/ImGui composition on Linux Vulkan, checks actual red
+Sprite/UI pixels and viewport clipping, and retires textures across those sessions. This is native
+host integration evidence; Windows physical Game View/DPI/audio/controller acceptance remains
+in the [target-host list](../../Tools/TwoD/WindowsAcceptance.md).

@@ -1,4 +1,5 @@
 const nx = @import("nexora");
+const std = @import("std");
 
 const types = .{ nx.GameplayServicesApiV1, nx.input.Api, nx.input.Binding, nx.input.ActionState, nx.input.DeviceState, nx.ui.Api, nx.ui.Rect, nx.audio.Api, nx.audio.PlayDesc, nx.storage.Api, nx.storage.Info, nx.ui.Font, nx.ui.Glyph, nx.input.PointerState, nx.content.Api, nx.content.Asset };
 export fn NexoraServicesLayout(kind: u32, field: u32) u64 {
@@ -32,10 +33,23 @@ export fn NexoraServicesExercise(host: *const nx.GameplayHostV3, phase: u32) i32
         if (input.rebind(0, 1, &binding) != 0) return -11;
         if (storage.saveSlot("resume", 7, "zig durable state") != 0) return -12;
         // The one-pixel atlas is a wire fixture; production modules supply rasterized glyphs.
-        const pixels = [_]u8{ 255, 255, 255, 255 };
-        const glyphs = [_]nx.ui.Glyph{.{ .codepoint = 0x4e2d, .advance = 16, .width = 16, .height = 16, .u1 = 1, .v1 = 1 }};
-        var registered: u64 = 0;
-        if (ui.registerFont(91, 1, 1, 16, 16, &pixels, &glyphs, &registered) != 0 or registered != 1) return -27;
+        var baked: [72]u8 = @splat(0);
+        @memcpy(baked[0..8], "NXFONT1\x00");
+        std.mem.writeInt(u32, baked[8..12], 1, .little);
+        std.mem.writeInt(u32, baked[12..16], 1, .little);
+        std.mem.writeInt(u32, baked[16..20], @bitCast(@as(f32, 16)), .little);
+        std.mem.writeInt(u32, baked[20..24], @bitCast(@as(f32, 16)), .little);
+        std.mem.writeInt(u32, baked[24..28], 1, .little);
+        std.mem.writeInt(u32, baked[28..32], 0x4e2d, .little);
+        inline for ([_]f32{ 16, 0, 0, 16, 16, 0, 0, 1, 1 }, 0..) |value, index|
+            std.mem.writeInt(u32, baked[32 + index * 4 ..][0..4], @bitCast(value), .little);
+        @memset(baked[68..72], 255);
+        var scratch: [1]nx.ui.Glyph = undefined;
+        var registered: u64 = 99;
+        if (ui.registerBakedFont(91, baked[0..71], &scratch, &registered) != -1 or registered != 99 or
+            ui.registerBakedFont(91, &baked, scratch[0..0], &registered) != -1 or registered != 99) return -29;
+        if (ui.registerBakedFont(91, &baked, &scratch, &registered) != 0 or registered != 1 or
+            scratch[0].codepoint != 0x4e2d or scratch[0].advance != 16) return -27;
     } else {
         var action = nx.input.ActionState{};
         if (input.action(0, 1, &action) != 0 or action.pressed != 1 or action.held != 1) return -13;

@@ -167,3 +167,13 @@ without device/audio claims, and uploads the `twod-windows-shipping` artifact. I
 `NexoraTwoD-Shipping/` package includes `README.txt` with the native interactive command and controls;
 acceptance logs/test copies are stored separately. The target host still needs OS runtime/drivers,
 physical sound/controller checks and DPI/clean-machine acceptance. CI does not mark M7 accepted.
+
+## General game export and Windows fonts
+
+The independent [2D Player](../../Apps/TwoDPlayer/README.md) now accepts an explicit game descriptor,
+separately built trusted Zig/V3 module and project-owned cooked Atlas/Clip, WAV and font atlases.
+`ExportGame.py` stages a fresh Monolithic Shipping directory with dependency checks, matching MSVC
+runtime copies, a launcher and hash inventory. `BakeWindowsFont.ps1` uses an explicitly selected
+Windows GDI font/corpus to produce a bounded real glyph atlas; missing glyphs fail. Neither path
+requires the fixed service-validation artwork. See the guide for commands, format/lifetime/limits
+and the [Windows physical acceptance list](WindowsAcceptance.md) for target-host work.

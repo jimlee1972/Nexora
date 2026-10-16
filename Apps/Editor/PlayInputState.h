@@ -39,13 +39,13 @@ public:
     snapshot_.buttons = 0;
     ResetPointer(false);
   }
-  void Process(std::span<const Nexora::Window::WindowEvent> events) noexcept {
+  bool Process(std::span<const Nexora::Window::WindowEvent> events) noexcept {
     using namespace Nexora::Window;
     ResetPointer(false);
     if (++snapshot_.sequence == 0)
       ++snapshot_.sequence;
     if (!focused_)
-      return;
+      return false;
     // Release always wins, including the deliberately discarded acquisition batch. Otherwise a
     // blur/Escape received while acquiring leaves the owner focused for later key batches.
     bool domain_changed = false;
@@ -54,7 +54,7 @@ public:
           (event.type == WindowEventType::Key &&
            event.value0 == static_cast<std::int32_t>(Key::Escape) && event.value1)) {
         SetFocused(false);
-        return;
+        return false;
       }
       domain_changed |= ChangesPointerDomain(event.type);
     }
@@ -68,7 +68,7 @@ public:
         else if (event.type == WindowEventType::Pointer)
           TrackPointer(event.value0, event.value1, false);
       }
-      return;
+      return false;
     }
     for (const auto &event : events) {
       if (ChangesPointerDomain(event.type)) {
@@ -144,6 +144,7 @@ public:
     for (std::size_t index = 4; index < bindings_.controls.size(); ++index)
       if (action(index))
         snapshot_.buttons |= 1U << (index - 4);
+    return true;
   }
   [[nodiscard]] NexoraInputSnapshot Snapshot() const noexcept { return snapshot_; }
   [[nodiscard]] NexoraPointerInputSnapshotV1 PointerSnapshot() const noexcept {

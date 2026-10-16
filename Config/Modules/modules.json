@@ -111,7 +111,8 @@
       "feature": "NEXORA_BUILD_PROJECT_PLAYER",
       "dependencies": [
         "Runtime",
-        "Presentation"
+        "Presentation",
+        "TwoDPlayer"
       ]
     },
     {
@@ -179,7 +180,8 @@
       "name": "GameplayZig",
       "feature": "NEXORA_ENABLE_ZIG_GAMEPLAY",
       "dependencies": [
-        "Runtime"
+        "Runtime",
+        "TwoDPlayer"
       ]
     },
     {
@@ -199,6 +201,14 @@
       "dependencies": [
         "Runtime",
         "Presentation"
+      ]
+    },
+    {
+      "name": "TwoDPlayer",
+      "feature": "NEXORA_ENABLE_2D",
+      "dependencies": [
+        "TwoD",
+        "Core"
       ]
     }
   ]

@@ -2,9 +2,11 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <span>
+#include <stdexcept>
 #ifdef _WIN32
 #define NOMINMAX
 #include <windows.h>
@@ -78,6 +80,34 @@ bool Commit(const std::filesystem::path &temp, const std::filesystem::path &targ
 #endif
 }
 } // namespace
+std::filesystem::path UserGameplaySaveDirectory(std::string_view scope) {
+  const auto alnum = [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'); };
+  if (scope.empty() || scope.size() > 128 || !alnum(scope.front()) || !alnum(scope.back()) ||
+      !std::all_of(scope.begin(), scope.end(),
+                   [&](char c) { return alnum(c) || c == '.' || c == '_' || c == '-'; }))
+    throw std::invalid_argument("invalid gameplay save scope");
+  std::filesystem::path base;
+#ifdef _WIN32
+  const auto length = GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0);
+  if (length) {
+    std::wstring value(length, L'\0');
+    const auto copied = GetEnvironmentVariableW(L"LOCALAPPDATA", value.data(), length);
+    if (copied && copied < length) {
+      value.resize(copied);
+      base = value;
+    }
+  }
+#else
+  if (const auto *value = std::getenv("XDG_DATA_HOME"); value && *value)
+    base = value;
+  else if (const auto *home = std::getenv("HOME"); home && *home)
+    base = std::filesystem::path(home) / ".local/share";
+#endif
+  if (base.empty() || !base.is_absolute())
+    throw std::runtime_error(
+        "absolute user data directory unavailable; configure a save directory");
+  return base / "Nexora" / "Games" / ("game-" + std::string(scope)) / "saves";
+}
 GameplayStorage::GameplayStorage(std::filesystem::path root, std::string scope,
                                  std::uint32_t max_payload)
     : root_(std::move(root)), scope_(std::move(scope)), max_payload_(max_payload),

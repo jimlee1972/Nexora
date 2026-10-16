@@ -1,5 +1,5 @@
 #pragma once
-// Explicit fixture support for the standalone cooked 2D service acceptance host.
+// Explicit fixture support, used only by cooked service acceptance mode.
 #include "Nexora/Core/Vfs.h"
 #include "Nexora/Runtime/GameplayStorage.h"
 #include "Nexora/TwoD/GameplayUi.h"

@@ -1,4 +1,7 @@
 #include "Nexora/Runtime/ProjectPackage.h"
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+#include "TwoDPlayer.h"
+#endif
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)
 #include "NativePlayer.h"
 #endif
@@ -84,6 +87,10 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
   if (argc < 3)
     return Usage();
   const std::basic_string_view<Char> mode(argv[1]);
+#if defined(NEXORA_PROJECT_PLAYER_2D)
+  if (EqualAscii(mode, "--run-2d-project"))
+    return nexora::player::DispatchTwoDPlayer(argc, argv);
+#endif
   if (EqualAscii(mode, "--verify-package"))
     return argc == 3 ? Run(ArgumentPath(argv[2])) : Usage();
   if (!EqualAscii(mode, "--run-package"))

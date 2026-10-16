@@ -781,3 +781,19 @@ if(NEXORA_ENABLE_2D)
   nexora_apply_defaults(NexoraPlayTwoDServicesTests)
   add_test(NAME editor.play_twod_services COMMAND NexoraPlayTwoDServicesTests)
 endif()
+
+if(TARGET NexoraPlayTwoDServicesTests AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
+   NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+  find_package(X11 REQUIRED)
+  add_executable(NexoraPlayTwoDServicesNativeTests PlayTwoDServicesTests.cpp)
+  target_compile_definitions(NexoraPlayTwoDServicesNativeTests PRIVATE NEXORA_PLAY_2D_NATIVE=1)
+  target_include_directories(NexoraPlayTwoDServicesNativeTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraPlayTwoDServicesNativeTests PRIVATE Nexora::EditorImGui Nexora::TwoD X11::X11)
+  nexora_apply_defaults(NexoraPlayTwoDServicesNativeTests)
+  add_test(NAME editor.play_twod_native COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+    --native-test "$<TARGET_FILE:NexoraPlayTwoDServicesNativeTests>"
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-play-2d")
+  set_tests_properties(editor.play_twod_native PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77
+    LABELS "twod;editor;vulkan;virtual-display")
+endif()

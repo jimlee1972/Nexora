@@ -1092,3 +1092,11 @@ See [Zig authoring and examples](../../Gameplay/Zig/README.md#optional-zig-gamep
 [UI/font ownership](../TwoD/GameplayUi.md) and [cooked 2D content](../TwoD/GameplayContent.md).
 The existing residency-only `presentation::AudioEngine` is unchanged; `GameplayAudio` supplies
 separate PCM mixing/output for explicitly attached gameplay hosts.
+
+`UserGameplaySaveDirectory(scope)` resolves an absolute per-user path without creating directories:
+Windows reads native UTF-16 `LOCALAPPDATA`, Linux uses `XDG_DATA_HOME` or `HOME/.local/share`.
+The suffix is `Nexora/Games/game-<scope>/saves`. Scope is 1..128 portable lower-case ASCII characters
+with alphanumeric ends; invalid scope or missing/relative environment throws. The prefix avoids
+Windows device-name collisions. Hosts may instead explicitly configure a trusted directory; they
+must still serialize one writer per project and handle filesystem errors. This helper changes no
+storage wire/envelope and never falls back to writing beside the executable or source project.

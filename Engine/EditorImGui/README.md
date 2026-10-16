@@ -1394,3 +1394,13 @@ preserves original GPU/RSS actions; bounded viewport scrolling precedes real1x/2
 Additive C++ APIs/types require matching consumer rebuilds; public host layout, stable C/Zig/scene
 formats and module dependencies are unchanged. Physical calibration and broader device metrics
 remain open.
+
+
+The native `Render(surface, width, height, overlay)` overload can append an application-owned
+indexed overlay to the same acquired-frame upload/recording packet. Overlay coordinates and clips
+are already physical surface pixels; its texture identities must not collide with Editor IDs.
+The caller retains buffers/immutable resource owners through the call and owns texture retirement
+between acquired frames. An empty overlay preserves ordinary native ImGui rendering. The main
+Editor uses this for bounded 2D Game View sprites/HUD; it does not submit a second RenderUi packet
+or claim instancing for arbitrary Editor triangles. Public C++ consumers rebuild; no C/Zig ABI
+or serialized format changes.
