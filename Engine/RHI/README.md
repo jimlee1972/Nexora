@@ -40,6 +40,31 @@ is unchanged.
 The [V2 graphics plan](../../Roadmap/en/V2_Advanced_Graphics_Capability_Plan.md) retains the native
 feature gates, parallel allocator/descriptor lifetime work and performance acceptance separately.
 
+## Vulkan compute descriptor ownership (V2-GFX-1 slice)
+
+Each Vulkan command list owns its compute descriptor pools. `BindStorageBuffer` stores only
+list-local handles; `Dispatch` revalidates all four canonical slots, allocates a fresh set and
+copies the complete binding snapshot before recording. Sets are never updated or reused after
+recording, so later rebinding (including binding without dispatch) cannot redirect earlier work.
+Missing or stale bindings throw `std::logic_error` before descriptor allocation or dispatch.
+Pools grow in blocks of 32 sets; recorded dispatches retain their sets until list destruction.
+
+A command list has one recording owner at a time. Independent compute lists may record concurrently
+against pre-created immutable pipelines and disjoint buffers. The device and referenced resources
+must outlive all lists; callers serialize resource creation, upload, mutation and destruction against
+recording/submission. Submission remains caller-serialized and synchronous in this backend; pool
+and command allocator destruction happens after `Submit` has waited for its native completion fence,
+or when a never-submitted list is abandoned. Never destroy a list while `Submit` is using it.
+This is a prerequisite for broader worker scheduling, not an asynchronous retirement implementation.
+
+`renderer.vulkan_descriptor_isolation` compares 320 unique dispatch results against the CPU
+reference in serial and four-worker recording modes, rebinds after every dispatch, crosses pool
+boundaries and submits only after every worker joins. It also rejects missing/stale bindings and
+checks no worker submission/readback. With no Vulkan device/artifacts it reports an explicit skip;
+Slang-enabled native builds require execution. Graph-level parallel execution, DX12/Metal worker
+lifetimes, GPU validation-layer evidence and matched physical-GPU performance remain open.
+`ParallelCommandRecording` remains disabled/unimplemented in the capability snapshot.
+
 ## Completed
 
 - `Shaders/Triangle.slang` is the canonical graphics and compute acceptance shader.

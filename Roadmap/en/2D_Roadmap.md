@@ -349,6 +349,13 @@ feedback in the host loop; physical latency/FPS/audibility remain unaccepted. Se
 ✅ Final queued-audio integration gate: 313/313 Linux Development tests, zero failures/skips;
 Shipping/isolated native package and strict Windows cross-compilation pass. Physical gates and 82% are unchanged.
 
+✅ Native cooked-service input acknowledgement follow-up: the acceptance driver now requires
+positive keyboard-driven position in a CRC-valid SAVE publication before OPEN, then compares the
+restored position. Five native repetitions pass; a deliberately missed first D press recovers,
+while missing every press still fails. The local Zig-enabled full gate passes 190/190 without
+skips. This is a supporting harness correction; M6/M7 and 9/11 (82%) are unchanged.
+See the linked cooked-service acceptance evidence for CI failures, scope and controlled experiments.
+
 ## General Zig project Player and Windows delivery tools (2026-10-16)
 
 ✅ `NexoraTwoDPlayer` and native ProjectPlayer's explicit 2D mode load a separately built trusted

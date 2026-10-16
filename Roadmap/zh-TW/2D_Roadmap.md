@@ -317,6 +317,12 @@ Linux 軟體 Vulkan 像素／點擊／縮放與 Null 音訊，不代表 Windows 
 ✅ 最終佇列整合 Gate：Linux Development 313/313、無失敗／略過；Shipping／獨立原生封裝
 及嚴格 Windows 交叉編譯通過。實體 Gate 與 82% 不變。
 
+✅ Cooked 服務原生輸入確認修正：驗收 driver 現在會先確認 CRC 正確的 SAVE 發布內容已包含
+鍵盤造成的正位移，再執行 OPEN 並比對還原位置。連續五次原生驗收通過；刻意讓第一次
+D press 未送達時可恢復，所有按鍵皆未送達時仍會失敗。本機啟用 Zig 的完整 gate 為
+190/190、無略過。此為驗收 harness 修正，M6／M7 與 9/11（82%）不變。
+CI 失敗、驗證範圍與受控實驗見上述 Cooked 服務驗收證據連結。
+
 ## 通用 Zig 專案 Player 與 Windows 交付工具（2026-10-16）
 
 ✅ `NexoraTwoDPlayer` 與原生 ProjectPlayer 的明確 2D 模式，可載入另外編譯的可信 V3 模組及

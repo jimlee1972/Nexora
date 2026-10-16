@@ -158,6 +158,11 @@ rejection. Linux also uses ALSA null output. `twod.cooked_product_native` additi
 Vulkan text pixels, native mouse SAVE/OPEN, keyboard movement, 900 UI/Sprite frames, window resize,
 audio submission and teardown. Reports/screenshots live under `artifacts/twod-product*/`. An
 isolated Shipping test uses `ProductAcceptance.py --shipping --native` with the same options.
+The native driver waits for the presented glyph, then uses bounded physical XTEST key pulses
+and mouse SAVE clicks until a checksum-valid schema-1 slot contains positive X movement. Only
+then does it release the key and click OPEN; final position must match the acknowledged SAVE.
+Missing movement or publication still fails, and host stderr is retained on acknowledgement failure.
+This replaces the assumption that one key press plus a fixed delay proves a simulation update.
 Software Vulkan, fixture text and null audio do not accept physical Windows devices, DPI/font
 appearance, minimum-PC performance or the full M7 target-host gate.
 
