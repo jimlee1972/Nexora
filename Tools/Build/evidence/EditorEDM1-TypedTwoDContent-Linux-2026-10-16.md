@@ -31,16 +31,26 @@ budget/Material import tests pass 2/2 in 3.96 seconds; new typed source/test tar
 the built Editor library has no TwoD dynamic dependency. A separately compiled temporary probe
 also confirms arbitrary `.nx2atlas` bytes retain generic indexing with 2D disabled. The probe uses a task-local loader path; no repository runtime loader setting was changed.
 
+The initial hosted head `934fd936a798b8600dd7af1a0dec85a9a8d53087` failed MSVC job
+`116804002120` with C4273/C2220: the `ImportTwoDAsset` friend declaration lacked the
+matching DLL API annotation. The friend now carries `NEXORA_EDITOR_API`, matching the public
+declaration. The full local gate is repeated on that corrected source; the old hosted head is
+not merge evidence. New exact-head hosted outcomes are recorded in PR610.
+
 Final validation:
 
 - `cmake --preset linux-development` and `cmake --build --preset linux-development`: passed.
-- `ctest --preset linux-development`: initially 325/326 passed, zero skips, 1051.43 seconds.
+- Corrected-source `ctest --preset linux-development`: 326/326 passed, zero skips, 1052.91 seconds.
+  New `twod.content_import` passed in 1.14 seconds.
+- Earlier pre-MSVC-fix `ctest --preset linux-development`: 325/326 passed, zero skips, 1051.43 seconds.
   `build.v2_production_toolchain` failed because this reset executor lacked `clang++`.
   After restoring real Clang 19.1.7, the same-source targeted rerun passed 1/1 in 0.37 seconds.
-  All 326 distinct cases have passed; this is not a clean-first-full-run claim. No source or
-  test settings changed for that rerun. New `twod.content_import` passed in the full run (1.04 s).
+  That earlier same-source rerun repaired only the SDK environment. Its new
+  `twod.content_import` passed in 1.04 seconds; the later corrected-source full run above is
+  the final local gate. The first full attempt was not clean.
 - `cmake --preset linux-shipping` / `cmake --build --preset linux-shipping`: passed,
-  Minimal Monolithic scope only (Editor/testing excluded).
+  Minimal Monolithic scope only (Editor/testing excluded); unaffected by the corrected
+  optional Editor-only header, which is also excluded from the OFF configuration below.
 - 2D-OFF graphical configure and actual Editor Core/test build passed; Workspace budget and
   Material import tests passed 2/2 in 3.96 seconds. New source/test targets are absent; readelf
   confirms no TwoD native dependency. An isolated linked probe passes generic nx2atlas indexing.
@@ -50,7 +60,7 @@ Final validation:
   the paired JSON. Exact-head hosted results and merge/branch cleanup are recorded in the PR.
 
 The existing native Play soak passed 32 cycles/128 lifecycle records, source bytes/pixels unchanged,
-with zero validation errors. Warmed RSS peak growth was 8876032 bytes under its 33554432-byte
+with zero validation errors. Warmed RSS peak growth was 1048576 bytes under its 33554432-byte
 limit. These existing fixture measurements do not establish all-process leak freedom.
 
 Capacity accounting is per indexed typed set and per live/Undo snapshot. It is neither allocator

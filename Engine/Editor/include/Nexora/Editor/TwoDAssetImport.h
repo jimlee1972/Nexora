@@ -35,8 +35,10 @@ public:
   }
 
 private:
-  friend TwoDAssetImportResult ImportTwoDAsset(std::string_view, std::span<const std::byte>,
-                                               runtime::AssetUuid, const std::function<bool()> &);
+  friend NEXORA_EDITOR_API TwoDAssetImportResult ImportTwoDAsset(std::string_view,
+                                                                 std::span<const std::byte>,
+                                                                 runtime::AssetUuid,
+                                                                 const std::function<bool()> &);
   TwoDAssetPayload() = default;
   std::shared_ptr<const twod::Atlas> atlas_;
   std::shared_ptr<const twod::Clip> clip_;
