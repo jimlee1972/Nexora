@@ -1393,7 +1393,8 @@ int RunGraphical(std::optional<ProjectState> project,
     if (!project)
       static_cast<void>(ui.SetPlayHostMemory(play_memory.Observe(gameplay, nullptr, 0, play)));
 #if defined(NEXORA_HAS_2D)
-    game_two_d_textures.Sync(gameplay.TwoDAssets());
+    if (game_two_d_textures.Sync(gameplay.TwoDAssets()))
+      ui.SetGameTwoDAvailable(false);
     ui.SetGameTwoDAvailable(bool(gameplay.TwoDAssets()));
 #endif
     ui.BeginFrame();
@@ -2793,14 +2794,18 @@ int RunGraphical(std::optional<ProjectState> project,
       if (!sprites) {
         ui.SetGameTwoDStatus("2D preview unavailable; check scene data and preview limits.");
       } else {
-        const auto &frame = *sprites;
+        const auto &sprite_frame = *sprites;
         const Nexora::Presentation::UiDrawData packet{
-            frame.vertices, std::as_bytes(std::span(frame.indices)), frame.batches, {}, true};
+            sprite_frame.vertices,
+            std::as_bytes(std::span(sprite_frame.indices)),
+            sprite_frame.batches,
+            {},
+            true};
         if (!ui.DrawGameTwoDSprites(packet))
           ui.SetGameTwoDStatus("2D preview could not be displayed.");
         else
-          ui.SetGameTwoDStatus(frame.statistics.unavailable
-                                   ? std::to_string(frame.statistics.unavailable) +
+          ui.SetGameTwoDStatus(sprite_frame.statistics.unavailable
+                                   ? std::to_string(sprite_frame.statistics.unavailable) +
                                          " 2D sprites have unavailable assets."
                                    : "");
       }

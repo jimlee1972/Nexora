@@ -79,7 +79,8 @@ struct Fixture final {
     ui.ProcessEvents(std::array{focus});
   }
   void Draw(bool submit = true) {
-    textures.Sync(module.TwoDAssets());
+    if (textures.Sync(module.TwoDAssets()))
+      ui.SetGameTwoDAvailable(false);
     ui.SetGameTwoDAvailable(bool(module.TwoDAssets()));
     ui.BeginFrame();
     ui.DrawProductShell(shell, &document, &workspace, &content, nullptr, nullptr, nullptr, &play);
@@ -233,6 +234,31 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &library
             !f.ui.UnregisterTexture(old_texture) && f.document.CaptureRuntimeScene() == baseline &&
             retained->retainedAtlases.front().atlas->Find(1),
         "Stop retained registrations, changed source or invalidated an owning packet");
+  f.ui.SetDisplay(1280, 900, 1);
+  Check(f.play.Start(1.0 / 60,
+                     [&](auto &, double seconds) { return f.module.FixedUpdate(seconds); }) &&
+            f.module.LoadRelative(*f.play.PlayWorld(), library.parent_path(),
+                                  library.filename().string(), error, {}, *binding) &&
+            f.play.Pause(),
+        "second Play session");
+  for (unsigned frame = 0; frame < 4; ++frame)
+    f.Draw();
+  Check(!f.ui.GameTwoDViewport() && f.ui.NativeGameViewport(),
+        "new Play session retained the previous 2D selection");
+  f.View(true);
+  const auto replacement =
+      editor::preview::CapturePlayTwoD(f.workspace, f.content, f.document, true, error);
+  Check(replacement && replacement->assets->Assets() != binding->assets->Assets() &&
+            f.module.LoadRelative(*f.play.PlayWorld(), library.parent_path(),
+                                  library.filename().string(), error, {}, *replacement),
+        "replacement Play assets");
+  f.Draw();
+  Check(!f.ui.GameTwoDViewport() && f.ui.NativeGameViewport() && f.textures.Size() == 0,
+        "changed Play owner retained a 2D selection or texture registration");
+  f.module.Unload();
+  Check(f.play.Stop(), "second Play Stop");
+  f.Draw();
+  Check(f.document.CaptureRuntimeScene() == baseline, "second Play changed authoring source");
   std::cout << "Main Game 2D preview: multi-Atlas pool, actual view selection, Step, DPI and Stop "
                "passed\n";
 }

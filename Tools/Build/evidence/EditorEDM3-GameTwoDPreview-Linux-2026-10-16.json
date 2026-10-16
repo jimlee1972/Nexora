@@ -6,17 +6,20 @@
   "source_sha256": {
     "Apps/Editor/PlayGameplayModule.h": "53ec8fb8f82cb7272e44966eed8b22d61bb06c4bb7f0e358164276013ccac2b6",
     "Apps/Editor/PlayTwoDServices.h": "ce6ab414e1b355affe364dfa74677fb593c7a68ddb7cc692567a092edd817ce6",
-    "Apps/Editor/GameTwoDTextures.h": "9ea5607146fafc120be0cdd344e05c514cecf25333f13ef7229248d07f44ab8f",
-    "Apps/Editor/main.cpp": "53d2f23a124d51a2afbcaa613cae8f1642c3d52eb5adaa405084fd9572560438",
+    "Apps/Editor/GameTwoDTextures.h": "885dc296535164f8b768110e34802ac5265b192a51aeae37b00078abcedec194",
+    "Apps/Editor/main.cpp": "a11870e2613382bab103a9b1202d16962079d848a07e164bdaf49ec466da8463",
     "Config/Modules/modules.json": "6ecaee42b9e248ce7c691b1b610fc23d25f3afcc28cd8c6189173770514c7414",
-    "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "f0d0301dff809d77fd63ae04e7b0aaedf4f77f047196de767ef0b5d8add0fea0",
-    "Engine/EditorImGui/src/EditorImGui.cpp": "ceee74c874f7cc0308b885c63ad7d012948c4aa932c8b5a27532a2a24fa190e5",
+    "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "32e62cbc226b0ad346034557735af81756a22ee8221d0ed4bf8bfb79e157781c",
+    "Engine/EditorImGui/src/EditorImGui.cpp": "c05c26158b6f95af092356e0c933b842220568e7c7704603d74ea381f1567e18",
     "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "c916222e294916f25095026123a9863c88fd1b422653bd28f58d5b1a567fa853",
     "Tests/EditorImGui/CMakeLists.txt": "aabfb5366b2beb77f4f67ca88c6c7706ecfb75845758a29a8f421f8fe6591dab",
     "Tests/EditorImGui/PlayTwoDServicesTests.cpp": "44085793b661a4d6fcffa674e13a8965a73119e3463c436d4b2361b1f4ca26de",
     "Tests/EditorImGui/PlayTwoDPreviewFixture.cpp": "c272818c59aaa0949f32eb444b77135d8d6a7694d8545a91bef48b34bda22b42",
-    "Tests/EditorImGui/GameTwoDPreviewTests.cpp": "a592701602fd27571096d6141ede719c4e30a07eb3ca6ce25c5551c78f112354",
-    "Tests/EditorImGui/LinuxNativeGameTwoD.py": "8affd003e234a8b43a22f5e9cbcf570411ef4de906e25ac2bd982dd446455995"
+    "Tests/EditorImGui/GameTwoDPreviewTests.cpp": "d5e0798159695a817c0cc402b038f5e63cd520a802081b2a341db4f341c3bac4",
+    "Tests/EditorImGui/LinuxNativeGameTwoD.py": "653db635c8d3789c91da309028035d117d17edc9d1a52e1a307e61b84c517c9e",
+    "Engine/Presentation/src/MetalSurface.mm": "18a63d36c9903690c7e87178ad1476b4a8da26a3051140b8cbcc6941c0cb004e",
+    "Tests/EditorImGui/NativeSurfaceTests.cpp": "357fb60e513f08503ec11bd6e563a964b3772dffb2d70182f8040a13c9c0f506",
+    "Tests/WindowPresentation/MetalSceneTests.mm": "476562cef870a89e7c0e1086c57c93f40a5b1ca6bfeebca11ed7ea4857fa98cb"
   },
   "focused": {
     "passed": 3,
@@ -40,7 +43,7 @@
     "zig_gameplay": false,
     "tests_passed": 4,
     "tests_total": 4,
-    "seconds": 0.09,
+    "seconds": 0.2,
     "twod_tests_absent": true,
     "no_twod_dynamic_dependency": true,
     "binary_dependency_tables_checked": [
@@ -52,7 +55,7 @@
   "documentation": {
     "unit_tests": 16,
     "root_readme_unchanged": true,
-    "changed_markdown_files": 9
+    "changed_markdown_files": 10
   },
   "milestones_changed": false,
   "remaining": [
@@ -70,6 +73,60 @@
     "shared_gui_cpu_bytes": 16777216,
     "gpu_cache": "Existing bounded cache, retirement behind surface fences; no immediate GPU free or RSS/VRAM bound at Stop claimed"
   },
+  "initial_head_validation": {
+    "head": "7b2659c14cad06fea43f354776bb2b457f33d950",
+    "development": {
+      "configure": "passed",
+      "build": "passed",
+      "passed": 336,
+      "total": 336,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 1119.64,
+      "clean_full_run": true
+    },
+    "native_main_game_twod": {
+      "actual_view_click": "passed",
+      "alpha_pool_atlases": 2,
+      "cycles": 32,
+      "elapsed_seconds": 36.373,
+      "native_game_pixels": "passed",
+      "pause_step_input_stop": "passed",
+      "phases": [
+        {
+          "base": 2592,
+          "blended": 2592,
+          "pool": 2592,
+          "region": "red"
+        },
+        {
+          "base": 2592,
+          "blended": 2592,
+          "pool": 2592,
+          "region": "green"
+        }
+      ],
+      "source_bytes": "unchanged",
+      "source_pixels": "unchanged",
+      "swapchain_encoding": "sRGB",
+      "validation_errors": 0
+    },
+    "source_sha256": {
+      "Apps/Editor/PlayGameplayModule.h": "53ec8fb8f82cb7272e44966eed8b22d61bb06c4bb7f0e358164276013ccac2b6",
+      "Apps/Editor/PlayTwoDServices.h": "ce6ab414e1b355affe364dfa74677fb593c7a68ddb7cc692567a092edd817ce6",
+      "Apps/Editor/GameTwoDTextures.h": "9ea5607146fafc120be0cdd344e05c514cecf25333f13ef7229248d07f44ab8f",
+      "Apps/Editor/main.cpp": "53d2f23a124d51a2afbcaa613cae8f1642c3d52eb5adaa405084fd9572560438",
+      "Config/Modules/modules.json": "6ecaee42b9e248ce7c691b1b610fc23d25f3afcc28cd8c6189173770514c7414",
+      "Engine/EditorImGui/include/Nexora/EditorImGui/EditorImGui.h": "f0d0301dff809d77fd63ae04e7b0aaedf4f77f047196de767ef0b5d8add0fea0",
+      "Engine/EditorImGui/src/EditorImGui.cpp": "ceee74c874f7cc0308b885c63ad7d012948c4aa932c8b5a27532a2a24fa190e5",
+      "Engine/EditorImGui/src/EditorImGuiTestAccess.h": "c916222e294916f25095026123a9863c88fd1b422653bd28f58d5b1a567fa853",
+      "Tests/EditorImGui/CMakeLists.txt": "aabfb5366b2beb77f4f67ca88c6c7706ecfb75845758a29a8f421f8fe6591dab",
+      "Tests/EditorImGui/PlayTwoDServicesTests.cpp": "44085793b661a4d6fcffa674e13a8965a73119e3463c436d4b2361b1f4ca26de",
+      "Tests/EditorImGui/PlayTwoDPreviewFixture.cpp": "c272818c59aaa0949f32eb444b77135d8d6a7694d8545a91bef48b34bda22b42",
+      "Tests/EditorImGui/GameTwoDPreviewTests.cpp": "a592701602fd27571096d6141ede719c4e30a07eb3ca6ce25c5551c78f112354",
+      "Tests/EditorImGui/LinuxNativeGameTwoD.py": "8affd003e234a8b43a22f5e9cbcf570411ef4de906e25ac2bd982dd446455995"
+    }
+  },
   "development": {
     "configure": "passed",
     "build": "passed",
@@ -77,14 +134,15 @@
     "total": 336,
     "failed": 0,
     "skipped": 0,
-    "seconds": 1119.64,
+    "seconds": 1138.27,
     "clean_full_run": true
   },
   "native_main_game_twod": {
     "actual_view_click": "passed",
+    "actual_view_clicks": 32,
     "alpha_pool_atlases": 2,
     "cycles": 32,
-    "elapsed_seconds": 36.373,
+    "elapsed_seconds": 58.876,
     "native_game_pixels": "passed",
     "pause_step_input_stop": "passed",
     "phases": [
@@ -92,15 +150,16 @@
         "base": 2592,
         "blended": 2592,
         "pool": 2592,
-        "region": "red"
+        "region": "green"
       },
       {
         "base": 2592,
         "blended": 2592,
         "pool": 2592,
-        "region": "green"
+        "region": "red"
       }
     ],
+    "session_defaults_3d": 32,
     "source_bytes": "unchanged",
     "source_pixels": "unchanged",
     "swapchain_encoding": "sRGB",
@@ -108,60 +167,78 @@
   },
   "existing_native_play_soak": {
     "cycles": 32,
-    "elapsed_seconds": 82.553,
+    "elapsed_seconds": 82.363,
     "growth_limit": 33554432,
     "lifecycle_records": 128,
     "module_touched_bytes": 4194304,
     "pixels_input_pause_step_discard": "passed",
     "rss_after_stop": [
-      122007552,
-      126205952,
-      126205952,
-      122519552,
-      126205952,
-      122519552,
-      124682240,
-      126205952,
-      123215872,
-      126205952,
-      123199488,
-      126210048,
-      124178432,
-      122523648,
-      126210048,
-      126210048,
-      122830848,
-      126210048,
-      122523648,
-      122523648,
-      122523648,
-      122523648,
-      122523648,
-      122527744,
-      122527744,
-      122585088,
-      122527744,
-      122650624,
-      123416576,
-      122650624,
-      126337024,
-      122650624
+      118337536,
+      122540032,
+      122540032,
+      126144512,
+      122540032,
+      122540032,
+      125665280,
+      122540032,
+      124080128,
+      122540032,
+      122540032,
+      122544128,
+      122544128,
+      124862464,
+      122544128,
+      126230528,
+      124837888,
+      122544128,
+      122544128,
+      122544128,
+      122544128,
+      123322368,
+      125755392,
+      122765312,
+      124690432,
+      126230528,
+      122544128,
+      125550592,
+      122601472,
+      122601472,
+      122601472,
+      125505536
     ],
     "rss_scope": "current_process_resident_set",
     "rss_unit": "bytes",
     "source_bytes": "unchanged",
     "source_pixels": "unchanged",
     "validation_errors": 0,
-    "warm_baseline": 126205952,
-    "warmed_end": 122650624,
-    "warmed_peak": 126337024,
+    "warm_baseline": 126144512,
+    "warmed_end": 125505536,
+    "warmed_peak": 126230528,
     "warmup_cycles": 4
+  },
+  "review_focused": {
+    "passed": 3,
+    "total": 3,
+    "seconds": 62.65,
+    "cpu_seconds": 0.04,
+    "native_surface_seconds": 2.51,
+    "native_main_twod_seconds": 60.09,
+    "session_defaults_3d": 32,
+    "actual_view_clicks": 32
+  },
+  "review_regressions": {
+    "new_session_and_immutable_owner_reset": "covered by CPU/native tests",
+    "native_full_image_font_dpi_domain": "covered by editor.native_surface_lifetime",
+    "metal_65_accepted_66_rejected": "Native adapter case in window_presentation.metal_scene; not executable in Linux cloud"
   },
   "provenance": [
     "Initial ordered AssetUuid map failed compilation; replaced with its existing hash.",
     "Initial fixture assumed separate scene/entity namespaces; corrected to the actual mesh entity ID.",
     "Initial native palette assumed UNORM. Captured pixels match the supported sRGB attachment; select one coherent palette using the known background and verify linear/sRGB colors within two code values.",
     "Old-base 335-case complete gate intentionally interrupted when PR615 advanced main. Fast-forwarded to 4972c14b, reviewed RHI admission changes and repeated complete Development, Shipping and actual graphical feature-OFF gates.",
-    "Final native Step assertion requires a red/green Clip-region transition, not an arbitrary pixel difference."
+    "Final native Step assertion requires a red/green Clip-region transition, not an arbitrary pixel difference.",
+    "Initial PR619 Windows compilation found valid MSVC /WX C4456: the new frame local shadowed the existing outer frame. Renamed that Sprite snapshot reference to sprite_frame. Initial-head CI cannot substitute for corrected-head checks.",
+    "Accepted two valid P2 review findings: reset selection/focus for new sessions or immutable Play owner changes; allow Metal65 UI uploads for64 images plus font and reject66 before upload. Added actual default/view-cycle, owner-replacement, native DPI/domain full-cache and Metal adapter boundary cases. Repeated complete Development, Shipping and actual graphical feature-OFF gates after all fixes.",
+    "The name-only complete gate was intentionally interrupted before adding the two P2 fixes and is not counted as a successful complete validation. Additional Linux local-shadow syntax audit found no shadows in added code; one existing main.cpp shadow was left unchanged."
   ]
 }

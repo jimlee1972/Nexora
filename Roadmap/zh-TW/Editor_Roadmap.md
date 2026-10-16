@@ -83,7 +83,8 @@ UUID、既有 Sidecar、容量上限與原子 Clip 相依更新，於無效、�
 
 ✅ 主 Game 面板現可明確選擇 3D／2D，從實際 Play clone、凍結的多 Atlas 與 pool 繪製有界
 原生 2D 預覽。標準排序、4096 筆輸入准入、GUI 貼圖世代／預算、DPI／裁切、Scene 並存／
-重疊處理與 Stop 保全已有驗證。實際 Linux Editor 通過 32 輪原生循環，涵蓋混色像素、
+重疊處理與 Stop 保全已有驗證。新 session／Play 擁有者會重設為 3D；原生圖像滿載重送可
+包含字型。實際 Linux Editor 通過 32 輪原生循環，涵蓋混色像素、
 Pause／Step／輸入、作者端檔案及並存 3D 來源像素不變，Vulkan 驗證錯誤為零。作者端 Sprite
 持久化、Tilemap 掛接、無縫 DLL reload 與實體驗收仍未完成；ED／2D 里程碑計數不變。
 [契約](../../Apps/Editor/README.md#bounded-2d-game-view)與

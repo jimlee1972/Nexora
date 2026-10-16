@@ -149,7 +149,15 @@ int main(int argc, char **argv) {
     const UiDrawCommand command{0, 0, 640, 360, 1, 3, 0, 0};
     const UiDrawData uiDraw{
         ui, std::as_bytes(std::span(indices)), {&command, 1}, {&upload, 1}, false};
-    if (!require(surface->RenderUi(uiDraw), SurfaceStatus::Ready) ||
+    std::array<UiTextureUpload, 66> fullUiUploads{};
+    for (std::size_t i = 0; i < fullUiUploads.size(); ++i)
+      fullUiUploads[i] = {i + 1, 2, 1, 8, pixels};
+    auto fullUiDraw = uiDraw;
+    fullUiDraw.textureUploads = fullUiUploads;
+    if (!require(surface->RenderUi(fullUiDraw), SurfaceStatus::InvalidDescriptor))
+      return fail(__LINE__);
+    fullUiDraw.textureUploads = std::span(fullUiUploads).first(65);
+    if (!require(surface->RenderUi(fullUiDraw), SurfaceStatus::Ready) ||
         !require(surface->RenderUi(uiDraw), SurfaceStatus::InvalidDescriptor) ||
         !require(surface->Present(), SurfaceStatus::Ready))
       return fail(__LINE__);

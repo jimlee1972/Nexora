@@ -7522,8 +7522,12 @@ bool EditorImGuiHost::SetSceneOverviewCamera(SceneOverviewCamera camera) noexcep
 
 void EditorImGuiHost::SetGameTwoDAvailable(bool available) noexcept {
   state_->game_two_d_available = available;
-  if (!available)
+  if (!available) {
+    if (state_->game_two_d_selected)
+      state_->game_input_focused = false;
+    state_->game_two_d_selected = false;
     state_->game_two_d_status.clear();
+  }
 }
 void EditorImGuiHost::SetGameTwoDStatus(std::string message) {
   state_->game_two_d_status = std::move(message);

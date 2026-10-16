@@ -90,7 +90,8 @@ milestone count changes. [Contract](../../Apps/Editor/README.md#optional-2d-serv
 ✅ The main Game panel now offers explicit 3D/2D selection and bounded native 2D preview from the
 actual Play clone, frozen multi-Atlas assets and pool. Canonical ordering, 4096-input admission,
 GUI texture generations/budgets, DPI/clipping, concurrent/overlapping Scene behavior and Stop
-conservation are covered. The actual Linux Editor passes 32 native cycles with blended pixels,
+conservation are covered. New sessions/Play owners reset to 3D; full native image resends include
+the font. The actual Linux Editor passes 32 native cycles with blended pixels,
 Pause/Step/input, unchanged authoring files and concurrent 3D source pixels, and zero Vulkan
 validation errors. Authored Sprite persistence, Tilemap binding, seamless DLL reload and physical
 acceptance remain open; ED/2D milestone counts are unchanged. [Contract](../../Apps/Editor/README.md#bounded-2d-game-view)

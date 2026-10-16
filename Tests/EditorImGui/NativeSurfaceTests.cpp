@@ -112,14 +112,20 @@ void NativeImages() {
       id = host.RegisterNativeTexture(1, 1, pixels);
       assert(id != 0 && id != old && !host.UnregisterTexture(old));
     }
-    Frames(host, *created.surface, shell, 1.5F, images[0], 1);
+    // The first replacement batch also rebuilds the font: 64 images plus one font upload.
+    Frames(host, *created.surface, shell, 2.0F, images[0], 1);
   }
   const auto diagnostics = created.surface->Diagnostics();
   assert(diagnostics.nativeUiTextureUploads > 4096);
   assert(diagnostics.nativeUiRejectedTextures == 0);
   const auto uploads = diagnostics.nativeUiTextureUploads;
-  Frames(host, *created.surface, shell, 1.5F, images[0]);
+  Frames(host, *created.surface, shell, 2.0F, images[0]);
   assert(created.surface->Diagnostics().nativeUiTextureUploads == uploads);
+  assert(created.surface->DrainAndDestroy() == SurfaceStatus::Ready);
+  created = CreateRenderSurface({"Editor full image cache replacement", 960, 640});
+  assert(created);
+  Frames(host, *created.surface, shell, 2.0F, images[0], 1);
+  assert(created.surface->Diagnostics().nativeUiTextureUploads == 65);
   assert(created.surface->DrainAndDestroy() == SurfaceStatus::Ready);
   for (const auto id : images)
     assert(host.UnregisterTexture(id));

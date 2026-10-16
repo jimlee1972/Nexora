@@ -295,7 +295,9 @@ remain open. ED/2D milestone counts do not change.
 ### Bounded 2D Game View
 
 With an attached 2D gameplay bridge, the Game panel offers explicit 3D/2D view selection.
-3D remains the default, including mixed projects with incidental Atlas/Clip assets. The 2D view
+3D is the default for every new Play session, including mixed projects with incidental Atlas/Clip
+assets. Stop or a change of immutable Play owner resets the selection and releases 2D input focus.
+The 2D view
 uses the gameplay camera and the same cloned World, Sprite metadata and pool as the canonical
 API. Changing views mutates no World or authoring history. A disjoint native 3D Scene can remain
 visible even without support for multiple native 3D views. If the physical rectangles overlap,
@@ -314,6 +316,8 @@ contribute to the displayed unavailable count; valid sprites can still draw.
 borrowed project model or mutable UUID lookup. At most 64 Atlas registrations are retained per
 Play asset scope, sharing the GUI host's 64 slots and 16 MiB of CPU RGBA copies. Each image is at
 most 1024x1024; unsupported larger images are reported unavailable without changing source data.
+The native UI packet can include the font alongside all 64 images; Metal admits 65 uploads,
+including a full resend after a DPI rebuild or surface domain change.
 Already registered Atlases are reused; dynamically changing to additional Atlases can exhaust the
 session budget until Stop. Shared GUI texture pressure rejects allocation without publishing a
 zero/stale handle. Native registration may occur during frame assembly before Render; scope change,

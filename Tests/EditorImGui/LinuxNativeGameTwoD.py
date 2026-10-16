@@ -188,11 +188,12 @@ def main():
         for cycle in range(1, CYCLES + 1):
             send('key', '--delay', '30', 'F5')
             wait(lambda: captured.count(b'2d fixture start\n') == cycle, 'Module did not start')
-            if cycle == 1:
-                wait(lambda: value('combo') is not None, 'View selector did not appear')
-                click(value('combo'))
-                wait(lambda: value('two') is not None, '2D option did not open')
-                click(value('two'))
+            wait(lambda: value('combo') is not None, 'View selector did not appear')
+            if value('viewport') is not None:
+                raise RuntimeError('New Play session did not default to 3D')
+            click(value('combo'))
+            wait(lambda: value('two') is not None, '2D option did not open')
+            click(value('two'))
             wait(lambda: value('viewport') is not None and value('textures') == (2,),
                  'Two frozen Atlases did not reach the 2D Game canvas')
             send('key', '--delay', '30', 'F6')
@@ -250,7 +251,8 @@ def main():
         if re.search(rb'Validation Error\b|(?:VUID-|SYNC-HAZARD-)[A-Za-z0-9_-]+', captured + output):
             raise RuntimeError('Native Vulkan validation failed')
         report = dict(cycles=CYCLES, native_game_pixels='passed', alpha_pool_atlases=2,
-            actual_view_click='passed', pause_step_input_stop='passed', source_pixels='unchanged',
+            actual_view_click='passed', actual_view_clicks=CYCLES, session_defaults_3d=CYCLES,
+            pause_step_input_stop='passed', source_pixels='unchanged',
             source_bytes='unchanged', validation_errors=0, phases=phases, swapchain_encoding=encoding(paused),
             elapsed_seconds=round(time.monotonic() - started, 3))
         (evidence / 'acceptance.json').write_text(json.dumps(report, indent=2) + '\n')

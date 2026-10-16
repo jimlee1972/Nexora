@@ -35,24 +35,37 @@ source; the aborted old-base run is not counted as a successful complete validat
 Final validation on the source hashes in the [machine-readable record](EditorEDM3-GameTwoDPreview-Linux-2026-10-16.json):
 
 - `cmake --preset linux-development`, `cmake --build --preset linux-development`,
-  `ctest --preset linux-development`: **336/336 passed**, zero skips, **1119.64 seconds**.
-- Final native 2D acceptance: **32 cycles**, **36.373 seconds**, zero Vulkan
+  `ctest --preset linux-development`: **336/336 passed**, zero skips, **1138.27 seconds**.
+- Final native 2D acceptance: **32 cycles**, **58.876 seconds**, zero Vulkan
   validation errors, unchanged source bytes/pixels. Manual Step changes the opaque Clip region
-  from red to green; native palette is sRGB.
+  from green to red; native palette is sRGB.
+  All 32 sessions start in 3D and require actual explicit 2D clicks.
+- Review-focused tests: **3/3**, **62.65 seconds**, including full-cache image/font uploads at DPI
+  rebuild and surface-domain change. The CPU test additionally replaces the immutable Play owner.
+  Native Metal adapter coverage checks 65 uploads accepted/66 rejected; Linux cannot run that
+  adapter, so its runtime result belongs to the applicable macOS gate.
 - Existing native 3D Play soak: **32 cycles**, **128 lifecycle records**, unchanged source bytes/pixels,
-  zero validation errors. Warmed peak RSS growth **131,072 bytes**
+  zero validation errors. Warmed peak RSS growth **86,016 bytes**
   is within the **33,554,432-byte** regression guard; no leak-freedom claim.
 - `cmake --preset linux-shipping`, `cmake --build --preset linux-shipping`: passed.
   This Minimal Monolithic configuration excludes Editor/testing.
 - Actual graphical feature-OFF build at `/tmp/nexora-editor-20261016/2d-off` with
   `NEXORA_ENABLE_2D=OFF`, `NEXORA_ENABLE_ZIG_GAMEPLAY=OFF`: built `NexoraEditor` and
   `NexoraPlayGameplayModuleTests`, `NexoraPlayDiagnosticsTests`, `NexoraPlaySceneServicesTests`,
-  `NexoraGameCameraTests`. Four tests passed, **0.09 seconds**; no 2D tests were registered.
+  `NexoraGameCameraTests`. Four tests passed, **0.20 seconds**; no 2D tests were registered.
   Editor, EditorCore and EditorImGui dynamic dependency tables contain no TwoD dependency.
-- Documentation tooling: **16/16** tests; **nine** changed Markdown files pass validation.
-  Ten touched C++ files pass clang-format. Root README is unchanged.
+- Documentation tooling: **16/16** tests; **ten** changed Markdown files pass validation.
+  Thirteen touched C++/Objective-C++ files pass clang-format. Root README is unchanged.
 
 No enclosing Editor/2D milestone or physical-device acceptance is claimed.
+
+The initial PR619 head `7b2659c1` passed the complete local 336-case gate in 1119.64 seconds,
+but Windows hosted compilation found MSVC C4456: the new Sprite snapshot local `frame` shadowed
+the existing outer surface frame. Renamed it to `sprite_frame` without changing behavior and
+then fixed two valid P2 findings: reset 2D selection/input focus for a new session/immutable Play
+owner and admit Metal's 64 image uploads plus the font. Added the lifecycle/full-cache regressions
+above and repeated the complete Development, Shipping and actual graphical feature-OFF gates.
+Initial-head results are preserved separately in the JSON and do not substitute for corrected-head CI.
 
 The preview admits up to4096 scene/pool inputs, 100,000 poses and 16,384-pixel extents. It shares
 the GUI's 64 live images, 1024x1024-image and 16MiB CPU-copy limits. Cached Atlas registrations

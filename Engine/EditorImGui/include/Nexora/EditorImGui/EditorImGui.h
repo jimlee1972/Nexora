@@ -455,7 +455,8 @@ public:
   // The application revalidates it against the live World after commands and fixed ticks.
   [[nodiscard]] runtime::Id GameCameraSelection() const noexcept;
   void SetNativeGameStatus(std::string message, bool available = true);
-  // Optional UI Sprite canvas; 3D remains the default. Availability is supplied before BeginFrame.
+  // Optional UI Sprite canvas. Unavailable resets selection to 3D and releases 2D input focus.
+  // Supply availability before BeginFrame; the application resets it when the Play owner changes.
   void SetGameTwoDAvailable(bool available) noexcept;
   void SetGameTwoDStatus(std::string message);
   [[nodiscard]] std::optional<Nexora::Presentation::SceneViewport>

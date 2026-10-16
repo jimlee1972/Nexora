@@ -14,11 +14,14 @@ public:
   ~GameTwoDTextures() { Clear(); }
   GameTwoDTextures(const GameTwoDTextures &) = delete;
   GameTwoDTextures &operator=(const GameTwoDTextures &) = delete;
-  void Sync(std::shared_ptr<const TwoDPlayAssets> assets) {
+  // Returns true when the Play owner changes, so the application can reset the view selection.
+  bool Sync(std::shared_ptr<const TwoDPlayAssets> assets) {
     if (assets_ != assets) {
       Clear();
       assets_ = std::move(assets);
+      return true;
     }
+    return false;
   }
   void Clear() noexcept {
     for (const auto &[id, texture] : textures_) {

@@ -508,7 +508,9 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   device replacement, stale draw fallback, and rejection metrics.
 - `RegisterNativeTexture` copies tightly packed linear RGBA8 pixels for the native `RenderSurface`
   renderer, without exposing its device. Each image is at most 1024x1024; the host permits 64 live
-  images and 16 MiB of retained pixels. Invalid sizes, exhausted slots/bytes/generations return zero.
+  images and 16 MiB of retained pixels. The font has a separate upload: a full resend after a
+  DPI/domain change can submit 65 images, including on Metal. Invalid sizes, exhausted
+  slots/bytes/generations return zero.
   IDs share the host's monotonic generation namespace with public-RHI registrations, but each
   renderer accepts only its own registrations. Stale/foreign IDs use the diagnostic font fallback
   and increment host rejection metrics. Register on the owner thread before native Render,
