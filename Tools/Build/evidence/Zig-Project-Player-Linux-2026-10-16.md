@@ -63,6 +63,10 @@ MSVC also diagnosed a private service-table template variable shadowing caller g
 Editor integration instantiated it in more consumers. Descriptive private names fix that warning
 without altering the wire or disabling checks. The subsequent full Linux build, six service/
 project/native tests and the affected memory-UI test passed; Shipping rebuilt successfully.
+The next hosted macOS run compiled successfully and exposed a test-only lexical comparison
+between `/var` and its canonical `/private/var` directory. The assertion now compares canonical
+paths, and a non-Windows directory-alias case reproduces that normalization on Linux. The
+manifest test passes locally. Product path admission is unchanged.
 Hosted platform checks must pass on these corrections before merge.
 
 Commands for reproduction:

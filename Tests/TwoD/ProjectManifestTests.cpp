@@ -30,7 +30,15 @@ void Run(const std::filesystem::path &root) {
     }
     return player::GameProject::Load(manifest);
   };
-  Check(load(base).module == module && load(base).audio == "off", "valid descriptor");
+  Check(load(base).module == std::filesystem::canonical(module) && load(base).audio == "off",
+        "valid descriptor");
+#if !defined(_WIN32)
+  std::filesystem::create_directory_symlink(root, root / "alias");
+  const auto aliased = player::GameProject::Load(root / "alias/game.nx2game");
+  Check(aliased.module == std::filesystem::canonical(module) &&
+            aliased.root == std::filesystem::canonical(root),
+        "project directory alias normalization");
+#endif
   for (const auto &bad :
        {base + "unknown \"value\"\n", base + "id \"duplicate\"\n", base + "tile_atlas 0 0\n",
         base + "font 33 \"gameplay.dll\"\n", base + "wave 1 \"../gameplay.dll\"\n",
