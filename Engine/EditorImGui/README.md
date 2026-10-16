@@ -20,6 +20,20 @@ covers actual previews plus save/reopen. Windows physical DPI/input and full mai
 remain separate. See [tools](../../Tools/TwoD/README.md) and [contracts](../TwoD/README.md).
 
 
+## Project Play 2D canvas
+
+The main Game panel can select 2D when its application supplies an attached gameplay bridge.
+3D remains the default. `SetGameTwoDAvailable` is supplied before BeginFrame; the current-frame
+`GameTwoDViewport` reports the visible physical canvas. `DrawGameTwoDSprites` is called after
+Play commands/ticks and before EndFrame. It admits one validated packet of up to4096 indexed
+uniform-tint quads with live native texture IDs, copies geometry to the owning Game window draw
+list and retains no caller spans. Malformed ranges/coordinates/textures/clips reject before
+appending; calls after EndFrame or duplicate submission reject. Physical coordinates and clip
+rectangles convert through framebuffer DPI. A disjoint native Scene is independent of multi-3D
+support; overlap suppresses native Scene submission to preserve GUI stacking. This is an indexed
+GUI preview, not the separate instanced Sprite path. See the [application contract](../../Apps/Editor/README.md#bounded-2d-game-view)
+and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md).
+
 ## External Chrome duration inspection
 
 The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
@@ -494,10 +508,14 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   device replacement, stale draw fallback, and rejection metrics.
 - `RegisterNativeTexture` copies tightly packed linear RGBA8 pixels for the native `RenderSurface`
   renderer, without exposing its device. Each image is at most 1024x1024; the host permits 64 live
-  images and 16 MiB of retained pixels. Invalid sizes, exhausted slots/bytes/generations return zero.
+  images and 16 MiB of retained pixels. The font has a separate upload: a full resend after a
+  DPI/domain change can submit 65 images, including on Metal. Invalid sizes, exhausted
+  slots/bytes/generations return zero.
   IDs share the host's monotonic generation namespace with public-RHI registrations, but each
   renderer accepts only its own registrations. Stale/foreign IDs use the diagnostic font fallback
-  and increment host rejection metrics. Register/unregister between frames on the owner thread.
+  and increment host rejection metrics. Register on the owner thread before native Render,
+  including during frame assembly. Unregister after prior submission and before the next BeginFrame,
+  or after drawing is stopped/discarded. It must not invalidate a pending draw packet.
   Unregister frees the CPU copy immediately and prevents future bindings. A bounded GPU cache slot
   remains until reuse or surface drain; replacing it retires the old resource behind completion.
   One host drives a surface's UI namespace. New domains resend all live images; resize/move and

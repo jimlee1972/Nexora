@@ -922,7 +922,8 @@ private:
     const std::size_t indexSize = data.indices32Bit ? 4 : 2;
     if (data.vertices.size() > 1048576 || data.indices.size() > 4194304 ||
         data.indices.size() % indexSize != 0 || data.commands.size() > 65536 ||
-        data.textureUploads.size() > 64)
+        // The Editor can resend 64 live images plus its font after a DPI/domain change.
+        data.textureUploads.size() > 65)
       return false;
     for (const auto &upload : data.textureUploads)
       if (!ValidTexture(upload))

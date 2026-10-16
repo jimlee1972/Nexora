@@ -797,3 +797,27 @@ if(TARGET NexoraPlayTwoDServicesTests AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
   set_tests_properties(editor.play_twod_native PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77
     LABELS "twod;editor;vulkan;virtual-display")
 endif()
+
+if(NEXORA_ENABLE_2D)
+  add_library(NexoraPlayTwoDPreviewFixture MODULE PlayTwoDPreviewFixture.cpp)
+  target_link_libraries(NexoraPlayTwoDPreviewFixture PRIVATE Nexora::Foundation)
+  nexora_apply_defaults(NexoraPlayTwoDPreviewFixture)
+  add_executable(NexoraGameTwoDPreviewTests GameTwoDPreviewTests.cpp)
+  target_include_directories(NexoraGameTwoDPreviewTests PRIVATE
+    "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+  target_link_libraries(NexoraGameTwoDPreviewTests PRIVATE Nexora::EditorImGui Nexora::TwoD)
+  add_dependencies(NexoraGameTwoDPreviewTests NexoraPlayTwoDPreviewFixture)
+  nexora_apply_defaults(NexoraGameTwoDPreviewTests)
+  add_test(NAME editor.game_twod_preview COMMAND NexoraGameTwoDPreviewTests "$<TARGET_FILE:NexoraPlayTwoDPreviewFixture>")
+endif()
+
+if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_native_game_twod
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativeGameTwoD.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraGameTwoDPreviewTests>"
+      --module "$<TARGET_FILE:NexoraPlayTwoDPreviewFixture>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-game-twod")
+  set_tests_properties(editor.linux_native_game_twod PROPERTIES
+    TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;vulkan;virtual-display")
+endif()

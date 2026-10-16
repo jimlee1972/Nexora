@@ -2,6 +2,13 @@
 
 ## Shared 2D Sprite submission
 
+Metal's indexed UI packet admits at most 65 texture uploads per pass, allowing the Editor's
+64 registered images plus its font to upload together after a DPI or surface domain change.
+Larger packets reject before uploading; existing frame completion owns replaced native resources.
+The native Metal adapter regression checks 65 accepted/66 rejected, and the Editor native image
+test exercises full-cache font rebuild and surface replacement. Linux cloud acceptance covers
+Vulkan; Metal runtime acceptance requires its applicable hosted/native gate.
+
 `RenderSurface::DrawSprites` validates projected Sprite and optional HUD triangles into one
 native RenderUi pass with a background. Its default `instanceQuads=false` preserves arbitrary
 indexed triangle callers. `SpriteFrame::Draw` opts into `instanceQuads=true`: verified affine

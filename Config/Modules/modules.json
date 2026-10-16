@@ -141,7 +141,9 @@
         "Editor",
         "Runtime",
         "Core",
-        "TwoD"
+        "TwoD",
+        "EditorImGui",
+        "Presentation"
       ]
     },
     {

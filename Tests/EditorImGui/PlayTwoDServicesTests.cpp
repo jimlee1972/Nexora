@@ -339,6 +339,38 @@ void Run(const std::filesystem::path &root, const std::filesystem::path &capture
                 command.clipX + command.clipWidth <= 360 &&
                 command.clipY + command.clipHeight <= 270,
             "Game viewport clipping");
+    const auto render = [&] {
+      return module.ExtractTwoDFrame(400, 300, [](const auto &) { return 7; });
+    };
+    const auto sprite_frame = render();
+    Check(sprite_frame && sprite_frame->statistics.input == 3 &&
+              sprite_frame->statistics.visible == 3 && sprite_frame->vertices.size() == 12 &&
+              sprite_frame->indices.size() == 18,
+          "main Play scene/pool frame extraction");
+    const auto hud = module.TwoDFrame({40, 30, 320, 240}, false);
+    Check(hud && hud->sprites.statistics.visible == 0 && !hud->data.commands.empty() &&
+              hud->data.vertices.size() < frame->data.vertices.size(),
+          "selected Game canvas HUD duplicated scene sprites");
+    if (cycle == 0) {
+      bool rejected{};
+      std::thread renderer([&] { rejected = !render(); });
+      renderer.join();
+      Check(rejected, "cross-thread frame extraction admitted");
+      std::vector<NexoraTwoDInstance> instances(4093,
+                                                {{{0, 0, 0}, {0, 0, 0, 1}, {1, 1, 1}}, Sprite()});
+      std::vector<NexoraTwoDInstanceHandle> handles(instances.size());
+      Check(api.create_instances(api.context, instances.data(), 4093, handles.data()) == 0,
+            "preview capacity fixture");
+      const auto at_capacity = render();
+      Check(at_capacity && at_capacity->statistics.input == 4096, "exact preview instance budget");
+      NexoraTwoDInstanceHandle excess{};
+      Check(api.create_instances(api.context, instances.data(), 1, &excess) == 0 && !render(),
+            "preview overflow did not reject atomically");
+      Check(api.destroy_instances(api.context, &excess, 1) == 0 &&
+                api.destroy_instances(api.context, handles.data(), 4093) == 0 && render(),
+            "preview budget rejection changed pool");
+    }
+
     Check(api.rebuild_queries(api.context, 0) == NEXORA_GAMEPLAY_OK &&
               host.despawn_entity(host.context, parent) == NEXORA_GAMEPLAY_OK &&
               !world.FindEntity(parent) && !world.FindEntity(child) &&

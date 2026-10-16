@@ -80,6 +80,16 @@ check; the full Development rebuild and all four project tests, including native
 The product dependency admission rules remain unchanged. Hosted sanitizer CTest must pass.
 Hosted platform checks must pass on these corrections before merge.
 
+After all 36 checks passed, main advanced to `ee8b37d6` with an explicit 3D/2D Game canvas.
+Integration retains that canvas, canonical Sprite ordering/budgets and both test sets. Gameplay
+HUD quads join the same Game draw list with GUI-owned immutable texture registrations, preserving
+window/popup ordering and avoiding duplicate translucent Sprite draws. Pointer input uses the
+selected canvas origin. The full Development rebuild and eight project/2D tests pass, including
+32 actual Editor Play cycles with Sprite/alpha/pool/HUD pixels, Pause/Step, source conservation
+and concurrent 3D Scene rendering (69.01s for the selection). Shipping rebuilt and the real Zig
+Shipping export/launch/corruption check passed. The integrated full 323-case suite and fresh-head
+hosted checks must complete before merge.
+
 Commands for reproduction:
 
 ```sh

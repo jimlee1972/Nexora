@@ -11,8 +11,10 @@
 #include "Nexora/TwoD/GameplayBridge.h"
 #include "Nexora/TwoD/GameplayUi.h"
 #include "Nexora/Window/Window.h"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <stdexcept>
 #endif
 
@@ -206,35 +208,21 @@ public:
     }
   }
   [[nodiscard]] std::optional<PlayTwoDFrame>
-  ExtractFrame(Nexora::Presentation::SceneViewport viewport) {
+  ExtractFrame(Nexora::Presentation::SceneViewport viewport, bool includeSprites = true) {
     if (!viewport.width || !viewport.height)
       return {};
     auto overlay = ui_frame_;
     used_ |= !scene_.Sprites().empty() || pool_.Size() || !overlay.commands.empty();
     if (!used_)
       return {}; // A 3D module in a project with 2D assets keeps its 3D Game View.
-    std::vector<twod::SpriteInstance> instances;
-    auto poses = scene_.WorldOwner().SceneWorldPoses(scene_.SceneId());
-    if (!poses)
-      throw std::runtime_error("Play 2D poses unavailable");
-    std::uint64_t identity{};
-    for (const auto &pose : *poses)
-      if (const auto *sprite = scene_.Find(pose.id))
-        instances.push_back({++identity, *sprite, pose.matrix});
-    pool_.ForEach([&](const auto &v) {
-      instances.push_back({++identity, v.sprite, runtime::ToMatrix(v.transform)});
-    });
-    const auto resolver = [&](twod::AssetId id) -> std::optional<twod::AtlasBinding> {
-      const auto atlas = assets_->Atlas(id);
-      if (!atlas)
-        return {};
-      auto [found, inserted] = textures_.try_emplace(id, 0);
+    const auto resolver = [&](const twod::Atlas &atlas) {
+      auto [found, inserted] = textures_.try_emplace(atlas.id, 0);
       if (inserted)
         found->second = PlayTextureId();
-      return twod::AtlasBinding{atlas, found->second};
+      return found->second;
     };
-    auto sprites = twod::ExtractSprites(
-        instances, bridge_.RenderCamera(viewport.width, viewport.height), resolver);
+    auto sprites = includeSprites ? ExtractFrame(viewport.width, viewport.height, resolver)
+                                  : std::optional{twod::SpriteFrame{}};
     if (!sprites || sprites->statistics.unavailable)
       throw std::runtime_error("Play 2D extraction or asset resolution failed");
     PlayTwoDFrame result{std::move(*sprites), {}};
@@ -286,6 +274,46 @@ public:
       return command.clipWidth == 0 || command.clipHeight == 0;
     });
     return result;
+  }
+  [[nodiscard]] std::shared_ptr<const TwoDPlayAssets> Assets() const noexcept { return assets_; }
+  using TextureResolver = std::function<std::uint64_t(const twod::Atlas &)>;
+  // An owning, globally sorted CPU snapshot. Texture registration is host-owned and serialized.
+  [[nodiscard]] std::optional<twod::SpriteFrame>
+  ExtractFrame(std::uint32_t width, std::uint32_t height, const TextureResolver &textures) try {
+    if (!width || !height || width > 16384 || height > 16384 || !textures)
+      return {};
+    const auto camera = bridge_.RenderCamera(width, height);
+    if (scene_.Sprites().size() + pool_.Size() > 4096)
+      return {};
+    const auto &world = scene_.WorldOwner();
+    const auto *scene = world.FindScene(scene_.SceneId());
+    if (!scene || scene->state != runtime::SceneState::Active || scene->entities.size() > 100000)
+      return {};
+    auto poses = world.SceneWorldPoses(scene_.SceneId());
+    if (!poses || poses->size() > 100000)
+      return {};
+    std::sort(poses->begin(), poses->end(),
+              [](const auto &a, const auto &b) { return a.id < b.id; });
+    std::vector<twod::SpriteInstance> instances;
+    instances.reserve(scene_.Sprites().size() + pool_.Size());
+    for (const auto &pose : *poses)
+      if (const auto *sprite = scene_.Find(pose.id))
+        instances.push_back({instances.size() + 1, *sprite, pose.matrix});
+    pool_.ForEach([&](auto &instance) {
+      instances.push_back(
+          {instances.size() + 1, instance.sprite, runtime::ToMatrix(instance.transform)});
+    });
+    return twod::ExtractSprites(
+        instances, camera,
+        [assets = assets_, &textures](twod::AssetId id) -> std::optional<twod::AtlasBinding> {
+          const auto atlas = assets->Atlas(id);
+          if (!atlas)
+            return {};
+          const auto texture = textures(*atlas);
+          return texture ? std::optional{twod::AtlasBinding{atlas, texture}} : std::nullopt;
+        });
+  } catch (...) {
+    return {};
   }
 
 private:

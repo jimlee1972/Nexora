@@ -287,10 +287,62 @@ retain the ordinary host and do not include/link these optional services.
 `NexoraEditor`, with 32 clone lifetimes, failed Create/Start, full module replacement, frozen
 animation after external owners die, descendant cleanup, fresh pool handles, wrong-thread bridge
 rejection, source/history conservation and capability-free 3D loads. This is CPU integration
-acceptance. The native composition and additional services below extend this path. Authored Sprite
-persistence, Tilemap binding, seamless hot reload and full physical acceptance remain open.
-ED/2D milestone counts do not change.
+acceptance on its own; bounded native main Game View acceptance is described below.
+Authored Sprite persistence, Tilemap binding, seamless hot reload and full physical acceptance
+remain open. ED/2D milestone counts do not change.
 [Linux validation](../../Tools/Build/evidence/EditorEDM3-MainPlayTwoDServices-Linux-2026-10-16.md).
+
+### Bounded 2D Game View
+
+With an attached 2D gameplay bridge, the Game panel offers explicit 3D/2D view selection.
+3D is the default for every new Play session, including mixed projects with incidental Atlas/Clip
+assets. Stop or a change of immutable Play owner resets the selection and releases 2D input focus.
+The 2D view
+uses the gameplay camera and the same cloned World, Sprite metadata and pool as the canonical
+API. Changing views mutates no World or authoring history. A disjoint native 3D Scene can remain
+visible even without support for multiple native 3D views. If the physical rectangles overlap,
+native Scene drawing is suppressed so it cannot overwrite the GUI canvas.
+
+`PlayTwoDServices::ExtractFrame` takes one owning CPU snapshot after Play commands/fixed ticks/
+Update and before GUI EndFrame. It sorts World poses by entity ID, appends pool slots in their
+stable iteration order, assigns unique draw identities and uses canonical Sprite sorting/extraction.
+The frozen multi-Atlas resolver retains immutable owners in the returned packet. Render does not
+advance animation. Pool and scene inputs share a 4096-Sprite budget; the pose snapshot is capped
+at 100,000, and nonzero framebuffer extents at 16,384 per axis. Invalid poses, budgets or thread
+ownership return no packet. Missing/invalid Atlas references or unavailable GUI registrations
+contribute to the displayed unavailable count; valid sprites can still draw.
+
+`GameTwoDTextures` owns registrations scoped to the exact immutable Play assets owner, never a
+borrowed project model or mutable UUID lookup. At most 64 Atlas registrations are retained per
+Play asset scope, sharing the GUI host's 64 slots and 16 MiB of CPU RGBA copies. Each image is at
+most 1024x1024; unsupported larger images are reported unavailable without changing source data.
+The native UI packet can include the font alongside all 64 images; Metal admits 65 uploads,
+including a full resend after a DPI rebuild or surface domain change.
+Already registered Atlases are reused; dynamically changing to additional Atlases can exhaust the
+session budget until Stop. Shared GUI texture pressure rejects allocation without publishing a
+zero/stale handle. Native registration may occur during frame assembly before Render; scope change,
+Stop or project switch clears CPU registrations before the next BeginFrame. No former Play quads
+are appended after Stop. On shutdown, Clear runs after drawing ends. The existing bounded native
+cache retains slots until reuse or surface drain, retiring replaced resources behind completion;
+this does not claim immediate GPU deallocation or an RSS/VRAM bound at Stop.
+
+`DrawGameTwoDSprites` copies at most 4096 uniform-tint indexed quads into the current Game window's
+own ImGui draw list after Play mutation and before EndFrame. It admits one packet per frame and
+validates all ranges, live native texture generations, finite coordinates, aggregate quad counts
+and physical clip rectangles before any geometry is appended. No upload spans, World/asset borrows
+or caller geometry survive the call. Physical positions and clips convert through the current DPI
+scale, retaining ordinary GUI window stacking and panel clipping. Source Sprite IDs/pool handles
+and stable C/Zig ABI layouts are unchanged. This preview uses the existing indexed GUI path;
+it does not accept the standalone instanced stress/performance or physical target-host gates.
+
+`editor.game_twod_preview` covers actual view clicks, multi-Atlas/pool order, Step, shared texture
+pressure, foreign/stale owners, malformed packet atomicity, expired frame rejection, 2x DPI,
+concurrent/overlapping canvases and Stop/source conservation. `editor.linux_native_game_twod`
+runs the actual project Editor and V3 library for 32 native cycles, validating blended Atlas/pool
+pixels, Pause/Step/input/Stop, concurrent 3D source pixels and unchanged authoring files.
+[Evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md).
+Authored Sprite persistence, Tilemap binding, seamless DLL reload and physical acceptance remain
+open; enclosing ED/2D milestone counts are unchanged.
 
 The ED-M2 graphical Hierarchy foundation now renders a parent-aware expandable tree, filters by
 entity name, supports plain/Ctrl/Shift selection with a retained generation-keyed anchor, clips
@@ -1180,19 +1232,21 @@ actions 253..256 supply next/previous/activate/cancel defaults and can be reboun
 its Editor release-capture behavior. Game UI uses Game content pixels and supplies its own layout;
 it does not receive arbitrary Editor modal input.
 
-Game rendering resolves the frozen Atlas owners and extracts the actual Play World poses plus
-pooled sprites in one sorted frame. UI follows sprites, clipped/offset to the physical Game
-rectangle. A 3D module with no 2D geometry/UI preserves its existing 3D Game View. After a module
-uses 2D, an empty frame clears that Game content without selecting the 3D renderer. Paused redraws
-retain completed UI without advancing module/animation/audio clocks. The native ImGui submission
-combines Editor UI then bounded gameplay triangles in one packet; this Editor path makes no GPU
+The explicit 3D/2D selection described above controls Game rendering. The 2D canvas resolves
+frozen Atlas owners and extracts the actual Play World poses plus pooled sprites in one sorted
+frame. Gameplay UI follows those sprites, clipped/offset to the same physical Game rectangle.
+The HUD submission contains no scene sprites, so translucent sprites draw only once. Switching
+back to 3D suppresses this HUD. Paused redraws
+retain completed UI without advancing module/animation/audio clocks. HUD quads join the same
+Game draw list, preserving Editor popup/window ordering, with a combined 4096-quad admission
+budget and shared GUI native-image limits. This Editor path makes no GPU
 Sprite-instancing performance claim. The standalone Player retains native Sprite instancing.
 
-Surface-local immutable texture IDs use fresh host reservations for every Play owner; module UI
+Surface-local immutable texture IDs use fresh GUI reservations for every Play owner; module UI
 IDs are remapped away from Editor/frozen Sprite IDs. Frame snapshots retain Atlas/font owners
-through submission. Unload queues only its own reserved IDs; the main host releases them between
-acquired frames before the next BeginFrame. Failed native retirement/draw is visible and stops the
-loop; final surface drain releases remaining GPU resources. All preparation/callbacks are serialized
+through submission. The texture owner releases Sprite and HUD registrations together between
+acquired frames before the next BeginFrame. Canvas admission failures show an unavailable status;
+native surface failures stop the loop and final drain releases remaining GPU resources. All preparation/callbacks are serialized
 on the Editor owner thread and C++ consumers rebuild after the optional Render overload change.
 
 `editor.play_twod_services` covers extraction, bounded clips, retained owners, fresh identities,
