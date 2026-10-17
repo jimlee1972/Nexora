@@ -431,7 +431,12 @@ void Native(bool enhanced) {
 #endif
   const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS"),
              *path = std::getenv(reference);
-  if (!path || !*path || !rhi::IsBackendAvailable(backend)) {
+#if defined(NEXORA_TEST_FEEDBACK_PREVIEW)
+  constexpr bool available = true; // The independent factory must succeed without a baseline probe.
+#else
+  const bool available = rhi::IsBackendAvailable(backend);
+#endif
+  if (!path || !*path || !available) {
     Require(!required || *required != '1', "required feedback/reference backend unavailable");
     std::cout << "Native feedback/reference unavailable\n";
     return;

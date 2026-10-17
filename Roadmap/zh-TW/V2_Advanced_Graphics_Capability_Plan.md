@@ -887,3 +887,5 @@ Sampler Feedback 分支整合此已合併 runtime，保留三種配方的既有�
 僅修正來源 subresource 尚不足以完成原生驗收：5218dee2 的 Windows 工作117411437732 通過314/316，但兩種 feedback barrier 模式均在 count1 失敗（觸及格要求 mip2、解碼為0；clear255 與全部 canary 保持正確）。仍要求精確比較。後續改以來源／目的 UINT_MAX 進行整張 map 解碼、僅在不相符時讀回 GPU request 診斷，並於隔離的固定版本 preview WARP 執行相同嚴格測試。Windows desktop 在完整建置前先跑原生 preflight；成功 head 仍須通過完整桌面矩陣。未完成比對前，不宣稱是 SDK／runtime 問題，也不宣稱 feedback 原生執行成功。
 
 診斷／preflight 後續通過本機完整 Development220/220，零失敗／跳過（121.58s）、真正 SDK helper 與 Windows 條件 preview 測試語法（警告即錯誤）、雙語文件／workflow16/16 及 cleanup25/25。私有 sampler LOD 範圍明確限制於配對 texture 最後一層 mip6；允許的 request 仍為 mip0..2。整張 map 解碼與 preview 比對仍須通過原生 CI。
+
+Preview feedback 測試直接進入獨立 factory，避免以系統 runtime 可用性探測 app-local preview WARP DLL。此測試強制要求 factory、SM6.10 與啟用的原生 feedback，不允許 fallback／跳過。完整本機迴歸再次通過220/220，零失敗／跳過（136.85s）；Windows 條件語法檢查以警告即錯誤通過。
