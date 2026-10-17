@@ -1,0 +1,26 @@
+{
+    "video":  [
+                  {
+                      "Name":  "VirtualBox Graphics Adapter (WDDM)",
+                      "Status":  "OK",
+                      "DriverVersion":  "7.2.20.25154"
+                  }
+              ],
+    "interactive":  false,
+    "processes":  [
+                      {
+                          "Name":  "dwm",
+                          "SessionId":  1
+                      },
+                      {
+                          "Name":  "explorer",
+                          "SessionId":  1
+                      },
+                      {
+                          "Name":  "winlogon",
+                          "SessionId":  1
+                      }
+                  ],
+    "autologon":  "1",
+    "session":  0
+}

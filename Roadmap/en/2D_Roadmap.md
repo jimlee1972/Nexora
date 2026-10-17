@@ -398,3 +398,21 @@ retain exact scope, inventories and commands. VM individual native cases and fin
 observed, but later Guest Control/RPC failures aborted the VM; a full VM lifecycle is not accepted.
 Physical input/controller/audio recovery, Chinese/DPI appearance, clean hardware PC and minimum-PC
 performance remain open. M6/M7 remain NOT ACCEPTED; **9/11 (82%), P0 6/8** are unchanged.
+
+## Windows VM transport recovery slice (2026-10-17)
+
+✅ The acceptance harness now serializes each VM, preserves raw VBoxManage byte streams, rejects
+NUL/invalid UTF-8 inventories, flushes/hash-checks fresh staging, and records actual process exits.
+Native cases wait for desktop level 3 and run in an InteractiveToken task; window close waits for
+presented fixture pixels. RAM reclamation waits retain the reserve, and failed cleanup reports
+unknown rather than reusing an earlier poweroff. Local regressions: 12 Python tests and 2/2 CTest.
+
+✅ A full current-state recovery clone passed **two cold boots, 14/14 cases, save visits 0–4,
+120 native Zig frames per cycle, zero residual Player and two normal poweroffs**.
+[Raw reports and scope](../../Engine/TwoD/evidence/Windows-VM-Recovery-2026-10-17/acceptance.md)
+preserve the old 806-NUL inventory and failed attempts. The original guest's second-boot Windows
+login stall remains unresolved and its RAM/disks remain saved; only the new clone's duplicated RAM
+state was discarded. No old snapshot was restored or original save deleted. This is a recovered
+VM/software correctness slice using frozen source `63bb5f7a`, not pristine/physical-PC acceptance.
+Physical controller/audio/DPI, integrated product and minimum-hardware gates remain open;
+**M6/M7 NOT ACCEPTED, 9/11 (82%), P0 6/8** stay unchanged.

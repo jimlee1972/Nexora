@@ -182,3 +182,23 @@ runtime copies, a launcher and hash inventory. `BakeWindowsFont.ps1` uses an exp
 Windows GDI font/corpus to produce a bounded real glyph atlas; missing glyphs fail. Neither path
 requires the fixed service-validation artwork. See the guide for commands, format/lifetime/limits
 and the [Windows physical acceptance list](WindowsAcceptance.md) for target-host work.
+
+`WindowsVmAcceptance.py` drives an existing, normally powered-off VirtualBox Windows VM through
+two cold boots of the exported UI/independent-Zig Shipping fixtures. See the
+[VM procedure](WindowsAcceptance.md#既有-virtualbox-vm-的可重複驗收) for its exact ZIP layout and command.
+The host owns one OS lock per VM UUID and captures VBoxManage output as bytes; guest operations are
+serial, bounded, and never retried after an uncertain timeout. Each run uses a unique directory,
+strict UTF-8/NUL rejection, hash verification, flushed staging and immutable reports. Child stdout
+and stderr drain concurrently, and actual exit codes are required. Only fresh corruption copies
+are modified; existing saves, saved states and snapshots are preserved. A failed cleanup never
+forces poweroff. PASS requires every case and an observed normal poweroff after each boot, and
+does not accept physical devices, a pristine OS or product performance. The tool neither builds
+nor substitutes the supplied Player binaries; record their frozen source/hash separately.
+Native cases wait for Guest Additions desktop run level 3, then use a unique InteractiveToken
+scheduled task in the already logged-in user's desktop. Guest Control's Session 0 cannot establish
+native window acceptance. The task stores no password, requires its real completion result and a
+positive desktop session, and is removed after completion. The tool does not configure auto-login.
+The close case waits for two known ProjectModule panel pixels before requesting native close;
+window creation or a fixed delay alone does not prove that DX12 presented a frame.
+Cleanup failure reports an unknown final state and its last observed state; a prior cycle's
+poweroff must never stand in for the current failed boot/shutdown.
