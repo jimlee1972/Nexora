@@ -5,13 +5,22 @@
 
 namespace nexora::rhi {
 GraphicsRequirements EffectiveRayProgramRequirements(const RayProgramDescriptor &descriptor) {
-  if (descriptor.mode > RayTracingMode::InlineQuery)
+  if (descriptor.mode > RayTracingMode::ReorderedPipeline)
     throw std::invalid_argument("invalid ray tracing mode");
   auto requirements = descriptor.graphics_requirements;
   const FeatureVersion tier =
       descriptor.mode == RayTracingMode::InlineQuery ? FeatureVersion{1, 1} : FeatureVersion{1, 0};
   const FeatureVersion model =
-      descriptor.mode == RayTracingMode::InlineQuery ? FeatureVersion{6, 5} : FeatureVersion{6, 3};
+      descriptor.mode == RayTracingMode::ReorderedPipeline ? FeatureVersion{6, 9}
+      : descriptor.mode == RayTracingMode::InlineQuery     ? FeatureVersion{6, 5}
+                                                           : FeatureVersion{6, 3};
+  if (descriptor.mode == RayTracingMode::ReorderedPipeline) {
+    auto &ser =
+        requirements
+            .minimum_tiers[static_cast<std::size_t>(GraphicsFeature::ShaderExecutionReordering)];
+    if (ser < FeatureVersion{1, 0})
+      ser = {1, 0};
+  }
   auto &minimum = requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
   if (minimum < tier)
     minimum = tier;

@@ -251,7 +251,8 @@ void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramH
     const auto after = device.Diagnostics();
     Require(before.submitted_command_lists == after.submitted_command_lists &&
                 before.ray_dispatch_calls == after.ray_dispatch_calls &&
-                before.inline_ray_dispatch_calls == after.inline_ray_dispatch_calls,
+                before.inline_ray_dispatch_calls == after.inline_ray_dispatch_calls &&
+                before.ser_ray_dispatch_calls == after.ser_ray_dispatch_calls,
             "aborted ray cohort committed work");
     for (const auto &item : work)
       Require(Read(device, item) == Empty(item.count), "aborted ray cohort changed output");
@@ -440,6 +441,13 @@ void Portable() {
   Require(requirements.minimum_tiers[index] == rhi::FeatureVersion{1, 1} &&
               requirements.minimum_dxil_shader_model == rhi::FeatureVersion{6, 5},
           "query implicit admission lost");
+  descriptor.mode = rhi::RayTracingMode::ReorderedPipeline;
+  requirements = rhi::EffectiveRayProgramRequirements(descriptor);
+  Require(requirements.minimum_dxil_shader_model == rhi::FeatureVersion{6, 9} &&
+              requirements.minimum_tiers[static_cast<std::size_t>(
+                  rhi::GraphicsFeature::ShaderExecutionReordering)] == rhi::FeatureVersion{1, 0},
+          "SER lost independent feature and profile admission");
+  descriptor.mode = rhi::RayTracingMode::InlineQuery;
   rhi::GraphicsDeviceCapabilities capabilities;
   capabilities.features[index] = {rhi::CapabilitySupport::Supported, {1, 2}, true, true, {1, 1}};
   capabilities.dxil_shader_model_support = rhi::CapabilitySupport::Supported;
@@ -492,14 +500,35 @@ void Native(bool enhanced) {
 #endif
   const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
   const auto *path = std::getenv(reference);
-  if (!path || !*path || !rhi::IsBackendAvailable(backend)) {
+#if defined(NEXORA_TEST_SER_NATIVE)
+  const bool available =
+      true; // The explicit private factory below must succeed; no baseline probe.
+#else
+  const bool available = rhi::IsBackendAvailable(backend);
+#endif
+  if (!path || !*path || !available) {
     Require(!required || *required != '1', "required ray/reference native backend unavailable");
     std::cout << "Native ray/reference unavailable\n";
     return;
   }
   const std::string reference_path{path};
-  auto device = rhi::CreateDeviceWithOptions(backend, {true, false, enhanced});
+  rhi::DeviceCreationOptions options{true, false, enhanced};
+#if defined(NEXORA_TEST_SER_NATIVE)
+  options.enable_d3d12_preview_runtime = true;
+#endif
+  auto device = rhi::CreateDeviceWithOptions(backend, options);
   const auto caps = device->Capabilities();
+#if defined(NEXORA_TEST_SER_NATIVE)
+  Require(
+      caps.d3d12_preview_runtime_enabled &&
+          caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::ShaderExecutionReordering)]
+              .enabled &&
+          caps.actual_shader_reordering_support != rhi::CapabilitySupport::Unknown,
+      "required native SER or independent reordering query unavailable");
+  std::cout << "SER functional=1 actual_reordering="
+            << static_cast<unsigned>(caps.actual_shader_reordering_support)
+            << " software=" << caps.software_device << '\n';
+#endif
   rhi::PipelineDescriptor pipeline{1, 2, rhi::TextureFormat::Rgba8Unorm, "portable ray traversal",
                                    rhi::PipelineType::Compute};
   pipeline.compute_shader = rhi::ComputeShaderVariant::RayReference;
@@ -514,7 +543,11 @@ void Native(bool enhanced) {
       scene = device->CreateRayScene(triangles);
     } else
       Reject([&] { (void)device->CreateRayScene(triangles); }, "unavailable AS admitted");
-    for (auto mode : {rhi::RayTracingMode::Pipeline, rhi::RayTracingMode::InlineQuery}) {
+    std::vector modes{rhi::RayTracingMode::Pipeline, rhi::RayTracingMode::InlineQuery};
+#if defined(NEXORA_TEST_SER_NATIVE)
+    modes.push_back(rhi::RayTracingMode::ReorderedPipeline);
+#endif
+    for (auto mode : modes) {
       rhi::RayProgramDescriptor descriptor{mode, {}, "bounded ray oracle"};
       const bool enabled =
           rhi::CheckGraphicsRequirements(caps, rhi::EffectiveRayProgramRequirements(descriptor))
@@ -522,23 +555,26 @@ void Native(bool enhanced) {
       rhi::RayProgramHandle program{};
       if (enabled) {
 #if defined(_WIN32)
-        const auto *environment = mode == rhi::RayTracingMode::Pipeline
-                                      ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
-                                      : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
+        const auto *environment =
+            mode == rhi::RayTracingMode::ReorderedPipeline ? "NEXORA_SER_RAY_LIBRARY_DXIL_PATH"
+            : mode == rhi::RayTracingMode::Pipeline        ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
+                                                           : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
         {
           Environment missing{environment, nullptr};
           RejectContains([&] { (void)device->CreateRayProgram(descriptor); },
                          "ray artifact is unset");
         }
-        if (mode == rhi::RayTracingMode::Pipeline) {
+        if (mode != rhi::RayTracingMode::InlineQuery) {
           Environment wrong{environment, reference_path.c_str()};
           RejectContains([&] { (void)device->CreateRayProgram(descriptor); },
                          "DXIL library artifact");
         }
 #endif
 #if defined(_WIN32)
-        if (mode == rhi::RayTracingMode::Pipeline) {
-          const auto *negative = std::getenv("NEXORA_SLANG_RAY_NEGATIVE_DXIL_PATH");
+        if (mode != rhi::RayTracingMode::InlineQuery) {
+          const auto *negative = std::getenv(mode == rhi::RayTracingMode::ReorderedPipeline
+                                                 ? "NEXORA_SER_RAY_NEGATIVE_DXIL_PATH"
+                                                 : "NEXORA_SLANG_RAY_NEGATIVE_DXIL_PATH");
           Require(negative && *negative, "required compiled ray identity negative is missing");
           const std::string negative_path{negative};
           Environment wrong{environment, negative_path.c_str()};
@@ -597,6 +633,10 @@ void Native(bool enhanced) {
     Require(diagnostics.enhanced_buffer_barriers > 0, "requested ray enhanced barriers unused");
   else
     Require(diagnostics.enhanced_buffer_barriers == 0, "legacy rays fabricated enhanced barriers");
+#if defined(NEXORA_TEST_SER_NATIVE)
+  Require(diagnostics.ser_ray_dispatch_calls > 0, "required native SER was not dispatched");
+  std::cout << "SER accepted_calls=" << diagnostics.ser_ray_dispatch_calls << '\n';
+#endif
   std::cout << "Ray dispatches=" << diagnostics.ray_dispatch_calls
             << " inline=" << diagnostics.inline_ray_dispatch_calls
             << " enhanced=" << barrier.enabled

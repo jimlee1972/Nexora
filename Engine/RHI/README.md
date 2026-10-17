@@ -856,3 +856,20 @@ must satisfy the queried device limit; actual6.10 bytecode additionally requires
 preview permission and the private runtime, including the generic GPUDriven entry. Only trusted
 in-process FXC5.0 fallback stages bypass DXIL metadata parsing. Lower-profile default behavior is
 preserved. The native test includes undeclared-minimum6.10 rejection and opted PSO creation.
+
+## Bounded SER recipe
+
+Default-off `NEXORA_ENABLE_D3D12_SER` requires the preview build and Slang baseline rays/reference.
+`RayTracingMode::ReorderedPipeline` adds implicit SM6.9 and independent SER requirements. The
+published HLSL Device Support rule requires both SM6.9 and raytracing; guarded OPTIONS22 separately
+records `actual_shader_reordering_support`. False means no actual reordering, not invalid HitObject
+or SER semantics. Missing queries remain unknown. Compiled recipe, support and enablement remain
+separate. The RT implementation ceiling stays1.1 until OMM is implemented.
+
+Actual DXC reflection checks t0/t1/u1 and32/16-byte ray/hit layout, exact pinned library bytes and
+native shader identifiers before creation. HitObject TraceRay/Reorder/Invoke reuses the existing
+root/state/table and per-list ownership/revision contract. `ser_ray_dispatch_calls` counts accepted
+SER API calls only after submission, included in ordinary ray counts; rejection/cancellation does
+not publish calls. Lower-profile ordinary rays/compute remain explicit alternatives. WARP validates
+outputs without actual thread reordering; hardware coherence/performance and full SER acceptance
+remain separate. Native preview Windows evidence is pending.

@@ -2439,3 +2439,5 @@ Done
 必須提供可驗證證據。
 
 新型 Compute 後續：獨立啟用的 Agility／WARP／DXC Preview Runtime 與三種有界 SM6.9／6.10 程式實作中，Windows 原生執行待驗證。詳見[進階圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
+
+有界 SER 後續加入真實 SM6.9 HitObject／Reorder／Invoke 與獨立 OPTIONS22 實際重排回報，Windows 原生證據待驗證。WARP 不證明執行緒重排。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 DXR／SER Gate 保持開放。

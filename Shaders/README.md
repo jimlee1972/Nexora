@@ -170,3 +170,9 @@ private header pins the three fixed native recipes. A real65540-byte negative co
 fail the declared65536 shared-memory ceiling. `GroupSharedLimit` describes static storage, not
 runtime dynamic allocation. CPU/GPU output proof belongs to the separate native test, not this
 compiler manifest. General modern shader cook/reflection authoring remains open.
+
+The optional SER recipe compiles `ReorderedRays.hlsl` as DXC lib_6_9, exports three fixed ray stages
+and uses16-byte qualified payload fields. Its build tool checks real dumpbin binding/offset/stride
+reflection and actual HitObject TraceRay/Reorder/Invoke instructions, then pins exact bytes and a
+same-profile changed-payload negative. The manifest does not claim execution or actual thread
+reordering; OPTIONS22 and native output tests provide independent evidence.

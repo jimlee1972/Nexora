@@ -88,3 +88,21 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
   add_dependencies(NexoraRHI NexoraModernShaderArtifacts)
   target_include_directories(NexoraRHI PRIVATE "${modern_output}")
 endif()
+
+if(NEXORA_ENABLE_D3D12_SER)
+  if(NOT NEXORA_ENABLE_D3D12_PREVIEW OR NOT NEXORA_ENABLE_SLANG)
+    message(FATAL_ERROR "SER opt-in requires the isolated preview build and Slang reference/ray artifacts")
+  endif()
+  set(ser_output "${PROJECT_BINARY_DIR}/Shaders/SER")
+  add_custom_command(OUTPUT "${ser_output}/SerArtifactIdentity.h" "${ser_output}/ReorderedRays.dxil"
+      "${ser_output}/ReorderedRaysWrongIdentity.dxil" "${ser_output}/ReorderedRays.manifest.json"
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/RecordSerArtifacts.py"
+      --compiler "${modern_dxc}" --source "${PROJECT_SOURCE_DIR}/Shaders/ReorderedRays.hlsl"
+      --output "${ser_output}"
+    DEPENDS "${PROJECT_SOURCE_DIR}/Shaders/ReorderedRays.hlsl" "${PROJECT_SOURCE_DIR}/Tools/Build/RecordSerArtifacts.py"
+    VERBATIM)
+  add_custom_target(NexoraSerShaderArtifacts ALL DEPENDS "${ser_output}/SerArtifactIdentity.h")
+  add_dependencies(NexoraRHI NexoraSerShaderArtifacts)
+  target_include_directories(NexoraRHI PRIVATE "${ser_output}")
+endif()
+target_compile_definitions(NexoraRHI PRIVATE NEXORA_ENABLE_D3D12_SER=$<BOOL:${NEXORA_ENABLE_D3D12_SER}>)

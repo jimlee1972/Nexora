@@ -841,3 +841,28 @@ Sampler Feedback 父版本上的本機整合驗證通過 Development220/220、�
 拆開 Sampler 父版本後，以 PR633 為基礎的獨立來源通過 Development219/219、零略過／失敗（154.39秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（18.24秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。非 Windows Preview Configure 拒絕及雙語文件檢查亦通過；原生 Preview 執行仍待 Windows CI。
 
 前一版本2f7d89c7 的兩輪 Windows Preview Job117400353506／117402090855 均通過1/1（2.09／0.29秒），實際載入 app-local WARP SM6.10、65536 Shared Bytes、F32 Matvec 支援，九組 Kernel 輸出／Canary／生命週期通過。後續補齊 Caller 未填最低版本時的一般產物准入：實際6.9以上 DXIL 仍須符合裝置上限，實際6.10仍要求明確許可／私有 Runtime；新增一般入口未啟用拒絕／啟用 PSO 建立且不 Submit 的原生測試。本機 Development 再通過219/219（122.37秒），真實 SDK 准入 Helper 及 Windows 條件語法亦通過。清理機制僅納入本次三個確切分支、Owner／同 Repository Actor 的過期進行中 SHA，保留最新 Head 的兩種 Event；取消安全測試25/25、文件／Workflow16/16 通過。合併前仍要求最終後續版本 Windows CI。
+
+### 有界 HitObject／SER 語意路徑 — 實作進行中
+
+獨立且預設關閉的 `NEXORA_ENABLE_D3D12_SER` 要求 Preview 建置與既有 Slang Ray／Compute
+產物。`RayTracingMode::ReorderedPipeline` 使用固定 DXC lib_6_9 Recipe，實際包含
+`HitObject::TraceRay`、`MaybeReorderThread`、`HitObject::Invoke`。真實 DXC Reflection
+驗證 SRVt0／t1／UAVu1、32-byte Ray Input 與16-byte Hit／Payload ABI；Manifest 記錄
+Compiler／Source／Binary Identity，不宣稱已執行。同 Profile 的真實變更 Recipe 負例、
+原生 Export／Identifier 與完整位元組准入補強 Metadata 驗證。
+
+正式 HLSL SER Device Support 要求 SM6.9 與 Raytracing 支援同時成立；Guard 保護的
+OPTIONS22 Query 獨立回報是否真的重排執行緒。False 仍可具備合法 SER 功能，WARP 即是
+此情況。未知 Query 保持拒絕准入；功能支援、已編譯 Recipe 與啟用狀態分開。OMM 路徑
+實作前，既有有界 RT Implementation Ceiling 維持1.1。專用已接受 SER Call 計數只在
+成功 Submit 後發布，並屬於普通 Ray Dispatch 的子集合；沿用專用 Root／State／Table、
+不可變 Snapshot 與 Generation／Revision 退役生命週期。
+
+原生 Preview Oracle 在普通 Ray／Query Fixture 加入 SER Mode，涵蓋1／2／8 Triangle、
+1／64 Ray、CPU／原生 Compute 的 Hit／Miss／Nearest／Barycentric／Invalid 比對、Canary、
+生命週期及 Worker 失敗／取消／重播、Legacy／Enhanced Barrier 與變更／遺失／錯誤產物。
+要求真實原生 SER 准入／Call，以及獨立可用的 Actual Reordering Query。WARP 只驗證語意，
+不證明實體重排、效能或 Coherence。Windows 原生證據待完成，完整 DXR1.2／SER／效能驗收
+維持開放。
+
+SER 候選版本本機 Native Slang／Zig Development219/219 通過、零失敗／略過（163.27秒），Shipping Minimal／Monolithic／LTO 及 Xvfb Khronos 物件／同步17/17（9.94秒）亦通過；37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。正式 DXC Preview 編譯正常／負例 lib_6_9，驗證真實 Reflection／指令並產生完整 Pin。Windows 條件測試及真正 SDK OPTIONS22／Factory 語法檢查通過，仍不屬 Windows 原生執行證據。Workflow 路由16/16、雙語文件檢查通過。

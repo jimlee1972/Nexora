@@ -73,6 +73,8 @@ struct GraphicsDeviceCapabilities final {
   CapabilitySupport gpu_timing_support{CapabilitySupport::Unknown};
   bool gpu_timing_enabled{};
   bool recording_resource_reuse_enabled{};
+  // Separate optimization query: functional SER may execute without actual thread reordering.
+  CapabilitySupport actual_shader_reordering_support{CapabilitySupport::Unknown};
   bool d3d12_preview_runtime_enabled{};
   CapabilitySupport linear_algebra_support{CapabilitySupport::Unknown};
   CapabilitySupport linear_algebra_f32_matvec_support{CapabilitySupport::Unknown};

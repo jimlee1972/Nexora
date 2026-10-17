@@ -310,3 +310,5 @@ Windows AS/native dispatch and complete DXR/SER acceptance remain pending. 真�
 與 Linux 原生 Compute／CPU 交點比對通過；Windows AS／原生 Dispatch 及完整 DXR／SER 驗收仍待完成。
 
 SM6.9/6.10 isolated compute / 隔離 Compute：optional private SDK721/WARP/DXC preview path and three bounded recipes are in progress; native Windows evidence pending / 私有 Preview 路徑與三種有界程式實作中，Windows 原生證據待驗證。See / 詳見 [English](en/V2_Advanced_Graphics_Capability_Plan.md) / [繁體中文](zh-TW/V2_Advanced_Graphics_Capability_Plan.md). Full gates and milestone percentages remain unchanged / 完整 Gate 與里程碑百分比不變。
+
+SER semantic path / SER 語意路徑：default-off pinned SM6.9 HitObject/Reorder/Invoke and independent actual-reordering query are under implementation; native Windows proof pending / 預設關閉的固定 Recipe 與獨立實際重排 Query 實作中，Windows 原生證據待驗證。WARP does not reorder threads / WARP 不重排執行緒。Full gates/percentages unchanged / 完整 Gate／百分比不變。

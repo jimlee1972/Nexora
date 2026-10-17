@@ -918,3 +918,29 @@ Local integrated verification on the sampler-feedback parent passes Development2
 After separating the sampler parent, the standalone PR633-based source passes Development219/219,zero skips/failures (154.39s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (18.24s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Non-Windows preview configure rejection and paired documentation checks pass. Native preview execution still requires Windows CI.
 
 Prior head2f7d89c7 has both native Windows preview jobs117400353506/117402090855 passing1/1 (2.09/0.29s), actually loading app-local WARP SM6.10 with65536 shared bytes and F32 matvec support; all nine kernel outputs/canaries/lifetimes pass. A follow-up closes generic artifact admission when caller minimum is omitted: actual6.9+ DXIL must satisfy the device limit, and actual6.10 requires explicit permission/private runtime. The test adds generic unopted rejection/opted PSO creation without submission. Local Development219/219 passes again (122.37s); actual SDK admission helper and Windows-conditional test syntax pass. Guarded cleanup includes only three exact current graphics-session branches, owner/same-repository actors and obsolete live SHAs, preserving both latest-head events;25/25 cancellation-safety tests and16/16 documentation/workflow tests pass. Final follow-up Windows CI is required before merge.
+
+### Bounded HitObject / SER semantic path — implementation in progress
+
+A separate default-off `NEXORA_ENABLE_D3D12_SER` option requires the preview build and existing
+Slang ray/compute artifacts. `RayTracingMode::ReorderedPipeline` uses a pinned DXC lib_6_9 recipe
+with actual `HitObject::TraceRay`, `MaybeReorderThread` and `HitObject::Invoke`. Real DXC reflection
+checks SRVt0/t1/UAVu1,32-byte ray input and16-byte hit/payload ABI; the manifest records compiler/
+source/binary identity without claiming execution. A real same-profile changed-recipe negative
+and required native exports/identifiers supplement metadata and exact-byte admission.
+
+Published HLSL SER Device Support requires both SM6.9 and raytracing support. The guarded OPTIONS22
+query independently reports whether the implementation actually reorders threads; false is valid
+functional SER, including WARP. Unknown queries remain closed. Functional support, compiled recipe
+and enablement remain separate. The existing bounded RT implementation ceiling stays1.1 until an
+OMM path is implemented. A dedicated accepted SER-call diagnostic is published only after successful
+submission and is a subset of ordinary ray dispatches. The existing dedicated roots/state/table,
+immutable snapshots and generation/revision retirement are reused.
+
+The native preview oracle extends ordinary ray/query fixtures with the SER mode for1/2/8 triangles,
+1/64 rays, CPU/native compute hit/miss/nearest/barycentric/invalid parity, canaries, lifetime and
+worker failure/cancellation/replay, legacy/enhanced barriers and changed/missing/wrong artifacts.
+It requires actual native SER admission/calls and an independently available actual-reordering
+query. WARP validates semantics and does not prove physical reordering, performance or coherence.
+Native Windows proof remains pending; full DXR1.2/SER/performance acceptance remains open.
+
+The SER candidate passes local native Slang/Zig Development219/219,zero failures/skips (163.27s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (9.94s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Actual production DXC preview compiles both normal/negative lib_6_9, validates real reflection/instructions and generates exact pins. Windows-conditional test and actual SDK OPTIONS22/factory syntax checks pass; this is not native Windows execution. Workflow routing16/16 and paired documentation checks pass.

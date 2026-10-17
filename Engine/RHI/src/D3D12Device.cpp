@@ -31,6 +31,9 @@
 #include <vector>
 
 #include "D3D12PreviewRuntime.h"
+#if NEXORA_ENABLE_D3D12_SER
+#include "SerArtifactIdentity.h"
+#endif
 #if NEXORA_ENABLE_D3D12_PREVIEW
 #include "ModernShaderArtifactIdentity.h"
 #endif
@@ -136,6 +139,25 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
                                            sizeof(options21)))) {
     report_native_tier(GraphicsFeature::WorkGraphs,
                        static_cast<std::uint32_t>(options21.WorkGraphsTier));
+  }
+#endif
+#if NEXORA_ENABLE_D3D12_PREVIEW
+  D3D12_FEATURE_DATA_D3D12_OPTIONS22 options22{};
+  if (SUCCEEDED(device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS22, &options22,
+                                           sizeof(options22)))) {
+    result.actual_shader_reordering_support = options22.ShaderExecutionReorderingActuallyReorders
+                                                  ? CapabilitySupport::Supported
+                                                  : CapabilitySupport::Unsupported;
+    const auto &ray = result.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
+    // Published HLSL SER Device Support requires both SM6.9 and raytracing. The optimization
+    // query can be false on conforming implementations, including the pinned WARP package.
+    if (result.dxil_shader_model_support != CapabilitySupport::Unknown &&
+        ray.support != CapabilitySupport::Unknown)
+      report(GraphicsFeature::ShaderExecutionReordering,
+             result.highest_dxil_shader_model >= FeatureVersion{6, 9} &&
+                     ray.support == CapabilitySupport::Supported
+                 ? FeatureVersion{1, 0}
+                 : FeatureVersion{});
   }
 #endif
   // Ray-tracing tier or SM 6.9 alone does not prove an implemented/enabled SER path.
@@ -362,7 +384,7 @@ private:
   };
   std::array<RaySnapshot, RayMaximumDispatchesPerList> ray_snapshots_{};
   std::size_t ray_snapshot_count_{};
-  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{};
+  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{}, ser_ray_dispatches_{};
 #endif
   Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestamp_heap_;
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
@@ -569,6 +591,15 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))))
         ray.enabled = SUCCEEDED(probe->Close());
     }
+#endif
+#if NEXORA_ENABLE_D3D12_SER && NEXORA_D3D12_RAY_TRACING
+    auto &ser = capabilities_
+                    .features[static_cast<std::size_t>(GraphicsFeature::ShaderExecutionReordering)];
+    ser.implemented = true;
+    ser.implemented_tier = {1, 0};
+    ser.enabled =
+        ser.support == CapabilitySupport::Supported &&
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)].enabled;
 #endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -1058,9 +1089,10 @@ public:
   RayProgramHandle CreateRayProgram(const RayProgramDescriptor &descriptor) override {
     const auto requirements = EffectiveRayProgramRequirements(descriptor);
     RequireGraphicsCapabilities(Capabilities(), requirements);
-    const auto *environment = descriptor.mode == RayTracingMode::Pipeline
-                                  ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
-                                  : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
+    const auto *environment =
+        descriptor.mode == RayTracingMode::ReorderedPipeline ? "NEXORA_SER_RAY_LIBRARY_DXIL_PATH"
+        : descriptor.mode == RayTracingMode::Pipeline        ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
+                                                             : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
     const auto *path = std::getenv(environment);
     if (!path || !*path)
       throw std::runtime_error("required ray artifact is unset");
@@ -1072,7 +1104,7 @@ public:
     const auto bytes = std::span<const std::byte>{
         static_cast<const std::byte *>(artifact->GetBufferPointer()), artifact->GetBufferSize()};
     const auto model =
-        descriptor.mode == RayTracingMode::Pipeline
+        descriptor.mode != RayTracingMode::InlineQuery
             ? RequireDxilLibrary(bytes, requirements.minimum_dxil_shader_model).shader_model
             : RequireDxilArtifact(bytes, ShaderStage::Compute,
                                   requirements.minimum_dxil_shader_model)
@@ -1080,9 +1112,18 @@ public:
     if (model > capabilities_.highest_dxil_shader_model)
       throw std::invalid_argument("ray artifact exceeds device shader profile");
 #if NEXORA_HAS_PINNED_RAY_ARTIFACTS
-    const auto expected = descriptor.mode == RayTracingMode::Pipeline
-                              ? std::span<const unsigned char>{detail::RayLibraryBytes}
-                              : std::span<const unsigned char>{detail::RayQueryBytes};
+    std::span<const unsigned char> expected;
+    if (descriptor.mode == RayTracingMode::ReorderedPipeline) {
+#if NEXORA_ENABLE_D3D12_SER
+      expected = detail::SerRayLibraryBytes;
+#else
+      throw std::invalid_argument("SER ray recipe was not compiled in");
+#endif
+    } else {
+      expected = descriptor.mode == RayTracingMode::Pipeline
+                     ? std::span<const unsigned char>{detail::RayLibraryBytes}
+                     : std::span<const unsigned char>{detail::RayQueryBytes};
+    }
     if (bytes.size() != expected.size() ||
         std::memcmp(bytes.data(), expected.data(), bytes.size()) != 0)
       throw std::invalid_argument("ray recipe identity does not match the reflected built-in ABI");
@@ -1187,6 +1228,7 @@ public:
 #if NEXORA_D3D12_RAY_TRACING
       diagnostics_.ray_dispatch_calls += validated->ray_dispatches_;
       diagnostics_.inline_ray_dispatch_calls += validated->inline_ray_dispatches_;
+      diagnostics_.ser_ray_dispatch_calls += validated->ser_ray_dispatches_;
 #endif
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
@@ -1871,10 +1913,12 @@ void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle
   detail::RecordNativeRays(*ray_list_.Get(), owned.program, owned.scene, *native_input,
                            *native_output, count);
   ++ray_snapshot_count_;
-  if (owned.program.mode == RayTracingMode::Pipeline)
+  if (owned.program.mode != RayTracingMode::InlineQuery)
     ++ray_dispatches_;
   else
     ++inline_ray_dispatches_;
+  if (owned.program.mode == RayTracingMode::ReorderedPipeline)
+    ++ser_ray_dispatches_;
   pipeline_bound_ = false;
   mesh_input_ = {};
 #if NEXORA_D3D12_WORK_GRAPHS

@@ -494,3 +494,22 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraModernShaderTests>"
     ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_MODERN_LONG_VECTOR_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLongVector.dxil;NEXORA_MODERN_LINEAR_ALGEBRA_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLinearAlgebra.dxil;NEXORA_MODERN_GROUP_SHARED_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernGroupShared.dxil")
 endif()
+
+if(NEXORA_ENABLE_D3D12_SER)
+  add_executable(NexoraSerRayTests RayTracingTests.cpp)
+  target_link_libraries(NexoraSerRayTests PRIVATE Nexora::Renderer)
+  target_compile_definitions(NexoraSerRayTests PRIVATE NEXORA_TEST_SER_NATIVE=1 _CRT_SECURE_NO_WARNINGS)
+  nexora_apply_defaults(NexoraSerRayTests)
+  set_target_properties(NexoraSerRayTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  add_dependencies(NexoraSerRayTests NexoraSerShaderArtifacts)
+  add_custom_command(TARGET NexoraSerRayTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraSerRayTests> "$<TARGET_FILE_DIR:NexoraSerRayTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraSerRayTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraSerRayTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.ser_rays_preview COMMAND NexoraSerRayTests)
+  add_test(NAME renderer.ser_rays_preview_enhanced COMMAND NexoraSerRayTests --enhanced-barriers)
+  set_tests_properties(renderer.ser_rays_preview renderer.ser_rays_preview_enhanced PROPERTIES TIMEOUT 180
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraSerRayTests>"
+    ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_REQUIRE_NATIVE_BACKENDS=1;NEXORA_SER_RAY_LIBRARY_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/SER/ReorderedRays.dxil;NEXORA_SER_RAY_NEGATIVE_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/SER/ReorderedRaysWrongIdentity.dxil;NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH=${NEXORA_SLANG_RAY_LIBRARY_OUTPUT};NEXORA_SLANG_RAY_QUERY_DXIL_PATH=${NEXORA_SLANG_RAY_QUERY_OUTPUT};NEXORA_SLANG_RAY_NEGATIVE_DXIL_PATH=${NEXORA_SLANG_RAY_NEGATIVE_OUTPUT};NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH=${NEXORA_SLANG_RAY_REFERENCE_DXIL_OUTPUT}")
+endif()

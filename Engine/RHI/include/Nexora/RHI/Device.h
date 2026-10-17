@@ -35,6 +35,7 @@ struct DeviceDiagnostics final {
   SubmissionGpuTiming gpu_timing{};
   std::uint64_t ray_dispatch_calls{};
   std::uint64_t inline_ray_dispatch_calls{};
+  std::uint64_t ser_ray_dispatch_calls{};
   std::uint64_t command_pool_creations{};
   std::uint64_t command_pool_reuses{};
   std::uint64_t cached_command_pools{};

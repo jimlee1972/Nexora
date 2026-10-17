@@ -30,7 +30,7 @@ static_assert(sizeof(RayTriangle) == 36 && sizeof(RayInput) == 32 && sizeof(RayH
 static_assert(offsetof(RayInput, minimum) == 12 && offsetof(RayInput, direction) == 16 &&
               offsetof(RayInput, maximum) == 28);
 static_assert(offsetof(RayHit, distance) == 4 && offsetof(RayHit, barycentrics) == 8);
-enum class RayTracingMode : std::uint8_t { Pipeline, InlineQuery };
+enum class RayTracingMode : std::uint8_t { Pipeline, InlineQuery, ReorderedPipeline };
 struct RayProgramDescriptor final {
   RayTracingMode mode{RayTracingMode::Pipeline};
   GraphicsRequirements graphics_requirements{};

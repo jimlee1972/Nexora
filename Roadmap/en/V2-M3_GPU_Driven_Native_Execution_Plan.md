@@ -317,3 +317,5 @@ The older source-only implementation notes below are historical.
   should validate the full range at `DrawIndirect` time (where `command_count` is actually known)
   on all three backends together, since fixing only one would silently create a
   cross-backend contract mismatch.
+
+Bounded SER follow-up adds actual SM6.9 HitObject/Reorder/Invoke and separate OPTIONS22 actual-reordering reporting; native Windows proof remains pending. WARP does not prove thread reordering. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full DXR/SER gates remain open.
