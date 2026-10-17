@@ -78,7 +78,8 @@ def verify(args, root, package):
             assert fixture['final_save_ok'] and not fixture['buttons_seen']
             return fixture
     first = run('first')
-    assert first['position'] == 0 and first['rebound'] == 0
+    assert first['position'] == 0 and first['rebound'] == 0, (
+        first, (root / 'first.stderr').read_text(encoding='utf-8'))
     slot = saves / 'host.nxsav'
     data = bytearray(slot.read_bytes())
     assert data[:8] == b'NXSAVE\x01\x00'
@@ -90,7 +91,8 @@ def verify(args, root, package):
     struct.pack_into('<I', data, len(data) - 4, zlib.crc32(data[:-4]))
     slot.write_bytes(data)
     second = run('resume')
-    assert second['position'] == 17.25 and second['rebound'] == 1
+    assert second['position'] == 17.25 and second['rebound'] == 1, (
+        second, (root / 'resume.stderr').read_text(encoding='utf-8'))
     damaged = bytearray(slot.read_bytes())
     damaged[-1] ^= 1
     slot.write_bytes(damaged)
