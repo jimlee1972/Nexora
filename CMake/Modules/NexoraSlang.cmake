@@ -241,6 +241,8 @@ function(nexora_configure_slang)
 
   add_custom_target(NexoraSlangArtifacts ALL DEPENDS ${cross_compile_outputs})
 
+  include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/NexoraTessellationSlang.cmake")
+
   set(NEXORA_SLANG_ARTIFACT_TARGET NexoraSlangArtifacts PARENT_SCOPE)
   set(NEXORA_SLANG_DXIL_OUTPUT "${dxil_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_DXIL_VERTEX_OUTPUT "${dxil_vertex_output}" PARENT_SCOPE)

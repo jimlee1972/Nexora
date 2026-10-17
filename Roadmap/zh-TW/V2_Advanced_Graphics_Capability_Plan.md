@@ -1,6 +1,6 @@
 # V2 進階圖形能力計畫
 
-狀態：V2-GFX-1 施工中；能力檢查基礎已通過 Linux 驗證。五個完整 gate 仍全部待完成。
+狀態：V2-GFX-1 與有界 V2-GFX-2 實作施工中；五個完整驗收 gate 仍全部待完成。
 新增日期：2026-10-16。
 
 本文件為 V2 完整規劃與 AI 施工規劃共同採用的規範性範圍擴充，將尚缺的 DirectX 世代
@@ -543,8 +543,8 @@ PR [#615](https://github.com/jimlee1972/Nexora/pull/615) 後續已於全部 36 �
 `NEXORA_REQUIRE_NATIVE_BACKENDS=1`、兩個 `NEXORA_SLANG_*SPIRV_PATH` 變數與 lavapipe ICD，
 執行 `ctest --preset linux-development -R '^renderer\.(contracts|graphics_capabilities|v2_gpu_driven)$' -V`。
 保留的能力輸出為 Vulkan backend、software device、vendor 65541、device 0、driver 1；
-Compute／Indirect 在 1.0 支援、已啟用且已實作。平行錄製與 Tessellation 回報支援 1.0，
-但未實作／啟用；其他進階能力維持 unknown 且不可用。Pipeline 檢查會在配置 native PSO 前
+初始基礎切片的保留輸出：Compute／Indirect 在 1.0 支援、已啟用且已實作；當時平行錄製與 Tessellation
+回報支援 1.0，但未實作／啟用。後續有界 Tessellation 切片另於下節驗收；其他進階能力仍未完成。Pipeline 檢查會在配置 native PSO 前
 拒絕所有尚未實作的進階路徑；既有完整 GPU-driven 參考比對仍通過。
 
 Portable 測試另覆蓋獨立 tier 編碼（含 feedback 90／100 與 DXR 1.2）、未知／不支援／
@@ -552,6 +552,40 @@ Portable 測試另覆蓋獨立 tier 編碼（含 feedback 90／100 與 DXR 1.2�
 不能放行進階要求。本 Linux 環境未產生 Windows／Apple native 執行結果或實體 GPU 效能
 證據，既有平台 CI／target-host gate 仍須完成。環境原有 SwiftShader 因缺少既有 Vulkan
 基線能力而被拒絕，未為取得通過結果而放寬要求。
+
+## V2-GFX-2 有界 Tessellation 施工狀態
+
+✅ 獨立的 Portable／Linux 切片加入三控制點 PatchList、Hull／Domain 階段位元、隱含裝置准入、選用階段產物檢查
+及幾何路徑獨立的 Pipeline／Cache 識別。Vulkan 啟用已查詢支援的 Tessellation 並建立真實四階段 PSO；
+D3D12 建立 VS／HS／DS／PS 及 PATCH／三點 IA 拓撲。Metal 拒絕原生 Hull／Domain，使用明確的
+預先細分16三角形／48頂點後備。預設普通三角形不變；無效組合及有界 Draw／Indirect 誤用在原生錄製前拒絕。
+固定 Factor4 與曲面輸出屬 Bootstrap 範圍，不代表通用 Patch／Material 組裝已完成。
+
+真實 Slang Reflection 驗證 Hull／Domain 名稱及64-byte 後備 Frame Layout；產生的來源／Include／
+產物／Profile／Topology 識別區分不同程式。後備 SPIR-V 不含 Tessellation Capability。
+控制／評估階段位元8/16 經 Binding 驗證、Layout Hash 與 Cooked Format1 往返保留；選用 Entry
+識別不同，未知位元拒絕。有界唯讀 SPIR-V1.0–1.3 Entry Metadata 不宣稱語意／來源驗證。
+既有圖形 SM6.6／Compute SM6.0 基線不變，新增 DXIL 階段使用 SM6.0。
+
+來源 `feat/v2-bounded-native-tessellation`；Beads `nexora-45y.3.1`。原生 Vulkan 獨立探測在64x64
+與後備完全相符（**466覆蓋像素、最大 Channel 差0**）。永久 Oracle 檢查 RGBA／BGRA 差異至多一階、
+非空且不同於普通三角形的幾何、強制雙 Worker、失敗／取消哨兵及成功重試。
+聚焦准入／DXIL／原生／Cooked 測試 **5/5 通過、0.14秒**；Khronos1.3.275 物件／同步驗證
+**5/5 通過、3.19秒**，確認14次 Layer 插入，Validation Error／VUID／SYNC-HAZARD 為零。
+完整 Slang／Zig／原生 Development configure/build 與 Xvfb 強制原生 CTest **208/208 通過、
+零略過／失敗、129.49秒**（Showcase／Graphical Shell 關閉）；Shipping Monolithic／Minimal LTO
+configure/build 通過，格式及 Diff 檢查通過。不關閉任何完整 Gate。
+
+整合已合併 PR630／main `1d48e918` 後，完整 Development configure/build 與 Xvfb CTest
+再次通過：**214/214、零略過／失敗、188.04秒**；聚焦原生／准入／Cooked／計時
+**6/6、0.31秒**，Shipping 通過。合併原生 Renderer 物件／同步驗證 **11/11、13.94秒**，
+確認27次 Layer 插入，Validation／VUID／Sync 錯誤為零。
+
+另行暫存的官方 Linux DXC **v1.9.2609／1.9.2609.5** 可供 Slang2026.18 真實 DXIL 編譯／Reflection／
+Reader 探測，不變更專案相依：Control4008 bytes、Evaluation3960 bytes、後備 Vertex5488 bytes，
+解碼階段8/16/1，皆為 SM6.0；這不是 D3D12 執行。Windows HS／DS PSO 與 Metal 後備仍須 Hosted
+原生證據；更廣 Patch Authoring、Runtime Program 組裝／Cook 執行、Enhanced Barriers、完整目標主機／
+效能驗收仍待完成，五個完整 Gate 全部維持開放。
 
 ## 基線與範圍
 
@@ -573,7 +607,7 @@ DX12 Ultimate 或更新 Shader 功能的驗收。
 | Gate | V2 預定工作 | 相依 | 驗收與 Fallback |
 | --- | --- | --- | --- |
 | V2-GFX-1 | Capability／SDK／compiler matrix、多執行緒 Command Recording、CPU 開銷基準 | 既有 V2-M3 contract | 獨立查詢 feature tier 與 shader target；每個錄製 worker 獨占 allocator／list，依完成 fence 回收 allocator、descriptor 與資源。RenderGraph 管理相依順序與提交。比對序列／平行輸出，執行 validation、生命週期壓力及 CPU／GPU 計時；保留可選的序列錄製路徑。 |
-| V2-GFX-2 | Tessellation、Enhanced Barriers | V2-GFX-1 能力與生命週期 contract | 新增 patch topology、Hull／Domain stage、reflection 與 pipeline／cook key；以有界參考場景驗證細分輸出，保留預先細分 mesh fallback。將 graph access／sync／layout 對應 Enhanced Barriers，涵蓋 UAV、copy、aliasing 與 queue handoff；以 GPU validation 比較傳統 barrier 路徑，兩條路徑均保留。 |
+| V2-GFX-2 | Tessellation、Enhanced Barriers | V2-GFX-1 能力與生命週期 contract | ✅ 有界拓撲／階段／Cache／Cooked Metadata 及 Linux 原生曲面／預細分網格比對（見上節）。更廣 Patch／Program 組裝與 Hosted 原生證據仍待完成，保留網格後備。將 graph access／sync／layout 對應 Enhanced Barriers，涵蓋 UAV、copy、aliasing 與 queue handoff；以 GPU validation 比較傳統 barrier 路徑，兩條路徑均保留。 |
 | V2-GFX-3 | DXR 基礎至 DXR 1.2、可選 Shader Execution Reordering（SER） | V2-GFX-1、V2-GFX-2 的相容 barrier 實作 | 實作 BLAS／TLAS 建置、更新、壓縮與生命週期，RT pipeline／shader table 及原生 ray dispatch；以確定性場景驗證 shadow／reflection／AO。查詢實際 RT tier，記錄需求中 DXR 1.2 與正式 SDK 的對應，並驗證其差異功能。SER 另設能力查詢與 compiler gate，比對重排／未重排結果；保留 raster lighting。 |
 | V2-GFX-4 | Mesh Shader、Variable Rate Shading（VRS）、Sampler Feedback、DX12 Ultimate 覆蓋 | V2-GFX-1、既有 V2-M3 Compute／Indirect 基線 | 實作原生 Amplification／Mesh stage 與 meshlet 提交、依 VRS tier 啟用 rate／image 控制，以及 feedback map 寫入、resolve 與 streaming 消費。對照 indexed-indirect fallback 驗證剔除與幾何；驗證 VRS 品質／誤差界線並保留 full-rate fallback；與停用 feedback 的 streaming 比對 residency／mip 正確性。分別回報 DXR、Mesh Shader、VRS、Sampler Feedback tier；四條原生路徑均通過才宣稱 Ultimate 覆蓋。 |
 | V2-GFX-5 | Work Graphs、Shader Model 6.9、Shader Model 6.10 Preview | V2-GFX-1 至 V2-GFX-4、固定版本的相容工具鏈 | 實作 Work Graph state object／program 選擇、backing memory 生命週期、node record ABI 與原生 graph dispatch；以有界 node fan-out／輸出對照 Compute＋Indirect 排程。於支援裝置編譯並執行 SM 6.9 專項案例，以及需求中 SM 6.10 Preview 的線性代數、可變 Group Shared Memory 案例。記錄正式發布規格與 feature 名稱；不支援或尚不可用的 preview 功能維持待完成。保留 Compute＋Indirect 與較低 SM shader variant。 |

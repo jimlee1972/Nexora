@@ -102,3 +102,28 @@ validate LLVM, signatures, compiler provenance or preview opt-in. Windows native
 real compiled SM6.6/SM6.0 files and tests PSO admission; synthetic Linux metadata tests do not prove
 SM6.9/6.10 feature execution. Full compiler/artifact readiness and advanced native gates stay open.
 See the [RHI artifact contract](../Engine/RHI/README.md#dxil-artifact-stage-and-profile-admission).
+
+
+## Bounded tessellation artifacts
+
+With Slang enabled, Tessellation.slang includes the canonical triangle's frame/vertex interface,
+then defines a three-point, factor4 bowed patch and a baked16-triangle fallback. The build validates
+actual hull/domain entry reflection and64-byte fallback frame layout and generates
+Tessellation.reflection.json with source/include/artifact hashes and profile/topology identity.
+The fallback SPIR-V has no Tessellation capability. Ordinary Triangle/GPUDriven artifacts keep
+their existing profiles and behavior.
+
+| Environment variable | Artifact / entry |
+| --- | --- |
+| NEXORA_SLANG_TESSELLATION_SPIRV_PATH | Tessellation.spv; tessControlMain and tessEvaluationMain |
+| NEXORA_SLANG_PRETESSELLATED_SPIRV_PATH | PreTessellated.spv; preTessellatedVertexMain |
+| NEXORA_SLANG_TESSELLATION_CONTROL_DXIL_PATH | Tessellation.control.dxil; hull SM6.0 |
+| NEXORA_SLANG_TESSELLATION_EVALUATION_DXIL_PATH | Tessellation.evaluation.dxil; domain SM6.0 |
+| NEXORA_SLANG_PRETESSELLATED_DXIL_PATH | PreTessellated.dxil; vertex SM6.0 |
+| NEXORA_SLANG_PRETESSELLATED_METAL_PATH | PreTessellated.metal; preTessellatedVertexMain / fragmentMain |
+
+DXIL build outputs remain Windows-only with the existing downstream compiler setup. A separately
+staged official Linux DXC can also validate these compiler outputs using Slang's
+`-dxc-path <directory-containing-libdxcompiler.so>`; that optional probe is not a project dependency
+and does not run D3D12. Metal emits/executes the baked fallback and does not claim native hull/domain
+support. Requested missing/wrong-stage artifacts reject instead of substituting another program.

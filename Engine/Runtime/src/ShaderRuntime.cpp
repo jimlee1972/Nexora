@@ -64,6 +64,13 @@ bool ValidArtifactShape(const rhi::ShaderModuleArtifact &artifact, std::string &
     error = "cooked shader artifact shape or canonical reflection is invalid";
     return false;
   }
+  for (const auto &binding : artifact.reflection.bindings) {
+    if (binding.type > rhi::BindingType::StorageBuffer || !binding.stages ||
+        (binding.stages & ~rhi::AllShaderStageBits) != 0) {
+      error = "cooked shader binding metadata is invalid";
+      return false;
+    }
+  }
   return true;
 }
 } // namespace
@@ -179,7 +186,7 @@ bool DeserializeCookedShaderArtifact(std::span<const std::byte> input,
     offset += 2;
     if (!ReadU32(input, offset, binding.byte_size) ||
         binding.type > rhi::BindingType::StorageBuffer || binding.stages == 0 ||
-        (binding.stages & ~static_cast<std::uint8_t>(7)) != 0) {
+        (binding.stages & ~rhi::AllShaderStageBits) != 0) {
       error = "cooked shader artifact binding metadata is invalid";
       return false;
     }

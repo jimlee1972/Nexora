@@ -1,6 +1,6 @@
 # V2 Advanced Graphics Capability Plan
 
-Status: V2-GFX-1 in progress; capability admission foundation validated on Linux.
+Status: V2-GFX-1 and bounded V2-GFX-2 implementation in progress; full acceptance remains open.
 All five complete gates remain open.
 Added 2026-10-16.
 
@@ -18,8 +18,8 @@ and complete capability requirements in PSO cache identity. Unknown support fail
 versions distinguish SM 6.10 from 6.9, and native feedback tiers 90/100 map to 0.9/1.0.
 
 General parallel recording, fence-retired worker descriptors and allocators, compiler/artifact matrix
-integration, CPU/GPU benchmarks and all V2-GFX-2 through
-V2-GFX-5 native execution remain open. No native advanced feature is marked complete by admission
+integration, complete CPU/GPU budgets and all five full gates remain open. The first bounded V2-GFX-2
+native tessellation slice is recorded separately below; other advanced native execution remains open. No native advanced feature is marked complete by admission
 tests or device hardware queries.
 
 ✅ Vulkan compute descriptor isolation is the next delivered prerequisite: command-list-owned
@@ -596,6 +596,46 @@ the existing platform CI/target-host gates remain required. The SwiftShader devi
 available in the environment was rejected for lacking existing Vulkan baseline features; those
 requirements were not relaxed to get a pass.
 
+## V2-GFX-2 bounded tessellation construction status
+
+✅ The independent portable/Linux slice adds three-control-point PatchList topology, hull/domain stage bits,
+implied device admission, selected-stage artifact checks and geometry-specific pipeline/cache
+identity. Vulkan enables queried tessellation and creates a real four-stage PSO; D3D12 builds
+VS/HS/DS/PS with PATCH/three-point IA topology. Metal rejects native hull/domain and uses an
+explicit baked16-triangle/48-vertex fallback. Defaults preserve ordinary triangles; malformed
+combinations and bounded draw/indirect misuse reject before native recording. Fixed factor4 and
+curved output are bootstrap limits, not fully general patch/material assembly.
+
+Real Slang reflection validates hull/domain entry names and64-byte fallback frame layout; generated
+source/include/artifact/profile/topology identity distinguishes programs. Baked SPIR-V omits the
+Tessellation capability. New control/evaluation stage bits8/16 survive binding validation/layout
+hashes and cooked format1 round-trip; selected entry identities differ and unknown bits reject.
+SPIR-V1.0-1.3 entry metadata is bounded/read-only; it does not claim semantic/provenance validation.
+Existing graphics SM6.6 and compute SM6.0 baselines stay unchanged; new DXIL stages use SM6.0.
+
+Source `feat/v2-bounded-native-tessellation`; Beads `nexora-45y.3.1`. Native Vulkan standalone output
+matches baked output exactly at64x64 (**466 covered pixels, maximum channel delta0**). The permanent
+oracle checks RGBA/BGRA images within one channel step, changed/nonempty geometry, two forced workers,
+failed/cancelled sentinels and successful replay. Focused admission/DXIL/native/cooked tests **5/5
+pass,0.14 seconds**. Khronos1.3.275 object/synchronization validation **5/5 pass,3.19 seconds**,
+14 loader-confirmed insertions, zero Validation Error/VUID/SYNC-HAZARD markers. Full Development
+and Shipping validation pass: full Slang/Zig/native Development configure/build and Xvfb-required
+CTest **208/208,zero skips/failures,129.49 seconds** (Showcase/graphical shell off); Shipping
+Monolithic/Minimal LTO configure/build passes. Touched formatting/diff checks pass. No complete
+gate is marked closed.
+
+After integrating merged PR630/main `1d48e918`, full Development configure/build and Xvfb CTest
+pass again: **214/214, zero skips/failures,188.04 seconds**. Focused native/admission/cooked/timing
+checks **6/6,0.31 seconds**; Shipping passes. Combined native renderer object/synchronization
+validation **11/11,13.94 seconds**,27 confirmed layer insertions, zero validation/VUID/sync errors.
+
+A separately staged official Linux DXC **v1.9.2609 /1.9.2609.5** permits real Slang2026.18 DXIL
+compiler/reflection/reader probes without changing project dependencies: control4008 bytes,
+evaluation3960 bytes and baked vertex5488 bytes decode to stages8/16/1, all SM6.0. This does not run
+D3D12. Windows HS/DS PSO execution and Metal fallback require hosted native evidence; broader
+patch authoring, Runtime program assembly/cook execution, Enhanced Barriers and full target-host/
+performance acceptance remain open. All five full gates stay open.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,
@@ -617,7 +657,7 @@ usable but does not complete the accelerated implementation or its target-host g
 | Gate | Planned V2 work | Dependencies | Acceptance and fallback |
 | --- | --- | --- | --- |
 | V2-GFX-1 | Capability/SDK/compiler matrix; parallel command recording; CPU-overhead benchmark | Existing V2-M3 contracts | Query independent feature tiers and shader targets. Give each recording worker exclusive command allocator/list ownership; retire allocators, descriptors and resources by completion fence. RenderGraph owns dependency order and submission. Compare serial/parallel output and run validation, lifetime stress and CPU/GPU timing. Keep serial recording selectable. |
-| V2-GFX-2 | Tessellation and Enhanced Barriers | V2-GFX-1 capability and lifetime contracts | Add patch topology, hull/domain stages, reflection and pipeline/cook keys; verify tessellated output against a bounded reference, with pre-tessellated mesh fallback. Map graph access/sync/layout to Enhanced Barriers, including UAV, copy, aliasing and queue handoff cases; compare against the legacy barrier path under GPU validation. Keep both barrier paths. |
+| V2-GFX-2 | Tessellation and Enhanced Barriers | V2-GFX-1 capability and lifetime contracts | ✅ Bounded topology/stage/cache/cooked metadata and Linux native curved-patch/baked-mesh comparison (below). Finish broader patch/program assembly and hosted native evidence; retain baked fallback. Map graph access/sync/layout to Enhanced Barriers, including UAV, copy, aliasing and queue handoff cases; compare against the legacy barrier path under GPU validation. Keep both barrier paths. |
 | V2-GFX-3 | DXR baseline through DXR 1.2; optional Shader Execution Reordering (SER) | V2-GFX-1, compatible barrier implementation from V2-GFX-2 | Implement BLAS/TLAS build/update/compaction and lifetimes, RT pipeline/shader tables and native ray dispatch; validate deterministic scenes for shadow/reflection/AO. Query actual RT tiers, document the official SDK mapping for the requested DXR 1.2 tier, and test the features that distinguish it. Add SER as a separately queried/compiler-gated path and compare reordered/unreordered results. Raster lighting remains available. |
 | V2-GFX-4 | Mesh Shader, Variable Rate Shading (VRS), Sampler Feedback; DX12 Ultimate coverage | V2-GFX-1; existing V2-M3 compute/indirect baseline | Implement native amplification/mesh stages and meshlet submission, VRS tier-dependent rate/image controls, and feedback-map write/resolve/streaming consumption. Verify culling/geometry against indexed-indirect fallback; test VRS quality/error bounds with full-rate fallback, and residency/mip correctness against feedback-disabled streaming. Report DXR, Mesh Shader, VRS and Sampler Feedback tiers independently; claim Ultimate coverage only after all four native paths pass. |
 | V2-GFX-5 | Work Graphs, Shader Model 6.9, Shader Model 6.10 Preview | V2-GFX-1 through V2-GFX-4 and pinned compatible toolchains | Implement Work Graph state objects/program selection, backing-memory lifetime, node-record ABI and native graph dispatch. Compare bounded node fan-out/output against compute+indirect scheduling. Compile and execute focused SM 6.9 cases and the requested SM 6.10 Preview linear-algebra and variable group-shared-memory cases on supported devices. Record the exact published specification/feature names; unsupported or unavailable preview functionality stays open. Preserve compute+indirect and lower-SM shader variants. |

@@ -14,10 +14,11 @@ Vulkan. Adapter vendor/device and the opaque backend driver identifier are diagn
 DX12 queries available RT, VRS, mesh, sampler-feedback, Enhanced Barrier and Work Graph tiers with
 SDK guards, plus the highest device Shader Model by retrying known query values through 6.10.
 Feedback's native 90/100 values map to portable 0.9/1.0; they are not tiers 9.0/10.0. Vulkan reports
-the selected queue's compute support, enabled indirect support and queried but disabled
-tessellation. Metal reports the existing compute/indirect implementation; unqueried advanced
-features stay unknown. No advanced path, including parallel recording or SER, is enabled by this
-foundation. SER is not inferred from RT tier or Shader Model.
+the selected queue's compute support and enabled indirect support. The bounded tessellation slice
+now enables the queried Vulkan feature when supported and implements D3D12 hull/domain patches.
+Metal retains explicit baked-mesh fallback; its native hull/domain path is not implemented.
+Other unqueried advanced features stay unknown. Full parallel recording and SER remain disabled;
+SER is not inferred from RT tier or Shader Model.
 
 `PipelineDescriptor::graphics_requirements` defaults to no additional requirements, preserving
 existing aggregate callers. Nonzero `minimum_tiers` require the corresponding support, sufficient
@@ -156,9 +157,9 @@ baselines and stable C ABI remain unchanged.
 
 ## DXIL scope
 
-The portable Slang release does not ship `dxcompiler` for Linux or macOS, so `slangc -target dxil`
-cannot run there (`error[E00100]: failed to load downstream compiler 'dxc'`) -- this was confirmed
-against slangc 2026.18, not assumed. DXIL is therefore only compiled and validated on Windows,
+The portable Slang release does not ship `dxcompiler` for Linux or macOS, so a stock portable installation cannot run `slangc -target dxil`
+without a separately supplied downstream compiler (`error[E00100]: failed to load downstream compiler 'dxc'`) -- this was confirmed
+against slangc 2026.18, not assumed. The default build therefore compiles and validates DXIL only on Windows,
 where `dxcompiler` is reliably available; `NEXORA_SLANG_DXIL_OUTPUT` and the crosscompile test's
 `DXIL_ARTIFACT` are simply absent on other hosts rather than pointing at a path that was never
 produced, and the canonical reflection's `backends` list only ever names backends actually
@@ -548,3 +549,57 @@ serial/four-worker, 320 dispatch,48 graph,64 shared-input, failed/cancelled and 
 also run. Benchmark JSON reports matched descriptor storage creation/acquisition counters; smoke
 checks verify fresh default pools and exclusively warmed opt-in storage. This is synchronous
 retirement reuse; asynchronous timelines, full feature admission and physical budgets remain open.
+
+## Bounded native tessellation and baked mesh fallback
+
+`PipelineDescriptor` appends backend-neutral `topology`, `patch_control_points` and
+`graphics_shader`. Defaults retain the existing triangle path. PatchList requires exactly three
+control points and the Triangle bootstrap shader variant; TriangleList requires zero patch points.
+PreTessellatedPatch selects a baked 16-triangle/48-vertex mesh shader. Compute rejects graphics
+variants/topology, and invalid enum/combinations reject before native allocation. The public
+`EffectivePipelineRequirements` adds tessellation1.0 for a patch without weakening explicit tiers;
+`RequirePipelineCapabilities` applies it on every backend. No implicit fallback occurs on creation.
+
+Vulkan enables core tessellation only when queried supported, then builds a four-stage patch PSO
+with explicit tessellation state. D3D12 assembles VS/HS/DS/PS with PATCH topology and records a
+three-control-point IA draw. Their tessellation implementation flag describes this bounded route;
+it does not close V2-GFX-2. Metal rejects native patches through admission and compiles the explicit
+PreTessellatedPatch MSL fallback. The caller selects preferred/fallback requirements explicitly.
+Requested missing, malformed or wrong-stage artifacts throw; there is no silent shader replacement.
+
+The bootstrap curved patch has fixed factor4 and a nontrivial bowed boundary. Native draws require
+exactly3 vertices, baked fallback draws48; indexed/indirect paths for these bounded variants are
+not admitted. Ordinary triangle draws retain their existing behavior. All modules rebuild for
+appended C++ descriptors/cache keys; stable C ABI and existing SDK/profile baselines stay unchanged.
+Arbitrary patch counts, fully general shader assembly and Enhanced Barriers remain separate work.
+
+Pipeline creation loads immutable stage artifacts; referenced temporary Vulkan modules retire
+after native PSO creation. Registry publication failures release the unregistered Vulkan PSO.
+Pipelines remain caller-owned until DestroyPipeline, outlive all recorded lists and are created
+before worker recording. Resource/recording/submission ownership, transactional texture state,
+failed/cancelled cohort retirement and default serial execution retain their existing contracts.
+
+`ShaderStage` adds TessellationControl/Evaluation bits8/16; binding validation, layout hashes and
+cooked binding metadata preserve them. PipelineCache identity includes topology, patch count and
+shader variant, so native, baked and ordinary paths cannot alias even with the same shader hash.
+Cooked format1 retains the same encoding; older readers reject unfamiliar stage bits. Entry names
+remain part of cooked payload identity. This is metadata/cook coverage, not general Runtime native
+hull/domain program assembly. `HasSpirvEntryPoint` reads bounded SPIR-V1.0-1.3 entry metadata for the
+Vulkan1.1 baseline; it does not validate shader semantics, provenance or interfaces. Selected DXIL
+hull/domain and fallback vertex artifacts undergo the same stage/explicit-minimum checks as other
+entries. Hardware/model query success never substitutes for the selected artifact's profile.
+
+The Slang build emits native TCS/TES SPIR-V, baked VS SPIR-V and VS/PS MSL; Windows additionally
+emits HS/DS/baked VS DXIL SM6.0. Existing graphics SM6.6 and compute SM6.0 baselines are unchanged.
+The generated Tessellation.reflection.json records real entry stages,64-byte fallback frame layout,
+source/include/artifact hashes, topology and profile/variant identity. Baked SPIR-V must omit the
+Tessellation capability. Configure the explicit environment paths through CTest or the shader
+outputs documented in Shaders/README.md; an absent optional compiler does not install itself.
+
+`renderer.tessellation` always checks portable admission, bounded entry parsing, new stage bits,
+cache identity and draw bounds. Slang/native tests require real RGBA/BGRA images, nonempty curved
+output different from the ordinary triangle, native/baked parity within one channel step and two
+worker failure/cancellation/successful replay. Missing/wrong requested stages reject before native
+PSO creation; Windows also checks selected HS/DS/fallback profiles. Metal runs real baked output
+while reporting native tessellation unavailable. These tests do not certify physical performance,
+all tessellation authoring, asynchronous scheduling or complete Enhanced Barrier acceptance.

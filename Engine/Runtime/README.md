@@ -1100,3 +1100,10 @@ with alphanumeric ends; invalid scope or missing/relative environment throws. Th
 Windows device-name collisions. Hosts may instead explicitly configure a trusted directory; they
 must still serialize one writer per project and handle filesystem errors. This helper changes no
 storage wire/envelope and never falls back to writing beside the executable or source project.
+
+
+Cooked shader binding metadata also preserves tessellation-control/evaluation stage bits8/16.
+The format1 encoding is unchanged; unknown bits reject both serialization and deserialization,
+and older readers reject the new bits rather than misinterpreting them. Layout hashes include
+those bits, while selected entry names remain in the checked payload identity. The new round-trip
+coverage concerns metadata; Runtime does not assemble arbitrary native hull/domain programs.

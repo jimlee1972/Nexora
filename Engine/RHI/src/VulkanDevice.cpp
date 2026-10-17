@@ -1,3 +1,4 @@
+#include "Nexora/RHI/SpirvArtifact.h"
 #if !defined(NEXORA_ENABLE_NATIVE_BACKENDS)
 #error "VulkanDevice.cpp requires NEXORA_ENABLE_NATIVE_BACKENDS"
 #endif
@@ -310,6 +311,8 @@ private:
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
+  PrimitiveTopology topology_{PrimitiveTopology::TriangleList};
+  GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool submitted_{false};
   std::uint64_t completed_token_{};
   bool closed_{false};
@@ -392,6 +395,7 @@ private:
   void DestroyTextureRecord(TextureRecord &texture);
   void DestroyBufferRecord(BufferRecord &buffer);
   void DestroyPipelineRecord(PipelineRecord &pipeline);
+  PipelineHandle StorePipeline(PipelineRecord record);
 
   VulkanLoader loader_;
   VulkanFunctions functions_{};
@@ -645,7 +649,7 @@ void VulkanDevice::SelectPhysicalDevice() {
         const bool tessellation = features.features.tessellationShader == VK_TRUE;
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Tessellation)] = {
             tessellation ? CapabilitySupport::Supported : CapabilitySupport::Unsupported,
-            tessellation ? FeatureVersion{1, 0} : FeatureVersion{}, false, false};
+            tessellation ? FeatureVersion{1, 0} : FeatureVersion{}, tessellation, true};
         capabilities_
             .features[static_cast<std::size_t>(GraphicsFeature::ParallelCommandRecording)] = {
             CapabilitySupport::Supported, {1, 0}, false, false};
@@ -666,6 +670,8 @@ void VulkanDevice::CreateCoreObjects() {
       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES, nullptr, VK_TRUE};
   VkPhysicalDeviceFeatures features{};
   features.multiDrawIndirect = VK_TRUE;
+  features.tessellationShader =
+      capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Tessellation)].enabled;
   const VkDeviceCreateInfo device_info{VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
                                        &draw_parameters,
                                        0,
@@ -1197,8 +1203,44 @@ void VulkanDevice::DestroyBuffer(BufferHandle buffer) {
   Require(buffer_pool_.Destroy(buffer), "destroying stale Vulkan buffer");
 }
 
+namespace {
+struct ShaderModuleOwner final {
+  VkDevice device;
+  PFN_vkDestroyShaderModule destroy;
+  VkShaderModule module{VK_NULL_HANDLE};
+  ~ShaderModuleOwner() {
+    if (module != VK_NULL_HANDLE)
+      destroy(device, module, nullptr);
+  }
+};
+std::vector<std::uint32_t> ReadGeometrySpirv(const char *environment, bool patch) {
+  const auto *path = std::getenv(environment);
+  if (!path || !*path)
+    throw std::runtime_error(std::string("required geometry SPIR-V artifact is unset: ") +
+                             environment);
+  std::ifstream file(path, std::ios::binary | std::ios::ate);
+  const auto size = file ? file.tellg() : std::streampos{-1};
+  if (size <= 0 || size > 16 * 1024 * 1024 || size % 4 != 0)
+    throw std::runtime_error("geometry SPIR-V artifact is missing or has invalid size");
+  std::vector<std::uint32_t> words(static_cast<std::size_t>(size) / 4);
+  file.seekg(0);
+  file.read(reinterpret_cast<char *>(words.data()), static_cast<std::streamsize>(size));
+  if (!file)
+    throw std::runtime_error("geometry SPIR-V artifact read failed");
+  const auto bytes = std::as_bytes(std::span{words});
+  const bool valid =
+      patch
+          ? HasSpirvEntryPoint(bytes, ShaderStage::TessellationControl, "tessControlMain") &&
+                HasSpirvEntryPoint(bytes, ShaderStage::TessellationEvaluation, "tessEvaluationMain")
+          : HasSpirvEntryPoint(bytes, ShaderStage::Vertex, "preTessellatedVertexMain");
+  if (!valid)
+    throw std::invalid_argument("geometry SPIR-V artifact lacks the required entry stages");
+  return words;
+}
+} // namespace
+
 PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor) {
-  RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
+  RequirePipelineCapabilities(Capabilities(), descriptor);
   if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
     throw std::invalid_argument("pipeline hashes must be non-zero");
   if (descriptor.type == PipelineType::Compute) {
@@ -1221,21 +1263,40 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
     Check(functions_.CreateComputePipelines(device_, VK_NULL_HANDLE, 1, &info, nullptr,
                                             &record.pipeline),
           "vkCreateComputePipelines");
-    std::lock_guard lock{mutex_};
-    const auto handle = pipeline_pool_.Create();
-    pipelines_.emplace(Key(handle), std::move(record));
-    return handle;
+    return StorePipeline(std::move(record));
   }
   const auto render_pass = RenderPassFor(descriptor.color_format);
-  VkPipelineShaderStageCreateInfo stages[2]{};
+  const bool patch = descriptor.topology == PrimitiveTopology::PatchList;
+  const bool fallback = descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch;
+  ShaderModuleOwner geometry_module{device_, functions_.DestroyShaderModule};
+  if (patch || fallback) {
+    const auto words = ReadGeometrySpirv(patch ? "NEXORA_SLANG_TESSELLATION_SPIRV_PATH"
+                                               : "NEXORA_SLANG_PRETESSELLATED_SPIRV_PATH",
+                                         patch);
+    const VkShaderModuleCreateInfo info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO, nullptr, 0,
+                                        words.size() * sizeof(std::uint32_t), words.data()};
+    Check(functions_.CreateShaderModule(device_, &info, nullptr, &geometry_module.module),
+          "vkCreateShaderModule(geometry)");
+  }
+  VkPipelineShaderStageCreateInfo stages[4]{};
   stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   stages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
-  stages[0].module = shader_module_;
-  stages[0].pName = "vertexMain";
+  stages[0].module = fallback ? geometry_module.module : shader_module_;
+  stages[0].pName = fallback ? "preTessellatedVertexMain" : "vertexMain";
   stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
   stages[1].module = shader_module_;
   stages[1].pName = "fragmentMain";
+  if (patch) {
+    stages[2].sType = stages[3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stages[2].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+    stages[3].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+    stages[2].module = stages[3].module = geometry_module.module;
+    stages[2].pName = "tessControlMain";
+    stages[3].pName = "tessEvaluationMain";
+  }
+  const VkPipelineTessellationStateCreateInfo tessellation_state{
+      VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO, nullptr, 0, 3};
   const VkPipelineVertexInputStateCreateInfo vertex_input{
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       nullptr,
@@ -1246,7 +1307,7 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
       nullptr};
   const VkPipelineInputAssemblyStateCreateInfo input_assembly{
       VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO, nullptr, 0,
-      VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
+      patch ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, VK_FALSE};
   VkPipelineViewportStateCreateInfo viewport_state{
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, nullptr, 0, 1, nullptr, 1, nullptr};
   VkPipelineRasterizationStateCreateInfo rasterizer{};
@@ -1286,11 +1347,11 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
   const VkGraphicsPipelineCreateInfo pipeline_info{VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                    nullptr,
                                                    0,
-                                                   2,
+                                                   patch ? 4U : 2U,
                                                    stages,
                                                    &vertex_input,
                                                    &input_assembly,
-                                                   nullptr,
+                                                   patch ? &tessellation_state : nullptr,
                                                    &viewport_state,
                                                    &rasterizer,
                                                    &multisample,
@@ -1308,10 +1369,24 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
   Check(functions_.CreateGraphicsPipelines(device_, VK_NULL_HANDLE, 1, &pipeline_info, nullptr,
                                            &record.pipeline),
         "vkCreateGraphicsPipelines");
+  return StorePipeline(std::move(record));
+}
+
+PipelineHandle VulkanDevice::StorePipeline(PipelineRecord record) {
   std::lock_guard lock{mutex_};
-  const auto handle = pipeline_pool_.Create();
-  pipelines_.emplace(Key(handle), std::move(record));
-  return handle;
+  try {
+    const auto handle = pipeline_pool_.Create();
+    try {
+      pipelines_.emplace(Key(handle), std::move(record));
+    } catch (...) {
+      (void)pipeline_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  } catch (...) {
+    DestroyPipelineRecord(record);
+    throw;
+  }
 }
 
 void VulkanDevice::DestroyPipelineRecord(PipelineRecord &pipeline) {
@@ -1855,6 +1930,8 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
   device_.functions_.CmdSetScissor(command_buffer_, 0, 1, &scissor);
   pipeline_bound_ = true;
   pipeline_type_ = PipelineType::Graphics;
+  topology_ = record.descriptor.topology;
+  graphics_shader_ = record.descriptor.graphics_shader;
 }
 
 void VulkanCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
@@ -1937,15 +2014,16 @@ void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t of
 }
 
 void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
-      instance_count == 0)
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+      !IsBuiltinGeometryDrawValid(topology_, graphics_shader_, vertex_count) || instance_count == 0)
     throw std::logic_error("invalid Vulkan draw");
   device_.functions_.CmdDraw(command_buffer_, vertex_count, instance_count, 0, 0);
   ++draws_;
 }
 
 void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
-  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || command_count == 0 ||
+  if (!SupportsBuiltinIndirectDraw(topology_, graphics_shader_) || submitted_ || closed_ ||
+      !rendering_ || !pipeline_bound_ || command_count == 0 ||
       (bound_indirect_buffer_ == VK_NULL_HANDLE && indirect_buffer_ != VK_NULL_HANDLE))
     throw std::logic_error("invalid Vulkan indirect draw");
   if (bound_indirect_buffer_ != VK_NULL_HANDLE) {

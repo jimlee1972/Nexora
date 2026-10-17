@@ -59,6 +59,8 @@ private:
   ValidationDevice &device_;
   bool rendering_{false};
   bool pipeline_bound_{false};
+  PrimitiveTopology topology_{PrimitiveTopology::TriangleList};
+  GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool vertex_buffer_bound_{false};
   bool index_buffer_bound_{false};
   bool texture_bound_{false};
@@ -163,13 +165,14 @@ public:
     ++diagnostics_.readbacks;
   }
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
-    RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
+    RequirePipelineCapabilities(Capabilities(), descriptor);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0) {
       throw std::invalid_argument("pipeline hashes must be non-zero");
     }
     std::lock_guard lock{mutex_};
     const auto handle = pipelines_.Create();
-    pipeline_types_.emplace(Key(handle), descriptor.type);
+    pipeline_types_.emplace(Key(handle), PipelineShape{descriptor.type, descriptor.topology,
+                                                       descriptor.graphics_shader});
     return handle;
   }
   void DestroyPipeline(PipelineHandle pipeline) override {
@@ -227,7 +230,12 @@ public:
     return diagnostics_;
   }
 
-  PipelineType ValidatePipeline(PipelineHandle pipeline) {
+  struct PipelineShape final {
+    PipelineType type;
+    PrimitiveTopology topology;
+    GraphicsShaderVariant graphics_shader;
+  };
+  PipelineShape ValidatePipeline(PipelineHandle pipeline) {
     std::lock_guard lock{mutex_};
     Require(pipelines_.Contains(pipeline), "binding invalid pipeline");
     return pipeline_types_.at(Key(pipeline));
@@ -265,7 +273,7 @@ private:
   std::unordered_map<std::uint64_t, std::uint32_t> texture_row_pitches_;
   std::unordered_map<std::uint64_t, std::uint64_t> buffer_sizes_;
   std::unordered_map<std::uint64_t, std::vector<std::byte>> buffer_data_;
-  std::unordered_map<std::uint64_t, PipelineType> pipeline_types_;
+  std::unordered_map<std::uint64_t, PipelineShape> pipeline_types_;
   DeviceDiagnostics diagnostics_;
   std::uint64_t submitted_submission_{};
   std::uint64_t completed_submission_{};
@@ -375,7 +383,10 @@ void ValidationCommandList::SetScissor(const ScissorRect &rect) {
 void ValidationCommandList::BindPipeline(PipelineHandle pipeline) {
   if (submitted_)
     throw std::logic_error("cannot bind a pipeline after submission");
-  const auto type = device_.ValidatePipeline(pipeline);
+  const auto shape = device_.ValidatePipeline(pipeline);
+  const auto type = shape.type;
+  topology_ = shape.topology;
+  graphics_shader_ = shape.graphics_shader;
   if (type == PipelineType::Graphics && !rendering_)
     throw std::logic_error("graphics pipeline binding requires rendering");
   if (type == PipelineType::Compute && rendering_)
@@ -384,16 +395,18 @@ void ValidationCommandList::BindPipeline(PipelineHandle pipeline) {
   compute_pipeline_bound_ = type == PipelineType::Compute;
 }
 void ValidationCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0) {
+  if (submitted_ || !rendering_ || !pipeline_bound_ ||
+      !IsBuiltinGeometryDrawValid(topology_, graphics_shader_, vertex_count) ||
+      instance_count == 0) {
     throw std::logic_error("invalid draw");
   }
   ++draws_;
 }
 void ValidationCommandList::DrawIndexed(std::uint32_t index_count, std::uint32_t instance_count,
                                         std::uint32_t, std::int32_t, std::uint32_t) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || !vertex_buffer_bound_ ||
-      !index_buffer_bound_ || !texture_bound_ || !scissor_set_ || index_count == 0 ||
-      instance_count == 0)
+  if (!SupportsBuiltinIndirectDraw(topology_, graphics_shader_) || submitted_ || !rendering_ ||
+      !pipeline_bound_ || !vertex_buffer_bound_ || !index_buffer_bound_ || !texture_bound_ ||
+      !scissor_set_ || index_count == 0 || instance_count == 0)
     throw std::logic_error("invalid indexed draw");
   ++draws_;
 }
@@ -404,7 +417,8 @@ void ValidationCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t group
   ++dispatches_;
 }
 void ValidationCommandList::DrawIndirect(std::uint32_t command_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || command_count == 0)
+  if (!SupportsBuiltinIndirectDraw(topology_, graphics_shader_) || submitted_ || !rendering_ ||
+      !pipeline_bound_ || command_count == 0)
     throw std::logic_error("invalid indirect draw");
   // Without a bound buffer the backend supplies its own one-command arguments (FramePipeline's
   // triangle path); with one, the whole range must fit, as on every native backend.

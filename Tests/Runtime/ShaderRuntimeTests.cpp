@@ -64,6 +64,33 @@ void Run() {
               decoded.shader_id == first.shader_id && decoded.entry_point == first.entry_point &&
               decoded.binary == first.binary && decoded.reflection.layout_hash == layout_hash,
           "cooked shader artifact did not round-trip");
+  auto tessellation_metadata = first;
+  tessellation_metadata.entry_point = "tessEvaluationMain";
+  tessellation_metadata.reflection.bindings.front().stages =
+      static_cast<std::uint8_t>(rhi::ShaderStage::TessellationControl) |
+      static_cast<std::uint8_t>(rhi::ShaderStage::TessellationEvaluation);
+  tessellation_metadata.reflection.layout_hash =
+      rhi::ComputeLayoutHash(tessellation_metadata.reflection.bindings);
+  std::vector<std::byte> tessellation_cooked;
+  Require(
+      runtime::SerializeCookedShaderArtifact(tessellation_metadata, tessellation_cooked, error) &&
+          runtime::DeserializeCookedShaderArtifact(tessellation_cooked, decoded, error) &&
+          decoded.entry_point == tessellation_metadata.entry_point &&
+          decoded.reflection.bindings == tessellation_metadata.reflection.bindings &&
+          decoded.reflection.layout_hash != layout_hash,
+      "cooked tessellation stages or entry identity did not round-trip");
+  auto control_metadata = tessellation_metadata;
+  control_metadata.entry_point = "tessControlMain";
+  std::vector<std::byte> control_cooked;
+  Require(runtime::SerializeCookedShaderArtifact(control_metadata, control_cooked, error) &&
+              control_cooked != tessellation_cooked,
+          "cooked hull/domain entry identities alias");
+  tessellation_metadata.reflection.bindings.front().stages = 32;
+  tessellation_metadata.reflection.layout_hash =
+      rhi::ComputeLayoutHash(tessellation_metadata.reflection.bindings);
+  Require(
+      !runtime::SerializeCookedShaderArtifact(tessellation_metadata, tessellation_cooked, error),
+      "unknown shader stage bits were cooked");
   auto corrupted = cooked;
   corrupted.back() ^= std::byte{0x01};
   Require(!runtime::DeserializeCookedShaderArtifact(corrupted, decoded, error),

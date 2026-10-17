@@ -34,7 +34,7 @@ PipelineLayoutMetadata TrianglePipelineLayout() {
 }
 
 bool IsArtifactCompatible(const ShaderModuleArtifact &artifact, Backend backend,
-                         std::uint64_t expected_layout_hash) noexcept {
+                          std::uint64_t expected_layout_hash) noexcept {
   const bool target_matches =
       (backend == Backend::Direct3D12 && artifact.format == ShaderBinaryFormat::Dxil) ||
       (backend == Backend::Vulkan && artifact.format == ShaderBinaryFormat::SpirV) ||
@@ -58,7 +58,7 @@ bool ValidateShaderResourceBindings(std::span<const ShaderResourceBindingMetadat
   for (const auto &resource : resources) {
     if (resource.set >= capabilities.max_descriptor_sets || resource.binding >= 4096 ||
         resource.array_count == 0 || resource.stages == 0 ||
-        (resource.stages & ~static_cast<std::uint8_t>(7)) != 0) {
+        (resource.stages & ~AllShaderStageBits) != 0) {
       error = "shader resource binding exceeds device limits";
       return false;
     }
