@@ -61,8 +61,9 @@ This is a prerequisite for broader worker scheduling, not an asynchronous retire
 reference in serial and four-worker recording modes, rebinds after every dispatch, crosses pool
 boundaries and submits only after every worker joins. It also rejects missing/stale bindings and
 checks no worker submission/readback. With no Vulkan device/artifacts it reports an explicit skip;
-Slang-enabled native builds require execution. Graph-level parallel execution, DX12/Metal worker
-lifetimes, GPU validation-layer evidence and matched physical-GPU performance remain open.
+Slang-enabled native builds require execution. Bounded graph compute recording is described below;
+general graph parallel execution, DX12/Metal worker lifetimes, GPU validation-layer evidence and
+matched physical-GPU performance remain open.
 `ParallelCommandRecording` remains disabled/unimplemented in the capability snapshot.
 
 ## Completed
@@ -205,3 +206,22 @@ The caller owns buffers through submission completion and serializes resource up
 destruction and submission against recording. Plans do not make D3D12 shared upload/state mutation
 safe for parallel recording. All C++ modules must rebuild for the extended virtual interface;
 the stable C ABI and shader artifact/profile requirements are unchanged.
+
+## Limited independent compute recording admission
+
+`GraphicsDeviceCapabilities::independent_compute_recording` defaults false for unmodified/custom
+backends. Validation advertises it as a portable model, and Vulkan advertises it when its selected
+native queue supports compute. It admits exclusively owned buffer-only compute lists recorded
+against disjoint, caller-retained buffers and immutable pre-created pipelines. Vulkan's list-local
+command pools and immutable per-dispatch descriptor sets provide that isolation; handle/pipeline
+lookups remain protected by the device mutex. Creation, upload, mutation, destruction and submission
+stay serialized by the caller. This flag does not admit graphics, textures, shared-buffer reads,
+D3D12 shared upload/state preparation or Metal workers.
+
+RenderGraph consumes this limited flag for its explicit opt-in bounded scheduler. Every worker
+finishes before coordinator submission, and the graph waits for each returned completion value
+before list retirement. Native logical queues still alias one queue. Allocator/descriptor reuse
+across asynchronous submissions and separate queue-family transfers remain unimplemented.
+The broad `GraphicsFeature::ParallelCommandRecording` remains disabled/unimplemented until its
+remaining backend, lifetime, toolchain and performance gates pass. Existing shader feature
+admission cannot use the limited flag to bypass that feature gate.

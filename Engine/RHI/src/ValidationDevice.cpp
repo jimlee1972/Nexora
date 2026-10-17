@@ -72,6 +72,7 @@ public:
   GraphicsDeviceCapabilities Capabilities() const noexcept override {
     GraphicsDeviceCapabilities result;
     result.validation_only = true;
+    result.independent_compute_recording = true;
     result.software_device = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (auto &feature : result.features)

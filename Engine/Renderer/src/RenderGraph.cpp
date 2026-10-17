@@ -1,6 +1,7 @@
 #include "Nexora/Renderer/RenderGraph.h"
 
 #include <algorithm>
+#include <exception>
 #include <limits>
 #include <optional>
 #include <queue>
@@ -200,6 +201,10 @@ void RenderGraph::Compile() {
     std::ranges::for_each(pass.reads, mark);
     std::ranges::for_each(pass.writes, mark);
   }
+  predecessors_.assign(passes_.size(), {});
+  for (std::size_t before = 0; before < edges.size(); ++before)
+    for (const auto after : edges[before])
+      predecessors_[after].push_back(before);
   texture_barriers_.assign(passes_.size(), {});
   buffer_barriers_.assign(passes_.size(), {});
   std::vector<rhi::ResourceState> states;
@@ -243,14 +248,26 @@ void RenderGraph::Compile() {
   compiled_ = true;
 }
 
-void RenderGraph::Execute(rhi::Device &device) {
+void RenderGraph::Execute(rhi::Device &device) { Execute(device, {}); }
+
+void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) {
   if (!compiled_)
     throw std::logic_error("render graph must be compiled before execution");
   if (std::ranges::any_of(textures_, [](const auto &texture) { return texture.external; }) ||
       std::ranges::any_of(
           passes_, [](const auto &pass) { return static_cast<bool>(pass.external_execute); }))
     throw std::logic_error("external graph requires its owner executor");
+  if (options.recording_mode != RecordingMode::Serial &&
+      options.recording_mode != RecordingMode::Parallel)
+    throw std::invalid_argument("invalid command recording mode");
+  if (options.max_parallel_passes == 0)
+    throw std::invalid_argument("parallel batch limit must be nonzero");
   statistics_.completed_pass_count = 0;
+  statistics_.parallel_recorded_pass_count = 0;
+  statistics_.parallel_batch_count = 0;
+  statistics_.serial_recorded_pass_count = 0;
+  statistics_.parallel_fallback_pass_count = 0;
+  statistics_.max_parallel_batch_size = 0;
   std::vector<rhi::TextureHandle> handles(textures_.size());
   statistics_.barrier_count = 0;
   statistics_.queue_transfer_count = 0;
@@ -272,25 +289,159 @@ void RenderGraph::Execute(rhi::Device &device) {
         handles[index] = textures_[index].imported;
       }
     }
-    for (const auto pass_index : execution_order_) {
-      const auto &pass = passes_[pass_index];
-      auto commands = device.CreateCommandList(pass.queue);
-      for (const auto &barrier : texture_barriers_[pass_index]) {
-        commands->Transition({handles[barrier.texture.id], barrier.before, barrier.after,
-                              barrier.source_queue, barrier.destination_queue});
-        ++statistics_.barrier_count;
+    struct Recorded final {
+      std::unique_ptr<rhi::CommandList> commands;
+      std::size_t texture_barriers{};
+      std::size_t texture_transfers{};
+      std::size_t buffer_barriers{};
+      std::size_t buffer_transfers{};
+      bool succeeded{};
+    };
+    const auto record = [&](std::size_t index, Recorded &result) {
+      for (const auto &barrier : texture_barriers_[index]) {
+        result.commands->Transition({handles[barrier.texture.id], barrier.before, barrier.after,
+                                     barrier.source_queue, barrier.destination_queue});
+        ++result.texture_barriers;
         if (barrier.source_queue != barrier.destination_queue)
-          ++statistics_.queue_transfer_count;
+          ++result.texture_transfers;
       }
-      for (const auto &barrier : buffer_barriers_[pass_index]) {
-        commands->TransitionBuffer(barrier);
-        ++statistics_.buffer_barrier_count;
+      for (const auto &barrier : buffer_barriers_[index]) {
+        result.commands->TransitionBuffer(barrier);
+        ++result.buffer_barriers;
         if (barrier.source_queue != barrier.destination_queue)
-          ++statistics_.buffer_queue_transfer_count;
+          ++result.buffer_transfers;
       }
-      pass.execute(*commands, handles);
-      device.Submit(*commands);
-      ++statistics_.completed_pass_count;
+      passes_[index].execute(*result.commands, handles);
+      result.succeeded = true;
+    };
+    const auto account = [&](const Recorded &result) {
+      statistics_.barrier_count += result.texture_barriers;
+      statistics_.queue_transfer_count += result.texture_transfers;
+      statistics_.buffer_barrier_count += result.buffer_barriers;
+      statistics_.buffer_queue_transfer_count += result.buffer_transfers;
+    };
+    const bool requested = options.recording_mode == RecordingMode::Parallel;
+    // Snapshot lifecycle-dependent pool metadata on the coordinator. The caller serializes
+    // Start/Stop and keeps the pool, device and resources alive until Execute returns.
+    const auto worker_limit =
+        requested && options.recording_jobs && device.Capabilities().independent_compute_recording
+            ? std::min(options.max_parallel_passes, options.recording_jobs->WorkerCount())
+            : 0;
+    const auto eligible = [&](std::size_t index) {
+      const auto &pass = passes_[index];
+      return worker_limit > 1 && pass.allow_parallel_recording &&
+             pass.queue == rhi::QueueType::Compute && pass.reads.empty() && pass.writes.empty() &&
+             (!pass.buffer_reads.empty() || !pass.buffer_writes.empty());
+    };
+    for (std::size_t order = 0; order < execution_order_.size();) {
+      std::size_t end = order;
+      std::unordered_set<std::uint32_t> batch_buffers;
+      while (end < execution_order_.size() && end - order < worker_limit &&
+             eligible(execution_order_[end])) {
+        const auto index = execution_order_[end];
+        const auto &pass = passes_[index];
+        const auto overlaps = [&](const BufferUse &use) {
+          return batch_buffers.contains(use.buffer.id);
+        };
+        bool dependent = false;
+        for (auto earlier = order; earlier < end; ++earlier)
+          if (std::ranges::find(predecessors_[index], execution_order_[earlier]) !=
+              predecessors_[index].end())
+            dependent = true;
+        if (dependent || std::ranges::any_of(pass.buffer_reads, overlaps) ||
+            std::ranges::any_of(pass.buffer_writes, overlaps))
+          break;
+        for (const auto &use : pass.buffer_reads)
+          batch_buffers.insert(use.buffer.id);
+        for (const auto &use : pass.buffer_writes)
+          batch_buffers.insert(use.buffer.id);
+        ++end;
+      }
+      if (end - order < 2) {
+        const auto index = execution_order_[order];
+        Recorded result;
+        result.commands = device.CreateCommandList(passes_[index].queue);
+        try {
+          record(index, result);
+        } catch (...) {
+          account(result);
+          throw;
+        }
+        account(result);
+        ++statistics_.serial_recorded_pass_count;
+        if (requested)
+          ++statistics_.parallel_fallback_pass_count;
+        try {
+          const auto completion = device.Submit(*result.commands);
+          device.WaitForSubmission(completion);
+        } catch (...) {
+          device.WaitIdle();
+          throw;
+        }
+        ++statistics_.completed_pass_count;
+        ++order;
+        continue;
+      }
+      const auto count = end - order;
+      std::vector<Recorded> recorded(count);
+      std::vector<core::JobHandle> jobs;
+      jobs.reserve(count); // No allocation may lose a handle after its job starts.
+      // Allocate all command allocators/lists on the coordinator, then give each job one owner.
+      for (std::size_t offset = 0; offset < count; ++offset)
+        recorded[offset].commands =
+            device.CreateCommandList(passes_[execution_order_[order + offset]].queue);
+      ++statistics_.parallel_batch_count;
+      statistics_.max_parallel_batch_size = std::max(statistics_.max_parallel_batch_size, count);
+      std::exception_ptr failure;
+      try {
+        for (std::size_t offset = 0; offset < count; ++offset) {
+          const auto index = execution_order_[order + offset];
+          jobs.push_back(
+              options.recording_jobs->Submit({[&, offset, index](const core::CancellationToken &) {
+                                                record(index, recorded[offset]);
+                                              },
+                                              core::JobPriority::Normal,
+                                              {},
+                                              passes_[index].name}));
+        }
+      } catch (...) {
+        failure = std::current_exception();
+      }
+      // A callback or Submit failure cannot release resources while any started job still uses
+      // them. Wait in graph order; choose the earliest callback error ahead of a later scheduling
+      // error.
+      std::exception_ptr callback_failure;
+      for (const auto &job : jobs) {
+        try {
+          options.recording_jobs->Wait(job);
+        } catch (...) {
+          if (!callback_failure)
+            callback_failure = std::current_exception();
+        }
+      }
+      for (const auto &result : recorded) {
+        account(result);
+        if (result.succeeded)
+          ++statistics_.parallel_recorded_pass_count;
+      }
+      if (callback_failure)
+        std::rethrow_exception(callback_failure);
+      if (failure)
+        std::rethrow_exception(failure);
+      // No worker submits. Keep lists/pools alive through completion, then destroy on the
+      // coordinator.
+      try {
+        for (auto &result : recorded) {
+          const auto completion = device.Submit(*result.commands);
+          device.WaitForSubmission(completion);
+          ++statistics_.completed_pass_count;
+        }
+      } catch (...) {
+        // A submission can fail after native work was accepted. Drain before freeing allocators.
+        device.WaitIdle();
+        throw;
+      }
+      order = end;
     }
     device.WaitIdle();
     release_transients();

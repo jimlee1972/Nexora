@@ -36,6 +36,9 @@ GraphicsRequirements Needs(GraphicsFeature feature, FeatureVersion tier = {1, 0}
 void TestAdmissionAndFallback() {
   auto device = CreateValidationDevice();
   auto capabilities = device->Capabilities();
+  Require(!GraphicsDeviceCapabilities{}.independent_compute_recording &&
+              capabilities.independent_compute_recording,
+          "limited compute admission must default closed and distinguish validation support");
   Require(capabilities.backend == Backend::Null && capabilities.validation_only &&
               capabilities.software_device,
           "validation capability snapshot must identify the software validation model");

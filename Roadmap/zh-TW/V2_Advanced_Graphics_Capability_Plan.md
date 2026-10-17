@@ -14,7 +14,7 @@
 fallback 選擇；PSO 建立前檢查；以及納入完整能力要求的 PSO cache identity。未知支援
 一律拒絕啟用，數字版本可區分 SM 6.10 與 6.9，native feedback tier 90／100 對應 0.9／1.0。
 
-平行錄製、依 fence 回收的 worker descriptor／allocator、compiler／
+完整平行錄製、依 fence 回收的 worker descriptor／allocator、compiler／
 artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執行仍待完成。
 能力檢查測試或裝置硬體查詢不構成任何原生進階功能完成的證據。
 
@@ -23,7 +23,48 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 錄製模式比對 320 組不同 workload，涵蓋每份 List 40 次 Dispatch（跨越單一 Pool 的 32 Set
 容量）、最後只綁定但不 Dispatch、所有 worker join 後反向提交、確認完成才銷毀，以及
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
-Snapshot 中平行錄製能力仍未啟用／未實作；RenderGraph 排程與其他後端 worker 所有權尚未完成。
+Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
+
+### 有界 Graph Compute 錄製 — 2026-10-17
+
+✅ Graph 排程現可明確 opt-in，使用既有 JobSystem，以有界批次平行錄製獨立且僅使用
+Buffer 的 Compute Pass。Validation／Vulkan 提供獨立的有限範圍檢查，完整
+`ParallelCommandRecording` Feature 仍未啟用。未標記的 Callback、Texture、其他 Queue／
+後端、任何共用 Buffer（含讀／讀）、明確相依，以及缺少、停止或僅一個 Worker 的 Pool，
+均保留序列執行。原有 `Execute(device)` 維持序列。
+
+Coordinator 建立並擁有 Allocator／List，等待所有已啟動錄製工作結束，依編譯順序提交，
+再等待各完成值後才釋放 List。錄製失敗的批次完全不提交，依 Graph 順序選擇 Callback
+錯誤並停止後續 Pass。提交／等待失敗時先 Drain，再釋放 List。此為等待完成後回收，
+尚非非同步 Worker 重用。
+
+來源 branch：`feat/v2-parallel-graph-recording`，基底 `63bb5f7a49e5ec9df0b285494e79ee046c61a6f7`。
+Beads：`nexora-45y.2.3`；父任務 `nexora-45y.2` 與完整 V2-GFX-1 維持待完成。
+
+- `cmake --preset linux-development` 與 `cmake --build --preset linux-development`：通過。
+- Xvfb 下要求 Native 的 `ctest --preset linux-development`：**194/194 通過、零略過／
+  失敗、102.26 秒**，使用 Slang 2026.18 SPIR-V、Mesa lavapipe 24.0.5、Zig 0.14.0。
+- `ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|graph_buffer_dependencies|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven)$' --output-on-failure`：
+  **6/6 通過、零略過、0.27 秒**。
+- `cmake --preset linux-shipping` 與 `cmake --build --preset linux-shipping`：通過，
+  Monolithic／Minimal 並啟用 LTO，包含最終完成值等待實作。
+- 本次 C++ 的 `clang-format --dry-run --Werror` 與 `git diff --check`：通過。
+
+Portable 測試強制 Callback 同時執行及逆序完成，驗證固定提交與有界分配、相依批次、
+資源／Queue／Texture／明確相依的序列 Fallback、既有序列介面、停止／缺少／單 Worker
+Pool、確定性的錄製錯誤、失敗批次不提交，以及模擬延後完成裝置上的完成後回收。
+提交失敗注入模擬原生 Queue 已接受工作，要求序列／平行兩條路徑都在 Allocator 釋放前
+先 Drain。排程例外的設計也會等待每個已啟動 Job；未注入 JobSystem 內部的分配失敗。
+
+原生 Vulkan Descriptor 測試保留 320 組隔離 Dispatch 比對，另以 24 組不同 Workload
+執行兩輪具 WAW 相依的 Graph Pass，於序列／四 Worker 模式比對 48 次 CPU 參考結果。
+有時限的 Rendezvous 要求四個 Callback 實際重疊執行。注入錄製失敗後，所有輸出 Sentinel
+保持原值，沒有提交／讀回，所有 Worker 結束後可成功重用相同借用 Buffer。正式路徑
+仍不讀回。此僅證明 Linux 軟體裝置正確性，不構成 CPU 開銷下降、實體 GPU 計時、
+一般 Graphics／Texture 錄製、共用讀取並行、D3D12／Metal Worker 安全、取消或非同步
+多 Queue 回收的證據。Compiler／Artifact 矩陣、同條件 CPU Median／p95、GPU 時間／
+記憶體預算及所有完整 Gate 維持待完成。Shader、SDK、Feature 預設值及 Stable C ABI
+均不變。詳見 [執行 Contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-recording)。
 
 ### Buffer 相依與編譯後 Barrier 計畫 — 2026-10-17
 
@@ -83,7 +124,7 @@ Beads：`nexora-45y.2.1`；父任務 `nexora-45y.2` 維持待完成。
 修正後五次原生驗收、第一次輸入未送達的恢復、所有輸入未送達的拒絕，以及本機啟用 Zig 的
 **190/190 完整 gate（無略過／失敗、135.96 秒）**均通過；保留原有 native 斷言並新增
 精確還原比對。詳見 [2D 驗收修正](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md#movement-and-save-acknowledgement-follow-up)。
-修正後 head 仍須通過最終 hosted CI。
+PR [#618](https://github.com/jimlee1972/Nexora/pull/618) 後續已於兩組 Hosted Workflow 成功後合併。
 
 ### 驗收證據 — 2026-10-16
 
@@ -107,7 +148,7 @@ feature 預設值。
 型別已改為 `GraphicsDeviceCapabilities`，能力回歸測試也會先載入 Windows 標頭再載入
 公開 RHI 標頭。此修正保留 consumer 的 SDK 巨集，不採 undef 處理；失敗 enum 也使用
 `NoFailure`，避開 X11 的 `None`，Linux 啟用 Window 時會在 Xlib 後編譯能力檢查標頭。
-修正後 head 仍須通過最終平台 CI 驗收。
+PR [#615](https://github.com/jimlee1972/Nexora/pull/615) 後續已於全部 36 項 Hosted 檢查成功後合併。
 
 原生測試沿用 Slang 的 `-target spirv -profile glsl_450 -fvk-use-entrypoint-name` contract，
 產生 `vertexMain`／`fragmentMain` 與 `computeMain` artifact，設定

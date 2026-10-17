@@ -1,12 +1,19 @@
 #include "Nexora/Renderer/GPUDrivenPipeline.h"
+#include "Nexora/Renderer/RenderGraph.h"
+
+#include <algorithm>
+#include <thread>
 
 #include <array>
 #include <barrier>
 #include <bit>
+#include <chrono>
+#include <condition_variable>
 #include <cstdlib>
 #include <exception>
 #include <future>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -163,6 +170,149 @@ void TestIsolation(rhi::Device &device, rhi::PipelineHandle pipeline, bool paral
       device.DestroyBuffer(buffer);
 }
 
+void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  Require(device.Capabilities().independent_compute_recording,
+          "Vulkan must admit the limited independent compute path");
+  const auto full =
+      device.Capabilities()
+          .features[static_cast<std::size_t>(rhi::GraphicsFeature::ParallelCommandRecording)];
+  Require(!full.enabled && !full.implemented,
+          "limited compute admission enabled the full parallel gate");
+  constexpr std::size_t workload_count = 24;
+  std::vector<Workload> workloads;
+  for (std::uint32_t index = 0; index < workload_count; ++index)
+    workloads.push_back(MakeWorkload(device, index + 2000));
+  RenderGraph graph;
+  std::vector<std::array<GraphBuffer, 4>> buffers;
+  for (const auto &workload : workloads) {
+    std::array<GraphBuffer, 4> imported;
+    for (std::size_t slot = 0; slot < imported.size(); ++slot)
+      imported[slot] = graph.ImportBuffer(workload.buffers[slot]);
+    buffers.push_back(imported);
+  }
+  const auto coordinator = std::this_thread::get_id();
+  std::array<std::thread::id, workload_count * 2> threads;
+  bool inject_failure = false;
+  bool parallel_callbacks = false;
+  struct Meeting final {
+    std::mutex mutex;
+    std::condition_variable condition;
+    unsigned arrived{};
+  };
+  std::array<Meeting, workload_count / 2> meetings;
+  for (std::size_t index = 0; index < workload_count * 2; ++index) {
+    const auto workload = index % workload_count;
+    RenderGraph::PassDescriptor pass{
+        "graph compute",
+        rhi::QueueType::Compute,
+        {},
+        {},
+        [&, index, workload](rhi::CommandList &commands, std::span<const rhi::TextureHandle>) {
+          threads[index] = std::this_thread::get_id();
+          if (parallel_callbacks) {
+            auto &meeting = meetings[index / 4];
+            std::unique_lock lock(meeting.mutex);
+            ++meeting.arrived;
+            meeting.condition.notify_all();
+            Require(meeting.condition.wait_for(lock, std::chrono::seconds(5),
+                                               [&] { return meeting.arrived == 4; }),
+                    "native graph workers did not overlap");
+          }
+          Bind(commands, workloads[workload]);
+          commands.BindPipeline(pipeline);
+          commands.Dispatch(1);
+          if (inject_failure && index == 0)
+            throw std::runtime_error("native graph injected failure");
+        }};
+    pass.buffer_reads = {{buffers[workload][0], rhi::BufferAccess::ShaderRead}};
+    for (std::size_t slot = 1; slot < 4; ++slot)
+      pass.buffer_writes.push_back({buffers[workload][slot], rhi::BufferAccess::StorageReadWrite});
+    pass.allow_parallel_recording = true;
+    (void)graph.AddPass(std::move(pass));
+  }
+  graph.Compile();
+  core::JobSystem jobs{4};
+  jobs.Start();
+  const RenderGraph::ExecutionOptions parallel{RenderGraph::RecordingMode::Parallel, &jobs, 4};
+  const auto run = [&](bool use_parallel) {
+    parallel_callbacks = use_parallel;
+    for (auto &meeting : meetings)
+      meeting.arrived = 0;
+    const auto before = device.Diagnostics();
+    if (use_parallel)
+      graph.Execute(device, parallel);
+    else
+      graph.Execute(device);
+    const auto after = device.Diagnostics();
+    Require(after.compute_dispatches - before.compute_dispatches == workload_count * 2 &&
+                after.submitted_command_lists - before.submitted_command_lists ==
+                    workload_count * 2 &&
+                after.readbacks == before.readbacks,
+            "graph dispatch/submission counts differ or recording read back output");
+    const auto stats = graph.GetStatistics();
+    Require(stats.completed_pass_count == workload_count * 2 &&
+                stats.buffer_barrier_count == workload_count * 7,
+            "native graph lost WAW barriers or passes");
+    if (use_parallel) {
+      Require(stats.parallel_recorded_pass_count == workload_count * 2 &&
+                  stats.parallel_batch_count == workload_count / 2 &&
+                  stats.max_parallel_batch_size == 4,
+              "native graph did not use bounded four-worker recording");
+      Require(std::ranges::all_of(threads, [&](auto thread) { return thread != coordinator; }),
+              "native parallel callbacks ran on coordinator");
+    } else {
+      Require(stats.parallel_recorded_pass_count == 0 &&
+                  stats.serial_recorded_pass_count == workload_count * 2,
+              "explicit serial path did not remain available");
+      Require(std::ranges::all_of(threads, [&](auto thread) { return thread == coordinator; }),
+              "serial callback ran on a worker");
+    }
+    for (const auto &workload : workloads)
+      Compare(device, workload);
+  };
+  run(false);
+  // Prefill every output so accidental submission of any failed-batch dispatch is observable.
+  constexpr std::uint32_t sentinel = 0xDEADBEEF;
+  const std::array<std::size_t, 3> words{5, rhi::GPUDrivenIndirectCommandWords, 8};
+  for (const auto &workload : workloads)
+    for (std::size_t slot = 1; slot < 4; ++slot) {
+      const std::vector<std::uint32_t> value(words[slot - 1], sentinel);
+      device.WriteBuffer(workload.buffers[slot], 0, std::as_bytes(std::span{value}));
+    }
+  inject_failure = true;
+  parallel_callbacks = true;
+  for (auto &meeting : meetings)
+    meeting.arrived = 0;
+  const auto before_failure = device.Diagnostics();
+  bool rejected = false;
+  try {
+    graph.Execute(device, parallel);
+  } catch (const std::runtime_error &error) {
+    rejected = std::string_view(error.what()) == "native graph injected failure";
+  }
+  Require(rejected && graph.GetStatistics().completed_pass_count == 0 &&
+              device.Diagnostics().submitted_command_lists ==
+                  before_failure.submitted_command_lists &&
+              device.Diagnostics().readbacks == before_failure.readbacks,
+          "failed native recording submitted work or swallowed its error");
+  for (const auto &workload : workloads)
+    for (std::size_t slot = 1; slot < 4; ++slot) {
+      std::vector<std::uint32_t> value(words[slot - 1]);
+      device.ReadBufferForTesting(workload.buffers[slot], 0,
+                                  std::as_writable_bytes(std::span{value}));
+      Require(std::ranges::all_of(value, [](auto word) { return word == sentinel; }),
+              "failed native graph changed GPU output");
+    }
+  inject_failure = false;
+  run(true); // Reuses borrowed buffers after all failed recording jobs and their pools retire.
+  jobs.Stop();
+  for (const auto &workload : workloads)
+    for (const auto buffer : workload.buffers)
+      device.DestroyBuffer(buffer);
+  std::cout << "Vulkan graph: 24 unique workloads, serial/parallel WAW waves, 48 CPU comparisons; "
+               "failed batch preserves all sentinel output and retry succeeds\n";
+}
+
 void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
   const auto rejects = [](auto &&call) {
     try {
@@ -203,6 +353,7 @@ int main() {
     TestRejectedBindings(*device, pipeline);
     TestIsolation(*device, pipeline, false);
     TestIsolation(*device, pipeline, true);
+    TestGraphRecording(*device, pipeline);
     device->DestroyPipeline(pipeline);
     std::cout << "Vulkan descriptor isolation: serial and 4-worker recording, 320 exact dispatch "
                  "comparisons passed\n";
