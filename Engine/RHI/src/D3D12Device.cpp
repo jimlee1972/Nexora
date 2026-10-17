@@ -1386,8 +1386,8 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
 
 void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) {
   if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
-      graphics_shader_ != GraphicsShaderVariant::MeshTriangle || !mesh_input_ || x != 1 || y != 1 ||
-      z != 1)
+      graphics_shader_ != GraphicsShaderVariant::MeshTriangle || !mesh_input_.IsValid() || x != 1 ||
+      y != 1 || z != 1)
     throw std::logic_error(
         "built-in mesh dispatch requires one group and a bound statistics input");
   (void)PrepareBuffer(mesh_input_, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
