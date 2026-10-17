@@ -124,6 +124,15 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
        descriptor.compute_shader != ComputeShaderVariant::GPUDriven))
     throw std::invalid_argument("invalid compute shader variant for pipeline type");
   auto requirements = descriptor.graphics_requirements;
+  if (descriptor.compute_shader >= ComputeShaderVariant::LongVector69 &&
+      descriptor.compute_shader <= ComputeShaderVariant::GroupShared610) {
+    const FeatureVersion minimum = descriptor.compute_shader == ComputeShaderVariant::LongVector69
+                                       ? FeatureVersion{6, 9}
+                                       : FeatureVersion{6, 10};
+    if (requirements.minimum_dxil_shader_model < minimum)
+      requirements.minimum_dxil_shader_model = minimum;
+  }
+
   if (descriptor.topology == PrimitiveTopology::PatchList) {
     if (descriptor.patch_control_points != 3 ||
         descriptor.graphics_shader != GraphicsShaderVariant::Triangle)
@@ -149,11 +158,18 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
     if (minimum < FeatureVersion{1, 0})
       minimum = {1, 0};
   }
+  if (requirements.minimum_dxil_shader_model >= FeatureVersion{6, 10} &&
+      !descriptor.allow_preview_shader_models)
+    throw std::invalid_argument("Shader Model 6.10 requires explicit preview opt-in");
   return requirements;
 }
 void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                  const PipelineDescriptor &descriptor) {
-  RequireGraphicsCapabilities(capabilities, EffectivePipelineRequirements(descriptor));
+  const auto requirements = EffectivePipelineRequirements(descriptor);
+  RequireGraphicsCapabilities(capabilities, requirements);
+  if (requirements.minimum_dxil_shader_model >= FeatureVersion{6, 10} &&
+      !capabilities.d3d12_preview_runtime_enabled)
+    throw std::invalid_argument("Shader Model 6.10 requires the isolated preview runtime");
 }
 GraphicsRequirements EffectiveWorkGraphRequirements(const WorkGraphDescriptor &descriptor) {
   auto requirements = descriptor.graphics_requirements;

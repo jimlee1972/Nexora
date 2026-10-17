@@ -316,3 +316,8 @@ Native Windows clear/write/decode remains pending; full streaming/residency/Ulti
 Windows 原生 Clear／Write／Decode 待驗收，完整 Streaming／Residency／Ultimate Gate 維持開放。
 
 ✅ PR633 merged after36 checks / 通過36檢查後合併：both Windows314/314 runs execute native Work Graphs and pipeline/inline rays; Linux365/365 and Metal304/304 compute fallbacks pass / 兩輪 Windows314/314 實際執行原生 Work Graph 與 Pipeline／Inline Ray，Linux365/365、Metal304/304 後備通過。Full gates and percentages stay open/unchanged / 完整 Gate 與百分比維持原狀。
+
+Windows AS/native dispatch and complete DXR/SER acceptance remain pending. 真實 Library／Inline Query 編譯
+與 Linux 原生 Compute／CPU 交點比對通過；Windows AS／原生 Dispatch 及完整 DXR／SER 驗收仍待完成。
+
+SM6.9/6.10 isolated compute / 隔離 Compute：optional private SDK721/WARP/DXC preview path and three bounded recipes are in progress; native Windows evidence pending / 私有 Preview 路徑與三種有界程式實作中，Windows 原生證據待驗證。See / 詳見 [English](en/V2_Advanced_Graphics_Capability_Plan.md) / [繁體中文](zh-TW/V2_Advanced_Graphics_Capability_Plan.md). Full gates and milestone percentages remain unchanged / 完整 Gate 與里程碑百分比不變。

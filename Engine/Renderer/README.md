@@ -592,3 +592,10 @@ per-list contexts own opaque/decoded textures and descriptor heaps. Graph orderi
 failure containment remain unchanged. A separate compute-reference cache variant preserves an
 explicit fallback. This bootstrap does not attach feedback to application materials or implement
 virtual-texture streaming/residency/performance acceptance.
+
+Modern compute preview admission uses distinct `LongVector69`, `LinearAlgebra610` and
+`GroupShared610` pipeline variants. Complete cache identity includes explicit experimental Shader
+Model permission, so an accepted baseline or preview PSO cannot authorize another policy. Native
+DXIL recipes require the actual device profile and separate RHI/runtime/artifact checks; the
+Renderer does not emulate modern GPU instructions. Full modern shader/cooking and fallback
+integration remain open in the paired V2 graphics plan.

@@ -844,3 +844,42 @@ Enhanced Node／Ray Buffer Barrier 分別68／354。Linux／Metal 明確回報 e
 DXR1.2／SER、實體效能及完整 Gate 持續開放。
 
 Windows64f83e47 完整 CTest 在兩種 Feedback Barrier 模式均發現真實 Decode Map 不符，尚未驗收。正式 MIN_MIP Transcode 規則要求來源 Subresource 為 UINT_MAX，表示攤平的整條 Opaque Mip Chain，已取代初版0；目的地仍為單一 R8_UINT Slice0。負例診斷新增 Native／Reference、Count 與每個 Actual／Expected Word。本機修正版 Development220/220 通過（125.60秒），真正 SDK Helper 語法、Session 清理25/25及文件／Workflow16/16 亦通過。仍須最終 Windows 原生證據，不由本機 Compute Oracle 推定 Feedback 完成。
+
+### 隔離的新型 Compute 程式 — 實作進行中
+
+預設關閉的 `NEXORA_ENABLE_D3D12_PREVIEW` 使用獨立 SHA-256 固定的 Agility
+1.721.3-preview、WARP1.65535.20-preview 與 DXC1.10.2605.37。僅專用測試執行檔放置
+app-local WARP／Agility，普通建置沿用原 SDK、編譯器與 Profile。明確的 D3D12 Device 選項
+建立獨立 SDK721 Factory，禁止發布 Singleton，僅對該 Factory 啟用實驗 Shader Model；
+不套用至 D3D12 全域狀態。Factory 的生命週期長於所有 Device 資源。一次性 CI 主機啟用
+Developer Mode，後端本身不修改作業系統設定。
+
+三種固定 Compute Variant 沿用 SRVt0／UAVu1 Root：SM6.9 八分量整數 Long Vector、
+SM6.10 Thread Scope F32 4x4 矩陣／向量乘法，以及128執行緒、64 KiB Shared Storage 的
+Reduction，帶有 `GroupSharedLimit(65536)`。後者宣告靜態配置上限，不是執行時動態配置
+Shared Memory。原生准入分別檢查實際裝置 Profile、明確6.10許可／私有 Runtime、F32
+Operation Query 或 Shared 容量、實際 DXIL Stage／Profile 與建置產生的完整 Recipe 位元組。
+許可與 Variant 納入完整 Cache Identity；限制單一 Group、不同128-byte輸入／32-byte輸出，
+沿用普通不可變 Recording／Revision 生命週期。Vulkan／Metal／Validation 拒絕這些 DXIL
+Recipe，不會宣稱已執行。
+
+公開 Preview Compiler 已通過本機正式編譯命令，包括真正65540-byte超額配置負例；
+線性代數 DXIL 確實包含矩陣載入／乘法指令。Windows 測試要求三種原生 GPU 輸出與 Canary
+符合 CPU Oracle，驗證過期／放棄 List 拒絕與已接受計數不變。Windows 原生執行及完整
+整合 CI Gate 仍待驗證。通用新型 Shader 編寫／Cook、低 Profile Compute 後備整合、
+DXR1.2／Opacity Micromap／SER 與實體 GPU 效能另列未完成工作；本切片不關閉 V2-GFX-5
+或任何上層完整驗收 Gate。
+
+Sampler Feedback 父版本上的本機整合驗證通過 Development220/220、零失敗／略過（132.25秒），Shipping Minimal／Monolithic／LTO 亦通過。三個公開 Windows 套件的固定 SHA-256 均驗證成功；正式編譯流程使用真正 Windows 套件 HLSL Header 亦通過。Windows Runtime 執行仍待驗證。
+
+拆開 Sampler 父版本後，以 PR633 為基礎的獨立來源通過 Development219/219、零略過／失敗（154.39秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（18.24秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。非 Windows Preview Configure 拒絕及雙語文件檢查亦通過；原生 Preview 執行仍待 Windows CI。
+
+前一版本2f7d89c7 的兩輪 Windows Preview Job117400353506／117402090855 均通過1/1（2.09／0.29秒），實際載入 app-local WARP SM6.10、65536 Shared Bytes、F32 Matvec 支援，九組 Kernel 輸出／Canary／生命週期通過。後續補齊 Caller 未填最低版本時的一般產物准入：實際6.9以上 DXIL 仍須符合裝置上限，實際6.10仍要求明確許可／私有 Runtime；新增一般入口未啟用拒絕／啟用 PSO 建立且不 Submit 的原生測試。本機 Development 再通過219/219（122.37秒），真實 SDK 准入 Helper 及 Windows 條件語法亦通過。清理機制僅納入本次三個確切分支、Owner／同 Repository Actor 的過期進行中 SHA，保留最新 Head 的兩種 Event；取消安全測試25/25、文件／Workflow16/16 通過。合併前仍要求最終後續版本 Windows CI。
+
+## 託管現代運算驗收（PR635）
+
+✅ 有界 SM6.9 長向量、SM6.10 F32 矩陣／向量與靜態共用記憶體配方已通過原生測試並合併 PR635（b6fd5053）。4e35aef1 的 push／PR 兩套流程共38項檢查全數通過。Windows 專用工作117408135751／117408317595 載入固定版本 app-local WARP，通過九組輸出／canary／生命週期測試，以及未宣告最低6.10版本時的權限拒絕／明確允許 PSO 建立測試。兩套桌面矩陣均通過 Windows314/314、Linux365/365、macOS304/304。此處驗收固定配方的軟體原生執行；一般現代 Shader 編寫／cook、實體 GPU 效能及完整 V2-GFX-5 gate 仍未完成。官方 [Variable Group Shared Memory 提案](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) 保留編譯期陣列大小；此處已驗證裝置相關上限與 GroupSharedLimit，執行期動態配置並不屬於該規格。
+
+Sampler Feedback 分支整合此已合併 runtime，保留三種配方的既有編號：feedback reference 新增於其後，並排除於現代 profile／dispatch 範圍之外。可攜准入與原生 fallback 工作負載驗證此區分。合併後原始碼完整迴歸及 feedback 原生驗收仍待通過。
+
+合併後原始碼通過本機 Development220/220，零失敗／跳過（127.24s）、Shipping Minimal/Monolithic/LTO 及 Khronos 物件／同步18/18（10.75s），確認39次 layer 插入、零 Validation Error／VUID／SYNC-HAZARD 訊息。可攜准入證明 feedback reference 不會繼承 SM6.9／6.10 要求；原生 Vulkan 執行真正的較低 profile map oracle。Windows feedback 執行仍為必要 CI gate。

@@ -20,6 +20,7 @@ struct PipelineCacheKey final {
   rhi::GraphicsShaderVariant graphics_shader{};
   rhi::ShadingRate shading_rate{};
   rhi::ComputeShaderVariant compute_shader{};
+  bool allow_preview_shader_models{};
   friend bool operator==(const PipelineCacheKey &, const PipelineCacheKey &) = default;
 };
 [[nodiscard]] NEXORA_RENDERER_API PipelineCacheKey MakePipelineCacheKey(

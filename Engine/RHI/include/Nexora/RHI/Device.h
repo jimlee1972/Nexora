@@ -21,6 +21,8 @@ struct DeviceCreationOptions final {
   bool enable_recording_resource_reuse{};
   // D3D12-only optional route; unknown/unsupported SDK/runtime keeps legacy barriers.
   bool enable_enhanced_barriers{};
+  // Explicit isolated experimental WARP route; requires a separately compiled preview build.
+  bool enable_d3d12_preview_runtime{};
 };
 struct DeviceDiagnostics final {
   std::uint64_t submitted_command_lists{};

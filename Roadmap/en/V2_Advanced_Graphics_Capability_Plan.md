@@ -920,3 +920,45 @@ for these bounded recipes and closes child tasks nexora-45y.6.1/.4.2 only. Gener
 AS update/compaction, lighting, DXR1.2/SER and physical performance/full gates remain open.
 
 Windows64f83e47 full CTest exposed a real decoded-map mismatch in both feedback barrier modes; it is not accepted. The normative MIN_MIP transcode rule requires source subresource UINT_MAX for the flattened opaque mip chain, replacing the initial0. Decoding still targets the single R8_UINT slice0. Mismatch diagnostics now identify native/reference,count and every actual/expected word. Local corrected Development220/220 passes (125.60s), actual SDK helper syntax passes, guarded session cleanup25/25 and documentation/workflow16/16 pass. Final Windows native proof remains required; no native feedback completion is inferred from the local compute oracle.
+
+### Isolated modern compute programs — implementation in progress
+
+The default-off `NEXORA_ENABLE_D3D12_PREVIEW` build stages separately hash-pinned Agility
+1.721.3-preview, WARP1.65535.20-preview and DXC1.10.2605.37. Only the dedicated test executable
+receives app-local WARP/Agility files; ordinary builds retain the existing SDK/compiler/profile.
+An explicit D3D12 device option creates an independent SDK721 factory with singleton publication
+disabled and enables experimental shader models only on that factory. It never applies factory
+configuration to global D3D12 state. The factory outlives all device resources. A disposable CI
+host enables Developer Mode; the backend does not modify OS settings.
+
+Three fixed compute variants use existing SRVt0/UAVu1 roots: SM6.9 eight-component integer long
+vectors, SM6.10 thread-scope F32 4x4 matrix/vector multiplication, and a128-thread reduction using
+64 KiB shared storage plus `GroupSharedLimit(65536)`. The latter declares a static allocation
+ceiling, not runtime dynamic shared-memory allocation. Native admission independently requires
+the actual device profile, explicit6.10 permission/private runtime, F32 operation query or shared
+capacity, actual DXIL stage/profile and exact build-generated recipe bytes. Permission and variant
+participate in complete cache identity. One group, distinct128-byte input/32-byte output buffers
+and ordinary immutable recording/revision lifetimes bound execution. Vulkan/Metal/validation
+reject these DXIL recipes rather than claiming their execution.
+
+Production compiler commands pass locally with the published preview compiler, including the
+real65540-byte oversized-allocation negative. Actual emitted linear-algebra DXIL contains matrix
+load/multiply operations. The Windows test requires all three native GPU outputs and canaries to
+match CPU oracles, stale/abandoned-list rejection and unchanged accepted counters. Native Windows
+execution and the full integrated CI gate remain pending. Generic modern shader authoring/cooking,
+lower-profile compute fallback integration, DXR1.2/opacity micromaps/SER and physical-GPU performance
+remain separate open work; this slice does not complete V2-GFX-5 or any enclosing acceptance gate.
+
+Local integrated verification on the sampler-feedback parent passes Development220/220,zero failures/skips (132.25s), and Shipping Minimal/Monolithic/LTO. All three pinned public Windows archives verify their published SHA-256; the production compiler recipe also passes with the actual Windows package HLSL headers. Windows runtime execution remains pending.
+
+After separating the sampler parent, the standalone PR633-based source passes Development219/219,zero skips/failures (154.39s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (18.24s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Non-Windows preview configure rejection and paired documentation checks pass. Native preview execution still requires Windows CI.
+
+Prior head2f7d89c7 has both native Windows preview jobs117400353506/117402090855 passing1/1 (2.09/0.29s), actually loading app-local WARP SM6.10 with65536 shared bytes and F32 matvec support; all nine kernel outputs/canaries/lifetimes pass. A follow-up closes generic artifact admission when caller minimum is omitted: actual6.9+ DXIL must satisfy the device limit, and actual6.10 requires explicit permission/private runtime. The test adds generic unopted rejection/opted PSO creation without submission. Local Development219/219 passes again (122.37s); actual SDK admission helper and Windows-conditional test syntax pass. Guarded cleanup includes only three exact current graphics-session branches, owner/same-repository actors and obsolete live SHAs, preserving both latest-head events;25/25 cancellation-safety tests and16/16 documentation/workflow tests pass. Final follow-up Windows CI is required before merge.
+
+## Hosted modern compute acceptance (PR635)
+
+✅ The bounded SM6.9 long-vector and SM6.10 F32 matrix/vector and static shared-memory recipes are native-tested and merged in PR635 (b6fd5053). Both push/PR workflows pass all38 checks at4e35aef1. Dedicated Windows jobs117408135751/117408317595 load pinned app-local WARP and pass all nine output/canary/lifetime fixtures plus undeclared-minimum6.10 permission rejection/opted PSO creation. Both desktop matrices pass Windows314/314,Linux365/365,macOS304/304. This accepts these fixed software-executed recipes; general modern shader authoring/cooking, physical GPU performance and the full V2-GFX-5 gate remain open. The published [Variable Group Shared Memory proposal](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) retains compile-time array sizes: its device-dependent limit and GroupSharedLimit are exercised here; runtime dynamic allocation is not part of that specification.
+
+The sampler-feedback branch integrates this merged runtime without renumbering its three recipe identities: feedback reference is appended after them and excluded from modern profile/dispatch bounds. Portable admission and native fallback workloads exercise this separation. Final merged-source regression and feedback native acceptance remain required.
+
+Merged-source local regression passes Development220/220, zero failures/skips (127.24s), Shipping Minimal/Monolithic/LTO and Khronos object/synchronization18/18 (10.75s),39 confirmed layer insertions,zero Validation Error/VUID/SYNC-HAZARD markers. Portable admission proves feedback reference does not inherit SM6.9/6.10 requirements; native Vulkan runs its real lower-profile map oracle. Windows feedback execution remains a required CI gate.
