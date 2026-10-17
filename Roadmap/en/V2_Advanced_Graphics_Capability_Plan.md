@@ -762,6 +762,26 @@ conditional test syntax checks pass with warnings-as-errors. Windows additionall
 Node/Ray/Node program/root switching when both capabilities are admitted; this native interop
 and both advanced program executions remain pending until hosted proof. No full gate closes.
 
+## Hosted Enhanced Barriers, mesh and VRS acceptance (PR632)
+
+✅ Own PR632 squash-merged as `bb61b59d3d9d1591932a866dcf9bf17c49ab0a64` after all36 final-head
+checks and both first-attempt workflows39026010174/39026013053 succeeded on7f35467e. Push/PR suites:
+Linux363/363 (1342.22/1349.13s), Windows310/310 (1278.89/1322.51s), macOS302/302 (640.91/563.69s).
+Both Windows runs execute native mesh enabled1/16 dispatches and VRS enabled1/8 coarse calls in
+legacy/enhanced modes. Enhanced Barriers report graphics texture182/buffer2, compute buffer2629,
+VRS texture44 and mesh texture64/buffer40. Native CPU/pixel comparisons, artifact negatives,
+full-rate reset, shared-input workers and stale/abandoned/cancelled replay all pass. Linux/Metal
+execute real compute/indirect/full-rate fallback, explicitly mesh/VRS enabled0. Package, Vulkan
+validation, Editor display, build-contract and sanitizer checks pass. This completes child tasks
+nexora-45y.3.2/.5.1/.5.2, not full V2-GFX-2/4 or Ultimate. Broader topology/cook, aliasing,
+multiqueue, general meshlets/amplification/indirect mesh, VRS2 images and physical budgets stay open.
+
+The current hosted D3D12 query independently reports RT1.1, mesh1.0, VRS1.0, feedback1.0,
+Work Graph1.0 and SM6.8. This supports implementing compatible remaining paths; it does not
+certify their execution or admit RT1.2, SM6.9/6.10 or SER. The Node/Ray source rebase from632head
+onto its squash has an identical tested tree (`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`);
+no pending Tessellation/mesh/VRS/barrier commits are duplicated in the next PR.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

@@ -9,6 +9,7 @@
 
 
 > **V2 圖形施工擴充（2026-10-16）：** 依規範性 [V2 進階圖形能力計畫](V2_Advanced_Graphics_Capability_Plan.md)，按 V2-GFX-1 → V2-GFX-2 → V2-GFX-3／V2-GFX-4 → V2-GFX-5 施工，提供能力查詢、固定 Shader 工具鏈、fence 生命週期、native execution 與 fallback 證據。五個 gate 全部待完成，另納入 V2 最終驗收／V2-M12；既有 V2-M3 native parity 仍須完成。既有 46% 僅涵蓋原始 13 個里程碑。本次規劃更新不代表新增能力已驗收。
+> **有界圖形路徑驗收（2026-10-17）：** ✅ 原生 Tessellation、Enhanced Barriers、MeshTriangle 與 Per-draw VRS 已合併，具 Hosted 原生／後備證據，詳見聚焦圖形計畫。Node／Ray Program 驗證中；五個完整 Gate 與實機效能驗收維持開放。
 
 ---
 

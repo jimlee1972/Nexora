@@ -18,6 +18,7 @@
 **定位：Scale-Up / GPU-Driven / Large World / Networking / Production Tooling**
 
 > **V2 圖形範圍擴充（2026-10-16）：** [V2 進階圖形能力計畫](V2_Advanced_Graphics_Capability_Plan.md) 新增 V2-GFX-1～V2-GFX-5，全部為 V2 最終驗收的待完成 gate：平行命令錄製與 CPU 開銷量測、Tessellation、Enhanced Barriers、DXR 基礎至 DXR 1.2／SER、Mesh Shader、VRS、Sampler Feedback、Work Graphs、SM 6.9 與 SM 6.10 Preview。進階路徑依能力啟用並須驗證 fallback。本計畫對新增項目的規範優先於舊 scope matrix，不代表已交付功能。既有 46% 為原始 6/13 里程碑比例，未計入本次擴充。
+> **有界圖形路徑驗收（2026-10-17）：** ✅ 原生 Tessellation、Enhanced Barriers、MeshTriangle 與 Per-draw VRS 已合併，具 Hosted 原生／後備證據，詳見聚焦圖形計畫。Node／Ray Program 驗證中；五個完整 Gate 與實機效能驗收維持開放。
 
 ---
 

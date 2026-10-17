@@ -697,6 +697,25 @@ Library 仍為合法 SM6.3，但與固定 Recipe 不同，驗證預期負例邊�
 條件測試分支在警告視為錯誤下通過語法檢查。Windows 額外測試兩能力皆可用時的 Node／Ray／Node
 Program／Root 切換；原生互通及兩種進階 Program 的執行仍待 Hosted 證據，完整 Gate 維持開放。
 
+## Enhanced Barriers／Mesh／VRS Hosted 驗收（PR632）
+
+✅ 自己的 PR632 在7f35467e的36項檢查及兩個首輪工作流程39026010174／39026013053 全數成功後，
+以 `bb61b59d3d9d1591932a866dcf9bf17c49ab0a64` Squash Merge。Push／PR 分別為 Linux363/363
+（1342.22／1349.13s）、Windows310/310（1278.89／1322.51s）、macOS302/302（640.91／563.69s）。
+兩輪 Windows 皆在 Legacy／Enhanced 模式真實執行 Mesh enabled1／16次 Dispatch、VRS enabled1／
+8次 Coarse 呼叫；Enhanced Barriers 回報 Graphics Texture182／Buffer2、Compute Buffer2629、
+VRS Texture44、Mesh Texture64／Buffer40。原生 CPU／像素比對、產物負例、Full-rate 還原、共享
+輸入 Worker、過期／放棄／取消後重試皆通過。Linux／Metal 真實執行 Compute／Indirect／Full-rate
+後備，明確回報 Mesh／VRS enabled0。Package、Vulkan Validation、Editor Display、Build-contract
+及 Sanitizer 皆通過。關閉子任務 nexora-45y.3.2／.5.1／.5.2；完整 V2-GFX-2／4 及 Ultimate 仍
+待完成。更廣 Topology／Cook、Aliasing、多 Queue、通用 Meshlet／Amplification／Indirect Mesh、
+VRS2 Image 與實機預算維持開放。
+
+目前 Hosted D3D12 獨立查詢為 RT1.1、Mesh1.0、VRS1.0、Feedback1.0、Work Graph1.0、SM6.8，
+可繼續實作相容路徑，尚不代表其執行驗收或 RT1.2／SM6.9／6.10／SER。Node／Ray 來源由632head
+改接 Squash 後，受測樹完全相同（`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`）；下一個 PR 不重複
+既有 Tessellation／Mesh／VRS／Barrier 提交。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、
