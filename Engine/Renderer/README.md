@@ -507,3 +507,11 @@ Performance/memory target budgets remain null until defined and calibrated on ta
 `renderer.{vulkan,d3d12,metal}_recording_benchmark` runs a small real workload and validates the JSON,
 metric availability/order, matched identity and bounded arguments. Native execution and software
 correctness evidence do not close the full parallel/performance gate.
+
+On Vulkan, `--benchmark-reuse [samples dispatches-per-list]` runs the same paired workload with
+bounded completed command-pool reuse requested. JSON includes explicit reuse enablement, per-mode
+measured native pool creation/cache-acquisition counts and the final idle cache snapshot. The
+additional native CTest `renderer.vulkan_recording_benchmark_reuse` verifies all measured lists use
+warm retired allocations; ordinary benchmark mode verifies fresh allocations and no cache use.
+Both modes retain their own warmups, output sentinels, timing and CPU oracle. This option changes
+allocation policy only; it does not enable the full parallel feature or asynchronous submission.

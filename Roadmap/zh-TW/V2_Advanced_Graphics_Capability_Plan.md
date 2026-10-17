@@ -25,6 +25,28 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 計時、量測與有界重用整合 — 2026-10-17
+
+後續改動在 PR628 前置基礎上整合 `.2.11` 原生 Timestamp、`.2.12` 配對錄製量測與
+`.2.13` 有界 Vulkan Allocator 重用。新增 Vulkan `--benchmark-reuse` 證據，回報明確快取准入與
+各模式量測期間原生 Pool 建立／取得數，使用相同工作比較預設全新配置。
+原生報表快速檢查確認暖機後只取得快取、不建立新 Pool；一般模式保持不用快取且建立全新 Pool。
+✅ 整合 Slang Development configure/build 與 Xvfb／強制原生完整 CTest
+**213/213 通過、零略過／失敗、126.86 秒**（Showcase／Graphical Shell 關閉，Slang／Zig／原生 Vulkan 開啟）。
+六項計時／量測／重用聚焦目標 **6/6 通過、1.09 秒**；Shipping configure/build 通過
+（Monolithic／Minimal、LTO）。Khronos1.3.275 物件／同步驗證 **10/10 通過、10.32 秒**，
+確認25次 Layer 插入，Validation Error／VUID／SYNC-HAZARD 為零。格式及 Diff 檢查通過，未新增外部／模組相依。
+
+獨立21x40預設／重用執行，每模式／政策驗證3,360份輸出、21份 GPU 樣本皆可用。
+預設串行／平行 CPU 設定加錄製 median/p95 為 **0.241745/0.318109**、**0.606625/0.666376 ms**；
+重用為 **0.241805/0.306012**、**0.637702/0.778514 ms**。各模式量測期間原生 Pool 建立／取得
+由 **84/0** 變成 **0/84**，重用結束快取四份。預設 GPU 加總 median/p95 為
+**4.773421/5.834963**、**4.682682/5.984547 ms**；重用為
+**4.714421/5.534808**、**4.657415/5.955893 ms**。
+暖機／最大抽樣 RSS：預設51,847,168/51,912,704 bytes，重用51,830,784/51,892,224 bytes。
+以上軟體主機觀察不能證明 CPU 開銷改善、記憶體預算或實體效能。仍須 Hosted Windows／Metal／圖形回歸。
+本項為量測與同步重用基礎，五個完整驗收閘門皆維持未完成。
+
 ### 選用有界 Vulkan Command Allocator 重用 — 2026-10-17
 
 ✅ 預設關閉的明確 Device 選項提供固定八格原生 Command Pool／Primary Buffer 快取。

@@ -11,7 +11,9 @@ def require(condition, message):
 
 
 def main():
-    result = subprocess.run([sys.argv[1], '--benchmark', '3', '2'],
+    reuse = len(sys.argv) == 3 and sys.argv[2] == '--reuse'
+    flag = '--benchmark-reuse' if reuse else '--benchmark'
+    result = subprocess.run([sys.argv[1], flag, '3', '2'],
                             text=True, capture_output=True, timeout=110)
     sys.stdout.write(result.stdout)
     sys.stderr.write(result.stderr)
@@ -22,6 +24,17 @@ def main():
     require(len(rows) == 2, 'benchmark must report exactly two modes')
     require([r['mode'] for r in rows] == ['serial', 'parallel'], 'benchmark mode order')
     for row in rows:
+        require(row['recording_resource_reuse_enabled'] == reuse, 'reuse must be explicit')
+        require(0 <= row['cached_command_pools'] <= 8, 'bounded allocator cache')
+        if reuse:
+            require(row['backend'] == 'Vulkan' and row['command_pool_creations'] == 0 and
+                    row['command_pool_reuses'] == 12 and row['cached_command_pools'] == 4,
+                    'all measured warmed lists must use exclusively retired allocators')
+        else:
+            require(row['command_pool_reuses'] == 0 and row['cached_command_pools'] == 0,
+                    'default benchmark must not reuse allocators')
+            if row['backend'] == 'Vulkan':
+                require(row['command_pool_creations'] == 12, 'default native pool allocation count')
         require(row['schema'] == 'nexora.recording-benchmark.v1', 'unknown report schema')
         require(row['samples'] == 3 and row['warmup_pairs'] == 2, 'sample contract')
         require(row['lists_per_sample'] == 4 and row['dispatches_per_list'] == 2,
@@ -57,7 +70,7 @@ def main():
         require(rows[0][field] == rows[1][field], f'modes must share {field}')
     # Invalid CLI sizes must reject before allocating the benchmark workload.
     for args in (('0', '2'), ('102', '2'), ('3', '65'), ('3x', '2')):
-        invalid = subprocess.run([sys.argv[1], '--benchmark', *args],
+        invalid = subprocess.run([sys.argv[1], flag, *args],
                                  text=True, capture_output=True, timeout=10)
         require(invalid.returncode == 1 and 'bounded positive integers' in invalid.stderr,
                 'unbounded/invalid benchmark argument was accepted')

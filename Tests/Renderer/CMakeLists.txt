@@ -145,11 +145,12 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   add_test(NAME renderer.vulkan_recording_gpu_timing COMMAND NexoraVulkanDescriptorIsolationTests --gpu-timing)
   add_test(NAME renderer.vulkan_recording_resource_reuse COMMAND NexoraVulkanDescriptorIsolationTests --resource-reuse)
   add_test(NAME renderer.vulkan_recording_benchmark COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraVulkanDescriptorIsolationTests>")
-  set_tests_properties(renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse renderer.vulkan_recording_benchmark PROPERTIES
+  add_test(NAME renderer.vulkan_recording_benchmark_reuse COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraVulkanDescriptorIsolationTests>" --reuse)
+  set_tests_properties(renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse renderer.vulkan_recording_benchmark renderer.vulkan_recording_benchmark_reuse PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "vulkan;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraVulkanDescriptorIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse renderer.vulkan_recording_benchmark APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse renderer.vulkan_recording_benchmark renderer.vulkan_recording_benchmark_reuse APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
       "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")

@@ -31,6 +31,31 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Timing, measurement and bounded reuse integration — 2026-10-17
+
+The follow-up integrates `.2.11` native timestamps, `.2.12` matched recording measurements and
+`.2.13` bounded Vulkan allocator reuse on the PR628 prerequisites. Additional Vulkan
+`--benchmark-reuse` evidence reports explicit cache admission and measured per-mode native pool
+creation/acquisition counts, comparing the same workloads with fresh/default allocations. The
+native report smoke checks warmed cache acquisitions and no fresh allocations, while ordinary
+mode retains no cache and allocates fresh pools. ✅ Integrated Slang Development configure/build and Xvfb/native-required full CTest pass
+**213/213, zero skips/failures, 126.86 seconds** (Showcase/graphical shell off; Slang/Zig/native Vulkan
+on). Focused six timing/measurement/reuse targets **6/6 pass, 1.09 seconds**. Shipping configure/build
+passes (Monolithic/Minimal, LTO). Khronos1.3.275 object/synchronization validation **10/10 pass,
+10.32 seconds**, 25 loader-confirmed insertions, zero Validation Error/VUID/SYNC-HAZARD markers.
+Touched formatting and diff checks pass. No external/module dependency is added.
+
+Independent21x40 default/reuse runs verify3,360 outputs per mode/policy, all21 GPU samples available.
+Default serial/parallel CPU setup+record median/p95: **0.241745/0.318109** and
+**0.606625/0.666376 ms**; reuse: **0.241805/0.306012** and **0.637702/0.778514 ms**.
+Measured native pool creation/acquisition per mode changes from **84/0** to **0/84**, with four
+idle cached pools after reuse. Default GPU sum median/p95: **4.773421/5.834963** and
+**4.682682/5.984547 ms**; reuse: **4.714421/5.534808** and **4.657415/5.955893 ms**.
+Warmed/max sampled RSS: default51,847,168/51,912,704 bytes, reuse51,830,784/51,892,224 bytes.
+These software-host observations do not establish reduced CPU overhead, memory budgets or physical
+performance. Hosted Windows/Metal/graphical regressions remain required. This is measurement and
+synchronous reuse plumbing; all five full acceptance gates remain open.
+
 ### Optional bounded Vulkan command allocator reuse — 2026-10-17
 
 ✅ An explicit default-off device option admits a fixed eight-entry native command-pool/primary-buffer

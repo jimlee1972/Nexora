@@ -1641,8 +1641,9 @@ VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : de
 VulkanCommandList::~VulkanCommandList() {
   // A successful Submit sets completed_token_ only after its fence returns. Accepted but failed
   // submissions stay ineligible even if the caller later drains them. Never reset in-flight work.
-  const bool reusable = !submitted_ || (completed_token_ != 0 &&
-                                        device_.CompletedSubmissionValue() >= completed_token_);
+  const bool reusable = device_.capabilities_.recording_resource_reuse_enabled &&
+                        (!submitted_ || (completed_token_ != 0 &&
+                                         device_.CompletedSubmissionValue() >= completed_token_));
   device_.ReleaseCommandAllocation({command_pool_, command_buffer_}, reusable);
   command_pool_ = VK_NULL_HANDLE;
   command_buffer_ = VK_NULL_HANDLE;

@@ -181,6 +181,7 @@ struct BenchmarkSample {
   double setup_ms{}, record_ms{}, submit_wait_ms{};
   std::optional<double> gpu_ms;
   rhi::GpuTimingSource source{};
+  std::uint64_t pool_creations{}, pool_reuses{};
   std::optional<std::uint64_t> resident_bytes;
 };
 BenchmarkSample MeasureRecording(rhi::Device &device, rhi::PipelineHandle pipeline,
@@ -282,6 +283,9 @@ BenchmarkSample MeasureRecording(rhi::Device &device, rhi::PipelineHandle pipeli
   for (const auto &workload : workloads)
     Compare(device, workload);
   sample.resident_bytes = BenchmarkResidentBytes();
+  const auto after = device.Diagnostics();
+  sample.pool_creations = after.command_pool_creations - before.command_pool_creations;
+  sample.pool_reuses = after.command_pool_reuses - before.command_pool_reuses;
   return sample;
 }
 void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &samples,
@@ -290,7 +294,10 @@ void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &sa
   std::vector<double> setup, record, total, submit, gpu;
   auto maximum_rss = baseline;
   rhi::GpuTimingSource source{};
+  std::uint64_t pool_creations{}, pool_reuses{};
   for (const auto &sample : samples) {
+    pool_creations += sample.pool_creations;
+    pool_reuses += sample.pool_reuses;
     setup.push_back(sample.setup_ms);
     record.push_back(sample.record_ms);
     total.push_back(sample.setup_ms + sample.record_ms);
@@ -303,6 +310,7 @@ void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &sa
       maximum_rss = std::max(maximum_rss.value_or(0), *sample.resident_bytes);
   }
   const auto caps = device.Capabilities();
+  const auto diagnostics = device.Diagnostics();
 #if defined(_MSC_VER)
   constexpr auto compiler = "MSVC";
   const auto compiler_version = std::to_string(_MSC_FULL_VER);
@@ -321,6 +329,11 @@ void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &sa
             << ",\"vendor_id\":" << caps.vendor_id << ",\"device_id\":" << caps.device_id
             << ",\"driver_version\":" << caps.driver_version
             << ",\"software_device_flag\":" << (caps.software_device ? "true" : "false")
+            << ",\"recording_resource_reuse_enabled\":"
+            << (caps.recording_resource_reuse_enabled ? "true" : "false")
+            << ",\"command_pool_creations\":" << pool_creations
+            << ",\"command_pool_reuses\":" << pool_reuses
+            << ",\"cached_command_pools\":" << diagnostics.cached_command_pools
             << ",\"physical_hardware_verified\":false,\"cpu_clock\":\"steady_clock\""
             << ",\"workers\":" << (parallel ? 4 : 1) << ",\"lists_per_sample\":4"
             << ",\"dispatches_per_list\":" << per_list << ",\"samples\":" << samples.size()
