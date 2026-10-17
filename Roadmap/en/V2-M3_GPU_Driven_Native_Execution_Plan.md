@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend Execution Plan
 
-> Version: v1.0 | Status: in progress; Linux Vulkan Phase 2 and Windows/DX12 Phase 3 accepted on target hosts, Metal and full parity open | Updated: 2026-10-02 | Relates to:
+> Version: v1.0 | Status: in progress; Linux Vulkan Phase 2 and Windows/DX12 Phase 3 accepted on target hosts, Metal and full parity open | Updated: 2026-10-17 | Relates to:
 > `Cross-platform_3D_Engine_V2_Complete_Plan_v1_4.md` §V2-M3
 
 ## 1. Purpose
@@ -245,6 +245,15 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 
 ### Phase 4 -- Metal backend
 
+**2026-10-17 follow-up:** the real `GPUDriven.metal` artifact, four-slot list-local binding replay,
+shared-buffer test readback and bounded worker ownership now replace the smoke-only acceptance
+path. Slang-enabled macOS tests require full-stage CPU comparison plus 320 isolated and 48 graph
+output comparisons, forced overlap and failed-batch reuse. Linux can generate the artifact but
+cannot certify Metal execution; hosted macOS checks must pass. Full target-tier parity and native
+queue/timeline separation remain open. Evidence is retained in the paired
+[V2 graphics plan](V2_Advanced_Graphics_Capability_Plan.md#metal-full-kernel-compute-and-worker-ownership--2026-10-17).
+The older source-only implementation notes below are historical.
+
 > **Source implementation complete; macOS acceptance pending.** Metal now creates compute pipelines and shared storage buffers, binds storage slots, records `dispatchThreadgroups`, and consumes canonical 36-byte records through indirect draws. A portable source-contract test guards these entry points on Linux; no macOS execution or CPU/GPU comparison is claimed.
 >
 > **Bug fix (2026-09-27, source-reviewed, unverified on macOS):** `LoadShaderLibrary()`'s fallback
@@ -257,9 +266,8 @@ dependency or CI change. **Completed with a backend-neutral compute pipeline kin
 > and that the fallback path still behaves correctly.
 
 
-- Implement `Dispatch` and `DrawIndirect` on `MetalDevice` (currently absent entirely):
-  `dispatchThreadgroups`/`dispatchThreads` and `drawIndexedPrimitives(indirectBuffer:)`.
-- Same shader-porting and target-host-only-evidence caveat as Phase 3, this time for macOS.
+- Record native macOS execution and CPU/GPU comparison evidence for the full kernel.
+- Keep separate queue/timeline and full target-tier acceptance open until their own evidence exists.
 
 ### Phase 5 -- Target-tier parity closeout
 

@@ -107,6 +107,30 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND WIN32)
   endif()
 endif()
 
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND APPLE)
+  add_executable(NexoraMetalRecordingIsolationTests VulkanDescriptorIsolationTests.cpp)
+  target_link_libraries(NexoraMetalRecordingIsolationTests PRIVATE Nexora::Renderer)
+  target_compile_definitions(NexoraMetalRecordingIsolationTests PRIVATE NEXORA_TEST_METAL=1)
+  nexora_apply_defaults(NexoraMetalRecordingIsolationTests)
+  add_test(NAME renderer.metal_recording_isolation COMMAND NexoraMetalRecordingIsolationTests)
+  add_test(NAME renderer.metal_missing_compute_artifact
+    COMMAND NexoraMetalRecordingIsolationTests --missing-compute-artifact)
+  set_tests_properties(renderer.metal_missing_compute_artifact PROPERTIES
+    TIMEOUT 30 LABELS "metal;native-acceptance"
+    ENVIRONMENT "NEXORA_SLANG_COMPUTE_METAL_PATH=${CMAKE_CURRENT_BINARY_DIR}/missing-GPUDriven.metal")
+  set_tests_properties(renderer.metal_recording_isolation PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "metal;native-acceptance")
+  if(NEXORA_ENABLE_SLANG)
+    add_dependencies(NexoraMetalRecordingIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+    set_property(TEST renderer.metal_missing_compute_artifact APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}")
+    set_property(TEST renderer.metal_recording_isolation APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}"
+      "NEXORA_SLANG_COMPUTE_METAL_PATH=${NEXORA_SLANG_COMPUTE_METAL_OUTPUT}"
+      "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  endif()
+endif()
+
 if(NEXORA_ENABLE_SLANG)
   add_executable(NexoraShaderReflectionContractTests ShaderReflectionCrossCompileTests.cpp)
   target_link_libraries(NexoraShaderReflectionContractTests PRIVATE Nexora::RHI)
@@ -120,6 +144,7 @@ if(NEXORA_ENABLE_SLANG)
     "-DCANONICAL_REFLECTION=${NEXORA_SLANG_CANONICAL_REFLECTION}"
     "-DSPIRV_ARTIFACT=${NEXORA_SLANG_SPIRV_OUTPUT}"
     "-DMETAL_ARTIFACT=${NEXORA_SLANG_METAL_OUTPUT}"
+    "-DCOMPUTE_METAL_ARTIFACT=${NEXORA_SLANG_COMPUTE_METAL_OUTPUT}"
     "-DCOMMON_SPIRV_ARTIFACT=${NEXORA_SLANG_COMMON_SPIRV_OUTPUT}"
     "-DCOMMON_METAL_ARTIFACT=${NEXORA_SLANG_COMMON_METAL_OUTPUT}"
     "-DSHADER_LIBRARY_SPIRV_ARTIFACT=${NEXORA_SLANG_LIBRARY_SPIRV_OUTPUT}"
@@ -157,6 +182,12 @@ if(NEXORA_ENABLE_SLANG)
     if(WIN32)
       set_property(TEST renderer.v2_gpu_driven APPEND PROPERTY ENVIRONMENT
         "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}"
+        "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+    endif()
+    if(APPLE)
+      set_property(TEST renderer.v2_gpu_driven APPEND PROPERTY ENVIRONMENT
+        "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}"
+        "NEXORA_SLANG_COMPUTE_METAL_PATH=${NEXORA_SLANG_COMPUTE_METAL_OUTPUT}"
         "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
     endif()
     # VulkanDevice's constructor requires NEXORA_SLANG_SPIRV_PATH (it loads the

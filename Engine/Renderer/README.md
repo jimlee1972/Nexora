@@ -207,7 +207,7 @@ RenderGraph tracks a logical owner queue for every resource. A use on a differen
 queue emits an ownership barrier even when the resource state is unchanged, and statistics expose
 those transfers separately from ordinary state transitions. The graph retains transient ownership
 until all submitted work is idle, then releases the resources; imported resources remain
-caller-owned. Vulkan's native gate is defined to execute the full frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation kernel through a RenderGraph compute pass, require an exact CPU/GPU result comparison, transfer ownership to a graphics pass, and issue native indirect drawing. Its four storage slots represent packed scene/view/Hi-Z input, compacted instances, indirect arguments, and statistics. The acceptance test waits for completion, reconstructs the backend result through the explicitly test-only readback seam, and requires an exact `CompareGPUDrivenResults()` match; normal recording performs no readback. The local Windows/DX12 gate now also passes this comparison through the same four-slot shader contract; native queue/timeline separation, Metal execution, and full target-host parity remain open gates. None of those open gates is inferred from Linux Vulkan coverage.
+caller-owned. Vulkan's native gate is defined to execute the full frustum/distance/LOD/Hi-Z/compaction/classification/indirect-generation kernel through a RenderGraph compute pass, require an exact CPU/GPU result comparison, transfer ownership to a graphics pass, and issue native indirect drawing. Its four storage slots represent packed scene/view/Hi-Z input, compacted instances, indirect arguments, and statistics. The acceptance test waits for completion, reconstructs the backend result through the explicitly test-only readback seam, and requires an exact `CompareGPUDrivenResults()` match; normal recording performs no readback. The local Windows/DX12 gate now also passes this comparison through the same four-slot shader contract; Metal is now wired to the same full kernel and CPU oracle; native queue/timeline separation and full target-host parity remain open gates. None of those open gates is inferred from Linux Vulkan coverage.
 
 ## Native-owner RenderGraph execution
 
@@ -301,8 +301,8 @@ mutate or destroy device resources, submit/wait/read back, mutate the graph, or 
 pool's lifecycle. CPU effects of successful siblings in a failed batch cannot be rolled back.
 
 Parallel admission additionally requires the device's limited `independent_compute_recording`
-contract. Validation, supported Vulkan compute devices and isolated D3D12 buffer recording admit it;
-Metal and custom devices default to serial fallback. The full `ParallelCommandRecording` feature stays
+contract. Validation, supported Vulkan compute devices and isolated D3D12/Metal buffer recording admit it;
+custom devices default to serial fallback. The full `ParallelCommandRecording` feature stays
 disabled/unimplemented. This admission is neither a general graphics-recording guarantee nor a
 shader requirement, SDK tier or performance claim.
 
@@ -354,3 +354,13 @@ recording; upload, accepted submission or nonempty readback invalidates previous
 that mention those buffers. Re-record rejected lists before retrying. Graph batch disjointness and
 completion between dependent batches satisfy this restriction without a shared preparation state.
 See the [RHI snapshot contract](../RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice).
+
+`renderer.metal_recording_isolation` runs the same 320 dispatch and 48 graph CPU comparisons on
+macOS using `NEXORA_SLANG_COMPUTE_METAL_PATH`. Slang-enabled native builds require the real
+GPU-driven artifact and run the full culling/LOD/Hi-Z/compaction/classification/indirect comparison;
+the old no-op compute smoke cannot satisfy that gate. Metal lists cache bindings before encoder
+creation and replay them when a buffer barrier ends the encoder and the pipeline is rebound.
+Worker compute entry points manage autorelease pools while ARC retains list-owned native objects.
+The test-only shared-buffer readback waits for queue completion; production passes never read back.
+This remains the disjoint buffer-only contract, with no graphics/texture concurrency or asynchronous
+reuse. See [Metal ownership](../RHI/README.md#metal-gpu-driven-compute-and-worker-ownership-v2-gfx-1-slice).

@@ -75,3 +75,14 @@ Native PBR vertex/shadow entries call shared `NexoraEvaluateVegetationWind`, and
 fragments use `NexoraEvaluateVegetationAlpha` with the same texture and cutoff. Thin-leaf back lighting
 uses `NexoraEvaluateVegetationTransmission` in linear HDR. Adapter code binds the shared 240-byte
 packet and base texture; it maintains no backend-specific wind/cutout/transmission math.
+
+## GPU-driven Metal artifact
+
+`GPUDriven.slang` now cross-compiles to `GPUDriven.metal` alongside SPIR-V and Windows DXIL when
+`NEXORA_ENABLE_SLANG=ON`. It uses the same four canonical storage slots: input 0, visible instances
+1, indirect commands 2 and statistics 3, with the shared 36-byte indirect-command ABI. It is a
+separate single-thread compute kernel, preserving the triangle graphics artifact and baseline.
+`build.shader_crosscompile` requires the nonempty compute Metal artifact on every host; native
+macOS tests additionally compile and execute it. Set `NEXORA_SLANG_COMPUTE_METAL_PATH` to request
+this artifact at device construction. Missing/invalid requested artifacts fail without falling back
+to the embedded compute smoke. Linux generation does not certify Metal execution or performance.

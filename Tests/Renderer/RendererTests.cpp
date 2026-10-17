@@ -44,7 +44,8 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
   const auto compute =
       capabilities.features[static_cast<std::size_t>(rhi::GraphicsFeature::Compute)];
   Require(capabilities.independent_compute_recording ==
-              ((backend == rhi::Backend::Vulkan || backend == rhi::Backend::Direct3D12) &&
+              ((backend == rhi::Backend::Vulkan || backend == rhi::Backend::Direct3D12 ||
+                backend == rhi::Backend::Metal) &&
                compute.enabled && compute.implemented),
           "native backend advertised an unvalidated independent compute recording path");
   std::cout << "Native capabilities backend=" << static_cast<unsigned>(backend)
