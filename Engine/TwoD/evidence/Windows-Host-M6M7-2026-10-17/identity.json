@@ -1,0 +1,9 @@
+{
+  "source_base": "f347b90773470783a58a9eb28d3fc8c6633f27ba",
+  "source_state": "base plus this PR implementation; earlier manual package and final rebuilt package have separately retained inventories",
+  "manual_package_immutable": true,
+  "final_shipping": {
+    "NexoraTwoDPlayer.exe": "a21d7986547f53c3528f291fc27cdd65c739c26b8a900369149d2b9fb5283515",
+    "NexoraTwoDBenchmark.exe": "8b6a75eb101b4a56590a63d4e1a28c2cf9a00eaea659ed1507cd80297cd42fa6"
+  }
+}

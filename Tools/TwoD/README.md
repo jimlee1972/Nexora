@@ -61,6 +61,11 @@ assets keep full resolution. Surface texture slots are reused through the existi
 
 ## Mixed stress and standalone Shipping
 
+Native `NexoraTwoDBenchmark` accepts `--backend auto|dx12|vulkan|metal`, matching the standalone
+Player. Explicit requests require `--native` and fail if unavailable; no backend fallback is
+accepted. The CSV's appended `backend_requested` column records the request (`none` for CPU-only
+runs); existing device IDs/name and GPU timing identify the observed device independently.
+
 ```bash
 build/linux-development/Tools/TwoD/NexoraTwoDBenchmark --native --atlas work/atlas.nxcook --clip work/clip.nxcook --frames 48 --report work/stress.csv
 cmake --preset linux-shipping
@@ -95,7 +100,7 @@ desktop presentation; a human also confirms actual keyboard movement/Escape. It 
 VC++ Runtime prerequisite. Separate Monolithic Development Studio also has human four-tab/text/preview and Save/Open evidence,
 independent read-only file checks and a repaired close-button path verified to exit 0. These are
 supporting authoring checks. Full M7 remains PARTIAL / NOT ACCEPTED; controller, audible device audio,
-integrated product/UI/text/save/shutdown and display/DPI stay open. Windows Vulkan is unavailable.
+integrated product/UI/text/save/shutdown and display/DPI stay open in that VM slice. Vulkan is unavailable there.
 Software VM timing is not physical M6 acceptance. See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).
 

@@ -1,12 +1,13 @@
 # Nexora 2D Engine Roadmap
 
-> Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-16
+> Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-17
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
 > have portable/Linux functional evidence. M6 local DX12 screening exceeded its budgets; physical minimum-PC acceptance remains open.
 > M7 clean Windows runtime/Shipping remains **PARTIAL / NOT ACCEPTED**. The rebuilt current-main VM
 > package passes CPU, native software DX12, Zig instancing and human keyboard movement; full device/product
-> integration and Vulkan remain open. This is not full Windows PC product acceptance.
+> integration remains open. The current physical developer PC adds hardware DX12/Vulkan UI smokes,
+> human keyboard/Chinese UI/audio and 100/150/175% DPI evidence; clean-host/full-device gates remain open.
 
 ## 1. Scope and baseline
 
@@ -34,7 +35,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
 | 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | Rebuilt VM CPU/software DX12/Zig and human keyboard slice passed with existing Runtime; full product/device gates and Vulkan open; M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
@@ -425,3 +426,24 @@ for preservation checks, historical RAM-state limits and frozen binary identity.
 cold boot confirms 16 old save hashes, both snapshot UUIDs/current selection and older snapshot RAM
 unchanged, followed by normal poweroff. Full M6/M7 and
 **9/11 (82%), P0 6/8** remain unchanged.
+
+## Physical Windows developer-host M6/M7 slice (2026-10-17)
+
+✅ Current Shipping Player renders the independent public-C-ABI Chinese host fixture on GTX 960
+with explicit DX12 and Vulkan selection. The human confirms audible probe, looped Music/SFX,
+three bus gains, pause/resume/stop, external speaker reconnect, keyboard/rebinding, SAVE/OPEN,
+focus/minimize/resize and readable Chinese at 100/150/175%. Three manual DX12 lifetimes exit
+normally; the repeat records 87 wheel events and four UI cancels. Position and rebind state persist
+across independent DX12/Vulkan processes. Raw host counters and human observations are retained
+separately in the [acceptance record](../../Engine/TwoD/evidence/Windows-Host-M6M7-2026-10-17/acceptance.md).
+
+PS4 USB HID is present but no XInput slot is connected; its physical gate remains open. The
+standard display menu stops at 175%, so 200% and multi-monitor tests are NOT RUN. Speaker cable
+recovery caused no waveOut failure/reopen and does not prove USB endpoint-loss/default-switch
+recovery. The UI-only fixture is separate from the sprite stress workload and a production game.
+Clean host, minimum-PC/integrated-load/soak, Editor lifecycle and full device gates remain open;
+**M6/M7 NOT ACCEPTED, 9/11 (82%), P0 6/8** remain unchanged.
+
+✅ The real Zig cooked-service fixture additionally passes two 120-frame native processes per backend: 34 visible sprites, one cooked reload, 96,000 audio frames, save/resume and balanced teardown each. Automated fixture movement and audio submission do not add human controller/audibility acceptance.
+
+Current-PC screening completes all six 600-frame cases on both hardware backends, but all 12 rows exceed the predeclared p95/p99/max budgets. 10k mixed frame p95: DX12 31.97 ms, Vulkan 30.99 ms; 10k sparse: 40.33/49.06 ms. External process peak working set is 90.9/148.0 MB; no allocator/VRAM or minimum-PC claim. Functional gates pass independently of this unaccepted M6 performance result.
