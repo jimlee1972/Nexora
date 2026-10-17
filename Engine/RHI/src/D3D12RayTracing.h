@@ -20,7 +20,7 @@ inline void CheckRay(HRESULT result, const char *operation) {
 inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool upload,
                                         D3D12_RESOURCE_STATES state) {
   if (!size || size > RayAllocationLimit)
-    throw std::invalid_argument("ray allocation exceeds bounded size");
+    throw std::invalid_argument("ray allocation exceeds bounded size: " + std::to_string(size));
   D3D12_HEAP_PROPERTIES heap{};
   heap.Type = upload ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT;
   heap.CreationNodeMask = heap.VisibleNodeMask = 1;
@@ -39,6 +39,23 @@ inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool 
            "Create ray buffer");
   return result;
 }
+inline void ValidateRayPrebuild(const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &size,
+                                const char *operation) {
+  if (!size.ResultDataMaxSizeInBytes || size.ResultDataMaxSizeInBytes > RayAllocationLimit ||
+      size.ScratchDataSizeInBytes > RayAllocationLimit)
+    throw std::runtime_error(std::string(operation) + " prebuild exceeds bounded size: result=" +
+                             std::to_string(size.ResultDataMaxSizeInBytes) +
+                             " scratch=" + std::to_string(size.ScratchDataSizeInBytes));
+}
+inline ComPtr<ID3D12Resource> RayScratchBuffer(ID3D12Device &device, UINT64 size) {
+  // Software implementations may build without scratch storage. Keep result allocations nonzero.
+  if (!size)
+    return {};
+  return RayBuffer(device, size, false, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+}
+inline D3D12_GPU_VIRTUAL_ADDRESS RayScratchAddress(const ComPtr<ID3D12Resource> &scratch) {
+  return scratch ? scratch->GetGPUVirtualAddress() : 0;
+}
 inline void UploadRayBytes(ID3D12Resource &resource, std::span<const std::byte> bytes) {
   void *mapped{};
   const D3D12_RANGE read{0, 0};
@@ -48,18 +65,33 @@ inline void UploadRayBytes(ID3D12Resource &resource, std::span<const std::byte> 
   resource.Unmap(0, &written);
 }
 struct NativeRayScene final {
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  // Declared first: linked OMM storage outlives the BLAS/TLAS that reference it.
+  ComPtr<ID3D12Resource> opacity_input, opacity_descriptors, opacity_indices, opacity_array;
+#endif
   ComPtr<ID3D12Resource> vertices, instances, bottom, top;
+  bool opacity_micromaps{};
 };
 struct PendingRayScene final {
   NativeRayScene scene;
   ComPtr<ID3D12Resource> bottom_scratch, top_scratch;
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  ComPtr<ID3D12Resource> opacity_scratch;
+#endif
   ComPtr<ID3D12CommandAllocator> allocator;
   ComPtr<ID3D12GraphicsCommandList4> commands;
 };
 inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
-                                           std::span<const RayTriangle> triangles) {
+                                           std::span<const RayTriangle> triangles,
+                                           std::span<const std::uint8_t> opacity_masks = {}) {
   if (!IsRaySceneValid(triangles))
     throw std::invalid_argument("ray scene requires one to eight finite nondegenerate triangles");
+  if (!opacity_masks.empty() && !IsRayOpacitySceneValid(triangles, opacity_masks))
+    throw std::invalid_argument("invalid bounded opacity masks");
+#if !NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  if (!opacity_masks.empty())
+    throw std::invalid_argument("opacity micromaps were not compiled in");
+#endif
   PendingRayScene result;
   result.scene.vertices =
       RayBuffer(device, triangles.size_bytes(), true, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -72,6 +104,58 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   geometry.Triangles.VertexCount = static_cast<UINT>(triangles.size() * 3);
   geometry.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
   geometry.Triangles.IndexFormat = DXGI_FORMAT_UNKNOWN;
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  const auto triangle_description = geometry.Triangles;
+  D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC linkage{};
+  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS opacity{};
+  D3D12_RAYTRACING_OPACITY_MICROMAP_HISTOGRAM_ENTRY histogram{};
+  D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_DESC opacity_description{};
+  if (!opacity_masks.empty()) {
+    result.scene.opacity_micromaps = true;
+    std::array<std::uint32_t, 32> input{}; // The API requires a128-byte aligned base.
+    std::array<D3D12_RAYTRACING_OPACITY_MICROMAP_DESC, RayMaximumTriangles> descriptors{};
+    std::array<std::uint32_t, RayMaximumTriangles> indices{};
+    for (std::size_t i = 0; i < opacity_masks.size(); ++i) {
+      input[i] = opacity_masks[i];
+      descriptors[i] = {static_cast<UINT>(i * sizeof(std::uint32_t)), 1,
+                        D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_2_STATE};
+      indices[i] = static_cast<UINT>(i);
+    }
+    result.scene.opacity_input =
+        RayBuffer(device, sizeof(input), true, D3D12_RESOURCE_STATE_GENERIC_READ);
+    result.scene.opacity_descriptors =
+        RayBuffer(device, sizeof(descriptors), true, D3D12_RESOURCE_STATE_GENERIC_READ);
+    result.scene.opacity_indices =
+        RayBuffer(device, sizeof(indices), true, D3D12_RESOURCE_STATE_GENERIC_READ);
+    UploadRayBytes(*result.scene.opacity_input.Get(), std::as_bytes(std::span{input}));
+    UploadRayBytes(*result.scene.opacity_descriptors.Get(), std::as_bytes(std::span{descriptors}));
+    UploadRayBytes(*result.scene.opacity_indices.Get(), std::as_bytes(std::span{indices}));
+    histogram = {static_cast<UINT>(opacity_masks.size()), 1,
+                 D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_2_STATE};
+    opacity_description = {1,
+                           &histogram,
+                           result.scene.opacity_input->GetGPUVirtualAddress(),
+                           {result.scene.opacity_descriptors->GetGPUVirtualAddress(),
+                            sizeof(D3D12_RAYTRACING_OPACITY_MICROMAP_DESC)}};
+    opacity.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_OPACITY_MICROMAP_ARRAY;
+    opacity.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+    opacity.NumDescs = 1;
+    opacity.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    opacity.pOpacityMicromapArrayDesc = &opacity_description;
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO size{};
+    device.GetRaytracingAccelerationStructurePrebuildInfo(&opacity, &size);
+    ValidateRayPrebuild(size, "OMM");
+    result.scene.opacity_array = RayBuffer(device, size.ResultDataMaxSizeInBytes, false,
+                                           D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+    result.opacity_scratch = RayScratchBuffer(device, size.ScratchDataSizeInBytes);
+    linkage = {{result.scene.opacity_indices->GetGPUVirtualAddress(), sizeof(std::uint32_t)},
+               DXGI_FORMAT_R32_UINT,
+               0,
+               result.scene.opacity_array->GetGPUVirtualAddress()};
+    geometry.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES;
+    geometry.OmmTriangles = {&triangle_description, &linkage};
+  }
+#endif
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottom{};
   bottom.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
   bottom.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
@@ -80,10 +164,10 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   bottom.pGeometryDescs = &geometry;
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottom_size{};
   device.GetRaytracingAccelerationStructurePrebuildInfo(&bottom, &bottom_size);
+  ValidateRayPrebuild(bottom_size, "BLAS");
   result.scene.bottom = RayBuffer(device, bottom_size.ResultDataMaxSizeInBytes, false,
                                   D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-  result.bottom_scratch = RayBuffer(device, bottom_size.ScratchDataSizeInBytes, false,
-                                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  result.bottom_scratch = RayScratchBuffer(device, bottom_size.ScratchDataSizeInBytes);
   D3D12_RAYTRACING_INSTANCE_DESC instance{};
   instance.Transform[0][0] = instance.Transform[1][1] = instance.Transform[2][2] = 1;
   instance.InstanceMask = 0xff;
@@ -99,26 +183,38 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   top.InstanceDescs = result.scene.instances->GetGPUVirtualAddress();
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_size{};
   device.GetRaytracingAccelerationStructurePrebuildInfo(&top, &top_size);
+  ValidateRayPrebuild(top_size, "TLAS");
   result.scene.top = RayBuffer(device, top_size.ResultDataMaxSizeInBytes, false,
                                D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-  result.top_scratch = RayBuffer(device, top_size.ScratchDataSizeInBytes, false,
-                                 D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  result.top_scratch = RayScratchBuffer(device, top_size.ScratchDataSizeInBytes);
   CheckRay(device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                          IID_PPV_ARGS(&result.allocator)),
            "Create ray build allocator");
   CheckRay(device.CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, result.allocator.Get(),
                                     nullptr, IID_PPV_ARGS(&result.commands)),
            "Create ray build list");
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  if (result.scene.opacity_micromaps) {
+    const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC build{
+        result.scene.opacity_array->GetGPUVirtualAddress(), opacity, 0,
+        RayScratchAddress(result.opacity_scratch)};
+    result.commands->BuildRaytracingAccelerationStructure(&build, 0, nullptr);
+    D3D12_RESOURCE_BARRIER dependency{};
+    dependency.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    dependency.UAV.pResource = result.scene.opacity_array.Get();
+    result.commands->ResourceBarrier(1, &dependency);
+  }
+#endif
   const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottom_build{
       result.scene.bottom->GetGPUVirtualAddress(), bottom, 0,
-      result.bottom_scratch->GetGPUVirtualAddress()};
+      RayScratchAddress(result.bottom_scratch)};
   result.commands->BuildRaytracingAccelerationStructure(&bottom_build, 0, nullptr);
   D3D12_RESOURCE_BARRIER barrier{};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
   barrier.UAV.pResource = result.scene.bottom.Get();
   result.commands->ResourceBarrier(1, &barrier);
   const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC top_build{
-      result.scene.top->GetGPUVirtualAddress(), top, 0, result.top_scratch->GetGPUVirtualAddress()};
+      result.scene.top->GetGPUVirtualAddress(), top, 0, RayScratchAddress(result.top_scratch)};
   result.commands->BuildRaytracingAccelerationStructure(&top_build, 0, nullptr);
   barrier.UAV.pResource = result.scene.top.Get();
   result.commands->ResourceBarrier(1, &barrier);
@@ -171,12 +267,18 @@ inline NativeRayProgram CreateNativeRayProgram(ID3D12Device5 &device, RayTracing
   const D3D12_RAYTRACING_SHADER_CONFIG shader{sizeof(RayHit), 2 * sizeof(float)};
   const D3D12_GLOBAL_ROOT_SIGNATURE signature{result.root.Get()};
   const D3D12_RAYTRACING_PIPELINE_CONFIG pipeline{1};
-  const D3D12_STATE_SUBOBJECT objects[]{
+  D3D12_STATE_SUBOBJECT objects[]{
       {D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY, &library},
       {D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP, &group},
       {D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG, &shader},
       {D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE, &signature},
       {D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG, &pipeline}};
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  const D3D12_RAYTRACING_PIPELINE_CONFIG1 opacity_pipeline{
+      1, D3D12_RAYTRACING_PIPELINE_FLAG_ALLOW_OPACITY_MICROMAPS};
+  if (mode == RayTracingMode::ReorderedOpacityPipeline)
+    objects[4] = {D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG1, &opacity_pipeline};
+#endif
   const D3D12_STATE_OBJECT_DESC description{D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE,
                                             static_cast<UINT>(std::size(objects)), objects};
   CheckRay(device.CreateStateObject(&description, IID_PPV_ARGS(&result.state)),

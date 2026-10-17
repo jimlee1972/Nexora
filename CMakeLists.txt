@@ -11,6 +11,8 @@ option(NEXORA_BUILD_SHOWCASE "Build the V1 visual showcase (requires Zig gamepla
 option(NEXORA_BUILD_PROJECT_PLAYER "Build the Runtime-only static project package verifier" OFF)
 option(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE "Enable native StaticView rendering in ProjectPlayer" OFF)
 option(NEXORA_ENABLE_SLANG "Compile and validate the canonical Slang shader" OFF)
+option(NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS "Build bounded native DXR1.2 two-state opacity micromap arrays" OFF)
+option(NEXORA_ENABLE_D3D12_SER "Build the opt-in pinned SM6.9 HitObject/SER ray recipe" OFF)
 option(NEXORA_ENABLE_D3D12_PREVIEW "Build isolated opt-in Agility 721 / Shader Model 6.10 preview support" OFF)
 option(NEXORA_ENABLE_D3D12_WORK_GRAPHS "Build optional SDK DXC Work Graph artifacts and native D3D12 execution" OFF)
 option(NEXORA_ENABLE_MIMALLOC "Fetch mimalloc and use it as the TrackingAllocator backend" OFF)

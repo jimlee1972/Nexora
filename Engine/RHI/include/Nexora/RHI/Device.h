@@ -4,6 +4,7 @@
 #include "Nexora/RHI/GpuTiming.h"
 #include "Nexora/RHI/IndirectCommand.h"
 #include "Nexora/RHI/RayTracing.h"
+#include "Nexora/RHI/ShadingRateImage.h"
 #include "Nexora/RHI/Types.h"
 
 #include <cstddef>
@@ -35,6 +36,8 @@ struct DeviceDiagnostics final {
   SubmissionGpuTiming gpu_timing{};
   std::uint64_t ray_dispatch_calls{};
   std::uint64_t inline_ray_dispatch_calls{};
+  std::uint64_t ser_ray_dispatch_calls{};
+  std::uint64_t opacity_ray_dispatch_calls{};
   std::uint64_t command_pool_creations{};
   std::uint64_t command_pool_reuses{};
   std::uint64_t cached_command_pools{};
@@ -45,6 +48,7 @@ struct DeviceDiagnostics final {
   std::uint64_t enhanced_texture_barriers{};
 
   std::uint64_t coarse_shading_draw_calls{};
+  std::uint64_t shading_rate_image_draw_calls{};
   std::uint64_t mesh_dispatch_calls{};
   std::uint64_t work_graph_dispatch_calls{};
 };
@@ -74,6 +78,9 @@ public:
   }
   virtual void BindIndirectBuffer(BufferHandle, std::uint64_t = 0, std::uint32_t = 0) {
     throw std::logic_error("indirect-buffer binding is unsupported");
+  }
+  virtual void BindShadingRateImage(ShadingRateImageHandle) {
+    throw std::logic_error("shading-rate images are unsupported");
   }
   virtual void SetScissor(const ScissorRect &) {
     throw std::logic_error("scissor rectangles are unsupported");
@@ -115,6 +122,13 @@ public:
     capabilities.backend = GetBackend();
     return capabilities;
   }
+  [[nodiscard]] virtual ShadingRateImageHandle
+  CreateShadingRateImage(const ShadingRateImageDescriptor &, std::span<const std::uint8_t>) {
+    throw std::logic_error("shading-rate image creation is unsupported");
+  }
+  virtual void DestroyShadingRateImage(ShadingRateImageHandle) {
+    throw std::logic_error("shading-rate image destruction is unsupported");
+  }
   [[nodiscard]] virtual TextureHandle CreateTexture(const TextureDescriptor &descriptor) = 0;
   virtual void WriteTextureRgba8(TextureHandle, std::span<const std::byte>, std::uint32_t) {
     throw std::logic_error("texture uploads are unsupported");
@@ -149,6 +163,10 @@ public:
   }
   [[nodiscard]] virtual RaySceneHandle CreateRayScene(std::span<const RayTriangle>) {
     throw std::logic_error("ray tracing scenes are unsupported");
+  }
+  [[nodiscard]] virtual RaySceneHandle CreateOpacityMicromapScene(std::span<const RayTriangle>,
+                                                                  std::span<const std::uint8_t>) {
+    throw std::logic_error("opacity micromap scenes are unsupported");
   }
   virtual void DestroyRayScene(RaySceneHandle) {
     throw std::logic_error("ray tracing scenes are unsupported");

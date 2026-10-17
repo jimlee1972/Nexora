@@ -494,3 +494,73 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraModernShaderTests>"
     ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_MODERN_LONG_VECTOR_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLongVector.dxil;NEXORA_MODERN_LINEAR_ALGEBRA_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLinearAlgebra.dxil;NEXORA_MODERN_GROUP_SHARED_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernGroupShared.dxil")
 endif()
+
+if(NEXORA_ENABLE_D3D12_SER)
+  add_executable(NexoraSerRayTests RayTracingTests.cpp)
+  target_link_libraries(NexoraSerRayTests PRIVATE Nexora::Renderer)
+  target_compile_definitions(NexoraSerRayTests PRIVATE NEXORA_TEST_SER_NATIVE=1 _CRT_SECURE_NO_WARNINGS)
+  if(NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS)
+    target_compile_definitions(NexoraSerRayTests PRIVATE NEXORA_TEST_OPACITY_NATIVE=1)
+  endif()
+  nexora_apply_defaults(NexoraSerRayTests)
+  set_target_properties(NexoraSerRayTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  add_dependencies(NexoraSerRayTests NexoraSerShaderArtifacts)
+  add_custom_command(TARGET NexoraSerRayTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraSerRayTests> "$<TARGET_FILE_DIR:NexoraSerRayTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraSerRayTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraSerRayTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.ser_rays_preview COMMAND NexoraSerRayTests)
+  add_test(NAME renderer.ser_rays_preview_enhanced COMMAND NexoraSerRayTests --enhanced-barriers)
+  set_tests_properties(renderer.ser_rays_preview renderer.ser_rays_preview_enhanced PROPERTIES TIMEOUT 180
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraSerRayTests>"
+    ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_REQUIRE_NATIVE_BACKENDS=1;NEXORA_SER_RAY_LIBRARY_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/SER/ReorderedRays.dxil;NEXORA_SER_RAY_NEGATIVE_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/SER/ReorderedRaysWrongIdentity.dxil;NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH=${NEXORA_SLANG_RAY_LIBRARY_OUTPUT};NEXORA_SLANG_RAY_QUERY_DXIL_PATH=${NEXORA_SLANG_RAY_QUERY_OUTPUT};NEXORA_SLANG_RAY_NEGATIVE_DXIL_PATH=${NEXORA_SLANG_RAY_NEGATIVE_OUTPUT};NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH=${NEXORA_SLANG_RAY_REFERENCE_DXIL_OUTPUT}")
+  if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
+    add_dependencies(NexoraSerRayTests ${NEXORA_WORK_GRAPH_ARTIFACT_TARGET})
+    set_property(TEST renderer.ser_rays_preview renderer.ser_rays_preview_enhanced APPEND PROPERTY ENVIRONMENT
+      "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
+  endif()
+endif()
+
+add_executable(NexoraShadingRateImageTests ShadingRateImageTests.cpp)
+target_link_libraries(NexoraShadingRateImageTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraShadingRateImageTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraShadingRateImageTests)
+add_test(NAME renderer.shading_rate_image COMMAND NexoraShadingRateImageTests)
+set_tests_properties(renderer.shading_rate_image PROPERTIES TIMEOUT 180)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraShadingRateImageTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.shading_rate_image APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()
+if(NEXORA_ENABLE_D3D12_PREVIEW)
+  set(witness_output "${PROJECT_BINARY_DIR}/Shaders/VRS")
+  add_custom_command(OUTPUT "${witness_output}/Witness.vertex.dxil" "${witness_output}/Witness.fragment.dxil"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${witness_output}"
+    COMMAND "${NEXORA_D3D12_PREVIEW_ROOT}/dxc/bin/x64/dxc.exe" -T vs_6_4 -E vertexMain -HV 2021 -WX
+      -Fo "${witness_output}/Witness.vertex.dxil" "${PROJECT_SOURCE_DIR}/Shaders/ShadingRateWitness.hlsl"
+    COMMAND "${NEXORA_D3D12_PREVIEW_ROOT}/dxc/bin/x64/dxc.exe" -T ps_6_4 -E fragmentMain -HV 2021 -WX
+      -Fo "${witness_output}/Witness.fragment.dxil" "${PROJECT_SOURCE_DIR}/Shaders/ShadingRateWitness.hlsl"
+    DEPENDS "${PROJECT_SOURCE_DIR}/Shaders/ShadingRateWitness.hlsl" VERBATIM)
+  add_custom_target(NexoraShadingRateWitnessArtifacts DEPENDS
+    "${witness_output}/Witness.vertex.dxil" "${witness_output}/Witness.fragment.dxil")
+  add_executable(NexoraShadingRateImagePreviewTests ShadingRateImageTests.cpp)
+  target_link_libraries(NexoraShadingRateImagePreviewTests PRIVATE Nexora::Renderer)
+  target_compile_definitions(NexoraShadingRateImagePreviewTests PRIVATE NEXORA_TEST_VRS_IMAGE_PREVIEW=1 _CRT_SECURE_NO_WARNINGS)
+  nexora_apply_defaults(NexoraShadingRateImagePreviewTests)
+  set_target_properties(NexoraShadingRateImagePreviewTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  add_dependencies(NexoraShadingRateImagePreviewTests NexoraShadingRateWitnessArtifacts)
+  add_custom_command(TARGET NexoraShadingRateImagePreviewTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraShadingRateImagePreviewTests> "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.shading_rate_image_preview COMMAND NexoraShadingRateImagePreviewTests)
+  add_test(NAME renderer.shading_rate_image_preview_enhanced COMMAND NexoraShadingRateImagePreviewTests --enhanced-barriers)
+  set_tests_properties(renderer.shading_rate_image_preview renderer.shading_rate_image_preview_enhanced PROPERTIES TIMEOUT 180
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>"
+    ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_REQUIRE_NATIVE_BACKENDS=1;NEXORA_VRS_WITNESS_VERTEX_PATH=${witness_output}/Witness.vertex.dxil;NEXORA_VRS_WITNESS_FRAGMENT_PATH=${witness_output}/Witness.fragment.dxil")
+endif()

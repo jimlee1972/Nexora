@@ -626,6 +626,17 @@ jobs:
       - name: Stage verified preview SDK, software adapter and compiler
         shell: pwsh
         run: python Tools/Build/PrepareD3D12Preview.py --destination "$env:RUNNER_TEMP/nexora-preview"
+      - name: Install pinned Slang for ordinary rays and lower-profile reference
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "slang-ser.zip"
+          $installRoot = Join-Path $env:RUNNER_TEMP "slang-ser"
+          curl.exe --fail --location --retry 3 --output $archive "https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-windows-x86_64.zip"
+          Expand-Archive -LiteralPath $archive -DestinationPath $installRoot -Force
+          $slangc = Get-ChildItem -LiteralPath $installRoot -Filter slangc.exe -File -Recurse | Select-Object -First 1
+          if ($null -eq $slangc) { throw "pinned Slang compiler is missing" }
+          Add-Content -Path $env:GITHUB_PATH -Value $slangc.DirectoryName
+          & $slangc.FullName -v
       - name: Enable experimental shaders on the disposable test host
         shell: pwsh
         run: |
@@ -633,9 +644,9 @@ jobs:
           New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -PropertyType DWord -Value 1 -Force | Out-Null
       - name: Configure isolated opt-in runtime
         shell: pwsh
-        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
-      - run: cmake --build --preset windows-development --target NexoraModernShaderTests
-      - run: ctest --preset windows-development -V -R '^renderer\.modern_shaders_preview$' --output-log build/windows-development/modern-shaders-preview.log
+        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON -DNEXORA_ENABLE_D3D12_SER=ON -DNEXORA_ENABLE_D3D12_OPACITY_MICROMAPS=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_D3D12_WORK_GRAPHS=ON "-DNEXORA_DXC_EXECUTABLE=$env:RUNNER_TEMP/nexora-preview/dxc/bin/x64/dxc.exe" "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
+      - run: cmake --build --preset windows-development --target NexoraModernShaderTests NexoraSerRayTests NexoraShadingRateImagePreviewTests
+      - run: ctest --preset windows-development -V -R '^renderer\.(modern_shaders_preview|ser_rays_preview(_enhanced)?|shading_rate_image_preview(_enhanced)?)$' --output-log build/windows-development/modern-shaders-preview.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -643,3 +654,4 @@ jobs:
           path: |
             build/windows-development/modern-shaders-preview.log
             build/windows-development/Shaders/Modern/ModernShaders.manifest.json
+            build/windows-development/Shaders/SER/ReorderedRays.manifest.json

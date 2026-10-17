@@ -7149,3 +7149,9 @@ V1 Plugin / Third-party SDK / Video & Media 詳細 Contract、V1 Master Definiti
 閱讀順序建議：施工或審閱本文件前，先確認上述 V1 文件版本是否為最新；本文件（V2）只描述新增與變更的部分，未在本文件提及的既有系統一律以 V1 文件為準。
 
 新型 Compute 後續：獨立啟用的 Agility／WARP／DXC Preview Runtime 與三種有界 SM6.9／6.10 程式實作中，Windows 原生執行待驗證。詳見[進階圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
+
+有界 SER 後續加入真實 SM6.9 HitObject／Reorder／Invoke 與獨立 OPTIONS22 實際重排回報，Windows 原生證據待驗證。WARP 不證明執行緒重排。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 DXR／SER Gate 保持開放。
+
+DXR1.2 後續加入獨立啟用的二狀態 Subdivision1 OMM Array／BLAS／TLAS 建置及明確允許 OMM 的 Traversal；全部16遮罩對照 CPU 與真實顯式微幾何 Compute，Windows 原生證據待驗證。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
+
+VRS Tier2 後續加入有界不可變 Rate Image、Snapshot／Reset／Generation 准入與硬體 SV_ShadingRate Witness；Windows Preview 原生證據待驗證，保留明確 Full-rate 後備。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Ultimate Gate 維持開放。
