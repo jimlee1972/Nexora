@@ -1037,7 +1037,7 @@ public:
     Require(ray_program_pool_.Destroy(program), "destroying stale ray program generation");
   }
 #endif
-#if NEXORA_D3D12_SAMPLER_FEEDBACK
+#if NEXORA_D3D12_SAMPLER_FEEDBACK && NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
   SamplerFeedbackProgramHandle
   CreateSamplerFeedbackProgram(const SamplerFeedbackProgramDescriptor &descriptor) override {
     RequireGraphicsCapabilities(Capabilities(), EffectiveSamplerFeedbackRequirements(descriptor));
