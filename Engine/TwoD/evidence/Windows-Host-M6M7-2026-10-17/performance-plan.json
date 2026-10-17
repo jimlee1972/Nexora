@@ -1,0 +1,35 @@
+{
+  "source_base": "f347b90773470783a58a9eb28d3fc8c6633f27ba",
+  "source_state": "base plus this PR patch; binaries hashed separately",
+  "purpose": "current developer-PC screening, not a declared minimum-PC/product acceptance",
+  "backends": [
+    "dx12",
+    "vulkan"
+  ],
+  "frames_per_case": 600,
+  "warmup_frames": 4,
+  "viewport": [
+    640,
+    480
+  ],
+  "present_mode": "VSync",
+  "cases": [
+    "100 mixed",
+    "1000 mixed",
+    "5000 mixed",
+    "10000 mixed",
+    "1000 overlap",
+    "10000 sparse"
+  ],
+  "predeclared_frame_budget_ms": {
+    "p95": 16.67,
+    "p99": 16.67,
+    "maximum": 33.34
+  },
+  "ui_vfx_product_load": "NOT RUN: benchmark synthetic sprites/query/animation/recycle; independent host UI fixture is separate",
+  "run_conditions": "no Nexora build or other Nexora native fixture running during timed tests; other desktop applications remain open",
+  "rss": "external GetProcessMemoryInfo peak working set for whole benchmark process; built-in Windows CSV RSS zero means unavailable, not zero bytes",
+  "vram": "NOT MEASURED",
+  "failure_policy": "retain over-budget results; do not change budgets after measurement",
+  "declared_at_utc": "2026-10-17T14:11:45.312083+00:00"
+}

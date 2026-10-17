@@ -11,13 +11,22 @@ NexoraTwoDPlayer --run-2d-project /path/to/game.nx2game --frames 60
 ```
 
 The first command presents until native window close. `--frames N` explicitly selects a bounded
-headless run (1..100000); add `--native` for actual bounded presentation. `--report FILE` retains
+headless run (1..100000); add `--native` for actual bounded presentation. Headless runs do not
+poll system gamepads; native runs retain physical gamepad input. `--report FILE` retains
 JSON observations. Invalid/missing content and callback failures exit nonzero without a success
 report. The native-enabled `NexoraProjectPlayer` accepts the same `--run-2d-project` command when
 2D is enabled; its verification-only build retains the existing minimal dependency boundary.
 Windows uses `wmain` and UTF-16 native paths; the command boundary converts to UTF-8. Package roots,
 module source directories, descriptor titles and save directories can contain Unicode. Generated
 relative package filenames use ASCII to preserve the existing VFS contract on Windows.
+
+Native runs accept `--backend auto|dx12|vulkan|metal`; `auto` retains the platform default.
+An explicit backend requires native presentation (including the default unbounded project mode),
+and an unavailable requested backend fails with its surface error instead of falling back.
+Vulkan must be enabled in the build. `surface_backend_requested` records the request, not a
+claim that `auto` selected a particular API. Reports also retain available native device IDs,
+DPI scale range, focus/key/mouse/wheel event counts and unfocused movement frames. These are
+observations, not an automatic physical-input, appearance or audibility acceptance.
 
 ## Export a game
 
@@ -118,6 +127,9 @@ startup if unavailable. Optional output reports failure and retries once per sec
 pump closes the output and retries with bounded timing, preserving registered assets/voice state
 and discarding device backlog. This is host recovery, not an audio-thread/device-notification API.
 Successful submission does not establish that a person heard the sound.
+Reports include `audio_open_attempts`, `audio_open_successes` and `audio_pump_failures`
+to distinguish initial output, failed pumps and reopening during a device test. These counters
+do not establish audibility or automatic default-device migration.
 
 Default storage is `%LOCALAPPDATA%/Nexora/Games/game-<id>/saves` on Windows and
 `$XDG_DATA_HOME/Nexora/Games/game-<id>/saves` (or `$HOME/.local/share/...`) on Linux.

@@ -1,0 +1,13 @@
+{
+  "audio_probe_repeat": "User: 有，清楚聽到",
+  "first_manual": "User: 都正常 for Chinese/punctuation/digits; D/A movement; D/F rebind; SAVE/move/OPEN; held movement Alt-Tab/minimize/restore/resize",
+  "audio_controls": "User: 都正常 for looped music/SFX; Master/Music/SFX 100/25/0%; pause/resume/stop",
+  "speaker": "User: 外接喇叭; reconnect normal and 是，自動恢復 without controls. Connection type/endpoint identity not supplied; no device-loss/reopen inference.",
+  "dpi": "User initially said normal for 150/200; later clarified monitor menu maximum is 175%. Actual 150 and 175 supported by host trace; 200 NOT RUN. User confirms 175 normal and restored 100.",
+  "resume": "User before close: Position -0.846 saved -0.017 key D; next process loaded position -0.846032 rebound=0; Stop auto-saves latest position.",
+  "controller": "User: PS4, USB. OS detects Wireless Controller HID; XInput slots0..3 disconnected. No remapping installed/configured by agent. Physical XInput NOT RUN.",
+  "second_round_input": "User normal but raw key/mouse/wheel/cancel counters zero; not accepted from this session; third round requested.",
+  "scope": "Human text reports supplement unmodified generic JSON; no screenshot pixels captured, because computer-use runtime initialization fails with helper_unknown_error: setup refresh had errors.",
+  "third_round_input": "User: 已操作，但滾輪好像沒捲動; fixture has no scrolling content. After explanation, user closed window. Raw host: 87 wheel events, 16 key presses, 9 mouse presses; module: 4 UI cancels, 4 bus changes; exit0. This accepts wheel delivery and UI cancel, not a scroll widget.",
+  "third_round_rebind_restore": "Third manual process toggled to F (rebound1); subsequent native Vulkan and DX12 restarts both load position -0.846032 rebound1."
+}

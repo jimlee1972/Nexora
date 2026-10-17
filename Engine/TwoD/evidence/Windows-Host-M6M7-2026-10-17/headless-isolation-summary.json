@@ -1,0 +1,14 @@
+{
+  "dx12": {
+    "exit_code": 0,
+    "native_frames": 3,
+    "allocations_balanced": true
+  },
+  "vulkan": {
+    "exit_code": 0,
+    "native_frames": 3,
+    "allocations_balanced": true
+  },
+  "player_sha256": "dd9b5932b6e35faf6f06d47eda65d138d0a7d3422337fb4e56940cfa074c1b62",
+  "scope": "Headless isolation follow-up: fresh Shipping storage/corruption checks plus native DX12/Vulkan smoke; no repeated human/device acceptance."
+}

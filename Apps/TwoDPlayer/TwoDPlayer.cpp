@@ -12,6 +12,7 @@
 #include "Nexora/TwoD/GameplayUi.h"
 #include "Project.h"
 #include "TwoDValidation.h"
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <chrono>
@@ -171,6 +172,8 @@ NexoraGameplayHostV3 Host(Context &c) {
 int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3Fn builtin) {
   try {
     bool native{}, interactive{}, requireMovement{}, audioOutput{}, framesSpecified{};
+    unsigned audioOpenAttempts{}, audioOpenSuccesses{}, audioPumpFailures{};
+    auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
     unsigned frames = 60;
     std::set<std::string_view> options;
     std::string report, library, saveDirectory, validationPackage, projectFile;
@@ -182,7 +185,19 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         native = true;
       else if (arg == "--audio")
         audioOutput = true;
-      else if (arg == "--interactive") {
+      else if (arg == "--backend" && i + 1 < argc) {
+        const std::string_view value(argv[++i]);
+        if (value == "auto")
+          backend = Nexora::Presentation::SurfaceBackend::Automatic;
+        else if (value == "dx12")
+          backend = Nexora::Presentation::SurfaceBackend::Dx12;
+        else if (value == "vulkan")
+          backend = Nexora::Presentation::SurfaceBackend::Vulkan;
+        else if (value == "metal")
+          backend = Nexora::Presentation::SurfaceBackend::Metal;
+        else
+          throw std::runtime_error("backend must be auto, dx12, vulkan or metal");
+      } else if (arg == "--interactive") {
         native = interactive = true;
       } else if (arg == "--require-movement")
         requireMovement = true;
@@ -226,6 +241,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         frames = 0;
       }
     }
+    Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
+          "explicit backend requires native presentation");
     Check(builtin || project.has_value(), "standalone player requires --project MANIFEST");
     Check(frames || interactive, "zero frames requires interactive mode");
     core::Engine engine;
@@ -405,7 +422,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     const bool audioRequired = audioOutput || (project && project->audio == "required");
     if (wantsAudio) {
       std::string reason;
+      ++audioOpenAttempts;
       const bool opened = audio.OpenDefaultOutput(reason);
+      if (opened)
+        ++audioOpenSuccesses;
       if (audioRequired)
         Check(opened, reason.c_str());
       else if (!opened)
@@ -452,13 +472,18 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       d.title = project ? std::string_view(project->title) : std::string_view("Nexora Zig 2D");
       d.width = 640;
       d.height = 480;
+      d.backend = backend;
       surface = Nexora::Presentation::CreateRenderSurface(d);
-      Check(bool(surface), "native 2D surface");
+      if (!surface)
+        throw std::runtime_error("native 2D surface: " + surface.reason);
     }
     std::array<bool, static_cast<std::size_t>(Nexora::Window::Key::F12) + 1> keys{};
     unsigned rendered{}, movementFrames{}, uiFrames{}, assetReloads{};
     std::uint64_t submittedAudioFrames{};
     unsigned uiSaves{}, uiOpens{};
+    unsigned focusLost{}, focusGained{}, keyPresses{}, mousePresses{}, wheelEvents{};
+    unsigned unfocusedMovementFrames{};
+    float initialDpi{}, minimumDpi{}, maximumDpi{};
     std::size_t visible{};
     twod::FixedStepper step;
     auto lastTime = std::chrono::steady_clock::now();
@@ -468,15 +493,27 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     twod::GameplayUiInput uiInput;
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
       Check(input.BeginFrame(), "input frame");
-      (void)gamepads.Poll(input);
+      if (native)
+        (void)gamepads.Poll(input);
       uiInput.pointer_pressed = uiInput.pointer_released = false;
       if (native) {
         const auto status = surface.surface->BeginFrame();
         if (surface.surface->CloseRequested())
           break;
+        const auto dpi = surface.surface->FrameInfo().dpiScale;
+        if (dpi > 0) {
+          if (initialDpi == 0)
+            initialDpi = minimumDpi = maximumDpi = dpi;
+          minimumDpi = std::min(minimumDpi, dpi);
+          maximumDpi = std::max(maximumDpi, dpi);
+        }
         for (const auto &event : surface.surface->Events()) {
           if (event.type == Nexora::Window::WindowEventType::FocusChanged) {
             focused = event.value0 != 0;
+            if (focused)
+              ++focusGained;
+            else
+              ++focusLost;
             Check(input.SetFocused(focused), "input focus");
             uiInput.focused = focused;
             if (!focused) {
@@ -490,12 +527,16 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
             uiInput.pointer_y = static_cast<float>(event.value1);
             Check(input.SubmitPointer(0, uiInput.pointer_x, uiInput.pointer_y), "pointer input");
           }
-          if (event.type == Nexora::Window::WindowEventType::Wheel)
+          if (event.type == Nexora::Window::WindowEventType::Wheel) {
+            ++wheelEvents;
             Check(input.SubmitPointer(0, uiInput.pointer_x, uiInput.pointer_y, event.value0,
                                       event.value1),
                   "wheel input");
+          }
           if (event.type == Nexora::Window::WindowEventType::PointerButton && focused &&
               event.value0 >= 0 && event.value0 < 5) {
+            if (event.value1)
+              ++mousePresses;
             Check(input.Submit(0, NEXORA_INPUT_DEVICE_MOUSE, 0, static_cast<uint32_t>(event.value0),
                                event.value1 ? 1.F : 0.F),
                   "mouse input");
@@ -508,6 +549,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
           if (event.type == Nexora::Window::WindowEventType::Key && event.value0 >= 0 &&
               static_cast<std::size_t>(event.value0) < keys.size())
             if (focused) {
+              if (event.value1)
+                ++keyPresses;
               keys[static_cast<std::size_t>(event.value0)] = event.value1 != 0;
               Check(input.Submit(0, NEXORA_INPUT_DEVICE_KEYBOARD, 0,
                                  static_cast<uint32_t>(event.value0), event.value1 ? 1.F : 0.F),
@@ -543,6 +586,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       };
       context.input.move_x = interactive || project ? actionState(250).value : 1.0;
       context.input.move_y = interactive || project ? actionState(251).value : 0.0;
+      if (!focused && (context.input.move_x || context.input.move_y))
+        ++unfocusedMovementFrames;
       context.input.buttons = actionState(252).held ? 1U : 0U;
       if (context.input.move_x || context.input.move_y)
         ++movementFrames;
@@ -639,7 +684,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       }
       if (project && wantsAudio && !audioOutput && now >= nextAudioAttempt) {
         std::string reason;
+        ++audioOpenAttempts;
         audioOutput = audio.OpenDefaultOutput(reason);
+        if (audioOutput)
+          ++audioOpenSuccesses;
         nextAudioAttempt = now + std::chrono::seconds(1);
         audioFrames = 0;
       }
@@ -648,6 +696,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         while (audioFrames >= 1) {
           const auto count = static_cast<uint32_t>(std::min(audioFrames, 4096.0));
           if (!audio.Pump(count)) {
+            ++audioPumpFailures;
             Check(project.has_value(), "audio output");
             audio.CloseOutput();
             audioOutput = false;
@@ -712,6 +761,20 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         ",\"native_ui_draws\":" + std::to_string(gpu.nativeUiDrawCalls) +
         ",\"native_ui_texture_uploads\":" + std::to_string(gpu.nativeUiTextureUploads) +
         ",\"resize_generations\":" + std::to_string(gpu.resizeGenerations) +
+        ",\"surface_backend_requested\":\"" +
+        std::string(native ? Nexora::Presentation::ToString(backend) : "none") + "\"" +
+        ",\"render_device_ids_available\":" + (gpu.device.deviceIdsAvailable ? "true" : "false") +
+        ",\"render_vendor_id\":" + std::to_string(gpu.device.vendorId) +
+        ",\"render_device_id\":" + std::to_string(gpu.device.deviceId) +
+        ",\"initial_dpi_scale\":" + std::to_string(initialDpi) +
+        ",\"minimum_dpi_scale\":" + std::to_string(minimumDpi) +
+        ",\"maximum_dpi_scale\":" + std::to_string(maximumDpi) +
+        ",\"focus_lost_events\":" + std::to_string(focusLost) +
+        ",\"focus_gained_events\":" + std::to_string(focusGained) +
+        ",\"key_press_events\":" + std::to_string(keyPresses) +
+        ",\"mouse_press_events\":" + std::to_string(mousePresses) +
+        ",\"wheel_events\":" + std::to_string(wheelEvents) +
+        ",\"unfocused_movement_frames\":" + std::to_string(unfocusedMovementFrames) +
         ",\"sprite_instanced_draws\":" + std::to_string(gpu.spriteInstancedDrawCalls) +
         ",\"sprite_gpu_instances\":" + std::to_string(gpu.spriteGpuInstances) +
         ",\"sprite_instance_upload_bytes\":" + std::to_string(gpu.spriteInstanceUploadBytes) +
@@ -724,6 +787,9 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         ",\"ui_opens\":" + std::to_string(uiOpens) +
         ",\"cooked_reloads\":" + std::to_string(assetReloads) +
         ",\"audio_submitted_frames\":" + std::to_string(submittedAudioFrames) +
+        ",\"audio_open_attempts\":" + std::to_string(audioOpenAttempts) +
+        ",\"audio_open_successes\":" + std::to_string(audioOpenSuccesses) +
+        ",\"audio_pump_failures\":" + std::to_string(audioPumpFailures) +
         ",\"save_reopened\":" + (saveReopened ? "true" : "false") +
         ",\"audible_acceptance\":\"NOT VERIFIED\"" +
         ",\"allocations_balanced\":true,\"physical_windows\":\"NOT RUN\"}\n";

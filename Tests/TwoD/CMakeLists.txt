@@ -134,6 +134,16 @@ endif()
 
 if(TARGET NexoraTwoDPlayer AND (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
   add_library(NexoraTwoDProjectFixture SHARED ProjectModule.cpp)
+  add_library(NexoraTwoDHostFixture SHARED HostModule.cpp)
+  target_include_directories(NexoraTwoDHostFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
+  nexora_apply_defaults(NexoraTwoDHostFixture)
+  if(MSVC)
+    target_compile_options(NexoraTwoDHostFixture PRIVATE /utf-8)
+  endif()
+  add_test(NAME twod.host_fixture COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/HostAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --module "$<TARGET_FILE:NexoraTwoDHostFixture>")
+  set_tests_properties(twod.host_fixture PROPERTIES TIMEOUT 90 LABELS "twod;host;storage;ui")
   # This independent gameplay module consumes only the public C ABI. Linking Foundation
   # retains an unnecessary engine DSO under sanitizers and breaks its relocated source copy.
   target_include_directories(NexoraTwoDProjectFixture PRIVATE "${PROJECT_SOURCE_DIR}/Engine/API/include")
@@ -147,6 +157,12 @@ if(WIN32)
   add_test(NAME twod.windows_font_bake COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/FontBakeAcceptance.py")
   set_tests_properties(twod.windows_font_bake PROPERTIES TIMEOUT 60 LABELS "twod;font;windows")
+endif()
+if(TARGET NexoraTwoDPlayer AND TARGET NexoraTwoDBenchmark)
+  add_test(NAME twod.backend_options COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/BackendAcceptance.py" --app "$<TARGET_FILE:NexoraTwoDPlayer>"
+    --benchmark "$<TARGET_FILE:NexoraTwoDBenchmark>")
+  set_tests_properties(twod.backend_options PROPERTIES TIMEOUT 60 LABELS "twod;presentation;cli")
 endif()
 if(TARGET NexoraTwoDPlayerHost)
   add_executable(NexoraTwoDProjectManifestTests ProjectManifestTests.cpp)

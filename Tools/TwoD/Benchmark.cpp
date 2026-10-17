@@ -73,7 +73,8 @@ runtime::RuntimeBlob LoadCooked(const std::filesystem::path &path) {
 
 void Measure(std::ostream &report, std::size_t count, bool overlap, bool native, unsigned frames,
              const std::optional<twod::Atlas> &sourceAtlas,
-             const std::optional<twod::Clip> &sourceClip, bool sparse = false) {
+             const std::optional<twod::Clip> &sourceClip, bool sparse,
+             Nexora::Presentation::SurfaceBackend backend) {
   const auto loading = Clock::now();
   twod::Image image{1, 8, 8, twod::Bytes(256, std::byte{255})};
   auto atlas = twod::PackAtlas({9, 17}, std::span(&image, 1), 32, 32, true);
@@ -102,8 +103,10 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
     d.width = 640;
     d.height = 480;
     d.enableGpuTiming = true;
+    d.backend = backend;
     surface = Nexora::Presentation::CreateRenderSurface(d);
-    Check(bool(surface), "native stress surface");
+    if (!surface)
+      throw std::runtime_error("native stress surface: " + surface.reason);
   }
   const auto device =
       native ? surface.surface->Diagnostics().device : Nexora::Presentation::SurfaceDeviceInfo{};
@@ -217,19 +220,33 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
          << Percentile(whole, 0.99) << ',' << *std::max_element(whole.begin(), whole.end()) << ','
          << std::quoted(std::string(device.name.data()), '"', '"') << ',' << device.vendorId << ','
          << device.deviceId << ',' << device.driverVersion << ','
-         << static_cast<unsigned>(device.driverVersionFormat) << '\n';
+         << static_cast<unsigned>(device.driverVersionFormat) << ','
+         << (native ? Nexora::Presentation::ToString(backend) : "none") << '\n';
 }
 } // namespace
 int main(int argc, char **argv) {
   try {
     std::string reportPath, atlasPath, clipPath;
     bool native = false;
+    auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
     unsigned frames = 48;
     for (int i = 1; i < argc; ++i) {
       std::string_view a = argv[i];
       if (a == "--native")
         native = true;
-      else if (a == "--atlas" && i + 1 < argc)
+      else if (a == "--backend" && i + 1 < argc) {
+        const std::string_view value(argv[++i]);
+        if (value == "auto")
+          backend = Nexora::Presentation::SurfaceBackend::Automatic;
+        else if (value == "dx12")
+          backend = Nexora::Presentation::SurfaceBackend::Dx12;
+        else if (value == "vulkan")
+          backend = Nexora::Presentation::SurfaceBackend::Vulkan;
+        else if (value == "metal")
+          backend = Nexora::Presentation::SurfaceBackend::Metal;
+        else
+          throw std::runtime_error("backend must be auto, dx12, vulkan or metal");
+      } else if (a == "--atlas" && i + 1 < argc)
         atlasPath = argv[++i];
       else if (a == "--clip" && i + 1 < argc)
         clipPath = argv[++i];
@@ -242,8 +259,11 @@ int main(int argc, char **argv) {
               "frames 4..600 required");
       } else
         throw std::runtime_error(
-            "usage: NexoraTwoDBenchmark [--native --frames 48] --report FILE.csv");
+            "usage: NexoraTwoDBenchmark [--native --backend auto|dx12|vulkan|metal --frames 48] "
+            "--report FILE.csv");
     }
+    Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
+          "explicit backend requires native presentation");
     Check(!reportPath.empty(), "report required");
     std::optional<twod::Atlas> loadedAtlas;
     std::optional<twod::Clip> loadedClip;
@@ -280,11 +300,12 @@ int main(int argc, char **argv) {
               "p99_ms,cpu_max_"
               "ms,frame_p95_ms,gpu_samples,gpu_p95_ms,peak_process_rss_bytes,visible,culled,sprite_"
               "batches,covered_aabb_ratio,query_hits,frame_average_ms,frame_p99_ms,frame_max_ms,"
-              "device_name,vendor_id,device_id,driver_version,driver_version_format\n";
+              "device_name,vendor_id,device_id,driver_version,driver_version_format,backend_"
+              "requested\n";
     for (auto count : {100U, 1000U, 5000U, 10000U})
-      Measure(report, count, false, native, frames, loadedAtlas, loadedClip);
-    Measure(report, 1000, true, native, frames, loadedAtlas, loadedClip);
-    Measure(report, 10000, false, native, frames, loadedAtlas, loadedClip, true);
+      Measure(report, count, false, native, frames, loadedAtlas, loadedClip, false, backend);
+    Measure(report, 1000, true, native, frames, loadedAtlas, loadedClip, false, backend);
+    Measure(report, 10000, false, native, frames, loadedAtlas, loadedClip, true, backend);
     Check(bool(report), "report write");
     std::cout << "Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: "
                  "NOT RUN.\n";

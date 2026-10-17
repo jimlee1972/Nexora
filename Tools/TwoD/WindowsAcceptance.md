@@ -82,6 +82,30 @@ snapshot，區分「本輪未再發生」與「已證明永久排除根因」。
 
 ## Windows 實體驗收清單
 
+### 可重複的主機服務 fixture
+
+`Tests/TwoD/HostModule.cpp` 是只使用公開 C ABI 的獨立測試模組，提供中文 UI、D/A 移動、
+D/F 重綁、SAVE/OPEN、Master/Music/SFX 音量及兩個循環 WAV。它沒有正式遊戲規則或 Sprite
+負載，不能取代整合產品或 M6 效能驗收。`twod.host_fixture` 只驗證 headless 存檔／重啟／
+損壞資料保留，使用的合成字型不能用來驗收外觀。
+
+實機操作須先編譯這個模組、用 `BakeWindowsFont.ps1` 為其語料烘焙真實字型，再以 fresh
+目錄匯出；`HostAcceptance.py --stage-only` 強制要求真實字型。MSVC developer shell 範例：
+
+```powershell
+python Tests/TwoD/HostAcceptance.py --app <Shipping-Player.exe> --module <HostModule.dll> `
+  --shipping --redist <matching-x64-CRT-directory> --real-font <baked-corpus.nxfont> `
+  --output <fresh-fixture-directory> --stage-only
+<fresh-fixture-directory>/package/NexoraTwoDPlayer.exe `
+  --run-2d-project <fresh-fixture-directory>/package/game.nx2game --backend dx12 `
+  --save-directory <dedicated-test-save-directory> --report <fresh-report.json>
+```
+
+`--backend vulkan` 可驗證已啟用 Vulkan 的相同 Shipping build；明確後端不可用時會失敗。
+使用右上角 X 正常結束，Escape 保留為 UI 取消。保留 host JSON 及 stderr 的 `host_fixture`
+操作計數，再加上人工確認；幀數、按鍵計數或音訊成功提交各自不能代替顯示／操作／聽音驗收。
+PS4／PS5 原生 HID 連線不能視為 XInput；沒有實際 XInput 來源時，保留該項未驗收。
+
 | 實機項目 | 操作與通過條件 | 要保留的證據 |
 | --- | --- | --- |
 | 鍵鼠／重綁 | 測試所有遊戲動作、滑鼠按鍵與滾輪；重綁後舊鍵不再觸發，新鍵與 UI 操作一致。若遊戲提供設定保存，重啟後確認保留。 | 按鍵／動作表、重綁前後結果 |

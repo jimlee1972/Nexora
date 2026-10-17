@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "files": {
+    "assets/0000.nxfont": "87d90e96cd4cf897052f3a3f9f71296348815c4a3305c857b7f3ebc2033bc2cf",
+    "assets/0001.wav": "71e8483fe8585aa24e1efbc53afddd7be4f29384f0f03c196ece34c22552fc92",
+    "assets/0002.wav": "a6470172a3715f33a721feae1b95462f5e3714e5a3f83c83a0c79771b6b9ea13",
+    "game.nx2game": "883c652ac5329270de7fecf39caf0a3e6f4e1b89e6b97176e299f9758766230c",
+    "gameplay.dll": "77841fccf381c68ffb7bac5a4f65c3308e685f2a567ec1fe01686a5dbd79e0c8",
+    "MSVCP140.dll": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+    "NexoraTwoDPlayer.exe": "a21d7986547f53c3528f291fc27cdd65c739c26b8a900369149d2b9fb5283515",
+    "Run.cmd": "8060190f08b823f1211a4635139039913e137a4173d4692b7b7235094d85b3d1",
+    "VCRUNTIME140.dll": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "VCRUNTIME140_1.dll": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+  },
+  "development_test_copy": false
+}
