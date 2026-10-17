@@ -908,7 +908,7 @@ public:
     Require(work_graph_pool_.Destroy(graph), "destroying stale Work Graph program");
   }
 #endif
-#if NEXORA_D3D12_RAY_TRACING
+#if NEXORA_D3D12_RAY_TRACING && NEXORA_HAS_PINNED_RAY_ARTIFACTS
   RaySceneHandle CreateRayScene(std::span<const RayTriangle> triangles) override {
     RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
     if (!IsRaySceneValid(triangles))
