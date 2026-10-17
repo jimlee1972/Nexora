@@ -920,3 +920,8 @@ pinned compiler. This does not raise ordinary Slang/SDK profiles. Tier2 native e
 caller-memory independence, reset, bounds and lifetime proof remain pending Windows CI. Mutable
 GPU-authored images, additional rates, primitive controls and full physical/Ultimate gates remain
 open. Stable C ABI and cooked wire formats are unchanged; C++ modules rebuild together.
+
+Ray build preflight requires a nonzero result within the64MiB bound and bounds scratch separately.
+A zero scratch requirement retains no scratch resource and passes a null scratch GPU address;
+positive scratch retains the existing creation-fence lifetime. Zero result sizes remain errors with
+operation/result/scratch diagnostics. Native preview acceptance must confirm these build paths.

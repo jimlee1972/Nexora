@@ -937,3 +937,7 @@ DXR1.2／SER 與 Tier2 Image 已整合為 Profile Runtime 父版本上的同一�
 MSVC 原生驗收發現 VRS witness 的有號／無號比較及 byte fill 窄化問題。明確使用無號比較運算元與 uint8_t fill 值，保留全部像素與呼叫端資料變更斷言；警告即錯誤仍維持啟用。Windows 原生 SER／OMM／VRS2 驗收仍須通過。
 
 MSVC 型別修正後，本機完整 Development220/220 通過，零跳過／失敗（128.17s）；Windows 條件 witness 語法檢查（警告即錯誤）、雙語文件／workflow16/16 與 cleanup27/27 亦通過。Windows 原生執行仍為最終 head 必須通過的 CI gate。
+
+15178ebd 的 Windows 工作117420601029／117420450398 以 MSVC 警告即錯誤編譯通過，並通過兩種原生 VRS2 模式：tile8、imageDraws14，五種 witness 圖樣均 covered512／exact512。現代運算亦通過。兩個 SER／OMM 測試均在輸出 ray mode 前觸發有界配置拒絕，故不宣稱原生 SER／OMM 成功。後續允許零 scratch 需求（傳入空 scratch 位址），結果配置仍必須大於零，全部配置仍限制64MiB；各操作 prebuild 結果／scratch 診斷於原生配置前拒絕無效尺寸。仍須由原生 CI 釐清原失敗是零 scratch 或無效 prebuild 輸出。
+
+光追 prebuild／scratch 後續通過本機完整 Development220/220，零失敗／跳過（122.52s）、Shipping Minimal/Monolithic/LTO 與真正 Agility721 全部進階 helper 語法檢查（警告即錯誤）。雙語文件／workflow16/16 與 cleanup27/27 通過。仍須通過原生 SER／OMM 執行驗證。

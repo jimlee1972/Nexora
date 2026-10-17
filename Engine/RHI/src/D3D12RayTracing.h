@@ -20,7 +20,7 @@ inline void CheckRay(HRESULT result, const char *operation) {
 inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool upload,
                                         D3D12_RESOURCE_STATES state) {
   if (!size || size > RayAllocationLimit)
-    throw std::invalid_argument("ray allocation exceeds bounded size");
+    throw std::invalid_argument("ray allocation exceeds bounded size: " + std::to_string(size));
   D3D12_HEAP_PROPERTIES heap{};
   heap.Type = upload ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT;
   heap.CreationNodeMask = heap.VisibleNodeMask = 1;
@@ -38,6 +38,23 @@ inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool 
                                           IID_PPV_ARGS(&result)),
            "Create ray buffer");
   return result;
+}
+inline void ValidateRayPrebuild(const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &size,
+                                const char *operation) {
+  if (!size.ResultDataMaxSizeInBytes || size.ResultDataMaxSizeInBytes > RayAllocationLimit ||
+      size.ScratchDataSizeInBytes > RayAllocationLimit)
+    throw std::runtime_error(std::string(operation) + " prebuild exceeds bounded size: result=" +
+                             std::to_string(size.ResultDataMaxSizeInBytes) +
+                             " scratch=" + std::to_string(size.ScratchDataSizeInBytes));
+}
+inline ComPtr<ID3D12Resource> RayScratchBuffer(ID3D12Device &device, UINT64 size) {
+  // Software implementations may build without scratch storage. Keep result allocations nonzero.
+  if (!size)
+    return {};
+  return RayBuffer(device, size, false, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+}
+inline D3D12_GPU_VIRTUAL_ADDRESS RayScratchAddress(const ComPtr<ID3D12Resource> &scratch) {
+  return scratch ? scratch->GetGPUVirtualAddress() : 0;
 }
 inline void UploadRayBytes(ID3D12Resource &resource, std::span<const std::byte> bytes) {
   void *mapped{};
@@ -127,10 +144,10 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
     opacity.pOpacityMicromapArrayDesc = &opacity_description;
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO size{};
     device.GetRaytracingAccelerationStructurePrebuildInfo(&opacity, &size);
+    ValidateRayPrebuild(size, "OMM");
     result.scene.opacity_array = RayBuffer(device, size.ResultDataMaxSizeInBytes, false,
                                            D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-    result.opacity_scratch = RayBuffer(device, size.ScratchDataSizeInBytes, false,
-                                       D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    result.opacity_scratch = RayScratchBuffer(device, size.ScratchDataSizeInBytes);
     linkage = {{result.scene.opacity_indices->GetGPUVirtualAddress(), sizeof(std::uint32_t)},
                DXGI_FORMAT_R32_UINT,
                0,
@@ -147,10 +164,10 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   bottom.pGeometryDescs = &geometry;
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottom_size{};
   device.GetRaytracingAccelerationStructurePrebuildInfo(&bottom, &bottom_size);
+  ValidateRayPrebuild(bottom_size, "BLAS");
   result.scene.bottom = RayBuffer(device, bottom_size.ResultDataMaxSizeInBytes, false,
                                   D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-  result.bottom_scratch = RayBuffer(device, bottom_size.ScratchDataSizeInBytes, false,
-                                    D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  result.bottom_scratch = RayScratchBuffer(device, bottom_size.ScratchDataSizeInBytes);
   D3D12_RAYTRACING_INSTANCE_DESC instance{};
   instance.Transform[0][0] = instance.Transform[1][1] = instance.Transform[2][2] = 1;
   instance.InstanceMask = 0xff;
@@ -166,10 +183,10 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   top.InstanceDescs = result.scene.instances->GetGPUVirtualAddress();
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_size{};
   device.GetRaytracingAccelerationStructurePrebuildInfo(&top, &top_size);
+  ValidateRayPrebuild(top_size, "TLAS");
   result.scene.top = RayBuffer(device, top_size.ResultDataMaxSizeInBytes, false,
                                D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-  result.top_scratch = RayBuffer(device, top_size.ScratchDataSizeInBytes, false,
-                                 D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  result.top_scratch = RayScratchBuffer(device, top_size.ScratchDataSizeInBytes);
   CheckRay(device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                          IID_PPV_ARGS(&result.allocator)),
            "Create ray build allocator");
@@ -180,7 +197,7 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   if (result.scene.opacity_micromaps) {
     const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC build{
         result.scene.opacity_array->GetGPUVirtualAddress(), opacity, 0,
-        result.opacity_scratch->GetGPUVirtualAddress()};
+        RayScratchAddress(result.opacity_scratch)};
     result.commands->BuildRaytracingAccelerationStructure(&build, 0, nullptr);
     D3D12_RESOURCE_BARRIER dependency{};
     dependency.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
@@ -190,14 +207,14 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
 #endif
   const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottom_build{
       result.scene.bottom->GetGPUVirtualAddress(), bottom, 0,
-      result.bottom_scratch->GetGPUVirtualAddress()};
+      RayScratchAddress(result.bottom_scratch)};
   result.commands->BuildRaytracingAccelerationStructure(&bottom_build, 0, nullptr);
   D3D12_RESOURCE_BARRIER barrier{};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
   barrier.UAV.pResource = result.scene.bottom.Get();
   result.commands->ResourceBarrier(1, &barrier);
   const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC top_build{
-      result.scene.top->GetGPUVirtualAddress(), top, 0, result.top_scratch->GetGPUVirtualAddress()};
+      result.scene.top->GetGPUVirtualAddress(), top, 0, RayScratchAddress(result.top_scratch)};
   result.commands->BuildRaytracingAccelerationStructure(&top_build, 0, nullptr);
   barrier.UAV.pResource = result.scene.top.Get();
   result.commands->ResourceBarrier(1, &barrier);
