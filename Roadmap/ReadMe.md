@@ -82,6 +82,12 @@ workers are wired into required macOS native gates; Linux Slang regression and S
 必要 macOS 原生 Gate；Linux Slang 回歸與 Shipping 通過。完整 V2-M3／圖形 Gate 及效能驗收
 仍待完成，原生執行結果須由 macOS CI 證明。
 
+✅ V2-GFX-1 recording cancellation and nested coordinators / 錄製取消與巢狀 Coordinator
+（2026-10-17）：same-pool serial fallback and cooperative batch cancellation pass Linux contract,
+native Vulkan output-preservation and Shipping checks. 同池序列 Fallback 與合作式批次取消已通過
+Linux Contract、原生 Vulkan 輸出保留及 Shipping 驗證；完整圖形、非同步回收與效能 Gate
+仍待完成。詳見雙語 V2 圖形計畫與 Renderer Contract。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

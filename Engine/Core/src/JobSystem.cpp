@@ -14,6 +14,16 @@
 #include "Nexora/Core/Platform.h"
 
 namespace nexora::core {
+namespace {
+thread_local const void *current_worker_owner{};
+struct WorkerOwnerScope final {
+  explicit WorkerOwnerScope(const void *owner) : previous(current_worker_owner) {
+    current_worker_owner = owner;
+  }
+  ~WorkerOwnerScope() { current_worker_owner = previous; }
+  const void *previous;
+};
+} // namespace
 
 struct JobHandle::State final {
   mutable std::mutex mutex;
@@ -52,6 +62,7 @@ struct JobSystem::Implementation final {
   }
 
   void Worker(std::size_t index) {
+    const WorkerOwnerScope owner{this};
     platform::SetCurrentThreadName("Nexora.Worker" + std::to_string(index));
     while (true) {
       Work work;
@@ -187,5 +198,9 @@ void JobSystem::Wait(const JobHandle &handle) {
 }
 
 std::size_t JobSystem::WorkerCount() const noexcept { return implementation_->workers.size(); }
+
+bool JobSystem::IsWorkerThread() const noexcept {
+  return current_worker_owner == implementation_.get();
+}
 
 } // namespace nexora::core

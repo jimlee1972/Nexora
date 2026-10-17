@@ -248,6 +248,10 @@ void RenderGraph::Compile() {
   compiled_ = true;
 }
 
+const char *RenderGraphCancelled::what() const noexcept {
+  return "render graph recording cancelled";
+}
+
 void RenderGraph::Execute(rhi::Device &device) { Execute(device, {}); }
 
 void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) {
@@ -268,11 +272,17 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
   statistics_.serial_recorded_pass_count = 0;
   statistics_.parallel_fallback_pass_count = 0;
   statistics_.max_parallel_batch_size = 0;
-  std::vector<rhi::TextureHandle> handles(textures_.size());
   statistics_.barrier_count = 0;
   statistics_.queue_transfer_count = 0;
   statistics_.buffer_barrier_count = 0;
   statistics_.buffer_queue_transfer_count = 0;
+  const auto check_cancellation = [&] {
+    if (options.cancellation.IsCancellationRequested())
+      throw RenderGraphCancelled{};
+  };
+  // A pre-cancelled call makes no RHI allocation, recording, submission or GPU wait.
+  check_cancellation();
+  std::vector<rhi::TextureHandle> handles(textures_.size());
   const auto release_transients = [&] {
     for (std::size_t index = 0; index < textures_.size(); ++index) {
       if (textures_[index].transient && handles[index].IsValid())
@@ -324,7 +334,8 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
     // Snapshot lifecycle-dependent pool metadata on the coordinator. The caller serializes
     // Start/Stop and keeps the pool, device and resources alive until Execute returns.
     const auto worker_limit =
-        requested && options.recording_jobs && device.Capabilities().independent_compute_recording
+        requested && options.recording_jobs && !options.recording_jobs->IsWorkerThread() &&
+                device.Capabilities().independent_compute_recording
             ? std::min(options.max_parallel_passes, options.recording_jobs->WorkerCount())
             : 0;
     const auto eligible = [&](std::size_t index) {
@@ -334,6 +345,7 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
              (!pass.buffer_reads.empty() || !pass.buffer_writes.empty());
     };
     for (std::size_t order = 0; order < execution_order_.size();) {
+      check_cancellation();
       std::size_t end = order;
       std::unordered_set<std::uint32_t> batch_buffers;
       while (end < execution_order_.size() && end - order < worker_limit &&
@@ -371,6 +383,7 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
         ++statistics_.serial_recorded_pass_count;
         if (requested)
           ++statistics_.parallel_fallback_pass_count;
+        check_cancellation();
         try {
           const auto completion = device.Submit(*result.commands);
           device.WaitForSubmission(completion);
@@ -428,9 +441,13 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
         std::rethrow_exception(callback_failure);
       if (failure)
         std::rethrow_exception(failure);
+      // Recording jobs are never themselves cancelled: every started callback joins, and
+      // callback/scheduler failures take precedence over a cancellation request.
+      check_cancellation();
       // No worker submits. Keep lists/pools alive through completion, then destroy on the
       // coordinator.
       try {
+        // Once accepted, finish this entire batch; observe cancellation before the next one.
         for (auto &result : recorded) {
           const auto completion = device.Submit(*result.commands);
           device.WaitForSubmission(completion);

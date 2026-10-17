@@ -93,6 +93,43 @@ queue separation or reusable allocator retirement is claimed. The compiler/artif
 matched performance gates remain open. Shader/SDK baselines and the stable C ABI are unchanged.
 See the [RHI snapshot contract](../../Engine/RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice).
 
+### Cancellation and same-pool coordination — 2026-10-17
+
+✅ Pool-local worker identity lets a graph coordinator inside its own recording pool select serial
+fallback, avoiding starvation even when every pool worker coordinates a graph. A different-pool
+coordinator retains bounded parallel admission. Start/Stop and object lifetime remain externally
+serialized; general waits do not gain work stealing or cyclic-wait recovery.
+
+An optional cancellation token stops before RHI allocations/callbacks on pre-cancelled execution,
+or before submission of an unsubmitted recorded cohort. Every started job joins; callback/scheduler
+errors precede observed cancellation. Once cohort submission begins it completes and retires;
+next-cohort work stops, while late cancellation after the final accepted cohort returns completion.
+A typed `RenderGraphCancelled` distinguishes cancellation. Existing defaults and stable C ABI stay
+unchanged; C++ modules rebuild for the new query/exception and appended token.
+
+Portable tests cover saturated nested coordinators, foreign-pool overlap, stopped/restarted identity,
+pre/serial/parallel cancellation, transient cleanup, error precedence, accepted-batch completion and
+late cancellation. Native Vulkan additionally verifies sentinel preservation, zero submission/readback
+and buffer reuse after cancellation, retaining its existing 320 dispatch and 48 graph CPU comparisons.
+Source branch: `feat/v2-recording-cancellation-and-nesting`; Beads `nexora-45y.2.6`.
+Local `cmake --preset linux-development` and `cmake --build --preset linux-development` pass.
+Xvfb/native-required `ctest --preset linux-development`: **194/194 pass, zero skips/failures,
+107.80 seconds** (Slang 2026.18 SPIR-V, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`:
+**6/6 pass, zero skips, 0.27 seconds**. `cmake --preset linux-shipping` and
+`cmake --build --preset linux-shipping` pass (Monolithic/Minimal, LTO). Touched-file
+`clang-format --dry-run --Werror` and `git diff --check` pass.
+
+Integration after PR625: rebased onto main `c5c5b897`; Slang-enabled full Development
+configure/build and Xvfb/native-required CTest pass **228/228, zero skips/failures, 267.94 seconds**.
+Final focused command above passes **6/6, zero skips, 0.27 seconds**. Shipping Monolithic/Minimal
+LTO configure/build passes. Rebase from the dependency head preserves an identical validated source
+tree; both D3D12 and Metal now compile the shared cancellation oracle in their hosted native gates.
+
+All full gates, graphics/texture concurrency, shared reads, asynchronous queues/reuse, compiler/artifact
+readiness and matched performance acceptance remain open. See the
+[cancellation contract](../../Engine/Renderer/README.md#recording-cancellation-and-nested-coordinators).
+
 ### Bounded graph compute recording — 2026-10-17
 
 ✅ Explicit opt-in graph scheduling now records independent, buffer-only Compute passes on the

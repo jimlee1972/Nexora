@@ -5,6 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <exception>
 #include <iostream>
 #include <mutex>
 #include <stdexcept>
@@ -61,6 +62,7 @@ public:
     return result;
   }
   rhi::TextureHandle CreateTexture(const rhi::TextureDescriptor &value) override {
+    ++allocated_textures;
     return inner->CreateTexture(value);
   }
   void DestroyTexture(rhi::TextureHandle value) override {
@@ -77,6 +79,7 @@ public:
   void DestroyPipeline(rhi::PipelineHandle value) override { inner->DestroyPipeline(value); }
   std::unique_ptr<rhi::CommandList> CreateCommandList(QueueType queue) override {
     Require(std::this_thread::get_id() == coordinator, "command allocator created on worker");
+    ++allocated_lists;
     return std::make_unique<Commands>(*this, inner->CreateCommandList(queue));
   }
   std::uint64_t Submit(rhi::CommandList &value) override {
@@ -94,6 +97,8 @@ public:
       in_flight = true;
       pending_completion = completion;
     }
+    if (on_submit)
+      on_submit();
     return completion;
   }
   std::uint64_t CompletedSubmissionValue() const noexcept override {
@@ -122,6 +127,9 @@ public:
   std::vector<std::size_t> submitted;
   std::atomic<unsigned> active{};
   std::size_t live_lists{};
+  std::size_t allocated_lists{};
+  std::size_t allocated_textures{};
+  std::function<void()> on_submit;
   std::size_t idle_calls{};
   std::size_t fail_submission_at{static_cast<std::size_t>(-1)};
   std::vector<std::uint64_t> waited_values;
@@ -353,6 +361,196 @@ void TestSerialFailureRetirement() {
   device.DestroyBuffer(buffer);
 }
 
+template <typename Function> bool Cancelled(Function &&function) {
+  try {
+    function();
+  } catch (const renderer::RenderGraphCancelled &error) {
+    Require(std::string_view(error.what()) == "render graph recording cancelled",
+            "cancellation lost its diagnostic");
+    return true;
+  }
+  return false;
+}
+
+void TestNestedCoordinators() {
+  core::JobSystem jobs{2};
+  core::JobSystem other{2};
+  jobs.Start();
+  other.Start();
+  Rendezvous saturated;
+  std::array<core::JobHandle, 2> nested;
+  std::exception_ptr nested_failure;
+  try {
+    for (auto &handle : nested) {
+      handle = jobs.Submit(
+          {[&](const core::CancellationToken &) {
+             Require(jobs.IsWorkerThread() && !other.IsWorkerThread(),
+                     "wrong current pool identity");
+             saturated.Meet(false); // Every worker of the recording pool now coordinates a graph.
+             ProbeDevice device;
+             RenderGraph graph;
+             std::array<rhi::BufferHandle, 2> buffers;
+             for (std::size_t index = 0; index < buffers.size(); ++index) {
+               buffers[index] = device.CreateBuffer({64, "nested coordinator"});
+               (void)graph.AddPass(Pass(index, graph.ImportBuffer(buffers[index])));
+             }
+             graph.Compile();
+             graph.Execute(device, Parallel(jobs));
+             Require(graph.GetStatistics().parallel_fallback_pass_count == 2 &&
+                         graph.GetStatistics().serial_recorded_pass_count == 2 &&
+                         graph.GetStatistics().parallel_batch_count == 0 &&
+                         device.submitted == std::vector<std::size_t>({0, 1}),
+                     "same-pool nesting did not select serial fallback");
+             for (const auto buffer : buffers)
+               device.DestroyBuffer(buffer);
+           },
+           core::JobPriority::Normal,
+           {},
+           "nested coordinator"});
+    }
+  } catch (...) {
+    nested_failure = std::current_exception();
+  }
+  for (const auto &handle : nested) {
+    if (!handle.IsValid())
+      continue;
+    try {
+      jobs.Wait(handle);
+    } catch (...) {
+      if (!nested_failure)
+        nested_failure = std::current_exception();
+    }
+  }
+  if (nested_failure)
+    std::rethrow_exception(nested_failure);
+  const auto foreign =
+      jobs.Submit({[&](const core::CancellationToken &) {
+                     ProbeDevice device;
+                     RenderGraph graph;
+                     Rendezvous rendezvous;
+                     std::array<rhi::BufferHandle, 2> buffers;
+                     for (std::size_t index = 0; index < buffers.size(); ++index) {
+                       buffers[index] = device.CreateBuffer({64, "foreign pool"});
+                       auto pass = Pass(index, graph.ImportBuffer(buffers[index]));
+                       pass.execute = [&, index](rhi::CommandList &commands, auto) {
+                         Require(other.IsWorkerThread() && !jobs.IsWorkerThread(),
+                                 "wrong recording worker pool");
+                         Active active(device);
+                         rendezvous.Meet(index == 0);
+                         dynamic_cast<ProbeDevice::Commands &>(commands).marker = index;
+                       };
+                       (void)graph.AddPass(std::move(pass));
+                     }
+                     graph.Compile();
+                     graph.Execute(device, Parallel(other));
+                     Require(graph.GetStatistics().parallel_recorded_pass_count == 2,
+                             "foreign coordinator disabled independent-pool recording");
+                     for (const auto buffer : buffers)
+                       device.DestroyBuffer(buffer);
+                   },
+                   core::JobPriority::Normal,
+                   {},
+                   "foreign coordinator"});
+  jobs.Wait(foreign);
+  jobs.Stop();
+  other.Stop();
+}
+
+void TestCancellation() {
+  for (int scenario = 0; scenario < 5; ++scenario) {
+    ProbeDevice device;
+    core::JobSystem jobs{2};
+    jobs.Start();
+    core::CancellationSource cancellation;
+    RenderGraph graph;
+    const auto texture = graph.CreateTransientTexture(
+        {1, 1, rhi::TextureFormat::Rgba8Unorm, rhi::ResourceState::Undefined, "cancel transient"});
+    Rendezvous rendezvous;
+    std::array<rhi::BufferHandle, 2> buffers;
+    for (std::size_t index = 0; index < buffers.size(); ++index) {
+      buffers[index] = device.CreateBuffer({64, "cancellable"});
+      auto pass = Pass(index, graph.ImportBuffer(buffers[index]));
+      // Scenario 1 proves transient cleanup on cancellation of a serial texture fallback.
+      if (scenario == 1 && index == 0)
+        pass.writes = {{texture, rhi::ResourceState::RenderTarget}};
+      pass.execute = [&, index](rhi::CommandList &commands, auto) {
+        Active active(device);
+        if (index == 0)
+          cancellation.Cancel();
+        if (scenario >= 3)
+          rendezvous.Meet(index == 0);
+        dynamic_cast<ProbeDevice::Commands &>(commands).marker = index;
+        if (scenario == 4 && index == 0)
+          throw std::runtime_error("callback overrides cancellation");
+      };
+      (void)graph.AddPass(std::move(pass));
+    }
+    graph.Compile();
+    auto options = Parallel(jobs);
+    options.cancellation = cancellation.Token();
+    if (scenario == 0)
+      cancellation.Cancel();
+    if (scenario == 2)
+      options.recording_mode = RenderGraph::RecordingMode::Serial;
+    if (scenario == 4) {
+      Require(Reject([&] { graph.Execute(device, options); }) == "callback overrides cancellation",
+              "cancellation hid a recording failure");
+    } else {
+      Require(Cancelled([&] { graph.Execute(device, options); }),
+              "recording did not publish typed cancellation");
+    }
+    Require(device.submitted.empty() && device.live_lists == 0 && !device.unsafe_retirement &&
+                device.active == 0 && graph.GetStatistics().completed_pass_count == 0,
+            "cancelled unsubmitted batch executed or retired before joining");
+    if (scenario == 0)
+      Require(device.allocated_lists == 0 && device.allocated_textures == 0 &&
+                  device.idle_calls == 0,
+              "pre-cancelled execution allocated or waited on the GPU");
+    if (scenario == 1)
+      Require(device.allocated_textures == 1 && device.idle_calls > 0,
+              "cancelled texture execution did not allocate and drain its transient");
+    if (scenario == 3)
+      Require(graph.GetStatistics().parallel_recorded_pass_count == 2,
+              "cancellation skipped a started recording job");
+    jobs.Stop();
+    for (const auto buffer : buffers)
+      device.DestroyBuffer(buffer);
+  }
+}
+
+void TestCancellationAfterAcceptance() {
+  for (int scenario = 0; scenario < 3; ++scenario) {
+    ProbeDevice device;
+    device.defer_completion = true;
+    core::JobSystem jobs{2};
+    jobs.Start();
+    core::CancellationSource cancellation;
+    device.on_submit = [&] { cancellation.Cancel(); };
+    RenderGraph graph;
+    const std::size_t count = scenario == 2 ? 2 : 4;
+    std::vector<rhi::BufferHandle> buffers;
+    for (std::size_t index = 0; index < count; ++index) {
+      buffers.push_back(device.CreateBuffer({64, "accepted batch"}));
+      (void)graph.AddPass(Pass(index, graph.ImportBuffer(buffers.back())));
+    }
+    graph.Compile();
+    auto options = Parallel(jobs);
+    options.cancellation = cancellation.Token();
+    if (scenario == 0)
+      options.recording_mode = RenderGraph::RecordingMode::Serial;
+    const bool cancelled = Cancelled([&] { graph.Execute(device, options); });
+    const std::size_t accepted = scenario == 0 ? 1 : 2;
+    Require(cancelled == (scenario != 2) && device.submitted.size() == accepted &&
+                device.waited_values.size() == accepted && device.allocated_lists == accepted &&
+                graph.GetStatistics().completed_pass_count == accepted && device.live_lists == 0 &&
+                !device.in_flight && !device.unsafe_retirement,
+            "cancellation interrupted accepted work or recorded later batches");
+    jobs.Stop();
+    for (const auto buffer : buffers)
+      device.DestroyBuffer(buffer);
+  }
+}
+
 void TestDefaultAndOptions() {
   ProbeDevice device;
   RenderGraph graph;
@@ -389,6 +587,9 @@ int main() {
     TestFailureContainment();
     TestSerialFailureRetirement();
     TestDefaultAndOptions();
+    TestNestedCoordinators();
+    TestCancellation();
+    TestCancellationAfterAcceptance();
     std::cout << "Parallel graph recording, fallback, order and failure containment passed\n";
     return 0;
   } catch (const std::exception &error) {

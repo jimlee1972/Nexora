@@ -86,6 +86,44 @@ GPU Validation Layer 結果、共用讀取／Texture 並行、Metal Worker 所�
 Shader／SDK 基線與 Stable C ABI 不變。詳見
 [RHI 快照 Contract](../../Engine/RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice)。
 
+### 取消與同池 Coordinator — 2026-10-17
+
+✅ Pool-local Worker 身分可讓位於自身錄製 Pool 的 Graph Coordinator 選擇序列 Fallback，
+即使全部 Worker 同時協調 Graph，也不會因耗盡執行緒而互等。其他 Pool 的 Coordinator
+仍可使用有界平行錄製。Start／Stop 與物件生命週期仍須外部序列化；一般 Wait 並未新增
+Work Stealing 或循環等待復原。
+
+選用的 Cancellation Token 可在預先取消時，於 RHI 分配／Callback 前停止，或在錄製後、
+未提交 Cohort 送入 GPU 前停止。每個已啟動 Job 都須結束；Callback／排程錯誤優先於觀察到
+的取消。Cohort 一旦開始提交便會完成並回收，下一批停止；最後一批接受後才取消仍回傳
+正常完成。型別 `RenderGraphCancelled` 區分取消。既有預設與 Stable C ABI 不變；新增
+Query／Exception 及 Token 欄位後須重建所有 C++ Module。
+
+Portable 測試涵蓋耗盡 Worker 的巢狀 Coordinator、其他 Pool 重疊、停止／重啟身分、預先／
+序列／平行取消、Transient 清理、錯誤優先序、已接受批次完成與最後取消。原生 Vulkan
+另驗證取消後 Sentinel 保留、零提交／讀回與 Buffer 重用，保留既有 320 組 Dispatch 及
+48 組 Graph CPU 比對。來源分支：`feat/v2-recording-cancellation-and-nesting`；
+Beads `nexora-45y.2.6`。
+
+本機 `cmake --preset linux-development` 與 `cmake --build --preset linux-development`
+通過；Xvfb／Native-required 的 `ctest --preset linux-development` **194/194 通過，
+零略過／失敗，107.80 秒**（Slang 2026.18 SPIR-V、Mesa lavapipe 24.0.5、Zig 0.14.0）。
+聚焦執行
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`：
+**6/6 通過，零略過，0.27 秒**。`cmake --preset linux-shipping` 與
+`cmake --build --preset linux-shipping` 通過（Monolithic／Minimal、LTO）。本次 C++ 的
+`clang-format --dry-run --Werror` 與 `git diff --check` 通過。
+
+PR625 後整合：已 Rebase 至 main `c5c5b897`；啟用 Slang 的完整 Development
+Configure／Build 與 Xvfb／Native-required CTest **228/228 通過，零略過／失敗，267.94 秒**。
+最終上述聚焦指令 **6/6 通過，零略過，0.27 秒**。Shipping Monolithic／Minimal LTO
+Configure／Build 通過。自 Dependency Head Rebase 後驗證過的 Source Tree 完全相同；
+D3D12 與 Metal 的 Hosted 原生 Gate 現亦編譯共用的取消 Oracle。
+
+完整 Gate、Graphics／Texture 並行、共用讀取、非同步 Queue／
+重用、Compiler／Artifact 就緒及同條件效能驗收仍待完成。詳見
+[取消 Contract](../../Engine/Renderer/README.md#recording-cancellation-and-nested-coordinators)。
+
 ### 有界 Graph Compute 錄製 — 2026-10-17
 
 ✅ Graph 排程現可明確 opt-in，使用既有 JobSystem，以有界批次平行錄製獨立且僅使用

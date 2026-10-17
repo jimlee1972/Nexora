@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <span>
 #include <string>
@@ -45,6 +46,11 @@ struct ExternalPassContext final {
   std::span<const ExternalTextureTransition> transitions;
 };
 
+class NEXORA_RENDERER_API RenderGraphCancelled final : public std::exception {
+public:
+  [[nodiscard]] const char *what() const noexcept override;
+};
+
 class NEXORA_RENDERER_API RenderGraph final {
 public:
   using ExecuteFunction =
@@ -64,9 +70,11 @@ public:
   enum class RecordingMode : std::uint8_t { Serial, Parallel };
   struct ExecutionOptions final {
     RecordingMode recording_mode{RecordingMode::Serial};
-    // Borrowed, started pool. Execute runs on a coordinator outside this pool.
+    // Borrowed, started pool. A coordinator from this same pool falls back to serial.
     core::JobSystem *recording_jobs{};
     std::size_t max_parallel_passes{4};
+    // Optional; observed before recording and before submitting an unsubmitted batch.
+    core::CancellationToken cancellation{};
   };
   struct Statistics final {
     std::size_t pass_count{};

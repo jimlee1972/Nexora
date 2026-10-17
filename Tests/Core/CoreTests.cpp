@@ -59,9 +59,16 @@ int RunTests() {
           "frame reset must invalidate generation");
 
   JobSystem jobs{2};
+  JobSystem unrelated{1};
+  Require(!jobs.IsWorkerThread(), "coordinator identified as a stopped pool worker");
   jobs.Start();
+  Require(!jobs.IsWorkerThread(), "coordinator identified as a started pool worker");
   std::atomic_int sequence{0};
-  const auto first = jobs.Submit({[&sequence](const CancellationToken &) { sequence.store(1); },
+  const auto first = jobs.Submit({[&](const CancellationToken &) {
+                                    Require(jobs.IsWorkerThread() && !unrelated.IsWorkerThread(),
+                                            "worker identity is not pool-local");
+                                    sequence.store(1);
+                                  },
                                   JobPriority::Normal,
                                   {},
                                   "first"});
@@ -75,6 +82,7 @@ int RunTests() {
                                    "second"},
                                   dependencies);
   jobs.Wait(second);
+  jobs.Wait(first);
   Require(sequence.load() == 2, "job dependency must complete first");
   CancellationSource cancellation;
   cancellation.Cancel();
@@ -98,9 +106,15 @@ int RunTests() {
           "Stop must drain accepted jobs before joining workers");
   Require(released_capture.expired(),
           "Stop must release callback captures after draining terminal jobs");
+  Require(!jobs.IsWorkerThread(), "Stop left worker identity on the coordinator");
   jobs.Start();
   const auto restarted =
-      jobs.Submit({[](const CancellationToken &) {}, JobPriority::Normal, {}, "lifecycle restart"});
+      jobs.Submit({[&](const CancellationToken &) {
+                     Require(jobs.IsWorkerThread(), "restart lost current worker identity");
+                   },
+                   JobPriority::Normal,
+                   {},
+                   "lifecycle restart"});
   jobs.Wait(restarted);
 
   Require(platform::HardwareConcurrency() >= 1, "hardware concurrency must never report zero");

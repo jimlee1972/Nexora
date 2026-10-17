@@ -323,11 +323,13 @@ only on the coordinator; lists and their descriptor pools survive completion. A 
 attempts `WaitIdle` before freeing the affected lists, then propagates. This waits for retirement;
 it does not implement asynchronous worker reuse or multi-queue timelines.
 
-`Execute` must run on a coordinator outside the supplied pool. The caller keeps that pool started
+`Execute` uses the calling thread as coordinator. The caller keeps the supplied pool started
 and alive and serializes its Start/Stop/destruction against the call; resource/device/graph mutation
 also stays serialized. A missing, stopped or one-worker pool, or a limit of one, selects serial
-fallback. Invalid modes and a zero limit fail before recording. Nested coordination on the same
-pool is unsupported because waiting workers could exhaust it.
+fallback. Invalid modes and a zero limit fail before recording. A coordinator on the same
+recording pool now selects serial fallback, preventing worker exhaustion. A worker of a different
+pool can coordinate parallel recording if the pools have no cyclic blocking dependencies. This
+does not make general JobSystem waits reentrant or permit worker-controlled pool shutdown.
 
 Statistics distinguish successful parallel/serial recording, parallel batch count, serial fallback
 under a parallel request and maximum scheduled batch size. The last is a scheduling bound, not a
@@ -364,3 +366,41 @@ Worker compute entry points manage autorelease pools while ARC retains list-owne
 The test-only shared-buffer readback waits for queue completion; production passes never read back.
 This remains the disjoint buffer-only contract, with no graphics/texture concurrency or asynchronous
 reuse. See [Metal ownership](../RHI/README.md#metal-gpu-driven-compute-and-worker-ownership-v2-gfx-1-slice).
+
+## Recording cancellation and nested coordinators
+
+`ExecutionOptions::cancellation` is an optional owning copy of a Core cancellation token; its
+empty default preserves existing calls, including three-field aggregate initialization. Another
+thread may signal the corresponding source while execution is active, but graph/device/pool
+lifecycle and the options object remain caller-serialized. `RenderGraphCancelled` is a typed
+`std::exception` with the diagnostic `render graph recording cancelled`.
+
+After normal graph/options validation, pre-cancelled execution resets execution counters and
+throws before any RHI resource/list allocation, callback, submission or GPU wait. During execution,
+the coordinator observes cancellation before each recording cohort and again after recording,
+before submitting an unsubmitted serial pass or parallel batch. Cancellation does not skip queued
+recording jobs: every started job is joined and its resources remain alive. Callbacks may also
+cooperate through captured tokens. Callback errors precede scheduling errors, which precede a
+coordinator-observed cancellation; CPU effects and previously submitted passes cannot roll back.
+
+Once submission of a cohort begins, a later cancellation does not interrupt it: all accepted
+submissions wait for completion and the batch retires normally. The next cohort stops before
+allocation/recording. Submission/wait failures still follow the existing drain-before-retirement
+error path. Cancellation arriving after acceptance of the final cohort returns normal completion;
+all passes have finished. This is cooperative boundary observation, not preemption or an atomic
+transaction with a concurrent `Cancel` call. `completed_pass_count` preserves completed prior work;
+recording counters may include a cancelled batch that never submitted.
+
+A failed/cancelled unsubmitted buffer-only Vulkan batch preserves output and may retry with fresh
+or empty cancellation state after every worker joins. Cancellation never resets a source. Native
+texture state can still change while recording; recover/recreate affected textures before retrying
+those paths. External-owner execution retains its own cancellation/acquired-frame policy.
+
+Tests saturate both pool workers with nested graph coordinators and require serial completion,
+while a foreign-pool coordinator still records concurrently. They cover pre-cancellation, serial
+transient cleanup, simultaneous callbacks, failure precedence, deferred completion after accepted
+batches and late cancellation after the final batch. The native Vulkan graph additionally requires
+cancelled recording to preserve every output sentinel with no submission/readback, followed by a
+successful reuse. Full graphics recording, asynchronous reuse, shared-read optimization and matched
+performance remain separate gates. All C++ modules must rebuild for the appended options/token and
+new exported query/exception; the stable C ABI is unchanged.

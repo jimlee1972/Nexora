@@ -207,6 +207,8 @@ void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
   const auto coordinator = std::this_thread::get_id();
   std::array<std::thread::id, workload_count * 2> threads;
   bool inject_failure = false;
+  bool inject_cancellation = false;
+  core::CancellationSource cancellation;
   bool parallel_callbacks = false;
   struct Meeting final {
     std::mutex mutex;
@@ -235,6 +237,8 @@ void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
           Bind(commands, workloads[workload]);
           commands.BindPipeline(pipeline);
           commands.Dispatch(1);
+          if (inject_cancellation && index == 0)
+            cancellation.Cancel();
           if (inject_failure && index == 0)
             throw std::runtime_error("native graph injected failure");
         }};
@@ -309,23 +313,45 @@ void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
                   before_failure.submitted_command_lists &&
               device.Diagnostics().readbacks == before_failure.readbacks,
           "failed native recording submitted work or swallowed its error");
-  for (const auto &workload : workloads)
-    for (std::size_t slot = 1; slot < 4; ++slot) {
-      std::vector<std::uint32_t> value(words[slot - 1]);
-      device.ReadBufferForTesting(workload.buffers[slot], 0,
-                                  std::as_writable_bytes(std::span{value}));
-      Require(std::ranges::all_of(value, [](auto word) { return word == sentinel; }),
-              "failed native graph changed GPU output");
-    }
+  const auto verify_sentinels = [&] {
+    for (const auto &workload : workloads)
+      for (std::size_t slot = 1; slot < 4; ++slot) {
+        std::vector<std::uint32_t> value(words[slot - 1]);
+        device.ReadBufferForTesting(workload.buffers[slot], 0,
+                                    std::as_writable_bytes(std::span{value}));
+        Require(std::ranges::all_of(value, [](auto word) { return word == sentinel; }),
+                "failed native graph changed GPU output");
+      }
+  };
+  verify_sentinels();
   inject_failure = false;
-  run(true); // Reuses borrowed buffers after all failed recording jobs and their pools retire.
+  inject_cancellation = true;
+  for (auto &meeting : meetings)
+    meeting.arrived = 0;
+  auto cancel_options = parallel;
+  cancel_options.cancellation = cancellation.Token();
+  const auto before_cancel = device.Diagnostics();
+  bool cancelled = false;
+  try {
+    graph.Execute(device, cancel_options);
+  } catch (const RenderGraphCancelled &) {
+    cancelled = true;
+  }
+  Require(cancelled && graph.GetStatistics().completed_pass_count == 0 &&
+              device.Diagnostics().submitted_command_lists ==
+                  before_cancel.submitted_command_lists &&
+              device.Diagnostics().readbacks == before_cancel.readbacks,
+          "cancelled native recording submitted or failed to publish cancellation");
+  verify_sentinels();
+  inject_cancellation = false;
+  run(true); // Reuses buffers after failed/cancelled recording jobs and their pools retire.
   jobs.Stop();
   for (const auto &workload : workloads)
     for (const auto buffer : workload.buffers)
       device.DestroyBuffer(buffer);
   std::cout << kBackendName
             << " graph: 24 unique workloads, serial/parallel WAW waves, 48 CPU comparisons; "
-               "failed batch preserves all sentinel output and retry succeeds\n";
+               "failed/cancelled batches preserve all sentinel output and retry succeeds\n";
 }
 
 void TestBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {

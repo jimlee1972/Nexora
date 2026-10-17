@@ -51,6 +51,8 @@ public:
                                  std::span<const JobHandle> dependencies = {});
   void Wait(const JobHandle &handle);
   [[nodiscard]] std::size_t WorkerCount() const noexcept;
+  // True only on a worker of this pool; no lock or lifecycle-dependent metadata read.
+  [[nodiscard]] bool IsWorkerThread() const noexcept;
 
 private:
   struct Implementation;
