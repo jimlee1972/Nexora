@@ -278,14 +278,14 @@ creation, upload, mutation, destruction and submission remain caller-serialized 
 resources and immutable pipelines must outlive all lists and their submission completion.
 
 Before closing or executing a list, `Submit` checks every referenced buffer still exists at the
-captured revision. Uploads, accepted submissions and nonempty readbacks invalidate older snapshots,
-including read-only uses. Stale lists throw `std::logic_error` before native execution and must be
-recorded again; lists sharing a buffer cannot be pre-recorded and submitted together. This is a
-conservative admission rule, not automatic repair of stale commands. `Dispatch` also requires all
+captured revision. CPU uploads, accepted potential GPU writes and nonempty readbacks invalidate
+older snapshots, including readers. Compatible immutable SRV/indirect submissions now preserve
+that data revision, admitting the shared reads described below. Stale lists throw `std::logic_error`
+before execution and require fresh recording; no stale command repair is attempted. `Dispatch` also requires all
 four canonical bindings and revalidates their handles before recording.
 
-After `ExecuteCommandLists` accepts work, submission commits the consumed uploads and advances all
-referenced buffer revisions, even if a later signal/wait fails. Buffers decay to `COMMON` at the
+After `ExecuteCommandLists` accepts work, submission commits consumed uploads and advances the
+revisions of buffers prepared for potential UAV writes, even if a later signal/wait fails. Buffers decay to `COMMON` at the
 execution boundary on the single DIRECT queue; subsequent lists transition from that committed
 entry state. Test-only readback likewise commits after native execution and leaves buffers in
 `COMMON`. Never replay an already accepted list. Failure after queue acceptance still requires
@@ -346,8 +346,8 @@ GPU performance remain open.
 Vulkan, D3D12 and Metal backends admit disjoint color-target lists with immutable, pre-created
 pipelines. Each list has one recording owner; the caller retains device/resources through list
 retirement and completion, and serializes creation, upload, mutation, destruction, submission,
-readback and lifecycle against recording. Shared textures or buffers, including read/read, do not
-qualify for the bounded scheduler. This limited flag leaves the broad parallel feature disabled.
+readback and lifecycle against recording. Shared textures never qualify; compatible buffer reads
+also require the separate admission below. This limited flag leaves the broad parallel feature disabled.
 
 Texture first use captures generation, revision, committed state and native metadata under the
 device mutex. Transitions and render-target validation use private state; abandoned lists do not
@@ -377,4 +377,73 @@ abandonment/retry and stale submit/readback/handle rejection; 512 sequential ret
 and eight color-target graph comparisons with failed/cancelled-batch sentinel preservation and replay.
 Optional builds explicitly skip absent artifacts/devices; Slang-enabled native CI requires execution.
 Linux Vulkan validation is software-device correctness evidence. Windows/Metal runtime results
-require their hosted jobs. Physical-GPU performance, shared reads and asynchronous reuse remain open.
+require their hosted jobs. Physical-GPU performance, shared-texture reads and asynchronous reuse
+remain open.
+
+
+## Immutable shared buffer reads
+
+`shared_buffer_read_recording` defaults false and is independent of compute/graphics admission.
+Validation and Vulkan/D3D12/Metal implement compatible same-queue, same-access immutable buffer
+reads with separate writable outputs. The graph still requires explicit callback opt-in and complete
+resource declarations. Any shared write, access/queue handoff or dependency ends the cohort;
+textures remain disjoint. All workers join before ordered, synchronous coordinator submission.
+The caller keeps buffers, upload sources, pipelines and device alive and immutable through all
+recording/submission/completion, and serializes mutation, readback and lifecycle. This flag adds
+no asynchronous reuse, GPU queue concurrency or automatic protection from undeclared callback writes.
+
+D3D12 marks a snapshot potentially writable whenever UAV preparation occurs, even without dispatch
+or when shader source happens to read only. Callbacks must declare UAV bindings as writable;
+shared-reader admission covers SRV/indirect access, without shader-source inference.
+Accepted potential writes advance the buffer data revision; compatible SRV/indirect uses preserve
+it. CPU uploads and nonempty readbacks still advance it, so older readers reject before execution.
+Upload consumption and COMMON decay still commit on queue acceptance. Multiple initially recorded
+readers may copy the same retained staging revision: later copies promote a buffer from COMMON to
+COPY_DEST when needed, and each individual ExecuteCommandLists boundary decays buffers to COMMON.
+The native backend still submits one list per synchronous Execute call. Changing queue/list
+batching or staging ownership must revisit this invariant. Abandoned/cancelled copies never consume
+committed upload state. Empty in-range readback validates without invalidating snapshots.
+
+The shared compute oracle runs parallel first over an initially pending shared input, then serial,
+plus failed/cancelled sentinel preservation and replay: 64 exact CPU comparisons and timed four-way
+overlap. The graphics oracle shares one fresh indirect argument buffer across two overlapping
+color-target passes and compares both outputs exactly with serial direct drawing. D3D12 adds reverse
+pure-reader submission, upload/readback/GPU-writer invalidation, empty-read compatibility and recovery.
+Portable tests keep custom admission closed and reject write/read, read/write, write/write and
+access handoffs. Native Windows/Metal execution requires hosted acceptance; Linux Vulkan correctness
+and validation do not establish physical-GPU performance or close the broad parallel feature gate.
+All C++ modules rebuild for the appended capability; stable C ABI and shader/SDK baselines stay fixed.
+
+## DXIL artifact stage and profile admission
+
+Device Shader Model support and selected bytecode readiness are separate checks. The portable
+`InspectDxilProgram` reads DXBC container version/size and bounded part ranges, rejects duplicate
+or overlapping executable parts, validates the embedded DXIL program/bitcode range and LLVM magic,
+and returns the entry stage and numeric Shader Model. It supports the implemented vertex,
+fragment and compute entry stages; libraries and advanced stages remain closed. Unaligned input
+is safe. Scratch storage/time are bounded by the supplied part table; allocation failure returns
+no metadata. Input storage stays caller-owned for the duration of the synchronous call.
+
+`RequireDxilArtifact` throws `std::invalid_argument` for absent/malformed metadata, a mismatched
+stage or an artifact older than the requested profile. The D3D12 constructor applies this to every
+explicitly requested Slang entry artifact. PSO creation first checks device requirements, then
+checks every selected stage's actual artifact profile before native PSO allocation. Compute and
+graphics use separate artifacts: compute's SM6.0 does not limit a graphics SM6.6 pipeline, and a
+high device limit cannot authorize a newer requirement against older bytecode. With no DXIL
+minimum requirement, the existing absent-artifact FXC triangle fallback remains available.
+
+This is metadata admission, not a DXIL validator, checksum/signature verifier, compiler-provenance
+check, preview opt-in or proof of executable feature support. Native PSO creation still validates
+its shader/root-signature contract. `CheckGraphicsRequirements`/`SelectGraphicsPath` remain device
+checks; callers separately admit the selected artifact. No shader profile, SDK or compiler baseline
+is raised, and no SM6.9/6.10 Preview feature becomes implemented. The complete compiler/artifact
+readiness matrix and target-host advanced execution gates remain open.
+
+`renderer.dxil_artifact_readiness` runs portable stage/profile, numeric 6.9/6.10, truncation,
+malformed/out-of-range/overlapping/duplicate-part and unordered-table checks on synthetic metadata.
+Those fixtures are not executable shaders. Slang-enabled Windows native builds additionally inspect
+the real generated vertex/fragment SM6.6 and compute SM6.0 artifacts, create baseline PSOs and
+reject a newer artifact requirement when the device itself supports it, and reject an explicitly
+requested compute artifact that contains a vertex program. The native fence event is created last
+so constructor rejection cannot leak its raw handle. These checks submit no GPU work. Linux portable acceptance cannot certify D3D12 execution. The new exported C++ helpers require
+module rebuild; the stable C ABI is unchanged.

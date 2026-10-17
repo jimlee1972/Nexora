@@ -10,6 +10,22 @@ add_test(NAME renderer.indirect_range_source_contract
           "${CMAKE_SOURCE_DIR}/Engine/RHI/src/VulkanDevice.cpp"
           "${CMAKE_SOURCE_DIR}/Engine/RHI/src/D3D12Device.cpp"
           "${CMAKE_SOURCE_DIR}/Engine/RHI/src/MetalDevice.mm")
+add_executable(NexoraDxilArtifactTests DxilArtifactTests.cpp)
+target_link_libraries(NexoraDxilArtifactTests PRIVATE Nexora::RHI)
+if(WIN32)
+  target_compile_definitions(NexoraDxilArtifactTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraDxilArtifactTests)
+add_test(NAME renderer.dxil_artifact_readiness COMMAND NexoraDxilArtifactTests)
+if(WIN32 AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_SLANG)
+  add_dependencies(NexoraDxilArtifactTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.dxil_artifact_readiness APPEND PROPERTY ENVIRONMENT
+    "NEXORA_SLANG_DXIL_VERTEX_PATH=${NEXORA_SLANG_DXIL_VERTEX_OUTPUT}"
+    "NEXORA_SLANG_DXIL_FRAGMENT_PATH=${NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT}"
+    "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}"
+    "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()
+
 add_executable(NexoraRendererTests RendererTests.cpp)
 target_link_libraries(NexoraRendererTests PRIVATE Nexora::Renderer)
 if(WIN32)

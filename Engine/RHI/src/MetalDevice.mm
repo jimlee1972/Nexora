@@ -160,6 +160,7 @@ public:
     result.backend = Backend::Metal;
     result.independent_compute_recording = true;
     result.independent_graphics_recording = true;
+    result.shared_buffer_read_recording = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})
       result.features[static_cast<std::size_t>(feature)] = {

@@ -387,6 +387,81 @@ void TestGraphicsGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
   std::cout << "Graphics graph: 8 exact serial/parallel pixel comparisons, four-worker overlap, "
                "failed/cancelled-batch sentinels and successful replay passed\n";
 }
+void TestSharedIndirectGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  std::array<Target, 2> targets{MakeTarget(device, 0), MakeTarget(device, 2)};
+  std::array<std::vector<std::byte>, 2> reference;
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    auto commands = device.CreateCommandList(rhi::QueueType::Graphics);
+    Render(*commands, targets[index], pipeline);
+    device.WaitForSubmission(device.Submit(*commands));
+    commands.reset();
+    reference[index] = Read(device, targets[index]);
+  }
+  const auto indirect =
+      device.CreateBuffer({rhi::GPUDrivenIndirectCommandStride, "shared indirect"});
+  std::array<std::uint32_t, rhi::GPUDrivenIndirectCommandWords> arguments{};
+  arguments[0] = 3;
+  arguments[1] = 1;
+  device.WriteBuffer(indirect, 0, std::as_bytes(std::span{arguments}));
+  renderer::RenderGraph graph;
+  const auto input = graph.ImportBuffer(indirect);
+  std::array<renderer::GraphTexture, 2> imported;
+  for (std::size_t index = 0; index < targets.size(); ++index)
+    imported[index] = graph.ImportTexture(targets[index].handle, targets[index].descriptor);
+  std::mutex mutex;
+  std::condition_variable condition;
+  std::size_t arrived{};
+  for (std::size_t index = 0; index < targets.size(); ++index) {
+    renderer::RenderGraph::PassDescriptor pass{
+        "shared indirect graphics",
+        rhi::QueueType::Graphics,
+        {},
+        {{imported[index], rhi::ResourceState::RenderTarget}},
+        [&, index](rhi::CommandList &commands, auto) {
+          {
+            std::unique_lock lock{mutex};
+            ++arrived;
+            condition.notify_all();
+            Require(condition.wait_for(lock, std::chrono::seconds(5), [&] { return arrived == 2; }),
+                    "shared-indirect graphics workers did not overlap");
+          }
+          commands.BeginRendering({targets[index].handle, targets[index].descriptor.width,
+                                   targets[index].descriptor.height});
+          commands.BindPipeline(pipeline);
+          commands.BindIndirectBuffer(indirect, 0, rhi::GPUDrivenIndirectCommandStride);
+          commands.DrawIndirect(1);
+          commands.EndRendering();
+        }};
+    pass.buffer_reads = {{input, rhi::BufferAccess::IndirectRead}};
+    pass.allow_parallel_recording = true;
+    (void)graph.AddPass(std::move(pass));
+  }
+  for (const auto texture : imported)
+    (void)graph.AddPass({"restore indirect target",
+                         rhi::QueueType::Graphics,
+                         {{texture, rhi::ResourceState::ShaderRead}},
+                         {},
+                         [](auto &, auto) {}});
+  graph.Compile();
+  core::JobSystem jobs{2};
+  jobs.Start();
+  const auto before = device.Diagnostics();
+  graph.Execute(device, {renderer::RenderGraph::RecordingMode::Parallel, &jobs, 2});
+  Require(graph.GetStatistics().parallel_recorded_pass_count == 2 &&
+              graph.GetStatistics().parallel_batch_count == 1 &&
+              device.Diagnostics().indirect_draw_calls - before.indirect_draw_calls == 2 &&
+              device.Diagnostics().readbacks == before.readbacks,
+          "shared indirect graphics admission/recording differs");
+  for (std::size_t index = 0; index < targets.size(); ++index)
+    Require(Read(device, targets[index]) == reference[index],
+            "shared-indirect graphics pixels differ from serial direct drawing");
+  jobs.Stop();
+  device.DestroyBuffer(indirect);
+  for (const auto &target : targets)
+    device.DestroyTexture(target.handle);
+  std::cout << "Shared indirect graphics: two overlapping readers, distinct targets and two exact "
+               "pixel comparisons passed\n";
+}
 void TestTextureReadbackAndRecycling(rhi::Device &device, rhi::PipelineHandle pipeline) {
   // Exceeds the D3D12 RTV heap capacity; retired slots must be reusable.
   for (std::uint32_t index = 0; index < 512; ++index) {
@@ -427,6 +502,7 @@ int main() {
             "native independent graphics admission is closed");
     TestIndependentGraphics(*device, pipelines);
     TestGraphicsGraph(*device, pipelines[0]);
+    TestSharedIndirectGraph(*device, pipelines[0]);
     TestTextureReadbackAndRecycling(*device, pipelines[0]);
     TestAbandonedAndStale(*device, pipelines[0]);
     TestGraphFailureReuse(*device, pipelines[0]);

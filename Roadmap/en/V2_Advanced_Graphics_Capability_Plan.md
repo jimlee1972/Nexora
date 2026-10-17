@@ -31,6 +31,93 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Shared-input and DXIL admission integration — 2026-10-17
+
+✅ The follow-up combines immutable shared buffer reads with selected DXIL stage/profile checks,
+including requested wrong-stage constructor rejection and fence-event cleanup. Integrated
+Slang-enabled Development configure/build and Xvfb/native-required CTest pass **206/206,
+zero skips/failures, 119.65 seconds**. The six-test focused renderer command, including
+`renderer.dxil_artifact_readiness`, passes **6/6, zero skips, 0.29 seconds**. Shipping configure/build
+passes (Monolithic/Minimal, LTO). The existing four-test native Vulkan object/synchronization
+validation command passes **4/4, zero skips, 1.18 seconds**, with loader-confirmed layer insertion
+and zero Validation Error/VUID/SYNC-HAZARD markers. Windows actual DXIL/PSO/read-only transaction
+and Metal shared-read execution remain hosted gates. Beads `nexora-45y.2.9` and `.2.10` share this
+follow-up; the complete toolchain, parallel/performance and preview gates stay open.
+
+After PR626 merge, rebased onto main `bb39a646`, preserving upstream Windows VM tooling/evidence.
+The complete Slang Development configure/build and Xvfb/native-required CTest pass again:
+**207/207, zero skips/failures, 120.22 seconds**. The six-test focused renderer command passes
+**6/6, zero skips, 0.26 seconds**; Shipping Monolithic/Minimal LTO configure/build passes.
+
+### DXIL entry-stage and artifact-profile admission — 2026-10-17
+
+✅ D3D12 requested entry artifacts now undergo portable, bounded DXBC/DXIL program metadata
+inspection. The reader validates container/version/size, part and bitcode ranges, non-overlap,
+one executable part and LLVM magic; it decodes implemented vertex/fragment/compute stages and
+numeric Shader Models. Wrong-stage, malformed and older-profile artifacts reject before native
+PSO allocation. Graphics checks both selected graphics stages independently from compute.
+Device capability remains a separate check; hardware SM6.9/6.10 support cannot admit a newer
+minimum against existing SM6.6 graphics or SM6.0 compute bytecode. Optional FXC baseline remains
+available without a DXIL minimum. No native advanced feature or profile baseline is enabled.
+
+Portable tests cover stage/profile decoding, numeric 6.9/6.10 order, every truncated prefix,
+unordered offsets, malformed/overflowing/overlapping parts and duplicate programs. Windows
+Slang-enabled native CI additionally reads actual generated artifacts, checks SM6.6 graphics and
+SM6.0 compute, creates baseline PSOs and rejects newer requirements when the device supports them.
+An explicitly requested wrong-stage compute artifact is also rejected at device construction;
+the raw fence event is created last to avoid leaking it if constructor validation fails.
+Metadata inspection does not validate LLVM, checksums/signatures, compiler provenance or preview
+opt-in. It cannot establish SM6.9/6.10 execution or close the complete toolchain matrix gate.
+
+Source branch: `feat/v2-dxil-artifact-admission`; Beads `nexora-45y.2.9`.
+Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
+pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
+122.74 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^renderer\.(dxil_artifact_readiness|graphics_capabilities|contracts)$' --output-on-failure`:
+**3/3 pass, zero skips, 0.07 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+A Linux metadata-only probe also accepts real vkd3d-proton DXIL fixtures: compute SM6.6 (2660 bytes),
+fragment SM6.1 (2472 bytes), vertex SM6.0 (1988 bytes). Fixtures/probe remain outside the repository;
+this is parsing evidence, not GPU execution. Windows runtime/PSO acceptance requires hosted CI.
+The exported C++ helpers require module rebuild; stable C ABI and SDK/compiler baselines stay
+unchanged. Full V2 graphics, compiler/artifact readiness and physical-GPU performance gates remain
+open. See the [RHI contract](../../Engine/RHI/README.md#dxil-artifact-stage-and-profile-admission).
+
+### Immutable shared buffer inputs — 2026-10-17
+
+✅ A separately default-closed `shared_buffer_read_recording` capability admits compatible
+same-queue/same-access read/read sharing in bounded compute and color-target cohorts. Writable
+buffers remain separate; shared textures, all write conflicts and access/queue dependencies remain
+excluded. Explicit callback opt-in, immutable caller-owned resources, join-before-submission,
+ordered synchronous completion, cancellation and default serial execution stay unchanged.
+
+D3D12 snapshots now distinguish potential UAV writes from immutable SRV/indirect reads. Accepted
+potential writes, CPU uploads and nonempty readbacks advance data revisions; compatible reads
+preserve them. Initial parallel readers can copy the same retained staging revision with COMMON
+promotion/decay at each individual Execute boundary. Mutation still invalidates older readers;
+unsubmitted upload copies remain private. Empty validated reads do not invalidate snapshots.
+
+The shared native oracle adds 64 compute CPU comparisons (parallel first with pending input,
+serial and failed/cancelled recovery), forced four-worker overlap, distinct output sentinels and
+successful reuse. Two graphics workers share fresh indirect arguments with separate color targets
+and both images match serial direct drawing exactly. D3D12 additionally checks reverse pure-reader
+submission, upload/readback/GPU-writer invalidation, empty-read compatibility and recovery.
+Portable tests preserve custom-backend fallback and write/read, read/write, write/write and access
+hazard ordering. The full parallel feature remains disabled/unimplemented.
+
+Source branch: `feat/v2-shared-buffer-recording`; Beads `nexora-45y.2.10`.
+Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
+pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
+137.44 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|contracts|graphics_capabilities|vulkan_texture_recording|vulkan_descriptor_isolation)$' -V`:
+**5/5 pass, zero skips, 0.28 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+Four native object/synchronization validation tests pass **4/4, zero skips, 2.53 seconds** with
+Khronos layer 1.3.275, loader-confirmed insertion, inherited shader paths removed and zero
+Validation Error/VUID/SYNC-HAZARD markers. Windows/Metal native acceptance requires hosted CI.
+All C++ modules rebuild for the appended capability; stable C ABI and SDK/shader baselines stay
+unchanged. Shared-texture reads, asynchronous reuse, full compiler/artifact readiness and matched
+physical-GPU performance remain open. See the
+[RHI contract](../../Engine/RHI/README.md#immutable-shared-buffer-reads).
+
 ### Native graphics/cancellation integration — 2026-10-17
 
 ✅ PR626 integrates cancellation/same-pool coordination, Vulkan framebuffer/texture isolation and

@@ -7,6 +7,7 @@
 
 #include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
+#include "Nexora/RHI/DxilArtifact.h"
 
 #include "D3D12CapabilityMapping.h"
 
@@ -64,6 +65,7 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
   report(GraphicsFeature::ParallelCommandRecording, {1, 0});
   result.independent_compute_recording = true;
   result.independent_graphics_recording = true;
+  result.shared_buffer_read_recording = true;
 
   // Numeric query values allow older SDK builds to query a newer runtime without referencing
   // newer compiler enums. Retry lower known models when the runtime rejects a newer query.
@@ -196,7 +198,7 @@ ComPtr<ID3DBlob> CompileShader(const char *source, const char *entry, const char
   return bytecode;
 }
 
-ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name) {
+ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name, ShaderStage stage) {
   const auto *path = std::getenv(environment_name);
   if (!path || *path == '\0')
     return {};
@@ -205,6 +207,9 @@ ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name) {
   if (!bytecode || bytecode->GetBufferSize() < 4 ||
       std::memcmp(bytecode->GetBufferPointer(), "DXBC", 4) != 0)
     throw std::runtime_error(std::string("DXIL artifact is not a valid DXBC container: ") + path);
+  (void)RequireDxilArtifact(
+      {static_cast<const std::byte *>(bytecode->GetBufferPointer()), bytecode->GetBufferSize()},
+      stage);
   return bytecode;
 }
 
@@ -271,6 +276,7 @@ private:
     std::uint64_t revision{};
     D3D12_RESOURCE_STATES state{};
     bool upload_pending{};
+    bool writes{};
   };
   ID3D12Resource *PrepareBuffer(BufferHandle buffer, D3D12_RESOURCE_STATES state);
   struct TextureSnapshot final {
@@ -354,9 +360,6 @@ public:
     rtv_increment_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     Check(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_)), "CreateFence");
-    fence_event_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-    if (!fence_event_)
-      throw std::runtime_error("CreateEventW failed");
 
     CreateRootSignature();
     CreateFrameConstants();
@@ -369,15 +372,20 @@ public:
     Check(device_->CreateCommandSignature(&signature, nullptr,
                                           IID_PPV_ARGS(&draw_indirect_signature_)),
           "CreateCommandSignature(draw indirect)");
-    vertex_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_VERTEX_PATH");
-    pixel_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_FRAGMENT_PATH");
-    compute_shader_ = LoadShaderArtifact("NEXORA_SLANG_COMPUTE_DXIL_PATH");
+    vertex_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_VERTEX_PATH", ShaderStage::Vertex);
+    pixel_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_FRAGMENT_PATH", ShaderStage::Fragment);
+    compute_shader_ = LoadShaderArtifact("NEXORA_SLANG_COMPUTE_DXIL_PATH", ShaderStage::Compute);
     if (!vertex_shader_ || !pixel_shader_) {
       if (vertex_shader_ || pixel_shader_)
         throw std::runtime_error("both Slang DXIL entry-point artifacts are required");
       vertex_shader_ = CompileShader(kTriangleShader, "vsMain", "vs_5_0");
       pixel_shader_ = CompileShader(kTriangleShader, "psMain", "ps_5_0");
     }
+    // Create the raw event last: constructor failures (including artifact rejection) must not
+    // leak a handle, since the device destructor does not run for a failed constructor.
+    fence_event_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    if (!fence_event_)
+      throw std::runtime_error("CreateEventW failed");
   }
 
   ~D3D12Device() override {
@@ -539,6 +547,22 @@ public:
     RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
       throw std::invalid_argument("pipeline hashes must be non-zero");
+    const auto minimum_model = descriptor.graphics_requirements.minimum_dxil_shader_model;
+    if (minimum_model != FeatureVersion{}) {
+      const auto check = [&](ID3DBlob *artifact, ShaderStage stage) {
+        const auto bytes = artifact ? std::span<const std::byte>{static_cast<const std::byte *>(
+                                                                     artifact->GetBufferPointer()),
+                                                                 artifact->GetBufferSize()}
+                                    : std::span<const std::byte>{};
+        (void)RequireDxilArtifact(bytes, stage, minimum_model);
+      };
+      if (descriptor.type == PipelineType::Compute)
+        check(compute_shader_.Get(), ShaderStage::Compute);
+      else {
+        check(vertex_shader_.Get(), ShaderStage::Vertex);
+        check(pixel_shader_.Get(), ShaderStage::Fragment);
+      }
+    }
     PipelineRecord record;
     record.type = descriptor.type;
     record.format = descriptor.color_format;
@@ -627,7 +651,11 @@ public:
         auto &record = buffers_.at(entry.first);
         record.gpu_state = D3D12_RESOURCE_STATE_COMMON;
         record.upload_dirty = false;
-        ++record.revision;
+        // Immutable SRV/indirect readers preserve the data revision. Their buffer states decay
+        // to COMMON; a repeated initial upload copies the same revision's retained staging data.
+        // Potential UAV writes still invalidate all older readers and writers.
+        if (entry.second.writes)
+          ++record.revision;
       }
       for (const auto &entry : validated->texture_snapshots_) {
         auto &texture = textures_.at(entry.first);
@@ -861,6 +889,7 @@ ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOU
           .first->second;
   device_.Require(snapshot.revision == record.revision,
                   "D3D12 buffer changed during command recording");
+  snapshot.writes |= state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
   const auto transition = [&](D3D12_RESOURCE_STATES target) {
     if (snapshot.state == target)
       return;

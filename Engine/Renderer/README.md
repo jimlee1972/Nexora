@@ -331,7 +331,9 @@ the requested limit and the pool's worker count. Compute passes declare at least
 no textures. Graphics passes declare at least one color-target write, exclusively in RenderTarget
 state, no texture reads and no buffer writes. Declared read-only buffers may supply graphics data.
 Batches may mix these independently admitted queues, but have no dependency edge within the batch
-and share no texture or buffer at all, including read/read. A conflict ends the batch; singleton,
+and share no texture. Buffers also stay disjoint unless `shared_buffer_read_recording` admits
+compatible same-queue/same-access read/read sharing. Every shared buffer write still ends the cohort,
+as do state/queue dependencies; custom backends default closed. A conflict ends the batch; singleton,
 texture-sampling, copy, external, unmarked and unsupported paths remain serial. Explicit and inferred dependencies still determine
 order. Each completed batch submits and waits before recording the next batch, so dependent
 callbacks cannot run before their predecessors complete. External execution never uses this pool.
@@ -367,9 +369,9 @@ batch submission and completion-before-retirement (including submit errors after
 acceptance). The existing Vulkan descriptor test additionally runs 24 unique workloads through two
 WAW graph waves in serial and four-worker modes, requires native worker overlap, compares 48
 results to the CPU reference and verifies that aborted recording preserves all sentinel output
-before reusing the same buffers. Tests do not establish reduced CPU overhead. Shared-read
-optimization, asynchronous retirement, compiler/artifact readiness and matched CPU/GPU/memory
-benchmarks remain separate gates.
+before reusing the same buffers. Tests do not establish reduced CPU overhead. Shared-texture reads,
+asynchronous retirement, compiler/artifact readiness and matched CPU/GPU/memory benchmarks remain
+separate gates.
 
 The Windows `renderer.d3d12_recording_isolation` target reuses the Vulkan workload and exact CPU
 oracle for the same 320 dispatch and 48 graph comparisons. It also exercises D3D12 abandoned
@@ -423,7 +425,7 @@ while a foreign-pool coordinator still records concurrently. They cover pre-canc
 transient cleanup, simultaneous callbacks, failure precedence, deferred completion after accepted
 batches and late cancellation after the final batch. The native Vulkan graph additionally requires
 cancelled recording to preserve every output sentinel with no submission/readback, followed by a
-successful reuse. Full graphics recording, asynchronous reuse, shared-read optimization and matched
+successful reuse. Full graphics recording, asynchronous reuse, shared-texture reads and matched
 performance remain separate gates. All C++ modules must rebuild for the appended options/token and
 new exported query/exception; the stable C ABI is unchanged.
 
@@ -442,3 +444,22 @@ successful replay. Restore passes remain serial. The portable model checks indep
 texture alias/dependency/shared-buffer-read conflicts, unmarked/sampling/copy fallback, ordered
 submission, deferred completion before retirement and transactional upload/submit/handle rejection.
 See the [RHI contract](../RHI/README.md#independent-color-target-recording-and-transactional-textures).
+
+
+## Shared immutable input acceptance
+
+The additional limited `shared_buffer_read_recording` flag lets admitted Compute/color-target
+cohorts share declared read-only buffers. Complete declarations, immutable resource lifetime,
+per-queue/access dependencies, default serial behavior, cancellation and coordinator-owned ordered
+submission/retirement remain required. UAV preparation counts as a potential write in declarations,
+even when the shader would only read; such buffers stay disjoint. Shared writes and textures remain excluded.
+
+The common native compute test compares 16 workloads sharing one input in initial parallel, serial
+and failed/cancelled replay modes (64 CPU comparisons); output buffers remain distinct and every
+aborted output sentinel survives. The native graphics test uses two separate color targets with
+one shared indirect argument buffer, forces overlapping workers and compares both images exactly
+with direct serial references. Production execution performs no readback. D3D12 preserves buffer
+revisions for compatible readers and advances them on potential GPU writes, CPU uploads or nonempty
+readback, so shared readers coexist while stale mutation snapshots still reject. See the
+[RHI contract](../RHI/README.md#immutable-shared-buffer-reads). Full parallel/performance acceptance
+and asynchronous allocator reuse remain open.

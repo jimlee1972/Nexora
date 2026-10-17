@@ -25,6 +25,88 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 共用輸入與 DXIL 檢查整合 — 2026-10-17
+
+✅ 後續整合不變共用 Buffer 讀取與所選 DXIL Stage／Profile 檢查，包含指定錯誤 Stage 的
+建構拒絕與 Fence Event 清理。整合後啟用 Slang 的 Development Configure／Build 與
+Xvfb／Native-required CTest **206/206 通過，零略過／失敗，119.65 秒**。包含
+`renderer.dxil_artifact_readiness` 的六項聚焦 Renderer 指令 **6/6 通過，零略過，0.29 秒**。
+Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。既有四項原生 Vulkan
+Object／Synchronization Validation **4/4 通過，零略過，1.18 秒**，Loader 證明 Layer
+載入，沒有 Validation Error／VUID／SYNC-HAZARD 訊息。Windows 真正 DXIL／PSO／
+純讀者提交，以及 Metal 共用讀取仍須 Hosted Gate 證明。Beads `nexora-45y.2.9` 與 `.2.10`
+共用後續整合；完整 Toolchain、平行／效能與 Preview Gate 維持待完成。
+
+PR626 合併後已 Rebase 至 main `bb39a646`，保留上游 Windows VM 工具／證據更新。
+完整 Slang Development Configure／Build 與 Xvfb／Native-required CTest 再次通過：
+**207/207，零略過／失敗，120.22 秒**。六項聚焦 Renderer 指令 **6/6 通過，零略過，0.26 秒**；
+Shipping Monolithic／Minimal LTO Configure／Build 通過。
+
+### DXIL Entry Stage 與 Artifact Profile 檢查 — 2026-10-17
+
+✅ D3D12 指定 Entry Artifact 現會接受 Portable、有界的 DXBC／DXIL Program Metadata
+檢查。Reader 驗證 Container／版本／大小、Part 與 Bitcode 範圍、無重疊、單一執行 Part
+及 LLVM Magic；解碼已實作的 Vertex／Fragment／Compute Stage 與數值 Shader Model。
+階段不符、畸形及過舊 Profile 會在原生 PSO 分配前遭拒。Graphics 會檢查兩個所選圖形階段，
+與 Compute 分開。裝置能力仍為獨立檢查；硬體支援 SM6.9／6.10 不能讓既有 SM6.6 圖形或
+SM6.0 Compute Bytecode 滿足較新最低要求。沒有 DXIL 最低要求時保留選用 FXC 基線。
+未啟用任何原生進階功能，也未提高 Profile 基線。
+
+Portable 測試涵蓋 Stage／Profile 解碼、6.9／6.10 數值順序、每個截斷 Prefix、未排序
+Offset、畸形／溢位／重疊 Part 與重複 Program。Windows 啟用 Slang 的原生 CI 另讀取
+真正產生的 Artifact，檢查 SM6.6 圖形／SM6.0 Compute，建立基線 PSO，並在裝置支援時
+拒絕較新的 Artifact 要求。指定錯誤 Stage 的 Compute Artifact 也會在裝置建構時遭拒；Raw Fence Event 改於最後
+建立，避免建構驗證失敗時洩漏 Handle。
+Metadata Reader 不驗證 LLVM、Checksum／簽章、Compiler
+來源或 Preview Opt-in，不能證明 SM6.9／6.10 執行，也未完成完整 Toolchain 矩陣 Gate。
+
+來源分支：`feat/v2-dxil-artifact-admission`；Beads `nexora-45y.2.9`。
+啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
+`ctest --preset linux-development` **205/205 通過，零略過／失敗，122.74 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。聚焦執行
+`ctest --preset linux-development -R '^renderer\.(dxil_artifact_readiness|graphics_capabilities|contracts)$' --output-on-failure`：
+**3/3 通過，零略過，0.07 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+Linux Metadata-only Probe 另成功解析真正 vkd3d-proton DXIL Fixture：Compute SM6.6
+（2660 Bytes）、Fragment SM6.1（2472 Bytes）、Vertex SM6.0（1988 Bytes）。Fixture／
+Probe 留在 Repo 外；這是解析證據，不是 GPU 執行。Windows 執行／PSO 驗收須由 Hosted CI
+證明。新增匯出 C++ Helper 後須重建 Module；Stable C ABI 及 SDK／Compiler 基線不變。
+完整 V2 圖形、Compiler／Artifact 就緒矩陣與實體 GPU 效能 Gate 仍待完成。詳見
+[RHI Contract](../../Engine/RHI/README.md#dxil-artifact-stage-and-profile-admission)。
+
+### 不變的共用 Buffer 輸入 — 2026-10-17
+
+✅ 獨立且預設關閉的 `shared_buffer_read_recording` 能力，允許有界 Compute 與 Color-target
+Cohort 共用同 Queue／Access、相容的 Read/Read Buffer。可寫 Buffer 仍須分開；共用 Texture、
+全部寫入衝突與 Access／Queue 相依仍排除。明確選用 Callback、Caller 擁有且不變的資源、
+全部結束後提交、有序同步完成、取消與預設序列執行維持原契約。
+
+D3D12 快照現區分可能的 UAV 寫入與不變的 SRV／Indirect 讀取。已接受的可能寫入、CPU 上傳
+及非空讀回會推進資料 Revision；相容讀取保留 Revision。初始平行讀者可複製相同、持續保留
+的 Staging Revision，於每次獨立 Execute 邊界使用 COMMON Promotion／Decay。變更仍使舊
+讀者失效；未提交的上傳複製維持私有。已驗證的空讀取不使快照過期。
+
+共用原生 Oracle 新增 64 組 Compute CPU 比對（先平行且輸入仍待上傳、序列與失敗／取消
+復原）、強制四 Worker 重疊、分開的輸出 Sentinel 與成功重用。兩個圖形 Worker 共用新建
+Indirect 參數、寫入不同 Color Target，兩張圖均精確符合序列直接繪圖。D3D12 另驗證純讀者
+反向提交、上傳／讀回／GPU Writer 使快照失效、空讀取相容性及復原。Portable 測試保留自訂
+後端 Fallback 與 Write/Read、Read/Write、Write/Write、Access Hazard 順序。完整平行
+Feature 仍維持未啟用／未實作。
+
+來源分支：`feat/v2-shared-buffer-recording`；Beads `nexora-45y.2.10`。
+啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
+`ctest --preset linux-development` **205/205 通過，零略過／失敗，137.44 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。聚焦執行
+`ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|contracts|graphics_capabilities|vulkan_texture_recording|vulkan_descriptor_isolation)$' -V`：
+**5/5 通過，零略過，0.28 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+四項原生 Object／Synchronization Validation **4/4 通過，零略過，2.53 秒**，使用 Khronos
+Layer 1.3.275，Loader 證明載入；移除繼承 Shader 路徑後沒有 Validation Error／VUID／
+SYNC-HAZARD 訊息。Windows／Metal 原生執行須由 Hosted CI 證明。新增能力欄位後須重建
+全部 C++ Module；Stable C ABI 與 SDK／Shader 基線不變。共用 Texture 讀取、非同步重用、
+完整 Compiler／Artifact 就緒及同條件實體 GPU 效能仍待完成。詳見
+[RHI Contract](../../Engine/RHI/README.md#immutable-shared-buffer-reads)。
+
 ### 原生圖形／取消整合 — 2026-10-17
 
 ✅ PR626 整合取消／同池 Coordinator、Vulkan Framebuffer／Texture 隔離，以及 Vulkan、

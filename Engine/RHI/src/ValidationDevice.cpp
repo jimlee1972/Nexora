@@ -85,6 +85,7 @@ public:
     result.validation_only = true;
     result.independent_compute_recording = true;
     result.independent_graphics_recording = true;
+    result.shared_buffer_read_recording = true;
     result.software_device = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (auto &feature : result.features)
