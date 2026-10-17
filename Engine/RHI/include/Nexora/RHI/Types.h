@@ -164,8 +164,15 @@ enum class ComputeShaderVariant : std::uint8_t {
   LongVector69,
   LinearAlgebra610,
   GroupShared610,
-  SamplerFeedbackReference
+  SamplerFeedbackReference,
+  LongVectorReference,
+  LinearAlgebraReference,
+  GroupSharedReference
 };
+[[nodiscard]] constexpr bool IsModernComputeReference(ComputeShaderVariant variant) noexcept {
+  return variant >= ComputeShaderVariant::LongVectorReference &&
+         variant <= ComputeShaderVariant::GroupSharedReference;
+}
 
 struct BufferDescriptor final {
   std::uint64_t size{};

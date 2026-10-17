@@ -599,3 +599,9 @@ Model permission, so an accepted baseline or preview PSO cannot authorize anothe
 DXIL recipes require the actual device profile and separate RHI/runtime/artifact checks; the
 Renderer does not emulate modern GPU instructions. Full modern shader/cooking and fallback
 integration remain open in the paired V2 graphics plan.
+
+The fixed modern compute recipes additionally have explicit lower-profile RHI equivalents preserving
+the128-byte input/32-byte output ABI. Renderer callers may use existing capability checks and explicit
+preferred/fallback selection before requesting the chosen descriptor from PipelineCache; the device
+never silently changes a selected variant. Reference and modern variants have distinct cache identity.
+Existing RenderGraph worker failure/cancellation rules retain output/counters until cohort acceptance.

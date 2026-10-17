@@ -130,7 +130,7 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
        descriptor.graphics_shader != GraphicsShaderVariant::Triangle ||
        descriptor.shading_rate != ShadingRate::Full))
     throw std::invalid_argument("compute pipelines cannot select graphics topology or variants");
-  if (descriptor.compute_shader > ComputeShaderVariant::SamplerFeedbackReference ||
+  if (descriptor.compute_shader > ComputeShaderVariant::GroupSharedReference ||
       (descriptor.type != PipelineType::Compute &&
        descriptor.compute_shader != ComputeShaderVariant::GPUDriven))
     throw std::invalid_argument("invalid compute shader variant for pipeline type");

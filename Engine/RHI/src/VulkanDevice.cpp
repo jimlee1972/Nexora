@@ -1,3 +1,4 @@
+#include "ComputeReferenceArtifact.h"
 #include "Nexora/RHI/SpirvArtifact.h"
 #if !defined(NEXORA_ENABLE_NATIVE_BACKENDS)
 #error "VulkanDevice.cpp requires NEXORA_ENABLE_NATIVE_BACKENDS"
@@ -295,6 +296,13 @@ private:
   VkCommandPool command_pool_{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
   VkQueryPool timestamps_{VK_NULL_HANDLE};
+  struct ReferenceBufferSnapshot final {
+    BufferHandle handle;
+    std::uint64_t revision;
+    bool writes{};
+  };
+  void SnapshotReferenceBuffers();
+  std::unordered_map<std::uint64_t, ReferenceBufferSnapshot> reference_buffers_;
   struct TextureSnapshot final {
     TextureHandle handle;
     std::uint64_t revision;
@@ -311,6 +319,7 @@ private:
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
+  ComputeShaderVariant compute_shader_{ComputeShaderVariant::GPUDriven};
   PrimitiveTopology topology_{PrimitiveTopology::TriangleList};
   GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool submitted_{false};
@@ -387,6 +396,7 @@ private:
   TextureRecord &ValidateTextureLocked(TextureHandle texture);
   PipelineRecord &ValidatePipeline(PipelineHandle pipeline);
   BufferRecord &ValidateBuffer(BufferHandle buffer);
+  BufferRecord &ValidateBufferLocked(BufferHandle buffer);
   VkFramebuffer CreateFramebuffer(VkImageView view, VkRenderPass render_pass, std::uint32_t width,
                                   std::uint32_t height);
   void DestroyFramebuffer(VkFramebuffer framebuffer);
@@ -437,6 +447,7 @@ struct VulkanDevice::BufferRecord final {
   BufferDescriptor descriptor;
   VkBuffer buffer{VK_NULL_HANDLE};
   VkDeviceMemory memory{VK_NULL_HANDLE};
+  std::uint64_t revision{};
 };
 
 struct VulkanDevice::TextureRecord final {
@@ -1034,7 +1045,8 @@ BufferHandle VulkanDevice::CreateBuffer(const BufferDescriptor &descriptor) {
 
 void VulkanDevice::WriteBuffer(BufferHandle buffer, std::uint64_t offset,
                                std::span<const std::byte> data) {
-  auto &record = ValidateBuffer(buffer);
+  std::lock_guard lock{mutex_};
+  auto &record = ValidateBufferLocked(buffer);
   Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
           "Vulkan buffer write is out of bounds");
   void *mapped = nullptr;
@@ -1042,6 +1054,7 @@ void VulkanDevice::WriteBuffer(BufferHandle buffer, std::uint64_t offset,
         "vkMapMemory(buffer write)");
   std::memcpy(mapped, data.data(), data.size());
   functions_.UnmapMemory(device_, record.memory);
+  ++record.revision;
 }
 
 void VulkanDevice::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
@@ -1249,15 +1262,14 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
     ShaderModuleOwner selected{device_, functions_.DestroyShaderModule};
     auto module = compute_shader_module_;
     if (descriptor.compute_shader != ComputeShaderVariant::GPUDriven) {
-      const auto *environment = descriptor.compute_shader == ComputeShaderVariant::RayReference
-                                    ? "NEXORA_SLANG_RAY_REFERENCE_SPIRV_PATH"
-                                    : "NEXORA_SLANG_FEEDBACK_REFERENCE_SPIRV_PATH";
+      const auto *environment =
+          detail::ComputeReferenceEnvironment(descriptor.compute_shader, Backend::Vulkan);
       const auto words = ReadGeometrySpirv(environment, false, true);
       const VkShaderModuleCreateInfo module_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
                                                  nullptr, 0, words.size() * sizeof(std::uint32_t),
                                                  words.data()};
       Check(functions_.CreateShaderModule(device_, &module_info, nullptr, &selected.module),
-            "vkCreateShaderModule(ray reference)");
+            "vkCreateShaderModule(compute reference)");
       module = selected.module;
     }
     const VkPipelineShaderStageCreateInfo stage{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -1494,6 +1506,10 @@ VulkanDevice::PipelineRecord &VulkanDevice::ValidatePipeline(PipelineHandle pipe
 
 VulkanDevice::BufferRecord &VulkanDevice::ValidateBuffer(BufferHandle buffer) {
   std::lock_guard lock{mutex_};
+  return ValidateBufferLocked(buffer);
+}
+
+VulkanDevice::BufferRecord &VulkanDevice::ValidateBufferLocked(BufferHandle buffer) {
   const auto found = buffers_.find(Key(buffer));
   Require(buffer_pool_.Contains(buffer) && found != buffers_.end(),
           "binding invalid Vulkan buffer");
@@ -1515,6 +1531,10 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
       const auto &texture = ValidateTextureLocked(snapshot.handle);
       Require(texture.revision == snapshot.revision, "stale Vulkan texture recording snapshot");
     }
+    for (const auto &entry : validated->reference_buffers_) {
+      Require(ValidateBufferLocked(entry.second.handle).revision == entry.second.revision,
+              "stale Vulkan modern-reference buffer snapshot");
+    }
     validated->Close();
     const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence), "vkCreateFence(submit)");
@@ -1535,6 +1555,9 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
       texture.logical_state = entry.second.state;
       ++texture.revision;
     }
+    for (const auto &entry : validated->reference_buffers_)
+      if (entry.second.writes)
+        ++buffers_.at(entry.first).revision;
     validated->MarkSubmitted();
     ++diagnostics_.submitted_command_lists;
     diagnostics_.barriers += validated->Barriers();
@@ -1924,6 +1947,7 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
                                        record.pipeline);
     pipeline_bound_ = true;
     pipeline_type_ = PipelineType::Compute;
+    compute_shader_ = record.descriptor.compute_shader;
     return;
   }
   if (!rendering_)
@@ -2086,11 +2110,36 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
   ++indirect_draws_;
 }
 
+void VulkanCommandList::SnapshotReferenceBuffers() {
+  if (!IsModernComputeReference(compute_shader_))
+    return;
+  std::lock_guard lock{device_.mutex_};
+  for (std::size_t slot = 0; slot < storage_buffers_.size(); ++slot) {
+    if (!storage_bound_[slot])
+      throw std::logic_error("modern reference requires all four storage bindings");
+    const auto handle = storage_buffers_[slot];
+    const auto &record = device_.ValidateBufferLocked(handle);
+    auto &snapshot = reference_buffers_
+                         .try_emplace(Key(handle), ReferenceBufferSnapshot{handle, record.revision})
+                         .first->second;
+    device_.Require(snapshot.revision == record.revision,
+                    "modern reference buffer changed during recording");
+    snapshot.writes |= slot != 0;
+  }
+}
+
 void VulkanCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
                                  std::uint32_t groups_z) {
   if (submitted_ || closed_ || rendering_ || !pipeline_bound_ ||
       pipeline_type_ != PipelineType::Compute || groups_x == 0 || groups_y == 0 || groups_z == 0)
     throw std::logic_error("invalid Vulkan dispatch");
+  if (IsModernComputeReference(compute_shader_) &&
+      (groups_x != 1 || groups_y != 1 || groups_z != 1 ||
+       storage_buffers_[0] == storage_buffers_[1] ||
+       device_.ValidateBuffer(storage_buffers_[0]).descriptor.size < 128 ||
+       device_.ValidateBuffer(storage_buffers_[1]).descriptor.size < 32))
+    throw std::logic_error("modern reference requires one group and distinct 128/32-byte buffers");
+  SnapshotReferenceBuffers();
   const auto descriptors = SnapshotComputeBindings();
   device_.functions_.CmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
                                            device_.compute_pipeline_layout_, 0, 1, &descriptors, 0,
