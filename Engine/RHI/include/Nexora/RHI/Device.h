@@ -17,6 +17,8 @@ struct DeviceCreationOptions final {
   bool enable_gpu_timing{};
   // Optional bounded native allocator reuse; unsupported backends keep it disabled.
   bool enable_recording_resource_reuse{};
+  // D3D12-only optional route; unknown/unsupported SDK/runtime keeps legacy barriers.
+  bool enable_enhanced_barriers{};
 };
 struct DeviceDiagnostics final {
   std::uint64_t submitted_command_lists{};
@@ -34,6 +36,8 @@ struct DeviceDiagnostics final {
   std::uint64_t descriptor_pool_creations{};
   std::uint64_t descriptor_pool_reuses{};
   std::uint64_t cached_descriptor_pools{};
+  std::uint64_t enhanced_buffer_barriers{};
+  std::uint64_t enhanced_texture_barriers{};
 };
 class NEXORA_RHI_API CommandList {
 public:

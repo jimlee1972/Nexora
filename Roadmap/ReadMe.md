@@ -128,6 +128,13 @@ pixels and synchronization/object validation. 私有狀態／Revision 快照與�
 通過序列／四 Worker 像素精確比對及同步／物件 Validation；一般 Graph Graphics、其他後端
 Texture 隔離、非同步回收與效能 Gate 仍待完成。詳細證據見雙語 V2 圖形計畫。
 
+
+✅ V2-GFX-2 portable Enhanced Barrier projection / 可攜映射（2026-10-17）：
+Independent sync/access/layout policy and Null unavailability are verified. A default-off D3D12
+list7 path and legacy fallback are under native validation; this does not close the full gate.
+已驗證同步／存取／Layout 映射與 Null 不可用；預設關閉的 D3D12 list7／Legacy 後備待原生驗證。
+See the paired [graphics plan](en/V2_Advanced_Graphics_Capability_Plan.md).
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

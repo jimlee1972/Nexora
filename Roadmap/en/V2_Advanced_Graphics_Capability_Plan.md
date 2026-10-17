@@ -609,6 +609,26 @@ DX9/DX10/DX11 API backends are outside this extension; their relevant missing re
 tessellation, is included below. Lower CPU overhead requires measurements against the existing
 serial submission path, not an API-version claim.
 
+## V2-GFX-2 bounded Enhanced Barriers construction status
+
+✅ Portable independent sync/access/layout projection and explicit Null unavailability pass.
+The default-off D3D12 option now has a guarded list7 implementation: independent sync/access/layout
+projection for admitted copy, shader/UAV, render-target and indirect use; transactional snapshots;
+same-access UAV dependencies; and enhanced texture readback without unsafe legacy interleaving.
+SDK/hardware/interface availability is checked separately. Unsupported requests retain legacy output;
+actual native enabled state and accepted-user-list buffer/texture counts are reported. Aliasing,
+subresource ranges, native multi-queue handoffs and full GPU-validation acceptance remain open.
+Portable tests and Linux compilation do not certify D3D12 execution. Source
+`feat/v2-d3d12-enhanced-barriers`, Beads `nexora-45y.3.2`; hosted enabled/fallback evidence is pending.
+
+Local validation on main `1d48e918`: full native/Slang/Zig Development configure/build and
+Xvfb CTest **238/238, zero failures/skips,293.89 seconds** (Showcase on, graphical editor off).
+Focused projection/native regression **6/6,0.71 seconds**; Shipping Monolithic/Minimal LTO passes.
+Existing Vulkan native object/synchronization regressions **10/10,4.00 seconds**,25 layer insertions,
+zero validation/VUID/sync markers. The private native adapter also passes Clang19 syntax checking
+against separately staged Microsoft DirectX-Headers `461ef5138bd30922b44fbad77c4e47662812d2d5`;
+this is SDK-identifier evidence, not native D3D12 execution, and adds no project dependency.
+
 ## Delivery gates
 
 All complete gates remain **open**, including capability-dependent paths. A runtime fallback makes a device

@@ -517,3 +517,12 @@ additional native CTest `renderer.vulkan_recording_benchmark_reuse` verifies all
 warm retired allocations; ordinary benchmark mode verifies fresh allocations and no cache use.
 Both modes retain their own warmups, output sentinels, timing and CPU oracle. This option changes
 allocation policy only; it does not enable the full parallel feature or asynchronous submission.
+
+## Optional D3D12 enhanced synchronization
+
+The same RenderGraph access/dependency plans can execute on an explicitly enabled D3D12 Enhanced
+Barriers device without changing scheduling or revision rules. RHI projects admitted whole-buffer
+and whole-texture usage into independent sync/access/layout fields, including UAV/WAW and private
+texture readback. Default devices retain legacy barriers; unavailable requests report fallback.
+Cancelled cohorts still submit nothing and preserve output/state. This adds neither aliasing nor
+multi-native-queue handoffs. See the [RHI contract](../RHI/README.md#opt-in-d3d12-enhanced-barriers).

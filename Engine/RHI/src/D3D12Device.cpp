@@ -30,6 +30,8 @@
 #include <utility>
 #include <vector>
 
+#include "D3D12EnhancedBarriers.h"
+
 namespace nexora::rhi {
 namespace {
 using Microsoft::WRL::ComPtr;
@@ -300,6 +302,11 @@ private:
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhanced_list_;
+#endif
+  std::uint64_t enhanced_buffer_barriers_{};
+  std::uint64_t enhanced_texture_barriers_{};
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
@@ -350,6 +357,24 @@ public:
     }
 
     capabilities_ = QueryCapabilities(*device_.Get(), *selected.Get());
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    auto &enhanced =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)];
+    enhanced.implemented = true;
+    if (options.enable_enhanced_barriers && enhanced.support == CapabilitySupport::Supported) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList7> enhanced_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&enhanced_interface))) {
+        enhanced.enabled = SUCCEEDED(probe->Close());
+      }
+    }
+#endif
+
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     Check(device_->CreateCommandQueue(&queue_description, IID_PPV_ARGS(&queue_)),
@@ -677,6 +702,8 @@ public:
       validated->MarkSubmitted();
       ++diagnostics_.submitted_command_lists;
       diagnostics_.barriers += validated->Barriers();
+      diagnostics_.enhanced_buffer_barriers += validated->enhanced_buffer_barriers_;
+      diagnostics_.enhanced_texture_barriers += validated->enhanced_texture_barriers_;
       diagnostics_.draw_calls += validated->DrawCalls();
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
@@ -901,6 +928,11 @@ D3D12CommandList::D3D12CommandList(D3D12Device &device, QueueType queue) : devic
   Check(device_.device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator_.Get(),
                                            nullptr, IID_PPV_ARGS(&list_)),
         "CreateCommandList");
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  if (device_.capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)]
+          .enabled)
+    Check(list_.As(&enhanced_list_), "QueryInterface(command list7 enhanced barriers)");
+#endif
   if (device_.capabilities_.gpu_timing_enabled) {
     D3D12_QUERY_HEAP_DESC query{};
     query.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
@@ -967,7 +999,14 @@ ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOU
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     barrier.Transition.StateBefore = snapshot.state;
     barrier.Transition.StateAfter = target;
-    list_->ResourceBarrier(1, &barrier);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    if (enhanced_list_) {
+      detail::EmitEnhancedBufferBarrier(*enhanced_list_.Get(), record.gpu_resource.Get(),
+                                        snapshot.state, target);
+      ++enhanced_buffer_barriers_;
+    } else
+#endif
+      list_->ResourceBarrier(1, &barrier);
     snapshot.state = target;
   };
   if (snapshot.upload_pending) {
@@ -1018,7 +1057,14 @@ void D3D12CommandList::Transition(const Barrier &barrier) {
   native.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
   native.Transition.StateBefore = ToState(barrier.before);
   native.Transition.StateAfter = ToState(barrier.after);
-  list_->ResourceBarrier(1, &native);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  if (enhanced_list_) {
+    detail::EmitEnhancedTextureBarrier(*enhanced_list_.Get(), resource, barrier.before,
+                                       barrier.after);
+    ++enhanced_texture_barriers_;
+  } else
+#endif
+    list_->ResourceBarrier(1, &native);
   ++barriers_;
 }
 
@@ -1040,7 +1086,15 @@ void D3D12CommandList::TransitionBuffer(const BufferBarrier &barrier) {
     D3D12_RESOURCE_BARRIER native{};
     native.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
     native.UAV.pResource = resource;
-    list_->ResourceBarrier(1, &native);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    if (enhanced_list_) {
+      detail::EmitEnhancedBufferBarrier(*enhanced_list_.Get(), resource,
+                                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+      ++enhanced_buffer_barriers_;
+    } else
+#endif
+      list_->ResourceBarrier(1, &native);
   }
   ++barriers_;
 }
@@ -1224,19 +1278,33 @@ void D3D12Device::ReadTextureForTesting(TextureHandle texture, std::span<std::by
       Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
                                        IID_PPV_ARGS(&list)),
             "CreateCommandList(texture readback)");
-      const auto original = ToState(record.logical_state);
-      const auto transition = [&](D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) {
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+      ComPtr<ID3D12GraphicsCommandList7> enhanced;
+      if (capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)]
+              .enabled)
+        Check(list.As(&enhanced), "QueryInterface(texture readback enhanced barriers)");
+#endif
+      // Undefined logical contents still have the COMMON layout assigned at resource creation.
+      const auto original = record.logical_state == ResourceState::Undefined
+                                ? ResourceState::Present
+                                : record.logical_state;
+      const auto transition = [&](ResourceState before, ResourceState after) {
         if (before == after)
           return;
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = record.resource.Get();
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = before;
-        barrier.Transition.StateAfter = after;
-        list->ResourceBarrier(1, &barrier);
+        barrier.Transition.StateBefore = ToState(before);
+        barrier.Transition.StateAfter = ToState(after);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+        if (enhanced)
+          detail::EmitEnhancedTextureBarrier(*enhanced.Get(), record.resource.Get(), before, after);
+        else
+#endif
+          list->ResourceBarrier(1, &barrier);
       };
-      transition(original, D3D12_RESOURCE_STATE_COPY_SOURCE);
+      transition(original, ResourceState::CopySource);
       D3D12_TEXTURE_COPY_LOCATION destination{};
       destination.pResource = readback.Get();
       destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -1245,7 +1313,7 @@ void D3D12Device::ReadTextureForTesting(TextureHandle texture, std::span<std::by
       source.pResource = record.resource.Get();
       source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
       list->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
-      transition(D3D12_RESOURCE_STATE_COPY_SOURCE, original);
+      transition(ResourceState::CopySource, original);
       Check(list->Close(), "Close(texture readback)");
       ID3D12CommandList *native_list = list.Get();
       queue_->ExecuteCommandLists(1, &native_list);

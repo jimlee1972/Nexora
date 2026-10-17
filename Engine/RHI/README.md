@@ -548,3 +548,36 @@ serial/four-worker, 320 dispatch,48 graph,64 shared-input, failed/cancelled and 
 also run. Benchmark JSON reports matched descriptor storage creation/acquisition counters; smoke
 checks verify fresh default pools and exclusively warmed opt-in storage. This is synchronous
 retirement reuse; asynchronous timelines, full feature admission and physical budgets remain open.
+
+## Opt-in D3D12 Enhanced Barriers
+
+`DeviceCreationOptions::enable_enhanced_barriers` defaults to false. D3D12 marks the bounded
+implementation present only when the build SDK exposes `ID3D12GraphicsCommandList7`; enablement
+also requires the separately queried hardware support and a successful native list7 probe. An
+unavailable optional request retains legacy barriers. Other backends ignore this D3D12 request;
+no feature support is inferred. Existing factories, SDK/shader baselines and stable C ABI remain
+unchanged; all C++ modules rebuild for the appended option and diagnostic fields.
+
+The private adapter projects each admitted whole-resource transition into separate synchronization,
+memory-access and texture-layout fields. Copy, shader, render-target and indirect usage have
+explicit scopes. Shader synchronization includes graphics DRAW finalization for static descriptors.
+Undefined/common layout-only points use ALL with NO_ACCESS, avoiding NONE's prohibition on later
+resource access in the same execution scope. Undefined texture contents are discarded. UAV/WAW
+buffer dependencies emit same-access buffer barriers; buffers have no texture layout. Unknown or
+unadmitted projections reject before native emission. Existing revision validation and transactional
+list-local snapshots still control submission; failed/cancelled recordings commit no resource state.
+
+An enabled device uses enhanced texture barriers for both user lists and private texture readback,
+which restores the committed layout. It does not mix legacy/enhanced texture transitions without a
+COMMON bridge. Buffer readback starts a separate ExecuteCommandLists scope, where buffers implicitly
+return to legacy COMMON. The legacy path remains the default and provides the same output oracle.
+Accepted user-list diagnostics count enhanced buffer/texture barrier emission; rejected/abandoned
+lists and private readback do not increment those counters.
+
+`renderer.enhanced_barrier_projection` verifies portable usage policy and explicit Null unavailability.
+The Windows compute/graphics recording oracles also accept `--enhanced-barriers`, retaining CPU/pixel,
+shared-reader, stale/replay, cancellation and timing checks. They report actual enabled status and
+require nonzero native counters when enabled; an unavailable device explicitly tests legacy fallback.
+Portable projection, SDK-header syntax checks or enabled=0 output do not prove enhanced native
+execution. Aliasing, subresource ranges, multiple native queues and asynchronous handoffs remain
+outside this slice; full V2-GFX-2 GPU-validation/target acceptance stays open.

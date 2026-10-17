@@ -565,6 +565,25 @@ DX12 Ultimate 或更新 Shader 功能的驗收。
 後端，而是納入其中尚缺的渲染能力 Tessellation。降低 CPU 開銷必須與現有序列提交路徑
 實測比較，不能只憑 API 版本宣稱達成。
 
+## V2-GFX-2 有界 Enhanced Barriers 施工狀態
+
+✅ Portable 同步／存取／Layout 獨立映射與 Null 明確不可用測試通過。
+D3D12 新增預設關閉、受 SDK guard 保護的 list7 實作：將已准入的 Copy、Shader／UAV、Render Target
+與 Indirect 用途分別映射同步、存取與 Layout，保留交易式 Snapshot，加入同用途 UAV 相依，以及
+避免不安全 Legacy 交錯的 Enhanced Texture 讀回。SDK／硬體／介面可用性分開檢查；不支援時保留
+Legacy 輸出。測試回報實際啟用狀態與已接受使用者 List 的 Buffer／Texture 計數。
+Aliasing、Subresource 範圍、多原生 Queue 交接及完整 GPU Validation 驗收仍待完成。
+Portable 測試與 Linux 編譯不代表 D3D12 執行。來源 `feat/v2-d3d12-enhanced-barriers`，
+Beads `nexora-45y.3.2`；Hosted 啟用／後備證據待補。
+
+main `1d48e918` 本地驗證：原生／Slang／Zig Development configure/build 與 Xvfb CTest
+**238/238、零失敗／略過、293.89秒**（Showcase 開、Graphical Editor 關）。
+聚焦映射／原生回歸 **6/6、0.71秒**；Shipping Monolithic／Minimal LTO 通過。
+既有 Vulkan 原生物件／同步回歸 **10/10、4.00秒**，確認25次 Layer 插入，Validation／VUID／Sync
+錯誤為零。Private 原生 Adapter 另以獨立暫存的 Microsoft DirectX-Headers
+`461ef5138bd30922b44fbad77c4e47662812d2d5` 通過 Clang19 語法檢查；這僅驗證 SDK 識別字，
+不是 D3D12 執行，不新增專案相依。
+
 ## 交付 Gate
 
 所有完整 gate 仍為**待完成**，包含依能力啟用的路徑。Runtime fallback 能讓裝置繼續執行，
