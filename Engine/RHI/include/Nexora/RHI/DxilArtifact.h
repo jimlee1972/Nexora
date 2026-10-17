@@ -11,6 +11,14 @@ struct DxilProgramInfo final {
   ShaderStage stage;
   FeatureVersion shader_model;
 };
+struct DxilLibraryInfo final {
+  FeatureVersion shader_model;
+};
+// Library kind/profile only: actual exports, node/RT stages and ABI require separate admission.
+[[nodiscard]] NEXORA_RHI_API std::optional<DxilLibraryInfo>
+InspectDxilLibrary(std::span<const std::byte> artifact) noexcept;
+NEXORA_RHI_API DxilLibraryInfo RequireDxilLibrary(std::span<const std::byte> artifact,
+                                                  FeatureVersion minimum_shader_model);
 // Reads bounded container/program metadata for supported entry stages. This does not validate
 // LLVM bitcode, signatures, compiler provenance, preview opt-in or device execution support.
 [[nodiscard]] NEXORA_RHI_API std::optional<DxilProgramInfo>

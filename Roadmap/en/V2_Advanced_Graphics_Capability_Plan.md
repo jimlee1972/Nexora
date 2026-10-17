@@ -698,6 +698,90 @@ baked parity, artifact negatives and overlapping-worker cancellation/replay. Met
 baked fallback and explicitly reports native tessellation unavailable. Broader authoring/cook and
 physical acceptance remain open.
 
+## V2-GFX-5 bounded Work Graph construction status
+
+A default-off Windows-native option uses separately discovered SDK DXC for SM6.8 node libraries,
+retaining Slang compute/indirect fallback and baseline profiles. Real Linux DXC1.9.2609.5 compiles
+the two-node library; the actual engine library inspector reads SM6.8 while its single-entry
+inspector rejects libraries. Slang2026.18 does not implement the required Node types, so the normal
+Slang route is not used. Native SDK helper syntax checks pass; no D3D12 execution is claimed yet.
+
+The bounded recipe expands one eight-byte CPU input into up to eight canonical visible records.
+Native creation validates program/nodes/entry ABI and a dedicated output-only root. Each live list
+owns fresh initialization/backing contexts, immutable program snapshots and existing output revision
+checks. Oracles compare CPU/real GPU compute, wrong compiled ABI, stale/abandoned resources, copied
+input records, mixed program/root state and cancellation/replay. Source
+`feat/v2-native-work-graph-fanout`, Beads `nexora-45y.6.1`.
+
+✅ Local library/admission and real compute fallback acceptance: Linux Development configure/build
+and full CTest pass 217/217 with no failures or skips (133.53s); Shipping Minimal/Monolithic LTO
+build passes. Focused library/mesh/VRS/work-graph/runtime tests pass 7/7 after the final input-bound
+changes (0.26s). Khronos object/synchronization validation passes 14/14 (15.65s), with 33 confirmed
+layer insertions and zero validation errors/VUID/synchronization hazards. Native Work Graph
+execution remains pending on Windows; the Linux fallback reports enabled=0 and dispatches=0.
+General graphs/graphics nodes, newer shader profiles, physical budgets and all full gates stay open.
+
+
+The Work Graph candidate now includes PR632's latest combined barrier/mesh/VRS source dependency.
+After integration, Development configure/build and full CTest pass **218/218**, zero failures/skips
+(133.84s), Shipping Minimal/Monolithic LTO passes, and focused contracts/profile tests pass **8/8**.
+The native Khronos object/sync selection passes **13/13** (4.06s), with24 confirmed layer insertions
+and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
+pending; successful Linux compute fallback is not native node proof.
+
+## V2-GFX-3 bounded triangle-ray construction status
+
+`feat/v2-bounded-native-rays`, Beads `nexora-45y.4.2`, implements an immutable one-to-eight-triangle
+BLAS/TLAS recipe, dedicated root/state/shader-table ownership, native `DispatchRays` and tier1.1
+inline queries. It preserves caller-serialized creation/submission, pre-submit handle/revision
+validation, privately retained per-list snapshots and ordinary compute state restoration. Existing
+Slang opt-in emits independent library6.3/query6.5 targets and lower-SM compute traversal; baseline
+profiles stay unchanged. Actual reflection checks root/32-byte input/16-byte hit ABI, and private
+exact-byte identities reject changed same-profile recipes before native creation. No full gate closes.
+
+✅ Real Slang2026.18 + official DXC1.9.2609.5 compiler probes, actual engine library/entry admission,
+and Linux native Vulkan compute/reference focused checks pass. With precise floating-point mode,
+the Slang library is6972bytes/SM6.3 and query5236bytes/SM6.5; these are actual artifacts, not native
+execution proof. The double-precision CPU oracle matches real compute hit/miss/nearest/barycentric
+outputs, invalid rays, canaries and forced two-worker failure/cancellation/replay for1/2/8 triangles
+and1/64 rays. Native SDK helper syntax passes with warnings-as-errors. Windows AS build, ray/query
+dispatch, stale/abandoned lifetimes and enhanced/legacy parity remain pending. General AS update/
+compaction, shadow/reflection/AO integration, DXR1.2, SER and physical/full acceptance remain open.
+
+The next own PR integrates the Work Graph and ray recipes because they share library admission
+and native program ownership. On that combined source, Development configure/build and full CTest
+pass **219/219**, zero failures/skips (134.55s), focused contracts/profile tests **9/9** (0.31s), and
+Shipping Minimal/Monolithic LTO passes. Khronos object/synchronization validation with Xvfb passes
+**17/17** (9.41s), with37 confirmed layer insertions and zero validation/VUID/sync errors.
+The separate precise-mode ray candidate passed218/218 (123.92s); native Vulkan fallback remains
+explicitly ray/node enabled=0. Actual production CMake artifact recipes execute successfully with
+staged Linux DXC; the Windows SDK preflight, normal/wrong-entry node libraries and exact reflected
+ray-byte identity generation pass. A real changed ray library remains valid SM6.3 while differing
+from the pinned recipe, exercising the intended negative boundary. Combined SDK helper and Windows
+conditional test syntax checks pass with warnings-as-errors. Windows additionally exercises
+Node/Ray/Node program/root switching when both capabilities are admitted; this native interop
+and both advanced program executions remain pending until hosted proof. No full gate closes.
+
+## Hosted Enhanced Barriers, mesh and VRS acceptance (PR632)
+
+✅ Own PR632 squash-merged as `bb61b59d3d9d1591932a866dcf9bf17c49ab0a64` after all36 final-head
+checks and both first-attempt workflows39026010174/39026013053 succeeded on7f35467e. Push/PR suites:
+Linux363/363 (1342.22/1349.13s), Windows310/310 (1278.89/1322.51s), macOS302/302 (640.91/563.69s).
+Both Windows runs execute native mesh enabled1/16 dispatches and VRS enabled1/8 coarse calls in
+legacy/enhanced modes. Enhanced Barriers report graphics texture182/buffer2, compute buffer2629,
+VRS texture44 and mesh texture64/buffer40. Native CPU/pixel comparisons, artifact negatives,
+full-rate reset, shared-input workers and stale/abandoned/cancelled replay all pass. Linux/Metal
+execute real compute/indirect/full-rate fallback, explicitly mesh/VRS enabled0. Package, Vulkan
+validation, Editor display, build-contract and sanitizer checks pass. This completes child tasks
+nexora-45y.3.2/.5.1/.5.2, not full V2-GFX-2/4 or Ultimate. Broader topology/cook, aliasing,
+multiqueue, general meshlets/amplification/indirect mesh, VRS2 images and physical budgets stay open.
+
+The current hosted D3D12 query independently reports RT1.1, mesh1.0, VRS1.0, feedback1.0,
+Work Graph1.0 and SM6.8. This supports implementing compatible remaining paths; it does not
+certify their execution or admit RT1.2, SM6.9/6.10 or SER. The Node/Ray source rebase from632head
+onto its squash has an identical tested tree (`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`);
+no pending Tessellation/mesh/VRS/barrier commits are duplicated in the next PR.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

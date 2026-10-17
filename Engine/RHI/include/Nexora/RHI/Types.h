@@ -13,10 +13,12 @@ struct BufferTag;
 struct TextureTag;
 struct PipelineTag;
 struct FenceTag;
+struct WorkGraphTag;
 using BufferHandle = core::Handle<BufferTag>;
 using TextureHandle = core::Handle<TextureTag>;
 using PipelineHandle = core::Handle<PipelineTag>;
 using FenceHandle = core::Handle<FenceTag>;
+using WorkGraphHandle = core::Handle<WorkGraphTag>;
 
 enum class Backend : std::uint8_t { Null, Direct3D12, Vulkan, Metal };
 
@@ -79,6 +81,25 @@ struct GraphicsRequirements final {
   FeatureVersion minimum_dxil_shader_model{};
   friend bool operator==(const GraphicsRequirements &, const GraphicsRequirements &) = default;
 };
+// Bounded visible-record expansion recipe; not a general graph authoring API.
+inline constexpr std::uint32_t WorkGraphMaximumRecords = 8;
+inline constexpr std::uint32_t WorkGraphMaximumDispatchesPerList = 4;
+inline constexpr std::uint32_t WorkGraphVisibleRecordWords = 5;
+struct WorkGraphDescriptor final {
+  GraphicsRequirements graphics_requirements{};
+  std::string debug_name;
+};
+struct WorkGraphInput final {
+  std::uint32_t count{};
+  std::uint32_t first_object_slot{};
+};
+static_assert(sizeof(WorkGraphInput) == 8);
+static_assert(offsetof(WorkGraphInput, count) == 0 &&
+              offsetof(WorkGraphInput, first_object_slot) == 4);
+constexpr bool IsWorkGraphInputValid(WorkGraphInput input) noexcept {
+  return input.count <= WorkGraphMaximumRecords &&
+         (input.count == 0 || input.first_object_slot <= UINT32_MAX - input.count);
+}
 enum class QueueType : std::uint8_t { Graphics, Compute, Copy };
 // Whole-buffer GPU dependency scopes. Undefined is conservative prior access, not discard.
 enum class BufferAccess : std::uint8_t { Undefined, ShaderRead, StorageReadWrite, IndirectRead };
@@ -128,6 +149,7 @@ constexpr bool SupportsBuiltinIndirectDraw(PrimitiveTopology topology,
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
 enum class PipelineType : std::uint8_t { Graphics, Compute };
+enum class ComputeShaderVariant : std::uint8_t { GPUDriven, RayReference };
 
 struct BufferDescriptor final {
   std::uint64_t size{};
@@ -157,6 +179,7 @@ struct PipelineDescriptor final {
   std::uint32_t patch_control_points{};
   GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
   ShadingRate shading_rate{ShadingRate::Full};
+  ComputeShaderVariant compute_shader{ComputeShaderVariant::GPUDriven};
 };
 struct RenderingInfo final {
   TextureHandle color_target;

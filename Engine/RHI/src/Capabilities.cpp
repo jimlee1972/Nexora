@@ -4,6 +4,22 @@
 #include <string>
 
 namespace nexora::rhi {
+GraphicsRequirements EffectiveRayProgramRequirements(const RayProgramDescriptor &descriptor) {
+  if (descriptor.mode > RayTracingMode::InlineQuery)
+    throw std::invalid_argument("invalid ray tracing mode");
+  auto requirements = descriptor.graphics_requirements;
+  const FeatureVersion tier =
+      descriptor.mode == RayTracingMode::InlineQuery ? FeatureVersion{1, 1} : FeatureVersion{1, 0};
+  const FeatureVersion model =
+      descriptor.mode == RayTracingMode::InlineQuery ? FeatureVersion{6, 5} : FeatureVersion{6, 3};
+  auto &minimum = requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
+  if (minimum < tier)
+    minimum = tier;
+  if (requirements.minimum_dxil_shader_model < model)
+    requirements.minimum_dxil_shader_model = model;
+  return requirements;
+}
+
 CapabilityCheck CheckGraphicsRequirements(const GraphicsDeviceCapabilities &capabilities,
                                           const GraphicsRequirements &requirements) noexcept {
   for (std::size_t index = 0; index < GraphicsFeatureCount; ++index) {
@@ -91,6 +107,10 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
        descriptor.graphics_shader != GraphicsShaderVariant::Triangle ||
        descriptor.shading_rate != ShadingRate::Full))
     throw std::invalid_argument("compute pipelines cannot select graphics topology or variants");
+  if (descriptor.compute_shader > ComputeShaderVariant::RayReference ||
+      (descriptor.type != PipelineType::Compute &&
+       descriptor.compute_shader != ComputeShaderVariant::GPUDriven))
+    throw std::invalid_argument("invalid compute shader variant for pipeline type");
   auto requirements = descriptor.graphics_requirements;
   if (descriptor.topology == PrimitiveTopology::PatchList) {
     if (descriptor.patch_control_points != 3 ||
@@ -122,5 +142,14 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
 void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                  const PipelineDescriptor &descriptor) {
   RequireGraphicsCapabilities(capabilities, EffectivePipelineRequirements(descriptor));
+}
+GraphicsRequirements EffectiveWorkGraphRequirements(const WorkGraphDescriptor &descriptor) {
+  auto requirements = descriptor.graphics_requirements;
+  auto &minimum = requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::WorkGraphs)];
+  if (minimum < FeatureVersion{1, 0})
+    minimum = {1, 0};
+  if (requirements.minimum_dxil_shader_model < FeatureVersion{6, 8})
+    requirements.minimum_dxil_shader_model = {6, 8};
+  return requirements;
 }
 } // namespace nexora::rhi

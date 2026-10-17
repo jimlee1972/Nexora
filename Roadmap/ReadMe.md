@@ -294,5 +294,17 @@ Tinted HDR crystal blending and nearest-layer focus now share the native adapter
 Own PR631 merged after all36 checks and both Linux/Windows/macOS workflows passed. Native Vulkan
 and D3D12 curved patches and Metal baked fallback are verified; the full V2-GFX-2 gate stays open.
 PR631 已通過36檢查及兩輪三平台 CI 後合併；原生曲面與 Metal 後備驗證完成，完整 Gate 維持開放。
-PR632 integrates bounded Enhanced Barriers/mesh/VRS for final native acceptance.
-PR632 整合有界 Enhanced Barriers／Mesh／VRS，最終原生驗收進行中。
+✅ PR632 merged after36/36 checks and both native Windows310/310 suites; bounded Enhanced Barriers,
+mesh and per-draw VRS are verified. Full graphics/Ultimate gates stay open.
+PR632 已通過36檢查及兩輪 Windows310/310 後合併；有界 Enhanced Barriers／Mesh／Per-draw VRS
+原生驗收完成，完整圖形／Ultimate Gate 維持開放。
+
+✅ V2-GFX-5 Work Graph library/admission and compute fallback / Work Graph Library、能力檢查與 Compute 後備（2026-10-17）：
+real SM6.8 DXC libraries and bounded library parsing pass Linux Development/Shipping and native Vulkan fallback validation.
+Windows native node execution remains pending; no full graphics gate closes. 真實 SM6.8 DXC Library、有界解析及 Vulkan Compute 後備
+通過 Linux Development／Shipping 與同步驗證；Windows 原生節點執行仍待驗收，完整圖形 Gate 維持開放。
+
+✅ V2-GFX-3 ray compilation and real compute reference / Ray 編譯及真實 Compute 參考（2026-10-17）：
+real Slang/DXC library and inline-query artifacts plus Linux native compute/CPU traversal oracles pass.
+Windows AS/native dispatch and complete DXR/SER acceptance remain pending. 真實 Library／Inline Query 編譯
+與 Linux 原生 Compute／CPU 交點比對通過；Windows AS／原生 Dispatch 及完整 DXR／SER 驗收仍待完成。

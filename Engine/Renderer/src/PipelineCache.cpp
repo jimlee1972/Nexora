@@ -20,7 +20,8 @@ PipelineCacheKey MakePipelineCacheKey(const rhi::PipelineDescriptor &descriptor,
           descriptor.topology,
           descriptor.patch_control_points,
           descriptor.graphics_shader,
-          descriptor.shading_rate};
+          descriptor.shading_rate,
+          descriptor.compute_shader};
 }
 struct PipelineFuture::State final {
   std::atomic_bool ready{false};
@@ -62,7 +63,8 @@ struct PipelineCache::Implementation final {
       for (const auto value : {static_cast<std::size_t>(key.topology),
                                static_cast<std::size_t>(key.patch_control_points),
                                static_cast<std::size_t>(key.graphics_shader),
-                               static_cast<std::size_t>(key.shading_rate)})
+                               static_cast<std::size_t>(key.shading_rate),
+                               static_cast<std::size_t>(key.compute_shader)})
         hash ^= value + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       const auto mix_version = [&hash](rhi::FeatureVersion version) {
         const auto value = (static_cast<std::size_t>(version.major) << 16U) | version.minor;

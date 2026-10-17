@@ -166,6 +166,8 @@ public:
   }
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
     RequirePipelineCapabilities(Capabilities(), descriptor);
+    if (descriptor.compute_shader != ComputeShaderVariant::GPUDriven)
+      throw std::invalid_argument("Validation does not simulate the native ray reference kernel");
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0) {
       throw std::invalid_argument("pipeline hashes must be non-zero");
     }

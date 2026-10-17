@@ -1,0 +1,617 @@
+#include "Nexora/RHI/Capabilities.h"
+#include "Nexora/Renderer/PipelineCache.h"
+#include "Nexora/Renderer/RenderGraph.h"
+#include <algorithm>
+#include <array>
+#include <barrier>
+#include <bit>
+#include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <limits>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+using namespace nexora;
+namespace {
+void Require(bool value, const char *message) {
+  if (!value)
+    throw std::runtime_error(message);
+}
+template <class F> void Reject(F function, const char *message) {
+  bool rejected = false;
+  try {
+    function();
+  } catch (const std::exception &) {
+    rejected = true;
+  }
+  Require(rejected, message);
+}
+template <class F> void RejectContains(F function, const char *message) {
+  try {
+    function();
+  } catch (const std::exception &error) {
+    Require(std::string{error.what()}.find(message) != std::string::npos,
+            "ray rejection missed the expected artifact boundary");
+    return;
+  }
+  throw std::runtime_error("invalid ray artifact was admitted");
+}
+constexpr std::uint32_t Sentinel = 0xcdcdcdcdU;
+std::vector<rhi::RayTriangle> Triangles(std::uint32_t count) {
+  std::vector<rhi::RayTriangle> result;
+  for (std::uint32_t i = 0; i < count; ++i) {
+    const float z = 2 + 2 * static_cast<float>(i);
+    result.push_back({{-1, -1, z, 1, -1, z, 0, 1, z}});
+  }
+  return result;
+}
+std::vector<rhi::RayInput> Rays(std::uint32_t count) {
+  std::vector<rhi::RayInput> result;
+  for (std::uint32_t i = 0; i < count; ++i) {
+    rhi::RayInput ray{{-.25F, -.25F, 0}, 0, {0, 0, 1}, 100};
+    switch (i % 10) {
+    case 1:
+      ray.origin[0] = 2;
+      break;
+    case 2:
+      ray.origin[2] = 17;
+      ray.direction[2] = -1;
+      break;
+    case 3:
+      ray.maximum = 1;
+      break;
+    case 4:
+      ray.minimum = 3;
+      break;
+    case 5:
+      ray.direction = {0, 0, 0};
+      break;
+    case 6:
+      ray.origin[0] = std::numeric_limits<float>::quiet_NaN();
+      break;
+    case 7:
+      ray.minimum = -1;
+      break;
+    case 8:
+      ray.direction[2] = 2;
+      break;
+    case 9:
+      ray.maximum = std::numeric_limits<float>::infinity();
+      break;
+    }
+    result.push_back(ray);
+  }
+  return result;
+}
+// Double-precision CPU oracle, independent from the GPU shader's float arithmetic.
+rhi::RayHit Reference(std::span<const rhi::RayTriangle> triangles, const rhi::RayInput &ray) {
+  using V = std::array<double, 3>;
+  auto sub = [](V a, V b) -> V { return {a[0] - b[0], a[1] - b[1], a[2] - b[2]}; };
+  auto cross = [](V a, V b) -> V {
+    return {a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
+  };
+  auto dot = [](V a, V b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; };
+  V origin{}, direction{};
+  float length = 0;
+  bool valid = std::isfinite(ray.minimum) && std::isfinite(ray.maximum) && ray.minimum >= 0 &&
+               ray.maximum >= ray.minimum;
+  for (std::size_t j = 0; j < 3; ++j) {
+    origin[j] = ray.origin[j];
+    direction[j] = ray.direction[j];
+    valid = valid && std::isfinite(ray.origin[j]) && std::isfinite(ray.direction[j]);
+    length += ray.direction[j] * ray.direction[j];
+  }
+  valid = valid && std::isfinite(length) && length > 0;
+  if (!valid)
+    return {rhi::RayInvalidPrimitive, 0, {0, 0}};
+  rhi::RayHit result{rhi::RayMissPrimitive, ray.maximum, {0, 0}};
+  double distance = ray.maximum;
+  for (std::size_t i = 0; i < triangles.size(); ++i) {
+    const auto &v = triangles[i].vertices;
+    V a{v[0], v[1], v[2]}, b{v[3], v[4], v[5]}, c{v[6], v[7], v[8]};
+    const auto e1 = sub(b, a), e2 = sub(c, a), p = cross(direction, e2);
+    const auto determinant = dot(e1, p);
+    if (determinant == 0)
+      continue;
+    const auto t = sub(origin, a), q = cross(t, e1);
+    const auto u = dot(t, p) / determinant, w = dot(direction, q) / determinant,
+               hit = dot(e2, q) / determinant;
+    if (u >= 0 && w >= 0 && u + w <= 1 && hit >= ray.minimum && hit <= distance) {
+      distance = hit;
+      result = {static_cast<std::uint32_t>(i),
+                static_cast<float>(hit),
+                {static_cast<float>(u), static_cast<float>(w)}};
+    }
+  }
+  return result;
+}
+std::vector<std::uint32_t> Empty(std::uint32_t count) {
+  return std::vector<std::uint32_t>((count + 1) * 4, Sentinel);
+}
+struct Workload final {
+  std::array<rhi::BufferHandle, 5> buffers;
+  std::uint32_t count;
+  std::vector<rhi::RayHit> expected;
+};
+Workload Make(rhi::Device &device, std::span<const rhi::RayTriangle> triangles,
+              std::uint32_t count) {
+  const auto rays = Rays(count);
+  std::vector<std::uint32_t> packed{count, static_cast<std::uint32_t>(triangles.size())};
+  for (const auto &triangle : triangles)
+    for (float v : triangle.vertices)
+      packed.push_back(std::bit_cast<std::uint32_t>(v));
+  for (const auto &ray : rays) {
+    for (float v : ray.origin)
+      packed.push_back(std::bit_cast<std::uint32_t>(v));
+    packed.push_back(std::bit_cast<std::uint32_t>(ray.minimum));
+    for (float v : ray.direction)
+      packed.push_back(std::bit_cast<std::uint32_t>(v));
+    packed.push_back(std::bit_cast<std::uint32_t>(ray.maximum));
+  }
+  Workload result{{device.CreateBuffer({packed.size() * 4, "ray reference input"}),
+                   device.CreateBuffer({(count + 1) * sizeof(rhi::RayHit), "ray hits plus canary"}),
+                   device.CreateBuffer({16, "reference unused2"}),
+                   device.CreateBuffer({16, "reference unused3"}),
+                   device.CreateBuffer({rays.size() * sizeof(rhi::RayInput), "native ray inputs"})},
+                  count,
+                  {}};
+  device.WriteBuffer(result.buffers[0], 0, std::as_bytes(std::span{packed}));
+  device.WriteBuffer(result.buffers[4], 0, std::as_bytes(std::span{rays}));
+  const auto empty = Empty(count);
+  device.WriteBuffer(result.buffers[1], 0, std::as_bytes(std::span{empty}));
+  for (const auto &ray : rays)
+    result.expected.push_back(Reference(triangles, ray));
+  return result;
+}
+void Destroy(rhi::Device &device, const Workload &work) {
+  for (auto buffer : work.buffers)
+    device.DestroyBuffer(buffer);
+}
+std::vector<std::uint32_t> Read(rhi::Device &device, const Workload &work) {
+  auto words = Empty(work.count);
+  device.ReadBufferForTesting(work.buffers[1], 0, std::as_writable_bytes(std::span{words}));
+  return words;
+}
+void Compare(rhi::Device &device, const Workload &work) {
+  const auto words = Read(device, work);
+  for (std::uint32_t i = 0; i < work.count; ++i) {
+    const auto &expected = work.expected[i];
+    Require(words[i * 4] == expected.primitive,
+            "ray primitive differs from double-precision CPU traversal");
+    Require(std::abs(std::bit_cast<float>(words[i * 4 + 1]) - expected.distance) <= 1e-4F,
+            "ray distance differs from CPU traversal");
+    for (std::size_t j = 0; j < 2; ++j)
+      Require(std::abs(std::bit_cast<float>(words[i * 4 + 2 + j]) - expected.barycentrics[j]) <=
+                  1e-4F,
+              "ray barycentrics differ from CPU traversal");
+  }
+  for (std::size_t i = work.count * 4; i < words.size(); ++i)
+    Require(words[i] == Sentinel, "ray dispatch overwrote the output canary");
+}
+void Record(rhi::CommandList &commands, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+            rhi::RaySceneHandle scene, const Workload &work) {
+  if (program.IsValid())
+    commands.TraceRays(program, scene, work.buffers[4], work.buffers[1], work.count);
+  else {
+    commands.BindPipeline(compute);
+    for (std::uint32_t slot = 0; slot < 4; ++slot)
+      commands.BindStorageBuffer(slot, work.buffers[slot]);
+    commands.Dispatch(work.count);
+  }
+}
+void Execute(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+             rhi::RaySceneHandle scene, const Workload &work) {
+  auto commands = device.CreateCommandList(rhi::QueueType::Compute);
+  Record(*commands, compute, program, scene, work);
+  device.WaitForSubmission(device.Submit(*commands));
+  commands.reset();
+  Compare(device, work);
+}
+void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+              rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles) {
+  std::array work{Make(device, triangles, 64), Make(device, triangles, 64)};
+  renderer::RenderGraph graph;
+  std::barrier overlap{2};
+  core::CancellationSource cancellation;
+  bool fail = false, cancel = false;
+  for (std::size_t worker = 0; worker < 2; ++worker) {
+    std::array<renderer::GraphBuffer, 5> buffers;
+    for (std::size_t slot = 0; slot < buffers.size(); ++slot)
+      buffers[slot] = graph.ImportBuffer(work[worker].buffers[slot], rhi::BufferAccess::Undefined,
+                                         rhi::QueueType::Compute);
+    renderer::RenderGraph::PassDescriptor pass{
+        "bounded rays", rhi::QueueType::Compute, {}, {}, [&, worker](auto &commands, auto) {
+          Record(commands, compute, program, scene, work[worker]);
+          overlap.arrive_and_wait();
+          if (worker == 0 && fail)
+            throw std::runtime_error("intentional ray cohort failure");
+          if (worker == 1 && cancel)
+            cancellation.Cancel();
+        }};
+    for (auto slot : {0U, 4U})
+      pass.buffer_reads.push_back({buffers[slot], rhi::BufferAccess::ShaderRead});
+    for (auto slot : {1U, 2U, 3U})
+      pass.buffer_writes.push_back({buffers[slot], rhi::BufferAccess::StorageReadWrite});
+    pass.allow_parallel_recording = true;
+    (void)graph.AddPass(std::move(pass));
+  }
+  graph.Compile();
+  core::JobSystem jobs{2};
+  jobs.Start();
+  renderer::RenderGraph::ExecutionOptions options{renderer::RenderGraph::RecordingMode::Parallel,
+                                                  &jobs, 2};
+  for (unsigned mode = 0; mode < 2; ++mode) {
+    fail = mode == 0;
+    cancel = mode == 1;
+    options.cancellation = cancel ? cancellation.Token() : core::CancellationToken{};
+    const auto before = device.Diagnostics();
+    Reject([&] { graph.Execute(device, options); }, "aborted ray cohort succeeded");
+    const auto after = device.Diagnostics();
+    Require(before.submitted_command_lists == after.submitted_command_lists &&
+                before.ray_dispatch_calls == after.ray_dispatch_calls &&
+                before.inline_ray_dispatch_calls == after.inline_ray_dispatch_calls,
+            "aborted ray cohort committed work");
+    for (const auto &item : work)
+      Require(Read(device, item) == Empty(item.count), "aborted ray cohort changed output");
+  }
+  fail = cancel = false;
+  options.cancellation = {};
+  graph.Execute(device, options);
+  Require(graph.GetStatistics().parallel_recorded_pass_count == 2, "ray workers did not overlap");
+  for (const auto &item : work)
+    Compare(device, item);
+  jobs.Stop();
+  for (const auto &item : work)
+    Destroy(device, item);
+}
+void TestLifetime(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                  rhi::RaySceneHandle scene, const rhi::RayProgramDescriptor &descriptor,
+                  std::span<const rhi::RayTriangle> triangles) {
+  auto work = Make(device, triangles, 64);
+  auto small = device.CreateBuffer({4, "small ray buffer"});
+  {
+    auto abandoned = device.CreateCommandList(rhi::QueueType::Compute);
+    Reject([&] { abandoned->TraceRays(program, scene, work.buffers[4], work.buffers[1], 0); },
+           "zero rays admitted");
+    Reject([&] { abandoned->TraceRays(program, scene, work.buffers[4], work.buffers[1], 65); },
+           "oversized rays admitted");
+    Reject([&] { abandoned->TraceRays(program, scene, small, work.buffers[1], 64); },
+           "small input admitted");
+    Reject([&] { abandoned->TraceRays(program, scene, work.buffers[4], small, 64); },
+           "small output admitted");
+    Reject([&] { abandoned->TraceRays(program, scene, work.buffers[4], work.buffers[4], 64); },
+           "ray input/output alias admitted");
+    Record(*abandoned, compute, program, scene, work);
+    Reject([&] { abandoned->Dispatch(1); }, "ordinary dispatch inherited a ray program");
+  }
+  device.DestroyBuffer(small);
+  Require(Read(device, work) == Empty(work.count), "abandoned ray list wrote output");
+  {
+    auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*stale, compute, program, scene, work);
+    const auto rays = Rays(work.count);
+    device.WriteBuffer(work.buffers[4], 0, std::as_bytes(std::span{rays}));
+    const auto before = device.Diagnostics().submitted_command_lists;
+    Reject([&] { (void)device.Submit(*stale); }, "stale ray input submitted");
+    Require(before == device.Diagnostics().submitted_command_lists, "stale ray input committed");
+  }
+  {
+    auto temporary = device.CreateRayScene(triangles);
+    auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*stale, compute, program, temporary, work);
+    device.DestroyRayScene(temporary);
+    const auto replacement = device.CreateRayScene(triangles);
+    Require(replacement != temporary, "scene generation reused");
+    Reject([&] { (void)device.Submit(*stale); }, "destroyed scene submitted");
+    device.DestroyRayScene(replacement);
+  }
+  {
+    auto temporary = device.CreateRayProgram(descriptor);
+    auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*stale, compute, temporary, scene, work);
+    device.DestroyRayProgram(temporary);
+    const auto replacement = device.CreateRayProgram(descriptor);
+    Require(replacement != temporary, "program generation reused");
+    Reject([&] { (void)device.Submit(*stale); }, "destroyed ray program submitted");
+    device.DestroyRayProgram(replacement);
+  }
+  Require(Read(device, work) == Empty(work.count), "stale rays wrote output");
+  {
+    auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*stale, compute, program, scene, work);
+    auto replacement = Empty(work.count);
+    replacement[0] = 0x1234U;
+    device.WriteBuffer(work.buffers[1], 0, std::as_bytes(std::span{replacement}));
+    const auto before = device.Diagnostics().submitted_command_lists;
+    Reject([&] { (void)device.Submit(*stale); }, "stale ray output submitted");
+    Require(device.Diagnostics().submitted_command_lists == before &&
+                Read(device, work) == replacement,
+            "stale ray output overwrote CPU mutation");
+  }
+  {
+    const auto reset = Empty(work.count);
+    device.WriteBuffer(work.buffers[1], 0, std::as_bytes(std::span{reset}));
+  }
+  {
+    std::vector<Workload> held;
+    held.reserve(rhi::RayMaximumDispatchesPerList);
+    auto commands = device.CreateCommandList(rhi::QueueType::Compute);
+    for (std::uint32_t i = 0; i < rhi::RayMaximumDispatchesPerList; ++i) {
+      held.push_back(Make(device, triangles, i % 2 == 0 ? 1 : 64));
+      Record(*commands, compute, program, scene, held.back());
+    }
+    Reject([&] { Record(*commands, compute, program, scene, work); },
+           "ray list snapshot capacity exceeded");
+    device.WaitForSubmission(device.Submit(*commands));
+    commands.reset();
+    for (const auto &item : held) {
+      Compare(device, item);
+      Destroy(device, item);
+    }
+  }
+  // Dedicated ray roots must restore correctly across an ordinary compute pipeline switch.
+  auto middle = Make(device, triangles, 1), last = Make(device, triangles, 64);
+  {
+    auto mixed = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*mixed, compute, program, scene, work);
+    Record(*mixed, compute, {}, {}, middle);
+    Record(*mixed, compute, program, scene, last);
+    device.WaitForSubmission(device.Submit(*mixed));
+  }
+  Compare(device, work);
+  Compare(device, middle);
+  Compare(device, last);
+  Destroy(device, middle);
+  Destroy(device, last);
+  Destroy(device, work);
+}
+void MixedNodesAndRays(rhi::Device &device, rhi::PipelineHandle compute,
+                       rhi::RayProgramHandle program, rhi::RaySceneHandle scene,
+                       std::span<const rhi::RayTriangle> triangles) {
+  if (!rhi::CheckGraphicsRequirements(device.Capabilities(),
+                                      rhi::EffectiveWorkGraphRequirements({}))
+           .Succeeded())
+    return;
+  const auto node = device.CreateWorkGraph({});
+  constexpr std::size_t words = rhi::WorkGraphMaximumRecords * rhi::WorkGraphVisibleRecordWords;
+  std::array<std::uint32_t, words> empty;
+  empty.fill(Sentinel);
+  std::array buffers{device.CreateBuffer({sizeof(empty), "node before rays"}),
+                     device.CreateBuffer({sizeof(empty), "node after rays"})};
+  for (auto buffer : buffers)
+    device.WriteBuffer(buffer, 0, std::as_bytes(std::span{empty}));
+  auto work = Make(device, triangles, 1);
+  {
+    auto commands = device.CreateCommandList(rhi::QueueType::Compute);
+    commands->BindWorkGraph(node);
+    commands->BindStorageBuffer(1, buffers[0]);
+    commands->DispatchWorkGraph({1, 7});
+    Record(*commands, compute, program, scene, work);
+    Reject([&] { commands->DispatchWorkGraph({1, 9}); },
+           "node program remained bound after ray selection");
+    commands->BindWorkGraph(node);
+    commands->BindStorageBuffer(1, buffers[1]);
+    commands->DispatchWorkGraph({8, 23});
+    device.WaitForSubmission(device.Submit(*commands));
+  }
+  Compare(device, work);
+  for (std::size_t index = 0; index < 2; ++index) {
+    auto actual = empty, expected = empty;
+    const std::size_t count = index == 0 ? 1 : 8;
+    const std::uint32_t first = index == 0 ? 7 : 23;
+    for (std::size_t record = 0; record < count; ++record) {
+      expected[record * 5] = first + static_cast<std::uint32_t>(record);
+      expected[record * 5 + 1] = 1;
+      expected[record * 5 + 2] = 11;
+      expected[record * 5 + 3] = 13;
+      expected[record * 5 + 4] = 0;
+    }
+    device.ReadBufferForTesting(buffers[index], 0, std::as_writable_bytes(std::span{actual}));
+    Require(actual == expected, "Node/Ray/Node root/program state restoration failed");
+  }
+  Destroy(device, work);
+  for (auto buffer : buffers)
+    device.DestroyBuffer(buffer);
+  device.DestroyWorkGraph(node);
+  std::cout << "Native Node/Ray/Node program and root restoration passed\n";
+}
+void Portable() {
+  auto triangle = Triangles(1);
+  Require(rhi::IsRaySceneValid(triangle), "valid triangle rejected");
+  Require(!rhi::IsRaySceneValid({}), "empty native scene admitted");
+  auto bad = Triangles(9);
+  Require(!rhi::IsRaySceneValid(bad), "oversized scene admitted");
+  bad = triangle;
+  bad[0].vertices[0] = std::numeric_limits<float>::infinity();
+  Require(!rhi::IsRaySceneValid(bad), "nonfinite scene admitted");
+  bad = triangle;
+  bad[0].vertices.fill(0);
+  Require(!rhi::IsRaySceneValid(bad), "degenerate scene admitted");
+  auto descriptor = rhi::RayProgramDescriptor{};
+  auto requirements = rhi::EffectiveRayProgramRequirements(descriptor);
+  const auto index = static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing);
+  Require(requirements.minimum_tiers[index] == rhi::FeatureVersion{1, 0} &&
+              requirements.minimum_dxil_shader_model == rhi::FeatureVersion{6, 3},
+          "DXR implicit admission lost");
+  descriptor.mode = rhi::RayTracingMode::InlineQuery;
+  requirements = rhi::EffectiveRayProgramRequirements(descriptor);
+  Require(requirements.minimum_tiers[index] == rhi::FeatureVersion{1, 1} &&
+              requirements.minimum_dxil_shader_model == rhi::FeatureVersion{6, 5},
+          "query implicit admission lost");
+  rhi::GraphicsDeviceCapabilities capabilities;
+  capabilities.features[index] = {rhi::CapabilitySupport::Supported, {1, 2}, true, true, {1, 1}};
+  capabilities.dxil_shader_model_support = rhi::CapabilitySupport::Supported;
+  capabilities.highest_dxil_shader_model = {6, 8};
+  descriptor.graphics_requirements.minimum_tiers[index] = {1, 2};
+  Require(
+      rhi::CheckGraphicsRequirements(capabilities, rhi::EffectiveRayProgramRequirements(descriptor))
+              .failure == rhi::CapabilityFailure::InsufficientImplementedTier,
+      "unimplemented DXR1.2 admitted");
+  auto model = rhi::CreateValidationDevice();
+  Reject([&] { (void)model->CreateRayScene(triangle); },
+         "Validation fabricated acceleration structure");
+  Reject([&] { (void)model->CreateRayProgram({}); }, "Validation fabricated ray pipeline");
+  rhi::PipelineDescriptor pipeline{1, 2, rhi::TextureFormat::Rgba8Unorm, "ray cache admission"};
+  pipeline.type = rhi::PipelineType::Compute;
+  const auto ordinary = renderer::MakePipelineCacheKey(pipeline);
+  pipeline.compute_shader = rhi::ComputeShaderVariant::RayReference;
+  Require(ordinary != renderer::MakePipelineCacheKey(pipeline), "ray reference cache collided");
+  pipeline.type = rhi::PipelineType::Graphics;
+  Reject([&] { (void)rhi::EffectivePipelineRequirements(pipeline); },
+         "graphics pipeline admitted compute reference");
+}
+#if defined(_WIN32)
+class Environment final {
+public:
+  Environment(const char *name, const char *value) : name_(name) {
+    if (const auto *old = std::getenv(name)) {
+      previous_ = old;
+      existed_ = true;
+    }
+    Require(_putenv_s(name, value ? value : "") == 0, "environment override failed");
+  }
+  ~Environment() { (void)_putenv_s(name_.c_str(), existed_ ? previous_.c_str() : ""); }
+
+private:
+  std::string name_, previous_;
+  bool existed_{};
+};
+#endif
+void Native(bool enhanced) {
+#if defined(_WIN32)
+  constexpr auto backend = rhi::Backend::Direct3D12;
+  constexpr auto reference = "NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH";
+#elif defined(__APPLE__)
+  constexpr auto backend = rhi::Backend::Metal;
+  constexpr auto reference = "NEXORA_SLANG_RAY_REFERENCE_METAL_PATH";
+#else
+  constexpr auto backend = rhi::Backend::Vulkan;
+  constexpr auto reference = "NEXORA_SLANG_RAY_REFERENCE_SPIRV_PATH";
+#endif
+  const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
+  const auto *path = std::getenv(reference);
+  if (!path || !*path || !rhi::IsBackendAvailable(backend)) {
+    Require(!required || *required != '1', "required ray/reference native backend unavailable");
+    std::cout << "Native ray/reference unavailable\n";
+    return;
+  }
+  const std::string reference_path{path};
+  auto device = rhi::CreateDeviceWithOptions(backend, {true, false, enhanced});
+  const auto caps = device->Capabilities();
+  rhi::PipelineDescriptor pipeline{1, 2, rhi::TextureFormat::Rgba8Unorm, "portable ray traversal",
+                                   rhi::PipelineType::Compute};
+  pipeline.compute_shader = rhi::ComputeShaderVariant::RayReference;
+  const auto compute = device->CreatePipeline(pipeline);
+  for (std::uint32_t size : {1U, 2U, 8U}) {
+    const auto triangles = Triangles(size);
+    rhi::RaySceneHandle scene{};
+    const bool trace =
+        rhi::CheckGraphicsRequirements(caps, rhi::EffectiveRayProgramRequirements({})).Succeeded();
+    if (trace) {
+      Reject([&] { (void)device->CreateRayScene({}); }, "empty AS admitted");
+      scene = device->CreateRayScene(triangles);
+    } else
+      Reject([&] { (void)device->CreateRayScene(triangles); }, "unavailable AS admitted");
+    for (auto mode : {rhi::RayTracingMode::Pipeline, rhi::RayTracingMode::InlineQuery}) {
+      rhi::RayProgramDescriptor descriptor{mode, {}, "bounded ray oracle"};
+      const bool enabled =
+          rhi::CheckGraphicsRequirements(caps, rhi::EffectiveRayProgramRequirements(descriptor))
+              .Succeeded();
+      rhi::RayProgramHandle program{};
+      if (enabled) {
+#if defined(_WIN32)
+        const auto *environment = mode == rhi::RayTracingMode::Pipeline
+                                      ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
+                                      : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
+        {
+          Environment missing{environment, nullptr};
+          RejectContains([&] { (void)device->CreateRayProgram(descriptor); },
+                         "ray artifact is unset");
+        }
+        if (mode == rhi::RayTracingMode::Pipeline) {
+          Environment wrong{environment, reference_path.c_str()};
+          RejectContains([&] { (void)device->CreateRayProgram(descriptor); },
+                         "DXIL library artifact");
+        }
+#endif
+#if defined(_WIN32)
+        if (mode == rhi::RayTracingMode::Pipeline) {
+          const auto *negative = std::getenv("NEXORA_SLANG_RAY_NEGATIVE_DXIL_PATH");
+          Require(negative && *negative, "required compiled ray identity negative is missing");
+          const std::string negative_path{negative};
+          Environment wrong{environment, negative_path.c_str()};
+          RejectContains([&] { (void)device->CreateRayProgram(descriptor); },
+                         "ray recipe identity");
+        } else {
+          Environment wrong{environment, reference_path.c_str()};
+          RejectContains([&] { (void)device->CreateRayProgram(descriptor); },
+                         "shader model is too low");
+        }
+#endif
+        program = device->CreateRayProgram(descriptor);
+      } else
+        Reject([&] { (void)device->CreateRayProgram(descriptor); },
+               "unavailable ray program admitted");
+      for (auto count : {1U, 64U}) {
+        auto fallback = Make(*device, triangles, count);
+        Execute(*device, compute, {}, {}, fallback);
+        Destroy(*device, fallback);
+        auto actual = Make(*device, triangles, count);
+        Execute(*device, compute, program, scene, actual);
+        Destroy(*device, actual);
+      }
+      Parallel(*device, compute, program, scene, triangles);
+      if (enabled) {
+        TestLifetime(*device, compute, program, scene, descriptor, triangles);
+        MixedNodesAndRays(*device, compute, program, scene, triangles);
+      }
+      std::cout << "Ray backend=" << static_cast<unsigned>(backend)
+                << " mode=" << static_cast<unsigned>(mode) << " triangles=" << size
+                << " enabled=" << enabled
+                << "; CPU/compute hit,miss,nearest,barycentric,invalid-ray and cancellation/replay "
+                   "passed\n";
+      if (program.IsValid())
+        device->DestroyRayProgram(program);
+    }
+    if (scene.IsValid())
+      device->DestroyRayScene(scene);
+  }
+  const auto diagnostics = device->Diagnostics();
+  const auto feature = caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing)];
+  Require(feature.enabled ? diagnostics.ray_dispatch_calls > 0
+                          : diagnostics.ray_dispatch_calls == 0,
+          "ray dispatch diagnostics disagree with admission");
+  const bool query =
+      rhi::CheckGraphicsRequirements(
+          caps, rhi::EffectiveRayProgramRequirements(
+                    {rhi::RayTracingMode::InlineQuery, {}, "inline capability probe"}))
+          .Succeeded();
+  Require(query ? diagnostics.inline_ray_dispatch_calls > 0
+                : diagnostics.inline_ray_dispatch_calls == 0,
+          "inline ray diagnostics disagree with admission");
+  const auto barrier =
+      caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::EnhancedBarriers)];
+  if (enhanced && barrier.enabled)
+    Require(diagnostics.enhanced_buffer_barriers > 0, "requested ray enhanced barriers unused");
+  else
+    Require(diagnostics.enhanced_buffer_barriers == 0, "legacy rays fabricated enhanced barriers");
+  std::cout << "Ray dispatches=" << diagnostics.ray_dispatch_calls
+            << " inline=" << diagnostics.inline_ray_dispatch_calls
+            << " enhanced=" << barrier.enabled
+            << " enhanced_buffers=" << diagnostics.enhanced_buffer_barriers << '\n';
+  device->DestroyPipeline(compute);
+}
+} // namespace
+int main(int argc, char **argv) {
+  try {
+    const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
+    Require(argc == 1 || enhanced, "usage: [--enhanced-barriers]");
+    Portable();
+    Native(enhanced);
+  } catch (const std::exception &error) {
+    std::cerr << "FAIL: " << error.what() << '\n';
+    return 1;
+  }
+}

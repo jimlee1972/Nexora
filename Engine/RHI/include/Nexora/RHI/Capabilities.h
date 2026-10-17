@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Nexora/RHI/Api.h"
+#include "Nexora/RHI/RayTracing.h"
 #include "Nexora/RHI/Types.h"
 
 #include <string_view>
 
 namespace nexora::rhi {
+[[nodiscard]] NEXORA_RHI_API GraphicsRequirements
+EffectiveRayProgramRequirements(const RayProgramDescriptor &descriptor);
 enum class CapabilityFailure : std::uint8_t {
   NoFailure,
   UnknownSupport,
@@ -48,4 +51,6 @@ NEXORA_RHI_API void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities
 EffectivePipelineRequirements(const PipelineDescriptor &descriptor);
 NEXORA_RHI_API void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                                 const PipelineDescriptor &descriptor);
+[[nodiscard]] NEXORA_RHI_API GraphicsRequirements
+EffectiveWorkGraphRequirements(const WorkGraphDescriptor &descriptor);
 } // namespace nexora::rhi

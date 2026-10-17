@@ -32,6 +32,11 @@
 
 #include "D3D12EnhancedBarriers.h"
 #include "D3D12MeshPipeline.h"
+#include "D3D12RayTracing.h"
+#include "D3D12WorkGraphs.h"
+#if NEXORA_HAS_PINNED_RAY_ARTIFACTS
+#include "RayArtifactIdentity.h"
+#endif
 
 namespace nexora::rhi {
 namespace {
@@ -150,6 +155,21 @@ std::uint64_t Key(PipelineHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
 
+#if NEXORA_D3D12_WORK_GRAPHS
+std::uint64_t Key(WorkGraphHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+#endif
+
+#if NEXORA_D3D12_RAY_TRACING
+std::uint64_t Key(RaySceneHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+std::uint64_t Key(RayProgramHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+#endif
+
 std::uint64_t Key(BufferHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
@@ -259,6 +279,21 @@ public:
                 std::uint32_t group_count_z) override;
   void DrawIndirect(std::uint32_t draw_count) override;
   void DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) override;
+#if NEXORA_D3D12_WORK_GRAPHS
+  void BindWorkGraph(WorkGraphHandle graph) override;
+  void DispatchWorkGraph(WorkGraphInput input) override;
+#endif
+  [[nodiscard]] std::uint64_t WorkGraphDispatches() const noexcept {
+#if NEXORA_D3D12_WORK_GRAPHS
+    return work_graph_dispatches_;
+#else
+    return 0;
+#endif
+  }
+#if NEXORA_D3D12_RAY_TRACING
+  void TraceRays(RayProgramHandle, RaySceneHandle, BufferHandle, BufferHandle,
+                 std::uint32_t) override;
+#endif
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -300,16 +335,46 @@ private:
   std::unordered_map<std::uint64_t, BufferSnapshot> buffer_snapshots_;
   std::optional<double>
   GpuMilliseconds(std::chrono::steady_clock::time_point submitted) const noexcept;
+#if NEXORA_D3D12_WORK_GRAPHS
+  struct WorkGraphSnapshot final {
+    WorkGraphHandle handle;
+    detail::NativeWorkGraph program;
+  };
+  // These references retire after every native command-list interface, even on abandonment.
+  std::array<WorkGraphSnapshot, detail::WorkGraphListCapacity> work_graph_snapshots_{};
+  std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, detail::WorkGraphListCapacity>
+      work_graph_backing_{};
+  std::size_t work_graph_snapshot_count_{};
+  std::size_t bound_work_graph_{}; // One-based private snapshot index, zero is unbound.
+  std::uint64_t work_graph_dispatches_{};
+#endif
+#if NEXORA_D3D12_RAY_TRACING
+  struct RaySnapshot final {
+    RayProgramHandle program_handle;
+    RaySceneHandle scene_handle;
+    detail::NativeRayProgram program;
+    detail::NativeRayScene scene;
+  };
+  std::array<RaySnapshot, RayMaximumDispatchesPerList> ray_snapshots_{};
+  std::size_t ray_snapshot_count_{};
+  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{};
+#endif
   Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestamp_heap_;
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
+#if NEXORA_D3D12_RAY_TRACING
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> ray_list_;
+#endif
 #if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhanced_list_;
 #endif
   std::uint64_t enhanced_buffer_barriers_{};
   std::uint64_t enhanced_texture_barriers_{};
 
+#if NEXORA_D3D12_WORK_GRAPHS
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList10> graph_list_;
+#endif
 #if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> shading_list_;
 #endif
@@ -423,6 +488,41 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))) &&
           SUCCEEDED(probe.As(&mesh_interface)))
         mesh.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
+#if NEXORA_D3D12_WORK_GRAPHS
+    auto &work_graph =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::WorkGraphs)];
+    work_graph.implemented = true;
+    work_graph.implemented_tier = {1, 0};
+    if (work_graph.support == CapabilitySupport::Supported &&
+        capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 8} &&
+        SUCCEEDED(device_.As(&graph_device_))) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList10> graph_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&graph_interface)))
+        work_graph.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
+#if NEXORA_D3D12_RAY_TRACING && NEXORA_HAS_PINNED_RAY_ARTIFACTS
+    auto &ray = capabilities_.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
+    ray.implemented = true;
+    ray.implemented_tier = {1, 1};
+    if (ray.support == CapabilitySupport::Supported &&
+        capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 3} &&
+        SUCCEEDED(device_.As(&ray_device_))) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList4> probe;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))))
+        ray.enabled = SUCCEEDED(probe->Close());
     }
 #endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
@@ -633,6 +733,7 @@ public:
       throw std::invalid_argument("pipeline hashes must be non-zero");
     const bool patch = descriptor.topology == PrimitiveTopology::PatchList;
     ComPtr<ID3DBlob> selected_vertex = vertex_shader_;
+    ComPtr<ID3DBlob> selected_compute = compute_shader_;
     ComPtr<ID3DBlob> control, evaluation, mesh;
     const auto required_artifact = [](const char *environment, ShaderStage stage) {
       auto artifact = LoadShaderArtifact(environment, stage);
@@ -641,6 +742,9 @@ public:
                                  environment);
       return artifact;
     };
+    if (descriptor.compute_shader == ComputeShaderVariant::RayReference)
+      selected_compute =
+          required_artifact("NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH", ShaderStage::Compute);
     if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
       selected_vertex =
           required_artifact("NEXORA_SLANG_PRETESSELLATED_DXIL_PATH", ShaderStage::Vertex);
@@ -671,7 +775,7 @@ public:
         (void)RequireDxilArtifact(bytes, stage, minimum_model);
       };
       if (descriptor.type == PipelineType::Compute)
-        check(compute_shader_.Get(), ShaderStage::Compute);
+        check(selected_compute.Get(), ShaderStage::Compute);
       else {
         if (mesh_pipeline)
           check(mesh.Get(), ShaderStage::Mesh);
@@ -691,12 +795,12 @@ public:
     record.graphics_shader = descriptor.graphics_shader;
     record.shading_rate = descriptor.shading_rate;
     if (descriptor.type == PipelineType::Compute) {
-      if (!compute_shader_)
+      if (!selected_compute)
         throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
       D3D12_COMPUTE_PIPELINE_STATE_DESC compute_description{};
       compute_description.pRootSignature = root_signature_.Get();
-      compute_description.CS = {compute_shader_->GetBufferPointer(),
-                                compute_shader_->GetBufferSize()};
+      compute_description.CS = {selected_compute->GetBufferPointer(),
+                                selected_compute->GetBufferSize()};
       Check(
           device_->CreateComputePipelineState(&compute_description, IID_PPV_ARGS(&record.pipeline)),
           "CreateComputePipelineState");
@@ -767,6 +871,127 @@ public:
     Require(pipeline_pool_.Destroy(pipeline), "destroying stale D3D12 pipeline");
   }
 
+#if NEXORA_D3D12_WORK_GRAPHS
+  WorkGraphHandle CreateWorkGraph(const WorkGraphDescriptor &descriptor) override {
+    const auto requirements = EffectiveWorkGraphRequirements(descriptor);
+    RequireGraphicsCapabilities(Capabilities(), requirements);
+    const auto *path = std::getenv("NEXORA_D3D12_WORK_GRAPH_DXIL_PATH");
+    if (!path || !*path)
+      throw std::runtime_error("required Work Graph DXIL library is unset");
+    const auto size = std::filesystem::file_size(std::filesystem::path(path));
+    if (size == 0 || size > 16ULL * 1024 * 1024)
+      throw std::invalid_argument("Work Graph library exceeds the admitted size range");
+    ComPtr<ID3DBlob> library;
+    Check(D3DReadFileToBlob(std::filesystem::path(path).c_str(), &library),
+          "Read Work Graph library");
+    const auto bytes = std::span<const std::byte>{
+        static_cast<const std::byte *>(library->GetBufferPointer()), library->GetBufferSize()};
+    const auto info = RequireDxilLibrary(bytes, requirements.minimum_dxil_shader_model);
+    if (info.shader_model > capabilities_.highest_dxil_shader_model)
+      throw std::invalid_argument("selected Work Graph library profile exceeds the device limit");
+    auto program = detail::CreateNativeWorkGraph(*graph_device_.Get(), bytes);
+    std::lock_guard lock{mutex_};
+    const auto handle = work_graph_pool_.Create();
+    try {
+      work_graphs_.emplace(Key(handle), std::move(program));
+    } catch (...) {
+      (void)work_graph_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+  void DestroyWorkGraph(WorkGraphHandle graph) override {
+    std::lock_guard lock{mutex_};
+    Require(work_graph_pool_.Contains(graph) && work_graphs_.contains(Key(graph)),
+            "destroying invalid Work Graph program");
+    work_graphs_.erase(Key(graph));
+    Require(work_graph_pool_.Destroy(graph), "destroying stale Work Graph program");
+  }
+#endif
+#if NEXORA_D3D12_RAY_TRACING && NEXORA_HAS_PINNED_RAY_ARTIFACTS
+  RaySceneHandle CreateRayScene(std::span<const RayTriangle> triangles) override {
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
+    if (!IsRaySceneValid(triangles))
+      throw std::invalid_argument("invalid bounded ray triangles");
+    // Immutable construction is caller-serialized with submit/mutation, like other resource
+    // creation.
+    std::lock_guard lock{mutex_};
+    auto build = detail::BuildNativeRayScene(*ray_device_.Get(), triangles);
+    Check(build.commands->Close(), "Close ray build list");
+    ID3D12CommandList *commands = build.commands.Get();
+    queue_->ExecuteCommandLists(1, &commands);
+    const auto completion = ++next_fence_;
+    Check(queue_->Signal(fence_.Get(), completion), "Signal ray build");
+    WaitForFence(completion);
+    const auto handle = ray_scene_pool_.Create();
+    try {
+      ray_scenes_.emplace(Key(handle), std::move(build.scene));
+    } catch (...) {
+      (void)ray_scene_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+  void DestroyRayScene(RaySceneHandle scene) override {
+    std::lock_guard lock{mutex_};
+    Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
+            "destroying stale ray scene");
+    ray_scenes_.erase(Key(scene));
+    Require(ray_scene_pool_.Destroy(scene), "destroying stale ray scene generation");
+  }
+  RayProgramHandle CreateRayProgram(const RayProgramDescriptor &descriptor) override {
+    const auto requirements = EffectiveRayProgramRequirements(descriptor);
+    RequireGraphicsCapabilities(Capabilities(), requirements);
+    const auto *environment = descriptor.mode == RayTracingMode::Pipeline
+                                  ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
+                                  : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
+    const auto *path = std::getenv(environment);
+    if (!path || !*path)
+      throw std::runtime_error("required ray artifact is unset");
+    const auto size = std::filesystem::file_size(std::filesystem::path(path));
+    if (!size || size > 16ULL * 1024 * 1024)
+      throw std::invalid_argument("ray artifact exceeds bounded size");
+    ComPtr<ID3DBlob> artifact;
+    Check(D3DReadFileToBlob(std::filesystem::path(path).c_str(), &artifact), "Read ray artifact");
+    const auto bytes = std::span<const std::byte>{
+        static_cast<const std::byte *>(artifact->GetBufferPointer()), artifact->GetBufferSize()};
+    const auto model =
+        descriptor.mode == RayTracingMode::Pipeline
+            ? RequireDxilLibrary(bytes, requirements.minimum_dxil_shader_model).shader_model
+            : RequireDxilArtifact(bytes, ShaderStage::Compute,
+                                  requirements.minimum_dxil_shader_model)
+                  .shader_model;
+    if (model > capabilities_.highest_dxil_shader_model)
+      throw std::invalid_argument("ray artifact exceeds device shader profile");
+#if NEXORA_HAS_PINNED_RAY_ARTIFACTS
+    const auto expected = descriptor.mode == RayTracingMode::Pipeline
+                              ? std::span<const unsigned char>{detail::RayLibraryBytes}
+                              : std::span<const unsigned char>{detail::RayQueryBytes};
+    if (bytes.size() != expected.size() ||
+        std::memcmp(bytes.data(), expected.data(), bytes.size()) != 0)
+      throw std::invalid_argument("ray recipe identity does not match the reflected built-in ABI");
+#else
+    throw std::invalid_argument("ray recipe was not built with pinned Slang artifacts");
+#endif
+    auto program = detail::CreateNativeRayProgram(*ray_device_.Get(), descriptor.mode, bytes);
+    std::lock_guard lock{mutex_};
+    const auto handle = ray_program_pool_.Create();
+    try {
+      ray_programs_.emplace(Key(handle), std::move(program));
+    } catch (...) {
+      (void)ray_program_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+  void DestroyRayProgram(RayProgramHandle program) override {
+    std::lock_guard lock{mutex_};
+    Require(ray_program_pool_.Contains(program) && ray_programs_.contains(Key(program)),
+            "destroying stale ray program");
+    ray_programs_.erase(Key(program));
+    Require(ray_program_pool_.Destroy(program), "destroying stale ray program generation");
+  }
+#endif
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override {
     if (queue == QueueType::Copy)
       throw std::invalid_argument("D3D12 backend does not expose a copy command list");
@@ -795,6 +1020,23 @@ public:
         Require(ValidateTextureLocked(snapshot.handle).revision == snapshot.revision,
                 "stale D3D12 texture recording snapshot");
       }
+#if NEXORA_D3D12_WORK_GRAPHS
+      for (std::size_t index = 0; index < validated->work_graph_snapshot_count_; ++index) {
+        const auto handle = validated->work_graph_snapshots_[index].handle;
+        Require(work_graph_pool_.Contains(handle) && work_graphs_.contains(Key(handle)),
+                "stale Work Graph recording snapshot");
+      }
+#endif
+#if NEXORA_D3D12_RAY_TRACING
+      for (std::size_t index = 0; index < validated->ray_snapshot_count_; ++index) {
+        const auto &snapshot = validated->ray_snapshots_[index];
+        Require(ray_program_pool_.Contains(snapshot.program_handle) &&
+                    ray_programs_.contains(Key(snapshot.program_handle)) &&
+                    ray_scene_pool_.Contains(snapshot.scene_handle) &&
+                    ray_scenes_.contains(Key(snapshot.scene_handle)),
+                "stale ray program or scene recording snapshot");
+      }
+#endif
       validated->Close();
       ID3D12CommandList *native_list = validated->list_.Get();
       if (capabilities_.gpu_timing_enabled)
@@ -825,6 +1067,11 @@ public:
       diagnostics_.draw_calls += validated->DrawCalls();
       diagnostics_.coarse_shading_draw_calls += validated->coarse_shading_draws_;
       diagnostics_.mesh_dispatch_calls += validated->mesh_dispatches_;
+      diagnostics_.work_graph_dispatch_calls += validated->WorkGraphDispatches();
+#if NEXORA_D3D12_RAY_TRACING
+      diagnostics_.ray_dispatch_calls += validated->ray_dispatches_;
+      diagnostics_.inline_ray_dispatch_calls += validated->inline_ray_dispatches_;
+#endif
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
       fence_value = ++next_fence_;
@@ -1016,6 +1263,16 @@ private:
 
   GraphicsDeviceCapabilities capabilities_;
   ComPtr<ID3D12Device> device_;
+#if NEXORA_D3D12_WORK_GRAPHS
+  ComPtr<ID3D12Device5> graph_device_;
+#endif
+#if NEXORA_D3D12_RAY_TRACING
+  ComPtr<ID3D12Device5> ray_device_;
+  core::HandlePool<RaySceneTag> ray_scene_pool_;
+  core::HandlePool<RayProgramTag> ray_program_pool_;
+  std::unordered_map<std::uint64_t, detail::NativeRayScene> ray_scenes_;
+  std::unordered_map<std::uint64_t, detail::NativeRayProgram> ray_programs_;
+#endif
 #if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
     defined(__ID3D12Device2_INTERFACE_DEFINED__)
   ComPtr<ID3D12Device2> mesh_device_;
@@ -1042,6 +1299,10 @@ private:
   core::HandlePool<BufferTag> buffer_pool_;
   std::unordered_map<std::uint64_t, TextureRecord> textures_;
   std::unordered_map<std::uint64_t, PipelineRecord> pipelines_;
+#if NEXORA_D3D12_WORK_GRAPHS
+  core::HandlePool<WorkGraphTag> work_graph_pool_;
+  std::unordered_map<std::uint64_t, detail::NativeWorkGraph> work_graphs_;
+#endif
   std::unordered_map<std::uint64_t, BufferRecord> buffers_;
   DeviceDiagnostics diagnostics_;
 
@@ -1253,6 +1514,9 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   if (submitted_ || closed_)
     throw std::logic_error("cannot bind a pipeline on a submitted D3D12 command list");
   const auto &record = device_.ValidatePipeline(pipeline);
+#if NEXORA_D3D12_WORK_GRAPHS
+  bound_work_graph_ = 0;
+#endif
   pipeline_type_ = record.type;
   topology_ = record.topology;
   graphics_shader_ = record.graphics_shader;
@@ -1383,6 +1647,112 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
   if (shading_rate_ != ShadingRate::Full)
     ++coarse_shading_draws_;
 }
+
+#if NEXORA_D3D12_WORK_GRAPHS
+void D3D12CommandList::BindWorkGraph(WorkGraphHandle graph) {
+  if (submitted_ || closed_ || rendering_)
+    throw std::logic_error("invalid Work Graph binding scope");
+  std::lock_guard lock{device_.mutex_};
+  device_.Require(device_.work_graph_pool_.Contains(graph) &&
+                      device_.work_graphs_.contains(Key(graph)),
+                  "binding stale Work Graph program");
+  std::size_t index = 0;
+  while (index < work_graph_snapshot_count_ && work_graph_snapshots_[index].handle != graph)
+    ++index;
+  if (index == work_graph_snapshot_count_) {
+    if (index == work_graph_snapshots_.size())
+      throw std::logic_error("Work Graph list program capacity exceeded");
+    work_graph_snapshots_[index] = {graph, device_.work_graphs_.at(Key(graph))};
+    ++work_graph_snapshot_count_;
+  }
+  bound_work_graph_ = index + 1;
+  pipeline_bound_ = false;
+  storage_bound_[1] = false; // Require explicit output binding for this program selection.
+}
+void D3D12CommandList::DispatchWorkGraph(WorkGraphInput input) {
+  if (submitted_ || closed_ || rendering_ || !bound_work_graph_ || !storage_bound_[1] ||
+      !IsWorkGraphInputValid(input) || work_graph_dispatches_ == work_graph_backing_.size())
+    throw std::logic_error("invalid or out-of-capacity Work Graph dispatch");
+  const auto output = storage_handles_[1];
+  if (device_.ValidateBuffer(output).descriptor.size <
+      WorkGraphMaximumRecords * WorkGraphVisibleRecordWords * sizeof(std::uint32_t))
+    throw std::logic_error("Work Graph output requires eight five-word visible records");
+  auto *resource = PrepareBuffer(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  if (!graph_list_)
+    Check(list_.As(&graph_list_), "QueryInterface(command list10 Work Graph)");
+  const auto &program = work_graph_snapshots_[bound_work_graph_ - 1].program;
+  ComPtr<ID3D12Resource> backing;
+  if (program.backing_bytes) {
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heap.CreationNodeMask = 1;
+    heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC description{};
+    description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    description.Width = program.backing_bytes;
+    description.Height = 1;
+    description.DepthOrArraySize = 1;
+    description.MipLevels = 1;
+    description.SampleDesc = {1, 0};
+    description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    description.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    Check(device_.device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
+                                                   D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
+                                                   IID_PPV_ARGS(&backing)),
+          "CreateCommittedResource(Work Graph private backing)");
+  }
+  // Each dispatch owns a fresh context and INITIALIZE, including rebinds in this same list.
+  auto &owned = work_graph_backing_[static_cast<std::size_t>(work_graph_dispatches_)];
+  owned = std::move(backing);
+  list_->SetComputeRootSignature(program.root.Get());
+  list_->SetComputeRootUnorderedAccessView(0, resource->GetGPUVirtualAddress());
+  detail::RecordNativeWorkGraph(*graph_list_.Get(), program, owned.Get(), input);
+  ++work_graph_dispatches_;
+}
+#endif
+
+#if NEXORA_D3D12_RAY_TRACING
+void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle scene_handle,
+                                 BufferHandle input, BufferHandle output, std::uint32_t count) {
+  if (submitted_ || closed_ || rendering_ || !count || count > RayMaximumInputs ||
+      input == output || ray_snapshot_count_ == ray_snapshots_.size())
+    throw std::logic_error("invalid bounded ray dispatch");
+  RaySnapshot snapshot;
+  {
+    std::lock_guard lock{device_.mutex_};
+    device_.Require(device_.ray_program_pool_.Contains(program_handle) &&
+                        device_.ray_programs_.contains(Key(program_handle)) &&
+                        device_.ray_scene_pool_.Contains(scene_handle) &&
+                        device_.ray_scenes_.contains(Key(scene_handle)),
+                    "binding stale ray program or scene");
+    snapshot = {program_handle, scene_handle, device_.ray_programs_.at(Key(program_handle)),
+                device_.ray_scenes_.at(Key(scene_handle))};
+  }
+  if (device_.ValidateBuffer(input).descriptor.size <
+          static_cast<std::uint64_t>(count) * sizeof(RayInput) ||
+      device_.ValidateBuffer(output).descriptor.size <
+          static_cast<std::uint64_t>(count) * sizeof(RayHit))
+    throw std::logic_error("ray buffers are smaller than the admitted count");
+  auto *native_input = PrepareBuffer(input, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+  auto *native_output = PrepareBuffer(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  if (!ray_list_)
+    Check(list_.As(&ray_list_), "QueryInterface(ray command list4)");
+  auto &owned = ray_snapshots_[ray_snapshot_count_];
+  owned = std::move(snapshot);
+  detail::RecordNativeRays(*ray_list_.Get(), owned.program, owned.scene, *native_input,
+                           *native_output, count);
+  ++ray_snapshot_count_;
+  if (owned.program.mode == RayTracingMode::Pipeline)
+    ++ray_dispatches_;
+  else
+    ++inline_ray_dispatches_;
+  pipeline_bound_ = false;
+  mesh_input_ = {};
+#if NEXORA_D3D12_WORK_GRAPHS
+  bound_work_graph_ = 0;
+#endif
+}
+#endif
 
 void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) {
   if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||

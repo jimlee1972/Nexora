@@ -137,3 +137,25 @@ SRV0 reflection and a source/artifact identity manifest; ordinary Triangle is th
 raster fallback. Baseline profiles and external dependencies are unchanged. Actual selected stage/
 profile admission precedes native PSO allocation. Compilation/reflection or fallback output does
 not prove mesh execution, general meshlets, amplification, indirect mesh dispatch or Ultimate.
+
+## Optional Work Graph node library
+
+With NEXORA_ENABLE_D3D12_WORK_GRAPHS, SDK DXC directly compiles WorkGraphVisibleExpansion.hlsl at
+lib_6_8. Slang's existing targets/profiles remain unchanged. One broadcasting producer fans out up
+to eight consumer records, writing canonical five-word visible instances for the fixed bootstrap
+recipe; GPUDriven.slang is the known-visible compute/indirect fallback. A separate testing-only
+library has a real twelve-byte input ABI so native admission must reject it before publication.
+The generated manifest records requested profile, compiler version and source/binary hashes without
+claiming native execution. RHI separately checks actual library profile, native program/node names,
+eight-byte entry ABI, output root signature and backing requirements. General graph libraries,
+graphics nodes, SM6.9/6.10 and Runtime cook/program assembly remain outside this slice.
+
+`BoundedRays.slang` is an independent optional Windows Slang recipe: a three-entry SM6.3 ray
+library and an SM6.5 inline query. `RayReference.slang` supplies lower-SM actual compute traversal
+(SPIR-V/MSL and Windows DXIL6.0). Baseline shader targets/profiles remain unchanged. Real library/
+query reflection must match acceleration structure t0, RayInput32 at t1 and Hit16 at u1, including
+field offsets. The build emits compiler/source/artifact provenance plus private exact-byte arrays
+for runtime recipe identity; native execution remains explicitly pending in generated metadata.
+A separately compiled same-profile changed recipe exercises runtime identity rejection. Native
+state objects additionally require actual exports and shader identifiers; compilation/reflection
+is not DXR proof. These fixtures do not implement DXR1.2, SER or general cooked ray authoring.

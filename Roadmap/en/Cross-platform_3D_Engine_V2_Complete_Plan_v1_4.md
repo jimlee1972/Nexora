@@ -18,6 +18,7 @@
 **Positioning: Scale-Up / GPU-Driven / Large World / Networking / Production Tooling**
 
 > **V2 graphics scope extension (2026-10-16):** The [V2 Advanced Graphics Capability Plan](V2_Advanced_Graphics_Capability_Plan.md) adds V2-GFX-1 through V2-GFX-5 as open V2 final-acceptance gates: parallel command recording and CPU-overhead measurements, tessellation, Enhanced Barriers, DXR through DXR 1.2/SER, Mesh Shader, VRS, Sampler Feedback, Work Graphs, SM 6.9 and SM 6.10 Preview. Advanced paths are capability-dependent with tested fallbacks. The plan governs these additions over older scope matrices; they are not delivered functionality. The historical 46% is the original 6/13 milestone ratio, excluding this extension.
+> **Validated bounded graphics paths (2026-10-17):** ✅ Native tessellation, Enhanced Barriers, MeshTriangle and per-draw VRS have merged with hosted native/fallback evidence; see the focused graphics plan. Node/ray programs remain under validation. All five full gates and physical performance acceptance remain open.
 
 ---
 

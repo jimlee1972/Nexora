@@ -642,6 +642,80 @@ Windows 真實 HS／DS、Vulkan Control／Evaluation 皆通過 RGBA／BGRA 曲�
 重疊 Worker 取消／重試；Metal 真實執行後備並明確回報原生 Tessellation 不可用。
 更廣 Authoring／Cook 與實機驗收仍待完成。
 
+## V2-GFX-5 有界 Work Graph 施工狀態
+
+預設關閉的 Windows 原生選項另尋 SDK DXC 編譯 SM6.8 Node Library，保留 Slang Compute／Indirect
+後備與既有 Profile。真實 Linux DXC1.9.2609.5 可編譯雙節點 Library；引擎 Library Reader 解碼
+SM6.8，而單一 Entry Inspector 仍拒絕 Library。Slang2026.18 尚未實作所需 Node 型別，因此不使用
+一般 Slang 路徑。原生 SDK Helper 語法通過，尚不宣稱 D3D12 執行。
+
+有界 Recipe 將八-byte CPU 輸入展開為至多八筆標準 Visible Record；原生建立驗證 Program／Node／
+Entry ABI 與專用僅輸出 Root。每份 Live List 獨占初始化／Backing Context、不可變 Program Snapshot，
+並使用既有輸出 Revision 檢查。Oracle 比對 CPU／真實 GPU Compute、實際編譯錯誤 ABI、過期／放棄
+資源、輸入複製、Program／Root 切換及取消／重試。來源 `feat/v2-native-work-graph-fanout`，
+Beads `nexora-45y.6.1`。
+
+✅ 本地 Library／Admission 與真實 Compute 後備驗收：Linux Development Configure／Build 及完整
+CTest 217/217 通過，無失敗或略過（133.53s）；Shipping Minimal／Monolithic LTO 建置通過。
+最後輸入邊界修改後，Library／Mesh／VRS／Work Graph／Runtime 專項 7/7 通過（0.26s）。
+Khronos Object／Synchronization Validation 14/14 通過（15.65s），確認 33 次 Layer 插入，無
+Validation Error／VUID／同步危害。Windows 原生 Work Graph 執行仍待完成；Linux 後備回報
+enabled=0、dispatches=0。通用 Graph／Graphics Node、新 Profile、實機預算及所有完整 Gate 維持開放。
+
+
+Work Graph 候選版本已接上 PR632 最新 Barrier／Mesh／VRS 整合來源。重新執行 Development
+Configure／Build 與完整 CTest **218/218** 通過，零失敗／略過（133.84s），Shipping
+Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Object／Sync 原生選項
+**13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
+Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
+
+## V2-GFX-3 有界三角形 Ray 施工狀態
+
+`feat/v2-bounded-native-rays`、Beads `nexora-45y.4.2` 實作不可變1–8三角形 BLAS／TLAS Recipe、
+專用 Root／State／Shader Table、原生 `DispatchRays` 及 Tier1.1 Inline Query。保留呼叫端序列化
+建立／提交、提交前 Handle／Revision 驗證、List 私有快照及 Compute 狀態還原。沿用 Slang Opt-in
+另產生 Library6.3／Query6.5 與較低 SM 的 Compute Traversal，不提高既有 Profile。實際 Reflection
+驗證 Root／32-byte 輸入／16-byte 命中 ABI，私有完整位元組比對在原生建立前拒絕相同 Profile 的
+改寫 Recipe；完整 Gate 尚未關閉。
+
+✅ 真實 Slang2026.18＋官方 DXC1.9.2609.5 編譯探測、引擎 Library／Entry Reader，以及 Linux 原生
+Vulkan Compute 專項通過。精確浮點模式下，Slang Library6972bytes／SM6.3、Query5236bytes／SM6.5
+皆為真實產物，尚非原生執行證據。雙精度 CPU Oracle 與真實 Compute 比對1／2／8三角形及
+1／64 Ray 的 Hit／Miss／最近交點／重心座標、無效 Ray、Canary 與強制雙 Worker 失敗／取消／重試。
+原生 SDK Helper 在警告視為錯誤下通過語法檢查。Windows AS Build、Ray／Query Dispatch、過期／
+放棄生命週期及 Enhanced／Legacy 比對仍待完成；通用 AS Update／Compaction、Shadow／Reflection／
+AO、DXR1.2、SER、實機預算及完整驗收維持開放。
+
+下一個自己的 PR 整合 Work Graph 與 Ray Recipe，兩者共用 Library Admission 與原生 Program
+Ownership。整合來源 Development Configure／Build 與完整 CTest **219/219** 通過，零失敗／略過
+（134.55s），契約／Profile 專項 **9/9**（0.31s）與 Shipping Minimal／Monolithic LTO 通過。
+Xvfb 下 Khronos Object／Synchronization Validation **17/17** 通過（9.41s），確認37次 Layer 插入，
+無 Validation／VUID／同步錯誤。另有精確浮點 Ray 候選218/218（123.92s）；Vulkan 後備明確回報
+Ray／Node enabled=0。實際 Production CMake 產物流程在暫存 Linux DXC 下執行成功，包括 Windows
+SDK 預檢、正常／錯誤 Entry Node Library，以及 Reflection 驗證後的完整 Ray 位元組識別。改寫 Ray
+Library 仍為合法 SM6.3，但與固定 Recipe 不同，驗證預期負例邊界。整合 SDK Helper 與 Windows
+條件測試分支在警告視為錯誤下通過語法檢查。Windows 額外測試兩能力皆可用時的 Node／Ray／Node
+Program／Root 切換；原生互通及兩種進階 Program 的執行仍待 Hosted 證據，完整 Gate 維持開放。
+
+## Enhanced Barriers／Mesh／VRS Hosted 驗收（PR632）
+
+✅ 自己的 PR632 在7f35467e的36項檢查及兩個首輪工作流程39026010174／39026013053 全數成功後，
+以 `bb61b59d3d9d1591932a866dcf9bf17c49ab0a64` Squash Merge。Push／PR 分別為 Linux363/363
+（1342.22／1349.13s）、Windows310/310（1278.89／1322.51s）、macOS302/302（640.91／563.69s）。
+兩輪 Windows 皆在 Legacy／Enhanced 模式真實執行 Mesh enabled1／16次 Dispatch、VRS enabled1／
+8次 Coarse 呼叫；Enhanced Barriers 回報 Graphics Texture182／Buffer2、Compute Buffer2629、
+VRS Texture44、Mesh Texture64／Buffer40。原生 CPU／像素比對、產物負例、Full-rate 還原、共享
+輸入 Worker、過期／放棄／取消後重試皆通過。Linux／Metal 真實執行 Compute／Indirect／Full-rate
+後備，明確回報 Mesh／VRS enabled0。Package、Vulkan Validation、Editor Display、Build-contract
+及 Sanitizer 皆通過。關閉子任務 nexora-45y.3.2／.5.1／.5.2；完整 V2-GFX-2／4 及 Ultimate 仍
+待完成。更廣 Topology／Cook、Aliasing、多 Queue、通用 Meshlet／Amplification／Indirect Mesh、
+VRS2 Image 與實機預算維持開放。
+
+目前 Hosted D3D12 獨立查詢為 RT1.1、Mesh1.0、VRS1.0、Feedback1.0、Work Graph1.0、SM6.8，
+可繼續實作相容路徑，尚不代表其執行驗收或 RT1.2／SM6.9／6.10／SER。Node／Ray 來源由632head
+改接 Squash 後，受測樹完全相同（`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`）；下一個 PR 不重複
+既有 Tessellation／Mesh／VRS／Barrier 提交。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、
