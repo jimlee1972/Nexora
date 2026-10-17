@@ -655,6 +655,26 @@ Monolithic/Minimal LTO passes. Combined native object/synchronization regression
 with zero changed channels; enabled=0/coarse_draws=0 is explicitly not native VRS execution.
 Windows2x2 execution and hosted platform gates remain pending; no full gate closes.
 
+## V2-GFX-4 bounded mesh shader construction status
+
+A bounded native D3D12 MS/PS path is under construction, with explicit stage/profile/variant
+admission, a list-owned read-only GPU statistics input and DispatchMesh(1,1,1). A real Slang2026.18/
+DXC1.9.2609.5 probe emits4876-byte mesh DXIL at SM6.5, decoded as stage32; actual frame/SRV/entry
+reflection and native SDK pipeline-stream syntax probes pass. No D3D12 execution is claimed from
+these Linux probes. The oracle verifies GPU frustum culling0/1 against CPU, mesh versus generated
+indirect RGBA/BGRA pixels, stale/abandoned input, shared workers and cancellation/replay. Source
+`feat/v2-bounded-d3d12-mesh-shader`, Beads `nexora-45y.5.2`; native execution/hosted gates remain
+pending. General meshlets/amplification/indirect mesh dispatch and all full gates remain open.
+
+✅ Local mesh admission/cache/DXIL/profile/cooked-stage checks and real GPU compute/indirect
+fallback pass. Full Slang/native/Zig Development configure/build and Xvfb CTest **216/216,zero
+failures/skips,136.60 seconds** (Showcase/graphical shell off); focused **7/7,0.46 seconds**.
+Shipping Monolithic/Minimal LTO passes. Combined native object/synchronization regression
+**13/13,15.24 seconds**,31 layer insertions and zero validation/VUID/sync markers. Real staged
+4876-byte Mesh DXIL passes the actual engine reader at stage32/SM6.5; the private native pipeline
+adapter passes official SDK syntax checks. These Linux results do not execute D3D12 Mesh shaders.
+Hosted native MS/PS execution remains pending; no full gate closes.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

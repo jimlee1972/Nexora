@@ -78,6 +78,11 @@ std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> byt
       case 4: // DXIL::ShaderKind::Domain
         stage = ShaderStage::TessellationEvaluation;
         break;
+      case 13: // DXIL::ShaderKind::Mesh
+        if (model < FeatureVersion{6, 5})
+          return {}; // The mesh profile was introduced in Shader Model6.5.
+        stage = ShaderStage::Mesh;
+        break;
       case 5: // DXIL::ShaderKind::Compute
         stage = ShaderStage::Compute;
         break;

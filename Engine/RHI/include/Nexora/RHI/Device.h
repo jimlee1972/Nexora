@@ -40,6 +40,7 @@ struct DeviceDiagnostics final {
   std::uint64_t enhanced_texture_barriers{};
 
   std::uint64_t coarse_shading_draw_calls{};
+  std::uint64_t mesh_dispatch_calls{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -81,6 +82,9 @@ public:
   }
   virtual void DrawIndirect(std::uint32_t) {
     throw std::logic_error("indirect drawing is unsupported");
+  }
+  virtual void DispatchMesh(std::uint32_t, std::uint32_t = 1, std::uint32_t = 1) {
+    throw std::logic_error("mesh dispatch is unsupported");
   }
   virtual void EndRendering() = 0;
 };

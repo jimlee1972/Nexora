@@ -85,7 +85,19 @@ void Run() {
   Require(runtime::SerializeCookedShaderArtifact(control_metadata, control_cooked, error) &&
               control_cooked != tessellation_cooked,
           "cooked hull/domain entry identities alias");
-  tessellation_metadata.reflection.bindings.front().stages = 32;
+  auto mesh_metadata = first;
+  mesh_metadata.entry_point = "meshMain";
+  mesh_metadata.reflection.bindings.front().stages =
+      static_cast<std::uint8_t>(rhi::ShaderStage::Mesh);
+  mesh_metadata.reflection.layout_hash = rhi::ComputeLayoutHash(mesh_metadata.reflection.bindings);
+  std::vector<std::byte> mesh_cooked;
+  Require(runtime::SerializeCookedShaderArtifact(mesh_metadata, mesh_cooked, error) &&
+              runtime::DeserializeCookedShaderArtifact(mesh_cooked, decoded, error) &&
+              decoded.entry_point == "meshMain" &&
+              decoded.reflection.bindings == mesh_metadata.reflection.bindings &&
+              mesh_cooked != cooked,
+          "mesh stage metadata did not survive cooking");
+  tessellation_metadata.reflection.bindings.front().stages = 64;
   tessellation_metadata.reflection.layout_hash =
       rhi::ComputeLayoutHash(tessellation_metadata.reflection.bindings);
   Require(

@@ -146,6 +146,12 @@ Portable rate/cache/tier ceilings and native Vulkan full-rate output/lifetime te
 D3D12 2x2 execution remains under validation; full VRS/Ultimate acceptance stays open.
 可攜著色率／Cache／Tier 上限與 Vulkan Full Rate 輸出／生命週期通過；D3D12 2x2及完整驗收仍待完成。
 
+
+✅ V2-GFX-4 Mesh admission/GPU indirect fallback / Mesh 准入與 GPU 後備（2026-10-17）：
+Real DXIL metadata/reflection, cooked-stage identity and GPU frustum/indirect output tests pass.
+Native D3D12 MS/PS execution remains under validation; full meshlet/Ultimate acceptance stays open.
+真實 DXIL／Reflection、Cooked 階段識別與 GPU 剔除／Indirect 輸出通過；原生及完整驗收仍待完成。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "D3D12EnhancedBarriers.h"
+#include "D3D12MeshPipeline.h"
 
 namespace nexora::rhi {
 namespace {
@@ -257,6 +258,7 @@ public:
   void Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
                 std::uint32_t group_count_z) override;
   void DrawIndirect(std::uint32_t draw_count) override;
+  void DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) override;
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -311,6 +313,12 @@ private:
 #if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> shading_list_;
 #endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6> mesh_list_;
+#endif
+  BufferHandle mesh_input_{};
+  std::uint64_t mesh_dispatches_{};
   ShadingRate shading_rate_{ShadingRate::Full};
   std::uint64_t coarse_shading_draws_{};
   bool rendering_{false};
@@ -398,6 +406,23 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))) &&
           SUCCEEDED(probe.As(&shading_interface)))
         vrs.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+    auto &mesh = capabilities_.features[static_cast<std::size_t>(GraphicsFeature::MeshShader)];
+    mesh.implemented = true;
+    mesh.implemented_tier = {1, 0};
+    if (mesh.support == CapabilitySupport::Supported && SUCCEEDED(device_.As(&mesh_device_))) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList6> mesh_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&mesh_interface)))
+        mesh.enabled = SUCCEEDED(probe->Close());
     }
 #endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
@@ -608,7 +633,7 @@ public:
       throw std::invalid_argument("pipeline hashes must be non-zero");
     const bool patch = descriptor.topology == PrimitiveTopology::PatchList;
     ComPtr<ID3DBlob> selected_vertex = vertex_shader_;
-    ComPtr<ID3DBlob> control, evaluation;
+    ComPtr<ID3DBlob> control, evaluation, mesh;
     const auto required_artifact = [](const char *environment, ShaderStage stage) {
       auto artifact = LoadShaderArtifact(environment, stage);
       if (!artifact)
@@ -619,6 +644,17 @@ public:
     if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
       selected_vertex =
           required_artifact("NEXORA_SLANG_PRETESSELLATED_DXIL_PATH", ShaderStage::Vertex);
+    const bool mesh_pipeline = descriptor.graphics_shader == GraphicsShaderVariant::MeshTriangle;
+    if (mesh_pipeline) {
+      mesh = required_artifact("NEXORA_SLANG_MESH_DXIL_PATH", ShaderStage::Mesh);
+      (void)RequireDxilArtifact(
+          {static_cast<const std::byte *>(mesh->GetBufferPointer()), mesh->GetBufferSize()},
+          ShaderStage::Mesh, {6, 5});
+      // Native mesh PSOs require DXIL for every attached stage; FXC fallback is insufficient.
+      (void)RequireDxilArtifact({static_cast<const std::byte *>(pixel_shader_->GetBufferPointer()),
+                                 pixel_shader_->GetBufferSize()},
+                                ShaderStage::Fragment, {6, 0});
+    }
     if (patch) {
       control = required_artifact("NEXORA_SLANG_TESSELLATION_CONTROL_DXIL_PATH",
                                   ShaderStage::TessellationControl);
@@ -637,7 +673,10 @@ public:
       if (descriptor.type == PipelineType::Compute)
         check(compute_shader_.Get(), ShaderStage::Compute);
       else {
-        check(selected_vertex.Get(), ShaderStage::Vertex);
+        if (mesh_pipeline)
+          check(mesh.Get(), ShaderStage::Mesh);
+        else
+          check(selected_vertex.Get(), ShaderStage::Vertex);
         if (patch) {
           check(control.Get(), ShaderStage::TessellationControl);
           check(evaluation.Get(), ShaderStage::TessellationEvaluation);
@@ -665,6 +704,28 @@ public:
       const auto handle = pipeline_pool_.Create();
       pipelines_.emplace(Key(handle), std::move(record));
       return handle;
+    }
+    if (mesh_pipeline) {
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+      Check(detail::CreateMeshPipeline(
+                *mesh_device_.Get(), root_signature_.Get(),
+                {mesh->GetBufferPointer(), mesh->GetBufferSize()},
+                {pixel_shader_->GetBufferPointer(), pixel_shader_->GetBufferSize()},
+                ToFormat(descriptor.color_format), record.pipeline.GetAddressOf()),
+            "CreatePipelineState(mesh)");
+      std::lock_guard lock{mutex_};
+      const auto handle = pipeline_pool_.Create();
+      try {
+        pipelines_.emplace(Key(handle), std::move(record));
+      } catch (...) {
+        (void)pipeline_pool_.Destroy(handle);
+        throw;
+      }
+      return handle;
+#else
+      throw std::invalid_argument("native mesh pipeline requires a newer D3D12 SDK");
+#endif
     }
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_description{};
     pipeline_description.pRootSignature = root_signature_.Get();
@@ -763,6 +824,7 @@ public:
       diagnostics_.enhanced_texture_barriers += validated->enhanced_texture_barriers_;
       diagnostics_.draw_calls += validated->DrawCalls();
       diagnostics_.coarse_shading_draw_calls += validated->coarse_shading_draws_;
+      diagnostics_.mesh_dispatch_calls += validated->mesh_dispatches_;
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
       fence_value = ++next_fence_;
@@ -896,7 +958,8 @@ private:
     parameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     parameters[4].Descriptor.ShaderRegister = 0;
     parameters[4].Descriptor.RegisterSpace = 0;
-    parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    // The same frame constant is used by baseline VS and the optional built-in MS.
+    parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     D3D12_ROOT_SIGNATURE_DESC description{};
     description.NumParameters = static_cast<UINT>(parameters.size());
     description.pParameters = parameters.data();
@@ -953,6 +1016,10 @@ private:
 
   GraphicsDeviceCapabilities capabilities_;
   ComPtr<ID3D12Device> device_;
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  ComPtr<ID3D12Device2> mesh_device_;
+#endif
   ComPtr<ID3D12CommandQueue> queue_;
   ComPtr<ID3D12DescriptorHeap> rtv_heap_;
   ComPtr<ID3D12Fence> fence_;
@@ -1209,6 +1276,12 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
     shading_rate_ = record.shading_rate;
   }
 #endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  if (record.graphics_shader == GraphicsShaderVariant::MeshTriangle && !mesh_list_)
+    Check(list_.As(&mesh_list_), "QueryInterface(command list6 mesh)");
+#endif
+  mesh_input_ = {}; // Mesh inputs must be explicitly bound after selecting this pipeline.
   list_->SetPipelineState(record.pipeline.Get());
   if (pipeline_type_ == PipelineType::Compute) {
     list_->SetComputeRootSignature(device_.RootSignature());
@@ -1225,7 +1298,19 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
 }
 
 void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
-  if (submitted_ || closed_ || rendering_ || binding >= storage_buffers_.size())
+  if (rendering_) {
+    if (submitted_ || closed_ || !pipeline_bound_ ||
+        graphics_shader_ != GraphicsShaderVariant::MeshTriangle || binding != 0)
+      throw std::logic_error("graphics storage input requires the bound mesh pipeline and slot0");
+    const auto &record = device_.ValidateBuffer(buffer);
+    if (record.descriptor.size < 5 * sizeof(std::uint32_t))
+      throw std::logic_error("mesh statistics input requires at least five words");
+    auto *resource = PrepareBuffer(buffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    list_->SetGraphicsRootShaderResourceView(0, resource->GetGPUVirtualAddress());
+    mesh_input_ = buffer;
+    return;
+  }
+  if (submitted_ || closed_ || binding >= storage_buffers_.size())
     throw std::logic_error("invalid D3D12 storage-buffer binding");
   const auto state = binding == 0 ? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
                                   : D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -1297,6 +1382,27 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
   ++indirect_draws_;
   if (shading_rate_ != ShadingRate::Full)
     ++coarse_shading_draws_;
+}
+
+void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) {
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+      graphics_shader_ != GraphicsShaderVariant::MeshTriangle || !mesh_input_ || x != 1 || y != 1 ||
+      z != 1)
+    throw std::logic_error(
+        "built-in mesh dispatch requires one group and a bound statistics input");
+  (void)PrepareBuffer(mesh_input_, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  if (!mesh_list_)
+    throw std::logic_error("native mesh command interface is unavailable");
+  mesh_list_->DispatchMesh(x, y, z);
+  ++mesh_dispatches_;
+  ++draws_;
+  if (shading_rate_ != ShadingRate::Full)
+    ++coarse_shading_draws_;
+#else
+  throw std::logic_error("native mesh dispatch requires a newer D3D12 SDK");
+#endif
 }
 
 void D3D12CommandList::EndRendering() {

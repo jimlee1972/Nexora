@@ -554,3 +554,14 @@ prevents a tier1 path from admitting tier2 hardware features. RenderGraph schedu
 and cancellation remain unchanged; rate state is private to each recording list, and a full-rate
 bind restores1x1 after coarse work. Select the full-rate descriptor explicitly on unavailable
 backends. See the [RHI contract](../RHI/README.md#bounded-per-draw-variable-rate-shading).
+
+## Bounded GPU-selected mesh geometry
+
+The optional D3D12 MeshTriangle path consumes the GPUDriven producer's visible count through a
+private read-only statistics binding and executes one mesh group, without a CPU count decision.
+Mesh stage/profile/variant requirements are part of admission and cache identity; unsupported
+backends explicitly retain GPU-generated indirect raster draws. RenderGraph declares the shared
+statistics input as ShaderRead (the fallback declares its argument buffer as IndirectRead), so
+compatible reads may record together while producer dependencies and revision checks remain intact.
+Cancelled cohorts submit nothing. See the [RHI contract](../RHI/README.md#bounded-d3d12-mesh-shader-and-gpu-produced-visibility).
+General meshlet scheduling, amplification and full Ultimate/performance acceptance remain open.

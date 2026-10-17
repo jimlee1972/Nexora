@@ -667,3 +667,46 @@ forced two-worker recording, abandonment/cancellation sentinels and replay. This
 quality bound is not a content-wide quality guarantee or performance budget. Tests report actual
 native enablement/counts; a full-rate fallback does not certify VRS execution. Broader VRS/Ultimate,
 physical performance and complete V2-GFX-4 acceptance remain open.
+
+## Bounded D3D12 mesh shader and GPU-produced visibility
+
+`GraphicsShaderVariant::MeshTriangle` selects a separate native MS/PS pipeline, with implicit
+MeshShader1.0 and DXIL SM6.5 requirements and distinct cache identity. Patch/compute combinations
+reject. The DXIL metadata reader admits Mesh stage bit32 only at SM6.5 or newer. D3D12 requires the
+actual selected mesh artifact and DXIL fragment stage, checks explicit minimum profiles for both,
+and creates an aligned native pipeline-state stream through Device2. It attaches no VS/HS/DS/GS,
+input layout or stream output. The shared frame CBV is visible to graphics stages, including MS.
+Missing/wrong/old requested artifacts fail before PSO allocation; no silent shader substitution.
+
+SDK list6/Device2 availability, hardware tier and successful interface probes remain separate.
+The implemented tier is capped at1.0. Native interfaces/PSOs remain privately owned; publication
+failure returns the new handle and releases unregistered native state. Other backends reject the
+mesh request and callers select their existing compute/indirect raster fallback explicitly.
+
+A bound MeshTriangle pipeline admits `BindStorageBuffer(0, statistics)` inside its rendering scope.
+This is a read-only, at-least-five-word uint buffer; other graphics storage slots/variants reject.
+BindPipeline resets this private input, so it must be rebound explicitly. Preparation captures the
+same handle generation/revision and immutable SRV address as existing buffer reads. CPU mutation,
+nonempty readback or potential GPU writes invalidate stale recorded input. Compatible shared
+readers preserve revisions. Device/resources must outlive all lists and completion as before.
+
+`DispatchMesh(1,1,1)` is the only admitted built-in mesh dispatch. It requires rendering, the mesh
+pipeline, a valid explicit input and list6. Ordinary/indirect IA draws reject on mesh pipelines.
+GPUDriven.slang writes its visible count at statistics word4; the mesh shader reads that GPU value
+and calls SetMeshOutputCounts for zero or three vertices/one triangle. The coordinator always
+submits one mesh group; it performs no CPU count decision. Accepted-list diagnostics count mesh
+API dispatches, including zero-output groups. Abandoned/stale/cancelled work publishes no count.
+
+Mesh stage bit32 survives reflection/layout and cooked metadata; unknown bit64 still rejects.
+The optional existing Windows Slang target emits MS6.5 DXIL plus real input/entry reflection and a
+source/artifact identity manifest. Baseline VS/PS6.6, CS6.0 and SDK options remain unchanged.
+Vulkan's bounded1.1/SPIR-V1.3 entry reader explicitly does not admit a Mesh execution model.
+All C++ modules rebuild for appended types/diagnostics and the new virtual method; stable C ABI
+and existing cooked format1 encoding remain unchanged. This does not add Runtime MS/PS assembly.
+
+The native oracle compares GPU-computed inside/outside-frustum counts with the CPU reference,
+then compares actual mesh output with GPU-generated native indirect draws in RGBA/BGRA. It also
+checks bounded dispatch/input rejection, abandoned/stale work, shared-input two-worker recording,
+failed/cancelled cohorts and successful replay. A fallback-only run is not mesh execution proof.
+General meshlets, amplification shaders, indirect mesh dispatch, cross-backend mesh support,
+physical performance and the full Ultimate/V2-GFX-4 gates remain open.

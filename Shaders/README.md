@@ -127,3 +127,13 @@ staged official Linux DXC can also validate these compiler outputs using Slang's
 `-dxc-path <directory-containing-libdxcompiler.so>`; that optional probe is not a project dependency
 and does not run D3D12. Metal emits/executes the baked fallback and does not claim native hull/domain
 support. Requested missing/wrong-stage artifacts reject instead of substituting another program.
+
+## Bounded mesh artifact
+
+MeshTriangle.slang has a real meshMain at SM6.5. It reads GPUDriven.slang's GPU-produced visible
+count from uint statistics word4 and emits zero or three vertices/one triangle in one mesh group.
+The existing optional Slang build emits DXIL only on Windows, plus actual mesh entry/frame64-byte/
+SRV0 reflection and a source/artifact identity manifest; ordinary Triangle is the cross-backend
+raster fallback. Baseline profiles and external dependencies are unchanged. Actual selected stage/
+profile admission precedes native PSO allocation. Compilation/reflection or fallback output does
+not prove mesh execution, general meshlets, amplification, indirect mesh dispatch or Ultimate.

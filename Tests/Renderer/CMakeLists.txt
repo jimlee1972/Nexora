@@ -384,3 +384,22 @@ if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
   set_property(TEST renderer.shading_rate APPEND PROPERTY ENVIRONMENT
     ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
 endif()
+
+add_executable(NexoraMeshShaderTests MeshShaderTests.cpp)
+target_link_libraries(NexoraMeshShaderTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraMeshShaderTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraMeshShaderTests)
+add_test(NAME renderer.mesh_shader COMMAND NexoraMeshShaderTests)
+set_tests_properties(renderer.mesh_shader PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraMeshShaderTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.mesh_shader APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  if(WIN32)
+    set_property(TEST renderer.mesh_shader APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_MESH_DXIL_PATH=${NEXORA_SLANG_MESH_DXIL_OUTPUT}")
+  endif()
+endif()

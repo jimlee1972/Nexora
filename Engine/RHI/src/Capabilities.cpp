@@ -83,7 +83,7 @@ void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities &capabilities,
 GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &descriptor) {
   if (descriptor.type > PipelineType::Compute ||
       descriptor.topology > PrimitiveTopology::PatchList ||
-      descriptor.graphics_shader > GraphicsShaderVariant::PreTessellatedPatch ||
+      descriptor.graphics_shader > GraphicsShaderVariant::MeshTriangle ||
       descriptor.shading_rate > ShadingRate::Coarse2x2)
     throw std::invalid_argument("invalid pipeline type, topology or shader variant");
   if (descriptor.type == PipelineType::Compute &&
@@ -102,6 +102,14 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
       minimum = {1, 0};
   } else if (descriptor.patch_control_points) {
     throw std::invalid_argument("triangle lists cannot specify patch control points");
+  }
+  if (descriptor.graphics_shader == GraphicsShaderVariant::MeshTriangle) {
+    auto &minimum =
+        requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::MeshShader)];
+    if (minimum < FeatureVersion{1, 0})
+      minimum = {1, 0};
+    if (requirements.minimum_dxil_shader_model < FeatureVersion{6, 5})
+      requirements.minimum_dxil_shader_model = {6, 5};
   }
   if (descriptor.shading_rate != ShadingRate::Full) {
     auto &minimum =

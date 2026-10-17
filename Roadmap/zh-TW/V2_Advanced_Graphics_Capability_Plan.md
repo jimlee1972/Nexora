@@ -603,6 +603,24 @@ LTO 通過。合併原生物件／同步回歸 **12/12、18.32秒**，確認29�
 錯誤為零。Vulkan 後備覆蓋512像素、Channel 差為零；enabled=0／coarse_draws=0 明確不算原生 VRS。
 Windows2x2 與 Hosted 平台 Gate 仍待驗證，不關閉任何完整 Gate。
 
+## V2-GFX-4 有界 Mesh Shader 施工狀態
+
+D3D12 有界原生 MS／PS 路徑施工中，包含明確階段／Profile／Variant 准入、List 獨占唯讀 GPU 統計
+輸入與 DispatchMesh(1,1,1)。真實 Slang2026.18／DXC1.9.2609.5 探測產出4876-byte、SM6.5 的
+Mesh DXIL，解碼階段32；實際 Frame／SRV／Entry Reflection 與原生 SDK Pipeline Stream 語法
+探測通過。這些 Linux 探測不代表 D3D12 執行。Oracle 比對 GPU 視錐剔除0/1與 CPU、Mesh 與
+GPU 產生 Indirect 的 RGBA／BGRA 像素、過期／放棄輸入、共享 Worker 及取消／重試。
+來源 `feat/v2-bounded-d3d12-mesh-shader`，Beads `nexora-45y.5.2`；原生執行／Hosted Gate 待驗證。
+通用 Meshlet／Amplification／Indirect Mesh Dispatch 與所有完整 Gate 維持開放。
+
+✅ 本地 Mesh 准入／Cache／DXIL／Profile／Cooked 階段及真實 GPU Compute／Indirect 後備通過。
+完整 Slang／原生／Zig Development configure/build 與 Xvfb CTest **216/216、零失敗／略過、
+136.60秒**（Showcase／Graphical Shell 關）；聚焦 **7/7、0.46秒**，Shipping Monolithic／Minimal
+LTO 通過。合併原生物件／同步回歸 **13/13、15.24秒**，確認31次 Layer 插入，Validation／VUID／Sync
+錯誤為零。暫存的真實4876-byte Mesh DXIL 通過引擎 Reader（階段32／SM6.5）；Private 原生
+Pipeline Adapter 通過官方 SDK 語法檢查。Linux 結果不代表 D3D12 Mesh Shader 執行，Hosted
+原生 MS／PS 仍待驗證，不關閉任何完整 Gate。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、
