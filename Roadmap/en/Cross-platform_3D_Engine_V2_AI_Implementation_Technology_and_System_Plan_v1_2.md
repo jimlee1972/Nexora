@@ -2434,3 +2434,5 @@ Done
 ```
 
 Verifiable evidence must be provided.
+
+PR633 native acceptance: both Windows314/314 suites execute bounded Work Graphs and pipeline/inline rays; all36 checks passed before squash merge. Linux365/365 and Metal304/304 compute fallbacks pass. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full graphics gates remain open.

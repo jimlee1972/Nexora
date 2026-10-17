@@ -829,3 +829,16 @@ target 為前提；尚不可用的功能不能靠編譯 stub 或僅 fallback 測
 - [RHI Contract](../../Engine/RHI/README.md)
 - [Renderer Contract](../../Engine/Renderer/README.md)
 - [Shader Library 與原生 Presentation 範圍](../../Shaders/README.md)
+
+## Hosted 原生 Work Graph 與 Ray 驗收（PR633）
+
+✅ 自己的 PR633 在 ee4d8043 通過36檢查、兩輪 Workflow39029985978／39029989660 成功後，
+以 `f347b90773470783a58a9eb28d3fc8c6633f27ba` Squash 合併。Push／PR 的 Windows314/314
+（1317.40／808.31秒）、Linux365/365（1340.76／1337.94秒）、macOS304/304
+（541.70／582.44秒）均通過。兩輪 Windows 實際執行 Work Graph enabled1／16 Dispatch、
+Pipeline Ray enabled1／45 Call、Inline Query enabled1／45 Call；Legacy／Enhanced、
+Node/Ray/Node Root、CPU／Compute 輸出比對、Generation／Revision 負例及取消／重播均通過。
+Enhanced Node／Ray Buffer Barrier 分別68／354。Linux／Metal 明確回報 enabled0，執行
+真實低 Profile Compute 後備。本節取代上述有界 Recipe 的 Windows 待驗收紀錄，僅關閉
+子任務 nexora-45y.6.1／.4.2；一般 Graph Node、AS Update／Compaction、Lighting、
+DXR1.2／SER、實體效能及完整 Gate 持續開放。

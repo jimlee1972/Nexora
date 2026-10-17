@@ -317,3 +317,5 @@ The older source-only implementation notes below are historical.
   should validate the full range at `DrawIndirect` time (where `command_count` is actually known)
   on all three backends together, since fixing only one would silently create a
   cross-backend contract mismatch.
+
+PR633 native acceptance: both Windows314/314 suites execute bounded Work Graphs and pipeline/inline rays; all36 checks passed before squash merge. Linux365/365 and Metal304/304 compute fallbacks pass. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full graphics gates remain open.

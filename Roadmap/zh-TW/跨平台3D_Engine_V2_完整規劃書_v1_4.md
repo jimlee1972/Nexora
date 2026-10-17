@@ -7147,3 +7147,5 @@ V1 Master Baseline 不再於本文件內複製全文，避免內容與來源文�
 V1 Plugin / Third-party SDK / Video & Media 詳細 Contract、V1 Master Definition of Done 兩份附錄，同樣請見 V1 文件本身，不在此複製。
 
 閱讀順序建議：施工或審閱本文件前，先確認上述 V1 文件版本是否為最新；本文件（V2）只描述新增與變更的部分，未在本文件提及的既有系統一律以 V1 文件為準。
+
+PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pipeline／Inline Ray，36檢查通過後 Squash 合併；Linux365/365、Metal304/304 Compute 後備通過。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整圖形 Gate 維持開放。

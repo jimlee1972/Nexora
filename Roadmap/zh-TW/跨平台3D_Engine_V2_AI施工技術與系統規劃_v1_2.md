@@ -2437,3 +2437,5 @@ Done
 ```
 
 必須提供可驗證證據。
+
+PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pipeline／Inline Ray，36檢查通過後 Squash 合併；Linux365/365、Metal304/304 Compute 後備通過。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整圖形 Gate 維持開放。

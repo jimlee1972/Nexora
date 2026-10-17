@@ -905,3 +905,16 @@ evidence exist. Update both language editions, the V2 plans and roadmap index to
 - [RHI contracts](../../Engine/RHI/README.md)
 - [Renderer contracts](../../Engine/Renderer/README.md)
 - [Shader library and native Presentation scope](../../Shaders/README.md)
+
+## Hosted native Work Graph and ray acceptance (PR633)
+
+✅ Own PR633 squash-merged as `f347b90773470783a58a9eb28d3fc8c6633f27ba` after all36 checks
+passed at ee4d8043, with both workflows39029985978/39029989660 completed successfully. Windows
+314/314 (1317.40/808.31s), Linux365/365 (1340.76/1337.94s) and macOS304/304 (541.70/582.44s)
+pass in push/PR runs. Both Windows suites actually execute Work Graphs enabled1/16 dispatches,
+pipeline rays enabled1/45 calls and inline queries enabled1/45 calls. Legacy/enhanced cases,
+Node/Ray/Node roots, CPU/compute output oracles, generation/revision negatives and cancellation/
+replay pass. Enhanced node/ray buffer barriers count68/354. Linux/Metal report enabled0 while
+executing real lower-profile compute fallback. This supersedes earlier pending Windows notes
+for these bounded recipes and closes child tasks nexora-45y.6.1/.4.2 only. General graph nodes,
+AS update/compaction, lighting, DXR1.2/SER and physical performance/full gates remain open.

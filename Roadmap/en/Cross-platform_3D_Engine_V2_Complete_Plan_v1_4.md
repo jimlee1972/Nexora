@@ -7129,3 +7129,5 @@ Cross-platform 3D Engine — V1 AI Implementation Technology and System Plan
 The detailed V1 Plugin / Third-party SDK / Video & Media Contracts and the two V1 Master Definition of Done appendices should likewise be consulted in the V1 documents themselves and are not reproduced here.
 
 Recommended reading order: Before implementing or reviewing this document, first confirm whether the versions of the V1 documents listed above are the latest; this document (V2) describes only the additions and changes, and all existing systems not mentioned in this document shall be governed by the V1 documents.
+
+PR633 native acceptance: both Windows314/314 suites execute bounded Work Graphs and pipeline/inline rays; all36 checks passed before squash merge. Linux365/365 and Metal304/304 compute fallbacks pass. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full graphics gates remain open.
