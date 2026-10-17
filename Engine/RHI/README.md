@@ -771,3 +771,61 @@ SM6.9/6.10/full V2-GFX-5 acceptance remain open.
 The Windows node oracle also runs `--enhanced-barriers`, preserving the same CPU/compute,
 revision and cancellation checks and requiring nonzero accepted enhanced buffer barriers when
 the feature is enabled. A legacy/unavailable route must leave these counters zero.
+
+## Bounded native triangle rays and compute reference
+
+`RayTracing.h` adds C++ scene/program handles and fixed record layouts; the stable C ABI is
+unchanged. A scene contains one to eight finite, nondegenerate, non-indexed triangles. Native
+D3D12 privately owns upload vertices/instances and immutable BLAS/TLAS. Construction records
+BLAS build, a UAV dependency, TLAS build and a second UAV dependency on the existing direct
+queue, and waits for completion before publishing the handle. Build scratch retires after that
+wait. This explicit resource creation does not count as an application ray dispatch or hide a
+production readback. Resource creation/destruction, mutation and submit remain caller-serialized
+against recording; independent lists may read the same immutable scene/program.
+
+`CreateRayProgram` selects `Pipeline` (tier1.0, library SM6.3) or `InlineQuery` (tier1.1, compute
+SM6.5). Explicit requirements can raise these minimums. Hardware, SDK, compiled artifacts and
+implemented tier remain separate; the implementation ceiling is1.1 and never admits DXR1.2/SER.
+With native Windows and the existing Slang option, real reflection validates `t0` acceleration
+structure, `t1` 32-byte ray inputs and `u1` 16-byte hits, including member offsets. Generated
+private arrays pin exact compiled recipe bytes, and the manifest records compiler/source/artifact
+identity. Runtime validates actual library/entry metadata and profile, then exact recipe identity
+before native creation. Library kind alone does not infer ray exports. The state object validates
+three required exports, a triangle hit group, 16-byte payload, eight-byte attributes and recursion1;
+private shader tables use 64-byte-aligned records and validated native shader identifiers. Missing,
+wrong-kind, low-profile and same-profile changed-recipe artifacts fail before dispatch. General
+custom ray program/cooked-library assembly is outside this bounded recipe.
+
+`TraceRays(program, scene, input, output, count)` accepts1–64 rays, distinct input/output buffers
+and at most eight immutable per-list snapshots. It privately binds the dedicated root and either
+`DispatchRays` or an inline-RayQuery compute PSO; no CPU hit result chooses GPU work. Scene/program
+state, shader tables, AS and captured buffer resources outlive every native command-list interface,
+including abandonment. Submit revalidates program/scene generations and ordinary input/output
+revisions before Close/Execute; rejected or cancelled lists publish no ray counters. Selecting rays
+invalidates the ordinary bound pipeline; an explicit `BindPipeline` restores compute/graphics state.
+`ray_dispatch_calls` and `inline_ray_dispatch_calls` count accepted API dispatches, including misses,
+rather than GPU invocations or speedups.
+
+Ray inputs store origin/minimum/direction/maximum. Invalid non-finite/zero direction or invalid
+finite distance ranges produce primitive `0xfffffffe`, distance0 and zero barycentrics without
+issuing hardware rays. Misses use primitive `0xffffffff`, the input maximum and zero barycentrics.
+Hits report primitive index, ray-parameter distance and two triangle barycentrics. Fixtures avoid
+ambiguous coincident/edge intersections; floating output comparisons allow1e-4, not a general
+cross-device precision guarantee.
+
+`ComputeShaderVariant::RayReference` explicitly selects a separate lower-SM float Moller–Trumbore
+compute shader on Vulkan/D3D12/Metal and has a distinct complete pipeline-cache identity. It uses
+packed counts/triangles/rays at slot0, four-word hits at slot1 and the existing compute binding
+snapshot contract; default GPUDriven pipelines remain unchanged. Validation rejects this native
+kernel rather than simulating a ray result. The double-precision CPU oracle compares real compute
+and selected native ray results for1/2/8 triangles and1/64 rays, canaries, misses/nearest hits,
+non-unit/invalid rays, forced two-worker failure/cancellation/replay and mixed Ray/Compute/Ray
+roots. Native tests also cover stale/destroyed handles, CPU mutation, abandoned lists and snapshot
+capacity, under both legacy and requested Enhanced Barriers. Fallback-only/compilation results do
+not certify DXR execution. Native Vulkan/Metal RT, AS updates/compaction, broader lighting, DXR1.2,
+SER, physical performance and the complete V2-GFX-3 gate remain open.
+
+When both native programs are admitted, the ray oracle records Node/Ray/Node in one list and
+compares both visible-record outputs and the ray result. Ray selection clears the logical bound
+Work Graph; a later node dispatch requires explicit rebind. Each path retains its own roots, state,
+backing/table/AS resources and native command-list interfaces until list destruction/completion.

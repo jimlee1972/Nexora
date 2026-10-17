@@ -669,6 +669,34 @@ Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Obje
 **13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
 Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
 
+## V2-GFX-3 有界三角形 Ray 施工狀態
+
+`feat/v2-bounded-native-rays`、Beads `nexora-45y.4.2` 實作不可變1–8三角形 BLAS／TLAS Recipe、
+專用 Root／State／Shader Table、原生 `DispatchRays` 及 Tier1.1 Inline Query。保留呼叫端序列化
+建立／提交、提交前 Handle／Revision 驗證、List 私有快照及 Compute 狀態還原。沿用 Slang Opt-in
+另產生 Library6.3／Query6.5 與較低 SM 的 Compute Traversal，不提高既有 Profile。實際 Reflection
+驗證 Root／32-byte 輸入／16-byte 命中 ABI，私有完整位元組比對在原生建立前拒絕相同 Profile 的
+改寫 Recipe；完整 Gate 尚未關閉。
+
+✅ 真實 Slang2026.18＋官方 DXC1.9.2609.5 編譯探測、引擎 Library／Entry Reader，以及 Linux 原生
+Vulkan Compute 專項通過。精確浮點模式下，Slang Library6972bytes／SM6.3、Query5236bytes／SM6.5
+皆為真實產物，尚非原生執行證據。雙精度 CPU Oracle 與真實 Compute 比對1／2／8三角形及
+1／64 Ray 的 Hit／Miss／最近交點／重心座標、無效 Ray、Canary 與強制雙 Worker 失敗／取消／重試。
+原生 SDK Helper 在警告視為錯誤下通過語法檢查。Windows AS Build、Ray／Query Dispatch、過期／
+放棄生命週期及 Enhanced／Legacy 比對仍待完成；通用 AS Update／Compaction、Shadow／Reflection／
+AO、DXR1.2、SER、實機預算及完整驗收維持開放。
+
+下一個自己的 PR 整合 Work Graph 與 Ray Recipe，兩者共用 Library Admission 與原生 Program
+Ownership。整合來源 Development Configure／Build 與完整 CTest **219/219** 通過，零失敗／略過
+（134.55s），契約／Profile 專項 **9/9**（0.31s）與 Shipping Minimal／Monolithic LTO 通過。
+Xvfb 下 Khronos Object／Synchronization Validation **17/17** 通過（9.41s），確認37次 Layer 插入，
+無 Validation／VUID／同步錯誤。另有精確浮點 Ray 候選218/218（123.92s）；Vulkan 後備明確回報
+Ray／Node enabled=0。實際 Production CMake 產物流程在暫存 Linux DXC 下執行成功，包括 Windows
+SDK 預檢、正常／錯誤 Entry Node Library，以及 Reflection 驗證後的完整 Ray 位元組識別。改寫 Ray
+Library 仍為合法 SM6.3，但與固定 Recipe 不同，驗證預期負例邊界。整合 SDK Helper 與 Windows
+條件測試分支在警告視為錯誤下通過語法檢查。Windows 額外測試兩能力皆可用時的 Node／Ray／Node
+Program／Root 切換；原生互通及兩種進階 Program 的執行仍待 Hosted 證據，完整 Gate 維持開放。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、

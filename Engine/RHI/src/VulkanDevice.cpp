@@ -1213,7 +1213,8 @@ struct ShaderModuleOwner final {
       destroy(device, module, nullptr);
   }
 };
-std::vector<std::uint32_t> ReadGeometrySpirv(const char *environment, bool patch) {
+std::vector<std::uint32_t> ReadGeometrySpirv(const char *environment, bool patch,
+                                             bool compute = false) {
   const auto *path = std::getenv(environment);
   if (!path || !*path)
     throw std::runtime_error(std::string("required geometry SPIR-V artifact is unset: ") +
@@ -1229,7 +1230,8 @@ std::vector<std::uint32_t> ReadGeometrySpirv(const char *environment, bool patch
     throw std::runtime_error("geometry SPIR-V artifact read failed");
   const auto bytes = std::as_bytes(std::span{words});
   const bool valid =
-      patch
+      compute ? HasSpirvEntryPoint(bytes, ShaderStage::Compute, "computeMain")
+      : patch
           ? HasSpirvEntryPoint(bytes, ShaderStage::TessellationControl, "tessControlMain") &&
                 HasSpirvEntryPoint(bytes, ShaderStage::TessellationEvaluation, "tessEvaluationMain")
           : HasSpirvEntryPoint(bytes, ShaderStage::Vertex, "preTessellatedVertexMain");
@@ -1244,11 +1246,22 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
   if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
     throw std::invalid_argument("pipeline hashes must be non-zero");
   if (descriptor.type == PipelineType::Compute) {
+    ShaderModuleOwner selected{device_, functions_.DestroyShaderModule};
+    auto module = compute_shader_module_;
+    if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
+      const auto words = ReadGeometrySpirv("NEXORA_SLANG_RAY_REFERENCE_SPIRV_PATH", false, true);
+      const VkShaderModuleCreateInfo module_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                                 nullptr, 0, words.size() * sizeof(std::uint32_t),
+                                                 words.data()};
+      Check(functions_.CreateShaderModule(device_, &module_info, nullptr, &selected.module),
+            "vkCreateShaderModule(ray reference)");
+      module = selected.module;
+    }
     const VkPipelineShaderStageCreateInfo stage{VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                 nullptr,
                                                 0,
                                                 VK_SHADER_STAGE_COMPUTE_BIT,
-                                                compute_shader_module_,
+                                                module,
                                                 "computeMain",
                                                 nullptr};
     const VkComputePipelineCreateInfo info{VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,

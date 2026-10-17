@@ -243,6 +243,7 @@ function(nexora_configure_slang)
 
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/NexoraTessellationSlang.cmake")
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/NexoraMeshSlang.cmake")
+  include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/NexoraRaySlang.cmake")
 
   set(NEXORA_SLANG_ARTIFACT_TARGET NexoraSlangArtifacts PARENT_SCOPE)
   set(NEXORA_SLANG_DXIL_OUTPUT "${dxil_output}" PARENT_SCOPE)

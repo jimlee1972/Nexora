@@ -149,6 +149,7 @@ constexpr bool SupportsBuiltinIndirectDraw(PrimitiveTopology topology,
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
 enum class PipelineType : std::uint8_t { Graphics, Compute };
+enum class ComputeShaderVariant : std::uint8_t { GPUDriven, RayReference };
 
 struct BufferDescriptor final {
   std::uint64_t size{};
@@ -178,6 +179,7 @@ struct PipelineDescriptor final {
   std::uint32_t patch_control_points{};
   GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
   ShadingRate shading_rate{ShadingRate::Full};
+  ComputeShaderVariant compute_shader{ComputeShaderVariant::GPUDriven};
 };
 struct RenderingInfo final {
   TextureHandle color_target;

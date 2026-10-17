@@ -149,3 +149,13 @@ The generated manifest records requested profile, compiler version and source/bi
 claiming native execution. RHI separately checks actual library profile, native program/node names,
 eight-byte entry ABI, output root signature and backing requirements. General graph libraries,
 graphics nodes, SM6.9/6.10 and Runtime cook/program assembly remain outside this slice.
+
+`BoundedRays.slang` is an independent optional Windows Slang recipe: a three-entry SM6.3 ray
+library and an SM6.5 inline query. `RayReference.slang` supplies lower-SM actual compute traversal
+(SPIR-V/MSL and Windows DXIL6.0). Baseline shader targets/profiles remain unchanged. Real library/
+query reflection must match acceleration structure t0, RayInput32 at t1 and Hit16 at u1, including
+field offsets. The build emits compiler/source/artifact provenance plus private exact-byte arrays
+for runtime recipe identity; native execution remains explicitly pending in generated metadata.
+A separately compiled same-profile changed recipe exercises runtime identity rejection. Native
+state objects additionally require actual exports and shader identifiers; compilation/reflection
+is not DXR proof. These fixtures do not implement DXR1.2, SER or general cooked ray authoring.

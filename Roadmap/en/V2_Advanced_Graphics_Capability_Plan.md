@@ -729,6 +729,39 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## V2-GFX-3 bounded triangle-ray construction status
+
+`feat/v2-bounded-native-rays`, Beads `nexora-45y.4.2`, implements an immutable one-to-eight-triangle
+BLAS/TLAS recipe, dedicated root/state/shader-table ownership, native `DispatchRays` and tier1.1
+inline queries. It preserves caller-serialized creation/submission, pre-submit handle/revision
+validation, privately retained per-list snapshots and ordinary compute state restoration. Existing
+Slang opt-in emits independent library6.3/query6.5 targets and lower-SM compute traversal; baseline
+profiles stay unchanged. Actual reflection checks root/32-byte input/16-byte hit ABI, and private
+exact-byte identities reject changed same-profile recipes before native creation. No full gate closes.
+
+✅ Real Slang2026.18 + official DXC1.9.2609.5 compiler probes, actual engine library/entry admission,
+and Linux native Vulkan compute/reference focused checks pass. With precise floating-point mode,
+the Slang library is6972bytes/SM6.3 and query5236bytes/SM6.5; these are actual artifacts, not native
+execution proof. The double-precision CPU oracle matches real compute hit/miss/nearest/barycentric
+outputs, invalid rays, canaries and forced two-worker failure/cancellation/replay for1/2/8 triangles
+and1/64 rays. Native SDK helper syntax passes with warnings-as-errors. Windows AS build, ray/query
+dispatch, stale/abandoned lifetimes and enhanced/legacy parity remain pending. General AS update/
+compaction, shadow/reflection/AO integration, DXR1.2, SER and physical/full acceptance remain open.
+
+The next own PR integrates the Work Graph and ray recipes because they share library admission
+and native program ownership. On that combined source, Development configure/build and full CTest
+pass **219/219**, zero failures/skips (134.55s), focused contracts/profile tests **9/9** (0.31s), and
+Shipping Minimal/Monolithic LTO passes. Khronos object/synchronization validation with Xvfb passes
+**17/17** (9.41s), with37 confirmed layer insertions and zero validation/VUID/sync errors.
+The separate precise-mode ray candidate passed218/218 (123.92s); native Vulkan fallback remains
+explicitly ray/node enabled=0. Actual production CMake artifact recipes execute successfully with
+staged Linux DXC; the Windows SDK preflight, normal/wrong-entry node libraries and exact reflected
+ray-byte identity generation pass. A real changed ray library remains valid SM6.3 while differing
+from the pinned recipe, exercising the intended negative boundary. Combined SDK helper and Windows
+conditional test syntax checks pass with warnings-as-errors. Windows additionally exercises
+Node/Ray/Node program/root switching when both capabilities are admitted; this native interop
+and both advanced program executions remain pending until hosted proof. No full gate closes.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

@@ -3,6 +3,7 @@
 #include "Nexora/RHI/Api.h"
 #include "Nexora/RHI/GpuTiming.h"
 #include "Nexora/RHI/IndirectCommand.h"
+#include "Nexora/RHI/RayTracing.h"
 #include "Nexora/RHI/Types.h"
 
 #include <cstddef>
@@ -30,6 +31,8 @@ struct DeviceDiagnostics final {
   std::uint64_t indirect_draw_calls{};
   std::uint64_t readbacks{};
   SubmissionGpuTiming gpu_timing{};
+  std::uint64_t ray_dispatch_calls{};
+  std::uint64_t inline_ray_dispatch_calls{};
   std::uint64_t command_pool_creations{};
   std::uint64_t command_pool_reuses{};
   std::uint64_t cached_command_pools{};
@@ -93,6 +96,10 @@ public:
   virtual void DispatchWorkGraph(WorkGraphInput) {
     throw std::logic_error("work graphs are unsupported");
   }
+  virtual void TraceRays(RayProgramHandle, RaySceneHandle, BufferHandle, BufferHandle,
+                         std::uint32_t) {
+    throw std::logic_error("ray tracing is unsupported");
+  }
   virtual void EndRendering() = 0;
 };
 
@@ -137,6 +144,18 @@ public:
   }
   virtual void DestroyWorkGraph(WorkGraphHandle) {
     throw std::logic_error("work graphs are unsupported");
+  }
+  [[nodiscard]] virtual RaySceneHandle CreateRayScene(std::span<const RayTriangle>) {
+    throw std::logic_error("ray tracing scenes are unsupported");
+  }
+  virtual void DestroyRayScene(RaySceneHandle) {
+    throw std::logic_error("ray tracing scenes are unsupported");
+  }
+  [[nodiscard]] virtual RayProgramHandle CreateRayProgram(const RayProgramDescriptor &) {
+    throw std::logic_error("ray tracing programs are unsupported");
+  }
+  virtual void DestroyRayProgram(RayProgramHandle) {
+    throw std::logic_error("ray tracing programs are unsupported");
   }
   [[nodiscard]] virtual std::unique_ptr<CommandList> CreateCommandList(QueueType queue) = 0;
   // Returns a monotonically increasing completion value. Resources referenced by the command list

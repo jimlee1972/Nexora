@@ -468,7 +468,33 @@ PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor)
     NSError *error = nil;
     PipelineRecord record{descriptor};
     if (descriptor.type == PipelineType::Compute) {
-      record.compute_pipeline = [device_ newComputePipelineStateWithFunction:compute_function_
+      id<MTLFunction> selected_compute = compute_function_;
+      if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
+        const auto *path = std::getenv("NEXORA_SLANG_RAY_REFERENCE_METAL_PATH");
+        if (!path || !*path)
+          throw std::runtime_error("required ray reference Metal artifact is unset");
+        NSString *source = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:path]
+                                                     encoding:NSUTF8StringEncoding
+                                                        error:&error];
+        if (!source || source.length == 0)
+          throw std::runtime_error("ray reference Metal artifact is missing or empty");
+        MTLCompileOptions *ray_options = [MTLCompileOptions new];
+        // Keep explicit NaN/Inf rejection valid, including on the older supported Metal SDKs.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        ray_options.fastMathEnabled = NO;
+#pragma clang diagnostic pop
+        id<MTLLibrary> library = [device_ newLibraryWithSource:source
+                                                       options:ray_options
+                                                         error:&error];
+        if (!library)
+          throw std::runtime_error("ray reference Metal compilation failed: " +
+                                   ErrorDescription(error));
+        selected_compute = [library newFunctionWithName:@"computeMain"];
+        if (!selected_compute)
+          throw std::runtime_error("ray reference Metal entry is missing");
+      }
+      record.compute_pipeline = [device_ newComputePipelineStateWithFunction:selected_compute
                                                                        error:&error];
       if (!record.compute_pipeline)
         throw std::runtime_error("Metal compute pipeline creation failed: " +
