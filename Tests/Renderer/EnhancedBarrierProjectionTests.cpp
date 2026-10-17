@@ -3,6 +3,12 @@
 #include <array>
 #include <iostream>
 #include <stdexcept>
+#if defined(_WIN32)
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include "D3D12EnhancedBarriers.h"
+#include <d3d12.h>
+#endif
 using namespace nexora::rhi;
 using namespace nexora::rhi::detail;
 namespace {
@@ -13,6 +19,24 @@ void Require(bool value, const char *message) {
 } // namespace
 int main() {
   try {
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    for (const auto bits : {static_cast<UINT>(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
+                            static_cast<UINT>(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE),
+                            static_cast<UINT>(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) |
+                                static_cast<UINT>(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)})
+      Require(BufferMemoryAccess(static_cast<D3D12_RESOURCE_STATES>(bits)) ==
+                  BarrierMemoryAccess::ShaderRead,
+              "native graph ShaderRead must admit combined pixel/non-pixel scopes");
+    bool mixed_rejected = false;
+    try {
+      (void)BufferMemoryAccess(static_cast<D3D12_RESOURCE_STATES>(
+          static_cast<UINT>(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) |
+          static_cast<UINT>(D3D12_RESOURCE_STATE_UNORDERED_ACCESS)));
+    } catch (const std::invalid_argument &) {
+      mixed_rejected = true;
+    }
+    Require(mixed_rejected, "unsupported native read/write combination admitted");
+#endif
     const auto copy = TextureBarrierPoint(ResourceState::CopyDestination);
     const auto target = TextureBarrierPoint(ResourceState::RenderTarget);
     const auto sample = TextureBarrierPoint(ResourceState::ShaderRead);

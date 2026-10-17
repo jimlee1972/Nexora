@@ -710,3 +710,10 @@ checks bounded dispatch/input rejection, abandoned/stale work, shared-input two-
 failed/cancelled cohorts and successful replay. A fallback-only run is not mesh execution proof.
 General meshlets, amplification shaders, indirect mesh dispatch, cross-backend mesh support,
 physical performance and the full Ultimate/V2-GFX-4 gates remain open.
+
+The mesh and shading-rate Windows oracles also accept `--enhanced-barriers`, running the same
+output/lifetime/reset checks on the requested enhanced device and reporting actual accepted-list
+barrier counts. Graph ShaderRead buffers may use pixel, non-pixel or combined native SRV states;
+all three project to shader-read memory access. Mixed SRV/UAV states remain unadmitted. The SDK
+adapter regression covers this boundary explicitly. Neither unavailable enhanced requests nor
+Linux pure-policy checks certify native D3D12 execution.

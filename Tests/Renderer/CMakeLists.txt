@@ -403,3 +403,15 @@ if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
       "NEXORA_SLANG_MESH_DXIL_PATH=${NEXORA_SLANG_MESH_DXIL_OUTPUT}")
   endif()
 endif()
+
+if(WIN32 AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_SLANG)
+  add_test(NAME renderer.shading_rate_enhanced_barriers COMMAND NexoraShadingRateTests --enhanced-barriers)
+  add_test(NAME renderer.mesh_shader_enhanced_barriers COMMAND NexoraMeshShaderTests --enhanced-barriers)
+  set_tests_properties(renderer.shading_rate_enhanced_barriers renderer.mesh_shader_enhanced_barriers
+    PROPERTIES TIMEOUT 120 LABELS "d3d12;native-acceptance")
+  set_property(TEST renderer.shading_rate_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  set_property(TEST renderer.mesh_shader_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1"
+    "NEXORA_SLANG_MESH_DXIL_PATH=${NEXORA_SLANG_MESH_DXIL_OUTPUT}")
+endif()

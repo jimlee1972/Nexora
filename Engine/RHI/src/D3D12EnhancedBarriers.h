@@ -62,6 +62,12 @@ inline D3D12_BARRIER_LAYOUT NativeLayout(BarrierTextureLayout layout) {
   throw std::invalid_argument("invalid enhanced texture layout");
 }
 inline BarrierMemoryAccess BufferMemoryAccess(D3D12_RESOURCE_STATES state) {
+  constexpr auto shader_reads = static_cast<UINT>(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) |
+                                static_cast<UINT>(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+  const auto bits = static_cast<UINT>(state);
+  // Graph ShaderRead admits both shader domains; individual compute/MS bindings use NON_PIXEL.
+  if (bits != 0 && (bits & ~shader_reads) == 0)
+    return BarrierMemoryAccess::ShaderRead;
   switch (state) {
   case D3D12_RESOURCE_STATE_COMMON:
     return BarrierMemoryAccess::NoAccess;
@@ -69,8 +75,6 @@ inline BarrierMemoryAccess BufferMemoryAccess(D3D12_RESOURCE_STATES state) {
     return BarrierMemoryAccess::CopySource;
   case D3D12_RESOURCE_STATE_COPY_DEST:
     return BarrierMemoryAccess::CopyDestination;
-  case D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE:
-    return BarrierMemoryAccess::ShaderRead;
   case D3D12_RESOURCE_STATE_UNORDERED_ACCESS:
     return BarrierMemoryAccess::ShaderReadWrite;
   case D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT:

@@ -289,3 +289,10 @@ reference parity, crystal optics and physical target performance remain pending 
 
 Tinted HDR crystal blending and nearest-layer focus now share the native adapters. This remains art refinement; refraction, final reference parity and physical performance acceptance remain open (VIS 5/7).
 水晶帶色 HDR 合成與最近可見層景深共用原生後端；折射、最終預覽圖一致性與目標實機效能仍待驗收（VIS 5/7）。
+
+✅ Tessellation hosted acceptance / 曲面細分 Hosted 驗收（2026-10-17）：
+Own PR631 merged after all36 checks and both Linux/Windows/macOS workflows passed. Native Vulkan
+and D3D12 curved patches and Metal baked fallback are verified; the full V2-GFX-2 gate stays open.
+PR631 已通過36檢查及兩輪三平台 CI 後合併；原生曲面與 Metal 後備驗證完成，完整 Gate 維持開放。
+PR632 integrates bounded Enhanced Barriers/mesh/VRS for final native acceptance.
+PR632 整合有界 Enhanced Barriers／Mesh／VRS，最終原生驗收進行中。

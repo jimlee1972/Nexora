@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace nexora;
@@ -303,7 +304,7 @@ bool Required() {
   const auto *value = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
   return value && *value == '1';
 }
-void TestNative() {
+void TestNative(bool enhanced) {
 #if defined(_WIN32)
   constexpr auto backend = rhi::Backend::Direct3D12;
   constexpr auto compute_artifact = "NEXORA_SLANG_COMPUTE_DXIL_PATH";
@@ -320,7 +321,7 @@ void TestNative() {
     std::cout << "Native mesh/fallback unavailable\n";
     return;
   }
-  auto device = rhi::CreateDeviceWithOptions(backend, {true});
+  auto device = rhi::CreateDeviceWithOptions(backend, {true, false, enhanced});
   auto compute = device->CreatePipeline(
       {1, 0x4d4353, rhi::TextureFormat::Rgba8Unorm, "mesh producer", rhi::PipelineType::Compute});
   const auto caps = device->Capabilities();
@@ -386,12 +387,34 @@ void TestNative() {
                  "cancellation/replay passed\n";
   }
   device->DestroyPipeline(compute);
+  const auto feature =
+      device->Capabilities()
+          .features[static_cast<std::size_t>(rhi::GraphicsFeature::EnhancedBarriers)];
+  const auto diagnostics = device->Diagnostics();
+  Require(!feature.enabled || (enhanced && feature.implemented &&
+                               feature.support == rhi::CapabilitySupport::Supported),
+          "invalid enhanced admission");
+  if (feature.enabled)
+    Require(diagnostics.enhanced_texture_barriers > 0 && diagnostics.enhanced_buffer_barriers > 0,
+            "selected native geometry did not use enhanced barriers");
+  else
+    Require(diagnostics.enhanced_texture_barriers == 0 && diagnostics.enhanced_buffer_barriers == 0,
+            "legacy geometry fabricated enhanced barriers");
+  if (enhanced)
+    std::cout << "Geometry enhanced barriers enabled=" << feature.enabled
+              << " textures=" << diagnostics.enhanced_texture_barriers
+              << " buffers=" << diagnostics.enhanced_buffer_barriers << '\n';
 }
 } // namespace
-int main() {
+int main(int argc, char **argv) {
   try {
+    const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
+    Require(argc == 1 || enhanced, "usage: [--enhanced-barriers]");
+#if !defined(_WIN32)
+    Require(!enhanced, "enhanced geometry requires D3D12");
+#endif
     TestAdmission();
-    TestNative();
+    TestNative(enhanced);
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';
     return 1;

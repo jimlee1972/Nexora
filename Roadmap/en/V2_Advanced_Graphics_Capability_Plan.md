@@ -632,7 +632,7 @@ validation **11/11,13.94 seconds**,27 confirmed layer insertions, zero validatio
 A separately staged official Linux DXC **v1.9.2609 /1.9.2609.5** permits real Slang2026.18 DXIL
 compiler/reflection/reader probes without changing project dependencies: control4008 bytes,
 evaluation3960 bytes and baked vertex5488 bytes decode to stages8/16/1, all SM6.0. This does not run
-D3D12. Windows HS/DS PSO execution and Metal fallback require hosted native evidence; broader
+D3D12. Windows HS/DS and Metal fallback hosted acceptance is recorded in the integrated section below; broader
 patch authoring, Runtime program assembly/cook execution, Enhanced Barriers and full target-host/
 performance acceptance remain open. All five full gates stay open.
 
@@ -674,6 +674,29 @@ Shipping Monolithic/Minimal LTO passes. Combined native object/synchronization r
 4876-byte Mesh DXIL passes the actual engine reader at stage32/SM6.5; the private native pipeline
 adapter passes official SDK syntax checks. These Linux results do not execute D3D12 Mesh shaders.
 Hosted native MS/PS execution remains pending; no full gate closes.
+
+## Integrated Enhanced Barriers, mesh and VRS local acceptance
+
+Own PR632 now integrates the three bounded D3D12 routes on merged Tessellation/main
+`77090f7de8340c606c4e770218600c6d41e0fa58`. Windows mesh/VRS oracles run both legacy and requested
+Enhanced Barriers, reporting actual enablement and accepted texture/buffer counters. The native
+adapter admits pixel, non-pixel and combined ShaderRead masks while rejecting mixed read/UAV.
+A real SDK-enum regression covers the graph's combined192 mask; this pure mapping check is not
+D3D12 execution. Aliasing, multi-queue handoffs, tier2 rate images, general meshlets and full gates
+remain open. Final hosted native acceptance of the integrated head is pending.
+
+✅ Full integrated native/Slang/Zig Development configure/build and Xvfb CTest **241/241,zero
+failures/skips,252.40 seconds** (Showcase on, graphical editor off); focused **8/8,0.31 seconds**.
+Shipping Monolithic/Minimal LTO passes. Combined native Vulkan object/synchronization validation
+**14/14,17.20 seconds**,31 layer insertions, zero validation/VUID/sync markers. Root README remains
+reader-facing; all C++ modules rebuild, stable C ABI and baseline shader/SDK requirements unchanged.
+
+✅ Tessellation's own PR631 was squash-merged as `77090f7d` after36/36 checks and both first-attempt
+workflows39019440906/39019475539 passed on6b05393b: Linux360/360, Windows303/303 and macOS299/299
+both runs. Windows executes HS/DS and Vulkan executes control/evaluation, with curved RGBA/BGRA
+baked parity, artifact negatives and overlapping-worker cancellation/replay. Metal executes the
+baked fallback and explicitly reports native tessellation unavailable. Broader authoring/cook and
+physical acceptance remain open.
 
 ## Baseline and scope
 

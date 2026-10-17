@@ -583,8 +583,8 @@ configure/build 通過，格式及 Diff 檢查通過。不關閉任何完整 Gat
 
 另行暫存的官方 Linux DXC **v1.9.2609／1.9.2609.5** 可供 Slang2026.18 真實 DXIL 編譯／Reflection／
 Reader 探測，不變更專案相依：Control4008 bytes、Evaluation3960 bytes、後備 Vertex5488 bytes，
-解碼階段8/16/1，皆為 SM6.0；這不是 D3D12 執行。Windows HS／DS PSO 與 Metal 後備仍須 Hosted
-原生證據；更廣 Patch Authoring、Runtime Program 組裝／Cook 執行、Enhanced Barriers、完整目標主機／
+解碼階段8/16/1，皆為 SM6.0；這不是 D3D12 執行。Windows HS／DS 與 Metal 後備 Hosted 驗收
+另見下方整合章節；更廣 Patch Authoring、Runtime Program 組裝／Cook 執行、Enhanced Barriers、完整目標主機／
 效能驗收仍待完成，五個完整 Gate 全部維持開放。
 
 ## V2-GFX-4 有界每次繪製 VRS 施工狀態
@@ -620,6 +620,27 @@ LTO 通過。合併原生物件／同步回歸 **13/13、15.24秒**，確認31�
 錯誤為零。暫存的真實4876-byte Mesh DXIL 通過引擎 Reader（階段32／SM6.5）；Private 原生
 Pipeline Adapter 通過官方 SDK 語法檢查。Linux 結果不代表 D3D12 Mesh Shader 執行，Hosted
 原生 MS／PS 仍待驗證，不關閉任何完整 Gate。
+
+## Enhanced Barriers、Mesh 與 VRS 整合本地驗收
+
+自己的 PR632 已在合併 Tessellation／main `77090f7de8340c606c4e770218600c6d41e0fa58` 上整合三條
+有界 D3D12 路徑。Windows Mesh／VRS Oracle 分別執行 Legacy 與要求的 Enhanced Barriers，回報實際
+啟用及已接受 Texture／Buffer 計數。原生 Adapter 接受 Pixel、Non-Pixel 與合併 ShaderRead，仍拒絕
+混合 Read／UAV。真實 SDK Enum 回歸涵蓋 Graph 的合併192遮罩；純映射檢查不代表 D3D12 執行。
+Aliasing、多 Queue、Tier2 Rate Image、通用 Meshlet 與完整 Gate 維持開放，整合版本 Hosted 原生
+驗收仍待完成。
+
+✅ 整合原生／Slang／Zig Development configure/build 與 Xvfb CTest **241/241、零失敗／略過、
+252.40秒**（Showcase 開、Graphical Editor 關）；聚焦 **8/8、0.31秒**；Shipping Monolithic／Minimal
+LTO 通過。合併原生 Vulkan 物件／同步驗證 **14/14、17.20秒**，確認31次 Layer 插入，Validation／
+VUID／Sync 錯誤為零。Root README 保持讀者導向；全部 C++ 模組重建，穩定 C ABI 與 Shader／SDK
+基線不變。
+
+✅ 自己的 Tessellation PR631 在6b05393b的36/36檢查及兩個首輪工作流程39019440906／39019475539
+通過後，以77090f7d Squash Merge。兩輪 Linux360/360、Windows303/303、macOS299/299 全數通過。
+Windows 真實 HS／DS、Vulkan Control／Evaluation 皆通過 RGBA／BGRA 曲面後備比對、產物負例與
+重疊 Worker 取消／重試；Metal 真實執行後備並明確回報原生 Tessellation 不可用。
+更廣 Authoring／Cook 與實機驗收仍待完成。
 
 ## 基線與範圍
 
