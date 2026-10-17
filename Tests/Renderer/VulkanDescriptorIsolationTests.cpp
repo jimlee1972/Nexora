@@ -21,6 +21,15 @@ using namespace nexora;
 using namespace nexora::renderer;
 
 namespace {
+#if defined(NEXORA_TEST_D3D12)
+constexpr auto kBackend = rhi::Backend::Direct3D12;
+constexpr auto kComputeArtifact = "NEXORA_SLANG_COMPUTE_DXIL_PATH";
+constexpr auto kBackendName = "D3D12";
+#else
+constexpr auto kBackend = rhi::Backend::Vulkan;
+constexpr auto kComputeArtifact = "NEXORA_SLANG_COMPUTE_SPIRV_PATH";
+constexpr auto kBackendName = "Vulkan";
+#endif
 void Require(bool condition, const char *message) {
   if (!condition)
     throw std::runtime_error(message);
@@ -172,7 +181,7 @@ void TestIsolation(rhi::Device &device, rhi::PipelineHandle pipeline, bool paral
 
 void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
   Require(device.Capabilities().independent_compute_recording,
-          "Vulkan must admit the limited independent compute path");
+          "native backend must admit the limited independent compute path");
   const auto full =
       device.Capabilities()
           .features[static_cast<std::size_t>(rhi::GraphicsFeature::ParallelCommandRecording)];
@@ -309,8 +318,79 @@ void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
   for (const auto &workload : workloads)
     for (const auto buffer : workload.buffers)
       device.DestroyBuffer(buffer);
-  std::cout << "Vulkan graph: 24 unique workloads, serial/parallel WAW waves, 48 CPU comparisons; "
+  std::cout << kBackendName
+            << " graph: 24 unique workloads, serial/parallel WAW waves, 48 CPU comparisons; "
                "failed batch preserves all sentinel output and retry succeeds\n";
+}
+
+void TestBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  if (kBackend != rhi::Backend::Direct3D12)
+    return;
+  auto workload = MakeWorkload(device, 3000);
+  const auto record = [&] {
+    auto list = device.CreateCommandList(rhi::QueueType::Compute);
+    Bind(*list, workload);
+    list->BindPipeline(pipeline);
+    list->Dispatch(1);
+    return list;
+  };
+  const auto run = [&] {
+    auto list = record();
+    device.WaitForSubmission(device.Submit(*list));
+    Compare(device, workload);
+  };
+  const auto reject = [&](rhi::CommandList &list) {
+    const auto before = device.Diagnostics();
+    bool rejected = false;
+    try {
+      (void)device.Submit(list);
+    } catch (const std::logic_error &) {
+      rejected = true;
+    }
+    Require(rejected &&
+                device.Diagnostics().submitted_command_lists == before.submitted_command_lists &&
+                device.Diagnostics().compute_dispatches == before.compute_dispatches,
+            "stale D3D12 snapshot must fail before native submission");
+  };
+  // Abandon the very first upload and state changes; retry must still upload canonical input.
+  { auto abandoned = record(); }
+  run();
+  // Abandon a different final state after GPU output exists. Never consume GPU output as upload.
+  {
+    auto abandoned = device.CreateCommandList(rhi::QueueType::Compute);
+    abandoned->TransitionBuffer(
+        {workload.buffers[1], rhi::BufferAccess::Undefined, rhi::BufferAccess::IndirectRead});
+  }
+  run();
+  {
+    auto stale = record();
+    const std::array<std::uint32_t, 5> sentinel{1, 2, 3, 4, 5};
+    device.WriteBuffer(workload.buffers[1], 0, std::as_bytes(std::span{sentinel}));
+    reject(*stale);
+  }
+  run();
+  {
+    auto first = record();
+    auto stale = record();
+    device.WaitForSubmission(device.Submit(*first));
+    reject(*stale);
+  }
+  run();
+  {
+    auto stale = record();
+    Compare(device, workload); // Readback is also an execution boundary invalidating snapshots.
+    reject(*stale);
+  }
+  run();
+  {
+    auto stale = record();
+    device.DestroyBuffer(workload.buffers[3]);
+    reject(*stale);
+  }
+  for (std::size_t index = 0; index < 3; ++index)
+    device.DestroyBuffer(workload.buffers[index]);
+  std::cout << "D3D12: abandoned uploads/states retry; upload/submission/readback/stale-handle "
+               "snapshots reject before execution; 6 exact CPU comparisons passed\n";
 }
 
 void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
@@ -339,23 +419,25 @@ void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
 int main() {
   try {
     const auto *graphics_artifact = std::getenv("NEXORA_SLANG_SPIRV_PATH");
-    const auto *compute_artifact = std::getenv("NEXORA_SLANG_COMPUTE_SPIRV_PATH");
-    if (!graphics_artifact || !*graphics_artifact || !compute_artifact || !*compute_artifact ||
-        !rhi::IsBackendAvailable(rhi::Backend::Vulkan)) {
+    const auto *compute_artifact = std::getenv(kComputeArtifact);
+    if ((kBackend == rhi::Backend::Vulkan && (!graphics_artifact || !*graphics_artifact)) ||
+        !compute_artifact || !*compute_artifact || !rhi::IsBackendAvailable(kBackend)) {
       const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
-      Require(!(required && *required == '1'), "native Vulkan required but unavailable");
-      std::cout << "SKIP: native Vulkan artifacts/device unavailable\n";
+      Require(!(required && *required == '1'), "required native backend/artifact unavailable");
+      std::cout << "SKIP: " << kBackendName << " artifacts/device unavailable\n";
       return 77;
     }
-    auto device = rhi::CreateDevice(rhi::Backend::Vulkan);
+    auto device = rhi::CreateDevice(kBackend);
     const auto pipeline = device->CreatePipeline(
         {1, 2, rhi::TextureFormat::Rgba8Unorm, "isolation", rhi::PipelineType::Compute});
     TestRejectedBindings(*device, pipeline);
     TestIsolation(*device, pipeline, false);
     TestIsolation(*device, pipeline, true);
     TestGraphRecording(*device, pipeline);
+    TestBufferSnapshots(*device, pipeline);
     device->DestroyPipeline(pipeline);
-    std::cout << "Vulkan descriptor isolation: serial and 4-worker recording, 320 exact dispatch "
+    std::cout << kBackendName
+              << " descriptor/buffer isolation: serial and 4-worker recording, 320 exact dispatch "
                  "comparisons passed\n";
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

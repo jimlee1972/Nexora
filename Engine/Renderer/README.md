@@ -273,8 +273,10 @@ stale handles before its callback). Failed compilation invalidates execution. Ex
 those plans without recomputing ownership, submits serially, and waits idle before releasing
 transients, including on exceptions. Callback failure stops submission and successors; it does not
 roll back native recording state or prior submitted passes. After failed native recording, callers
-must recreate affected resources and rebuild the graph before retrying: waiting idle does not undo
-unsubmitted native state/upload preparation. Successful repeated buffer execution with default
+must recreate affected textures and rebuild the graph before retrying on backends that mutate
+texture state during recording: waiting idle does not undo that preparation. Buffer-only Vulkan
+and D3D12 recording can abandon an unsubmitted batch and retry; D3D12 uses revision-checked,
+list-local upload/state snapshots. Prior submitted passes and CPU callback effects are not rolled back. Successful repeated buffer execution with default
 `Undefined` remains conservative.
 
 `renderer.graph_buffer_dependencies` covers hazards, read/read handoffs, cycles, declarations,
@@ -299,8 +301,8 @@ mutate or destroy device resources, submit/wait/read back, mutate the graph, or 
 pool's lifecycle. CPU effects of successful siblings in a failed batch cannot be rolled back.
 
 Parallel admission additionally requires the device's limited `independent_compute_recording`
-contract. Only Validation and supported Vulkan compute devices currently admit it; D3D12, Metal
-and custom devices default to serial fallback. The full `ParallelCommandRecording` feature stays
+contract. Validation, supported Vulkan compute devices and isolated D3D12 buffer recording admit it;
+Metal and custom devices default to serial fallback. The full `ParallelCommandRecording` feature stays
 disabled/unimplemented. This admission is neither a general graphics-recording guarantee nor a
 shader requirement, SDK tier or performance claim.
 
@@ -344,3 +346,11 @@ results to the CPU reference and verifies that aborted recording preserves all s
 before reusing the same buffers. Tests do not establish reduced CPU overhead. Broader backend
 workers, shared-read optimization, graphics/texture concurrency, cancellation, async retirement,
 compiler/artifact readiness and matched CPU/GPU/memory benchmarks remain separate gates.
+
+The Windows `renderer.d3d12_recording_isolation` target reuses the Vulkan workload and exact CPU
+oracle for the same 320 dispatch and 48 graph comparisons. It also exercises D3D12 abandoned
+upload/state recovery and stale-list rejection. D3D12 lists capture buffer revisions while
+recording; upload, accepted submission or nonempty readback invalidates previously recorded lists
+that mention those buffers. Re-record rejected lists before retrying. Graph batch disjointness and
+completion between dependent batches satisfy this restriction without a shared preparation state.
+See the [RHI snapshot contract](../RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice).
