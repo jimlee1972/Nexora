@@ -11,7 +11,8 @@ NexoraTwoDPlayer --run-2d-project /path/to/game.nx2game --frames 60
 ```
 
 The first command presents until native window close. `--frames N` explicitly selects a bounded
-headless run (1..100000); add `--native` for actual bounded presentation. `--report FILE` retains
+headless run (1..100000); add `--native` for actual bounded presentation. Headless runs do not
+poll system gamepads; native runs retain physical gamepad input. `--report FILE` retains
 JSON observations. Invalid/missing content and callback failures exit nonzero without a success
 report. The native-enabled `NexoraProjectPlayer` accepts the same `--run-2d-project` command when
 2D is enabled; its verification-only build retains the existing minimal dependency boundary.

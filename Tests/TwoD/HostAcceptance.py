@@ -76,6 +76,8 @@ def verify(args, root, package):
             line = next(x for x in result.stderr.decode('utf-8').splitlines() if x.startswith('host_fixture '))
             fixture = json.loads(line[len('host_fixture '):])
             assert fixture['final_save_ok'] and not fixture['buttons_seen']
+            assert fixture['keyboard_movement_frames'] == fixture['gamepad_movement_frames'] == 0, fixture
+            assert fixture['axes_min'] == fixture['axes_max'] == [0] * 6, fixture
             return fixture
     first = run('first')
     assert first['position'] == 0 and first['rebound'] == 0, (

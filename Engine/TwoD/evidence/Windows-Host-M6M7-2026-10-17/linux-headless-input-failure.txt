@@ -1,0 +1,14 @@
+..............   Passed    0.06 sec
+2026-10-17T15:37:52.7602465Z         Start 122: twod.host_fixture
+2026-10-17T15:37:53.0575427Z 122/196 Test #122: twod.host_fixture ...............................***Failed    0.30 sec
+2026-10-17T15:37:53.0575992Z Traceback (most recent call last):
+2026-10-17T15:37:53.0576565Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 136, in <module>
+2026-10-17T15:37:53.0577300Z     main()
+2026-10-17T15:37:53.0578041Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 131, in main
+2026-10-17T15:37:53.0578580Z     verify(args, root, package)
+2026-10-17T15:37:53.0579070Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 81, in verify
+2026-10-17T15:37:53.0579695Z     assert first['position'] == 0 and first['rebound'] == 0, (
+2026-10-17T15:37:53.0580136Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-17T15:37:53.0585857Z AssertionError: ({'position': -0.05, 'rebound': 0, 'saves': 0, 'opens': 0, 'keyboard_movement_frames': 0, 'gamepad_movement_frames': 3, 'buttons_seen': 0, 'bus_changes': 0, 'plays': 0, 'pauses': 0, 'stops': 0, 'cancels': 0, 'final_save_ok': True, 'axes_min': [-1.0, -1.0, 0.0, 0.0, 0.0, 0.0], 'axes_max': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, 'ALSA lib confmisc.c:855:(parse_card) cannot find card \'0\'\nALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory\nALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings\nALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory\nALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name\nALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory\nALSA lib conf.c:5731:(snd_config_expand) Evaluate error: No such file or directory\nALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default\nALSA default output unavailable\nhost fixture loaded position=0.000000 rebound=0\nhost_fixture {"position":-0.050000,"rebound":0,"saves":0,"opens":0,"keyboard_movement_frames":0,"gamepad_movement_frames":3,"buttons_seen":0,"bus_changes":0,"plays":0,"pauses":0,"stops":0,"cancels":0,"final_save_ok":true,"axes_min":[-1.000000,-1.000000,0.000000,0.000000,0.000000,0.000000],"axes_max":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000]}\n')
+2026-10-17T15:37:53.0591241Z 
+2026-10-17T15:37:53.0591378Z

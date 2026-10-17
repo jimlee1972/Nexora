@@ -493,7 +493,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     twod::GameplayUiInput uiInput;
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
       Check(input.BeginFrame(), "input frame");
-      (void)gamepads.Poll(input);
+      if (native)
+        (void)gamepads.Poll(input);
       uiInput.pointer_pressed = uiInput.pointer_released = false;
       if (native) {
         const auto status = surface.surface->BeginFrame();

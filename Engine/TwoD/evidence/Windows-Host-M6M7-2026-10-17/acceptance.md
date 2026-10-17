@@ -154,6 +154,54 @@ The benchmark's Windows `peak_process_rss_bytes=0` means unavailable, not zero m
 working set includes driver mappings; it is not allocator/VRAM accounting or a memory-soak trend.
 GPU timing has 598 completed samples per case; command-buffer timing is not display latency.
 
+## Instancing and CPU-stage diagnostic
+
+The measured sprite path already uses GPU instancing: a single compatible sprite batch issues
+DX12 `DrawInstanced(6, instanceCount, ...)` or Vulkan `vkCmdDraw(6, instanceCount, ...)`.
+The 10k mixed row has 9,700 visible instances; the sparse row has only 195. These are not 10,000
+per-object draw calls. The mixed benchmark also rebuilds the spatial index, queries/sweeps,
+extracts sprites and prepares their GPU instance data every frame.
+
+A temporary instrumented copy of `Tools/TwoD/Benchmark.cpp`, linked to the same Shipping libraries,
+ran DX12 with four warm-up and **60 measured frames** per case. It timed pool-to-vector population,
+`index.Build`, Query+Sweep, `ExtractSprites`, extracted Draw, and EndFrame separately using
+`steady_clock`. This is a coarse diagnostic experiment, not the frozen 600-frame acceptance or
+a render-only benchmark. No tracked renderer/benchmark implementation changed. Independent stage
+p95 values must not be summed as the exact frame p95.
+
+| Workload | Populate p95 ms | Index build p95 ms | Query/sweep p95 ms | Extract p95 ms | Draw CPU p95 ms | EndFrame p95 ms |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10k mixed | 1.9795 | 6.3234 | 0.3023 | 16.4837 | 5.4747 | 0.7960 |
+| 10k sparse | 1.7366 | 27.1584 | 0.0298 | 11.8509 | 0.2096 | 0.6493 |
+
+The useful next investigation is CPU extraction/index construction plus a separate render-only
+baseline. Draw CPU includes preparation/upload/command recording; this does not isolate a single
+conversion as the cause. GPU-driven culling or a direct instance extraction path is not implemented
+or accepted here. The original benchmark executable SHA-256 remains
+`8b6a75eb101b4a56590a63d4e1a28c2cf9a00eaea659ed1507cd80297cd42fa6`.
+
+## Linux CI headless-input regression
+
+The first Linux mimalloc job failed the initial zero-position assertion. A diagnostic-only follow-up
+at `e42b91e7` retained the actual state in
+[the failure excerpt](linux-headless-input-failure.txt): startup position was zero, followed by
+three gamepad movement frames, left axes -1 and final position -0.05. The Player polled native
+gamepads even in headless mode. This is observed input contamination, not evidence of an allocator
+or save corruption defect; the physical identity behind the runner's input is not established.
+
+The fix confines native gamepad polling to native presentation. The headless fixture now also
+requires zero keyboard/gamepad movement and zero sampled axes on both first start and resume.
+Native input routing is retained. Human/native evidence above keeps its original frozen executable
+identity; the headless isolation follow-up is validated separately and does not retroactively
+change those observations. All applicable CI must pass on the final PR head before merge.
+
+After this fix, both MSVC Player builds pass; the Development `ctest --preset windows-development
+-C Development -R '^twod\.' --output-on-failure` gate passes **18/18**, including first/resume
+zero-input checks. A fresh Shipping real-font/CRT package passes the same storage/corruption
+[contracts](headless-isolation-contracts.json), followed by three native frames and balanced
+teardown on each hardware backend. The [follow-up summary](headless-isolation-summary.json)
+records its distinct Player hash; original manual/600-frame binaries remain untouched.
+
 ## Remaining full milestone gates
 
 M6: declared minimum PC/product workload, integrated UI/VFX and allocation/VRAM/long-duration
