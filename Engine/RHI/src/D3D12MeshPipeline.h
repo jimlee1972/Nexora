@@ -6,10 +6,15 @@
     defined(__ID3D12Device2_INTERFACE_DEFINED__)
 namespace nexora::rhi::detail {
 // Each subobject starts at pointer alignment, including its payload's trailing padding.
-template <D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Kind, class Payload>
-struct alignas(void *) Subobject {
-  D3D12_PIPELINE_STATE_SUBOBJECT_TYPE kind{Kind};
-  Payload value{};
+template <D3D12_PIPELINE_STATE_SUBOBJECT_TYPE Kind, class Payload> union Subobject {
+  struct Value final {
+    D3D12_PIPELINE_STATE_SUBOBJECT_TYPE kind;
+    Payload value;
+  } data;
+  // A pointer member supplies required stream alignment, without an alignas padding warning.
+  // Only data is active; the alignment member is never read.
+  void *pointer_alignment;
+  constexpr Subobject() : data{Kind, {}} {}
 };
 struct MeshStream final {
   Subobject<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, ID3D12RootSignature *> root;
@@ -29,18 +34,18 @@ inline HRESULT CreateMeshPipeline(ID3D12Device2 &device, ID3D12RootSignature *ro
                                   D3D12_SHADER_BYTECODE mesh, D3D12_SHADER_BYTECODE pixel,
                                   DXGI_FORMAT format, ID3D12PipelineState **result) {
   MeshStream stream;
-  stream.root.value = root;
-  stream.mesh.value = mesh;
-  stream.pixel.value = pixel;
-  stream.blend.value.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-  stream.mask.value = std::numeric_limits<UINT>::max();
-  stream.rasterizer.value.FillMode = D3D12_FILL_MODE_SOLID;
-  stream.rasterizer.value.CullMode = D3D12_CULL_MODE_NONE;
-  stream.rasterizer.value.DepthClipEnable = TRUE;
-  stream.topology.value = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-  stream.targets.value.NumRenderTargets = 1;
-  stream.targets.value.RTFormats[0] = format;
-  stream.samples.value = {1, 0};
+  stream.root.data.value = root;
+  stream.mesh.data.value = mesh;
+  stream.pixel.data.value = pixel;
+  stream.blend.data.value.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+  stream.mask.data.value = std::numeric_limits<UINT>::max();
+  stream.rasterizer.data.value.FillMode = D3D12_FILL_MODE_SOLID;
+  stream.rasterizer.data.value.CullMode = D3D12_CULL_MODE_NONE;
+  stream.rasterizer.data.value.DepthClipEnable = TRUE;
+  stream.topology.data.value = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+  stream.targets.data.value.NumRenderTargets = 1;
+  stream.targets.data.value.RTFormats[0] = format;
+  stream.samples.data.value = {1, 0};
   D3D12_PIPELINE_STATE_STREAM_DESC descriptor{sizeof(stream), &stream};
   return device.CreatePipelineState(&descriptor, __uuidof(ID3D12PipelineState),
                                     reinterpret_cast<void **>(result));
