@@ -38,6 +38,12 @@ const currentSessionBranches = Object.freeze([
 // This 2D goal owns exactly this branch; no similarly named or other-session work is included.
 const twoDSessionBranches = Object.freeze(['feat/twod-cooked-services']);
 
+// Exact branches owned by the current graphics task. Preserve both events at each live head.
+const graphicsSessionBranches = Object.freeze([
+  'feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern-shader-programs',
+  'feat/v2-native-ser-programs',
+]);
+
 async function cleanup({github, context, core}) {
   const {owner, repo} = context.repo;
   const repository = `${owner}/${repo}`;
@@ -46,9 +52,10 @@ async function cleanup({github, context, core}) {
   const branch = pull?.head?.ref || context.ref.replace(/^refs\/heads\//, '');
   const currentSession = currentSessionBranches.includes(branch);
   const twoDSession = twoDSessionBranches.includes(branch);
-  const ownerSession = currentSession || twoDSession;
+  const graphicsSession = graphicsSessionBranches.includes(branch);
+  const ownerSession = currentSession || twoDSession || graphicsSession;
   if (ownerSession && (!context.actor || context.actor !== owner)) return;
-  const branches = twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
+  const branches = graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
     sessionBranches.includes(branch) ? sessionBranches :
     branch.startsWith('codex/ed-m0-') ? legacyBranches : [];
   for (const candidate of branches) {

@@ -137,6 +137,33 @@ int main() {
             "preview execution loaded system WARP instead of the app-local pinned package");
     std::cout << "App-local WARP=" << std::filesystem::path(module_path.data()).string() << '\n';
 #endif
+#if defined(_WIN32)
+    // An omitted caller minimum must not let a modern artifact bypass preview admission.
+    const auto *group_path = std::getenv("NEXORA_MODERN_GROUP_SHARED_DXIL_PATH");
+    Require(group_path && *group_path, "generic preview negative artifact is unset");
+    const auto *previous_compute = std::getenv("NEXORA_SLANG_COMPUTE_DXIL_PATH");
+    const bool had_compute = previous_compute != nullptr;
+    const std::string saved_compute = previous_compute ? previous_compute : "";
+    Require(_putenv_s("NEXORA_SLANG_COMPUTE_DXIL_PATH", group_path) == 0,
+            "cannot stage generic preview artifact");
+    auto generic_device = rhi::CreateDeviceWithOptions(rhi::Backend::Direct3D12, options);
+    Require(_putenv_s("NEXORA_SLANG_COMPUTE_DXIL_PATH", had_compute ? saved_compute.c_str() : "") ==
+                0,
+            "cannot restore generic compute artifact");
+    rhi::PipelineDescriptor generic;
+    generic.layout_hash = 101;
+    generic.shader_hash = 103;
+    generic.type = rhi::PipelineType::Compute;
+    Reject([&] { (void)generic_device->CreatePipeline(generic); });
+    generic.allow_preview_shader_models = true;
+    const auto admitted_generic = generic_device->CreatePipeline(generic);
+    generic_device->DestroyPipeline(admitted_generic);
+    Require(generic_device->Diagnostics().compute_dispatches == 0,
+            "generic artifact admission submitted GPU work");
+    generic_device.reset();
+    std::cout << "Generic SM6.10 artifact without declared minimum: unopted reject / opted PSO "
+                 "admission passed\n";
+#endif
     const auto caps = device->Capabilities();
     Require(caps.d3d12_preview_runtime_enabled && caps.software_device &&
                 caps.highest_dxil_shader_model >= rhi::FeatureVersion{6, 10},

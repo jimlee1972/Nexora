@@ -850,3 +850,9 @@ weighted sums, four F32 matrix/vector results or a16384-element shared-memory re
 shared ceiling is static, not a runtime allocation API. Baseline SDK, Slang profiles, stable C ABI and
 cooked wire formats stay unchanged; all C++ modules require a coordinated rebuild. No Vulkan/Metal
 execution is implied. Target-host proof and broader modern shader/cooking integration remain open.
+
+Actual attached DXIL models are checked independently from omitted caller minimums. SM6.9+ stages
+must satisfy the queried device limit; actual6.10 bytecode additionally requires explicit pipeline
+preview permission and the private runtime, including the generic GPUDriven entry. Only trusted
+in-process FXC5.0 fallback stages bypass DXIL metadata parsing. Lower-profile default behavior is
+preserved. The native test includes undeclared-minimum6.10 rejection and opted PSO creation.

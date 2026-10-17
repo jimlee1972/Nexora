@@ -839,3 +839,5 @@ DXR1.2／Opacity Micromap／SER 與實體 GPU 效能另列未完成工作；本�
 Sampler Feedback 父版本上的本機整合驗證通過 Development220/220、零失敗／略過（132.25秒），Shipping Minimal／Monolithic／LTO 亦通過。三個公開 Windows 套件的固定 SHA-256 均驗證成功；正式編譯流程使用真正 Windows 套件 HLSL Header 亦通過。Windows Runtime 執行仍待驗證。
 
 拆開 Sampler 父版本後，以 PR633 為基礎的獨立來源通過 Development219/219、零略過／失敗（154.39秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（18.24秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。非 Windows Preview Configure 拒絕及雙語文件檢查亦通過；原生 Preview 執行仍待 Windows CI。
+
+前一版本2f7d89c7 的兩輪 Windows Preview Job117400353506／117402090855 均通過1/1（2.09／0.29秒），實際載入 app-local WARP SM6.10、65536 Shared Bytes、F32 Matvec 支援，九組 Kernel 輸出／Canary／生命週期通過。後續補齊 Caller 未填最低版本時的一般產物准入：實際6.9以上 DXIL 仍須符合裝置上限，實際6.10仍要求明確許可／私有 Runtime；新增一般入口未啟用拒絕／啟用 PSO 建立且不 Submit 的原生測試。本機 Development 再通過219/219（122.37秒），真實 SDK 准入 Helper 及 Windows 條件語法亦通過。清理機制僅納入本次三個確切分支、Owner／同 Repository Actor 的過期進行中 SHA，保留最新 Head 的兩種 Event；取消安全測試25/25、文件／Workflow16/16 通過。合併前仍要求最終後續版本 Windows CI。

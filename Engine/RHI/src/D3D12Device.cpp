@@ -607,6 +607,7 @@ public:
     if (!vertex_shader_ || !pixel_shader_) {
       if (vertex_shader_ || pixel_shader_)
         throw std::runtime_error("both Slang DXIL entry-point artifacts are required");
+      using_fxc_graphics_shaders_ = true;
       vertex_shader_ = CompileShader(kTriangleShader, "vsMain", "vs_5_0");
       pixel_shader_ = CompileShader(kTriangleShader, "psMain", "ps_5_0");
     }
@@ -842,6 +843,42 @@ public:
                                   ShaderStage::TessellationControl);
       evaluation = required_artifact("NEXORA_SLANG_TESSELLATION_EVALUATION_DXIL_PATH",
                                      ShaderStage::TessellationEvaluation);
+    }
+    // Actual bytecode can exceed an omitted caller minimum. Keep trusted local FXC fallback
+    // independent from DXIL queries, but close every attached modern DXIL stage before PSO
+    // creation.
+    const auto admit_modern_artifact = [&](ID3DBlob *artifact, ShaderStage stage,
+                                           bool trusted_fxc = false) {
+      if (!artifact || trusted_fxc)
+        return;
+      const auto info = RequireDxilArtifact(
+          {static_cast<const std::byte *>(artifact->GetBufferPointer()), artifact->GetBufferSize()},
+          stage);
+      if (info.shader_model < FeatureVersion{6, 9})
+        return;
+      GraphicsRequirements actual;
+      actual.minimum_dxil_shader_model = info.shader_model;
+      RequireGraphicsCapabilities(capabilities_, actual);
+      if (info.shader_model >= FeatureVersion{6, 10} &&
+          (!descriptor.allow_preview_shader_models || !capabilities_.d3d12_preview_runtime_enabled))
+        throw std::invalid_argument(
+            "modern DXIL preview artifact requires explicit preview permission and runtime");
+    };
+    if (descriptor.type == PipelineType::Compute) {
+      admit_modern_artifact(selected_compute.Get(), ShaderStage::Compute);
+    } else {
+      if (mesh_pipeline)
+        admit_modern_artifact(mesh.Get(), ShaderStage::Mesh);
+      else
+        admit_modern_artifact(selected_vertex.Get(), ShaderStage::Vertex,
+                              using_fxc_graphics_shaders_ &&
+                                  selected_vertex.Get() == vertex_shader_.Get());
+      if (patch) {
+        admit_modern_artifact(control.Get(), ShaderStage::TessellationControl);
+        admit_modern_artifact(evaluation.Get(), ShaderStage::TessellationEvaluation);
+      }
+      admit_modern_artifact(pixel_shader_.Get(), ShaderStage::Fragment,
+                            using_fxc_graphics_shaders_);
     }
     const auto minimum_model = descriptor.graphics_requirements.minimum_dxil_shader_model;
     if (minimum_model != FeatureVersion{}) {
@@ -1368,6 +1405,7 @@ private:
   ComPtr<ID3DBlob> vertex_shader_;
   ComPtr<ID3DBlob> pixel_shader_;
   ComPtr<ID3DBlob> compute_shader_;
+  bool using_fxc_graphics_shaders_{};
   HANDLE fence_event_{};
   UINT rtv_increment_{};
   static constexpr UINT RtvCapacity = 256;
