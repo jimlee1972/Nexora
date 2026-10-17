@@ -526,3 +526,22 @@ and whole-texture usage into independent sync/access/layout fields, including UA
 texture readback. Default devices retain legacy barriers; unavailable requests report fallback.
 Cancelled cohorts still submit nothing and preserve output/state. This adds neither aliasing nor
 multi-native-queue handoffs. See the [RHI contract](../RHI/README.md#opt-in-d3d12-enhanced-barriers).
+
+
+## Bounded tessellated graphics pipelines
+
+PipelineCache keys include primitive topology, patch control-point count and bootstrap graphics
+shader variant in addition to shader/layout/generation/format/requirements. Native patches and
+baked fallback cannot reuse an ordinary triangle PSO accidentally. Patch topology implies native
+tessellation admission before allocation; callers select a fallback explicitly when unavailable.
+The first native route is a three-control-point, factor4 curved patch, with a16-triangle baked
+fallback on all backends. Vulkan/D3D12 execute native hull/domain equivalents; Metal's path stays
+fallback. This is a bounded bootstrap route, not general material/program assembly.
+
+Pre-create immutable PSOs/resources before graph callbacks. The existing limited disjoint graphics
+cohort contract admits these color-target draws with the same ordered completion and cancellation
+boundaries. The native oracle forces two workers, verifies RGBA/BGRA parity against the baked mesh,
+preserves sentinels on failure/cancellation, then replays successfully. Draw bounds and unsupported
+indexed/indirect paths reject before native recording. Full parallel/asynchronous performance and
+the combined Tessellation/Enhanced Barriers gate remain open. See the
+[RHI contract](../RHI/README.md#bounded-native-tessellation-and-baked-mesh-fallback).

@@ -128,6 +128,7 @@ private:
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
+  GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool submitted_{false};
   bool closed_{false};
   TextureHandle render_target_{};
@@ -461,7 +462,7 @@ void MetalDevice::DestroyBuffer(BufferHandle buffer) {
 
 PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor) {
   @autoreleasepool {
-    RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
+    RequirePipelineCapabilities(Capabilities(), descriptor);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
       throw std::invalid_argument("pipeline hashes must be non-zero");
     NSError *error = nil;
@@ -476,6 +477,29 @@ PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor)
       MTLRenderPipelineDescriptor *pipeline_descriptor = [MTLRenderPipelineDescriptor new];
       pipeline_descriptor.vertexFunction = vertex_function_;
       pipeline_descriptor.fragmentFunction = fragment_function_;
+      if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch) {
+        const auto *path = std::getenv("NEXORA_SLANG_PRETESSELLATED_METAL_PATH");
+        if (!path || !*path)
+          throw std::runtime_error("required pre-tessellated Metal artifact is unset");
+        NSString *source = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:path]
+                                                     encoding:NSUTF8StringEncoding
+                                                        error:&error];
+        if (!source || source.length == 0)
+          throw std::runtime_error("pre-tessellated Metal artifact is missing or empty");
+        id<MTLLibrary> fallback_library = [device_ newLibraryWithSource:source
+                                                                options:nil
+                                                                  error:&error];
+        if (!fallback_library)
+          throw std::runtime_error("pre-tessellated Metal compilation failed: " +
+                                   ErrorDescription(error));
+        pipeline_descriptor.vertexFunction =
+            [fallback_library newFunctionWithName:@"preTessellatedVertexMain"];
+        pipeline_descriptor.fragmentFunction =
+            [fallback_library newFunctionWithName:@"fragmentMain"];
+        if (!pipeline_descriptor.vertexFunction || !pipeline_descriptor.fragmentFunction)
+          throw std::runtime_error("pre-tessellated Metal entry functions are missing");
+      }
+
       pipeline_descriptor.colorAttachments[0].pixelFormat = ToPixelFormat(descriptor.color_format);
       pipeline_descriptor.colorAttachments[0].blendingEnabled = NO;
       record.pipeline = [device_ newRenderPipelineStateWithDescriptor:pipeline_descriptor
@@ -741,6 +765,7 @@ void MetalCommandList::BindPipeline(PipelineHandle pipeline) {
       throw std::logic_error("cannot bind a pipeline on a submitted Metal command list");
     auto &record = device_.ValidatePipeline(pipeline);
     pipeline_type_ = record.descriptor.type;
+    graphics_shader_ = record.descriptor.graphics_shader;
     if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
       throw std::logic_error("Metal pipeline type does not match rendering state");
     if (pipeline_type_ == PipelineType::Compute) {
@@ -799,7 +824,9 @@ void MetalCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
 
 void MetalCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
   @autoreleasepool {
-    if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
+    if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+        !IsBuiltinGeometryDrawValid(PrimitiveTopology::TriangleList, graphics_shader_,
+                                    vertex_count) ||
         instance_count == 0)
       throw std::logic_error("invalid Metal draw");
     [encoder_ drawPrimitives:MTLPrimitiveTypeTriangle
@@ -834,7 +861,8 @@ void MetalCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
 
 void MetalCommandList::DrawIndirect(std::uint32_t command_count) {
   @autoreleasepool {
-    if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+    if (!SupportsBuiltinIndirectDraw(PrimitiveTopology::TriangleList, graphics_shader_) ||
+        submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
         pipeline_type_ != PipelineType::Graphics || !indirect_buffer_ ||
         indirect_stride_ != GPUDrivenIndirectCommandStride || command_count == 0)
       throw std::logic_error("invalid Metal indirect draw");

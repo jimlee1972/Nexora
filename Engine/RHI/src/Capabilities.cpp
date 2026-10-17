@@ -76,4 +76,31 @@ void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities &capabilities,
     throw std::invalid_argument(std::string(CapabilityFailureName(check.failure)) + " (feature " +
                                 std::to_string(static_cast<unsigned>(check.feature)) + ")");
 }
+GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &descriptor) {
+  if (descriptor.type > PipelineType::Compute ||
+      descriptor.topology > PrimitiveTopology::PatchList ||
+      descriptor.graphics_shader > GraphicsShaderVariant::PreTessellatedPatch)
+    throw std::invalid_argument("invalid pipeline type, topology or shader variant");
+  if (descriptor.type == PipelineType::Compute &&
+      (descriptor.topology != PrimitiveTopology::TriangleList || descriptor.patch_control_points ||
+       descriptor.graphics_shader != GraphicsShaderVariant::Triangle))
+    throw std::invalid_argument("compute pipelines cannot select graphics topology or variants");
+  auto requirements = descriptor.graphics_requirements;
+  if (descriptor.topology == PrimitiveTopology::PatchList) {
+    if (descriptor.patch_control_points != 3 ||
+        descriptor.graphics_shader != GraphicsShaderVariant::Triangle)
+      throw std::invalid_argument("built-in tessellation requires a three-control-point patch");
+    auto &minimum =
+        requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::Tessellation)];
+    if (minimum < FeatureVersion{1, 0})
+      minimum = {1, 0};
+  } else if (descriptor.patch_control_points) {
+    throw std::invalid_argument("triangle lists cannot specify patch control points");
+  }
+  return requirements;
+}
+void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
+                                 const PipelineDescriptor &descriptor) {
+  RequireGraphicsCapabilities(capabilities, EffectivePipelineRequirements(descriptor));
+}
 } // namespace nexora::rhi

@@ -90,6 +90,12 @@ native Vulkan timing/output and synchronization validation. 預設關閉的 RHI 
 與 Query 回收通過 Linux 回歸、原生 Vulkan 計時／輸出及同步驗證；Windows／Metal 原生、
 同條件效能預算與實體 GPU 校正仍須驗收，完整平行 Gate 未關閉。
 
+✅ V2-GFX-2 bounded native tessellation / 有界原生曲面細分（2026-10-17）：
+portable stage/topology/cache/cooked metadata and Linux Vulkan curved-patch/baked-mesh parity pass
+regression, Shipping and native sync validation. Windows HS/DS and Metal baked execution require
+hosted evidence; Enhanced Barriers/full gate remain open. Portable 階段／拓撲／快取／Cooked Metadata
+與 Linux 原生／網格比對通過回歸及同步驗證；目標平台及完整 Gate 仍待完成。
+
 ✅ V2-GFX-1 DXIL artifact stage/profile admission / DXIL Artifact 階段／Profile 檢查
 （2026-10-17）：bounded program metadata and pre-PSO profile checks pass Linux regression and
 Shipping; real Slang profile/PSO checks are required on Windows CI. 有界 Program Metadata 與

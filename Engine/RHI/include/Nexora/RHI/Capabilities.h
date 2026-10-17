@@ -42,4 +42,9 @@ CapabilityFailureName(CapabilityFailure failure) noexcept;
 // Does not allocate, record, submit, or select a fallback implicitly.
 NEXORA_RHI_API void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                                 const GraphicsRequirements &requirements);
+// Validate topology/program combinations and include requirements implied by the selected path.
+[[nodiscard]] NEXORA_RHI_API GraphicsRequirements
+EffectivePipelineRequirements(const PipelineDescriptor &descriptor);
+NEXORA_RHI_API void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
+                                                const PipelineDescriptor &descriptor);
 } // namespace nexora::rhi
