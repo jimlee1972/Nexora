@@ -968,3 +968,16 @@ The source-subresource correction alone did not establish native acceptance: Win
 The diagnostic/preflight follow-up passes full local Development220/220,zero failures/skips (121.58s), actual SDK helper and Windows-conditional preview test syntax with warnings-as-errors, paired documentation/workflow16/16 and cleanup25/25. The private sampler LOD range is bounded to the paired texture last mip6; admitted requests remain mips0..2. Whole-map decode and preview comparison still require native CI.
 
 The preview feedback fixture now enters its independent factory directly, avoiding a system-runtime availability probe against an app-local preview WARP DLL. The factory, SM6.10 and enabled native feedback are mandatory; there is no fallback/skip in this fixture. Full local regression passes again220/220,zero failures/skips (136.85s); warnings-as-errors Windows-conditional syntax passes.
+
+The paired comparison now establishes a software-runtime readiness boundary: finalff684697 push
+preview job117424066271 passes3/3 (0.63s), with13 native feedback dispatches in each barrier mode
+and60 enhanced buffer barriers. The system route117424066272 still decodes requested mip2 as0;
+GPU request readback confirms actual uploaded mip2/enabled1. Native program/output equality is
+unchanged. The backend therefore preserves raw queried support/tier and implemented code metadata,
+but keeps the system software route disabled; software native execution requires the explicit
+independent preview runtime. Default software devices use the real compute fallback. The required
+preview fixture still rejects unavailable native feedback and verifies exact mip/canary outputs.
+This is a conservative route gate, not an inferred fault attribution to a particular DLL. Physical
+adapter acceptance and the complete final-head CI gate remain open.
+
+The runtime-readiness follow-up passes local full Development220/220,zero failures/skips (125.85s), paired documentation/workflow16/16,cleanup25/25 and Windows-conditional test syntax with warnings-as-errors. Software admission additionally requires the tested SM6.10 profile; native feedback still declares its actual SM6.5 requirement. The preview fixture also retains/depend-orders the Work Graph library when that option is enabled, preserving Node/Feedback/Node coverage after integration.

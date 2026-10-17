@@ -552,4 +552,9 @@ if(NEXORA_ENABLE_D3D12_PREVIEW AND NEXORA_ENABLE_SLANG)
   set_property(TEST renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced PROPERTY ENVIRONMENT
     ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1"
     "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/")
+  if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
+    add_dependencies(NexoraSamplerFeedbackPreviewTests ${NEXORA_WORK_GRAPH_ARTIFACT_TARGET})
+    set_property(TEST renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced
+      APPEND PROPERTY ENVIRONMENT "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
+  endif()
 endif()

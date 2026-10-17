@@ -916,3 +916,12 @@ Sampler-feedback native acceptance remains open after the decoded nonzero-mip mi
 hosted system WARP. The full non-arrayed map is transcoded with UINT_MAX source/destination indices;
 strict output equality and canaries remain required. An isolated preview-WARP fixture compares the
 same workload without changing normal app-local DLL deployment or default device selection.
+
+Sampler feedback separates queried support from runtime enablement. The hosted system software
+route reports support but returns incorrect explicit nonzero-mip results with correct GPU inputs;
+the same strict fixture passes on the isolated pinned runtime. Consequently software devices enable
+native feedback only through explicit preview-runtime creation with the tested SM6.10 profile; raw
+support/tier and implementation metadata are preserved. Callers on ordinary software devices select
+the real lower-profile compute path.
+Required preview acceptance still demands native feedback and exact output/canary equality. Physical
+adapter acceptance remains separate; no particular runtime component is blamed by this route gate.

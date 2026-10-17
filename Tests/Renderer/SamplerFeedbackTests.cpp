@@ -451,6 +451,16 @@ void Native(bool enhanced) {
   const bool enabled =
       rhi::CheckGraphicsRequirements(caps, rhi::EffectiveSamplerFeedbackRequirements({}))
           .Succeeded();
+#if defined(_WIN32)
+  if (caps.software_device && !caps.d3d12_preview_runtime_enabled) {
+    const auto &feedback =
+        caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::SamplerFeedback)];
+    Require(!feedback.enabled && !enabled,
+            "unverified system software feedback route was admitted");
+    std::cout << "System software feedback runtime unready; raw support="
+              << static_cast<unsigned>(feedback.support) << "; real compute fallback selected\n";
+  }
+#endif
 #if defined(NEXORA_TEST_FEEDBACK_PREVIEW)
   Require(enabled && caps.d3d12_preview_runtime_enabled &&
               caps.highest_dxil_shader_model >= rhi::FeatureVersion{6, 10},

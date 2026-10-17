@@ -600,7 +600,13 @@ public:
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::SamplerFeedback)];
     feedback.implemented = true;
     feedback.implemented_tier = {0, 9};
-    if (feedback.support == CapabilitySupport::Supported &&
+    // The hosted system software-runtime route reports support but decodes explicit mip2 as0.
+    // Keep the raw support query; software execution is admitted only on the tested private route.
+    const bool feedback_runtime_ready =
+        !capabilities_.software_device ||
+        (capabilities_.d3d12_preview_runtime_enabled &&
+         capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 10});
+    if (feedback_runtime_ready && feedback.support == CapabilitySupport::Supported &&
         capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 5} &&
         SUCCEEDED(device_.As(&feedback_device_))) {
       ComPtr<ID3D12CommandAllocator> allocator;

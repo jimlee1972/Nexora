@@ -889,3 +889,13 @@ Sampler Feedback 分支整合此已合併 runtime，保留三種配方的既有�
 診斷／preflight 後續通過本機完整 Development220/220，零失敗／跳過（121.58s）、真正 SDK helper 與 Windows 條件 preview 測試語法（警告即錯誤）、雙語文件／workflow16/16 及 cleanup25/25。私有 sampler LOD 範圍明確限制於配對 texture 最後一層 mip6；允許的 request 仍為 mip0..2。整張 map 解碼與 preview 比對仍須通過原生 CI。
 
 Preview feedback 測試直接進入獨立 factory，避免以系統 runtime 可用性探測 app-local preview WARP DLL。此測試強制要求 factory、SM6.10 與啟用的原生 feedback，不允許 fallback／跳過。完整本機迴歸再次通過220/220，零失敗／跳過（136.85s）；Windows 條件語法檢查以警告即錯誤通過。
+
+成對比對已確認軟體 runtime 就緒狀態的邊界：ff684697 的 push preview 工作117424066271
+通過3/3（0.63s），兩種 barrier 模式各13次原生 feedback dispatch，enhanced buffer barrier60次。
+系統路徑117424066272 仍將要求的 mip2 解碼為0；GPU request 讀回確認實際上傳 mip2／enabled1。
+原生程式／輸出精確比較不變。因此 backend 保留原始查詢 support／tier 及已實作程式碼 metadata，
+但停用系統軟體路徑；軟體原生執行要求明確的獨立 preview runtime。預設軟體裝置選用真正的 compute
+fallback。必要 preview 測試仍在原生 feedback 不可用時失敗，並驗證精確 mip／canary 輸出。
+此為保守路徑 gate，不推論特定 DLL 有錯。實體 adapter 驗收及最終 head 完整 CI 仍未完成。
+
+Runtime 就緒狀態後續通過本機完整 Development220/220，零失敗／跳過（125.85s）、雙語文件／workflow16/16、cleanup25/25 與 Windows 條件測試語法（警告即錯誤）。軟體路徑另要求已測試的 SM6.10 profile；原生 feedback 本身仍宣告真正的 SM6.5 需求。Preview 測試在 Work Graph 選項開啟時亦保留其 library 相依／環境設定，以於整合後延續 Node／Feedback／Node 覆蓋。
