@@ -587,6 +587,22 @@ Reader 探測，不變更專案相依：Control4008 bytes、Evaluation3960 bytes
 原生證據；更廣 Patch Authoring、Runtime Program 組裝／Cook 執行、Enhanced Barriers、完整目標主機／
 效能驗收仍待完成，五個完整 Gate 全部維持開放。
 
+## V2-GFX-4 有界每次繪製 VRS 施工狀態
+
+D3D12 Tier1 有界路徑施工中：Pipeline 明確選擇1x1／2x2著色率，自動加入能力准入與完整 Cache
+識別，List 獨占 list5 錄製並恢復 Full Rate，僅計算已接受 List 的粗著色 Draw，另設後端實作 Tier
+上限。硬體 Tier2 不會自動放行未實作的 Rate Image／Combiner；其他後端明確選擇 Full Rate 後備。
+原生 RGBA／BGRA 漸層覆蓋／誤差、雙 Worker 取消／重試與狀態恢復 Oracle 驗證中，尚不宣稱原生
+或效能驗收。來源 `feat/v2-d3d12-draw-shading-rate`，Beads `nexora-45y.5.1`。
+完整 VRS／Ultimate、Meshlet、Feedback、實機預算及所有完整 Gate 維持開放。
+
+✅ 本地 Portable 准入／Cache／實作上限及真實 Vulkan Full Rate 後備通過。
+完整原生／Slang／Zig Development configure/build 與 Xvfb CTest **215/215、零失敗／略過、
+177.24秒**（Showcase／Graphical Shell 關）；聚焦 **4/4、0.21秒**，Shipping Monolithic／Minimal
+LTO 通過。合併原生物件／同步回歸 **12/12、18.32秒**，確認29次 Layer 插入，Validation／VUID／Sync
+錯誤為零。Vulkan 後備覆蓋512像素、Channel 差為零；enabled=0／coarse_draws=0 明確不算原生 VRS。
+Windows2x2 與 Hosted 平台 Gate 仍待驗證，不關閉任何完整 Gate。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、

@@ -307,6 +307,12 @@ private:
 #endif
   std::uint64_t enhanced_buffer_barriers_{};
   std::uint64_t enhanced_texture_barriers_{};
+
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> shading_list_;
+#endif
+  ShadingRate shading_rate_{ShadingRate::Full};
+  std::uint64_t coarse_shading_draws_{};
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
@@ -377,6 +383,23 @@ public:
     }
 #endif
 
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+    auto &vrs =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::VariableRateShading)];
+    vrs.implemented = true;
+    vrs.implemented_tier = {1, 0};
+    if (vrs.support == CapabilitySupport::Supported) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList5> shading_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&shading_interface)))
+        vrs.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     Check(device_->CreateCommandQueue(&queue_description, IID_PPV_ARGS(&queue_)),
@@ -627,6 +650,7 @@ public:
     record.format = descriptor.color_format;
     record.topology = descriptor.topology;
     record.graphics_shader = descriptor.graphics_shader;
+    record.shading_rate = descriptor.shading_rate;
     if (descriptor.type == PipelineType::Compute) {
       if (!compute_shader_)
         throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
@@ -738,6 +762,7 @@ public:
       diagnostics_.enhanced_buffer_barriers += validated->enhanced_buffer_barriers_;
       diagnostics_.enhanced_texture_barriers += validated->enhanced_texture_barriers_;
       diagnostics_.draw_calls += validated->DrawCalls();
+      diagnostics_.coarse_shading_draw_calls += validated->coarse_shading_draws_;
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
       fence_value = ++next_fence_;
@@ -821,6 +846,7 @@ private:
     TextureFormat format{TextureFormat::Rgba8Unorm};
     PrimitiveTopology topology{PrimitiveTopology::TriangleList};
     GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
+    ShadingRate shading_rate{ShadingRate::Full};
   };
   struct BufferRecord final {
     BufferDescriptor descriptor;
@@ -1168,6 +1194,21 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   if (pipeline_type_ == PipelineType::Graphics &&
       record.format != SnapshotTexture(render_target_).format)
     throw std::logic_error("D3D12 pipeline format does not match render target");
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+  if (pipeline_type_ == PipelineType::Graphics) {
+    if (record.shading_rate != ShadingRate::Full && !shading_list_)
+      Check(list_.As(&shading_list_), "QueryInterface(command list5 shading rate)");
+    if (shading_list_) {
+      const D3D12_SHADING_RATE_COMBINER combiners[]{D3D12_SHADING_RATE_COMBINER_PASSTHROUGH,
+                                                    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH};
+      shading_list_->RSSetShadingRate(record.shading_rate == ShadingRate::Full
+                                          ? D3D12_SHADING_RATE_1X1
+                                          : D3D12_SHADING_RATE_2X2,
+                                      combiners);
+    }
+    shading_rate_ = record.shading_rate;
+  }
+#endif
   list_->SetPipelineState(record.pipeline.Get());
   if (pipeline_type_ == PipelineType::Compute) {
     list_->SetComputeRootSignature(device_.RootSignature());
@@ -1223,6 +1264,8 @@ void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_c
                                     : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->DrawInstanced(vertex_count, instance_count, 0, 0);
   ++draws_;
+  if (shading_rate_ != ShadingRate::Full)
+    ++coarse_shading_draws_;
 }
 
 void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
@@ -1252,6 +1295,8 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
                          indirect_offset_, nullptr, 0);
   ++draws_;
   ++indirect_draws_;
+  if (shading_rate_ != ShadingRate::Full)
+    ++coarse_shading_draws_;
 }
 
 void D3D12CommandList::EndRendering() {

@@ -636,3 +636,34 @@ worker failure/cancellation/successful replay. Missing/wrong requested stages re
 PSO creation; Windows also checks selected HS/DS/fallback profiles. Metal runs real baked output
 while reporting native tessellation unavailable. These tests do not certify physical performance,
 all tessellation authoring, asynchronous scheduling or complete Enhanced Barrier acceptance.
+
+## Bounded per-draw variable rate shading
+
+`PipelineDescriptor::shading_rate` defaults to `Full` (1x1). `Coarse2x2` adds VRS tier1 admission
+without weakening explicit requirements; invalid rates and compute-pipeline VRS reject before PSO
+allocation. The rate participates in complete pipeline/cache identity even though native D3D12
+stores it as dynamic command-list state. Other backends retain full rate and reject coarse requests;
+callers select the full-rate fallback explicitly. No SDK/shader baseline or stable C ABI changes.
+
+When list5 declarations exist, D3D12 records a tier1 implementation and probes the native interface
+separately from hardware support before enabling it. Coarse graphics binds query a list-owned list5
+reference and call RSSetShadingRate(2x2) with passthrough combiners. Every subsequent graphics bind
+on that list restores its requested rate, including full-rate pipelines and later rendering scopes.
+Live native references remain list-owned until the existing submission completion/abandonment
+retirement. Accepted user-list diagnostics count coarse direct/indirect API draw calls; rejected or
+cancelled lists publish no count. No per-primitive rate, rate image, tier2 combiner or queue change
+is added. Full-rate-only lists make no shading-rate native calls.
+
+`GraphicsFeatureCapability::implemented_tier` independently caps admitted backend implementations.
+Zero preserves the previous four-field report semantics (all reported hardware tiers); a nonzero
+ceiling rejects newer requirements with InsufficientImplementedTier. Hardware `tier` remains the
+actual query result. D3D12 VRS advertises a tier1 implementation even on tier2 hardware, so tier2
+requests cannot pass merely because the device supports them. All C++ modules rebuild together.
+
+`renderer.shading_rate` checks admission/cache identity/implementation ceilings, and uses native
+RGBA/BGRA gradients for the selected coarse or full-rate fallback. The oracle requires identical
+triangle coverage, at most32/255 channel error at64x64, full-rate restoration after a coarse scope,
+forced two-worker recording, abandonment/cancellation sentinels and replay. This fixed fixture's
+quality bound is not a content-wide quality guarantee or performance budget. Tests report actual
+native enablement/counts; a full-rate fallback does not certify VRS execution. Broader VRS/Ultimate,
+physical performance and complete V2-GFX-4 acceptance remain open.

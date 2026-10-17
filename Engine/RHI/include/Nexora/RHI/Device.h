@@ -38,6 +38,8 @@ struct DeviceDiagnostics final {
   std::uint64_t cached_descriptor_pools{};
   std::uint64_t enhanced_buffer_barriers{};
   std::uint64_t enhanced_texture_barriers{};
+
+  std::uint64_t coarse_shading_draw_calls{};
 };
 class NEXORA_RHI_API CommandList {
 public:

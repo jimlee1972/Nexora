@@ -47,6 +47,9 @@ struct GraphicsFeatureCapability final {
   FeatureVersion tier{};
   bool enabled{};
   bool implemented{};
+  // Zero retains the legacy meaning: all reported hardware tiers are implemented.
+  // A nonzero ceiling limits backend admission independently from hardware support.
+  FeatureVersion implemented_tier{};
 };
 struct GraphicsDeviceCapabilities final {
   Backend backend{Backend::Null};
@@ -103,6 +106,8 @@ enum class ShaderStage : std::uint8_t {
 };
 inline constexpr std::uint8_t AllShaderStageBits = 31;
 enum class PrimitiveTopology : std::uint8_t { TriangleList, PatchList };
+// Tier1 per-draw control only; no rate-image or per-primitive combiners.
+enum class ShadingRate : std::uint8_t { Full, Coarse2x2 };
 // Built-in bootstrap shader selection; custom program assembly remains separate.
 enum class GraphicsShaderVariant : std::uint8_t { Triangle, PreTessellatedPatch };
 inline constexpr std::uint32_t PreTessellatedPatchVertexCount = 48;
@@ -148,6 +153,7 @@ struct PipelineDescriptor final {
   PrimitiveTopology topology{PrimitiveTopology::TriangleList};
   std::uint32_t patch_control_points{};
   GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
+  ShadingRate shading_rate{ShadingRate::Full};
 };
 struct RenderingInfo final {
   TextureHandle color_target;

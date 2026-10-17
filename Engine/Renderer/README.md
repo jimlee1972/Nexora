@@ -545,3 +545,12 @@ preserves sentinels on failure/cancellation, then replays successfully. Draw bou
 indexed/indirect paths reject before native recording. Full parallel/asynchronous performance and
 the combined Tessellation/Enhanced Barriers gate remain open. See the
 [RHI contract](../RHI/README.md#bounded-native-tessellation-and-baked-mesh-fallback).
+
+## Bounded VRS selection and pipeline identity
+
+Graphics pipelines can explicitly request full or2x2 shading. Effective admission adds VRS tier1
+for coarse shading; cache identity includes the rate. A separate backend implementation-tier ceiling
+prevents a tier1 path from admitting tier2 hardware features. RenderGraph scheduling, list ownership
+and cancellation remain unchanged; rate state is private to each recording list, and a full-rate
+bind restores1x1 after coarse work. Select the full-rate descriptor explicitly on unavailable
+backends. See the [RHI contract](../RHI/README.md#bounded-per-draw-variable-rate-shading).

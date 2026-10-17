@@ -636,6 +636,25 @@ D3D12. Windows HS/DS PSO execution and Metal fallback require hosted native evid
 patch authoring, Runtime program assembly/cook execution, Enhanced Barriers and full target-host/
 performance acceptance remain open. All five full gates stay open.
 
+## V2-GFX-4 bounded per-draw VRS construction status
+
+A bounded D3D12 tier1 route is under construction: explicit full/2x2 pipeline shading rate,
+implicit capability admission and complete cache identity, list-owned list5 recording and full-rate
+restoration, accepted-list coarse draw counters, and independent implementation-tier ceilings.
+Hardware tier2 cannot authorize unimplemented rate-image/combiner behavior. Other backends select
+an explicit full-rate fallback. Native RGBA/BGRA gradient coverage/error, two-worker cancellation/
+replay and reset oracles are being validated; no native or performance acceptance is claimed yet.
+Source `feat/v2-d3d12-draw-shading-rate`, Beads `nexora-45y.5.1`. Full VRS/Ultimate, meshlets, feedback,
+physical budgets and all full gates remain open.
+
+✅ Local portable admission/cache/implementation ceilings and actual full-rate Vulkan fallback
+pass. Full native/Slang/Zig Development configure/build and Xvfb CTest **215/215,zero failures/skips,
+177.24 seconds** (Showcase/graphical shell off); focused **4/4,0.21 seconds**. Shipping
+Monolithic/Minimal LTO passes. Combined native object/synchronization regression **12/12,18.32 seconds**,
+29 layer insertions and zero validation/VUID/sync markers. Actual Vulkan fallback covers512 pixels
+with zero changed channels; enabled=0/coarse_draws=0 is explicitly not native VRS execution.
+Windows2x2 execution and hosted platform gates remain pending; no full gate closes.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

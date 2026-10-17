@@ -369,3 +369,18 @@ if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS)
       "NEXORA_REQUIRE_NATIVE_TESSELLATION=1")
   endif()
 endif()
+
+add_executable(NexoraShadingRateTests ShadingRateTests.cpp)
+target_link_libraries(NexoraShadingRateTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraShadingRateTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraShadingRateTests)
+add_test(NAME renderer.shading_rate COMMAND NexoraShadingRateTests)
+set_tests_properties(renderer.shading_rate PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraShadingRateTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.shading_rate APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()

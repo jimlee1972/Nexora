@@ -141,6 +141,11 @@ list7 path and legacy fallback are under native validation; this does not close 
 已驗證同步／存取／Layout 映射與 Null 不可用；預設關閉的 D3D12 list7／Legacy 後備待原生驗證。
 See the paired [graphics plan](en/V2_Advanced_Graphics_Capability_Plan.md).
 
+✅ V2-GFX-4 VRS admission/full-rate fallback / 准入與 Full Rate 後備（2026-10-17）：
+Portable rate/cache/tier ceilings and native Vulkan full-rate output/lifetime tests pass.
+D3D12 2x2 execution remains under validation; full VRS/Ultimate acceptance stays open.
+可攜著色率／Cache／Tier 上限與 Vulkan Full Rate 輸出／生命週期通過；D3D12 2x2及完整驗收仍待完成。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

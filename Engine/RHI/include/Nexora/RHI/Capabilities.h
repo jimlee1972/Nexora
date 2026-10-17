@@ -15,7 +15,8 @@ enum class CapabilityFailure : std::uint8_t {
   NotImplemented,
   UnknownShaderModel,
   UnsupportedShaderModel,
-  InsufficientShaderModel
+  InsufficientShaderModel,
+  InsufficientImplementedTier
 };
 struct CapabilityCheck final {
   CapabilityFailure failure{CapabilityFailure::NoFailure};

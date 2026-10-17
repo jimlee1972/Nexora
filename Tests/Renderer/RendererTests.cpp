@@ -61,14 +61,16 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
     const auto &feature = capabilities.features[index];
     std::cout << "  feature=" << index << " support=" << static_cast<unsigned>(feature.support)
               << " tier=" << feature.tier.major << '.' << feature.tier.minor
-              << " enabled=" << feature.enabled << " implemented=" << feature.implemented << '\n';
+              << " enabled=" << feature.enabled << " implemented=" << feature.implemented
+              << " implemented_tier=" << feature.implemented_tier.major << '.'
+              << feature.implemented_tier.minor << '\n';
   }
   // These paths are planned, so hardware support must never bypass implementation admission.
   for (const auto feature :
        {rhi::GraphicsFeature::ParallelCommandRecording, rhi::GraphicsFeature::EnhancedBarriers,
         rhi::GraphicsFeature::RayTracing, rhi::GraphicsFeature::MeshShader,
-        rhi::GraphicsFeature::VariableRateShading, rhi::GraphicsFeature::SamplerFeedback,
-        rhi::GraphicsFeature::WorkGraphs, rhi::GraphicsFeature::ShaderExecutionReordering}) {
+        rhi::GraphicsFeature::SamplerFeedback, rhi::GraphicsFeature::WorkGraphs,
+        rhi::GraphicsFeature::ShaderExecutionReordering}) {
     rhi::PipelineDescriptor unsupported{rhi::TrianglePipelineLayout().layout_hash, 0x1234,
                                         rhi::TextureFormat::Rgba8Unorm, "Unsupported feature"};
     unsupported.graphics_requirements.minimum_tiers[static_cast<std::size_t>(feature)] = {1, 0};
