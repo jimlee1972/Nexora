@@ -30,6 +30,9 @@
 #include <utility>
 #include <vector>
 
+#include "D3D12EnhancedBarriers.h"
+#include "D3D12MeshPipeline.h"
+
 namespace nexora::rhi {
 namespace {
 using Microsoft::WRL::ComPtr;
@@ -255,6 +258,7 @@ public:
   void Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
                 std::uint32_t group_count_z) override;
   void DrawIndirect(std::uint32_t draw_count) override;
+  void DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) override;
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -300,6 +304,23 @@ private:
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList7> enhanced_list_;
+#endif
+  std::uint64_t enhanced_buffer_barriers_{};
+  std::uint64_t enhanced_texture_barriers_{};
+
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> shading_list_;
+#endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList6> mesh_list_;
+#endif
+  BufferHandle mesh_input_{};
+  std::uint64_t mesh_dispatches_{};
+  ShadingRate shading_rate_{ShadingRate::Full};
+  std::uint64_t coarse_shading_draws_{};
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
@@ -352,6 +373,58 @@ public:
     }
 
     capabilities_ = QueryCapabilities(*device_.Get(), *selected.Get());
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    auto &enhanced =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)];
+    enhanced.implemented = true;
+    if (options.enable_enhanced_barriers && enhanced.support == CapabilitySupport::Supported) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList7> enhanced_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&enhanced_interface))) {
+        enhanced.enabled = SUCCEEDED(probe->Close());
+      }
+    }
+#endif
+
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+    auto &vrs =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::VariableRateShading)];
+    vrs.implemented = true;
+    vrs.implemented_tier = {1, 0};
+    if (vrs.support == CapabilitySupport::Supported) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList5> shading_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&shading_interface)))
+        vrs.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+    auto &mesh = capabilities_.features[static_cast<std::size_t>(GraphicsFeature::MeshShader)];
+    mesh.implemented = true;
+    mesh.implemented_tier = {1, 0};
+    if (mesh.support == CapabilitySupport::Supported && SUCCEEDED(device_.As(&mesh_device_))) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList6> mesh_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&mesh_interface)))
+        mesh.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     Check(device_->CreateCommandQueue(&queue_description, IID_PPV_ARGS(&queue_)),
@@ -560,7 +633,7 @@ public:
       throw std::invalid_argument("pipeline hashes must be non-zero");
     const bool patch = descriptor.topology == PrimitiveTopology::PatchList;
     ComPtr<ID3DBlob> selected_vertex = vertex_shader_;
-    ComPtr<ID3DBlob> control, evaluation;
+    ComPtr<ID3DBlob> control, evaluation, mesh;
     const auto required_artifact = [](const char *environment, ShaderStage stage) {
       auto artifact = LoadShaderArtifact(environment, stage);
       if (!artifact)
@@ -571,6 +644,17 @@ public:
     if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
       selected_vertex =
           required_artifact("NEXORA_SLANG_PRETESSELLATED_DXIL_PATH", ShaderStage::Vertex);
+    const bool mesh_pipeline = descriptor.graphics_shader == GraphicsShaderVariant::MeshTriangle;
+    if (mesh_pipeline) {
+      mesh = required_artifact("NEXORA_SLANG_MESH_DXIL_PATH", ShaderStage::Mesh);
+      (void)RequireDxilArtifact(
+          {static_cast<const std::byte *>(mesh->GetBufferPointer()), mesh->GetBufferSize()},
+          ShaderStage::Mesh, {6, 5});
+      // Native mesh PSOs require DXIL for every attached stage; FXC fallback is insufficient.
+      (void)RequireDxilArtifact({static_cast<const std::byte *>(pixel_shader_->GetBufferPointer()),
+                                 pixel_shader_->GetBufferSize()},
+                                ShaderStage::Fragment, {6, 0});
+    }
     if (patch) {
       control = required_artifact("NEXORA_SLANG_TESSELLATION_CONTROL_DXIL_PATH",
                                   ShaderStage::TessellationControl);
@@ -589,7 +673,10 @@ public:
       if (descriptor.type == PipelineType::Compute)
         check(compute_shader_.Get(), ShaderStage::Compute);
       else {
-        check(selected_vertex.Get(), ShaderStage::Vertex);
+        if (mesh_pipeline)
+          check(mesh.Get(), ShaderStage::Mesh);
+        else
+          check(selected_vertex.Get(), ShaderStage::Vertex);
         if (patch) {
           check(control.Get(), ShaderStage::TessellationControl);
           check(evaluation.Get(), ShaderStage::TessellationEvaluation);
@@ -602,6 +689,7 @@ public:
     record.format = descriptor.color_format;
     record.topology = descriptor.topology;
     record.graphics_shader = descriptor.graphics_shader;
+    record.shading_rate = descriptor.shading_rate;
     if (descriptor.type == PipelineType::Compute) {
       if (!compute_shader_)
         throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
@@ -616,6 +704,28 @@ public:
       const auto handle = pipeline_pool_.Create();
       pipelines_.emplace(Key(handle), std::move(record));
       return handle;
+    }
+    if (mesh_pipeline) {
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+      Check(detail::CreateMeshPipeline(
+                *mesh_device_.Get(), root_signature_.Get(),
+                {mesh->GetBufferPointer(), mesh->GetBufferSize()},
+                {pixel_shader_->GetBufferPointer(), pixel_shader_->GetBufferSize()},
+                ToFormat(descriptor.color_format), record.pipeline.GetAddressOf()),
+            "CreatePipelineState(mesh)");
+      std::lock_guard lock{mutex_};
+      const auto handle = pipeline_pool_.Create();
+      try {
+        pipelines_.emplace(Key(handle), std::move(record));
+      } catch (...) {
+        (void)pipeline_pool_.Destroy(handle);
+        throw;
+      }
+      return handle;
+#else
+      throw std::invalid_argument("native mesh pipeline requires a newer D3D12 SDK");
+#endif
     }
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_description{};
     pipeline_description.pRootSignature = root_signature_.Get();
@@ -710,7 +820,11 @@ public:
       validated->MarkSubmitted();
       ++diagnostics_.submitted_command_lists;
       diagnostics_.barriers += validated->Barriers();
+      diagnostics_.enhanced_buffer_barriers += validated->enhanced_buffer_barriers_;
+      diagnostics_.enhanced_texture_barriers += validated->enhanced_texture_barriers_;
       diagnostics_.draw_calls += validated->DrawCalls();
+      diagnostics_.coarse_shading_draw_calls += validated->coarse_shading_draws_;
+      diagnostics_.mesh_dispatch_calls += validated->mesh_dispatches_;
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
       fence_value = ++next_fence_;
@@ -794,6 +908,7 @@ private:
     TextureFormat format{TextureFormat::Rgba8Unorm};
     PrimitiveTopology topology{PrimitiveTopology::TriangleList};
     GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
+    ShadingRate shading_rate{ShadingRate::Full};
   };
   struct BufferRecord final {
     BufferDescriptor descriptor;
@@ -843,7 +958,8 @@ private:
     parameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     parameters[4].Descriptor.ShaderRegister = 0;
     parameters[4].Descriptor.RegisterSpace = 0;
-    parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+    // The same frame constant is used by baseline VS and the optional built-in MS.
+    parameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
     D3D12_ROOT_SIGNATURE_DESC description{};
     description.NumParameters = static_cast<UINT>(parameters.size());
     description.pParameters = parameters.data();
@@ -900,6 +1016,10 @@ private:
 
   GraphicsDeviceCapabilities capabilities_;
   ComPtr<ID3D12Device> device_;
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  ComPtr<ID3D12Device2> mesh_device_;
+#endif
   ComPtr<ID3D12CommandQueue> queue_;
   ComPtr<ID3D12DescriptorHeap> rtv_heap_;
   ComPtr<ID3D12Fence> fence_;
@@ -936,6 +1056,11 @@ D3D12CommandList::D3D12CommandList(D3D12Device &device, QueueType queue) : devic
   Check(device_.device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator_.Get(),
                                            nullptr, IID_PPV_ARGS(&list_)),
         "CreateCommandList");
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  if (device_.capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)]
+          .enabled)
+    Check(list_.As(&enhanced_list_), "QueryInterface(command list7 enhanced barriers)");
+#endif
   if (device_.capabilities_.gpu_timing_enabled) {
     D3D12_QUERY_HEAP_DESC query{};
     query.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
@@ -1002,7 +1127,14 @@ ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOU
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
     barrier.Transition.StateBefore = snapshot.state;
     barrier.Transition.StateAfter = target;
-    list_->ResourceBarrier(1, &barrier);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    if (enhanced_list_) {
+      detail::EmitEnhancedBufferBarrier(*enhanced_list_.Get(), record.gpu_resource.Get(),
+                                        snapshot.state, target);
+      ++enhanced_buffer_barriers_;
+    } else
+#endif
+      list_->ResourceBarrier(1, &barrier);
     snapshot.state = target;
   };
   if (snapshot.upload_pending) {
@@ -1053,7 +1185,14 @@ void D3D12CommandList::Transition(const Barrier &barrier) {
   native.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
   native.Transition.StateBefore = ToState(barrier.before);
   native.Transition.StateAfter = ToState(barrier.after);
-  list_->ResourceBarrier(1, &native);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+  if (enhanced_list_) {
+    detail::EmitEnhancedTextureBarrier(*enhanced_list_.Get(), resource, barrier.before,
+                                       barrier.after);
+    ++enhanced_texture_barriers_;
+  } else
+#endif
+    list_->ResourceBarrier(1, &native);
   ++barriers_;
 }
 
@@ -1075,7 +1214,15 @@ void D3D12CommandList::TransitionBuffer(const BufferBarrier &barrier) {
     D3D12_RESOURCE_BARRIER native{};
     native.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
     native.UAV.pResource = resource;
-    list_->ResourceBarrier(1, &native);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+    if (enhanced_list_) {
+      detail::EmitEnhancedBufferBarrier(*enhanced_list_.Get(), resource,
+                                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+                                        D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+      ++enhanced_buffer_barriers_;
+    } else
+#endif
+      list_->ResourceBarrier(1, &native);
   }
   ++barriers_;
 }
@@ -1114,6 +1261,27 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   if (pipeline_type_ == PipelineType::Graphics &&
       record.format != SnapshotTexture(render_target_).format)
     throw std::logic_error("D3D12 pipeline format does not match render target");
+#if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
+  if (pipeline_type_ == PipelineType::Graphics) {
+    if (record.shading_rate != ShadingRate::Full && !shading_list_)
+      Check(list_.As(&shading_list_), "QueryInterface(command list5 shading rate)");
+    if (shading_list_) {
+      const D3D12_SHADING_RATE_COMBINER combiners[]{D3D12_SHADING_RATE_COMBINER_PASSTHROUGH,
+                                                    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH};
+      shading_list_->RSSetShadingRate(record.shading_rate == ShadingRate::Full
+                                          ? D3D12_SHADING_RATE_1X1
+                                          : D3D12_SHADING_RATE_2X2,
+                                      combiners);
+    }
+    shading_rate_ = record.shading_rate;
+  }
+#endif
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  if (record.graphics_shader == GraphicsShaderVariant::MeshTriangle && !mesh_list_)
+    Check(list_.As(&mesh_list_), "QueryInterface(command list6 mesh)");
+#endif
+  mesh_input_ = {}; // Mesh inputs must be explicitly bound after selecting this pipeline.
   list_->SetPipelineState(record.pipeline.Get());
   if (pipeline_type_ == PipelineType::Compute) {
     list_->SetComputeRootSignature(device_.RootSignature());
@@ -1130,7 +1298,19 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
 }
 
 void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
-  if (submitted_ || closed_ || rendering_ || binding >= storage_buffers_.size())
+  if (rendering_) {
+    if (submitted_ || closed_ || !pipeline_bound_ ||
+        graphics_shader_ != GraphicsShaderVariant::MeshTriangle || binding != 0)
+      throw std::logic_error("graphics storage input requires the bound mesh pipeline and slot0");
+    const auto &record = device_.ValidateBuffer(buffer);
+    if (record.descriptor.size < 5 * sizeof(std::uint32_t))
+      throw std::logic_error("mesh statistics input requires at least five words");
+    auto *resource = PrepareBuffer(buffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    list_->SetGraphicsRootShaderResourceView(0, resource->GetGPUVirtualAddress());
+    mesh_input_ = buffer;
+    return;
+  }
+  if (submitted_ || closed_ || binding >= storage_buffers_.size())
     throw std::logic_error("invalid D3D12 storage-buffer binding");
   const auto state = binding == 0 ? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
                                   : D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -1169,6 +1349,8 @@ void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_c
                                     : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->DrawInstanced(vertex_count, instance_count, 0, 0);
   ++draws_;
+  if (shading_rate_ != ShadingRate::Full)
+    ++coarse_shading_draws_;
 }
 
 void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
@@ -1198,6 +1380,29 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
                          indirect_offset_, nullptr, 0);
   ++draws_;
   ++indirect_draws_;
+  if (shading_rate_ != ShadingRate::Full)
+    ++coarse_shading_draws_;
+}
+
+void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) {
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+      graphics_shader_ != GraphicsShaderVariant::MeshTriangle || !mesh_input_.IsValid() || x != 1 ||
+      y != 1 || z != 1)
+    throw std::logic_error(
+        "built-in mesh dispatch requires one group and a bound statistics input");
+  (void)PrepareBuffer(mesh_input_, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+#if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
+    defined(__ID3D12Device2_INTERFACE_DEFINED__)
+  if (!mesh_list_)
+    throw std::logic_error("native mesh command interface is unavailable");
+  mesh_list_->DispatchMesh(x, y, z);
+  ++mesh_dispatches_;
+  ++draws_;
+  if (shading_rate_ != ShadingRate::Full)
+    ++coarse_shading_draws_;
+#else
+  throw std::logic_error("native mesh dispatch requires a newer D3D12 SDK");
+#endif
 }
 
 void D3D12CommandList::EndRendering() {
@@ -1263,19 +1468,33 @@ void D3D12Device::ReadTextureForTesting(TextureHandle texture, std::span<std::by
       Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
                                        IID_PPV_ARGS(&list)),
             "CreateCommandList(texture readback)");
-      const auto original = ToState(record.logical_state);
-      const auto transition = [&](D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) {
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+      ComPtr<ID3D12GraphicsCommandList7> enhanced;
+      if (capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)]
+              .enabled)
+        Check(list.As(&enhanced), "QueryInterface(texture readback enhanced barriers)");
+#endif
+      // Undefined logical contents still have the COMMON layout assigned at resource creation.
+      const auto original = record.logical_state == ResourceState::Undefined
+                                ? ResourceState::Present
+                                : record.logical_state;
+      const auto transition = [&](ResourceState before, ResourceState after) {
         if (before == after)
           return;
         D3D12_RESOURCE_BARRIER barrier{};
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
         barrier.Transition.pResource = record.resource.Get();
         barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = before;
-        barrier.Transition.StateAfter = after;
-        list->ResourceBarrier(1, &barrier);
+        barrier.Transition.StateBefore = ToState(before);
+        barrier.Transition.StateAfter = ToState(after);
+#if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
+        if (enhanced)
+          detail::EmitEnhancedTextureBarrier(*enhanced.Get(), record.resource.Get(), before, after);
+        else
+#endif
+          list->ResourceBarrier(1, &barrier);
       };
-      transition(original, D3D12_RESOURCE_STATE_COPY_SOURCE);
+      transition(original, ResourceState::CopySource);
       D3D12_TEXTURE_COPY_LOCATION destination{};
       destination.pResource = readback.Get();
       destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -1284,7 +1503,7 @@ void D3D12Device::ReadTextureForTesting(TextureHandle texture, std::span<std::by
       source.pResource = record.resource.Get();
       source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
       list->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
-      transition(D3D12_RESOURCE_STATE_COPY_SOURCE, original);
+      transition(ResourceState::CopySource, original);
       Check(list->Close(), "Close(texture readback)");
       ID3D12CommandList *native_list = list.Get();
       queue_->ExecuteCommandLists(1, &native_list);

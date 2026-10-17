@@ -500,8 +500,10 @@ int main(int argc, char **argv) {
       std::cout << "SKIP: native graphics unavailable\n";
       return 77;
     }
+    const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
+    Require(!enhanced || backend == rhi::Backend::Direct3D12, "enhanced barriers require D3D12");
     const bool reuse = argc == 2 && std::string_view{argv[1]} == "--resource-reuse";
-    auto device = rhi::CreateDeviceWithOptions(backend, {reuse, reuse});
+    auto device = rhi::CreateDeviceWithOptions(backend, {reuse || enhanced, reuse, enhanced});
     Require(device->Capabilities().recording_resource_reuse_enabled == reuse,
             "graphics resource reuse must stay explicitly opt-in");
     const auto layout = rhi::TrianglePipelineLayout().layout_hash;
@@ -519,6 +521,25 @@ int main(int argc, char **argv) {
     for (const auto pipeline : pipelines)
       device->DestroyPipeline(pipeline);
     const auto pools = device->Diagnostics();
+    const auto barrier_feature =
+        device->Capabilities()
+            .features[static_cast<std::size_t>(rhi::GraphicsFeature::EnhancedBarriers)];
+    Require(!barrier_feature.enabled ||
+                (enhanced && backend == rhi::Backend::Direct3D12 &&
+                 barrier_feature.support == rhi::CapabilitySupport::Supported &&
+                 barrier_feature.implemented),
+            "graphics enhanced barrier admission is invalid");
+    if (barrier_feature.enabled)
+      Require(pools.enhanced_texture_barriers > 0 && pools.enhanced_buffer_barriers > 0,
+              "native graphics/indirect work did not use enhanced barriers");
+    else
+      Require(pools.enhanced_texture_barriers == 0 && pools.enhanced_buffer_barriers == 0,
+              "legacy graphics fallback fabricated enhanced barriers");
+    if (enhanced)
+      std::cout << "D3D12 enhanced graphics barriers: enabled=" << barrier_feature.enabled
+                << " texture=" << pools.enhanced_texture_barriers
+                << " buffer=" << pools.enhanced_buffer_barriers
+                << "; legacy fallback when unavailable\n";
     Require(
         pools.cached_command_pools <= 8 && pools.cached_descriptor_pools <= 16 &&
             (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0 &&

@@ -583,9 +583,64 @@ configure/build 通過，格式及 Diff 檢查通過。不關閉任何完整 Gat
 
 另行暫存的官方 Linux DXC **v1.9.2609／1.9.2609.5** 可供 Slang2026.18 真實 DXIL 編譯／Reflection／
 Reader 探測，不變更專案相依：Control4008 bytes、Evaluation3960 bytes、後備 Vertex5488 bytes，
-解碼階段8/16/1，皆為 SM6.0；這不是 D3D12 執行。Windows HS／DS PSO 與 Metal 後備仍須 Hosted
-原生證據；更廣 Patch Authoring、Runtime Program 組裝／Cook 執行、Enhanced Barriers、完整目標主機／
+解碼階段8/16/1，皆為 SM6.0；這不是 D3D12 執行。Windows HS／DS 與 Metal 後備 Hosted 驗收
+另見下方整合章節；更廣 Patch Authoring、Runtime Program 組裝／Cook 執行、Enhanced Barriers、完整目標主機／
 效能驗收仍待完成，五個完整 Gate 全部維持開放。
+
+## V2-GFX-4 有界每次繪製 VRS 施工狀態
+
+D3D12 Tier1 有界路徑施工中：Pipeline 明確選擇1x1／2x2著色率，自動加入能力准入與完整 Cache
+識別，List 獨占 list5 錄製並恢復 Full Rate，僅計算已接受 List 的粗著色 Draw，另設後端實作 Tier
+上限。硬體 Tier2 不會自動放行未實作的 Rate Image／Combiner；其他後端明確選擇 Full Rate 後備。
+原生 RGBA／BGRA 漸層覆蓋／誤差、雙 Worker 取消／重試與狀態恢復 Oracle 驗證中，尚不宣稱原生
+或效能驗收。來源 `feat/v2-d3d12-draw-shading-rate`，Beads `nexora-45y.5.1`。
+完整 VRS／Ultimate、Meshlet、Feedback、實機預算及所有完整 Gate 維持開放。
+
+✅ 本地 Portable 准入／Cache／實作上限及真實 Vulkan Full Rate 後備通過。
+完整原生／Slang／Zig Development configure/build 與 Xvfb CTest **215/215、零失敗／略過、
+177.24秒**（Showcase／Graphical Shell 關）；聚焦 **4/4、0.21秒**，Shipping Monolithic／Minimal
+LTO 通過。合併原生物件／同步回歸 **12/12、18.32秒**，確認29次 Layer 插入，Validation／VUID／Sync
+錯誤為零。Vulkan 後備覆蓋512像素、Channel 差為零；enabled=0／coarse_draws=0 明確不算原生 VRS。
+Windows2x2 與 Hosted 平台 Gate 仍待驗證，不關閉任何完整 Gate。
+
+## V2-GFX-4 有界 Mesh Shader 施工狀態
+
+D3D12 有界原生 MS／PS 路徑施工中，包含明確階段／Profile／Variant 准入、List 獨占唯讀 GPU 統計
+輸入與 DispatchMesh(1,1,1)。真實 Slang2026.18／DXC1.9.2609.5 探測產出4876-byte、SM6.5 的
+Mesh DXIL，解碼階段32；實際 Frame／SRV／Entry Reflection 與原生 SDK Pipeline Stream 語法
+探測通過。這些 Linux 探測不代表 D3D12 執行。Oracle 比對 GPU 視錐剔除0/1與 CPU、Mesh 與
+GPU 產生 Indirect 的 RGBA／BGRA 像素、過期／放棄輸入、共享 Worker 及取消／重試。
+來源 `feat/v2-bounded-d3d12-mesh-shader`，Beads `nexora-45y.5.2`；原生執行／Hosted Gate 待驗證。
+通用 Meshlet／Amplification／Indirect Mesh Dispatch 與所有完整 Gate 維持開放。
+
+✅ 本地 Mesh 准入／Cache／DXIL／Profile／Cooked 階段及真實 GPU Compute／Indirect 後備通過。
+完整 Slang／原生／Zig Development configure/build 與 Xvfb CTest **216/216、零失敗／略過、
+136.60秒**（Showcase／Graphical Shell 關）；聚焦 **7/7、0.46秒**，Shipping Monolithic／Minimal
+LTO 通過。合併原生物件／同步回歸 **13/13、15.24秒**，確認31次 Layer 插入，Validation／VUID／Sync
+錯誤為零。暫存的真實4876-byte Mesh DXIL 通過引擎 Reader（階段32／SM6.5）；Private 原生
+Pipeline Adapter 通過官方 SDK 語法檢查。Linux 結果不代表 D3D12 Mesh Shader 執行，Hosted
+原生 MS／PS 仍待驗證，不關閉任何完整 Gate。
+
+## Enhanced Barriers、Mesh 與 VRS 整合本地驗收
+
+自己的 PR632 已在合併 Tessellation／main `77090f7de8340c606c4e770218600c6d41e0fa58` 上整合三條
+有界 D3D12 路徑。Windows Mesh／VRS Oracle 分別執行 Legacy 與要求的 Enhanced Barriers，回報實際
+啟用及已接受 Texture／Buffer 計數。原生 Adapter 接受 Pixel、Non-Pixel 與合併 ShaderRead，仍拒絕
+混合 Read／UAV。真實 SDK Enum 回歸涵蓋 Graph 的合併192遮罩；純映射檢查不代表 D3D12 執行。
+Aliasing、多 Queue、Tier2 Rate Image、通用 Meshlet 與完整 Gate 維持開放，整合版本 Hosted 原生
+驗收仍待完成。
+
+✅ 整合原生／Slang／Zig Development configure/build 與 Xvfb CTest **241/241、零失敗／略過、
+252.40秒**（Showcase 開、Graphical Editor 關）；聚焦 **8/8、0.31秒**；Shipping Monolithic／Minimal
+LTO 通過。合併原生 Vulkan 物件／同步驗證 **14/14、17.20秒**，確認31次 Layer 插入，Validation／
+VUID／Sync 錯誤為零。Root README 保持讀者導向；全部 C++ 模組重建，穩定 C ABI 與 Shader／SDK
+基線不變。
+
+✅ 自己的 Tessellation PR631 在6b05393b的36/36檢查及兩個首輪工作流程39019440906／39019475539
+通過後，以77090f7d Squash Merge。兩輪 Linux360/360、Windows303/303、macOS299/299 全數通過。
+Windows 真實 HS／DS、Vulkan Control／Evaluation 皆通過 RGBA／BGRA 曲面後備比對、產物負例與
+重疊 Worker 取消／重試；Metal 真實執行後備並明確回報原生 Tessellation 不可用。
+更廣 Authoring／Cook 與實機驗收仍待完成。
 
 ## 基線與範圍
 
@@ -598,6 +653,25 @@ DX12 Ultimate 或更新 Shader 功能的驗收。
 可程式化 Shader 已存在；統一 Shader 架構屬於硬體特性。本次不新增 DX9／DX10／DX11 API
 後端，而是納入其中尚缺的渲染能力 Tessellation。降低 CPU 開銷必須與現有序列提交路徑
 實測比較，不能只憑 API 版本宣稱達成。
+
+## V2-GFX-2 有界 Enhanced Barriers 施工狀態
+
+✅ Portable 同步／存取／Layout 獨立映射與 Null 明確不可用測試通過。
+D3D12 新增預設關閉、受 SDK guard 保護的 list7 實作：將已准入的 Copy、Shader／UAV、Render Target
+與 Indirect 用途分別映射同步、存取與 Layout，保留交易式 Snapshot，加入同用途 UAV 相依，以及
+避免不安全 Legacy 交錯的 Enhanced Texture 讀回。SDK／硬體／介面可用性分開檢查；不支援時保留
+Legacy 輸出。測試回報實際啟用狀態與已接受使用者 List 的 Buffer／Texture 計數。
+Aliasing、Subresource 範圍、多原生 Queue 交接及完整 GPU Validation 驗收仍待完成。
+Portable 測試與 Linux 編譯不代表 D3D12 執行。來源 `feat/v2-d3d12-enhanced-barriers`，
+Beads `nexora-45y.3.2`；Hosted 啟用／後備證據待補。
+
+main `1d48e918` 本地驗證：原生／Slang／Zig Development configure/build 與 Xvfb CTest
+**238/238、零失敗／略過、293.89秒**（Showcase 開、Graphical Editor 關）。
+聚焦映射／原生回歸 **6/6、0.71秒**；Shipping Monolithic／Minimal LTO 通過。
+既有 Vulkan 原生物件／同步回歸 **10/10、4.00秒**，確認25次 Layer 插入，Validation／VUID／Sync
+錯誤為零。Private 原生 Adapter 另以獨立暫存的 Microsoft DirectX-Headers
+`461ef5138bd30922b44fbad77c4e47662812d2d5` 通過 Clang19 語法檢查；這僅驗證 SDK 識別字，
+不是 D3D12 執行，不新增專案相依。
 
 ## 交付 Gate
 

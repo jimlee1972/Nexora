@@ -550,6 +550,39 @@ also run. Benchmark JSON reports matched descriptor storage creation/acquisition
 checks verify fresh default pools and exclusively warmed opt-in storage. This is synchronous
 retirement reuse; asynchronous timelines, full feature admission and physical budgets remain open.
 
+## Opt-in D3D12 Enhanced Barriers
+
+`DeviceCreationOptions::enable_enhanced_barriers` defaults to false. D3D12 marks the bounded
+implementation present only when the build SDK exposes `ID3D12GraphicsCommandList7`; enablement
+also requires the separately queried hardware support and a successful native list7 probe. An
+unavailable optional request retains legacy barriers. Other backends ignore this D3D12 request;
+no feature support is inferred. Existing factories, SDK/shader baselines and stable C ABI remain
+unchanged; all C++ modules rebuild for the appended option and diagnostic fields.
+
+The private adapter projects each admitted whole-resource transition into separate synchronization,
+memory-access and texture-layout fields. Copy, shader, render-target and indirect usage have
+explicit scopes. Shader synchronization includes graphics DRAW finalization for static descriptors.
+Undefined/common layout-only points use ALL with NO_ACCESS, avoiding NONE's prohibition on later
+resource access in the same execution scope. Undefined texture contents are discarded. UAV/WAW
+buffer dependencies emit same-access buffer barriers; buffers have no texture layout. Unknown or
+unadmitted projections reject before native emission. Existing revision validation and transactional
+list-local snapshots still control submission; failed/cancelled recordings commit no resource state.
+
+An enabled device uses enhanced texture barriers for both user lists and private texture readback,
+which restores the committed layout. It does not mix legacy/enhanced texture transitions without a
+COMMON bridge. Buffer readback starts a separate ExecuteCommandLists scope, where buffers implicitly
+return to legacy COMMON. The legacy path remains the default and provides the same output oracle.
+Accepted user-list diagnostics count enhanced buffer/texture barrier emission; rejected/abandoned
+lists and private readback do not increment those counters.
+
+`renderer.enhanced_barrier_projection` verifies portable usage policy and explicit Null unavailability.
+The Windows compute/graphics recording oracles also accept `--enhanced-barriers`, retaining CPU/pixel,
+shared-reader, stale/replay, cancellation and timing checks. They report actual enabled status and
+require nonzero native counters when enabled; an unavailable device explicitly tests legacy fallback.
+Portable projection, SDK-header syntax checks or enabled=0 output do not prove enhanced native
+execution. Aliasing, subresource ranges, multiple native queues and asynchronous handoffs remain
+outside this slice; full V2-GFX-2 GPU-validation/target acceptance stays open.
+
 ## Bounded native tessellation and baked mesh fallback
 
 `PipelineDescriptor` appends backend-neutral `topology`, `patch_control_points` and
@@ -603,3 +636,84 @@ worker failure/cancellation/successful replay. Missing/wrong requested stages re
 PSO creation; Windows also checks selected HS/DS/fallback profiles. Metal runs real baked output
 while reporting native tessellation unavailable. These tests do not certify physical performance,
 all tessellation authoring, asynchronous scheduling or complete Enhanced Barrier acceptance.
+
+## Bounded per-draw variable rate shading
+
+`PipelineDescriptor::shading_rate` defaults to `Full` (1x1). `Coarse2x2` adds VRS tier1 admission
+without weakening explicit requirements; invalid rates and compute-pipeline VRS reject before PSO
+allocation. The rate participates in complete pipeline/cache identity even though native D3D12
+stores it as dynamic command-list state. Other backends retain full rate and reject coarse requests;
+callers select the full-rate fallback explicitly. No SDK/shader baseline or stable C ABI changes.
+
+When list5 declarations exist, D3D12 records a tier1 implementation and probes the native interface
+separately from hardware support before enabling it. Coarse graphics binds query a list-owned list5
+reference and call RSSetShadingRate(2x2) with passthrough combiners. Every subsequent graphics bind
+on that list restores its requested rate, including full-rate pipelines and later rendering scopes.
+Live native references remain list-owned until the existing submission completion/abandonment
+retirement. Accepted user-list diagnostics count coarse direct/indirect API draw calls; rejected or
+cancelled lists publish no count. No per-primitive rate, rate image, tier2 combiner or queue change
+is added. Full-rate-only lists make no shading-rate native calls.
+
+`GraphicsFeatureCapability::implemented_tier` independently caps admitted backend implementations.
+Zero preserves the previous four-field report semantics (all reported hardware tiers); a nonzero
+ceiling rejects newer requirements with InsufficientImplementedTier. Hardware `tier` remains the
+actual query result. D3D12 VRS advertises a tier1 implementation even on tier2 hardware, so tier2
+requests cannot pass merely because the device supports them. All C++ modules rebuild together.
+
+`renderer.shading_rate` checks admission/cache identity/implementation ceilings, and uses native
+RGBA/BGRA gradients for the selected coarse or full-rate fallback. The oracle requires identical
+triangle coverage, at most32/255 channel error at64x64, full-rate restoration after a coarse scope,
+forced two-worker recording, abandonment/cancellation sentinels and replay. This fixed fixture's
+quality bound is not a content-wide quality guarantee or performance budget. Tests report actual
+native enablement/counts; a full-rate fallback does not certify VRS execution. Broader VRS/Ultimate,
+physical performance and complete V2-GFX-4 acceptance remain open.
+
+## Bounded D3D12 mesh shader and GPU-produced visibility
+
+`GraphicsShaderVariant::MeshTriangle` selects a separate native MS/PS pipeline, with implicit
+MeshShader1.0 and DXIL SM6.5 requirements and distinct cache identity. Patch/compute combinations
+reject. The DXIL metadata reader admits Mesh stage bit32 only at SM6.5 or newer. D3D12 requires the
+actual selected mesh artifact and DXIL fragment stage, checks explicit minimum profiles for both,
+and creates an aligned native pipeline-state stream through Device2. It attaches no VS/HS/DS/GS,
+input layout or stream output. The shared frame CBV is visible to graphics stages, including MS.
+Missing/wrong/old requested artifacts fail before PSO allocation; no silent shader substitution.
+
+SDK list6/Device2 availability, hardware tier and successful interface probes remain separate.
+The implemented tier is capped at1.0. Native interfaces/PSOs remain privately owned; publication
+failure returns the new handle and releases unregistered native state. Other backends reject the
+mesh request and callers select their existing compute/indirect raster fallback explicitly.
+
+A bound MeshTriangle pipeline admits `BindStorageBuffer(0, statistics)` inside its rendering scope.
+This is a read-only, at-least-five-word uint buffer; other graphics storage slots/variants reject.
+BindPipeline resets this private input, so it must be rebound explicitly. Preparation captures the
+same handle generation/revision and immutable SRV address as existing buffer reads. CPU mutation,
+nonempty readback or potential GPU writes invalidate stale recorded input. Compatible shared
+readers preserve revisions. Device/resources must outlive all lists and completion as before.
+
+`DispatchMesh(1,1,1)` is the only admitted built-in mesh dispatch. It requires rendering, the mesh
+pipeline, a valid explicit input and list6. Ordinary/indirect IA draws reject on mesh pipelines.
+GPUDriven.slang writes its visible count at statistics word4; the mesh shader reads that GPU value
+and calls SetMeshOutputCounts for zero or three vertices/one triangle. The coordinator always
+submits one mesh group; it performs no CPU count decision. Accepted-list diagnostics count mesh
+API dispatches, including zero-output groups. Abandoned/stale/cancelled work publishes no count.
+
+Mesh stage bit32 survives reflection/layout and cooked metadata; unknown bit64 still rejects.
+The optional existing Windows Slang target emits MS6.5 DXIL plus real input/entry reflection and a
+source/artifact identity manifest. Baseline VS/PS6.6, CS6.0 and SDK options remain unchanged.
+Vulkan's bounded1.1/SPIR-V1.3 entry reader explicitly does not admit a Mesh execution model.
+All C++ modules rebuild for appended types/diagnostics and the new virtual method; stable C ABI
+and existing cooked format1 encoding remain unchanged. This does not add Runtime MS/PS assembly.
+
+The native oracle compares GPU-computed inside/outside-frustum counts with the CPU reference,
+then compares actual mesh output with GPU-generated native indirect draws in RGBA/BGRA. It also
+checks bounded dispatch/input rejection, abandoned/stale work, shared-input two-worker recording,
+failed/cancelled cohorts and successful replay. A fallback-only run is not mesh execution proof.
+General meshlets, amplification shaders, indirect mesh dispatch, cross-backend mesh support,
+physical performance and the full Ultimate/V2-GFX-4 gates remain open.
+
+The mesh and shading-rate Windows oracles also accept `--enhanced-barriers`, running the same
+output/lifetime/reset checks on the requested enhanced device and reporting actual accepted-list
+barrier counts. Graph ShaderRead buffers may use pixel, non-pixel or combined native SRV states;
+all three project to shader-read memory access. Mixed SRV/UAV states remain unadmitted. The SDK
+adapter regression covers this boundary explicitly. Neither unavailable enhanced requests nor
+Linux pure-policy checks certify native D3D12 execution.

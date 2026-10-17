@@ -178,6 +178,15 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR APPLE))
   target_compile_definitions(NexoraNativeTextureRecordingTests PRIVATE ${graphics_definition})
   nexora_apply_defaults(NexoraNativeTextureRecordingTests)
   add_test(NAME renderer.${graphics_backend}_texture_recording COMMAND NexoraNativeTextureRecordingTests)
+  if(WIN32)
+    add_test(NAME renderer.d3d12_graphics_enhanced_barriers COMMAND NexoraNativeTextureRecordingTests --enhanced-barriers)
+    set_tests_properties(renderer.d3d12_graphics_enhanced_barriers PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "d3d12;native-acceptance")
+    if(NEXORA_ENABLE_SLANG)
+      set_property(TEST renderer.d3d12_graphics_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+        ${graphics_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+    endif()
+  endif()
   set_tests_properties(renderer.${graphics_backend}_texture_recording PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "${graphics_backend};native-acceptance")
   if(NEXORA_ENABLE_SLANG)
@@ -196,12 +205,13 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND WIN32)
   nexora_apply_defaults(NexoraD3D12RecordingIsolationTests)
   add_test(NAME renderer.d3d12_recording_isolation COMMAND NexoraD3D12RecordingIsolationTests)
   add_test(NAME renderer.d3d12_recording_gpu_timing COMMAND NexoraD3D12RecordingIsolationTests --gpu-timing)
+  add_test(NAME renderer.d3d12_recording_enhanced_barriers COMMAND NexoraD3D12RecordingIsolationTests --enhanced-barriers)
   add_test(NAME renderer.d3d12_recording_benchmark COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraD3D12RecordingIsolationTests>")
-  set_tests_properties(renderer.d3d12_recording_isolation renderer.d3d12_recording_gpu_timing renderer.d3d12_recording_benchmark PROPERTIES
+  set_tests_properties(renderer.d3d12_recording_isolation renderer.d3d12_recording_gpu_timing renderer.d3d12_recording_benchmark renderer.d3d12_recording_enhanced_barriers PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "d3d12;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraD3D12RecordingIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.d3d12_recording_isolation renderer.d3d12_recording_gpu_timing renderer.d3d12_recording_benchmark APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.d3d12_recording_isolation renderer.d3d12_recording_gpu_timing renderer.d3d12_recording_benchmark renderer.d3d12_recording_enhanced_barriers APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
   endif()
@@ -318,6 +328,12 @@ if(NEXORA_ENABLE_SLANG)
   endif()
 endif()
 
+add_executable(NexoraEnhancedBarrierProjectionTests EnhancedBarrierProjectionTests.cpp)
+target_link_libraries(NexoraEnhancedBarrierProjectionTests PRIVATE Nexora::RHI)
+target_include_directories(NexoraEnhancedBarrierProjectionTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/RHI/src")
+nexora_apply_defaults(NexoraEnhancedBarrierProjectionTests)
+add_test(NAME renderer.enhanced_barrier_projection COMMAND NexoraEnhancedBarrierProjectionTests)
+
 # Real bounded native patches and baked fallback, plus always-portable metadata/admission tests.
 add_executable(NexoraTessellationTests TessellationTests.cpp)
 target_link_libraries(NexoraTessellationTests PRIVATE Nexora::Renderer)
@@ -352,4 +368,50 @@ if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS)
       "NEXORA_SLANG_PRETESSELLATED_SPIRV_PATH=${NEXORA_SLANG_PRETESSELLATED_SPIRV_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_TESSELLATION=1")
   endif()
+endif()
+
+add_executable(NexoraShadingRateTests ShadingRateTests.cpp)
+target_link_libraries(NexoraShadingRateTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraShadingRateTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraShadingRateTests)
+add_test(NAME renderer.shading_rate COMMAND NexoraShadingRateTests)
+set_tests_properties(renderer.shading_rate PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraShadingRateTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.shading_rate APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()
+
+add_executable(NexoraMeshShaderTests MeshShaderTests.cpp)
+target_link_libraries(NexoraMeshShaderTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraMeshShaderTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraMeshShaderTests)
+add_test(NAME renderer.mesh_shader COMMAND NexoraMeshShaderTests)
+set_tests_properties(renderer.mesh_shader PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraMeshShaderTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.mesh_shader APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  if(WIN32)
+    set_property(TEST renderer.mesh_shader APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_MESH_DXIL_PATH=${NEXORA_SLANG_MESH_DXIL_OUTPUT}")
+  endif()
+endif()
+
+if(WIN32 AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_SLANG)
+  add_test(NAME renderer.shading_rate_enhanced_barriers COMMAND NexoraShadingRateTests --enhanced-barriers)
+  add_test(NAME renderer.mesh_shader_enhanced_barriers COMMAND NexoraMeshShaderTests --enhanced-barriers)
+  set_tests_properties(renderer.shading_rate_enhanced_barriers renderer.mesh_shader_enhanced_barriers
+    PROPERTIES TIMEOUT 120 LABELS "d3d12;native-acceptance")
+  set_property(TEST renderer.shading_rate_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  set_property(TEST renderer.mesh_shader_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1"
+    "NEXORA_SLANG_MESH_DXIL_PATH=${NEXORA_SLANG_MESH_DXIL_OUTPUT}")
 endif()

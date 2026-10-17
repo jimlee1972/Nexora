@@ -22,6 +22,8 @@ std::optional<std::uint32_t> ExecutionModel(ShaderStage stage) noexcept {
     return 4;
   case ShaderStage::Compute:
     return 5;
+  case ShaderStage::Mesh:
+    return {}; // Mesh execution is not admitted by the bounded Vulkan1.1/SPIR-V1.3 path.
   }
   return std::nullopt;
 }

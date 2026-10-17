@@ -1091,15 +1091,18 @@ int main(int argc, char **argv) {
         benchmark_reuse || (argc >= 2 && std::string_view{argv[1]} == "--benchmark");
     const bool reuse =
         benchmark_reuse || (argc == 2 && std::string_view{argv[1]} == "--resource-reuse");
-    const bool timed =
-        benchmark || reuse || (argc == 2 && std::string_view{argv[1]} == "--gpu-timing");
+    const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
+    const bool timed = enhanced || benchmark || reuse ||
+                       (argc == 2 && std::string_view{argv[1]} == "--gpu-timing");
     Require(argc == 1 || (argc == 2 && timed) || (benchmark && argc == 4),
-            "usage: [--gpu-timing | --resource-reuse | --benchmark[-reuse] [samples "
+            "usage: [--gpu-timing | --enhanced-barriers | --resource-reuse | --benchmark[-reuse] "
+            "[samples "
             "dispatches-per-list]]");
+    Require(!enhanced || kBackend == rhi::Backend::Direct3D12, "enhanced barriers require D3D12");
     Require(!reuse || kBackend == rhi::Backend::Vulkan, "allocator reuse requires Vulkan");
     const auto samples = benchmark && argc == 4 ? BenchmarkArgument(argv[2], 101) : 21U;
     const auto dispatches = benchmark && argc == 4 ? BenchmarkArgument(argv[3], 64) : 40U;
-    auto device = rhi::CreateDeviceWithOptions(kBackend, {timed, reuse});
+    auto device = rhi::CreateDeviceWithOptions(kBackend, {timed, reuse, enhanced});
     Require(device->Capabilities().recording_resource_reuse_enabled == reuse,
             "recording resource reuse must stay explicitly opt-in");
     if (reuse && !benchmark)
@@ -1125,6 +1128,23 @@ int main(int argc, char **argv) {
     TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);
     const auto pools = device->Diagnostics();
+    const auto barrier_feature =
+        device->Capabilities()
+            .features[static_cast<std::size_t>(rhi::GraphicsFeature::EnhancedBarriers)];
+    Require(!barrier_feature.enabled ||
+                (enhanced && barrier_feature.implemented &&
+                 barrier_feature.support == rhi::CapabilitySupport::Supported),
+            "enhanced barrier admission is not explicitly supported and enabled");
+    if (barrier_feature.enabled)
+      Require(pools.enhanced_buffer_barriers > 0,
+              "native compute did not record enhanced buffer barriers");
+    else
+      Require(pools.enhanced_buffer_barriers == 0 && pools.enhanced_texture_barriers == 0,
+              "legacy fallback fabricated enhanced barrier execution");
+    if (enhanced)
+      std::cout << "D3D12 enhanced compute barriers: enabled=" << barrier_feature.enabled
+                << " buffer=" << pools.enhanced_buffer_barriers
+                << "; legacy fallback when unavailable\n";
     Require(
         pools.cached_command_pools <= 8 && pools.cached_descriptor_pools <= 16 &&
             (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0 &&

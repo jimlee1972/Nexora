@@ -53,9 +53,13 @@ void TestMetadataAdmission() {
        std::array{std::pair{0U, ShaderStage::Fragment}, std::pair{1U, ShaderStage::Vertex},
                   std::pair{3U, ShaderStage::TessellationControl},
                   std::pair{4U, ShaderStage::TessellationEvaluation},
-                  std::pair{5U, ShaderStage::Compute}}) {
-    for (const std::uint32_t minor : {0U, 6U, 9U, 10U}) {
+                  std::pair{5U, ShaderStage::Compute}, std::pair{13U, ShaderStage::Mesh}}) {
+    for (const std::uint32_t minor : {0U, 5U, 6U, 9U, 10U}) {
       const auto bytes = Metadata(kind, minor);
+      if (stage == ShaderStage::Mesh && minor < 5) {
+        Require(!InspectDxilProgram(bytes), "mesh profile predating SM6.5 admitted");
+        continue;
+      }
       const auto info = RequireDxilArtifact(bytes, stage, {6, static_cast<std::uint16_t>(minor)});
       Require(info.stage == stage &&
                   info.shader_model == FeatureVersion{6, static_cast<std::uint16_t>(minor)},

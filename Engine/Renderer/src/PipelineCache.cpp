@@ -11,11 +11,16 @@
 namespace nexora::renderer {
 PipelineCacheKey MakePipelineCacheKey(const rhi::PipelineDescriptor &descriptor,
                                       std::uint64_t shader_generation) noexcept {
-  return {descriptor.layout_hash,    descriptor.shader_hash,
-          shader_generation,         descriptor.color_format,
-          descriptor.type,           descriptor.graphics_requirements,
-          descriptor.topology,       descriptor.patch_control_points,
-          descriptor.graphics_shader};
+  return {descriptor.layout_hash,
+          descriptor.shader_hash,
+          shader_generation,
+          descriptor.color_format,
+          descriptor.type,
+          descriptor.graphics_requirements,
+          descriptor.topology,
+          descriptor.patch_control_points,
+          descriptor.graphics_shader,
+          descriptor.shading_rate};
 }
 struct PipelineFuture::State final {
   std::atomic_bool ready{false};
@@ -56,7 +61,8 @@ struct PipelineCache::Implementation final {
       hash ^= static_cast<std::size_t>(key.type) + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       for (const auto value : {static_cast<std::size_t>(key.topology),
                                static_cast<std::size_t>(key.patch_control_points),
-                               static_cast<std::size_t>(key.graphics_shader)})
+                               static_cast<std::size_t>(key.graphics_shader),
+                               static_cast<std::size_t>(key.shading_rate)})
         hash ^= value + 0x9e3779b9U + (hash << 6U) + (hash >> 2U);
       const auto mix_version = [&hash](rhi::FeatureVersion version) {
         const auto value = (static_cast<std::size_t>(version.major) << 16U) | version.minor;

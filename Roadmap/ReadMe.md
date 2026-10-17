@@ -134,6 +134,24 @@ pixels and synchronization/object validation. 私有狀態／Revision 快照與�
 通過序列／四 Worker 像素精確比對及同步／物件 Validation；一般 Graph Graphics、其他後端
 Texture 隔離、非同步回收與效能 Gate 仍待完成。詳細證據見雙語 V2 圖形計畫。
 
+
+✅ V2-GFX-2 portable Enhanced Barrier projection / 可攜映射（2026-10-17）：
+Independent sync/access/layout policy and Null unavailability are verified. A default-off D3D12
+list7 path and legacy fallback are under native validation; this does not close the full gate.
+已驗證同步／存取／Layout 映射與 Null 不可用；預設關閉的 D3D12 list7／Legacy 後備待原生驗證。
+See the paired [graphics plan](en/V2_Advanced_Graphics_Capability_Plan.md).
+
+✅ V2-GFX-4 VRS admission/full-rate fallback / 准入與 Full Rate 後備（2026-10-17）：
+Portable rate/cache/tier ceilings and native Vulkan full-rate output/lifetime tests pass.
+D3D12 2x2 execution remains under validation; full VRS/Ultimate acceptance stays open.
+可攜著色率／Cache／Tier 上限與 Vulkan Full Rate 輸出／生命週期通過；D3D12 2x2及完整驗收仍待完成。
+
+
+✅ V2-GFX-4 Mesh admission/GPU indirect fallback / Mesh 准入與 GPU 後備（2026-10-17）：
+Real DXIL metadata/reflection, cooked-stage identity and GPU frustum/indirect output tests pass.
+Native D3D12 MS/PS execution remains under validation; full meshlet/Ultimate acceptance stays open.
+真實 DXIL／Reflection、Cooked 階段識別與 GPU 剔除／Indirect 輸出通過；原生及完整驗收仍待完成。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).
@@ -271,3 +289,10 @@ reference parity, crystal optics and physical target performance remain pending 
 
 Tinted HDR crystal blending and nearest-layer focus now share the native adapters. This remains art refinement; refraction, final reference parity and physical performance acceptance remain open (VIS 5/7).
 水晶帶色 HDR 合成與最近可見層景深共用原生後端；折射、最終預覽圖一致性與目標實機效能仍待驗收（VIS 5/7）。
+
+✅ Tessellation hosted acceptance / 曲面細分 Hosted 驗收（2026-10-17）：
+Own PR631 merged after all36 checks and both Linux/Windows/macOS workflows passed. Native Vulkan
+and D3D12 curved patches and Metal baked fallback are verified; the full V2-GFX-2 gate stays open.
+PR631 已通過36檢查及兩輪三平台 CI 後合併；原生曲面與 Metal 後備驗證完成，完整 Gate 維持開放。
+PR632 integrates bounded Enhanced Barriers/mesh/VRS for final native acceptance.
+PR632 整合有界 Enhanced Barriers／Mesh／VRS，最終原生驗收進行中。

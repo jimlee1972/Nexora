@@ -1107,3 +1107,9 @@ The format1 encoding is unchanged; unknown bits reject both serialization and de
 and older readers reject the new bits rather than misinterpreting them. Layout hashes include
 those bits, while selected entry names remain in the checked payload identity. The new round-trip
 coverage concerns metadata; Runtime does not assemble arbitrary native hull/domain programs.
+
+Mesh stage bit32 is also retained by the existing cooked reflection/layout encoding; unknown bit64
+is rejected on serialization/deserialization. Mesh entry identity differs from baseline programs.
+These are metadata contracts, not general Runtime MS/PS assembly or native execution proof; the
+bounded D3D12 mesh recipe is admitted and executed by RHI separately. Cooked format1 and stable C
+ABI remain unchanged, and existing cooked artifacts retain their meaning.
