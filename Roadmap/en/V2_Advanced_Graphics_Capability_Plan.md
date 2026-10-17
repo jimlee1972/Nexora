@@ -624,6 +624,11 @@ CTest **208/208,zero skips/failures,129.49 seconds** (Showcase/graphical shell o
 Monolithic/Minimal LTO configure/build passes. Touched formatting/diff checks pass. No complete
 gate is marked closed.
 
+After integrating merged PR630/main `1d48e918`, full Development configure/build and Xvfb CTest
+pass again: **214/214, zero skips/failures,188.04 seconds**. Focused native/admission/cooked/timing
+checks **6/6,0.31 seconds**; Shipping passes. Combined native renderer object/synchronization
+validation **11/11,13.94 seconds**,27 confirmed layer insertions, zero validation/VUID/sync errors.
+
 A separately staged official Linux DXC **v1.9.2609 /1.9.2609.5** permits real Slang2026.18 DXIL
 compiler/reflection/reader probes without changing project dependencies: control4008 bytes,
 evaluation3960 bytes and baked vertex5488 bytes decode to stages8/16/1, all SM6.0. This does not run

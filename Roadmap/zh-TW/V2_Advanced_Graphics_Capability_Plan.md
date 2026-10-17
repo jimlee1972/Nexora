@@ -576,6 +576,11 @@ D3D12 建立 VS／HS／DS／PS 及 PATCH／三點 IA 拓撲。Metal 拒絕原生
 零略過／失敗、129.49秒**（Showcase／Graphical Shell 關閉）；Shipping Monolithic／Minimal LTO
 configure/build 通過，格式及 Diff 檢查通過。不關閉任何完整 Gate。
 
+整合已合併 PR630／main `1d48e918` 後，完整 Development configure/build 與 Xvfb CTest
+再次通過：**214/214、零略過／失敗、188.04秒**；聚焦原生／准入／Cooked／計時
+**6/6、0.31秒**，Shipping 通過。合併原生 Renderer 物件／同步驗證 **11/11、13.94秒**，
+確認27次 Layer 插入，Validation／VUID／Sync 錯誤為零。
+
 另行暫存的官方 Linux DXC **v1.9.2609／1.9.2609.5** 可供 Slang2026.18 真實 DXIL 編譯／Reflection／
 Reader 探測，不變更專案相依：Control4008 bytes、Evaluation3960 bytes、後備 Vertex5488 bytes，
 解碼階段8/16/1，皆為 SM6.0；這不是 D3D12 執行。Windows HS／DS PSO 與 Metal 後備仍須 Hosted
