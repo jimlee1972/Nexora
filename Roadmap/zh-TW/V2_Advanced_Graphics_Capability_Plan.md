@@ -25,6 +25,37 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 選用的原生 GPU 提交完成計時 — 2026-10-17
+
+✅ RHI 計時須由 `CreateDeviceWithOptions` 明確要求；一般建立維持關閉。建構時的支援／
+啟用旗標，以及自有 Source／Completion／選用毫秒觀察值，可區分不可用與零。Vulkan 清單
+擁有選用 Timestamp Pair，D3D12 清單擁有 Query／Readback Storage 及 Queue Frequency，
+Metal 讀取已完成 Command Buffer 的 GPU 時間。收集只使用既有完成機制，不新增 Query WAIT
+或 Callback。預設清單不分配／錄製計時資源，也不發布計時完成串流；取消／未提交工作不發布。
+
+Presentation 已驗證的 Counter Width／Period／CPU 上界換算共用至 RHI Detail Header，
+不改變其 Surface 觀察值或 Slot 生命週期。非法／Query／分配結果維持不可用，不以 CPU 時間
+替代 GPU 時間。各清單 Query 資源在完成或放棄 Buffer 清理後回收；D3D12 拒絕 Device-removed
+Fence Sentinel。未修改 SDK／Shader Profile／Stable C ABI／Module 關係，須重建 C++ Module。
+
+來源分支：`feat/v2-native-submission-timestamps`；Beads `nexora-45y.2.11`。
+啟用 Slang 的 Development Configure／Build 與 Xvfb／Native-required 完整 CTest
+**232/232 通過，零略過／失敗，263.88 秒**（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。
+`ctest --preset linux-development -R '^(window_presentation\.gpu_timing|renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|vulkan_descriptor_isolation|parallel_graph_recording|dxil_artifact_readiness))$' -V`：
+**7/7 通過，零略過，0.40 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+原生 Object／Synchronization Validation 使用 Khronos Layer 1.3.275 並移除繼承 Shader 路徑：
+`ctest --preset linux-development -R '^renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+**6/6 通過，零略過，7.46 秒**，Loader 證明載入，沒有 Validation Error／VUID／SYNC-HAZARD。
+圖形取得 **4/4 可用且為正的 Vulkan 觀察值**，Compute 計時亦可用且既有 CPU 比對均通過。
+預設關閉、Validation 不可用、觀察值 Copy 生命週期、反向提交、取消 Query 與精確像素通過；
+既有 Presentation Wrap／非法 Counter 測試驗證共用換算。現有 CI Validation Step 加入新
+計時 Target，沒有新增相依或 Job。
+
+Windows／Metal 執行須通過 Hosted 原生 Gate；Software Vulkan 僅證明 API／生命週期正確。
+同條件 CPU 錄製／提交 Median／P95、GPU／Memory 預算及實體 GPU 校正 Benchmark 仍待完成，
+非同步重用與完整平行 Feature 亦維持待完成。詳見
+[RHI Contract](../../Engine/RHI/README.md#opt-in-completed-submission-gpu-timing)。
+
 ### 共用輸入與 DXIL 檢查整合 — 2026-10-17
 
 ✅ 後續整合不變共用 Buffer 讀取與所選 DXIL Stage／Profile 檢查，包含指定錯誤 Stage 的

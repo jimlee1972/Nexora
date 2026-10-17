@@ -65,7 +65,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
   add_executable(NexoraVulkanSceneUploadTests VulkanSceneUploadTests.cpp)
   target_include_directories(NexoraVulkanSceneUploadTests PRIVATE
     "${CMAKE_SOURCE_DIR}/Engine/Presentation/include" "${NEXORA_VULKAN_INCLUDE_DIR}")
-  target_link_libraries(NexoraVulkanSceneUploadTests PRIVATE Nexora::Window X11::X11 "${NEXORA_VULKAN_LIBRARY}")
+  target_link_libraries(NexoraVulkanSceneUploadTests PRIVATE Nexora::RHI Nexora::Window X11::X11 "${NEXORA_VULKAN_LIBRARY}")
   nexora_apply_defaults(NexoraVulkanSceneUploadTests)
   add_test(NAME window_presentation.vulkan_scene_upload_reuse
     COMMAND "${Python3_EXECUTABLE}"
@@ -96,7 +96,7 @@ endif()
 if(APPLE)
   add_executable(NexoraMetalSceneTests MetalSceneTests.mm)
   target_include_directories(NexoraMetalSceneTests PRIVATE "${CMAKE_SOURCE_DIR}/Engine/Presentation/include")
-  target_link_libraries(NexoraMetalSceneTests PRIVATE Nexora::Window "-framework Cocoa" "-framework Metal" "-framework QuartzCore")
+  target_link_libraries(NexoraMetalSceneTests PRIVATE Nexora::RHI Nexora::Window "-framework Cocoa" "-framework Metal" "-framework QuartzCore")
   target_compile_options(NexoraMetalSceneTests PRIVATE $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
   nexora_apply_defaults(NexoraMetalSceneTests)
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/artifacts")

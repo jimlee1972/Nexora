@@ -31,6 +31,40 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Optional completed native GPU submission timing — 2026-10-17
+
+✅ RHI timing is explicitly requested with `CreateDeviceWithOptions`; ordinary creation stays off.
+Construction-time support/enabled flags and owning source/completion/optional-millisecond observations
+separate unavailable from zero. Vulkan lists own optional timestamp pairs, D3D12 lists own optional
+queries/readback storage and queue frequency, and Metal reads completed command-buffer GPU times.
+Collection uses existing completion only, with no query WAIT or callback. Default lists allocate/
+record no timing resources or completion stream. Cancelled/unsubmitted work publishes nothing.
+
+Presentation's validated counter-width/period/CPU-upper-bound conversion is shared from an RHI
+detail header without changing its surface observations or slot lifecycle. Invalid/query/allocation
+results stay unavailable; CPU time never replaces GPU time. Native per-list query resources retire
+after completion or abandoned-buffer cleanup; D3D12 rejects the device-removed fence sentinel.
+No SDK, shader profile, stable C ABI or module relationship is changed; C++ modules rebuild.
+
+Source branch: `feat/v2-native-submission-timestamps`; Beads `nexora-45y.2.11`.
+Slang-enabled Development configure/build and Xvfb/native-required full CTest pass **232/232,
+zero skips/failures, 263.88 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0).
+`ctest --preset linux-development -R '^(window_presentation\.gpu_timing|renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|vulkan_descriptor_isolation|parallel_graph_recording|dxil_artifact_readiness))$' -V`:
+**7/7 pass, zero skips, 0.40 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+Native object/synchronization validation with Khronos layer 1.3.275 and inherited shader paths removed:
+`ctest --preset linux-development -R '^renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+passes **6/6, zero skips, 7.46 seconds**, with loader-confirmed insertion and zero Validation
+Error/VUID/SYNC-HAZARD markers. Graphics gets **4/4 available, positive Vulkan observations**;
+compute timing also remains available while every existing CPU comparison passes. Default-off,
+Validation-unavailable, copied-observation lifetime, reverse submission, cancelled queries and
+exact pixels pass. Existing Presentation wrap/invalid-counter tests exercise the shared conversion.
+The current CI validation step includes the new timing targets; no new dependency/job is added.
+
+Windows/Metal execution requires hosted native gates; software Vulkan is API/lifetime correctness
+evidence only. The matched CPU recording/submission median/p95, GPU/memory budgets and physical-GPU
+calibration benchmark remain open, along with asynchronous reuse and the full parallel feature.
+See the [RHI contract](../../Engine/RHI/README.md#opt-in-completed-submission-gpu-timing).
+
 ### Shared-input and DXIL admission integration — 2026-10-17
 
 ✅ The follow-up combines immutable shared buffer reads with selected DXIL stage/profile checks,

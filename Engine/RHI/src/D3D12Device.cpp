@@ -294,6 +294,10 @@ private:
   std::unordered_map<std::uint64_t, TextureSnapshot> texture_snapshots_;
   TextureHandle render_target_{};
   std::unordered_map<std::uint64_t, BufferSnapshot> buffer_snapshots_;
+  std::optional<double>
+  GpuMilliseconds(std::chrono::steady_clock::time_point submitted) const noexcept;
+  Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestamp_heap_;
+  Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
   bool rendering_{false};
@@ -320,7 +324,7 @@ class D3D12Device final : public Device {
   struct BufferRecord;
 
 public:
-  D3D12Device() {
+  explicit D3D12Device(const DeviceCreationOptions &options) {
     ComPtr<IDXGIFactory6> factory;
     Check(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)), "CreateDXGIFactory2");
 
@@ -350,6 +354,11 @@ public:
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     Check(device_->CreateCommandQueue(&queue_description, IID_PPV_ARGS(&queue_)),
           "CreateCommandQueue");
+    if (SUCCEEDED(queue_->GetTimestampFrequency(&timestamp_frequency_)) && timestamp_frequency_)
+      capabilities_.gpu_timing_support = CapabilitySupport::Supported;
+    capabilities_.gpu_timing_enabled =
+        options.enable_gpu_timing &&
+        capabilities_.gpu_timing_support == CapabilitySupport::Supported;
 
     D3D12_DESCRIPTOR_HEAP_DESC heap_description{};
     heap_description.NumDescriptors = RtvCapacity;
@@ -624,6 +633,7 @@ public:
   std::uint64_t Submit(CommandList &commands) override {
     auto *validated = dynamic_cast<D3D12CommandList *>(&commands);
     std::uint64_t fence_value{};
+    std::chrono::steady_clock::time_point submitted_at{};
     {
       std::lock_guard lock{mutex_};
       Require(validated != nullptr, "command list belongs to another device");
@@ -644,6 +654,8 @@ public:
       }
       validated->Close();
       ID3D12CommandList *native_list = validated->list_.Get();
+      if (capabilities_.gpu_timing_enabled)
+        submitted_at = std::chrono::steady_clock::now();
       queue_->ExecuteCommandLists(1, &native_list);
       // ExecuteCommandLists accepted the list, even if a later Signal/wait fails. Buffers
       // decay to COMMON at the execution boundary on this single DIRECT queue.
@@ -672,6 +684,12 @@ public:
       Check(queue_->Signal(fence_.Get(), fence_value), "ID3D12CommandQueue::Signal");
     }
     WaitForFence(fence_value);
+    if (capabilities_.gpu_timing_enabled) {
+      const auto measured = validated->GpuMilliseconds(submitted_at);
+      std::lock_guard lock{mutex_};
+      detail::PublishGpuTiming(diagnostics_.gpu_timing, GpuTimingSource::Dx12Timestamps,
+                               fence_value, measured);
+    }
     return fence_value;
   }
 
@@ -833,11 +851,16 @@ private:
   }
 
   void WaitForFence(std::uint64_t value) {
-    if (fence_->GetCompletedValue() >= value)
+    const auto completed = fence_->GetCompletedValue();
+    if (completed == UINT64_MAX)
+      throw std::runtime_error("D3D12 fence reports device removal");
+    if (completed >= value)
       return;
     Check(fence_->SetEventOnCompletion(value, fence_event_), "ID3D12Fence::SetEventOnCompletion");
     if (WaitForSingleObject(fence_event_, INFINITE) != WAIT_OBJECT_0)
       throw std::runtime_error("WaitForSingleObject failed for D3D12 fence");
+    if (fence_->GetCompletedValue() == UINT64_MAX)
+      throw std::runtime_error("D3D12 fence reports device removal");
   }
 
   GraphicsDeviceCapabilities capabilities_;
@@ -857,6 +880,7 @@ private:
   UINT next_rtv_{};
   std::vector<UINT> free_rtv_slots_;
   std::uint64_t next_fence_{};
+  UINT64 timestamp_frequency_{};
   mutable std::mutex mutex_;
   core::HandlePool<TextureTag> texture_pool_;
   core::HandlePool<PipelineTag> pipeline_pool_;
@@ -877,6 +901,50 @@ D3D12CommandList::D3D12CommandList(D3D12Device &device, QueueType queue) : devic
   Check(device_.device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator_.Get(),
                                            nullptr, IID_PPV_ARGS(&list_)),
         "CreateCommandList");
+  if (device_.capabilities_.gpu_timing_enabled) {
+    D3D12_QUERY_HEAP_DESC query{};
+    query.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+    query.Count = 2;
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_READBACK;
+    heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC storage{};
+    storage.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    storage.Width = 2 * sizeof(std::uint64_t);
+    storage.Height = storage.DepthOrArraySize = storage.MipLevels = 1;
+    storage.SampleDesc.Count = 1;
+    storage.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    if (SUCCEEDED(device_.device_->CreateQueryHeap(&query, IID_PPV_ARGS(&timestamp_heap_))) &&
+        SUCCEEDED(device_.device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &storage,
+                                                           D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                           IID_PPV_ARGS(&timestamp_readback_)))) {
+      list_->EndQuery(timestamp_heap_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0);
+    } else {
+      timestamp_heap_.Reset();
+      timestamp_readback_.Reset();
+    }
+  }
+}
+
+std::optional<double>
+D3D12CommandList::GpuMilliseconds(std::chrono::steady_clock::time_point submitted) const noexcept {
+  if (!timestamp_heap_ || !timestamp_readback_ || !device_.timestamp_frequency_ ||
+      device_.fence_->GetCompletedValue() == UINT64_MAX)
+    return {};
+  void *mapped{};
+  const D3D12_RANGE range{0, 2 * sizeof(std::uint64_t)};
+  if (FAILED(timestamp_readback_->Map(0, &range, &mapped)))
+    return {};
+  std::array<std::uint64_t, 2> values{};
+  if (mapped)
+    std::memcpy(values.data(), mapped, sizeof(values));
+  const D3D12_RANGE written{0, 0};
+  timestamp_readback_->Unmap(0, &written);
+  if (!mapped)
+    return {};
+  return detail::TimestampMilliseconds(
+      values[0], values[1], 64, 1000000000.0 / static_cast<double>(device_.timestamp_frequency_),
+      detail::CompletionWallMilliseconds(submitted));
 }
 
 ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOURCE_STATES state) {
@@ -1102,6 +1170,11 @@ void D3D12CommandList::EndRendering() {
 void D3D12CommandList::Close() {
   if (closed_)
     return;
+  if (timestamp_heap_) {
+    list_->EndQuery(timestamp_heap_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 1);
+    list_->ResolveQueryData(timestamp_heap_.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 2,
+                            timestamp_readback_.Get(), 0);
+  }
   Check(list_->Close(), "ID3D12GraphicsCommandList::Close");
   closed_ = true;
 }
@@ -1280,5 +1353,7 @@ void D3D12Device::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset
 }
 } // namespace
 
-std::unique_ptr<Device> CreateDirect3D12Device() { return std::make_unique<D3D12Device>(); }
+std::unique_ptr<Device> CreateDirect3D12Device(const DeviceCreationOptions &options) {
+  return std::make_unique<D3D12Device>(options);
+}
 } // namespace nexora::rhi

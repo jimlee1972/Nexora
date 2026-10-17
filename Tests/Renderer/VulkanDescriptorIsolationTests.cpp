@@ -723,7 +723,8 @@ int main(int argc, char **argv) {
       std::cout << "SKIP: " << kBackendName << " artifacts/device unavailable\n";
       return 77;
     }
-    auto device = rhi::CreateDevice(kBackend);
+    const bool timed = argc == 2 && std::string_view{argv[1]} == "--gpu-timing";
+    auto device = rhi::CreateDeviceWithOptions(kBackend, {timed});
     const auto pipeline = device->CreatePipeline(
         {1, 2, rhi::TextureFormat::Rgba8Unorm, "isolation", rhi::PipelineType::Compute});
     TestRejectedBindings(*device, pipeline);
@@ -737,6 +738,19 @@ int main(int argc, char **argv) {
     TestBufferSnapshots(*device, pipeline);
     TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);
+    if (timed) {
+      const auto timing = device->Diagnostics().gpu_timing;
+      Require(!device->Capabilities().gpu_timing_enabled || timing.completed_submission > 0,
+              "completed compute submissions did not publish timing availability");
+      std::cout << kBackendName
+                << " completed compute GPU timing source=" << static_cast<unsigned>(timing.source)
+                << " completion=" << timing.completed_submission << " milliseconds=";
+      if (timing.milliseconds)
+        std::cout << *timing.milliseconds;
+      else
+        std::cout << "unavailable";
+      std::cout << '\n';
+    }
     std::cout << kBackendName
               << " descriptor/buffer isolation: serial and 4-worker recording, 320 exact dispatch "
                  "comparisons passed\n";

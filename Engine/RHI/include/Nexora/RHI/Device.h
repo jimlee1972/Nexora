@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/RHI/Api.h"
+#include "Nexora/RHI/GpuTiming.h"
 #include "Nexora/RHI/IndirectCommand.h"
 #include "Nexora/RHI/Types.h"
 
@@ -11,6 +12,10 @@
 #include <string_view>
 
 namespace nexora::rhi {
+struct DeviceCreationOptions final {
+  // Best effort, default off. Unsupported/failed observations remain explicitly unavailable.
+  bool enable_gpu_timing{};
+};
 struct DeviceDiagnostics final {
   std::uint64_t submitted_command_lists{};
   std::uint64_t barriers{};
@@ -20,6 +25,7 @@ struct DeviceDiagnostics final {
   std::uint64_t compute_dispatches{};
   std::uint64_t indirect_draw_calls{};
   std::uint64_t readbacks{};
+  SubmissionGpuTiming gpu_timing{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -114,5 +120,7 @@ public:
 
 [[nodiscard]] NEXORA_RHI_API std::unique_ptr<Device> CreateValidationDevice();
 [[nodiscard]] NEXORA_RHI_API std::unique_ptr<Device> CreateDevice(Backend backend);
+[[nodiscard]] NEXORA_RHI_API std::unique_ptr<Device>
+CreateDeviceWithOptions(Backend backend, const DeviceCreationOptions &options);
 [[nodiscard]] NEXORA_RHI_API bool IsBackendAvailable(Backend backend) noexcept;
 } // namespace nexora::rhi

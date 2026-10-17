@@ -75,6 +75,12 @@ Linux regression/Shipping gates pass and Windows native coverage is required by 
 狀態快照及過期清單檢查擴充至 D3D12 有界獨立 Compute 錄製；Linux 回歸／Shipping 通過，
 Windows 原生覆蓋由 CI 強制執行。完整圖形 Gate、Metal Worker 與效能驗收仍待完成。
 
+✅ V2-GFX-1 optional completed GPU submission timing / 選用 GPU 提交完成計時（2026-10-17）：
+default-off RHI timestamps, owning completed observations and query retirement pass Linux regression,
+native Vulkan timing/output and synchronization validation. 預設關閉的 RHI Timestamp、完成觀察值
+與 Query 回收通過 Linux 回歸、原生 Vulkan 計時／輸出及同步驗證；Windows／Metal 原生、
+同條件效能預算與實體 GPU 校正仍須驗收，完整平行 Gate 未關閉。
+
 ✅ V2-GFX-1 DXIL artifact stage/profile admission / DXIL Artifact 階段／Profile 檢查
 （2026-10-17）：bounded program metadata and pre-PSO profile checks pass Linux regression and
 Shipping; real Slang profile/PSO checks are required on Windows CI. 有界 Program Metadata 與

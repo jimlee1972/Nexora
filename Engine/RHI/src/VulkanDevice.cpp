@@ -236,6 +236,11 @@ struct VulkanFunctions final {
   PFN_vkCmdSetScissor CmdSetScissor{};
   PFN_vkCmdDraw CmdDraw{};
   PFN_vkCmdDrawIndirect CmdDrawIndirect{};
+  PFN_vkCreateQueryPool CreateQueryPool{};
+  PFN_vkDestroyQueryPool DestroyQueryPool{};
+  PFN_vkGetQueryPoolResults GetQueryPoolResults{};
+  PFN_vkCmdResetQueryPool CmdResetQueryPool{};
+  PFN_vkCmdWriteTimestamp CmdWriteTimestamp{};
   PFN_vkCmdDispatch CmdDispatch{};
 };
 
@@ -286,6 +291,7 @@ private:
   VulkanDevice &device_;
   VkCommandPool command_pool_{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
+  VkQueryPool timestamps_{VK_NULL_HANDLE};
   struct TextureSnapshot final {
     TextureHandle handle;
     std::uint64_t revision;
@@ -325,7 +331,7 @@ class VulkanDevice final : public Device {
   struct PipelineRecord;
 
 public:
-  VulkanDevice();
+  explicit VulkanDevice(const DeviceCreationOptions &options);
   ~VulkanDevice() override;
 
   Backend GetBackend() const noexcept override { return Backend::Vulkan; }
@@ -377,6 +383,9 @@ private:
   VkInstance instance_{VK_NULL_HANDLE};
   VkPhysicalDevice physical_device_{VK_NULL_HANDLE};
   GraphicsDeviceCapabilities capabilities_;
+  bool gpu_timing_requested_{};
+  unsigned timestamp_bits_{};
+  double timestamp_period_ns_{};
   VkDevice device_{VK_NULL_HANDLE};
   VkQueue graphics_queue_{VK_NULL_HANDLE};
   std::uint32_t graphics_queue_family_{};
@@ -516,11 +525,17 @@ void VulkanDevice::LoadDeviceFunctions() {
   LOAD_DEVICE(CmdSetScissor, "vkCmdSetScissor");
   LOAD_DEVICE(CmdDraw, "vkCmdDraw");
   LOAD_DEVICE(CmdDrawIndirect, "vkCmdDrawIndirect");
+  LOAD_DEVICE(CreateQueryPool, "vkCreateQueryPool");
+  LOAD_DEVICE(DestroyQueryPool, "vkDestroyQueryPool");
+  LOAD_DEVICE(GetQueryPoolResults, "vkGetQueryPoolResults");
+  LOAD_DEVICE(CmdResetQueryPool, "vkCmdResetQueryPool");
+  LOAD_DEVICE(CmdWriteTimestamp, "vkCmdWriteTimestamp");
   LOAD_DEVICE(CmdDispatch, "vkCmdDispatch");
 #undef LOAD_DEVICE
 }
 
-VulkanDevice::VulkanDevice() {
+VulkanDevice::VulkanDevice(const DeviceCreationOptions &options)
+    : gpu_timing_requested_(options.enable_gpu_timing) {
   const auto *shader_path = std::getenv("NEXORA_SLANG_SPIRV_PATH");
   if (!shader_path || *shader_path == '\0')
     throw std::runtime_error("NEXORA_SLANG_SPIRV_PATH is required for the Vulkan backend");
@@ -593,6 +608,17 @@ void VulkanDevice::SelectPhysicalDevice() {
         const bool compute = (queues[index].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
         capabilities_.independent_graphics_recording = true;
         capabilities_.shared_buffer_read_recording = true;
+        timestamp_bits_ = queues[index].timestampValidBits;
+        timestamp_period_ns_ = properties.limits.timestampPeriod;
+        capabilities_.gpu_timing_support = timestamp_bits_ == 0 ? CapabilitySupport::Unsupported
+                                           : timestamp_bits_ <= 64 &&
+                                                   std::isfinite(timestamp_period_ns_) &&
+                                                   timestamp_period_ns_ > 0
+                                               ? CapabilitySupport::Supported
+                                               : CapabilitySupport::Unknown;
+        capabilities_.gpu_timing_enabled =
+            gpu_timing_requested_ &&
+            capabilities_.gpu_timing_support == CapabilitySupport::Supported;
         capabilities_.independent_compute_recording = compute;
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Compute)] = {
             compute ? CapabilitySupport::Supported : CapabilitySupport::Unsupported,
@@ -1369,6 +1395,7 @@ VulkanDevice::BufferRecord &VulkanDevice::ValidateBuffer(BufferHandle buffer) {
 std::uint64_t VulkanDevice::Submit(CommandList &commands) {
   auto *validated = dynamic_cast<VulkanCommandList *>(&commands);
   VkFence fence = VK_NULL_HANDLE;
+  std::chrono::steady_clock::time_point submitted_at{};
   {
     std::lock_guard lock{mutex_};
     Require(validated != nullptr, "command list belongs to another device");
@@ -1387,6 +1414,8 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
         VK_STRUCTURE_TYPE_SUBMIT_INFO, nullptr, 0,      nullptr, nullptr, 1,
         &validated->command_buffer_,   0,       nullptr};
     try {
+      if (capabilities_.gpu_timing_enabled)
+        submitted_at = std::chrono::steady_clock::now();
       Check(functions_.QueueSubmit(graphics_queue_, 1, &submit_info, fence), "vkQueueSubmit");
     } catch (...) {
       functions_.DestroyFence(device_, fence, nullptr);
@@ -1414,11 +1443,26 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
     throw;
   }
   functions_.DestroyFence(device_, fence, nullptr);
+  std::optional<double> measured;
+  if (capabilities_.gpu_timing_enabled && validated->timestamps_ != VK_NULL_HANDLE) {
+    // Query availability is read only after the existing completion fence; never add WAIT.
+    std::array<std::uint64_t, 4> values{};
+    const auto result = functions_.GetQueryPoolResults(
+        device_, validated->timestamps_, 0, 2, sizeof(values), values.data(),
+        2 * sizeof(std::uint64_t), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT);
+    if (result == VK_SUCCESS && values[1] && values[3])
+      measured =
+          detail::TimestampMilliseconds(values[0], values[2], timestamp_bits_, timestamp_period_ns_,
+                                        detail::CompletionWallMilliseconds(submitted_at));
+  }
   for (const auto framebuffer : validated->framebuffers_)
     DestroyFramebuffer(framebuffer);
   validated->framebuffers_.clear();
   std::lock_guard lock{mutex_};
   completed_submission_ = ++submitted_submission_;
+  if (capabilities_.gpu_timing_enabled)
+    detail::PublishGpuTiming(diagnostics_.gpu_timing, GpuTimingSource::VulkanTimestamps,
+                             submitted_submission_, measured);
   return submitted_submission_;
 }
 
@@ -1514,6 +1558,18 @@ VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : de
                                               VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr};
     Check(device_.functions_.BeginCommandBuffer(command_buffer_, &begin_info),
           "vkBeginCommandBuffer(command list)");
+    if (device_.capabilities_.gpu_timing_enabled) {
+      const VkQueryPoolCreateInfo query_info{
+          VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO, nullptr, 0, VK_QUERY_TYPE_TIMESTAMP, 2, 0};
+      VkQueryPool queries = VK_NULL_HANDLE;
+      if (device_.functions_.CreateQueryPool(device_.device_, &query_info, nullptr, &queries) ==
+          VK_SUCCESS) {
+        timestamps_ = queries;
+        device_.functions_.CmdResetQueryPool(command_buffer_, timestamps_, 0, 2);
+        device_.functions_.CmdWriteTimestamp(command_buffer_, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                             timestamps_, 0);
+      }
+    }
   } catch (...) {
     if (command_buffer_ != VK_NULL_HANDLE)
       device_.functions_.FreeCommandBuffers(device_.device_, command_pool_, 1, &command_buffer_);
@@ -1529,6 +1585,8 @@ VulkanCommandList::~VulkanCommandList() {
     device_.functions_.FreeCommandBuffers(device_.device_, command_pool_, 1, &command_buffer_);
   if (command_pool_ != VK_NULL_HANDLE)
     device_.functions_.DestroyCommandPool(device_.device_, command_pool_, nullptr);
+  if (timestamps_ != VK_NULL_HANDLE)
+    device_.functions_.DestroyQueryPool(device_.device_, timestamps_, nullptr);
   for (const auto framebuffer : framebuffers_)
     device_.DestroyFramebuffer(framebuffer);
   for (const auto pool : compute_descriptor_pools_)
@@ -1854,11 +1912,16 @@ void VulkanCommandList::Close() {
     return;
   if (rendering_)
     throw std::logic_error("cannot close a Vulkan command list during rendering");
+  if (timestamps_ != VK_NULL_HANDLE)
+    device_.functions_.CmdWriteTimestamp(command_buffer_, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                         timestamps_, 1);
   Check(device_.functions_.EndCommandBuffer(command_buffer_), "vkEndCommandBuffer(command list)");
   closed_ = true;
 }
 
 } // namespace
 
-std::unique_ptr<Device> CreateVulkanDevice() { return std::make_unique<VulkanDevice>(); }
+std::unique_ptr<Device> CreateVulkanDevice(const DeviceCreationOptions &options) {
+  return std::make_unique<VulkanDevice>(options);
+}
 } // namespace nexora::rhi

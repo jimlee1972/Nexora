@@ -447,3 +447,44 @@ reject a newer artifact requirement when the device itself supports it, and reje
 requested compute artifact that contains a vertex program. The native fence event is created last
 so constructor rejection cannot leak its raw handle. These checks submit no GPU work. Linux portable acceptance cannot certify D3D12 execution. The new exported C++ helpers require
 module rebuild; the stable C ABI is unchanged.
+
+## Opt-in completed submission GPU timing
+
+`CreateDevice(backend)` keeps timing off. `CreateDeviceWithOptions(backend, {true})` requests
+best-effort native timing; `gpu_timing_support` and `gpu_timing_enabled` distinguish API support
+from the construction-time opt-in. Custom devices default unknown/disabled; Validation reports
+unsupported and never fabricates a GPU observation. Default native lists allocate no timing query
+or readback resources, record no timing commands and publish no timing completion stream.
+
+`DeviceDiagnostics::gpu_timing` owns only source, the last observed user-list completion token and
+optional milliseconds. Tokens can be sparse (private D3D12 fence operations use the same timeline).
+No value means unavailable; an observed zero interval remains distinct from unavailable. Timing
+measures the native command-buffer interval, including its resource work, not CPU recording,
+display latency, utilization or physical-GPU provenance. Query collection occurs after existing
+submission completion; it adds no GPU wait or completion callback. Disabled/private readback/idle
+operations do not replace the last user-list observation. Resource readback counters continue to
+count the explicit data-testing seams, separately from opt-in completed timestamp collection.
+
+Each Vulkan list optionally owns one two-query pool. It resets/writes TOP/BOTTOM timestamps,
+checks queue counter width and period, and reads value/availability pairs after the existing fence
+without WAIT. D3D12 lists own query pairs and readback buffers, use the observed queue frequency,
+and collect after the existing fence; device-removed fence sentinels reject completion. Query
+resources retire after native list/pool cleanup or completed submission. Metal uses completed
+command-buffer GPUStartTime/GPUEndTime with runtime availability and valid nonzero origin checks.
+No additional Metal query allocation or callback is introduced.
+
+Optional allocation/query failure, invalid periods/intervals and ambiguous wrap windows remain
+unavailable while rendering proceeds. The counter-width/CPU-completion upper-bound conversion is
+shared with Presentation through the RHI detail helper; CPU duration never substitutes for native
+time. Abandoned, stale-rejected or cancelled unsubmitted lists publish nothing. An accepted
+submission failure retains the existing drain-before-retirement/no-replay contract.
+
+`renderer.submission_gpu_timing` verifies default-off and Validation-unavailable behavior, reverse
+native submission, owning observations after query retirement, exact pixels and timed-cohort
+cancellation/replay. The native isolation executables also run with `--gpu-timing`, preserving all
+compute CPU/sentinel/revision checks while collecting completed native intervals. Missing native
+artifacts/device fails native-required Slang gates; optional runs report native unavailability.
+Software timestamps prove API/lifetime correctness; physical calibration and matched serial/parallel
+CPU/GPU/memory budgets remain separate acceptance. C++ modules rebuild for the appended options/
+capabilities/diagnostics and new factory; stable C ABI, SDK/shader baselines and module relationships
+are unchanged.

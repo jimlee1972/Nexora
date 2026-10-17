@@ -463,3 +463,18 @@ revisions for compatible readers and advances them on potential GPU writes, CPU 
 readback, so shared readers coexist while stale mutation snapshots still reject. See the
 [RHI contract](../RHI/README.md#immutable-shared-buffer-reads). Full parallel/performance acceptance
 and asynchronous allocator reuse remain open.
+
+## Completed GPU intervals for recording measurements
+
+RHI devices can explicitly request native submission GPU timing through `CreateDeviceWithOptions`;
+normal `CreateDevice` stays off. Each observed interval is an owning diagnostic tied to a completed
+user-list token, with unavailable represented separately from zero. Per-list query resources follow
+the same worker ownership, ordered coordinator submission and completion retirement as descriptors.
+Cancelled/unsubmitted cohorts preserve the previous observation and every pixel sentinel; successful
+replay can collect new intervals. Private data readback/idle operations leave that observation intact.
+
+The CPU-completion bound guards native counter validity and never supplies GPU duration. This is
+measurement plumbing; it does not establish reduced CPU recording overhead, GPU utilization, physical
+hardware provenance or matched benchmark acceptance. See the
+[RHI timing contract](../RHI/README.md#opt-in-completed-submission-gpu-timing). Full parallel feature
+admission, asynchronous reuse and physical performance gates remain open.
