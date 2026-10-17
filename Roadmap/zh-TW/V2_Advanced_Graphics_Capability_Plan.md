@@ -25,6 +25,37 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### Metal 完整 Kernel Compute 與 Worker 所有權 — 2026-10-17
+
+✅ Metal 路徑現可選用真正由 Slang 產生的 `GPUDriven.metal`，驗證指定 Artifact 且不以 No-op
+代替；四個 Storage Binding 存於各清單，Encoder 邊界後可重播，Worker 使用 Autorelease
+Pool，原生物件由 ARC 保留。Shared-buffer 測試讀回會等待完成並檢查範圍。有限且獨立的
+Buffer-only Compute 檢查涵蓋 Metal；完整平行 Feature 檢查仍未啟用。
+
+macOS 原生 Gate 現會執行完整 Culling／Distance／LOD／Hi-Z／Compaction／Classification／
+Indirect Generation，並要求通過既有 CPU Oracle。`renderer.metal_recording_isolation`
+共用 320 組隔離 Dispatch、48 組序列／四 Worker WAW Graph 比對、有時限重疊及失敗批次
+Sentinel 保留／重用；另測試 WAW Encoder 邊界的 Binding 重播與 Offset／空範圍／非法／
+失效 Buffer 讀回。Native-required 組態缺少真正 Artifact／Device 時失敗；Optional 組態
+明確略過。這項 Gate 已超越先前的 No-op Smoke。
+
+來源分支：`feat/v2-metal-compute-recording`；Beads `nexora-45y.2.5`。
+本機啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
+`ctest --preset linux-development` **228/228 通過，零略過／失敗，284.16 秒**，包含真正
+Metal Source 產生及原生 Vulkan 執行（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。
+最終平台 Guard 後聚焦執行
+`ctest --preset linux-development -R '^(build\.shader_crosscompile|renderer\.(v2_gpu_driven|vulkan_descriptor_isolation|contracts|graphics_capabilities|parallel_graph_recording|metal_source_contract))$' --output-on-failure`：
+**7/7 通過，零略過，0.34 秒**。`cmake --preset linux-shipping` 與
+`cmake --build --preset linux-shipping` 通過（Monolithic／Minimal、LTO）。本次 C++ Format
+及 `git diff --check` 通過。原生 Artifact 缺失拒絕另有專用 macOS 測試。
+
+Linux Slang Cross-compilation 僅提供 Artifact 證據；macOS 執行驗收須通過 Hosted CI。
+完整 V2-M3 Parity、GPU Validation、Graphics／Texture／共用讀取並行、非同步 Queue／
+重用回收、Compiler／Artifact 就緒矩陣及同條件實體 GPU 效能仍待完成。
+Shader／SDK 基線及 Stable C ABI 不變。詳見
+[Metal 所有權 Contract](../../Engine/RHI/README.md#metal-gpu-driven-compute-and-worker-ownership-v2-gfx-1-slice)。
+
 ### D3D12 隔離 Buffer 錄製 — 2026-10-17
 
 ✅ D3D12 的 Buffer 上傳／狀態準備現由各命令清單擁有；錄製與放棄清單不會修改裝置已提交的

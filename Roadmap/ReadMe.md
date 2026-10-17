@@ -75,6 +75,13 @@ Linux regression/Shipping gates pass and Windows native coverage is required by 
 狀態快照及過期清單檢查擴充至 D3D12 有界獨立 Compute 錄製；Linux 回歸／Shipping 通過，
 Windows 原生覆蓋由 CI 強制執行。完整圖形 Gate、Metal Worker 與效能驗收仍待完成。
 
+✅ V2-GFX-1 Metal compute/worker implementation / Metal Compute／Worker 實作（2026-10-17）：
+the real Slang kernel, private bindings/encoder replay, shared-buffer test readback and bounded
+workers are wired into required macOS native gates; Linux Slang regression and Shipping pass.
+真正 Slang Kernel、私有 Binding／Encoder 重播、Shared-buffer 測試讀回及有界 Worker 已接入
+必要 macOS 原生 Gate；Linux Slang 回歸與 Shipping 通過。完整 V2-M3／圖形 Gate 及效能驗收
+仍待完成，原生執行結果須由 macOS CI 證明。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

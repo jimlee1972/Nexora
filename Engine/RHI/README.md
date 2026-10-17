@@ -140,15 +140,16 @@ RenderGraph, rather than a backend or pass callback, owns queue transfers. The v
 executes the complete portable contract. Vulkan now also records a real `vkCmdDrawIndirect` from
 host-visible indirect command storage and reports it independently in device diagnostics; the
 offscreen gate exercises that path on a Vulkan-capable Linux host. Vulkan also creates compute pipelines, exposes four backend-neutral storage-buffer slots, and provides the complete deterministic culling, LOD, Hi-Z, compaction, classification, and command-generation kernel. The Linux native gate requires an exact CPU/GPU comparison before RenderGraph binds its generated Vulkan-compatible indirect buffer for drawing; compilation, dispatch, and counters alone do not satisfy the gate. Readback is available only through the explicitly test-only
-`ReadBufferForTesting` API and is counted independently; production recording remains readback-free. `ReadTextureForTesting` is the equivalent test-only texture seam: it waits for device idle, copies the whole 4-byte-per-pixel texture into tightly packed host memory, restores the texture's recorded layout, and counts as a readback. Vulkan and D3D12 implement buffer readback for their native acceptance gates; other backends throw `std::logic_error` until their own native evidence exists, and depth textures are rejected.
+`ReadBufferForTesting` API and is counted independently; production recording remains readback-free. `ReadTextureForTesting` is the equivalent test-only texture seam: it waits for device idle, copies the whole 4-byte-per-pixel texture into tightly packed host memory, restores the texture's recorded layout, and counts as a readback. Vulkan, D3D12 and Metal implement buffer readback for their native acceptance gates; custom backends throw `std::logic_error` until their own native evidence exists, and depth textures are rejected.
 D3D12 now records compute dispatch and canonical-stride `ExecuteIndirect`, accounts for both in
 diagnostics, and obtains its compute PSO bytecode from the Windows DXIL artifact. Its buffer
 path keeps upload staging separate from default-heap UAV-capable GPU storage, binds the four
 fixed shader slots (`t0`, `u1`, `u2`, `u3`), records the required copy/state transitions, and
 provides test-only buffer readback. On 2026-10-02, the local Windows NVIDIA GTX 960 host passed
 `renderer.v2_gpu_driven` with an SDK `dxc`-generated `sm_6_0` artifact and an exact
-`CompareGPUDrivenResults()` match. Native queue/timeline separation, Metal compute/indirect
-execution, and full target-host parity evidence remain open before V2-M3 can be accepted.
+`CompareGPUDrivenResults()` match. Metal now loads the same full kernel from a separate Slang-generated artifact and runs it through
+the same graph/CPU oracle on macOS. Native queue/timeline separation and full target-host parity
+evidence remain open before V2-M3 can be accepted.
 
 `Nexora/RHI/IndirectCommand.h` fixes the indirect-buffer ABI once for every backend. Its first four
 32-bit words are the common non-indexed draw arguments used by Vulkan, D3D12, and Metal; five
@@ -210,13 +211,12 @@ the stable C ABI and shader artifact/profile requirements are unchanged.
 ## Limited independent compute recording admission
 
 `GraphicsDeviceCapabilities::independent_compute_recording` defaults false for unmodified/custom
-backends. Validation advertises it as a portable model, D3D12 admits the isolated buffer path
-below, and Vulkan advertises it when its selected native queue supports compute. It admits exclusively owned buffer-only compute lists recorded
+backends. Validation advertises it as a portable model, D3D12 and Metal admit the isolated buffer
+paths below, and Vulkan advertises it when its selected native queue supports compute. It admits exclusively owned buffer-only compute lists recorded
 against disjoint, caller-retained buffers and immutable pre-created pipelines. Vulkan's list-local
 command pools and immutable per-dispatch descriptor sets provide that isolation; handle/pipeline
 lookups remain protected by the device mutex. Creation, upload, mutation, destruction and submission
-stay serialized by the caller. This flag does not admit graphics, textures, shared-buffer reads
-or Metal workers.
+stay serialized by the caller. This flag does not admit graphics, textures or shared-buffer reads.
 
 RenderGraph consumes this limited flag for its explicit opt-in bounded scheduler. Every worker
 finishes before coordinator submission, and the graph waits for each returned completion value
@@ -258,3 +258,42 @@ D3D12 cases verify abandoned initial uploads/state changes, stale upload/submiss
 rejection and six CPU comparisons. Without native DXIL/device support it explicitly skips; Slang
 Windows builds require execution. This does not enable texture/graphics concurrency, asynchronous
 allocator reuse, shared reads, GPU validation-layer acceptance or the full parallel feature gate.
+
+## Metal GPU-driven compute and worker ownership (V2-GFX-1 slice)
+
+With Slang enabled, `GPUDriven.slang` produces a separate `GPUDriven.metal` artifact on every host.
+`NEXORA_SLANG_COMPUTE_METAL_PATH` selects that artifact at device construction; the native backend
+compiles its `computeMain` and retains the library/function for the device lifetime. A requested
+missing/empty/non-UTF-8/invalid artifact or missing entry point throws; it never substitutes the
+embedded no-op. Without that opt-in, the previous triangle/compute-smoke baseline is preserved and
+cannot satisfy the full GPU-driven acceptance gate. No shader or SDK baseline is raised.
+
+Each list owns its command buffer, compute encoder and four-slot buffer-handle snapshot. Bindings
+may precede `BindPipeline`; setting a compute pipeline creates an encoder as needed and replays
+all cached bindings. A whole-buffer barrier ends the active compute encoder and invalidates the
+pipeline binding; callers rebind the pipeline before dispatch. The new encoder replays retained
+binding identities. Canonical GPU-driven dispatch requires all four slots and revalidates handles.
+Metal's tracked shared-buffer hazards order encoder boundaries and the existing single queue.
+
+Compute recording entry points, command-buffer creation, PSO creation and idle waits use local
+`@autoreleasepool` scopes; ARC strong fields retain encoders/command buffers past pool drainage.
+Buffer lookups use the device mutex. Lists have one recording owner at a time and independent,
+disjoint buffer-only compute lists may record concurrently. Callers pre-create immutable pipelines
+and resources and serialize creation, upload, mutation, destruction, submission and device/pool
+lifecycle against recording. Referenced resources/device outlive lists and completion. Submission
+stays coordinator-owned and synchronous; allocator/encoder reuse across asynchronous submissions
+and general texture/graphics concurrency are not admitted.
+
+`ReadBufferForTesting` waits for the queue, validates the whole range, copies shared storage and
+counts one nonempty readback. Empty in-range reads validate but do not increment the counter;
+invalid ranges/stale handles throw. This seam is for test acceptance; production compute/indirect
+recording remains readback-free. Managed/private buffers are outside this storage contract.
+
+Slang-enabled macOS gates require both full `renderer.v2_gpu_driven` stage/CPU comparison and
+`renderer.metal_recording_isolation`: 320 isolated dispatch comparisons, 48 serial/four-worker graph
+comparisons, timed four-way overlap, aborted-batch sentinel preservation and successful buffer
+reuse, plus encoder WAW-boundary replay and offset/empty/invalid/stale readback cases. Missing
+native artifacts/device is an explicit skip in optional builds and a failure when native execution
+is required. Linux cross-compilation proves artifact generation, not Metal runtime correctness.
+The broad parallel feature, GPU validation-layer acceptance, full V2-M3 parity and measured physical
+GPU performance remain open.

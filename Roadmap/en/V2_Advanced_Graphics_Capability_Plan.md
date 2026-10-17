@@ -31,6 +31,37 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Metal full-kernel compute and worker ownership — 2026-10-17
+
+✅ The Metal path now selects the real Slang-generated `GPUDriven.metal`, validates requested
+artifacts without no-op substitution, snapshots four list-local storage bindings, replays bindings
+after encoder boundaries and manages worker autorelease pools with ARC-retained native objects.
+Shared-buffer test readback waits for completion and validates bounds. The limited independent
+buffer-only Compute admission includes Metal; general parallel feature admission stays disabled.
+
+The macOS native gate now executes full culling/distance/LOD/Hi-Z/compaction/classification/indirect
+generation and requires the existing CPU oracle. `renderer.metal_recording_isolation` reuses 320
+isolated dispatch comparisons, 48 serial/four-worker WAW graph comparisons, timed overlap and
+failed-batch sentinel preservation/reuse. It additionally checks binding replay across WAW encoder
+boundaries and offset/empty/invalid/stale readbacks. Native-required builds fail for absent real
+artifacts/device; optional builds explicitly skip. This is not the previous no-op smoke gate.
+
+Source branch: `feat/v2-metal-compute-recording`; Beads `nexora-45y.2.5`.
+Local `cmake --preset linux-development` and `cmake --build --preset linux-development` pass
+with Slang enabled. Xvfb/native-required `ctest --preset linux-development`: **228/228 pass, zero
+skips/failures, 284.16 seconds**, including real Metal source generation and native Vulkan execution
+(Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^(build\.shader_crosscompile|renderer\.(v2_gpu_driven|vulkan_descriptor_isolation|contracts|graphics_capabilities|parallel_graph_recording|metal_source_contract))$' --output-on-failure`:
+**7/7 pass, zero skips, 0.34 seconds** after final platform guards. `cmake --preset linux-shipping`
+and `cmake --build --preset linux-shipping` pass (Monolithic/Minimal, LTO). Touched-file format and
+`git diff --check` pass. Native missing-artifact rejection has a dedicated macOS test.
+
+Linux Slang cross-compilation is artifact evidence only; macOS runtime acceptance must pass hosted
+CI. Full V2-M3 parity, GPU validation, graphics/texture/shared-read concurrency, asynchronous queues
+and reusable retirement, compiler/artifact readiness and matched physical-GPU performance remain
+open. Shader/SDK baselines and stable C ABI remain unchanged. See the
+[Metal ownership contract](../../Engine/RHI/README.md#metal-gpu-driven-compute-and-worker-ownership-v2-gfx-1-slice).
+
 ### D3D12 isolated buffer recording — 2026-10-17
 
 ✅ D3D12 buffer uploads/state preparation now belong to each command list. Recording and abandoning

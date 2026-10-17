@@ -42,6 +42,7 @@ function(nexora_configure_slang)
   set(spirv_output "${shader_output_dir}/Triangle.spv")
   set(compute_spirv_output "${shader_output_dir}/GPUDriven.spv")
   set(metal_output "${shader_output_dir}/Triangle.metal")
+  set(compute_metal_output "${shader_output_dir}/GPUDriven.metal")
   set(spirv_reflection "${shader_output_dir}/Triangle.spv.reflection.json")
   set(metal_reflection "${shader_output_dir}/Triangle.metal.reflection.json")
   set(canonical_reflection "${shader_output_dir}/Triangle.reflection.json")
@@ -56,7 +57,7 @@ function(nexora_configure_slang)
   set(normalizer "${PROJECT_SOURCE_DIR}/Tools/Build/NormalizeShaderReflection.py")
 
   set(cross_compile_outputs
-    "${spirv_output}" "${compute_spirv_output}" "${metal_output}" "${spirv_reflection}" "${metal_reflection}"
+    "${spirv_output}" "${compute_spirv_output}" "${compute_metal_output}" "${metal_output}" "${spirv_reflection}" "${metal_reflection}"
     "${canonical_reflection}" "${common_spirv_output}" "${common_metal_output}"
     "${shader_library_spirv_output}" "${shader_library_metal_output}"
     "${pbr_spirv_output}" "${pbr_metal_output}"
@@ -165,6 +166,11 @@ function(nexora_configure_slang)
             "${compute_shader_source}"
     COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
             -target metal
+            -entry computeMain
+            -o "${compute_metal_output}"
+            "${compute_shader_source}"
+    COMMAND "${NEXORA_SLANGC_EXECUTABLE}"
+            -target metal
             -entry vertexMain
             -entry fragmentMain
             -reflection-json "${metal_reflection}"
@@ -243,6 +249,7 @@ function(nexora_configure_slang)
   set(NEXORA_SLANG_SPIRV_OUTPUT "${spirv_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT "${compute_spirv_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_METAL_OUTPUT "${metal_output}" PARENT_SCOPE)
+  set(NEXORA_SLANG_COMPUTE_METAL_OUTPUT "${compute_metal_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_CANONICAL_REFLECTION "${canonical_reflection}" PARENT_SCOPE)
   set(NEXORA_SLANG_COMMON_SPIRV_OUTPUT "${common_spirv_output}" PARENT_SCOPE)
   set(NEXORA_SLANG_COMMON_METAL_OUTPUT "${common_metal_output}" PARENT_SCOPE)

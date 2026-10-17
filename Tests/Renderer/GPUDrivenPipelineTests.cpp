@@ -243,6 +243,7 @@ void TestMetalCommandRecording() {
   device->DestroyTexture(target);
 }
 #endif
+#if !defined(_WIN32) && !defined(__APPLE__)
 void TestDispatchPreconditionsOnVulkan() {
   // Keep the Vulkan-specific argument-validation regression alongside its native comparison gate.
   if (!rhi::IsBackendAvailable(rhi::Backend::Vulkan)) {
@@ -267,12 +268,20 @@ void TestDispatchPreconditionsOnVulkan() {
   device->DestroyBuffer(storage);
   device->DestroyPipeline(pipeline);
 }
+#endif
 void TestNativeComputeOnBackend(rhi::Backend backend, std::string_view label) {
   const auto *required = std::getenv("NEXORA_REQUIRE_NATIVE_BACKENDS");
   const bool require_native = required && *required == '1';
   if (!rhi::IsBackendAvailable(backend)) {
     Require(!require_native, std::string(label) + " backend is required but unavailable");
     return;
+  }
+  if (backend == rhi::Backend::Metal) {
+    const auto *metal = std::getenv("NEXORA_SLANG_COMPUTE_METAL_PATH");
+    if (!metal || !*metal) {
+      Require(!require_native, "Metal GPU-driven artifact is required for native execution");
+      return;
+    }
   }
   if (backend == rhi::Backend::Direct3D12) {
     const auto *dxil = std::getenv("NEXORA_SLANG_COMPUTE_DXIL_PATH");
@@ -456,11 +465,15 @@ int main() {
     return 1;
   }
 #if defined(__APPLE__)
-  TestMetalCommandRecording();
+  if (const auto *artifact = std::getenv("NEXORA_SLANG_COMPUTE_METAL_PATH");
+      !artifact || !*artifact)
+    TestMetalCommandRecording();
 #endif
   try {
 #if defined(_WIN32)
     TestNativeComputeOnBackend(rhi::Backend::Direct3D12, "D3D12");
+#elif defined(__APPLE__)
+    TestNativeComputeOnBackend(rhi::Backend::Metal, "Metal");
 #else
     TestDispatchPreconditionsOnVulkan();
     TestNativeComputeOnBackend(rhi::Backend::Vulkan, "Vulkan");

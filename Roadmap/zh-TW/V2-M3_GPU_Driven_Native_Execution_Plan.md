@@ -1,6 +1,6 @@
 # V2-M3 GPU-Driven Rendering — Native Backend 執行計畫
 
-> 版本：v1.0｜狀態：施工中；Linux Vulkan Phase 2 與 Windows/DX12 Phase 3 已在 target host 驗收，Metal 與完整 parity 仍待完成｜更新：2026-10-02｜對應：
+> 版本：v1.0｜狀態：施工中；Linux Vulkan Phase 2 與 Windows/DX12 Phase 3 已在 target host 驗收，Metal 與完整 parity 仍待完成｜更新：2026-10-17｜對應：
 > `跨平台3D_Engine_V2_完整規劃書_v1_4.md` §V2-M3
 
 ## 1. 目的
@@ -212,6 +212,14 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 
 ### Phase 4 — Metal backend
 
+**2026-10-17 後續實作：** 真正的 `GPUDriven.metal` Artifact、四個清單私有 Binding
+重播、Shared-buffer 測試讀回及有界 Worker 所有權，現已取代僅 Smoke 的驗收路徑。
+啟用 Slang 的 macOS 測試要求完整階段 CPU 比對、320 組隔離及 48 組 Graph 輸出比對、
+強制重疊及失敗批次重用。Linux 可產生 Artifact，但不認證 Metal 執行；Hosted macOS
+檢查必須通過。完整 Target-tier Parity 與原生 Queue／Timeline 分離仍待完成。證據保留於
+雙語 [V2 圖形計畫](V2_Advanced_Graphics_Capability_Plan.md)。以下舊版 Source-only 實作
+說明僅保留為歷史紀錄。
+
 > **Source implementation 已完成；macOS 驗收仍待完成。** Metal 現會建立 compute pipeline 與 shared storage buffer、綁定 storage slot、記錄 `dispatchThreadgroups`，並透過 indirect draw 消費 canonical 36-byte record。Linux portable source-contract test 會守住 entry point，但不宣稱已有 macOS execution 或 CPU／GPU comparison 證據。
 >
 > **Bug 修正（2026-09-27，僅原始碼審查，未在 macOS 上驗證）：** `LoadShaderLibrary()` 的 fallback
@@ -223,9 +231,8 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
 > Linux 雲端 session 裡編譯或執行；需要 macOS host 確認它能編譯、且 fallback 路徑行為仍然正確。
 
 
-- 在 `MetalDevice` 上實作 `Dispatch` 跟 `DrawIndirect`（目前完全沒有）：
-  `dispatchThreadgroups`/`dispatchThreads` 跟 `drawIndexedPrimitives(indirectBuffer:)`。
-- 跟 Phase 3 一樣的 shader 搬遷跟「只有 target-host 才有證據」的限制，這次是 macOS。
+- 記錄完整 Kernel 的原生 macOS 執行與 CPU／GPU 比對證據。
+- 獨立 Queue／Timeline 與完整 Target-tier 驗收，須等各自證據具備才完成。
 
 ### Phase 5 — Target-tier parity 收尾
 

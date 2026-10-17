@@ -8,6 +8,7 @@
 #include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
 
+#include <array>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -129,6 +130,8 @@ private:
   std::uint64_t indirect_offset_{};
   std::uint64_t indirect_size_{};
   std::uint32_t indirect_stride_{};
+  std::array<BufferHandle, 4> storage_buffers_{};
+  std::array<bool, 4> storage_bound_{};
 };
 
 class MetalDevice final : public Device {
@@ -144,6 +147,7 @@ public:
   GraphicsDeviceCapabilities Capabilities() const noexcept override {
     GraphicsDeviceCapabilities result;
     result.backend = Backend::Metal;
+    result.independent_compute_recording = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})
       result.features[static_cast<std::size_t>(feature)] = {
@@ -157,6 +161,8 @@ public:
   BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override;
   void WriteBuffer(BufferHandle buffer, std::uint64_t offset,
                    std::span<const std::byte> data) override;
+  void ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                            std::span<std::byte> data) override;
   void DestroyBuffer(BufferHandle buffer) override;
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override;
   void DestroyPipeline(PipelineHandle pipeline) override;
@@ -175,11 +181,14 @@ private:
   TextureRecord &ValidateRenderTarget(TextureHandle texture);
   PipelineRecord &ValidatePipeline(PipelineHandle pipeline);
   BufferRecord &ValidateBuffer(BufferHandle buffer);
+  BufferRecord &ValidateBufferLocked(BufferHandle buffer);
   void LoadShaderLibrary();
 
   id<MTLDevice> device_{};
   id<MTLCommandQueue> queue_{};
   id<MTLLibrary> library_{};
+  id<MTLLibrary> compute_library_{};
+  bool canonical_compute_{};
   id<MTLFunction> vertex_function_{};
   id<MTLFunction> fragment_function_{};
   id<MTLFunction> compute_function_{};
@@ -256,6 +265,29 @@ void MetalDevice::LoadShaderLibrary() {
   compute_function_ = [library_ newFunctionWithName:@"computeMain"];
   if (!vertex_function_ || !fragment_function_)
     throw std::runtime_error("Metal shader library has no canonical triangle entry points");
+  if (const auto *path = std::getenv("NEXORA_SLANG_COMPUTE_METAL_PATH"); path && *path != '\0') {
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file || file.tellg() <= 0)
+      throw std::runtime_error("Metal compute artifact is missing or empty");
+    std::string compute_source(static_cast<std::size_t>(file.tellg()), '\0');
+    file.seekg(0);
+    if (!file.read(compute_source.data(), static_cast<std::streamsize>(compute_source.size())))
+      throw std::runtime_error("cannot read Metal compute artifact");
+    NSString *text = [[NSString alloc] initWithBytes:compute_source.data()
+                                              length:compute_source.size()
+                                            encoding:NSUTF8StringEncoding];
+    if (!text)
+      throw std::runtime_error("Metal compute artifact is not UTF-8");
+    NSError *compute_error = nil;
+    compute_library_ = [device_ newLibraryWithSource:text options:nil error:&compute_error];
+    if (!compute_library_)
+      throw std::runtime_error("Metal GPU-driven shader compilation failed: " +
+                               ErrorDescription(compute_error));
+    compute_function_ = [compute_library_ newFunctionWithName:@"computeMain"];
+    if (!compute_function_)
+      throw std::runtime_error("Metal GPU-driven artifact has no computeMain entry point");
+    canonical_compute_ = true;
+  }
   if (!compute_function_) {
     NSString *compute_source = @"#include <metal_stdlib>\nusing namespace metal;\n"
                                 "kernel void computeMain(uint3 id [[thread_position_in_grid]]) "
@@ -318,10 +350,26 @@ BufferHandle MetalDevice::CreateBuffer(const BufferDescriptor &descriptor) {
 void MetalDevice::WriteBuffer(BufferHandle buffer, std::uint64_t offset,
                               std::span<const std::byte> data) {
   std::lock_guard lock{mutex_};
-  auto &record = ValidateBuffer(buffer);
+  auto &record = ValidateBufferLocked(buffer);
   Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
           "Metal buffer upload exceeds allocation");
   std::memcpy(static_cast<std::byte *>(record.buffer.contents) + offset, data.data(), data.size());
+}
+
+void MetalDevice::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
+                                       std::span<std::byte> data) {
+  WaitIdle();
+  std::lock_guard lock{mutex_};
+  auto &record = ValidateBufferLocked(buffer);
+  Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
+          "Metal buffer readback exceeds allocation");
+  if (data.empty())
+    return;
+  // These buffers are shared, hazard-tracked allocations. Queue completion makes GPU writes
+  // visible to the CPU; no managed/private-storage synchronization or production readback.
+  std::memcpy(data.data(), static_cast<const std::byte *>(record.buffer.contents) + offset,
+              data.size());
+  ++diagnostics_.readbacks;
 }
 
 void MetalDevice::DestroyBuffer(BufferHandle buffer) {
@@ -334,32 +382,34 @@ void MetalDevice::DestroyBuffer(BufferHandle buffer) {
 }
 
 PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor) {
-  RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
-  if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
-    throw std::invalid_argument("pipeline hashes must be non-zero");
-  NSError *error = nil;
-  PipelineRecord record{descriptor};
-  if (descriptor.type == PipelineType::Compute) {
-    record.compute_pipeline = [device_ newComputePipelineStateWithFunction:compute_function_
-                                                                     error:&error];
-    if (!record.compute_pipeline)
-      throw std::runtime_error("Metal compute pipeline creation failed: " +
-                               ErrorDescription(error));
-  } else {
-    MTLRenderPipelineDescriptor *pipeline_descriptor = [MTLRenderPipelineDescriptor new];
-    pipeline_descriptor.vertexFunction = vertex_function_;
-    pipeline_descriptor.fragmentFunction = fragment_function_;
-    pipeline_descriptor.colorAttachments[0].pixelFormat = ToPixelFormat(descriptor.color_format);
-    pipeline_descriptor.colorAttachments[0].blendingEnabled = NO;
-    record.pipeline = [device_ newRenderPipelineStateWithDescriptor:pipeline_descriptor
-                                                              error:&error];
-    if (!record.pipeline)
-      throw std::runtime_error("Metal pipeline creation failed: " + ErrorDescription(error));
+  @autoreleasepool {
+    RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
+    if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
+      throw std::invalid_argument("pipeline hashes must be non-zero");
+    NSError *error = nil;
+    PipelineRecord record{descriptor};
+    if (descriptor.type == PipelineType::Compute) {
+      record.compute_pipeline = [device_ newComputePipelineStateWithFunction:compute_function_
+                                                                       error:&error];
+      if (!record.compute_pipeline)
+        throw std::runtime_error("Metal compute pipeline creation failed: " +
+                                 ErrorDescription(error));
+    } else {
+      MTLRenderPipelineDescriptor *pipeline_descriptor = [MTLRenderPipelineDescriptor new];
+      pipeline_descriptor.vertexFunction = vertex_function_;
+      pipeline_descriptor.fragmentFunction = fragment_function_;
+      pipeline_descriptor.colorAttachments[0].pixelFormat = ToPixelFormat(descriptor.color_format);
+      pipeline_descriptor.colorAttachments[0].blendingEnabled = NO;
+      record.pipeline = [device_ newRenderPipelineStateWithDescriptor:pipeline_descriptor
+                                                                error:&error];
+      if (!record.pipeline)
+        throw std::runtime_error("Metal pipeline creation failed: " + ErrorDescription(error));
+    }
+    std::lock_guard lock{mutex_};
+    const auto handle = pipeline_pool_.Create();
+    pipelines_.emplace(Key(handle), std::move(record));
+    return handle;
   }
-  std::lock_guard lock{mutex_};
-  const auto handle = pipeline_pool_.Create();
-  pipelines_.emplace(Key(handle), std::move(record));
-  return handle;
 }
 
 void MetalDevice::DestroyPipeline(PipelineHandle pipeline) {
@@ -413,6 +463,11 @@ MetalDevice::PipelineRecord &MetalDevice::ValidatePipeline(PipelineHandle pipeli
 }
 
 MetalDevice::BufferRecord &MetalDevice::ValidateBuffer(BufferHandle buffer) {
+  std::lock_guard lock{mutex_};
+  return ValidateBufferLocked(buffer);
+}
+
+MetalDevice::BufferRecord &MetalDevice::ValidateBufferLocked(BufferHandle buffer) {
   const auto found = buffers_.find(Key(buffer));
   Require(buffer_pool_.Contains(buffer) && found != buffers_.end(),
           "operation references invalid Metal buffer");
@@ -467,14 +522,16 @@ void MetalDevice::Present(TextureHandle texture) {
 }
 
 void MetalDevice::WaitIdle() {
-  id<MTLCommandBuffer> command_buffer = [queue_ commandBuffer];
-  if (!command_buffer)
-    throw std::runtime_error("Metal idle command buffer creation failed");
-  [command_buffer commit];
-  [command_buffer waitUntilCompleted];
-  if (command_buffer.status == MTLCommandBufferStatusError)
-    throw std::runtime_error("Metal idle command buffer failed: " +
-                             ErrorDescription(command_buffer.error));
+  @autoreleasepool {
+    id<MTLCommandBuffer> command_buffer = [queue_ commandBuffer];
+    if (!command_buffer)
+      throw std::runtime_error("Metal idle command buffer creation failed");
+    [command_buffer commit];
+    [command_buffer waitUntilCompleted];
+    if (command_buffer.status == MTLCommandBufferStatusError)
+      throw std::runtime_error("Metal idle command buffer failed: " +
+                               ErrorDescription(command_buffer.error));
+  }
 }
 
 DeviceDiagnostics MetalDevice::Diagnostics() const noexcept {
@@ -483,17 +540,25 @@ DeviceDiagnostics MetalDevice::Diagnostics() const noexcept {
 }
 
 MetalCommandList::MetalCommandList(MetalDevice &device, QueueType queue) : device_(device) {
-  (void)queue;
-  command_buffer_ = [device_.queue_ commandBuffer];
-  if (!command_buffer_)
-    throw std::runtime_error("Metal command buffer creation failed");
+  @autoreleasepool {
+    (void)queue;
+    command_buffer_ = [device_.queue_ commandBuffer];
+    if (!command_buffer_)
+      throw std::runtime_error("Metal command buffer creation failed");
+  }
 }
 
 MetalCommandList::~MetalCommandList() {
-  if (encoder_)
-    [encoder_ endEncoding];
-  if (compute_encoder_)
-    [compute_encoder_ endEncoding];
+  @autoreleasepool {
+    if (encoder_)
+      [encoder_ endEncoding];
+    if (compute_encoder_)
+      [compute_encoder_ endEncoding];
+    encoder_ = nil;
+    compute_encoder_ = nil;
+    command_buffer_ = nil;
+    indirect_buffer_ = nil;
+  }
 }
 
 void MetalCommandList::Transition(const Barrier &barrier) {
@@ -510,18 +575,20 @@ void MetalCommandList::Transition(const Barrier &barrier) {
 }
 
 void MetalCommandList::TransitionBuffer(const BufferBarrier &barrier) {
-  if (submitted_ || rendering_)
-    throw std::logic_error("buffer barriers require an open command list outside rendering");
-  if (!IsValidBufferBarrier(barrier))
-    throw std::invalid_argument("invalid buffer barrier");
-  (void)device_.ValidateBuffer(barrier.buffer);
-  // Tracked shared buffers are synchronized across encoder boundaries on the native queue.
-  if (compute_encoder_) {
-    [compute_encoder_ endEncoding];
-    compute_encoder_ = nil;
-    pipeline_bound_ = false;
+  @autoreleasepool {
+    if (submitted_ || rendering_)
+      throw std::logic_error("buffer barriers require an open command list outside rendering");
+    if (!IsValidBufferBarrier(barrier))
+      throw std::invalid_argument("invalid buffer barrier");
+    (void)device_.ValidateBuffer(barrier.buffer);
+    // Tracked shared buffers are synchronized across encoder boundaries on the native queue.
+    if (compute_encoder_) {
+      [compute_encoder_ endEncoding];
+      compute_encoder_ = nil;
+      pipeline_bound_ = false;
+    }
+    ++barriers_;
   }
-  ++barriers_;
 }
 
 void MetalCommandList::BeginRendering(const RenderingInfo &info) {
@@ -548,33 +615,46 @@ void MetalCommandList::BeginRendering(const RenderingInfo &info) {
 }
 
 void MetalCommandList::BindPipeline(PipelineHandle pipeline) {
-  if (submitted_)
-    throw std::logic_error("cannot bind a pipeline on a submitted Metal command list");
-  auto &record = device_.ValidatePipeline(pipeline);
-  pipeline_type_ = record.descriptor.type;
-  if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
-    throw std::logic_error("Metal pipeline type does not match rendering state");
-  if (pipeline_type_ == PipelineType::Compute) {
-    if (!compute_encoder_)
-      compute_encoder_ = [command_buffer_ computeCommandEncoder];
-    if (!compute_encoder_)
-      throw std::runtime_error("Metal compute encoder creation failed");
-    [compute_encoder_ setComputePipelineState:record.compute_pipeline];
-  } else {
-    const auto &target = device_.ValidateRenderTarget(render_target_);
-    device_.Require(record.descriptor.color_format == target.descriptor.format,
-                    "Metal pipeline format does not match render target");
-    [encoder_ setRenderPipelineState:record.pipeline];
-    [encoder_ setVertexBuffer:device_.uniform_buffer_ offset:0 atIndex:0];
+  @autoreleasepool {
+    if (submitted_)
+      throw std::logic_error("cannot bind a pipeline on a submitted Metal command list");
+    auto &record = device_.ValidatePipeline(pipeline);
+    pipeline_type_ = record.descriptor.type;
+    if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
+      throw std::logic_error("Metal pipeline type does not match rendering state");
+    if (pipeline_type_ == PipelineType::Compute) {
+      if (!compute_encoder_)
+        compute_encoder_ = [command_buffer_ computeCommandEncoder];
+      if (!compute_encoder_)
+        throw std::runtime_error("Metal compute encoder creation failed");
+      [compute_encoder_ setComputePipelineState:record.compute_pipeline];
+      for (std::uint32_t index = 0; index < storage_buffers_.size(); ++index) {
+        if (storage_bound_[index]) {
+          auto &buffer = device_.ValidateBuffer(storage_buffers_[index]);
+          [compute_encoder_ setBuffer:buffer.buffer offset:0 atIndex:index];
+        }
+      }
+    } else {
+      const auto &target = device_.ValidateRenderTarget(render_target_);
+      device_.Require(record.descriptor.color_format == target.descriptor.format,
+                      "Metal pipeline format does not match render target");
+      [encoder_ setRenderPipelineState:record.pipeline];
+      [encoder_ setVertexBuffer:device_.uniform_buffer_ offset:0 atIndex:0];
+    }
+    pipeline_bound_ = true;
   }
-  pipeline_bound_ = true;
 }
 
 void MetalCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
-  if (submitted_ || rendering_ || !compute_encoder_)
-    throw std::logic_error("Metal storage-buffer binding requires a compute pipeline");
-  auto &record = device_.ValidateBuffer(buffer);
-  [compute_encoder_ setBuffer:record.buffer offset:0 atIndex:binding];
+  @autoreleasepool {
+    if (submitted_ || rendering_ || binding >= storage_buffers_.size())
+      throw std::logic_error("invalid Metal storage-buffer binding");
+    auto &record = device_.ValidateBuffer(buffer);
+    storage_buffers_[binding] = buffer;
+    storage_bound_[binding] = true;
+    if (compute_encoder_)
+      [compute_encoder_ setBuffer:record.buffer offset:0 atIndex:binding];
+  }
 }
 
 void MetalCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
@@ -604,13 +684,22 @@ void MetalCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_c
 
 void MetalCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
                                 std::uint32_t groups_z) {
-  if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
-      !compute_encoder_ || groups_x == 0 || groups_y == 0 || groups_z == 0)
-    throw std::logic_error("invalid Metal dispatch");
-  const MTLSize threadsPerGroup = MTLSizeMake(1, 1, 1);
-  const MTLSize threadgroups = MTLSizeMake(groups_x, groups_y, groups_z);
-  [compute_encoder_ dispatchThreadgroups:threadgroups threadsPerThreadgroup:threadsPerGroup];
-  ++dispatches_;
+  @autoreleasepool {
+    if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
+        !compute_encoder_ || groups_x == 0 || groups_y == 0 || groups_z == 0)
+      throw std::logic_error("invalid Metal dispatch");
+    if (device_.canonical_compute_) {
+      for (std::size_t index = 0; index < storage_bound_.size(); ++index) {
+        if (!storage_bound_[index])
+          throw std::logic_error("Metal GPU-driven dispatch requires all storage bindings");
+        (void)device_.ValidateBuffer(storage_buffers_[index]);
+      }
+    }
+    const MTLSize threadsPerGroup = MTLSizeMake(1, 1, 1);
+    const MTLSize threadgroups = MTLSizeMake(groups_x, groups_y, groups_z);
+    [compute_encoder_ dispatchThreadgroups:threadgroups threadsPerThreadgroup:threadsPerGroup];
+    ++dispatches_;
+  }
 }
 
 void MetalCommandList::DrawIndirect(std::uint32_t command_count) {

@@ -15,6 +15,7 @@
 #include <iostream>
 #include <mutex>
 #include <stdexcept>
+#include <string_view>
 #include <vector>
 
 using namespace nexora;
@@ -25,6 +26,10 @@ namespace {
 constexpr auto kBackend = rhi::Backend::Direct3D12;
 constexpr auto kComputeArtifact = "NEXORA_SLANG_COMPUTE_DXIL_PATH";
 constexpr auto kBackendName = "D3D12";
+#elif defined(NEXORA_TEST_METAL)
+constexpr auto kBackend = rhi::Backend::Metal;
+constexpr auto kComputeArtifact = "NEXORA_SLANG_COMPUTE_METAL_PATH";
+constexpr auto kBackendName = "Metal";
 #else
 constexpr auto kBackend = rhi::Backend::Vulkan;
 constexpr auto kComputeArtifact = "NEXORA_SLANG_COMPUTE_SPIRV_PATH";
@@ -393,6 +398,52 @@ void TestBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {
                "snapshots reject before execution; 6 exact CPU comparisons passed\n";
 }
 
+void TestMetalBufferScopes(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  if (kBackend != rhi::Backend::Metal)
+    return;
+  auto workload = MakeWorkload(device, 4000);
+  {
+    auto list = device.CreateCommandList(rhi::QueueType::Compute);
+    Bind(*list, workload); // Bindings may precede creation of the native compute encoder.
+    list->BindPipeline(pipeline);
+    list->Dispatch(1);
+    for (std::size_t slot = 1; slot < workload.buffers.size(); ++slot)
+      list->TransitionBuffer({workload.buffers[slot], rhi::BufferAccess::StorageReadWrite,
+                              rhi::BufferAccess::StorageReadWrite, rhi::QueueType::Compute,
+                              rhi::QueueType::Compute});
+    list->BindPipeline(pipeline); // Recreate encoder and replay the list-local bindings.
+    list->Dispatch(1);
+    device.WaitForSubmission(device.Submit(*list));
+  }
+  Compare(device, workload);
+  const auto before = device.Diagnostics();
+  std::array<std::uint32_t, 2> words{};
+  device.ReadBufferForTesting(workload.buffers[0], 48 * sizeof(std::uint32_t),
+                              std::as_writable_bytes(std::span{words}));
+  Require(words[0] == 4000 && words[1] == 1, "Metal offset readback differs from uploaded input");
+  device.ReadBufferForTesting(workload.buffers[0], 56 * sizeof(std::uint32_t), {});
+  bool rejected = false;
+  try {
+    device.ReadBufferForTesting(workload.buffers[0], 56 * sizeof(std::uint32_t) - 1,
+                                std::as_writable_bytes(std::span{words}));
+  } catch (const std::logic_error &) {
+    rejected = true;
+  }
+  Require(rejected && device.Diagnostics().readbacks == before.readbacks + 1,
+          "Metal empty/invalid readback changed counters or accepted an invalid range");
+  for (const auto buffer : workload.buffers)
+    device.DestroyBuffer(buffer);
+  rejected = false;
+  try {
+    device.ReadBufferForTesting(workload.buffers[0], 0, std::as_writable_bytes(std::span{words}));
+  } catch (const std::logic_error &) {
+    rejected = true;
+  }
+  Require(rejected, "Metal readback accepted a destroyed buffer");
+  std::cout << "Metal encoder WAW boundary replays bindings and matches CPU; "
+               "offset/empty/invalid/stale readback checks passed\n";
+}
+
 void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
   const auto rejects = [](auto &&call) {
     try {
@@ -416,8 +467,20 @@ void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
 }
 } // namespace
 
-int main() {
+int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--missing-compute-artifact") {
+      Require(kBackend == rhi::Backend::Metal, "missing-artifact case requires Metal");
+      bool rejected = false;
+      try {
+        (void)rhi::CreateDevice(kBackend);
+      } catch (const std::runtime_error &error) {
+        rejected = std::string_view(error.what()) == "Metal compute artifact is missing or empty";
+      }
+      Require(rejected, "missing requested Metal artifact silently used the compute smoke");
+      std::cout << "Missing requested Metal compute artifact rejects without fallback\n";
+      return 0;
+    }
     const auto *graphics_artifact = std::getenv("NEXORA_SLANG_SPIRV_PATH");
     const auto *compute_artifact = std::getenv(kComputeArtifact);
     if ((kBackend == rhi::Backend::Vulkan && (!graphics_artifact || !*graphics_artifact)) ||
@@ -435,6 +498,7 @@ int main() {
     TestIsolation(*device, pipeline, true);
     TestGraphRecording(*device, pipeline);
     TestBufferSnapshots(*device, pipeline);
+    TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);
     std::cout << kBackendName
               << " descriptor/buffer isolation: serial and 4-worker recording, 320 exact dispatch "
