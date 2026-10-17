@@ -403,4 +403,4 @@ DX12／Vulkan 呈現。人工確認實際聽到 probe、Music／SFX 循環、三
 
 本機兩個硬體後端皆完成六種各 600 幀篩檢，但 12 列皆超出預先宣告的 p95／p99／最大值預算。10k 混合負載 frame p95：DX12 31.97 ms、Vulkan 30.99 ms；10k 稀疏：40.33／49.06 ms。外部程序峰值 working set 為 90.9／148.0 MB，不代表 allocator／VRAM 或最低規格驗收。功能 gate 通過與 M6 效能未驗收分開記錄。
 
-上述負載已使用 GPU Instancing。另一組 60 幀 DX12 診斷指出 CPU 資料提取（10k 混合 p95 16.48 ms）與空間索引重建（10k 稀疏 p95 27.16 ms）的成本；純渲染基準與最佳化仍待完成。主機 fixture 另揭露 headless Linux 執行收到系統手把輸入，現將原生輪詢限於 native 模式，並加入存檔／續存零輸入斷言。失敗證據與診斷限制見同一份驗收紀錄。
+上述負載已使用 GPU Instancing。另一組 60 幀 DX12 診斷指出 CPU 資料提取（10k 混合 p95 16.48 ms）與空間索引重建（10k 稀疏 p95 27.16 ms）的成本；純渲染基準與最佳化仍待完成。主機 fixture 另揭露 headless Linux 執行收到系統手把輸入，現將原生輪詢限於 native 模式，並加入存檔／續存零輸入斷言。Linux headless fixture 音訊於 sanitizer 下使用明確的 ALSA null 設定，與實體輸出分開。失敗證據與診斷限制見同一份驗收紀錄。

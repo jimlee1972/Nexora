@@ -5,10 +5,12 @@ import hashlib
 import importlib.util
 import json
 import math
+import os
 from pathlib import Path
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 import wave
 import zlib
@@ -63,16 +65,26 @@ def stage(args, root):
 
 def verify(args, root, package):
     saves = root / 'saves Unicode 進度'
+    env = os.environ.copy()
+    if sys.platform.startswith('linux'):
+        # Match ProductAcceptance: service/storage tests never use host speakers/configuration.
+        config = root / 'alsa-null.conf'
+        config.write_text('pcm.!default { type null }\n', encoding='utf-8')
+        env['ALSA_CONFIG_PATH'] = str(config)
     hashes = {p: hashlib.sha256(p.read_bytes()).hexdigest() for p in package.rglob('*') if p.is_file()}
     def run(name, expected=True):
         result = subprocess.run([str(package / args.app.name), '--run-2d-project', str(package / 'game.nx2game'),
-                                 '--frames', '3', '--save-directory', str(saves)], capture_output=True, timeout=30)
+                                 '--frames', '3', '--save-directory', str(saves)], env=env,
+                                capture_output=True, timeout=30)
         (root / (name + '.stdout')).write_bytes(result.stdout)
         (root / (name + '.stderr')).write_bytes(result.stderr)
         assert (result.returncode == 0) == expected, result.stderr
         if expected:
             report = json.loads(result.stdout)
             assert report['project_mode'] and report['allocations_balanced'] and report['native_frames'] == 0
+            if sys.platform.startswith('linux'):
+                assert report['audio_open_attempts'] == report['audio_open_successes'] == 1, report
+                assert report['audio_pump_failures'] == 0 and report['audible_acceptance'] == 'NOT VERIFIED', report
             line = next(x for x in result.stderr.decode('utf-8').splitlines() if x.startswith('host_fixture '))
             fixture = json.loads(line[len('host_fixture '):])
             assert fixture['final_save_ok'] and not fixture['buttons_seen']

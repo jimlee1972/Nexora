@@ -202,6 +202,18 @@ zero-input checks. A fresh Shipping real-font/CRT package passes the same storag
 teardown on each hardware backend. The [follow-up summary](headless-isolation-summary.json)
 records its distinct Player hash; original manual/600-frame binaries remain untouched.
 
+The subsequent sanitizer gate at `f4e16ba6` passed those input/storage invariants but failed on
+LeakSanitizer allocations beneath ALSA default-output initialization; see the retained
+[readable excerpt](linux-headless-alsa-failure.txt). The new host-fixture test had omitted the
+explicit ALSA null configuration already used by `ProductAcceptance.py` and
+`AudioDeviceAcceptance.py`. Its Linux subprocesses now receive a fresh minimal null configuration
+outside the immutable package, and require one successful output open, zero pump failures and
+`audible_acceptance=NOT VERIFIED`. Sanitizers remain enabled and no leak suppression is added.
+This isolates the headless service/storage test from system audio configuration; it does not
+claim repair of physical ALSA/default-system configuration cleanup. Native/manual staging and
+the production Player's audio policy are unchanged. Windows host-fixture regression still passes
+1/1 after this test-only change; the full final-head hosted gates must be rerun.
+
 ## Remaining full milestone gates
 
 M6: declared minimum PC/product workload, integrated UI/VFX and allocation/VRAM/long-duration
