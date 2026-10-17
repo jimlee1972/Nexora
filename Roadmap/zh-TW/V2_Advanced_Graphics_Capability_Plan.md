@@ -25,6 +25,18 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 共用輸入與 DXIL 檢查整合 — 2026-10-17
+
+✅ 後續整合不變共用 Buffer 讀取與所選 DXIL Stage／Profile 檢查，包含指定錯誤 Stage 的
+建構拒絕與 Fence Event 清理。整合後啟用 Slang 的 Development Configure／Build 與
+Xvfb／Native-required CTest **206/206 通過，零略過／失敗，119.65 秒**。包含
+`renderer.dxil_artifact_readiness` 的六項聚焦 Renderer 指令 **6/6 通過，零略過，0.29 秒**。
+Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。既有四項原生 Vulkan
+Object／Synchronization Validation **4/4 通過，零略過，1.18 秒**，Loader 證明 Layer
+載入，沒有 Validation Error／VUID／SYNC-HAZARD 訊息。Windows 真正 DXIL／PSO／
+純讀者提交，以及 Metal 共用讀取仍須 Hosted Gate 證明。Beads `nexora-45y.2.9` 與 `.2.10`
+共用後續整合；完整 Toolchain、平行／效能與 Preview Gate 維持待完成。
+
 ### DXIL Entry Stage 與 Artifact Profile 檢查 — 2026-10-17
 
 ✅ D3D12 指定 Entry Artifact 現會接受 Portable、有界的 DXBC／DXIL Program Metadata

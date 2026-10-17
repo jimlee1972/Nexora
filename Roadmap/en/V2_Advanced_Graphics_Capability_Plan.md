@@ -31,6 +31,19 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Shared-input and DXIL admission integration — 2026-10-17
+
+✅ The follow-up combines immutable shared buffer reads with selected DXIL stage/profile checks,
+including requested wrong-stage constructor rejection and fence-event cleanup. Integrated
+Slang-enabled Development configure/build and Xvfb/native-required CTest pass **206/206,
+zero skips/failures, 119.65 seconds**. The six-test focused renderer command, including
+`renderer.dxil_artifact_readiness`, passes **6/6, zero skips, 0.29 seconds**. Shipping configure/build
+passes (Monolithic/Minimal, LTO). The existing four-test native Vulkan object/synchronization
+validation command passes **4/4, zero skips, 1.18 seconds**, with loader-confirmed layer insertion
+and zero Validation Error/VUID/SYNC-HAZARD markers. Windows actual DXIL/PSO/read-only transaction
+and Metal shared-read execution remain hosted gates. Beads `nexora-45y.2.9` and `.2.10` share this
+follow-up; the complete toolchain, parallel/performance and preview gates stay open.
+
 ### DXIL entry-stage and artifact-profile admission — 2026-10-17
 
 ✅ D3D12 requested entry artifacts now undergo portable, bounded DXBC/DXIL program metadata
