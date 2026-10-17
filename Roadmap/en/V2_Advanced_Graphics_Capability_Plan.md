@@ -31,6 +31,34 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Retired Vulkan descriptor pool storage — 2026-10-17
+
+✅ The opt-in allocation cache additionally retains up to two reset native descriptor pools per idle
+entry (eight command allocations, sixteen idle descriptor pools). A live list exclusively consumes
+prewarmed pools before growth and allocates a fresh immutable set per dispatch. Command-pool reset
+precedes descriptor reset/transfer; reset failure, extra pools or cache overflow destroy storage.
+Constructor failure and shutdown account for every acquired pool. Query pools remain per-list;
+no extra waits, SDK/module dependency, stable C ABI or asynchronous queue path is added.
+
+The native oracle adds96 unique workloads crossing three pools, abandon/two-pool retention,
+re-record/overflow, held-completed-list ownership and192 CPU comparisons. Existing native
+serial/four-worker and failed/cancelled replay coverage remains active. JSON reports native
+command/descriptor creation/acquisition and idle counts, with fresh/default versus warmed/reuse
+smoke checks. Beads `nexora-45y.2.14`; source `feat/v2-vulkan-descriptor-pool-reuse`.
+Slang Development configure/build and Xvfb/native-required full CTest **237/237 pass, zero skips/
+failures,253.15 seconds** (Showcase on, graphical shell off). Focused timing/native reuse/report
+**7/7 pass,1.14 seconds**; Shipping Monolithic/Minimal LTO passes. Khronos1.3.275 object/synchronization
+validation **10/10 pass,16.13 seconds**,25 loader-confirmed insertions and zero Validation
+Error/VUID/SYNC-HAZARD markers. Touched formatting/diff checks pass. The extended compute oracle
+creates13/reuses196 command allocations and creates11/acquires368 descriptor pools, ending with
+8 idle command and8 idle descriptor pools; held-list, three-pool overflow and192 extra CPU
+comparisons pass. Independent21x40 runs verify3,360 outputs and21 native GPU samples per mode/
+policy; measured descriptor creation/acquisition changes from **168/0** to **0/168**, with8 idle
+pools for the warmed four-list workload. No physical performance or memory-budget claim.
+Hosted platform/ABI and native Vulkan gates remain required. Prior `.2.13` evidence covers the initial command-only cache; this slice
+extends retired native storage without sharing snapshots. Full asynchronous/parallel/performance
+acceptance and physical memory budgets remain open.
+
 ### Timing, measurement and bounded reuse integration — 2026-10-17
 
 The follow-up integrates `.2.11` native timestamps, `.2.12` matched recording measurements and

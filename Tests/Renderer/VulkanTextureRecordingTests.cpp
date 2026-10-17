@@ -519,9 +519,11 @@ int main(int argc, char **argv) {
     for (const auto pipeline : pipelines)
       device->DestroyPipeline(pipeline);
     const auto pools = device->Diagnostics();
-    Require(pools.cached_command_pools <= 8 &&
-                (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0)),
-            "graphics command pool cache must remain bounded and opt-in");
+    Require(
+        pools.cached_command_pools <= 8 && pools.cached_descriptor_pools <= 16 &&
+            (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0 &&
+                       pools.cached_descriptor_pools == 0 && pools.descriptor_pool_reuses == 0)),
+        "graphics command pool cache must remain bounded and opt-in");
     if (reuse) {
       Require(pools.command_pool_reuses > 512,
               "graphics/query retirement did not reuse native pools");

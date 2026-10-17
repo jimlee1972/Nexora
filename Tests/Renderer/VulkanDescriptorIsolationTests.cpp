@@ -148,6 +148,58 @@ void TestCommandPoolReuse(rhi::Device &device) {
           "pool overflow must be destroyed instead of growing the cache");
 }
 
+void TestDescriptorPoolReuse(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  std::vector<Workload> workloads;
+  for (std::uint32_t index = 0; index < 96; ++index)
+    workloads.push_back(MakeWorkload(device, 4000 + index));
+  const auto record = [&] {
+    auto list = device.CreateCommandList(rhi::QueueType::Compute);
+    list->BindPipeline(pipeline);
+    for (const auto &workload : workloads) {
+      Bind(*list, workload);
+      list->Dispatch(1);
+    }
+    return list;
+  };
+  const auto before = device.Diagnostics();
+  {
+    auto abandoned = record();
+    Require(device.Diagnostics().descriptor_pool_creations == before.descriptor_pool_creations + 3,
+            "96 immutable snapshots must cross three distinct native descriptor pools");
+    Require(device.Diagnostics().cached_descriptor_pools == 0,
+            "live unsubmitted lists must not return their descriptor pools");
+  }
+  const auto warmed = device.Diagnostics();
+  Require(warmed.cached_descriptor_pools == 2,
+          "retirement must cap each native allocation at two descriptor pools");
+  {
+    auto replay = record();
+    const auto acquired = device.Diagnostics();
+    Require(acquired.descriptor_pool_reuses == warmed.descriptor_pool_reuses + 2 &&
+                acquired.descriptor_pool_creations == warmed.descriptor_pool_creations + 1 &&
+                acquired.cached_descriptor_pools == 0,
+            "replay must consume both warmed pools before allocating the overflow pool");
+    device.WaitForSubmission(device.Submit(*replay));
+    Require(device.Diagnostics().cached_descriptor_pools == 0,
+            "completed live list must retain its immutable descriptor snapshots");
+  }
+  for (const auto &workload : workloads)
+    Compare(device, workload);
+  // Discard another fully recorded list; unchanged output and successful later native oracles
+  // prove cache reset cannot queue work or retain an earlier dispatch's bindings.
+  { auto abandoned = record(); }
+  for (const auto &workload : workloads)
+    Compare(device, workload);
+  Require(device.Diagnostics().cached_descriptor_pools == 2,
+          "abandoned three-pool recording must keep only two idle pools");
+  for (const auto &workload : workloads)
+    for (auto buffer : workload.buffers)
+      device.DestroyBuffer(buffer);
+  std::cout
+      << "Vulkan descriptor pool reuse: 96 immutable snapshots across three pools, two cached; "
+         "192 CPU comparisons, completed live-list ownership and abandoned replay passed\n";
+}
+
 // Nearest-rank statistics and Linux resident sampling match Tools/TwoD/Benchmark.cpp.
 // Missing GPU/RSS observations are null, never synthesized from another clock.
 using BenchmarkClock = std::chrono::steady_clock;
@@ -181,7 +233,7 @@ struct BenchmarkSample {
   double setup_ms{}, record_ms{}, submit_wait_ms{};
   std::optional<double> gpu_ms;
   rhi::GpuTimingSource source{};
-  std::uint64_t pool_creations{}, pool_reuses{};
+  std::uint64_t pool_creations{}, pool_reuses{}, descriptor_creations{}, descriptor_reuses{};
   std::optional<std::uint64_t> resident_bytes;
 };
 BenchmarkSample MeasureRecording(rhi::Device &device, rhi::PipelineHandle pipeline,
@@ -286,6 +338,8 @@ BenchmarkSample MeasureRecording(rhi::Device &device, rhi::PipelineHandle pipeli
   const auto after = device.Diagnostics();
   sample.pool_creations = after.command_pool_creations - before.command_pool_creations;
   sample.pool_reuses = after.command_pool_reuses - before.command_pool_reuses;
+  sample.descriptor_creations = after.descriptor_pool_creations - before.descriptor_pool_creations;
+  sample.descriptor_reuses = after.descriptor_pool_reuses - before.descriptor_pool_reuses;
   return sample;
 }
 void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &samples,
@@ -294,10 +348,12 @@ void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &sa
   std::vector<double> setup, record, total, submit, gpu;
   auto maximum_rss = baseline;
   rhi::GpuTimingSource source{};
-  std::uint64_t pool_creations{}, pool_reuses{};
+  std::uint64_t pool_creations{}, pool_reuses{}, descriptor_creations{}, descriptor_reuses{};
   for (const auto &sample : samples) {
     pool_creations += sample.pool_creations;
     pool_reuses += sample.pool_reuses;
+    descriptor_creations += sample.descriptor_creations;
+    descriptor_reuses += sample.descriptor_reuses;
     setup.push_back(sample.setup_ms);
     record.push_back(sample.record_ms);
     total.push_back(sample.setup_ms + sample.record_ms);
@@ -334,6 +390,9 @@ void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &sa
             << ",\"command_pool_creations\":" << pool_creations
             << ",\"command_pool_reuses\":" << pool_reuses
             << ",\"cached_command_pools\":" << diagnostics.cached_command_pools
+            << ",\"descriptor_pool_creations\":" << descriptor_creations
+            << ",\"descriptor_pool_reuses\":" << descriptor_reuses
+            << ",\"cached_descriptor_pools\":" << diagnostics.cached_descriptor_pools
             << ",\"physical_hardware_verified\":false,\"cpu_clock\":\"steady_clock\""
             << ",\"workers\":" << (parallel ? 4 : 1) << ",\"lists_per_sample\":4"
             << ",\"dispatches_per_list\":" << per_list << ",\"samples\":" << samples.size()
@@ -980,6 +1039,7 @@ void TestReadOnlyBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeli
 }
 #endif
 void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  const auto dispatches_before = device.Diagnostics().compute_dispatches;
   const auto rejects = [](auto &&call) {
     try {
       call();
@@ -998,7 +1058,8 @@ void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
   list.reset();
   for (std::size_t slot = 1; slot < workload.buffers.size(); ++slot)
     device.DestroyBuffer(workload.buffers[slot]);
-  Require(device.Diagnostics().compute_dispatches == 0, "rejected dispatches must not execute");
+  Require(device.Diagnostics().compute_dispatches == dispatches_before,
+          "rejected dispatches must not execute");
 }
 } // namespace
 
@@ -1045,6 +1106,8 @@ int main(int argc, char **argv) {
       TestCommandPoolReuse(*device);
     const auto pipeline = device->CreatePipeline(
         {1, 2, rhi::TextureFormat::Rgba8Unorm, "isolation", rhi::PipelineType::Compute});
+    if (reuse && !benchmark)
+      TestDescriptorPoolReuse(*device, pipeline);
     if (benchmark) {
       BenchmarkRecording(*device, pipeline, samples, dispatches);
       device->DestroyPipeline(pipeline);
@@ -1062,15 +1125,20 @@ int main(int argc, char **argv) {
     TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);
     const auto pools = device->Diagnostics();
-    Require(pools.cached_command_pools <= 8 &&
-                (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0)),
-            "command pool reuse must respect opt-in and bounded retirement");
+    Require(
+        pools.cached_command_pools <= 8 && pools.cached_descriptor_pools <= 16 &&
+            (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0 &&
+                       pools.cached_descriptor_pools == 0 && pools.descriptor_pool_reuses == 0)),
+        "command pool reuse must respect opt-in and bounded retirement");
     if (reuse) {
       Require(pools.command_pool_reuses > 8,
               "native workloads did not exercise warmed allocator reuse");
       std::cout << "Vulkan completed/abandoned command pool reuse: created="
                 << pools.command_pool_creations << " reused=" << pools.command_pool_reuses
-                << " cached=" << pools.cached_command_pools << '\n';
+                << " cached=" << pools.cached_command_pools
+                << "; descriptor pools created=" << pools.descriptor_pool_creations
+                << " acquired=" << pools.descriptor_pool_reuses
+                << " cached=" << pools.cached_descriptor_pools << '\n';
     }
     if (timed) {
       const auto timing = device->Diagnostics().gpu_timing;

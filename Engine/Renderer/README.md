@@ -510,7 +510,9 @@ correctness evidence do not close the full parallel/performance gate.
 
 On Vulkan, `--benchmark-reuse [samples dispatches-per-list]` runs the same paired workload with
 bounded completed command-pool reuse requested. JSON includes explicit reuse enablement, per-mode
-measured native pool creation/cache-acquisition counts and the final idle cache snapshot. The
+measured native command/descriptor pool creation/cache-acquisition counts and final idle cache
+snapshots. Descriptor pool storage resets after list retirement; each dispatch still owns a fresh
+immutable set. The
 additional native CTest `renderer.vulkan_recording_benchmark_reuse` verifies all measured lists use
 warm retired allocations; ordinary benchmark mode verifies fresh allocations and no cache use.
 Both modes retain their own warmups, output sentinels, timing and CPU oracle. This option changes

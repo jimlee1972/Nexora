@@ -31,6 +31,9 @@ struct DeviceDiagnostics final {
   std::uint64_t command_pool_creations{};
   std::uint64_t command_pool_reuses{};
   std::uint64_t cached_command_pools{};
+  std::uint64_t descriptor_pool_creations{};
+  std::uint64_t descriptor_pool_reuses{};
+  std::uint64_t cached_descriptor_pools{};
 };
 class NEXORA_RHI_API CommandList {
 public:

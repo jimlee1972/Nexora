@@ -215,6 +215,7 @@ struct VulkanFunctions final {
   PFN_vkDestroyDescriptorSetLayout DestroyDescriptorSetLayout{};
   PFN_vkCreateDescriptorPool CreateDescriptorPool{};
   PFN_vkDestroyDescriptorPool DestroyDescriptorPool{};
+  PFN_vkResetDescriptorPool ResetDescriptorPool{};
   PFN_vkAllocateDescriptorSets AllocateDescriptorSets{};
   PFN_vkUpdateDescriptorSets UpdateDescriptorSets{};
   PFN_vkCreatePipelineLayout CreatePipelineLayout{};
@@ -288,6 +289,7 @@ private:
   std::array<bool, 4> storage_bound_{};
   std::vector<VkDescriptorPool> compute_descriptor_pools_;
   std::uint32_t compute_sets_in_last_pool_{ComputeSetsPerPool};
+  std::size_t compute_pool_index_{};
   VulkanDevice &device_;
   VkCommandPool command_pool_{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
@@ -361,9 +363,12 @@ private:
   struct CommandAllocation final {
     VkCommandPool pool{VK_NULL_HANDLE};
     VkCommandBuffer commands{VK_NULL_HANDLE};
+    std::array<VkDescriptorPool, 2> descriptors{};
+    std::size_t descriptor_count{};
   };
   CommandAllocation AcquireCommandAllocation();
-  void ReleaseCommandAllocation(CommandAllocation allocation, bool reusable) noexcept;
+  void ReleaseCommandAllocation(CommandAllocation allocation, bool reusable,
+                                std::span<VkDescriptorPool> descriptors) noexcept;
   // Fixed storage: retirement never allocates or grows an unbounded cache.
   std::array<CommandAllocation, 8> idle_command_allocations_{};
   std::size_t idle_command_allocation_count_{};
@@ -514,6 +519,7 @@ void VulkanDevice::LoadDeviceFunctions() {
   LOAD_DEVICE(DestroyDescriptorSetLayout, "vkDestroyDescriptorSetLayout");
   LOAD_DEVICE(CreateDescriptorPool, "vkCreateDescriptorPool");
   LOAD_DEVICE(DestroyDescriptorPool, "vkDestroyDescriptorPool");
+  LOAD_DEVICE(ResetDescriptorPool, "vkResetDescriptorPool");
   LOAD_DEVICE(AllocateDescriptorSets, "vkAllocateDescriptorSets");
   LOAD_DEVICE(UpdateDescriptorSets, "vkUpdateDescriptorSets");
   LOAD_DEVICE(CreatePipelineLayout, "vkCreatePipelineLayout");
@@ -1515,8 +1521,12 @@ VulkanDevice::~VulkanDevice() {
     WaitIdle();
   } catch (...) {
   }
-  for (std::size_t index = 0; index < idle_command_allocation_count_; ++index)
-    functions_.DestroyCommandPool(device_, idle_command_allocations_[index].pool, nullptr);
+  for (std::size_t index = 0; index < idle_command_allocation_count_; ++index) {
+    const auto &allocation = idle_command_allocations_[index];
+    functions_.DestroyCommandPool(device_, allocation.pool, nullptr);
+    for (std::size_t pool = 0; pool < allocation.descriptor_count; ++pool)
+      functions_.DestroyDescriptorPool(device_, allocation.descriptors[pool], nullptr);
+  }
   idle_command_allocation_count_ = 0;
   for (auto &[key, pipeline] : pipelines_)
     (void)key, DestroyPipelineRecord(pipeline);
@@ -1563,6 +1573,8 @@ VulkanDevice::CommandAllocation VulkanDevice::AcquireCommandAllocation() {
       idle_command_allocations_[idle_command_allocation_count_] = {};
       diagnostics_.cached_command_pools = idle_command_allocation_count_;
       ++diagnostics_.command_pool_reuses;
+      diagnostics_.cached_descriptor_pools -= allocation.descriptor_count;
+      diagnostics_.descriptor_pool_reuses += allocation.descriptor_count;
       return allocation;
     }
   }
@@ -1587,23 +1599,35 @@ VulkanDevice::CommandAllocation VulkanDevice::AcquireCommandAllocation() {
   return allocation;
 }
 
-void VulkanDevice::ReleaseCommandAllocation(CommandAllocation allocation, bool reusable) noexcept {
+void VulkanDevice::ReleaseCommandAllocation(CommandAllocation allocation, bool reusable,
+                                            std::span<VkDescriptorPool> descriptors) noexcept {
   if (allocation.pool == VK_NULL_HANDLE)
     return;
   if (reusable && capabilities_.recording_resource_reuse_enabled &&
       functions_.ResetCommandPool(device_, allocation.pool, 0) == VK_SUCCESS) {
     // Reset drops every recorded reference before descriptors, query pools and framebuffers die.
     // The pool is exclusively list-owned until this point, even when its fence completed earlier.
+    for (auto &pool : descriptors) {
+      if (allocation.descriptor_count == allocation.descriptors.size())
+        break;
+      if (functions_.ResetDescriptorPool(device_, pool, 0) == VK_SUCCESS) {
+        allocation.descriptors[allocation.descriptor_count++] = pool;
+        pool = VK_NULL_HANDLE; // Ownership moves to the fixed cache candidate.
+      }
+    }
     std::lock_guard lock{mutex_};
     if (idle_command_allocation_count_ < idle_command_allocations_.size()) {
       idle_command_allocations_[idle_command_allocation_count_++] = allocation;
       diagnostics_.cached_command_pools = idle_command_allocation_count_;
+      diagnostics_.cached_descriptor_pools += allocation.descriptor_count;
       return;
     }
   }
   if (allocation.commands != VK_NULL_HANDLE)
     functions_.FreeCommandBuffers(device_, allocation.pool, 1, &allocation.commands);
   functions_.DestroyCommandPool(device_, allocation.pool, nullptr);
+  for (std::size_t index = 0; index < allocation.descriptor_count; ++index)
+    functions_.DestroyDescriptorPool(device_, allocation.descriptors[index], nullptr);
 }
 
 VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : device_(device) {
@@ -1612,6 +1636,10 @@ VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : de
   command_pool_ = allocation.pool;
   command_buffer_ = allocation.commands;
   try {
+    compute_descriptor_pools_.assign(allocation.descriptors.begin(),
+                                     allocation.descriptors.begin() + allocation.descriptor_count);
+    if (!compute_descriptor_pools_.empty())
+      compute_sets_in_last_pool_ = 0;
     const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
                                               VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr};
     Check(device_.functions_.BeginCommandBuffer(command_buffer_, &begin_info),
@@ -1634,6 +1662,11 @@ VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : de
     device_.functions_.DestroyCommandPool(device_.device_, command_pool_, nullptr);
     command_buffer_ = VK_NULL_HANDLE;
     command_pool_ = VK_NULL_HANDLE;
+    // Construction has no C++ list destructor. The acquired package still identifies every
+    // transferred native descriptor pool, including if vector allocation/begin recording failed.
+    for (std::size_t index = 0; index < allocation.descriptor_count; ++index)
+      device_.functions_.DestroyDescriptorPool(device_.device_, allocation.descriptors[index],
+                                               nullptr);
     throw;
   }
 }
@@ -1644,7 +1677,8 @@ VulkanCommandList::~VulkanCommandList() {
   const bool reusable = device_.capabilities_.recording_resource_reuse_enabled &&
                         (!submitted_ || (completed_token_ != 0 &&
                                          device_.CompletedSubmissionValue() >= completed_token_));
-  device_.ReleaseCommandAllocation({command_pool_, command_buffer_}, reusable);
+  device_.ReleaseCommandAllocation({command_pool_, command_buffer_}, reusable,
+                                   compute_descriptor_pools_);
   command_pool_ = VK_NULL_HANDLE;
   command_buffer_ = VK_NULL_HANDLE;
   if (timestamps_ != VK_NULL_HANDLE)
@@ -1652,7 +1686,8 @@ VulkanCommandList::~VulkanCommandList() {
   for (const auto framebuffer : framebuffers_)
     device_.DestroyFramebuffer(framebuffer);
   for (const auto pool : compute_descriptor_pools_)
-    device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
+    if (pool != VK_NULL_HANDLE)
+      device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
   if (indirect_buffer_ != VK_NULL_HANDLE)
     device_.functions_.DestroyBuffer(device_.device_, indirect_buffer_, nullptr);
   if (indirect_memory_ != VK_NULL_HANDLE)
@@ -1841,22 +1876,30 @@ VkDescriptorSet VulkanCommandList::SnapshotComputeBindings() {
     buffers[index] = {record.buffer, 0, record.descriptor.size};
   }
   if (compute_sets_in_last_pool_ == ComputeSetsPerPool) {
-    const VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4 * ComputeSetsPerPool};
-    const VkDescriptorPoolCreateInfo info{
-        VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, 0, ComputeSetsPerPool, 1, &size};
-    VkDescriptorPool pool = VK_NULL_HANDLE;
-    Check(device_.functions_.CreateDescriptorPool(device_.device_, &info, nullptr, &pool),
-          "vkCreateDescriptorPool(command list compute)");
-    try {
-      compute_descriptor_pools_.push_back(pool);
-    } catch (...) {
-      device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
-      throw;
+    const auto next_pool = compute_descriptor_pools_.empty() ? 0 : compute_pool_index_ + 1;
+    if (next_pool == compute_descriptor_pools_.size()) {
+      const VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 4 * ComputeSetsPerPool};
+      const VkDescriptorPoolCreateInfo info{
+          VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, nullptr, 0, ComputeSetsPerPool, 1, &size};
+      VkDescriptorPool pool = VK_NULL_HANDLE;
+      Check(device_.functions_.CreateDescriptorPool(device_.device_, &info, nullptr, &pool),
+            "vkCreateDescriptorPool(command list compute)");
+      {
+        std::lock_guard lock{device_.mutex_};
+        ++device_.diagnostics_.descriptor_pool_creations;
+      }
+      try {
+        compute_descriptor_pools_.push_back(pool);
+      } catch (...) {
+        device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
+        throw;
+      }
     }
+    compute_pool_index_ = next_pool; // Commit only after any native/vector allocation succeeds.
     compute_sets_in_last_pool_ = 0;
   }
   const VkDescriptorSetAllocateInfo info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr,
-                                         compute_descriptor_pools_.back(), 1,
+                                         compute_descriptor_pools_[compute_pool_index_], 1,
                                          &device_.compute_descriptor_set_layout_};
   VkDescriptorSet set = VK_NULL_HANDLE;
   Check(device_.functions_.AllocateDescriptorSets(device_.device_, &info, &set),

@@ -76,8 +76,8 @@ Linux regression/Shipping gates pass and Windows native coverage is required by 
 Windows 原生覆蓋由 CI 強制執行。完整圖形 Gate、Metal Worker 與效能驗收仍待完成。
 
 ✅ V2-GFX-1 bounded Vulkan allocator reuse / 有界 Vulkan Allocator 重用（2026-10-17）：
-default-off completed/unsubmitted pool cache passes Linux native output/lifetime and sync checks.
-預設關閉的已完成／未提交 Pool 快取通過 Linux 原生輸出、生命週期及同步檢查；完整非同步與效能 Gate 仍開放。
+default-off completed/unsubmitted command and descriptor pool caches pass Linux native output/lifetime and sync checks.
+預設關閉的已完成／未提交 Command／Descriptor Pool 快取通過 Linux 原生輸出、生命週期及同步檢查；完整非同步與效能 Gate 仍開放。
 
 ✅ V2-GFX-1 matched recording measurement / 配對錄製量測（2026-10-17）：
 real serial/four-worker workloads, separate CPU/GPU intervals, JSON and CPU output oracles pass

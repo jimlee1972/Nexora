@@ -26,6 +26,12 @@ def main():
     for row in rows:
         require(row['recording_resource_reuse_enabled'] == reuse, 'reuse must be explicit')
         require(0 <= row['cached_command_pools'] <= 8, 'bounded allocator cache')
+        require(0 <= row['cached_descriptor_pools'] <= 16, 'bounded descriptor cache')
+        if row['backend'] == 'Vulkan':
+            require(row['descriptor_pool_creations'] == (0 if reuse else 12) and
+                    row['descriptor_pool_reuses'] == (12 if reuse else 0) and
+                    row['cached_descriptor_pools'] == (4 if reuse else 0),
+                    'warmed descriptor storage must recycle without sharing live snapshots')
         if reuse:
             require(row['backend'] == 'Vulkan' and row['command_pool_creations'] == 0 and
                     row['command_pool_reuses'] == 12 and row['cached_command_pools'] == 4,

@@ -25,6 +25,30 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 已回收 Vulkan Descriptor Pool 儲存空間 — 2026-10-17
+
+✅ 選用配置快取擴充為每份閒置項目最多兩個已 Reset 的原生 Descriptor Pool
+（八份 Command 配置、十六個閒置 Descriptor Pool）。存活清單獨占配置，先依序用完暖機 Pool
+再擴充；每次 Dispatch 仍配置全新不可變 Set。Command Pool Reset 先於 Descriptor Reset／轉移，
+Reset 失敗、額外 Pool 或快取溢出皆銷毀儲存空間。建構失敗與關閉時完整回收所有取得的 Pool。
+Query Pool 維持每清單獨立，不新增等待、SDK／模組相依、穩定 C ABI 或非同步 Queue 路徑。
+
+原生 Oracle 新增96份唯一工作跨三個 Pool、放棄／只保留兩份、重新錄製／溢出、
+保留已完成清單的獨占權及192份 CPU 比對。既有原生串行／四執行緒及失敗／取消重試覆蓋持續執行。
+JSON 回報原生 Command／Descriptor 建立、取得與閒置數，快速檢查預設全新配置及選用暖機重用。
+Beads `nexora-45y.2.14`；來源 `feat/v2-vulkan-descriptor-pool-reuse`。
+Slang Development configure/build 與 Xvfb／強制原生完整 CTest **237/237 通過、零略過／失敗、
+253.15 秒**（Showcase 開啟、Graphical Shell 關閉）。聚焦計時／原生重用／報表 **7/7 通過、1.14 秒**；
+Shipping Monolithic／Minimal LTO 通過。Khronos1.3.275 物件／同步驗證 **10/10 通過、16.13 秒**，
+確認25次 Layer 插入，Validation Error／VUID／SYNC-HAZARD 為零，格式及 Diff 檢查通過。
+擴充 Compute Oracle 建立13／重用196份 Command 配置，建立11／取得368個 Descriptor Pool，
+最後閒置 Command／Descriptor 各8份；保留清單、三 Pool 溢出及額外192份 CPU 比對通過。
+獨立21x40執行，每模式／政策驗證3,360份輸出且21份原生 GPU 樣本皆可用；量測期間 Descriptor
+建立／取得由 **168/0** 變成 **0/168**，暖機四清單工作保留8個閒置 Pool。
+未宣稱實體效能或記憶體預算驗收；Hosted 平台／ABI 與原生 Vulkan 閘門仍須通過。
+先前 `.2.13` 證據僅涵蓋最初 Command 快取；本項擴充已回收原生儲存空間，不共享快照。
+完整非同步／平行／效能驗收與實體記憶體預算仍待完成。
+
 ### 計時、量測與有界重用整合 — 2026-10-17
 
 後續改動在 PR628 前置基礎上整合 `.2.11` 原生 Timestamp、`.2.12` 配對錄製量測與

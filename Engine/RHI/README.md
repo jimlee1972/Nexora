@@ -42,18 +42,21 @@ feature gates, parallel allocator/descriptor lifetime work and performance accep
 
 ## Vulkan compute descriptor ownership (V2-GFX-1 slice)
 
-Each Vulkan command list owns its compute descriptor pools. `BindStorageBuffer` stores only
+Each live Vulkan command list exclusively owns its compute descriptor pools. `BindStorageBuffer` stores only
 list-local handles; `Dispatch` revalidates all four canonical slots, allocates a fresh set and
-copies the complete binding snapshot before recording. Sets are never updated or reused after
-recording, so later rebinding (including binding without dispatch) cannot redirect earlier work.
+copies the complete binding snapshot before recording. Sets keep immutable contents for the lifetime of their recording list, so later rebinding
+(including binding without dispatch) cannot redirect earlier work.
 Missing or stale bindings throw `std::logic_error` before descriptor allocation or dispatch.
 Pools grow in blocks of 32 sets; recorded dispatches retain their sets until list destruction.
+After retirement the explicit reuse option may reset/cache native pool storage; every subsequent
+dispatch still allocates a fresh set.
 
 A command list has one recording owner at a time. Independent compute lists may record concurrently
 against pre-created immutable pipelines and disjoint buffers. The device and referenced resources
 must outlive all lists; callers serialize resource creation, upload, mutation and destruction against
 recording/submission. Submission remains caller-serialized and synchronous in this backend; pool
-and command allocator destruction happens after `Submit` has waited for its native completion fence,
+and command allocator retirement (destruction or explicitly requested reset/cache) happens after
+`Submit` has waited for its native completion fence,
 or when a never-submitted list is abandoned. Never destroy a list while `Submit` is using it.
 This is a prerequisite for broader worker scheduling, not an asynchronous retirement implementation.
 
@@ -501,8 +504,8 @@ list exclusively owns its pair, including after its submission completes, until 
 Never-submitted lists can retire immediately; submitted lists become reusable only after Submit's
 existing native fence succeeds and records that list's completion token. Acceptance followed by a
 submission/wait failure leaves it ineligible for reuse. No extra GPU wait is added. Query pools,
-descriptor pools, upload resources and framebuffers retain their existing list/completion ownership;
-they are not cached by this option.
+upload resources and framebuffers retain their existing list/completion ownership and are not cached.
+Native descriptor pool storage can follow the bounded allocation after exclusive retirement, as below.
 
 Retirement resets an eligible command pool before releasing any remaining descriptor, query or
 framebuffer references. Reset failure, ineligible retirement and cache overflow destroy the pair.
@@ -519,3 +522,29 @@ ParallelCommandRecording feature remains disabled/unimplemented and Submit remai
 Native compute and color-target oracles run with timing enabled, test held completed/abandoned
 lists, exclusive reuse and overflow, then compare every real GPU output across repeated cohorts,
 failures, cancellation, stale snapshots and 512 target allocation/recycling cycles.
+
+### Retired descriptor pool storage
+
+The same opt-in Vulkan cache retains at most two native descriptor pools per idle allocation:
+eight command allocations and sixteen idle descriptor pools total. Live lists may grow beyond two
+pools for larger workloads; the limit applies to retained idle storage, not active work or bytes.
+Retirement first resets the completed/unsubmitted command pool, dropping recorded references,
+then resets candidate descriptor pools. Successful resets transfer at most two pools into fixed
+cache storage. Reset failure, extra pools and cache overflow destroy storage after command-buffer
+cleanup. Acquisition removes the whole package exclusively; constructor allocation/begin failures
+destroy all acquired native storage. Shutdown destroys the cached pools after its existing drain.
+
+A new list consumes every prewarmed pool in order before allocating more 32-set blocks. Allocation
+failure does not advance the pool cursor. `vkAllocateDescriptorSets` and full snapshot writes still
+run for each dispatch; live sets are never shared or rewritten. Native reset frees the previous
+sets only after their list retires. Per-list timestamp/query resources remain independent and new.
+Diagnostics add native descriptor pool creation, cache acquisition and current idle counts, all
+Vulkan-specific. Acquisition counts storage transfers, not reused logical sets or GPU memory.
+
+The native reuse oracle records96 unique workloads across three pools, abandons them, retains only
+two pools, re-records using both before creating the third, holds completed lists without returning
+storage, and verifies192 CPU results across execution and another abandoned replay. Existing
+serial/four-worker, 320 dispatch,48 graph,64 shared-input, failed/cancelled and graphics/query oracles
+also run. Benchmark JSON reports matched descriptor storage creation/acquisition counters; smoke
+checks verify fresh default pools and exclusively warmed opt-in storage. This is synchronous
+retirement reuse; asynchronous timelines, full feature admission and physical budgets remain open.
