@@ -443,6 +443,7 @@ readiness matrix and target-host advanced execution gates remain open.
 malformed/out-of-range/overlapping/duplicate-part and unordered-table checks on synthetic metadata.
 Those fixtures are not executable shaders. Slang-enabled Windows native builds additionally inspect
 the real generated vertex/fragment SM6.6 and compute SM6.0 artifacts, create baseline PSOs and
-reject a newer artifact requirement when the device itself supports it. These checks submit no GPU
-work. Linux portable acceptance cannot certify D3D12 execution. The new exported C++ helpers require
+reject a newer artifact requirement when the device itself supports it, and reject an explicitly
+requested compute artifact that contains a vertex program. The native fence event is created last
+so constructor rejection cannot leak its raw handle. These checks submit no GPU work. Linux portable acceptance cannot certify D3D12 execution. The new exported C++ helpers require
 module rebuild; the stable C ABI is unchanged.

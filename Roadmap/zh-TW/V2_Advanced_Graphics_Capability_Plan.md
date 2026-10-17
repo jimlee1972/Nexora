@@ -38,13 +38,15 @@ SM6.0 Compute Bytecode 滿足較新最低要求。沒有 DXIL 最低要求時保
 Portable 測試涵蓋 Stage／Profile 解碼、6.9／6.10 數值順序、每個截斷 Prefix、未排序
 Offset、畸形／溢位／重疊 Part 與重複 Program。Windows 啟用 Slang 的原生 CI 另讀取
 真正產生的 Artifact，檢查 SM6.6 圖形／SM6.0 Compute，建立基線 PSO，並在裝置支援時
-拒絕較新的 Artifact 要求。Metadata Reader 不驗證 LLVM、Checksum／簽章、Compiler
+拒絕較新的 Artifact 要求。指定錯誤 Stage 的 Compute Artifact 也會在裝置建構時遭拒；Raw Fence Event 改於最後
+建立，避免建構驗證失敗時洩漏 Handle。
+Metadata Reader 不驗證 LLVM、Checksum／簽章、Compiler
 來源或 Preview Opt-in，不能證明 SM6.9／6.10 執行，也未完成完整 Toolchain 矩陣 Gate。
 
 來源分支：`feat/v2-dxil-artifact-admission`；Beads `nexora-45y.2.9`。
 啟用 Slang 的 `cmake --preset linux-development` 與
 `cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
-`ctest --preset linux-development` **205/205 通過，零略過／失敗，185.38 秒**
+`ctest --preset linux-development` **205/205 通過，零略過／失敗，122.74 秒**
 （Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。聚焦執行
 `ctest --preset linux-development -R '^renderer\.(dxil_artifact_readiness|graphics_capabilities|contracts)$' --output-on-failure`：
 **3/3 通過，零略過，0.07 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。

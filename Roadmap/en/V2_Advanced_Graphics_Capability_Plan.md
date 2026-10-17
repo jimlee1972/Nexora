@@ -46,13 +46,15 @@ Portable tests cover stage/profile decoding, numeric 6.9/6.10 order, every trunc
 unordered offsets, malformed/overflowing/overlapping parts and duplicate programs. Windows
 Slang-enabled native CI additionally reads actual generated artifacts, checks SM6.6 graphics and
 SM6.0 compute, creates baseline PSOs and rejects newer requirements when the device supports them.
+An explicitly requested wrong-stage compute artifact is also rejected at device construction;
+the raw fence event is created last to avoid leaking it if constructor validation fails.
 Metadata inspection does not validate LLVM, checksums/signatures, compiler provenance or preview
 opt-in. It cannot establish SM6.9/6.10 execution or close the complete toolchain matrix gate.
 
 Source branch: `feat/v2-dxil-artifact-admission`; Beads `nexora-45y.2.9`.
 Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
 pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
-185.38 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+122.74 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
 `ctest --preset linux-development -R '^renderer\.(dxil_artifact_readiness|graphics_capabilities|contracts)$' --output-on-failure`:
 **3/3 pass, zero skips, 0.07 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
 A Linux metadata-only probe also accepts real vkd3d-proton DXIL fixtures: compute SM6.6 (2660 bytes),

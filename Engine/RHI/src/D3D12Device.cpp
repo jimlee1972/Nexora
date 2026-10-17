@@ -360,9 +360,6 @@ public:
     rtv_increment_ = device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
     Check(device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_)), "CreateFence");
-    fence_event_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-    if (!fence_event_)
-      throw std::runtime_error("CreateEventW failed");
 
     CreateRootSignature();
     CreateFrameConstants();
@@ -384,6 +381,11 @@ public:
       vertex_shader_ = CompileShader(kTriangleShader, "vsMain", "vs_5_0");
       pixel_shader_ = CompileShader(kTriangleShader, "psMain", "ps_5_0");
     }
+    // Create the raw event last: constructor failures (including artifact rejection) must not
+    // leak a handle, since the device destructor does not run for a failed constructor.
+    fence_event_ = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    if (!fence_event_)
+      throw std::runtime_error("CreateEventW failed");
   }
 
   ~D3D12Device() override {

@@ -150,10 +150,20 @@ void TestNativeArtifacts() {
              "DXIL artifact shader model is too low");
     }
   }
+  const std::string alternate{vertex};
+  const std::string original_compute{compute};
+  struct RestoreCompute final {
+    std::string previous;
+    ~RestoreCompute() { (void)_putenv_s("NEXORA_SLANG_COMPUTE_DXIL_PATH", previous.c_str()); }
+  } restore{original_compute};
+  Require(_putenv_s("NEXORA_SLANG_COMPUTE_DXIL_PATH", alternate.c_str()) == 0,
+          "could not select wrong-stage requested artifact");
+  Reject([&] { (void)CreateDevice(Backend::Direct3D12); },
+         "DXIL artifact stage does not match the pipeline stage");
   Require(device->Diagnostics().submitted_command_lists == 0,
           "artifact admission unexpectedly submitted native work");
   std::cout << "Native Slang DXIL: vertex/fragment SM6.6, compute SM6.0; baseline PSOs and "
-               "device-supported newer artifact requirement rejection passed\n";
+               "device-supported newer requirement and requested wrong-stage rejection passed\n";
 }
 #endif
 } // namespace
