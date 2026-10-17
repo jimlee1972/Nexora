@@ -410,9 +410,18 @@ unknown rather than reusing an earlier poweroff. Local regressions: 12 Python te
 ✅ A full current-state recovery clone passed **two cold boots, 14/14 cases, save visits 0–4,
 120 native Zig frames per cycle, zero residual Player and two normal poweroffs**.
 [Raw reports and scope](../../Engine/TwoD/evidence/Windows-VM-Recovery-2026-10-17/acceptance.md)
-preserve the old 806-NUL inventory and failed attempts. The original guest's second-boot Windows
-login stall remains unresolved and its RAM/disks remain saved; only the new clone's duplicated RAM
+preserve the old 806-NUL inventory and failed attempts. At that run's end the original guest's second-boot Windows
+login stall remained unresolved and its RAM/disks remained saved; only the new clone's duplicated RAM
 state was discarded. No old snapshot was restored or original save deleted. This is a recovered
 VM/software correctness slice using frozen source `63bb5f7a`, not pristine/physical-PC acceptance.
 Physical controller/audio/DPI, integrated product and minimum-hardware gates remain open;
 **M6/M7 NOT ACCEPTED, 9/11 (82%), P0 6/8** stay unchanged.
+
+✅ Original-VM recovery follow-up (`nexora-j4q.7.7`): after the user's restart restored the desktop,
+the original UUID passed **two cold boots, 14/14 cases, visits 0–4, 120 native Zig frames per cycle,
+zero residual Player and two normal poweroffs**. This is bounded recovery verification; the prior
+Welcome stall's root cause is not proven. See the [original-VM record](../../Engine/TwoD/evidence/Windows-Original-VM-2026-10-17/acceptance.md)
+for preservation checks, historical RAM-state limits and frozen binary identity. A third read-only
+cold boot confirms 16 old save hashes, both snapshot UUIDs/current selection and older snapshot RAM
+unchanged, followed by normal poweroff. Full M6/M7 and
+**9/11 (82%), P0 6/8** remain unchanged.

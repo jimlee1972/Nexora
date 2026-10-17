@@ -372,7 +372,14 @@ level 3，再透過 InteractiveToken 工作執行；關閉前確認 fixture 像�
 ✅ 完整目前狀態的恢復複本已通過**兩次冷開機、14/14 案例、存檔 visits 0–4、每輪 120 個
 Zig 原生幀、零殘留 Player 與兩次正常 poweroff**。
 [原始報告與範圍](../../Engine/TwoD/evidence/Windows-VM-Recovery-2026-10-17/acceptance.md)
-保留舊 806-NUL inventory 與失敗嘗試。原 VM 第二次開機的 Windows 登入停滯仍未解決，RAM／
+保留舊 806-NUL inventory 與失敗嘗試。該輪結束時，原 VM 第二次開機的 Windows 登入停滯仍未解決，RAM／
 磁碟維持 saved；只移除新複本重複的 RAM 狀態，沒有還原舊 snapshot 或刪除原存檔。此為凍結
 `63bb5f7a` 的恢復 VM／軟體正確性切片，不是乾淨／實體 PC 驗收。實體手把／音訊／DPI、
 整合產品與最低硬體門檻仍開放；**M6／M7 NOT ACCEPTED、9/11（82%）、P0 6/8** 不變。
+
+✅ 原 VM 恢復後續（`nexora-j4q.7.7`）：使用者重開機恢復桌面後，原 UUID 已通過
+**兩次冷開機、14/14 案例、visits 0–4、每輪 120 個 Zig 原生幀、零殘留 Player 與兩次正常關機**。
+此為有界的恢復驗證，尚未證明先前「歡迎」停滯的根因。保留檢查、歷史 RAM 狀態限制與凍結
+二進位身分見[原 VM 紀錄](../../Engine/TwoD/evidence/Windows-Original-VM-2026-10-17/acceptance.md)。
+第三次唯讀冷開機確認 16 個舊存檔雜湊、兩個 snapshot UUID／目前選擇與舊 snapshot RAM 不變，並正常關機。
+完整 M6／M7 與 **9/11（82%）、P0 6/8** 維持不變。

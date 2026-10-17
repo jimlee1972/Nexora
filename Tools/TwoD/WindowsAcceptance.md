@@ -68,6 +68,20 @@ Guest Control 本身在 Session 0 執行，因此透過本輪唯一的 Interacti
 達到相同門檻，未達時仍失敗，不會減少預留額度。
 清理失敗時總結的 final state 為 unknown，另保留最後觀測狀態；不能沿用上一輪的 poweroff。
 
+### 「歡迎」畫面停滯後的恢復驗證
+
+先核對原 VM 的 UUID 與 snapshot 清單，保留 VBox.log、失敗報告及現有存檔的路徑／SHA-256。
+`running` 或 Guest Additions level 2 都不代表已登入桌面。已由使用者重開機恢復時，記錄實際
+操作與觀測結果；不要把 recovery clone 的成功，或事件記錄中的單一延遲，當成原 VM 根因已修復。
+不刪除 profile／存檔、不還原 snapshot，也不由驗收工具捨棄 saved state 或強制關機。
+
+確認原 VM 已達 desktop level 3 後，使用 `shutdown.exe /s /t 0` 正常關機，實際觀察到
+`poweroff` 才開始上面的兩輪驗收。慢速 VM 可明確設定 `--boot-timeout 600`，仍須在期限內
+到達桌面並完成所有案例；逾時不是通過。驗收後再比對原有存檔雜湊、snapshot UUID 與目前
+snapshot，區分「本輪未再發生」與「已證明永久排除根因」。保留前次失敗證據並新增本輪紀錄。
+
+## Windows 實體驗收清單
+
 | 實機項目 | 操作與通過條件 | 要保留的證據 |
 | --- | --- | --- |
 | 鍵鼠／重綁 | 測試所有遊戲動作、滑鼠按鍵與滾輪；重綁後舊鍵不再觸發，新鍵與 UI 操作一致。若遊戲提供設定保存，重啟後確認保留。 | 按鍵／動作表、重綁前後結果 |
