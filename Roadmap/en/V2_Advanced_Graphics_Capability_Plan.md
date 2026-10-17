@@ -17,7 +17,7 @@ Vulkan core capability discovery; explicit preferred/fallback selection; PSO cre
 and complete capability requirements in PSO cache identity. Unknown support fails closed, numeric
 versions distinguish SM 6.10 from 6.9, and native feedback tiers 90/100 map to 0.9/1.0.
 
-Parallel recording, fence-retired worker descriptors and allocators, compiler/artifact matrix
+General parallel recording, fence-retired worker descriptors and allocators, compiler/artifact matrix
 integration, CPU/GPU benchmarks and all V2-GFX-2 through
 V2-GFX-5 native execution remain open. No native advanced feature is marked complete by admission
 tests or device hardware queries.
@@ -29,7 +29,52 @@ The native test compares 320 unique workloads in serial/four-worker recording mo
 reverse ordered submission after all workers join, completion-before-destruction and missing/stale
 binding rejection. All output identities, classification data and indirect draw prefixes match
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
-RenderGraph scheduling and other backend worker ownership are not complete.
+General RenderGraph scheduling and other backend worker ownership are not complete.
+
+### Bounded graph compute recording — 2026-10-17
+
+✅ Explicit opt-in graph scheduling now records independent, buffer-only Compute passes on the
+existing JobSystem in bounded batches. Validation and Vulkan expose limited admission separately
+from the still-disabled full `ParallelCommandRecording` feature. Unmarked callbacks, textures,
+other queues/backends, any shared buffer (including read/read), explicit dependencies and missing,
+stopped or single-worker pools retain serial execution. The original `Execute(device)` stays serial.
+
+The coordinator owns allocator/list creation, joins all started recording jobs, submits in compiled
+order and waits each completion value before list retirement. A failed recording batch submits
+nothing; deterministic callback errors stop successors. Submit/wait failures drain before releasing
+lists. This is completion-aware retirement by waiting, not asynchronous worker reuse.
+
+Source branch: `feat/v2-parallel-graph-recording`, base `63bb5f7a49e5ec9df0b285494e79ee046c61a6f7`.
+Beads: `nexora-45y.2.3`; parent `nexora-45y.2` and full V2-GFX-1 remain open.
+
+- `cmake --preset linux-development` and `cmake --build --preset linux-development`: passed.
+- Xvfb/native-required `ctest --preset linux-development`: **194/194 passed, zero skips/failures,
+  102.26 seconds**, using Slang 2026.18 SPIR-V, Mesa lavapipe 24.0.5 and Zig 0.14.0.
+- `ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|graph_buffer_dependencies|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven)$' --output-on-failure`:
+  **6/6 passed, zero skips, 0.27 seconds**.
+- `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping`: passed,
+  Monolithic/Minimal with LTO, including the final completion-wait implementation.
+- Touched-file `clang-format --dry-run --Werror` and `git diff --check`: passed.
+
+Portable tests force concurrent callbacks and reverse completion, verify fixed submission and
+bounded allocation, dependent waves, resource/queue/texture/explicit-edge fallbacks, legacy serial
+execution, stopped/missing/single-worker pools, deterministic recording failure, no failed-batch
+submission and completion-before-retirement through a modeled deferred device. Submission failure
+injection models work accepted by a native queue and requires draining before allocator release,
+in both serial and parallel paths. Scheduling exceptions also join every started job by design;
+internal JobSystem allocation failure is not fault-injected.
+
+The native Vulkan descriptor test retains its 320 isolated dispatch comparisons and additionally
+runs 24 unique workloads through two WAW graph waves in serial/four-worker modes (48 exact CPU
+reference comparisons). Timed rendezvous requires all four callbacks to overlap. An injected
+recording failure preserves every output sentinel, performs no submission/readback, joins all
+workers and permits successful reuse of the same borrowed buffers. The normal path stays
+readback-free. This proves Linux software-device correctness; it does not establish CPU-overhead
+reduction, physical-GPU timing, general graphics/texture recording, shared-read concurrency,
+D3D12/Metal worker safety, cancellation or asynchronous multi-queue retirement. The compiler/artifact
+matrix, matched CPU median/p95, GPU time/memory budgets and all full gates stay open. No shader,
+SDK, feature default or stable C ABI changes. See the
+[execution contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-recording).
 
 ### Buffer dependencies and compiled barrier plans — 2026-10-17
 
@@ -93,7 +138,7 @@ a missed-first-input recovery, an all-input-missing rejection and the local Zig-
 **190/190 gate (zero skips/failures, 135.96 seconds)** pass. This retains all original native
 assertions and adds exact restore comparison. See the
 [2D acceptance follow-up](../../Engine/TwoD/evidence/Cooked-Services-Linux-2026-10-16/acceptance.md#movement-and-save-acknowledgement-follow-up).
-Final hosted CI is still required for the corrected head.
+PR [#618](https://github.com/jimlee1972/Nexora/pull/618) subsequently merged after both hosted workflows succeeded.
 
 ### Acceptance evidence — 2026-10-16
 
@@ -117,8 +162,7 @@ The first Windows CI compile found a WinGDI `DeviceCapabilities` macro collision
 snapshot type. The type is now `GraphicsDeviceCapabilities`; the capability regression test also
 loads Windows headers before the public RHI headers. This preserves the SDK macro for consumers
 rather than undefining it. The failure enum likewise uses `NoFailure` instead of X11's `None`,
-and Linux builds with Window enabled compile the admission header after Xlib. Final platform CI
-acceptance remains required for the corrected head.
+and Linux builds with Window enabled compile the admission header after Xlib. PR [#615](https://github.com/jimlee1972/Nexora/pull/615) subsequently merged after all 36 hosted checks succeeded.
 
 The native test uses Slang's existing `-target spirv -profile glsl_450
 -fvk-use-entrypoint-name` contract with `vertexMain`/`fragmentMain` and `computeMain` artifacts,

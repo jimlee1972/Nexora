@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Nexora/Core/JobSystem.h"
 #include "Nexora/RHI/Device.h"
 #include "Nexora/Renderer/Api.h"
 
@@ -57,6 +58,15 @@ public:
     std::function<void(const ExternalPassContext &)> external_execute{};
     std::vector<BufferUse> buffer_reads{};
     std::vector<BufferUse> buffer_writes{};
+    // Promise: compute-only commands, complete buffer declarations and thread-safe captures.
+    bool allow_parallel_recording{false};
+  };
+  enum class RecordingMode : std::uint8_t { Serial, Parallel };
+  struct ExecutionOptions final {
+    RecordingMode recording_mode{RecordingMode::Serial};
+    // Borrowed, started pool. Execute runs on a coordinator outside this pool.
+    core::JobSystem *recording_jobs{};
+    std::size_t max_parallel_passes{4};
   };
   struct Statistics final {
     std::size_t pass_count{};
@@ -67,6 +77,11 @@ public:
     std::size_t completed_pass_count{};
     std::size_t buffer_barrier_count{};
     std::size_t buffer_queue_transfer_count{};
+    std::size_t parallel_recorded_pass_count{};
+    std::size_t parallel_batch_count{};
+    std::size_t serial_recorded_pass_count{};
+    std::size_t parallel_fallback_pass_count{};
+    std::size_t max_parallel_batch_size{};
   };
 
   // Borrowed buffers must remain alive through execution. No transient buffers are allocated.
@@ -86,6 +101,7 @@ public:
   void AddDependency(std::size_t before, std::size_t after);
   void Compile();
   void Execute(rhi::Device &device);
+  void Execute(rhi::Device &device, const ExecutionOptions &options);
   [[nodiscard]] std::span<const std::size_t> ExecutionOrder() const noexcept {
     return execution_order_;
   }
@@ -119,6 +135,7 @@ private:
   std::vector<PassDescriptor> passes_;
   std::vector<std::vector<std::size_t>> explicit_edges_;
   std::vector<std::size_t> execution_order_;
+  std::vector<std::vector<std::size_t>> predecessors_;
   Statistics statistics_;
   bool compiled_{false};
 };

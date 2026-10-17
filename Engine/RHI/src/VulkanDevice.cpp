@@ -579,6 +579,7 @@ void VulkanDevice::SelectPhysicalDevice() {
         capabilities_.driver_version = properties.driverVersion;
         capabilities_.dxil_shader_model_support = CapabilitySupport::Unsupported;
         const bool compute = (queues[index].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+        capabilities_.independent_compute_recording = compute;
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Compute)] = {
             compute ? CapabilitySupport::Supported : CapabilitySupport::Unsupported,
             compute ? FeatureVersion{1, 0} : FeatureVersion{}, compute, true};

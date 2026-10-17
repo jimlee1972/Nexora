@@ -59,6 +59,8 @@ struct GraphicsDeviceCapabilities final {
   std::array<GraphicsFeatureCapability, GraphicsFeatureCount> features{};
   CapabilitySupport dxil_shader_model_support{CapabilitySupport::Unknown};
   FeatureVersion highest_dxil_shader_model{};
+  // Limited admission: independent buffer-only compute lists; not the full parallel feature gate.
+  bool independent_compute_recording{};
 };
 struct GraphicsRequirements final {
   // {0, 0} means unused. Tierless features use {1, 0}; feedback may require {0, 9}.

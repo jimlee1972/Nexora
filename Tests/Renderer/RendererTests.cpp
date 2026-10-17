@@ -41,6 +41,11 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
   const auto capabilities = device->Capabilities();
   Require(capabilities.backend == backend && !capabilities.validation_only,
           "native capability snapshot has wrong backend or reports a validation model");
+  const auto compute =
+      capabilities.features[static_cast<std::size_t>(rhi::GraphicsFeature::Compute)];
+  Require(capabilities.independent_compute_recording ==
+              (backend == rhi::Backend::Vulkan && compute.enabled && compute.implemented),
+          "native backend advertised an unvalidated independent compute recording path");
   std::cout << "Native capabilities backend=" << static_cast<unsigned>(backend)
             << " software=" << capabilities.software_device << " vendor=" << capabilities.vendor_id
             << " device=" << capabilities.device_id << " driver=" << capabilities.driver_version

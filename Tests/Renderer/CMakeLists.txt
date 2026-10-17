@@ -23,6 +23,12 @@ target_link_libraries(NexoraRenderGraphBufferTests PRIVATE Nexora::Renderer)
 nexora_apply_defaults(NexoraRenderGraphBufferTests)
 add_test(NAME renderer.graph_buffer_dependencies COMMAND NexoraRenderGraphBufferTests)
 
+add_executable(NexoraParallelRenderGraphTests ParallelRenderGraphTests.cpp)
+target_link_libraries(NexoraParallelRenderGraphTests PRIVATE Nexora::Renderer)
+nexora_apply_defaults(NexoraParallelRenderGraphTests)
+add_test(NAME renderer.parallel_graph_recording COMMAND NexoraParallelRenderGraphTests)
+set_tests_properties(renderer.parallel_graph_recording PROPERTIES TIMEOUT 60)
+
 add_executable(NexoraGraphicsCapabilityTests GraphicsCapabilityTests.cpp)
 target_link_libraries(NexoraGraphicsCapabilityTests PRIVATE Nexora::Renderer)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND TARGET Nexora::Window)

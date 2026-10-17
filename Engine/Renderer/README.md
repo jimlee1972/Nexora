@@ -284,6 +284,63 @@ aliases, stale imports, repeated execution, callback failure and initial transie
 ordering, derives the graphics dependency from its indirect read, and compares test-only readbacks
 to the CPU reference on Vulkan/D3D12. Production passes perform no readback.
 
-Execution is still serial. Logical queues currently alias one synchronous native queue; these
-plans do not implement asynchronous queue-family ownership transfers, parallel recording,
-Enhanced Barriers, aliasing, or fence-retired worker reuse. Their capability gates remain open.
+Default recording remains serial; the bounded opt-in compute path is described below. Logical
+queues currently alias one native queue. Asynchronous queue-family transfers, general parallel
+recording, Enhanced Barriers, aliasing and reusable fence-retired workers remain open gates.
+
+## Bounded opt-in parallel compute recording
+
+The existing `Execute(device)` stays serial. Callers can pass `ExecutionOptions` with
+`RecordingMode::Parallel`, a borrowed started `core::JobSystem` and a nonzero batch limit (default
+four). Each participating pass must explicitly set `allow_parallel_recording`. This is a promise
+that the callback records compute commands only, declares every accessed buffer, uses pre-created
+immutable pipelines/resources and has thread-safe captures. Callbacks must not allocate, upload,
+mutate or destroy device resources, submit/wait/read back, mutate the graph, or control the job
+pool's lifecycle. CPU effects of successful siblings in a failed batch cannot be rolled back.
+
+Parallel admission additionally requires the device's limited `independent_compute_recording`
+contract. Only Validation and supported Vulkan compute devices currently admit it; D3D12, Metal
+and custom devices default to serial fallback. The full `ParallelCommandRecording` feature stays
+disabled/unimplemented. This admission is neither a general graphics-recording guarantee nor a
+shader requirement, SDK tier or performance claim.
+
+A batch contains two or more contiguous passes in the compiled topological order, bounded by both
+the requested limit and the pool's worker count. Passes must use the Compute queue, declare at
+least one buffer and no textures, have no dependency edge within the batch, and share no buffer
+at all (including read/read). A conflict ends the batch; singleton, graphics/texture/external,
+unmarked and unsupported paths remain serial. Explicit and inferred dependencies still determine
+order. Each completed batch submits and waits before recording the next batch, so dependent
+callbacks cannot run before their predecessors complete. External execution never uses this pool.
+
+The coordinator allocates all lists/allocators before launching jobs, hands each job exclusive
+recording ownership, joins every started job and submits in compiled order, regardless of callback
+completion order. A callback or scheduling exception submits none of that batch and prevents
+successors. Already submitted earlier batches are retained. Errors are selected in graph order
+among callbacks, ahead of a later scheduling error. Submission and `WaitForSubmission` execute
+only on the coordinator; lists and their descriptor pools survive completion. A submit/wait error
+attempts `WaitIdle` before freeing the affected lists, then propagates. This waits for retirement;
+it does not implement asynchronous worker reuse or multi-queue timelines.
+
+`Execute` must run on a coordinator outside the supplied pool. The caller keeps that pool started
+and alive and serializes its Start/Stop/destruction against the call; resource/device/graph mutation
+also stays serialized. A missing, stopped or one-worker pool, or a limit of one, selects serial
+fallback. Invalid modes and a zero limit fail before recording. Nested coordination on the same
+pool is unsupported because waiting workers could exhaust it.
+
+Statistics distinguish successful parallel/serial recording, parallel batch count, serial fallback
+under a parallel request and maximum scheduled batch size. The last is a scheduling bound, not a
+measured concurrency/timing peak. Successful siblings may count as recorded even when their failed
+batch never submits; `completed_pass_count` counts only submissions whose completion wait returns.
+Buffer/texture barrier counters still count emitted recording work. All C++ modules must rebuild
+for the appended capability/descriptor/statistics fields; the stable C ABI is unchanged.
+
+`renderer.parallel_graph_recording` forces overlap and reverse callback completion, checks exact
+submission order and batch bounds, resource/explicit-edge fallbacks, dependent waves, default
+serial compatibility, missing/stopped/single-worker pools, deterministic callback errors, no failed
+batch submission and completion-before-retirement (including submit errors after modeled queue
+acceptance). The existing Vulkan descriptor test additionally runs 24 unique workloads through two
+WAW graph waves in serial and four-worker modes, requires native worker overlap, compares 48
+results to the CPU reference and verifies that aborted recording preserves all sentinel output
+before reusing the same buffers. Tests do not establish reduced CPU overhead. Broader backend
+workers, shared-read optimization, graphics/texture concurrency, cancellation, async retirement,
+compiler/artifact readiness and matched CPU/GPU/memory benchmarks remain separate gates.

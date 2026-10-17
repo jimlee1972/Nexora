@@ -61,6 +61,14 @@ recording; full graph parallelism and performance acceptance remain open. 每次
 快照已於序列／四個 worker 錄製通過 320 組 CPU／原生軟體裝置精確比對；完整圖形排程平行化
 與效能驗收仍待完成。詳細證據見上述雙語圖形計畫。
 
+
+✅ V2-GFX-1 bounded graph compute recording / 有界 Graph Compute 錄製（2026-10-17）：explicit
+opt-in, disjoint buffer-only Vulkan/Validation batches preserve deterministic submission and serial
+fallback; Linux native output and failure-containment checks pass. General backend workers,
+asynchronous retirement and performance acceptance remain open. 明確 opt-in 的獨立 Buffer Compute
+批次已通過 Linux 原生輸出與失敗隔離驗證，保留固定提交及序列 Fallback；完整後端 Worker、
+非同步回收與效能驗收仍待完成。詳細證據見上述雙語圖形計畫。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).
