@@ -6,9 +6,13 @@ rewriting that run's failed/saved-state result. The Player binaries remain froze
 `63bb5f7a49e5ec9df0b285494e79ee046c61a6f7` (MSVC 19.44.35228 x64, Monolithic Shipping).
 This change repairs the acceptance tooling, not the engine/rendering binaries.
 
+Subsequent original-VM recovery is recorded in the
+[nexora-j4q.7.7 follow-up](../Windows-Original-VM-2026-10-17/acceptance.md).
+The saved/stalled original state below describes the end of this earlier run.
+
 ✅ **The full recovery clone passed two cold-boot cycles (14/14 process cases), including two
-observed normal poweroffs.** The original VM remains saved with an unresolved Windows login
-stall. This accepts the recovered VM fixture/transport slice, not the original guest's login,
+observed normal poweroffs.** At the end of this run the original VM remained saved with an
+unresolved Windows login stall. This accepts the recovered VM fixture/transport slice, not the original guest's login,
 a pristine host or complete M6/M7.
 
 ## Findings and repair

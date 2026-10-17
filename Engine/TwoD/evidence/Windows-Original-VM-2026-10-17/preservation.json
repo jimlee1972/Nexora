@@ -1,0 +1,201 @@
+{
+  "schema": 1,
+  "status": "PASS",
+  "vm_uuid": "71571b18-806d-425b-ad19-712c9043663d",
+  "scope": "All pre-existing .nxsav files under the three recorded fixture/default-save roots; not an entire-filesystem comparison.",
+  "roots": [
+    "C:\\NexoraAcceptance620",
+    "C:\\NexoraVmAcceptance",
+    "C:\\Users\\nexora\\AppData\\Local\\Nexora"
+  ],
+  "before_utc": "2026-10-17T07:05:17.0249170Z",
+  "after_utc": "2026-10-17T07:23:14.2030169Z",
+  "old_save_count": 16,
+  "post_run_save_count": 23,
+  "unchanged_old_saves": [
+    {
+      "path": "C:\\NexoraAcceptance620\\isolated-saves-06fcaa479603489f9bf57bd91e3236e0\\visits.nxsav",
+      "length": 65,
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8"
+    },
+    {
+      "path": "C:\\NexoraAcceptance620\\isolated-saves-59c27ee934d445d1b8615aa3e6d1f984\\visits.nxsav",
+      "length": 65,
+      "sha256": "98ce42deef51d40269d542f5314bef2c7468d401ad5d85168bfab4c0108f75f7"
+    },
+    {
+      "path": "C:\\NexoraAcceptance620\\isolated-saves-fc0d7e552f7c412fb7ad91e3b3b3d3e0\\visits.nxsav",
+      "length": 65,
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8"
+    },
+    {
+      "path": "C:\\NexoraAcceptance620\\中文進度\\visits.nxsav",
+      "length": 65,
+      "sha256": "3c7e9dd401e2b11c90b45cca6834cdfd418f4da7fd25c176be1459dd6d104ead"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-009adf106277428c9d3a65863e54d053\\close-saves-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-009adf106277428c9d3a65863e54d053\\durable-saves\\visits.nxsav",
+      "length": 65,
+      "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-009adf106277428c9d3a65863e54d053\\negative-save-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-009adf106277428c9d3a65863e54d053\\中文進度-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-4dacf44ce6d340d49d27c68fe5eaff19\\close-saves-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-4dacf44ce6d340d49d27c68fe5eaff19\\durable-saves\\visits.nxsav",
+      "length": 65,
+      "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-4dacf44ce6d340d49d27c68fe5eaff19\\negative-save-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-4dacf44ce6d340d49d27c68fe5eaff19\\中文進度-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-86439d1fb0a54ec7a9bdbf9f42e96fe0\\durable-saves\\visits.nxsav",
+      "length": 65,
+      "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-86439d1fb0a54ec7a9bdbf9f42e96fe0\\negative-save-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8"
+    },
+    {
+      "path": "C:\\NexoraVmAcceptance\\run-86439d1fb0a54ec7a9bdbf9f42e96fe0\\中文進度-1\\visits.nxsav",
+      "length": 65,
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b"
+    },
+    {
+      "path": "C:\\Users\\nexora\\AppData\\Local\\Nexora\\Games\\game-com.nexora.acceptance.20261017\\saves\\visits.nxsav",
+      "length": 65,
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b"
+    }
+  ],
+  "snapshots_unchanged": true,
+  "snapshot_listing": [
+    "SnapshotName=\"ZS-M5-Clean-Windows10-Base\"",
+    "SnapshotUUID=\"e973ecf7-f2a7-415c-9753-19316d7d7e03\"",
+    "SnapshotDescription=\"Fresh Windows 10 target after unattended installation, Guest Additions installation, reboot, and installation-media removal; before package transfer.\"",
+    "SnapshotName-1=\"ZS-M5-Clean-Windows10-Base-NoMedia\"",
+    "SnapshotUUID-1=\"9d46e380-d1e3-46d5-8847-fe2bd889d4e8\"",
+    "SnapshotDescription-1=\"Fresh Windows 10 target after Guest Additions installation and reboot, with installation media detached; before package transfer.\"",
+    "CurrentSnapshotName=\"ZS-M5-Clean-Windows10-Base-NoMedia\"",
+    "CurrentSnapshotUUID=\"9d46e380-d1e3-46d5-8847-fe2bd889d4e8\"",
+    "CurrentSnapshotNode=\"SnapshotName-1\""
+  ],
+  "snapshot_ram": {
+    "file": "2026-09-30T17-03-37-400972700Z.sav",
+    "size": 683274300,
+    "before_sha256": "d997c4f821f8a2e5c2726671a67ab04feb3a972f99c45bebab3bde2ea83c7c18",
+    "after_sha256": "d997c4f821f8a2e5c2726671a67ab04feb3a972f99c45bebab3bde2ea83c7c18"
+  },
+  "previous_failed_execution_ram_present_at_initial_filesystem_check": false,
+  "damaged_inventory_sha256": "f860ea6cfbfe8ddb3862a09c1b443f3273dac1a4757ce9e7a3b34d46f971ff10",
+  "post_acceptance_read_only_boot": {
+    "last_boot_utc": "2026-10-17T07:20:39.5000000Z",
+    "desktop_run_level": 3,
+    "player_processes": 0,
+    "normal_poweroff": true
+  },
+  "boot_events": [
+    {
+      "utc": "2026-10-17T07:20:44.0520752Z",
+      "id": 12,
+      "provider": "Microsoft-Windows-Kernel-General"
+    },
+    {
+      "utc": "2026-10-17T07:19:37.1370458Z",
+      "id": 13,
+      "provider": "Microsoft-Windows-Kernel-General"
+    },
+    {
+      "utc": "2026-10-17T07:21:58.0871366Z",
+      "id": 6005,
+      "provider": "EventLog"
+    },
+    {
+      "utc": "2026-10-17T07:19:29.7568100Z",
+      "id": 6006,
+      "provider": "EventLog"
+    },
+    {
+      "utc": "2026-10-17T07:19:21.6822937Z",
+      "id": 1074,
+      "provider": "User32"
+    },
+    {
+      "utc": "2026-10-17T07:14:06.9319212Z",
+      "id": 12,
+      "provider": "Microsoft-Windows-Kernel-General"
+    },
+    {
+      "utc": "2026-10-17T07:13:02.0738743Z",
+      "id": 13,
+      "provider": "Microsoft-Windows-Kernel-General"
+    },
+    {
+      "utc": "2026-10-17T07:15:23.7363421Z",
+      "id": 6005,
+      "provider": "EventLog"
+    },
+    {
+      "utc": "2026-10-17T07:12:53.6156541Z",
+      "id": 6006,
+      "provider": "EventLog"
+    },
+    {
+      "utc": "2026-10-17T07:12:47.0441105Z",
+      "id": 1074,
+      "provider": "User32"
+    },
+    {
+      "utc": "2026-10-17T07:07:09.1864213Z",
+      "id": 12,
+      "provider": "Microsoft-Windows-Kernel-General"
+    },
+    {
+      "utc": "2026-10-17T07:05:40.9358688Z",
+      "id": 13,
+      "provider": "Microsoft-Windows-Kernel-General"
+    },
+    {
+      "utc": "2026-10-17T07:08:39.5816656Z",
+      "id": 6005,
+      "provider": "EventLog"
+    },
+    {
+      "utc": "2026-10-17T07:05:29.0187435Z",
+      "id": 6006,
+      "provider": "EventLog"
+    },
+    {
+      "utc": "2026-10-17T07:05:20.0000063Z",
+      "id": 1074,
+      "provider": "User32"
+    }
+  ],
+  "final_vm_state": "poweroff"
+}
