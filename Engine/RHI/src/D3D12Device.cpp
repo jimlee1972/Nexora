@@ -1,3 +1,4 @@
+#include "ComputeReferenceArtifact.h"
 #if !defined(_WIN32)
 #error "D3D12Device.cpp is only built on Windows"
 #endif
@@ -967,12 +968,10 @@ public:
 #else
       throw std::invalid_argument("modern shader programs were not compiled in");
 #endif
-    } else if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
-      selected_compute =
-          required_artifact("NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH", ShaderStage::Compute);
-    } else if (descriptor.compute_shader == ComputeShaderVariant::SamplerFeedbackReference) {
-      selected_compute =
-          required_artifact("NEXORA_SLANG_FEEDBACK_REFERENCE_DXIL_PATH", ShaderStage::Compute);
+    } else if (descriptor.compute_shader != ComputeShaderVariant::GPUDriven) {
+      selected_compute = required_artifact(
+          detail::ComputeReferenceEnvironment(descriptor.compute_shader, Backend::Direct3D12),
+          ShaderStage::Compute);
     }
     if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
       selected_vertex =
@@ -2065,8 +2064,9 @@ void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group
       throw std::logic_error("D3D12 dispatch requires all storage bindings");
     (void)device_.ValidateBuffer(storage_handles_[index]);
   }
-  if (compute_shader_ >= ComputeShaderVariant::LongVector69 &&
-      compute_shader_ <= ComputeShaderVariant::GroupShared610) {
+  if ((compute_shader_ >= ComputeShaderVariant::LongVector69 &&
+       compute_shader_ <= ComputeShaderVariant::GroupShared610) ||
+      IsModernComputeReference(compute_shader_)) {
     if (group_count_x != 1 || group_count_y != 1 || group_count_z != 1 ||
         storage_handles_[0] == storage_handles_[1] ||
         device_.ValidateBuffer(storage_handles_[0]).descriptor.size < 128 ||

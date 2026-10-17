@@ -1107,3 +1107,30 @@ all seven cases including both feedback barrier modes and Node/Feedback/Node. Fi
 local and hosted validation remains required. Physical performance and full V2-GFX gates stay open.
 
 The integrated final local gate passes Development223/223,zero failures/skips (130.05s), Shipping Minimal/Monolithic/LTO, and Khronos object/synchronization19/19 (10.18s),41 confirmed layer insertions with zero Validation Error/VUID/SYNC-HAZARD markers. Actual feedback SDK helper and Windows-conditional preview test syntax pass with warnings-as-errors; documentation/workflow16/16 and guarded cleanup27/27 pass. Hosted Windows runtime readiness and all final-head CI checks remain required before merge.
+
+Modern compute lower-profile equivalents are under construction: explicit LongVectorReference, LinearAlgebraReference and GroupSharedReference variants preserve the accepted fixed-recipe buffer ABI on baseline Slang DXIL6.0/SPIR-V/Metal. The existing preferred/fallback policy remains explicit; these variants do not claim SM6.9/6.10 execution. Native parity, lifetime/synchronization and full platform validation are required before acceptance.
+
+### Lower-profile modern equivalents: local acceptance
+
+✅ Native Vulkan executes all three baseline equivalents with15 signed/zero/overflow fixtures,
+independent CPU oracles and exact output canaries. Bounds, missing/aliased/undersized bindings,
+CPU input/output mutation and handle recreation, abandoned recording, three-worker failure/cancel/
+replay, and three recipes in one list followed by an unused final binding pass. The CPU reduction
+oracle uses a closed form independent from the shader loop. Vulkan/Metal reference-only revision
+snapshots preflight before native Close/queue acceptance and publish writes after acceptance.
+
+Development configure/build/full Xvfb CTest passes221/221,zero failures/skips (168.88s); Shipping
+Minimal/Monolithic/LTO passes108 targets. Khronos object/synchronization19/19 passes11.13s with41
+confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers, including recreated
+native handles. All three real DXIL6.0, SPIR-V and Metal compilation recipes and portable syntax
+checks pass. The earlier disk-full run is not acceptance evidence; the complete rerun above passes
+after cleaning obsolete task-owned build caches. Windows/Metal native runtime and full hosted CI
+remain required; this is not modern-instruction execution or physical performance acceptance.
+
+Final reviewed-source full Development regression passes221/221 again,zero failures/skips (127.44s); Shipping rebuild passes. Paired documentation/workflow16/16 and guarded cleanup25/25 pass. No Windows/Metal runtime or parent-PR merge is inferred from these local gates.
+
+The integrated portable-equivalent candidate passes full native Slang/Zig Development224/224,zero failures/skips (130.55s), Shipping Minimal/Monolithic/LTO, and Khronos object/synchronization20/20 (10.95s),43 confirmed layer insertions with zero Validation Error/VUID/SYNC-HAZARD markers. Compiler syntax and documentation/workflow16/16 pass. Exact-branch obsolete-run cleanup includes only the fifth owned graphics branch;29/29 safety tests preserve both live-head events and other actors. Parent PR634 final-head native preview passes7/7 in both workflows, including14 feedback dispatches per barrier mode,64 enhanced buffer barriers and Node/Feedback/Node; its complete CI and this candidate target-platform CI remain required.
+
+Final-head preview job117482265049 failed during the Agility SDK post-build directory copy with Permission denied, before CTest. Modern/SER/VRS test executables shared one preview-runtime destination and independent post-build copies. Each preview executable now owns a distinct deployment directory (modern, SER, VRS image and feedback); existing target-relative DLL copies and CTest working directories keep ./Agility/ lookup private. This removes concurrent writes to the shared destination without weakening native fixtures. The exact cause of the Windows access denial is not inferred beyond the observed copy failure. Local/full hosted validation of the deployment correction remains required.
+
+The deployment-isolation correction passes full Development224/224,zero failures/skips (123.20s), Shipping Minimal/Monolithic/LTO, paired documentation/workflow16/16 and guarded cleanup29/29. Native Windows compilation/deployment and all seven preview cases, followed by both complete final-head event workflows, remain mandatory before merge.

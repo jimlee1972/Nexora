@@ -2447,3 +2447,5 @@ PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pip
 DXR1.2 後續加入獨立啟用的二狀態 Subdivision1 OMM Array／BLAS／TLAS 建置及明確允許 OMM 的 Traversal；全部16遮罩對照 CPU 與真實顯式微幾何 Compute，Windows 原生證據待驗證。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
 
 VRS Tier2 後續加入有界不可變 Rate Image、Snapshot／Reset／Generation 准入與硬體 SV_ShadingRate Witness；Windows Preview 原生證據待驗證，保留明確 Full-rate 後備。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Ultimate Gate 維持開放。
+
+現代運算的較低 profile 等效路徑施工中：明確的 LongVectorReference、LinearAlgebraReference、GroupSharedReference 以基準 Slang DXIL6.0／SPIR-V／Metal 保留已驗收固定配方的 buffer ABI。沿用明確 preferred／fallback 選擇；不宣稱這些變體執行 SM6.9／6.10。Linux 原生對照及生命週期／同步驗證記錄於進階圖形計畫；驗收前仍須完整託管平台驗證。

@@ -566,7 +566,7 @@ if(NEXORA_ENABLE_D3D12_SER)
     target_compile_definitions(NexoraSerRayTests PRIVATE NEXORA_TEST_OPACITY_NATIVE=1)
   endif()
   nexora_apply_defaults(NexoraSerRayTests)
-  set_target_properties(NexoraSerRayTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  set_target_properties(NexoraSerRayTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/ser-preview-runtime")
   add_dependencies(NexoraSerRayTests NexoraSerShaderArtifacts)
   add_custom_command(TARGET NexoraSerRayTests POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraSerRayTests> "$<TARGET_FILE_DIR:NexoraSerRayTests>"
@@ -614,7 +614,7 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
   target_link_libraries(NexoraShadingRateImagePreviewTests PRIVATE Nexora::Renderer)
   target_compile_definitions(NexoraShadingRateImagePreviewTests PRIVATE NEXORA_TEST_VRS_IMAGE_PREVIEW=1 _CRT_SECURE_NO_WARNINGS)
   nexora_apply_defaults(NexoraShadingRateImagePreviewTests)
-  set_target_properties(NexoraShadingRateImagePreviewTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  set_target_properties(NexoraShadingRateImagePreviewTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/vrs-image-preview-runtime")
   add_dependencies(NexoraShadingRateImagePreviewTests NexoraShadingRateWitnessArtifacts)
   add_custom_command(TARGET NexoraShadingRateImagePreviewTests POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraShadingRateImagePreviewTests> "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>"
@@ -626,4 +626,30 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
   set_tests_properties(renderer.shading_rate_image_preview renderer.shading_rate_image_preview_enhanced PROPERTIES TIMEOUT 180
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>"
     ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_REQUIRE_NATIVE_BACKENDS=1;NEXORA_VRS_WITNESS_VERTEX_PATH=${witness_output}/Witness.vertex.dxil;NEXORA_VRS_WITNESS_FRAGMENT_PATH=${witness_output}/Witness.fragment.dxil")
+endif()
+
+add_executable(NexoraModernComputeFallbackTests ModernComputeFallbackTests.cpp)
+target_link_libraries(NexoraModernComputeFallbackTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraModernComputeFallbackTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraModernComputeFallbackTests)
+add_test(NAME renderer.modern_compute_fallback COMMAND NexoraModernComputeFallbackTests)
+set_tests_properties(renderer.modern_compute_fallback PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraModernComputeFallbackTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  if(WIN32)
+    set(reference_api DXIL)
+  elseif(APPLE)
+    set(reference_api METAL)
+  else()
+    set(reference_api SPIRV)
+  endif()
+  foreach(recipe IN ITEMS LONG_VECTOR LINEAR_ALGEBRA GROUP_SHARED)
+    set_property(TEST renderer.modern_compute_fallback APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_${recipe}_REFERENCE_${reference_api}_PATH=${NEXORA_SLANG_${recipe}_REFERENCE_${reference_api}_OUTPUT}")
+  endforeach()
+  set_property(TEST renderer.modern_compute_fallback APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
 endif()

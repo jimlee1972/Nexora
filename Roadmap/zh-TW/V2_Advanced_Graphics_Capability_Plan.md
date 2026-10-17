@@ -1015,3 +1015,27 @@ variant 判斷。Preview 工作改為七項測試，包含兩種 feedback barrie
 Node／Feedback／Node。最終整合本機與託管驗證仍須通過；實體效能與完整 V2-GFX gate 維持開放。
 
 整合後最終本機 gate 通過 Development223/223，零失敗／跳過（130.05s）、Shipping Minimal／Monolithic／LTO，以及 Khronos 物件／同步19/19（10.18s），確認41次 layer 插入，零 Validation Error／VUID／SYNC-HAZARD。真正 feedback SDK helper 與 Windows 條件 preview 測試語法以警告即錯誤通過；文件／workflow16/16、清理安全測試27/27 通過。合併前仍須通過託管 Windows runtime 就緒狀態及全部最終版本 CI。
+
+現代運算的較低 profile 等效路徑施工中：明確的 LongVectorReference、LinearAlgebraReference、GroupSharedReference 以基準 Slang DXIL6.0／SPIR-V／Metal 保留已驗收固定配方的 buffer ABI。沿用明確 preferred／fallback 選擇；不宣稱這些變體執行 SM6.9／6.10。驗收前仍須原生結果對照、生命週期／同步與完整平台驗證。
+
+### 較低 profile 現代運算等效路徑：本機驗收
+
+✅ 原生 Vulkan 執行三種基準等效路徑，通過15組正負／零／溢位資料、獨立 CPU oracle 與精確輸出 canary。
+另通過範圍、缺少／別名／過小 binding、CPU 輸入／輸出變更及 handle 重建、放棄錄製、三工作執行緒
+失敗／取消／重試，以及同一列表三配方切換後最後 binding 無 dispatch 的測試。CPU reduction oracle
+使用與 Shader 迴圈獨立的封閉公式。Vulkan／Metal 僅針對等效變體新增版本 snapshot，在原生 Close／
+queue 接受前檢查，接受後才公布寫入版本。
+
+Development configure／build／完整 Xvfb CTest 通過221/221，零失敗／跳過（168.88s）；Shipping
+Minimal／Monolithic／LTO 通過108個 target。Khronos 物件／同步19/19 通過11.13s，確認41次 layer
+插入、零 Validation Error／VUID／SYNC-HAZARD 訊息，包含原生 handle 重建。三種真正 DXIL6.0、
+SPIR-V、Metal 編譯配方與可攜語法檢查通過。先前磁碟滿載的測試不列為驗收；清理過期任務建置暫存後，
+以上完整重跑已通過。Windows／Metal 原生 runtime 與完整託管 CI 仍待通過；不宣稱執行現代指令或實體效能。
+
+最終審查原始碼再次通過完整 Development221/221，零失敗／跳過（127.44s）；Shipping 重建通過。雙語文件／workflow16/16 與 guarded cleanup25/25 通過。以上本機 gate 不推論 Windows／Metal runtime 或前置 PR 已合併。
+
+整合後較低 profile 等效候選版本通過 Native Slang／Zig Development224/224，零失敗／跳過（130.55s）、Shipping Minimal／Monolithic／LTO，以及 Khronos 物件／同步20/20（10.95s），確認43次 layer 插入，零 Validation Error／VUID／SYNC-HAZARD。編譯語法及文件／workflow16/16 通過。過期 CI 清理僅加入第五個確切自有圖形分支；29/29 安全測試保留現行 head 的兩種事件及其他 actor。父 PR634 最終 head 的兩組原生 preview 均通過7/7，包含每種 barrier 模式14次 feedback dispatch、64次 enhanced buffer barrier 與 Node／Feedback／Node；其完整 CI 及本候選版本的目標平台 CI 仍須通過。
+
+最終版本 preview 工作117482265049 在建置後複製 Agility SDK 目錄時遭 Permission denied，尚未進入 CTest。Modern／SER／VRS 測試程式原先共用 preview-runtime 目的目錄，且各自執行複製。現在每個預覽程式使用獨立部署目錄（modern、SER、VRS image、feedback）；既有相對 target 的 DLL 複製與 CTest 工作目錄讓 ./Agility/ 查找保持私有。此修正消除共用目的目錄的並行寫入，不放寬原生測試。除已觀察到的複製失敗外，不推定 Windows 拒絕存取的確切原因。部署修正仍須通過本機與完整託管驗證。
+
+部署隔離修正通過完整 Development224/224，零失敗／跳過（123.20s）、Shipping Minimal／Monolithic／LTO、雙語文件／workflow16/16 與清理安全測試29/29。合併前仍須通過原生 Windows 編譯／部署與七項 preview 測試，以及兩套完整最終版本 workflow。

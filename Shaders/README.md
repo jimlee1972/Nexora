@@ -191,3 +191,12 @@ reordering; OPTIONS22 and native output tests provide independent evidence.
 SV_ShadingRate into R/G bytes. It verifies actual tier2 image selection separately from gradient
 quality comparisons and permits finer rates at primitive edges. Canonical Slang profiles stay
 unchanged; compilation alone is not native rate-image proof.
+
+## Baseline equivalents of fixed modern compute
+
+LongVectorReference.slang, LinearAlgebraReference.slang and GroupSharedReference.slang compile under
+the existing precise DXIL SM6.0, SPIR-V glsl450 and Metal SM6.0 profiles. All expose `computeMain`
+with one thread/group, t0 input and u1 output. The vector kernel uses eight scalar integers, matrix
+arithmetic uses ordinary F32 operations, and the reduction uses scalar accumulation without large
+shared storage. These implement equivalent bounded results, not the modern instructions. Baseline
+profiles and external dependencies do not change; GPU parity/canaries and target CI remain required.

@@ -994,3 +994,26 @@ Ray build preflight requires a nonzero result within the64MiB bound and bounds s
 A zero scratch requirement retains no scratch resource and passes a null scratch GPU address;
 positive scratch retains the existing creation-fence lifetime. Zero result sizes remain errors with
 operation/result/scratch diagnostics. Native preview acceptance must confirm these build paths.
+
+## Explicit lower-profile modern compute equivalents
+
+`LongVectorReference`, `LinearAlgebraReference` and `GroupSharedReference` provide baseline
+Slang SM6.0/SPIR-V/Metal implementations of the fixed modern recipes. No modern feature bit or
+preview runtime is implied. All variants preserve the t0 input/u1 output and four-root binding ABI,
+one group, distinct input/output resources of at least128/32 bytes, unchanged output canaries,
+and the existing per-list snapshots/generation validation. Variant identity participates in PSO
+cache identity. Append-only enum identities preserve all existing modern and feedback recipes;
+all C++ modules require a coordinated rebuild, with no stable C ABI or cooked-format change.
+
+The scalar group reduction computes the same unsigned result without64KiB shared storage. Every
+entry uses one thread per group, matching the existing Metal dispatch contract. Artifact selection
+is explicit and validates entry/stage through existing backend admission. Absent artifacts fail
+before pipeline creation; no reference is silently substituted for a selected modern recipe.
+Preferred/fallback choice remains the caller's responsibility. General shader authoring and physical
+performance are outside this bounded equivalent; native and hosted acceptance remains pending.
+
+For these reference variants, Vulkan and Metal capture all four buffer generations/data revisions
+at each dispatch under the device mutex. CPU writes advance revisions; Submit rejects a changed or
+recreated resource before native Close/queue acceptance. Accepted GPU writes publish revisions;
+immutable shared inputs preserve theirs. This reference bookkeeping is per command list. Callers
+still retain resources until completion under the existing synchronous ownership contract.

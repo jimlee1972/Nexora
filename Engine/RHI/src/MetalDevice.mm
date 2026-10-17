@@ -1,3 +1,4 @@
+#include "ComputeReferenceArtifact.h"
 #if !defined(__APPLE__)
 #error "MetalDevice.mm is only built on Apple platforms"
 #endif
@@ -110,6 +111,13 @@ public:
 
 private:
   friend class MetalDevice;
+  struct ReferenceBufferSnapshot final {
+    BufferHandle handle;
+    std::uint64_t revision;
+    bool writes{};
+  };
+  void SnapshotReferenceBuffers();
+  std::unordered_map<std::uint64_t, ReferenceBufferSnapshot> reference_buffers_;
   struct TextureSnapshot final {
     TextureHandle handle;
     std::uint64_t revision;
@@ -128,6 +136,7 @@ private:
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
+  ComputeShaderVariant compute_shader_{ComputeShaderVariant::GPUDriven};
   GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool submitted_{false};
   bool closed_{false};
@@ -240,6 +249,7 @@ struct MetalDevice::PipelineRecord final {
 struct MetalDevice::BufferRecord final {
   BufferDescriptor descriptor;
   id<MTLBuffer> buffer{};
+  std::uint64_t revision{};
 };
 
 MetalDevice::MetalDevice(const DeviceCreationOptions &options) {
@@ -433,6 +443,7 @@ void MetalDevice::WriteBuffer(BufferHandle buffer, std::uint64_t offset,
   Require(offset <= record.descriptor.size && data.size() <= record.descriptor.size - offset,
           "Metal buffer upload exceeds allocation");
   std::memcpy(static_cast<std::byte *>(record.buffer.contents) + offset, data.data(), data.size());
+  ++record.revision;
 }
 
 void MetalDevice::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
@@ -470,32 +481,31 @@ PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor)
     if (descriptor.type == PipelineType::Compute) {
       id<MTLFunction> selected_compute = compute_function_;
       if (descriptor.compute_shader != ComputeShaderVariant::GPUDriven) {
-        const auto *environment = descriptor.compute_shader == ComputeShaderVariant::RayReference
-                                      ? "NEXORA_SLANG_RAY_REFERENCE_METAL_PATH"
-                                      : "NEXORA_SLANG_FEEDBACK_REFERENCE_METAL_PATH";
+        const auto *environment =
+            detail::ComputeReferenceEnvironment(descriptor.compute_shader, Backend::Metal);
         const auto *path = std::getenv(environment);
         if (!path || !*path)
-          throw std::runtime_error("required ray reference Metal artifact is unset");
+          throw std::runtime_error("required compute reference Metal artifact is unset");
         NSString *source = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:path]
                                                      encoding:NSUTF8StringEncoding
                                                         error:&error];
         if (!source || source.length == 0)
-          throw std::runtime_error("ray reference Metal artifact is missing or empty");
-        MTLCompileOptions *ray_options = [MTLCompileOptions new];
+          throw std::runtime_error("compute reference Metal artifact is missing or empty");
+        MTLCompileOptions *reference_options = [MTLCompileOptions new];
         // Keep explicit NaN/Inf rejection valid, including on the older supported Metal SDKs.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        ray_options.fastMathEnabled = NO;
+        reference_options.fastMathEnabled = NO;
 #pragma clang diagnostic pop
         id<MTLLibrary> library = [device_ newLibraryWithSource:source
-                                                       options:ray_options
+                                                       options:reference_options
                                                          error:&error];
         if (!library)
-          throw std::runtime_error("ray reference Metal compilation failed: " +
+          throw std::runtime_error("compute reference Metal compilation failed: " +
                                    ErrorDescription(error));
         selected_compute = [library newFunctionWithName:@"computeMain"];
         if (!selected_compute)
-          throw std::runtime_error("ray reference Metal entry is missing");
+          throw std::runtime_error("compute reference Metal entry is missing");
       }
       record.compute_pipeline = [device_ newComputePipelineStateWithFunction:selected_compute
                                                                        error:&error];
@@ -605,6 +615,10 @@ std::uint64_t MetalDevice::Submit(CommandList &commands) {
         Require(ValidateTextureLocked(entry.second.handle).revision == entry.second.revision,
                 "stale Metal texture recording snapshot");
       }
+      for (const auto &entry : validated->reference_buffers_) {
+        Require(ValidateBufferLocked(entry.second.handle).revision == entry.second.revision,
+                "stale Metal modern-reference buffer snapshot");
+      }
       validated->Close();
       [validated->command_buffer_ commit];
       for (const auto &entry : validated->texture_snapshots_) {
@@ -612,6 +626,9 @@ std::uint64_t MetalDevice::Submit(CommandList &commands) {
         texture.logical_state = entry.second.state;
         ++texture.revision;
       }
+      for (const auto &entry : validated->reference_buffers_)
+        if (entry.second.writes)
+          ++buffers_.at(entry.first).revision;
       validated->MarkSubmitted();
       ++diagnostics_.submitted_command_lists;
       diagnostics_.barriers += validated->Barriers();
@@ -794,6 +811,7 @@ void MetalCommandList::BindPipeline(PipelineHandle pipeline) {
       throw std::logic_error("cannot bind a pipeline on a submitted Metal command list");
     auto &record = device_.ValidatePipeline(pipeline);
     pipeline_type_ = record.descriptor.type;
+    compute_shader_ = record.descriptor.compute_shader;
     graphics_shader_ = record.descriptor.graphics_shader;
     if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
       throw std::logic_error("Metal pipeline type does not match rendering state");
@@ -867,6 +885,24 @@ void MetalCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_c
   }
 }
 
+void MetalCommandList::SnapshotReferenceBuffers() {
+  if (!IsModernComputeReference(compute_shader_))
+    return;
+  std::lock_guard lock{device_.mutex_};
+  for (std::size_t slot = 0; slot < storage_buffers_.size(); ++slot) {
+    if (!storage_bound_[slot])
+      throw std::logic_error("modern reference requires all four storage bindings");
+    const auto handle = storage_buffers_[slot];
+    const auto &record = device_.ValidateBufferLocked(handle);
+    auto &snapshot = reference_buffers_
+                         .try_emplace(Key(handle), ReferenceBufferSnapshot{handle, record.revision})
+                         .first->second;
+    device_.Require(snapshot.revision == record.revision,
+                    "modern reference buffer changed during recording");
+    snapshot.writes |= slot != 0;
+  }
+}
+
 void MetalCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
                                 std::uint32_t groups_z) {
   @autoreleasepool {
@@ -874,13 +910,21 @@ void MetalCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
         pipeline_type_ != PipelineType::Compute || !compute_encoder_ || groups_x == 0 ||
         groups_y == 0 || groups_z == 0)
       throw std::logic_error("invalid Metal dispatch");
-    if (device_.canonical_compute_) {
+    if (device_.canonical_compute_ || IsModernComputeReference(compute_shader_)) {
       for (std::size_t index = 0; index < storage_bound_.size(); ++index) {
         if (!storage_bound_[index])
           throw std::logic_error("Metal GPU-driven dispatch requires all storage bindings");
         (void)device_.ValidateBuffer(storage_buffers_[index]);
       }
     }
+    if (IsModernComputeReference(compute_shader_) &&
+        (groups_x != 1 || groups_y != 1 || groups_z != 1 ||
+         storage_buffers_[0] == storage_buffers_[1] ||
+         device_.ValidateBuffer(storage_buffers_[0]).descriptor.size < 128 ||
+         device_.ValidateBuffer(storage_buffers_[1]).descriptor.size < 32))
+      throw std::logic_error(
+          "modern reference requires one group and distinct 128/32-byte buffers");
+    SnapshotReferenceBuffers();
     const MTLSize threadsPerGroup = MTLSizeMake(1, 1, 1);
     const MTLSize threadgroups = MTLSizeMake(groups_x, groups_y, groups_z);
     [compute_encoder_ dispatchThreadgroups:threadgroups threadsPerThreadgroup:threadsPerGroup];
