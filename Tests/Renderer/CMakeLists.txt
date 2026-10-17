@@ -415,3 +415,28 @@ if(WIN32 AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_SLANG)
     ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1"
     "NEXORA_SLANG_MESH_DXIL_PATH=${NEXORA_SLANG_MESH_DXIL_OUTPUT}")
 endif()
+
+add_executable(NexoraWorkGraphTests WorkGraphTests.cpp)
+target_link_libraries(NexoraWorkGraphTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraWorkGraphTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraWorkGraphTests)
+add_test(NAME renderer.work_graph COMMAND NexoraWorkGraphTests)
+set_tests_properties(renderer.work_graph PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraWorkGraphTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  set_property(TEST renderer.work_graph APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()
+if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
+  add_test(NAME renderer.work_graph_enhanced_barriers COMMAND NexoraWorkGraphTests --enhanced-barriers)
+  set_tests_properties(renderer.work_graph_enhanced_barriers PROPERTIES TIMEOUT 120 LABELS "d3d12;native-acceptance")
+  set_property(TEST renderer.work_graph_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  add_dependencies(NexoraWorkGraphTests ${NEXORA_WORK_GRAPH_ARTIFACT_TARGET})
+  set_property(TEST renderer.work_graph renderer.work_graph_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}"
+    "NEXORA_D3D12_WORK_GRAPH_WRONG_ABI_DXIL_PATH=${NEXORA_WORK_GRAPH_WRONG_ABI_OUTPUT}")
+endif()

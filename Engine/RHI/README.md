@@ -717,3 +717,57 @@ barrier counts. Graph ShaderRead buffers may use pixel, non-pixel or combined na
 all three project to shader-read memory access. Mixed SRV/UAV states remain unadmitted. The SDK
 adapter regression covers this boundary explicitly. Neither unavailable enhanced requests nor
 Linux pure-policy checks certify native D3D12 execution.
+
+## Optional bounded native Work Graphs
+
+`NEXORA_ENABLE_D3D12_WORK_GRAPHS` defaults off. Opt-in requires Windows native D3D12, SDK list10
+interfaces, a discovered SDK dxc.exe (or explicit NEXORA_DXC_EXECUTABLE), and the existing Slang
+compute fallback. It independently compiles lib_6_8 HLSL nodes; baseline Slang/profiles stay unchanged.
+Runtime device queries still separate hardware tier, compiled implementation and successful native
+list10/Device5 admission. The implementation tier is capped at1.0. New C++ virtual methods/types
+require module rebuild; stable C ABI and cooked ShaderModuleArtifact encoding remain unchanged.
+
+CreateWorkGraph admits a bounded visible-record expansion recipe, implicitly requiring WG1.0 and
+SM6.8 without weakening explicit requirements. It loads the requested bounded DXIL library, checks
+actual profile against requested minimum and device maximum, then validates real native program/
+node properties: one named program, producer/consumer nodes, one producer entry with eight-byte
+CPU input, and no local root arguments. Missing/wrong library kinds reject before native state
+creation; entry ABI mismatches release temporary native state before handle publication. A dedicated
+root signature exposes only the output UAV. No arbitrary shader resources are implicitly inherited.
+
+WorkGraphInput is two uint32 words, count/first_object_slot. Count is0..8 and slot ranges cannot
+overflow or produce the invalid UINT32_MAX slot. The GPU producer fans out child records, whose
+consumer writes five-word visible instances (slot,generation1,mesh11,material13,LOD0). This is a
+fixed bootstrap recipe, not general graph authoring, GPUScene integration or frustum culling.
+The existing GPUDriven compute/indirect path is the explicit fallback/reference for equivalent
+known-visible candidates. Library kind/profile metadata never implies Node/RT exports: the
+single-entry DXIL inspector still rejects libraries, and actual exports/ABI require native checks.
+
+BindWorkGraph selects an immutable program and resets its explicit output binding. BindStorageBuffer
+slot1 supplies at least160 bytes; DispatchWorkGraph validates it and records one CPU input record.
+D3D12 copies that record during recording. Each list retains at most four program snapshots and
+four dispatch contexts, each with a fresh private backing resource and INITIALIZE. Exact native
+MinSizeInBytes is used, capped at64MiB/context; native-valid zero uses no fabricated allocation.
+Command-list interfaces retire before private backing, state objects, roots and query resources.
+No backing memory is shared between live contexts, cached or asynchronously reused.
+
+Output buffers use existing potential-UAV-write revisions and caller/graph-owned dependencies.
+CPU mutation/readback invalidates stale lists. Program destroy/recreate invalidates recorded handles;
+Submit validates all snapshots before closing/executing. Private references preserve safe cleanup
+for abandoned/rejected lists, and all submitted objects still outlive completion. Ordered submission
+remains synchronous on the existing native queue. Accepted diagnostics count graph API dispatches,
+including zero-child fanout; they do not count GPU child invocations. Graph/ordinary-compute binding
+switches restore their respective private root signatures and program state.
+
+renderer.work_graph checks input/profile/tier admission, real GPU compute/CPU visible records with
+untouched sentinels, fanout0/1/8 and high uint slots, forced two-worker failure/cancellation/replay,
+missing/wrong libraries and actual compiled wrong entry ABI. Native runs also test stale output/
+program generations, abandonment, four distinct copied CPU records/private contexts and mixed
+Graph/Compute/Graph execution. Generated manifests record requested profile, actual compiler version
+and source/binary hashes, with native execution explicitly pending. Fallback-only/compilation output
+is not native Work Graph proof. General graphs, graphics nodes, async queues, physical budgets and
+SM6.9/6.10/full V2-GFX-5 acceptance remain open.
+
+The Windows node oracle also runs `--enhanced-barriers`, preserving the same CPU/compute,
+revision and cancellation checks and requiring nonzero accepted enhanced buffer barriers when
+the feature is enabled. A legacy/unavailable route must leave these counters zero.

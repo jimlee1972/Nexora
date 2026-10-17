@@ -113,7 +113,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
-      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }} -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
+      - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_D3D12_WORK_GRAPHS=${{ runner.os == 'Windows' && 'ON' || 'OFF' }} -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }} -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
       - run: cmake --build --preset ${{ matrix.preset }}
       - name: Require the graphical Editor contract
         shell: bash
@@ -267,7 +267,7 @@ jobs:
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           VK_LOADER_DEBUG: layer
         run: |
-          ctest --preset linux-development -R '^(renderer\.mesh_shader|renderer\.shading_rate|renderer\.tessellation|renderer\.submission_gpu_timing|renderer\.vulkan_recording_gpu_timing|renderer\.vulkan_recording_benchmark(_reuse)?|renderer\.vulkan_(recording|graphics)_resource_reuse|renderer\.contracts|renderer\.v2_gpu_driven|renderer\.vulkan_(descriptor_isolation|texture_recording)|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
+          ctest --preset linux-development -R '^(renderer\.work_graph|renderer\.mesh_shader|renderer\.shading_rate|renderer\.tessellation|renderer\.submission_gpu_timing|renderer\.vulkan_recording_gpu_timing|renderer\.vulkan_recording_benchmark(_reuse)?|renderer\.vulkan_(recording|graphics)_resource_reuse|renderer\.contracts|renderer\.v2_gpu_driven|renderer\.vulkan_(descriptor_isolation|texture_recording)|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
           grep -Eq 'Insert(ed)? device layer.*VK_LAYER_KHRONOS_validation' build/linux-development/native-validation.log
           if grep -Eq 'Validation Error|VUID-|SYNC-HAZARD-' build/linux-development/native-validation.log; then
             echo "Native Vulkan validation reported an error" >&2

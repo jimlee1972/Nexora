@@ -698,6 +698,37 @@ baked parity, artifact negatives and overlapping-worker cancellation/replay. Met
 baked fallback and explicitly reports native tessellation unavailable. Broader authoring/cook and
 physical acceptance remain open.
 
+## V2-GFX-5 bounded Work Graph construction status
+
+A default-off Windows-native option uses separately discovered SDK DXC for SM6.8 node libraries,
+retaining Slang compute/indirect fallback and baseline profiles. Real Linux DXC1.9.2609.5 compiles
+the two-node library; the actual engine library inspector reads SM6.8 while its single-entry
+inspector rejects libraries. Slang2026.18 does not implement the required Node types, so the normal
+Slang route is not used. Native SDK helper syntax checks pass; no D3D12 execution is claimed yet.
+
+The bounded recipe expands one eight-byte CPU input into up to eight canonical visible records.
+Native creation validates program/nodes/entry ABI and a dedicated output-only root. Each live list
+owns fresh initialization/backing contexts, immutable program snapshots and existing output revision
+checks. Oracles compare CPU/real GPU compute, wrong compiled ABI, stale/abandoned resources, copied
+input records, mixed program/root state and cancellation/replay. Source
+`feat/v2-native-work-graph-fanout`, Beads `nexora-45y.6.1`.
+
+✅ Local library/admission and real compute fallback acceptance: Linux Development configure/build
+and full CTest pass 217/217 with no failures or skips (133.53s); Shipping Minimal/Monolithic LTO
+build passes. Focused library/mesh/VRS/work-graph/runtime tests pass 7/7 after the final input-bound
+changes (0.26s). Khronos object/synchronization validation passes 14/14 (15.65s), with 33 confirmed
+layer insertions and zero validation errors/VUID/synchronization hazards. Native Work Graph
+execution remains pending on Windows; the Linux fallback reports enabled=0 and dispatches=0.
+General graphs/graphics nodes, newer shader profiles, physical budgets and all full gates stay open.
+
+
+The Work Graph candidate now includes PR632's latest combined barrier/mesh/VRS source dependency.
+After integration, Development configure/build and full CTest pass **218/218**, zero failures/skips
+(133.84s), Shipping Minimal/Monolithic LTO passes, and focused contracts/profile tests pass **8/8**.
+The native Khronos object/sync selection passes **13/13** (4.06s), with24 confirmed layer insertions
+and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
+pending; successful Linux compute fallback is not native node proof.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

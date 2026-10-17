@@ -69,7 +69,7 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
   for (const auto feature :
        {rhi::GraphicsFeature::ParallelCommandRecording, rhi::GraphicsFeature::EnhancedBarriers,
         rhi::GraphicsFeature::RayTracing, rhi::GraphicsFeature::SamplerFeedback,
-        rhi::GraphicsFeature::WorkGraphs, rhi::GraphicsFeature::ShaderExecutionReordering}) {
+        rhi::GraphicsFeature::ShaderExecutionReordering}) {
     rhi::PipelineDescriptor unsupported{rhi::TrianglePipelineLayout().layout_hash, 0x1234,
                                         rhi::TextureFormat::Rgba8Unorm, "Unsupported feature"};
     unsupported.graphics_requirements.minimum_tiers[static_cast<std::size_t>(feature)] = {1, 0};

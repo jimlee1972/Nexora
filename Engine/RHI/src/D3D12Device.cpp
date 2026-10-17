@@ -32,6 +32,7 @@
 
 #include "D3D12EnhancedBarriers.h"
 #include "D3D12MeshPipeline.h"
+#include "D3D12WorkGraphs.h"
 
 namespace nexora::rhi {
 namespace {
@@ -150,6 +151,12 @@ std::uint64_t Key(PipelineHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
 
+#if NEXORA_D3D12_WORK_GRAPHS
+std::uint64_t Key(WorkGraphHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+#endif
+
 std::uint64_t Key(BufferHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
@@ -259,6 +266,17 @@ public:
                 std::uint32_t group_count_z) override;
   void DrawIndirect(std::uint32_t draw_count) override;
   void DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) override;
+#if NEXORA_D3D12_WORK_GRAPHS
+  void BindWorkGraph(WorkGraphHandle graph) override;
+  void DispatchWorkGraph(WorkGraphInput input) override;
+#endif
+  [[nodiscard]] std::uint64_t WorkGraphDispatches() const noexcept {
+#if NEXORA_D3D12_WORK_GRAPHS
+    return work_graph_dispatches_;
+#else
+    return 0;
+#endif
+  }
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -300,6 +318,19 @@ private:
   std::unordered_map<std::uint64_t, BufferSnapshot> buffer_snapshots_;
   std::optional<double>
   GpuMilliseconds(std::chrono::steady_clock::time_point submitted) const noexcept;
+#if NEXORA_D3D12_WORK_GRAPHS
+  struct WorkGraphSnapshot final {
+    WorkGraphHandle handle;
+    detail::NativeWorkGraph program;
+  };
+  // These references retire after every native command-list interface, even on abandonment.
+  std::array<WorkGraphSnapshot, detail::WorkGraphListCapacity> work_graph_snapshots_{};
+  std::array<Microsoft::WRL::ComPtr<ID3D12Resource>, detail::WorkGraphListCapacity>
+      work_graph_backing_{};
+  std::size_t work_graph_snapshot_count_{};
+  std::size_t bound_work_graph_{}; // One-based private snapshot index, zero is unbound.
+  std::uint64_t work_graph_dispatches_{};
+#endif
   Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestamp_heap_;
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
@@ -310,6 +341,9 @@ private:
   std::uint64_t enhanced_buffer_barriers_{};
   std::uint64_t enhanced_texture_barriers_{};
 
+#if NEXORA_D3D12_WORK_GRAPHS
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList10> graph_list_;
+#endif
 #if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> shading_list_;
 #endif
@@ -423,6 +457,25 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))) &&
           SUCCEEDED(probe.As(&mesh_interface)))
         mesh.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
+#if NEXORA_D3D12_WORK_GRAPHS
+    auto &work_graph =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::WorkGraphs)];
+    work_graph.implemented = true;
+    work_graph.implemented_tier = {1, 0};
+    if (work_graph.support == CapabilitySupport::Supported &&
+        capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 8} &&
+        SUCCEEDED(device_.As(&graph_device_))) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList> probe;
+      ComPtr<ID3D12GraphicsCommandList10> graph_interface;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))) &&
+          SUCCEEDED(probe.As(&graph_interface)))
+        work_graph.enabled = SUCCEEDED(probe->Close());
     }
 #endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
@@ -767,6 +820,43 @@ public:
     Require(pipeline_pool_.Destroy(pipeline), "destroying stale D3D12 pipeline");
   }
 
+#if NEXORA_D3D12_WORK_GRAPHS
+  WorkGraphHandle CreateWorkGraph(const WorkGraphDescriptor &descriptor) override {
+    const auto requirements = EffectiveWorkGraphRequirements(descriptor);
+    RequireGraphicsCapabilities(Capabilities(), requirements);
+    const auto *path = std::getenv("NEXORA_D3D12_WORK_GRAPH_DXIL_PATH");
+    if (!path || !*path)
+      throw std::runtime_error("required Work Graph DXIL library is unset");
+    const auto size = std::filesystem::file_size(std::filesystem::path(path));
+    if (size == 0 || size > 16ULL * 1024 * 1024)
+      throw std::invalid_argument("Work Graph library exceeds the admitted size range");
+    ComPtr<ID3DBlob> library;
+    Check(D3DReadFileToBlob(std::filesystem::path(path).c_str(), &library),
+          "Read Work Graph library");
+    const auto bytes = std::span<const std::byte>{
+        static_cast<const std::byte *>(library->GetBufferPointer()), library->GetBufferSize()};
+    const auto info = RequireDxilLibrary(bytes, requirements.minimum_dxil_shader_model);
+    if (info.shader_model > capabilities_.highest_dxil_shader_model)
+      throw std::invalid_argument("selected Work Graph library profile exceeds the device limit");
+    auto program = detail::CreateNativeWorkGraph(*graph_device_.Get(), bytes);
+    std::lock_guard lock{mutex_};
+    const auto handle = work_graph_pool_.Create();
+    try {
+      work_graphs_.emplace(Key(handle), std::move(program));
+    } catch (...) {
+      (void)work_graph_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+  void DestroyWorkGraph(WorkGraphHandle graph) override {
+    std::lock_guard lock{mutex_};
+    Require(work_graph_pool_.Contains(graph) && work_graphs_.contains(Key(graph)),
+            "destroying invalid Work Graph program");
+    work_graphs_.erase(Key(graph));
+    Require(work_graph_pool_.Destroy(graph), "destroying stale Work Graph program");
+  }
+#endif
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override {
     if (queue == QueueType::Copy)
       throw std::invalid_argument("D3D12 backend does not expose a copy command list");
@@ -795,6 +885,13 @@ public:
         Require(ValidateTextureLocked(snapshot.handle).revision == snapshot.revision,
                 "stale D3D12 texture recording snapshot");
       }
+#if NEXORA_D3D12_WORK_GRAPHS
+      for (std::size_t index = 0; index < validated->work_graph_snapshot_count_; ++index) {
+        const auto handle = validated->work_graph_snapshots_[index].handle;
+        Require(work_graph_pool_.Contains(handle) && work_graphs_.contains(Key(handle)),
+                "stale Work Graph recording snapshot");
+      }
+#endif
       validated->Close();
       ID3D12CommandList *native_list = validated->list_.Get();
       if (capabilities_.gpu_timing_enabled)
@@ -825,6 +922,7 @@ public:
       diagnostics_.draw_calls += validated->DrawCalls();
       diagnostics_.coarse_shading_draw_calls += validated->coarse_shading_draws_;
       diagnostics_.mesh_dispatch_calls += validated->mesh_dispatches_;
+      diagnostics_.work_graph_dispatch_calls += validated->WorkGraphDispatches();
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
       fence_value = ++next_fence_;
@@ -1016,6 +1114,9 @@ private:
 
   GraphicsDeviceCapabilities capabilities_;
   ComPtr<ID3D12Device> device_;
+#if NEXORA_D3D12_WORK_GRAPHS
+  ComPtr<ID3D12Device5> graph_device_;
+#endif
 #if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
     defined(__ID3D12Device2_INTERFACE_DEFINED__)
   ComPtr<ID3D12Device2> mesh_device_;
@@ -1042,6 +1143,10 @@ private:
   core::HandlePool<BufferTag> buffer_pool_;
   std::unordered_map<std::uint64_t, TextureRecord> textures_;
   std::unordered_map<std::uint64_t, PipelineRecord> pipelines_;
+#if NEXORA_D3D12_WORK_GRAPHS
+  core::HandlePool<WorkGraphTag> work_graph_pool_;
+  std::unordered_map<std::uint64_t, detail::NativeWorkGraph> work_graphs_;
+#endif
   std::unordered_map<std::uint64_t, BufferRecord> buffers_;
   DeviceDiagnostics diagnostics_;
 
@@ -1253,6 +1358,9 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   if (submitted_ || closed_)
     throw std::logic_error("cannot bind a pipeline on a submitted D3D12 command list");
   const auto &record = device_.ValidatePipeline(pipeline);
+#if NEXORA_D3D12_WORK_GRAPHS
+  bound_work_graph_ = 0;
+#endif
   pipeline_type_ = record.type;
   topology_ = record.topology;
   graphics_shader_ = record.graphics_shader;
@@ -1383,6 +1491,69 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
   if (shading_rate_ != ShadingRate::Full)
     ++coarse_shading_draws_;
 }
+
+#if NEXORA_D3D12_WORK_GRAPHS
+void D3D12CommandList::BindWorkGraph(WorkGraphHandle graph) {
+  if (submitted_ || closed_ || rendering_)
+    throw std::logic_error("invalid Work Graph binding scope");
+  std::lock_guard lock{device_.mutex_};
+  device_.Require(device_.work_graph_pool_.Contains(graph) &&
+                      device_.work_graphs_.contains(Key(graph)),
+                  "binding stale Work Graph program");
+  std::size_t index = 0;
+  while (index < work_graph_snapshot_count_ && work_graph_snapshots_[index].handle != graph)
+    ++index;
+  if (index == work_graph_snapshot_count_) {
+    if (index == work_graph_snapshots_.size())
+      throw std::logic_error("Work Graph list program capacity exceeded");
+    work_graph_snapshots_[index] = {graph, device_.work_graphs_.at(Key(graph))};
+    ++work_graph_snapshot_count_;
+  }
+  bound_work_graph_ = index + 1;
+  pipeline_bound_ = false;
+  storage_bound_[1] = false; // Require explicit output binding for this program selection.
+}
+void D3D12CommandList::DispatchWorkGraph(WorkGraphInput input) {
+  if (submitted_ || closed_ || rendering_ || !bound_work_graph_ || !storage_bound_[1] ||
+      !IsWorkGraphInputValid(input) || work_graph_dispatches_ == work_graph_backing_.size())
+    throw std::logic_error("invalid or out-of-capacity Work Graph dispatch");
+  const auto output = storage_handles_[1];
+  if (device_.ValidateBuffer(output).descriptor.size <
+      WorkGraphMaximumRecords * WorkGraphVisibleRecordWords * sizeof(std::uint32_t))
+    throw std::logic_error("Work Graph output requires eight five-word visible records");
+  auto *resource = PrepareBuffer(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  if (!graph_list_)
+    Check(list_.As(&graph_list_), "QueryInterface(command list10 Work Graph)");
+  const auto &program = work_graph_snapshots_[bound_work_graph_ - 1].program;
+  ComPtr<ID3D12Resource> backing;
+  if (program.backing_bytes) {
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heap.CreationNodeMask = 1;
+    heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC description{};
+    description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    description.Width = program.backing_bytes;
+    description.Height = 1;
+    description.DepthOrArraySize = 1;
+    description.MipLevels = 1;
+    description.SampleDesc = {1, 0};
+    description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    description.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    Check(device_.device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description,
+                                                   D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nullptr,
+                                                   IID_PPV_ARGS(&backing)),
+          "CreateCommittedResource(Work Graph private backing)");
+  }
+  // Each dispatch owns a fresh context and INITIALIZE, including rebinds in this same list.
+  auto &owned = work_graph_backing_[static_cast<std::size_t>(work_graph_dispatches_)];
+  owned = std::move(backing);
+  list_->SetComputeRootSignature(program.root.Get());
+  list_->SetComputeRootUnorderedAccessView(0, resource->GetGPUVirtualAddress());
+  detail::RecordNativeWorkGraph(*graph_list_.Get(), program, owned.Get(), input);
+  ++work_graph_dispatches_;
+}
+#endif
 
 void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint32_t z) {
   if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||

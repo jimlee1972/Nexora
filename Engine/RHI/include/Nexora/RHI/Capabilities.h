@@ -48,4 +48,6 @@ NEXORA_RHI_API void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities
 EffectivePipelineRequirements(const PipelineDescriptor &descriptor);
 NEXORA_RHI_API void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                                 const PipelineDescriptor &descriptor);
+[[nodiscard]] NEXORA_RHI_API GraphicsRequirements
+EffectiveWorkGraphRequirements(const WorkGraphDescriptor &descriptor);
 } // namespace nexora::rhi

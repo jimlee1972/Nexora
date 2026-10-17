@@ -41,6 +41,7 @@ struct DeviceDiagnostics final {
 
   std::uint64_t coarse_shading_draw_calls{};
   std::uint64_t mesh_dispatch_calls{};
+  std::uint64_t work_graph_dispatch_calls{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -86,6 +87,12 @@ public:
   virtual void DispatchMesh(std::uint32_t, std::uint32_t = 1, std::uint32_t = 1) {
     throw std::logic_error("mesh dispatch is unsupported");
   }
+  virtual void BindWorkGraph(WorkGraphHandle) {
+    throw std::logic_error("work graphs are unsupported");
+  }
+  virtual void DispatchWorkGraph(WorkGraphInput) {
+    throw std::logic_error("work graphs are unsupported");
+  }
   virtual void EndRendering() = 0;
 };
 
@@ -125,6 +132,12 @@ public:
   }
   [[nodiscard]] virtual PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) = 0;
   virtual void DestroyPipeline(PipelineHandle pipeline) = 0;
+  [[nodiscard]] virtual WorkGraphHandle CreateWorkGraph(const WorkGraphDescriptor &) {
+    throw std::logic_error("work graphs are unsupported");
+  }
+  virtual void DestroyWorkGraph(WorkGraphHandle) {
+    throw std::logic_error("work graphs are unsupported");
+  }
   [[nodiscard]] virtual std::unique_ptr<CommandList> CreateCommandList(QueueType queue) = 0;
   // Returns a monotonically increasing completion value. Resources referenced by the command list
   // remain in use until CompletedSubmissionValue reaches that value.

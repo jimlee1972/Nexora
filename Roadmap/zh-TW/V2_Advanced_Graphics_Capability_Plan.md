@@ -642,6 +642,33 @@ Windows 真實 HS／DS、Vulkan Control／Evaluation 皆通過 RGBA／BGRA 曲�
 重疊 Worker 取消／重試；Metal 真實執行後備並明確回報原生 Tessellation 不可用。
 更廣 Authoring／Cook 與實機驗收仍待完成。
 
+## V2-GFX-5 有界 Work Graph 施工狀態
+
+預設關閉的 Windows 原生選項另尋 SDK DXC 編譯 SM6.8 Node Library，保留 Slang Compute／Indirect
+後備與既有 Profile。真實 Linux DXC1.9.2609.5 可編譯雙節點 Library；引擎 Library Reader 解碼
+SM6.8，而單一 Entry Inspector 仍拒絕 Library。Slang2026.18 尚未實作所需 Node 型別，因此不使用
+一般 Slang 路徑。原生 SDK Helper 語法通過，尚不宣稱 D3D12 執行。
+
+有界 Recipe 將八-byte CPU 輸入展開為至多八筆標準 Visible Record；原生建立驗證 Program／Node／
+Entry ABI 與專用僅輸出 Root。每份 Live List 獨占初始化／Backing Context、不可變 Program Snapshot，
+並使用既有輸出 Revision 檢查。Oracle 比對 CPU／真實 GPU Compute、實際編譯錯誤 ABI、過期／放棄
+資源、輸入複製、Program／Root 切換及取消／重試。來源 `feat/v2-native-work-graph-fanout`，
+Beads `nexora-45y.6.1`。
+
+✅ 本地 Library／Admission 與真實 Compute 後備驗收：Linux Development Configure／Build 及完整
+CTest 217/217 通過，無失敗或略過（133.53s）；Shipping Minimal／Monolithic LTO 建置通過。
+最後輸入邊界修改後，Library／Mesh／VRS／Work Graph／Runtime 專項 7/7 通過（0.26s）。
+Khronos Object／Synchronization Validation 14/14 通過（15.65s），確認 33 次 Layer 插入，無
+Validation Error／VUID／同步危害。Windows 原生 Work Graph 執行仍待完成；Linux 後備回報
+enabled=0、dispatches=0。通用 Graph／Graphics Node、新 Profile、實機預算及所有完整 Gate 維持開放。
+
+
+Work Graph 候選版本已接上 PR632 最新 Barrier／Mesh／VRS 整合來源。重新執行 Development
+Configure／Build 與完整 CTest **218/218** 通過，零失敗／略過（133.84s），Shipping
+Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Object／Sync 原生選項
+**13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
+Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、

@@ -18,8 +18,11 @@ std::uint32_t Word(std::span<const std::byte> bytes, std::size_t offset) noexcep
 constexpr std::uint32_t Dxbc = 0x43425844;
 constexpr std::uint32_t Dxil = 0x4c495844;
 constexpr std::uint32_t Bitcode = 0xdec04342;
-} // namespace
-std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> bytes) noexcept {
+struct RawProgramInfo final {
+  std::uint32_t kind;
+  FeatureVersion model;
+};
+std::optional<RawProgramInfo> InspectDxilMetadata(std::span<const std::byte> bytes) noexcept {
   try {
     constexpr std::size_t header_size = 32;
     if (bytes.size() < header_size || Word(bytes, 0) != Dxbc || Word(bytes, 20) != 1 ||
@@ -31,7 +34,7 @@ std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> byt
     const auto table_end = header_size + static_cast<std::size_t>(count) * 4;
     std::vector<std::pair<std::size_t, std::size_t>> ranges;
     ranges.reserve(count);
-    std::optional<DxilProgramInfo> result;
+    std::optional<RawProgramInfo> result;
     for (std::size_t part = 0; part < count; ++part) {
       const auto offset = static_cast<std::size_t>(Word(bytes, header_size + part * 4));
       if (offset < table_end || offset % 4 != 0 || offset > bytes.size() ||
@@ -64,32 +67,7 @@ std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> byt
                                  static_cast<std::uint16_t>(version & 0xfU)};
       if (model.major < 6 || (version & 0xff00U) != 0)
         return {};
-      ShaderStage stage;
-      switch (version >> 16U) {
-      case 0: // DXIL::ShaderKind::Pixel
-        stage = ShaderStage::Fragment;
-        break;
-      case 1: // DXIL::ShaderKind::Vertex
-        stage = ShaderStage::Vertex;
-        break;
-      case 3: // DXIL::ShaderKind::Hull
-        stage = ShaderStage::TessellationControl;
-        break;
-      case 4: // DXIL::ShaderKind::Domain
-        stage = ShaderStage::TessellationEvaluation;
-        break;
-      case 13: // DXIL::ShaderKind::Mesh
-        if (model < FeatureVersion{6, 5})
-          return {}; // The mesh profile was introduced in Shader Model6.5.
-        stage = ShaderStage::Mesh;
-        break;
-      case 5: // DXIL::ShaderKind::Compute
-        stage = ShaderStage::Compute;
-        break;
-      default:
-        return {}; // Libraries and advanced stages need separate implementation admission.
-      }
-      result = DxilProgramInfo{stage, model};
+      result = RawProgramInfo{version >> 16U, model};
     }
     std::ranges::sort(ranges);
     for (std::size_t index = 1; index < ranges.size(); ++index)
@@ -99,6 +77,53 @@ std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> byt
   } catch (...) {
     return {}; // Scratch-allocation failure is closed admission, with no native side effects.
   }
+}
+} // namespace
+std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> bytes) noexcept {
+  const auto raw = InspectDxilMetadata(bytes);
+  if (!raw)
+    return {};
+  const auto model = raw->model;
+  ShaderStage stage;
+  switch (raw->kind) {
+  case 0:
+    stage = ShaderStage::Fragment;
+    break;
+  case 1:
+    stage = ShaderStage::Vertex;
+    break;
+  case 3:
+    stage = ShaderStage::TessellationControl;
+    break;
+  case 4:
+    stage = ShaderStage::TessellationEvaluation;
+    break;
+  case 5:
+    stage = ShaderStage::Compute;
+    break;
+  case 13:
+    if (model < FeatureVersion{6, 5})
+      return {};
+    stage = ShaderStage::Mesh;
+    break;
+  default:
+    return {}; // Library metadata does not identify a single executable entry stage.
+  }
+  return DxilProgramInfo{stage, model};
+}
+std::optional<DxilLibraryInfo> InspectDxilLibrary(std::span<const std::byte> bytes) noexcept {
+  const auto raw = InspectDxilMetadata(bytes);
+  if (!raw || raw->kind != 6)
+    return {};
+  return DxilLibraryInfo{raw->model};
+}
+DxilLibraryInfo RequireDxilLibrary(std::span<const std::byte> bytes, FeatureVersion minimum) {
+  const auto info = InspectDxilLibrary(bytes);
+  if (!info)
+    throw std::invalid_argument("DXIL library artifact has invalid or unsupported metadata");
+  if (info->shader_model < minimum)
+    throw std::invalid_argument("DXIL library shader model is too low");
+  return *info;
 }
 DxilProgramInfo RequireDxilArtifact(std::span<const std::byte> artifact, ShaderStage stage,
                                     FeatureVersion minimum_shader_model) {

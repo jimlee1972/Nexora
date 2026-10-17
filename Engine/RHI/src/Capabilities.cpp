@@ -123,4 +123,13 @@ void RequirePipelineCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                  const PipelineDescriptor &descriptor) {
   RequireGraphicsCapabilities(capabilities, EffectivePipelineRequirements(descriptor));
 }
+GraphicsRequirements EffectiveWorkGraphRequirements(const WorkGraphDescriptor &descriptor) {
+  auto requirements = descriptor.graphics_requirements;
+  auto &minimum = requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::WorkGraphs)];
+  if (minimum < FeatureVersion{1, 0})
+    minimum = {1, 0};
+  if (requirements.minimum_dxil_shader_model < FeatureVersion{6, 8})
+    requirements.minimum_dxil_shader_model = {6, 8};
+  return requirements;
+}
 } // namespace nexora::rhi

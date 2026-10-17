@@ -66,6 +66,16 @@ void TestMetadataAdmission() {
               "DXIL entry metadata decoded incorrectly");
     }
   }
+  const auto library = Metadata(6, 8);
+  Require(RequireDxilLibrary(library, {6, 8}).shader_model == FeatureVersion{6, 8} &&
+              !InspectDxilProgram(library) && !InspectDxilLibrary(Metadata(5, 8)),
+          "library metadata was confused with a single executable entry stage");
+  Reject([&] { (void)RequireDxilLibrary(library, {6, 9}); },
+         "DXIL library shader model is too low");
+  Reject([&] { (void)RequireDxilLibrary(Metadata(5, 8), {6, 8}); },
+         "DXIL library artifact has invalid or unsupported metadata");
+  for (std::size_t size = 0; size < library.size(); ++size)
+    Require(!InspectDxilLibrary(std::span{library}.first(size)), "truncated library admitted");
   (void)RequireDxilArtifact(Metadata(5, 10), ShaderStage::Compute, {6, 9});
   Reject([&] { (void)RequireDxilArtifact(Metadata(5, 9), ShaderStage::Compute, {6, 10}); },
          "DXIL artifact shader model is too low");

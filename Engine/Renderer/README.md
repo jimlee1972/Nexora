@@ -565,3 +565,14 @@ statistics input as ShaderRead (the fallback declares its argument buffer as Ind
 compatible reads may record together while producer dependencies and revision checks remain intact.
 Cancelled cohorts submit nothing. See the [RHI contract](../RHI/README.md#bounded-d3d12-mesh-shader-and-gpu-produced-visibility).
 General meshlet scheduling, amplification and full Ultimate/performance acceptance remain open.
+
+## Optional bounded Work Graph recording
+
+The optional D3D12 visible-expansion program turns one count/first-slot CPU record into up to eight
+GPU child-node writes. Renderer declares its output as StorageReadWrite and provides dependencies;
+independent lists may record disjoint outputs using immutable pre-created programs and private
+backing contexts. Cancellation submits no cohort and preserves every sentinel; stale resources or
+program generations reject before native execution. An explicit GPUDriven compute/indirect fallback
+produces the same known-visible records. Capability matching does not prove artifact availability.
+See the [RHI contract](../RHI/README.md#optional-bounded-native-work-graphs). This does not complete
+general graph authoring, native queue separation or performance/preview acceptance.

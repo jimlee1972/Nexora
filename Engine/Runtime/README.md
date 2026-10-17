@@ -1113,3 +1113,8 @@ is rejected on serialization/deserialization. Mesh entry identity differs from b
 These are metadata contracts, not general Runtime MS/PS assembly or native execution proof; the
 bounded D3D12 mesh recipe is admitted and executed by RHI separately. Cooked format1 and stable C
 ABI remain unchanged, and existing cooked artifacts retain their meaning.
+
+Work Graph DXIL libraries have a separate bounded kind/profile inspector; they are not single-stage
+ShaderModuleArtifact entries. Native program/export/entry ABI validation belongs to RHI. The new
+optional bootstrap program does not add general Runtime graph-library cooking or assembly; existing
+cooked format1, shader slots and stable C ABI remain unchanged.

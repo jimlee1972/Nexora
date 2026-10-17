@@ -296,3 +296,8 @@ and D3D12 curved patches and Metal baked fallback are verified; the full V2-GFX-
 PR631 已通過36檢查及兩輪三平台 CI 後合併；原生曲面與 Metal 後備驗證完成，完整 Gate 維持開放。
 PR632 integrates bounded Enhanced Barriers/mesh/VRS for final native acceptance.
 PR632 整合有界 Enhanced Barriers／Mesh／VRS，最終原生驗收進行中。
+
+✅ V2-GFX-5 Work Graph library/admission and compute fallback / Work Graph Library、能力檢查與 Compute 後備（2026-10-17）：
+real SM6.8 DXC libraries and bounded library parsing pass Linux Development/Shipping and native Vulkan fallback validation.
+Windows native node execution remains pending; no full graphics gate closes. 真實 SM6.8 DXC Library、有界解析及 Vulkan Compute 後備
+通過 Linux Development／Shipping 與同步驗證；Windows 原生節點執行仍待驗收，完整圖形 Gate 維持開放。
