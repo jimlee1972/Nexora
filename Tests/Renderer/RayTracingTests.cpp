@@ -713,6 +713,18 @@ void Native(bool enhanced) {
   auto device = rhi::CreateDeviceWithOptions(backend, options);
   const auto caps = device->Capabilities();
 #if defined(NEXORA_TEST_SER_NATIVE)
+  std::cout << "Preview adapter vendor=" << caps.vendor_id << " device=" << caps.device_id
+            << " driver=" << caps.driver_version << " software=" << caps.software_device
+            << " SM=" << caps.highest_dxil_shader_model.major << '.'
+            << caps.highest_dxil_shader_model.minor << '\n';
+  for (std::size_t i = 0; i < caps.features.size(); ++i) {
+    const auto &feature = caps.features[i];
+    std::cout << "Preview feature=" << i << " support=" << static_cast<unsigned>(feature.support)
+              << " hardware_tier=" << feature.tier.major << '.' << feature.tier.minor
+              << " enabled=" << feature.enabled << " implemented=" << feature.implemented
+              << " ceiling=" << feature.implemented_tier.major << '.'
+              << feature.implemented_tier.minor << '\n';
+  }
   Require(
       caps.d3d12_preview_runtime_enabled &&
           caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::ShaderExecutionReordering)]
