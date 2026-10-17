@@ -925,3 +925,7 @@ Profile、穩定 C ABI 與 Cooked Format 不變。公開 WARP1.0.13 已加入 VR
 Level12_2，固定 Preview 套件保留此文件化路徑，仍須真實輸出證據。
 
 Rate-image 候選版本通過 Native Slang／Zig Development220/220、零略過／失敗（156.57秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步18/18（10.50秒）、39次確認載入，零 Validation Error／VUID／SYNC-HAZARD。真實 DXC Preview 編譯 Witness VS／PS6.4，真正 SDK Upload Helper 與 Windows 條件語法以警告即錯誤通過。Vulkan 回報 enabled0／tile0／draws0，執行真正 Full-rate Quality／Worker 後備。僅四個確切 Session 分支使用過期 Run 清理，安全測試27/27、文件／Workflow16/16 通過。Windows 原生 Image／Witness 執行仍待完成，不關閉完整 VRS／Ultimate Gate。
+
+DXR1.2／SER 與 Tier2 Image 已整合為 Profile Runtime 父版本上的同一後續切片，共用可選原生驗收 Job。第一輪整合 Development220/220、零略過／失敗通過（122.61秒），Shipping Minimal／Monolithic／LTO 亦通過。真正 Agility721 宣告確認 Work Graph Tier1.1 的原生數值為11，Portable Decoder 保留硬體1.1，實作上限仍為1.0。可選原生驗收以固定 Preview DXC 啟用既有有界 Work Graph Recipe，於 Test Environment 設定後加入正確 Library 與依賴，延伸 Node／SER／Node 互通，不宣稱 Mesh Node。仍須最終整合回歸與 Windows 原生執行。
+
+最終整合迴歸通過 Development220/220，零失敗／跳過（121.81s）、Shipping Minimal/Monolithic/LTO，以及 Khronos 物件／同步18/18（11.21s），確認39次 layer 插入、零 Validation Error／VUID／SYNC-HAZARD 訊息。Windows 原生 SER／OMM／VRS2 驗收仍待通過。

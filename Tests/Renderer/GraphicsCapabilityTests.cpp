@@ -133,7 +133,8 @@ void TestNativeTierDecoding() {
               detail::DecodeD3D12Tier(GraphicsFeature::VariableRateShading, 2) ==
                   FeatureVersion{2, 0} &&
               detail::DecodeD3D12Tier(GraphicsFeature::MeshShader, 10) == FeatureVersion{1, 0} &&
-              detail::DecodeD3D12Tier(GraphicsFeature::WorkGraphs, 10) == FeatureVersion{1, 0},
+              detail::DecodeD3D12Tier(GraphicsFeature::WorkGraphs, 10) == FeatureVersion{1, 0} &&
+              detail::DecodeD3D12Tier(GraphicsFeature::WorkGraphs, 11) == FeatureVersion{1, 1},
           "native feature tier encodings must map to independent portable versions");
   Require(!detail::DecodeD3D12Tier(GraphicsFeature::RayTracing, 99) &&
               !detail::DecodeD3D12Tier(GraphicsFeature::SamplerFeedback, 9),
