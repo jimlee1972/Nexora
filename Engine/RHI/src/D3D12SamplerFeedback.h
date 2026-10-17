@@ -52,7 +52,7 @@ inline NativeFeedbackProgram CreateNativeFeedbackProgram(ID3D12Device8 &device,
   sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
   sampler.AddressU = sampler.AddressV = sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
   sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-  sampler.MaxLOD = std::numeric_limits<float>::max();
+  sampler.MaxLOD = static_cast<float>(SamplerFeedbackMipLevels - 1);
   sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   const D3D12_ROOT_SIGNATURE_DESC write_root{3, parameters.data(), 1, &sampler,
                                              D3D12_ROOT_SIGNATURE_FLAG_NONE};
@@ -192,9 +192,10 @@ inline void RecordNativeFeedback(ID3D12GraphicsCommandList1 &commands,
   barrier.Transition = {context.opaque.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RESOLVE_SOURCE};
   commands.ResourceBarrier(1, &barrier);
-  // MIN_MIP decoding flattens the entire opaque mip chain; the source must be UINT_MAX.
-  commands.ResolveSubresourceRegion(context.decoded.Get(), 0, 0, 0, context.opaque.Get(),
-                                    std::numeric_limits<UINT>::max(), nullptr, DXGI_FORMAT_R8_UINT,
+  // Transcode the entire non-arrayed map: MIN_MIP requires the full source mip chain.
+  commands.ResolveSubresourceRegion(context.decoded.Get(), std::numeric_limits<UINT>::max(), 0, 0,
+                                    context.opaque.Get(), std::numeric_limits<UINT>::max(), nullptr,
+                                    DXGI_FORMAT_R8_UINT,
                                     D3D12_RESOLVE_MODE_DECODE_SAMPLER_FEEDBACK);
   barrier.Transition = {context.decoded.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                         D3D12_RESOURCE_STATE_RESOLVE_DEST,

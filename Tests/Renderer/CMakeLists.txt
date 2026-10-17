@@ -530,3 +530,26 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
     WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraModernShaderTests>"
     ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_MODERN_LONG_VECTOR_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLongVector.dxil;NEXORA_MODERN_LINEAR_ALGEBRA_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLinearAlgebra.dxil;NEXORA_MODERN_GROUP_SHARED_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernGroupShared.dxil")
 endif()
+
+if(NEXORA_ENABLE_D3D12_PREVIEW AND NEXORA_ENABLE_SLANG)
+  add_executable(NexoraSamplerFeedbackPreviewTests SamplerFeedbackTests.cpp)
+  target_compile_definitions(NexoraSamplerFeedbackPreviewTests PRIVATE
+    _CRT_SECURE_NO_WARNINGS NEXORA_TEST_FEEDBACK_PREVIEW=1)
+  target_link_libraries(NexoraSamplerFeedbackPreviewTests PRIVATE Nexora::Renderer)
+  nexora_apply_defaults(NexoraSamplerFeedbackPreviewTests)
+  set_target_properties(NexoraSamplerFeedbackPreviewTests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/feedback-preview-runtime")
+  add_dependencies(NexoraSamplerFeedbackPreviewTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  add_custom_command(TARGET NexoraSamplerFeedbackPreviewTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraSamplerFeedbackPreviewTests> "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.sampler_feedback_preview COMMAND NexoraSamplerFeedbackPreviewTests)
+  add_test(NAME renderer.sampler_feedback_preview_enhanced COMMAND NexoraSamplerFeedbackPreviewTests --enhanced-barriers)
+  set_tests_properties(renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced PROPERTIES
+    TIMEOUT 180 WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>")
+  set_property(TEST renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced PROPERTY ENVIRONMENT
+    ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1"
+    "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/")
+endif()

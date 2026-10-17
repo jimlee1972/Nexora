@@ -138,6 +138,12 @@ void Compare(rhi::Device &device, const Workload &work, bool native = false) {
     for (std::size_t i = 0; i < actual.size(); ++i)
       std::cerr << " [" << i << "]=" << actual[i] << '/' << work.expected[i];
     std::cerr << '\n';
+    if (native && work.count) {
+      std::array<std::uint32_t, 4> request{};
+      device.ReadBufferForTesting(work.buffers[4], 0, std::as_writable_bytes(std::span{request}));
+      std::cerr << "GPU request0 bits=" << request[0] << ',' << request[1] << " mip=" << request[2]
+                << " enabled=" << request[3] << '\n';
+    }
   }
   Require(actual == work.expected,
           "decoded min-mip/clear/untouched/canary differs from CPU reference");
@@ -431,11 +437,22 @@ void Native(bool enhanced) {
     return;
   }
   const std::string reference_path{path};
-  auto device = rhi::CreateDeviceWithOptions(backend, {true, false, enhanced});
+  rhi::DeviceCreationOptions options{true, false, enhanced};
+#if defined(NEXORA_TEST_FEEDBACK_PREVIEW)
+  options.enable_d3d12_preview_runtime = true;
+#endif
+  auto device = rhi::CreateDeviceWithOptions(backend, options);
   const auto caps = device->Capabilities();
   const bool enabled =
       rhi::CheckGraphicsRequirements(caps, rhi::EffectiveSamplerFeedbackRequirements({}))
           .Succeeded();
+#if defined(NEXORA_TEST_FEEDBACK_PREVIEW)
+  Require(enabled && caps.d3d12_preview_runtime_enabled &&
+              caps.highest_dxil_shader_model >= rhi::FeatureVersion{6, 10},
+          "required isolated preview feedback device unavailable");
+  std::cout << "Feedback preview SM=" << caps.highest_dxil_shader_model.major << '.'
+            << caps.highest_dxil_shader_model.minor << '\n';
+#endif
   rhi::SamplerFeedbackProgramHandle program{};
   if (enabled) {
 #if defined(_WIN32)

@@ -911,3 +911,8 @@ must satisfy the queried device limit; actual6.10 bytecode additionally requires
 preview permission and the private runtime, including the generic GPUDriven entry. Only trusted
 in-process FXC5.0 fallback stages bypass DXIL metadata parsing. Lower-profile default behavior is
 preserved. The native test includes undeclared-minimum6.10 rejection and opted PSO creation.
+
+Sampler-feedback native acceptance remains open after the decoded nonzero-mip mismatch on the
+hosted system WARP. The full non-arrayed map is transcoded with UINT_MAX source/destination indices;
+strict output equality and canaries remain required. An isolated preview-WARP fixture compares the
+same workload without changing normal app-local DLL deployment or default device selection.
