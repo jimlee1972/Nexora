@@ -25,6 +25,126 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 已回收 Vulkan Descriptor Pool 儲存空間 — 2026-10-17
+
+✅ 選用配置快取擴充為每份閒置項目最多兩個已 Reset 的原生 Descriptor Pool
+（八份 Command 配置、十六個閒置 Descriptor Pool）。存活清單獨占配置，先依序用完暖機 Pool
+再擴充；每次 Dispatch 仍配置全新不可變 Set。Command Pool Reset 先於 Descriptor Reset／轉移，
+Reset 失敗、額外 Pool 或快取溢出皆銷毀儲存空間。建構失敗與關閉時完整回收所有取得的 Pool。
+Query Pool 維持每清單獨立，不新增等待、SDK／模組相依、穩定 C ABI 或非同步 Queue 路徑。
+
+原生 Oracle 新增96份唯一工作跨三個 Pool、放棄／只保留兩份、重新錄製／溢出、
+保留已完成清單的獨占權及192份 CPU 比對。既有原生串行／四執行緒及失敗／取消重試覆蓋持續執行。
+JSON 回報原生 Command／Descriptor 建立、取得與閒置數，快速檢查預設全新配置及選用暖機重用。
+Beads `nexora-45y.2.14`；來源 `feat/v2-vulkan-descriptor-pool-reuse`。
+Slang Development configure/build 與 Xvfb／強制原生完整 CTest **237/237 通過、零略過／失敗、
+253.15 秒**（Showcase 開啟、Graphical Shell 關閉）。聚焦計時／原生重用／報表 **7/7 通過、1.14 秒**；
+Shipping Monolithic／Minimal LTO 通過。Khronos1.3.275 物件／同步驗證 **10/10 通過、16.13 秒**，
+確認25次 Layer 插入，Validation Error／VUID／SYNC-HAZARD 為零，格式及 Diff 檢查通過。
+擴充 Compute Oracle 建立13／重用196份 Command 配置，建立11／取得368個 Descriptor Pool，
+最後閒置 Command／Descriptor 各8份；保留清單、三 Pool 溢出及額外192份 CPU 比對通過。
+獨立21x40執行，每模式／政策驗證3,360份輸出且21份原生 GPU 樣本皆可用；量測期間 Descriptor
+建立／取得由 **168/0** 變成 **0/168**，暖機四清單工作保留8個閒置 Pool。
+未宣稱實體效能或記憶體預算驗收；Hosted 平台／ABI 與原生 Vulkan 閘門仍須通過。
+先前 `.2.13` 證據僅涵蓋最初 Command 快取；本項擴充已回收原生儲存空間，不共享快照。
+完整非同步／平行／效能驗收與實體記憶體預算仍待完成。
+
+### 計時、量測與有界重用整合 — 2026-10-17
+
+後續改動在 PR628 前置基礎上整合 `.2.11` 原生 Timestamp、`.2.12` 配對錄製量測與
+`.2.13` 有界 Vulkan Allocator 重用。新增 Vulkan `--benchmark-reuse` 證據，回報明確快取准入與
+各模式量測期間原生 Pool 建立／取得數，使用相同工作比較預設全新配置。
+原生報表快速檢查確認暖機後只取得快取、不建立新 Pool；一般模式保持不用快取且建立全新 Pool。
+✅ 整合 Slang Development configure/build 與 Xvfb／強制原生完整 CTest
+**213/213 通過、零略過／失敗、126.86 秒**（Showcase／Graphical Shell 關閉，Slang／Zig／原生 Vulkan 開啟）。
+六項計時／量測／重用聚焦目標 **6/6 通過、1.09 秒**；Shipping configure/build 通過
+（Monolithic／Minimal、LTO）。Khronos1.3.275 物件／同步驗證 **10/10 通過、10.32 秒**，
+確認25次 Layer 插入，Validation Error／VUID／SYNC-HAZARD 為零。格式及 Diff 檢查通過，未新增外部／模組相依。
+
+獨立21x40預設／重用執行，每模式／政策驗證3,360份輸出、21份 GPU 樣本皆可用。
+預設串行／平行 CPU 設定加錄製 median/p95 為 **0.241745/0.318109**、**0.606625/0.666376 ms**；
+重用為 **0.241805/0.306012**、**0.637702/0.778514 ms**。各模式量測期間原生 Pool 建立／取得
+由 **84/0** 變成 **0/84**，重用結束快取四份。預設 GPU 加總 median/p95 為
+**4.773421/5.834963**、**4.682682/5.984547 ms**；重用為
+**4.714421/5.534808**、**4.657415/5.955893 ms**。
+暖機／最大抽樣 RSS：預設51,847,168/51,912,704 bytes，重用51,830,784/51,892,224 bytes。
+以上軟體主機觀察不能證明 CPU 開銷改善、記憶體預算或實體效能。仍須 Hosted Windows／Metal／圖形回歸。
+本項為量測與同步重用基礎，五個完整驗收閘門皆維持未完成。
+
+### 選用有界 Vulkan Command Allocator 重用 — 2026-10-17
+
+✅ 預設關閉的明確 Device 選項提供固定八格原生 Command Pool／Primary Buffer 快取。
+存活清單即使完成提交仍保有獨占權；只有未提交或個別 Fence 已成功完成的清單可 Reset 後歸還，
+已接受但後續失敗的提交不具重用資格。Reset 先清除錄製參照，再銷毀 Descriptor／Query／Framebuffer；
+Reset 失敗或快取溢出則銷毀配置。診斷回報建立、快取取得及目前閒置數量，裝置關閉時排空並銷毀。
+本項不快取 Query／Descriptor、不新增等待、不變更 SDK／穩定 C ABI，也不提供非同步 Submit。
+所有 C++ 模組需重建；其他後端維持停用。原生 Compute／Texture Oracle 啟用計時並新增保留清單、
+放棄、容量／溢出及重複輸出／生命週期檢查。Beads `nexora-45y.2.13`；來源
+`feat/v2-vulkan-recording-resource-reuse`。
+Slang Development configure/build 與 Xvfb／強制原生 CTest **211/211 通過、零略過／失敗、121.09 秒**；
+Shipping Monolithic／Minimal LTO 通過。聚焦原生重用 **2/2 通過、2.81 秒**。
+Khronos1.3.275 物件／同步驗證 **8/8 通過、3.12 秒**，確認21次 Layer 插入，
+Validation Error／VUID／SYNC-HAZARD 為零。Compute 建立13份、重用193次、最後快取8份；
+圖形建立4份、重用608次、最後快取4份，包含512次全新 Target／Query 原生渲染／讀回像素比對。
+既有320份 Dispatch、48份 Graph、64份共用輸入 CPU 比對及失敗／取消重試仍通過。
+Null 請求保持停用。Windows／Metal ABI 回歸與 Hosted Vulkan 驗證仍由 CI 把關。
+完整平行、非同步 Descriptor／Allocator 重用及實體效能驗收仍待完成。參見 [RHI 契約](../../Engine/RHI/README.md#optional-bounded-vulkan-command-allocator-reuse)。
+
+### 原生串行／平行錄製配對量測 — 2026-10-17
+
+✅ 受限的 `--benchmark [samples dispatches-per-list]` 模式共用原生 GPUDriven compute oracle，
+串行／四工作執行緒使用相同工作、四份清單與依序同步提交。兩組暖機後交替每組的先測模式。
+JSON 分別回報 CPU 設定、錄製／排程／等待工作、設定加錄製 median/p95、Submit/Wait median/p95、
+可選的已完成 GPU 區間加總、編譯器／裝置 ID 與 Linux RSS 抽樣。每次量測前重設輸出哨兵，
+計時結束後以 CPU oracle 檢查每份輸出。缺少的指標保持 null；軟體裝置旗標不能證明實體硬體。
+不宣稱加速、實體驗收或目標預算。共用既有原生測試程式與 CI 驗證步驟，不新增相依套件或工作。
+Beads `nexora-45y.2.12`；來源 `feat/v2-recording-benchmark`。
+整合原生 Timestamp 與 PR628 前置改動後，Slang Development configure/build 與
+Xvfb／強制原生完整 CTest **234/234 通過、零略過／失敗、245.30 秒**（GCC14.2、Slang2026.18、
+Zig0.14、Mesa lavapipe24.0.5）。聚焦計時／量測 **3/3 通過、4.72 秒**；最後報表驗證重查
+**1/1 通過、0.53 秒**。Shipping Monolithic／Minimal LTO 通過。
+Khronos1.3.275 物件／同步驗證 **7/7 通過、2.14 秒**，確認19次 Layer 插入，
+Validation Error／VUID／SYNC-HAZARD 為零，不新增外部或模組相依。
+
+另行獨立執行 `--benchmark 21 40`，每模式驗證 **3,360 份量測輸出**，另含暖機。
+串行／四工作執行緒 CPU 設定加錄製 median/p95 為 **0.271299/0.608567 ms** 與
+**0.573014/0.789110 ms**；GPU 區間加總 median/p95 為 **5.910813/9.522575 ms** 與
+**6.099738/8.569123 ms**，每模式21份 GPU 樣本皆可用。暖機 RSS51,412,992 bytes，
+最大抽樣 RSS51,630,080 bytes。此軟體主機平行錄製較慢；這是工具正確性觀察，並非加速或實體驗收。
+報表保留在 Repo 外暫存證據，CI Log 保留受限快速檢查 JSON。Windows／Metal 執行仍須 Hosted 原生驗證。
+完整閘門與非同步 allocator／descriptor 重用仍待完成。參見[量測契約](../../Engine/Renderer/README.md#matched-native-command-recording-measurement)。
+
+### 選用的原生 GPU 提交完成計時 — 2026-10-17
+
+✅ RHI 計時須由 `CreateDeviceWithOptions` 明確要求；一般建立維持關閉。建構時的支援／
+啟用旗標，以及自有 Source／Completion／選用毫秒觀察值，可區分不可用與零。Vulkan 清單
+擁有選用 Timestamp Pair，D3D12 清單擁有 Query／Readback Storage 及 Queue Frequency，
+Metal 讀取已完成 Command Buffer 的 GPU 時間。收集只使用既有完成機制，不新增 Query WAIT
+或 Callback。預設清單不分配／錄製計時資源，也不發布計時完成串流；取消／未提交工作不發布。
+
+Presentation 已驗證的 Counter Width／Period／CPU 上界換算共用至 RHI Detail Header，
+不改變其 Surface 觀察值或 Slot 生命週期。非法／Query／分配結果維持不可用，不以 CPU 時間
+替代 GPU 時間。各清單 Query 資源在完成或放棄 Buffer 清理後回收；D3D12 拒絕 Device-removed
+Fence Sentinel。未修改 SDK／Shader Profile／Stable C ABI／Module 關係，須重建 C++ Module。
+
+來源分支：`feat/v2-native-submission-timestamps`；Beads `nexora-45y.2.11`。
+啟用 Slang 的 Development Configure／Build 與 Xvfb／Native-required 完整 CTest
+**232/232 通過，零略過／失敗，263.88 秒**（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。
+`ctest --preset linux-development -R '^(window_presentation\.gpu_timing|renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|vulkan_descriptor_isolation|parallel_graph_recording|dxil_artifact_readiness))$' -V`：
+**7/7 通過，零略過，0.40 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+原生 Object／Synchronization Validation 使用 Khronos Layer 1.3.275 並移除繼承 Shader 路徑：
+`ctest --preset linux-development -R '^renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+**6/6 通過，零略過，7.46 秒**，Loader 證明載入，沒有 Validation Error／VUID／SYNC-HAZARD。
+圖形取得 **4/4 可用且為正的 Vulkan 觀察值**，Compute 計時亦可用且既有 CPU 比對均通過。
+預設關閉、Validation 不可用、觀察值 Copy 生命週期、反向提交、取消 Query 與精確像素通過；
+既有 Presentation Wrap／非法 Counter 測試驗證共用換算。現有 CI Validation Step 加入新
+計時 Target，沒有新增相依或 Job。
+
+Windows／Metal 執行須通過 Hosted 原生 Gate；Software Vulkan 僅證明 API／生命週期正確。
+同條件 CPU 錄製／提交 Median／P95、GPU／Memory 預算及實體 GPU 校正 Benchmark 仍待完成，
+非同步重用與完整平行 Feature 亦維持待完成。詳見
+[RHI Contract](../../Engine/RHI/README.md#opt-in-completed-submission-gpu-timing)。
+
 ### 共用輸入與 DXIL 檢查整合 — 2026-10-17
 
 ✅ 後續整合不變共用 Buffer 讀取與所選 DXIL Stage／Profile 檢查，包含指定錯誤 Stage 的

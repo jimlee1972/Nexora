@@ -31,6 +31,142 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Retired Vulkan descriptor pool storage — 2026-10-17
+
+✅ The opt-in allocation cache additionally retains up to two reset native descriptor pools per idle
+entry (eight command allocations, sixteen idle descriptor pools). A live list exclusively consumes
+prewarmed pools before growth and allocates a fresh immutable set per dispatch. Command-pool reset
+precedes descriptor reset/transfer; reset failure, extra pools or cache overflow destroy storage.
+Constructor failure and shutdown account for every acquired pool. Query pools remain per-list;
+no extra waits, SDK/module dependency, stable C ABI or asynchronous queue path is added.
+
+The native oracle adds96 unique workloads crossing three pools, abandon/two-pool retention,
+re-record/overflow, held-completed-list ownership and192 CPU comparisons. Existing native
+serial/four-worker and failed/cancelled replay coverage remains active. JSON reports native
+command/descriptor creation/acquisition and idle counts, with fresh/default versus warmed/reuse
+smoke checks. Beads `nexora-45y.2.14`; source `feat/v2-vulkan-descriptor-pool-reuse`.
+Slang Development configure/build and Xvfb/native-required full CTest **237/237 pass, zero skips/
+failures,253.15 seconds** (Showcase on, graphical shell off). Focused timing/native reuse/report
+**7/7 pass,1.14 seconds**; Shipping Monolithic/Minimal LTO passes. Khronos1.3.275 object/synchronization
+validation **10/10 pass,16.13 seconds**,25 loader-confirmed insertions and zero Validation
+Error/VUID/SYNC-HAZARD markers. Touched formatting/diff checks pass. The extended compute oracle
+creates13/reuses196 command allocations and creates11/acquires368 descriptor pools, ending with
+8 idle command and8 idle descriptor pools; held-list, three-pool overflow and192 extra CPU
+comparisons pass. Independent21x40 runs verify3,360 outputs and21 native GPU samples per mode/
+policy; measured descriptor creation/acquisition changes from **168/0** to **0/168**, with8 idle
+pools for the warmed four-list workload. No physical performance or memory-budget claim.
+Hosted platform/ABI and native Vulkan gates remain required. Prior `.2.13` evidence covers the initial command-only cache; this slice
+extends retired native storage without sharing snapshots. Full asynchronous/parallel/performance
+acceptance and physical memory budgets remain open.
+
+### Timing, measurement and bounded reuse integration — 2026-10-17
+
+The follow-up integrates `.2.11` native timestamps, `.2.12` matched recording measurements and
+`.2.13` bounded Vulkan allocator reuse on the PR628 prerequisites. Additional Vulkan
+`--benchmark-reuse` evidence reports explicit cache admission and measured per-mode native pool
+creation/acquisition counts, comparing the same workloads with fresh/default allocations. The
+native report smoke checks warmed cache acquisitions and no fresh allocations, while ordinary
+mode retains no cache and allocates fresh pools. ✅ Integrated Slang Development configure/build and Xvfb/native-required full CTest pass
+**213/213, zero skips/failures, 126.86 seconds** (Showcase/graphical shell off; Slang/Zig/native Vulkan
+on). Focused six timing/measurement/reuse targets **6/6 pass, 1.09 seconds**. Shipping configure/build
+passes (Monolithic/Minimal, LTO). Khronos1.3.275 object/synchronization validation **10/10 pass,
+10.32 seconds**, 25 loader-confirmed insertions, zero Validation Error/VUID/SYNC-HAZARD markers.
+Touched formatting and diff checks pass. No external/module dependency is added.
+
+Independent21x40 default/reuse runs verify3,360 outputs per mode/policy, all21 GPU samples available.
+Default serial/parallel CPU setup+record median/p95: **0.241745/0.318109** and
+**0.606625/0.666376 ms**; reuse: **0.241805/0.306012** and **0.637702/0.778514 ms**.
+Measured native pool creation/acquisition per mode changes from **84/0** to **0/84**, with four
+idle cached pools after reuse. Default GPU sum median/p95: **4.773421/5.834963** and
+**4.682682/5.984547 ms**; reuse: **4.714421/5.534808** and **4.657415/5.955893 ms**.
+Warmed/max sampled RSS: default51,847,168/51,912,704 bytes, reuse51,830,784/51,892,224 bytes.
+These software-host observations do not establish reduced CPU overhead, memory budgets or physical
+performance. Hosted Windows/Metal/graphical regressions remain required. This is measurement and
+synchronous reuse plumbing; all five full acceptance gates remain open.
+
+### Optional bounded Vulkan command allocator reuse — 2026-10-17
+
+✅ An explicit default-off device option admits a fixed eight-entry native command-pool/primary-buffer
+cache. Live lists retain exclusive ownership even after completion. Only unsubmitted or individually
+fence-completed lists reset and return their allocation; accepted-but-failed submissions remain
+ineligible. Reset clears recorded references before descriptor/query/framebuffer destruction;
+failure or overflow destroys the allocation. Counters expose creation, cache acquisition and idle
+count. Shutdown drains and destroys cached pools. No query/descriptor caching, extra wait, SDK/C ABI
+change or asynchronous Submit is introduced. All C++ modules rebuild; other backends stay disabled.
+Native timing-enabled compute/texture oracles add held-list, abandon, cap/overflow and repeated
+output/lifetime tests. Beads `nexora-45y.2.13`; source `feat/v2-vulkan-recording-resource-reuse`.
+Slang Development configure/build and Xvfb/native-required CTest pass **211/211, zero skips/failures,
+121.09 seconds**; Shipping Monolithic/Minimal LTO passes. Focused native reuse **2/2 pass, 2.81 seconds**.
+Khronos1.3.275 object/synchronization validation **8/8 pass, 3.12 seconds**, 21 loader-confirmed
+insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Compute creates13 and reuses193
+pool pairs, ending with8 cached; graphics creates4 and reuses608, ending with4 cached, including
+512 repeated native render/readback pixel comparisons with fresh target/query resources. Existing
+320 dispatch,48 graph,64 shared-input CPU comparisons and failed/cancelled replay still pass.
+Null requests stay disabled. Windows/Metal ABI regressions and hosted Vulkan validation remain CI
+gates. Full parallel, asynchronous descriptor/allocator reuse and physical performance acceptance
+remain open. See the [RHI contract](../../Engine/RHI/README.md#optional-bounded-vulkan-command-allocator-reuse).
+
+### Matched native serial/parallel recording benchmark — 2026-10-17
+
+✅ A bounded `--benchmark [samples dispatches-per-list]` mode reuses the native GPUDriven compute
+oracle with identical work, four lists and ordered synchronous submission in serial/four-worker
+modes. Two warmup pairs and alternating first mode reduce order bias. JSON reports CPU setup,
+recording/scheduling/join, setup+recording median/p95, separate Submit/Wait median/p95, optional
+summed completed GPU intervals, compiler/device IDs and sampled Linux RSS. All output sentinels
+reset before measurement and every output is CPU-verified outside timing. Missing metrics stay
+null; software flags do not certify physical hardware. No speedup, physical acceptance or target
+budget is asserted. The existing native test executable and CI validation step are reused; no new
+dependency/job is added. Beads `nexora-45y.2.12`; source `feat/v2-recording-benchmark`.
+Integrated with native timestamps and PR628 prerequisites, Slang Development configure/build and
+Xvfb/native-required full CTest pass **234/234, zero skips/failures, 245.30 seconds** (GCC14.2,
+Slang2026.18, Zig0.14, Mesa lavapipe24.0.5). Focused timing/benchmark **3/3 pass, 4.72 seconds**;
+final report-validation recheck **1/1 pass, 0.53 seconds**. Shipping Monolithic/Minimal LTO passes.
+Native Khronos1.3.275 object/synchronization validation **7/7 pass, 2.14 seconds**, 19 loader-confirmed
+insertions and zero Validation Error/VUID/SYNC-HAZARD markers. No new external/module dependencies.
+
+An additional isolated `--benchmark 21 40` run validates **3,360 measured outputs per mode** plus
+warmups. Serial/four-worker CPU setup+record median/p95: **0.271299/0.608567 ms** versus
+**0.573014/0.789110 ms**; completed GPU sum median/p95: **5.910813/9.522575 ms** versus
+**6.099738/8.569123 ms**, all21 GPU samples available per mode. Warmed RSS51,412,992 bytes;
+maximum sampled RSS51,630,080 bytes. Parallel recording is slower on this software host; these
+are tool correctness observations, not a speedup or physical acceptance. Reports remain external
+scratch evidence; CI logs retain the bounded smoke JSON. Windows/Metal execution requires hosted
+native gates. The full gate and asynchronous allocator/descriptor reuse remain open. See the [measurement contract](../../Engine/Renderer/README.md#matched-native-command-recording-measurement).
+
+### Optional completed native GPU submission timing — 2026-10-17
+
+✅ RHI timing is explicitly requested with `CreateDeviceWithOptions`; ordinary creation stays off.
+Construction-time support/enabled flags and owning source/completion/optional-millisecond observations
+separate unavailable from zero. Vulkan lists own optional timestamp pairs, D3D12 lists own optional
+queries/readback storage and queue frequency, and Metal reads completed command-buffer GPU times.
+Collection uses existing completion only, with no query WAIT or callback. Default lists allocate/
+record no timing resources or completion stream. Cancelled/unsubmitted work publishes nothing.
+
+Presentation's validated counter-width/period/CPU-upper-bound conversion is shared from an RHI
+detail header without changing its surface observations or slot lifecycle. Invalid/query/allocation
+results stay unavailable; CPU time never replaces GPU time. Native per-list query resources retire
+after completion or abandoned-buffer cleanup; D3D12 rejects the device-removed fence sentinel.
+No SDK, shader profile, stable C ABI or module relationship is changed; C++ modules rebuild.
+
+Source branch: `feat/v2-native-submission-timestamps`; Beads `nexora-45y.2.11`.
+Slang-enabled Development configure/build and Xvfb/native-required full CTest pass **232/232,
+zero skips/failures, 263.88 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0).
+`ctest --preset linux-development -R '^(window_presentation\.gpu_timing|renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|vulkan_descriptor_isolation|parallel_graph_recording|dxil_artifact_readiness))$' -V`:
+**7/7 pass, zero skips, 0.40 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+Native object/synchronization validation with Khronos layer 1.3.275 and inherited shader paths removed:
+`ctest --preset linux-development -R '^renderer\.(submission_gpu_timing|vulkan_recording_gpu_timing|vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+passes **6/6, zero skips, 7.46 seconds**, with loader-confirmed insertion and zero Validation
+Error/VUID/SYNC-HAZARD markers. Graphics gets **4/4 available, positive Vulkan observations**;
+compute timing also remains available while every existing CPU comparison passes. Default-off,
+Validation-unavailable, copied-observation lifetime, reverse submission, cancelled queries and
+exact pixels pass. Existing Presentation wrap/invalid-counter tests exercise the shared conversion.
+The current CI validation step includes the new timing targets; no new dependency/job is added.
+
+Windows/Metal execution requires hosted native gates; software Vulkan is API/lifetime correctness
+evidence only. The matched CPU recording/submission median/p95, GPU/memory budgets and physical-GPU
+calibration benchmark remain open, along with asynchronous reuse and the full parallel feature.
+See the [RHI contract](../../Engine/RHI/README.md#opt-in-completed-submission-gpu-timing).
+
 ### Shared-input and DXIL admission integration — 2026-10-17
 
 ✅ The follow-up combines immutable shared buffer reads with selected DXIL stage/profile checks,

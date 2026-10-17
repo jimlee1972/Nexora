@@ -462,16 +462,23 @@ void TestSharedIndirectGraph(rhi::Device &device, rhi::PipelineHandle pipeline) 
   std::cout << "Shared indirect graphics: two overlapping readers, distinct targets and two exact "
                "pixel comparisons passed\n";
 }
-void TestTextureReadbackAndRecycling(rhi::Device &device, rhi::PipelineHandle pipeline) {
+void TestTextureReadbackAndRecycling(rhi::Device &device, rhi::PipelineHandle pipeline,
+                                     bool reuse) {
+  std::vector<std::byte> reference;
   // Exceeds the D3D12 RTV heap capacity; retired slots must be reusable.
   for (std::uint32_t index = 0; index < 512; ++index) {
     const auto target = MakeTarget(device, 0);
-    if (index == 511) {
+    if (index == 511 || reuse) {
       auto list = device.CreateCommandList(rhi::QueueType::Graphics);
       Render(*list, target, pipeline);
       device.WaitForSubmission(device.Submit(*list));
       list.reset();
       auto pixels = Read(device, target);
+      if (reuse) {
+        if (reference.empty())
+          reference = pixels;
+        Require(pixels == reference, "reused graphics/query allocator changed pixels");
+      }
       pixels.pop_back();
       Reject([&] { device.ReadTextureForTesting(target.handle, pixels); });
       device.DestroyTexture(target.handle);
@@ -484,7 +491,7 @@ void TestTextureReadbackAndRecycling(rhi::Device &device, rhi::PipelineHandle pi
                "allocations recycled successfully\n";
 }
 } // namespace
-int main() {
+int main(int argc, char **argv) {
   try {
     const auto *artifact = std::getenv(artifact_environment);
     if (!artifact || !*artifact || !rhi::IsBackendAvailable(backend)) {
@@ -493,7 +500,10 @@ int main() {
       std::cout << "SKIP: native graphics unavailable\n";
       return 77;
     }
-    auto device = rhi::CreateDevice(backend);
+    const bool reuse = argc == 2 && std::string_view{argv[1]} == "--resource-reuse";
+    auto device = rhi::CreateDeviceWithOptions(backend, {reuse, reuse});
+    Require(device->Capabilities().recording_resource_reuse_enabled == reuse,
+            "graphics resource reuse must stay explicitly opt-in");
     const auto layout = rhi::TrianglePipelineLayout().layout_hash;
     const std::array pipelines{
         device->CreatePipeline({layout, 1, rhi::TextureFormat::Rgba8Unorm, "RGBA graphics"}),
@@ -503,11 +513,24 @@ int main() {
     TestIndependentGraphics(*device, pipelines);
     TestGraphicsGraph(*device, pipelines[0]);
     TestSharedIndirectGraph(*device, pipelines[0]);
-    TestTextureReadbackAndRecycling(*device, pipelines[0]);
+    TestTextureReadbackAndRecycling(*device, pipelines[0], reuse);
     TestAbandonedAndStale(*device, pipelines[0]);
     TestGraphFailureReuse(*device, pipelines[0]);
     for (const auto pipeline : pipelines)
       device->DestroyPipeline(pipeline);
+    const auto pools = device->Diagnostics();
+    Require(
+        pools.cached_command_pools <= 8 && pools.cached_descriptor_pools <= 16 &&
+            (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0 &&
+                       pools.cached_descriptor_pools == 0 && pools.descriptor_pool_reuses == 0)),
+        "graphics command pool cache must remain bounded and opt-in");
+    if (reuse) {
+      Require(pools.command_pool_reuses > 512,
+              "graphics/query retirement did not reuse native pools");
+      std::cout << "Vulkan graphics/query allocator reuse: created=" << pools.command_pool_creations
+                << " reused=" << pools.command_pool_reuses
+                << " cached=" << pools.cached_command_pools << '\n';
+    }
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';
     return 1;

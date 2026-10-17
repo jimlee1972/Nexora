@@ -65,6 +65,9 @@ struct GraphicsDeviceCapabilities final {
   bool independent_graphics_recording{};
   // Limited immutable buffer read/read sharing; excludes writes and shared textures.
   bool shared_buffer_read_recording{};
+  CapabilitySupport gpu_timing_support{CapabilitySupport::Unknown};
+  bool gpu_timing_enabled{};
+  bool recording_resource_reuse_enabled{};
 };
 struct GraphicsRequirements final {
   // {0, 0} means unused. Tierless features use {1, 0}; feedback may require {0, 9}.

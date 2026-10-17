@@ -83,6 +83,7 @@ public:
   GraphicsDeviceCapabilities Capabilities() const noexcept override {
     GraphicsDeviceCapabilities result;
     result.validation_only = true;
+    result.gpu_timing_support = CapabilitySupport::Unsupported;
     result.independent_compute_recording = true;
     result.independent_graphics_recording = true;
     result.shared_buffer_read_recording = true;

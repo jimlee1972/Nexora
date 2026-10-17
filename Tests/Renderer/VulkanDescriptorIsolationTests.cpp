@@ -7,16 +7,23 @@
 #include <array>
 #include <barrier>
 #include <bit>
+#include <charconv>
 #include <chrono>
+#include <cmath>
 #include <condition_variable>
 #include <cstdlib>
 #include <exception>
+#include <fstream>
 #include <future>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
+#if defined(__linux__)
+#include <unistd.h>
+#endif
 
 using namespace nexora;
 using namespace nexora::renderer;
@@ -104,6 +111,360 @@ void Compare(rhi::Device &device, const Workload &workload) {
           "isolated dispatch output must match its unique CPU reference");
   Require(indirect[0] == 3 && indirect[1] == 1 && indirect[2] == 0 && indirect[3] == 0,
           "isolated dispatch must preserve the native indirect draw prefix");
+}
+
+void TestCommandPoolReuse(rhi::Device &device) {
+  Require(kBackend == rhi::Backend::Vulkan &&
+              device.Capabilities().recording_resource_reuse_enabled,
+          "command pool reuse must be explicitly enabled on Vulkan");
+  const auto before = device.Diagnostics();
+  std::array<std::unique_ptr<rhi::CommandList>, 12> held;
+  for (auto &list : held)
+    list = device.CreateCommandList(rhi::QueueType::Compute);
+  Require(device.Diagnostics().command_pool_creations == before.command_pool_creations + 12 &&
+              device.Diagnostics().cached_command_pools == 0,
+          "live lists must exclusively own different command pools");
+  for (std::size_t index = 0; index < 2; ++index) {
+    const auto completion = device.Submit(*held[index]);
+    device.WaitForSubmission(completion);
+  }
+  Require(device.Diagnostics().cached_command_pools == 0,
+          "completed lists must retain allocators until list retirement");
+  for (auto &list : held)
+    list.reset();
+  Require(device.Diagnostics().cached_command_pools == 8,
+          "abandoned/completed command pool cache must remain bounded at eight");
+  const auto warmed = device.Diagnostics();
+  for (std::size_t index = 0; index < 9; ++index)
+    held[index] = device.CreateCommandList(rhi::QueueType::Compute);
+  const auto reused = device.Diagnostics();
+  Require(reused.command_pool_reuses == warmed.command_pool_reuses + 8 &&
+              reused.command_pool_creations == warmed.command_pool_creations + 1 &&
+              reused.cached_command_pools == 0,
+          "cached allocations must be popped exclusively before allocating beyond the bound");
+  for (auto &list : held)
+    list.reset();
+  Require(device.Diagnostics().cached_command_pools == 8,
+          "pool overflow must be destroyed instead of growing the cache");
+}
+
+void TestDescriptorPoolReuse(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  std::vector<Workload> workloads;
+  for (std::uint32_t index = 0; index < 96; ++index)
+    workloads.push_back(MakeWorkload(device, 4000 + index));
+  const auto record = [&] {
+    auto list = device.CreateCommandList(rhi::QueueType::Compute);
+    list->BindPipeline(pipeline);
+    for (const auto &workload : workloads) {
+      Bind(*list, workload);
+      list->Dispatch(1);
+    }
+    return list;
+  };
+  const auto before = device.Diagnostics();
+  {
+    auto abandoned = record();
+    Require(device.Diagnostics().descriptor_pool_creations == before.descriptor_pool_creations + 3,
+            "96 immutable snapshots must cross three distinct native descriptor pools");
+    Require(device.Diagnostics().cached_descriptor_pools == 0,
+            "live unsubmitted lists must not return their descriptor pools");
+  }
+  const auto warmed = device.Diagnostics();
+  Require(warmed.cached_descriptor_pools == 2,
+          "retirement must cap each native allocation at two descriptor pools");
+  {
+    auto replay = record();
+    const auto acquired = device.Diagnostics();
+    Require(acquired.descriptor_pool_reuses == warmed.descriptor_pool_reuses + 2 &&
+                acquired.descriptor_pool_creations == warmed.descriptor_pool_creations + 1 &&
+                acquired.cached_descriptor_pools == 0,
+            "replay must consume both warmed pools before allocating the overflow pool");
+    device.WaitForSubmission(device.Submit(*replay));
+    Require(device.Diagnostics().cached_descriptor_pools == 0,
+            "completed live list must retain its immutable descriptor snapshots");
+  }
+  for (const auto &workload : workloads)
+    Compare(device, workload);
+  // Discard another fully recorded list; unchanged output and successful later native oracles
+  // prove cache reset cannot queue work or retain an earlier dispatch's bindings.
+  { auto abandoned = record(); }
+  for (const auto &workload : workloads)
+    Compare(device, workload);
+  Require(device.Diagnostics().cached_descriptor_pools == 2,
+          "abandoned three-pool recording must keep only two idle pools");
+  for (const auto &workload : workloads)
+    for (auto buffer : workload.buffers)
+      device.DestroyBuffer(buffer);
+  std::cout
+      << "Vulkan descriptor pool reuse: 96 immutable snapshots across three pools, two cached; "
+         "192 CPU comparisons, completed live-list ownership and abandoned replay passed\n";
+}
+
+// Nearest-rank statistics and Linux resident sampling match Tools/TwoD/Benchmark.cpp.
+// Missing GPU/RSS observations are null, never synthesized from another clock.
+using BenchmarkClock = std::chrono::steady_clock;
+double BenchmarkMilliseconds(BenchmarkClock::time_point start) {
+  return std::chrono::duration<double, std::milli>(BenchmarkClock::now() - start).count();
+}
+std::optional<std::uint64_t> BenchmarkResidentBytes() {
+#if defined(__linux__)
+  std::ifstream input("/proc/self/statm");
+  std::uint64_t total{}, resident{};
+  const auto page = sysconf(_SC_PAGESIZE);
+  if (page > 0 && input >> total >> resident)
+    return resident * static_cast<std::uint64_t>(page);
+#endif
+  return std::nullopt;
+}
+double BenchmarkPercentile(std::vector<double> values, double p) {
+  Require(!values.empty(), "benchmark percentile requires samples");
+  std::sort(values.begin(), values.end());
+  return values[static_cast<std::size_t>(std::ceil(p * static_cast<double>(values.size()))) - 1];
+}
+unsigned BenchmarkArgument(std::string_view text, unsigned maximum) {
+  unsigned value{};
+  const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+  Require(result.ec == std::errc{} && result.ptr == text.data() + text.size() && value > 0 &&
+              value <= maximum,
+          "benchmark arguments must be bounded positive integers (samples<=101, dispatches<=64)");
+  return value;
+}
+struct BenchmarkSample {
+  double setup_ms{}, record_ms{}, submit_wait_ms{};
+  std::optional<double> gpu_ms;
+  rhi::GpuTimingSource source{};
+  std::uint64_t pool_creations{}, pool_reuses{}, descriptor_creations{}, descriptor_reuses{};
+  std::optional<std::uint64_t> resident_bytes;
+};
+BenchmarkSample MeasureRecording(rhi::Device &device, rhi::PipelineHandle pipeline,
+                                 core::JobSystem &pool, const std::vector<Workload> &workloads,
+                                 unsigned per_list, bool parallel) {
+  constexpr std::size_t workers = 4;
+  // Fresh sentinels ensure a skipped dispatch cannot reuse a previous sample's output.
+  const std::array<std::uint32_t, rhi::GPUDrivenIndirectCommandWords> zero{};
+  for (const auto &workload : workloads) {
+    device.WriteBuffer(workload.buffers[1], 0, std::as_bytes(std::span{zero}.first(5)));
+    device.WriteBuffer(workload.buffers[2], 0, std::as_bytes(std::span{zero}));
+    device.WriteBuffer(workload.buffers[3], 0, std::as_bytes(std::span{zero}.first(8)));
+  }
+  const auto before = device.Diagnostics();
+  BenchmarkSample sample;
+  std::array<std::unique_ptr<rhi::CommandList>, workers> lists;
+  auto start = BenchmarkClock::now();
+  for (auto &list : lists)
+    list = device.CreateCommandList(rhi::QueueType::Compute);
+  sample.setup_ms = BenchmarkMilliseconds(start);
+  const auto record = [&](std::size_t worker) {
+    auto &list = *lists[worker];
+    list.BindPipeline(pipeline);
+    for (std::size_t index = 0; index < per_list; ++index) {
+      Bind(list, workloads[worker * per_list + index]);
+      list.Dispatch(1);
+    }
+  };
+  start = BenchmarkClock::now();
+  if (parallel) {
+    std::array<core::JobHandle, workers> jobs;
+    std::size_t launched{};
+    std::exception_ptr failure;
+    try {
+      for (; launched < workers; ++launched) {
+        const auto worker = launched;
+        core::JobDescriptor descriptor;
+        descriptor.function = [&, worker](const core::CancellationToken &) { record(worker); };
+        jobs[worker] = pool.Submit(std::move(descriptor));
+      }
+    } catch (...) {
+      failure = std::current_exception();
+    }
+    // Drain every started callback, including after scheduling/recording failure.
+    for (std::size_t index = 0; index < launched; ++index) {
+      try {
+        pool.Wait(jobs[index]);
+      } catch (...) {
+        if (!failure)
+          failure = std::current_exception();
+      }
+    }
+    if (failure)
+      std::rethrow_exception(failure);
+  } else {
+    for (std::size_t worker = 0; worker < workers; ++worker)
+      record(worker);
+  }
+  sample.record_ms = BenchmarkMilliseconds(start);
+  Require(device.Diagnostics().submitted_command_lists == before.submitted_command_lists &&
+              device.Diagnostics().readbacks == before.readbacks,
+          "benchmark recording must not submit or read back");
+  double gpu_ms{};
+  bool all_available = true;
+  start = BenchmarkClock::now();
+  try {
+    for (auto &list : lists) {
+      const auto completion = device.Submit(*list);
+      device.WaitForSubmission(completion);
+      Require(device.CompletedSubmissionValue() >= completion,
+              "benchmark list must complete before retirement");
+      const auto timing = device.Diagnostics().gpu_timing;
+      if (timing.completed_submission != completion || !timing.milliseconds ||
+          timing.source == rhi::GpuTimingSource::Unavailable ||
+          (sample.source != rhi::GpuTimingSource::Unavailable && sample.source != timing.source)) {
+        all_available = false;
+      } else {
+        gpu_ms += *timing.milliseconds;
+        sample.source = timing.source;
+      }
+    }
+  } catch (...) {
+    // Submit can fail after acceptance: keep lists alive until the native queue drains.
+    const auto failure = std::current_exception();
+    try {
+      device.WaitIdle();
+    } catch (...) {
+    }
+    std::rethrow_exception(failure);
+  }
+  sample.submit_wait_ms = BenchmarkMilliseconds(start);
+  if (all_available)
+    sample.gpu_ms = gpu_ms;
+  Require(device.Diagnostics().compute_dispatches - before.compute_dispatches == workloads.size(),
+          "benchmark must execute the same nonempty dispatch count in both modes");
+  for (auto &list : lists)
+    list.reset();
+  // Readback/oracle, retirement and RSS sampling stay outside both CPU timing windows.
+  for (const auto &workload : workloads)
+    Compare(device, workload);
+  sample.resident_bytes = BenchmarkResidentBytes();
+  const auto after = device.Diagnostics();
+  sample.pool_creations = after.command_pool_creations - before.command_pool_creations;
+  sample.pool_reuses = after.command_pool_reuses - before.command_pool_reuses;
+  sample.descriptor_creations = after.descriptor_pool_creations - before.descriptor_pool_creations;
+  sample.descriptor_reuses = after.descriptor_pool_reuses - before.descriptor_pool_reuses;
+  return sample;
+}
+void ReportRecording(rhi::Device &device, const std::vector<BenchmarkSample> &samples,
+                     bool parallel, unsigned per_list, unsigned warmup,
+                     std::optional<std::uint64_t> baseline) {
+  std::vector<double> setup, record, total, submit, gpu;
+  auto maximum_rss = baseline;
+  rhi::GpuTimingSource source{};
+  std::uint64_t pool_creations{}, pool_reuses{}, descriptor_creations{}, descriptor_reuses{};
+  for (const auto &sample : samples) {
+    pool_creations += sample.pool_creations;
+    pool_reuses += sample.pool_reuses;
+    descriptor_creations += sample.descriptor_creations;
+    descriptor_reuses += sample.descriptor_reuses;
+    setup.push_back(sample.setup_ms);
+    record.push_back(sample.record_ms);
+    total.push_back(sample.setup_ms + sample.record_ms);
+    submit.push_back(sample.submit_wait_ms);
+    if (sample.gpu_ms) {
+      gpu.push_back(*sample.gpu_ms);
+      source = sample.source;
+    }
+    if (sample.resident_bytes)
+      maximum_rss = std::max(maximum_rss.value_or(0), *sample.resident_bytes);
+  }
+  const auto caps = device.Capabilities();
+  const auto diagnostics = device.Diagnostics();
+#if defined(_MSC_VER)
+  constexpr auto compiler = "MSVC";
+  const auto compiler_version = std::to_string(_MSC_FULL_VER);
+#elif defined(__clang__)
+  constexpr auto compiler = "Clang";
+  const std::string compiler_version = __clang_version__;
+#else
+  constexpr auto compiler = "GCC";
+  const std::string compiler_version = __VERSION__;
+#endif
+  std::cout << std::setprecision(10) << "{\"schema\":\"nexora.recording-benchmark.v1\",\"backend\":"
+            << std::quoted(kBackendName)
+            << ",\"mode\":" << std::quoted(parallel ? "parallel" : "serial")
+            << ",\"compiler\":" << std::quoted(compiler)
+            << ",\"compiler_version\":" << std::quoted(compiler_version)
+            << ",\"vendor_id\":" << caps.vendor_id << ",\"device_id\":" << caps.device_id
+            << ",\"driver_version\":" << caps.driver_version
+            << ",\"software_device_flag\":" << (caps.software_device ? "true" : "false")
+            << ",\"recording_resource_reuse_enabled\":"
+            << (caps.recording_resource_reuse_enabled ? "true" : "false")
+            << ",\"command_pool_creations\":" << pool_creations
+            << ",\"command_pool_reuses\":" << pool_reuses
+            << ",\"cached_command_pools\":" << diagnostics.cached_command_pools
+            << ",\"descriptor_pool_creations\":" << descriptor_creations
+            << ",\"descriptor_pool_reuses\":" << descriptor_reuses
+            << ",\"cached_descriptor_pools\":" << diagnostics.cached_descriptor_pools
+            << ",\"physical_hardware_verified\":false,\"cpu_clock\":\"steady_clock\""
+            << ",\"workers\":" << (parallel ? 4 : 1) << ",\"lists_per_sample\":4"
+            << ",\"dispatches_per_list\":" << per_list << ",\"samples\":" << samples.size()
+            << ",\"warmup_pairs\":" << warmup
+            << ",\"cpu_setup_median_ms\":" << BenchmarkPercentile(setup, .5)
+            << ",\"cpu_record_schedule_join_median_ms\":" << BenchmarkPercentile(record, .5)
+            << ",\"cpu_setup_record_median_ms\":" << BenchmarkPercentile(total, .5)
+            << ",\"cpu_setup_record_p95_ms\":" << BenchmarkPercentile(total, .95)
+            << ",\"cpu_submit_wait_median_ms\":" << BenchmarkPercentile(submit, .5)
+            << ",\"cpu_submit_wait_p95_ms\":" << BenchmarkPercentile(submit, .95)
+            << ",\"gpu_source\":" << static_cast<unsigned>(source)
+            << ",\"gpu_samples\":" << gpu.size() << ",\"gpu_sum_median_ms\":";
+  if (gpu.empty())
+    std::cout << "null";
+  else
+    std::cout << BenchmarkPercentile(gpu, .5);
+  std::cout << ",\"gpu_sum_p95_ms\":";
+  if (gpu.empty())
+    std::cout << "null";
+  else
+    std::cout << BenchmarkPercentile(gpu, .95);
+  std::cout << ",\"rss_after_warmup_bytes\":";
+  if (baseline)
+    std::cout << *baseline;
+  else
+    std::cout << "null";
+  std::cout << ",\"max_observed_rss_bytes\":";
+  if (maximum_rss)
+    std::cout << *maximum_rss;
+  else
+    std::cout << "null";
+  std::cout << ",\"oracle_comparisons\":" << samples.size() * 4 * per_list
+            << ",\"target_budget\":null,\"physical_acceptance\":false}\n";
+}
+void BenchmarkRecording(rhi::Device &device, rhi::PipelineHandle pipeline, unsigned samples,
+                        unsigned per_list) {
+  Require(device.Capabilities().independent_compute_recording,
+          "benchmark requires native independent compute recording admission");
+  core::JobSystem pool{4};
+  pool.Start();
+  std::vector<Workload> workloads;
+  try {
+    for (unsigned index = 0; index < 4 * per_list; ++index)
+      workloads.push_back(MakeWorkload(device, index + 1));
+    constexpr unsigned warmup = 2;
+    std::array<std::vector<BenchmarkSample>, 2> results;
+    std::optional<std::uint64_t> baseline;
+    for (unsigned pair = 0; pair < warmup + samples; ++pair) {
+      // Alternate first mode to reduce systematic order/thermal drift; no overlap across modes.
+      for (unsigned turn = 0; turn < 2; ++turn) {
+        const auto mode = (pair + turn) % 2;
+        const auto result =
+            MeasureRecording(device, pipeline, pool, workloads, per_list, mode != 0);
+        if (pair >= warmup)
+          results[mode].push_back(result);
+      }
+      if (pair + 1 == warmup)
+        baseline = BenchmarkResidentBytes();
+    }
+    ReportRecording(device, results[0], false, per_list, warmup, baseline);
+    ReportRecording(device, results[1], true, per_list, warmup, baseline);
+  } catch (...) {
+    pool.Stop();
+    for (const auto &workload : workloads)
+      for (const auto buffer : workload.buffers)
+        device.DestroyBuffer(buffer);
+    throw;
+  }
+  pool.Stop();
+  for (const auto &workload : workloads)
+    for (const auto buffer : workload.buffers)
+      device.DestroyBuffer(buffer);
 }
 
 void TestIsolation(rhi::Device &device, rhi::PipelineHandle pipeline, bool parallel) {
@@ -678,6 +1039,7 @@ void TestReadOnlyBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeli
 }
 #endif
 void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  const auto dispatches_before = device.Diagnostics().compute_dispatches;
   const auto rejects = [](auto &&call) {
     try {
       call();
@@ -696,7 +1058,8 @@ void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
   list.reset();
   for (std::size_t slot = 1; slot < workload.buffers.size(); ++slot)
     device.DestroyBuffer(workload.buffers[slot]);
-  Require(device.Diagnostics().compute_dispatches == 0, "rejected dispatches must not execute");
+  Require(device.Diagnostics().compute_dispatches == dispatches_before,
+          "rejected dispatches must not execute");
 }
 } // namespace
 
@@ -723,9 +1086,33 @@ int main(int argc, char **argv) {
       std::cout << "SKIP: " << kBackendName << " artifacts/device unavailable\n";
       return 77;
     }
-    auto device = rhi::CreateDevice(kBackend);
+    const bool benchmark_reuse = argc >= 2 && std::string_view{argv[1]} == "--benchmark-reuse";
+    const bool benchmark =
+        benchmark_reuse || (argc >= 2 && std::string_view{argv[1]} == "--benchmark");
+    const bool reuse =
+        benchmark_reuse || (argc == 2 && std::string_view{argv[1]} == "--resource-reuse");
+    const bool timed =
+        benchmark || reuse || (argc == 2 && std::string_view{argv[1]} == "--gpu-timing");
+    Require(argc == 1 || (argc == 2 && timed) || (benchmark && argc == 4),
+            "usage: [--gpu-timing | --resource-reuse | --benchmark[-reuse] [samples "
+            "dispatches-per-list]]");
+    Require(!reuse || kBackend == rhi::Backend::Vulkan, "allocator reuse requires Vulkan");
+    const auto samples = benchmark && argc == 4 ? BenchmarkArgument(argv[2], 101) : 21U;
+    const auto dispatches = benchmark && argc == 4 ? BenchmarkArgument(argv[3], 64) : 40U;
+    auto device = rhi::CreateDeviceWithOptions(kBackend, {timed, reuse});
+    Require(device->Capabilities().recording_resource_reuse_enabled == reuse,
+            "recording resource reuse must stay explicitly opt-in");
+    if (reuse && !benchmark)
+      TestCommandPoolReuse(*device);
     const auto pipeline = device->CreatePipeline(
         {1, 2, rhi::TextureFormat::Rgba8Unorm, "isolation", rhi::PipelineType::Compute});
+    if (reuse && !benchmark)
+      TestDescriptorPoolReuse(*device, pipeline);
+    if (benchmark) {
+      BenchmarkRecording(*device, pipeline, samples, dispatches);
+      device->DestroyPipeline(pipeline);
+      return 0;
+    }
     TestRejectedBindings(*device, pipeline);
     TestIsolation(*device, pipeline, false);
     TestIsolation(*device, pipeline, true);
@@ -737,6 +1124,35 @@ int main(int argc, char **argv) {
     TestBufferSnapshots(*device, pipeline);
     TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);
+    const auto pools = device->Diagnostics();
+    Require(
+        pools.cached_command_pools <= 8 && pools.cached_descriptor_pools <= 16 &&
+            (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0 &&
+                       pools.cached_descriptor_pools == 0 && pools.descriptor_pool_reuses == 0)),
+        "command pool reuse must respect opt-in and bounded retirement");
+    if (reuse) {
+      Require(pools.command_pool_reuses > 8,
+              "native workloads did not exercise warmed allocator reuse");
+      std::cout << "Vulkan completed/abandoned command pool reuse: created="
+                << pools.command_pool_creations << " reused=" << pools.command_pool_reuses
+                << " cached=" << pools.cached_command_pools
+                << "; descriptor pools created=" << pools.descriptor_pool_creations
+                << " acquired=" << pools.descriptor_pool_reuses
+                << " cached=" << pools.cached_descriptor_pools << '\n';
+    }
+    if (timed) {
+      const auto timing = device->Diagnostics().gpu_timing;
+      Require(!device->Capabilities().gpu_timing_enabled || timing.completed_submission > 0,
+              "completed compute submissions did not publish timing availability");
+      std::cout << kBackendName
+                << " completed compute GPU timing source=" << static_cast<unsigned>(timing.source)
+                << " completion=" << timing.completed_submission << " milliseconds=";
+      if (timing.milliseconds)
+        std::cout << *timing.milliseconds;
+      else
+        std::cout << "unavailable";
+      std::cout << '\n';
+    }
     std::cout << kBackendName
               << " descriptor/buffer isolation: serial and 4-worker recording, 320 exact dispatch "
                  "comparisons passed\n";

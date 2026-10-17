@@ -463,3 +463,57 @@ revisions for compatible readers and advances them on potential GPU writes, CPU 
 readback, so shared readers coexist while stale mutation snapshots still reject. See the
 [RHI contract](../RHI/README.md#immutable-shared-buffer-reads). Full parallel/performance acceptance
 and asynchronous allocator reuse remain open.
+
+## Completed GPU intervals for recording measurements
+
+RHI devices can explicitly request native submission GPU timing through `CreateDeviceWithOptions`;
+normal `CreateDevice` stays off. Each observed interval is an owning diagnostic tied to a completed
+user-list token, with unavailable represented separately from zero. Per-list query resources follow
+the same worker ownership, ordered coordinator submission and completion retirement as descriptors.
+Cancelled/unsubmitted cohorts preserve the previous observation and every pixel sentinel; successful
+replay can collect new intervals. Private data readback/idle operations leave that observation intact.
+
+The CPU-completion bound guards native counter validity and never supplies GPU duration. This is
+measurement plumbing; it does not establish reduced CPU recording overhead, GPU utilization, physical
+hardware provenance or matched benchmark acceptance. See the
+[RHI timing contract](../RHI/README.md#opt-in-completed-submission-gpu-timing). Full parallel feature
+admission, asynchronous reuse and physical performance gates remain open.
+
+## Matched native command-recording measurement
+
+The native descriptor/compute oracle also accepts `--benchmark [samples dispatches-per-list]`
+(default 21 samples/mode, 40 dispatches/list; bounded to 101 and 64 respectively). It emits two
+JSON lines with schema `nexora.recording-benchmark.v1`. Four fresh command lists record identical,
+nonempty GPUDriven workloads in serial and on a persistent four-worker JobSystem. Two complete
+warmup pairs precede measured pairs, and the first mode alternates each pair. Inputs, pipelines and
+buffers are created before measurement; list/allocator/query setup is measured separately, then
+recording includes job scheduling and joining. CPU setup+recording median/p95 excludes native list
+finalization, ordered coordinator Submit/Wait and query retrieval, which have their own CPU
+submit/wait median/p95. This is a direct-list recording benchmark, not RenderGraph execution timing.
+
+Each mode submits the same four lists in the same order and waits before retirement. Optional
+GPU duration sums the four completed native intervals only when all are available; it excludes
+inter-submit gaps and cannot represent frame latency. Missing intervals report null, with an
+explicit native source and sample count. Timing is enabled in both modes, so instrumentation costs
+are matched. There is no CPU substitute or required speedup. Output sentinels are reset before each
+sample; every output is checked against the same CPU oracle after timing. Readback, resource writes,
+list destruction and process-memory sampling are outside timing windows.
+
+Reports include compiler family/version, opaque vendor/device/driver IDs and the backend's software
+flag. The flag alone cannot establish physical hardware, so physical verification/acceptance stay
+false. Linux reports RSS after warmup and the maximum sampled process RSS (including verification);
+other hosts report null. This is neither native GPU memory nor a continuous process high-water mark.
+Performance/memory target budgets remain null until defined and calibrated on target hardware.
+`renderer.{vulkan,d3d12,metal}_recording_benchmark` runs a small real workload and validates the JSON,
+metric availability/order, matched identity and bounded arguments. Native execution and software
+correctness evidence do not close the full parallel/performance gate.
+
+On Vulkan, `--benchmark-reuse [samples dispatches-per-list]` runs the same paired workload with
+bounded completed command-pool reuse requested. JSON includes explicit reuse enablement, per-mode
+measured native command/descriptor pool creation/cache-acquisition counts and final idle cache
+snapshots. Descriptor pool storage resets after list retirement; each dispatch still owns a fresh
+immutable set. The
+additional native CTest `renderer.vulkan_recording_benchmark_reuse` verifies all measured lists use
+warm retired allocations; ordinary benchmark mode verifies fresh allocations and no cache use.
+Both modes retain their own warmups, output sentinels, timing and CPU oracle. This option changes
+allocation policy only; it does not enable the full parallel feature or asynchronous submission.

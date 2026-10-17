@@ -151,7 +151,7 @@ class MetalDevice final : public Device {
   struct BufferRecord;
 
 public:
-  MetalDevice();
+  explicit MetalDevice(const DeviceCreationOptions &options);
   ~MetalDevice() override = default;
 
   Backend GetBackend() const noexcept override { return Backend::Metal; }
@@ -161,6 +161,9 @@ public:
     result.independent_compute_recording = true;
     result.independent_graphics_recording = true;
     result.shared_buffer_read_recording = true;
+    result.gpu_timing_support =
+        gpu_timing_supported_ ? CapabilitySupport::Supported : CapabilitySupport::Unsupported;
+    result.gpu_timing_enabled = gpu_timing_enabled_;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})
       result.features[static_cast<std::size_t>(feature)] = {
@@ -202,6 +205,8 @@ private:
   id<MTLLibrary> library_{};
   id<MTLLibrary> compute_library_{};
   bool canonical_compute_{};
+  bool gpu_timing_supported_{};
+  bool gpu_timing_enabled_{};
   id<MTLFunction> vertex_function_{};
   id<MTLFunction> fragment_function_{};
   id<MTLFunction> compute_function_{};
@@ -236,7 +241,7 @@ struct MetalDevice::BufferRecord final {
   id<MTLBuffer> buffer{};
 };
 
-MetalDevice::MetalDevice() {
+MetalDevice::MetalDevice(const DeviceCreationOptions &options) {
   @autoreleasepool {
     device_ = MTLCreateSystemDefaultDevice();
     if (!device_)
@@ -244,6 +249,9 @@ MetalDevice::MetalDevice() {
     queue_ = [device_ newCommandQueue];
     if (!queue_)
       throw std::runtime_error("Metal command queue creation failed");
+    if (@available(macOS 10.15, iOS 10.3, *))
+      gpu_timing_supported_ = true;
+    gpu_timing_enabled_ = options.enable_gpu_timing && gpu_timing_supported_;
     uniform_buffer_ = [device_ newBufferWithLength:64 options:MTLResourceStorageModeShared];
     if (!uniform_buffer_)
       throw std::runtime_error("Metal uniform buffer creation failed");
@@ -563,8 +571,22 @@ std::uint64_t MetalDevice::Submit(CommandList &commands) {
       throw std::runtime_error("Metal command buffer failed: " +
                                ErrorDescription(validated->command_buffer_.error));
     }
+    std::optional<double> measured;
+    if (gpu_timing_enabled_) {
+      if (@available(macOS 10.15, iOS 10.3, *)) {
+        const double begin = validated->command_buffer_.GPUStartTime;
+        const double end = validated->command_buffer_.GPUEndTime;
+        const double duration = (end - begin) * 1000;
+        if (std::isfinite(begin) && begin > 0 && std::isfinite(end) && end >= begin &&
+            std::isfinite(duration))
+          measured = duration;
+      }
+    }
     std::lock_guard lock{mutex_};
     completed_submission_ = ++submitted_submission_;
+    if (gpu_timing_enabled_)
+      detail::PublishGpuTiming(diagnostics_.gpu_timing, GpuTimingSource::MetalCommandBuffer,
+                               submitted_submission_, measured);
     return submitted_submission_;
   }
 }
@@ -853,5 +875,7 @@ void MetalCommandList::Close() {
 
 } // namespace
 
-std::unique_ptr<Device> CreateMetalDevice() { return std::make_unique<MetalDevice>(); }
+std::unique_ptr<Device> CreateMetalDevice(const DeviceCreationOptions &options) {
+  return std::make_unique<MetalDevice>(options);
+}
 } // namespace nexora::rhi

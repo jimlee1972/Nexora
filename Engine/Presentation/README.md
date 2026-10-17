@@ -992,3 +992,11 @@ teardown 在既有 drain 後釋放。最多三槽、不新增等待、保留所�
 完整 125/125 與同來源 `7c4534b8` hosted CI 全部 18 項通過；GTX 960 未暫停 Standard／UI
 為 DX12 133.43 FPS、Vulkan 126.30 FPS，requested vsync on 均約 60 FPS，保留 p99
 18.04／18.24 ms。整體硬體預算與最終美術仍未完成；證據見上述路徑。
+
+The pure counter-width/period/completion-bound normalization now lives in
+`Nexora/RHI/GpuTiming.h` and the private Presentation helper imports it. Presentation retains its
+existing surface timing records, publication order, default/Editor opt-ins and fence-owned slots;
+RHI independently observes completed user command lists for recording benchmarks. Existing
+Presentation timing tests exercise the shared conversion. The two tests that directly compile
+native surface implementations now declare the existing RHI header dependency. No new module or
+external package is introduced.

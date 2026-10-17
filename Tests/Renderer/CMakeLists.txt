@@ -1,6 +1,37 @@
 include(NexoraTarget)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_executable(NexoraSubmissionGpuTimingTests SubmissionGpuTimingTests.cpp)
+target_link_libraries(NexoraSubmissionGpuTimingTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraSubmissionGpuTimingTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraSubmissionGpuTimingTests)
+add_test(NAME renderer.submission_gpu_timing COMMAND NexoraSubmissionGpuTimingTests)
+set_tests_properties(renderer.submission_gpu_timing PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  target_compile_definitions(NexoraSubmissionGpuTimingTests PRIVATE NEXORA_TEST_NATIVE_GPU_TIMING=1)
+  if(NEXORA_ENABLE_SLANG)
+    add_dependencies(NexoraSubmissionGpuTimingTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+    if(WIN32)
+      set(timing_environment
+        "NEXORA_SLANG_DXIL_VERTEX_PATH=${NEXORA_SLANG_DXIL_VERTEX_OUTPUT}"
+        "NEXORA_SLANG_DXIL_FRAGMENT_PATH=${NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT}"
+        "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}")
+    elseif(APPLE)
+      set(timing_environment
+        "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}"
+        "NEXORA_SLANG_COMPUTE_METAL_PATH=${NEXORA_SLANG_COMPUTE_METAL_OUTPUT}")
+    else()
+      set(timing_environment
+        "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
+        "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}")
+    endif()
+    set_property(TEST renderer.submission_gpu_timing APPEND PROPERTY ENVIRONMENT
+      ${timing_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  endif()
+endif()
+
 add_test(NAME renderer.metal_source_contract
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/MetalSourceContract.py"
           "${CMAKE_SOURCE_DIR}/Engine/RHI/src/MetalDevice.mm")
@@ -94,11 +125,12 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   endif()
   nexora_apply_defaults(NexoraVulkanTextureRecordingTests)
   add_test(NAME renderer.vulkan_texture_recording COMMAND NexoraVulkanTextureRecordingTests)
-  set_tests_properties(renderer.vulkan_texture_recording PROPERTIES
+  add_test(NAME renderer.vulkan_graphics_resource_reuse COMMAND NexoraVulkanTextureRecordingTests --resource-reuse)
+  set_tests_properties(renderer.vulkan_texture_recording renderer.vulkan_graphics_resource_reuse PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "vulkan;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraVulkanTextureRecordingTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.vulkan_texture_recording APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.vulkan_texture_recording renderer.vulkan_graphics_resource_reuse APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
       "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
@@ -110,11 +142,15 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   endif()
   nexora_apply_defaults(NexoraVulkanDescriptorIsolationTests)
   add_test(NAME renderer.vulkan_descriptor_isolation COMMAND NexoraVulkanDescriptorIsolationTests)
-  set_tests_properties(renderer.vulkan_descriptor_isolation PROPERTIES
+  add_test(NAME renderer.vulkan_recording_gpu_timing COMMAND NexoraVulkanDescriptorIsolationTests --gpu-timing)
+  add_test(NAME renderer.vulkan_recording_resource_reuse COMMAND NexoraVulkanDescriptorIsolationTests --resource-reuse)
+  add_test(NAME renderer.vulkan_recording_benchmark COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraVulkanDescriptorIsolationTests>")
+  add_test(NAME renderer.vulkan_recording_benchmark_reuse COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraVulkanDescriptorIsolationTests>" --reuse)
+  set_tests_properties(renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse renderer.vulkan_recording_benchmark renderer.vulkan_recording_benchmark_reuse PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "vulkan;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraVulkanDescriptorIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.vulkan_descriptor_isolation APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse renderer.vulkan_recording_benchmark renderer.vulkan_recording_benchmark_reuse APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
       "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
@@ -159,11 +195,13 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND WIN32)
     NEXORA_TEST_D3D12=1 _CRT_SECURE_NO_WARNINGS)
   nexora_apply_defaults(NexoraD3D12RecordingIsolationTests)
   add_test(NAME renderer.d3d12_recording_isolation COMMAND NexoraD3D12RecordingIsolationTests)
-  set_tests_properties(renderer.d3d12_recording_isolation PROPERTIES
+  add_test(NAME renderer.d3d12_recording_gpu_timing COMMAND NexoraD3D12RecordingIsolationTests --gpu-timing)
+  add_test(NAME renderer.d3d12_recording_benchmark COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraD3D12RecordingIsolationTests>")
+  set_tests_properties(renderer.d3d12_recording_isolation renderer.d3d12_recording_gpu_timing renderer.d3d12_recording_benchmark PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "d3d12;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraD3D12RecordingIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.d3d12_recording_isolation APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.d3d12_recording_isolation renderer.d3d12_recording_gpu_timing renderer.d3d12_recording_benchmark APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
   endif()
@@ -175,18 +213,20 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND APPLE)
   target_compile_definitions(NexoraMetalRecordingIsolationTests PRIVATE NEXORA_TEST_METAL=1)
   nexora_apply_defaults(NexoraMetalRecordingIsolationTests)
   add_test(NAME renderer.metal_recording_isolation COMMAND NexoraMetalRecordingIsolationTests)
+  add_test(NAME renderer.metal_recording_gpu_timing COMMAND NexoraMetalRecordingIsolationTests --gpu-timing)
+  add_test(NAME renderer.metal_recording_benchmark COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/RecordingBenchmarkReport.py" "$<TARGET_FILE:NexoraMetalRecordingIsolationTests>")
   add_test(NAME renderer.metal_missing_compute_artifact
     COMMAND NexoraMetalRecordingIsolationTests --missing-compute-artifact)
   set_tests_properties(renderer.metal_missing_compute_artifact PROPERTIES
     TIMEOUT 30 LABELS "metal;native-acceptance"
     ENVIRONMENT "NEXORA_SLANG_COMPUTE_METAL_PATH=${CMAKE_CURRENT_BINARY_DIR}/missing-GPUDriven.metal")
-  set_tests_properties(renderer.metal_recording_isolation PROPERTIES
+  set_tests_properties(renderer.metal_recording_isolation renderer.metal_recording_gpu_timing renderer.metal_recording_benchmark PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "metal;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraMetalRecordingIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
     set_property(TEST renderer.metal_missing_compute_artifact APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}")
-    set_property(TEST renderer.metal_recording_isolation APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.metal_recording_isolation renderer.metal_recording_gpu_timing renderer.metal_recording_benchmark APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}"
       "NEXORA_SLANG_COMPUTE_METAL_PATH=${NEXORA_SLANG_COMPUTE_METAL_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
