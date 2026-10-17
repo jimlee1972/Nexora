@@ -61,6 +61,11 @@ python Tools/TwoD/ExportGame.py path/to/game.json `
   --output dist/MyGame
 ```
 
+With the Visual Studio multi-config generator, the executable directory is
+`build/windows-showcase-shipping/bin/Shipping/`. Substitute that directory in the example above;
+`bin/` is the single-config layout. See the [tested MSVC commands](../../Tools/TwoD/WindowsAcceptance.md)
+for the explicit Visual Studio 2022 configuration and matching CRT selection.
+
 The export validates contained relative source paths, rejects symlinks/traversal, cooks canonical
 `.nx2atlas`/`.nx2clip` sources (or copies existing `.nxcook`), and copies the executable, selected
 module, WAV and font atlases to a fresh output. It checks dependencies with `dumpbin` on Windows

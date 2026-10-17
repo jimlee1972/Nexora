@@ -350,3 +350,14 @@ UTF-8 BMP 語料；缺字會失敗。使用者目錄中的永久存檔仍由模�
 正式美術／字型／玩法，以及 Windows 實際聽音、XInput 裝置、焦點／DPI、乾淨電腦啟動與最低
 硬體驗收，仍需真正專案與目標機。作者端 Sprite 持久化、Editor Tilemap 掛接、無縫 reload
 仍未完成。M6／M7 與 **9/11（82%）** 不變；hosted MSVC CI 與軟體 Vulkan 不算實體產品驗收。
+
+## 本機 MSVC Player 驗收切片（2026-10-17）
+
+✅ PR #620 Player 與獨立 Zig 模組已用原生 x64 MSVC Monolithic Shipping 建置。
+獨立匯出／Unicode／存檔重啟／損壞拒絕、Windows GDI 字型、實體主機三幀 DX12 面板提交與
+Run.cmd 均通過。waveOut 提交 48,001 frames 並重開成功；人工聽音仍為 NOT VERIFIED。
+文件已補正 Visual Studio multi-config 輸出路徑。
+[驗收與原始證據](../../Engine/TwoD/evidence/Windows-MSVC-PR620-2026-10-17/acceptance.md)
+保留範圍、inventory 與指令。VM 個別原生案例與最終雜湊已有觀測，但後續 Guest Control／RPC
+失敗令 VM 中止，完整 VM 生命週期未驗收。實體輸入／手把、音訊裝置恢復、中文外觀／DPI、
+乾淨實體 PC 與最低硬體效能仍待完成；M6／M7 維持 NOT ACCEPTED，**9/11（82%）、P0 6/8** 不變。

@@ -386,3 +386,15 @@ Formal art/fonts/game rules and physical Windows sound, XInput devices, focus/DP
 runtime and minimum-PC acceptance require the actual project/target host. Authored Sprite
 persistence, Editor Tilemap binding and seamless reload remain open. M6/M7 and **9/11 (82%)**
 are unchanged. Hosted MSVC CI and software Vulkan are not physical product acceptance.
+
+## Local MSVC Player acceptance slice (2026-10-17)
+
+✅ The PR #620 Player and separate Zig module built as native x64 MSVC Monolithic Shipping.
+Independent export/Unicode/save-restart/corruption contracts, Windows GDI font checks, three-frame
+physical-host DX12 UI submission and Run.cmd passed. waveOut submitted 48,001 frames and reopened;
+human audibility is still NOT VERIFIED. The Visual Studio multi-config output path is documented.
+[Acceptance and raw evidence](../../Engine/TwoD/evidence/Windows-MSVC-PR620-2026-10-17/acceptance.md)
+retain exact scope, inventories and commands. VM individual native cases and final hashes were
+observed, but later Guest Control/RPC failures aborted the VM; a full VM lifecycle is not accepted.
+Physical input/controller/audio recovery, Chinese/DPI appearance, clean hardware PC and minimum-PC
+performance remain open. M6/M7 remain NOT ACCEPTED; **9/11 (82%), P0 6/8** are unchanged.

@@ -10,6 +10,27 @@ Windows CI 只能提供自動化證據；下列項目必須在 Windows 目標機
 匯出時提供匹配的 MSVC CRT 目錄。把整個輸出資料夾複製到目標機，雙擊 `Run.cmd`。
 保留 `inventory.json`、Windows/CPU/GPU/驅動資訊、實際操作記錄與必要截圖；錄到畫面不代表聽到聲音。
 
+## Visual Studio 2022 generator 的建置路徑
+
+下列是已在本機執行的 x64 MSVC／DX12 Shipping 組合。先進入 Visual Studio x64 developer
+shell，確認 `dumpbin` 在 PATH，並使用專案指定的 Zig 0.14.0。不要在同一個 build 目錄混用
+Ninja 與 Visual Studio generator；既有目錄若使用其他 generator，請改用新的 `-B` 目錄。
+
+```powershell
+cmake --preset windows-showcase-shipping -G "Visual Studio 17 2022" -A x64 `
+  -DCMAKE_CONFIGURATION_TYPES=Shipping -DNEXORA_BUILD_SHOWCASE=OFF `
+  -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF `
+  -DNEXORA_ENABLE_VULKAN_BACKEND=OFF `
+  -DNEXORA_ZIG_EXECUTABLE="$PWD/.tools/zig-win-x86_64-0.14.0/zig.exe"
+cmake --build --preset windows-showcase-shipping --target NexoraTwoDPlayer `
+  NexoraTwoDAssetCompiler NexoraTwoDAudioProbe NexoraZigTwoDSharedBuild --parallel 2
+```
+
+Visual Studio 是 multi-config generator，上述 EXE 位於
+`build/windows-showcase-shipping/bin/Shipping/`；Ninja 範例的 `bin/` 路徑不能直接套用。
+`NexoraZigTwoD.dll` 位於 `build/windows-showcase-shipping/Gameplay/Zig/`。匯出時使用實際
+EXE 路徑，並從 `$env:VCToolsRedistDir/x64/` 選取匹配的 `Microsoft.VC*.CRT` 目錄。
+
 | 實機項目 | 操作與通過條件 | 要保留的證據 |
 | --- | --- | --- |
 | 鍵鼠／重綁 | 測試所有遊戲動作、滑鼠按鍵與滾輪；重綁後舊鍵不再觸發，新鍵與 UI 操作一致。若遊戲提供設定保存，重啟後確認保留。 | 按鍵／動作表、重綁前後結果 |
