@@ -25,6 +25,41 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 有界原生 Color-target Graph 錄製 — 2026-10-17
+
+✅ 有限的 `independent_graphics_recording` Contract 將獨立 Color-target Graphics Cohort
+加入選用的 Graph 排程器，與獨立檢查的 Buffer-only Compute 共存。Graphics Pass 須完整
+宣告資源，至少一項 RenderTarget 寫入，不得讀取 Texture 或寫入 Buffer。共用資源（含
+Read/Read）、相依、未支援／未標記 Pass 與單一 Cohort 會序列 Fallback。預設 Execute
+仍為序列。Worker 只錄製；Coordinator 等全部結束，再依 Graph 順序提交並等待完成才回收。
+
+D3D12／Metal 現由各清單快照 Texture Generation／Revision／原生 Metadata 及邏輯狀態，
+執行前驗證，Queue 接受後才提交。讀回使舊快照過期；失敗／放棄錄製保留已提交狀態。
+Validation 模擬相同政策，包含上傳使快照失效。D3D12 RTV 分配會檢查 256 項 Heap 容量並
+回收已退役 Slot。原生 Color 測試讀回會去除 Staging Row Padding；正式執行不讀回。
+Metal Graphics 入口使用 Autorelease Pool，清單以 ARC 保留 Texture／Encoder。
+
+Vulkan／D3D12／Metal 共用 Oracle 涵蓋 24 組混合 Format／Extent 的序列／平行逐像素比對、
+每清單六個 Scope、四 Worker 重疊及反向提交；過期快照與放棄復原；512 次目標分配／回收；
+以及八組 Graph 輸出比對、放棄批次 Sentinel 與重播。Portable 測試另涵蓋能力獨立檢查、
+Compute／Graphics 混合 Cohort、共用讀取、Texture Hazard／相依、未選用、Sampling／Copy
+Fallback、提交順序與完成後回收。
+
+來源分支：`feat/v2-native-graphics-recording`；Beads `nexora-45y.2.8`。
+啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
+`ctest --preset linux-development` **205/205 通過，零略過／失敗，134.48 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。Shipping Configure／Build 通過
+（Monolithic／Minimal、LTO）。原生 Vulkan Object／Synchronization Validation 使用
+**1.3.275** Layer，**4/4 通過，零略過，8.24 秒**；Loader 證明已載入，沒有 Validation
+Error、VUID 或 SYNC-HAZARD 訊息。移除繼承 Shader 路徑後由 CTest 提供原生 Artifact。
+最終混合 Cohort Portable 測試亦通過。Windows／Metal 執行驗收須由 Hosted CI 證明，
+Linux 不認證這兩個後端。新增能力欄位後須重建全部 C++ Module；Stable C ABI 與
+Shader／SDK 基線不變。完整平行 Feature、共用讀取、非同步 Queue／重用、Compiler／
+Artifact 就緒矩陣及同條件實體 GPU 效能仍待完成。詳見
+[Graph Contract](../../Engine/Renderer/README.md#native-color-target-graph-acceptance) 與
+[RHI Contract](../../Engine/RHI/README.md#independent-color-target-recording-and-transactional-textures)。
+
 ### Vulkan Texture 錄製與完整 Framebuffer 回收 — 2026-10-17
 
 ✅ Vulkan Texture Transition 現使用各清單擁有的 Generation／Revision／State 快照；Rendering
@@ -196,7 +231,7 @@ Pool、確定性的錄製錯誤、失敗批次不提交，以及模擬延後完�
 一般 Graphics／Texture 錄製、共用讀取並行、D3D12／Metal Worker 安全、取消或非同步
 多 Queue 回收的證據。Compiler／Artifact 矩陣、同條件 CPU Median／p95、GPU 時間／
 記憶體預算及所有完整 Gate 維持待完成。Shader、SDK、Feature 預設值及 Stable C ABI
-均不變。詳見 [執行 Contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-recording)。
+均不變。詳見 [執行 Contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-and-color-target-recording)。
 
 ### Buffer 相依與編譯後 Barrier 計畫 — 2026-10-17
 

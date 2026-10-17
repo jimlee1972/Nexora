@@ -246,7 +246,7 @@ subsequent dispatch. No native asynchronous multi-queue synchronization is impli
 
 The caller owns buffers through submission completion and serializes resource uploads, mutation,
 destruction and submission against recording. D3D12 buffer recording now uses the private snapshots
-described below; texture state recording remains serialized. All C++ modules must rebuild for the extended virtual interface;
+described below; texture recording now uses the transactional snapshots described at the end. All C++ modules must rebuild for the extended virtual interface;
 the stable C ABI and shader artifact/profile requirements are unchanged.
 
 ## Limited independent compute recording admission
@@ -257,7 +257,8 @@ paths below, and Vulkan advertises it when its selected native queue supports co
 against disjoint, caller-retained buffers and immutable pre-created pipelines. Vulkan's list-local
 command pools and immutable per-dispatch descriptor sets provide that isolation; handle/pipeline
 lookups remain protected by the device mutex. Creation, upload, mutation, destruction and submission
-stay serialized by the caller. This flag does not admit graphics, textures or shared-buffer reads.
+stay serialized by the caller. This compute flag does not admit graphics, textures or shared-buffer reads; the separate limited
+color-target flag below admits graphics.
 
 RenderGraph consumes this limited flag for its explicit opt-in bounded scheduler. Every worker
 finishes before coordinator submission, and the graph waits for each returned completion value
@@ -338,3 +339,42 @@ native artifacts/device is an explicit skip in optional builds and a failure whe
 is required. Linux cross-compilation proves artifact generation, not Metal runtime correctness.
 The broad parallel feature, GPU validation-layer acceptance, full V2-M3 parity and measured physical
 GPU performance remain open.
+
+## Independent color-target recording and transactional textures
+
+`independent_graphics_recording` defaults false for custom devices. Validation and the native
+Vulkan, D3D12 and Metal backends admit disjoint color-target lists with immutable, pre-created
+pipelines. Each list has one recording owner; the caller retains device/resources through list
+retirement and completion, and serializes creation, upload, mutation, destruction, submission,
+readback and lifecycle against recording. Shared textures or buffers, including read/read, do not
+qualify for the bounded scheduler. This limited flag leaves the broad parallel feature disabled.
+
+Texture first use captures generation, revision, committed state and native metadata under the
+device mutex. Transitions and render-target validation use private state; abandoned lists do not
+change committed state. `Submit` validates every captured texture before native execution and
+commits final state/revision only after queue acceptance. Readback invalidates prior snapshots;
+Validation texture uploads do too. Stale lists throw before execution and require fresh recording.
+This policy includes same-state and read-only references. Accepted work must complete/drain before
+list destruction; caller mutation cannot race snapshots. It does not add asynchronous retirement.
+
+D3D12 snapshots retain native resources; its allocator/list retire before snapshots release. RTV
+slots come from a checked 256-entry heap and return on caller-authorized texture destruction;
+allocation failure returns the unpublished slot. Never destroy a texture before all lists referring
+to it retire, even when no work was submitted. Metal snapshots retain textures with ARC and local
+autorelease pools cover graphics recording; encoders/command buffers release before snapshots.
+Graphics PSO binding validates the captured target format, and render areas cannot exceed its extent.
+
+D3D12/Metal `ReadTextureForTesting` waits for the queue and copies RGBA8/BGRA8 through a private
+staging buffer, packing padded GPU rows into exactly width * height * 4 bytes. D3D12 restores the
+committed native state; Metal uses tracked blit hazards. Queue acceptance advances the texture
+revision even if a later wait fails. Invalid size/state/stale handles reject; successful copies
+count one readback. Production graph execution performs none. This adds no native texture-upload
+API, depth/float readback or separate native queues.
+
+All native texture recording targets share one oracle: 24 mixed-format/extent targets, six scopes
+per list, forced four-worker overlap, reverse submission and exact nonempty serial/parallel pixels;
+abandonment/retry and stale submit/readback/handle rejection; 512 sequential retired allocations;
+and eight color-target graph comparisons with failed-batch sentinel preservation and replay.
+Optional builds explicitly skip absent artifacts/devices; Slang-enabled native CI requires execution.
+Linux Vulkan validation is software-device correctness evidence. Windows/Metal runtime results
+require their hosted jobs. Physical-GPU performance, shared reads and asynchronous reuse remain open.

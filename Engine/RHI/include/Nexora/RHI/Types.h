@@ -61,6 +61,8 @@ struct GraphicsDeviceCapabilities final {
   FeatureVersion highest_dxil_shader_model{};
   // Limited admission: independent buffer-only compute lists; not the full parallel feature gate.
   bool independent_compute_recording{};
+  // Limited disjoint color-target graphics lists; not the full parallel feature gate.
+  bool independent_graphics_recording{};
 };
 struct GraphicsRequirements final {
   // {0, 0} means unused. Tierless features use {1, 0}; feedback may require {0, 9}.
@@ -136,6 +138,23 @@ struct BufferBarrier final {
   QueueType source_queue{QueueType::Graphics};
   QueueType destination_queue{QueueType::Graphics};
 };
+constexpr bool IsValidResourceState(ResourceState state) noexcept {
+  switch (state) {
+  case ResourceState::Undefined:
+  case ResourceState::CopySource:
+  case ResourceState::CopyDestination:
+  case ResourceState::ShaderRead:
+  case ResourceState::RenderTarget:
+  case ResourceState::Present:
+    return true;
+  }
+  return false;
+}
+constexpr bool IsValidTextureBarrier(const Barrier &barrier) noexcept {
+  return barrier.texture.IsValid() && IsValidResourceState(barrier.before) &&
+         IsValidResourceState(barrier.after) && barrier.after != ResourceState::Undefined &&
+         IsValidQueue(barrier.source_queue) && IsValidQueue(barrier.destination_queue);
+}
 constexpr bool IsValidBufferBarrier(const BufferBarrier &barrier) noexcept {
   return barrier.buffer.IsValid() && IsValidBufferAccess(barrier.before) &&
          IsValidBufferAccess(barrier.after) && barrier.after != BufferAccess::Undefined &&

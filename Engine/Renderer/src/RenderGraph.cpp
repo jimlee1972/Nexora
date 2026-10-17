@@ -334,20 +334,29 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
     // Snapshot lifecycle-dependent pool metadata on the coordinator. The caller serializes
     // Start/Stop and keeps the pool, device and resources alive until Execute returns.
     const auto worker_limit =
-        requested && options.recording_jobs && !options.recording_jobs->IsWorkerThread() &&
-                device.Capabilities().independent_compute_recording
+        requested && options.recording_jobs && !options.recording_jobs->IsWorkerThread()
             ? std::min(options.max_parallel_passes, options.recording_jobs->WorkerCount())
             : 0;
     const auto eligible = [&](std::size_t index) {
       const auto &pass = passes_[index];
-      return worker_limit > 1 && pass.allow_parallel_recording &&
-             pass.queue == rhi::QueueType::Compute && pass.reads.empty() && pass.writes.empty() &&
-             (!pass.buffer_reads.empty() || !pass.buffer_writes.empty());
+      if (worker_limit < 2 || !pass.allow_parallel_recording)
+        return false;
+      const auto capabilities = device.Capabilities();
+      if (pass.queue == rhi::QueueType::Compute)
+        return capabilities.independent_compute_recording && pass.reads.empty() &&
+               pass.writes.empty() && (!pass.buffer_reads.empty() || !pass.buffer_writes.empty());
+      return capabilities.independent_graphics_recording &&
+             pass.queue == rhi::QueueType::Graphics && pass.reads.empty() && !pass.writes.empty() &&
+             pass.buffer_writes.empty() &&
+             std::ranges::all_of(pass.writes, [](const TextureUse &use) {
+               return use.state == rhi::ResourceState::RenderTarget;
+             });
     };
     for (std::size_t order = 0; order < execution_order_.size();) {
       check_cancellation();
       std::size_t end = order;
       std::unordered_set<std::uint32_t> batch_buffers;
+      std::unordered_set<std::uint32_t> batch_textures;
       while (end < execution_order_.size() && end - order < worker_limit &&
              eligible(execution_order_[end])) {
         const auto index = execution_order_[end];
@@ -355,18 +364,27 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
         const auto overlaps = [&](const BufferUse &use) {
           return batch_buffers.contains(use.buffer.id);
         };
+        const auto texture_overlaps = [&](const TextureUse &use) {
+          return batch_textures.contains(use.texture.id);
+        };
         bool dependent = false;
         for (auto earlier = order; earlier < end; ++earlier)
           if (std::ranges::find(predecessors_[index], execution_order_[earlier]) !=
               predecessors_[index].end())
             dependent = true;
         if (dependent || std::ranges::any_of(pass.buffer_reads, overlaps) ||
-            std::ranges::any_of(pass.buffer_writes, overlaps))
+            std::ranges::any_of(pass.buffer_writes, overlaps) ||
+            std::ranges::any_of(pass.reads, texture_overlaps) ||
+            std::ranges::any_of(pass.writes, texture_overlaps))
           break;
         for (const auto &use : pass.buffer_reads)
           batch_buffers.insert(use.buffer.id);
         for (const auto &use : pass.buffer_writes)
           batch_buffers.insert(use.buffer.id);
+        for (const auto &use : pass.reads)
+          batch_textures.insert(use.texture.id);
+        for (const auto &use : pass.writes)
+          batch_textures.insert(use.texture.id);
         ++end;
       }
       if (end - order < 2) {

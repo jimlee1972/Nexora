@@ -70,7 +70,8 @@ public:
     std::function<void(const ExternalPassContext &)> external_execute{};
     std::vector<BufferUse> buffer_reads{};
     std::vector<BufferUse> buffer_writes{};
-    // Promise: compute-only commands, complete buffer declarations and thread-safe captures.
+    // Promise: admitted compute/color-target commands, complete resource declarations,
+    // immutable pre-created pipelines and thread-safe captures.
     bool allow_parallel_recording{false};
   };
   enum class RecordingMode : std::uint8_t { Serial, Parallel };

@@ -2,6 +2,7 @@
 #include "Nexora/RHI/Device.h"
 
 #include <algorithm>
+#include <array>
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
@@ -45,6 +46,16 @@ public:
   void MarkSubmitted() noexcept { submitted_ = true; }
 
 private:
+  friend class ValidationDevice;
+  struct TextureSnapshot final {
+    TextureHandle handle;
+    std::uint64_t revision;
+    ResourceState state;
+    std::uint32_t width;
+    std::uint32_t height;
+  };
+  TextureSnapshot &SnapshotTexture(TextureHandle texture);
+  std::unordered_map<std::uint64_t, TextureSnapshot> texture_snapshots_;
   ValidationDevice &device_;
   bool rendering_{false};
   bool pipeline_bound_{false};
@@ -73,6 +84,7 @@ public:
     GraphicsDeviceCapabilities result;
     result.validation_only = true;
     result.independent_compute_recording = true;
+    result.independent_graphics_recording = true;
     result.software_device = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (auto &feature : result.features)
@@ -88,6 +100,8 @@ public:
     std::lock_guard lock{mutex_};
     const auto handle = textures_.Create();
     texture_states_.emplace(Key(handle), descriptor.initial_state);
+    texture_revisions_.emplace(Key(handle), 0);
+    texture_dimensions_.emplace(Key(handle), std::array{descriptor.width, descriptor.height});
     texture_sizes_.emplace(Key(handle),
                            static_cast<std::uint64_t>(descriptor.width) * descriptor.height * 4U);
     texture_row_pitches_.emplace(Key(handle), descriptor.width * 4U);
@@ -100,11 +114,14 @@ public:
     Require(row_pitch == texture_row_pitches_.at(Key(texture)) &&
                 data.size() == texture_sizes_.at(Key(texture)),
             "texture upload size is invalid");
+    ++texture_revisions_.at(Key(texture));
   }
   void DestroyTexture(TextureHandle texture) override {
     std::lock_guard lock{mutex_};
     Require(textures_.Destroy(texture), "destroying invalid texture");
     texture_states_.erase(Key(texture));
+    texture_revisions_.erase(Key(texture));
+    texture_dimensions_.erase(Key(texture));
     texture_sizes_.erase(Key(texture));
     texture_row_pitches_.erase(Key(texture));
   }
@@ -168,6 +185,15 @@ public:
     Require(validated->BelongsTo(*this), "command list belongs to another device");
     Require(validated->IsClosed(), "cannot submit an open command list");
     Require(!validated->IsSubmitted(), "command list was already submitted");
+    for (const auto &entry : validated->texture_snapshots_) {
+      Require(textures_.Contains(entry.second.handle), "submitting a stale texture handle");
+      Require(texture_revisions_.at(entry.first) == entry.second.revision,
+              "stale validation texture recording snapshot");
+    }
+    for (const auto &entry : validated->texture_snapshots_) {
+      texture_states_.at(entry.first) = entry.second.state;
+      ++texture_revisions_.at(entry.first);
+    }
     validated->MarkSubmitted();
     ++diagnostics_.submitted_command_lists;
     diagnostics_.barriers += validated->Barriers();
@@ -199,19 +225,6 @@ public:
     return diagnostics_;
   }
 
-  void Transition(const Barrier &barrier) {
-    std::lock_guard lock{mutex_};
-    Require(textures_.Contains(barrier.texture), "barrier references invalid texture");
-    auto &state = texture_states_.at(Key(barrier.texture));
-    Require(state == barrier.before, "barrier before-state mismatch");
-    state = barrier.after;
-  }
-  void ValidateTarget(TextureHandle texture) {
-    std::lock_guard lock{mutex_};
-    Require(textures_.Contains(texture), "rendering references invalid texture");
-    Require(texture_states_.at(Key(texture)) == ResourceState::RenderTarget,
-            "render target is not in RenderTarget state");
-  }
   PipelineType ValidatePipeline(PipelineHandle pipeline) {
     std::lock_guard lock{mutex_};
     Require(pipelines_.Contains(pipeline), "binding invalid pipeline");
@@ -227,14 +240,9 @@ public:
     Require(buffers_.Contains(buffer), "binding invalid buffer");
     Require(offset < buffer_sizes_.at(Key(buffer)), "buffer binding offset is out of bounds");
   }
-  void ValidateSampledTexture(TextureHandle texture) {
-    std::lock_guard lock{mutex_};
-    Require(textures_.Contains(texture), "binding invalid texture");
-    Require(texture_states_.at(Key(texture)) == ResourceState::ShaderRead,
-            "sampled texture is not in ShaderRead state");
-  }
 
 private:
+  friend class ValidationCommandList;
   template <typename Handle> static std::uint64_t Key(Handle handle) {
     return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
   }
@@ -249,6 +257,8 @@ private:
   core::HandlePool<BufferTag> buffers_;
   core::HandlePool<PipelineTag> pipelines_;
   std::unordered_map<std::uint64_t, ResourceState> texture_states_;
+  std::unordered_map<std::uint64_t, std::uint64_t> texture_revisions_;
+  std::unordered_map<std::uint64_t, std::array<std::uint32_t, 2>> texture_dimensions_;
   std::unordered_map<std::uint64_t, std::uint64_t> texture_sizes_;
   std::unordered_map<std::uint64_t, std::uint32_t> texture_row_pitches_;
   std::unordered_map<std::uint64_t, std::uint64_t> buffer_sizes_;
@@ -259,12 +269,33 @@ private:
   std::uint64_t completed_submission_{};
 };
 
+ValidationCommandList::TextureSnapshot &
+ValidationCommandList::SnapshotTexture(TextureHandle handle) {
+  std::lock_guard lock{device_.mutex_};
+  device_.Require(device_.textures_.Contains(handle), "command list references invalid texture");
+  const auto key = ValidationDevice::Key(handle);
+  const auto &dimensions = device_.texture_dimensions_.at(key);
+  auto &snapshot = texture_snapshots_
+                       .try_emplace(key, TextureSnapshot{handle, device_.texture_revisions_.at(key),
+                                                         device_.texture_states_.at(key),
+                                                         dimensions[0], dimensions[1]})
+                       .first->second;
+  device_.Require(snapshot.revision == device_.texture_revisions_.at(key),
+                  "texture changed during command recording");
+  return snapshot;
+}
+
 void ValidationCommandList::Transition(const Barrier &barrier) {
   if (submitted_)
     throw std::logic_error("cannot record a submitted command list");
   if (rendering_)
     throw std::logic_error("barriers cannot occur inside rendering");
-  device_.Transition(barrier);
+  if (!IsValidTextureBarrier(barrier))
+    throw std::invalid_argument("invalid texture barrier");
+  auto &texture = SnapshotTexture(barrier.texture);
+  if (texture.state != barrier.before)
+    throw std::logic_error("barrier before-state mismatch");
+  texture.state = barrier.after;
   ++barriers_;
 }
 void ValidationCommandList::TransitionBuffer(const BufferBarrier &barrier) {
@@ -279,7 +310,10 @@ void ValidationCommandList::TransitionBuffer(const BufferBarrier &barrier) {
 void ValidationCommandList::BeginRendering(const RenderingInfo &info) {
   if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
     throw std::logic_error("invalid BeginRendering");
-  device_.ValidateTarget(info.color_target);
+  const auto &target = SnapshotTexture(info.color_target);
+  if (target.state != ResourceState::RenderTarget || info.width > target.width ||
+      info.height > target.height)
+    throw std::logic_error("invalid render target state/extent");
   rendering_ = true;
   pipeline_bound_ = false;
   vertex_buffer_bound_ = false;
@@ -303,7 +337,8 @@ void ValidationCommandList::BindIndexBuffer(BufferHandle buffer, IndexFormat,
 void ValidationCommandList::BindTexture(std::uint32_t, TextureHandle texture) {
   if (submitted_ || !rendering_)
     throw std::logic_error("texture binding requires rendering");
-  device_.ValidateSampledTexture(texture);
+  if (SnapshotTexture(texture).state != ResourceState::ShaderRead)
+    throw std::logic_error("sampled texture is not in ShaderRead state");
   texture_bound_ = true;
 }
 void ValidationCommandList::BindConstantBuffer(std::uint32_t, BufferHandle buffer,

@@ -88,6 +88,13 @@ native Vulkan output-preservation and Shipping checks. 同池序列 Fallback 與
 Linux Contract、原生 Vulkan 輸出保留及 Shipping 驗證；完整圖形、非同步回收與效能 Gate
 仍待完成。詳見雙語 V2 圖形計畫與 Renderer Contract。
 
+✅ V2-GFX-1 bounded color-target graph recording / 有界 Color-target Graph 錄製（2026-10-17）：
+transactional DX12/Metal/Validation textures, limited graphics admission and a shared native pixel/
+failure/recycle oracle pass Linux regression, Vulkan synchronization validation and Shipping gates.
+DX12／Metal／Validation Texture 提交語意、有限 Graphics 檢查及共用原生像素／失敗／回收
+Oracle 已通過 Linux 回歸、Vulkan 同步驗證及 Shipping；Windows／Metal 執行須由 Hosted
+CI 證明，完整平行、共用讀取、非同步重用及效能 Gate 仍待完成。
+
 ✅ V2-GFX-1 Vulkan texture/graphics ownership / Vulkan Texture／Graphics 所有權（2026-10-17）：
 private state/revision snapshots and complete framebuffer retirement pass exact serial/four-worker
 pixels and synchronization/object validation. 私有狀態／Revision 快照與完整 Framebuffer 回收已

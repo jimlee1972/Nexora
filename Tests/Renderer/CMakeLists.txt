@@ -105,6 +105,36 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   endif()
 endif()
 
+# One pixel/failure/lifetime oracle for all native color-target recording paths.
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND (WIN32 OR APPLE))
+  if(WIN32)
+    set(graphics_backend d3d12)
+    set(graphics_definition NEXORA_TEST_D3D12=1 _CRT_SECURE_NO_WARNINGS)
+    set(graphics_environment
+      "NEXORA_SLANG_DXIL_VERTEX_PATH=${NEXORA_SLANG_DXIL_VERTEX_OUTPUT}"
+      "NEXORA_SLANG_DXIL_FRAGMENT_PATH=${NEXORA_SLANG_DXIL_FRAGMENT_OUTPUT}"
+      "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}")
+  else()
+    set(graphics_backend metal)
+    set(graphics_definition NEXORA_TEST_METAL=1)
+    set(graphics_environment
+      "NEXORA_SLANG_METAL_PATH=${NEXORA_SLANG_METAL_OUTPUT}"
+      "NEXORA_SLANG_COMPUTE_METAL_PATH=${NEXORA_SLANG_COMPUTE_METAL_OUTPUT}")
+  endif()
+  add_executable(NexoraNativeTextureRecordingTests VulkanTextureRecordingTests.cpp)
+  target_link_libraries(NexoraNativeTextureRecordingTests PRIVATE Nexora::Renderer)
+  target_compile_definitions(NexoraNativeTextureRecordingTests PRIVATE ${graphics_definition})
+  nexora_apply_defaults(NexoraNativeTextureRecordingTests)
+  add_test(NAME renderer.${graphics_backend}_texture_recording COMMAND NexoraNativeTextureRecordingTests)
+  set_tests_properties(renderer.${graphics_backend}_texture_recording PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "${graphics_backend};native-acceptance")
+  if(NEXORA_ENABLE_SLANG)
+    add_dependencies(NexoraNativeTextureRecordingTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+    set_property(TEST renderer.${graphics_backend}_texture_recording APPEND PROPERTY ENVIRONMENT
+      ${graphics_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  endif()
+endif()
+
 # Share the same workload and failure/CPU oracle across native Vulkan and D3D12.
 if(NEXORA_ENABLE_NATIVE_BACKENDS AND WIN32)
   add_executable(NexoraD3D12RecordingIsolationTests VulkanDescriptorIsolationTests.cpp)

@@ -31,6 +31,43 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Bounded native color-target graph recording — 2026-10-17
+
+✅ The limited `independent_graphics_recording` contract adds disjoint color-target graphics
+cohorts to the opt-in graph scheduler alongside independently admitted buffer-only Compute.
+Graphics passes require complete declarations, at least one RenderTarget write, no texture reads
+and no buffer writes. Shared resources (including read/read), dependencies, unsupported/unmarked
+passes and singleton cohorts fall back to serial. Default Execute stays serial. Workers only
+record; the coordinator joins, submits in graph order and waits before retirement.
+
+D3D12/Metal now snapshot texture generations/revisions/native metadata and logical state per list,
+validate before execution and commit only after queue acceptance. Readback invalidates older
+snapshots; failed/abandoned recordings preserve committed state. Validation models the same policy,
+including upload invalidation. D3D12 RTV allocation checks its 256-entry heap and recycles retired
+slots. Test-only native color readback packs padded staging rows; production execution has none.
+Metal graphics entry points use autorelease pools and retain list-owned textures/encoders with ARC.
+
+The common Vulkan/D3D12/Metal oracle covers 24 exact mixed-format/extent serial/parallel pixel
+comparisons, six scopes/list, four-worker overlap and reverse submission; stale-list and
+abandonment recovery; 512 sequential target allocations/reclamation; and eight graph output
+comparisons with aborted-batch sentinels and replay. Portable tests additionally cover capability
+independence, mixed compute/graphics cohorts, shared reads, texture hazards/dependencies, opt-out,
+sampling/copy fallback, ordered submission and completion-before-retirement.
+
+Source branch: `feat/v2-native-graphics-recording`; Beads `nexora-45y.2.8`.
+Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
+pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
+134.48 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Shipping configure/build passes
+(Monolithic/Minimal, LTO). Native Vulkan object/synchronization validation with layer **1.3.275**
+passes **4/4, zero skips, 8.24 seconds**, with loader-confirmed insertion and zero Validation Error,
+VUID or SYNC-HAZARD markers. Native artifacts come from CTest, with inherited shader paths removed.
+The final mixed-cohort portable test also passes. Windows/Metal runtime acceptance requires hosted
+CI; Linux does not certify those backends. All C++ modules rebuild for the appended capability;
+stable C ABI and shader/SDK baselines are unchanged. Full parallel feature admission, shared reads,
+asynchronous queues/reuse, compiler/artifact readiness and matched physical-GPU performance remain
+open. See the [graph contract](../../Engine/Renderer/README.md#native-color-target-graph-acceptance)
+and [RHI contract](../../Engine/RHI/README.md#independent-color-target-recording-and-transactional-textures).
+
 ### Vulkan texture recording and complete framebuffer retirement — 2026-10-17
 
 ✅ Vulkan texture transitions now use list-owned generation/revision/state snapshots. Rendering
@@ -207,7 +244,7 @@ reduction, physical-GPU timing, general graphics/texture recording, shared-read 
 D3D12/Metal worker safety, cancellation or asynchronous multi-queue retirement. The compiler/artifact
 matrix, matched CPU median/p95, GPU time/memory budgets and all full gates stay open. No shader,
 SDK, feature default or stable C ABI changes. See the
-[execution contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-recording).
+[execution contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-and-color-target-recording).
 
 ### Buffer dependencies and compiled barrier plans — 2026-10-17
 
