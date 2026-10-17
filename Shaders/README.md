@@ -159,3 +159,14 @@ for runtime recipe identity; native execution remains explicitly pending in gene
 A separately compiled same-profile changed recipe exercises runtime identity rejection. Native
 state objects additionally require actual exports and shader identifiers; compilation/reflection
 is not DXR proof. These fixtures do not implement DXR1.2, SER or general cooked ray authoring.
+
+## Optional DXC modern recipes
+
+The default-off Windows preview build compiles `ModernLongVector.hlsl` as cs_6_9 and
+`ModernLinearAlgebra.hlsl`/`ModernGroupShared.hlsl` as cs_6_10 using separately pinned DXC1.10
+Preview and its bundled `dx/linalg.h`. It does not raise canonical Slang profiles. The artifact
+manifest records compiler/source/binary identities and sets native execution false. An exact-byte
+private header pins the three fixed native recipes. A real65540-byte negative compilation must
+fail the declared65536 shared-memory ceiling. `GroupSharedLimit` describes static storage, not
+runtime dynamic allocation. CPU/GPU output proof belongs to the separate native test, not this
+compiler manifest. General modern shader cook/reflection authoring remains open.

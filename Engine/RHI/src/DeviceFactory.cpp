@@ -32,6 +32,8 @@ std::unique_ptr<Device> CreateDevice(Backend backend) {
 }
 std::unique_ptr<Device> CreateDeviceWithOptions(Backend backend,
                                                 const DeviceCreationOptions &options) {
+  if (options.enable_d3d12_preview_runtime && backend != Backend::Direct3D12)
+    throw std::invalid_argument("preview runtime is D3D12-only");
   switch (backend) {
   case Backend::Null:
     return CreateValidationDevice();

@@ -613,3 +613,32 @@ jobs:
               sys.exit(f"CI failed: route={route['result']}, full_build={full}, unexpected jobs={failed}")
           print("PASS: " + ("full build" if full == "true" else "documentation only"))
           PYTHON
+
+  modern-shaders-preview:
+    needs: changes
+    if: needs.changes.outputs.full_build == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Stage verified preview SDK, software adapter and compiler
+        shell: pwsh
+        run: python Tools/Build/PrepareD3D12Preview.py --destination "$env:RUNNER_TEMP/nexora-preview"
+      - name: Enable experimental shaders on the disposable test host
+        shell: pwsh
+        run: |
+          New-Item -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Force | Out-Null
+          New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -PropertyType DWord -Value 1 -Force | Out-Null
+      - name: Configure isolated opt-in runtime
+        shell: pwsh
+        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
+      - run: cmake --build --preset windows-development --target NexoraModernShaderTests
+      - run: ctest --preset windows-development -V -R '^renderer\.modern_shaders_preview$' --output-log build/windows-development/modern-shaders-preview.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modern-shaders-preview-evidence
+          path: |
+            build/windows-development/modern-shaders-preview.log
+            build/windows-development/Shaders/Modern/ModernShaders.manifest.json

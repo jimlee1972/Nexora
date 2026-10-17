@@ -2434,3 +2434,5 @@ Done
 ```
 
 Verifiable evidence must be provided.
+
+Modern compute follow-up: opt-in isolated Agility/WARP/DXC preview runtime and three bounded SM6.9/6.10 programs are under implementation; Windows native execution remains pending. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md). Full gates stay open.

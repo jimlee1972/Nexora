@@ -50,3 +50,41 @@ if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   target_compile_definitions(NexoraRHI PUBLIC NEXORA_RHI_STATIC=1)
 endif()
 nexora_apply_defaults(NexoraRHI)
+
+if(NEXORA_ENABLE_D3D12_PREVIEW)
+  if(NOT WIN32 OR NOT NEXORA_ENABLE_NATIVE_BACKENDS)
+    message(FATAL_ERROR "D3D12 preview requires Windows native backends")
+  endif()
+  set(NEXORA_D3D12_PREVIEW_ROOT "" CACHE PATH "Verified PrepareD3D12Preview.py package directory")
+  if(NOT EXISTS "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/include/d3d12.h")
+    message(FATAL_ERROR "Run Tools/Build/PrepareD3D12Preview.py and set NEXORA_D3D12_PREVIEW_ROOT")
+  endif()
+  foreach(preview_file IN ITEMS "agility/build/native/bin/x64/D3D12Core.dll"
+      "warp/build/native/bin/x64/d3d10warp.dll" "dxc/bin/x64/dxc.exe" "dxc/inc/hlsl/dx/linalg.h")
+    if(NOT EXISTS "${NEXORA_D3D12_PREVIEW_ROOT}/${preview_file}")
+      message(FATAL_ERROR "Preview package is incomplete: ${preview_file}")
+    endif()
+  endforeach()
+  target_link_libraries(NexoraRHI PRIVATE dxguid)
+  target_include_directories(NexoraRHI BEFORE PRIVATE "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/include")
+endif()
+target_compile_definitions(NexoraRHI PRIVATE NEXORA_ENABLE_D3D12_PREVIEW=$<BOOL:${NEXORA_ENABLE_D3D12_PREVIEW}>)
+if(NEXORA_ENABLE_D3D12_PREVIEW)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(modern_dxc "${NEXORA_D3D12_PREVIEW_ROOT}/dxc/bin/x64/dxc.exe")
+  set(modern_output "${PROJECT_BINARY_DIR}/Shaders/Modern")
+  add_custom_command(OUTPUT "${modern_output}/ModernShaderArtifactIdentity.h"
+    "${modern_output}/ModernLongVector.dxil" "${modern_output}/ModernLinearAlgebra.dxil"
+    "${modern_output}/ModernGroupShared.dxil" "${modern_output}/ModernShaders.manifest.json"
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/RecordModernShaderArtifacts.py"
+      --compiler "${modern_dxc}" --source-root "${PROJECT_SOURCE_DIR}/Shaders"
+      --output "${modern_output}" --hlsl-include "${NEXORA_D3D12_PREVIEW_ROOT}/dxc/inc/hlsl"
+    DEPENDS "${PROJECT_SOURCE_DIR}/Tools/Build/RecordModernShaderArtifacts.py"
+      "${PROJECT_SOURCE_DIR}/Shaders/ModernLongVector.hlsl"
+      "${PROJECT_SOURCE_DIR}/Shaders/ModernLinearAlgebra.hlsl"
+      "${PROJECT_SOURCE_DIR}/Shaders/ModernGroupShared.hlsl"
+    VERBATIM)
+  add_custom_target(NexoraModernShaderArtifacts ALL DEPENDS "${modern_output}/ModernShaderArtifactIdentity.h")
+  add_dependencies(NexoraRHI NexoraModernShaderArtifacts)
+  target_include_directories(NexoraRHI PRIVATE "${modern_output}")
+endif()
