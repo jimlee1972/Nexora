@@ -44,6 +44,11 @@ and zero Validation Error/VUID/SYNC-HAZARD markers. Windows actual DXIL/PSO/read
 and Metal shared-read execution remain hosted gates. Beads `nexora-45y.2.9` and `.2.10` share this
 follow-up; the complete toolchain, parallel/performance and preview gates stay open.
 
+After PR626 merge, rebased onto main `bb39a646`, preserving upstream Windows VM tooling/evidence.
+The complete Slang Development configure/build and Xvfb/native-required CTest pass again:
+**207/207, zero skips/failures, 120.22 seconds**. The six-test focused renderer command passes
+**6/6, zero skips, 0.26 seconds**; Shipping Monolithic/Minimal LTO configure/build passes.
+
 ### DXIL entry-stage and artifact-profile admission — 2026-10-17
 
 ✅ D3D12 requested entry artifacts now undergo portable, bounded DXBC/DXIL program metadata

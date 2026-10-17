@@ -37,6 +37,11 @@ Object／Synchronization Validation **4/4 通過，零略過，1.18 秒**，Load
 純讀者提交，以及 Metal 共用讀取仍須 Hosted Gate 證明。Beads `nexora-45y.2.9` 與 `.2.10`
 共用後續整合；完整 Toolchain、平行／效能與 Preview Gate 維持待完成。
 
+PR626 合併後已 Rebase 至 main `bb39a646`，保留上游 Windows VM 工具／證據更新。
+完整 Slang Development Configure／Build 與 Xvfb／Native-required CTest 再次通過：
+**207/207，零略過／失敗，120.22 秒**。六項聚焦 Renderer 指令 **6/6 通過，零略過，0.26 秒**；
+Shipping Monolithic／Minimal LTO Configure／Build 通過。
+
 ### DXIL Entry Stage 與 Artifact Profile 檢查 — 2026-10-17
 
 ✅ D3D12 指定 Entry Artifact 現會接受 Portable、有界的 DXBC／DXIL Program Metadata
