@@ -944,3 +944,36 @@ query. WARP validates semantics and does not prove physical reordering, performa
 Native Windows proof remains pending; full DXR1.2/SER/performance acceptance remains open.
 
 The SER candidate passes local native Slang/Zig Development219/219,zero failures/skips (163.27s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (9.94s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Actual production DXC preview compiles both normal/negative lib_6_9, validates real reflection/instructions and generates exact pins. Windows-conditional test and actual SDK OPTIONS22/factory syntax checks pass; this is not native Windows execution. Workflow routing16/16 and paired documentation checks pass.
+
+### Bounded DXR1.2 opacity micromaps — implementation in progress
+
+A separate default-off `NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS` requires the pinned preview/SER
+recipe. `CreateOpacityMicromapScene(triangles, masks)` accepts1–8 immutable finite triangles and
+one low-four-bit mask each, encoding subdivision1 OC1 two-state micro-triangles in A/center/B/C
+space-filling order. Unknown/any-hit states, higher subdivisions and mutable linkage are outside
+this recipe. Native construction uploads128-byte-aligned mask input, eight-byte GPU descriptions
+and R32 indices, queries actual bounded OMM-array prebuild requirements, then records actual OMM
+array build/UAV dependency/linked BLAS build/UAV dependency/TLAS build/UAV dependency. The caller-
+serialized construction fence completes before publication/scratch retirement. Linked OMM storage
+is declared before BLAS/TLAS owners and each command-list scene snapshot retains all dependencies.
+
+`RayTracingMode::ReorderedOpacityPipeline` independently requires actual RT1.2, SM6.9 and functional
+SER. Its native config1 explicitly allows OMMs; the exact reflected SER library/root/payload/table
+remain pinned. Scene/program opacity mismatches reject before native traversal, avoiding undefined
+behavior from ordinary pipelines encountering OMMs. Only this additional compiled option raises
+the bounded RT implementation ceiling from1.1 to1.2; SER alone does not. Native OMM calls publish
+a separate accepted diagnostic after successful submission, included in SER and ordinary ray calls.
+
+The oracle tests all16 masks on1/2 original triangles with1/64 rays, including every interior
+micro-triangle, transparent-front/opaque-back nearest hits, misses, reverse/nonunit/invalid rays,
+original primitive/barycentric results and canaries. An independent double CPU classifier is
+cross-checked against real lower-profile GPU traversal of explicitly emitted opaque microgeometry,
+including empty/all-transparent geometry; native OMM results must match both when admitted.
+Eight-triangle all-opaque native cases reuse forced two-worker failure/cancellation/replay,
+stale/destroyed/recreated scene/program/input/output, abandonment, eight-snapshot bounds and
+Ray/Compute/Ray roots. Ordinary/OMM program/scene mismatches and missing/high mask bits reject.
+Linux fallback and SDK syntax proof do not certify native OMM execution; Windows preview proof
+remains pending. Four-state/any-hit, updates/compaction, general materials/lighting/cooking and
+physical full DXR/Ultimate acceptance remain open.
+
+The integrated OMM candidate passes local native Slang/Zig Development219/219,zero skips/failures (126.28s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (10.50s),37 confirmed insertions,zero Validation Error/VUID/SYNC-HAZARD markers. The actual Agility721 OMM build/linkage/config1 helper and Windows-conditional SER/OMM tests compile with warnings-as-errors; paired documentation/workflow16/16 checks pass. Vulkan explicitly reports opacity native0 while executing the real microgeometry GPU oracle. Windows native OMM proof is pending.

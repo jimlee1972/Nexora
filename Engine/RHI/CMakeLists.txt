@@ -106,3 +106,8 @@ if(NEXORA_ENABLE_D3D12_SER)
   target_include_directories(NexoraRHI PRIVATE "${ser_output}")
 endif()
 target_compile_definitions(NexoraRHI PRIVATE NEXORA_ENABLE_D3D12_SER=$<BOOL:${NEXORA_ENABLE_D3D12_SER}>)
+
+if(NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS AND NOT NEXORA_ENABLE_D3D12_SER)
+  message(FATAL_ERROR "Opacity micromaps require the pinned preview SER ray recipe")
+endif()
+target_compile_definitions(NexoraRHI PRIVATE NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS=$<BOOL:${NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS}>)

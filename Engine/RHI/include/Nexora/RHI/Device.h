@@ -36,6 +36,7 @@ struct DeviceDiagnostics final {
   std::uint64_t ray_dispatch_calls{};
   std::uint64_t inline_ray_dispatch_calls{};
   std::uint64_t ser_ray_dispatch_calls{};
+  std::uint64_t opacity_ray_dispatch_calls{};
   std::uint64_t command_pool_creations{};
   std::uint64_t command_pool_reuses{};
   std::uint64_t cached_command_pools{};
@@ -150,6 +151,10 @@ public:
   }
   [[nodiscard]] virtual RaySceneHandle CreateRayScene(std::span<const RayTriangle>) {
     throw std::logic_error("ray tracing scenes are unsupported");
+  }
+  [[nodiscard]] virtual RaySceneHandle CreateOpacityMicromapScene(std::span<const RayTriangle>,
+                                                                  std::span<const std::uint8_t>) {
+    throw std::logic_error("opacity micromap scenes are unsupported");
   }
   virtual void DestroyRayScene(RaySceneHandle) {
     throw std::logic_error("ray tracing scenes are unsupported");

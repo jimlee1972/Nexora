@@ -384,7 +384,8 @@ private:
   };
   std::array<RaySnapshot, RayMaximumDispatchesPerList> ray_snapshots_{};
   std::size_t ray_snapshot_count_{};
-  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{}, ser_ray_dispatches_{};
+  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{}, ser_ray_dispatches_{},
+      opacity_ray_dispatches_{};
 #endif
   Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestamp_heap_;
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
@@ -580,6 +581,9 @@ public:
     auto &ray = capabilities_.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
     ray.implemented = true;
     ray.implemented_tier = {1, 1};
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+    ray.implemented_tier = {1, 2};
+#endif
     if (ray.support == CapabilitySupport::Supported &&
         capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 3} &&
         SUCCEEDED(device_.As(&ray_device_))) {
@@ -1079,6 +1083,32 @@ public:
     }
     return handle;
   }
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  RaySceneHandle CreateOpacityMicromapScene(std::span<const RayTriangle> triangles,
+                                            std::span<const std::uint8_t> masks) override {
+    RayProgramDescriptor descriptor;
+    descriptor.mode = RayTracingMode::ReorderedOpacityPipeline;
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements(descriptor));
+    if (!IsRayOpacitySceneValid(triangles, masks))
+      throw std::invalid_argument("invalid bounded opacity triangles or masks");
+    std::lock_guard lock{mutex_};
+    auto build = detail::BuildNativeRayScene(*ray_device_.Get(), triangles, masks);
+    Check(build.commands->Close(), "Close opacity/BLAS/TLAS build list");
+    ID3D12CommandList *commands = build.commands.Get();
+    queue_->ExecuteCommandLists(1, &commands);
+    const auto completion = ++next_fence_;
+    Check(queue_->Signal(fence_.Get(), completion), "Signal opacity build");
+    WaitForFence(completion);
+    const auto handle = ray_scene_pool_.Create();
+    try {
+      ray_scenes_.emplace(Key(handle), std::move(build.scene));
+    } catch (...) {
+      (void)ray_scene_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+#endif
   void DestroyRayScene(RaySceneHandle scene) override {
     std::lock_guard lock{mutex_};
     Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
@@ -1090,7 +1120,7 @@ public:
     const auto requirements = EffectiveRayProgramRequirements(descriptor);
     RequireGraphicsCapabilities(Capabilities(), requirements);
     const auto *environment =
-        descriptor.mode == RayTracingMode::ReorderedPipeline ? "NEXORA_SER_RAY_LIBRARY_DXIL_PATH"
+        descriptor.mode >= RayTracingMode::ReorderedPipeline ? "NEXORA_SER_RAY_LIBRARY_DXIL_PATH"
         : descriptor.mode == RayTracingMode::Pipeline        ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
                                                              : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
     const auto *path = std::getenv(environment);
@@ -1113,7 +1143,7 @@ public:
       throw std::invalid_argument("ray artifact exceeds device shader profile");
 #if NEXORA_HAS_PINNED_RAY_ARTIFACTS
     std::span<const unsigned char> expected;
-    if (descriptor.mode == RayTracingMode::ReorderedPipeline) {
+    if (descriptor.mode >= RayTracingMode::ReorderedPipeline) {
 #if NEXORA_ENABLE_D3D12_SER
       expected = detail::SerRayLibraryBytes;
 #else
@@ -1229,6 +1259,7 @@ public:
       diagnostics_.ray_dispatch_calls += validated->ray_dispatches_;
       diagnostics_.inline_ray_dispatch_calls += validated->inline_ray_dispatches_;
       diagnostics_.ser_ray_dispatch_calls += validated->ser_ray_dispatches_;
+      diagnostics_.opacity_ray_dispatch_calls += validated->opacity_ray_dispatches_;
 #endif
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
@@ -1899,6 +1930,9 @@ void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle
     snapshot = {program_handle, scene_handle, device_.ray_programs_.at(Key(program_handle)),
                 device_.ray_scenes_.at(Key(scene_handle))};
   }
+  if ((snapshot.program.mode == RayTracingMode::ReorderedOpacityPipeline) !=
+      snapshot.scene.opacity_micromaps)
+    throw std::logic_error("ray program opacity permission does not match the immutable scene");
   if (device_.ValidateBuffer(input).descriptor.size <
           static_cast<std::uint64_t>(count) * sizeof(RayInput) ||
       device_.ValidateBuffer(output).descriptor.size <
@@ -1917,8 +1951,10 @@ void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle
     ++ray_dispatches_;
   else
     ++inline_ray_dispatches_;
-  if (owned.program.mode == RayTracingMode::ReorderedPipeline)
+  if (owned.program.mode >= RayTracingMode::ReorderedPipeline)
     ++ser_ray_dispatches_;
+  if (owned.program.mode == RayTracingMode::ReorderedOpacityPipeline)
+    ++opacity_ray_dispatches_;
   pipeline_bound_ = false;
   mesh_input_ = {};
 #if NEXORA_D3D12_WORK_GRAPHS

@@ -644,7 +644,7 @@ jobs:
           New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -PropertyType DWord -Value 1 -Force | Out-Null
       - name: Configure isolated opt-in runtime
         shell: pwsh
-        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON -DNEXORA_ENABLE_D3D12_SER=ON -DNEXORA_ENABLE_SLANG=ON "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
+        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON -DNEXORA_ENABLE_D3D12_SER=ON -DNEXORA_ENABLE_D3D12_OPACITY_MICROMAPS=ON -DNEXORA_ENABLE_SLANG=ON "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
       - run: cmake --build --preset windows-development --target NexoraModernShaderTests NexoraSerRayTests
       - run: ctest --preset windows-development -V -R '^renderer\.(modern_shaders_preview|ser_rays_preview(_enhanced)?)$' --output-log build/windows-development/modern-shaders-preview.log
       - uses: actions/upload-artifact@v4

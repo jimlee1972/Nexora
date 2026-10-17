@@ -866,3 +866,32 @@ OPTIONS22 Query 獨立回報是否真的重排執行緒。False 仍可具備合�
 維持開放。
 
 SER 候選版本本機 Native Slang／Zig Development219/219 通過、零失敗／略過（163.27秒），Shipping Minimal／Monolithic／LTO 及 Xvfb Khronos 物件／同步17/17（9.94秒）亦通過；37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。正式 DXC Preview 編譯正常／負例 lib_6_9，驗證真實 Reflection／指令並產生完整 Pin。Windows 條件測試及真正 SDK OPTIONS22／Factory 語法檢查通過，仍不屬 Windows 原生執行證據。Workflow 路由16/16、雙語文件檢查通過。
+
+### 有界 DXR1.2 Opacity Micromap — 實作進行中
+
+獨立且預設關閉的 `NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS` 要求固定 Preview／SER Recipe。
+`CreateOpacityMicromapScene(triangles, masks)` 接受1～8個不可變有限 Triangle，各配一個
+低四位元遮罩，依 A／中央／B／C 空間曲線順序編碼 Subdivision1 OC1 二狀態微三角形。
+未知／Any-hit 狀態、更高細分與可變連結不屬本 Recipe。原生建置上傳128-byte對齊的遮罩、
+八位元組 GPU Description 與 R32 Index，查詢真實有界 OMM Array Prebuild 需求，再錄製
+真實 OMM Array Build／UAV Dependency／Linked BLAS Build／UAV Dependency／TLAS Build／
+UAV Dependency。建置由 Caller 序列化，Fence 完成後才發布並退役 Scratch；Linked OMM
+Storage 宣告於 BLAS／TLAS Owner 之前，每個 Command List Scene Snapshot 保留所有依賴。
+
+`RayTracingMode::ReorderedOpacityPipeline` 獨立要求實際 RT1.2、SM6.9 與 SER 功能；原生
+Config1 明確允許 OMM，沿用已 Reflection／完整 Pin 的 SER Library／Root／Payload／Table。
+Scene／Program 的 Opacity 許可不符時，在原生 Traversal 前拒絕，避免普通 Pipeline 碰到
+OMM 的未定義行為。僅此額外編譯選項將有界 RT Implementation Ceiling 由1.1提高到1.2，
+SER 單獨不提高。原生 OMM Call 僅成功 Submit 後發布專用已接受計數，並納入 SER／普通 Ray。
+
+Oracle 在1／2原始三角形、1／64條 Ray 下測試全部16種遮罩，涵蓋每個微三角形內點、透明
+前層／不透明後層的最近交點、Miss、反向／非單位／Invalid Ray、原始 Primitive／Barycentric
+與 Canary。獨立 Double CPU 分類器對照真正低 Profile GPU 的顯式不透明微幾何 Traversal，
+包含空幾何／全透明；准入時，原生 OMM 結果必須符合兩者。八三角形全不透明原生案例沿用
+雙 Worker 失敗／取消／重播、過期／銷毀／重建 Scene／Program／Input／Output、放棄 List、
+八 Snapshot 上限及 Ray/Compute/Ray Root；普通／OMM Scene／Program 混用、遺失／高位元
+遮罩均拒絕。Linux 後備及 SDK 語法證據不代表原生 OMM，Windows Preview 證據仍待完成。
+四狀態／Any-hit、Update／Compaction、通用材質／Lighting／Cook 與實體完整 DXR／Ultimate
+驗收維持開放。
+
+整合 OMM 候選版本通過本機 Native Slang／Zig Development219/219、零略過／失敗（126.28秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（10.50秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。真正 Agility721 OMM Build／Linkage／Config1 Helper 與 Windows 條件 SER／OMM 測試以警告即錯誤編譯通過；雙語文件／Workflow16/16 亦通過。Vulkan 明確回報 Opacity Native0，執行真正微幾何 GPU Oracle；Windows 原生 OMM 證據待完成。

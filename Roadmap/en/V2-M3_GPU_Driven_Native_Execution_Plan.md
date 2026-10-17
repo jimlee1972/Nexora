@@ -319,3 +319,5 @@ The older source-only implementation notes below are historical.
   cross-backend contract mismatch.
 
 Bounded SER follow-up adds actual SM6.9 HitObject/Reorder/Invoke and separate OPTIONS22 actual-reordering reporting; native Windows proof remains pending. WARP does not prove thread reordering. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full DXR/SER gates remain open.
+
+DXR1.2 follow-up adds opt-in real two-state subdivision1 OMM-array/BLAS/TLAS construction and explicitly OMM-enabled traversal. All16 masks are checked against CPU and real explicit-microgeometry compute; Windows native proof remains pending. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full gates stay open.

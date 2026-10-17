@@ -135,9 +135,11 @@ struct Workload final {
   std::uint32_t count;
   std::vector<rhi::RayHit> expected;
 };
-Workload Make(rhi::Device &device, std::span<const rhi::RayTriangle> triangles,
-              std::uint32_t count) {
-  const auto rays = Rays(count);
+Workload Make(rhi::Device &device, std::span<const rhi::RayTriangle> triangles, std::uint32_t count,
+              std::span<const rhi::RayInput> supplied = {}) {
+  const auto rays =
+      supplied.empty() ? Rays(count) : std::vector<rhi::RayInput>{supplied.begin(), supplied.end()};
+  Require(rays.size() == count, "fixture ray count mismatch");
   std::vector<std::uint32_t> packed{count, static_cast<std::uint32_t>(triangles.size())};
   for (const auto &triangle : triangles)
     for (float v : triangle.vertices)
@@ -252,7 +254,8 @@ void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramH
     Require(before.submitted_command_lists == after.submitted_command_lists &&
                 before.ray_dispatch_calls == after.ray_dispatch_calls &&
                 before.inline_ray_dispatch_calls == after.inline_ray_dispatch_calls &&
-                before.ser_ray_dispatch_calls == after.ser_ray_dispatch_calls,
+                before.ser_ray_dispatch_calls == after.ser_ray_dispatch_calls &&
+                before.opacity_ray_dispatch_calls == after.opacity_ray_dispatch_calls,
             "aborted ray cohort committed work");
     for (const auto &item : work)
       Require(Read(device, item) == Empty(item.count), "aborted ray cohort changed output");
@@ -269,7 +272,8 @@ void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramH
 }
 void TestLifetime(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
                   rhi::RaySceneHandle scene, const rhi::RayProgramDescriptor &descriptor,
-                  std::span<const rhi::RayTriangle> triangles) {
+                  std::span<const rhi::RayTriangle> triangles,
+                  std::span<const std::uint8_t> opacity_masks = {}) {
   auto work = Make(device, triangles, 64);
   auto small = device.CreateBuffer({4, "small ray buffer"});
   {
@@ -299,11 +303,15 @@ void TestLifetime(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProg
     Require(before == device.Diagnostics().submitted_command_lists, "stale ray input committed");
   }
   {
-    auto temporary = device.CreateRayScene(triangles);
+    auto temporary = opacity_masks.empty()
+                         ? device.CreateRayScene(triangles)
+                         : device.CreateOpacityMicromapScene(triangles, opacity_masks);
     auto stale = device.CreateCommandList(rhi::QueueType::Compute);
     Record(*stale, compute, program, temporary, work);
     device.DestroyRayScene(temporary);
-    const auto replacement = device.CreateRayScene(triangles);
+    const auto replacement = opacity_masks.empty()
+                                 ? device.CreateRayScene(triangles)
+                                 : device.CreateOpacityMicromapScene(triangles, opacity_masks);
     Require(replacement != temporary, "scene generation reused");
     Reject([&] { (void)device.Submit(*stale); }, "destroyed scene submitted");
     device.DestroyRayScene(replacement);
@@ -418,6 +426,183 @@ void MixedNodesAndRays(rhi::Device &device, rhi::PipelineHandle compute,
   device.DestroyWorkGraph(node);
   std::cout << "Native Node/Ray/Node program and root restoration passed\n";
 }
+
+constexpr std::array<std::array<float, 6>, 4> MicroBary{{{0, 0, .5F, 0, 0, .5F},
+                                                         {.5F, 0, .5F, .5F, 0, .5F},
+                                                         {.5F, 0, 1, 0, .5F, .5F},
+                                                         {0, .5F, .5F, .5F, 0, 1}}};
+struct MicroIdentity final {
+  std::uint32_t primitive, micro;
+};
+rhi::RayHit OpacityReference(std::span<const rhi::RayTriangle> triangles,
+                             std::span<const std::uint8_t> masks, const rhi::RayInput &ray) {
+  auto result = Reference({}, ray);
+  if (result.primitive == rhi::RayInvalidPrimitive)
+    return result;
+  for (std::size_t i = 0; i < triangles.size(); ++i) {
+    auto hit = Reference(triangles.subspan(i, 1), ray);
+    if (hit.primitive != 0 || hit.distance > result.distance)
+      continue;
+    const auto u = hit.barycentrics[0], v = hit.barycentrics[1];
+    const auto micro = u >= .5F ? 2U : v >= .5F ? 3U : u + v <= .5F ? 0U : 1U;
+    if (masks[i] & (1U << micro)) {
+      hit.primitive = static_cast<std::uint32_t>(i);
+      result = hit;
+    }
+  }
+  return result;
+}
+void OpacityMicromaps(rhi::Device &device, rhi::PipelineHandle compute) {
+  rhi::RayProgramDescriptor descriptor;
+  descriptor.mode = rhi::RayTracingMode::ReorderedOpacityPipeline;
+  const bool enabled = rhi::CheckGraphicsRequirements(
+                           device.Capabilities(), rhi::EffectiveRayProgramRequirements(descriptor))
+                           .Succeeded();
+#if defined(NEXORA_TEST_OPACITY_NATIVE)
+  Require(enabled, "required native DXR1.2 opacity pipeline is unavailable");
+#endif
+  rhi::RayProgramHandle program{};
+  if (enabled)
+    program = device.CreateRayProgram(descriptor);
+  else
+    Reject([&] { (void)device.CreateRayProgram(descriptor); },
+           "unavailable opacity program admitted");
+  for (const auto count : {1U, 2U})
+    for (std::uint8_t pattern = 0; pattern < 16; ++pattern) {
+      const auto triangles = Triangles(count);
+      std::vector<std::uint8_t> masks(count, 15);
+      masks[0] = pattern;
+      std::vector<rhi::RayTriangle> micro_triangles;
+      std::vector<MicroIdentity> identities;
+      for (std::uint32_t primitive = 0; primitive < count; ++primitive)
+        for (std::uint32_t micro = 0; micro < 4; ++micro)
+          if (masks[primitive] & (1U << micro)) {
+            rhi::RayTriangle triangle{};
+            const auto &source = triangles[primitive].vertices;
+            for (std::size_t corner = 0; corner < 3; ++corner)
+              for (std::size_t axis = 0; axis < 3; ++axis)
+                triangle.vertices[corner * 3 + axis] =
+                    source[axis] +
+                    MicroBary[micro][corner * 2] * (source[3 + axis] - source[axis]) +
+                    MicroBary[micro][corner * 2 + 1] * (source[6 + axis] - source[axis]);
+            micro_triangles.push_back(triangle);
+            identities.push_back({primitive, micro});
+          }
+      rhi::RaySceneHandle scene{};
+      if (enabled)
+        scene = device.CreateOpacityMicromapScene(triangles, masks);
+      else
+        Reject([&] { (void)device.CreateOpacityMicromapScene(triangles, masks); },
+               "unavailable OMM AS admitted");
+      for (const auto ray_count : {1U, 64U}) {
+        std::vector<rhi::RayInput> rays;
+        constexpr std::array<std::array<float, 2>, 4> centroids{
+            {{1.F / 6, 1.F / 6}, {1.F / 3, 1.F / 3}, {2.F / 3, 1.F / 6}, {1.F / 6, 2.F / 3}}};
+        for (std::uint32_t i = 0; i < ray_count; ++i) {
+          const auto u = centroids[i % 4][0], v = centroids[i % 4][1];
+          rhi::RayInput ray{{-1 + 2 * u + v, -1 + 2 * v, 0}, 0, {0, 0, 1}, 100};
+          switch (i % 16) {
+          case 4:
+            ray.origin[0] = 3;
+            break;
+          case 5:
+            ray.direction[2] = 2;
+            break;
+          case 6:
+            ray.origin[2] = 20;
+            ray.direction[2] = -1;
+            break;
+          case 7:
+            ray.direction.fill(0);
+            break;
+          case 8:
+            ray.origin[0] = std::numeric_limits<float>::quiet_NaN();
+            break;
+          case 9:
+            ray.maximum = 1;
+            break;
+          case 10:
+            ray.minimum = 3;
+            break;
+          case 11:
+            ray.maximum = std::numeric_limits<float>::infinity();
+            break;
+          default:
+            break;
+          }
+          rays.push_back(ray);
+        }
+        auto fallback = Make(device, micro_triangles, ray_count, rays);
+        Execute(device, compute, {}, {}, fallback);
+        const auto words = Read(device, fallback);
+        std::vector<rhi::RayHit> expected;
+        for (std::uint32_t i = 0; i < ray_count; ++i) {
+          const auto oracle = OpacityReference(triangles, masks, rays[i]);
+          expected.push_back(oracle);
+          auto primitive = words[i * 4];
+          float u = std::bit_cast<float>(words[i * 4 + 2]),
+                v = std::bit_cast<float>(words[i * 4 + 3]);
+          if (primitive < identities.size()) {
+            const auto identity = identities[primitive];
+            primitive = identity.primitive;
+            const auto &b = MicroBary[identity.micro];
+            const auto original_u = b[0] + u * (b[2] - b[0]) + v * (b[4] - b[0]);
+            v = b[1] + u * (b[3] - b[1]) + v * (b[5] - b[1]);
+            u = original_u;
+          }
+          Require(primitive == oracle.primitive &&
+                      std::abs(std::bit_cast<float>(words[i * 4 + 1]) - oracle.distance) <= 1e-4F &&
+                      std::abs(u - oracle.barycentrics[0]) <= 1e-4F &&
+                      std::abs(v - oracle.barycentrics[1]) <= 1e-4F,
+                  "explicit microgeometry GPU oracle differs from CPU opacity classification");
+        }
+        Destroy(device, fallback);
+        if (enabled) {
+          auto actual = Make(device, triangles, ray_count, rays);
+          actual.expected = expected;
+          Execute(device, compute, program, scene, actual);
+          Destroy(device, actual);
+        }
+      }
+      if (scene.IsValid())
+        device.DestroyRayScene(scene);
+    }
+  if (enabled) {
+    const auto triangles = Triangles(8);
+    const std::array<std::uint8_t, 8> opaque{15, 15, 15, 15, 15, 15, 15, 15};
+    const auto scene = device.CreateOpacityMicromapScene(triangles, opaque);
+    const auto ordinary_scene = device.CreateRayScene(triangles);
+    auto work = Make(device, triangles, 64);
+    {
+      auto mismatch = device.CreateCommandList(rhi::QueueType::Compute);
+      Reject(
+          [&] {
+            mismatch->TraceRays(program, ordinary_scene, work.buffers[4], work.buffers[1], 64);
+          },
+          "opacity program accepted ordinary scene");
+      const auto ordinary = device.CreateRayProgram({});
+      Reject([&] { mismatch->TraceRays(ordinary, scene, work.buffers[4], work.buffers[1], 64); },
+             "ordinary program accepted linked OMM scene");
+      device.DestroyRayProgram(ordinary);
+    }
+    Destroy(device, work);
+    device.DestroyRayScene(ordinary_scene);
+    auto invalid = opaque;
+    invalid[0] = 16;
+    Reject([&] { (void)device.CreateOpacityMicromapScene(triangles, invalid); },
+           "high opacity mask bits admitted");
+    Reject([&] { (void)device.CreateOpacityMicromapScene(triangles, {}); },
+           "missing opacity masks admitted");
+    Parallel(device, compute, program, scene, triangles);
+    TestLifetime(device, compute, program, scene, descriptor, triangles, opaque);
+    device.DestroyRayScene(scene);
+    device.DestroyRayProgram(program);
+  }
+  std::cout << "Opacity native=" << enabled
+            << "; all16 patterns,4 micro-triangles,1/2 originals,1/64 rays, "
+               "CPU/explicit-geometry GPU parity, nearest/miss/barycentric/invalid/canary passed\n";
+}
+
 void Portable() {
   auto triangle = Triangles(1);
   Require(rhi::IsRaySceneValid(triangle), "valid triangle rejected");
@@ -447,6 +632,15 @@ void Portable() {
               requirements.minimum_tiers[static_cast<std::size_t>(
                   rhi::GraphicsFeature::ShaderExecutionReordering)] == rhi::FeatureVersion{1, 0},
           "SER lost independent feature and profile admission");
+  descriptor.mode = rhi::RayTracingMode::ReorderedOpacityPipeline;
+  requirements = rhi::EffectiveRayProgramRequirements(descriptor);
+  Require(requirements.minimum_tiers[index] == rhi::FeatureVersion{1, 2},
+          "OMM lost actual DXR1.2 admission");
+  const std::array<std::uint8_t, 1> opaque{15}, invalid_masks{16};
+  Require(rhi::IsRayOpacitySceneValid(triangle, opaque) &&
+              !rhi::IsRayOpacitySceneValid(triangle, {}) &&
+              !rhi::IsRayOpacitySceneValid(triangle, invalid_masks),
+          "opacity mask bounds lost");
   descriptor.mode = rhi::RayTracingMode::InlineQuery;
   rhi::GraphicsDeviceCapabilities capabilities;
   capabilities.features[index] = {rhi::CapabilitySupport::Supported, {1, 2}, true, true, {1, 1}};
@@ -614,6 +808,7 @@ void Native(bool enhanced) {
     if (scene.IsValid())
       device->DestroyRayScene(scene);
   }
+  OpacityMicromaps(*device, compute);
   const auto diagnostics = device->Diagnostics();
   const auto feature = caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing)];
   Require(feature.enabled ? diagnostics.ray_dispatch_calls > 0
@@ -636,6 +831,11 @@ void Native(bool enhanced) {
 #if defined(NEXORA_TEST_SER_NATIVE)
   Require(diagnostics.ser_ray_dispatch_calls > 0, "required native SER was not dispatched");
   std::cout << "SER accepted_calls=" << diagnostics.ser_ray_dispatch_calls << '\n';
+#endif
+#if defined(NEXORA_TEST_OPACITY_NATIVE)
+  Require(diagnostics.opacity_ray_dispatch_calls > 0,
+          "required native opacity traversal was not dispatched");
+  std::cout << "Opacity accepted_calls=" << diagnostics.opacity_ray_dispatch_calls << '\n';
 #endif
   std::cout << "Ray dispatches=" << diagnostics.ray_dispatch_calls
             << " inline=" << diagnostics.inline_ray_dispatch_calls

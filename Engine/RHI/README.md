@@ -873,3 +873,23 @@ SER API calls only after submission, included in ordinary ray counts; rejection/
 not publish calls. Lower-profile ordinary rays/compute remain explicit alternatives. WARP validates
 outputs without actual thread reordering; hardware coherence/performance and full SER acceptance
 remain separate. Native preview Windows evidence is pending.
+
+## Bounded opacity micromaps
+
+`NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS` is default off and requires the pinned preview SER recipe.
+`CreateOpacityMicromapScene` pairs1–8 triangles with low-four-bit OC1 two-state subdivision1 masks
+(A corner, center, B corner, C corner). Set bits are opaque. Native construction builds an actual
+OMM array, UAV dependency, linked BLAS, UAV dependency and TLAS, then waits its private creation
+fence. Mask/description/index/result resources are retained with the immutable scene; OMM owners
+outlive linked BLAS/TLAS. Every native allocation remains bounded64 MiB; scratch retires after
+construction completion. Creation/mutation/destruction/submit remain caller-serialized.
+
+`ReorderedOpacityPipeline` adds actual RT1.2 to SM6.9/SER admission and config1 OMM permission.
+Only the OMM build option raises the bounded implementation ceiling to1.2; SER alone stays1.1.
+Scene/program opacity mismatches reject before dispatch. The existing pinned SER library,16-byte
+payload, three shader-table records, dedicated roots and generation/revision/snapshot contract
+apply. `opacity_ray_dispatch_calls` counts successful submitted OMM calls as a subset of SER/ray
+calls. Vulkan/Metal run the real explicit-microgeometry compute oracle without native OMM.
+All16 masks and nearest transparent-front occlusion are checked independently; native proof is
+pending Windows CI. Four-state/any-hit, higher subdivisions, updates and general material/cook/
+lighting/physical acceptance remain open. Stable C ABI and cooked formats remain unchanged.
