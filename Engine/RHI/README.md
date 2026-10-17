@@ -877,3 +877,7 @@ four-context bounds, Feedback/Compute/Feedback and Node/Feedback/Node roots/heap
 and requested Enhanced Barriers. Compilation and fallback-only enabled0 runs are not native feedback
 proof. Arrayed/other feedback formats, application texture sampling/streaming/residency, physical
 budgets and full V2-GFX-4/Ultimate acceptance remain open.
+
+MIN_MIP decode explicitly uses source subresource UINT_MAX (the complete flattened opaque mip
+chain) and destination slice0. Per-mip source0 is not valid for this recipe. Windows execution
+remains required independently from the compute oracle; mismatch diagnostics retain all map words.

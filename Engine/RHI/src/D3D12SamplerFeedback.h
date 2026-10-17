@@ -192,8 +192,9 @@ inline void RecordNativeFeedback(ID3D12GraphicsCommandList1 &commands,
   barrier.Transition = {context.opaque.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                         D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_RESOLVE_SOURCE};
   commands.ResourceBarrier(1, &barrier);
-  commands.ResolveSubresourceRegion(context.decoded.Get(), 0, 0, 0, context.opaque.Get(), 0,
-                                    nullptr, DXGI_FORMAT_R8_UINT,
+  // MIN_MIP decoding flattens the entire opaque mip chain; the source must be UINT_MAX.
+  commands.ResolveSubresourceRegion(context.decoded.Get(), 0, 0, 0, context.opaque.Get(),
+                                    std::numeric_limits<UINT>::max(), nullptr, DXGI_FORMAT_R8_UINT,
                                     D3D12_RESOLVE_MODE_DECODE_SAMPLER_FEEDBACK);
   barrier.Transition = {context.decoded.Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
                         D3D12_RESOURCE_STATE_RESOLVE_DEST,

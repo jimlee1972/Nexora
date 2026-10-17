@@ -918,3 +918,5 @@ replay pass. Enhanced node/ray buffer barriers count68/354. Linux/Metal report e
 executing real lower-profile compute fallback. This supersedes earlier pending Windows notes
 for these bounded recipes and closes child tasks nexora-45y.6.1/.4.2 only. General graph nodes,
 AS update/compaction, lighting, DXR1.2/SER and physical performance/full gates remain open.
+
+Windows64f83e47 full CTest exposed a real decoded-map mismatch in both feedback barrier modes; it is not accepted. The normative MIN_MIP transcode rule requires source subresource UINT_MAX for the flattened opaque mip chain, replacing the initial0. Decoding still targets the single R8_UINT slice0. Mismatch diagnostics now identify native/reference,count and every actual/expected word. Local corrected Development220/220 passes (125.60s), actual SDK helper syntax passes, guarded session cleanup25/25 and documentation/workflow16/16 pass. Final Windows native proof remains required; no native feedback completion is inferred from the local compute oracle.

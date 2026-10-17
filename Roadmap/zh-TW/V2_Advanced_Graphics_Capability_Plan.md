@@ -842,3 +842,5 @@ Enhanced Node／Ray Buffer Barrier 分別68／354。Linux／Metal 明確回報 e
 真實低 Profile Compute 後備。本節取代上述有界 Recipe 的 Windows 待驗收紀錄，僅關閉
 子任務 nexora-45y.6.1／.4.2；一般 Graph Node、AS Update／Compaction、Lighting、
 DXR1.2／SER、實體效能及完整 Gate 持續開放。
+
+Windows64f83e47 完整 CTest 在兩種 Feedback Barrier 模式均發現真實 Decode Map 不符，尚未驗收。正式 MIN_MIP Transcode 規則要求來源 Subresource 為 UINT_MAX，表示攤平的整條 Opaque Mip Chain，已取代初版0；目的地仍為單一 R8_UINT Slice0。負例診斷新增 Native／Reference、Count 與每個 Actual／Expected Word。本機修正版 Development220/220 通過（125.60秒），真正 SDK Helper 語法、Session 清理25/25及文件／Workflow16/16 亦通過。仍須最終 Windows 原生證據，不由本機 Compute Oracle 推定 Feedback 完成。

@@ -131,8 +131,15 @@ Words Read(rhi::Device &device, const Workload &work) {
   device.ReadBufferForTesting(work.buffers[1], 0, std::as_writable_bytes(std::span{result}));
   return result;
 }
-void Compare(rhi::Device &device, const Workload &work) {
-  Require(Read(device, work) == work.expected,
+void Compare(rhi::Device &device, const Workload &work, bool native = false) {
+  const auto actual = Read(device, work);
+  if (actual != work.expected) {
+    std::cerr << "Feedback mismatch native=" << native << " count=" << work.count << ":";
+    for (std::size_t i = 0; i < actual.size(); ++i)
+      std::cerr << " [" << i << "]=" << actual[i] << '/' << work.expected[i];
+    std::cerr << '\n';
+  }
+  Require(actual == work.expected,
           "decoded min-mip/clear/untouched/canary differs from CPU reference");
 }
 void Record(rhi::CommandList &commands, rhi::PipelineHandle compute,
@@ -153,7 +160,7 @@ void Execute(rhi::Device &device, rhi::PipelineHandle compute,
   Record(*commands, compute, program, work);
   device.WaitForSubmission(device.Submit(*commands));
   commands.reset();
-  Compare(device, work);
+  Compare(device, work, program.IsValid());
   Require(device.Diagnostics().sampler_feedback_dispatch_calls ==
               before.sampler_feedback_dispatch_calls + (program.IsValid() ? 1 : 0),
           "accepted feedback dispatch accounting differs from selected path");
