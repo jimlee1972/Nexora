@@ -276,7 +276,7 @@ void Witness(bool enhanced) {
     const auto expected_rates = Rates(tile, pattern);
     auto rates = expected_rates;
     const auto source = device->CreateShadingRateImage({64, 64, "witness source"}, rates);
-    std::fill(rates.begin(), rates.end(), 255);
+    std::fill(rates.begin(), rates.end(), std::uint8_t{255});
     const auto pixels = Draw(*device, target, pipeline, source);
     unsigned covered = 0, exact = 0;
     for (unsigned y = 0; y < 64; ++y)
@@ -289,7 +289,8 @@ void Witness(bool enhanced) {
                    g = std::to_integer<unsigned>(pixels[offset + 1]);
         Require((r == 0 || r == 85) && (g == 0 || g == 85), "invalid SV_ShadingRate encoding");
         const auto actual = (r / 85) * 4 + g / 85;
-        const auto requested = expected_rates[(y / tile) * ((64 + tile - 1) / tile) + x / tile];
+        const auto requested =
+            static_cast<unsigned>(expected_rates[(y / tile) * ((64 + tile - 1) / tile) + x / tile]);
         Require((actual >> 2) <= (requested >> 2) && (actual & 3) <= (requested & 3),
                 "rate image produced a coarser unrequested rate");
         exact += actual == requested;
@@ -346,7 +347,7 @@ void Native(bool enhanced) {
       if (enabled) {
         source = device->CreateShadingRateImage({64, 64, "immutable source"}, rates);
         std::fill(rates.begin(), rates.end(),
-                  255); // Caller memory cannot redirect an uploaded image.
+                  std::uint8_t{255}); // Caller memory cannot redirect an uploaded image.
       } else {
         Reject([&] { (void)device->CreateShadingRateImage({64, 64, "unavailable"}, rates); },
                "unavailable image admitted");

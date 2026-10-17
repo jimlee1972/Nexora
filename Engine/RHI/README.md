@@ -849,7 +849,10 @@ Existing recording snapshots/revisions handle abandonment and stale resources. O
 weighted sums, four F32 matrix/vector results or a16384-element shared-memory reduction. The declared
 shared ceiling is static, not a runtime allocation API. Baseline SDK, Slang profiles, stable C ABI and
 cooked wire formats stay unchanged; all C++ modules require a coordinated rebuild. No Vulkan/Metal
-execution is implied. Target-host proof and broader modern shader/cooking integration remain open.
+execution is implied. Both PR635 native Windows preview jobs accept these three fixed recipes
+on pinned app-local WARP. The published variable group-shared feature changes the device limit and
+compile-time ceiling; static array sizes remain required. General shader/cooking and physical GPU
+acceptance remain open.
 
 Actual attached DXIL models are checked independently from omitted caller minimums. SM6.9+ stages
 must satisfy the queried device limit; actual6.10 bytecode additionally requires explicit pipeline

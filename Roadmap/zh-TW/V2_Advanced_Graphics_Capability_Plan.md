@@ -929,3 +929,11 @@ Rate-image 候選版本通過 Native Slang／Zig Development220/220、零略過�
 DXR1.2／SER 與 Tier2 Image 已整合為 Profile Runtime 父版本上的同一後續切片，共用可選原生驗收 Job。第一輪整合 Development220/220、零略過／失敗通過（122.61秒），Shipping Minimal／Monolithic／LTO 亦通過。真正 Agility721 宣告確認 Work Graph Tier1.1 的原生數值為11，Portable Decoder 保留硬體1.1，實作上限仍為1.0。可選原生驗收以固定 Preview DXC 啟用既有有界 Work Graph Recipe，於 Test Environment 設定後加入正確 Library 與依賴，延伸 Node／SER／Node 互通，不宣稱 Mesh Node。仍須最終整合回歸與 Windows 原生執行。
 
 最終整合迴歸通過 Development220/220，零失敗／跳過（121.81s）、Shipping Minimal/Monolithic/LTO，以及 Khronos 物件／同步18/18（11.21s），確認39次 layer 插入、零 Validation Error／VUID／SYNC-HAZARD 訊息。Windows 原生 SER／OMM／VRS2 驗收仍待通過。
+
+### SM6.10 功能名稱與託管 profile 驗收
+
+✅ PR635 已在固定版本 app-local WARP 驗收三種現代運算配方：兩個 Windows 原生工作均通過九組輸出／canary／生命週期及一般6.10權限檢查；兩套矩陣均通過 Windows314/314、Linux365/365、macOS304/304，共38項檢查全數通過。官方 [Variable Group Shared Memory 提案](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) 明確保留編譯期陣列大小：功能是查詢裝置相關上限與 `[GroupSharedLimit]`，64 KiB 配方及超額配置負例已驗證兩者。執行期動態配置不屬於此規格。一般編寫／cook 及實體 GPU 驗收仍未完成。
+
+MSVC 原生驗收發現 VRS witness 的有號／無號比較及 byte fill 窄化問題。明確使用無號比較運算元與 uint8_t fill 值，保留全部像素與呼叫端資料變更斷言；警告即錯誤仍維持啟用。Windows 原生 SER／OMM／VRS2 驗收仍須通過。
+
+MSVC 型別修正後，本機完整 Development220/220 通過，零跳過／失敗（128.17s）；Windows 條件 witness 語法檢查（警告即錯誤）、雙語文件／workflow16/16 與 cleanup27/27 亦通過。Windows 原生執行仍為最終 head 必須通過的 CI gate。
