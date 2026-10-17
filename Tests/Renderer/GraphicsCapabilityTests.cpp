@@ -39,6 +39,9 @@ void TestAdmissionAndFallback() {
   Require(!GraphicsDeviceCapabilities{}.independent_compute_recording &&
               capabilities.independent_compute_recording,
           "limited compute admission must default closed and distinguish validation support");
+  Require(!GraphicsDeviceCapabilities{}.shared_buffer_read_recording &&
+              capabilities.shared_buffer_read_recording,
+          "shared buffer read admission must default closed and identify validation support");
   Require(!GraphicsDeviceCapabilities{}.independent_graphics_recording &&
               capabilities.independent_graphics_recording,
           "limited graphics admission must default closed and identify validation support");

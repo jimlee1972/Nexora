@@ -64,6 +64,7 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
   report(GraphicsFeature::ParallelCommandRecording, {1, 0});
   result.independent_compute_recording = true;
   result.independent_graphics_recording = true;
+  result.shared_buffer_read_recording = true;
 
   // Numeric query values allow older SDK builds to query a newer runtime without referencing
   // newer compiler enums. Retry lower known models when the runtime rejects a newer query.
@@ -271,6 +272,7 @@ private:
     std::uint64_t revision{};
     D3D12_RESOURCE_STATES state{};
     bool upload_pending{};
+    bool writes{};
   };
   ID3D12Resource *PrepareBuffer(BufferHandle buffer, D3D12_RESOURCE_STATES state);
   struct TextureSnapshot final {
@@ -627,7 +629,11 @@ public:
         auto &record = buffers_.at(entry.first);
         record.gpu_state = D3D12_RESOURCE_STATE_COMMON;
         record.upload_dirty = false;
-        ++record.revision;
+        // Immutable SRV/indirect readers preserve the data revision. Their buffer states decay
+        // to COMMON; a repeated initial upload copies the same revision's retained staging data.
+        // Potential UAV writes still invalidate all older readers and writers.
+        if (entry.second.writes)
+          ++record.revision;
       }
       for (const auto &entry : validated->texture_snapshots_) {
         auto &texture = textures_.at(entry.first);
@@ -861,6 +867,7 @@ ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOU
           .first->second;
   device_.Require(snapshot.revision == record.revision,
                   "D3D12 buffer changed during command recording");
+  snapshot.writes |= state == D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
   const auto transition = [&](D3D12_RESOURCE_STATES target) {
     if (snapshot.state == target)
       return;

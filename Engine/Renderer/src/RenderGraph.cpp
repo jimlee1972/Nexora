@@ -337,6 +337,8 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
         requested && options.recording_jobs && !options.recording_jobs->IsWorkerThread()
             ? std::min(options.max_parallel_passes, options.recording_jobs->WorkerCount())
             : 0;
+    const bool shared_reads =
+        worker_limit > 1 && device.Capabilities().shared_buffer_read_recording;
     const auto eligible = [&](std::size_t index) {
       const auto &pass = passes_[index];
       if (worker_limit < 2 || !pass.allow_parallel_recording)
@@ -356,6 +358,7 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
       check_cancellation();
       std::size_t end = order;
       std::unordered_set<std::uint32_t> batch_buffers;
+      std::unordered_set<std::uint32_t> batch_buffer_writes;
       std::unordered_set<std::uint32_t> batch_textures;
       while (end < execution_order_.size() && end - order < worker_limit &&
              eligible(execution_order_[end])) {
@@ -363,6 +366,10 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
         const auto &pass = passes_[index];
         const auto overlaps = [&](const BufferUse &use) {
           return batch_buffers.contains(use.buffer.id);
+        };
+        const auto read_overlaps = [&](const BufferUse &use) {
+          return shared_reads ? batch_buffer_writes.contains(use.buffer.id)
+                              : batch_buffers.contains(use.buffer.id);
         };
         const auto texture_overlaps = [&](const TextureUse &use) {
           return batch_textures.contains(use.texture.id);
@@ -372,15 +379,17 @@ void RenderGraph::Execute(rhi::Device &device, const ExecutionOptions &options) 
           if (std::ranges::find(predecessors_[index], execution_order_[earlier]) !=
               predecessors_[index].end())
             dependent = true;
-        if (dependent || std::ranges::any_of(pass.buffer_reads, overlaps) ||
+        if (dependent || std::ranges::any_of(pass.buffer_reads, read_overlaps) ||
             std::ranges::any_of(pass.buffer_writes, overlaps) ||
             std::ranges::any_of(pass.reads, texture_overlaps) ||
             std::ranges::any_of(pass.writes, texture_overlaps))
           break;
         for (const auto &use : pass.buffer_reads)
           batch_buffers.insert(use.buffer.id);
-        for (const auto &use : pass.buffer_writes)
+        for (const auto &use : pass.buffer_writes) {
           batch_buffers.insert(use.buffer.id);
+          batch_buffer_writes.insert(use.buffer.id);
+        }
         for (const auto &use : pass.reads)
           batch_textures.insert(use.texture.id);
         for (const auto &use : pass.writes)

@@ -470,6 +470,213 @@ void TestMetalBufferScopes(rhi::Device &device, rhi::PipelineHandle pipeline) {
                "offset/empty/invalid/stale readback checks passed\n";
 }
 
+void TestSharedInputGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  Require(device.Capabilities().shared_buffer_read_recording,
+          "native backend must admit immutable shared buffer reads");
+  constexpr std::size_t count = 16;
+  std::vector<Workload> workloads;
+  for (std::size_t index = 0; index < count; ++index) {
+    auto workload = MakeWorkload(device, 5000);
+    if (!workloads.empty()) {
+      device.DestroyBuffer(workload.buffers[0]);
+      workload.buffers[0] = workloads.front().buffers[0];
+    }
+    workloads.push_back(std::move(workload));
+  }
+  RenderGraph graph;
+  const auto input = graph.ImportBuffer(workloads.front().buffers[0]);
+  bool parallel = true;
+  bool fail = false;
+  bool cancel = false;
+  core::CancellationSource cancellation;
+  std::mutex mutex;
+  std::condition_variable condition;
+  std::size_t arrived{};
+  const auto coordinator = std::this_thread::get_id();
+  for (std::size_t index = 0; index < count; ++index) {
+    RenderGraph::PassDescriptor pass{
+        "immutable shared input",
+        rhi::QueueType::Compute,
+        {},
+        {},
+        [&, index](rhi::CommandList &commands, auto) {
+          if (parallel) {
+            Require(std::this_thread::get_id() != coordinator,
+                    "shared input callback stayed on coordinator");
+            std::unique_lock lock{mutex};
+            ++arrived;
+            condition.notify_all();
+            Require(condition.wait_for(lock, std::chrono::seconds(5),
+                                       [&] { return arrived >= (index / 4 + 1) * 4; }),
+                    "shared-input recording workers did not overlap");
+          }
+          commands.BindPipeline(pipeline);
+          Bind(commands, workloads[index]);
+          commands.Dispatch(1);
+          if (cancel && index == 1)
+            cancellation.Cancel();
+          if (fail && index == 1)
+            throw std::runtime_error("injected shared-input failure");
+        }};
+    pass.buffer_reads = {{input, rhi::BufferAccess::ShaderRead}};
+    for (std::size_t slot = 1; slot < 4; ++slot)
+      pass.buffer_writes.push_back({graph.ImportBuffer(workloads[index].buffers[slot]),
+                                    rhi::BufferAccess::StorageReadWrite});
+    pass.allow_parallel_recording = true;
+    (void)graph.AddPass(std::move(pass));
+  }
+  graph.Compile();
+  core::JobSystem jobs{4};
+  jobs.Start();
+  RenderGraph::ExecutionOptions options{RenderGraph::RecordingMode::Parallel, &jobs, 4};
+  const std::array<std::size_t, 3> words{5, rhi::GPUDrivenIndirectCommandWords, 8};
+  const auto fill = [&](std::uint32_t value) {
+    for (const auto &workload : workloads)
+      for (std::size_t slot = 1; slot < 4; ++slot) {
+        const std::vector<std::uint32_t> data(words[slot - 1], value);
+        device.WriteBuffer(workload.buffers[slot], 0, std::as_bytes(std::span{data}));
+      }
+  };
+  const auto compare = [&] {
+    for (const auto &workload : workloads)
+      Compare(device, workload);
+  };
+  // Parallel first also exercises D3D12's initial pending upload in every shared reader.
+  for (const bool mode : {true, false}) {
+    parallel = mode;
+    arrived = 0;
+    fill(0);
+    options.recording_mode =
+        mode ? RenderGraph::RecordingMode::Parallel : RenderGraph::RecordingMode::Serial;
+    const auto before = device.Diagnostics();
+    graph.Execute(device, options);
+    Require(device.Diagnostics().readbacks == before.readbacks,
+            "shared-input graph performed a production readback");
+    Require(graph.GetStatistics().parallel_recorded_pass_count == (mode ? count : 0) &&
+                graph.GetStatistics().parallel_batch_count == (mode ? count / 4 : 0),
+            "immutable shared readers were not admitted in bounded cohorts");
+    compare();
+  }
+  parallel = true;
+  options.recording_mode = RenderGraph::RecordingMode::Parallel;
+  constexpr std::uint32_t sentinel = 0xdeadbeef;
+  for (const bool cancellation_case : {false, true}) {
+    arrived = 0;
+    fill(sentinel);
+    fail = !cancellation_case;
+    cancel = cancellation_case;
+    options.cancellation = cancel ? cancellation.Token() : core::CancellationToken{};
+    const auto before = device.Diagnostics();
+    bool rejected = false;
+    try {
+      graph.Execute(device, options);
+    } catch (const renderer::RenderGraphCancelled &) {
+      rejected = cancellation_case;
+    } catch (const std::runtime_error &error) {
+      rejected =
+          !cancellation_case && std::string_view{error.what()} == "injected shared-input failure";
+    }
+    Require(rejected &&
+                device.Diagnostics().submitted_command_lists == before.submitted_command_lists &&
+                device.Diagnostics().readbacks == before.readbacks,
+            "failed/cancelled shared-input cohort submitted or read back");
+    for (const auto &workload : workloads)
+      for (std::size_t slot = 1; slot < 4; ++slot) {
+        std::vector<std::uint32_t> data(words[slot - 1]);
+        device.ReadBufferForTesting(workload.buffers[slot], 0,
+                                    std::as_writable_bytes(std::span{data}));
+        Require(std::ranges::all_of(data, [](auto value) { return value == sentinel; }),
+                "aborted shared-input cohort changed a sentinel");
+      }
+    arrived = 0;
+    fail = false;
+    cancel = false;
+    options.cancellation = {};
+    fill(0);
+    graph.Execute(device, options);
+    compare();
+  }
+  jobs.Stop();
+  device.DestroyBuffer(workloads.front().buffers[0]);
+  for (const auto &workload : workloads)
+    for (std::size_t slot = 1; slot < 4; ++slot)
+      device.DestroyBuffer(workload.buffers[slot]);
+  std::cout << kBackendName
+            << " shared input: 64 CPU comparisons, initial-upload parallel readers, "
+               "failed/cancelled sentinels and successful replay passed\n";
+}
+#if defined(NEXORA_TEST_D3D12)
+void TestReadOnlyBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {
+  const auto input = device.CreateBuffer({16, "shared read snapshot"});
+  std::array<std::uint32_t, 4> values{11, 22, 33, 44};
+  device.WriteBuffer(input, 0, std::as_bytes(std::span{values}));
+  const auto record = [&] {
+    auto commands = device.CreateCommandList(rhi::QueueType::Compute);
+    commands->BindStorageBuffer(0, input);
+    return commands;
+  };
+  auto first = record();
+  auto second = record();
+  device.WaitForSubmission(device.Submit(*second));
+  device.WaitForSubmission(device.Submit(*first));
+  first.reset();
+  second.reset();
+  std::array<std::uint32_t, 4> actual{};
+  device.ReadBufferForTesting(input, 0, std::as_writable_bytes(std::span{actual}));
+  Require(actual == values, "compatible initial-upload readers changed input data");
+  auto stale_upload = record();
+  values[0] = 99;
+  device.WriteBuffer(input, 0, std::as_bytes(std::span{values}));
+  const auto rejected_before = device.Diagnostics().submitted_command_lists;
+  bool rejected = false;
+  try {
+    (void)device.Submit(*stale_upload);
+  } catch (const std::logic_error &) {
+    rejected = true;
+  }
+  Require(rejected && device.Diagnostics().submitted_command_lists == rejected_before,
+          "upload failed to invalidate a read-only snapshot");
+  stale_upload.reset();
+  auto retry = record();
+  device.ReadBufferForTesting(input, 0, {}); // Empty validation does not invalidate snapshots.
+  device.WaitForSubmission(device.Submit(*retry));
+  retry.reset();
+  auto stale_readback = record();
+  device.ReadBufferForTesting(input, 0, std::as_writable_bytes(std::span{actual}));
+  Require(actual == values, "reader did not recover after an upload invalidation");
+  rejected = false;
+  try {
+    (void)device.Submit(*stale_readback);
+  } catch (const std::logic_error &) {
+    rejected = true;
+  }
+  Require(rejected, "readback failed to invalidate a read-only snapshot");
+  stale_readback.reset();
+  device.DestroyBuffer(input);
+  auto writer = MakeWorkload(device, 5001);
+  auto stale_writer = device.CreateCommandList(rhi::QueueType::Compute);
+  stale_writer->BindStorageBuffer(0, writer.buffers[1]);
+  auto commands = device.CreateCommandList(rhi::QueueType::Compute);
+  commands->BindPipeline(pipeline);
+  Bind(*commands, writer);
+  commands->Dispatch(1);
+  device.WaitForSubmission(device.Submit(*commands));
+  commands.reset();
+  rejected = false;
+  try {
+    (void)device.Submit(*stale_writer);
+  } catch (const std::logic_error &) {
+    rejected = true;
+  }
+  Require(rejected, "accepted UAV write failed to invalidate an older read-only snapshot");
+  stale_writer.reset();
+  Compare(device, writer);
+  for (const auto buffer : writer.buffers)
+    device.DestroyBuffer(buffer);
+  std::cout << "D3D12 read-only snapshots: reverse compatible initial uploads, stale upload/"
+               "readback/GPU-write rejection, empty-read compatibility and recovery passed\n";
+}
+#endif
 void TestRejectedBindings(rhi::Device &device, rhi::PipelineHandle pipeline) {
   const auto rejects = [](auto &&call) {
     try {
@@ -523,6 +730,10 @@ int main(int argc, char **argv) {
     TestIsolation(*device, pipeline, false);
     TestIsolation(*device, pipeline, true);
     TestGraphRecording(*device, pipeline);
+    TestSharedInputGraph(*device, pipeline);
+#if defined(NEXORA_TEST_D3D12)
+    TestReadOnlyBufferSnapshots(*device, pipeline);
+#endif
     TestBufferSnapshots(*device, pipeline);
     TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);

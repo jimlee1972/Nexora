@@ -60,6 +60,7 @@ public:
     auto result = inner->Capabilities();
     result.independent_compute_recording = admission;
     result.independent_graphics_recording = graphics_admission;
+    result.shared_buffer_read_recording = shared_read_admission;
     return result;
   }
   rhi::TextureHandle CreateTexture(const rhi::TextureDescriptor &value) override {
@@ -141,6 +142,7 @@ public:
   bool unsafe_retirement{};
   bool admission{true};
   bool graphics_admission{false};
+  bool shared_read_admission{false};
 };
 struct Active final {
   explicit Active(ProbeDevice &device) : device(device) { ++device.active; }
@@ -651,6 +653,48 @@ void TestGraphicsAdmissionAndHazards() {
     device.DestroyBuffer(buffer);
   }
 }
+void TestSharedBufferReads() {
+  for (int scenario = 0; scenario < 6; ++scenario) {
+    ProbeDevice device;
+    device.shared_read_admission = scenario != 1;
+    core::JobSystem jobs{2};
+    jobs.Start();
+    const auto input = device.CreateBuffer({64, "shared immutable input"});
+    RenderGraph graph;
+    const auto shared = graph.ImportBuffer(input);
+    Rendezvous rendezvous;
+    for (std::size_t index = 0; index < 2; ++index) {
+      const bool write =
+          (scenario == 2 && index == 0) || (scenario == 3 && index == 1) || scenario == 4;
+      auto pass = Pass(index, shared, write);
+      if (scenario == 5 && index == 1)
+        pass.buffer_reads.front().access = BufferAccess::IndirectRead;
+      const auto original = pass.execute;
+      pass.execute = [&, original, index](rhi::CommandList &commands, auto textures) {
+        Active active{device};
+        if (scenario == 0) {
+          Require(std::this_thread::get_id() != device.coordinator,
+                  "admitted shared readers stayed serial");
+          rendezvous.Meet(index == 0);
+        } else {
+          Require(std::this_thread::get_id() == device.coordinator,
+                  "shared-read capability/write/access hazard escaped fallback");
+        }
+        original(commands, textures);
+      };
+      (void)graph.AddPass(std::move(pass));
+    }
+    graph.Compile();
+    graph.Execute(device, Parallel(jobs));
+    Require(graph.GetStatistics().parallel_recorded_pass_count == (scenario == 0 ? 2U : 0U) &&
+                graph.GetStatistics().parallel_batch_count == (scenario == 0 ? 1U : 0U) &&
+                device.submitted == std::vector<std::size_t>({0, 1}) && !device.unsafe_retirement &&
+                device.live_lists == 0,
+            "shared buffer read admission or lifetime/order differs");
+    jobs.Stop();
+    device.DestroyBuffer(input);
+  }
+}
 void TestMixedRecordingCohort() {
   ProbeDevice device;
   device.graphics_admission = true;
@@ -725,6 +769,7 @@ void TestValidationTextureTransactions() {
 } // namespace
 int main() {
   try {
+    TestSharedBufferReads();
     TestMixedRecordingCohort();
     TestGraphicsAdmissionAndHazards();
     TestValidationTextureTransactions();

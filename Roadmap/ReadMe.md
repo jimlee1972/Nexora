@@ -82,6 +82,12 @@ workers are wired into required macOS native gates; Linux Slang regression and S
 必要 macOS 原生 Gate；Linux Slang 回歸與 Shipping 通過。完整 V2-M3／圖形 Gate 及效能驗收
 仍待完成，原生執行結果須由 macOS CI 證明。
 
+✅ V2-GFX-1 immutable shared buffer inputs / 不變的共用 Buffer 輸入（2026-10-17）：
+compatible read/read cohorts, D3D12 reader revisions and shared compute/indirect pixel oracles
+pass Linux regression, synchronization validation and Shipping. 相容 Read/Read Cohort、D3D12
+讀者 Revision、共用 Compute／Indirect 像素 Oracle 已通過 Linux 回歸、同步驗證及
+Shipping；Windows／Metal 原生執行須由 CI 證明，完整平行／非同步／效能 Gate 仍待完成。
+
 ✅ V2-GFX-1 recording cancellation and nested coordinators / 錄製取消與巢狀 Coordinator
 （2026-10-17）：same-pool serial fallback and cooperative batch cancellation pass Linux contract,
 native Vulkan output-preservation and Shipping checks. 同池序列 Fallback 與合作式批次取消已通過

@@ -31,6 +31,42 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Immutable shared buffer inputs — 2026-10-17
+
+✅ A separately default-closed `shared_buffer_read_recording` capability admits compatible
+same-queue/same-access read/read sharing in bounded compute and color-target cohorts. Writable
+buffers remain separate; shared textures, all write conflicts and access/queue dependencies remain
+excluded. Explicit callback opt-in, immutable caller-owned resources, join-before-submission,
+ordered synchronous completion, cancellation and default serial execution stay unchanged.
+
+D3D12 snapshots now distinguish potential UAV writes from immutable SRV/indirect reads. Accepted
+potential writes, CPU uploads and nonempty readbacks advance data revisions; compatible reads
+preserve them. Initial parallel readers can copy the same retained staging revision with COMMON
+promotion/decay at each individual Execute boundary. Mutation still invalidates older readers;
+unsubmitted upload copies remain private. Empty validated reads do not invalidate snapshots.
+
+The shared native oracle adds 64 compute CPU comparisons (parallel first with pending input,
+serial and failed/cancelled recovery), forced four-worker overlap, distinct output sentinels and
+successful reuse. Two graphics workers share fresh indirect arguments with separate color targets
+and both images match serial direct drawing exactly. D3D12 additionally checks reverse pure-reader
+submission, upload/readback/GPU-writer invalidation, empty-read compatibility and recovery.
+Portable tests preserve custom-backend fallback and write/read, read/write, write/write and access
+hazard ordering. The full parallel feature remains disabled/unimplemented.
+
+Source branch: `feat/v2-shared-buffer-recording`; Beads `nexora-45y.2.10`.
+Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
+pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
+137.44 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|contracts|graphics_capabilities|vulkan_texture_recording|vulkan_descriptor_isolation)$' -V`:
+**5/5 pass, zero skips, 0.28 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+Four native object/synchronization validation tests pass **4/4, zero skips, 2.53 seconds** with
+Khronos layer 1.3.275, loader-confirmed insertion, inherited shader paths removed and zero
+Validation Error/VUID/SYNC-HAZARD markers. Windows/Metal native acceptance requires hosted CI.
+All C++ modules rebuild for the appended capability; stable C ABI and SDK/shader baselines stay
+unchanged. Shared-texture reads, asynchronous reuse, full compiler/artifact readiness and matched
+physical-GPU performance remain open. See the
+[RHI contract](../../Engine/RHI/README.md#immutable-shared-buffer-reads).
+
 ### Native graphics/cancellation integration — 2026-10-17
 
 ✅ PR626 integrates cancellation/same-pool coordination, Vulkan framebuffer/texture isolation and
