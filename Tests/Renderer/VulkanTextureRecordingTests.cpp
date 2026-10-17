@@ -276,6 +276,8 @@ void TestGraphicsGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
   }
   bool parallel = false;
   bool fail = false;
+  bool cancel = false;
+  core::CancellationSource cancellation;
   std::mutex mutex;
   std::condition_variable condition;
   std::size_t arrived{};
@@ -297,11 +299,13 @@ void TestGraphicsGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
           }
           commands.BeginRendering({targets[index].handle, targets[index].descriptor.width,
                                    targets[index].descriptor.height});
-          if (!fail) {
+          if (!fail && !cancel) {
             commands.BindPipeline(pipeline);
             commands.Draw(3);
           }
           commands.EndRendering();
+          if (cancel && index == 1)
+            cancellation.Cancel();
           if (fail && index == 1)
             throw std::runtime_error("injected parallel graphics failure");
         }};
@@ -321,8 +325,8 @@ void TestGraphicsGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
     reference.push_back(Read(device, target));
   core::JobSystem jobs{4};
   jobs.Start();
-  const renderer::RenderGraph::ExecutionOptions options{
-      renderer::RenderGraph::RecordingMode::Parallel, &jobs, 4};
+  renderer::RenderGraph::ExecutionOptions options{renderer::RenderGraph::RecordingMode::Parallel,
+                                                  &jobs, 4};
   parallel = true;
   graph.Execute(device, options);
   Require(graph.GetStatistics().parallel_recorded_pass_count == count &&
@@ -354,11 +358,34 @@ void TestGraphicsGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
   for (std::size_t index = 0; index < count; ++index)
     Require(Read(device, targets[index]) == reference[index],
             "graphics graph could not reuse aborted texture snapshots");
+  arrived = 0;
+  cancel = true;
+  options.cancellation = cancellation.Token();
+  const auto before_cancel = device.Diagnostics();
+  bool cancelled = false;
+  try {
+    graph.Execute(device, options);
+  } catch (const renderer::RenderGraphCancelled &) {
+    cancelled = true;
+  }
+  Require(cancelled &&
+              device.Diagnostics().submitted_command_lists == before_cancel.submitted_command_lists,
+          "cancelled parallel graphics batch submitted");
+  for (std::size_t index = 0; index < count; ++index)
+    Require(Read(device, targets[index]) == reference[index],
+            "cancelled graphics batch changed sentinel pixels");
+  arrived = 0;
+  cancel = false;
+  options.cancellation = {};
+  graph.Execute(device, options);
+  for (std::size_t index = 0; index < count; ++index)
+    Require(Read(device, targets[index]) == reference[index],
+            "graphics graph could not reuse cancelled texture snapshots");
   jobs.Stop();
   for (const auto &target : targets)
     device.DestroyTexture(target.handle);
   std::cout << "Graphics graph: 8 exact serial/parallel pixel comparisons, four-worker overlap, "
-               "failed-batch sentinels and successful replay passed\n";
+               "failed/cancelled-batch sentinels and successful replay passed\n";
 }
 void TestTextureReadbackAndRecycling(rhi::Device &device, rhi::PipelineHandle pipeline) {
   // Exceeds the D3D12 RTV heap capacity; retired slots must be reusable.

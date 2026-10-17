@@ -374,7 +374,7 @@ API, depth/float readback or separate native queues.
 All native texture recording targets share one oracle: 24 mixed-format/extent targets, six scopes
 per list, forced four-worker overlap, reverse submission and exact nonempty serial/parallel pixels;
 abandonment/retry and stale submit/readback/handle rejection; 512 sequential retired allocations;
-and eight color-target graph comparisons with failed-batch sentinel preservation and replay.
+and eight color-target graph comparisons with failed/cancelled-batch sentinel preservation and replay.
 Optional builds explicitly skip absent artifacts/devices; Slang-enabled native CI requires execution.
 Linux Vulkan validation is software-device correctness evidence. Windows/Metal runtime results
 require their hosted jobs. Physical-GPU performance, shared reads and asynchronous reuse remain open.

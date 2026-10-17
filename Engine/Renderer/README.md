@@ -272,11 +272,11 @@ including same-access storage WAW dependencies and the first use of each buffer 
 stale handles before its callback). Failed compilation invalidates execution. Execution replays
 those plans without recomputing ownership, submits serially, and waits idle before releasing
 transients, including on exceptions. Callback failure stops submission and successors; prior
-accepted work and CPU effects remain visible. After failed native recording, callers
-must recover/recreate resources on backends that still mutate shared state while recording. Vulkan
-texture transitions are now list-local and commit only after queue acceptance, so an unsubmitted
-Vulkan graph can retry with unchanged entry contracts. Waiting idle alone cannot undo other
-backends' unsubmitted state/upload preparation. Successful repeated buffer execution with default
+accepted work and CPU effects remain visible. All built-in texture paths use list-local state,
+committed only after queue acceptance; unsubmitted failed/cancelled recordings can retry with
+unchanged entry contracts and fresh lists after every worker joins. D3D12 pending buffer uploads
+also remain available after abandonment. Custom backends must provide equivalent isolation before
+advertising limited parallel admission. Successful repeated buffer execution with default
 `Undefined` remains conservative.
 
 `renderer.graph_buffer_dependencies` covers hazards, read/read handoffs, cycles, declarations,
@@ -367,9 +367,9 @@ batch submission and completion-before-retirement (including submit errors after
 acceptance). The existing Vulkan descriptor test additionally runs 24 unique workloads through two
 WAW graph waves in serial and four-worker modes, requires native worker overlap, compares 48
 results to the CPU reference and verifies that aborted recording preserves all sentinel output
-before reusing the same buffers. Tests do not establish reduced CPU overhead. Broader backend
-workers, shared-read optimization, cancellation, async retirement,
-compiler/artifact readiness and matched CPU/GPU/memory benchmarks remain separate gates.
+before reusing the same buffers. Tests do not establish reduced CPU overhead. Shared-read
+optimization, asynchronous retirement, compiler/artifact readiness and matched CPU/GPU/memory
+benchmarks remain separate gates.
 
 The Windows `renderer.d3d12_recording_isolation` target reuses the Vulkan workload and exact CPU
 oracle for the same 320 dispatch and 48 graph comparisons. It also exercises D3D12 abandoned
@@ -413,10 +413,10 @@ all passes have finished. This is cooperative boundary observation, not preempti
 transaction with a concurrent `Cancel` call. `completed_pass_count` preserves completed prior work;
 recording counters may include a cancelled batch that never submitted.
 
-A failed/cancelled unsubmitted buffer-only Vulkan batch preserves output and may retry with fresh
-or empty cancellation state after every worker joins. Cancellation never resets a source. Native
-texture state can still change while recording; recover/recreate affected textures before retrying
-those paths. External-owner execution retains its own cancellation/acquired-frame policy.
+Failed/cancelled unsubmitted compute and admitted color-target batches preserve output and may
+retry with fresh or empty cancellation state after every worker joins. Texture snapshots remain
+private on all built-in backends. Cancellation never resets a source. External-owner execution
+retains its own cancellation/acquired-frame policy.
 
 Tests saturate both pool workers with nested graph coordinators and require serial completion,
 while a foreign-pool coordinator still records concurrently. They cover pre-cancellation, serial
@@ -437,8 +437,8 @@ before ordered synchronous submission. Graphics admission is independent of comp
 and default Execute remains serial. Full parallel feature admission remains disabled/unimplemented.
 
 The shared native texture oracle adds eight disjoint graphics passes, two four-worker cohorts and
-exact pixel comparison with serial output, plus failed-batch output preservation and successful
-replay. Restore passes remain serial. The portable model checks independent capability admission,
+exact pixel comparison with serial output, plus failed/cancelled-batch output preservation and
+successful replay. Restore passes remain serial. The portable model checks independent capability admission,
 texture alias/dependency/shared-buffer-read conflicts, unmarked/sampling/copy fallback, ordered
 submission, deferred completion before retirement and transactional upload/submit/handle rejection.
 See the [RHI contract](../RHI/README.md#independent-color-target-recording-and-transactional-textures).

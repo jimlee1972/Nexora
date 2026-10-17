@@ -31,6 +31,27 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Native graphics/cancellation integration — 2026-10-17
+
+✅ PR626 integrates cancellation/same-pool coordination, Vulkan framebuffer/texture isolation and
+bounded color-target recording across Vulkan, D3D12 and Metal. The shared graphics oracle now
+also cancels a clear-only parallel cohort, requires zero submission and unchanged pixel sentinels,
+then replays with fresh cancellation state. Resource snapshots and every cancellation check/worker
+identity guard coexist; the default path remains serial and the full parallel feature stays closed.
+MSVC exports the exception's virtual diagnostic member while other platforms retain visible type
+RTTI, preserving typed catches across module boundaries without suppressing compiler warnings.
+
+Integrated Slang-enabled `cmake --preset linux-development` and
+`cmake --build --preset linux-development` pass. Xvfb/native-required full
+`ctest --preset linux-development`: **229/229 pass, zero skips/failures, 259.33 seconds**.
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_texture_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`:
+**7/7 pass, zero skips, 0.36 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+The four-test Vulkan object/synchronization validation command below passes **4/4, zero skips,
+2.15 seconds** with inherited shader paths removed; loader output confirms 12 layer insertions,
+and the full log contains zero Validation Error/VUID/SYNC-HAZARD markers. Windows/Metal runtime
+acceptance requires the new-head hosted gates. Beads `nexora-45y.2.6`, `.2.7`, `.2.8` share PR626;
+all complete V2-GFX and physical-performance gates remain open.
+
 ### Bounded native color-target graph recording — 2026-10-17
 
 ✅ The limited `independent_graphics_recording` contract adds disjoint color-target graphics

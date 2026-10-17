@@ -25,6 +25,25 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 原生圖形／取消整合 — 2026-10-17
+
+✅ PR626 整合取消／同池 Coordinator、Vulkan Framebuffer／Texture 隔離，以及 Vulkan、
+D3D12、Metal 的有界 Color-target 錄製。共用圖形 Oracle 現另取消僅清除畫面的平行 Cohort，
+要求零提交及像素 Sentinel 不變，再以新的取消狀態重播。資源快照與全部取消檢查／Worker
+身分 Guard 共存；預設仍為序列，完整平行 Feature 保持關閉。MSVC 匯出例外的 Virtual
+診斷 Member，其他平台保留可見 Type RTTI，維持跨 Module 的型別化 Catch，未壓制 Compiler
+警告。
+
+整合後啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 完整
+`ctest --preset linux-development` **229/229 通過，零略過／失敗，259.33 秒**。
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_texture_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`：
+**7/7 通過，零略過，0.36 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+下方四項 Vulkan Object／Synchronization Validation 指令 **4/4 通過，零略過，2.15 秒**；
+移除繼承 Shader 路徑後，Loader 確認 12 次 Layer 載入，完整 Log 沒有 Validation Error／
+VUID／SYNC-HAZARD 訊息。Windows／Metal 執行須通過新 Head 的 Hosted Gate。Beads
+`nexora-45y.2.6`、`.2.7`、`.2.8` 共用 PR626；完整 V2-GFX 及實體效能 Gate 仍待完成。
+
 ### 有界原生 Color-target Graph 錄製 — 2026-10-17
 
 ✅ 有限的 `independent_graphics_recording` Contract 將獨立 Color-target Graphics Cohort
