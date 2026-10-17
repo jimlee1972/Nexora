@@ -66,6 +66,47 @@ general graph parallel execution, DX12/Metal worker lifetimes, GPU validation-la
 matched physical-GPU performance remain open.
 `ParallelCommandRecording` remains disabled/unimplemented in the capability snapshot.
 
+## Vulkan texture snapshots and framebuffer retirement (V2-GFX-1 slice)
+
+Each command list captures a validated texture handle/generation, committed revision/state and
+immutable native image/view/format/extent metadata on first use. Recording transitions updates
+only that list's private state; rendering/pipeline binding validates against that state. Even a
+same-state transition validates/captures its texture before returning. Undefined destinations and
+invalid queues are rejected before native barrier emission. Rendering extents cannot exceed the
+attachment. Recording after native list closure is rejected, including after submission errors.
+
+`Submit` validates every captured texture revision before closing or queueing the native buffer.
+Only an accepted `vkQueueSubmit` commits final logical states and increments revisions. Another
+accepted use or texture readback makes older recorded lists stale, even if the final state is the
+same; re-record them. Readback restores the committed layout but still invalidates old snapshots.
+Destroy/recreate is detected through handle generations. This conservative rule does not admit
+pre-recorded lists sharing a texture, including reads. Resource creation/mutation/destruction,
+readback and submission stay caller-serialized against recording; device/resources outlive all
+lists and their completion. No texture-upload implementation is added by this slice.
+
+Every rendering scope owns a distinct framebuffer retained by its command list, including multiple
+scopes in one list. Failed vector growth destroys only the new unused framebuffer. After native
+fence completion, submission destroys every retained framebuffer; an abandoned list frees its
+command buffer/pool before destroying its unsubmitted framebuffers. Failed submission still needs
+draining before retirement. This replaces the previous single field that lost earlier scopes'
+framebuffers. Graphics descriptors/uniforms and render passes remain immutable device-owned objects.
+
+Independent graphics lists may record concurrently against disjoint textures and immutable
+pre-created pipelines under those ownership rules. `renderer.vulkan_texture_recording` forces
+four-way overlap, records six scopes per list over 24 mixed-format/extent targets, submits in reverse
+order after joining, and requires 24 exact serial/parallel pixel matches with nonempty triangle
+references. It also checks abandoned state/output reuse, stale submission/readback/handle rejection,
+bounded render areas and failed/replayed serial graph reuse. The existing Linux Editor native
+validation step includes this and descriptor isolation with synchronization/object validation and
+fails on VUID/SYNC/error output. Missing native artifacts/device explicitly skips optional builds;
+Slang native builds require execution and supply both required SPIR-V artifacts through CTest.
+
+This is native ownership foundation, not general RenderGraph graphics admission. The graph's
+limited parallel scheduler still admits only disjoint buffer-only Compute passes. DX12/Metal
+texture recording, general graphics/shared-read scheduling, asynchronous queue transfers, reusable
+retirement and matched performance remain separate gates. The full parallel feature, shader/SDK
+baselines and stable C ABI remain unchanged.
+
 ## Completed
 
 - `Shaders/Triangle.slang` is the canonical graphics and compute acceptance shader.

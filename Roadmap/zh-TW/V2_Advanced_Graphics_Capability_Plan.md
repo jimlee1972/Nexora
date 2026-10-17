@@ -25,6 +25,39 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### Vulkan Texture 錄製與完整 Framebuffer 回收 — 2026-10-17
+
+✅ Vulkan Texture Transition 現使用各清單擁有的 Generation／Revision／State 快照；Rendering
+檢查私有狀態，提交在關閉／送入 Queue 前拒絕過期快照，只有已接受工作才提交裝置最終狀態。
+讀回恢復 Layout，但會使舊錄製失效。每個 Render Scope 的 Framebuffer 都在完成或放棄清單
+清理後回收，不再由單一欄位遺失前面 Scope。Undefined 目的狀態、非法 Queue、超出 Target
+範圍與清單關閉後的錄製，都在原生命令前拒絕。
+
+原生測試使用 24 個獨立、不同格式／大小的 Target，每份清單六個 Render Scope、四個
+Worker，要求有時限的重疊錄製，之後逆序提交，對非空序列參考進行 24 次逐像素精確比對。
+另驗證放棄狀態／輸出及重試、提交／讀回／失效 Handle 的過期拒絕、Callback 失敗復原與
+序列 Graph 重播。既有 CI 同步／物件 Validation Step 新增 Graphics Texture 錄製及
+Compute Descriptor 隔離，沒有新增 CI 相依或 Job。未新增 Texture Upload API；資源
+變更／提交仍須由 Caller 相對錄製序列化。
+
+來源分支：`feat/v2-vulkan-texture-recording`；Beads `nexora-45y.2.7`。
+本機啟用 Slang 的 `cmake --preset linux-development`、
+`cmake --build --preset linux-development` 與 Xvfb／Native-required 的
+`ctest --preset linux-development` 通過：**205/205，零略過／失敗，118.15 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。Shipping Configure／Build
+通過（Monolithic／Minimal、LTO）。原生 Validation 指令
+`ctest --preset linux-development -R '^renderer\.(vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+**4/4 通過，零略過，0.87 秒**；移除繼承 Shader 路徑，由 CTest 提供兩份 Artifact。
+Ubuntu Validation Layer **1.3.275** 解壓於專案外；Loader 輸出證實載入，啟用同步
+Validation 後完整 Log 的 **Validation Error／VUID／SYNC Marker 均為零**。
+本次 C++ Format 與 `git diff --check` 通過。較早 Slang-off／手動 Artifact 的完整 Gate
+也曾 195/195 通過；以上啟用 Slang 的結果為最終 Gate。
+
+完整 Graph Graphics 檢查、DX12／Metal Texture 隔離、共用讀取、非同步 Queue／重用、
+Compiler／Artifact 就緒與同條件實體 GPU 效能仍待完成。完整平行 Feature 維持未啟用／
+未實作，Shader／SDK 基線與 Stable C ABI 不變。詳見
+[RHI 所有權 Contract](../../Engine/RHI/README.md#vulkan-texture-snapshots-and-framebuffer-retirement-v2-gfx-1-slice)。
+
 ### Metal 完整 Kernel Compute 與 Worker 所有權 — 2026-10-17
 
 ✅ Metal 路徑現可選用真正由 Slang 產生的 `GPUDriven.metal`，驗證指定 Artifact 且不以 No-op

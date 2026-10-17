@@ -271,12 +271,12 @@ remain reorderable. A deterministic topological order fixes immutable per-pass b
 including same-access storage WAW dependencies and the first use of each buffer (which validates
 stale handles before its callback). Failed compilation invalidates execution. Execution replays
 those plans without recomputing ownership, submits serially, and waits idle before releasing
-transients, including on exceptions. Callback failure stops submission and successors; it does not
-roll back native recording state or prior submitted passes. After failed native recording, callers
-must recreate affected textures and rebuild the graph before retrying on backends that mutate
-texture state during recording: waiting idle does not undo that preparation. Buffer-only Vulkan
-and D3D12 recording can abandon an unsubmitted batch and retry; D3D12 uses revision-checked,
-list-local upload/state snapshots. Prior submitted passes and CPU callback effects are not rolled back. Successful repeated buffer execution with default
+transients, including on exceptions. Callback failure stops submission and successors; prior
+accepted work and CPU effects remain visible. After failed native recording, callers
+must recover/recreate resources on backends that still mutate shared state while recording. Vulkan
+texture transitions are now list-local and commit only after queue acceptance, so an unsubmitted
+Vulkan graph can retry with unchanged entry contracts. Waiting idle alone cannot undo other
+backends' unsubmitted state/upload preparation. Successful repeated buffer execution with default
 `Undefined` remains conservative.
 
 `renderer.graph_buffer_dependencies` covers hazards, read/read handoffs, cycles, declarations,
@@ -289,6 +289,26 @@ to the CPU reference on Vulkan/D3D12. Production passes perform no readback.
 Default recording remains serial; the bounded opt-in compute path is described below. Logical
 queues currently alias one native queue. Asynchronous queue-family transfers, general parallel
 recording, Enhanced Barriers, aliasing and reusable fence-retired workers remain open gates.
+
+## Vulkan texture recording isolation
+
+Vulkan lists now keep texture entry revisions, native metadata and logical transitions privately.
+Rendering validates the list-local state; the device commits state only after queue acceptance and
+rejects stale generations/revisions before native execution. Readback also invalidates older
+recorded snapshots. All framebuffers from every rendering scope retire after completion or after
+an unsubmitted command buffer/pool is freed. Callers retain resources, pre-create immutable
+pipelines, serialize mutation/submission and never record the same list from two threads.
+
+The native graphics test records six scopes per list over 24 disjoint mixed-format/extent targets,
+forces four workers to overlap, joins before reverse submission and compares every pixel exactly
+to nonempty serial references. Abandonment preserves state/output; stale lists fail before queueing,
+and a serial graph can recover from a callback failure and replay the same imported target.
+Synchronization/object validation covers this path and the existing compute descriptor test.
+
+General graph graphics recording is not enabled by this prerequisite; its current limited admission
+continues to cover buffer-only Compute. DX12/Metal texture isolation, shared-resource policies,
+asynchronous reuse and matched performance remain open. See the
+[RHI lifetime contract](../RHI/README.md#vulkan-texture-snapshots-and-framebuffer-retirement-v2-gfx-1-slice).
 
 ## Bounded opt-in parallel compute recording
 

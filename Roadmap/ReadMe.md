@@ -88,6 +88,12 @@ native Vulkan output-preservation and Shipping checks. 同池序列 Fallback 與
 Linux Contract、原生 Vulkan 輸出保留及 Shipping 驗證；完整圖形、非同步回收與效能 Gate
 仍待完成。詳見雙語 V2 圖形計畫與 Renderer Contract。
 
+✅ V2-GFX-1 Vulkan texture/graphics ownership / Vulkan Texture／Graphics 所有權（2026-10-17）：
+private state/revision snapshots and complete framebuffer retirement pass exact serial/four-worker
+pixels and synchronization/object validation. 私有狀態／Revision 快照與完整 Framebuffer 回收已
+通過序列／四 Worker 像素精確比對及同步／物件 Validation；一般 Graph Graphics、其他後端
+Texture 隔離、非同步回收與效能 Gate 仍待完成。詳細證據見雙語 V2 圖形計畫。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

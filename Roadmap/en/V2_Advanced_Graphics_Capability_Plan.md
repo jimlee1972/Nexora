@@ -31,6 +31,40 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Vulkan texture recording and complete framebuffer retirement — 2026-10-17
+
+✅ Vulkan texture transitions now use list-owned generation/revision/state snapshots. Rendering
+validates that private state, submission rejects stale snapshots before closing/queueing, and only
+accepted work commits final device state. Readback invalidates older recordings while restoring
+layout. Every framebuffer from every rendering scope retires after completion or abandoned-list
+cleanup; a single field no longer loses earlier scopes. Undefined destinations, invalid queues,
+oversized render areas and post-closure recording fail before native commands.
+
+The native test uses 24 disjoint mixed-format/extent targets, six render scopes per list and four
+recording workers with timed overlap, then reverse submission and 24 exact serial/parallel pixel
+comparisons against nonempty references. It verifies abandoned state/output and retry, stale
+submission/readback/handle rejection, callback failure recovery and repeated serial graph replay.
+The existing CI synchronization/object-validation step now includes both graphics texture recording
+and compute descriptor isolation; no new CI dependency or job is added. No texture upload API is
+introduced. Resource mutation/submission remains caller-serialized against recording.
+
+Source branch: `feat/v2-vulkan-texture-recording`; Beads `nexora-45y.2.7`.
+Local Slang-enabled `cmake --preset linux-development`, `cmake --build --preset linux-development`
+and Xvfb/native-required `ctest --preset linux-development` pass: **205/205, zero skips/failures,
+118.15 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Shipping configure/build passes
+(Monolithic/Minimal, LTO). Native validation command
+`ctest --preset linux-development -R '^renderer\.(vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+passes **4/4, zero skips, 0.87 seconds**, with inherited shader paths removed so CTest supplies both
+artifacts. Ubuntu validation layer **1.3.275** is extracted outside the repository; loader output
+proves insertion and the complete log contains **zero Validation Error/VUID/SYNC markers** with
+synchronization validation enabled. Touched-file format and `git diff --check` pass. An earlier
+Slang-off/manual-artifact full gate also passed 195/195; the Slang-enabled gate above is final.
+
+General graph graphics admission, DX12/Metal texture isolation, shared reads, asynchronous queues/
+reuse, compiler/artifact readiness and matched physical-GPU performance remain open. The broad
+parallel feature stays disabled/unimplemented, and no shader/SDK baseline or stable C ABI changes.
+See the [RHI ownership contract](../../Engine/RHI/README.md#vulkan-texture-snapshots-and-framebuffer-retirement-v2-gfx-1-slice).
+
 ### Metal full-kernel compute and worker ownership — 2026-10-17
 
 ✅ The Metal path now selects the real Slang-generated `GPUDriven.metal`, validates requested

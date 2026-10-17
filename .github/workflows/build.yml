@@ -267,7 +267,7 @@ jobs:
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           VK_LOADER_DEBUG: layer
         run: |
-          ctest --preset linux-development -R '^(renderer\.contracts|renderer\.v2_gpu_driven|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
+          ctest --preset linux-development -R '^(renderer\.contracts|renderer\.v2_gpu_driven|renderer\.vulkan_(descriptor_isolation|texture_recording)|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
           grep -Eq 'Insert(ed)? device layer.*VK_LAYER_KHRONOS_validation' build/linux-development/native-validation.log
           if grep -Eq 'Validation Error|VUID-|SYNC-HAZARD-' build/linux-development/native-validation.log; then
             echo "Native Vulkan validation reported an error" >&2
