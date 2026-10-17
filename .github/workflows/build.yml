@@ -596,6 +596,7 @@ jobs:
       - mimalloc-smoke
       - mobile-configure-smoke
       - build-contract
+      - modern-shaders-preview
     runs-on: ubuntu-latest
     steps:
       - name: Require all jobs selected by the route to succeed
