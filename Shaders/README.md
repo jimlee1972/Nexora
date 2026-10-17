@@ -176,3 +176,8 @@ and uses16-byte qualified payload fields. Its build tool checks real dumpbin bin
 reflection and actual HitObject TraceRay/Reorder/Invoke instructions, then pins exact bytes and a
 same-profile changed-payload negative. The manifest does not claim execution or actual thread
 reordering; OPTIONS22 and native output tests provide independent evidence.
+
+`ShadingRateWitness.hlsl` is a dedicated optional preview-test VS/PS6.4 pair that encodes hardware
+SV_ShadingRate into R/G bytes. It verifies actual tier2 image selection separately from gradient
+quality comparisons and permits finer rates at primitive edges. Canonical Slang profiles stay
+unchanged; compilation alone is not native rate-image proof.

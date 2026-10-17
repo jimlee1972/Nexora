@@ -111,7 +111,7 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
   if (descriptor.type > PipelineType::Compute ||
       descriptor.topology > PrimitiveTopology::PatchList ||
       descriptor.graphics_shader > GraphicsShaderVariant::MeshTriangle ||
-      descriptor.shading_rate > ShadingRate::Coarse2x2)
+      descriptor.shading_rate > ShadingRate::Image)
     throw std::invalid_argument("invalid pipeline type, topology or shader variant");
   if (descriptor.type == PipelineType::Compute &&
       (descriptor.topology != PrimitiveTopology::TriangleList || descriptor.patch_control_points ||
@@ -153,8 +153,10 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
   if (descriptor.shading_rate != ShadingRate::Full) {
     auto &minimum =
         requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::VariableRateShading)];
-    if (minimum < FeatureVersion{1, 0})
-      minimum = {1, 0};
+    const FeatureVersion requested =
+        descriptor.shading_rate == ShadingRate::Image ? FeatureVersion{2, 0} : FeatureVersion{1, 0};
+    if (minimum < requested)
+      minimum = requested;
   }
   if (requirements.minimum_dxil_shader_model >= FeatureVersion{6, 10} &&
       !descriptor.allow_preview_shader_models)

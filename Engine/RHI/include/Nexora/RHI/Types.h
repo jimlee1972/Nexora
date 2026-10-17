@@ -75,6 +75,8 @@ struct GraphicsDeviceCapabilities final {
   bool recording_resource_reuse_enabled{};
   // Separate optimization query: functional SER may execute without actual thread reordering.
   CapabilitySupport actual_shader_reordering_support{CapabilitySupport::Unknown};
+
+  std::uint32_t shading_rate_image_tile_size{};
   bool d3d12_preview_runtime_enabled{};
   CapabilitySupport linear_algebra_support{CapabilitySupport::Unknown};
   CapabilitySupport linear_algebra_f32_matvec_support{CapabilitySupport::Unknown};
@@ -136,7 +138,7 @@ enum class ShaderStage : std::uint8_t {
 inline constexpr std::uint8_t AllShaderStageBits = 63;
 enum class PrimitiveTopology : std::uint8_t { TriangleList, PatchList };
 // Tier1 per-draw control only; no rate-image or per-primitive combiners.
-enum class ShadingRate : std::uint8_t { Full, Coarse2x2 };
+enum class ShadingRate : std::uint8_t { Full, Coarse2x2, Image };
 // Built-in bootstrap shader selection; custom program assembly remains separate.
 enum class GraphicsShaderVariant : std::uint8_t { Triangle, PreTessellatedPatch, MeshTriangle };
 inline constexpr std::uint32_t PreTessellatedPatchVertexCount = 48;

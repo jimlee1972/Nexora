@@ -314,3 +314,5 @@ SM6.9/6.10 isolated compute / 隔離 Compute：optional private SDK721/WARP/DXC 
 SER semantic path / SER 語意路徑：default-off pinned SM6.9 HitObject/Reorder/Invoke and independent actual-reordering query are under implementation; native Windows proof pending / 預設關閉的固定 Recipe 與獨立實際重排 Query 實作中，Windows 原生證據待驗證。WARP does not reorder threads / WARP 不重排執行緒。Full gates/percentages unchanged / 完整 Gate／百分比不變。
 
 DXR1.2 OMM / 不透明微貼圖：opt-in real OMM-array/BLAS/TLAS and four-microtriangle masks are in progress, with CPU/real microgeometry-compute oracle; native Windows proof pending / 真實有界建置與四微三角形遮罩實作中，含 CPU／真實微幾何 Compute 比對，Windows 原生證據待驗證。Full gates/percentages unchanged / 完整 Gate／百分比不變。
+
+VRS Tier2 images / Rate Image：immutable native sources and SV_ShadingRate witness are in progress; Windows preview proof pending / 不可變原生來源與硬體 Rate Witness 實作中，Windows Preview 證據待驗證。Full gates/percentages unchanged / 完整 Gate／百分比不變。

@@ -895,3 +895,33 @@ Oracle 在1／2原始三角形、1／64條 Ray 下測試全部16種遮罩，涵�
 驗收維持開放。
 
 整合 OMM 候選版本通過本機 Native Slang／Zig Development219/219、零略過／失敗（126.28秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（10.50秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。真正 Agility721 OMM Build／Linkage／Config1 Helper 與 Windows 條件 SER／OMM 測試以警告即錯誤編譯通過；雙語文件／Workflow16/16 亦通過。Vulkan 明確回報 Opacity Native0，執行真正微幾何 GPU Oracle；Windows 原生 OMM 證據待完成。
+
+### 原生 VRS Tier2 Rate Image — 實作進行中
+
+有界 VRS 擴充加入不可變 `ShadingRateImageHandle` 與明確的 `ShadingRate::Image` Pipeline
+模式。獨立查詢 Tier2／Tile Size 後才准入 Implementation Ceiling2.0；Tile Query 遺失／
+無效時維持1.0 Ceiling 及 Per-draw／Full-rate 選項。僅接受1x1／1x2／2x1／2x2 編碼、
+Raster Extent1～4096 與符合查詢 Tile Grid 的完整資料。使用私有 R8_UINT Storage，避免
+新增公開 Texture／Cooked Format。建立時驗證有界 Copy Footprint，複製 Caller Bytes 至
+私有 Upload，轉為 SHADING_RATE_SOURCE，等待 Caller 序列化的 Creation Fence 後才發布並
+退役暫存 Upload。
+
+每個 List 在所有原生 Command-list Interface 之前保留最多16個獨立不可變 Source Snapshot。
+綁定須處於已選 Image Graphics Pipeline 且符合實際 Target Extent；Draw／Indirect／Mesh
+要求明確 Image，重綁 Pipeline 時清除並還原原生 Base／Combiner／Image 狀態。Submit 在
+Close／Execute 前驗證 Source Generation，放棄／過期／取消 List 不發布 Image Draw 計數。
+不同 Target Worker 可共享不可變 Image。Image 已接受 Draw 與 Per-draw Coarse 計數分開，
+不推定 Shading Invocation／效能下降。
+
+Oracle 比對真正 Full-rate 與 Uniform／Mixed Image 的 RGBA／BGRA Coverage、32/255
+Gradient Error 及 Full-rate Reset，涵蓋 Caller 記憶體修改、遺失／過期／重建／錯誤 Extent、
+16 Snapshot 上限與雙 Worker 失敗／取消／重播。獨立 Preview WARP 測試要求 Legacy／
+Enhanced Color Barrier 下實際 Tier2 執行，另以真實 DXC6.4 VS／PS 編碼硬體提供的
+`SV_ShadingRate`，要求在非空 Coverage 觀察到1x1／1x2／2x1／2x2，允許 Primitive 邊緣
+使用更細 Rate；Witness 亦在建立後修改 Caller Storage。Windows 原生證據仍待完成；
+Vulkan／Metal 明確執行 Full-rate 後備，不代表原生 Rate Image。額外4x Rate、Primitive
+Rate 編寫、GPU 產生可變 Image、實體預算及完整 Ultimate 驗收持續開放。預設 SDK／Slang
+Profile、穩定 C ABI 與 Cooked Format 不變。公開 WARP1.0.13 已加入 VRS Tier2／Feature
+Level12_2，固定 Preview 套件保留此文件化路徑，仍須真實輸出證據。
+
+Rate-image 候選版本通過 Native Slang／Zig Development220/220、零略過／失敗（156.57秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步18/18（10.50秒）、39次確認載入，零 Validation Error／VUID／SYNC-HAZARD。真實 DXC Preview 編譯 Witness VS／PS6.4，真正 SDK Upload Helper 與 Windows 條件語法以警告即錯誤通過。Vulkan 回報 enabled0／tile0／draws0，執行真正 Full-rate Quality／Worker 後備。僅四個確切 Session 分支使用過期 Run 清理，安全測試27/27、文件／Workflow16/16 通過。Windows 原生 Image／Witness 執行仍待完成，不關閉完整 VRS／Ultimate Gate。

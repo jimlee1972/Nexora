@@ -977,3 +977,36 @@ remains pending. Four-state/any-hit, updates/compaction, general materials/light
 physical full DXR/Ultimate acceptance remain open.
 
 The integrated OMM candidate passes local native Slang/Zig Development219/219,zero skips/failures (126.28s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (10.50s),37 confirmed insertions,zero Validation Error/VUID/SYNC-HAZARD markers. The actual Agility721 OMM build/linkage/config1 helper and Windows-conditional SER/OMM tests compile with warnings-as-errors; paired documentation/workflow16/16 checks pass. Vulkan explicitly reports opacity native0 while executing the real microgeometry GPU oracle. Windows native OMM proof is pending.
+
+### Native VRS Tier2 rate images — implementation in progress
+
+The bounded VRS extension adds immutable `ShadingRateImageHandle` resources and an explicit
+`ShadingRate::Image` pipeline mode. The independently queried tier2/tile size gates implementation
+ceiling2.0; absent/invalid tile queries retain the1.0 ceiling and per-draw/full-rate alternatives.
+Masks accept1x1/1x2/2x1/2x2 encodings only, raster extents1–4096 and exactly the queried tile grid.
+Private R8_UINT storage avoids adding public texture/cooked formats. Creation validates bounded
+copy footprints, copies caller bytes into a private upload, transitions to SHADING_RATE_SOURCE
+and waits a caller-serialized creation fence before publishing/retiring temporary upload storage.
+
+Each list retains up to16 unique immutable source snapshots before all native command-list
+interfaces. Binding requires the selected image graphics pipeline and matching physical target
+extent. Draw/indirect/mesh require an explicit image; pipeline rebind clears it and restores native
+base/combiner/image state. Submit checks source handle generations before Close/Execute; abandoned,
+stale and cancelled lists publish no image draw counters. Disjoint workers may share immutable
+images. Image calls count accepted draws independently from per-draw coarse calls; no shading-
+invocation/performance reduction is inferred.
+
+The oracle compares real full-rate raster output with uniform/mixed images for RGBA/BGRA coverage,
+32/255 gradient error and full-rate reset. It covers caller-memory mutation, missing/stale/recreated/
+wrong-extent sources,16-snapshot bounds and forced two-worker failure/cancellation/replay. Dedicated
+preview WARP tests require tier2 execution under legacy/enhanced color barriers, plus real DXC6.4
+VS/PS artifacts that encode hardware `SV_ShadingRate` inputs. Requested1x1/1x2/2x1/2x2 values must
+be observed on nontrivial covered pixels, allowing finer implementation rates at primitive edges.
+The witness also mutates caller storage after creation. Native Windows evidence remains pending;
+Vulkan/Metal explicitly run full-rate fallback and cannot certify native rate-image execution.
+Additional4x rates, primitive-rate authoring, GPU-produced mutable images and physical budgets/full
+Ultimate acceptance remain open. Default SDK/Slang profiles, stable C ABI and cooked formats remain
+unchanged. Published WARP1.0.13 introduced VRS Tier2/feature level12_2; the pinned preview package
+retains this documented route, which still requires actual output proof.
+
+The rate-image candidate passes native Slang/Zig Development220/220,zero skips/failures (156.57s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization18/18 (10.50s),39 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Real DXC preview compiles the witness VS/PS6.4; actual SDK upload helper and Windows-conditional test syntax pass with warnings-as-errors. Vulkan reports enabled0/tile0/draws0 while executing real full-rate quality/workers. Four exact session branches now use guarded obsolete-run cleanup;27/27 safety and16/16 documentation/workflow tests pass. Native Windows image/witness execution remains pending and no full VRS/Ultimate gate closes.

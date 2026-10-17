@@ -893,3 +893,27 @@ calls. Vulkan/Metal run the real explicit-microgeometry compute oracle without n
 All16 masks and nearest transparent-front occlusion are checked independently; native proof is
 pending Windows CI. Four-state/any-hit, higher subdivisions, updates and general material/cook/
 lighting/physical acceptance remain open. Stable C ABI and cooked formats remain unchanged.
+
+## Immutable VRS Tier2 images
+
+`ShadingRateImage.h` adds a separate typed immutable source, without adding public texture formats.
+The capability snapshot records the independently queried tile size; only valid tier2 tile queries
+raise the bounded VRS implementation ceiling to2.0. `ShadingRate::Image` implies tier2 in complete
+pipeline admission/cache identity. Factories accept raster extents1–4096 and exact tile-grid bytes
+with baseline1x1/1x2/2x1/2x2 encodings. Private R8_UINT upload/transition waits its creation fence;
+caller storage may change immediately after creation. Construction/mutation/submit stay serialized.
+
+A graphics list explicitly binds a matching source after selecting its image pipeline. Draw,
+indirect and mesh paths reject missing sources. Each pipeline rebind resets native image/base/
+combiners and requires explicit image rebind. Up to16 unique snapshots retain sources beyond all
+native command-list interfaces; repeated binding consumes no new snapshot. Submit checks generations
+before Close/Execute. Disjoint workers may share immutable sources; stale/abandoned/cancelled work
+publishes no accepted image calls. `shading_rate_image_draw_calls` is distinct from per-draw coarse
+counts and does not count shaded pixels or speedups. Full-rate native comparison remains available
+on other backends; Validation does not emulate rate images.
+
+Preview tests additionally compile a DXC6.4 hardware SV_ShadingRate witness with the separately
+pinned compiler. This does not raise ordinary Slang/SDK profiles. Tier2 native execution/quality,
+caller-memory independence, reset, bounds and lifetime proof remain pending Windows CI. Mutable
+GPU-authored images, additional rates, primitive controls and full physical/Ultimate gates remain
+open. Stable C ABI and cooked wire formats are unchanged; C++ modules rebuild together.
