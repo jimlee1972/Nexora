@@ -309,6 +309,7 @@ private:
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
   bool submitted_{false};
+  std::uint64_t completed_token_{};
   bool closed_{false};
   TextureHandle render_target_{};
   std::uint32_t width_{};
@@ -357,6 +358,15 @@ public:
 
 private:
   friend class VulkanCommandList;
+  struct CommandAllocation final {
+    VkCommandPool pool{VK_NULL_HANDLE};
+    VkCommandBuffer commands{VK_NULL_HANDLE};
+  };
+  CommandAllocation AcquireCommandAllocation();
+  void ReleaseCommandAllocation(CommandAllocation allocation, bool reusable) noexcept;
+  // Fixed storage: retirement never allocates or grows an unbounded cache.
+  std::array<CommandAllocation, 8> idle_command_allocations_{};
+  std::size_t idle_command_allocation_count_{};
   void LoadInstanceFunctions();
   void LoadDeviceFunctions();
   void SelectPhysicalDevice();
@@ -536,6 +546,7 @@ void VulkanDevice::LoadDeviceFunctions() {
 
 VulkanDevice::VulkanDevice(const DeviceCreationOptions &options)
     : gpu_timing_requested_(options.enable_gpu_timing) {
+  capabilities_.recording_resource_reuse_enabled = options.enable_recording_resource_reuse;
   const auto *shader_path = std::getenv("NEXORA_SLANG_SPIRV_PATH");
   if (!shader_path || *shader_path == '\0')
     throw std::runtime_error("NEXORA_SLANG_SPIRV_PATH is required for the Vulkan backend");
@@ -1460,6 +1471,7 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
   validated->framebuffers_.clear();
   std::lock_guard lock{mutex_};
   completed_submission_ = ++submitted_submission_;
+  validated->completed_token_ = completed_submission_;
   if (capabilities_.gpu_timing_enabled)
     detail::PublishGpuTiming(diagnostics_.gpu_timing, GpuTimingSource::VulkanTimestamps,
                              submitted_submission_, measured);
@@ -1503,6 +1515,9 @@ VulkanDevice::~VulkanDevice() {
     WaitIdle();
   } catch (...) {
   }
+  for (std::size_t index = 0; index < idle_command_allocation_count_; ++index)
+    functions_.DestroyCommandPool(device_, idle_command_allocations_[index].pool, nullptr);
+  idle_command_allocation_count_ = 0;
   for (auto &[key, pipeline] : pipelines_)
     (void)key, DestroyPipelineRecord(pipeline);
   for (auto &[key, texture] : textures_)
@@ -1540,20 +1555,63 @@ VulkanDevice::~VulkanDevice() {
   instance_ = VK_NULL_HANDLE;
 }
 
+VulkanDevice::CommandAllocation VulkanDevice::AcquireCommandAllocation() {
+  {
+    std::lock_guard lock{mutex_};
+    if (capabilities_.recording_resource_reuse_enabled && idle_command_allocation_count_) {
+      auto allocation = idle_command_allocations_[--idle_command_allocation_count_];
+      idle_command_allocations_[idle_command_allocation_count_] = {};
+      diagnostics_.cached_command_pools = idle_command_allocation_count_;
+      ++diagnostics_.command_pool_reuses;
+      return allocation;
+    }
+  }
+  CommandAllocation allocation;
+  const VkCommandPoolCreateInfo info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
+                                     VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                                     graphics_queue_family_};
+  Check(functions_.CreateCommandPool(device_, &info, nullptr, &allocation.pool),
+        "vkCreateCommandPool(command list)");
+  const VkCommandBufferAllocateInfo commands{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                             nullptr, allocation.pool,
+                                             VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+  try {
+    Check(functions_.AllocateCommandBuffers(device_, &commands, &allocation.commands),
+          "vkAllocateCommandBuffers(command list)");
+  } catch (...) {
+    functions_.DestroyCommandPool(device_, allocation.pool, nullptr);
+    throw;
+  }
+  std::lock_guard lock{mutex_};
+  ++diagnostics_.command_pool_creations;
+  return allocation;
+}
+
+void VulkanDevice::ReleaseCommandAllocation(CommandAllocation allocation, bool reusable) noexcept {
+  if (allocation.pool == VK_NULL_HANDLE)
+    return;
+  if (reusable && capabilities_.recording_resource_reuse_enabled &&
+      functions_.ResetCommandPool(device_, allocation.pool, 0) == VK_SUCCESS) {
+    // Reset drops every recorded reference before descriptors, query pools and framebuffers die.
+    // The pool is exclusively list-owned until this point, even when its fence completed earlier.
+    std::lock_guard lock{mutex_};
+    if (idle_command_allocation_count_ < idle_command_allocations_.size()) {
+      idle_command_allocations_[idle_command_allocation_count_++] = allocation;
+      diagnostics_.cached_command_pools = idle_command_allocation_count_;
+      return;
+    }
+  }
+  if (allocation.commands != VK_NULL_HANDLE)
+    functions_.FreeCommandBuffers(device_, allocation.pool, 1, &allocation.commands);
+  functions_.DestroyCommandPool(device_, allocation.pool, nullptr);
+}
+
 VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : device_(device) {
   (void)queue;
-  const VkCommandPoolCreateInfo pool_info{VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr,
-                                          VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                                          device_.graphics_queue_family_};
-  Check(device_.functions_.CreateCommandPool(device_.device_, &pool_info, nullptr, &command_pool_),
-        "vkCreateCommandPool(command list)");
-  const VkCommandBufferAllocateInfo allocate_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                                  nullptr, command_pool_,
-                                                  VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1};
+  const auto allocation = device_.AcquireCommandAllocation();
+  command_pool_ = allocation.pool;
+  command_buffer_ = allocation.commands;
   try {
-    Check(device_.functions_.AllocateCommandBuffers(device_.device_, &allocate_info,
-                                                    &command_buffer_),
-          "vkAllocateCommandBuffers(command list)");
     const VkCommandBufferBeginInfo begin_info{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, nullptr,
                                               VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, nullptr};
     Check(device_.functions_.BeginCommandBuffer(command_buffer_, &begin_info),
@@ -1581,10 +1639,13 @@ VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : de
 }
 
 VulkanCommandList::~VulkanCommandList() {
-  if (command_buffer_ != VK_NULL_HANDLE)
-    device_.functions_.FreeCommandBuffers(device_.device_, command_pool_, 1, &command_buffer_);
-  if (command_pool_ != VK_NULL_HANDLE)
-    device_.functions_.DestroyCommandPool(device_.device_, command_pool_, nullptr);
+  // A successful Submit sets completed_token_ only after its fence returns. Accepted but failed
+  // submissions stay ineligible even if the caller later drains them. Never reset in-flight work.
+  const bool reusable = !submitted_ || (completed_token_ != 0 &&
+                                        device_.CompletedSubmissionValue() >= completed_token_);
+  device_.ReleaseCommandAllocation({command_pool_, command_buffer_}, reusable);
+  command_pool_ = VK_NULL_HANDLE;
+  command_buffer_ = VK_NULL_HANDLE;
   if (timestamps_ != VK_NULL_HANDLE)
     device_.functions_.DestroyQueryPool(device_.device_, timestamps_, nullptr);
   for (const auto framebuffer : framebuffers_)

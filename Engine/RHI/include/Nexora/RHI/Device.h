@@ -15,6 +15,8 @@ namespace nexora::rhi {
 struct DeviceCreationOptions final {
   // Best effort, default off. Unsupported/failed observations remain explicitly unavailable.
   bool enable_gpu_timing{};
+  // Optional bounded native allocator reuse; unsupported backends keep it disabled.
+  bool enable_recording_resource_reuse{};
 };
 struct DeviceDiagnostics final {
   std::uint64_t submitted_command_lists{};
@@ -26,6 +28,9 @@ struct DeviceDiagnostics final {
   std::uint64_t indirect_draw_calls{};
   std::uint64_t readbacks{};
   SubmissionGpuTiming gpu_timing{};
+  std::uint64_t command_pool_creations{};
+  std::uint64_t command_pool_reuses{};
+  std::uint64_t cached_command_pools{};
 };
 class NEXORA_RHI_API CommandList {
 public:

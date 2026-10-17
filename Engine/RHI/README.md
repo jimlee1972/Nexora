@@ -488,3 +488,34 @@ Software timestamps prove API/lifetime correctness; physical calibration and mat
 CPU/GPU/memory budgets remain separate acceptance. C++ modules rebuild for the appended options/
 capabilities/diagnostics and new factory; stable C ABI, SDK/shader baselines and module relationships
 are unchanged.
+
+## Optional bounded Vulkan command allocator reuse
+
+`DeviceCreationOptions::enable_recording_resource_reuse` is default off. Vulkan explicitly enables
+its `recording_resource_reuse_enabled` snapshot when requested; Null, D3D12 and Metal leave it false.
+The old device factory and default options keep allocating/freeing list command pools as before.
+All C++ modules rebuild for appended options/capabilities/diagnostics; stable C ABI is unchanged.
+
+With this option, the device owns at most eight idle command pool/primary-buffer pairs. Each live
+list exclusively owns its pair, including after its submission completes, until list destruction.
+Never-submitted lists can retire immediately; submitted lists become reusable only after Submit's
+existing native fence succeeds and records that list's completion token. Acceptance followed by a
+submission/wait failure leaves it ineligible for reuse. No extra GPU wait is added. Query pools,
+descriptor pools, upload resources and framebuffers retain their existing list/completion ownership;
+they are not cached by this option.
+
+Retirement resets an eligible command pool before releasing any remaining descriptor, query or
+framebuffer references. Reset failure, ineligible retirement and cache overflow destroy the pair.
+A fixed device array makes retirement allocation-free; a device mutex protects cache pop/push and
+counters. The newly owning list begins the reset primary buffer and records independently. Device
+shutdown performs its existing drain then destroys every cached pool before other native objects.
+The caller must still retain submitted lists/resources until completion and destroy lists before
+the device; device/resource mutation and queue submission retain their existing synchronization.
+
+Diagnostics report successful newly allocated pairs, cache acquisitions and current idle count.
+These are native command-pool events, not descriptor reuse, GPU memory, actual worker concurrency
+or asynchronous allocator/timeline support. Eight limits the count, not a byte budget. The complete
+ParallelCommandRecording feature remains disabled/unimplemented and Submit remains synchronous.
+Native compute and color-target oracles run with timing enabled, test held completed/abandoned
+lists, exclusive reuse and overflow, then compare every real GPU output across repeated cohorts,
+failures, cancellation, stale snapshots and 512 target allocation/recycling cycles.

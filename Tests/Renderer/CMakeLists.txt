@@ -125,11 +125,12 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   endif()
   nexora_apply_defaults(NexoraVulkanTextureRecordingTests)
   add_test(NAME renderer.vulkan_texture_recording COMMAND NexoraVulkanTextureRecordingTests)
-  set_tests_properties(renderer.vulkan_texture_recording PROPERTIES
+  add_test(NAME renderer.vulkan_graphics_resource_reuse COMMAND NexoraVulkanTextureRecordingTests --resource-reuse)
+  set_tests_properties(renderer.vulkan_texture_recording renderer.vulkan_graphics_resource_reuse PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "vulkan;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraVulkanTextureRecordingTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.vulkan_texture_recording APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.vulkan_texture_recording renderer.vulkan_graphics_resource_reuse APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
       "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
@@ -142,11 +143,12 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   nexora_apply_defaults(NexoraVulkanDescriptorIsolationTests)
   add_test(NAME renderer.vulkan_descriptor_isolation COMMAND NexoraVulkanDescriptorIsolationTests)
   add_test(NAME renderer.vulkan_recording_gpu_timing COMMAND NexoraVulkanDescriptorIsolationTests --gpu-timing)
-  set_tests_properties(renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing PROPERTIES
+  add_test(NAME renderer.vulkan_recording_resource_reuse COMMAND NexoraVulkanDescriptorIsolationTests --resource-reuse)
+  set_tests_properties(renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "vulkan;native-acceptance")
   if(NEXORA_ENABLE_SLANG)
     add_dependencies(NexoraVulkanDescriptorIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
-    set_property(TEST renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing APPEND PROPERTY ENVIRONMENT
+    set_property(TEST renderer.vulkan_descriptor_isolation renderer.vulkan_recording_gpu_timing renderer.vulkan_recording_resource_reuse APPEND PROPERTY ENVIRONMENT
       "NEXORA_SLANG_SPIRV_PATH=${NEXORA_SLANG_SPIRV_OUTPUT}"
       "NEXORA_SLANG_COMPUTE_SPIRV_PATH=${NEXORA_SLANG_COMPUTE_SPIRV_OUTPUT}"
       "NEXORA_REQUIRE_NATIVE_BACKENDS=1")

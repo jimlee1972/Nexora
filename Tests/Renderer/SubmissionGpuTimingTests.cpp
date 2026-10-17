@@ -29,7 +29,11 @@ void Draw(rhi::CommandList &commands, rhi::TextureHandle target, rhi::PipelineHa
   }
 }
 void TestValidationUnavailable() {
-  auto device = rhi::CreateDeviceWithOptions(rhi::Backend::Null, {true});
+  auto device = rhi::CreateDeviceWithOptions(rhi::Backend::Null, {true, true});
+  Require(!device->Capabilities().recording_resource_reuse_enabled &&
+              device->Diagnostics().command_pool_reuses == 0 &&
+              device->Diagnostics().cached_command_pools == 0,
+          "Null must not claim requested native allocator reuse");
   Require(device->Capabilities().gpu_timing_support == rhi::CapabilitySupport::Unsupported &&
               !device->Capabilities().gpu_timing_enabled,
           "validation model must not advertise native GPU timing");

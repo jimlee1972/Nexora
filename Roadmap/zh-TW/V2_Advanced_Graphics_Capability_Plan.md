@@ -25,6 +25,25 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 選用有界 Vulkan Command Allocator 重用 — 2026-10-17
+
+✅ 預設關閉的明確 Device 選項提供固定八格原生 Command Pool／Primary Buffer 快取。
+存活清單即使完成提交仍保有獨占權；只有未提交或個別 Fence 已成功完成的清單可 Reset 後歸還，
+已接受但後續失敗的提交不具重用資格。Reset 先清除錄製參照，再銷毀 Descriptor／Query／Framebuffer；
+Reset 失敗或快取溢出則銷毀配置。診斷回報建立、快取取得及目前閒置數量，裝置關閉時排空並銷毀。
+本項不快取 Query／Descriptor、不新增等待、不變更 SDK／穩定 C ABI，也不提供非同步 Submit。
+所有 C++ 模組需重建；其他後端維持停用。原生 Compute／Texture Oracle 啟用計時並新增保留清單、
+放棄、容量／溢出及重複輸出／生命週期檢查。Beads `nexora-45y.2.13`；來源
+`feat/v2-vulkan-recording-resource-reuse`。
+Slang Development configure/build 與 Xvfb／強制原生 CTest **211/211 通過、零略過／失敗、121.09 秒**；
+Shipping Monolithic／Minimal LTO 通過。聚焦原生重用 **2/2 通過、2.81 秒**。
+Khronos1.3.275 物件／同步驗證 **8/8 通過、3.12 秒**，確認21次 Layer 插入，
+Validation Error／VUID／SYNC-HAZARD 為零。Compute 建立13份、重用193次、最後快取8份；
+圖形建立4份、重用608次、最後快取4份，包含512次全新 Target／Query 原生渲染／讀回像素比對。
+既有320份 Dispatch、48份 Graph、64份共用輸入 CPU 比對及失敗／取消重試仍通過。
+Null 請求保持停用。Windows／Metal ABI 回歸與 Hosted Vulkan 驗證仍由 CI 把關。
+完整平行、非同步 Descriptor／Allocator 重用及實體效能驗收仍待完成。參見 [RHI 契約](../../Engine/RHI/README.md#optional-bounded-vulkan-command-allocator-reuse)。
+
 ### 選用的原生 GPU 提交完成計時 — 2026-10-17
 
 ✅ RHI 計時須由 `CreateDeviceWithOptions` 明確要求；一般建立維持關閉。建構時的支援／

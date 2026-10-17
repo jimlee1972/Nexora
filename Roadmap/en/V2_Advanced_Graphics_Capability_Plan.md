@@ -31,6 +31,28 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Optional bounded Vulkan command allocator reuse — 2026-10-17
+
+✅ An explicit default-off device option admits a fixed eight-entry native command-pool/primary-buffer
+cache. Live lists retain exclusive ownership even after completion. Only unsubmitted or individually
+fence-completed lists reset and return their allocation; accepted-but-failed submissions remain
+ineligible. Reset clears recorded references before descriptor/query/framebuffer destruction;
+failure or overflow destroys the allocation. Counters expose creation, cache acquisition and idle
+count. Shutdown drains and destroys cached pools. No query/descriptor caching, extra wait, SDK/C ABI
+change or asynchronous Submit is introduced. All C++ modules rebuild; other backends stay disabled.
+Native timing-enabled compute/texture oracles add held-list, abandon, cap/overflow and repeated
+output/lifetime tests. Beads `nexora-45y.2.13`; source `feat/v2-vulkan-recording-resource-reuse`.
+Slang Development configure/build and Xvfb/native-required CTest pass **211/211, zero skips/failures,
+121.09 seconds**; Shipping Monolithic/Minimal LTO passes. Focused native reuse **2/2 pass, 2.81 seconds**.
+Khronos1.3.275 object/synchronization validation **8/8 pass, 3.12 seconds**, 21 loader-confirmed
+insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Compute creates13 and reuses193
+pool pairs, ending with8 cached; graphics creates4 and reuses608, ending with4 cached, including
+512 repeated native render/readback pixel comparisons with fresh target/query resources. Existing
+320 dispatch,48 graph,64 shared-input CPU comparisons and failed/cancelled replay still pass.
+Null requests stay disabled. Windows/Metal ABI regressions and hosted Vulkan validation remain CI
+gates. Full parallel, asynchronous descriptor/allocator reuse and physical performance acceptance
+remain open. See the [RHI contract](../../Engine/RHI/README.md#optional-bounded-vulkan-command-allocator-reuse).
+
 ### Optional completed native GPU submission timing — 2026-10-17
 
 ✅ RHI timing is explicitly requested with `CreateDeviceWithOptions`; ordinary creation stays off.

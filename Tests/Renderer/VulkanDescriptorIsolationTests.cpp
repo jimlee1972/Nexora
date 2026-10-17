@@ -106,6 +106,41 @@ void Compare(rhi::Device &device, const Workload &workload) {
           "isolated dispatch must preserve the native indirect draw prefix");
 }
 
+void TestCommandPoolReuse(rhi::Device &device) {
+  Require(kBackend == rhi::Backend::Vulkan &&
+              device.Capabilities().recording_resource_reuse_enabled,
+          "command pool reuse must be explicitly enabled on Vulkan");
+  const auto before = device.Diagnostics();
+  std::array<std::unique_ptr<rhi::CommandList>, 12> held;
+  for (auto &list : held)
+    list = device.CreateCommandList(rhi::QueueType::Compute);
+  Require(device.Diagnostics().command_pool_creations == before.command_pool_creations + 12 &&
+              device.Diagnostics().cached_command_pools == 0,
+          "live lists must exclusively own different command pools");
+  for (std::size_t index = 0; index < 2; ++index) {
+    const auto completion = device.Submit(*held[index]);
+    device.WaitForSubmission(completion);
+  }
+  Require(device.Diagnostics().cached_command_pools == 0,
+          "completed lists must retain allocators until list retirement");
+  for (auto &list : held)
+    list.reset();
+  Require(device.Diagnostics().cached_command_pools == 8,
+          "abandoned/completed command pool cache must remain bounded at eight");
+  const auto warmed = device.Diagnostics();
+  for (std::size_t index = 0; index < 9; ++index)
+    held[index] = device.CreateCommandList(rhi::QueueType::Compute);
+  const auto reused = device.Diagnostics();
+  Require(reused.command_pool_reuses == warmed.command_pool_reuses + 8 &&
+              reused.command_pool_creations == warmed.command_pool_creations + 1 &&
+              reused.cached_command_pools == 0,
+          "cached allocations must be popped exclusively before allocating beyond the bound");
+  for (auto &list : held)
+    list.reset();
+  Require(device.Diagnostics().cached_command_pools == 8,
+          "pool overflow must be destroyed instead of growing the cache");
+}
+
 void TestIsolation(rhi::Device &device, rhi::PipelineHandle pipeline, bool parallel) {
   constexpr std::size_t workers = 4;
   // Cross the 32-set pool boundary and rebind all slots after every dispatch.
@@ -723,8 +758,13 @@ int main(int argc, char **argv) {
       std::cout << "SKIP: " << kBackendName << " artifacts/device unavailable\n";
       return 77;
     }
-    const bool timed = argc == 2 && std::string_view{argv[1]} == "--gpu-timing";
-    auto device = rhi::CreateDeviceWithOptions(kBackend, {timed});
+    const bool reuse = argc == 2 && std::string_view{argv[1]} == "--resource-reuse";
+    const bool timed = reuse || (argc == 2 && std::string_view{argv[1]} == "--gpu-timing");
+    auto device = rhi::CreateDeviceWithOptions(kBackend, {timed, reuse});
+    Require(device->Capabilities().recording_resource_reuse_enabled == reuse,
+            "recording resource reuse must stay explicitly opt-in");
+    if (reuse)
+      TestCommandPoolReuse(*device);
     const auto pipeline = device->CreatePipeline(
         {1, 2, rhi::TextureFormat::Rgba8Unorm, "isolation", rhi::PipelineType::Compute});
     TestRejectedBindings(*device, pipeline);
@@ -738,6 +778,17 @@ int main(int argc, char **argv) {
     TestBufferSnapshots(*device, pipeline);
     TestMetalBufferScopes(*device, pipeline);
     device->DestroyPipeline(pipeline);
+    const auto pools = device->Diagnostics();
+    Require(pools.cached_command_pools <= 8 &&
+                (reuse || (pools.cached_command_pools == 0 && pools.command_pool_reuses == 0)),
+            "command pool reuse must respect opt-in and bounded retirement");
+    if (reuse) {
+      Require(pools.command_pool_reuses > 8,
+              "native workloads did not exercise warmed allocator reuse");
+      std::cout << "Vulkan completed/abandoned command pool reuse: created="
+                << pools.command_pool_creations << " reused=" << pools.command_pool_reuses
+                << " cached=" << pools.cached_command_pools << '\n';
+    }
     if (timed) {
       const auto timing = device->Diagnostics().gpu_timing;
       Require(!device->Capabilities().gpu_timing_enabled || timing.completed_submission > 0,
