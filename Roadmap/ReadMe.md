@@ -308,3 +308,9 @@ Windows native node execution remains pending; no full graphics gate closes. 真
 real Slang/DXC library and inline-query artifacts plus Linux native compute/CPU traversal oracles pass.
 Windows AS/native dispatch and complete DXR/SER acceptance remain pending. 真實 Library／Inline Query 編譯
 與 Linux 原生 Compute／CPU 交點比對通過；Windows AS／原生 Dispatch 及完整 DXR／SER 驗收仍待完成。
+
+✅ V2-GFX-4 min-mip compilation and real compute reference / Min-mip 編譯與真實 Compute 參考（2026-10-17）：
+actual feedback/reflection recipes and Linux Development220/220, Shipping and native Vulkan synchronization pass.
+Native Windows clear/write/decode remains pending; full streaming/residency/Ultimate gates stay open.
+真實 Feedback／Reflection 產物及 Linux Development220/220、Shipping、Vulkan 同步驗證通過；
+Windows 原生 Clear／Write／Decode 待驗收，完整 Streaming／Residency／Ultimate Gate 維持開放。

@@ -149,7 +149,11 @@ constexpr bool SupportsBuiltinIndirectDraw(PrimitiveTopology topology,
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
 enum class PipelineType : std::uint8_t { Graphics, Compute };
-enum class ComputeShaderVariant : std::uint8_t { GPUDriven, RayReference };
+enum class ComputeShaderVariant : std::uint8_t {
+  GPUDriven,
+  RayReference,
+  SamplerFeedbackReference
+};
 
 struct BufferDescriptor final {
   std::uint64_t size{};

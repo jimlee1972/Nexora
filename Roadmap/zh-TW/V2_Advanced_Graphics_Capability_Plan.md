@@ -716,6 +716,25 @@ VRS2 Image 與實機預算維持開放。
 改接 Squash 後，受測樹完全相同（`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`）；下一個 PR 不重複
 既有 Tessellation／Mesh／VRS／Barrier 提交。
 
+## V2-GFX-4 有界 Min-mip Feedback 施工狀態
+
+`feat/v2-native-minmip-feedback`、Beads `nexora-45y.5.4` 新增固定64x64／七層 Mip、16x16 Region
+的僅 Metadata Footprint。原生 Device8 建立 Paired／Opaque View，透過獨立 SM6.5 Write、Clear／
+UAV 相依、List1 Decode 成4x4 R8_UINT，再由 SM6.0 GPU Kernel 擴成16個 uint Min-mip 值。List
+Context 保留不可變 Root／PSO／Paired Texture，並獨占 Opaque／Decoded Texture 與 Descriptor。
+實作上限 Tier0.9，不改寫硬體1.0；實際 Reflection 與完整 Recipe 位元組識別在原生建立前拒絕
+不相容產物。此路徑不取樣 Color、不連接 App Texture；通用 Streaming／Residency 與完整 Ultimate／
+V2-GFX-4 仍待完成。
+
+✅ 本地 Linux Development Configure／Build 與完整 CTest220/220 通過，零失敗／略過（282.94s）；
+Shipping Minimal／Monolithic LTO 通過。真實 Vulkan 較低 Profile Compute 與 CPU 比對 Clear255、
+0／1／16／64 Request、重複最小值、未寫入／Canary、全無效輸入，以及強制雙 Worker 取消／重試。
+Xvfb 下 Khronos Object／Synchronization Validation18/18 通過（10.90s），確認39次 Layer 插入，無
+Validation／VUID／同步錯誤。實際 Production CMake 編譯 Write4800B／SM6.5、Pack3468B／SM6.0，
+驗證真實 Reflection 並產生完整 Recipe 識別。官方 SDK Helper 與 Windows 條件測試分支在警告視為
+錯誤下通過語法檢查。原生過期／Context／Heap／Program 與 Node／Feedback／Node Oracle 已實作，
+但 Windows 原生 Feedback 執行仍待完成；enabled0／dispatches0 僅代表 Compute 後備。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、

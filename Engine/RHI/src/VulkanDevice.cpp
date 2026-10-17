@@ -1248,8 +1248,11 @@ PipelineHandle VulkanDevice::CreatePipeline(const PipelineDescriptor &descriptor
   if (descriptor.type == PipelineType::Compute) {
     ShaderModuleOwner selected{device_, functions_.DestroyShaderModule};
     auto module = compute_shader_module_;
-    if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
-      const auto words = ReadGeometrySpirv("NEXORA_SLANG_RAY_REFERENCE_SPIRV_PATH", false, true);
+    if (descriptor.compute_shader != ComputeShaderVariant::GPUDriven) {
+      const auto *environment = descriptor.compute_shader == ComputeShaderVariant::RayReference
+                                    ? "NEXORA_SLANG_RAY_REFERENCE_SPIRV_PATH"
+                                    : "NEXORA_SLANG_FEEDBACK_REFERENCE_SPIRV_PATH";
+      const auto words = ReadGeometrySpirv(environment, false, true);
       const VkShaderModuleCreateInfo module_info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
                                                  nullptr, 0, words.size() * sizeof(std::uint32_t),
                                                  words.data()};

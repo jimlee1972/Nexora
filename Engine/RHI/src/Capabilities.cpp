@@ -4,6 +4,18 @@
 #include <string>
 
 namespace nexora::rhi {
+GraphicsRequirements
+EffectiveSamplerFeedbackRequirements(const SamplerFeedbackProgramDescriptor &descriptor) {
+  auto requirements = descriptor.graphics_requirements;
+  auto &tier =
+      requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::SamplerFeedback)];
+  if (tier < FeatureVersion{0, 9})
+    tier = {0, 9};
+  if (requirements.minimum_dxil_shader_model < FeatureVersion{6, 5})
+    requirements.minimum_dxil_shader_model = {6, 5};
+  return requirements;
+}
+
 GraphicsRequirements EffectiveRayProgramRequirements(const RayProgramDescriptor &descriptor) {
   if (descriptor.mode > RayTracingMode::InlineQuery)
     throw std::invalid_argument("invalid ray tracing mode");
@@ -107,7 +119,7 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
        descriptor.graphics_shader != GraphicsShaderVariant::Triangle ||
        descriptor.shading_rate != ShadingRate::Full))
     throw std::invalid_argument("compute pipelines cannot select graphics topology or variants");
-  if (descriptor.compute_shader > ComputeShaderVariant::RayReference ||
+  if (descriptor.compute_shader > ComputeShaderVariant::SamplerFeedbackReference ||
       (descriptor.type != PipelineType::Compute &&
        descriptor.compute_shader != ComputeShaderVariant::GPUDriven))
     throw std::invalid_argument("invalid compute shader variant for pipeline type");

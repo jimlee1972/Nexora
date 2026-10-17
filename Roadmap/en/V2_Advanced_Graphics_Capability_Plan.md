@@ -782,6 +782,27 @@ certify their execution or admit RT1.2, SM6.9/6.10 or SER. The Node/Ray source r
 onto its squash has an identical tested tree (`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`);
 no pending Tessellation/mesh/VRS/barrier commits are duplicated in the next PR.
 
+## V2-GFX-4 bounded min-mip feedback construction status
+
+`feat/v2-native-minmip-feedback`, Beads `nexora-45y.5.4`, adds a fixed metadata-only64x64/seven-mip
+footprint with16x16 regions. Native Device8 creates paired/opaque feedback views; independent
+SM6.5 writes, clear/UAV dependency, list1 decode to4x4 R8_UINT and SM6.0 GPU widening return16 uint
+min-mip values. Per-list contexts retain immutable roots/PSOs/paired texture and private opaque/
+decoded textures/descriptors. Requirements cap implementation at tier0.9, preserving hardware1.0.
+Real reflection and exact-byte recipe identity reject incompatible inputs before native creation.
+The path does not sample color data or attach to application textures; general streaming/residency
+and full Ultimate/V2-GFX-4 acceptance remain open.
+
+✅ Local Linux Development configure/build and full CTest pass220/220, zero failures/skips
+(282.94s); Shipping Minimal/Monolithic LTO passes. Real Vulkan lower-profile compute matches CPU
+maps for clear255,0/1/16/64 requests, duplicate minimums, untouched/canary and invalid-only cases,
+plus forced two-worker cancellation/replay. Xvfb Khronos object/synchronization validation passes
+18/18 (10.90s),39 confirmed layer insertions and zero validation/VUID/sync errors. Actual production
+CMake compiles write4800B/SM6.5 and pack3468B/SM6.0, validates real reflection and generates exact
+recipe identities. Official SDK helper and Windows-conditional test syntax pass with warnings-as-
+errors. Native stale/context/heap/program and Node/Feedback/Node oracles are implemented, but
+Windows native feedback execution remains pending; enabled0/dispatches0 is compute fallback only.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,

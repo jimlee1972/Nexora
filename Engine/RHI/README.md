@@ -829,3 +829,51 @@ When both native programs are admitted, the ray oracle records Node/Ray/Node in 
 compares both visible-record outputs and the ray result. Ray selection clears the logical bound
 Work Graph; a later node dispatch requires explicit rebind. Each path retains its own roots, state,
 backing/table/AS resources and native command-list interfaces until list destruction/completion.
+
+## Bounded min-mip sampler feedback footprint
+
+`SamplerFeedback.h` exposes an explicit metadata-footprint bootstrap program and16-byte GPU
+requests (`float u/v`, `uint mip/enabled`). This recipe privately pairs a64x64 RGBA texture with
+seven mips and16x16 mip regions; it does not attach to application textures or sample color data.
+The paired texture supplies sampling metadata, so color upload is unnecessary. General material
+feedback, virtual pages and residency integration remain separate work.
+
+Native D3D12 requires independently queried feedback tier0.9/SM6.5, compiled Device8/list1 and the
+existing Slang option. Its implementation ceiling is0.9 even on tier1.0 hardware. A full-mip/base0/
+plane0/minLOD0 SRV and static point/clamp sampler satisfy tier0.9 restrictions. Actual reflection
+validates the MIN_MIP feedback mode, root bindings,16-byte request offsets/types and16-byte root
+constants; exact generated recipe bytes pin the write/pack programs before native PSO creation.
+Shader provenance is retained without inferring native execution. Missing/wrong-stage/low-profile
+or changed-recipe artifacts reject; builds without pinned artifacts inherit explicit unsupported
+factories. Stable C ABI and baseline shader/SDK profiles are unchanged.
+
+`DispatchSamplerFeedback(program, input, output, count)` accepts0–64 requests, distinct buffers,
+input storage for at least one request and at least64 output bytes. Enabled1 requests with finite
+UV in[0,1) and integer mip0–2 write feedback; other requests are ignored on the GPU. These mip
+levels avoid small-tail ambiguity for this fixed footprint. Every call owns a fresh opaque
+feedback texture, decoded4x4 R8_UINT texture and immutable shader-visible/CPU-clear descriptor
+heaps. Clearing ignores the provided values and decodes to255. After write/UAV dependency,
+ResolveSubresourceRegion(DECODE_SAMPLER_FEEDBACK) and a shader-read transition, a GPU kernel widens
+16 decoded bytes to16 row-major uint32 outputs. Duplicate requests take the minimum mip; untouched
+regions remain255. There is no production CPU result readback.
+
+A live list retains at most four private contexts and immutable program/paired/root/PSO ownership,
+all beyond native command-list interface lifetime. Submit checks program generations and ordinary
+input/output revisions before Close/Execute. Abandoned/cancelled/stale lists publish no accepted
+feedback calls. Resource creation/mutation/destruction/submit remain caller-serialized against
+recording; disjoint workers share only immutable program/paired metadata. The diagnostic counter
+counts accepted API calls, including clear-only count0, rather than sampler instructions or speedup.
+Feedback selection invalidates the ordinary pipeline and Work Graph selection; explicit rebind
+restores the chosen program. Private feedback textures use their own legacy transitions while
+user buffers retain their requested legacy/enhanced route.
+
+`ComputeShaderVariant::SamplerFeedbackReference` has a distinct complete pipeline-cache identity
+and executes lower-profile compute on Vulkan/D3D12/Metal. Slot0 packs count plus four words/request;
+slot1 returns the16 uint map, using existing four-slot compute snapshots. Validation refuses to
+simulate this native kernel. Native tests compare real compute and CPU maps for0/1/16/64 requests,
+invalid-only inputs, clear255, duplicate minima, untouched cells and output canaries. They also test
+forced two-worker failure/cancellation/replay, wrong artifacts, stale/destroyed/abandoned resources,
+four-context bounds, Feedback/Compute/Feedback and Node/Feedback/Node roots/heaps under both legacy
+and requested Enhanced Barriers. Compilation and fallback-only enabled0 runs are not native feedback
+proof. Arrayed/other feedback formats, application texture sampling/streaming/residency, physical
+budgets and full V2-GFX-4/Ultimate acceptance remain open.

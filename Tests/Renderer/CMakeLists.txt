@@ -476,3 +476,39 @@ if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
   set_property(TEST renderer.ray_tracing renderer.ray_tracing_enhanced_barriers APPEND PROPERTY ENVIRONMENT
     "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
 endif()
+
+add_executable(NexoraSamplerFeedbackTests SamplerFeedbackTests.cpp)
+target_link_libraries(NexoraSamplerFeedbackTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraSamplerFeedbackTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraSamplerFeedbackTests)
+add_test(NAME renderer.sampler_feedback COMMAND NexoraSamplerFeedbackTests)
+set_tests_properties(renderer.sampler_feedback PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_SLANG AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraSamplerFeedbackTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  if(WIN32)
+    set(feedback_environment
+      "NEXORA_SLANG_FEEDBACK_WRITE_DXIL_PATH=${NEXORA_SLANG_FEEDBACK_WRITE_OUTPUT}"
+      "NEXORA_SLANG_FEEDBACK_PACK_DXIL_PATH=${NEXORA_SLANG_FEEDBACK_PACK_OUTPUT}"
+      "NEXORA_SLANG_FEEDBACK_REFERENCE_DXIL_PATH=${NEXORA_SLANG_FEEDBACK_REFERENCE_DXIL_OUTPUT}"
+      "NEXORA_SLANG_FEEDBACK_WRONG_IDENTITY_DXIL_PATH=${NEXORA_SLANG_RAY_QUERY_OUTPUT}")
+    add_test(NAME renderer.sampler_feedback_enhanced_barriers COMMAND NexoraSamplerFeedbackTests --enhanced-barriers)
+    set_tests_properties(renderer.sampler_feedback_enhanced_barriers PROPERTIES TIMEOUT 120 LABELS "d3d12;native-acceptance")
+    set_property(TEST renderer.sampler_feedback_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+      ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  elseif(APPLE)
+    set(feedback_environment "NEXORA_SLANG_FEEDBACK_REFERENCE_METAL_PATH=${NEXORA_SLANG_FEEDBACK_REFERENCE_METAL_OUTPUT}")
+  else()
+    set(feedback_environment "NEXORA_SLANG_FEEDBACK_REFERENCE_SPIRV_PATH=${NEXORA_SLANG_FEEDBACK_REFERENCE_SPIRV_OUTPUT}")
+  endif()
+  set_property(TEST renderer.sampler_feedback APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()
+
+if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
+  add_dependencies(NexoraSamplerFeedbackTests ${NEXORA_WORK_GRAPH_ARTIFACT_TARGET})
+  set_property(TEST renderer.sampler_feedback renderer.sampler_feedback_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
+endif()
