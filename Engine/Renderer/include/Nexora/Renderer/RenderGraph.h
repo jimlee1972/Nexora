@@ -46,9 +46,15 @@ struct ExternalPassContext final {
   std::span<const ExternalTextureTransition> transitions;
 };
 
-class NEXORA_RENDERER_API RenderGraphCancelled final : public std::exception {
+// MSVC exports the virtual member, avoiding a dll-interface requirement on std::exception.
+// Other platforms expose the type's RTTI as well for catches across shared-library boundaries.
+class
+#if !defined(_WIN32)
+    NEXORA_RENDERER_API
+#endif
+        RenderGraphCancelled final : public std::exception {
 public:
-  [[nodiscard]] const char *what() const noexcept override;
+  [[nodiscard]] NEXORA_RENDERER_API const char *what() const noexcept override;
 };
 
 class NEXORA_RENDERER_API RenderGraph final {
