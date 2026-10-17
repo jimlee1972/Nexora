@@ -914,3 +914,5 @@ lower-profile compute fallback integration, DXR1.2/opacity micromaps/SER and phy
 remain separate open work; this slice does not complete V2-GFX-5 or any enclosing acceptance gate.
 
 Local integrated verification on the sampler-feedback parent passes Development220/220,zero failures/skips (132.25s), and Shipping Minimal/Monolithic/LTO. All three pinned public Windows archives verify their published SHA-256; the production compiler recipe also passes with the actual Windows package HLSL headers. Windows runtime execution remains pending.
+
+After separating the sampler parent, the standalone PR633-based source passes Development219/219,zero skips/failures (154.39s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (18.24s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Non-Windows preview configure rejection and paired documentation checks pass. Native preview execution still requires Windows CI.

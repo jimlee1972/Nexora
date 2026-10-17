@@ -837,3 +837,5 @@ DXR1.2／Opacity Micromap／SER 與實體 GPU 效能另列未完成工作；本�
 或任何上層完整驗收 Gate。
 
 Sampler Feedback 父版本上的本機整合驗證通過 Development220/220、零失敗／略過（132.25秒），Shipping Minimal／Monolithic／LTO 亦通過。三個公開 Windows 套件的固定 SHA-256 均驗證成功；正式編譯流程使用真正 Windows 套件 HLSL Header 亦通過。Windows Runtime 執行仍待驗證。
+
+拆開 Sampler 父版本後，以 PR633 為基礎的獨立來源通過 Development219/219、零略過／失敗（154.39秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（18.24秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。非 Windows Preview Configure 拒絕及雙語文件檢查亦通過；原生 Preview 執行仍待 Windows CI。
