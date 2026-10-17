@@ -30,6 +30,11 @@
 #include <utility>
 #include <vector>
 
+#include "D3D12PreviewRuntime.h"
+#if NEXORA_ENABLE_D3D12_PREVIEW
+#include "ModernShaderArtifactIdentity.h"
+#endif
+
 #include "D3D12EnhancedBarriers.h"
 #include "D3D12MeshPipeline.h"
 #include "D3D12RayTracing.h"
@@ -389,6 +394,7 @@ private:
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
+  ComputeShaderVariant compute_shader_{ComputeShaderVariant::GPUDriven};
   PrimitiveTopology topology_{PrimitiveTopology::TriangleList};
   GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool submitted_{false};
@@ -413,31 +419,70 @@ class D3D12Device final : public Device {
 
 public:
   explicit D3D12Device(const DeviceCreationOptions &options) {
-    ComPtr<IDXGIFactory6> factory;
-    Check(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)), "CreateDXGIFactory2");
-
     ComPtr<IDXGIAdapter1> selected;
-    for (UINT index = 0;
-         factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                             IID_PPV_ARGS(&selected)) != DXGI_ERROR_NOT_FOUND;
-         ++index) {
-      DXGI_ADAPTER_DESC1 description{};
-      Check(selected->GetDesc1(&description), "IDXGIAdapter1::GetDesc1");
-      if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
-        continue;
-      if (SUCCEEDED(
-              D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_)))) {
-        break;
+    if (options.enable_d3d12_preview_runtime) {
+#if NEXORA_ENABLE_D3D12_PREVIEW
+      preview_runtime_.Create(device_, selected);
+#else
+      throw std::invalid_argument("D3D12 preview runtime was not compiled in");
+#endif
+    } else {
+      ComPtr<IDXGIFactory6> factory;
+      Check(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)), "CreateDXGIFactory2");
+
+      for (UINT index = 0;
+           factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
+                                               IID_PPV_ARGS(&selected)) != DXGI_ERROR_NOT_FOUND;
+           ++index) {
+        DXGI_ADAPTER_DESC1 description{};
+        Check(selected->GetDesc1(&description), "IDXGIAdapter1::GetDesc1");
+        if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+          continue;
+        if (SUCCEEDED(D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0,
+                                        IID_PPV_ARGS(&device_)))) {
+          break;
+        }
+        selected.Reset();
       }
-      selected.Reset();
-    }
-    if (!device_) {
-      Check(factory->EnumWarpAdapter(IID_PPV_ARGS(&selected)), "EnumWarpAdapter");
-      Check(D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_)),
-            "D3D12CreateDevice(WARP)");
+      if (!device_) {
+        Check(factory->EnumWarpAdapter(IID_PPV_ARGS(&selected)), "EnumWarpAdapter");
+        Check(D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_)),
+              "D3D12CreateDevice(WARP)");
+      }
     }
 
     capabilities_ = QueryCapabilities(*device_.Get(), *selected.Get());
+#if NEXORA_ENABLE_D3D12_PREVIEW
+    capabilities_.d3d12_preview_runtime_enabled = options.enable_d3d12_preview_runtime;
+    D3D12_FEATURE_DATA_D3D12_OPTIONS_PREVIEW preview{};
+    if (SUCCEEDED(device_->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS_PREVIEW, &preview,
+                                               sizeof(preview)))) {
+      capabilities_.compute_shared_memory_support = CapabilitySupport::Supported;
+      capabilities_.maximum_compute_shared_memory_bytes = preview.MaxGroupSharedMemoryPerGroupCS;
+    }
+    D3D12_FEATURE_DATA_LINEAR_ALGEBRA_SUPPORT algebra{};
+    if (SUCCEEDED(device_->CheckFeatureSupport(D3D12_FEATURE_LINEAR_ALGEBRA_SUPPORT, &algebra,
+                                               sizeof(algebra)))) {
+      if (algebra.LinearAlgebraTier == D3D12_LINEAR_ALGEBRA_TIER_NOT_SUPPORTED)
+        capabilities_.linear_algebra_support = CapabilitySupport::Unsupported;
+      else if (algebra.LinearAlgebraTier == D3D12_LINEAR_ALGEBRA_TIER_1_0)
+        capabilities_.linear_algebra_support = CapabilitySupport::Supported;
+    }
+    D3D12_FEATURE_DATA_LINEAR_ALGEBRA_MATRIX_OPERATION_SUPPORT operation{};
+    operation.OperationType = D3D12_LINEAR_ALGEBRA_OPERATION_TYPE_THREAD_VECTOR_MATRIX_MULTIPLY;
+    operation.ThreadVectorMatrixMultiply = {
+        D3D12_LINEAR_ALGEBRA_DATATYPE_FLOAT32, D3D12_LINEAR_ALGEBRA_DATATYPE_FLOAT32,
+        D3D12_LINEAR_ALGEBRA_DATATYPE_FLOAT32, D3D12_LINEAR_ALGEBRA_DATATYPE_FLOAT32,
+        D3D12_LINEAR_ALGEBRA_MULTIPLICATION_SUPPORT_FLAG_NONE};
+    if (SUCCEEDED(device_->CheckFeatureSupport(
+            D3D12_FEATURE_LINEAR_ALGEBRA_LINEAR_ALGEBRA_MATRIX_OPERATION_SUPPORT, &operation,
+            sizeof(operation))))
+      capabilities_.linear_algebra_f32_matvec_support =
+          (operation.ThreadVectorMatrixMultiply.SupportFlags &
+           D3D12_LINEAR_ALGEBRA_MULTIPLICATION_SUPPORT_FLAG_SUPPORTED)
+              ? CapabilitySupport::Supported
+              : CapabilitySupport::Unsupported;
+#endif
 #if defined(__ID3D12GraphicsCommandList7_INTERFACE_DEFINED__)
     auto &enhanced =
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::EnhancedBarriers)];
@@ -562,6 +607,7 @@ public:
     if (!vertex_shader_ || !pixel_shader_) {
       if (vertex_shader_ || pixel_shader_)
         throw std::runtime_error("both Slang DXIL entry-point artifacts are required");
+      using_fxc_graphics_shaders_ = true;
       vertex_shader_ = CompileShader(kTriangleShader, "vsMain", "vs_5_0");
       pixel_shader_ = CompileShader(kTriangleShader, "psMain", "ps_5_0");
     }
@@ -742,9 +788,42 @@ public:
                                  environment);
       return artifact;
     };
-    if (descriptor.compute_shader == ComputeShaderVariant::RayReference)
+    if (descriptor.compute_shader >= ComputeShaderVariant::LongVector69) {
+#if NEXORA_ENABLE_D3D12_PREVIEW
+      if (descriptor.compute_shader != ComputeShaderVariant::LongVector69 &&
+          !capabilities_.d3d12_preview_runtime_enabled)
+        throw std::invalid_argument("Shader Model 6.10 requires the isolated preview runtime");
+      if (descriptor.compute_shader == ComputeShaderVariant::LinearAlgebra610 &&
+          (capabilities_.linear_algebra_support != CapabilitySupport::Supported ||
+           capabilities_.linear_algebra_f32_matvec_support != CapabilitySupport::Supported))
+        throw std::invalid_argument("F32 thread matrix-vector operation is unavailable");
+      if (descriptor.compute_shader == ComputeShaderVariant::GroupShared610 &&
+          (capabilities_.compute_shared_memory_support != CapabilitySupport::Supported ||
+           capabilities_.maximum_compute_shared_memory_bytes < 65536))
+        throw std::invalid_argument("64 KiB compute shared memory is unavailable");
+      const auto kind = static_cast<std::size_t>(descriptor.compute_shader) -
+                        static_cast<std::size_t>(ComputeShaderVariant::LongVector69);
+      const char *environments[]{"NEXORA_MODERN_LONG_VECTOR_DXIL_PATH",
+                                 "NEXORA_MODERN_LINEAR_ALGEBRA_DXIL_PATH",
+                                 "NEXORA_MODERN_GROUP_SHARED_DXIL_PATH"};
+      selected_compute = required_artifact(environments[kind], ShaderStage::Compute);
+      (void)RequireDxilArtifact(
+          {static_cast<const std::byte *>(selected_compute->GetBufferPointer()),
+           selected_compute->GetBufferSize()},
+          ShaderStage::Compute,
+          descriptor.compute_shader == ComputeShaderVariant::LongVector69 ? FeatureVersion{6, 9}
+                                                                          : FeatureVersion{6, 10});
+      const auto expected = detail::ModernShaderBytes(kind);
+      if (selected_compute->GetBufferSize() != expected.size() ||
+          std::memcmp(selected_compute->GetBufferPointer(), expected.data(), expected.size()) != 0)
+        throw std::invalid_argument("modern shader artifact does not match the pinned recipe");
+#else
+      throw std::invalid_argument("modern shader programs were not compiled in");
+#endif
+    } else if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
       selected_compute =
           required_artifact("NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH", ShaderStage::Compute);
+    }
     if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
       selected_vertex =
           required_artifact("NEXORA_SLANG_PRETESSELLATED_DXIL_PATH", ShaderStage::Vertex);
@@ -764,6 +843,42 @@ public:
                                   ShaderStage::TessellationControl);
       evaluation = required_artifact("NEXORA_SLANG_TESSELLATION_EVALUATION_DXIL_PATH",
                                      ShaderStage::TessellationEvaluation);
+    }
+    // Actual bytecode can exceed an omitted caller minimum. Keep trusted local FXC fallback
+    // independent from DXIL queries, but close every attached modern DXIL stage before PSO
+    // creation.
+    const auto admit_modern_artifact = [&](ID3DBlob *artifact, ShaderStage stage,
+                                           bool trusted_fxc = false) {
+      if (!artifact || trusted_fxc)
+        return;
+      const auto info = RequireDxilArtifact(
+          {static_cast<const std::byte *>(artifact->GetBufferPointer()), artifact->GetBufferSize()},
+          stage);
+      if (info.shader_model < FeatureVersion{6, 9})
+        return;
+      GraphicsRequirements actual;
+      actual.minimum_dxil_shader_model = info.shader_model;
+      RequireGraphicsCapabilities(capabilities_, actual);
+      if (info.shader_model >= FeatureVersion{6, 10} &&
+          (!descriptor.allow_preview_shader_models || !capabilities_.d3d12_preview_runtime_enabled))
+        throw std::invalid_argument(
+            "modern DXIL preview artifact requires explicit preview permission and runtime");
+    };
+    if (descriptor.type == PipelineType::Compute) {
+      admit_modern_artifact(selected_compute.Get(), ShaderStage::Compute);
+    } else {
+      if (mesh_pipeline)
+        admit_modern_artifact(mesh.Get(), ShaderStage::Mesh);
+      else
+        admit_modern_artifact(selected_vertex.Get(), ShaderStage::Vertex,
+                              using_fxc_graphics_shaders_ &&
+                                  selected_vertex.Get() == vertex_shader_.Get());
+      if (patch) {
+        admit_modern_artifact(control.Get(), ShaderStage::TessellationControl);
+        admit_modern_artifact(evaluation.Get(), ShaderStage::TessellationEvaluation);
+      }
+      admit_modern_artifact(pixel_shader_.Get(), ShaderStage::Fragment,
+                            using_fxc_graphics_shaders_);
     }
     const auto minimum_model = descriptor.graphics_requirements.minimum_dxil_shader_model;
     if (minimum_model != FeatureVersion{}) {
@@ -794,6 +909,7 @@ public:
     record.topology = descriptor.topology;
     record.graphics_shader = descriptor.graphics_shader;
     record.shading_rate = descriptor.shading_rate;
+    record.compute_shader = descriptor.compute_shader;
     if (descriptor.type == PipelineType::Compute) {
       if (!selected_compute)
         throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
@@ -1156,6 +1272,7 @@ private:
     PrimitiveTopology topology{PrimitiveTopology::TriangleList};
     GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
     ShadingRate shading_rate{ShadingRate::Full};
+    ComputeShaderVariant compute_shader{ComputeShaderVariant::GPUDriven};
   };
   struct BufferRecord final {
     BufferDescriptor descriptor;
@@ -1262,6 +1379,8 @@ private:
   }
 
   GraphicsDeviceCapabilities capabilities_;
+  // The private SDK factory must outlive the device and all device-owned resources.
+  detail::D3D12PreviewRuntime preview_runtime_;
   ComPtr<ID3D12Device> device_;
 #if NEXORA_D3D12_WORK_GRAPHS
   ComPtr<ID3D12Device5> graph_device_;
@@ -1286,6 +1405,7 @@ private:
   ComPtr<ID3DBlob> vertex_shader_;
   ComPtr<ID3DBlob> pixel_shader_;
   ComPtr<ID3DBlob> compute_shader_;
+  bool using_fxc_graphics_shaders_{};
   HANDLE fence_event_{};
   UINT rtv_increment_{};
   static constexpr UINT RtvCapacity = 256;
@@ -1518,6 +1638,7 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   bound_work_graph_ = 0;
 #endif
   pipeline_type_ = record.type;
+  compute_shader_ = record.compute_shader;
   topology_ = record.topology;
   graphics_shader_ = record.graphics_shader;
   if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
@@ -1627,6 +1748,14 @@ void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group
     if (!storage_bound_[index])
       throw std::logic_error("D3D12 dispatch requires all storage bindings");
     (void)device_.ValidateBuffer(storage_handles_[index]);
+  }
+  if (compute_shader_ >= ComputeShaderVariant::LongVector69) {
+    if (group_count_x != 1 || group_count_y != 1 || group_count_z != 1 ||
+        storage_handles_[0] == storage_handles_[1] ||
+        device_.ValidateBuffer(storage_handles_[0]).descriptor.size < 128 ||
+        device_.ValidateBuffer(storage_handles_[1]).descriptor.size < 32)
+      throw std::logic_error(
+          "modern compute recipe requires one group and distinct 128/32-byte buffers");
   }
   list_->Dispatch(group_count_x, group_count_y, group_count_z);
   ++dispatches_;

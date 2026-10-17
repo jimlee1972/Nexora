@@ -884,3 +884,37 @@ evidence exist. Update both language editions, the V2 plans and roadmap index to
 - [RHI contracts](../../Engine/RHI/README.md)
 - [Renderer contracts](../../Engine/Renderer/README.md)
 - [Shader library and native Presentation scope](../../Shaders/README.md)
+
+### Isolated modern compute programs — implementation in progress
+
+The default-off `NEXORA_ENABLE_D3D12_PREVIEW` build stages separately hash-pinned Agility
+1.721.3-preview, WARP1.65535.20-preview and DXC1.10.2605.37. Only the dedicated test executable
+receives app-local WARP/Agility files; ordinary builds retain the existing SDK/compiler/profile.
+An explicit D3D12 device option creates an independent SDK721 factory with singleton publication
+disabled and enables experimental shader models only on that factory. It never applies factory
+configuration to global D3D12 state. The factory outlives all device resources. A disposable CI
+host enables Developer Mode; the backend does not modify OS settings.
+
+Three fixed compute variants use existing SRVt0/UAVu1 roots: SM6.9 eight-component integer long
+vectors, SM6.10 thread-scope F32 4x4 matrix/vector multiplication, and a128-thread reduction using
+64 KiB shared storage plus `GroupSharedLimit(65536)`. The latter declares a static allocation
+ceiling, not runtime dynamic shared-memory allocation. Native admission independently requires
+the actual device profile, explicit6.10 permission/private runtime, F32 operation query or shared
+capacity, actual DXIL stage/profile and exact build-generated recipe bytes. Permission and variant
+participate in complete cache identity. One group, distinct128-byte input/32-byte output buffers
+and ordinary immutable recording/revision lifetimes bound execution. Vulkan/Metal/validation
+reject these DXIL recipes rather than claiming their execution.
+
+Production compiler commands pass locally with the published preview compiler, including the
+real65540-byte oversized-allocation negative. Actual emitted linear-algebra DXIL contains matrix
+load/multiply operations. The Windows test requires all three native GPU outputs and canaries to
+match CPU oracles, stale/abandoned-list rejection and unchanged accepted counters. Native Windows
+execution and the full integrated CI gate remain pending. Generic modern shader authoring/cooking,
+lower-profile compute fallback integration, DXR1.2/opacity micromaps/SER and physical-GPU performance
+remain separate open work; this slice does not complete V2-GFX-5 or any enclosing acceptance gate.
+
+Local integrated verification on the sampler-feedback parent passes Development220/220,zero failures/skips (132.25s), and Shipping Minimal/Monolithic/LTO. All three pinned public Windows archives verify their published SHA-256; the production compiler recipe also passes with the actual Windows package HLSL headers. Windows runtime execution remains pending.
+
+After separating the sampler parent, the standalone PR633-based source passes Development219/219,zero skips/failures (154.39s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (18.24s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Non-Windows preview configure rejection and paired documentation checks pass. Native preview execution still requires Windows CI.
+
+Prior head2f7d89c7 has both native Windows preview jobs117400353506/117402090855 passing1/1 (2.09/0.29s), actually loading app-local WARP SM6.10 with65536 shared bytes and F32 matvec support; all nine kernel outputs/canaries/lifetimes pass. A follow-up closes generic artifact admission when caller minimum is omitted: actual6.9+ DXIL must satisfy the device limit, and actual6.10 requires explicit permission/private runtime. The test adds generic unopted rejection/opted PSO creation without submission. Local Development219/219 passes again (122.37s); actual SDK admission helper and Windows-conditional test syntax pass. Guarded cleanup includes only three exact current graphics-session branches, owner/same-repository actors and obsolete live SHAs, preserving both latest-head events;25/25 cancellation-safety tests and16/16 documentation/workflow tests pass. Final follow-up Windows CI is required before merge.

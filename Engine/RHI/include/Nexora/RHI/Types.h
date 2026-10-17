@@ -73,6 +73,11 @@ struct GraphicsDeviceCapabilities final {
   CapabilitySupport gpu_timing_support{CapabilitySupport::Unknown};
   bool gpu_timing_enabled{};
   bool recording_resource_reuse_enabled{};
+  bool d3d12_preview_runtime_enabled{};
+  CapabilitySupport linear_algebra_support{CapabilitySupport::Unknown};
+  CapabilitySupport linear_algebra_f32_matvec_support{CapabilitySupport::Unknown};
+  CapabilitySupport compute_shared_memory_support{CapabilitySupport::Unknown};
+  std::uint32_t maximum_compute_shared_memory_bytes{};
 };
 struct GraphicsRequirements final {
   // {0, 0} means unused. Tierless features use {1, 0}; feedback may require {0, 9}.
@@ -149,7 +154,13 @@ constexpr bool SupportsBuiltinIndirectDraw(PrimitiveTopology topology,
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
 enum class PipelineType : std::uint8_t { Graphics, Compute };
-enum class ComputeShaderVariant : std::uint8_t { GPUDriven, RayReference };
+enum class ComputeShaderVariant : std::uint8_t {
+  GPUDriven,
+  RayReference,
+  LongVector69,
+  LinearAlgebra610,
+  GroupShared610
+};
 
 struct BufferDescriptor final {
   std::uint64_t size{};
@@ -180,6 +191,8 @@ struct PipelineDescriptor final {
   GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
   ShadingRate shading_rate{ShadingRate::Full};
   ComputeShaderVariant compute_shader{ComputeShaderVariant::GPUDriven};
+  // Explicit permission for experimental 6.10 programs; requires the isolated runtime too.
+  bool allow_preview_shader_models{};
 };
 struct RenderingInfo final {
   TextureHandle color_target;

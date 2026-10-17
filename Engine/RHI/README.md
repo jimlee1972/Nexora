@@ -829,3 +829,30 @@ When both native programs are admitted, the ray oracle records Node/Ray/Node in 
 compares both visible-record outputs and the ray result. Ray selection clears the logical bound
 Work Graph; a later node dispatch requires explicit rebind. Each path retains its own roots, state,
 backing/table/AS resources and native command-list interfaces until list destruction/completion.
+
+## Isolated modern compute opt-in
+
+`NEXORA_ENABLE_D3D12_PREVIEW` is default off and Windows-only. Stage the hash-pinned packages with
+`Tools/Build/PrepareD3D12Preview.py --destination <external-directory>` and configure
+`NEXORA_D3D12_PREVIEW_ROOT`. Only the dedicated test receives local WARP/Agility DLLs. The explicit
+`DeviceCreationOptions::enable_d3d12_preview_runtime` uses an independent SDK721 factory; it never
+changes global D3D12 configuration or OS settings. Experimental shaders require host Developer Mode.
+The factory remains alive beyond the native device and resources. Other backends reject this option.
+
+The fixed `LongVector69`, `LinearAlgebra610` and `GroupShared610` compute recipes require SM6.9 or
+SM6.10;6.10 additionally requires per-pipeline `allow_preview_shader_models`, the private runtime
+and independently queried F32 matrix/vector support or at least65536 shared bytes. Unknown queries
+fail closed. Pipeline cache identity includes the permission. Actual DXIL stage/profile and exact
+build-generated recipe bytes are checked before PSO creation. Dispatch accepts one group only,
+distinct input/output buffers at slots0/1 with at least128/32 bytes, and the existing four bindings.
+Existing recording snapshots/revisions handle abandonment and stale resources. Outputs are integer
+weighted sums, four F32 matrix/vector results or a16384-element shared-memory reduction. The declared
+shared ceiling is static, not a runtime allocation API. Baseline SDK, Slang profiles, stable C ABI and
+cooked wire formats stay unchanged; all C++ modules require a coordinated rebuild. No Vulkan/Metal
+execution is implied. Target-host proof and broader modern shader/cooking integration remain open.
+
+Actual attached DXIL models are checked independently from omitted caller minimums. SM6.9+ stages
+must satisfy the queried device limit; actual6.10 bytecode additionally requires explicit pipeline
+preview permission and the private runtime, including the generic GPUDriven entry. Only trusted
+in-process FXC5.0 fallback stages bypass DXIL metadata parsing. Lower-profile default behavior is
+preserved. The native test includes undeclared-minimum6.10 rejection and opted PSO creation.

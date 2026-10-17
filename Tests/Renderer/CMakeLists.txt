@@ -476,3 +476,21 @@ if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
   set_property(TEST renderer.ray_tracing renderer.ray_tracing_enhanced_barriers APPEND PROPERTY ENVIRONMENT
     "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
 endif()
+
+if(NEXORA_ENABLE_D3D12_PREVIEW)
+  add_executable(NexoraModernShaderTests ModernShaderTests.cpp)
+  target_compile_definitions(NexoraModernShaderTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_link_libraries(NexoraModernShaderTests PRIVATE Nexora::Renderer)
+  nexora_apply_defaults(NexoraModernShaderTests)
+  set_target_properties(NexoraModernShaderTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  add_dependencies(NexoraModernShaderTests NexoraModernShaderArtifacts)
+  add_custom_command(TARGET NexoraModernShaderTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraModernShaderTests> "$<TARGET_FILE_DIR:NexoraModernShaderTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraModernShaderTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraModernShaderTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.modern_shaders_preview COMMAND NexoraModernShaderTests)
+  set_tests_properties(renderer.modern_shaders_preview PROPERTIES TIMEOUT 180
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraModernShaderTests>"
+    ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_MODERN_LONG_VECTOR_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLongVector.dxil;NEXORA_MODERN_LINEAR_ALGEBRA_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLinearAlgebra.dxil;NEXORA_MODERN_GROUP_SHARED_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernGroupShared.dxil")
+endif()

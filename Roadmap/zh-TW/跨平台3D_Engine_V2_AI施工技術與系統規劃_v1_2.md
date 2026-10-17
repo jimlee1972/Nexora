@@ -2437,3 +2437,5 @@ Done
 ```
 
 必須提供可驗證證據。
+
+新型 Compute 後續：獨立啟用的 Agility／WARP／DXC Preview Runtime 與三種有界 SM6.9／6.10 程式實作中，Windows 原生執行待驗證。詳見[進階圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。

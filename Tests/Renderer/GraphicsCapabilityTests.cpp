@@ -183,10 +183,59 @@ void TestPipelineAndCacheAdmission() {
               diagnostics.compute_dispatches == 0,
           "capability queries and rejected pipelines must not submit GPU work");
 }
+void TestModernProgramsFailClosed() {
+  PipelineDescriptor descriptor;
+  descriptor.layout_hash = 17;
+  descriptor.shader_hash = 19;
+  descriptor.type = PipelineType::Compute;
+  descriptor.compute_shader = ComputeShaderVariant::LongVector69;
+  const auto long_vector = EffectivePipelineRequirements(descriptor);
+  Require(long_vector.minimum_dxil_shader_model == FeatureVersion{6, 9},
+          "long-vector recipe must require SM6.9 without raising baseline pipelines");
+  descriptor.compute_shader = ComputeShaderVariant::LinearAlgebra610;
+  bool rejected = false;
+  try {
+    (void)EffectivePipelineRequirements(descriptor);
+  } catch (const std::invalid_argument &) {
+    rejected = true;
+  }
+  Require(rejected, "experimental model was admitted without explicit permission");
+  const auto closed_key = renderer::MakePipelineCacheKey(descriptor);
+  descriptor.allow_preview_shader_models = true;
+  Require(closed_key != renderer::MakePipelineCacheKey(descriptor),
+          "preview permission aliases cache key");
+  auto capabilities = GraphicsDeviceCapabilities{};
+  capabilities.dxil_shader_model_support = CapabilitySupport::Supported;
+  capabilities.highest_dxil_shader_model = {6, 9};
+  Require(
+      CheckGraphicsRequirements(capabilities, EffectivePipelineRequirements(descriptor)).failure ==
+          CapabilityFailure::InsufficientShaderModel,
+      "preview opt-in bypassed the actual device Shader Model limit");
+  auto device = CreateValidationDevice();
+  rejected = false;
+  try {
+    (void)device->CreatePipeline(descriptor);
+  } catch (const std::invalid_argument &) {
+    rejected = true;
+  }
+  Require(rejected && device->Diagnostics().compute_dispatches == 0,
+          "validation backend simulated native modern execution");
+  DeviceCreationOptions options;
+  options.enable_d3d12_preview_runtime = true;
+  rejected = false;
+  try {
+    (void)CreateDeviceWithOptions(Backend::Null, options);
+  } catch (const std::invalid_argument &) {
+    rejected = true;
+  }
+  Require(rejected, "a non-D3D12 backend ignored an explicit preview runtime request");
+}
+
 } // namespace
 
 int main() {
   try {
+    TestModernProgramsFailClosed();
     TestAdmissionAndFallback();
     TestTiersAndShaderModels();
     TestNativeTierDecoding();

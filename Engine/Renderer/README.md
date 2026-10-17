@@ -585,3 +585,10 @@ abandons both lists before submit. A distinct `ComputeShaderVariant::RayReferenc
 the complete pipeline-cache key and selects actual lower-SM traversal on supported native backends.
 This bounded hit oracle is not integration of ray shadows/reflections/AO, general scene AS updates,
 DXR1.2/SER or a physical performance acceptance result.
+
+Modern compute preview admission uses distinct `LongVector69`, `LinearAlgebra610` and
+`GroupShared610` pipeline variants. Complete cache identity includes explicit experimental Shader
+Model permission, so an accepted baseline or preview PSO cannot authorize another policy. Native
+DXIL recipes require the actual device profile and separate RHI/runtime/artifact checks; the
+Renderer does not emulate modern GPU instructions. Full modern shader/cooking and fallback
+integration remain open in the paired V2 graphics plan.
