@@ -31,9 +31,14 @@
 #include <vector>
 
 #include "D3D12PreviewRuntime.h"
+#if NEXORA_ENABLE_D3D12_SER
+#include "SerArtifactIdentity.h"
+#endif
 #if NEXORA_ENABLE_D3D12_PREVIEW
 #include "ModernShaderArtifactIdentity.h"
 #endif
+
+#include "D3D12ShadingRateImage.h"
 
 #include "D3D12EnhancedBarriers.h"
 #include "D3D12MeshPipeline.h"
@@ -109,9 +114,14 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
 #if defined(__ID3D12GraphicsCommandList5_INTERFACE_DEFINED__)
   D3D12_FEATURE_DATA_D3D12_OPTIONS6 options6{};
   if (SUCCEEDED(
-          device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, sizeof(options6))))
+          device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, sizeof(options6)))) {
     report_native_tier(GraphicsFeature::VariableRateShading,
                        static_cast<std::uint32_t>(options6.VariableShadingRateTier));
+    const auto tile = options6.ShadingRateImageTileSize;
+    if (options6.VariableShadingRateTier == D3D12_VARIABLE_SHADING_RATE_TIER_2 && tile >= 8 &&
+        tile <= 32 && !(tile & (tile - 1)))
+      result.shading_rate_image_tile_size = tile;
+  }
 #endif
 #if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__)
   D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7{};
@@ -138,6 +148,25 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
                        static_cast<std::uint32_t>(options21.WorkGraphsTier));
   }
 #endif
+#if NEXORA_ENABLE_D3D12_PREVIEW
+  D3D12_FEATURE_DATA_D3D12_OPTIONS22 options22{};
+  if (SUCCEEDED(device.CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS22, &options22,
+                                           sizeof(options22)))) {
+    result.actual_shader_reordering_support = options22.ShaderExecutionReorderingActuallyReorders
+                                                  ? CapabilitySupport::Supported
+                                                  : CapabilitySupport::Unsupported;
+    const auto &ray = result.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
+    // Published HLSL SER Device Support requires both SM6.9 and raytracing. The optimization
+    // query can be false on conforming implementations, including the pinned WARP package.
+    if (result.dxil_shader_model_support != CapabilitySupport::Unknown &&
+        ray.support != CapabilitySupport::Unknown)
+      report(GraphicsFeature::ShaderExecutionReordering,
+             result.highest_dxil_shader_model >= FeatureVersion{6, 9} &&
+                     ray.support == CapabilitySupport::Supported
+                 ? FeatureVersion{1, 0}
+                 : FeatureVersion{});
+  }
+#endif
   // Ray-tracing tier or SM 6.9 alone does not prove an implemented/enabled SER path.
   return result;
 }
@@ -151,6 +180,12 @@ void Check(HRESULT result, const char *operation) {
   if (FAILED(result))
     ThrowHResult(result, operation);
 }
+
+#if NEXORA_D3D12_VRS_IMAGE
+std::uint64_t Key(ShadingRateImageHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+#endif
 
 std::uint64_t Key(TextureHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
@@ -278,6 +313,9 @@ public:
   void BeginRendering(const RenderingInfo &info) override;
   void BindPipeline(PipelineHandle pipeline) override;
   void BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) override;
+#if NEXORA_D3D12_VRS_IMAGE
+  void BindShadingRateImage(ShadingRateImageHandle image) override;
+#endif
   void BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset, std::uint32_t stride) override;
   void Draw(std::uint32_t vertex_count, std::uint32_t instance_count) override;
   void Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
@@ -362,8 +400,23 @@ private:
   };
   std::array<RaySnapshot, RayMaximumDispatchesPerList> ray_snapshots_{};
   std::size_t ray_snapshot_count_{};
-  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{};
+  std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{}, ser_ray_dispatches_{},
+      opacity_ray_dispatches_{};
 #endif
+#if NEXORA_D3D12_VRS_IMAGE
+  struct RateImageSnapshot final {
+    ShadingRateImageHandle handle;
+    detail::NativeShadingRateImage image;
+  };
+  // Source references outlive all recorded native command-list interfaces, including abandonment.
+  std::array<RateImageSnapshot, ShadingRateImageMaximumBindingsPerList> rate_image_snapshots_{};
+  std::size_t rate_image_snapshot_count_{};
+#endif
+  std::uint64_t bound_rate_image_{}, rate_image_draws_{};
+  void RequireRateImage() const {
+    if (shading_rate_ == ShadingRate::Image && !bound_rate_image_)
+      throw std::logic_error("rate-image pipeline requires an explicit matching image binding");
+  }
   Microsoft::WRL::ComPtr<ID3D12QueryHeap> timestamp_heap_;
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
@@ -505,7 +558,8 @@ public:
     auto &vrs =
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::VariableRateShading)];
     vrs.implemented = true;
-    vrs.implemented_tier = {1, 0};
+    vrs.implemented_tier =
+        capabilities_.shading_rate_image_tile_size ? FeatureVersion{2, 0} : FeatureVersion{1, 0};
     if (vrs.support == CapabilitySupport::Supported) {
       ComPtr<ID3D12CommandAllocator> allocator;
       ComPtr<ID3D12GraphicsCommandList> probe;
@@ -558,6 +612,9 @@ public:
     auto &ray = capabilities_.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
     ray.implemented = true;
     ray.implemented_tier = {1, 1};
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+    ray.implemented_tier = {1, 2};
+#endif
     if (ray.support == CapabilitySupport::Supported &&
         capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 3} &&
         SUCCEEDED(device_.As(&ray_device_))) {
@@ -569,6 +626,15 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))))
         ray.enabled = SUCCEEDED(probe->Close());
     }
+#endif
+#if NEXORA_ENABLE_D3D12_SER && NEXORA_D3D12_RAY_TRACING
+    auto &ser = capabilities_
+                    .features[static_cast<std::size_t>(GraphicsFeature::ShaderExecutionReordering)];
+    ser.implemented = true;
+    ser.implemented_tier = {1, 0};
+    ser.enabled =
+        ser.support == CapabilitySupport::Supported &&
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::RayTracing)].enabled;
 #endif
     D3D12_COMMAND_QUEUE_DESC queue_description{};
     queue_description.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -630,6 +696,39 @@ public:
   Backend GetBackend() const noexcept override { return Backend::Direct3D12; }
   GraphicsDeviceCapabilities Capabilities() const noexcept override { return capabilities_; }
 
+#if NEXORA_D3D12_VRS_IMAGE
+  ShadingRateImageHandle CreateShadingRateImage(const ShadingRateImageDescriptor &descriptor,
+                                                std::span<const std::uint8_t> rates) override {
+    GraphicsRequirements requirements;
+    requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::VariableRateShading)] = {
+        2, 0};
+    RequireGraphicsCapabilities(Capabilities(), requirements);
+    std::lock_guard lock{mutex_};
+    auto build = detail::BuildShadingRateImage(*device_.Get(), descriptor,
+                                               capabilities_.shading_rate_image_tile_size, rates);
+    Check(build.commands->Close(), "Close immutable rate-image upload");
+    ID3D12CommandList *commands = build.commands.Get();
+    queue_->ExecuteCommandLists(1, &commands);
+    const auto completion = ++next_fence_;
+    Check(queue_->Signal(fence_.Get(), completion), "Signal rate-image upload");
+    WaitForFence(completion);
+    const auto handle = rate_image_pool_.Create();
+    try {
+      rate_images_.emplace(Key(handle), std::move(build.image));
+    } catch (...) {
+      (void)rate_image_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+  void DestroyShadingRateImage(ShadingRateImageHandle image) override {
+    std::lock_guard lock{mutex_};
+    Require(rate_image_pool_.Contains(image) && rate_images_.contains(Key(image)),
+            "destroying stale rate image");
+    rate_images_.erase(Key(image));
+    Require(rate_image_pool_.Destroy(image), "destroying stale rate-image generation");
+  }
+#endif
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override {
     if (descriptor.width == 0 || descriptor.height == 0)
       throw std::invalid_argument("invalid texture extent");
@@ -1048,6 +1147,32 @@ public:
     }
     return handle;
   }
+#if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
+  RaySceneHandle CreateOpacityMicromapScene(std::span<const RayTriangle> triangles,
+                                            std::span<const std::uint8_t> masks) override {
+    RayProgramDescriptor descriptor;
+    descriptor.mode = RayTracingMode::ReorderedOpacityPipeline;
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements(descriptor));
+    if (!IsRayOpacitySceneValid(triangles, masks))
+      throw std::invalid_argument("invalid bounded opacity triangles or masks");
+    std::lock_guard lock{mutex_};
+    auto build = detail::BuildNativeRayScene(*ray_device_.Get(), triangles, masks);
+    Check(build.commands->Close(), "Close opacity/BLAS/TLAS build list");
+    ID3D12CommandList *commands = build.commands.Get();
+    queue_->ExecuteCommandLists(1, &commands);
+    const auto completion = ++next_fence_;
+    Check(queue_->Signal(fence_.Get(), completion), "Signal opacity build");
+    WaitForFence(completion);
+    const auto handle = ray_scene_pool_.Create();
+    try {
+      ray_scenes_.emplace(Key(handle), std::move(build.scene));
+    } catch (...) {
+      (void)ray_scene_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+#endif
   void DestroyRayScene(RaySceneHandle scene) override {
     std::lock_guard lock{mutex_};
     Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
@@ -1058,9 +1183,10 @@ public:
   RayProgramHandle CreateRayProgram(const RayProgramDescriptor &descriptor) override {
     const auto requirements = EffectiveRayProgramRequirements(descriptor);
     RequireGraphicsCapabilities(Capabilities(), requirements);
-    const auto *environment = descriptor.mode == RayTracingMode::Pipeline
-                                  ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
-                                  : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
+    const auto *environment =
+        descriptor.mode >= RayTracingMode::ReorderedPipeline ? "NEXORA_SER_RAY_LIBRARY_DXIL_PATH"
+        : descriptor.mode == RayTracingMode::Pipeline        ? "NEXORA_SLANG_RAY_LIBRARY_DXIL_PATH"
+                                                             : "NEXORA_SLANG_RAY_QUERY_DXIL_PATH";
     const auto *path = std::getenv(environment);
     if (!path || !*path)
       throw std::runtime_error("required ray artifact is unset");
@@ -1072,7 +1198,7 @@ public:
     const auto bytes = std::span<const std::byte>{
         static_cast<const std::byte *>(artifact->GetBufferPointer()), artifact->GetBufferSize()};
     const auto model =
-        descriptor.mode == RayTracingMode::Pipeline
+        descriptor.mode != RayTracingMode::InlineQuery
             ? RequireDxilLibrary(bytes, requirements.minimum_dxil_shader_model).shader_model
             : RequireDxilArtifact(bytes, ShaderStage::Compute,
                                   requirements.minimum_dxil_shader_model)
@@ -1080,9 +1206,18 @@ public:
     if (model > capabilities_.highest_dxil_shader_model)
       throw std::invalid_argument("ray artifact exceeds device shader profile");
 #if NEXORA_HAS_PINNED_RAY_ARTIFACTS
-    const auto expected = descriptor.mode == RayTracingMode::Pipeline
-                              ? std::span<const unsigned char>{detail::RayLibraryBytes}
-                              : std::span<const unsigned char>{detail::RayQueryBytes};
+    std::span<const unsigned char> expected;
+    if (descriptor.mode >= RayTracingMode::ReorderedPipeline) {
+#if NEXORA_ENABLE_D3D12_SER
+      expected = detail::SerRayLibraryBytes;
+#else
+      throw std::invalid_argument("SER ray recipe was not compiled in");
+#endif
+    } else {
+      expected = descriptor.mode == RayTracingMode::Pipeline
+                     ? std::span<const unsigned char>{detail::RayLibraryBytes}
+                     : std::span<const unsigned char>{detail::RayQueryBytes};
+    }
     if (bytes.size() != expected.size() ||
         std::memcmp(bytes.data(), expected.data(), bytes.size()) != 0)
       throw std::invalid_argument("ray recipe identity does not match the reflected built-in ABI");
@@ -1153,6 +1288,13 @@ public:
                 "stale ray program or scene recording snapshot");
       }
 #endif
+#if NEXORA_D3D12_VRS_IMAGE
+      for (std::size_t i = 0; i < validated->rate_image_snapshot_count_; ++i) {
+        const auto image = validated->rate_image_snapshots_[i].handle;
+        Require(rate_image_pool_.Contains(image) && rate_images_.contains(Key(image)),
+                "rate image changed before submission");
+      }
+#endif
       validated->Close();
       ID3D12CommandList *native_list = validated->list_.Get();
       if (capabilities_.gpu_timing_enabled)
@@ -1182,11 +1324,14 @@ public:
       diagnostics_.enhanced_texture_barriers += validated->enhanced_texture_barriers_;
       diagnostics_.draw_calls += validated->DrawCalls();
       diagnostics_.coarse_shading_draw_calls += validated->coarse_shading_draws_;
+      diagnostics_.shading_rate_image_draw_calls += validated->rate_image_draws_;
       diagnostics_.mesh_dispatch_calls += validated->mesh_dispatches_;
       diagnostics_.work_graph_dispatch_calls += validated->WorkGraphDispatches();
 #if NEXORA_D3D12_RAY_TRACING
       diagnostics_.ray_dispatch_calls += validated->ray_dispatches_;
       diagnostics_.inline_ray_dispatch_calls += validated->inline_ray_dispatches_;
+      diagnostics_.ser_ray_dispatch_calls += validated->ser_ray_dispatches_;
+      diagnostics_.opacity_ray_dispatch_calls += validated->opacity_ray_dispatches_;
 #endif
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
@@ -1382,6 +1527,10 @@ private:
   // The private SDK factory must outlive the device and all device-owned resources.
   detail::D3D12PreviewRuntime preview_runtime_;
   ComPtr<ID3D12Device> device_;
+#if NEXORA_D3D12_VRS_IMAGE
+  core::HandlePool<ShadingRateImageTag> rate_image_pool_;
+  std::unordered_map<std::uint64_t, detail::NativeShadingRateImage> rate_images_;
+#endif
 #if NEXORA_D3D12_WORK_GRAPHS
   ComPtr<ID3D12Device5> graph_device_;
 #endif
@@ -1652,10 +1801,14 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
       Check(list_.As(&shading_list_), "QueryInterface(command list5 shading rate)");
     if (shading_list_) {
       const D3D12_SHADING_RATE_COMBINER combiners[]{D3D12_SHADING_RATE_COMBINER_PASSTHROUGH,
-                                                    D3D12_SHADING_RATE_COMBINER_PASSTHROUGH};
-      shading_list_->RSSetShadingRate(record.shading_rate == ShadingRate::Full
-                                          ? D3D12_SHADING_RATE_1X1
-                                          : D3D12_SHADING_RATE_2X2,
+                                                    record.shading_rate == ShadingRate::Image
+                                                        ? D3D12_SHADING_RATE_COMBINER_OVERRIDE
+                                                        : D3D12_SHADING_RATE_COMBINER_PASSTHROUGH};
+      if (device_.Capabilities().shading_rate_image_tile_size)
+        shading_list_->RSSetShadingRateImage(nullptr);
+      shading_list_->RSSetShadingRate(record.shading_rate == ShadingRate::Coarse2x2
+                                          ? D3D12_SHADING_RATE_2X2
+                                          : D3D12_SHADING_RATE_1X1,
                                       combiners);
     }
     shading_rate_ = record.shading_rate;
@@ -1666,7 +1819,8 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   if (record.graphics_shader == GraphicsShaderVariant::MeshTriangle && !mesh_list_)
     Check(list_.As(&mesh_list_), "QueryInterface(command list6 mesh)");
 #endif
-  mesh_input_ = {}; // Mesh inputs must be explicitly bound after selecting this pipeline.
+  bound_rate_image_ = 0; // Every new pipeline selection requires an explicit image binding.
+  mesh_input_ = {};      // Mesh inputs must be explicitly bound after selecting this pipeline.
   list_->SetPipelineState(record.pipeline.Get());
   if (pipeline_type_ == PipelineType::Compute) {
     list_->SetComputeRootSignature(device_.RootSignature());
@@ -1681,6 +1835,36 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
   }
   pipeline_bound_ = true;
 }
+
+#if NEXORA_D3D12_VRS_IMAGE
+void D3D12CommandList::BindShadingRateImage(ShadingRateImageHandle image) {
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+      pipeline_type_ != PipelineType::Graphics || shading_rate_ != ShadingRate::Image)
+    throw std::logic_error("rate-image binding requires the selected image graphics pipeline");
+  const auto &target = SnapshotTexture(render_target_);
+  std::lock_guard lock{device_.mutex_};
+  device_.Require(device_.rate_image_pool_.Contains(image) &&
+                      device_.rate_images_.contains(Key(image)),
+                  "binding stale shading-rate image");
+  const auto &native = device_.rate_images_.at(Key(image));
+  if (native.descriptor.raster_width != target.width ||
+      native.descriptor.raster_height != target.height)
+    throw std::logic_error("rate-image raster extent does not match the target");
+  std::size_t index = 0;
+  while (index < rate_image_snapshot_count_ && rate_image_snapshots_[index].handle != image)
+    ++index;
+  if (index == rate_image_snapshot_count_) {
+    if (index == rate_image_snapshots_.size())
+      throw std::logic_error("rate-image snapshot capacity exceeded");
+    rate_image_snapshots_[index] = {image, native};
+    ++rate_image_snapshot_count_;
+  }
+  if (!shading_list_)
+    Check(list_.As(&shading_list_), "Query rate-image command list5");
+  shading_list_->RSSetShadingRateImage(rate_image_snapshots_[index].image.texture.Get());
+  bound_rate_image_ = Key(image);
+}
+#endif
 
 void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
   if (rendering_) {
@@ -1729,13 +1913,16 @@ void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_c
   if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
       !IsBuiltinGeometryDrawValid(topology_, graphics_shader_, vertex_count) || instance_count == 0)
     throw std::logic_error("invalid D3D12 draw");
+  RequireRateImage();
   list_->IASetPrimitiveTopology(topology_ == PrimitiveTopology::PatchList
                                     ? D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST
                                     : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->DrawInstanced(vertex_count, instance_count, 0, 0);
   ++draws_;
-  if (shading_rate_ != ShadingRate::Full)
+  if (shading_rate_ == ShadingRate::Coarse2x2)
     ++coarse_shading_draws_;
+  if (shading_rate_ == ShadingRate::Image)
+    ++rate_image_draws_;
 }
 
 void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
@@ -1768,13 +1955,16 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
     throw std::logic_error("invalid D3D12 indirect draw");
   if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, draw_count))
     throw std::logic_error("D3D12 indirect draw reads past the bound indirect buffer");
+  RequireRateImage();
   list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->ExecuteIndirect(device_.draw_indirect_signature_.Get(), draw_count, indirect_buffer_,
                          indirect_offset_, nullptr, 0);
   ++draws_;
   ++indirect_draws_;
-  if (shading_rate_ != ShadingRate::Full)
+  if (shading_rate_ == ShadingRate::Coarse2x2)
     ++coarse_shading_draws_;
+  if (shading_rate_ == ShadingRate::Image)
+    ++rate_image_draws_;
 }
 
 #if NEXORA_D3D12_WORK_GRAPHS
@@ -1857,6 +2047,9 @@ void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle
     snapshot = {program_handle, scene_handle, device_.ray_programs_.at(Key(program_handle)),
                 device_.ray_scenes_.at(Key(scene_handle))};
   }
+  if ((snapshot.program.mode == RayTracingMode::ReorderedOpacityPipeline) !=
+      snapshot.scene.opacity_micromaps)
+    throw std::logic_error("ray program opacity permission does not match the immutable scene");
   if (device_.ValidateBuffer(input).descriptor.size <
           static_cast<std::uint64_t>(count) * sizeof(RayInput) ||
       device_.ValidateBuffer(output).descriptor.size <
@@ -1871,10 +2064,14 @@ void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle
   detail::RecordNativeRays(*ray_list_.Get(), owned.program, owned.scene, *native_input,
                            *native_output, count);
   ++ray_snapshot_count_;
-  if (owned.program.mode == RayTracingMode::Pipeline)
+  if (owned.program.mode != RayTracingMode::InlineQuery)
     ++ray_dispatches_;
   else
     ++inline_ray_dispatches_;
+  if (owned.program.mode >= RayTracingMode::ReorderedPipeline)
+    ++ser_ray_dispatches_;
+  if (owned.program.mode == RayTracingMode::ReorderedOpacityPipeline)
+    ++opacity_ray_dispatches_;
   pipeline_bound_ = false;
   mesh_input_ = {};
 #if NEXORA_D3D12_WORK_GRAPHS
@@ -1889,6 +2086,7 @@ void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint3
       y != 1 || z != 1)
     throw std::logic_error(
         "built-in mesh dispatch requires one group and a bound statistics input");
+  RequireRateImage();
   (void)PrepareBuffer(mesh_input_, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 #if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \
     defined(__ID3D12Device2_INTERFACE_DEFINED__)
@@ -1897,8 +2095,10 @@ void D3D12CommandList::DispatchMesh(std::uint32_t x, std::uint32_t y, std::uint3
   mesh_list_->DispatchMesh(x, y, z);
   ++mesh_dispatches_;
   ++draws_;
-  if (shading_rate_ != ShadingRate::Full)
+  if (shading_rate_ == ShadingRate::Coarse2x2)
     ++coarse_shading_draws_;
+  if (shading_rate_ == ShadingRate::Image)
+    ++rate_image_draws_;
 #else
   throw std::logic_error("native mesh dispatch requires a newer D3D12 SDK");
 #endif

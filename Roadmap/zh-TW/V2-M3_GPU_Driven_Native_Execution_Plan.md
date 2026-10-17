@@ -277,3 +277,9 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
   較新 backend 共同、對稱存在的既有缺口，不是最近哪個 phase 造成的 regression，所以在這次補齊
   D3D12/Metal parity 的範圍裡不修。之後應該在 `DrawIndirect`（`command_count` 真正已知的地方）
   一次驗證完整範圍，三個 backend 一起修，只修一個會悄悄造成 backend 之間的 contract 不一致。
+
+有界 SER 後續加入真實 SM6.9 HitObject／Reorder／Invoke 與獨立 OPTIONS22 實際重排回報，Windows 原生證據待驗證。WARP 不證明執行緒重排。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 DXR／SER Gate 保持開放。
+
+DXR1.2 後續加入獨立啟用的二狀態 Subdivision1 OMM Array／BLAS／TLAS 建置及明確允許 OMM 的 Traversal；全部16遮罩對照 CPU 與真實顯式微幾何 Compute，Windows 原生證據待驗證。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
+
+VRS Tier2 後續加入有界不可變 Rate Image、Snapshot／Reset／Generation 准入與硬體 SV_ShadingRate Witness；Windows Preview 原生證據待驗證，保留明確 Full-rate 後備。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Ultimate Gate 維持開放。

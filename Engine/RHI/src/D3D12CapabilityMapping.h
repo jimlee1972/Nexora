@@ -17,9 +17,12 @@ inline std::optional<FeatureVersion> DecodeD3D12Tier(GraphicsFeature feature,
       return FeatureVersion{1, static_cast<std::uint16_t>(value - 10)};
     break;
   case GraphicsFeature::MeshShader:
-  case GraphicsFeature::WorkGraphs:
     if (value == 10)
       return FeatureVersion{1, 0};
+    break;
+  case GraphicsFeature::WorkGraphs:
+    if (value == 10 || value == 11)
+      return FeatureVersion{1, static_cast<std::uint16_t>(value - 10)};
     break;
   case GraphicsFeature::VariableRateShading:
     if (value == 1 || value == 2)

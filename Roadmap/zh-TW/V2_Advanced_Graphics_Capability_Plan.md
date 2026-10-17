@@ -841,3 +841,103 @@ Sampler Feedback 父版本上的本機整合驗證通過 Development220/220、�
 拆開 Sampler 父版本後，以 PR633 為基礎的獨立來源通過 Development219/219、零略過／失敗（154.39秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（18.24秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。非 Windows Preview Configure 拒絕及雙語文件檢查亦通過；原生 Preview 執行仍待 Windows CI。
 
 前一版本2f7d89c7 的兩輪 Windows Preview Job117400353506／117402090855 均通過1/1（2.09／0.29秒），實際載入 app-local WARP SM6.10、65536 Shared Bytes、F32 Matvec 支援，九組 Kernel 輸出／Canary／生命週期通過。後續補齊 Caller 未填最低版本時的一般產物准入：實際6.9以上 DXIL 仍須符合裝置上限，實際6.10仍要求明確許可／私有 Runtime；新增一般入口未啟用拒絕／啟用 PSO 建立且不 Submit 的原生測試。本機 Development 再通過219/219（122.37秒），真實 SDK 准入 Helper 及 Windows 條件語法亦通過。清理機制僅納入本次三個確切分支、Owner／同 Repository Actor 的過期進行中 SHA，保留最新 Head 的兩種 Event；取消安全測試25/25、文件／Workflow16/16 通過。合併前仍要求最終後續版本 Windows CI。
+
+### 有界 HitObject／SER 語意路徑 — 實作進行中
+
+獨立且預設關閉的 `NEXORA_ENABLE_D3D12_SER` 要求 Preview 建置與既有 Slang Ray／Compute
+產物。`RayTracingMode::ReorderedPipeline` 使用固定 DXC lib_6_9 Recipe，實際包含
+`HitObject::TraceRay`、`MaybeReorderThread`、`HitObject::Invoke`。真實 DXC Reflection
+驗證 SRVt0／t1／UAVu1、32-byte Ray Input 與16-byte Hit／Payload ABI；Manifest 記錄
+Compiler／Source／Binary Identity，不宣稱已執行。同 Profile 的真實變更 Recipe 負例、
+原生 Export／Identifier 與完整位元組准入補強 Metadata 驗證。
+
+正式 HLSL SER Device Support 要求 SM6.9 與 Raytracing 支援同時成立；Guard 保護的
+OPTIONS22 Query 獨立回報是否真的重排執行緒。False 仍可具備合法 SER 功能，WARP 即是
+此情況。未知 Query 保持拒絕准入；功能支援、已編譯 Recipe 與啟用狀態分開。OMM 路徑
+實作前，既有有界 RT Implementation Ceiling 維持1.1。專用已接受 SER Call 計數只在
+成功 Submit 後發布，並屬於普通 Ray Dispatch 的子集合；沿用專用 Root／State／Table、
+不可變 Snapshot 與 Generation／Revision 退役生命週期。
+
+原生 Preview Oracle 在普通 Ray／Query Fixture 加入 SER Mode，涵蓋1／2／8 Triangle、
+1／64 Ray、CPU／原生 Compute 的 Hit／Miss／Nearest／Barycentric／Invalid 比對、Canary、
+生命週期及 Worker 失敗／取消／重播、Legacy／Enhanced Barrier 與變更／遺失／錯誤產物。
+要求真實原生 SER 准入／Call，以及獨立可用的 Actual Reordering Query。WARP 只驗證語意，
+不證明實體重排、效能或 Coherence。Windows 原生證據待完成，完整 DXR1.2／SER／效能驗收
+維持開放。
+
+SER 候選版本本機 Native Slang／Zig Development219/219 通過、零失敗／略過（163.27秒），Shipping Minimal／Monolithic／LTO 及 Xvfb Khronos 物件／同步17/17（9.94秒）亦通過；37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。正式 DXC Preview 編譯正常／負例 lib_6_9，驗證真實 Reflection／指令並產生完整 Pin。Windows 條件測試及真正 SDK OPTIONS22／Factory 語法檢查通過，仍不屬 Windows 原生執行證據。Workflow 路由16/16、雙語文件檢查通過。
+
+### 有界 DXR1.2 Opacity Micromap — 實作進行中
+
+獨立且預設關閉的 `NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS` 要求固定 Preview／SER Recipe。
+`CreateOpacityMicromapScene(triangles, masks)` 接受1～8個不可變有限 Triangle，各配一個
+低四位元遮罩，依 A／中央／B／C 空間曲線順序編碼 Subdivision1 OC1 二狀態微三角形。
+未知／Any-hit 狀態、更高細分與可變連結不屬本 Recipe。原生建置上傳128-byte對齊的遮罩、
+八位元組 GPU Description 與 R32 Index，查詢真實有界 OMM Array Prebuild 需求，再錄製
+真實 OMM Array Build／UAV Dependency／Linked BLAS Build／UAV Dependency／TLAS Build／
+UAV Dependency。建置由 Caller 序列化，Fence 完成後才發布並退役 Scratch；Linked OMM
+Storage 宣告於 BLAS／TLAS Owner 之前，每個 Command List Scene Snapshot 保留所有依賴。
+
+`RayTracingMode::ReorderedOpacityPipeline` 獨立要求實際 RT1.2、SM6.9 與 SER 功能；原生
+Config1 明確允許 OMM，沿用已 Reflection／完整 Pin 的 SER Library／Root／Payload／Table。
+Scene／Program 的 Opacity 許可不符時，在原生 Traversal 前拒絕，避免普通 Pipeline 碰到
+OMM 的未定義行為。僅此額外編譯選項將有界 RT Implementation Ceiling 由1.1提高到1.2，
+SER 單獨不提高。原生 OMM Call 僅成功 Submit 後發布專用已接受計數，並納入 SER／普通 Ray。
+
+Oracle 在1／2原始三角形、1／64條 Ray 下測試全部16種遮罩，涵蓋每個微三角形內點、透明
+前層／不透明後層的最近交點、Miss、反向／非單位／Invalid Ray、原始 Primitive／Barycentric
+與 Canary。獨立 Double CPU 分類器對照真正低 Profile GPU 的顯式不透明微幾何 Traversal，
+包含空幾何／全透明；准入時，原生 OMM 結果必須符合兩者。八三角形全不透明原生案例沿用
+雙 Worker 失敗／取消／重播、過期／銷毀／重建 Scene／Program／Input／Output、放棄 List、
+八 Snapshot 上限及 Ray/Compute/Ray Root；普通／OMM Scene／Program 混用、遺失／高位元
+遮罩均拒絕。Linux 後備及 SDK 語法證據不代表原生 OMM，Windows Preview 證據仍待完成。
+四狀態／Any-hit、Update／Compaction、通用材質／Lighting／Cook 與實體完整 DXR／Ultimate
+驗收維持開放。
+
+整合 OMM 候選版本通過本機 Native Slang／Zig Development219/219、零略過／失敗（126.28秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（10.50秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。真正 Agility721 OMM Build／Linkage／Config1 Helper 與 Windows 條件 SER／OMM 測試以警告即錯誤編譯通過；雙語文件／Workflow16/16 亦通過。Vulkan 明確回報 Opacity Native0，執行真正微幾何 GPU Oracle；Windows 原生 OMM 證據待完成。
+
+### 原生 VRS Tier2 Rate Image — 實作進行中
+
+有界 VRS 擴充加入不可變 `ShadingRateImageHandle` 與明確的 `ShadingRate::Image` Pipeline
+模式。獨立查詢 Tier2／Tile Size 後才准入 Implementation Ceiling2.0；Tile Query 遺失／
+無效時維持1.0 Ceiling 及 Per-draw／Full-rate 選項。僅接受1x1／1x2／2x1／2x2 編碼、
+Raster Extent1～4096 與符合查詢 Tile Grid 的完整資料。使用私有 R8_UINT Storage，避免
+新增公開 Texture／Cooked Format。建立時驗證有界 Copy Footprint，複製 Caller Bytes 至
+私有 Upload，轉為 SHADING_RATE_SOURCE，等待 Caller 序列化的 Creation Fence 後才發布並
+退役暫存 Upload。
+
+每個 List 在所有原生 Command-list Interface 之前保留最多16個獨立不可變 Source Snapshot。
+綁定須處於已選 Image Graphics Pipeline 且符合實際 Target Extent；Draw／Indirect／Mesh
+要求明確 Image，重綁 Pipeline 時清除並還原原生 Base／Combiner／Image 狀態。Submit 在
+Close／Execute 前驗證 Source Generation，放棄／過期／取消 List 不發布 Image Draw 計數。
+不同 Target Worker 可共享不可變 Image。Image 已接受 Draw 與 Per-draw Coarse 計數分開，
+不推定 Shading Invocation／效能下降。
+
+Oracle 比對真正 Full-rate 與 Uniform／Mixed Image 的 RGBA／BGRA Coverage、32/255
+Gradient Error 及 Full-rate Reset，涵蓋 Caller 記憶體修改、遺失／過期／重建／錯誤 Extent、
+16 Snapshot 上限與雙 Worker 失敗／取消／重播。獨立 Preview WARP 測試要求 Legacy／
+Enhanced Color Barrier 下實際 Tier2 執行，另以真實 DXC6.4 VS／PS 編碼硬體提供的
+`SV_ShadingRate`，要求在非空 Coverage 觀察到1x1／1x2／2x1／2x2，允許 Primitive 邊緣
+使用更細 Rate；Witness 亦在建立後修改 Caller Storage。Windows 原生證據仍待完成；
+Vulkan／Metal 明確執行 Full-rate 後備，不代表原生 Rate Image。額外4x Rate、Primitive
+Rate 編寫、GPU 產生可變 Image、實體預算及完整 Ultimate 驗收持續開放。預設 SDK／Slang
+Profile、穩定 C ABI 與 Cooked Format 不變。公開 WARP1.0.13 已加入 VRS Tier2／Feature
+Level12_2，固定 Preview 套件保留此文件化路徑，仍須真實輸出證據。
+
+Rate-image 候選版本通過 Native Slang／Zig Development220/220、零略過／失敗（156.57秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步18/18（10.50秒）、39次確認載入，零 Validation Error／VUID／SYNC-HAZARD。真實 DXC Preview 編譯 Witness VS／PS6.4，真正 SDK Upload Helper 與 Windows 條件語法以警告即錯誤通過。Vulkan 回報 enabled0／tile0／draws0，執行真正 Full-rate Quality／Worker 後備。僅四個確切 Session 分支使用過期 Run 清理，安全測試27/27、文件／Workflow16/16 通過。Windows 原生 Image／Witness 執行仍待完成，不關閉完整 VRS／Ultimate Gate。
+
+DXR1.2／SER 與 Tier2 Image 已整合為 Profile Runtime 父版本上的同一後續切片，共用可選原生驗收 Job。第一輪整合 Development220/220、零略過／失敗通過（122.61秒），Shipping Minimal／Monolithic／LTO 亦通過。真正 Agility721 宣告確認 Work Graph Tier1.1 的原生數值為11，Portable Decoder 保留硬體1.1，實作上限仍為1.0。可選原生驗收以固定 Preview DXC 啟用既有有界 Work Graph Recipe，於 Test Environment 設定後加入正確 Library 與依賴，延伸 Node／SER／Node 互通，不宣稱 Mesh Node。仍須最終整合回歸與 Windows 原生執行。
+
+最終整合迴歸通過 Development220/220，零失敗／跳過（121.81s）、Shipping Minimal/Monolithic/LTO，以及 Khronos 物件／同步18/18（11.21s），確認39次 layer 插入、零 Validation Error／VUID／SYNC-HAZARD 訊息。Windows 原生 SER／OMM／VRS2 驗收仍待通過。
+
+### SM6.10 功能名稱與託管 profile 驗收
+
+✅ PR635 已在固定版本 app-local WARP 驗收三種現代運算配方：兩個 Windows 原生工作均通過九組輸出／canary／生命週期及一般6.10權限檢查；兩套矩陣均通過 Windows314/314、Linux365/365、macOS304/304，共38項檢查全數通過。官方 [Variable Group Shared Memory 提案](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) 明確保留編譯期陣列大小：功能是查詢裝置相關上限與 `[GroupSharedLimit]`，64 KiB 配方及超額配置負例已驗證兩者。執行期動態配置不屬於此規格。一般編寫／cook 及實體 GPU 驗收仍未完成。
+
+MSVC 原生驗收發現 VRS witness 的有號／無號比較及 byte fill 窄化問題。明確使用無號比較運算元與 uint8_t fill 值，保留全部像素與呼叫端資料變更斷言；警告即錯誤仍維持啟用。Windows 原生 SER／OMM／VRS2 驗收仍須通過。
+
+MSVC 型別修正後，本機完整 Development220/220 通過，零跳過／失敗（128.17s）；Windows 條件 witness 語法檢查（警告即錯誤）、雙語文件／workflow16/16 與 cleanup27/27 亦通過。Windows 原生執行仍為最終 head 必須通過的 CI gate。
+
+15178ebd 的 Windows 工作117420601029／117420450398 以 MSVC 警告即錯誤編譯通過，並通過兩種原生 VRS2 模式：tile8、imageDraws14，五種 witness 圖樣均 covered512／exact512。現代運算亦通過。兩個 SER／OMM 測試均在輸出 ray mode 前觸發有界配置拒絕，故不宣稱原生 SER／OMM 成功。後續允許零 scratch 需求（傳入空 scratch 位址），結果配置仍必須大於零，全部配置仍限制64MiB；各操作 prebuild 結果／scratch 診斷於原生配置前拒絕無效尺寸。仍須由原生 CI 釐清原失敗是零 scratch 或無效 prebuild 輸出。
+
+光追 prebuild／scratch 後續通過本機完整 Development220/220，零失敗／跳過（122.52s）、Shipping Minimal/Monolithic/LTO 與真正 Agility721 全部進階 helper 語法檢查（警告即錯誤）。雙語文件／workflow16/16 與 cleanup27/27 通過。仍須通過原生 SER／OMM 執行驗證。

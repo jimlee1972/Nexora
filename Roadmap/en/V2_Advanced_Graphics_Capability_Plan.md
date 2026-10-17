@@ -918,3 +918,111 @@ Local integrated verification on the sampler-feedback parent passes Development2
 After separating the sampler parent, the standalone PR633-based source passes Development219/219,zero skips/failures (154.39s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (18.24s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Non-Windows preview configure rejection and paired documentation checks pass. Native preview execution still requires Windows CI.
 
 Prior head2f7d89c7 has both native Windows preview jobs117400353506/117402090855 passing1/1 (2.09/0.29s), actually loading app-local WARP SM6.10 with65536 shared bytes and F32 matvec support; all nine kernel outputs/canaries/lifetimes pass. A follow-up closes generic artifact admission when caller minimum is omitted: actual6.9+ DXIL must satisfy the device limit, and actual6.10 requires explicit permission/private runtime. The test adds generic unopted rejection/opted PSO creation without submission. Local Development219/219 passes again (122.37s); actual SDK admission helper and Windows-conditional test syntax pass. Guarded cleanup includes only three exact current graphics-session branches, owner/same-repository actors and obsolete live SHAs, preserving both latest-head events;25/25 cancellation-safety tests and16/16 documentation/workflow tests pass. Final follow-up Windows CI is required before merge.
+
+### Bounded HitObject / SER semantic path — implementation in progress
+
+A separate default-off `NEXORA_ENABLE_D3D12_SER` option requires the preview build and existing
+Slang ray/compute artifacts. `RayTracingMode::ReorderedPipeline` uses a pinned DXC lib_6_9 recipe
+with actual `HitObject::TraceRay`, `MaybeReorderThread` and `HitObject::Invoke`. Real DXC reflection
+checks SRVt0/t1/UAVu1,32-byte ray input and16-byte hit/payload ABI; the manifest records compiler/
+source/binary identity without claiming execution. A real same-profile changed-recipe negative
+and required native exports/identifiers supplement metadata and exact-byte admission.
+
+Published HLSL SER Device Support requires both SM6.9 and raytracing support. The guarded OPTIONS22
+query independently reports whether the implementation actually reorders threads; false is valid
+functional SER, including WARP. Unknown queries remain closed. Functional support, compiled recipe
+and enablement remain separate. The existing bounded RT implementation ceiling stays1.1 until an
+OMM path is implemented. A dedicated accepted SER-call diagnostic is published only after successful
+submission and is a subset of ordinary ray dispatches. The existing dedicated roots/state/table,
+immutable snapshots and generation/revision retirement are reused.
+
+The native preview oracle extends ordinary ray/query fixtures with the SER mode for1/2/8 triangles,
+1/64 rays, CPU/native compute hit/miss/nearest/barycentric/invalid parity, canaries, lifetime and
+worker failure/cancellation/replay, legacy/enhanced barriers and changed/missing/wrong artifacts.
+It requires actual native SER admission/calls and an independently available actual-reordering
+query. WARP validates semantics and does not prove physical reordering, performance or coherence.
+Native Windows proof remains pending; full DXR1.2/SER/performance acceptance remains open.
+
+The SER candidate passes local native Slang/Zig Development219/219,zero failures/skips (163.27s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (9.94s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Actual production DXC preview compiles both normal/negative lib_6_9, validates real reflection/instructions and generates exact pins. Windows-conditional test and actual SDK OPTIONS22/factory syntax checks pass; this is not native Windows execution. Workflow routing16/16 and paired documentation checks pass.
+
+### Bounded DXR1.2 opacity micromaps — implementation in progress
+
+A separate default-off `NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS` requires the pinned preview/SER
+recipe. `CreateOpacityMicromapScene(triangles, masks)` accepts1–8 immutable finite triangles and
+one low-four-bit mask each, encoding subdivision1 OC1 two-state micro-triangles in A/center/B/C
+space-filling order. Unknown/any-hit states, higher subdivisions and mutable linkage are outside
+this recipe. Native construction uploads128-byte-aligned mask input, eight-byte GPU descriptions
+and R32 indices, queries actual bounded OMM-array prebuild requirements, then records actual OMM
+array build/UAV dependency/linked BLAS build/UAV dependency/TLAS build/UAV dependency. The caller-
+serialized construction fence completes before publication/scratch retirement. Linked OMM storage
+is declared before BLAS/TLAS owners and each command-list scene snapshot retains all dependencies.
+
+`RayTracingMode::ReorderedOpacityPipeline` independently requires actual RT1.2, SM6.9 and functional
+SER. Its native config1 explicitly allows OMMs; the exact reflected SER library/root/payload/table
+remain pinned. Scene/program opacity mismatches reject before native traversal, avoiding undefined
+behavior from ordinary pipelines encountering OMMs. Only this additional compiled option raises
+the bounded RT implementation ceiling from1.1 to1.2; SER alone does not. Native OMM calls publish
+a separate accepted diagnostic after successful submission, included in SER and ordinary ray calls.
+
+The oracle tests all16 masks on1/2 original triangles with1/64 rays, including every interior
+micro-triangle, transparent-front/opaque-back nearest hits, misses, reverse/nonunit/invalid rays,
+original primitive/barycentric results and canaries. An independent double CPU classifier is
+cross-checked against real lower-profile GPU traversal of explicitly emitted opaque microgeometry,
+including empty/all-transparent geometry; native OMM results must match both when admitted.
+Eight-triangle all-opaque native cases reuse forced two-worker failure/cancellation/replay,
+stale/destroyed/recreated scene/program/input/output, abandonment, eight-snapshot bounds and
+Ray/Compute/Ray roots. Ordinary/OMM program/scene mismatches and missing/high mask bits reject.
+Linux fallback and SDK syntax proof do not certify native OMM execution; Windows preview proof
+remains pending. Four-state/any-hit, updates/compaction, general materials/lighting/cooking and
+physical full DXR/Ultimate acceptance remain open.
+
+The integrated OMM candidate passes local native Slang/Zig Development219/219,zero skips/failures (126.28s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (10.50s),37 confirmed insertions,zero Validation Error/VUID/SYNC-HAZARD markers. The actual Agility721 OMM build/linkage/config1 helper and Windows-conditional SER/OMM tests compile with warnings-as-errors; paired documentation/workflow16/16 checks pass. Vulkan explicitly reports opacity native0 while executing the real microgeometry GPU oracle. Windows native OMM proof is pending.
+
+### Native VRS Tier2 rate images — implementation in progress
+
+The bounded VRS extension adds immutable `ShadingRateImageHandle` resources and an explicit
+`ShadingRate::Image` pipeline mode. The independently queried tier2/tile size gates implementation
+ceiling2.0; absent/invalid tile queries retain the1.0 ceiling and per-draw/full-rate alternatives.
+Masks accept1x1/1x2/2x1/2x2 encodings only, raster extents1–4096 and exactly the queried tile grid.
+Private R8_UINT storage avoids adding public texture/cooked formats. Creation validates bounded
+copy footprints, copies caller bytes into a private upload, transitions to SHADING_RATE_SOURCE
+and waits a caller-serialized creation fence before publishing/retiring temporary upload storage.
+
+Each list retains up to16 unique immutable source snapshots before all native command-list
+interfaces. Binding requires the selected image graphics pipeline and matching physical target
+extent. Draw/indirect/mesh require an explicit image; pipeline rebind clears it and restores native
+base/combiner/image state. Submit checks source handle generations before Close/Execute; abandoned,
+stale and cancelled lists publish no image draw counters. Disjoint workers may share immutable
+images. Image calls count accepted draws independently from per-draw coarse calls; no shading-
+invocation/performance reduction is inferred.
+
+The oracle compares real full-rate raster output with uniform/mixed images for RGBA/BGRA coverage,
+32/255 gradient error and full-rate reset. It covers caller-memory mutation, missing/stale/recreated/
+wrong-extent sources,16-snapshot bounds and forced two-worker failure/cancellation/replay. Dedicated
+preview WARP tests require tier2 execution under legacy/enhanced color barriers, plus real DXC6.4
+VS/PS artifacts that encode hardware `SV_ShadingRate` inputs. Requested1x1/1x2/2x1/2x2 values must
+be observed on nontrivial covered pixels, allowing finer implementation rates at primitive edges.
+The witness also mutates caller storage after creation. Native Windows evidence remains pending;
+Vulkan/Metal explicitly run full-rate fallback and cannot certify native rate-image execution.
+Additional4x rates, primitive-rate authoring, GPU-produced mutable images and physical budgets/full
+Ultimate acceptance remain open. Default SDK/Slang profiles, stable C ABI and cooked formats remain
+unchanged. Published WARP1.0.13 introduced VRS Tier2/feature level12_2; the pinned preview package
+retains this documented route, which still requires actual output proof.
+
+The rate-image candidate passes native Slang/Zig Development220/220,zero skips/failures (156.57s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization18/18 (10.50s),39 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Real DXC preview compiles the witness VS/PS6.4; actual SDK upload helper and Windows-conditional test syntax pass with warnings-as-errors. Vulkan reports enabled0/tile0/draws0 while executing real full-rate quality/workers. Four exact session branches now use guarded obsolete-run cleanup;27/27 safety and16/16 documentation/workflow tests pass. Native Windows image/witness execution remains pending and no full VRS/Ultimate gate closes.
+
+DXR1.2/SER and tier2 images are integrated into one independent follow-up on the profile-runtime parent, sharing the optional native acceptance job. The first combined Development220/220 passes with zero skips/failures (122.61s), and Shipping Minimal/Monolithic/LTO passes. Actual Agility721 declarations confirm Work Graph tier1.1 has native value11; the portable decoder now preserves hardware1.1 while implementation remains capped1.0. Optional native acceptance enables the existing bounded Work Graph recipe with pinned preview DXC and supplies/depend-orders its library after test environment setup, extending Node/SER/Node interop without claiming mesh nodes. Final integrated regression and native Windows execution remain required.
+
+Final integrated regression passes Development220/220, zero failures/skips (121.81s), Shipping Minimal/Monolithic/LTO, and Khronos object/synchronization18/18 (11.21s),39 confirmed layer insertions,zero Validation Error/VUID/SYNC-HAZARD markers. Actual Windows native SER/OMM/VRS2 acceptance remains pending.
+
+### SM6.10 feature naming and hosted profile acceptance
+
+✅ PR635 accepts the three fixed modern compute recipes on pinned app-local WARP: both native Windows jobs pass all nine output/canary/lifetime fixtures and generic6.10 permission checks; both event matrices pass Windows314/314,Linux365/365,macOS304/304 and all38 checks. The published [Variable Group Shared Memory proposal](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) explicitly retains compile-time array sizes: its feature is a queried device-dependent limit and `[GroupSharedLimit]`, both exercised by the64 KiB recipe and oversized negative. Runtime dynamic allocation is not part of that specification. General authoring/cooking and physical-GPU acceptance remain open.
+
+MSVC native acceptance exposed signed/unsigned comparisons and byte-fill narrowing in the VRS witness. Explicit unsigned comparison operands and uint8_t fill values retain all original pixel and caller-mutation assertions; warnings-as-errors remain enabled. Windows native SER/OMM/VRS2 acceptance must still pass.
+
+MSVC type-correction follow-up passes full local Development220/220,zero skips/failures (128.17s), with warnings-as-errors Windows-conditional witness syntax and paired documentation/workflow16/16 plus cleanup27/27. Native Windows execution remains a required final-head CI gate.
+
+Actual Windows jobs117420601029/117420450398 at15178ebd compile with MSVC warnings-as-errors and pass both native VRS2 cases: tile8,imageDraws14,all five witnesses512 covered/512 exact per pattern. Modern compute also passes. Both SER/OMM tests stop before ray-mode output with the bounded ray-allocation rejection, so no native SER/OMM success is claimed. The follow-up permits zero scratch requirements (null scratch address) while keeping result allocations strictly positive and all allocations bounded64MiB; operation-specific prebuild result/scratch diagnostics reject invalid sizes before native allocation. Native CI must identify whether the failure was zero scratch or invalid prebuild output.
+
+The ray prebuild/scratch follow-up passes full local Development220/220,zero failures/skips (122.52s), Shipping Minimal/Monolithic/LTO and actual Agility721 all-advanced-helper syntax with warnings-as-errors. Paired documentation/workflow16/16 and cleanup27/27 pass. Native SER/OMM execution is still required.

@@ -849,10 +849,79 @@ Existing recording snapshots/revisions handle abandonment and stale resources. O
 weighted sums, four F32 matrix/vector results or a16384-element shared-memory reduction. The declared
 shared ceiling is static, not a runtime allocation API. Baseline SDK, Slang profiles, stable C ABI and
 cooked wire formats stay unchanged; all C++ modules require a coordinated rebuild. No Vulkan/Metal
-execution is implied. Target-host proof and broader modern shader/cooking integration remain open.
+execution is implied. Both PR635 native Windows preview jobs accept these three fixed recipes
+on pinned app-local WARP. The published variable group-shared feature changes the device limit and
+compile-time ceiling; static array sizes remain required. General shader/cooking and physical GPU
+acceptance remain open.
 
 Actual attached DXIL models are checked independently from omitted caller minimums. SM6.9+ stages
 must satisfy the queried device limit; actual6.10 bytecode additionally requires explicit pipeline
 preview permission and the private runtime, including the generic GPUDriven entry. Only trusted
 in-process FXC5.0 fallback stages bypass DXIL metadata parsing. Lower-profile default behavior is
 preserved. The native test includes undeclared-minimum6.10 rejection and opted PSO creation.
+
+## Bounded SER recipe
+
+Default-off `NEXORA_ENABLE_D3D12_SER` requires the preview build and Slang baseline rays/reference.
+`RayTracingMode::ReorderedPipeline` adds implicit SM6.9 and independent SER requirements. The
+published HLSL Device Support rule requires both SM6.9 and raytracing; guarded OPTIONS22 separately
+records `actual_shader_reordering_support`. False means no actual reordering, not invalid HitObject
+or SER semantics. Missing queries remain unknown. Compiled recipe, support and enablement remain
+separate. The RT implementation ceiling stays1.1 until OMM is implemented.
+
+Actual DXC reflection checks t0/t1/u1 and32/16-byte ray/hit layout, exact pinned library bytes and
+native shader identifiers before creation. HitObject TraceRay/Reorder/Invoke reuses the existing
+root/state/table and per-list ownership/revision contract. `ser_ray_dispatch_calls` counts accepted
+SER API calls only after submission, included in ordinary ray counts; rejection/cancellation does
+not publish calls. Lower-profile ordinary rays/compute remain explicit alternatives. WARP validates
+outputs without actual thread reordering; hardware coherence/performance and full SER acceptance
+remain separate. Native preview Windows evidence is pending.
+
+## Bounded opacity micromaps
+
+`NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS` is default off and requires the pinned preview SER recipe.
+`CreateOpacityMicromapScene` pairs1–8 triangles with low-four-bit OC1 two-state subdivision1 masks
+(A corner, center, B corner, C corner). Set bits are opaque. Native construction builds an actual
+OMM array, UAV dependency, linked BLAS, UAV dependency and TLAS, then waits its private creation
+fence. Mask/description/index/result resources are retained with the immutable scene; OMM owners
+outlive linked BLAS/TLAS. Every native allocation remains bounded64 MiB; scratch retires after
+construction completion. Creation/mutation/destruction/submit remain caller-serialized.
+
+`ReorderedOpacityPipeline` adds actual RT1.2 to SM6.9/SER admission and config1 OMM permission.
+Only the OMM build option raises the bounded implementation ceiling to1.2; SER alone stays1.1.
+Scene/program opacity mismatches reject before dispatch. The existing pinned SER library,16-byte
+payload, three shader-table records, dedicated roots and generation/revision/snapshot contract
+apply. `opacity_ray_dispatch_calls` counts successful submitted OMM calls as a subset of SER/ray
+calls. Vulkan/Metal run the real explicit-microgeometry compute oracle without native OMM.
+All16 masks and nearest transparent-front occlusion are checked independently; native proof is
+pending Windows CI. Four-state/any-hit, higher subdivisions, updates and general material/cook/
+lighting/physical acceptance remain open. Stable C ABI and cooked formats remain unchanged.
+
+## Immutable VRS Tier2 images
+
+`ShadingRateImage.h` adds a separate typed immutable source, without adding public texture formats.
+The capability snapshot records the independently queried tile size; only valid tier2 tile queries
+raise the bounded VRS implementation ceiling to2.0. `ShadingRate::Image` implies tier2 in complete
+pipeline admission/cache identity. Factories accept raster extents1–4096 and exact tile-grid bytes
+with baseline1x1/1x2/2x1/2x2 encodings. Private R8_UINT upload/transition waits its creation fence;
+caller storage may change immediately after creation. Construction/mutation/submit stay serialized.
+
+A graphics list explicitly binds a matching source after selecting its image pipeline. Draw,
+indirect and mesh paths reject missing sources. Each pipeline rebind resets native image/base/
+combiners and requires explicit image rebind. Up to16 unique snapshots retain sources beyond all
+native command-list interfaces; repeated binding consumes no new snapshot. Submit checks generations
+before Close/Execute. Disjoint workers may share immutable sources; stale/abandoned/cancelled work
+publishes no accepted image calls. `shading_rate_image_draw_calls` is distinct from per-draw coarse
+counts and does not count shaded pixels or speedups. Full-rate native comparison remains available
+on other backends; Validation does not emulate rate images.
+
+Preview tests additionally compile a DXC6.4 hardware SV_ShadingRate witness with the separately
+pinned compiler. This does not raise ordinary Slang/SDK profiles. Tier2 native execution/quality,
+caller-memory independence, reset, bounds and lifetime proof remain pending Windows CI. Mutable
+GPU-authored images, additional rates, primitive controls and full physical/Ultimate gates remain
+open. Stable C ABI and cooked wire formats are unchanged; C++ modules rebuild together.
+
+Ray build preflight requires a nonzero result within the64MiB bound and bounds scratch separately.
+A zero scratch requirement retains no scratch resource and passes a null scratch GPU address;
+positive scratch retains the existing creation-fence lifetime. Zero result sizes remain errors with
+operation/result/scratch diagnostics. Native preview acceptance must confirm these build paths.

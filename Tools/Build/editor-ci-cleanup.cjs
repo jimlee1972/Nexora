@@ -41,7 +41,7 @@ const twoDSessionBranches = Object.freeze(['feat/twod-cooked-services']);
 // Exact branches owned by the current graphics task. Preserve both events at each live head.
 const graphicsSessionBranches = Object.freeze([
   'feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern-shader-programs',
-  'feat/v2-native-ser-programs',
+  'feat/v2-native-ser-programs', 'feat/v2-native-vrs-images',
 ]);
 
 async function cleanup({github, context, core}) {

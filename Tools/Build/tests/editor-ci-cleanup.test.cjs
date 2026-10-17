@@ -146,14 +146,14 @@ test('2D branch advancement preserves every remaining run', async () => {
 });
 
 for (const graphics of ['feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern-shader-programs',
-                        'feat/v2-native-ser-programs']) {
+                        'feat/v2-native-ser-programs', 'feat/v2-native-vrs-images']) {
   test(`graphics cleanup retains both current events and rejects other actors: ${graphics}`, async () => {
     const f = fixture({current: graphics, target: graphics, actorRuns: true});
     await cleanup(f);
     assert.deepEqual(f.cancelled, [1, 2]);
     assert(f.calls.filter(([kind]) => kind === 'ref').every(([, args]) =>
       ['heads/feat/v2-native-minmip-feedback', 'heads/feat/v2-opt-in-modern-shader-programs',
-       'heads/feat/v2-native-ser-programs'].includes(args.ref)));
+       'heads/feat/v2-native-ser-programs', 'heads/feat/v2-native-vrs-images'].includes(args.ref)));
   });
   test(`graphics cleanup requires the repository owner actor: ${graphics}`, async () => {
     const f = fixture({current: graphics, target: graphics, actor: 'contributor'});
