@@ -477,6 +477,42 @@ if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
     "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
 endif()
 
+add_executable(NexoraSamplerFeedbackTests SamplerFeedbackTests.cpp)
+target_link_libraries(NexoraSamplerFeedbackTests PRIVATE Nexora::Renderer)
+if(WIN32)
+  target_compile_definitions(NexoraSamplerFeedbackTests PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+nexora_apply_defaults(NexoraSamplerFeedbackTests)
+add_test(NAME renderer.sampler_feedback COMMAND NexoraSamplerFeedbackTests)
+set_tests_properties(renderer.sampler_feedback PROPERTIES TIMEOUT 120)
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_SLANG AND
+   (WIN32 OR APPLE OR NEXORA_ENABLE_VULKAN_BACKEND))
+  add_dependencies(NexoraSamplerFeedbackTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  if(WIN32)
+    set(feedback_environment
+      "NEXORA_SLANG_FEEDBACK_WRITE_DXIL_PATH=${NEXORA_SLANG_FEEDBACK_WRITE_OUTPUT}"
+      "NEXORA_SLANG_FEEDBACK_PACK_DXIL_PATH=${NEXORA_SLANG_FEEDBACK_PACK_OUTPUT}"
+      "NEXORA_SLANG_FEEDBACK_REFERENCE_DXIL_PATH=${NEXORA_SLANG_FEEDBACK_REFERENCE_DXIL_OUTPUT}"
+      "NEXORA_SLANG_FEEDBACK_WRONG_IDENTITY_DXIL_PATH=${NEXORA_SLANG_RAY_QUERY_OUTPUT}")
+    add_test(NAME renderer.sampler_feedback_enhanced_barriers COMMAND NexoraSamplerFeedbackTests --enhanced-barriers)
+    set_tests_properties(renderer.sampler_feedback_enhanced_barriers PROPERTIES TIMEOUT 120 LABELS "d3d12;native-acceptance")
+    set_property(TEST renderer.sampler_feedback_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+      ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  elseif(APPLE)
+    set(feedback_environment "NEXORA_SLANG_FEEDBACK_REFERENCE_METAL_PATH=${NEXORA_SLANG_FEEDBACK_REFERENCE_METAL_OUTPUT}")
+  else()
+    set(feedback_environment "NEXORA_SLANG_FEEDBACK_REFERENCE_SPIRV_PATH=${NEXORA_SLANG_FEEDBACK_REFERENCE_SPIRV_OUTPUT}")
+  endif()
+  set_property(TEST renderer.sampler_feedback APPEND PROPERTY ENVIRONMENT
+    ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+endif()
+
+if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
+  add_dependencies(NexoraSamplerFeedbackTests ${NEXORA_WORK_GRAPH_ARTIFACT_TARGET})
+  set_property(TEST renderer.sampler_feedback renderer.sampler_feedback_enhanced_barriers APPEND PROPERTY ENVIRONMENT
+    "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
+endif()
+
 if(NEXORA_ENABLE_D3D12_PREVIEW)
   add_executable(NexoraModernShaderTests ModernShaderTests.cpp)
   target_compile_definitions(NexoraModernShaderTests PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -495,6 +531,33 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
     ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/;NEXORA_MODERN_LONG_VECTOR_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLongVector.dxil;NEXORA_MODERN_LINEAR_ALGEBRA_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernLinearAlgebra.dxil;NEXORA_MODERN_GROUP_SHARED_DXIL_PATH=${PROJECT_BINARY_DIR}/Shaders/Modern/ModernGroupShared.dxil")
 endif()
 
+if(NEXORA_ENABLE_D3D12_PREVIEW AND NEXORA_ENABLE_SLANG)
+  add_executable(NexoraSamplerFeedbackPreviewTests SamplerFeedbackTests.cpp)
+  target_compile_definitions(NexoraSamplerFeedbackPreviewTests PRIVATE
+    _CRT_SECURE_NO_WARNINGS NEXORA_TEST_FEEDBACK_PREVIEW=1)
+  target_link_libraries(NexoraSamplerFeedbackPreviewTests PRIVATE Nexora::Renderer)
+  nexora_apply_defaults(NexoraSamplerFeedbackPreviewTests)
+  set_target_properties(NexoraSamplerFeedbackPreviewTests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/feedback-preview-runtime")
+  add_dependencies(NexoraSamplerFeedbackPreviewTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+  add_custom_command(TARGET NexoraSamplerFeedbackPreviewTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraSamplerFeedbackPreviewTests> "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.sampler_feedback_preview COMMAND NexoraSamplerFeedbackPreviewTests)
+  add_test(NAME renderer.sampler_feedback_preview_enhanced COMMAND NexoraSamplerFeedbackPreviewTests --enhanced-barriers)
+  set_tests_properties(renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced PROPERTIES
+    TIMEOUT 180 WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraSamplerFeedbackPreviewTests>")
+  set_property(TEST renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced PROPERTY ENVIRONMENT
+    ${timing_environment} ${feedback_environment} "NEXORA_REQUIRE_NATIVE_BACKENDS=1"
+    "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/")
+  if(NEXORA_ENABLE_D3D12_WORK_GRAPHS)
+    add_dependencies(NexoraSamplerFeedbackPreviewTests ${NEXORA_WORK_GRAPH_ARTIFACT_TARGET})
+    set_property(TEST renderer.sampler_feedback_preview renderer.sampler_feedback_preview_enhanced
+      APPEND PROPERTY ENVIRONMENT "NEXORA_D3D12_WORK_GRAPH_DXIL_PATH=${NEXORA_WORK_GRAPH_DXIL_OUTPUT}")
+  endif()
+endif()
 if(NEXORA_ENABLE_D3D12_SER)
   add_executable(NexoraSerRayTests RayTracingTests.cpp)
   target_link_libraries(NexoraSerRayTests PRIVATE Nexora::Renderer)

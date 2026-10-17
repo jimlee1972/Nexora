@@ -43,6 +43,10 @@
 #include "D3D12EnhancedBarriers.h"
 #include "D3D12MeshPipeline.h"
 #include "D3D12RayTracing.h"
+#include "D3D12SamplerFeedback.h"
+#if NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
+#include "SamplerFeedbackArtifactIdentity.h"
+#endif
 #include "D3D12WorkGraphs.h"
 #if NEXORA_HAS_PINNED_RAY_ARTIFACTS
 #include "RayArtifactIdentity.h"
@@ -210,6 +214,11 @@ std::uint64_t Key(RayProgramHandle handle) {
 }
 #endif
 
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+std::uint64_t Key(SamplerFeedbackProgramHandle handle) {
+  return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
+}
+#endif
 std::uint64_t Key(BufferHandle handle) {
   return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
 }
@@ -337,6 +346,10 @@ public:
   void TraceRays(RayProgramHandle, RaySceneHandle, BufferHandle, BufferHandle,
                  std::uint32_t) override;
 #endif
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+  void DispatchSamplerFeedback(SamplerFeedbackProgramHandle, BufferHandle, BufferHandle,
+                               std::uint32_t) override;
+#endif
   void EndRendering() override;
 
   [[nodiscard]] bool IsClosed() const noexcept { return !rendering_; }
@@ -403,6 +416,15 @@ private:
   std::uint64_t ray_dispatches_{}, inline_ray_dispatches_{}, ser_ray_dispatches_{},
       opacity_ray_dispatches_{};
 #endif
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+  struct FeedbackSnapshot final {
+    SamplerFeedbackProgramHandle handle;
+    detail::NativeFeedbackProgram program;
+    detail::NativeFeedbackContext context;
+  };
+  std::array<FeedbackSnapshot, SamplerFeedbackMaximumDispatchesPerList> feedback_snapshots_{};
+  std::size_t feedback_snapshot_count_{};
+#endif
 #if NEXORA_D3D12_VRS_IMAGE
   struct RateImageSnapshot final {
     ShadingRateImageHandle handle;
@@ -421,6 +443,9 @@ private:
   Microsoft::WRL::ComPtr<ID3D12Resource> timestamp_readback_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+  Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1> feedback_list_;
+#endif
 #if NEXORA_D3D12_RAY_TRACING
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> ray_list_;
 #endif
@@ -625,6 +650,28 @@ public:
           SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
                                                nullptr, IID_PPV_ARGS(&probe))))
         ray.enabled = SUCCEEDED(probe->Close());
+    }
+#endif
+#if NEXORA_D3D12_SAMPLER_FEEDBACK && NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
+    auto &feedback =
+        capabilities_.features[static_cast<std::size_t>(GraphicsFeature::SamplerFeedback)];
+    feedback.implemented = true;
+    feedback.implemented_tier = {0, 9};
+    // Hosted system-runtime execution reports support but decodes explicit mip2 as0, even
+    // without the software-adapter flag. Preserve raw queries and admit only the tested route.
+    const bool feedback_runtime_ready =
+        capabilities_.d3d12_preview_runtime_enabled &&
+        capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 10};
+    if (feedback_runtime_ready && feedback.support == CapabilitySupport::Supported &&
+        capabilities_.highest_dxil_shader_model >= FeatureVersion{6, 5} &&
+        SUCCEEDED(device_.As(&feedback_device_))) {
+      ComPtr<ID3D12CommandAllocator> allocator;
+      ComPtr<ID3D12GraphicsCommandList1> probe;
+      if (SUCCEEDED(device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                                    IID_PPV_ARGS(&allocator))) &&
+          SUCCEEDED(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(),
+                                               nullptr, IID_PPV_ARGS(&probe))))
+        feedback.enabled = SUCCEEDED(probe->Close());
     }
 #endif
 #if NEXORA_ENABLE_D3D12_SER && NEXORA_D3D12_RAY_TRACING
@@ -887,7 +934,8 @@ public:
                                  environment);
       return artifact;
     };
-    if (descriptor.compute_shader >= ComputeShaderVariant::LongVector69) {
+    if (descriptor.compute_shader >= ComputeShaderVariant::LongVector69 &&
+        descriptor.compute_shader <= ComputeShaderVariant::GroupShared610) {
 #if NEXORA_ENABLE_D3D12_PREVIEW
       if (descriptor.compute_shader != ComputeShaderVariant::LongVector69 &&
           !capabilities_.d3d12_preview_runtime_enabled)
@@ -922,6 +970,9 @@ public:
     } else if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
       selected_compute =
           required_artifact("NEXORA_SLANG_RAY_REFERENCE_DXIL_PATH", ShaderStage::Compute);
+    } else if (descriptor.compute_shader == ComputeShaderVariant::SamplerFeedbackReference) {
+      selected_compute =
+          required_artifact("NEXORA_SLANG_FEEDBACK_REFERENCE_DXIL_PATH", ShaderStage::Compute);
     }
     if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
       selected_vertex =
@@ -1243,6 +1294,69 @@ public:
     Require(ray_program_pool_.Destroy(program), "destroying stale ray program generation");
   }
 #endif
+#if NEXORA_D3D12_SAMPLER_FEEDBACK && NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
+  SamplerFeedbackProgramHandle
+  CreateSamplerFeedbackProgram(const SamplerFeedbackProgramDescriptor &descriptor) override {
+    RequireGraphicsCapabilities(Capabilities(), EffectiveSamplerFeedbackRequirements(descriptor));
+    const auto load = [&](const char *environment, FeatureVersion minimum) {
+      const auto *path = std::getenv(environment);
+      if (!path || !*path)
+        throw std::runtime_error("required sampler feedback artifact is unset");
+      const auto size = std::filesystem::file_size(std::filesystem::path(path));
+      if (!size || size > 16ULL * 1024 * 1024)
+        throw std::invalid_argument("sampler feedback artifact exceeds bounded size");
+      auto artifact = LoadShaderArtifact(environment, ShaderStage::Compute);
+      if (!artifact)
+        throw std::runtime_error("required sampler feedback artifact is unset");
+      const auto bytes = std::span<const std::byte>{
+          static_cast<const std::byte *>(artifact->GetBufferPointer()), artifact->GetBufferSize()};
+      const auto info = RequireDxilArtifact(bytes, ShaderStage::Compute, minimum);
+      if (info.shader_model > capabilities_.highest_dxil_shader_model)
+        throw std::invalid_argument("sampler feedback artifact exceeds device shader profile");
+      return artifact;
+    };
+    const auto requested = descriptor.graphics_requirements.minimum_dxil_shader_model;
+    const auto write =
+        load("NEXORA_SLANG_FEEDBACK_WRITE_DXIL_PATH", std::max(FeatureVersion{6, 5}, requested));
+    const auto pack =
+        load("NEXORA_SLANG_FEEDBACK_PACK_DXIL_PATH", std::max(FeatureVersion{6, 0}, requested));
+    const auto bytes = [](ID3DBlob &code) {
+      return std::span<const std::byte>{static_cast<const std::byte *>(code.GetBufferPointer()),
+                                        code.GetBufferSize()};
+    };
+#if NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
+    const auto matches = [](std::span<const std::byte> actual,
+                            std::span<const unsigned char> expected) {
+      return actual.size() == expected.size() &&
+             std::memcmp(actual.data(), expected.data(), actual.size()) == 0;
+    };
+    if (!matches(bytes(*write.Get()), detail::FeedbackWriteBytes) ||
+        !matches(bytes(*pack.Get()), detail::FeedbackPackBytes))
+      throw std::invalid_argument("sampler feedback recipe identity does not match reflected ABI");
+#else
+    throw std::invalid_argument("sampler feedback artifacts were not built");
+#endif
+    auto program = detail::CreateNativeFeedbackProgram(*feedback_device_.Get(), bytes(*write.Get()),
+                                                       bytes(*pack.Get()));
+    std::lock_guard lock{mutex_};
+    const auto handle = feedback_program_pool_.Create();
+    try {
+      feedback_programs_.emplace(Key(handle), std::move(program));
+    } catch (...) {
+      (void)feedback_program_pool_.Destroy(handle);
+      throw;
+    }
+    return handle;
+  }
+  void DestroySamplerFeedbackProgram(SamplerFeedbackProgramHandle program) override {
+    std::lock_guard lock{mutex_};
+    Require(feedback_program_pool_.Contains(program) && feedback_programs_.contains(Key(program)),
+            "destroying stale sampler feedback program");
+    feedback_programs_.erase(Key(program));
+    Require(feedback_program_pool_.Destroy(program),
+            "destroying stale sampler feedback generation");
+  }
+#endif
   std::unique_ptr<CommandList> CreateCommandList(QueueType queue) override {
     if (queue == QueueType::Copy)
       throw std::invalid_argument("D3D12 backend does not expose a copy command list");
@@ -1286,6 +1400,13 @@ public:
                     ray_scene_pool_.Contains(snapshot.scene_handle) &&
                     ray_scenes_.contains(Key(snapshot.scene_handle)),
                 "stale ray program or scene recording snapshot");
+      }
+#endif
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+      for (std::size_t index = 0; index < validated->feedback_snapshot_count_; ++index) {
+        const auto handle = validated->feedback_snapshots_[index].handle;
+        Require(feedback_program_pool_.Contains(handle) && feedback_programs_.contains(Key(handle)),
+                "stale sampler feedback program snapshot");
       }
 #endif
 #if NEXORA_D3D12_VRS_IMAGE
@@ -1332,6 +1453,9 @@ public:
       diagnostics_.inline_ray_dispatch_calls += validated->inline_ray_dispatches_;
       diagnostics_.ser_ray_dispatch_calls += validated->ser_ray_dispatches_;
       diagnostics_.opacity_ray_dispatch_calls += validated->opacity_ray_dispatches_;
+#endif
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+      diagnostics_.sampler_feedback_dispatch_calls += validated->feedback_snapshot_count_;
 #endif
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
@@ -1527,6 +1651,11 @@ private:
   // The private SDK factory must outlive the device and all device-owned resources.
   detail::D3D12PreviewRuntime preview_runtime_;
   ComPtr<ID3D12Device> device_;
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+  ComPtr<ID3D12Device8> feedback_device_;
+  core::HandlePool<SamplerFeedbackProgramTag> feedback_program_pool_;
+  std::unordered_map<std::uint64_t, detail::NativeFeedbackProgram> feedback_programs_;
+#endif
 #if NEXORA_D3D12_VRS_IMAGE
   core::HandlePool<ShadingRateImageTag> rate_image_pool_;
   std::unordered_map<std::uint64_t, detail::NativeShadingRateImage> rate_images_;
@@ -1936,7 +2065,8 @@ void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group
       throw std::logic_error("D3D12 dispatch requires all storage bindings");
     (void)device_.ValidateBuffer(storage_handles_[index]);
   }
-  if (compute_shader_ >= ComputeShaderVariant::LongVector69) {
+  if (compute_shader_ >= ComputeShaderVariant::LongVector69 &&
+      compute_shader_ <= ComputeShaderVariant::GroupShared610) {
     if (group_count_x != 1 || group_count_y != 1 || group_count_z != 1 ||
         storage_handles_[0] == storage_handles_[1] ||
         device_.ValidateBuffer(storage_handles_[0]).descriptor.size < 128 ||
@@ -2072,6 +2202,44 @@ void D3D12CommandList::TraceRays(RayProgramHandle program_handle, RaySceneHandle
     ++ser_ray_dispatches_;
   if (owned.program.mode == RayTracingMode::ReorderedOpacityPipeline)
     ++opacity_ray_dispatches_;
+  pipeline_bound_ = false;
+  mesh_input_ = {};
+#if NEXORA_D3D12_WORK_GRAPHS
+  bound_work_graph_ = 0;
+#endif
+}
+#endif
+
+#if NEXORA_D3D12_SAMPLER_FEEDBACK
+void D3D12CommandList::DispatchSamplerFeedback(SamplerFeedbackProgramHandle program,
+                                               BufferHandle input, BufferHandle output,
+                                               std::uint32_t count) {
+  if (submitted_ || closed_ || rendering_ || count > SamplerFeedbackMaximumRequests ||
+      input == output || feedback_snapshot_count_ == feedback_snapshots_.size())
+    throw std::logic_error("invalid or out-of-capacity sampler feedback dispatch");
+  detail::NativeFeedbackProgram selected;
+  {
+    std::lock_guard lock{device_.mutex_};
+    device_.Require(device_.feedback_program_pool_.Contains(program) &&
+                        device_.feedback_programs_.contains(Key(program)),
+                    "binding stale sampler feedback program");
+    selected = device_.feedback_programs_.at(Key(program));
+  }
+  if (device_.ValidateBuffer(input).descriptor.size <
+          static_cast<std::uint64_t>(std::max(1U, count)) * sizeof(SamplerFeedbackRequest) ||
+      device_.ValidateBuffer(output).descriptor.size <
+          SamplerFeedbackMapExtent * SamplerFeedbackMapExtent * sizeof(std::uint32_t))
+    throw std::logic_error("sampler feedback buffers are smaller than the admitted shape");
+  auto *requests = PrepareBuffer(input, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+  auto *packed = PrepareBuffer(output, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+  auto context = detail::CreateNativeFeedbackContext(*device_.feedback_device_.Get(), selected);
+  if (!feedback_list_)
+    Check(list_.As(&feedback_list_), "QueryInterface(sampler feedback list1)");
+  auto &snapshot = feedback_snapshots_[feedback_snapshot_count_];
+  snapshot = {program, std::move(selected), std::move(context)};
+  detail::RecordNativeFeedback(*feedback_list_.Get(), snapshot.program, snapshot.context, *requests,
+                               *packed, count);
+  ++feedback_snapshot_count_;
   pipeline_bound_ = false;
   mesh_input_ = {};
 #if NEXORA_D3D12_WORK_GRAPHS

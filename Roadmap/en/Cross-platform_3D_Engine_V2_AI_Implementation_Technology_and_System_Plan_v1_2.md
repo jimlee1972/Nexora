@@ -2435,6 +2435,8 @@ Done
 
 Verifiable evidence must be provided.
 
+PR633 native acceptance: both Windows314/314 suites execute bounded Work Graphs and pipeline/inline rays; all36 checks passed before squash merge. Linux365/365 and Metal304/304 compute fallbacks pass. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full graphics gates remain open.
+
 Modern compute follow-up: opt-in isolated Agility/WARP/DXC preview runtime and three bounded SM6.9/6.10 programs are under implementation; Windows native execution remains pending. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md). Full gates stay open.
 
 Bounded SER follow-up adds actual SM6.9 HitObject/Reorder/Invoke and separate OPTIONS22 actual-reordering reporting; native Windows proof remains pending. WARP does not prove thread reordering. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full DXR/SER gates remain open.

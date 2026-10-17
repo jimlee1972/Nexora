@@ -163,7 +163,8 @@ enum class ComputeShaderVariant : std::uint8_t {
   RayReference,
   LongVector69,
   LinearAlgebra610,
-  GroupShared610
+  GroupShared610,
+  SamplerFeedbackReference
 };
 
 struct BufferDescriptor final {

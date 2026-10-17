@@ -189,6 +189,10 @@ void TestModernProgramsFailClosed() {
   descriptor.layout_hash = 17;
   descriptor.shader_hash = 19;
   descriptor.type = PipelineType::Compute;
+  descriptor.compute_shader = ComputeShaderVariant::SamplerFeedbackReference;
+  Require(EffectivePipelineRequirements(descriptor).minimum_dxil_shader_model == FeatureVersion{},
+          "feedback reference was misclassified as a modern DXIL-only recipe");
+  RequirePipelineCapabilities(GraphicsDeviceCapabilities{}, descriptor);
   descriptor.compute_shader = ComputeShaderVariant::LongVector69;
   const auto long_vector = EffectivePipelineRequirements(descriptor);
   Require(long_vector.minimum_dxil_shader_model == FeatureVersion{6, 9},

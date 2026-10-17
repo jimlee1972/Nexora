@@ -278,8 +278,26 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
   D3D12/Metal parity 的範圍裡不修。之後應該在 `DrawIndirect`（`command_count` 真正已知的地方）
   一次驗證完整範圍，三個 backend 一起修，只修一個會悄悄造成 backend 之間的 contract 不一致。
 
+PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pipeline／Inline Ray，36檢查通過後 Squash 合併；Linux365/365、Metal304/304 Compute 後備通過。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整圖形 Gate 維持開放。
 有界 SER 後續加入真實 SM6.9 HitObject／Reorder／Invoke 與獨立 OPTIONS22 實際重排回報，Windows 原生證據待驗證。WARP 不證明執行緒重排。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 DXR／SER Gate 保持開放。
 
 DXR1.2 後續加入獨立啟用的二狀態 Subdivision1 OMM Array／BLAS／TLAS 建置及明確允許 OMM 的 Traversal；全部16遮罩對照 CPU 與真實顯式微幾何 Compute，Windows 原生證據待驗證。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
 
 VRS Tier2 後續加入有界不可變 Rate Image、Snapshot／Reset／Generation 准入與硬體 SV_ShadingRate Witness；Windows Preview 原生證據待驗證，保留明確 Full-rate 後備。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Ultimate Gate 維持開放。
+
+### Runtime 就緒條件修正與已驗收進階路徑整合
+
+最終8b1c8995 系統 Windows preflight 仍將明確 mip2 解成 mip0，且裝置回報
+`software_device=false`。先前僅限制軟體裝置的條件不足；該旗標不能證明 feedback 正確。
+所有裝置的原生 feedback 現在均要求明確的隔離 preview runtime 與已測試 SM6.10 profile。
+保留原始 support／tier，一般裝置執行既有真正 compute reference。必要 preview 測試仍要求
+原生執行及完全相等的輸出／canary，不得選擇 fallback。實體裝置與其他 runtime 路徑仍須
+同等原生證據方可驗收。
+
+✅ PR636 已於 push／PR 兩套流程全部38項最終版本檢查通過後合併：Windows315/315、
+Linux366/366、macOS305/305；兩個 preview 工作均通過5/5，涵蓋有界 SER／DXR1.2 OMM、
+VRS2 witness 與現代配方。此 feedback 分支整合已驗收實作，保留功能 enum 與有界現代
+variant 判斷。Preview 工作改為七項測試，包含兩種 feedback barrier 模式及
+Node／Feedback／Node。最終整合本機與託管驗證仍須通過；實體效能與完整 V2-GFX gate 維持開放。
+
+整合後最終本機 gate 通過 Development223/223，零失敗／跳過（130.05s）、Shipping Minimal／Monolithic／LTO，以及 Khronos 物件／同步19/19（10.18s），確認41次 layer 插入，零 Validation Error／VUID／SYNC-HAZARD。真正 feedback SDK helper 與 Windows 條件 preview 測試語法以警告即錯誤通過；文件／workflow16/16、清理安全測試27/27 通過。合併前仍須通過託管 Windows runtime 就緒狀態及全部最終版本 CI。

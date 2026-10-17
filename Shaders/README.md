@@ -160,6 +160,16 @@ A separately compiled same-profile changed recipe exercises runtime identity rej
 state objects additionally require actual exports and shader identifiers; compilation/reflection
 is not DXR proof. These fixtures do not implement DXR1.2, SER or general cooked ray authoring.
 
+`SamplerFeedback.slang` independently compiles an optional Windows SM6.5 MIN_MIP write kernel;
+`PackSamplerFeedback.slang` uses SM6.0 to widen the native4x4 R8_UINT decode on the GPU.
+`SamplerFeedbackReference.slang` supplies actual lower-profile SPIR-V/MSL/DXIL compute reference.
+The existing Slang option controls these outputs. Real reflection checks feedback mode, root and
+16-byte requests/constants; private exact-byte arrays and compiler/source/artifact provenance
+identify the fixed recipe. Precise float mode and safe Metal math preserve invalid UV rejection.
+The paired64x64/seven-mip texture is metadata-only; these shaders do not sample its color data or
+implement application texture streaming. Native clear/write/decode and enabled execution require
+separate target-host acceptance; compilation/fallback output is not that proof.
+
 ## Optional DXC modern recipes
 
 The default-off Windows preview build compiles `ModernLongVector.hlsl` as cs_6_9 and

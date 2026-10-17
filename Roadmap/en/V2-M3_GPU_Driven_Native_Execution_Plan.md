@@ -318,8 +318,28 @@ The older source-only implementation notes below are historical.
   on all three backends together, since fixing only one would silently create a
   cross-backend contract mismatch.
 
+PR633 native acceptance: both Windows314/314 suites execute bounded Work Graphs and pipeline/inline rays; all36 checks passed before squash merge. Linux365/365 and Metal304/304 compute fallbacks pass. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full graphics gates remain open.
 Bounded SER follow-up adds actual SM6.9 HitObject/Reorder/Invoke and separate OPTIONS22 actual-reordering reporting; native Windows proof remains pending. WARP does not prove thread reordering. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full DXR/SER gates remain open.
 
 DXR1.2 follow-up adds opt-in real two-state subdivision1 OMM-array/BLAS/TLAS construction and explicitly OMM-enabled traversal. All16 masks are checked against CPU and real explicit-microgeometry compute; Windows native proof remains pending. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full gates stay open.
 
 VRS Tier2 follow-up adds bounded immutable rate images, source snapshot/reset/generation admission and a hardware SV_ShadingRate witness. Native Windows preview evidence is pending; full-rate fallback remains explicit. See [the graphics plan](V2_Advanced_Graphics_Capability_Plan.md); full Ultimate gates stay open.
+
+### Runtime readiness correction and accepted advanced-path integration
+
+The final8b1c8995 system Windows preflight still fails explicit mip2→mip0 while its adapter
+reports `software_device=false`. The earlier software-only gate was insufficient; that flag
+cannot establish feedback correctness. Native feedback now requires the explicit isolated
+preview runtime and its tested SM6.10 profile for every adapter. Raw support/tier remains visible;
+ordinary devices execute the existing real compute reference. The mandatory preview fixture
+retains exact output/canary assertions and cannot select fallback. Physical adapter and other
+runtime routes remain unaccepted until equivalent native proof exists.
+
+✅ PR636 merged after all38 final-head checks in both event workflows passed: Windows315/315,
+Linux366/366 and macOS305/305. Both preview jobs pass5/5, including bounded SER/DXR1.2 OMM,
+VRS2 witnesses and modern recipes. This feedback branch integrates that accepted implementation
+without changing its feature enums or bounded modern-variant checks. The preview job now runs
+all seven cases including both feedback barrier modes and Node/Feedback/Node. Final integrated
+local and hosted validation remains required. Physical performance and full V2-GFX gates stay open.
+
+The integrated final local gate passes Development223/223,zero failures/skips (130.05s), Shipping Minimal/Monolithic/LTO, and Khronos object/synchronization19/19 (10.18s),41 confirmed layer insertions with zero Validation Error/VUID/SYNC-HAZARD markers. Actual feedback SDK helper and Windows-conditional preview test syntax pass with warnings-as-errors; documentation/workflow16/16 and guarded cleanup27/27 pass. Hosted Windows runtime readiness and all final-head CI checks remain required before merge.
