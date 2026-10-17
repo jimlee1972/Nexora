@@ -15,6 +15,9 @@ struct PipelineCacheKey final {
   rhi::TextureFormat color_format{};
   rhi::PipelineType type{};
   rhi::GraphicsRequirements graphics_requirements{};
+  rhi::PrimitiveTopology topology{};
+  std::uint32_t patch_control_points{};
+  rhi::GraphicsShaderVariant graphics_shader{};
   friend bool operator==(const PipelineCacheKey &, const PipelineCacheKey &) = default;
 };
 [[nodiscard]] NEXORA_RENDERER_API PipelineCacheKey MakePipelineCacheKey(

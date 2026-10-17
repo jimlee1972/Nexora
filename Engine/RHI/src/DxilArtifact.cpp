@@ -72,6 +72,12 @@ std::optional<DxilProgramInfo> InspectDxilProgram(std::span<const std::byte> byt
       case 1: // DXIL::ShaderKind::Vertex
         stage = ShaderStage::Vertex;
         break;
+      case 3: // DXIL::ShaderKind::Hull
+        stage = ShaderStage::TessellationControl;
+        break;
+      case 4: // DXIL::ShaderKind::Domain
+        stage = ShaderStage::TessellationEvaluation;
+        break;
       case 5: // DXIL::ShaderKind::Compute
         stage = ShaderStage::Compute;
         break;

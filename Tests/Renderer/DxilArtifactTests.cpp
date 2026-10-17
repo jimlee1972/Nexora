@@ -51,6 +51,8 @@ std::vector<std::byte> Metadata(std::uint32_t kind = 5, std::uint32_t minor = 0)
 void TestMetadataAdmission() {
   for (const auto &[kind, stage] :
        std::array{std::pair{0U, ShaderStage::Fragment}, std::pair{1U, ShaderStage::Vertex},
+                  std::pair{3U, ShaderStage::TessellationControl},
+                  std::pair{4U, ShaderStage::TessellationEvaluation},
                   std::pair{5U, ShaderStage::Compute}}) {
     for (const std::uint32_t minor : {0U, 6U, 9U, 10U}) {
       const auto bytes = Metadata(kind, minor);

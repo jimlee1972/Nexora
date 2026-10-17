@@ -61,7 +61,7 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
   report(GraphicsFeature::Compute, {1, 0}, true, true);
   report(GraphicsFeature::IndirectDraw, {1, 0}, true, true);
   // Creation requires feature level 11_0, which provides hull/domain hardware support.
-  report(GraphicsFeature::Tessellation, {1, 0}, true);
+  report(GraphicsFeature::Tessellation, {1, 0}, true, true);
   report(GraphicsFeature::ParallelCommandRecording, {1, 0});
   result.independent_compute_recording = true;
   result.independent_graphics_recording = true;
@@ -303,6 +303,8 @@ private:
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
+  PrimitiveTopology topology_{PrimitiveTopology::TriangleList};
+  GraphicsShaderVariant graphics_shader_{GraphicsShaderVariant::Triangle};
   bool submitted_{false};
   bool closed_{false};
   std::uint64_t barriers_{};
@@ -553,9 +555,28 @@ public:
   }
 
   PipelineHandle CreatePipeline(const PipelineDescriptor &descriptor) override {
-    RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
+    RequirePipelineCapabilities(Capabilities(), descriptor);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
       throw std::invalid_argument("pipeline hashes must be non-zero");
+    const bool patch = descriptor.topology == PrimitiveTopology::PatchList;
+    ComPtr<ID3DBlob> selected_vertex = vertex_shader_;
+    ComPtr<ID3DBlob> control, evaluation;
+    const auto required_artifact = [](const char *environment, ShaderStage stage) {
+      auto artifact = LoadShaderArtifact(environment, stage);
+      if (!artifact)
+        throw std::runtime_error(std::string("required geometry DXIL artifact is unset: ") +
+                                 environment);
+      return artifact;
+    };
+    if (descriptor.graphics_shader == GraphicsShaderVariant::PreTessellatedPatch)
+      selected_vertex =
+          required_artifact("NEXORA_SLANG_PRETESSELLATED_DXIL_PATH", ShaderStage::Vertex);
+    if (patch) {
+      control = required_artifact("NEXORA_SLANG_TESSELLATION_CONTROL_DXIL_PATH",
+                                  ShaderStage::TessellationControl);
+      evaluation = required_artifact("NEXORA_SLANG_TESSELLATION_EVALUATION_DXIL_PATH",
+                                     ShaderStage::TessellationEvaluation);
+    }
     const auto minimum_model = descriptor.graphics_requirements.minimum_dxil_shader_model;
     if (minimum_model != FeatureVersion{}) {
       const auto check = [&](ID3DBlob *artifact, ShaderStage stage) {
@@ -568,13 +589,19 @@ public:
       if (descriptor.type == PipelineType::Compute)
         check(compute_shader_.Get(), ShaderStage::Compute);
       else {
-        check(vertex_shader_.Get(), ShaderStage::Vertex);
+        check(selected_vertex.Get(), ShaderStage::Vertex);
+        if (patch) {
+          check(control.Get(), ShaderStage::TessellationControl);
+          check(evaluation.Get(), ShaderStage::TessellationEvaluation);
+        }
         check(pixel_shader_.Get(), ShaderStage::Fragment);
       }
     }
     PipelineRecord record;
     record.type = descriptor.type;
     record.format = descriptor.color_format;
+    record.topology = descriptor.topology;
+    record.graphics_shader = descriptor.graphics_shader;
     if (descriptor.type == PipelineType::Compute) {
       if (!compute_shader_)
         throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
@@ -592,7 +619,12 @@ public:
     }
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeline_description{};
     pipeline_description.pRootSignature = root_signature_.Get();
-    pipeline_description.VS = {vertex_shader_->GetBufferPointer(), vertex_shader_->GetBufferSize()};
+    pipeline_description.VS = {selected_vertex->GetBufferPointer(),
+                               selected_vertex->GetBufferSize()};
+    if (patch) {
+      pipeline_description.HS = {control->GetBufferPointer(), control->GetBufferSize()};
+      pipeline_description.DS = {evaluation->GetBufferPointer(), evaluation->GetBufferSize()};
+    }
     pipeline_description.PS = {pixel_shader_->GetBufferPointer(), pixel_shader_->GetBufferSize()};
     pipeline_description.BlendState.RenderTarget[0].RenderTargetWriteMask =
         D3D12_COLOR_WRITE_ENABLE_ALL;
@@ -602,7 +634,8 @@ public:
     pipeline_description.DepthStencilState.DepthEnable = FALSE;
     pipeline_description.DepthStencilState.StencilEnable = FALSE;
     pipeline_description.SampleMask = std::numeric_limits<UINT>::max();
-    pipeline_description.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipeline_description.PrimitiveTopologyType =
+        patch ? D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH : D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     pipeline_description.NumRenderTargets = 1;
     pipeline_description.RTVFormats[0] = ToFormat(descriptor.color_format);
     pipeline_description.SampleDesc.Count = 1;
@@ -759,6 +792,8 @@ private:
     ComPtr<ID3D12PipelineState> pipeline;
     PipelineType type{PipelineType::Graphics};
     TextureFormat format{TextureFormat::Rgba8Unorm};
+    PrimitiveTopology topology{PrimitiveTopology::TriangleList};
+    GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
   };
   struct BufferRecord final {
     BufferDescriptor descriptor;
@@ -1072,6 +1107,8 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
     throw std::logic_error("cannot bind a pipeline on a submitted D3D12 command list");
   const auto &record = device_.ValidatePipeline(pipeline);
   pipeline_type_ = record.type;
+  topology_ = record.topology;
+  graphics_shader_ = record.graphics_shader;
   if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
     throw std::logic_error("D3D12 pipeline type does not match command-list rendering state");
   if (pipeline_type_ == PipelineType::Graphics &&
@@ -1124,10 +1161,12 @@ void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
 }
 
 void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
-      instance_count == 0)
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+      !IsBuiltinGeometryDrawValid(topology_, graphics_shader_, vertex_count) || instance_count == 0)
     throw std::logic_error("invalid D3D12 draw");
-  list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  list_->IASetPrimitiveTopology(topology_ == PrimitiveTopology::PatchList
+                                    ? D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST
+                                    : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->DrawInstanced(vertex_count, instance_count, 0, 0);
   ++draws_;
 }
@@ -1148,9 +1187,9 @@ void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group
 }
 
 void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
-  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
-      pipeline_type_ != PipelineType::Graphics || !indirect_buffer_ ||
-      indirect_stride_ != GPUDrivenIndirectCommandStride || draw_count == 0)
+  if (!SupportsBuiltinIndirectDraw(topology_, graphics_shader_) || submitted_ || closed_ ||
+      !rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Graphics ||
+      !indirect_buffer_ || indirect_stride_ != GPUDrivenIndirectCommandStride || draw_count == 0)
     throw std::logic_error("invalid D3D12 indirect draw");
   if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, draw_count))
     throw std::logic_error("D3D12 indirect draw reads past the bound indirect buffer");

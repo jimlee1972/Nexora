@@ -517,3 +517,22 @@ additional native CTest `renderer.vulkan_recording_benchmark_reuse` verifies all
 warm retired allocations; ordinary benchmark mode verifies fresh allocations and no cache use.
 Both modes retain their own warmups, output sentinels, timing and CPU oracle. This option changes
 allocation policy only; it does not enable the full parallel feature or asynchronous submission.
+
+
+## Bounded tessellated graphics pipelines
+
+PipelineCache keys include primitive topology, patch control-point count and bootstrap graphics
+shader variant in addition to shader/layout/generation/format/requirements. Native patches and
+baked fallback cannot reuse an ordinary triangle PSO accidentally. Patch topology implies native
+tessellation admission before allocation; callers select a fallback explicitly when unavailable.
+The first native route is a three-control-point, factor4 curved patch, with a16-triangle baked
+fallback on all backends. Vulkan/D3D12 execute native hull/domain equivalents; Metal's path stays
+fallback. This is a bounded bootstrap route, not general material/program assembly.
+
+Pre-create immutable PSOs/resources before graph callbacks. The existing limited disjoint graphics
+cohort contract admits these color-target draws with the same ordered completion and cancellation
+boundaries. The native oracle forces two workers, verifies RGBA/BGRA parity against the baked mesh,
+preserves sentinels on failure/cancellation, then replays successfully. Draw bounds and unsupported
+indexed/indirect paths reject before native recording. Full parallel/asynchronous performance and
+the combined Tessellation/Enhanced Barriers gate remain open. See the
+[RHI contract](../RHI/README.md#bounded-native-tessellation-and-baked-mesh-fallback).

@@ -94,7 +94,29 @@ enum class ResourceState : std::uint8_t {
 // Rgba16Float describes externally owned Presentation HDR resources; native RHI
 // triangle allocation rejects it until that independent pipeline supports float targets.
 enum class TextureFormat : std::uint8_t { Rgba8Unorm, Bgra8Unorm, Depth32Float, Rgba16Float };
-enum class ShaderStage : std::uint8_t { Vertex = 1, Fragment = 2, Compute = 4 };
+enum class ShaderStage : std::uint8_t {
+  Vertex = 1,
+  Fragment = 2,
+  Compute = 4,
+  TessellationControl = 8,
+  TessellationEvaluation = 16
+};
+inline constexpr std::uint8_t AllShaderStageBits = 31;
+enum class PrimitiveTopology : std::uint8_t { TriangleList, PatchList };
+// Built-in bootstrap shader selection; custom program assembly remains separate.
+enum class GraphicsShaderVariant : std::uint8_t { Triangle, PreTessellatedPatch };
+inline constexpr std::uint32_t PreTessellatedPatchVertexCount = 48;
+constexpr bool IsBuiltinGeometryDrawValid(PrimitiveTopology topology, GraphicsShaderVariant shader,
+                                          std::uint32_t vertices) noexcept {
+  return topology == PrimitiveTopology::PatchList ? vertices == 3
+         : shader == GraphicsShaderVariant::PreTessellatedPatch
+             ? vertices == PreTessellatedPatchVertexCount
+             : vertices != 0;
+}
+constexpr bool SupportsBuiltinIndirectDraw(PrimitiveTopology topology,
+                                           GraphicsShaderVariant shader) noexcept {
+  return topology == PrimitiveTopology::TriangleList && shader == GraphicsShaderVariant::Triangle;
+}
 enum class BindingType : std::uint8_t { ConstantBuffer, Texture, Sampler, StorageBuffer };
 enum class IndexFormat : std::uint8_t { Uint16, Uint32 };
 enum class PipelineType : std::uint8_t { Graphics, Compute };
@@ -123,6 +145,9 @@ struct PipelineDescriptor final {
   std::string debug_name;
   PipelineType type{PipelineType::Graphics};
   GraphicsRequirements graphics_requirements{};
+  PrimitiveTopology topology{PrimitiveTopology::TriangleList};
+  std::uint32_t patch_control_points{};
+  GraphicsShaderVariant graphics_shader{GraphicsShaderVariant::Triangle};
 };
 struct RenderingInfo final {
   TextureHandle color_target;
