@@ -86,3 +86,19 @@ separate single-thread compute kernel, preserving the triangle graphics artifact
 macOS tests additionally compile and execute it. Set `NEXORA_SLANG_COMPUTE_METAL_PATH` to request
 this artifact at device construction. Missing/invalid requested artifacts fail without falling back
 to the embedded compute smoke. Linux generation does not certify Metal execution or performance.
+
+## Loaded DXIL profile checks
+
+The native RHI triangle's separate vertex/fragment artifacts use `sm_6_6`; the GPU-driven compute
+artifact uses `sm_6_0`. D3D12 now reads actual entry-stage/profile metadata when loading requested
+artifacts and compares each selected stage with a pipeline's requested DXIL minimum before PSO
+allocation. Device support alone cannot admit newer-profile requirements against older bytecode.
+An absent optional artifact still follows the existing FXC baseline when no DXIL minimum is
+requested. Invalid or wrong-stage explicitly requested artifacts throw instead of silently falling
+back. No profile/toolchain baseline changes here.
+
+The portable reader bounds-checks container/program metadata and bitcode ranges; it does not
+validate LLVM, signatures, compiler provenance or preview opt-in. Windows native CI inspects the
+real compiled SM6.6/SM6.0 files and tests PSO admission; synthetic Linux metadata tests do not prove
+SM6.9/6.10 feature execution. Full compiler/artifact readiness and advanced native gates stay open.
+See the [RHI artifact contract](../Engine/RHI/README.md#dxil-artifact-stage-and-profile-admission).

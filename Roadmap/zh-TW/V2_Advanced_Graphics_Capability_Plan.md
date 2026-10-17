@@ -25,6 +25,36 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### DXIL Entry Stage 與 Artifact Profile 檢查 — 2026-10-17
+
+✅ D3D12 指定 Entry Artifact 現會接受 Portable、有界的 DXBC／DXIL Program Metadata
+檢查。Reader 驗證 Container／版本／大小、Part 與 Bitcode 範圍、無重疊、單一執行 Part
+及 LLVM Magic；解碼已實作的 Vertex／Fragment／Compute Stage 與數值 Shader Model。
+階段不符、畸形及過舊 Profile 會在原生 PSO 分配前遭拒。Graphics 會檢查兩個所選圖形階段，
+與 Compute 分開。裝置能力仍為獨立檢查；硬體支援 SM6.9／6.10 不能讓既有 SM6.6 圖形或
+SM6.0 Compute Bytecode 滿足較新最低要求。沒有 DXIL 最低要求時保留選用 FXC 基線。
+未啟用任何原生進階功能，也未提高 Profile 基線。
+
+Portable 測試涵蓋 Stage／Profile 解碼、6.9／6.10 數值順序、每個截斷 Prefix、未排序
+Offset、畸形／溢位／重疊 Part 與重複 Program。Windows 啟用 Slang 的原生 CI 另讀取
+真正產生的 Artifact，檢查 SM6.6 圖形／SM6.0 Compute，建立基線 PSO，並在裝置支援時
+拒絕較新的 Artifact 要求。Metadata Reader 不驗證 LLVM、Checksum／簽章、Compiler
+來源或 Preview Opt-in，不能證明 SM6.9／6.10 執行，也未完成完整 Toolchain 矩陣 Gate。
+
+來源分支：`feat/v2-dxil-artifact-admission`；Beads `nexora-45y.2.9`。
+啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
+`ctest --preset linux-development` **205/205 通過，零略過／失敗，185.38 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。聚焦執行
+`ctest --preset linux-development -R '^renderer\.(dxil_artifact_readiness|graphics_capabilities|contracts)$' --output-on-failure`：
+**3/3 通過，零略過，0.07 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+Linux Metadata-only Probe 另成功解析真正 vkd3d-proton DXIL Fixture：Compute SM6.6
+（2660 Bytes）、Fragment SM6.1（2472 Bytes）、Vertex SM6.0（1988 Bytes）。Fixture／
+Probe 留在 Repo 外；這是解析證據，不是 GPU 執行。Windows 執行／PSO 驗收須由 Hosted CI
+證明。新增匯出 C++ Helper 後須重建 Module；Stable C ABI 及 SDK／Compiler 基線不變。
+完整 V2 圖形、Compiler／Artifact 就緒矩陣與實體 GPU 效能 Gate 仍待完成。詳見
+[RHI Contract](../../Engine/RHI/README.md#dxil-artifact-stage-and-profile-admission)。
+
 ### 不變的共用 Buffer 輸入 — 2026-10-17
 
 ✅ 獨立且預設關閉的 `shared_buffer_read_recording` 能力，允許有界 Compute 與 Color-target

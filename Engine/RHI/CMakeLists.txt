@@ -1,6 +1,7 @@
 include(NexoraTarget)
 add_library(NexoraRHI ${NEXORA_MODULE_LIBRARY_TYPE}
   src/Capabilities.cpp
+  src/DxilArtifact.cpp
   src/ShaderReflection.cpp
   src/ValidationDevice.cpp
   src/DeviceFactory.cpp)

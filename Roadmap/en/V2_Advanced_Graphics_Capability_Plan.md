@@ -31,6 +31,37 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### DXIL entry-stage and artifact-profile admission — 2026-10-17
+
+✅ D3D12 requested entry artifacts now undergo portable, bounded DXBC/DXIL program metadata
+inspection. The reader validates container/version/size, part and bitcode ranges, non-overlap,
+one executable part and LLVM magic; it decodes implemented vertex/fragment/compute stages and
+numeric Shader Models. Wrong-stage, malformed and older-profile artifacts reject before native
+PSO allocation. Graphics checks both selected graphics stages independently from compute.
+Device capability remains a separate check; hardware SM6.9/6.10 support cannot admit a newer
+minimum against existing SM6.6 graphics or SM6.0 compute bytecode. Optional FXC baseline remains
+available without a DXIL minimum. No native advanced feature or profile baseline is enabled.
+
+Portable tests cover stage/profile decoding, numeric 6.9/6.10 order, every truncated prefix,
+unordered offsets, malformed/overflowing/overlapping parts and duplicate programs. Windows
+Slang-enabled native CI additionally reads actual generated artifacts, checks SM6.6 graphics and
+SM6.0 compute, creates baseline PSOs and rejects newer requirements when the device supports them.
+Metadata inspection does not validate LLVM, checksums/signatures, compiler provenance or preview
+opt-in. It cannot establish SM6.9/6.10 execution or close the complete toolchain matrix gate.
+
+Source branch: `feat/v2-dxil-artifact-admission`; Beads `nexora-45y.2.9`.
+Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
+pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
+185.38 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^renderer\.(dxil_artifact_readiness|graphics_capabilities|contracts)$' --output-on-failure`:
+**3/3 pass, zero skips, 0.07 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+A Linux metadata-only probe also accepts real vkd3d-proton DXIL fixtures: compute SM6.6 (2660 bytes),
+fragment SM6.1 (2472 bytes), vertex SM6.0 (1988 bytes). Fixtures/probe remain outside the repository;
+this is parsing evidence, not GPU execution. Windows runtime/PSO acceptance requires hosted CI.
+The exported C++ helpers require module rebuild; stable C ABI and SDK/compiler baselines stay
+unchanged. Full V2 graphics, compiler/artifact readiness and physical-GPU performance gates remain
+open. See the [RHI contract](../../Engine/RHI/README.md#dxil-artifact-stage-and-profile-admission).
+
 ### Immutable shared buffer inputs — 2026-10-17
 
 ✅ A separately default-closed `shared_buffer_read_recording` capability admits compatible

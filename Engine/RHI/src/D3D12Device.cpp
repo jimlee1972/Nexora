@@ -7,6 +7,7 @@
 
 #include "Nexora/RHI/Capabilities.h"
 #include "Nexora/RHI/Device.h"
+#include "Nexora/RHI/DxilArtifact.h"
 
 #include "D3D12CapabilityMapping.h"
 
@@ -197,7 +198,7 @@ ComPtr<ID3DBlob> CompileShader(const char *source, const char *entry, const char
   return bytecode;
 }
 
-ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name) {
+ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name, ShaderStage stage) {
   const auto *path = std::getenv(environment_name);
   if (!path || *path == '\0')
     return {};
@@ -206,6 +207,9 @@ ComPtr<ID3DBlob> LoadShaderArtifact(const char *environment_name) {
   if (!bytecode || bytecode->GetBufferSize() < 4 ||
       std::memcmp(bytecode->GetBufferPointer(), "DXBC", 4) != 0)
     throw std::runtime_error(std::string("DXIL artifact is not a valid DXBC container: ") + path);
+  (void)RequireDxilArtifact(
+      {static_cast<const std::byte *>(bytecode->GetBufferPointer()), bytecode->GetBufferSize()},
+      stage);
   return bytecode;
 }
 
@@ -371,9 +375,9 @@ public:
     Check(device_->CreateCommandSignature(&signature, nullptr,
                                           IID_PPV_ARGS(&draw_indirect_signature_)),
           "CreateCommandSignature(draw indirect)");
-    vertex_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_VERTEX_PATH");
-    pixel_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_FRAGMENT_PATH");
-    compute_shader_ = LoadShaderArtifact("NEXORA_SLANG_COMPUTE_DXIL_PATH");
+    vertex_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_VERTEX_PATH", ShaderStage::Vertex);
+    pixel_shader_ = LoadShaderArtifact("NEXORA_SLANG_DXIL_FRAGMENT_PATH", ShaderStage::Fragment);
+    compute_shader_ = LoadShaderArtifact("NEXORA_SLANG_COMPUTE_DXIL_PATH", ShaderStage::Compute);
     if (!vertex_shader_ || !pixel_shader_) {
       if (vertex_shader_ || pixel_shader_)
         throw std::runtime_error("both Slang DXIL entry-point artifacts are required");
@@ -541,6 +545,22 @@ public:
     RequireGraphicsCapabilities(Capabilities(), descriptor.graphics_requirements);
     if (descriptor.layout_hash == 0 || descriptor.shader_hash == 0)
       throw std::invalid_argument("pipeline hashes must be non-zero");
+    const auto minimum_model = descriptor.graphics_requirements.minimum_dxil_shader_model;
+    if (minimum_model != FeatureVersion{}) {
+      const auto check = [&](ID3DBlob *artifact, ShaderStage stage) {
+        const auto bytes = artifact ? std::span<const std::byte>{static_cast<const std::byte *>(
+                                                                     artifact->GetBufferPointer()),
+                                                                 artifact->GetBufferSize()}
+                                    : std::span<const std::byte>{};
+        (void)RequireDxilArtifact(bytes, stage, minimum_model);
+      };
+      if (descriptor.type == PipelineType::Compute)
+        check(compute_shader_.Get(), ShaderStage::Compute);
+      else {
+        check(vertex_shader_.Get(), ShaderStage::Vertex);
+        check(pixel_shader_.Get(), ShaderStage::Fragment);
+      }
+    }
     PipelineRecord record;
     record.type = descriptor.type;
     record.format = descriptor.color_format;

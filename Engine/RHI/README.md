@@ -413,3 +413,36 @@ Portable tests keep custom admission closed and reject write/read, read/write, w
 access handoffs. Native Windows/Metal execution requires hosted acceptance; Linux Vulkan correctness
 and validation do not establish physical-GPU performance or close the broad parallel feature gate.
 All C++ modules rebuild for the appended capability; stable C ABI and shader/SDK baselines stay fixed.
+
+## DXIL artifact stage and profile admission
+
+Device Shader Model support and selected bytecode readiness are separate checks. The portable
+`InspectDxilProgram` reads DXBC container version/size and bounded part ranges, rejects duplicate
+or overlapping executable parts, validates the embedded DXIL program/bitcode range and LLVM magic,
+and returns the entry stage and numeric Shader Model. It supports the implemented vertex,
+fragment and compute entry stages; libraries and advanced stages remain closed. Unaligned input
+is safe. Scratch storage/time are bounded by the supplied part table; allocation failure returns
+no metadata. Input storage stays caller-owned for the duration of the synchronous call.
+
+`RequireDxilArtifact` throws `std::invalid_argument` for absent/malformed metadata, a mismatched
+stage or an artifact older than the requested profile. The D3D12 constructor applies this to every
+explicitly requested Slang entry artifact. PSO creation first checks device requirements, then
+checks every selected stage's actual artifact profile before native PSO allocation. Compute and
+graphics use separate artifacts: compute's SM6.0 does not limit a graphics SM6.6 pipeline, and a
+high device limit cannot authorize a newer requirement against older bytecode. With no DXIL
+minimum requirement, the existing absent-artifact FXC triangle fallback remains available.
+
+This is metadata admission, not a DXIL validator, checksum/signature verifier, compiler-provenance
+check, preview opt-in or proof of executable feature support. Native PSO creation still validates
+its shader/root-signature contract. `CheckGraphicsRequirements`/`SelectGraphicsPath` remain device
+checks; callers separately admit the selected artifact. No shader profile, SDK or compiler baseline
+is raised, and no SM6.9/6.10 Preview feature becomes implemented. The complete compiler/artifact
+readiness matrix and target-host advanced execution gates remain open.
+
+`renderer.dxil_artifact_readiness` runs portable stage/profile, numeric 6.9/6.10, truncation,
+malformed/out-of-range/overlapping/duplicate-part and unordered-table checks on synthetic metadata.
+Those fixtures are not executable shaders. Slang-enabled Windows native builds additionally inspect
+the real generated vertex/fragment SM6.6 and compute SM6.0 artifacts, create baseline PSOs and
+reject a newer artifact requirement when the device itself supports it. These checks submit no GPU
+work. Linux portable acceptance cannot certify D3D12 execution. The new exported C++ helpers require
+module rebuild; the stable C ABI is unchanged.

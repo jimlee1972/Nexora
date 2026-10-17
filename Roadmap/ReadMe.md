@@ -75,6 +75,12 @@ Linux regression/Shipping gates pass and Windows native coverage is required by 
 狀態快照及過期清單檢查擴充至 D3D12 有界獨立 Compute 錄製；Linux 回歸／Shipping 通過，
 Windows 原生覆蓋由 CI 強制執行。完整圖形 Gate、Metal Worker 與效能驗收仍待完成。
 
+✅ V2-GFX-1 DXIL artifact stage/profile admission / DXIL Artifact 階段／Profile 檢查
+（2026-10-17）：bounded program metadata and pre-PSO profile checks pass Linux regression and
+Shipping; real Slang profile/PSO checks are required on Windows CI. 有界 Program Metadata 與
+PSO 前 Profile 檢查已通過 Linux 回歸及 Shipping；Windows CI 須驗證真正 Slang Profile／
+PSO。完整 Toolchain 矩陣、SM6.9／6.10 Preview 執行及進階 Gate 仍待完成。
+
 ✅ V2-GFX-1 Metal compute/worker implementation / Metal Compute／Worker 實作（2026-10-17）：
 the real Slang kernel, private bindings/encoder replay, shared-buffer test readback and bounded
 workers are wired into required macOS native gates; Linux Slang regression and Shipping pass.

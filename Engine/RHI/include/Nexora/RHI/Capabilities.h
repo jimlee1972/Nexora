@@ -38,7 +38,8 @@ CheckGraphicsRequirements(const GraphicsDeviceCapabilities &capabilities,
     const GraphicsRequirements &fallback) noexcept;
 [[nodiscard]] NEXORA_RHI_API std::string_view
 CapabilityFailureName(CapabilityFailure failure) noexcept;
-// Checks only admission; does not allocate, record, submit, or select a fallback implicitly.
+// Device admission only; selected shader artifacts need independent validation.
+// Does not allocate, record, submit, or select a fallback implicitly.
 NEXORA_RHI_API void RequireGraphicsCapabilities(const GraphicsDeviceCapabilities &capabilities,
                                                 const GraphicsRequirements &requirements);
 } // namespace nexora::rhi
