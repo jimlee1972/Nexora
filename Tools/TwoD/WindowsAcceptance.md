@@ -30,6 +30,43 @@ Visual Studio 是 multi-config generator，上述 EXE 位於
 `build/windows-showcase-shipping/bin/Shipping/`；Ninja 範例的 `bin/` 路徑不能直接套用。
 `NexoraZigTwoD.dll` 位於 `build/windows-showcase-shipping/Gameplay/Zig/`。匯出時使用實際
 EXE 路徑，並從 `$env:VCToolsRedistDir/x64/` 選取匹配的 `Microsoft.VC*.CRT` 目錄。
+若 configure 改用自訂 `-B <目錄>`，後續必須用 `cmake --build <目錄> --config Shipping`
+及相同 targets；`--build --preset` 仍會指向 preset 原本的目錄。
+
+## 既有 VirtualBox VM 的可重複驗收
+
+`WindowsVmAcceptance.py` 驗證明確指定的兩個 Shipping fixture 封裝：ZIP 頂層必須包含
+`UI-Shipping/`、`ZigGame-Shipping-Fixture/` 與各自的完整 hash inventory。先讓既有 VM 正常
+關機，再執行下列命令；密碼檔保留在 repo 外，不讀出內容或提交。輸出目錄必須不存在。
+
+```powershell
+python Tools/TwoD/WindowsVmAcceptance.py --vm <existing-vm-name> --username <guest-user> `
+  --password-file <external-password-file> --package-zip <verified-fixture-zip> `
+  --vboxmanage <VBoxManage.exe> --output <fresh-evidence-directory>
+```
+
+預設執行兩次冷開機，每次跑原生 UI／Zig、跨程序與跨冷開機存檔、Unicode 路徑、損壞存檔／
+Cooked 拒絕與正常視窗關閉；只有兩次都完成且觀察到 `poweroff` 才輸出總結 PASS。工具不會
+捨棄 saved state、還原 snapshot、強制關機或刪除舊存檔。損壞案例只改本輪的新副本。
+每個 VM UUID 以 OS lock 序列化，Guest Control stdout／stderr 以原始 bytes 分開保留，
+避免主機 PowerShell 把 CLIXML progress 解成錯誤。guest 腳本明確讀取嚴格 UTF-8，遇到 NUL
+直接失敗；完成解壓後 flush 檔案，再逐一驗證 SHA-256。每輪報告以 flush 後的新檔發布。
+同時排空子程序兩條 pipe 並檢查真正 exit code，不能以 PASS 字串或空 ExitCode 推定成功。
+原生測試等待 Guest Additions desktop level 3；level 2 只有系統服務，不表示桌面可用。
+Guest Control 本身在 Session 0 執行，因此透過本輪唯一的 InteractiveToken 排程工作進入
+已登入使用者的桌面，不把密碼寫入排程器。每輪驗證工作退出碼、互動 session 與完整報告，
+完成後移除自己的排程工作。VM 須已有可用的登入桌面；工具不啟用自動登入或更改登入政策。
+預設啟動 GUI 前端；`--frontend headless` 仍必須滿足相同原生桌面條件。
+正常關閉案例先確認獨立 ProjectModule 的藍色面板實際出現在該視窗的兩個像素位置，才送出
+`CloseMainWindow`，並核對退出報告有原生幀。視窗 handle 或固定等待時間不算畫面已呈現。
+
+啟動前須有「VM 設定 RAM + 預留 1024 MiB」的可用主機 RAM。工具不會替使用者改 VM 配置
+或關閉其他應用程式；資源不足時應先正常關機再調整。timeout／RPC 失敗後保留原始診斷，
+不自動重試結果不明的 guest 操作；清理僅嘗試 ACPI，失敗時需人工確認狀態後再開新一輪。
+這是既有 VM 的 fixture／傳輸／生命週期證據，仍需下面的實體裝置與完整產品驗收。
+兩輪之間即使已回報 poweroff，前端仍可能尚未釋放 RAM；工具最多等待 60 秒實際可用量
+達到相同門檻，未達時仍失敗，不會減少預留額度。
+清理失敗時總結的 final state 為 unknown，另保留最後觀測狀態；不能沿用上一輪的 poweroff。
 
 | 實機項目 | 操作與通過條件 | 要保留的證據 |
 | --- | --- | --- |

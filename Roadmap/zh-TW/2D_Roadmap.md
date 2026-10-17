@@ -361,3 +361,18 @@ Run.cmd 均通過。waveOut 提交 48,001 frames 並重開成功；人工聽音�
 保留範圍、inventory 與指令。VM 個別原生案例與最終雜湊已有觀測，但後續 Guest Control／RPC
 失敗令 VM 中止，完整 VM 生命週期未驗收。實體輸入／手把、音訊裝置恢復、中文外觀／DPI、
 乾淨實體 PC 與最低硬體效能仍待完成；M6／M7 維持 NOT ACCEPTED，**9/11（82%）、P0 6/8** 不變。
+
+## Windows VM 傳輸恢復切片（2026-10-17）
+
+✅ 驗收工具已對每個 VM 序列化操作，保留 VBoxManage 原始位元組串流，拒絕 NUL／無效 UTF-8
+inventory，對全新 staging 做 flush 與雜湊檢查，並記錄真正程序退出碼。原生案例等待 desktop
+level 3，再透過 InteractiveToken 工作執行；關閉前確認 fixture 像素已呈現。RAM 回收等待不降低
+預留額度，清理失敗回報 unknown，不沿用前輪 poweroff。本機 12 項 Python 回歸與 2/2 CTest 通過。
+
+✅ 完整目前狀態的恢復複本已通過**兩次冷開機、14/14 案例、存檔 visits 0–4、每輪 120 個
+Zig 原生幀、零殘留 Player 與兩次正常 poweroff**。
+[原始報告與範圍](../../Engine/TwoD/evidence/Windows-VM-Recovery-2026-10-17/acceptance.md)
+保留舊 806-NUL inventory 與失敗嘗試。原 VM 第二次開機的 Windows 登入停滯仍未解決，RAM／
+磁碟維持 saved；只移除新複本重複的 RAM 狀態，沒有還原舊 snapshot 或刪除原存檔。此為凍結
+`63bb5f7a` 的恢復 VM／軟體正確性切片，不是乾淨／實體 PC 驗收。實體手把／音訊／DPI、
+整合產品與最低硬體門檻仍開放；**M6／M7 NOT ACCEPTED、9/11（82%）、P0 6/8** 不變。
