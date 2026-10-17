@@ -1035,3 +1035,7 @@ SPIR-V、Metal 編譯配方與可攜語法檢查通過。先前磁碟滿載的�
 最終審查原始碼再次通過完整 Development221/221，零失敗／跳過（127.44s）；Shipping 重建通過。雙語文件／workflow16/16 與 guarded cleanup25/25 通過。以上本機 gate 不推論 Windows／Metal runtime 或前置 PR 已合併。
 
 整合後較低 profile 等效候選版本通過 Native Slang／Zig Development224/224，零失敗／跳過（130.55s）、Shipping Minimal／Monolithic／LTO，以及 Khronos 物件／同步20/20（10.95s），確認43次 layer 插入，零 Validation Error／VUID／SYNC-HAZARD。編譯語法及文件／workflow16/16 通過。過期 CI 清理僅加入第五個確切自有圖形分支；29/29 安全測試保留現行 head 的兩種事件及其他 actor。父 PR634 最終 head 的兩組原生 preview 均通過7/7，包含每種 barrier 模式14次 feedback dispatch、64次 enhanced buffer barrier 與 Node／Feedback／Node；其完整 CI 及本候選版本的目標平台 CI 仍須通過。
+
+最終版本 preview 工作117482265049 在建置後複製 Agility SDK 目錄時遭 Permission denied，尚未進入 CTest。Modern／SER／VRS 測試程式原先共用 preview-runtime 目的目錄，且各自執行複製。現在每個預覽程式使用獨立部署目錄（modern、SER、VRS image、feedback）；既有相對 target 的 DLL 複製與 CTest 工作目錄讓 ./Agility/ 查找保持私有。此修正消除共用目的目錄的並行寫入，不放寬原生測試。除已觀察到的複製失敗外，不推定 Windows 拒絕存取的確切原因。部署修正仍須通過本機與完整託管驗證。
+
+部署隔離修正通過完整 Development224/224，零失敗／跳過（123.20s）、Shipping Minimal／Monolithic／LTO、雙語文件／workflow16/16 與清理安全測試29/29。合併前仍須通過原生 Windows 編譯／部署與七項 preview 測試，以及兩套完整最終版本 workflow。

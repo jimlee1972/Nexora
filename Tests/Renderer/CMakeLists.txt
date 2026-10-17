@@ -566,7 +566,7 @@ if(NEXORA_ENABLE_D3D12_SER)
     target_compile_definitions(NexoraSerRayTests PRIVATE NEXORA_TEST_OPACITY_NATIVE=1)
   endif()
   nexora_apply_defaults(NexoraSerRayTests)
-  set_target_properties(NexoraSerRayTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  set_target_properties(NexoraSerRayTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/ser-preview-runtime")
   add_dependencies(NexoraSerRayTests NexoraSerShaderArtifacts)
   add_custom_command(TARGET NexoraSerRayTests POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraSerRayTests> "$<TARGET_FILE_DIR:NexoraSerRayTests>"
@@ -614,7 +614,7 @@ if(NEXORA_ENABLE_D3D12_PREVIEW)
   target_link_libraries(NexoraShadingRateImagePreviewTests PRIVATE Nexora::Renderer)
   target_compile_definitions(NexoraShadingRateImagePreviewTests PRIVATE NEXORA_TEST_VRS_IMAGE_PREVIEW=1 _CRT_SECURE_NO_WARNINGS)
   nexora_apply_defaults(NexoraShadingRateImagePreviewTests)
-  set_target_properties(NexoraShadingRateImagePreviewTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/preview-runtime")
+  set_target_properties(NexoraShadingRateImagePreviewTests PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/vrs-image-preview-runtime")
   add_dependencies(NexoraShadingRateImagePreviewTests NexoraShadingRateWitnessArtifacts)
   add_custom_command(TARGET NexoraShadingRateImagePreviewTests POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraShadingRateImagePreviewTests> "$<TARGET_FILE_DIR:NexoraShadingRateImagePreviewTests>"
