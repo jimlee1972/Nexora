@@ -27,6 +27,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace nexora::rhi {
 namespace {
@@ -62,6 +63,7 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
   report(GraphicsFeature::Tessellation, {1, 0}, true);
   report(GraphicsFeature::ParallelCommandRecording, {1, 0});
   result.independent_compute_recording = true;
+  result.independent_graphics_recording = true;
 
   // Numeric query values allow older SDK builds to query a newer runtime without referencing
   // newer compiler enums. Retry lower known models when the runtime rejects a newer query.
@@ -271,7 +273,20 @@ private:
     bool upload_pending{};
   };
   ID3D12Resource *PrepareBuffer(BufferHandle buffer, D3D12_RESOURCE_STATES state);
+  struct TextureSnapshot final {
+    TextureHandle handle;
+    std::uint64_t revision;
+    ResourceState state;
+    TextureFormat format;
+    std::uint32_t width;
+    std::uint32_t height;
+    Microsoft::WRL::ComPtr<ID3D12Resource> resource;
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv;
+  };
+  TextureSnapshot &SnapshotTexture(TextureHandle texture);
   D3D12Device &device_;
+  std::unordered_map<std::uint64_t, TextureSnapshot> texture_snapshots_;
+  TextureHandle render_target_{};
   std::unordered_map<std::uint64_t, BufferSnapshot> buffer_snapshots_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
@@ -331,7 +346,8 @@ public:
           "CreateCommandQueue");
 
     D3D12_DESCRIPTOR_HEAP_DESC heap_description{};
-    heap_description.NumDescriptors = 256;
+    heap_description.NumDescriptors = RtvCapacity;
+    free_rtv_slots_.reserve(RtvCapacity);
     heap_description.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     Check(device_->CreateDescriptorHeap(&heap_description, IID_PPV_ARGS(&rtv_heap_)),
           "CreateDescriptorHeap");
@@ -402,30 +418,56 @@ public:
     clear.Format = format;
     clear.Color[3] = 1.0F;
 
-    TextureRecord record;
-    Check(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &resource_description,
-                                           ToState(descriptor.initial_state), &clear,
-                                           IID_PPV_ARGS(&record.resource)),
-          "CreateCommittedResource");
-    record.descriptor = descriptor;
-    record.logical_state = descriptor.initial_state;
-    record.rtv.ptr = rtv_heap_->GetCPUDescriptorHandleForHeapStart().ptr +
-                     static_cast<SIZE_T>(next_rtv_++) * rtv_increment_;
-    D3D12_RENDER_TARGET_VIEW_DESC rtv_description{};
-    rtv_description.Format = format;
-    rtv_description.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-    device_->CreateRenderTargetView(record.resource.Get(), &rtv_description, record.rtv);
-
-    std::lock_guard lock{mutex_};
-    const auto handle = texture_pool_.Create();
-    textures_.emplace(Key(handle), std::move(record));
-    return handle;
+    UINT slot{};
+    {
+      std::lock_guard lock{mutex_};
+      Require(!free_rtv_slots_.empty() || next_rtv_ < RtvCapacity,
+              "D3D12 RTV descriptor heap exhausted");
+      if (free_rtv_slots_.empty())
+        slot = next_rtv_++;
+      else {
+        slot = free_rtv_slots_.back();
+        free_rtv_slots_.pop_back();
+      }
+    }
+    try {
+      TextureRecord record;
+      Check(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &resource_description,
+                                             ToState(descriptor.initial_state), &clear,
+                                             IID_PPV_ARGS(&record.resource)),
+            "CreateCommittedResource");
+      record.descriptor = descriptor;
+      record.logical_state = descriptor.initial_state;
+      record.rtv_slot = slot;
+      record.rtv.ptr = rtv_heap_->GetCPUDescriptorHandleForHeapStart().ptr +
+                       static_cast<SIZE_T>(slot) * rtv_increment_;
+      D3D12_RENDER_TARGET_VIEW_DESC rtv_description{};
+      rtv_description.Format = format;
+      rtv_description.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+      device_->CreateRenderTargetView(record.resource.Get(), &rtv_description, record.rtv);
+      std::lock_guard lock{mutex_};
+      const auto handle = texture_pool_.Create();
+      try {
+        textures_.emplace(Key(handle), std::move(record));
+      } catch (...) {
+        (void)texture_pool_.Destroy(handle);
+        throw;
+      }
+      return handle;
+    } catch (...) {
+      std::lock_guard lock{mutex_};
+      free_rtv_slots_.push_back(slot); // Capacity was reserved during construction.
+      throw;
+    }
   }
+
+  void ReadTextureForTesting(TextureHandle texture, std::span<std::byte> data) override;
 
   void DestroyTexture(TextureHandle texture) override {
     std::lock_guard lock{mutex_};
     Require(texture_pool_.Contains(texture) && textures_.contains(Key(texture)),
             "destroying invalid D3D12 texture");
+    free_rtv_slots_.push_back(textures_.at(Key(texture)).rtv_slot);
     textures_.erase(Key(texture));
     Require(texture_pool_.Destroy(texture), "destroying stale D3D12 texture");
   }
@@ -499,6 +541,7 @@ public:
       throw std::invalid_argument("pipeline hashes must be non-zero");
     PipelineRecord record;
     record.type = descriptor.type;
+    record.format = descriptor.color_format;
     if (descriptor.type == PipelineType::Compute) {
       if (!compute_shader_)
         throw std::runtime_error("D3D12 compute pipeline requires Slang DXIL");
@@ -570,6 +613,11 @@ public:
         const auto &record = ValidateBufferLocked(snapshot.handle);
         Require(record.revision == snapshot.revision, "stale D3D12 buffer recording snapshot");
       }
+      for (const auto &entry : validated->texture_snapshots_) {
+        const auto &snapshot = entry.second;
+        Require(ValidateTextureLocked(snapshot.handle).revision == snapshot.revision,
+                "stale D3D12 texture recording snapshot");
+      }
       validated->Close();
       ID3D12CommandList *native_list = validated->list_.Get();
       queue_->ExecuteCommandLists(1, &native_list);
@@ -580,6 +628,11 @@ public:
         record.gpu_state = D3D12_RESOURCE_STATE_COMMON;
         record.upload_dirty = false;
         ++record.revision;
+      }
+      for (const auto &entry : validated->texture_snapshots_) {
+        auto &texture = textures_.at(entry.first);
+        texture.logical_state = entry.second.state; // Non-simultaneous textures do not decay.
+        ++texture.revision;
       }
       validated->MarkSubmitted();
       ++diagnostics_.submitted_command_lists;
@@ -630,36 +683,11 @@ public:
     return diagnostics_;
   }
 
-  ID3D12Resource *RecordTransition(const Barrier &barrier) {
+  PipelineRecord &ValidatePipeline(PipelineHandle pipeline) {
     std::lock_guard lock{mutex_};
-    const auto found = textures_.find(Key(barrier.texture));
-    Require(found != textures_.end(), "barrier references invalid D3D12 texture");
-    Require(found->second.logical_state == barrier.before, "D3D12 barrier before-state mismatch");
-    found->second.logical_state = barrier.after;
-    return found->second.resource.Get();
-  }
-
-  TextureRecord &ValidateRenderTarget(TextureHandle texture) {
-    std::lock_guard lock{mutex_};
-    const auto found = textures_.find(Key(texture));
-    Require(found != textures_.end(), "rendering references invalid D3D12 texture");
-    Require(found->second.logical_state == ResourceState::RenderTarget,
-            "D3D12 render target is not in RenderTarget state");
+    const auto found = pipelines_.find(Key(pipeline));
+    Require(found != pipelines_.end(), "binding invalid D3D12 pipeline");
     return found->second;
-  }
-
-  ID3D12PipelineState *ValidatePipeline(PipelineHandle pipeline) {
-    std::lock_guard lock{mutex_};
-    const auto found = pipelines_.find(Key(pipeline));
-    Require(found != pipelines_.end(), "binding invalid D3D12 pipeline");
-    return found->second.pipeline.Get();
-  }
-
-  PipelineType ValidatePipelineType(PipelineHandle pipeline) {
-    std::lock_guard lock{mutex_};
-    const auto found = pipelines_.find(Key(pipeline));
-    Require(found != pipelines_.end(), "binding invalid D3D12 pipeline");
-    return found->second.type;
   }
 
   BufferRecord &ValidateBuffer(BufferHandle buffer) {
@@ -678,10 +706,13 @@ private:
     ComPtr<ID3D12Resource> resource;
     D3D12_CPU_DESCRIPTOR_HANDLE rtv{};
     ResourceState logical_state{ResourceState::Undefined};
+    std::uint64_t revision{};
+    UINT rtv_slot{};
   };
   struct PipelineRecord final {
     ComPtr<ID3D12PipelineState> pipeline;
     PipelineType type{PipelineType::Graphics};
+    TextureFormat format{TextureFormat::Rgba8Unorm};
   };
   struct BufferRecord final {
     BufferDescriptor descriptor;
@@ -691,6 +722,13 @@ private:
     bool upload_dirty{true};
     std::uint64_t revision{};
   };
+
+  TextureRecord &ValidateTextureLocked(TextureHandle texture) {
+    const auto found = textures_.find(Key(texture));
+    Require(texture_pool_.Contains(texture) && found != textures_.end(),
+            "command list references invalid D3D12 texture");
+    return found->second;
+  }
 
   BufferRecord &ValidateBufferLocked(BufferHandle buffer) {
     const auto found = buffers_.find(Key(buffer));
@@ -787,7 +825,9 @@ private:
   ComPtr<ID3DBlob> compute_shader_;
   HANDLE fence_event_{};
   UINT rtv_increment_{};
+  static constexpr UINT RtvCapacity = 256;
   UINT next_rtv_{};
+  std::vector<UINT> free_rtv_slots_;
   std::uint64_t next_fence_{};
   mutable std::mutex mutex_;
   core::HandlePool<TextureTag> texture_pool_;
@@ -842,14 +882,39 @@ ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOU
   return record.gpu_resource.Get();
 }
 
+D3D12CommandList::TextureSnapshot &D3D12CommandList::SnapshotTexture(TextureHandle handle) {
+  std::lock_guard lock{device_.mutex_};
+  const auto &texture = device_.ValidateTextureLocked(handle);
+  const auto key = Key(handle);
+  auto entry = texture_snapshots_.find(key);
+  if (entry == texture_snapshots_.end())
+    entry =
+        texture_snapshots_
+            .emplace(key, TextureSnapshot{handle, texture.revision, texture.logical_state,
+                                          texture.descriptor.format, texture.descriptor.width,
+                                          texture.descriptor.height, texture.resource, texture.rtv})
+            .first;
+  device_.Require(entry->second.revision == texture.revision,
+                  "D3D12 texture changed during command recording");
+  return entry->second;
+}
+
 void D3D12CommandList::Transition(const Barrier &barrier) {
-  if (submitted_)
+  if (submitted_ || closed_)
     throw std::logic_error("cannot record a submitted command list");
   if (rendering_)
     throw std::logic_error("D3D12 barriers cannot occur inside rendering");
+  if (!IsValidTextureBarrier(barrier))
+    throw std::invalid_argument("invalid D3D12 texture barrier");
+  auto &texture = SnapshotTexture(barrier.texture);
+  if (texture.state != barrier.before) {
+    std::lock_guard lock{device_.mutex_};
+    device_.Require(false, "D3D12 barrier before-state mismatch");
+  }
   if (barrier.before == barrier.after)
     return;
-  auto *resource = device_.RecordTransition(barrier);
+  texture.state = barrier.after;
+  auto *resource = texture.resource.Get();
   D3D12_RESOURCE_BARRIER native{};
   native.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   native.Transition.pResource = resource;
@@ -861,7 +926,7 @@ void D3D12CommandList::Transition(const Barrier &barrier) {
 }
 
 void D3D12CommandList::TransitionBuffer(const BufferBarrier &barrier) {
-  if (submitted_ || rendering_)
+  if (submitted_ || closed_ || rendering_)
     throw std::logic_error("buffer barriers require an open command list outside rendering");
   if (!IsValidBufferBarrier(barrier))
     throw std::invalid_argument("invalid buffer barrier");
@@ -884,9 +949,13 @@ void D3D12CommandList::TransitionBuffer(const BufferBarrier &barrier) {
 }
 
 void D3D12CommandList::BeginRendering(const RenderingInfo &info) {
-  if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
+  if (submitted_ || closed_ || rendering_ || info.width == 0 || info.height == 0)
     throw std::logic_error("invalid D3D12 BeginRendering");
-  auto &target = device_.ValidateRenderTarget(info.color_target);
+  auto &target = SnapshotTexture(info.color_target);
+  if (target.state != ResourceState::RenderTarget || info.width > target.width ||
+      info.height > target.height)
+    throw std::logic_error("invalid D3D12 render target state/extent");
+  render_target_ = info.color_target;
   list_->OMSetRenderTargets(1, &target.rtv, FALSE, nullptr);
   const float clear[] = {0.0F, 0.0F, 0.0F, 1.0F};
   list_->ClearRenderTargetView(target.rtv, clear, 0, nullptr);
@@ -902,12 +971,16 @@ void D3D12CommandList::BeginRendering(const RenderingInfo &info) {
 }
 
 void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
-  if (submitted_)
+  if (submitted_ || closed_)
     throw std::logic_error("cannot bind a pipeline on a submitted D3D12 command list");
-  pipeline_type_ = device_.ValidatePipelineType(pipeline);
+  const auto &record = device_.ValidatePipeline(pipeline);
+  pipeline_type_ = record.type;
   if ((pipeline_type_ == PipelineType::Graphics) != rendering_)
     throw std::logic_error("D3D12 pipeline type does not match command-list rendering state");
-  list_->SetPipelineState(device_.ValidatePipeline(pipeline));
+  if (pipeline_type_ == PipelineType::Graphics &&
+      record.format != SnapshotTexture(render_target_).format)
+    throw std::logic_error("D3D12 pipeline format does not match render target");
+  list_->SetPipelineState(record.pipeline.Get());
   if (pipeline_type_ == PipelineType::Compute) {
     list_->SetComputeRootSignature(device_.RootSignature());
     for (std::uint32_t index = 0; index < storage_buffers_.size(); ++index) {
@@ -923,7 +996,7 @@ void D3D12CommandList::BindPipeline(PipelineHandle pipeline) {
 }
 
 void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
-  if (submitted_ || rendering_ || binding >= storage_buffers_.size())
+  if (submitted_ || closed_ || rendering_ || binding >= storage_buffers_.size())
     throw std::logic_error("invalid D3D12 storage-buffer binding");
   const auto state = binding == 0 ? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
                                   : D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -941,7 +1014,7 @@ void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buf
 
 void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
                                           std::uint32_t stride) {
-  if (submitted_ || stride != GPUDrivenIndirectCommandStride ||
+  if (submitted_ || closed_ || stride != GPUDrivenIndirectCommandStride ||
       offset % alignof(std::uint32_t) != 0)
     throw std::logic_error("invalid D3D12 indirect-buffer binding");
   auto &record = device_.ValidateBuffer(buffer);
@@ -954,7 +1027,8 @@ void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
 }
 
 void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0)
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
+      instance_count == 0)
     throw std::logic_error("invalid D3D12 draw");
   list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   list_->DrawInstanced(vertex_count, instance_count, 0, 0);
@@ -963,8 +1037,9 @@ void D3D12CommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_c
 
 void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group_count_y,
                                 std::uint32_t group_count_z) {
-  if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
-      group_count_x == 0 || group_count_y == 0 || group_count_z == 0)
+  if (submitted_ || closed_ || rendering_ || !pipeline_bound_ ||
+      pipeline_type_ != PipelineType::Compute || group_count_x == 0 || group_count_y == 0 ||
+      group_count_z == 0)
     throw std::logic_error("invalid D3D12 dispatch");
   for (std::size_t index = 0; index < storage_bound_.size(); ++index) {
     if (!storage_bound_[index])
@@ -976,8 +1051,9 @@ void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group
 }
 
 void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Graphics ||
-      !indirect_buffer_ || indirect_stride_ != GPUDrivenIndirectCommandStride || draw_count == 0)
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+      pipeline_type_ != PipelineType::Graphics || !indirect_buffer_ ||
+      indirect_stride_ != GPUDrivenIndirectCommandStride || draw_count == 0)
     throw std::logic_error("invalid D3D12 indirect draw");
   if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, draw_count))
     throw std::logic_error("D3D12 indirect draw reads past the bound indirect buffer");
@@ -989,7 +1065,7 @@ void D3D12CommandList::DrawIndirect(std::uint32_t draw_count) {
 }
 
 void D3D12CommandList::EndRendering() {
-  if (submitted_ || !rendering_)
+  if (submitted_ || closed_ || !rendering_)
     throw std::logic_error("D3D12 EndRendering without BeginRendering");
   rendering_ = false;
 }
@@ -1000,6 +1076,102 @@ void D3D12CommandList::Close() {
   Check(list_->Close(), "ID3D12GraphicsCommandList::Close");
   closed_ = true;
 }
+void D3D12Device::ReadTextureForTesting(TextureHandle texture, std::span<std::byte> data) {
+  WaitIdle();
+  ComPtr<ID3D12Resource> readback;
+  ComPtr<ID3D12CommandAllocator> allocator;
+  ComPtr<ID3D12GraphicsCommandList> list;
+  D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
+  std::uint64_t fence_value{};
+  std::uint64_t total{};
+  std::uint32_t height{};
+  std::uint64_t row_bytes{};
+  bool accepted = false;
+  try {
+    {
+      std::lock_guard lock{mutex_};
+      auto &record = ValidateTextureLocked(texture);
+      Require(record.descriptor.format == TextureFormat::Rgba8Unorm ||
+                  record.descriptor.format == TextureFormat::Bgra8Unorm,
+              "D3D12 texture readback requires a four-byte color format");
+      row_bytes = static_cast<std::uint64_t>(record.descriptor.width) * 4;
+      height = record.descriptor.height;
+      Require(data.size() == row_bytes * height,
+              "texture readback size must be width * height * 4");
+      Require(record.logical_state != ResourceState::Undefined,
+              "reading a D3D12 texture with undefined contents");
+      const auto description = record.resource->GetDesc();
+      device_->GetCopyableFootprints(&description, 0, 1, 0, &footprint, nullptr, nullptr, &total);
+      D3D12_HEAP_PROPERTIES heap{};
+      heap.Type = D3D12_HEAP_TYPE_READBACK;
+      heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+      D3D12_RESOURCE_DESC storage{};
+      storage.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      storage.Width = total;
+      storage.Height = 1;
+      storage.DepthOrArraySize = storage.MipLevels = 1;
+      storage.SampleDesc.Count = 1;
+      storage.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      Check(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &storage,
+                                             D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                             IID_PPV_ARGS(&readback)),
+            "CreateCommittedResource(texture readback)");
+      Check(
+          device_->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&allocator)),
+          "CreateCommandAllocator(texture readback)");
+      Check(device_->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, allocator.Get(), nullptr,
+                                       IID_PPV_ARGS(&list)),
+            "CreateCommandList(texture readback)");
+      const auto original = ToState(record.logical_state);
+      const auto transition = [&](D3D12_RESOURCE_STATES before, D3D12_RESOURCE_STATES after) {
+        if (before == after)
+          return;
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = record.resource.Get();
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = before;
+        barrier.Transition.StateAfter = after;
+        list->ResourceBarrier(1, &barrier);
+      };
+      transition(original, D3D12_RESOURCE_STATE_COPY_SOURCE);
+      D3D12_TEXTURE_COPY_LOCATION destination{};
+      destination.pResource = readback.Get();
+      destination.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      destination.PlacedFootprint = footprint;
+      D3D12_TEXTURE_COPY_LOCATION source{};
+      source.pResource = record.resource.Get();
+      source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      list->CopyTextureRegion(&destination, 0, 0, 0, &source, nullptr);
+      transition(D3D12_RESOURCE_STATE_COPY_SOURCE, original);
+      Check(list->Close(), "Close(texture readback)");
+      ID3D12CommandList *native_list = list.Get();
+      queue_->ExecuteCommandLists(1, &native_list);
+      accepted = true;
+      ++record.revision;
+      fence_value = ++next_fence_;
+      Check(queue_->Signal(fence_.Get(), fence_value), "Signal(texture readback)");
+    }
+    WaitForFence(fence_value);
+  } catch (...) {
+    if (accepted)
+      WaitIdle();
+    throw;
+  }
+  void *mapped{};
+  const D3D12_RANGE range{0, static_cast<SIZE_T>(total)};
+  Check(readback->Map(0, &range, &mapped), "Map(texture readback)");
+  for (std::uint32_t row = 0; row < height; ++row)
+    std::memcpy(data.data() + static_cast<std::size_t>(row * row_bytes),
+                static_cast<const std::byte *>(mapped) + footprint.Offset +
+                    static_cast<std::uint64_t>(row) * footprint.Footprint.RowPitch,
+                static_cast<std::size_t>(row_bytes));
+  const D3D12_RANGE written{0, 0};
+  readback->Unmap(0, &written);
+  std::lock_guard lock{mutex_};
+  ++diagnostics_.readbacks;
+}
+
 void D3D12Device::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
                                        std::span<std::byte> data) {
   WaitIdle();

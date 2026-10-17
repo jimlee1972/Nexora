@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <span>
 #include <string>
@@ -45,6 +46,17 @@ struct ExternalPassContext final {
   std::span<const ExternalTextureTransition> transitions;
 };
 
+// MSVC exports the virtual member, avoiding a dll-interface requirement on std::exception.
+// Other platforms expose the type's RTTI as well for catches across shared-library boundaries.
+class
+#if !defined(_WIN32)
+    NEXORA_RENDERER_API
+#endif
+        RenderGraphCancelled final : public std::exception {
+public:
+  [[nodiscard]] NEXORA_RENDERER_API const char *what() const noexcept override;
+};
+
 class NEXORA_RENDERER_API RenderGraph final {
 public:
   using ExecuteFunction =
@@ -58,15 +70,18 @@ public:
     std::function<void(const ExternalPassContext &)> external_execute{};
     std::vector<BufferUse> buffer_reads{};
     std::vector<BufferUse> buffer_writes{};
-    // Promise: compute-only commands, complete buffer declarations and thread-safe captures.
+    // Promise: admitted compute/color-target commands, complete resource declarations,
+    // immutable pre-created pipelines and thread-safe captures.
     bool allow_parallel_recording{false};
   };
   enum class RecordingMode : std::uint8_t { Serial, Parallel };
   struct ExecutionOptions final {
     RecordingMode recording_mode{RecordingMode::Serial};
-    // Borrowed, started pool. Execute runs on a coordinator outside this pool.
+    // Borrowed, started pool. A coordinator from this same pool falls back to serial.
     core::JobSystem *recording_jobs{};
     std::size_t max_parallel_passes{4};
+    // Optional; observed before recording and before submitting an unsubmitted batch.
+    core::CancellationToken cancellation{};
   };
   struct Statistics final {
     std::size_t pass_count{};

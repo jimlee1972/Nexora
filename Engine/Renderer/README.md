@@ -271,12 +271,12 @@ remain reorderable. A deterministic topological order fixes immutable per-pass b
 including same-access storage WAW dependencies and the first use of each buffer (which validates
 stale handles before its callback). Failed compilation invalidates execution. Execution replays
 those plans without recomputing ownership, submits serially, and waits idle before releasing
-transients, including on exceptions. Callback failure stops submission and successors; it does not
-roll back native recording state or prior submitted passes. After failed native recording, callers
-must recreate affected textures and rebuild the graph before retrying on backends that mutate
-texture state during recording: waiting idle does not undo that preparation. Buffer-only Vulkan
-and D3D12 recording can abandon an unsubmitted batch and retry; D3D12 uses revision-checked,
-list-local upload/state snapshots. Prior submitted passes and CPU callback effects are not rolled back. Successful repeated buffer execution with default
+transients, including on exceptions. Callback failure stops submission and successors; prior
+accepted work and CPU effects remain visible. All built-in texture paths use list-local state,
+committed only after queue acceptance; unsubmitted failed/cancelled recordings can retry with
+unchanged entry contracts and fresh lists after every worker joins. D3D12 pending buffer uploads
+also remain available after abandonment. Custom backends must provide equivalent isolation before
+advertising limited parallel admission. Successful repeated buffer execution with default
 `Undefined` remains conservative.
 
 `renderer.graph_buffer_dependencies` covers hazards, read/read handoffs, cycles, declarations,
@@ -286,31 +286,53 @@ aliases, stale imports, repeated execution, callback failure and initial transie
 ordering, derives the graphics dependency from its indirect read, and compares test-only readbacks
 to the CPU reference on Vulkan/D3D12. Production passes perform no readback.
 
-Default recording remains serial; the bounded opt-in compute path is described below. Logical
+Default recording remains serial; the bounded opt-in compute/color-target paths are described below. Logical
 queues currently alias one native queue. Asynchronous queue-family transfers, general parallel
 recording, Enhanced Barriers, aliasing and reusable fence-retired workers remain open gates.
 
-## Bounded opt-in parallel compute recording
+## Vulkan texture recording isolation
+
+Vulkan lists now keep texture entry revisions, native metadata and logical transitions privately.
+Rendering validates the list-local state; the device commits state only after queue acceptance and
+rejects stale generations/revisions before native execution. Readback also invalidates older
+recorded snapshots. All framebuffers from every rendering scope retire after completion or after
+an unsubmitted command buffer/pool is freed. Callers retain resources, pre-create immutable
+pipelines, serialize mutation/submission and never record the same list from two threads.
+
+The native graphics test records six scopes per list over 24 disjoint mixed-format/extent targets,
+forces four workers to overlap, joins before reverse submission and compares every pixel exactly
+to nonempty serial references. Abandonment preserves state/output; stale lists fail before queueing,
+and a serial graph can recover from a callback failure and replay the same imported target.
+Synchronization/object validation covers this path and the existing compute descriptor test.
+
+That prerequisite isolated Vulkan recording. The independent color-target admission below now
+adds bounded graph graphics and D3D12/Metal texture snapshots. Shared-resource policies,
+asynchronous reuse and matched performance remain open. See the
+[RHI lifetime contract](../RHI/README.md#vulkan-texture-snapshots-and-framebuffer-retirement-v2-gfx-1-slice).
+
+## Bounded opt-in parallel compute and color-target recording
 
 The existing `Execute(device)` stays serial. Callers can pass `ExecutionOptions` with
 `RecordingMode::Parallel`, a borrowed started `core::JobSystem` and a nonzero batch limit (default
 four). Each participating pass must explicitly set `allow_parallel_recording`. This is a promise
-that the callback records compute commands only, declares every accessed buffer, uses pre-created
-immutable pipelines/resources and has thread-safe captures. Callbacks must not allocate, upload,
+that the callback records admitted buffer-only compute or color-target graphics commands, declares
+every accessed texture/buffer, uses pre-created immutable pipelines/resources and has thread-safe
+captures. Callbacks must not allocate, upload,
 mutate or destroy device resources, submit/wait/read back, mutate the graph, or control the job
 pool's lifecycle. CPU effects of successful siblings in a failed batch cannot be rolled back.
 
 Parallel admission additionally requires the device's limited `independent_compute_recording`
-contract. Validation, supported Vulkan compute devices and isolated D3D12/Metal buffer recording admit it;
+or `independent_graphics_recording` contract for the corresponding pass. Validation, supported Vulkan compute devices and isolated D3D12/Metal buffer recording admit it;
 custom devices default to serial fallback. The full `ParallelCommandRecording` feature stays
-disabled/unimplemented. This admission is neither a general graphics-recording guarantee nor a
-shader requirement, SDK tier or performance claim.
+disabled/unimplemented. This is limited admission, with no shader requirement, SDK tier or performance claim.
 
 A batch contains two or more contiguous passes in the compiled topological order, bounded by both
-the requested limit and the pool's worker count. Passes must use the Compute queue, declare at
-least one buffer and no textures, have no dependency edge within the batch, and share no buffer
-at all (including read/read). A conflict ends the batch; singleton, graphics/texture/external,
-unmarked and unsupported paths remain serial. Explicit and inferred dependencies still determine
+the requested limit and the pool's worker count. Compute passes declare at least one buffer and
+no textures. Graphics passes declare at least one color-target write, exclusively in RenderTarget
+state, no texture reads and no buffer writes. Declared read-only buffers may supply graphics data.
+Batches may mix these independently admitted queues, but have no dependency edge within the batch
+and share no texture or buffer at all, including read/read. A conflict ends the batch; singleton,
+texture-sampling, copy, external, unmarked and unsupported paths remain serial. Explicit and inferred dependencies still determine
 order. Each completed batch submits and waits before recording the next batch, so dependent
 callbacks cannot run before their predecessors complete. External execution never uses this pool.
 
@@ -323,11 +345,13 @@ only on the coordinator; lists and their descriptor pools survive completion. A 
 attempts `WaitIdle` before freeing the affected lists, then propagates. This waits for retirement;
 it does not implement asynchronous worker reuse or multi-queue timelines.
 
-`Execute` must run on a coordinator outside the supplied pool. The caller keeps that pool started
+`Execute` uses the calling thread as coordinator. The caller keeps the supplied pool started
 and alive and serializes its Start/Stop/destruction against the call; resource/device/graph mutation
 also stays serialized. A missing, stopped or one-worker pool, or a limit of one, selects serial
-fallback. Invalid modes and a zero limit fail before recording. Nested coordination on the same
-pool is unsupported because waiting workers could exhaust it.
+fallback. Invalid modes and a zero limit fail before recording. A coordinator on the same
+recording pool now selects serial fallback, preventing worker exhaustion. A worker of a different
+pool can coordinate parallel recording if the pools have no cyclic blocking dependencies. This
+does not make general JobSystem waits reentrant or permit worker-controlled pool shutdown.
 
 Statistics distinguish successful parallel/serial recording, parallel batch count, serial fallback
 under a parallel request and maximum scheduled batch size. The last is a scheduling bound, not a
@@ -343,9 +367,9 @@ batch submission and completion-before-retirement (including submit errors after
 acceptance). The existing Vulkan descriptor test additionally runs 24 unique workloads through two
 WAW graph waves in serial and four-worker modes, requires native worker overlap, compares 48
 results to the CPU reference and verifies that aborted recording preserves all sentinel output
-before reusing the same buffers. Tests do not establish reduced CPU overhead. Broader backend
-workers, shared-read optimization, graphics/texture concurrency, cancellation, async retirement,
-compiler/artifact readiness and matched CPU/GPU/memory benchmarks remain separate gates.
+before reusing the same buffers. Tests do not establish reduced CPU overhead. Shared-read
+optimization, asynchronous retirement, compiler/artifact readiness and matched CPU/GPU/memory
+benchmarks remain separate gates.
 
 The Windows `renderer.d3d12_recording_isolation` target reuses the Vulkan workload and exact CPU
 oracle for the same 320 dispatch and 48 graph comparisons. It also exercises D3D12 abandoned
@@ -364,3 +388,57 @@ Worker compute entry points manage autorelease pools while ARC retains list-owne
 The test-only shared-buffer readback waits for queue completion; production passes never read back.
 This remains the disjoint buffer-only contract, with no graphics/texture concurrency or asynchronous
 reuse. See [Metal ownership](../RHI/README.md#metal-gpu-driven-compute-and-worker-ownership-v2-gfx-1-slice).
+
+## Recording cancellation and nested coordinators
+
+`ExecutionOptions::cancellation` is an optional owning copy of a Core cancellation token; its
+empty default preserves existing calls, including three-field aggregate initialization. Another
+thread may signal the corresponding source while execution is active, but graph/device/pool
+lifecycle and the options object remain caller-serialized. `RenderGraphCancelled` is a typed
+`std::exception` with the diagnostic `render graph recording cancelled`.
+
+After normal graph/options validation, pre-cancelled execution resets execution counters and
+throws before any RHI resource/list allocation, callback, submission or GPU wait. During execution,
+the coordinator observes cancellation before each recording cohort and again after recording,
+before submitting an unsubmitted serial pass or parallel batch. Cancellation does not skip queued
+recording jobs: every started job is joined and its resources remain alive. Callbacks may also
+cooperate through captured tokens. Callback errors precede scheduling errors, which precede a
+coordinator-observed cancellation; CPU effects and previously submitted passes cannot roll back.
+
+Once submission of a cohort begins, a later cancellation does not interrupt it: all accepted
+submissions wait for completion and the batch retires normally. The next cohort stops before
+allocation/recording. Submission/wait failures still follow the existing drain-before-retirement
+error path. Cancellation arriving after acceptance of the final cohort returns normal completion;
+all passes have finished. This is cooperative boundary observation, not preemption or an atomic
+transaction with a concurrent `Cancel` call. `completed_pass_count` preserves completed prior work;
+recording counters may include a cancelled batch that never submitted.
+
+Failed/cancelled unsubmitted compute and admitted color-target batches preserve output and may
+retry with fresh or empty cancellation state after every worker joins. Texture snapshots remain
+private on all built-in backends. Cancellation never resets a source. External-owner execution
+retains its own cancellation/acquired-frame policy.
+
+Tests saturate both pool workers with nested graph coordinators and require serial completion,
+while a foreign-pool coordinator still records concurrently. They cover pre-cancellation, serial
+transient cleanup, simultaneous callbacks, failure precedence, deferred completion after accepted
+batches and late cancellation after the final batch. The native Vulkan graph additionally requires
+cancelled recording to preserve every output sentinel with no submission/readback, followed by a
+successful reuse. Full graphics recording, asynchronous reuse, shared-read optimization and matched
+performance remain separate gates. All C++ modules must rebuild for the appended options/token and
+new exported query/exception; the stable C ABI is unchanged.
+
+
+## Native color-target graph acceptance
+
+All three native backends and Validation use list-private texture state, committed only when
+submission is accepted. Aborted graph callbacks can reuse imported color targets with fresh lists;
+stale texture generations/revisions reject before queueing. Each graph batch joins all workers
+before ordered synchronous submission. Graphics admission is independent of compute admission,
+and default Execute remains serial. Full parallel feature admission remains disabled/unimplemented.
+
+The shared native texture oracle adds eight disjoint graphics passes, two four-worker cohorts and
+exact pixel comparison with serial output, plus failed/cancelled-batch output preservation and
+successful replay. Restore passes remain serial. The portable model checks independent capability admission,
+texture alias/dependency/shared-buffer-read conflicts, unmarked/sampling/copy fallback, ordered
+submission, deferred completion before retirement and transactional upload/submit/handle rejection.
+See the [RHI contract](../RHI/README.md#independent-color-target-recording-and-transactional-textures).

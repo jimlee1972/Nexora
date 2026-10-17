@@ -48,6 +48,8 @@ void VerifyNativeBackend(nexora::rhi::Backend backend) {
                 backend == rhi::Backend::Metal) &&
                compute.enabled && compute.implemented),
           "native backend advertised an unvalidated independent compute recording path");
+  Require(capabilities.independent_graphics_recording,
+          "native backend is missing independent color-target recording admission");
   std::cout << "Native capabilities backend=" << static_cast<unsigned>(backend)
             << " software=" << capabilities.software_device << " vendor=" << capabilities.vendor_id
             << " device=" << capabilities.device_id << " driver=" << capabilities.driver_version

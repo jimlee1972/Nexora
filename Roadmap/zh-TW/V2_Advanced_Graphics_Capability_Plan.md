@@ -25,6 +25,93 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 原生圖形／取消整合 — 2026-10-17
+
+✅ PR626 整合取消／同池 Coordinator、Vulkan Framebuffer／Texture 隔離，以及 Vulkan、
+D3D12、Metal 的有界 Color-target 錄製。共用圖形 Oracle 現另取消僅清除畫面的平行 Cohort，
+要求零提交及像素 Sentinel 不變，再以新的取消狀態重播。資源快照與全部取消檢查／Worker
+身分 Guard 共存；預設仍為序列，完整平行 Feature 保持關閉。MSVC 匯出例外的 Virtual
+診斷 Member，其他平台保留可見 Type RTTI，維持跨 Module 的型別化 Catch，未壓制 Compiler
+警告。
+
+整合後啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 完整
+`ctest --preset linux-development` **229/229 通過，零略過／失敗，259.33 秒**。
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_texture_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`：
+**7/7 通過，零略過，0.36 秒**。Shipping Configure／Build 通過（Monolithic／Minimal、LTO）。
+下方四項 Vulkan Object／Synchronization Validation 指令 **4/4 通過，零略過，2.15 秒**；
+移除繼承 Shader 路徑後，Loader 確認 12 次 Layer 載入，完整 Log 沒有 Validation Error／
+VUID／SYNC-HAZARD 訊息。Windows／Metal 執行須通過新 Head 的 Hosted Gate。Beads
+`nexora-45y.2.6`、`.2.7`、`.2.8` 共用 PR626；完整 V2-GFX 及實體效能 Gate 仍待完成。
+
+### 有界原生 Color-target Graph 錄製 — 2026-10-17
+
+✅ 有限的 `independent_graphics_recording` Contract 將獨立 Color-target Graphics Cohort
+加入選用的 Graph 排程器，與獨立檢查的 Buffer-only Compute 共存。Graphics Pass 須完整
+宣告資源，至少一項 RenderTarget 寫入，不得讀取 Texture 或寫入 Buffer。共用資源（含
+Read/Read）、相依、未支援／未標記 Pass 與單一 Cohort 會序列 Fallback。預設 Execute
+仍為序列。Worker 只錄製；Coordinator 等全部結束，再依 Graph 順序提交並等待完成才回收。
+
+D3D12／Metal 現由各清單快照 Texture Generation／Revision／原生 Metadata 及邏輯狀態，
+執行前驗證，Queue 接受後才提交。讀回使舊快照過期；失敗／放棄錄製保留已提交狀態。
+Validation 模擬相同政策，包含上傳使快照失效。D3D12 RTV 分配會檢查 256 項 Heap 容量並
+回收已退役 Slot。原生 Color 測試讀回會去除 Staging Row Padding；正式執行不讀回。
+Metal Graphics 入口使用 Autorelease Pool，清單以 ARC 保留 Texture／Encoder。
+
+Vulkan／D3D12／Metal 共用 Oracle 涵蓋 24 組混合 Format／Extent 的序列／平行逐像素比對、
+每清單六個 Scope、四 Worker 重疊及反向提交；過期快照與放棄復原；512 次目標分配／回收；
+以及八組 Graph 輸出比對、放棄批次 Sentinel 與重播。Portable 測試另涵蓋能力獨立檢查、
+Compute／Graphics 混合 Cohort、共用讀取、Texture Hazard／相依、未選用、Sampling／Copy
+Fallback、提交順序與完成後回收。
+
+來源分支：`feat/v2-native-graphics-recording`；Beads `nexora-45y.2.8`。
+啟用 Slang 的 `cmake --preset linux-development` 與
+`cmake --build --preset linux-development` 通過。Xvfb／Native-required 的
+`ctest --preset linux-development` **205/205 通過，零略過／失敗，134.48 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。Shipping Configure／Build 通過
+（Monolithic／Minimal、LTO）。原生 Vulkan Object／Synchronization Validation 使用
+**1.3.275** Layer，**4/4 通過，零略過，8.24 秒**；Loader 證明已載入，沒有 Validation
+Error、VUID 或 SYNC-HAZARD 訊息。移除繼承 Shader 路徑後由 CTest 提供原生 Artifact。
+最終混合 Cohort Portable 測試亦通過。Windows／Metal 執行驗收須由 Hosted CI 證明，
+Linux 不認證這兩個後端。新增能力欄位後須重建全部 C++ Module；Stable C ABI 與
+Shader／SDK 基線不變。完整平行 Feature、共用讀取、非同步 Queue／重用、Compiler／
+Artifact 就緒矩陣及同條件實體 GPU 效能仍待完成。詳見
+[Graph Contract](../../Engine/Renderer/README.md#native-color-target-graph-acceptance) 與
+[RHI Contract](../../Engine/RHI/README.md#independent-color-target-recording-and-transactional-textures)。
+
+### Vulkan Texture 錄製與完整 Framebuffer 回收 — 2026-10-17
+
+✅ Vulkan Texture Transition 現使用各清單擁有的 Generation／Revision／State 快照；Rendering
+檢查私有狀態，提交在關閉／送入 Queue 前拒絕過期快照，只有已接受工作才提交裝置最終狀態。
+讀回恢復 Layout，但會使舊錄製失效。每個 Render Scope 的 Framebuffer 都在完成或放棄清單
+清理後回收，不再由單一欄位遺失前面 Scope。Undefined 目的狀態、非法 Queue、超出 Target
+範圍與清單關閉後的錄製，都在原生命令前拒絕。
+
+原生測試使用 24 個獨立、不同格式／大小的 Target，每份清單六個 Render Scope、四個
+Worker，要求有時限的重疊錄製，之後逆序提交，對非空序列參考進行 24 次逐像素精確比對。
+另驗證放棄狀態／輸出及重試、提交／讀回／失效 Handle 的過期拒絕、Callback 失敗復原與
+序列 Graph 重播。既有 CI 同步／物件 Validation Step 新增 Graphics Texture 錄製及
+Compute Descriptor 隔離，沒有新增 CI 相依或 Job。未新增 Texture Upload API；資源
+變更／提交仍須由 Caller 相對錄製序列化。
+
+來源分支：`feat/v2-vulkan-texture-recording`；Beads `nexora-45y.2.7`。
+本機啟用 Slang 的 `cmake --preset linux-development`、
+`cmake --build --preset linux-development` 與 Xvfb／Native-required 的
+`ctest --preset linux-development` 通過：**205/205，零略過／失敗，118.15 秒**
+（Slang 2026.18、Mesa lavapipe 24.0.5、Zig 0.14.0）。Shipping Configure／Build
+通過（Monolithic／Minimal、LTO）。原生 Validation 指令
+`ctest --preset linux-development -R '^renderer\.(vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+**4/4 通過，零略過，0.87 秒**；移除繼承 Shader 路徑，由 CTest 提供兩份 Artifact。
+Ubuntu Validation Layer **1.3.275** 解壓於專案外；Loader 輸出證實載入，啟用同步
+Validation 後完整 Log 的 **Validation Error／VUID／SYNC Marker 均為零**。
+本次 C++ Format 與 `git diff --check` 通過。較早 Slang-off／手動 Artifact 的完整 Gate
+也曾 195/195 通過；以上啟用 Slang 的結果為最終 Gate。
+
+完整 Graph Graphics 檢查、DX12／Metal Texture 隔離、共用讀取、非同步 Queue／重用、
+Compiler／Artifact 就緒與同條件實體 GPU 效能仍待完成。完整平行 Feature 維持未啟用／
+未實作，Shader／SDK 基線與 Stable C ABI 不變。詳見
+[RHI 所有權 Contract](../../Engine/RHI/README.md#vulkan-texture-snapshots-and-framebuffer-retirement-v2-gfx-1-slice)。
+
 ### Metal 完整 Kernel Compute 與 Worker 所有權 — 2026-10-17
 
 ✅ Metal 路徑現可選用真正由 Slang 產生的 `GPUDriven.metal`，驗證指定 Artifact 且不以 No-op
@@ -86,6 +173,44 @@ GPU Validation Layer 結果、共用讀取／Texture 並行、Metal Worker 所�
 Shader／SDK 基線與 Stable C ABI 不變。詳見
 [RHI 快照 Contract](../../Engine/RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice)。
 
+### 取消與同池 Coordinator — 2026-10-17
+
+✅ Pool-local Worker 身分可讓位於自身錄製 Pool 的 Graph Coordinator 選擇序列 Fallback，
+即使全部 Worker 同時協調 Graph，也不會因耗盡執行緒而互等。其他 Pool 的 Coordinator
+仍可使用有界平行錄製。Start／Stop 與物件生命週期仍須外部序列化；一般 Wait 並未新增
+Work Stealing 或循環等待復原。
+
+選用的 Cancellation Token 可在預先取消時，於 RHI 分配／Callback 前停止，或在錄製後、
+未提交 Cohort 送入 GPU 前停止。每個已啟動 Job 都須結束；Callback／排程錯誤優先於觀察到
+的取消。Cohort 一旦開始提交便會完成並回收，下一批停止；最後一批接受後才取消仍回傳
+正常完成。型別 `RenderGraphCancelled` 區分取消。既有預設與 Stable C ABI 不變；新增
+Query／Exception 及 Token 欄位後須重建所有 C++ Module。
+
+Portable 測試涵蓋耗盡 Worker 的巢狀 Coordinator、其他 Pool 重疊、停止／重啟身分、預先／
+序列／平行取消、Transient 清理、錯誤優先序、已接受批次完成與最後取消。原生 Vulkan
+另驗證取消後 Sentinel 保留、零提交／讀回與 Buffer 重用，保留既有 320 組 Dispatch 及
+48 組 Graph CPU 比對。來源分支：`feat/v2-recording-cancellation-and-nesting`；
+Beads `nexora-45y.2.6`。
+
+本機 `cmake --preset linux-development` 與 `cmake --build --preset linux-development`
+通過；Xvfb／Native-required 的 `ctest --preset linux-development` **194/194 通過，
+零略過／失敗，107.80 秒**（Slang 2026.18 SPIR-V、Mesa lavapipe 24.0.5、Zig 0.14.0）。
+聚焦執行
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`：
+**6/6 通過，零略過，0.27 秒**。`cmake --preset linux-shipping` 與
+`cmake --build --preset linux-shipping` 通過（Monolithic／Minimal、LTO）。本次 C++ 的
+`clang-format --dry-run --Werror` 與 `git diff --check` 通過。
+
+PR625 後整合：已 Rebase 至 main `c5c5b897`；啟用 Slang 的完整 Development
+Configure／Build 與 Xvfb／Native-required CTest **228/228 通過，零略過／失敗，267.94 秒**。
+最終上述聚焦指令 **6/6 通過，零略過，0.27 秒**。Shipping Monolithic／Minimal LTO
+Configure／Build 通過。自 Dependency Head Rebase 後驗證過的 Source Tree 完全相同；
+D3D12 與 Metal 的 Hosted 原生 Gate 現亦編譯共用的取消 Oracle。
+
+完整 Gate、Graphics／Texture 並行、共用讀取、非同步 Queue／
+重用、Compiler／Artifact 就緒及同條件效能驗收仍待完成。詳見
+[取消 Contract](../../Engine/Renderer/README.md#recording-cancellation-and-nested-coordinators)。
+
 ### 有界 Graph Compute 錄製 — 2026-10-17
 
 ✅ Graph 排程現可明確 opt-in，使用既有 JobSystem，以有界批次平行錄製獨立且僅使用
@@ -125,7 +250,7 @@ Pool、確定性的錄製錯誤、失敗批次不提交，以及模擬延後完�
 一般 Graphics／Texture 錄製、共用讀取並行、D3D12／Metal Worker 安全、取消或非同步
 多 Queue 回收的證據。Compiler／Artifact 矩陣、同條件 CPU Median／p95、GPU 時間／
 記憶體預算及所有完整 Gate 維持待完成。Shader、SDK、Feature 預設值及 Stable C ABI
-均不變。詳見 [執行 Contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-recording)。
+均不變。詳見 [執行 Contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-and-color-target-recording)。
 
 ### Buffer 相依與編譯後 Barrier 計畫 — 2026-10-17
 

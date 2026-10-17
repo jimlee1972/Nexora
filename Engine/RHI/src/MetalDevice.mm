@@ -110,6 +110,17 @@ public:
 
 private:
   friend class MetalDevice;
+  struct TextureSnapshot final {
+    TextureHandle handle;
+    std::uint64_t revision;
+    ResourceState state;
+    TextureFormat format;
+    std::uint32_t width;
+    std::uint32_t height;
+    id<MTLTexture> texture;
+  };
+  TextureSnapshot &SnapshotTexture(TextureHandle texture);
+  std::unordered_map<std::uint64_t, TextureSnapshot> texture_snapshots_;
   MetalDevice &device_;
   id<MTLCommandBuffer> command_buffer_{};
   id<MTLRenderCommandEncoder> encoder_{};
@@ -148,6 +159,7 @@ public:
     GraphicsDeviceCapabilities result;
     result.backend = Backend::Metal;
     result.independent_compute_recording = true;
+    result.independent_graphics_recording = true;
     result.dxil_shader_model_support = CapabilitySupport::Unsupported;
     for (const auto feature : {GraphicsFeature::Compute, GraphicsFeature::IndirectDraw})
       result.features[static_cast<std::size_t>(feature)] = {
@@ -158,6 +170,7 @@ public:
   }
   TextureHandle CreateTexture(const TextureDescriptor &descriptor) override;
   void DestroyTexture(TextureHandle texture) override;
+  void ReadTextureForTesting(TextureHandle texture, std::span<std::byte> data) override;
   BufferHandle CreateBuffer(const BufferDescriptor &descriptor) override;
   void WriteBuffer(BufferHandle buffer, std::uint64_t offset,
                    std::span<const std::byte> data) override;
@@ -177,8 +190,7 @@ public:
 private:
   friend class MetalCommandList;
   void Require(bool condition, const char *message);
-  TextureRecord &RecordTransition(const Barrier &barrier);
-  TextureRecord &ValidateRenderTarget(TextureHandle texture);
+  TextureRecord &ValidateTextureLocked(TextureHandle texture);
   PipelineRecord &ValidatePipeline(PipelineHandle pipeline);
   BufferRecord &ValidateBuffer(BufferHandle buffer);
   BufferRecord &ValidateBufferLocked(BufferHandle buffer);
@@ -209,6 +221,7 @@ struct MetalDevice::TextureRecord final {
   TextureDescriptor descriptor;
   id<MTLTexture> texture{};
   ResourceState logical_state{ResourceState::Undefined};
+  std::uint64_t revision{};
 };
 
 struct MetalDevice::PipelineRecord final {
@@ -306,23 +319,79 @@ void MetalDevice::LoadShaderLibrary() {
 }
 
 TextureHandle MetalDevice::CreateTexture(const TextureDescriptor &descriptor) {
-  if (descriptor.width == 0 || descriptor.height == 0)
-    throw std::invalid_argument("invalid texture extent");
-  MTLTextureDescriptor *texture_descriptor =
-      [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:ToPixelFormat(descriptor.format)
-                                                         width:descriptor.width
-                                                        height:descriptor.height
-                                                     mipmapped:NO];
-  texture_descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
-  texture_descriptor.storageMode = MTLStorageModePrivate;
-  id<MTLTexture> texture = [device_ newTextureWithDescriptor:texture_descriptor];
-  if (!texture)
-    throw std::runtime_error("Metal texture creation failed");
-  TextureRecord record{descriptor, texture, descriptor.initial_state};
-  std::lock_guard lock{mutex_};
-  const auto handle = texture_pool_.Create();
-  textures_.emplace(Key(handle), std::move(record));
-  return handle;
+  @autoreleasepool {
+    if (descriptor.width == 0 || descriptor.height == 0)
+      throw std::invalid_argument("invalid texture extent");
+    MTLTextureDescriptor *texture_descriptor =
+        [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:ToPixelFormat(descriptor.format)
+                                                           width:descriptor.width
+                                                          height:descriptor.height
+                                                       mipmapped:NO];
+    texture_descriptor.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+    texture_descriptor.storageMode = MTLStorageModePrivate;
+    id<MTLTexture> texture = [device_ newTextureWithDescriptor:texture_descriptor];
+    if (!texture)
+      throw std::runtime_error("Metal texture creation failed");
+    TextureRecord record{descriptor, texture, descriptor.initial_state};
+    std::lock_guard lock{mutex_};
+    const auto handle = texture_pool_.Create();
+    textures_.emplace(Key(handle), std::move(record));
+    return handle;
+  }
+}
+
+void MetalDevice::ReadTextureForTesting(TextureHandle texture, std::span<std::byte> data) {
+  @autoreleasepool {
+    WaitIdle();
+    id<MTLBuffer> staging = nil;
+    id<MTLCommandBuffer> commands = nil;
+    std::size_t row_bytes{};
+    std::size_t row_pitch{};
+    std::uint32_t height{};
+    {
+      std::lock_guard lock{mutex_};
+      auto &record = ValidateTextureLocked(texture);
+      Require(record.descriptor.format == TextureFormat::Rgba8Unorm ||
+                  record.descriptor.format == TextureFormat::Bgra8Unorm,
+              "Metal texture readback requires a four-byte color format");
+      Require(record.logical_state != ResourceState::Undefined,
+              "reading a Metal texture with undefined contents");
+      row_bytes = static_cast<std::size_t>(record.descriptor.width) * 4;
+      height = record.descriptor.height;
+      Require(data.size() == row_bytes * height,
+              "texture readback size must be width * height * 4");
+      row_pitch = (row_bytes + 255) & ~std::size_t{255};
+      staging = [device_ newBufferWithLength:row_pitch * height
+                                     options:MTLResourceStorageModeShared];
+      commands = [queue_ commandBuffer];
+      if (!staging || !commands)
+        throw std::runtime_error("Metal texture readback allocation failed");
+      id<MTLBlitCommandEncoder> blit = [commands blitCommandEncoder];
+      if (!blit)
+        throw std::runtime_error("Metal texture readback encoder creation failed");
+      [blit copyFromTexture:record.texture
+                       sourceSlice:0
+                       sourceLevel:0
+                      sourceOrigin:MTLOriginMake(0, 0, 0)
+                        sourceSize:MTLSizeMake(record.descriptor.width, height, 1)
+                          toBuffer:staging
+                 destinationOffset:0
+            destinationBytesPerRow:row_pitch
+          destinationBytesPerImage:row_pitch * height];
+      [blit endEncoding];
+      [commands commit];
+      ++record.revision;
+    }
+    [commands waitUntilCompleted];
+    if (commands.status == MTLCommandBufferStatusError)
+      throw std::runtime_error("Metal texture readback failed: " +
+                               ErrorDescription(commands.error));
+    for (std::uint32_t row = 0; row < height; ++row)
+      std::memcpy(data.data() + row * row_bytes,
+                  static_cast<const std::byte *>(staging.contents) + row * row_pitch, row_bytes);
+    std::lock_guard lock{mutex_};
+    ++diagnostics_.readbacks;
+  }
 }
 
 void MetalDevice::DestroyTexture(TextureHandle texture) {
@@ -434,23 +503,10 @@ void MetalDevice::Require(bool condition, const char *message) {
   throw std::logic_error(message);
 }
 
-MetalDevice::TextureRecord &MetalDevice::RecordTransition(const Barrier &barrier) {
-  std::lock_guard lock{mutex_};
-  const auto found = textures_.find(Key(barrier.texture));
-  Require(texture_pool_.Contains(barrier.texture) && found != textures_.end(),
-          "barrier references invalid Metal texture");
-  Require(found->second.logical_state == barrier.before, "Metal barrier before-state mismatch");
-  found->second.logical_state = barrier.after;
-  return found->second;
-}
-
-MetalDevice::TextureRecord &MetalDevice::ValidateRenderTarget(TextureHandle texture) {
-  std::lock_guard lock{mutex_};
+MetalDevice::TextureRecord &MetalDevice::ValidateTextureLocked(TextureHandle texture) {
   const auto found = textures_.find(Key(texture));
   Require(texture_pool_.Contains(texture) && found != textures_.end(),
-          "rendering references invalid Metal texture");
-  Require(found->second.logical_state == ResourceState::RenderTarget,
-          "Metal render target is not in RenderTarget state");
+          "command list references invalid Metal texture");
   return found->second;
 }
 
@@ -475,30 +531,41 @@ MetalDevice::BufferRecord &MetalDevice::ValidateBufferLocked(BufferHandle buffer
 }
 
 std::uint64_t MetalDevice::Submit(CommandList &commands) {
-  auto *validated = dynamic_cast<MetalCommandList *>(&commands);
-  {
+  @autoreleasepool {
+    auto *validated = dynamic_cast<MetalCommandList *>(&commands);
+    {
+      std::lock_guard lock{mutex_};
+      Require(validated != nullptr, "command list belongs to another device");
+      Require(validated->BelongsTo(*this), "command list belongs to another device");
+      Require(validated->IsClosed(), "cannot submit an open command list");
+      Require(!validated->IsSubmitted(), "command list was already submitted");
+      for (const auto &entry : validated->texture_snapshots_) {
+        Require(ValidateTextureLocked(entry.second.handle).revision == entry.second.revision,
+                "stale Metal texture recording snapshot");
+      }
+      validated->Close();
+      [validated->command_buffer_ commit];
+      for (const auto &entry : validated->texture_snapshots_) {
+        auto &texture = textures_.at(entry.first);
+        texture.logical_state = entry.second.state;
+        ++texture.revision;
+      }
+      validated->MarkSubmitted();
+      ++diagnostics_.submitted_command_lists;
+      diagnostics_.barriers += validated->Barriers();
+      diagnostics_.draw_calls += validated->DrawCalls();
+      diagnostics_.compute_dispatches += validated->Dispatches();
+      diagnostics_.indirect_draw_calls += validated->IndirectDraws();
+    }
+    [validated->command_buffer_ waitUntilCompleted];
+    if (validated->command_buffer_.status == MTLCommandBufferStatusError) {
+      throw std::runtime_error("Metal command buffer failed: " +
+                               ErrorDescription(validated->command_buffer_.error));
+    }
     std::lock_guard lock{mutex_};
-    Require(validated != nullptr, "command list belongs to another device");
-    Require(validated->BelongsTo(*this), "command list belongs to another device");
-    Require(validated->IsClosed(), "cannot submit an open command list");
-    Require(!validated->IsSubmitted(), "command list was already submitted");
-    validated->Close();
-    [validated->command_buffer_ commit];
-    validated->MarkSubmitted();
-    ++diagnostics_.submitted_command_lists;
-    diagnostics_.barriers += validated->Barriers();
-    diagnostics_.draw_calls += validated->DrawCalls();
-    diagnostics_.compute_dispatches += validated->Dispatches();
-    diagnostics_.indirect_draw_calls += validated->IndirectDraws();
+    completed_submission_ = ++submitted_submission_;
+    return submitted_submission_;
   }
-  [validated->command_buffer_ waitUntilCompleted];
-  if (validated->command_buffer_.status == MTLCommandBufferStatusError) {
-    throw std::runtime_error("Metal command buffer failed: " +
-                             ErrorDescription(validated->command_buffer_.error));
-  }
-  std::lock_guard lock{mutex_};
-  completed_submission_ = ++submitted_submission_;
-  return submitted_submission_;
 }
 
 std::uint64_t MetalDevice::CompletedSubmissionValue() const noexcept {
@@ -558,25 +625,51 @@ MetalCommandList::~MetalCommandList() {
     compute_encoder_ = nil;
     command_buffer_ = nil;
     indirect_buffer_ = nil;
+    texture_snapshots_.clear();
   }
 }
 
+MetalCommandList::TextureSnapshot &MetalCommandList::SnapshotTexture(TextureHandle handle) {
+  std::lock_guard lock{device_.mutex_};
+  const auto &texture = device_.ValidateTextureLocked(handle);
+  const auto key = Key(handle);
+  auto entry = texture_snapshots_.find(key);
+  if (entry == texture_snapshots_.end())
+    entry = texture_snapshots_
+                .emplace(key, TextureSnapshot{handle, texture.revision, texture.logical_state,
+                                              texture.descriptor.format, texture.descriptor.width,
+                                              texture.descriptor.height, texture.texture})
+                .first;
+  device_.Require(entry->second.revision == texture.revision,
+                  "Metal texture changed during command recording");
+  return entry->second;
+}
+
 void MetalCommandList::Transition(const Barrier &barrier) {
-  if (submitted_)
-    throw std::logic_error("cannot record a submitted command list");
-  if (rendering_)
-    throw std::logic_error("Metal barriers cannot occur inside rendering");
-  if (barrier.before == barrier.after)
-    return;
-  (void)device_.RecordTransition(barrier);
-  // Metal's hazard tracking orders accesses across encoders and command buffers. The
-  // render-graph state transition remains explicit for validation and diagnostics.
-  ++barriers_;
+  @autoreleasepool {
+    if (submitted_ || closed_)
+      throw std::logic_error("cannot record a submitted command list");
+    if (rendering_)
+      throw std::logic_error("Metal barriers cannot occur inside rendering");
+    if (!IsValidTextureBarrier(barrier))
+      throw std::invalid_argument("invalid Metal texture barrier");
+    auto &texture = SnapshotTexture(barrier.texture);
+    if (texture.state != barrier.before) {
+      std::lock_guard lock{device_.mutex_};
+      device_.Require(false, "Metal barrier before-state mismatch");
+    }
+    if (barrier.before == barrier.after)
+      return;
+    texture.state = barrier.after;
+    // Metal's hazard tracking orders accesses across encoders and command buffers. The
+    // render-graph state transition remains explicit for validation and diagnostics.
+    ++barriers_;
+  }
 }
 
 void MetalCommandList::TransitionBuffer(const BufferBarrier &barrier) {
   @autoreleasepool {
-    if (submitted_ || rendering_)
+    if (submitted_ || closed_ || rendering_)
       throw std::logic_error("buffer barriers require an open command list outside rendering");
     if (!IsValidBufferBarrier(barrier))
       throw std::invalid_argument("invalid buffer barrier");
@@ -592,31 +685,36 @@ void MetalCommandList::TransitionBuffer(const BufferBarrier &barrier) {
 }
 
 void MetalCommandList::BeginRendering(const RenderingInfo &info) {
-  if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
-    throw std::logic_error("invalid Metal BeginRendering");
-  if (compute_encoder_) {
-    [compute_encoder_ endEncoding];
-    compute_encoder_ = nil;
+  @autoreleasepool {
+    if (submitted_ || closed_ || rendering_ || info.width == 0 || info.height == 0)
+      throw std::logic_error("invalid Metal BeginRendering");
+    if (compute_encoder_) {
+      [compute_encoder_ endEncoding];
+      compute_encoder_ = nil;
+    }
+    const auto &target = SnapshotTexture(info.color_target);
+    if (target.state != ResourceState::RenderTarget || info.width > target.width ||
+        info.height > target.height)
+      throw std::logic_error("invalid Metal render target state/extent");
+    MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
+    pass.colorAttachments[0].texture = target.texture;
+    pass.colorAttachments[0].loadAction = MTLLoadActionClear;
+    pass.colorAttachments[0].storeAction = MTLStoreActionStore;
+    pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    encoder_ = [command_buffer_ renderCommandEncoderWithDescriptor:pass];
+    if (!encoder_)
+      throw std::runtime_error("Metal render encoder creation failed");
+    render_target_ = info.color_target;
+    width_ = info.width;
+    height_ = info.height;
+    rendering_ = true;
+    pipeline_bound_ = false;
   }
-  auto &target = device_.ValidateRenderTarget(info.color_target);
-  MTLRenderPassDescriptor *pass = [MTLRenderPassDescriptor renderPassDescriptor];
-  pass.colorAttachments[0].texture = target.texture;
-  pass.colorAttachments[0].loadAction = MTLLoadActionClear;
-  pass.colorAttachments[0].storeAction = MTLStoreActionStore;
-  pass.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
-  encoder_ = [command_buffer_ renderCommandEncoderWithDescriptor:pass];
-  if (!encoder_)
-    throw std::runtime_error("Metal render encoder creation failed");
-  render_target_ = info.color_target;
-  width_ = info.width;
-  height_ = info.height;
-  rendering_ = true;
-  pipeline_bound_ = false;
 }
 
 void MetalCommandList::BindPipeline(PipelineHandle pipeline) {
   @autoreleasepool {
-    if (submitted_)
+    if (submitted_ || closed_)
       throw std::logic_error("cannot bind a pipeline on a submitted Metal command list");
     auto &record = device_.ValidatePipeline(pipeline);
     pipeline_type_ = record.descriptor.type;
@@ -635,9 +733,11 @@ void MetalCommandList::BindPipeline(PipelineHandle pipeline) {
         }
       }
     } else {
-      const auto &target = device_.ValidateRenderTarget(render_target_);
-      device_.Require(record.descriptor.color_format == target.descriptor.format,
-                      "Metal pipeline format does not match render target");
+      const auto &target = SnapshotTexture(render_target_);
+      if (record.descriptor.color_format != target.format) {
+        std::lock_guard lock{device_.mutex_};
+        device_.Require(false, "Metal pipeline format does not match render target");
+      }
       [encoder_ setRenderPipelineState:record.pipeline];
       [encoder_ setVertexBuffer:device_.uniform_buffer_ offset:0 atIndex:0];
     }
@@ -647,7 +747,7 @@ void MetalCommandList::BindPipeline(PipelineHandle pipeline) {
 
 void MetalCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
   @autoreleasepool {
-    if (submitted_ || rendering_ || binding >= storage_buffers_.size())
+    if (submitted_ || closed_ || rendering_ || binding >= storage_buffers_.size())
       throw std::logic_error("invalid Metal storage-buffer binding");
     auto &record = device_.ValidateBuffer(buffer);
     storage_buffers_[binding] = buffer;
@@ -659,34 +759,41 @@ void MetalCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buf
 
 void MetalCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
                                           std::uint32_t stride) {
-  if (submitted_ || stride != GPUDrivenIndirectCommandStride ||
-      offset % alignof(std::uint32_t) != 0)
-    throw std::logic_error("invalid Metal indirect-buffer binding");
-  auto &record = device_.ValidateBuffer(buffer);
-  if (offset > record.descriptor.size || record.descriptor.size - offset < DrawIndirectArgumentSize)
-    throw std::logic_error("Metal indirect-buffer binding exceeds allocation");
-  indirect_buffer_ = record.buffer;
-  indirect_offset_ = offset;
-  indirect_size_ = record.descriptor.size;
-  indirect_stride_ = stride;
+  @autoreleasepool {
+    if (submitted_ || closed_ || stride != GPUDrivenIndirectCommandStride ||
+        offset % alignof(std::uint32_t) != 0)
+      throw std::logic_error("invalid Metal indirect-buffer binding");
+    auto &record = device_.ValidateBuffer(buffer);
+    if (offset > record.descriptor.size ||
+        record.descriptor.size - offset < DrawIndirectArgumentSize)
+      throw std::logic_error("Metal indirect-buffer binding exceeds allocation");
+    indirect_buffer_ = record.buffer;
+    indirect_offset_ = offset;
+    indirect_size_ = record.descriptor.size;
+    indirect_stride_ = stride;
+  }
 }
 
 void MetalCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0)
-    throw std::logic_error("invalid Metal draw");
-  [encoder_ drawPrimitives:MTLPrimitiveTypeTriangle
-               vertexStart:0
-               vertexCount:vertex_count
-             instanceCount:instance_count
-              baseInstance:0];
-  ++draws_;
+  @autoreleasepool {
+    if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
+        instance_count == 0)
+      throw std::logic_error("invalid Metal draw");
+    [encoder_ drawPrimitives:MTLPrimitiveTypeTriangle
+                 vertexStart:0
+                 vertexCount:vertex_count
+               instanceCount:instance_count
+                baseInstance:0];
+    ++draws_;
+  }
 }
 
 void MetalCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
                                 std::uint32_t groups_z) {
   @autoreleasepool {
-    if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
-        !compute_encoder_ || groups_x == 0 || groups_y == 0 || groups_z == 0)
+    if (submitted_ || closed_ || rendering_ || !pipeline_bound_ ||
+        pipeline_type_ != PipelineType::Compute || !compute_encoder_ || groups_x == 0 ||
+        groups_y == 0 || groups_z == 0)
       throw std::logic_error("invalid Metal dispatch");
     if (device_.canonical_compute_) {
       for (std::size_t index = 0; index < storage_bound_.size(); ++index) {
@@ -703,27 +810,32 @@ void MetalCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
 }
 
 void MetalCommandList::DrawIndirect(std::uint32_t command_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Graphics ||
-      !indirect_buffer_ || indirect_stride_ != GPUDrivenIndirectCommandStride || command_count == 0)
-    throw std::logic_error("invalid Metal indirect draw");
-  if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, command_count))
-    throw std::logic_error("Metal indirect draw reads past the bound indirect buffer");
-  for (std::uint32_t command = 0; command < command_count; ++command) {
-    [encoder_ drawPrimitives:MTLPrimitiveTypeTriangle
-              indirectBuffer:indirect_buffer_
-        indirectBufferOffset:indirect_offset_ +
-                             static_cast<std::uint64_t>(command) * indirect_stride_];
+  @autoreleasepool {
+    if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ ||
+        pipeline_type_ != PipelineType::Graphics || !indirect_buffer_ ||
+        indirect_stride_ != GPUDrivenIndirectCommandStride || command_count == 0)
+      throw std::logic_error("invalid Metal indirect draw");
+    if (!IndirectDrawRangeFits(indirect_size_, indirect_offset_, indirect_stride_, command_count))
+      throw std::logic_error("Metal indirect draw reads past the bound indirect buffer");
+    for (std::uint32_t command = 0; command < command_count; ++command) {
+      [encoder_ drawPrimitives:MTLPrimitiveTypeTriangle
+                indirectBuffer:indirect_buffer_
+          indirectBufferOffset:indirect_offset_ +
+                               static_cast<std::uint64_t>(command) * indirect_stride_];
+    }
+    draws_ += command_count;
+    ++indirect_draws_;
   }
-  draws_ += command_count;
-  ++indirect_draws_;
 }
 
 void MetalCommandList::EndRendering() {
-  if (submitted_ || !rendering_)
-    throw std::logic_error("Metal EndRendering without BeginRendering");
-  [encoder_ endEncoding];
-  encoder_ = nil;
-  rendering_ = false;
+  @autoreleasepool {
+    if (submitted_ || closed_ || !rendering_)
+      throw std::logic_error("Metal EndRendering without BeginRendering");
+    [encoder_ endEncoding];
+    encoder_ = nil;
+    rendering_ = false;
+  }
 }
 
 void MetalCommandList::Close() {

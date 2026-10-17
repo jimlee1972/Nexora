@@ -53,6 +53,13 @@ No UI callbacks, Runtime/Editor references or higher-module dependencies are sto
   allocation rather than the public wrapper. After draining and joining, `Stop` releases the worker
   closures and the queue's retained storage instead of deferring those allocations to wrapper
   destruction. Repeated start/stop therefore cannot retain worker-lifecycle state past shutdown.
+- `JobSystem::IsWorkerThread()` reports whether the calling thread belongs to this specific pool.
+  A private thread-local owner scope is installed for the worker lifetime and restored at exit;
+  coordinator, unrelated-pool and restarted-worker identities remain distinct. The query takes no
+  lock and reads no lifecycle-dependent worker vector. Keep the pool alive while querying it.
+  This does not make `Wait` reentrant or add work stealing; same-pool blocking dependencies can
+  still exhaust workers, and `Stop` must be called outside the pool. The graph scheduler uses the
+  query to select serial recording for a coordinator on its own recording pool.
 - `EventBus` snapshots callbacks before invoking them, so callbacks run without its lock held.
 - `FrameArena` is single-owner. Its allocations are invalid after `Reset`; callers must complete dependent jobs before `Engine::BeginFrame`.
 - `AsyncReadHandle::Get` is a snapshot and never blocks. `Pending` means the caller should poll or schedule later work.

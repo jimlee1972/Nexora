@@ -31,6 +31,98 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### Native graphics/cancellation integration — 2026-10-17
+
+✅ PR626 integrates cancellation/same-pool coordination, Vulkan framebuffer/texture isolation and
+bounded color-target recording across Vulkan, D3D12 and Metal. The shared graphics oracle now
+also cancels a clear-only parallel cohort, requires zero submission and unchanged pixel sentinels,
+then replays with fresh cancellation state. Resource snapshots and every cancellation check/worker
+identity guard coexist; the default path remains serial and the full parallel feature stays closed.
+MSVC exports the exception's virtual diagnostic member while other platforms retain visible type
+RTTI, preserving typed catches across module boundaries without suppressing compiler warnings.
+
+Integrated Slang-enabled `cmake --preset linux-development` and
+`cmake --build --preset linux-development` pass. Xvfb/native-required full
+`ctest --preset linux-development`: **229/229 pass, zero skips/failures, 259.33 seconds**.
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_texture_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`:
+**7/7 pass, zero skips, 0.36 seconds**. Shipping configure/build passes (Monolithic/Minimal, LTO).
+The four-test Vulkan object/synchronization validation command below passes **4/4, zero skips,
+2.15 seconds** with inherited shader paths removed; loader output confirms 12 layer insertions,
+and the full log contains zero Validation Error/VUID/SYNC-HAZARD markers. Windows/Metal runtime
+acceptance requires the new-head hosted gates. Beads `nexora-45y.2.6`, `.2.7`, `.2.8` share PR626;
+all complete V2-GFX and physical-performance gates remain open.
+
+### Bounded native color-target graph recording — 2026-10-17
+
+✅ The limited `independent_graphics_recording` contract adds disjoint color-target graphics
+cohorts to the opt-in graph scheduler alongside independently admitted buffer-only Compute.
+Graphics passes require complete declarations, at least one RenderTarget write, no texture reads
+and no buffer writes. Shared resources (including read/read), dependencies, unsupported/unmarked
+passes and singleton cohorts fall back to serial. Default Execute stays serial. Workers only
+record; the coordinator joins, submits in graph order and waits before retirement.
+
+D3D12/Metal now snapshot texture generations/revisions/native metadata and logical state per list,
+validate before execution and commit only after queue acceptance. Readback invalidates older
+snapshots; failed/abandoned recordings preserve committed state. Validation models the same policy,
+including upload invalidation. D3D12 RTV allocation checks its 256-entry heap and recycles retired
+slots. Test-only native color readback packs padded staging rows; production execution has none.
+Metal graphics entry points use autorelease pools and retain list-owned textures/encoders with ARC.
+
+The common Vulkan/D3D12/Metal oracle covers 24 exact mixed-format/extent serial/parallel pixel
+comparisons, six scopes/list, four-worker overlap and reverse submission; stale-list and
+abandonment recovery; 512 sequential target allocations/reclamation; and eight graph output
+comparisons with aborted-batch sentinels and replay. Portable tests additionally cover capability
+independence, mixed compute/graphics cohorts, shared reads, texture hazards/dependencies, opt-out,
+sampling/copy fallback, ordered submission and completion-before-retirement.
+
+Source branch: `feat/v2-native-graphics-recording`; Beads `nexora-45y.2.8`.
+Slang-enabled `cmake --preset linux-development` and `cmake --build --preset linux-development`
+pass. Xvfb/native-required `ctest --preset linux-development`: **205/205 pass, zero skips/failures,
+134.48 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Shipping configure/build passes
+(Monolithic/Minimal, LTO). Native Vulkan object/synchronization validation with layer **1.3.275**
+passes **4/4, zero skips, 8.24 seconds**, with loader-confirmed insertion and zero Validation Error,
+VUID or SYNC-HAZARD markers. Native artifacts come from CTest, with inherited shader paths removed.
+The final mixed-cohort portable test also passes. Windows/Metal runtime acceptance requires hosted
+CI; Linux does not certify those backends. All C++ modules rebuild for the appended capability;
+stable C ABI and shader/SDK baselines are unchanged. Full parallel feature admission, shared reads,
+asynchronous queues/reuse, compiler/artifact readiness and matched physical-GPU performance remain
+open. See the [graph contract](../../Engine/Renderer/README.md#native-color-target-graph-acceptance)
+and [RHI contract](../../Engine/RHI/README.md#independent-color-target-recording-and-transactional-textures).
+
+### Vulkan texture recording and complete framebuffer retirement — 2026-10-17
+
+✅ Vulkan texture transitions now use list-owned generation/revision/state snapshots. Rendering
+validates that private state, submission rejects stale snapshots before closing/queueing, and only
+accepted work commits final device state. Readback invalidates older recordings while restoring
+layout. Every framebuffer from every rendering scope retires after completion or abandoned-list
+cleanup; a single field no longer loses earlier scopes. Undefined destinations, invalid queues,
+oversized render areas and post-closure recording fail before native commands.
+
+The native test uses 24 disjoint mixed-format/extent targets, six render scopes per list and four
+recording workers with timed overlap, then reverse submission and 24 exact serial/parallel pixel
+comparisons against nonempty references. It verifies abandoned state/output and retry, stale
+submission/readback/handle rejection, callback failure recovery and repeated serial graph replay.
+The existing CI synchronization/object-validation step now includes both graphics texture recording
+and compute descriptor isolation; no new CI dependency or job is added. No texture upload API is
+introduced. Resource mutation/submission remains caller-serialized against recording.
+
+Source branch: `feat/v2-vulkan-texture-recording`; Beads `nexora-45y.2.7`.
+Local Slang-enabled `cmake --preset linux-development`, `cmake --build --preset linux-development`
+and Xvfb/native-required `ctest --preset linux-development` pass: **205/205, zero skips/failures,
+118.15 seconds** (Slang 2026.18, Mesa lavapipe 24.0.5, Zig 0.14.0). Shipping configure/build passes
+(Monolithic/Minimal, LTO). Native validation command
+`ctest --preset linux-development -R '^renderer\.(vulkan_texture_recording|contracts|v2_gpu_driven|vulkan_descriptor_isolation)$' -V`
+passes **4/4, zero skips, 0.87 seconds**, with inherited shader paths removed so CTest supplies both
+artifacts. Ubuntu validation layer **1.3.275** is extracted outside the repository; loader output
+proves insertion and the complete log contains **zero Validation Error/VUID/SYNC markers** with
+synchronization validation enabled. Touched-file format and `git diff --check` pass. An earlier
+Slang-off/manual-artifact full gate also passed 195/195; the Slang-enabled gate above is final.
+
+General graph graphics admission, DX12/Metal texture isolation, shared reads, asynchronous queues/
+reuse, compiler/artifact readiness and matched physical-GPU performance remain open. The broad
+parallel feature stays disabled/unimplemented, and no shader/SDK baseline or stable C ABI changes.
+See the [RHI ownership contract](../../Engine/RHI/README.md#vulkan-texture-snapshots-and-framebuffer-retirement-v2-gfx-1-slice).
+
 ### Metal full-kernel compute and worker ownership — 2026-10-17
 
 ✅ The Metal path now selects the real Slang-generated `GPUDriven.metal`, validates requested
@@ -93,6 +185,43 @@ queue separation or reusable allocator retirement is claimed. The compiler/artif
 matched performance gates remain open. Shader/SDK baselines and the stable C ABI are unchanged.
 See the [RHI snapshot contract](../../Engine/RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice).
 
+### Cancellation and same-pool coordination — 2026-10-17
+
+✅ Pool-local worker identity lets a graph coordinator inside its own recording pool select serial
+fallback, avoiding starvation even when every pool worker coordinates a graph. A different-pool
+coordinator retains bounded parallel admission. Start/Stop and object lifetime remain externally
+serialized; general waits do not gain work stealing or cyclic-wait recovery.
+
+An optional cancellation token stops before RHI allocations/callbacks on pre-cancelled execution,
+or before submission of an unsubmitted recorded cohort. Every started job joins; callback/scheduler
+errors precede observed cancellation. Once cohort submission begins it completes and retires;
+next-cohort work stops, while late cancellation after the final accepted cohort returns completion.
+A typed `RenderGraphCancelled` distinguishes cancellation. Existing defaults and stable C ABI stay
+unchanged; C++ modules rebuild for the new query/exception and appended token.
+
+Portable tests cover saturated nested coordinators, foreign-pool overlap, stopped/restarted identity,
+pre/serial/parallel cancellation, transient cleanup, error precedence, accepted-batch completion and
+late cancellation. Native Vulkan additionally verifies sentinel preservation, zero submission/readback
+and buffer reuse after cancellation, retaining its existing 320 dispatch and 48 graph CPU comparisons.
+Source branch: `feat/v2-recording-cancellation-and-nesting`; Beads `nexora-45y.2.6`.
+Local `cmake --preset linux-development` and `cmake --build --preset linux-development` pass.
+Xvfb/native-required `ctest --preset linux-development`: **194/194 pass, zero skips/failures,
+107.80 seconds** (Slang 2026.18 SPIR-V, Mesa lavapipe 24.0.5, Zig 0.14.0). Focused
+`ctest --preset linux-development -R '^(core\.runtime|renderer\.(parallel_graph_recording|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven))$' --output-on-failure`:
+**6/6 pass, zero skips, 0.27 seconds**. `cmake --preset linux-shipping` and
+`cmake --build --preset linux-shipping` pass (Monolithic/Minimal, LTO). Touched-file
+`clang-format --dry-run --Werror` and `git diff --check` pass.
+
+Integration after PR625: rebased onto main `c5c5b897`; Slang-enabled full Development
+configure/build and Xvfb/native-required CTest pass **228/228, zero skips/failures, 267.94 seconds**.
+Final focused command above passes **6/6, zero skips, 0.27 seconds**. Shipping Monolithic/Minimal
+LTO configure/build passes. Rebase from the dependency head preserves an identical validated source
+tree; both D3D12 and Metal now compile the shared cancellation oracle in their hosted native gates.
+
+All full gates, graphics/texture concurrency, shared reads, asynchronous queues/reuse, compiler/artifact
+readiness and matched performance acceptance remain open. See the
+[cancellation contract](../../Engine/Renderer/README.md#recording-cancellation-and-nested-coordinators).
+
 ### Bounded graph compute recording — 2026-10-17
 
 ✅ Explicit opt-in graph scheduling now records independent, buffer-only Compute passes on the
@@ -136,7 +265,7 @@ reduction, physical-GPU timing, general graphics/texture recording, shared-read 
 D3D12/Metal worker safety, cancellation or asynchronous multi-queue retirement. The compiler/artifact
 matrix, matched CPU median/p95, GPU time/memory budgets and all full gates stay open. No shader,
 SDK, feature default or stable C ABI changes. See the
-[execution contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-recording).
+[execution contract](../../Engine/Renderer/README.md#bounded-opt-in-parallel-compute-and-color-target-recording).
 
 ### Buffer dependencies and compiled barrier plans — 2026-10-17
 

@@ -286,7 +286,19 @@ private:
   VulkanDevice &device_;
   VkCommandPool command_pool_{VK_NULL_HANDLE};
   VkCommandBuffer command_buffer_{VK_NULL_HANDLE};
-  VkFramebuffer framebuffer_{VK_NULL_HANDLE};
+  struct TextureSnapshot final {
+    TextureHandle handle;
+    std::uint64_t revision;
+    ResourceState state;
+    TextureFormat format;
+    std::uint32_t width;
+    std::uint32_t height;
+    VkImage image;
+    VkImageView view;
+  };
+  TextureSnapshot &SnapshotTexture(TextureHandle texture);
+  std::unordered_map<std::uint64_t, TextureSnapshot> texture_snapshots_;
+  std::vector<VkFramebuffer> framebuffers_;
   bool rendering_{false};
   bool pipeline_bound_{false};
   PipelineType pipeline_type_{PipelineType::Graphics};
@@ -348,12 +360,11 @@ private:
   void LoadShaderModule();
   void TransitionTextureImmediately(TextureRecord &texture, ResourceState state);
   void Require(bool condition, const char *message);
-  TextureRecord &RecordTransition(const Barrier &barrier);
-  TextureRecord &ValidateRenderTarget(TextureHandle texture);
+  TextureRecord &ValidateTextureLocked(TextureHandle texture);
   PipelineRecord &ValidatePipeline(PipelineHandle pipeline);
   BufferRecord &ValidateBuffer(BufferHandle buffer);
-  VkFramebuffer CreateFramebuffer(const TextureRecord &texture, VkRenderPass render_pass,
-                                  std::uint32_t width, std::uint32_t height);
+  VkFramebuffer CreateFramebuffer(VkImageView view, VkRenderPass render_pass, std::uint32_t width,
+                                  std::uint32_t height);
   void DestroyFramebuffer(VkFramebuffer framebuffer);
   VkRenderPass RenderPassFor(TextureFormat format) const;
   std::uint32_t FindMemoryType(std::uint32_t type_bits, VkMemoryPropertyFlags properties) const;
@@ -406,6 +417,7 @@ struct VulkanDevice::TextureRecord final {
   VkDeviceMemory memory{VK_NULL_HANDLE};
   VkImageView view{VK_NULL_HANDLE};
   ResourceState logical_state{ResourceState::Undefined};
+  std::uint64_t revision{};
 };
 
 struct VulkanDevice::PipelineRecord final {
@@ -579,6 +591,7 @@ void VulkanDevice::SelectPhysicalDevice() {
         capabilities_.driver_version = properties.driverVersion;
         capabilities_.dxil_shader_model_support = CapabilitySupport::Unsupported;
         const bool compute = (queues[index].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0;
+        capabilities_.independent_graphics_recording = true;
         capabilities_.independent_compute_recording = compute;
         capabilities_.features[static_cast<std::size_t>(GraphicsFeature::Compute)] = {
             compute ? CapabilitySupport::Supported : CapabilitySupport::Unsupported,
@@ -1100,6 +1113,10 @@ void VulkanDevice::ReadTextureForTesting(TextureHandle texture, std::span<std::b
                                    nullptr};
     Check(functions_.QueueSubmit(graphics_queue_, 1, &submit_info, fence),
           "vkQueueSubmit(readback)");
+    {
+      std::lock_guard lock{mutex_};
+      ++ValidateTextureLocked(texture).revision;
+    }
     Check(functions_.WaitForFences(device_, 1, &fence, VK_TRUE,
                                    std::numeric_limits<std::uint64_t>::max()),
           "vkWaitForFences(readback)");
@@ -1295,10 +1312,9 @@ VkRenderPass VulkanDevice::RenderPassFor(TextureFormat format) const {
   throw std::invalid_argument("Vulkan render pass requires a color format");
 }
 
-VkFramebuffer VulkanDevice::CreateFramebuffer(const TextureRecord &texture,
-                                              VkRenderPass render_pass, std::uint32_t width,
-                                              std::uint32_t height) {
-  const VkImageView attachment = texture.view;
+VkFramebuffer VulkanDevice::CreateFramebuffer(VkImageView view, VkRenderPass render_pass,
+                                              std::uint32_t width, std::uint32_t height) {
+  const VkImageView attachment = view;
   const VkFramebufferCreateInfo framebuffer_info{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                                                  nullptr,
                                                  0,
@@ -1326,23 +1342,10 @@ void VulkanDevice::Require(bool condition, const char *message) {
   throw std::logic_error(message);
 }
 
-VulkanDevice::TextureRecord &VulkanDevice::RecordTransition(const Barrier &barrier) {
-  std::lock_guard lock{mutex_};
-  const auto found = textures_.find(Key(barrier.texture));
-  Require(texture_pool_.Contains(barrier.texture) && found != textures_.end(),
-          "barrier references invalid Vulkan texture");
-  Require(found->second.logical_state == barrier.before, "Vulkan barrier before-state mismatch");
-  found->second.logical_state = barrier.after;
-  return found->second;
-}
-
-VulkanDevice::TextureRecord &VulkanDevice::ValidateRenderTarget(TextureHandle texture) {
-  std::lock_guard lock{mutex_};
+VulkanDevice::TextureRecord &VulkanDevice::ValidateTextureLocked(TextureHandle texture) {
   const auto found = textures_.find(Key(texture));
   Require(texture_pool_.Contains(texture) && found != textures_.end(),
-          "rendering references invalid Vulkan texture");
-  Require(found->second.logical_state == ResourceState::RenderTarget,
-          "Vulkan render target is not in RenderTarget state");
+          "command list references invalid Vulkan texture");
   return found->second;
 }
 
@@ -1371,6 +1374,11 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
     Require(validated->BelongsTo(*this), "command list belongs to another device");
     Require(validated->IsClosed(), "cannot submit an open command list");
     Require(!validated->IsSubmitted(), "command list was already submitted");
+    for (const auto &entry : validated->texture_snapshots_) {
+      const auto &snapshot = entry.second;
+      const auto &texture = ValidateTextureLocked(snapshot.handle);
+      Require(texture.revision == snapshot.revision, "stale Vulkan texture recording snapshot");
+    }
     validated->Close();
     const VkFenceCreateInfo fence_info{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, nullptr, 0};
     Check(functions_.CreateFence(device_, &fence_info, nullptr, &fence), "vkCreateFence(submit)");
@@ -1382,6 +1390,12 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
     } catch (...) {
       functions_.DestroyFence(device_, fence, nullptr);
       throw;
+    }
+    // Commit only after QueueSubmit accepts the list. Abandoning recording changes nothing.
+    for (const auto &entry : validated->texture_snapshots_) {
+      auto &texture = textures_.at(entry.first);
+      texture.logical_state = entry.second.state;
+      ++texture.revision;
     }
     validated->MarkSubmitted();
     ++diagnostics_.submitted_command_lists;
@@ -1399,10 +1413,9 @@ std::uint64_t VulkanDevice::Submit(CommandList &commands) {
     throw;
   }
   functions_.DestroyFence(device_, fence, nullptr);
-  if (validated->framebuffer_ != VK_NULL_HANDLE) {
-    DestroyFramebuffer(validated->framebuffer_);
-    validated->framebuffer_ = VK_NULL_HANDLE;
-  }
+  for (const auto framebuffer : validated->framebuffers_)
+    DestroyFramebuffer(framebuffer);
+  validated->framebuffers_.clear();
   std::lock_guard lock{mutex_};
   completed_submission_ = ++submitted_submission_;
   return submitted_submission_;
@@ -1511,12 +1524,12 @@ VulkanCommandList::VulkanCommandList(VulkanDevice &device, QueueType queue) : de
 }
 
 VulkanCommandList::~VulkanCommandList() {
-  if (framebuffer_ != VK_NULL_HANDLE)
-    device_.DestroyFramebuffer(framebuffer_);
   if (command_buffer_ != VK_NULL_HANDLE)
     device_.functions_.FreeCommandBuffers(device_.device_, command_pool_, 1, &command_buffer_);
   if (command_pool_ != VK_NULL_HANDLE)
     device_.functions_.DestroyCommandPool(device_.device_, command_pool_, nullptr);
+  for (const auto framebuffer : framebuffers_)
+    device_.DestroyFramebuffer(framebuffer);
   for (const auto pool : compute_descriptor_pools_)
     device_.functions_.DestroyDescriptorPool(device_.device_, pool, nullptr);
   if (indirect_buffer_ != VK_NULL_HANDLE)
@@ -1525,22 +1538,47 @@ VulkanCommandList::~VulkanCommandList() {
     device_.functions_.FreeMemory(device_.device_, indirect_memory_, nullptr);
 }
 
+VulkanCommandList::TextureSnapshot &VulkanCommandList::SnapshotTexture(TextureHandle handle) {
+  std::lock_guard lock{device_.mutex_};
+  const auto &texture = device_.ValidateTextureLocked(handle);
+  auto &snapshot =
+      texture_snapshots_
+          .try_emplace(Key(handle),
+                       TextureSnapshot{handle, texture.revision, texture.logical_state,
+                                       texture.descriptor.format, texture.descriptor.width,
+                                       texture.descriptor.height, texture.image, texture.view})
+          .first->second;
+  device_.Require(snapshot.revision == texture.revision,
+                  "Vulkan texture changed during command recording");
+  return snapshot;
+}
+
 void VulkanCommandList::Transition(const Barrier &barrier) {
-  if (submitted_)
+  if (submitted_ || closed_)
     throw std::logic_error("cannot record a submitted command list");
   if (rendering_)
     throw std::logic_error("Vulkan barriers cannot occur inside rendering");
-  if (barrier.before == barrier.after)
-    return;
-  auto &texture = device_.RecordTransition(barrier);
+  if (!IsValidQueue(barrier.source_queue) || !IsValidQueue(barrier.destination_queue) ||
+      barrier.after == ResourceState::Undefined)
+    throw std::invalid_argument("invalid Vulkan texture barrier");
   const auto source = StageFor(barrier.before);
   const auto destination = StageFor(barrier.after);
+  const auto old_layout = ToLayout(barrier.before);
+  const auto new_layout = ToLayout(barrier.after);
+  auto &texture = SnapshotTexture(barrier.texture);
+  if (texture.state != barrier.before) {
+    std::lock_guard lock{device_.mutex_};
+    device_.Require(false, "Vulkan barrier before-state mismatch");
+  }
+  if (barrier.before == barrier.after)
+    return;
+  texture.state = barrier.after;
   VkImageMemoryBarrier native{};
   native.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   native.srcAccessMask = source.access;
   native.dstAccessMask = destination.access;
-  native.oldLayout = ToLayout(barrier.before);
-  native.newLayout = ToLayout(barrier.after);
+  native.oldLayout = old_layout;
+  native.newLayout = new_layout;
   native.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   native.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   native.image = texture.image;
@@ -1553,7 +1591,7 @@ void VulkanCommandList::Transition(const Barrier &barrier) {
 }
 
 void VulkanCommandList::TransitionBuffer(const BufferBarrier &barrier) {
-  if (submitted_ || rendering_)
+  if (submitted_ || closed_ || rendering_)
     throw std::logic_error("buffer barriers require an open command list outside rendering");
   if (!IsValidBufferBarrier(barrier))
     throw std::invalid_argument("invalid buffer barrier");
@@ -1593,17 +1631,30 @@ void VulkanCommandList::TransitionBuffer(const BufferBarrier &barrier) {
 }
 
 void VulkanCommandList::BeginRendering(const RenderingInfo &info) {
-  if (submitted_ || rendering_ || info.width == 0 || info.height == 0)
+  if (submitted_ || closed_ || rendering_ || info.width == 0 || info.height == 0)
     throw std::logic_error("invalid Vulkan BeginRendering");
-  auto &target = device_.ValidateRenderTarget(info.color_target);
-  framebuffer_ = device_.CreateFramebuffer(target, device_.RenderPassFor(target.descriptor.format),
-                                           info.width, info.height);
+  auto &target = SnapshotTexture(info.color_target);
+  if (target.state != ResourceState::RenderTarget) {
+    std::lock_guard lock{device_.mutex_};
+    device_.Require(false, "Vulkan render target is not in RenderTarget state");
+  }
+  if (info.width > target.width || info.height > target.height)
+    throw std::logic_error("Vulkan render area exceeds the target extent");
+  const auto render_pass = device_.RenderPassFor(target.format);
+  const auto framebuffer =
+      device_.CreateFramebuffer(target.view, render_pass, info.width, info.height);
+  try {
+    framebuffers_.push_back(framebuffer);
+  } catch (...) {
+    device_.DestroyFramebuffer(framebuffer);
+    throw;
+  }
   VkClearValue clear{};
   clear.color.float32[3] = 1.0F;
   VkRenderPassBeginInfo begin{};
   begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  begin.renderPass = device_.RenderPassFor(target.descriptor.format);
-  begin.framebuffer = framebuffer_;
+  begin.renderPass = render_pass;
+  begin.framebuffer = framebuffer;
   begin.renderArea.extent = {info.width, info.height};
   begin.clearValueCount = 1;
   begin.pClearValues = &clear;
@@ -1616,7 +1667,7 @@ void VulkanCommandList::BeginRendering(const RenderingInfo &info) {
 }
 
 void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
-  if (submitted_)
+  if (submitted_ || closed_)
     throw std::logic_error("cannot bind a Vulkan pipeline after submission");
   auto &record = device_.ValidatePipeline(pipeline);
   if (record.descriptor.type == PipelineType::Compute) {
@@ -1630,9 +1681,11 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
   }
   if (!rendering_)
     throw std::logic_error("Vulkan graphics pipeline binding requires rendering");
-  const auto &target = device_.ValidateRenderTarget(render_target_);
-  device_.Require(record.render_pass == device_.RenderPassFor(target.descriptor.format),
-                  "Vulkan pipeline format does not match render target");
+  const auto &target = SnapshotTexture(render_target_);
+  if (record.render_pass != device_.RenderPassFor(target.format)) {
+    std::lock_guard lock{device_.mutex_};
+    device_.Require(false, "Vulkan pipeline format does not match render target");
+  }
   device_.functions_.CmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                      record.pipeline);
   const VkDescriptorSet descriptor_set = device_.descriptor_set_;
@@ -1649,7 +1702,7 @@ void VulkanCommandList::BindPipeline(PipelineHandle pipeline) {
 }
 
 void VulkanCommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buffer) {
-  if (submitted_ || rendering_ || binding >= 4)
+  if (submitted_ || closed_ || rendering_ || binding >= 4)
     throw std::logic_error("invalid Vulkan storage-buffer binding");
   (void)device_.ValidateBuffer(buffer);
   storage_buffers_[binding] = buffer;
@@ -1707,7 +1760,7 @@ VkDescriptorSet VulkanCommandList::SnapshotComputeBindings() {
 
 void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t offset,
                                            std::uint32_t stride) {
-  if (submitted_ || !rendering_ ||
+  if (submitted_ || closed_ || !rendering_ ||
       (stride != 0 && (stride < DrawIndirectArgumentSize || stride % alignof(std::uint32_t) != 0)))
     throw std::logic_error("indirect-buffer binding requires rendering");
   auto &record = device_.ValidateBuffer(buffer);
@@ -1720,14 +1773,15 @@ void VulkanCommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t of
 }
 
 void VulkanCommandList::Draw(std::uint32_t vertex_count, std::uint32_t instance_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 || instance_count == 0)
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || vertex_count == 0 ||
+      instance_count == 0)
     throw std::logic_error("invalid Vulkan draw");
   device_.functions_.CmdDraw(command_buffer_, vertex_count, instance_count, 0, 0);
   ++draws_;
 }
 
 void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
-  if (submitted_ || !rendering_ || !pipeline_bound_ || command_count == 0 ||
+  if (submitted_ || closed_ || !rendering_ || !pipeline_bound_ || command_count == 0 ||
       (bound_indirect_buffer_ == VK_NULL_HANDLE && indirect_buffer_ != VK_NULL_HANDLE))
     throw std::logic_error("invalid Vulkan indirect draw");
   if (bound_indirect_buffer_ != VK_NULL_HANDLE) {
@@ -1776,8 +1830,8 @@ void VulkanCommandList::DrawIndirect(std::uint32_t command_count) {
 
 void VulkanCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
                                  std::uint32_t groups_z) {
-  if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
-      groups_x == 0 || groups_y == 0 || groups_z == 0)
+  if (submitted_ || closed_ || rendering_ || !pipeline_bound_ ||
+      pipeline_type_ != PipelineType::Compute || groups_x == 0 || groups_y == 0 || groups_z == 0)
     throw std::logic_error("invalid Vulkan dispatch");
   const auto descriptors = SnapshotComputeBindings();
   device_.functions_.CmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -1788,7 +1842,7 @@ void VulkanCommandList::Dispatch(std::uint32_t groups_x, std::uint32_t groups_y,
 }
 
 void VulkanCommandList::EndRendering() {
-  if (submitted_ || !rendering_)
+  if (submitted_ || closed_ || !rendering_)
     throw std::logic_error("Vulkan EndRendering without BeginRendering");
   device_.functions_.CmdEndRenderPass(command_buffer_);
   rendering_ = false;
