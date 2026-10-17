@@ -2441,3 +2441,9 @@ Done
 PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pipeline／Inline Ray，36檢查通過後 Squash 合併；Linux365/365、Metal304/304 Compute 後備通過。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整圖形 Gate 維持開放。
 
 新型 Compute 後續：獨立啟用的 Agility／WARP／DXC Preview Runtime 與三種有界 SM6.9／6.10 程式實作中，Windows 原生執行待驗證。詳見[進階圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
+
+有界 SER 後續加入真實 SM6.9 HitObject／Reorder／Invoke 與獨立 OPTIONS22 實際重排回報，Windows 原生證據待驗證。WARP 不證明執行緒重排。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 DXR／SER Gate 保持開放。
+
+DXR1.2 後續加入獨立啟用的二狀態 Subdivision1 OMM Array／BLAS／TLAS 建置及明確允許 OMM 的 Traversal；全部16遮罩對照 CPU 與真實顯式微幾何 Compute，Windows 原生證據待驗證。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。
+
+VRS Tier2 後續加入有界不可變 Rate Image、Snapshot／Reset／Generation 准入與硬體 SV_ShadingRate Witness；Windows Preview 原生證據待驗證，保留明確 Full-rate 後備。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Ultimate Gate 維持開放。

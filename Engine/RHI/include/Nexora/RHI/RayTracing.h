@@ -30,7 +30,12 @@ static_assert(sizeof(RayTriangle) == 36 && sizeof(RayInput) == 32 && sizeof(RayH
 static_assert(offsetof(RayInput, minimum) == 12 && offsetof(RayInput, direction) == 16 &&
               offsetof(RayInput, maximum) == 28);
 static_assert(offsetof(RayHit, distance) == 4 && offsetof(RayHit, barycentrics) == 8);
-enum class RayTracingMode : std::uint8_t { Pipeline, InlineQuery };
+enum class RayTracingMode : std::uint8_t {
+  Pipeline,
+  InlineQuery,
+  ReorderedPipeline,
+  ReorderedOpacityPipeline
+};
 struct RayProgramDescriptor final {
   RayTracingMode mode{RayTracingMode::Pipeline};
   GraphicsRequirements graphics_requirements{};
@@ -53,6 +58,17 @@ inline bool IsRaySceneValid(std::span<const RayTriangle> triangles) noexcept {
     return false;
   for (const auto &triangle : triangles)
     if (!IsRayTriangleValid(triangle))
+      return false;
+  return true;
+}
+// Each low four-bit mask follows the OC1 subdivision1 order: A corner, center, B corner,
+// C corner. Set bits are opaque; clear bits are transparent. No unknown/any-hit states.
+inline bool IsRayOpacitySceneValid(std::span<const RayTriangle> triangles,
+                                   std::span<const std::uint8_t> masks) noexcept {
+  if (!IsRaySceneValid(triangles) || triangles.size() != masks.size())
+    return false;
+  for (const auto mask : masks)
+    if (mask > 15)
       return false;
   return true;
 }

@@ -1,0 +1,16 @@
+{
+  "schema": "nexora.twod.service-acceptance.v1",
+  "runtime": "NexoraZigTwoD.exe",
+  "files": {
+    "NexoraZigTwoD.exe": "9327dcb25c3f751dd8a07e46872e340628e96c0b0be4237d3f89a1a43aafcfc9",
+    "assets/atlas.nxcook": "b18e6db7d5081f09118d2336fae33b38204d7d0d962064e39c01694f3fb090b0",
+    "assets/clip.nxcook": "133dbf15c0875f4d136a8076576c1574d08e257229e99e2e39199b186fb83fd6",
+    "assets/tone.wav": "3f6f2960283fd796aed2c4dcfd324ee17891c29d42f81eddadafc8b77baa4aaf",
+    "README.txt": "3b07e3aa79f20c4dbfdcbdc4b47cc64c77b19a8e57320cbc6073f2c517319314"
+  },
+  "editor_required": false,
+  "development_test_copy": false,
+  "audible_acceptance": "NOT VERIFIED",
+  "windows_clean_host": "NOT RUN",
+  "system_prerequisites": "Target OS C/C++ runtime and native graphics/audio drivers"
+}

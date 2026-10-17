@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "runs": [
+    "zig-dx12-1",
+    "zig-dx12-2",
+    "zig-vulkan-1",
+    "zig-vulkan-2"
+  ],
+  "package_unchanged": true,
+  "scope": "automated deterministic fixture movement; native hardware sprite/UI/cooked reload/audio submission/save; no human input or audibility claim"
+}

@@ -17,13 +17,24 @@ EffectiveSamplerFeedbackRequirements(const SamplerFeedbackProgramDescriptor &des
 }
 
 GraphicsRequirements EffectiveRayProgramRequirements(const RayProgramDescriptor &descriptor) {
-  if (descriptor.mode > RayTracingMode::InlineQuery)
+  if (descriptor.mode > RayTracingMode::ReorderedOpacityPipeline)
     throw std::invalid_argument("invalid ray tracing mode");
   auto requirements = descriptor.graphics_requirements;
   const FeatureVersion tier =
-      descriptor.mode == RayTracingMode::InlineQuery ? FeatureVersion{1, 1} : FeatureVersion{1, 0};
+      descriptor.mode == RayTracingMode::ReorderedOpacityPipeline ? FeatureVersion{1, 2}
+      : descriptor.mode == RayTracingMode::InlineQuery            ? FeatureVersion{1, 1}
+                                                                  : FeatureVersion{1, 0};
   const FeatureVersion model =
-      descriptor.mode == RayTracingMode::InlineQuery ? FeatureVersion{6, 5} : FeatureVersion{6, 3};
+      descriptor.mode >= RayTracingMode::ReorderedPipeline ? FeatureVersion{6, 9}
+      : descriptor.mode == RayTracingMode::InlineQuery     ? FeatureVersion{6, 5}
+                                                           : FeatureVersion{6, 3};
+  if (descriptor.mode >= RayTracingMode::ReorderedPipeline) {
+    auto &ser =
+        requirements
+            .minimum_tiers[static_cast<std::size_t>(GraphicsFeature::ShaderExecutionReordering)];
+    if (ser < FeatureVersion{1, 0})
+      ser = {1, 0};
+  }
   auto &minimum = requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::RayTracing)];
   if (minimum < tier)
     minimum = tier;
@@ -112,7 +123,7 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
   if (descriptor.type > PipelineType::Compute ||
       descriptor.topology > PrimitiveTopology::PatchList ||
       descriptor.graphics_shader > GraphicsShaderVariant::MeshTriangle ||
-      descriptor.shading_rate > ShadingRate::Coarse2x2)
+      descriptor.shading_rate > ShadingRate::Image)
     throw std::invalid_argument("invalid pipeline type, topology or shader variant");
   if (descriptor.type == PipelineType::Compute &&
       (descriptor.topology != PrimitiveTopology::TriangleList || descriptor.patch_control_points ||
@@ -155,8 +166,10 @@ GraphicsRequirements EffectivePipelineRequirements(const PipelineDescriptor &des
   if (descriptor.shading_rate != ShadingRate::Full) {
     auto &minimum =
         requirements.minimum_tiers[static_cast<std::size_t>(GraphicsFeature::VariableRateShading)];
-    if (minimum < FeatureVersion{1, 0})
-      minimum = {1, 0};
+    const FeatureVersion requested =
+        descriptor.shading_rate == ShadingRate::Image ? FeatureVersion{2, 0} : FeatureVersion{1, 0};
+    if (minimum < requested)
+      minimum = requested;
   }
   if (requirements.minimum_dxil_shader_model >= FeatureVersion{6, 10} &&
       !descriptor.allow_preview_shader_models)

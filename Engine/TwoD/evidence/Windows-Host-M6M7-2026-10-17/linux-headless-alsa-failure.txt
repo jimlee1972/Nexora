@@ -1,0 +1,46 @@
+Sanitizer CI job 117437275085 at f4e16ba6; readable excerpt, first leak stack only.
+Traceback (most recent call last):
+2026-10-17T16:04:41.4873226Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 138, in <module>
+2026-10-17T16:04:41.4873978Z     main()
+2026-10-17T16:04:41.4874621Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 133, in main
+2026-10-17T16:04:41.4875640Z     verify(args, root, package)
+2026-10-17T16:04:41.4876342Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 82, in verify
+2026-10-17T16:04:41.4877119Z     first = run('first')
+2026-10-17T16:04:41.4877470Z             ^^^^^^^^^^^^
+2026-10-17T16:04:41.4878088Z   File "/home/runner/work/Nexora/Nexora/Tests/TwoD/HostAcceptance.py", line 72, in run
+2026-10-17T16:04:41.4878923Z     assert (result.returncode == 0) == expected, result.stderr
+2026-10-17T16:04:41.4879526Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-17T16:04:41.5372421Z AssertionError: b'ALSA lib confmisc.c:855:(parse_card) cannot find card \'0\'
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_card_inum returned error: No such file or directory
+ALSA lib confmisc.c:422:(snd_func_concat) error evaluating strings
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_concat returned error: No such file or directory
+ALSA lib confmisc.c:1342:(snd_func_refer) error evaluating name
+ALSA lib conf.c:5208:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5731:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2721:(snd_pcm_open_noupdate) Unknown PCM default
+ALSA default output unavailable
+host fixture loaded position=0.000000 rebound=0
+host_fixture {"position":0.000000,"rebound":0,"saves":0,"opens":0,"keyboard_movement_frames":0,"gamepad_movement_frames":0,"buttons_seen":0,"bus_changes":0,"plays":0,"pauses":0,"stops":0,"cancels":0,"final_save_ok":true,"axes_min":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000],"axes_max":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000]}
+
+=================================================================
+==10997==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 16 byte(s) in 1 object(s) allocated from:
+    #0 0x7f049dcfd340 in calloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:77
+    #1 0x7f0495848efe  (<unknown module>)
+    #2 0x7f0495849487  (<unknown module>)
+    #3 0x7f049587439f  (<unknown module>)
+    #4 0x7f049bd8272f in nexora::runtime::GameplayAudio::OpenDefaultOutput(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&) /home/runner/work/Nexora/Nexora/Engine/Runtime/src/GameplayAudio.cpp:313
+    #5 0x5646bac65002 in nexora::player::RunTwoDPlayer(int, char**, int (*)(unsigned int, NexoraGameModuleV3*)) /home/runner/work/Nexora/Nexora/Apps/TwoDPlayer/TwoDPlayer.cpp:426
+    #6 0x5646bac45336 in int nexora::player::DispatchTwoDPlayer<char>(int, char**, int (*)(unsigned int, NexoraGameModuleV3*)) (/tmp/nexora-host-fixture-_1v0v_h_/package/NexoraTwoDPlayer+0x116336) (BuildId: a610b75009b50e6348bc1d9501c67b38e6d3e9bb)
+    #7 0x5646bac42a91 in main /home/runner/work/Nexora/Nexora/Apps/TwoDPlayer/main.cpp:5
+    #8 0x7f0497a2a1c9  (/lib/x86_64-linux-gnu/libc.so.6+0x2a1c9) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #9 0x7f0497a2a28a in __libc_start_main (/lib/x86_64-linux-gnu/libc.so.6+0x2a28a) (BuildId: a4a7992a8e66555c8141ab2a08a8465ff6e0ea65)
+    #10 0x5646bac429a4 in _start (/tmp/nexora-host-fixture-_1v0v_h_/package/NexoraTwoDPlayer+0x1139a4) (BuildId: a610b75009b50e6348bc1d9501c67b38e6d3e9bb)
+
+Indirect leak of 4248 byte(s) in 59 object(s) allocated from:
+    #0 0x7f049dcfd340 in calloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:77
+    #1 0x7f049582cd92  (<unknown module>)
+    #2 0x7f049583d5e4  (<unknown module>)
+    #3 0x7f049583d8e9  (<unknown module>)
+SUMMARY: AddressSanitizer: 66666 byte(s) leaked in 2049 allocation(s).

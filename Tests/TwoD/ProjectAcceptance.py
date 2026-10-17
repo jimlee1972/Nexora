@@ -25,11 +25,14 @@ def digest(root):
 
 def run(app, manifest, saves, success=True, loaded=None, native=False):
     result = subprocess.run([str(app), '--run-2d-project', str(manifest), '--frames', '3',
+                             '--backend', 'vulkan' if native and sys.platform.startswith('linux') else 'auto',
                              '--save-directory', str(saves)] + (['--native'] if native else []), capture_output=True, text=True)
     assert (result.returncode == 0) == success, (result.stdout, result.stderr)
     if success:
         report = json.loads(result.stdout)
         assert report['project_mode'] and report['allocations_balanced']
+        assert report['surface_backend_requested'] == ('vulkan' if native and sys.platform.startswith('linux') else 'auto' if native else 'none')
+        assert report['unfocused_movement_frames'] == 0
         assert not report['reloaded'] and report['visible'] == 0
         assert f'project visits loaded={loaded}' in result.stderr, result.stderr
         assert 'project stopped' in result.stderr

@@ -187,7 +187,9 @@ void TestDescriptorPoolReuse(rhi::Device &device, rhi::PipelineHandle pipeline) 
     Compare(device, workload);
   // Discard another fully recorded list; unchanged output and successful later native oracles
   // prove cache reset cannot queue work or retain an earlier dispatch's bindings.
-  { auto abandoned = record(); }
+  {
+    auto abandoned = record();
+  }
   for (const auto &workload : workloads)
     Compare(device, workload);
   Require(device.Diagnostics().cached_descriptor_pools == 2,
@@ -715,9 +717,8 @@ void TestGraphRecording(rhi::Device &device, rhi::PipelineHandle pipeline) {
                "failed/cancelled batches preserve all sentinel output and retry succeeds\n";
 }
 
+#if defined(NEXORA_TEST_D3D12)
 void TestBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {
-  if (kBackend != rhi::Backend::Direct3D12)
-    return;
   auto workload = MakeWorkload(device, 3000);
   const auto record = [&] {
     auto list = device.CreateCommandList(rhi::QueueType::Compute);
@@ -745,7 +746,9 @@ void TestBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {
             "stale D3D12 snapshot must fail before native submission");
   };
   // Abandon the very first upload and state changes; retry must still upload canonical input.
-  { auto abandoned = record(); }
+  {
+    auto abandoned = record();
+  }
   run();
   // Abandon a different final state after GPU output exists. Never consume GPU output as upload.
   {
@@ -785,9 +788,10 @@ void TestBufferSnapshots(rhi::Device &device, rhi::PipelineHandle pipeline) {
                "snapshots reject before execution; 6 exact CPU comparisons passed\n";
 }
 
+#endif
+
+#if defined(NEXORA_TEST_METAL)
 void TestMetalBufferScopes(rhi::Device &device, rhi::PipelineHandle pipeline) {
-  if (kBackend != rhi::Backend::Metal)
-    return;
   auto workload = MakeWorkload(device, 4000);
   {
     auto list = device.CreateCommandList(rhi::QueueType::Compute);
@@ -830,6 +834,8 @@ void TestMetalBufferScopes(rhi::Device &device, rhi::PipelineHandle pipeline) {
   std::cout << "Metal encoder WAW boundary replays bindings and matches CPU; "
                "offset/empty/invalid/stale readback checks passed\n";
 }
+
+#endif
 
 void TestSharedInputGraph(rhi::Device &device, rhi::PipelineHandle pipeline) {
   Require(device.Capabilities().shared_buffer_read_recording,
@@ -1123,9 +1129,11 @@ int main(int argc, char **argv) {
     TestSharedInputGraph(*device, pipeline);
 #if defined(NEXORA_TEST_D3D12)
     TestReadOnlyBufferSnapshots(*device, pipeline);
-#endif
     TestBufferSnapshots(*device, pipeline);
+#endif
+#if defined(NEXORA_TEST_METAL)
     TestMetalBufferScopes(*device, pipeline);
+#endif
     device->DestroyPipeline(pipeline);
     const auto pools = device->Diagnostics();
     const auto barrier_feature =

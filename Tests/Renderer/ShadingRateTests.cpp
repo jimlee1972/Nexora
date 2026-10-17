@@ -241,7 +241,12 @@ void TestNative(bool enhanced) {
       tier2.graphics_requirements
           .minimum_tiers[static_cast<std::size_t>(rhi::GraphicsFeature::VariableRateShading)] = {2,
                                                                                                  0};
-      Reject([&] { (void)device->CreatePipeline(tier2); }, "unimplemented VRS tier2 admitted");
+      const auto check =
+          rhi::CheckGraphicsRequirements(capabilities, rhi::EffectivePipelineRequirements(tier2));
+      if (check.Succeeded())
+        device->DestroyPipeline(device->CreatePipeline(tier2));
+      else
+        Reject([&] { (void)device->CreatePipeline(tier2); }, "unimplemented VRS tier2 admitted");
     }
     const auto target =
         device->CreateTexture({64, 64, format, rhi::ResourceState::ShaderRead, "VRS"});

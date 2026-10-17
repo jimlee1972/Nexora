@@ -1,0 +1,172 @@
+{
+  "command": "ctest --preset windows-development -C Development",
+  "exit_code": 0,
+  "tests": 197,
+  "passed": 191,
+  "skipped": 6,
+  "failed": 0,
+  "seconds": 1471.59,
+  "configuration": {
+    "platform": "Windows/MSVC x64",
+    "mode": "Development/Modular",
+    "native_backends": true,
+    "vulkan": false,
+    "slang": false,
+    "editor_graphical_shell": false,
+    "zig_gameplay": false,
+    "zig_abi_executable": "repository-pinned Zig 0.14.0 (existing cache)"
+  },
+  "shipping_build": "PASS: Monolithic, DX12+Vulkan, real Zig module/host; separate raw inventories",
+  "documentation_tests": "16/16 PASS; changed Markdown links/bilingual pairs PASS",
+  "cases": [
+    {
+      "name": "api.gameplay_input_zig_abi",
+      "status": "passed",
+      "seconds": 180.631
+    },
+    {
+      "name": "renderer.d3d12_texture_recording",
+      "status": "skipped",
+      "seconds": 0.0951287,
+      "output": "SKIP: native graphics unavailable\n"
+    },
+    {
+      "name": "renderer.d3d12_graphics_enhanced_barriers",
+      "status": "skipped",
+      "seconds": 0.045849,
+      "output": "SKIP: native graphics unavailable\n"
+    },
+    {
+      "name": "renderer.d3d12_recording_isolation",
+      "status": "skipped",
+      "seconds": 0.0875442,
+      "output": "SKIP: D3D12 artifacts/device unavailable\n"
+    },
+    {
+      "name": "renderer.d3d12_recording_gpu_timing",
+      "status": "skipped",
+      "seconds": 0.0426353,
+      "output": "SKIP: D3D12 artifacts/device unavailable\n"
+    },
+    {
+      "name": "renderer.d3d12_recording_enhanced_barriers",
+      "status": "skipped",
+      "seconds": 0.0427306,
+      "output": "SKIP: D3D12 artifacts/device unavailable\n"
+    },
+    {
+      "name": "renderer.d3d12_recording_benchmark",
+      "status": "skipped",
+      "seconds": 0.203473,
+      "output": "SKIP: D3D12 artifacts/device unavailable\n"
+    },
+    {
+      "name": "runtime.gameplay_action_input",
+      "status": "passed",
+      "seconds": 0.0889062
+    },
+    {
+      "name": "twod.runtime_contracts",
+      "status": "passed",
+      "seconds": 0.242788
+    },
+    {
+      "name": "twod.windows_vm_transport",
+      "status": "passed",
+      "seconds": 1.93081
+    },
+    {
+      "name": "twod.windows_vm_guest",
+      "status": "passed",
+      "seconds": 3.7528
+    },
+    {
+      "name": "twod.gameplay_bridge",
+      "status": "passed",
+      "seconds": 0.0987298
+    },
+    {
+      "name": "twod.project_play_assets",
+      "status": "passed",
+      "seconds": 0.60741
+    },
+    {
+      "name": "twod.content_import",
+      "status": "passed",
+      "seconds": 34.6297
+    },
+    {
+      "name": "twod.play_assets",
+      "status": "passed",
+      "seconds": 0.512565
+    },
+    {
+      "name": "twod.authoring_contracts",
+      "status": "passed",
+      "seconds": 0.186155
+    },
+    {
+      "name": "twod.play_context",
+      "status": "passed",
+      "seconds": 2.32849
+    },
+    {
+      "name": "twod.asset_tool",
+      "status": "passed",
+      "seconds": 0.715889
+    },
+    {
+      "name": "twod.cpu_stress",
+      "status": "passed",
+      "seconds": 3.8897
+    },
+    {
+      "name": "twod.gameplay_ui",
+      "status": "passed",
+      "seconds": 0.0862973
+    },
+    {
+      "name": "gameplay.zig_ui_wire_layout",
+      "status": "passed",
+      "seconds": 161.382
+    },
+    {
+      "name": "twod.gameplay_content",
+      "status": "passed",
+      "seconds": 0.0971297
+    },
+    {
+      "name": "gameplay.zig_content_wire_layout",
+      "status": "passed",
+      "seconds": 179.459
+    },
+    {
+      "name": "twod.host_fixture",
+      "status": "passed",
+      "seconds": 3.23147
+    },
+    {
+      "name": "twod.project_export",
+      "status": "passed",
+      "seconds": 2.71678
+    },
+    {
+      "name": "twod.windows_font_bake",
+      "status": "passed",
+      "seconds": 4.53643
+    },
+    {
+      "name": "twod.backend_options",
+      "status": "passed",
+      "seconds": 3.22277
+    },
+    {
+      "name": "twod.project_manifest",
+      "status": "passed",
+      "seconds": 0.19377
+    }
+  ],
+  "full_junit_local": "build/windows-host-m67-20261017/windows-ctest.xml",
+  "full_log_local": "build/windows-host-m67-20261017/windows-ctest.log",
+  "case_list_scope": "2D/input/ABI and all skips; aggregate counts cover the complete 197-test suite"
+}

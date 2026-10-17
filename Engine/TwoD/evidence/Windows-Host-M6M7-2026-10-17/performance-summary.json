@@ -1,0 +1,166 @@
+{
+  "executable_sha256": "8b6a75eb101b4a56590a63d4e1a28c2cf9a00eaea659ed1507cd80297cd42fa6",
+  "plan": {
+    "source_base": "f347b90773470783a58a9eb28d3fc8c6633f27ba",
+    "source_state": "base plus this PR patch; binaries hashed separately",
+    "purpose": "current developer-PC screening, not a declared minimum-PC/product acceptance",
+    "backends": [
+      "dx12",
+      "vulkan"
+    ],
+    "frames_per_case": 600,
+    "warmup_frames": 4,
+    "viewport": [
+      640,
+      480
+    ],
+    "present_mode": "VSync",
+    "cases": [
+      "100 mixed",
+      "1000 mixed",
+      "5000 mixed",
+      "10000 mixed",
+      "1000 overlap",
+      "10000 sparse"
+    ],
+    "predeclared_frame_budget_ms": {
+      "p95": 16.67,
+      "p99": 16.67,
+      "maximum": 33.34
+    },
+    "ui_vfx_product_load": "NOT RUN: benchmark synthetic sprites/query/animation/recycle; independent host UI fixture is separate",
+    "run_conditions": "no Nexora build or other Nexora native fixture running during timed tests; other desktop applications remain open",
+    "rss": "external GetProcessMemoryInfo peak working set for whole benchmark process; built-in Windows CSV RSS zero means unavailable, not zero bytes",
+    "vram": "NOT MEASURED",
+    "failure_policy": "retain over-budget results; do not change budgets after measurement",
+    "declared_at_utc": "2026-10-17T14:11:45.312083+00:00"
+  },
+  "runs": [
+    {
+      "backend": "dx12",
+      "exit_code": 0,
+      "seconds": 92.67182493209839,
+      "external_peak_working_set_bytes": 90865664,
+      "memory_samples": 905,
+      "rows": [
+        {
+          "objects": "100",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "17.4275",
+          "frame_p99_ms": "17.7327",
+          "frame_max_ms": "35.0061",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "1000",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "18.4858",
+          "frame_p99_ms": "32.8503",
+          "frame_max_ms": "53.5728",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "5000",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "19.5642",
+          "frame_p99_ms": "21.5471",
+          "frame_max_ms": "25.0903",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "10000",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "31.9657",
+          "frame_p99_ms": "36.6411",
+          "frame_max_ms": "42.0055",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "1000",
+          "overlap": "1",
+          "sparse": "0",
+          "frame_p95_ms": "17.7665",
+          "frame_p99_ms": "18.7473",
+          "frame_max_ms": "35.7951",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "10000",
+          "overlap": "0",
+          "sparse": "1",
+          "frame_p95_ms": "40.3342",
+          "frame_p99_ms": "48.7798",
+          "frame_max_ms": "412.535",
+          "within_predeclared_screening_budget": false
+        }
+      ]
+    },
+    {
+      "backend": "vulkan",
+      "exit_code": 0,
+      "seconds": 84.1608989238739,
+      "external_peak_working_set_bytes": 147972096,
+      "memory_samples": 829,
+      "rows": [
+        {
+          "objects": "100",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "33.1953",
+          "frame_p99_ms": "33.6371",
+          "frame_max_ms": "35.5115",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "1000",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "31.6523",
+          "frame_p99_ms": "32.2708",
+          "frame_max_ms": "35.1377",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "5000",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "19.3711",
+          "frame_p99_ms": "29.917",
+          "frame_max_ms": "39.4548",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "10000",
+          "overlap": "0",
+          "sparse": "0",
+          "frame_p95_ms": "30.9865",
+          "frame_p99_ms": "35.7578",
+          "frame_max_ms": "37.501",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "1000",
+          "overlap": "1",
+          "sparse": "0",
+          "frame_p95_ms": "31.2789",
+          "frame_p99_ms": "31.7673",
+          "frame_max_ms": "35.4725",
+          "within_predeclared_screening_budget": false
+        },
+        {
+          "objects": "10000",
+          "overlap": "0",
+          "sparse": "1",
+          "frame_p95_ms": "49.0597",
+          "frame_p99_ms": "59.9702",
+          "frame_max_ms": "78.2847",
+          "within_predeclared_screening_budget": false
+        }
+      ]
+    }
+  ]
+}

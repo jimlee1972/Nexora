@@ -1,12 +1,12 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-16
+> 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-17
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
 > Portable／Linux 功能證據。M6 本機 DX12 Screening 超出預算，最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
 > Runtime／Shipping 維持 **PARTIAL／NOT ACCEPTED**；重建的目前 main VM 封裝已通過 CPU、
-> 原生軟體 DX12、Zig Instancing 及人工鍵盤移動，完整裝置／產品整合與 Vulkan 仍待完成。
-> 這不是完整 Windows PC 產品驗收。
+> 原生軟體 DX12、Zig Instancing 及人工鍵盤移動，完整裝置／產品整合仍待完成。目前實體開發機新增
+> 硬體 DX12／Vulkan UI 短測、人工鍵盤／中文 UI／音訊與 100／150／175% DPI 證據；乾淨主機／完整裝置 gate 仍開放。
 
 ## 1. 範圍與基線
 
@@ -33,7 +33,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
-| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | 既有 Runtime 下，重建 VM CPU／軟體 DX12／Zig 與人工鍵盤切片通過；完整產品／裝置 gate 與 Vulkan 待完成；M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M10 | P1，條件式 | Tilemap | 圖層、繪製、碰撞資料、區塊載入／剔除 | 實作繪製、圖層／碰撞資料及區塊載入／剔除，通過 Undo／儲存／重開及區塊邊界渲染／查詢測試；決定延後仍維持未驗收 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -383,3 +383,24 @@ Zig 原生幀、零殘留 Player 與兩次正常 poweroff**。
 二進位身分見[原 VM 紀錄](../../Engine/TwoD/evidence/Windows-Original-VM-2026-10-17/acceptance.md)。
 第三次唯讀冷開機確認 16 個舊存檔雜湊、兩個 snapshot UUID／目前選擇與舊 snapshot RAM 不變，並正常關機。
 完整 M6／M7 與 **9/11（82%）、P0 6/8** 維持不變。
+
+## Windows 實體開發機 M6／M7 切片（2026-10-17）
+
+✅ 目前 Shipping Player 透過獨立公開 C ABI 中文主機 fixture，在 GTX 960 以明確指定的
+DX12／Vulkan 呈現。人工確認實際聽到 probe、Music／SFX 循環、三個 bus 音量、暫停／繼續／
+停止、外接喇叭接回、鍵盤／重綁、SAVE／OPEN、失焦／最小化／縮放，以及 100／150／175%
+中文顯示。三輪 DX12 互動生命週期皆正常退出；重測記錄 87 次滾輪事件與四次 UI 取消。
+位置與重綁狀態跨獨立 DX12／Vulkan 程序保留。原始計數與人工觀察分開保存在
+[驗收紀錄](../../Engine/TwoD/evidence/Windows-Host-M6M7-2026-10-17/acceptance.md)。
+
+本機有 PS4 USB HID，但 XInput 槽位皆未連線，該實體 gate 保留。標準縮放選單最高 175%，
+200% 與跨螢幕為 NOT RUN。喇叭連線恢復未造成 waveOut 失效／重開，不能證明 USB 端點失效／
+預設裝置切換恢復。UI-only fixture 與 Sprite 壓力負載、正式遊戲分開；乾淨主機、最低規格／
+整合負載／長時間運行、Editor 生命週期與完整裝置 gate 仍開放。
+**M6／M7 NOT ACCEPTED、9/11（82%）、P0 6/8** 維持不變。
+
+✅ 真實 Zig Cooked 服務 fixture 另在每個後端通過兩個 120 幀原生程序：各有 34 個可見 Sprite、一次 Cooked 重載、96,000 音訊幀、存檔／續存與平衡釋放。自動 fixture 移動與音訊提交不額外代表人工手把／聽音驗收。
+
+本機兩個硬體後端皆完成六種各 600 幀篩檢，但 12 列皆超出預先宣告的 p95／p99／最大值預算。10k 混合負載 frame p95：DX12 31.97 ms、Vulkan 30.99 ms；10k 稀疏：40.33／49.06 ms。外部程序峰值 working set 為 90.9／148.0 MB，不代表 allocator／VRAM 或最低規格驗收。功能 gate 通過與 M6 效能未驗收分開記錄。
+
+上述負載已使用 GPU Instancing。另一組 60 幀 DX12 診斷指出 CPU 資料提取（10k 混合 p95 16.48 ms）與空間索引重建（10k 稀疏 p95 27.16 ms）的成本；純渲染基準與最佳化仍待完成。主機 fixture 另揭露 headless Linux 執行收到系統手把輸入，現將原生輪詢限於 native 模式，並加入存檔／續存零輸入斷言。Linux headless fixture 音訊於 sanitizer 下使用明確的 ALSA null 設定，與實體輸出分開。失敗證據與診斷限制見同一份驗收紀錄。
