@@ -44,6 +44,30 @@ Validation Error／VUID／SYNC-HAZARD 為零。Compute 建立13份、重用193�
 Null 請求保持停用。Windows／Metal ABI 回歸與 Hosted Vulkan 驗證仍由 CI 把關。
 完整平行、非同步 Descriptor／Allocator 重用及實體效能驗收仍待完成。參見 [RHI 契約](../../Engine/RHI/README.md#optional-bounded-vulkan-command-allocator-reuse)。
 
+### 原生串行／平行錄製配對量測 — 2026-10-17
+
+✅ 受限的 `--benchmark [samples dispatches-per-list]` 模式共用原生 GPUDriven compute oracle，
+串行／四工作執行緒使用相同工作、四份清單與依序同步提交。兩組暖機後交替每組的先測模式。
+JSON 分別回報 CPU 設定、錄製／排程／等待工作、設定加錄製 median/p95、Submit/Wait median/p95、
+可選的已完成 GPU 區間加總、編譯器／裝置 ID 與 Linux RSS 抽樣。每次量測前重設輸出哨兵，
+計時結束後以 CPU oracle 檢查每份輸出。缺少的指標保持 null；軟體裝置旗標不能證明實體硬體。
+不宣稱加速、實體驗收或目標預算。共用既有原生測試程式與 CI 驗證步驟，不新增相依套件或工作。
+Beads `nexora-45y.2.12`；來源 `feat/v2-recording-benchmark`。
+整合原生 Timestamp 與 PR628 前置改動後，Slang Development configure/build 與
+Xvfb／強制原生完整 CTest **234/234 通過、零略過／失敗、245.30 秒**（GCC14.2、Slang2026.18、
+Zig0.14、Mesa lavapipe24.0.5）。聚焦計時／量測 **3/3 通過、4.72 秒**；最後報表驗證重查
+**1/1 通過、0.53 秒**。Shipping Monolithic／Minimal LTO 通過。
+Khronos1.3.275 物件／同步驗證 **7/7 通過、2.14 秒**，確認19次 Layer 插入，
+Validation Error／VUID／SYNC-HAZARD 為零，不新增外部或模組相依。
+
+另行獨立執行 `--benchmark 21 40`，每模式驗證 **3,360 份量測輸出**，另含暖機。
+串行／四工作執行緒 CPU 設定加錄製 median/p95 為 **0.271299/0.608567 ms** 與
+**0.573014/0.789110 ms**；GPU 區間加總 median/p95 為 **5.910813/9.522575 ms** 與
+**6.099738/8.569123 ms**，每模式21份 GPU 樣本皆可用。暖機 RSS51,412,992 bytes，
+最大抽樣 RSS51,630,080 bytes。此軟體主機平行錄製較慢；這是工具正確性觀察，並非加速或實體驗收。
+報表保留在 Repo 外暫存證據，CI Log 保留受限快速檢查 JSON。Windows／Metal 執行仍須 Hosted 原生驗證。
+完整閘門與非同步 allocator／descriptor 重用仍待完成。參見[量測契約](../../Engine/Renderer/README.md#matched-native-command-recording-measurement)。
+
 ### 選用的原生 GPU 提交完成計時 — 2026-10-17
 
 ✅ RHI 計時須由 `CreateDeviceWithOptions` 明確要求；一般建立維持關閉。建構時的支援／

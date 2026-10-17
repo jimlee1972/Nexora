@@ -53,6 +53,33 @@ Null requests stay disabled. Windows/Metal ABI regressions and hosted Vulkan val
 gates. Full parallel, asynchronous descriptor/allocator reuse and physical performance acceptance
 remain open. See the [RHI contract](../../Engine/RHI/README.md#optional-bounded-vulkan-command-allocator-reuse).
 
+### Matched native serial/parallel recording benchmark — 2026-10-17
+
+✅ A bounded `--benchmark [samples dispatches-per-list]` mode reuses the native GPUDriven compute
+oracle with identical work, four lists and ordered synchronous submission in serial/four-worker
+modes. Two warmup pairs and alternating first mode reduce order bias. JSON reports CPU setup,
+recording/scheduling/join, setup+recording median/p95, separate Submit/Wait median/p95, optional
+summed completed GPU intervals, compiler/device IDs and sampled Linux RSS. All output sentinels
+reset before measurement and every output is CPU-verified outside timing. Missing metrics stay
+null; software flags do not certify physical hardware. No speedup, physical acceptance or target
+budget is asserted. The existing native test executable and CI validation step are reused; no new
+dependency/job is added. Beads `nexora-45y.2.12`; source `feat/v2-recording-benchmark`.
+Integrated with native timestamps and PR628 prerequisites, Slang Development configure/build and
+Xvfb/native-required full CTest pass **234/234, zero skips/failures, 245.30 seconds** (GCC14.2,
+Slang2026.18, Zig0.14, Mesa lavapipe24.0.5). Focused timing/benchmark **3/3 pass, 4.72 seconds**;
+final report-validation recheck **1/1 pass, 0.53 seconds**. Shipping Monolithic/Minimal LTO passes.
+Native Khronos1.3.275 object/synchronization validation **7/7 pass, 2.14 seconds**, 19 loader-confirmed
+insertions and zero Validation Error/VUID/SYNC-HAZARD markers. No new external/module dependencies.
+
+An additional isolated `--benchmark 21 40` run validates **3,360 measured outputs per mode** plus
+warmups. Serial/four-worker CPU setup+record median/p95: **0.271299/0.608567 ms** versus
+**0.573014/0.789110 ms**; completed GPU sum median/p95: **5.910813/9.522575 ms** versus
+**6.099738/8.569123 ms**, all21 GPU samples available per mode. Warmed RSS51,412,992 bytes;
+maximum sampled RSS51,630,080 bytes. Parallel recording is slower on this software host; these
+are tool correctness observations, not a speedup or physical acceptance. Reports remain external
+scratch evidence; CI logs retain the bounded smoke JSON. Windows/Metal execution requires hosted
+native gates. The full gate and asynchronous allocator/descriptor reuse remain open. See the [measurement contract](../../Engine/Renderer/README.md#matched-native-command-recording-measurement).
+
 ### Optional completed native GPU submission timing — 2026-10-17
 
 ✅ RHI timing is explicitly requested with `CreateDeviceWithOptions`; ordinary creation stays off.

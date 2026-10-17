@@ -478,3 +478,32 @@ measurement plumbing; it does not establish reduced CPU recording overhead, GPU 
 hardware provenance or matched benchmark acceptance. See the
 [RHI timing contract](../RHI/README.md#opt-in-completed-submission-gpu-timing). Full parallel feature
 admission, asynchronous reuse and physical performance gates remain open.
+
+## Matched native command-recording measurement
+
+The native descriptor/compute oracle also accepts `--benchmark [samples dispatches-per-list]`
+(default 21 samples/mode, 40 dispatches/list; bounded to 101 and 64 respectively). It emits two
+JSON lines with schema `nexora.recording-benchmark.v1`. Four fresh command lists record identical,
+nonempty GPUDriven workloads in serial and on a persistent four-worker JobSystem. Two complete
+warmup pairs precede measured pairs, and the first mode alternates each pair. Inputs, pipelines and
+buffers are created before measurement; list/allocator/query setup is measured separately, then
+recording includes job scheduling and joining. CPU setup+recording median/p95 excludes native list
+finalization, ordered coordinator Submit/Wait and query retrieval, which have their own CPU
+submit/wait median/p95. This is a direct-list recording benchmark, not RenderGraph execution timing.
+
+Each mode submits the same four lists in the same order and waits before retirement. Optional
+GPU duration sums the four completed native intervals only when all are available; it excludes
+inter-submit gaps and cannot represent frame latency. Missing intervals report null, with an
+explicit native source and sample count. Timing is enabled in both modes, so instrumentation costs
+are matched. There is no CPU substitute or required speedup. Output sentinels are reset before each
+sample; every output is checked against the same CPU oracle after timing. Readback, resource writes,
+list destruction and process-memory sampling are outside timing windows.
+
+Reports include compiler family/version, opaque vendor/device/driver IDs and the backend's software
+flag. The flag alone cannot establish physical hardware, so physical verification/acceptance stay
+false. Linux reports RSS after warmup and the maximum sampled process RSS (including verification);
+other hosts report null. This is neither native GPU memory nor a continuous process high-water mark.
+Performance/memory target budgets remain null until defined and calibrated on target hardware.
+`renderer.{vulkan,d3d12,metal}_recording_benchmark` runs a small real workload and validates the JSON,
+metric availability/order, matched identity and bounded arguments. Native execution and software
+correctness evidence do not close the full parallel/performance gate.
