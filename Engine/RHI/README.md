@@ -203,20 +203,20 @@ buffer dependency ends an active compute encoder and requires rebinding pipeline
 subsequent dispatch. No native asynchronous multi-queue synchronization is implied.
 
 The caller owns buffers through submission completion and serializes resource uploads, mutation,
-destruction and submission against recording. Plans do not make D3D12 shared upload/state mutation
-safe for parallel recording. All C++ modules must rebuild for the extended virtual interface;
+destruction and submission against recording. D3D12 buffer recording now uses the private snapshots
+described below; texture state recording remains serialized. All C++ modules must rebuild for the extended virtual interface;
 the stable C ABI and shader artifact/profile requirements are unchanged.
 
 ## Limited independent compute recording admission
 
 `GraphicsDeviceCapabilities::independent_compute_recording` defaults false for unmodified/custom
-backends. Validation advertises it as a portable model, and Vulkan advertises it when its selected
-native queue supports compute. It admits exclusively owned buffer-only compute lists recorded
+backends. Validation advertises it as a portable model, D3D12 admits the isolated buffer path
+below, and Vulkan advertises it when its selected native queue supports compute. It admits exclusively owned buffer-only compute lists recorded
 against disjoint, caller-retained buffers and immutable pre-created pipelines. Vulkan's list-local
 command pools and immutable per-dispatch descriptor sets provide that isolation; handle/pipeline
 lookups remain protected by the device mutex. Creation, upload, mutation, destruction and submission
-stay serialized by the caller. This flag does not admit graphics, textures, shared-buffer reads,
-D3D12 shared upload/state preparation or Metal workers.
+stay serialized by the caller. This flag does not admit graphics, textures, shared-buffer reads
+or Metal workers.
 
 RenderGraph consumes this limited flag for its explicit opt-in bounded scheduler. Every worker
 finishes before coordinator submission, and the graph waits for each returned completion value
@@ -225,3 +225,36 @@ across asynchronous submissions and separate queue-family transfers remain unimp
 The broad `GraphicsFeature::ParallelCommandRecording` remains disabled/unimplemented until its
 remaining backend, lifetime, toolchain and performance gates pass. Existing shader feature
 admission cannot use the limited flag to bypass that feature gate.
+
+## D3D12 buffer recording snapshots (V2-GFX-1 slice)
+
+Each D3D12 command list owns its allocator, native list, binding addresses and buffer preparation
+snapshots. First use captures the validated generation, device revision, committed native state and
+pending-upload flag under the device mutex. Copies and state transitions update only that list's
+snapshot. Abandoning a list does not consume staging data or modify committed GPU state. Resource
+creation, upload, mutation, destruction and submission remain caller-serialized against recording;
+resources and immutable pipelines must outlive all lists and their submission completion.
+
+Before closing or executing a list, `Submit` checks every referenced buffer still exists at the
+captured revision. Uploads, accepted submissions and nonempty readbacks invalidate older snapshots,
+including read-only uses. Stale lists throw `std::logic_error` before native execution and must be
+recorded again; lists sharing a buffer cannot be pre-recorded and submitted together. This is a
+conservative admission rule, not automatic repair of stale commands. `Dispatch` also requires all
+four canonical bindings and revalidates their handles before recording.
+
+After `ExecuteCommandLists` accepts work, submission commits the consumed uploads and advances all
+referenced buffer revisions, even if a later signal/wait fails. Buffers decay to `COMMON` at the
+execution boundary on the single DIRECT queue; subsequent lists transition from that committed
+entry state. Test-only readback likewise commits after native execution and leaves buffers in
+`COMMON`. Never replay an already accepted list. Failure after queue acceptance still requires
+draining before list/resource destruction; device-loss recovery remains separate.
+
+The bounded graph scheduler admits disjoint buffer-only Compute passes through
+`independent_compute_recording`. It joins every worker before ordered synchronous submission and
+waits completion before allocator retirement. `renderer.d3d12_recording_isolation` uses the same
+native workload and CPU oracle as the Vulkan test: 320 isolated dispatch comparisons, 48 graph
+comparisons, forced four-way overlap, failed-batch sentinels and successful buffer reuse. Additional
+D3D12 cases verify abandoned initial uploads/state changes, stale upload/submission/readback/handle
+rejection and six CPU comparisons. Without native DXIL/device support it explicitly skips; Slang
+Windows builds require execution. This does not enable texture/graphics concurrency, asynchronous
+allocator reuse, shared reads, GPU validation-layer acceptance or the full parallel feature gate.

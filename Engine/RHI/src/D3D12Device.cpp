@@ -61,6 +61,7 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
   // Creation requires feature level 11_0, which provides hull/domain hardware support.
   report(GraphicsFeature::Tessellation, {1, 0}, true);
   report(GraphicsFeature::ParallelCommandRecording, {1, 0});
+  result.independent_compute_recording = true;
 
   // Numeric query values allow older SDK builds to query a newer runtime without referencing
   // newer compiler enums. Retry lower known models when the runtime rejects a newer query.
@@ -263,7 +264,15 @@ public:
 
 private:
   friend class D3D12Device;
+  struct BufferSnapshot final {
+    BufferHandle handle;
+    std::uint64_t revision{};
+    D3D12_RESOURCE_STATES state{};
+    bool upload_pending{};
+  };
+  ID3D12Resource *PrepareBuffer(BufferHandle buffer, D3D12_RESOURCE_STATES state);
   D3D12Device &device_;
+  std::unordered_map<std::uint64_t, BufferSnapshot> buffer_snapshots_;
   Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator_;
   Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> list_;
   bool rendering_{false};
@@ -281,6 +290,7 @@ private:
   std::uint32_t indirect_stride_{};
   std::array<D3D12_GPU_VIRTUAL_ADDRESS, 4> storage_buffers_{};
   std::array<bool, 4> storage_bound_{};
+  std::array<BufferHandle, 4> storage_handles_{};
 };
 
 class D3D12Device final : public Device {
@@ -469,6 +479,7 @@ public:
                                     static_cast<SIZE_T>(offset + data.size())};
     record.resource->Unmap(0, &written_range);
     record.upload_dirty = true;
+    ++record.revision;
   }
 
   void ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset,
@@ -552,17 +563,32 @@ public:
       Require(validated->BelongsTo(*this), "command list belongs to another device");
       Require(validated->IsClosed(), "cannot submit an open command list");
       Require(!validated->IsSubmitted(), "command list was already submitted");
+      // Validate every snapshot before Close or native execution. Recording/abandoning a list
+      // never reserves a resource or commits upload/state changes on the device.
+      for (const auto &entry : validated->buffer_snapshots_) {
+        const auto &snapshot = entry.second;
+        const auto &record = ValidateBufferLocked(snapshot.handle);
+        Require(record.revision == snapshot.revision, "stale D3D12 buffer recording snapshot");
+      }
       validated->Close();
       ID3D12CommandList *native_list = validated->list_.Get();
       queue_->ExecuteCommandLists(1, &native_list);
-      fence_value = ++next_fence_;
-      Check(queue_->Signal(fence_.Get(), fence_value), "ID3D12CommandQueue::Signal");
+      // ExecuteCommandLists accepted the list, even if a later Signal/wait fails. Buffers
+      // decay to COMMON at the execution boundary on this single DIRECT queue.
+      for (const auto &entry : validated->buffer_snapshots_) {
+        auto &record = buffers_.at(entry.first);
+        record.gpu_state = D3D12_RESOURCE_STATE_COMMON;
+        record.upload_dirty = false;
+        ++record.revision;
+      }
       validated->MarkSubmitted();
       ++diagnostics_.submitted_command_lists;
       diagnostics_.barriers += validated->Barriers();
       diagnostics_.draw_calls += validated->DrawCalls();
       diagnostics_.compute_dispatches += validated->Dispatches();
       diagnostics_.indirect_draw_calls += validated->IndirectDraws();
+      fence_value = ++next_fence_;
+      Check(queue_->Signal(fence_.Get(), fence_value), "ID3D12CommandQueue::Signal");
     }
     WaitForFence(fence_value);
     return fence_value;
@@ -663,6 +689,7 @@ private:
     ComPtr<ID3D12Resource> gpu_resource;
     D3D12_RESOURCE_STATES gpu_state{D3D12_RESOURCE_STATE_COPY_DEST};
     bool upload_dirty{true};
+    std::uint64_t revision{};
   };
 
   BufferRecord &ValidateBufferLocked(BufferHandle buffer) {
@@ -671,36 +698,6 @@ private:
     return found->second;
   }
 
-  ID3D12Resource *PrepareBuffer(ID3D12GraphicsCommandList *list, BufferHandle buffer,
-                                D3D12_RESOURCE_STATES state) {
-    std::lock_guard lock{mutex_};
-    auto &record = ValidateBufferLocked(buffer);
-    if (record.upload_dirty) {
-      if (record.gpu_state != D3D12_RESOURCE_STATE_COPY_DEST) {
-        D3D12_RESOURCE_BARRIER transition{};
-        transition.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        transition.Transition.pResource = record.gpu_resource.Get();
-        transition.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        transition.Transition.StateBefore = record.gpu_state;
-        transition.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-        list->ResourceBarrier(1, &transition);
-        record.gpu_state = D3D12_RESOURCE_STATE_COPY_DEST;
-      }
-      list->CopyResource(record.gpu_resource.Get(), record.resource.Get());
-      record.upload_dirty = false;
-    }
-    if (record.gpu_state != state) {
-      D3D12_RESOURCE_BARRIER transition{};
-      transition.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-      transition.Transition.pResource = record.gpu_resource.Get();
-      transition.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-      transition.Transition.StateBefore = record.gpu_state;
-      transition.Transition.StateAfter = state;
-      list->ResourceBarrier(1, &transition);
-      record.gpu_state = state;
-    }
-    return record.gpu_resource.Get();
-  }
   template <typename Pool, typename Handle> static std::uint64_t HandleKey(Handle handle) {
     return (static_cast<std::uint64_t>(handle.generation) << 32U) | handle.index;
   }
@@ -814,6 +811,37 @@ D3D12CommandList::D3D12CommandList(D3D12Device &device, QueueType queue) : devic
         "CreateCommandList");
 }
 
+ID3D12Resource *D3D12CommandList::PrepareBuffer(BufferHandle buffer, D3D12_RESOURCE_STATES state) {
+  std::lock_guard lock{device_.mutex_};
+  const auto &record = device_.ValidateBufferLocked(buffer);
+  auto &snapshot =
+      buffer_snapshots_
+          .try_emplace(Key(buffer), BufferSnapshot{buffer, record.revision, record.gpu_state,
+                                                   record.upload_dirty})
+          .first->second;
+  device_.Require(snapshot.revision == record.revision,
+                  "D3D12 buffer changed during command recording");
+  const auto transition = [&](D3D12_RESOURCE_STATES target) {
+    if (snapshot.state == target)
+      return;
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition.pResource = record.gpu_resource.Get();
+    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    barrier.Transition.StateBefore = snapshot.state;
+    barrier.Transition.StateAfter = target;
+    list_->ResourceBarrier(1, &barrier);
+    snapshot.state = target;
+  };
+  if (snapshot.upload_pending) {
+    transition(D3D12_RESOURCE_STATE_COPY_DEST);
+    list_->CopyResource(record.gpu_resource.Get(), record.resource.Get());
+    snapshot.upload_pending = false;
+  }
+  transition(state);
+  return record.gpu_resource.Get();
+}
+
 void D3D12CommandList::Transition(const Barrier &barrier) {
   if (submitted_)
     throw std::logic_error("cannot record a submitted command list");
@@ -843,7 +871,7 @@ void D3D12CommandList::TransitionBuffer(const BufferBarrier &barrier) {
                          ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS
                          : D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
                                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-  auto *resource = device_.PrepareBuffer(list_.Get(), barrier.buffer, state);
+  auto *resource = PrepareBuffer(barrier.buffer, state);
   // PrepareBuffer handles uploads and actual native state transitions. A same-state UAV
   // dependency still needs ordering, including conservative Undefined -> UAV declarations.
   if (barrier.after == BufferAccess::StorageReadWrite) {
@@ -899,9 +927,10 @@ void D3D12CommandList::BindStorageBuffer(std::uint32_t binding, BufferHandle buf
     throw std::logic_error("invalid D3D12 storage-buffer binding");
   const auto state = binding == 0 ? D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
                                   : D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-  auto *resource = device_.PrepareBuffer(list_.Get(), buffer, state);
+  auto *resource = PrepareBuffer(buffer, state);
   storage_buffers_[binding] = resource->GetGPUVirtualAddress();
   storage_bound_[binding] = true;
+  storage_handles_[binding] = buffer;
   if (pipeline_bound_ && pipeline_type_ == PipelineType::Compute) {
     if (binding == 0)
       list_->SetComputeRootShaderResourceView(binding, storage_buffers_[binding]);
@@ -918,8 +947,7 @@ void D3D12CommandList::BindIndirectBuffer(BufferHandle buffer, std::uint64_t off
   auto &record = device_.ValidateBuffer(buffer);
   if (offset > record.descriptor.size || record.descriptor.size - offset < DrawIndirectArgumentSize)
     throw std::logic_error("D3D12 indirect-buffer binding exceeds allocation");
-  indirect_buffer_ =
-      device_.PrepareBuffer(list_.Get(), buffer, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+  indirect_buffer_ = PrepareBuffer(buffer, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
   indirect_offset_ = offset;
   indirect_size_ = record.descriptor.size;
   indirect_stride_ = stride;
@@ -938,6 +966,11 @@ void D3D12CommandList::Dispatch(std::uint32_t group_count_x, std::uint32_t group
   if (submitted_ || rendering_ || !pipeline_bound_ || pipeline_type_ != PipelineType::Compute ||
       group_count_x == 0 || group_count_y == 0 || group_count_z == 0)
     throw std::logic_error("invalid D3D12 dispatch");
+  for (std::size_t index = 0; index < storage_bound_.size(); ++index) {
+    if (!storage_bound_[index])
+      throw std::logic_error("D3D12 dispatch requires all storage bindings");
+    (void)device_.ValidateBuffer(storage_handles_[index]);
+  }
   list_->Dispatch(group_count_x, group_count_y, group_count_z);
   ++dispatches_;
 }
@@ -1016,23 +1049,22 @@ void D3D12Device::ReadBufferForTesting(BufferHandle buffer, std::uint64_t offset
       list->ResourceBarrier(1, &barrier);
     };
 
-    const auto original_state = record.gpu_state;
+    // Build the readback privately as well: a Close/allocation failure must not consume
+    // pending upload data. Resource state is committed only after ExecuteCommandLists.
+    auto state = record.gpu_state;
     if (record.upload_dirty) {
-      transition(record.gpu_state, D3D12_RESOURCE_STATE_COPY_DEST);
-      record.gpu_state = D3D12_RESOURCE_STATE_COPY_DEST;
+      transition(state, D3D12_RESOURCE_STATE_COPY_DEST);
+      state = D3D12_RESOURCE_STATE_COPY_DEST;
       list->CopyResource(record.gpu_resource.Get(), record.resource.Get());
-      record.upload_dirty = false;
-      transition(record.gpu_state, original_state);
-      record.gpu_state = original_state;
     }
-    transition(record.gpu_state, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    record.gpu_state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    transition(state, D3D12_RESOURCE_STATE_COPY_SOURCE);
     list->CopyBufferRegion(readback.Get(), 0, record.gpu_resource.Get(), offset, data.size());
-    transition(record.gpu_state, original_state);
-    record.gpu_state = original_state;
     Check(list->Close(), "ID3D12GraphicsCommandList::Close(readback)");
     ID3D12CommandList *native_list = list.Get();
     queue_->ExecuteCommandLists(1, &native_list);
+    record.gpu_state = D3D12_RESOURCE_STATE_COMMON;
+    record.upload_dirty = false;
+    ++record.revision;
     fence_value = ++next_fence_;
     Check(queue_->Signal(fence_.Get(), fence_value), "ID3D12CommandQueue::Signal(readback)");
   }

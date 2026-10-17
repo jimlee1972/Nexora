@@ -25,6 +25,36 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### D3D12 隔離 Buffer 錄製 — 2026-10-17
+
+✅ D3D12 的 Buffer 上傳／狀態準備現由各命令清單擁有；錄製與放棄清單不會修改裝置已提交的
+狀態。提交會先檢查每個 Buffer 的 Generation／Revision，再執行原生清單；Queue 接受後才
+提交已消耗的上傳及 `COMMON` Decay。上傳、已接受的提交與非空讀回會使舊快照過期，遭拒
+清單必須重新錄製。Texture 狀態準備仍須序列執行，未取得 Rollback 語意。
+
+有限的 `independent_compute_recording` 檢查現涵蓋 D3D12 獨立且僅使用 Buffer 的 Compute
+Pass；完整平行 Feature 仍未啟用／未實作。Windows 專用的
+`renderer.d3d12_recording_isolation` 共用既有 Vulkan Workload：320 組獨立 Dispatch 比對、
+48 組序列／四 Worker Graph 比對、強制 Callback 重疊、放棄批次 Sentinel 與成功重用。
+另驗證放棄初次上傳／狀態準備、上傳／提交／讀回／失效 Handle 的快照在執行前遭拒，
+並進行六次 CPU 精確比對。
+
+來源分支：`feat/v2-d3d12-recording-isolation`，基底 `8a12a0e2cf40ab524c659d868bfa447a908655e3`。
+Beads：`nexora-45y.2.4`；父任務 `nexora-45y.2` 與五個完整 Gate 均維持待完成。
+本機驗證：`cmake --preset linux-development` 與 `cmake --build --preset linux-development`
+通過；Xvfb／Native-required 的 `ctest --preset linux-development` **194/194 通過，零略過／失敗，
+97.62 秒**，使用 Slang 2026.18 SPIR-V、Mesa lavapipe 24.0.5 與 Zig 0.14.0。聚焦執行
+`ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|graph_buffer_dependencies|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven)$' --output-on-failure`
+**6/6 通過，零略過，0.28 秒**。`cmake --preset linux-shipping` 與
+`cmake --build --preset linux-shipping` 通過（Monolithic／Minimal、LTO）。本次 C++ 的
+`clang-format --dry-run --Werror` 及 `git diff --check` 通過。
+
+原生 Windows 執行須由 Hosted CI 證明，Linux 不認證 D3D12。未宣稱實體 GPU 計時、
+GPU Validation Layer 結果、共用讀取／Texture 並行、Metal Worker 所有權、非同步 Queue
+分離或 Allocator 重用回收。Compiler／Artifact 就緒矩陣與同條件效能 Gate 仍待完成。
+Shader／SDK 基線與 Stable C ABI 不變。詳見
+[RHI 快照 Contract](../../Engine/RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice)。
+
 ### 有界 Graph Compute 錄製 — 2026-10-17
 
 ✅ Graph 排程現可明確 opt-in，使用既有 JobSystem，以有界批次平行錄製獨立且僅使用

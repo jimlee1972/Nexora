@@ -69,6 +69,12 @@ asynchronous retirement and performance acceptance remain open. 明確 opt-in �
 批次已通過 Linux 原生輸出與失敗隔離驗證，保留固定提交及序列 Fallback；完整後端 Worker、
 非同步回收與效能驗收仍待完成。詳細證據見上述雙語圖形計畫。
 
+✅ V2-GFX-1 D3D12 buffer recording isolation / D3D12 Buffer 錄製隔離（2026-10-17）：list-owned
+upload/state snapshots and stale-list rejection extend bounded disjoint Compute recording to D3D12;
+Linux regression/Shipping gates pass and Windows native coverage is required by CI. Private 上傳／
+狀態快照及過期清單檢查擴充至 D3D12 有界獨立 Compute 錄製；Linux 回歸／Shipping 通過，
+Windows 原生覆蓋由 CI 強制執行。完整圖形 Gate、Metal Worker 與效能驗收仍待完成。
+
 ## English
 
 This directory contains the version roadmaps and focused capability roadmaps for the Nexora open-source baseline. English editions are under [`en/`](en/), and matching Traditional Chinese editions are under [`zh-TW/`](zh-TW/).

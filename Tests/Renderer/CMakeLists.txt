@@ -89,6 +89,24 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND NOT APPLE)
   endif()
 endif()
 
+# Share the same workload and failure/CPU oracle across native Vulkan and D3D12.
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND WIN32)
+  add_executable(NexoraD3D12RecordingIsolationTests VulkanDescriptorIsolationTests.cpp)
+  target_link_libraries(NexoraD3D12RecordingIsolationTests PRIVATE Nexora::Renderer)
+  target_compile_definitions(NexoraD3D12RecordingIsolationTests PRIVATE
+    NEXORA_TEST_D3D12=1 _CRT_SECURE_NO_WARNINGS)
+  nexora_apply_defaults(NexoraD3D12RecordingIsolationTests)
+  add_test(NAME renderer.d3d12_recording_isolation COMMAND NexoraD3D12RecordingIsolationTests)
+  set_tests_properties(renderer.d3d12_recording_isolation PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "d3d12;native-acceptance")
+  if(NEXORA_ENABLE_SLANG)
+    add_dependencies(NexoraD3D12RecordingIsolationTests ${NEXORA_SLANG_ARTIFACT_TARGET})
+    set_property(TEST renderer.d3d12_recording_isolation APPEND PROPERTY ENVIRONMENT
+      "NEXORA_SLANG_COMPUTE_DXIL_PATH=${NEXORA_SLANG_COMPUTE_DXIL_OUTPUT}"
+      "NEXORA_REQUIRE_NATIVE_BACKENDS=1")
+  endif()
+endif()
+
 if(NEXORA_ENABLE_SLANG)
   add_executable(NexoraShaderReflectionContractTests ShaderReflectionCrossCompileTests.cpp)
   target_link_libraries(NexoraShaderReflectionContractTests PRIVATE Nexora::RHI)

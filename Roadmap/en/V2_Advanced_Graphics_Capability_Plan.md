@@ -31,6 +31,37 @@ binding rejection. All output identities, classification data and indirect draw 
 CPU references. The snapshot capability remains disabled/unimplemented for parallel recording;
 General RenderGraph scheduling and other backend worker ownership are not complete.
 
+### D3D12 isolated buffer recording — 2026-10-17
+
+✅ D3D12 buffer uploads/state preparation now belong to each command list. Recording and abandoning
+lists leave committed device state untouched. Submission validates every buffer generation/revision
+before native execution, then commits consumed uploads and `COMMON` decay after queue acceptance.
+Upload, accepted submission and nonempty readback invalidate older snapshots; rejected lists must be
+recorded again. Texture state preparation remains serialized and does not gain rollback semantics.
+
+The limited `independent_compute_recording` admission now includes D3D12 disjoint buffer-only
+Compute passes. The broad parallel feature stays disabled/unimplemented. The Windows-only
+`renderer.d3d12_recording_isolation` target shares the existing Vulkan workload: 320 unique dispatch
+comparisons, 48 serial/four-worker graph comparisons, forced callback overlap, aborted-batch
+sentinels and successful reuse. Additional cases exercise abandoned initial upload/state preparation,
+stale upload/submission/readback/handle rejection before execution and six exact CPU comparisons.
+
+Source branch: `feat/v2-d3d12-recording-isolation`, base `8a12a0e2cf40ab524c659d868bfa447a908655e3`.
+Beads: `nexora-45y.2.4`; parent `nexora-45y.2` and all five full gates remain open.
+Local validation: `cmake --preset linux-development` and `cmake --build --preset linux-development`
+passed; Xvfb/native-required `ctest --preset linux-development` passed **194/194, zero skips/failures,
+97.62 seconds**, using Slang 2026.18 SPIR-V, Mesa lavapipe 24.0.5 and Zig 0.14.0. Focused
+`ctest --preset linux-development -R '^renderer\.(parallel_graph_recording|graph_buffer_dependencies|vulkan_descriptor_isolation|contracts|graphics_capabilities|v2_gpu_driven)$' --output-on-failure`
+passed **6/6, zero skips, 0.28 seconds**. `cmake --preset linux-shipping` and
+`cmake --build --preset linux-shipping` passed (Monolithic/Minimal, LTO). Touched-file
+`clang-format --dry-run --Werror` and `git diff --check` passed.
+
+Native Windows execution requires hosted CI; Linux cannot certify D3D12. No physical-GPU timing,
+GPU validation-layer result, shared-read/texture concurrency, Metal worker ownership, asynchronous
+queue separation or reusable allocator retirement is claimed. The compiler/artifact readiness and
+matched performance gates remain open. Shader/SDK baselines and the stable C ABI are unchanged.
+See the [RHI snapshot contract](../../Engine/RHI/README.md#d3d12-buffer-recording-snapshots-v2-gfx-1-slice).
+
 ### Bounded graph compute recording — 2026-10-17
 
 ✅ Explicit opt-in graph scheduling now records independent, buffer-only Compute passes on the
