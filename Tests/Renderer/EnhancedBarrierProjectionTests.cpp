@@ -6,8 +6,10 @@
 #if defined(_WIN32)
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#include "D3D12EnhancedBarriers.h"
 #include <d3d12.h>
+
+// This private adapter must see the SDK interface guards before it is parsed.
+#include "D3D12EnhancedBarriers.h"
 #endif
 using namespace nexora::rhi;
 using namespace nexora::rhi::detail;
