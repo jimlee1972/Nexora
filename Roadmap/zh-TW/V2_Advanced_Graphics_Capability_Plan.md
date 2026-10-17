@@ -716,6 +716,25 @@ VRS2 Image 與實機預算維持開放。
 改接 Squash 後，受測樹完全相同（`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`）；下一個 PR 不重複
 既有 Tessellation／Mesh／VRS／Barrier 提交。
 
+## V2-GFX-4 有界 Min-mip Feedback 施工狀態
+
+`feat/v2-native-minmip-feedback`、Beads `nexora-45y.5.4` 新增固定64x64／七層 Mip、16x16 Region
+的僅 Metadata Footprint。原生 Device8 建立 Paired／Opaque View，透過獨立 SM6.5 Write、Clear／
+UAV 相依、List1 Decode 成4x4 R8_UINT，再由 SM6.0 GPU Kernel 擴成16個 uint Min-mip 值。List
+Context 保留不可變 Root／PSO／Paired Texture，並獨占 Opaque／Decoded Texture 與 Descriptor。
+實作上限 Tier0.9，不改寫硬體1.0；實際 Reflection 與完整 Recipe 位元組識別在原生建立前拒絕
+不相容產物。此路徑不取樣 Color、不連接 App Texture；通用 Streaming／Residency 與完整 Ultimate／
+V2-GFX-4 仍待完成。
+
+✅ 本地 Linux Development Configure／Build 與完整 CTest220/220 通過，零失敗／略過（282.94s）；
+Shipping Minimal／Monolithic LTO 通過。真實 Vulkan 較低 Profile Compute 與 CPU 比對 Clear255、
+0／1／16／64 Request、重複最小值、未寫入／Canary、全無效輸入，以及強制雙 Worker 取消／重試。
+Xvfb 下 Khronos Object／Synchronization Validation18/18 通過（10.90s），確認39次 Layer 插入，無
+Validation／VUID／同步錯誤。實際 Production CMake 編譯 Write4800B／SM6.5、Pack3468B／SM6.0，
+驗證真實 Reflection 並產生完整 Recipe 識別。官方 SDK Helper 與 Windows 條件測試分支在警告視為
+錯誤下通過語法檢查。原生過期／Context／Heap／Program 與 Node／Feedback／Node Oracle 已實作，
+但 Windows 原生 Feedback 執行仍待完成；enabled0／dispatches0 僅代表 Compute 後備。
+
 ## 基線與範圍
 
 `5201d9f6e02d2a24406004174a50f61ad9cebf9b` 的原始碼查核已確認原生 DX12 Queue、
@@ -811,6 +830,21 @@ target 為前提；尚不可用的功能不能靠編譯 stub 或僅 fallback 測
 - [Renderer Contract](../../Engine/Renderer/README.md)
 - [Shader Library 與原生 Presentation 範圍](../../Shaders/README.md)
 
+## Hosted 原生 Work Graph 與 Ray 驗收（PR633）
+
+✅ 自己的 PR633 在 ee4d8043 通過36檢查、兩輪 Workflow39029985978／39029989660 成功後，
+以 `f347b90773470783a58a9eb28d3fc8c6633f27ba` Squash 合併。Push／PR 的 Windows314/314
+（1317.40／808.31秒）、Linux365/365（1340.76／1337.94秒）、macOS304/304
+（541.70／582.44秒）均通過。兩輪 Windows 實際執行 Work Graph enabled1／16 Dispatch、
+Pipeline Ray enabled1／45 Call、Inline Query enabled1／45 Call；Legacy／Enhanced、
+Node/Ray/Node Root、CPU／Compute 輸出比對、Generation／Revision 負例及取消／重播均通過。
+Enhanced Node／Ray Buffer Barrier 分別68／354。Linux／Metal 明確回報 enabled0，執行
+真實低 Profile Compute 後備。本節取代上述有界 Recipe 的 Windows 待驗收紀錄，僅關閉
+子任務 nexora-45y.6.1／.4.2；一般 Graph Node、AS Update／Compaction、Lighting、
+DXR1.2／SER、實體效能及完整 Gate 持續開放。
+
+Windows64f83e47 完整 CTest 在兩種 Feedback Barrier 模式均發現真實 Decode Map 不符，尚未驗收。正式 MIN_MIP Transcode 規則要求來源 Subresource 為 UINT_MAX，表示攤平的整條 Opaque Mip Chain，已取代初版0；目的地仍為單一 R8_UINT Slice0。負例診斷新增 Native／Reference、Count 與每個 Actual／Expected Word。本機修正版 Development220/220 通過（125.60秒），真正 SDK Helper 語法、Session 清理25/25及文件／Workflow16/16 亦通過。仍須最終 Windows 原生證據，不由本機 Compute Oracle 推定 Feedback 完成。
+
 ### 隔離的新型 Compute 程式 — 實作進行中
 
 預設關閉的 `NEXORA_ENABLE_D3D12_PREVIEW` 使用獨立 SHA-256 固定的 Agility
@@ -841,3 +875,27 @@ Sampler Feedback 父版本上的本機整合驗證通過 Development220/220、�
 拆開 Sampler 父版本後，以 PR633 為基礎的獨立來源通過 Development219/219、零略過／失敗（154.39秒）、Shipping Minimal／Monolithic／LTO，以及 Xvfb Khronos 物件／同步17/17（18.24秒）、37次確認載入，零 Validation Error／VUID／SYNC-HAZARD。非 Windows Preview Configure 拒絕及雙語文件檢查亦通過；原生 Preview 執行仍待 Windows CI。
 
 前一版本2f7d89c7 的兩輪 Windows Preview Job117400353506／117402090855 均通過1/1（2.09／0.29秒），實際載入 app-local WARP SM6.10、65536 Shared Bytes、F32 Matvec 支援，九組 Kernel 輸出／Canary／生命週期通過。後續補齊 Caller 未填最低版本時的一般產物准入：實際6.9以上 DXIL 仍須符合裝置上限，實際6.10仍要求明確許可／私有 Runtime；新增一般入口未啟用拒絕／啟用 PSO 建立且不 Submit 的原生測試。本機 Development 再通過219/219（122.37秒），真實 SDK 准入 Helper 及 Windows 條件語法亦通過。清理機制僅納入本次三個確切分支、Owner／同 Repository Actor 的過期進行中 SHA，保留最新 Head 的兩種 Event；取消安全測試25/25、文件／Workflow16/16 通過。合併前仍要求最終後續版本 Windows CI。
+
+## 託管現代運算驗收（PR635）
+
+✅ 有界 SM6.9 長向量、SM6.10 F32 矩陣／向量與靜態共用記憶體配方已通過原生測試並合併 PR635（b6fd5053）。4e35aef1 的 push／PR 兩套流程共38項檢查全數通過。Windows 專用工作117408135751／117408317595 載入固定版本 app-local WARP，通過九組輸出／canary／生命週期測試，以及未宣告最低6.10版本時的權限拒絕／明確允許 PSO 建立測試。兩套桌面矩陣均通過 Windows314/314、Linux365/365、macOS304/304。此處驗收固定配方的軟體原生執行；一般現代 Shader 編寫／cook、實體 GPU 效能及完整 V2-GFX-5 gate 仍未完成。官方 [Variable Group Shared Memory 提案](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) 保留編譯期陣列大小；此處已驗證裝置相關上限與 GroupSharedLimit，執行期動態配置並不屬於該規格。
+
+Sampler Feedback 分支整合此已合併 runtime，保留三種配方的既有編號：feedback reference 新增於其後，並排除於現代 profile／dispatch 範圍之外。可攜准入與原生 fallback 工作負載驗證此區分。合併後原始碼完整迴歸及 feedback 原生驗收仍待通過。
+
+合併後原始碼通過本機 Development220/220，零失敗／跳過（127.24s）、Shipping Minimal/Monolithic/LTO 及 Khronos 物件／同步18/18（10.75s），確認39次 layer 插入、零 Validation Error／VUID／SYNC-HAZARD 訊息。可攜准入證明 feedback reference 不會繼承 SM6.9／6.10 要求；原生 Vulkan 執行真正的較低 profile map oracle。Windows feedback 執行仍為必要 CI gate。
+
+僅修正來源 subresource 尚不足以完成原生驗收：5218dee2 的 Windows 工作117411437732 通過314/316，但兩種 feedback barrier 模式均在 count1 失敗（觸及格要求 mip2、解碼為0；clear255 與全部 canary 保持正確）。仍要求精確比較。後續改以來源／目的 UINT_MAX 進行整張 map 解碼、僅在不相符時讀回 GPU request 診斷，並於隔離的固定版本 preview WARP 執行相同嚴格測試。Windows desktop 在完整建置前先跑原生 preflight；成功 head 仍須通過完整桌面矩陣。未完成比對前，不宣稱是 SDK／runtime 問題，也不宣稱 feedback 原生執行成功。
+
+診斷／preflight 後續通過本機完整 Development220/220，零失敗／跳過（121.58s）、真正 SDK helper 與 Windows 條件 preview 測試語法（警告即錯誤）、雙語文件／workflow16/16 及 cleanup25/25。私有 sampler LOD 範圍明確限制於配對 texture 最後一層 mip6；允許的 request 仍為 mip0..2。整張 map 解碼與 preview 比對仍須通過原生 CI。
+
+Preview feedback 測試直接進入獨立 factory，避免以系統 runtime 可用性探測 app-local preview WARP DLL。此測試強制要求 factory、SM6.10 與啟用的原生 feedback，不允許 fallback／跳過。完整本機迴歸再次通過220/220，零失敗／跳過（136.85s）；Windows 條件語法檢查以警告即錯誤通過。
+
+成對比對已確認軟體 runtime 就緒狀態的邊界：ff684697 的 push preview 工作117424066271
+通過3/3（0.63s），兩種 barrier 模式各13次原生 feedback dispatch，enhanced buffer barrier60次。
+系統路徑117424066272 仍將要求的 mip2 解碼為0；GPU request 讀回確認實際上傳 mip2／enabled1。
+原生程式／輸出精確比較不變。因此 backend 保留原始查詢 support／tier 及已實作程式碼 metadata，
+但停用系統軟體路徑；軟體原生執行要求明確的獨立 preview runtime。預設軟體裝置選用真正的 compute
+fallback。必要 preview 測試仍在原生 feedback 不可用時失敗，並驗證精確 mip／canary 輸出。
+此為保守路徑 gate，不推論特定 DLL 有錯。實體 adapter 驗收及最終 head 完整 CI 仍未完成。
+
+Runtime 就緒狀態後續通過本機完整 Development220/220，零失敗／跳過（125.85s）、雙語文件／workflow16/16、cleanup25/25 與 Windows 條件測試語法（警告即錯誤）。軟體路徑另要求已測試的 SM6.10 profile；原生 feedback 本身仍宣告真正的 SM6.5 需求。Preview 測試在 Work Graph 選項開啟時亦保留其 library 相依／環境設定，以於整合後延續 Node／Feedback／Node 覆蓋。

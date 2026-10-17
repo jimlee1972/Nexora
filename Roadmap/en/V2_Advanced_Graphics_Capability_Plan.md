@@ -782,6 +782,27 @@ certify their execution or admit RT1.2, SM6.9/6.10 or SER. The Node/Ray source r
 onto its squash has an identical tested tree (`99bf21beb28b15a99d9010a9e0d8c4f6f3c27577`);
 no pending Tessellation/mesh/VRS/barrier commits are duplicated in the next PR.
 
+## V2-GFX-4 bounded min-mip feedback construction status
+
+`feat/v2-native-minmip-feedback`, Beads `nexora-45y.5.4`, adds a fixed metadata-only64x64/seven-mip
+footprint with16x16 regions. Native Device8 creates paired/opaque feedback views; independent
+SM6.5 writes, clear/UAV dependency, list1 decode to4x4 R8_UINT and SM6.0 GPU widening return16 uint
+min-mip values. Per-list contexts retain immutable roots/PSOs/paired texture and private opaque/
+decoded textures/descriptors. Requirements cap implementation at tier0.9, preserving hardware1.0.
+Real reflection and exact-byte recipe identity reject incompatible inputs before native creation.
+The path does not sample color data or attach to application textures; general streaming/residency
+and full Ultimate/V2-GFX-4 acceptance remain open.
+
+✅ Local Linux Development configure/build and full CTest pass220/220, zero failures/skips
+(282.94s); Shipping Minimal/Monolithic LTO passes. Real Vulkan lower-profile compute matches CPU
+maps for clear255,0/1/16/64 requests, duplicate minimums, untouched/canary and invalid-only cases,
+plus forced two-worker cancellation/replay. Xvfb Khronos object/synchronization validation passes
+18/18 (10.90s),39 confirmed layer insertions and zero validation/VUID/sync errors. Actual production
+CMake compiles write4800B/SM6.5 and pack3468B/SM6.0, validates real reflection and generates exact
+recipe identities. Official SDK helper and Windows-conditional test syntax pass with warnings-as-
+errors. Native stale/context/heap/program and Node/Feedback/Node oracles are implemented, but
+Windows native feedback execution remains pending; enabled0/dispatches0 is compute fallback only.
+
 ## Baseline and scope
 
 The source review at `5201d9f6e02d2a24406004174a50f61ad9cebf9b` found native DX12 queues,
@@ -885,6 +906,21 @@ evidence exist. Update both language editions, the V2 plans and roadmap index to
 - [Renderer contracts](../../Engine/Renderer/README.md)
 - [Shader library and native Presentation scope](../../Shaders/README.md)
 
+## Hosted native Work Graph and ray acceptance (PR633)
+
+✅ Own PR633 squash-merged as `f347b90773470783a58a9eb28d3fc8c6633f27ba` after all36 checks
+passed at ee4d8043, with both workflows39029985978/39029989660 completed successfully. Windows
+314/314 (1317.40/808.31s), Linux365/365 (1340.76/1337.94s) and macOS304/304 (541.70/582.44s)
+pass in push/PR runs. Both Windows suites actually execute Work Graphs enabled1/16 dispatches,
+pipeline rays enabled1/45 calls and inline queries enabled1/45 calls. Legacy/enhanced cases,
+Node/Ray/Node roots, CPU/compute output oracles, generation/revision negatives and cancellation/
+replay pass. Enhanced node/ray buffer barriers count68/354. Linux/Metal report enabled0 while
+executing real lower-profile compute fallback. This supersedes earlier pending Windows notes
+for these bounded recipes and closes child tasks nexora-45y.6.1/.4.2 only. General graph nodes,
+AS update/compaction, lighting, DXR1.2/SER and physical performance/full gates remain open.
+
+Windows64f83e47 full CTest exposed a real decoded-map mismatch in both feedback barrier modes; it is not accepted. The normative MIN_MIP transcode rule requires source subresource UINT_MAX for the flattened opaque mip chain, replacing the initial0. Decoding still targets the single R8_UINT slice0. Mismatch diagnostics now identify native/reference,count and every actual/expected word. Local corrected Development220/220 passes (125.60s), actual SDK helper syntax passes, guarded session cleanup25/25 and documentation/workflow16/16 pass. Final Windows native proof remains required; no native feedback completion is inferred from the local compute oracle.
+
 ### Isolated modern compute programs — implementation in progress
 
 The default-off `NEXORA_ENABLE_D3D12_PREVIEW` build stages separately hash-pinned Agility
@@ -918,3 +954,30 @@ Local integrated verification on the sampler-feedback parent passes Development2
 After separating the sampler parent, the standalone PR633-based source passes Development219/219,zero skips/failures (154.39s), Shipping Minimal/Monolithic/LTO, and Xvfb Khronos object/synchronization17/17 (18.24s),37 confirmed layer insertions and zero Validation Error/VUID/SYNC-HAZARD markers. Non-Windows preview configure rejection and paired documentation checks pass. Native preview execution still requires Windows CI.
 
 Prior head2f7d89c7 has both native Windows preview jobs117400353506/117402090855 passing1/1 (2.09/0.29s), actually loading app-local WARP SM6.10 with65536 shared bytes and F32 matvec support; all nine kernel outputs/canaries/lifetimes pass. A follow-up closes generic artifact admission when caller minimum is omitted: actual6.9+ DXIL must satisfy the device limit, and actual6.10 requires explicit permission/private runtime. The test adds generic unopted rejection/opted PSO creation without submission. Local Development219/219 passes again (122.37s); actual SDK admission helper and Windows-conditional test syntax pass. Guarded cleanup includes only three exact current graphics-session branches, owner/same-repository actors and obsolete live SHAs, preserving both latest-head events;25/25 cancellation-safety tests and16/16 documentation/workflow tests pass. Final follow-up Windows CI is required before merge.
+
+## Hosted modern compute acceptance (PR635)
+
+✅ The bounded SM6.9 long-vector and SM6.10 F32 matrix/vector and static shared-memory recipes are native-tested and merged in PR635 (b6fd5053). Both push/PR workflows pass all38 checks at4e35aef1. Dedicated Windows jobs117408135751/117408317595 load pinned app-local WARP and pass all nine output/canary/lifetime fixtures plus undeclared-minimum6.10 permission rejection/opted PSO creation. Both desktop matrices pass Windows314/314,Linux365/365,macOS304/304. This accepts these fixed software-executed recipes; general modern shader authoring/cooking, physical GPU performance and the full V2-GFX-5 gate remain open. The published [Variable Group Shared Memory proposal](https://github.com/microsoft/hlsl-specs/blob/main/proposals/0049-variable-groupshared-memory.md) retains compile-time array sizes: its device-dependent limit and GroupSharedLimit are exercised here; runtime dynamic allocation is not part of that specification.
+
+The sampler-feedback branch integrates this merged runtime without renumbering its three recipe identities: feedback reference is appended after them and excluded from modern profile/dispatch bounds. Portable admission and native fallback workloads exercise this separation. Final merged-source regression and feedback native acceptance remain required.
+
+Merged-source local regression passes Development220/220, zero failures/skips (127.24s), Shipping Minimal/Monolithic/LTO and Khronos object/synchronization18/18 (10.75s),39 confirmed layer insertions,zero Validation Error/VUID/SYNC-HAZARD markers. Portable admission proves feedback reference does not inherit SM6.9/6.10 requirements; native Vulkan runs its real lower-profile map oracle. Windows feedback execution remains a required CI gate.
+
+The source-subresource correction alone did not establish native acceptance: Windows job117411437732 at5218dee2 passes314/316 but fails both feedback barrier modes at count1 (requested mip2,decoded0 at the touched cell; clear255 and all canaries remain intact). Exact comparison remains required. The follow-up uses whole-map UINT_MAX source/destination decode, adds GPU-request readback only on mismatch, and runs the same strict fixtures on isolated pinned preview WARP. The Windows desktop performs a focused native preflight before its full build; the complete desktop matrix remains required on successful heads. No SDK/runtime bug or successful native feedback execution is claimed without that comparison.
+
+The diagnostic/preflight follow-up passes full local Development220/220,zero failures/skips (121.58s), actual SDK helper and Windows-conditional preview test syntax with warnings-as-errors, paired documentation/workflow16/16 and cleanup25/25. The private sampler LOD range is bounded to the paired texture last mip6; admitted requests remain mips0..2. Whole-map decode and preview comparison still require native CI.
+
+The preview feedback fixture now enters its independent factory directly, avoiding a system-runtime availability probe against an app-local preview WARP DLL. The factory, SM6.10 and enabled native feedback are mandatory; there is no fallback/skip in this fixture. Full local regression passes again220/220,zero failures/skips (136.85s); warnings-as-errors Windows-conditional syntax passes.
+
+The paired comparison now establishes a software-runtime readiness boundary: finalff684697 push
+preview job117424066271 passes3/3 (0.63s), with13 native feedback dispatches in each barrier mode
+and60 enhanced buffer barriers. The system route117424066272 still decodes requested mip2 as0;
+GPU request readback confirms actual uploaded mip2/enabled1. Native program/output equality is
+unchanged. The backend therefore preserves raw queried support/tier and implemented code metadata,
+but keeps the system software route disabled; software native execution requires the explicit
+independent preview runtime. Default software devices use the real compute fallback. The required
+preview fixture still rejects unavailable native feedback and verifies exact mip/canary outputs.
+This is a conservative route gate, not an inferred fault attribution to a particular DLL. Physical
+adapter acceptance and the complete final-head CI gate remain open.
+
+The runtime-readiness follow-up passes local full Development220/220,zero failures/skips (125.85s), paired documentation/workflow16/16,cleanup25/25 and Windows-conditional test syntax with warnings-as-errors. Software admission additionally requires the tested SM6.10 profile; native feedback still declares its actual SM6.5 requirement. The preview fixture also retains/depend-orders the Work Graph library when that option is enabled, preserving Node/Feedback/Node coverage after integration.

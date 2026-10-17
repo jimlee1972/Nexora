@@ -1125,3 +1125,9 @@ infer RT exports or establish a cooked ray-program ABI. Current ray recipes vali
 reflection and pin exact generated DXIL before native state-object/shader-table construction.
 General cooked ray-library/program assembly, AS streaming/update/compaction and lighting integration
 remain separate work; the stable C ABI and existing cooked metadata acceptance are unchanged.
+
+The sampler-feedback bootstrap uses C++ program handles and16-byte request records, with actual
+reflected root/record/mode checks and exact compiled recipe identity. It adds no cooked feedback
+format, application-texture binding, automatic streaming/residency or stable C ABI change. Its fixed
+metadata footprint and GPU decoded-map output are RHI contracts; general authored/cooked feedback
+programs and runtime material integration remain separate work.

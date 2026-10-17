@@ -277,3 +277,5 @@ RHI-wide 介面變更，即使它沒有引入新的第三方依賴或 CI 變更�
   較新 backend 共同、對稱存在的既有缺口，不是最近哪個 phase 造成的 regression，所以在這次補齊
   D3D12/Metal parity 的範圍裡不修。之後應該在 `DrawIndirect`（`command_count` 真正已知的地方）
   一次驗證完整範圍，三個 backend 一起修，只修一個會悄悄造成 backend 之間的 contract 不一致。
+
+PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pipeline／Inline Ray，36檢查通過後 Squash 合併；Linux365/365、Metal304/304 Compute 後備通過。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整圖形 Gate 維持開放。

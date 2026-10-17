@@ -301,11 +301,22 @@ PR632 已通過36檢查及兩輪 Windows310/310 後合併；有界 Enhanced Barr
 
 ✅ V2-GFX-5 Work Graph library/admission and compute fallback / Work Graph Library、能力檢查與 Compute 後備（2026-10-17）：
 real SM6.8 DXC libraries and bounded library parsing pass Linux Development/Shipping and native Vulkan fallback validation.
-Windows native node execution remains pending; no full graphics gate closes. 真實 SM6.8 DXC Library、有界解析及 Vulkan Compute 後備
-通過 Linux Development／Shipping 與同步驗證；Windows 原生節點執行仍待驗收，完整圖形 Gate 維持開放。
+Windows native node execution is accepted by PR633 below; no full graphics gate closes. 真實 SM6.8 DXC Library、有界解析及 Vulkan Compute 後備
+通過 Linux Development／Shipping 與同步驗證；Windows 原生節點已由下列 PR633 驗收，完整圖形 Gate 維持開放。
 
 ✅ V2-GFX-3 ray compilation and real compute reference / Ray 編譯及真實 Compute 參考（2026-10-17）：
 real Slang/DXC library and inline-query artifacts plus Linux native compute/CPU traversal oracles pass.
+Windows bounded AS/native dispatch is accepted by PR633 below; complete DXR/SER acceptance remains pending. 真實 Library／Inline Query 編譯
+與 Linux 原生 Compute／CPU 交點比對通過；Windows 有界 AS／原生 Dispatch 已由下列 PR633 驗收，完整 DXR／SER 驗收仍待完成。
+
+✅ V2-GFX-4 min-mip compilation and real compute reference / Min-mip 編譯與真實 Compute 參考（2026-10-17）：
+actual feedback/reflection recipes and Linux Development220/220, Shipping and native Vulkan synchronization pass.
+Native Windows clear/write/decode remains pending; full streaming/residency/Ultimate gates stay open.
+真實 Feedback／Reflection 產物及 Linux Development220/220、Shipping、Vulkan 同步驗證通過；
+Windows 原生 Clear／Write／Decode 待驗收，完整 Streaming／Residency／Ultimate Gate 維持開放。
+
+✅ PR633 merged after36 checks / 通過36檢查後合併：both Windows314/314 runs execute native Work Graphs and pipeline/inline rays; Linux365/365 and Metal304/304 compute fallbacks pass / 兩輪 Windows314/314 實際執行原生 Work Graph 與 Pipeline／Inline Ray，Linux365/365、Metal304/304 後備通過。Full gates and percentages stay open/unchanged / 完整 Gate 與百分比維持原狀。
+
 Windows AS/native dispatch and complete DXR/SER acceptance remain pending. 真實 Library／Inline Query 編譯
 與 Linux 原生 Compute／CPU 交點比對通過；Windows AS／原生 Dispatch 及完整 DXR／SER 驗收仍待完成。
 

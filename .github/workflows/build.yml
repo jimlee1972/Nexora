@@ -114,6 +114,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes libvulkan1 libvulkan-dev mesa-vulkan-drivers libx11-dev xvfb xdotool glslang-tools
       - run: cmake --preset ${{ matrix.preset }} -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_D3D12_WORK_GRAPHS=${{ runner.os == 'Windows' && 'ON' || 'OFF' }} -DNEXORA_ENABLE_VULKAN_BACKEND=${{ runner.os == 'Windows' && 'OFF' || 'ON' }} -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
+      - name: Build Windows sampler feedback preflight
+        if: runner.os == 'Windows'
+        run: cmake --build --preset ${{ matrix.preset }} --target NexoraSamplerFeedbackTests
+      - name: Validate native sampler feedback before the full desktop build
+        if: runner.os == 'Windows'
+        run: ctest --preset ${{ matrix.preset }} -V -R '^renderer\.sampler_feedback(_enhanced_barriers)?$'
       - run: cmake --build --preset ${{ matrix.preset }}
       - name: Require the graphical Editor contract
         shell: bash
@@ -267,7 +273,7 @@ jobs:
           VK_LAYER_ENABLES: VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
           VK_LOADER_DEBUG: layer
         run: |
-          ctest --preset linux-development -R '^(renderer\.work_graph|renderer\.ray_tracing|renderer\.mesh_shader|renderer\.shading_rate|renderer\.tessellation|renderer\.submission_gpu_timing|renderer\.vulkan_recording_gpu_timing|renderer\.vulkan_recording_benchmark(_reuse)?|renderer\.vulkan_(recording|graphics)_resource_reuse|renderer\.contracts|renderer\.v2_gpu_driven|renderer\.vulkan_(descriptor_isolation|texture_recording)|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
+          ctest --preset linux-development -R '^(renderer\.sampler_feedback|renderer\.work_graph|renderer\.ray_tracing|renderer\.mesh_shader|renderer\.shading_rate|renderer\.tessellation|renderer\.submission_gpu_timing|renderer\.vulkan_recording_gpu_timing|renderer\.vulkan_recording_benchmark(_reuse)?|renderer\.vulkan_(recording|graphics)_resource_reuse|renderer\.contracts|renderer\.v2_gpu_driven|renderer\.vulkan_(descriptor_isolation|texture_recording)|window_presentation\.vulkan_(scene|pbr))$' -V --output-log build/linux-development/native-validation.log
           grep -Eq 'Insert(ed)? device layer.*VK_LAYER_KHRONOS_validation' build/linux-development/native-validation.log
           if grep -Eq 'Validation Error|VUID-|SYNC-HAZARD-' build/linux-development/native-validation.log; then
             echo "Native Vulkan validation reported an error" >&2
@@ -626,6 +632,17 @@ jobs:
       - name: Stage verified preview SDK, software adapter and compiler
         shell: pwsh
         run: python Tools/Build/PrepareD3D12Preview.py --destination "$env:RUNNER_TEMP/nexora-preview"
+      - name: Install pinned Slang for feedback and lower-profile reference
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP "slang-ser.zip"
+          $installRoot = Join-Path $env:RUNNER_TEMP "slang-ser"
+          curl.exe --fail --location --retry 3 --output $archive "https://github.com/shader-slang/slang/releases/download/v2026.18/slang-2026.18-windows-x86_64.zip"
+          Expand-Archive -LiteralPath $archive -DestinationPath $installRoot -Force
+          $slangc = Get-ChildItem -LiteralPath $installRoot -Filter slangc.exe -File -Recurse | Select-Object -First 1
+          if ($null -eq $slangc) { throw "pinned Slang compiler is missing" }
+          Add-Content -Path $env:GITHUB_PATH -Value $slangc.DirectoryName
+          & $slangc.FullName -v
       - name: Enable experimental shaders on the disposable test host
         shell: pwsh
         run: |
@@ -633,9 +650,9 @@ jobs:
           New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name AllowDevelopmentWithoutDevLicense -PropertyType DWord -Value 1 -Force | Out-Null
       - name: Configure isolated opt-in runtime
         shell: pwsh
-        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
-      - run: cmake --build --preset windows-development --target NexoraModernShaderTests
-      - run: ctest --preset windows-development -V -R '^renderer\.modern_shaders_preview$' --output-log build/windows-development/modern-shaders-preview.log
+        run: cmake --preset windows-development -DNEXORA_ENABLE_D3D12_PREVIEW=ON -DNEXORA_ENABLE_SLANG=ON "-DNEXORA_D3D12_PREVIEW_ROOT=$env:RUNNER_TEMP/nexora-preview" -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_WINDOW_PRESENTATION=OFF -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=OFF
+      - run: cmake --build --preset windows-development --target NexoraModernShaderTests NexoraSamplerFeedbackPreviewTests
+      - run: ctest --preset windows-development -V -R '^renderer\.(modern_shaders_preview|sampler_feedback_preview(_enhanced)?)$' --output-log build/windows-development/modern-shaders-preview.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -7148,4 +7148,6 @@ V1 Plugin / Third-party SDK / Video & Media 詳細 Contract、V1 Master Definiti
 
 閱讀順序建議：施工或審閱本文件前，先確認上述 V1 文件版本是否為最新；本文件（V2）只描述新增與變更的部分，未在本文件提及的既有系統一律以 V1 文件為準。
 
+PR633 原生驗收：兩輪 Windows314/314 實際執行有界 Work Graph 及 Pipeline／Inline Ray，36檢查通過後 Squash 合併；Linux365/365、Metal304/304 Compute 後備通過。詳見[圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整圖形 Gate 維持開放。
+
 新型 Compute 後續：獨立啟用的 Agility／WARP／DXC Preview Runtime 與三種有界 SM6.9／6.10 程式實作中，Windows 原生執行待驗證。詳見[進階圖形規劃](V2_Advanced_Graphics_Capability_Plan.md)，完整 Gate 持續開放。

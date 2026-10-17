@@ -586,6 +586,13 @@ the complete pipeline-cache key and selects actual lower-SM traversal on support
 This bounded hit oracle is not integration of ray shadows/reflections/AO, general scene AS updates,
 DXR1.2/SER or a physical performance acceptance result.
 
+Bounded sampler-feedback callbacks consume immutable request buffers and write disjoint decoded-map
+buffers in existing compute graph cohorts. The RHI program owns a fixed metadata-only paired texture;
+per-list contexts own opaque/decoded textures and descriptor heaps. Graph ordering/submission and
+failure containment remain unchanged. A separate compute-reference cache variant preserves an
+explicit fallback. This bootstrap does not attach feedback to application materials or implement
+virtual-texture streaming/residency/performance acceptance.
+
 Modern compute preview admission uses distinct `LongVector69`, `LinearAlgebra610` and
 `GroupShared610` pipeline variants. Complete cache identity includes explicit experimental Shader
 Model permission, so an accepted baseline or preview PSO cannot authorize another policy. Native

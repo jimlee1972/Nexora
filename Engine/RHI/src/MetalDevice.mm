@@ -469,8 +469,11 @@ PipelineHandle MetalDevice::CreatePipeline(const PipelineDescriptor &descriptor)
     PipelineRecord record{descriptor};
     if (descriptor.type == PipelineType::Compute) {
       id<MTLFunction> selected_compute = compute_function_;
-      if (descriptor.compute_shader == ComputeShaderVariant::RayReference) {
-        const auto *path = std::getenv("NEXORA_SLANG_RAY_REFERENCE_METAL_PATH");
+      if (descriptor.compute_shader != ComputeShaderVariant::GPUDriven) {
+        const auto *environment = descriptor.compute_shader == ComputeShaderVariant::RayReference
+                                      ? "NEXORA_SLANG_RAY_REFERENCE_METAL_PATH"
+                                      : "NEXORA_SLANG_FEEDBACK_REFERENCE_METAL_PATH";
+        const auto *path = std::getenv(environment);
         if (!path || !*path)
           throw std::runtime_error("required ray reference Metal artifact is unset");
         NSString *source = [NSString stringWithContentsOfFile:[NSString stringWithUTF8String:path]
