@@ -48,8 +48,14 @@ retain an earlier device across independent factory destruction. The preview fix
 its own leaf directory. Local native Vulkan/Slang/Zig Development configure/build and Xvfb CTest
 pass225/225, zero failures/skips (119.67s); Shipping Minimal/Monolithic LTO passes. Portable policy
 rejection, Windows-conditional fixture syntax, documentation/workflow16/16, cleanup31/31, paired
-Markdown and touched-format/diff checks pass. Actual ordinary/preview Windows execution remains a
-required CI merge gate; physical advanced-feature/performance and full V2-GFX-1 stay open.
+Markdown and touched-format/diff checks pass.
+
+✅ Hosted adapter-policy acceptance: [PR639](https://github.com/jimlee1972/Nexora/pull/639) merged
+as7c85bbca after all38 checks and both push39096066507/PR39096069191 workflows succeeded at
+unchangede395af42. Both desktop matrices pass Windows321/Linux371/macOS309 and both private
+preview suites pass8/8. Ordinary/private policy fixtures validate identities, real compatible-hardware
+exhaustion on the WARP host, output witnesses and independent factory lifetime. This does not prove
+physical advanced-feature/performance acceptance or close full V2-GFX-1.
 
 Guarded CI cleanup adds only the exact adapter-policy branch to the existing owned graphics list;
 owner/same-repository/live-ref checks preserve both latest-head events and other contributors.
@@ -753,6 +759,62 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## Explicit bounded ray-scene compaction construction — 2026-10-18
+
+`nexora-45y.4.6` adds opt-in ordinary triangle BLAS/TLAS compaction. Default scene creation preserves
+runtime-specific immutable/updatable behavior; explicit creation on the admitted private refit
+runtime adds compatible ALLOW_COMPACTION metadata. Three
+owner-serialized phases query real GPU compacted sizes, compact BLAS, refit TLAS to the relocated
+BLAS, query its size and compact TLAS. Two explicit size readbacks/three waits belong to resource
+construction; no CPU hit result chooses GPU work. Positive/per-AS non-increasing64MiB
+bounds fail closed before publication. Older lists retain original scene snapshots and late native
+failure retains the complete accepted phase. OMM/unopted/stale calls reject; C++ consumers rebuild,
+stable C ABI and shader profiles stay unchanged. Diagnostic byte totals describe logical native AS
+buffer widths, not physical memory or guaranteed reduction.
+
+Fixtures add compaction/refit/compaction round trips for1/2/8 triangles in pipeline/inline/SER,
+old/new CPU outputs, canaries and lifetime/admission negatives. Private Windows acceptance requires
+45 refits (original36 plus nine round trips) and18 scene compactions per barrier mode. Actual SDK
+and Windows-conditional syntax pass; final local/hosted acceptance is recorded below. General
+and OMM compaction, physical budgets/device-loss and the complete V2-GFX-3 gate stay open.
+
+
+✅ Opt-in API/ownership contracts and SDK-checked bounded construction are implemented. Local native
+Vulkan/Slang/Zig Development configure/build and Xvfb full CTest pass225/225, zero failures/skips
+(121.89s); Shipping Minimal/Monolithic LTO, pinned SDK/Windows-conditional syntax, documentation16/16,
+cleanup35/35, paired Markdown and touched format/diff pass. Only the exact owned compaction branch
+joins guarded cleanup; current-head events, other actors and similarly named branches remain
+protected. The final hosted compaction acceptance follows below.
+
+
+Integrated with runtime-admitted refits and explicit full rebuilds: compaction requires the admitted
+private update recipe, preserves both scene flags across updates/rebuilds and rejects system-runtime
+opt-in/compaction before GPU work. Both integrated local and final hosted gates below pass.
+
+Hosted private job117606800925 atfb0d8af6 passes6/8 but rejects both ray fixtures when a valid
+compacted size is padded past the original buffer width. The DXR contract aligns destination
+addresses, not buffer lengths. Preserve exact positive queried extents and original per-AS/64MiB
+bounds, with a separate256-byte destination-address check. Repaired native Vulkan/Slang/Zig
+Development configure/build and full225/225 pass, zero failures/skips (121.89s); Shipping Minimal/
+Monolithic LTO, pinned SDK syntax, docs16/16, cleanup35/35 and paired/format/diff checks pass.
+### Hosted bounded compaction acceptance
+
+✅ [PR641](https://github.com/jimlee1972/Nexora/pull/641) merged asf5cea4fb after all38 checks and
+both push39105304460/PR39105306645 workflows succeeded at unchanged12a34eb5. Both desktop
+matrices pass Windows321/Linux371/macOS309. Private jobs117609872821/117609938174 pass8/8
+(5.80s/4.64s); each legacy/enhanced mode reports45 explicit refits,9 full rebuilds and18 actual
+compactions. Nine fixtures per mode compare256 old/new CPU outputs and canaries, including
+compaction/refit/compaction round trips. All four mode/event executions total72 scene compactions.
+System fixtures reject unadmitted refit/compaction before GPU work (both counters0), while each
+barrier mode executes6 native full rebuilds and retains ordinary immutable ray output coverage.
+
+The alignment repair preserves exact queried lengths and independently checks256-byte destination
+GPUVA alignment. Hosted WARP's two-call logical AS buffer totals remain976/1232/2768 bytes before
+and after for1/2/8 triangles: native copies/output/lifetime pass, with no observed buffer shrinkage.
+This is software correctness evidence, not physical memory reduction or performance acceptance.
+General/OMM compaction, completion-failure injection, physical device-loss/performance, broader
+system refit (`nexora-45y.4.7`) and all five full V2-GFX gates remain open.
+
 ## Bounded BLAS/TLAS refit construction — 2026-10-18
 
 ✅ The `nexora-45y.4.5` implementation adds native out-of-place same-topology ordinary triangle scene updates.
@@ -770,8 +832,8 @@ Integrated with own adapter-policy PR639 sourcee395af42, native Vulkan/Slang/Zig
 configure/build and Xvfb full CTest pass225/225, zero failures/skips (119.56s); Shipping Minimal/
 Monolithic LTO, documentation16/16, cleanup33/33, paired Markdown and touched format/diff pass.
 Private Windows acceptance requires all three ray modes and exactly36 native refits per barrier
-mode; actual unchanged-head hosted CI remains a required merge gate. This does not close general
-updates, compaction, lighting, physical performance/device-loss acceptance or the full V2-GFX-3 gate.
+mode; final hosted acceptance is recorded below. This does not close general
+updates, general AS compaction, lighting, physical performance/device-loss acceptance or the full V2-GFX-3 gate.
 
 
 Cleanup additionally admits only the exact owned refit branch, preserving both current-head events,
@@ -792,6 +854,13 @@ old/new snapshots and its own `ray_scene_rebuilds` counter. Both system and priv
 exercise128 CPU comparisons per rebuild; unadmitted refits publish no update counters. Default
 initial AS flags remain unchanged on the system route. Private native refit36 acceptance remains
 required, alongside full rebuilds and ordinary immutable ray/compute/cancellation regression tests.
+
+✅ Hosted refit/full-rebuild acceptance: PR640 merged as0390d2f3 after all38 checks and both push/PR
+workflows succeeded at unchangedf1595cdf. Both desktop matrices pass Windows321/Linux371/macOS309;
+both private preview suites pass8/8, each barrier mode executing36 refits and9 full rebuilds with
+independent old/new outputs. System ray fixtures each execute6 native full rebuilds and reject
+unadmitted refits (counter0). General system-runtime refit isolation remains open in `nexora-45y.4.7`;
+this scoped native acceptance does not close the full V2-GFX-3 gate.
 
 ## V2-GFX-3 bounded triangle-ray construction status
 

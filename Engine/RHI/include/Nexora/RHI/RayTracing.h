@@ -36,6 +36,10 @@ enum class RayTracingMode : std::uint8_t {
   ReorderedPipeline,
   ReorderedOpacityPipeline
 };
+struct RaySceneCreationOptions final {
+  // Explicit opt-in; native compaction metadata can increase initial AS storage/build cost.
+  bool allow_compaction{};
+};
 struct RayProgramDescriptor final {
   RayTracingMode mode{RayTracingMode::Pipeline};
   GraphicsRequirements graphics_requirements{};

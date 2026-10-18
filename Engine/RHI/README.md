@@ -842,7 +842,7 @@ The admitted D3D12 ordinary1–8-triangle recipe keeps the
 same triangle count, one triangle geometry, vertex format/stride and one TLAS instance. Empty,
 nonfinite/degenerate geometry, changed counts, stale handles and OMM scenes reject before native
 execution or publication. Other backends and builds without pinned ray artifacts explicitly throw
-unsupported. General topology/material/instance edits, OMM updates and AS compaction remain open.
+unsupported. General topology/material/instance edits and OMM updates/compaction remain open.
 The C++ virtual surface/diagnostics require consumer rebuilds; the new diagnostic is appended to
 preserve existing aggregate field order. The stable C ABI is unchanged.
 
@@ -872,6 +872,43 @@ Native fixtures perform four updates for each1/2/8-triangle pipeline/inline reci
 new outputs to the double-precision CPU oracle, keep earlier lists through later publication and
 check invalid/topology/OMM/stale rejection and canaries. The same fixtures run with legacy/enhanced
 barriers and the existing preview/SER suite. Physical performance and full V2-GFX-3 remain open.
+
+## Explicit bounded BLAS/TLAS compaction
+
+`CreateRaySceneWithOptions(triangles, {true})` explicitly admits compaction metadata for the ordinary
+1–8-triangle/one-instance recipe. Default `CreateRayScene` and false options retain their previous
+runtime-specific immutable/updatable build behavior. Compaction additionally requires the admitted
+private refit runtime because TLAS relocation performs an update; unadmitted requests reject before
+GPU work. Compactable BLAS/TLAS additionally request ALLOW_COMPACTION;
+refits preserve that choice. The [official flag contract](https://microsoft.github.io/DirectX-Specs/d3d/Raytracing.html#d3d12_raytracing_acceleration_structure_build_flags)
+permits both flags together but warns of increased initial storage/build cost. Other backends reject
+explicit compaction admission; the stable C ABI is unchanged and C++ consumers rebuild.
+
+`CompactRayScene(handle)` rejects stale, unopted and OMM scenes before execution. It synchronously
+runs three bounded resource-construction phases on the existing direct queue: GPU postbuild query
+of BLAS compacted size and explicit eight-byte metadata readback; actual BLAS COMPACT copy and TLAS
+out-of-place refit linking the new BLAS, followed by TLAS compacted-size query/readback; then actual
+TLAS COMPACT copy. UAV dependencies order writes, queries and copies. Queried sizes must be
+positive and fit both64MiB and the original per-AS buffer width. Allocate the exact queried extent and separately validate
+256-byte destination GPU-address alignment; DXR does not require256-byte-aligned buffer lengths.
+Each AS owns a committed resource, so adjacent suballocation strides do not need padding.
+A relinked TLAS that cannot fit the original buffer bound rejects without replacing the scene. No strict shrinkage is
+required. This is an explicit allocation operation with three completion waits and two metadata
+readbacks, not an implicit frame/render or CPU-hit-result path.
+
+Publication occurs only after final completion. Older command lists keep the old scene; new lists
+capture the compacted scene. Compacted scenes retain update/compaction permission, tested with a
+compaction/refit/compaction round trip. Full rebuilds preserve the original opt-in choice. Source/results/instances/query/readback/scratch/allocator/
+list resources stay in the device-owned pending context throughout each accepted phase, including
+late Signal/wait failure. The existing one-pending-build failure policy applies. Metadata validation
+failure after a completed phase leaves the original scene unchanged; it publishes no counters.
+
+Appended diagnostics count successful scene compactions and sum before/after native AS **buffer
+widths**, not physical heap bytes, RSS, performance or guaranteed memory savings. Tests cover1/2/8
+triangles across pipeline/inline/SER, old/new CPU output/canary checks and rejected admission/lifetime
+cases. Private preview acceptance requires45 explicit refits (the original36 plus nine round trips)
+and18 scene compactions per barrier mode. OMM relocation, general scene compaction, native failure
+injection, physical memory/performance and full V2-GFX-3 acceptance remain open.
 
 ## Bounded min-mip sampler feedback footprint
 
