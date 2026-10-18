@@ -34,7 +34,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M3 | P0 | Lightweight 2D collision/queries | Circle/AABB overlap, filters, range queries, spatial index and swept checks for fast movement | Compare indexed results with an independent brute-force oracle; cover boundaries, filtering, fast motion and insert/remove | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
-| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
+| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 30 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
 | 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
@@ -83,7 +83,7 @@ device alone does not establish game input. See the current implementation scope
 
 ## 5. Performance and platform evidence
 
-Before declaring 60 FPS support, fix minimum CPU/GPU/RAM, Windows version, backend/driver,
+M6 targets 30 FPS on the specified minimum PC. Before acceptance, fix minimum CPU/GPU/RAM, Windows version, backend/driver,
 resolution, build and frame pacing. Fix visible/updated/colliding counts, Atlas/material count,
 Sprite pixel coverage/overlap, animation rate, VFX/UI load and loading churn. Hardware/workload
 budgets are currently **TBD**; object count alone is not a performance claim.
@@ -91,8 +91,12 @@ budgets are currently **TBD**; object count alone is not a performance claim.
 Use deterministic synthetic objects, animations, moving query shapes, VFX and UI, without game
 mechanics. Include baseline, high-count, transparent-overlap and allocation/loading spikes.
 Retain warm-up/duration, average/p95/p99/max frame time, separate CPU/GPU intervals when available,
-memory peaks and dropped samples. A 60 FPS target has a 16.67 ms frame budget; define allowed
+memory peaks and dropped samples. A 30 FPS target has an approximately 33.33 ms frame budget; define allowed
 spikes before acceptance. Software rasterizers establish correctness only.
+
+On 2026-10-18, the user revised the required M6 target from 60 FPS to 30 FPS. Existing
+60 FPS/16.67 ms screening records retain their original budgets and conclusions. This target
+change alone does not establish physical minimum-PC acceptance.
 
 Windows DX12 is primary; record Windows Vulkan separately when offered as supported. Evidence
 does not transfer between backends. Linux can validate portable contracts and Vulkan correctness.
@@ -129,7 +133,7 @@ boundaries pass. Full main Editor milestone acceptance and project-lease integra
 
 M6 cloud slice: ✅ CPU/GPU timing, load/reload spikes, process RSS, batches, AABB coverage, sparse
 and overlap scenarios are reproducible. Hardware/minimum-spec/frame-spike budgets remain TBD;
-software Vulkan results do not accept the physical 60 FPS gate.
+software Vulkan results do not accept the physical 30 FPS gate.
 M7 cloud slice: ✅ Linux Monolithic Shipping staged with cooked hashes, Core asynchronous loading,
 corruption rejection and no Editor/development engine library dependency. Section 10 records
 partial Windows VM prerequisite/CPU checks; native DX12 failed and Vulkan was unavailable.
