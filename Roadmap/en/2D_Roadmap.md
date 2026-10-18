@@ -3,12 +3,13 @@
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
-> have portable/Linux functional evidence. Latest M6 same-host 30 FPS screen is 23/24; integrated
-> short screens are 3/4 and 30-minute soaks 1/2. Physical minimum-PC acceptance remains open.
+> have portable/Linux functional evidence. M6 now requires 5,000-object integrated acceptance
+> on the current PC: NOT RUN. Retained 10,000-object stress screens are 23/24, integrated 3/4
+> and 30-minute soaks 1/2; those historical verdicts remain unchanged. M6 remains open.
 > M7 clean Windows runtime/Shipping remains **PARTIAL / NOT ACCEPTED**. The rebuilt current-main VM
-> package passes CPU, native software DX12, Zig instancing and human keyboard movement; Runtime device
-> and clean-host acceptance remain open. The current physical developer PC adds hardware DX12/Vulkan UI smokes,
-> human keyboard/Chinese UI/audio and 100/150/175% DPI evidence; clean-host/full-device gates remain open.
+> package passes CPU, native software DX12, Zig instancing and human keyboard movement. The current
+> physical developer PC passes the scoped Runtime checks, including PS4 USB, hardware DX12/Vulkan,
+> human Chinese UI/audio and 100/150/175% DPI; independent clean-host acceptance remains open.
 
 ## 1. Scope and baseline
 
@@ -35,8 +36,8 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M3 | P0 | Lightweight 2D collision/queries | Circle/AABB overlap, filters, range queries, spatial index and swept checks for fast movement | Compare indexed results with an independent brute-force oracle; cover boundaries, filtering, fast motion and insert/remove | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
-| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 30 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Latest current-PC screen 23/24, integrated 3/4, 30-minute soak 1/2; M6 NOT ACCEPTED |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/Runtime-device gates open; M7 NOT ACCEPTED |
+| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible 5,000-object integrated workload meets declared 30 FPS/frame-time and resource budgets on the specified PC; retain 10,000-object stress results and traces/configuration | 5,000-object integrated gate NOT RUN; historical 10k stress retained; M6 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; PS4 USB/current-host Runtime slice passed; clean-host gate open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
@@ -74,7 +75,7 @@ output configuration, reusing the user's confirmed earlier checks instead of rep
 Untriggered endpoint-loss/reopen paths limit compatibility claims; speaker-cable reconnection
 does not establish USB endpoint failure, and an unobserved local fault is not an additional exit prerequisite.
 
-Move these conditions out of M7: minimum hardware, 30 FPS/spikes, 10k UI/VFX, allocator/VRAM and
+Move these conditions out of M7: minimum hardware, 30 FPS/spikes, integrated UI/VFX, allocator/VRAM and
 soaks belong to [M6](#2-capability-milestones); main Editor Game View acquisition and Play/Stop
 belong to the [Editor Roadmap](Editor_Roadmap.md); production gameplay/content and save schema/
 migration belong to individual game projects. M7 uses a fixed fixture schema to test the engine
@@ -143,6 +144,43 @@ spikes before acceptance. Software rasterizers establish correctness only.
 On 2026-10-18, the user revised the required M6 target from 60 FPS to 30 FPS. Existing
 60 FPS/16.67 ms screening records retain their original budgets and conclusions. This target
 change alone does not establish physical minimum-PC acceptance.
+
+### M6 current-PC workload revision (2026-10-19)
+
+At the user's request, the required current-PC integrated acceptance load is **5,000 ordinary
+objects**. Retain 10,000 objects as additional stress coverage; its load-specific timing failures
+do not alone block the 5,000-object gate. Keep their original results and unresolved correctness,
+resource or submit/present issues; reducing the target does not prove those issues fixed.
+
+| Ordinary objects | Purpose | Acceptance role |
+| --- | --- | --- |
+| 1,000 | Functional smoke | Quick correctness checks; does not accept M6 |
+| 5,000 | Daily integrated performance and sustained validation | Required current-PC M6 load |
+| 10,000 | Additional stress and regression comparison | Retain every result; not the required performance load |
+
+The current test PC is AMD FX-6100, 16 GiB RAM and GTX 960 2 GiB, Windows 10 x64 build 19045.
+Use native DX12 and Vulkan separately, Monolithic Shipping, 640x480 and VSync; pin the exact
+driver, build and executable identity before measuring. This defines this host's fixture target,
+not a universal production-game minimum specification.
+
+All 5,000 objects must still receive updates, transforms and query-index participation every frame,
+with moving queries, animation, extraction/culling/sorting, pool/atlas/codec reload and loading
+allocation work. Retain the extra 256 translucent VFX, two Sprite atlas batches and 120 actual
+GameplayUi quads/commands. Keep mixed and sparse phases; no update skipping or render-only substitution.
+
+Keep full/cycle and per-phase p95/p99 <= 1000/30 ms and maximum <= 2000/30 ms. The planned suite
+retains two 600-measured-frame screens per backend after four warm-up frames, reload every 300
+frames, followed by 1,800 measured seconds per backend after 1,200 warm-up frames and reload
+every 600 frames. Keep the existing sampled resource caps/growth limits, correctness oracles,
+complete frame/completed-GPU sample accounting and teardown checks from the
+[fixed plan](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/plan.json).
+
+**5,000-object integrated acceptance: NOT RUN.** This revision changes planning only; the current
+`--integrated` benchmark/runner still fixes 10,000 objects and needs explicit 5,000-object support
+before that run. Existing 5,000-object single-case screens and 10,000-object integration/soak data
+cannot substitute for fresh integrated evidence. Keep every historical verdict under its original
+load and budget. Mark M6 `✅` and close its acceptance task only after all revised required checks
+have retained passing evidence; until then M6 stays NOT ACCEPTED and 9/11 (82%), P0 6/8 is unchanged.
 
 Windows DX12 is primary; record Windows Vulkan separately when offered as supported. Evidence
 does not transfer between backends. Linux can validate portable contracts and Vulkan correctness.
@@ -639,5 +677,6 @@ explicit loading allocation do not establish full allocator accounting or physic
 [Tool contract](../../Tools/TwoD/README.md#integrated-10k-load-and-sustained-native-validation).
 This record supplements the earlier successful 24/24 screen without replacing its historical verdict.
 Keep **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged**. Product minimum specification and broader
-allocator/production/device/clean-host gates remain open. The delivery PR must remain unmerged while
-this fixed physical performance gate fails, regardless of portable/hosted CI success.
+allocator/production/device/clean-host gates remain open. At the user's explicit request, the harness
+and retained evidence were merged in [PR #646](https://github.com/jimlee1972/Nexora/pull/646); this
+did not accept M6 or change any failed result. The revised 5,000-object gate above is NOT RUN.

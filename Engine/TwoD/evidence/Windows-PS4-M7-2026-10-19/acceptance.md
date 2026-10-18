@@ -3,7 +3,8 @@
 ## Result and limits
 
 **PASS for the current physical developer-host PS4 USB slice; M7 remains PARTIAL / NOT ACCEPTED.**
-Source starts at remote main `826b27be`. The existing Windows 10 FX-6100 / GTX 960 developer PC
+Source starts at remote main `826b27be`; the later documentation-only main update `edea455f`
+is synchronized without changing tested runtime/fixture sources. The existing Windows 10 FX-6100 / GTX 960 developer PC
 was used. No clean machine, new driver, remapper, controller emulator or virtual input was used.
 The attached Sony DUALSHOCK 4 USB device identifies as VID 054c / PID 09cc. Native logs show the
 actual DirectInput slot and model profile. XInput support is retained; no XInput device is required

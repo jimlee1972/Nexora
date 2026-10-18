@@ -227,3 +227,13 @@ proved. No native API, buffer count, VSync policy or engine ABI changes in this 
 [Raw evidence and retained failures](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/acceptance.md);
 `nexora-j4q.2.6` tracks native API/thread-cycle/scheduling correlation. The older24/24 result is
 historical evidence, not proof that every later or longer run passes. Full M6 remains open.
+
+## M6 current-PC acceptance load (2026-10-19)
+
+The user revised the required current-PC M6 integrated load to 5,000 ordinary objects; 1,000 is
+functional smoke and 10,000 remains additional stress coverage. Keep the UI/VFX/query/update/reload
+functions and existing 30 FPS/spike/resource limits. See the [current M6 plan](2D_Roadmap.md#m6-current-pc-workload-revision-2026-10-19).
+This documentation revision changes no engine or benchmark behavior; the current integrated runner
+still fixes 10,000 objects. Fresh 5,000-object integrated acceptance is NOT RUN, so M6 remains open.
+Historical 10k failures and native submit/present follow-ups remain retained; target reduction
+does not prove a stall fixed. Close M6 only after the revised required checks have passing evidence.
