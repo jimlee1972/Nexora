@@ -1,0 +1,61 @@
+[HANDLER_OUTPUT] 
+Test project G:/proj/Nexora/build/windows-development
+
+      Start 111: twod.runtime_contracts
+ 1/20 Test #111: twod.runtime_contracts .............   Passed    0.52 sec
+      Start 112: twod.windows_vm_transport
+ 2/20 Test #112: twod.windows_vm_transport ..........   Passed    2.28 sec
+      Start 113: twod.windows_vm_guest
+ 3/20 Test #113: twod.windows_vm_guest ..............   Passed    4.34 sec
+      Start 114: twod.gameplay_bridge
+ 4/20 Test #114: twod.gameplay_bridge ...............   Passed    0.09 sec
+      Start 115: twod.project_play_assets
+ 5/20 Test #115: twod.project_play_assets ...........   Passed    0.69 sec
+      Start 116: twod.content_import
+ 6/20 Test #116: twod.content_import ................   Passed   30.21 sec
+      Start 117: twod.play_assets
+ 7/20 Test #117: twod.play_assets ...................   Passed    0.41 sec
+      Start 118: twod.authoring_contracts
+ 8/20 Test #118: twod.authoring_contracts ...........   Passed    0.15 sec
+      Start 119: twod.play_context
+ 9/20 Test #119: twod.play_context ..................   Passed    1.97 sec
+      Start 120: twod.asset_tool
+10/20 Test #120: twod.asset_tool ....................   Passed    0.61 sec
+      Start 121: twod.cpu_stress
+11/20 Test #121: twod.cpu_stress ....................   Passed    3.55 sec
+      Start 122: twod.gameplay_ui
+12/20 Test #122: twod.gameplay_ui ...................   Passed    0.15 sec
+      Start 123: gameplay.zig_ui_wire_layout
+13/20 Test #123: gameplay.zig_ui_wire_layout ........   Passed   21.79 sec
+      Start 124: twod.gameplay_content
+14/20 Test #124: twod.gameplay_content ..............   Passed    0.10 sec
+      Start 125: gameplay.zig_content_wire_layout
+15/20 Test #125: gameplay.zig_content_wire_layout ...   Passed    7.00 sec
+      Start 126: twod.host_fixture
+16/20 Test #126: twod.host_fixture ..................   Passed    3.65 sec
+      Start 127: twod.project_export
+17/20 Test #127: twod.project_export ................   Passed    2.69 sec
+      Start 128: twod.windows_font_bake
+18/20 Test #128: twod.windows_font_bake .............   Passed    5.50 sec
+      Start 129: twod.backend_options
+19/20 Test #129: twod.backend_options ...............   Passed    2.80 sec
+      Start 130: twod.project_manifest
+20/20 Test #130: twod.project_manifest ..............   Passed    0.24 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Label Time Summary:
+cli             =   2.80 sec*proc (1 test)
+export          =   2.69 sec*proc (1 test)
+font            =   5.50 sec*proc (1 test)
+host            =   3.65 sec*proc (1 test)
+presentation    =   2.80 sec*proc (1 test)
+project         =   2.69 sec*proc (1 test)
+storage         =   3.65 sec*proc (1 test)
+tools           =   6.62 sec*proc (2 tests)
+twod            =  21.26 sec*proc (6 tests)
+ui              =   3.65 sec*proc (1 test)
+vm              =   6.62 sec*proc (2 tests)
+windows         =   5.50 sec*proc (1 test)
+
+Total Test time (real) =  88.92 sec

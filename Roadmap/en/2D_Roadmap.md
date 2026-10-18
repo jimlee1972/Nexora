@@ -484,3 +484,21 @@ This is a current developer-PC revalidation without engine changes or reduced mi
 The older 60 FPS screening retains its original verdict. Product minimum specification,
 integrated UI/VFX, allocation/VRAM, sustained operation and per-frame traces remain open.
 **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8** are unchanged; M7 gates were not exercised in this run.
+
+## Shared 2D path optimization and same-host revalidation (2026-10-18)
+
+✅ The shared grid now uses contiguous cell references and reusable staging snapshots; extraction
+uses contiguous ID validation and compact sort references, avoiding re-sorts for already ordered input.
+Full per-call rebuild, query/sweep, transparent order, matrix snapshots, owning geometry and invalid-input
+rejection remain intact. Public functions and C/Zig ABI are unchanged; private C++ layout changes require consumer rebuilds.
+
+The full MSVC Development build, Shipping benchmark/compiler and 20/20 related local contracts pass.
+The FX-6100/GTX 960 retains all six mixed workloads including both 10k cases: DX12 repeats pass
+6/6 and 6/6, Vulkan repeats 4/6 and 5/6 under unchanged 30 FPS/spike limits; all four processes exit 0.
+Visible/culled counts, batches, coverage, query hits and sample counts match the baseline for all 24 rows.
+No reduced workload or relaxed threshold is used. [Raw evidence and comparison](../../Engine/TwoD/evidence/Windows-M6-SharedPath-2026-10-18/acceptance.md)
+retain source patch/hashes, CPU/GPU/frame distributions and process memory. Full Linux/native pixel gates are tracked on the final PR CI.
+
+This is a shared engine improvement and developer-PC screen. Product minimum specification,
+integrated UI/VFX, allocator/VRAM, per-frame traces and sustained acceptance remain open.
+**M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged.**

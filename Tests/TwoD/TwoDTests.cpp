@@ -8,6 +8,7 @@
 #include <limits>
 #include <random>
 #include <stdexcept>
+#include <tuple>
 namespace {
 using namespace nexora;
 using namespace twod;
@@ -203,6 +204,154 @@ void Queries() {
   Require(!Overlap(point, box) && index.Sweep(point.center, point.center).empty(),
           "stationary sweep disagrees with decimal overlap");
 }
+void RepeatedGridRebuilds() {
+  SpatialIndex index(1);
+  std::mt19937 random(1701);
+  for (unsigned round = 0; round < 12; ++round) {
+    std::vector<Shape> shapes;
+    for (std::uint64_t id = 1; id <= 512; ++id) {
+      if ((id + round) % 7 == 0)
+        continue;
+      Shape s;
+      s.id = id;
+      s.kind = id % 2 ? ShapeKind::Circle : ShapeKind::Box;
+      s.center = {float(int(id % 32) - 16) + float(round) * 0.37F,
+                  float(int(id / 32) - 8) - float(round) * 0.61F};
+      s.radius = float(id % 5) * 0.25F;
+      s.halfExtent = {float(id % 4) * 0.5F, float(id % 3) * 0.5F};
+      s.group = 1U << unsigned(id % 3);
+      s.mask = round % 2 ? 7U : 3U;
+      shapes.push_back(s);
+    }
+    std::shuffle(shapes.begin(), shapes.end(), random);
+    Require(index.Build(shapes) && index.Size() == shapes.size(), "moving shuffled grid rebuild");
+    for (std::size_t n = 0; n < shapes.size(); n += 7) {
+      auto query = shapes[n];
+      query.radius += 0.75F;
+      std::vector<std::uint64_t> expected;
+      for (const auto &other : shapes)
+        if (query.id != other.id && Oracle(query, other))
+          expected.push_back(other.id);
+      std::sort(expected.begin(), expected.end());
+      Require(index.Query(query) == expected, "reused grid storage disagrees with brute force");
+    }
+    Shape range;
+    range.radius = 1000;
+    range.mask = 7;
+    const auto published = index.Query(range);
+    auto bad = shapes;
+    bad.back().id = bad.front().id;
+    Require(!index.Build(bad) && index.Query(range) == published, "duplicate rollback query");
+    bad = shapes;
+    bad.back().center.x = std::numeric_limits<float>::quiet_NaN();
+    Require(!index.Build(bad) && index.Query(range) == published, "nonfinite rollback query");
+    bad = shapes;
+    bad.back().radius = 100;
+    bad.back().kind = ShapeKind::Circle;
+    Require(!index.Build(bad) && index.Query(range) == published, "cell coverage rollback");
+  }
+  Shape range;
+  range.radius = 1000;
+  const auto published = index.Query(range);
+  std::vector<Shape> excessive(253);
+  for (std::size_t i = 0; i < excessive.size(); ++i) {
+    excessive[i].id = i + 1;
+    excessive[i].center = {0.5F, 0.5F};
+    excessive[i].kind = ShapeKind::Box;
+    excessive[i].halfExtent = {31, 31};
+  }
+  Require(!index.Build(excessive) && index.Query(range) == published,
+          "total reference budget rollback");
+  Require(index.Build({}) && index.Query(range).empty() && index.Sweep({-10, 0}, {10, 0}).empty(),
+          "empty rebuild retained old cells");
+  std::vector<Shape> line(128);
+  for (std::size_t i = 0; i < line.size(); ++i) {
+    line[i].id = 1000 - i;
+    line[i].center = {float(i) * 4 - 256, 0};
+    line[i].radius = 0.5F;
+  }
+  Require(index.Build(line), "sweep across reused grid");
+  const auto hits = index.Sweep({-300, 0}, {300, 0});
+  Require(hits.size() == line.size(), "sweep missed cell or duplicated shape");
+  for (std::size_t i = 0; i < hits.size(); ++i) {
+    Require(hits[i].id == line[i].id, "sweep fraction ordering after rebuild");
+    Near(hits[i].fraction, (double(line[i].center.x) - 0.5 + 300) / 600,
+         "independent analytic swept-circle oracle");
+  }
+}
+void ExtractionOrdering() {
+  auto atlas = TestAtlas();
+  std::vector<SpriteInstance> instances;
+  for (std::uint64_t id = 1; id <= 512; ++id) {
+    Sprite sprite;
+    sprite.atlas = atlas->id;
+    sprite.region = unsigned(id % 2) + 1;
+    sprite.layer = int(id % 3);
+    sprite.order = int(id % 5);
+    sprite.sortY = id % 2 == 0;
+    sprite.visible = id % 13 != 0;
+    sprite.color[3] = id % 11 ? 1.0F : 0.0F;
+    runtime::Transform t;
+    t.x = double(int(id % 20) - 10) * 0.25;
+    t.y = double(int(id / 20) - 10) * 0.25;
+    instances.push_back({id, sprite, runtime::ToMatrix(t)});
+  }
+  const AtlasResolver resolver = [&](AssetId) -> std::optional<AtlasBinding> {
+    return AtlasBinding{atlas, 21};
+  };
+  Camera camera;
+  camera.width = camera.height = 100;
+  camera.verticalSize = 20;
+  const auto frame = ExtractSprites(instances, camera, resolver);
+  Require(frame.has_value(), "large extraction fixture");
+  auto expected = instances;
+  std::erase_if(expected,
+                [](const auto &s) { return !s.sprite.visible || s.sprite.color[3] == 0; });
+  std::sort(expected.begin(), expected.end(), [](const auto &a, const auto &b) {
+    const double ay = a.sprite.sortY ? -a.matrix[13] : 0, by = b.sprite.sortY ? -b.matrix[13] : 0;
+    return std::tie(a.sprite.layer, a.sprite.order, ay, a.id) <
+           std::tie(b.sprite.layer, b.sprite.order, by, b.id);
+  });
+  Require(frame->statistics.visible == expected.size(), "visible extraction count");
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    Near(frame->vertices[i * 4].position[0], (expected[i].matrix[12] - 0.5) * 5 + 50,
+         "independent sorted sprite X");
+    Near(frame->vertices[i * 4].position[1], -(expected[i].matrix[13] - 0.5) * 5 + 50,
+         "independent sorted sprite Y");
+  }
+  std::reverse(instances.begin(), instances.end());
+  const auto reversed = ExtractSprites(instances, camera, resolver);
+  Require(reversed && reversed->indices == frame->indices &&
+              reversed->vertices.size() == frame->vertices.size(),
+          "input permutation changed extraction shape");
+  for (std::size_t i = 0; i < frame->vertices.size(); ++i) {
+    const auto &a = frame->vertices[i], &b = reversed->vertices[i];
+    Require(a.color == b.color && a.position[0] == b.position[0] &&
+                a.position[1] == b.position[1] && a.uv[0] == b.uv[0] && a.uv[1] == b.uv[1],
+            "input permutation changed sorted geometry");
+  }
+  auto bad = instances;
+  bad.back().id = bad.front().id;
+  bad.back().sprite.visible = false;
+  unsigned lookups = 0;
+  const AtlasResolver counting = [&](AssetId) -> std::optional<AtlasBinding> {
+    ++lookups;
+    return AtlasBinding{atlas, 21};
+  };
+  Require(!ExtractSprites(bad, camera, counting) && lookups == 0,
+          "invisible duplicate must reject before resolver callbacks");
+  const AtlasResolver mutating = [&](AssetId) -> std::optional<AtlasBinding> {
+    for (auto &s : instances)
+      s.matrix[12] = 10000;
+    return AtlasBinding{atlas, 21};
+  };
+  const auto snapshot = ExtractSprites(instances, camera, mutating);
+  Require(snapshot && snapshot->statistics.visible == frame->statistics.visible,
+          "resolver changed prevalidated matrix snapshot");
+  for (std::size_t i = 0; i < frame->vertices.size(); ++i)
+    Near(snapshot->vertices[i].position[0], frame->vertices[i].position[0],
+         "resolver mutation changed snapshot geometry");
+}
 void Scene() {
   auto atlas = TestAtlas();
   runtime::World world;
@@ -367,6 +516,8 @@ int main() {
     Assets();
     Animation();
     Queries();
+    RepeatedGridRebuilds();
+    ExtractionOrdering();
     Scene();
     Lifecycle();
     std::cout << "2D runtime contracts passed\n";
