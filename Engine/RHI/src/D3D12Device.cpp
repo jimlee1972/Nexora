@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <limits>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -637,6 +638,10 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))))
         ray.enabled = SUCCEEDED(probe->Close());
     }
+    // Raw DXR support does not prove this update recipe on the system runtime. Hosted system
+    // execution crashes while the isolated pinned runtime passes both update/output fixtures.
+    capabilities_.ray_scene_refit_enabled =
+        ray.enabled && capabilities_.d3d12_preview_runtime_enabled;
 #endif
 #if NEXORA_D3D12_SAMPLER_FEEDBACK && NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
     auto &feedback =
@@ -1166,16 +1171,12 @@ public:
     // Immutable construction is caller-serialized with submit/mutation, like other resource
     // creation.
     std::lock_guard lock{mutex_};
-    auto build = detail::BuildNativeRayScene(*ray_device_.Get(), triangles);
-    Check(build.commands->Close(), "Close ray build list");
-    ID3D12CommandList *commands = build.commands.Get();
-    queue_->ExecuteCommandLists(1, &commands);
-    const auto completion = ++next_fence_;
-    Check(queue_->Signal(fence_.Get(), completion), "Signal ray build");
-    WaitForFence(completion);
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    auto scene = CompleteRayBuild(detail::BuildNativeRayScene(
+        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled));
     const auto handle = ray_scene_pool_.Create();
     try {
-      ray_scenes_.emplace(Key(handle), std::move(build.scene));
+      ray_scenes_.emplace(Key(handle), std::move(scene));
     } catch (...) {
       (void)ray_scene_pool_.Destroy(handle);
       throw;
@@ -1191,16 +1192,12 @@ public:
     if (!IsRayOpacitySceneValid(triangles, masks))
       throw std::invalid_argument("invalid bounded opacity triangles or masks");
     std::lock_guard lock{mutex_};
-    auto build = detail::BuildNativeRayScene(*ray_device_.Get(), triangles, masks);
-    Check(build.commands->Close(), "Close opacity/BLAS/TLAS build list");
-    ID3D12CommandList *commands = build.commands.Get();
-    queue_->ExecuteCommandLists(1, &commands);
-    const auto completion = ++next_fence_;
-    Check(queue_->Signal(fence_.Get(), completion), "Signal opacity build");
-    WaitForFence(completion);
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    auto scene =
+        CompleteRayBuild(detail::BuildNativeRayScene(*ray_device_.Get(), triangles, masks));
     const auto handle = ray_scene_pool_.Create();
     try {
-      ray_scenes_.emplace(Key(handle), std::move(build.scene));
+      ray_scenes_.emplace(Key(handle), std::move(scene));
     } catch (...) {
       (void)ray_scene_pool_.Destroy(handle);
       throw;
@@ -1208,6 +1205,40 @@ public:
     return handle;
   }
 #endif
+  void UpdateRayScene(RaySceneHandle scene, std::span<const RayTriangle> triangles) override {
+    if (!capabilities_.ray_scene_refit_enabled)
+      throw std::logic_error("ray scene refit requires the admitted private runtime");
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
+    if (!IsRaySceneValid(triangles))
+      throw std::invalid_argument("invalid bounded refit triangles");
+    std::lock_guard lock{mutex_};
+    Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
+            "updating stale ray scene");
+    const auto &source = ray_scenes_.at(Key(scene));
+    if (!source.updatable || source.opacity_micromaps || source.triangle_count != triangles.size())
+      throw std::invalid_argument("ray refit requires an ordinary same-topology scene");
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    auto replacement =
+        CompleteRayBuild(detail::BuildNativeRayScene(*ray_device_.Get(), triangles, {}, &source));
+    // Move assignment of native ComPtrs cannot allocate. Publish only after the update fence.
+    ray_scenes_.at(Key(scene)) = std::move(replacement);
+    ++diagnostics_.ray_scene_refits;
+  }
+  void RebuildRayScene(RaySceneHandle scene, std::span<const RayTriangle> triangles) override {
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
+    if (!IsRaySceneValid(triangles))
+      throw std::invalid_argument("invalid bounded rebuild triangles");
+    std::lock_guard lock{mutex_};
+    Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
+            "rebuilding stale ray scene");
+    if (ray_scenes_.at(Key(scene)).opacity_micromaps)
+      throw std::invalid_argument("ordinary rebuild cannot replace OMM linkage");
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    auto replacement = CompleteRayBuild(detail::BuildNativeRayScene(
+        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled));
+    ray_scenes_.at(Key(scene)) = std::move(replacement);
+    ++diagnostics_.ray_scene_rebuilds;
+  }
   void DestroyRayScene(RaySceneHandle scene) override {
     std::lock_guard lock{mutex_};
     Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
@@ -1631,6 +1662,26 @@ private:
       throw std::runtime_error("D3D12 fence reports device removal");
   }
 
+#if NEXORA_D3D12_RAY_TRACING && NEXORA_HAS_PINNED_RAY_ARTIFACTS
+  // Called with mutex_ held. Only one accepted build can remain quarantined after Signal/wait
+  // failure; further AS construction fails closed until device recreation. Existing scenes and
+  // recorded snapshots stay unchanged. The destructor attempts queue idle before releasing it.
+  detail::NativeRayScene CompleteRayBuild(detail::PendingRayScene build) {
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    Check(build.commands->Close(), "Close ray scene build list");
+    pending_ray_build_.emplace(std::move(build));
+    auto &pending = *pending_ray_build_;
+    ID3D12CommandList *commands = pending.commands.Get();
+    queue_->ExecuteCommandLists(1, &commands);
+    const auto completion = ++next_fence_;
+    Check(queue_->Signal(fence_.Get(), completion), "Signal ray scene build");
+    WaitForFence(completion);
+    auto result = std::move(pending.scene);
+    pending_ray_build_.reset();
+    return result;
+  }
+#endif
+
   GraphicsDeviceCapabilities capabilities_;
   // The private SDK factory must outlive the device and all device-owned resources.
   detail::D3D12PreviewRuntime preview_runtime_;
@@ -1652,6 +1703,7 @@ private:
   core::HandlePool<RaySceneTag> ray_scene_pool_;
   core::HandlePool<RayProgramTag> ray_program_pool_;
   std::unordered_map<std::uint64_t, detail::NativeRayScene> ray_scenes_;
+  std::optional<detail::PendingRayScene> pending_ray_build_;
   std::unordered_map<std::uint64_t, detail::NativeRayProgram> ray_programs_;
 #endif
 #if defined(__ID3D12GraphicsCommandList6_INTERFACE_DEFINED__) &&                                   \

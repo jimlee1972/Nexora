@@ -690,6 +690,42 @@ Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Obje
 **13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
 Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
 
+## 有界 BLAS／TLAS refit 施工 — 2026-10-18
+
+✅ `nexora-45y.4.5` 的實作為一般三角形場景加入相同拓樸、使用新儲存空間的原生更新。准入可更新的 BLAS／
+TLAS 建置允許更新；替代建置以真正的來源 AS 位址、查詢所得的 update scratch 執行
+PERFORM_UPDATE，完成 direct queue fence 後才發布。先前錄製的 List 保留舊場景，之後
+錄製使用相同 handle 的新幾何。無效／失效／改變數量／OMM 更新在 GPU 執行與診斷前拒絕。
+Signal／wait 失敗後保留一份已接受的建置，重建裝置前拒絕進一步 AS 建置。C++ 消費端需
+重編，穩定 C ABI 與 Shader profile 不變。
+
+Fixture 對1／2／8三角形的 pipeline／inline 與可用 SER 模式各進行四次 refit，每組比對512筆
+舊／新輸出與 CPU oracle，涵蓋 canary、拒絕更新及銷毀 handle 後提交拒絕。釘選 SDK helper
+與 Windows 條件式 fixture 的語法皆以 warnings-as-errors 通過。組合自有介面卡策略 PR639
+來源e395af42後，原生 Vulkan／Slang／Zig Development configure／build 與 Xvfb 完整 CTest
+225/225通過，零失敗／略過（119.56秒）；Shipping Minimal／Monolithic LTO、文件16/16、
+cleanup33/33、雙語 Markdown 與格式／diff 皆通過。私有 Windows 驗收要求全部三種 ray 模式
+與每種 barrier 模式恰好36次原生 refit；固定 head 的實際 hosted CI 仍為必要合併門檻。
+一般更新、compaction、光照、實體效能／裝置遺失驗收及完整 V2-GFX-3 維持未完成。
+
+
+CI 清理另外僅納入本次自有 refit 分支的精確名稱，沿用即時 ref 保護，保留最新 head 的兩種
+事件、其他 actor／儲存庫與名稱相似的分支。
+
+Hosted system runtime 的0a4acdad Windows 工作117591168721通過319/321，但兩個 ray fixture
+發生 SEGFAULT；獨立預覽兩套皆8/8通過，每種 barrier 模式36次 refit。這尚未定位原生崩潰
+呼叫，也不能判定為 driver 缺陷。後續保留 system runtime 原有不可變 AS 建置旗標，新增預設
+關閉的 `ray_scene_refit_enabled`，僅明確建立獨立 runtime 且 native rays 准入時啟用。未准入
+更新在 GPU 工作前拒絕，raw DXR tier 不變。Windows ray／feedback 預檢移至完整桌面建置前，
+並以 unit-buffered 診斷提早顯示問題。修正後原生 Vulkan／Slang／Zig Development gate
+225/225通過，零失敗／略過（119.14秒）；Shipping Minimal／Monolithic LTO、釘選 SDK／
+Windows 條件式語法、文件16/16與 cleanup33/33皆通過。最終 hosted gate 仍須重新通過。
+
+另外提供明確的 `RebuildRayScene` 原生完整重建替代路徑，支援有界數量變更、舊／新快照與獨立
+`ray_scene_rebuilds` 計數。System 與私有 ray fixture 每次重建皆比對128筆 CPU 輸出，未准入
+refit 不會發布更新計數。System route 的初次 AS 旗標維持不變；私有原生36次 refit、完整
+重建及原有不可變射線／compute／取消重播回歸仍為必要驗收。
+
 ## V2-GFX-3 有界三角形 Ray 施工狀態
 
 `feat/v2-bounded-native-rays`、Beads `nexora-45y.4.2` 實作不可變1–8三角形 BLAS／TLAS Recipe、

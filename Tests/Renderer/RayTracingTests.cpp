@@ -211,6 +211,91 @@ void Execute(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHa
   commands.reset();
   Compare(device, work);
 }
+void TestRebuilds(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                  std::span<const rhi::RayTriangle> triangles) {
+  const auto scene = device.CreateRayScene(triangles);
+  const auto before = device.Diagnostics();
+  auto old = Make(device, triangles, 64);
+  auto retained = device.CreateCommandList(rhi::QueueType::Compute);
+  Record(*retained, compute, program, scene, old);
+  Reject([&] { device.RebuildRayScene(scene, {}); }, "empty rebuild admitted");
+  auto replacement = Triangles(triangles.size() == 1 ? 2 : 1);
+  for (auto &triangle : replacement)
+    for (std::size_t vertex = 0; vertex < 3; ++vertex)
+      triangle.vertices[vertex * 3 + 2] += 0.125F;
+  device.RebuildRayScene(scene, replacement);
+  Require(device.Diagnostics().ray_scene_rebuilds == before.ray_scene_rebuilds + 1 &&
+              device.Diagnostics().ray_scene_refits == before.ray_scene_refits,
+          "full native rebuild was misreported as a refit");
+  device.WaitForSubmission(device.Submit(*retained));
+  retained.reset();
+  Compare(device, old);
+  auto updated = Make(device, replacement, 64);
+  Require(old.expected.front().distance != updated.expected.front().distance,
+          "rebuild oracle failed to distinguish scene generations");
+  Execute(device, compute, program, scene, updated);
+  Destroy(device, old);
+  Destroy(device, updated);
+  device.DestroyRayScene(scene);
+  Reject([&] { device.RebuildRayScene(scene, replacement); }, "stale rebuild admitted");
+  Require(device.Diagnostics().ray_scene_rebuilds == before.ray_scene_rebuilds + 1,
+          "rejected rebuild published a counter");
+  std::cout << "Native full rebuild old_triangles=" << triangles.size()
+            << " new_triangles=" << replacement.size() << " CPU comparisons=128 passed\n";
+}
+void TestRefits(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                std::span<const rhi::RayTriangle> triangles) {
+  const auto scene = device.CreateRayScene(triangles);
+  const auto before = device.Diagnostics().ray_scene_refits;
+  auto current = std::vector<rhi::RayTriangle>{triangles.begin(), triangles.end()};
+  Reject([&] { device.UpdateRayScene(scene, {}); }, "empty refit admitted");
+  const auto changed_count = Triangles(triangles.size() == 1 ? 2 : 1);
+  Reject([&] { device.UpdateRayScene(scene, changed_count); }, "changed refit topology admitted");
+  auto invalid = current;
+  invalid.front().vertices[0] = std::numeric_limits<float>::quiet_NaN();
+  Reject([&] { device.UpdateRayScene(scene, invalid); }, "nonfinite refit admitted");
+  invalid = current;
+  invalid.front().vertices.fill(0);
+  Reject([&] { device.UpdateRayScene(scene, invalid); }, "degenerate refit admitted");
+  Require(device.Diagnostics().ray_scene_refits == before, "rejected refit published a counter");
+  for (std::uint32_t iteration = 0; iteration < 4; ++iteration) {
+    auto previous = Make(device, current, 64);
+    auto retained = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*retained, compute, program, scene, previous);
+    auto next = current;
+    for (auto &triangle : next)
+      for (std::size_t vertex = 0; vertex < 3; ++vertex)
+        triangle.vertices[vertex * 3 + 2] += 0.125F;
+    auto updated = Make(device, next, 64);
+    Require(previous.expected.front().distance != updated.expected.front().distance,
+            "refit oracle failed to distinguish old and updated geometry");
+    device.UpdateRayScene(scene, next);
+    Require(device.Diagnostics().ray_scene_refits == before + iteration + 1,
+            "successful native refit did not publish exactly one counter");
+    // Submission after publication must retain the geometry captured during earlier recording.
+    device.WaitForSubmission(device.Submit(*retained));
+    retained.reset();
+    Compare(device, previous);
+    Execute(device, compute, program, scene, updated);
+    Destroy(device, previous);
+    Destroy(device, updated);
+    current = std::move(next);
+  }
+  auto pending = Make(device, current, 64);
+  auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+  Record(*stale, compute, program, scene, pending);
+  device.DestroyRayScene(scene);
+  Reject([&] { device.UpdateRayScene(scene, current); }, "destroyed refit handle admitted");
+  const auto submitted = device.Diagnostics().submitted_command_lists;
+  Reject([&] { (void)device.Submit(*stale); }, "destroyed updated scene snapshot submitted");
+  Require(device.Diagnostics().submitted_command_lists == submitted &&
+              device.Diagnostics().ray_scene_refits == before + 4,
+          "stale refit or scene published counters");
+  stale.reset();
+  Destroy(device, pending);
+  std::cout << "Native BLAS/TLAS out-of-place refits=4 triangles=" << triangles.size()
+            << " old/new CPU comparisons=512; invalid/topology/stale/canaries passed\n";
+}
 void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
               rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles) {
   std::array work{Make(device, triangles, 64), Make(device, triangles, 64)};
@@ -572,6 +657,13 @@ void OpacityMicromaps(rhi::Device &device, rhi::PipelineHandle compute) {
     const std::array<std::uint8_t, 8> opaque{15, 15, 15, 15, 15, 15, 15, 15};
     const auto scene = device.CreateOpacityMicromapScene(triangles, opaque);
     const auto ordinary_scene = device.CreateRayScene(triangles);
+    const auto refits = device.Diagnostics().ray_scene_refits;
+    Reject([&] { device.UpdateRayScene(scene, triangles); }, "OMM scene accepted ordinary refit");
+    const auto rebuilds = device.Diagnostics().ray_scene_rebuilds;
+    Reject([&] { device.RebuildRayScene(scene, triangles); },
+           "OMM scene accepted ordinary rebuild");
+    Require(device.Diagnostics().ray_scene_rebuilds == rebuilds, "OMM rebuild published state");
+    Require(device.Diagnostics().ray_scene_refits == refits, "rejected OMM refit published state");
     auto work = Make(device, triangles, 64);
     {
       auto mismatch = device.CreateCommandList(rhi::QueueType::Compute);
@@ -652,8 +744,13 @@ void Portable() {
               .failure == rhi::CapabilityFailure::InsufficientImplementedTier,
       "unimplemented DXR1.2 admitted");
   auto model = rhi::CreateValidationDevice();
+  Require(!rhi::GraphicsDeviceCapabilities{}.ray_scene_refit_enabled &&
+              !model->Capabilities().ray_scene_refit_enabled,
+          "unadmitted refit runtime must default closed");
   Reject([&] { (void)model->CreateRayScene(triangle); },
          "Validation fabricated acceleration structure");
+  Reject([&] { model->UpdateRayScene({}, triangle); }, "Validation fabricated native AS refit");
+  Reject([&] { model->RebuildRayScene({}, triangle); }, "Validation fabricated native AS rebuild");
   Reject([&] { (void)model->CreateRayProgram({}); }, "Validation fabricated ray pipeline");
   rhi::PipelineDescriptor pipeline{1, 2, rhi::TextureFormat::Rgba8Unorm, "ray cache admission"};
   pipeline.type = rhi::PipelineType::Compute;
@@ -712,6 +809,9 @@ void Native(bool enhanced) {
 #endif
   auto device = rhi::CreateDeviceWithOptions(backend, options);
   const auto caps = device->Capabilities();
+  std::cout << "Ray adapter vendor=" << caps.vendor_id << " device=" << caps.device_id
+            << " software=" << caps.software_device
+            << " refit_enabled=" << caps.ray_scene_refit_enabled << '\n';
 #if defined(NEXORA_TEST_SER_NATIVE)
   std::cout << "Preview adapter vendor=" << caps.vendor_id << " device=" << caps.device_id
             << " driver=" << caps.driver_version << " software=" << caps.software_device
@@ -758,6 +858,9 @@ void Native(bool enhanced) {
       const bool enabled =
           rhi::CheckGraphicsRequirements(caps, rhi::EffectiveRayProgramRequirements(descriptor))
               .Succeeded();
+#if defined(NEXORA_TEST_SER_NATIVE)
+      Require(enabled, "required private native ray/refit mode unavailable");
+#endif
       rhi::RayProgramHandle program{};
       if (enabled) {
 #if defined(_WIN32)
@@ -807,6 +910,16 @@ void Native(bool enhanced) {
       Parallel(*device, compute, program, scene, triangles);
       if (enabled) {
         TestLifetime(*device, compute, program, scene, descriptor, triangles);
+        TestRebuilds(*device, compute, program, triangles);
+        if (caps.ray_scene_refit_enabled)
+          TestRefits(*device, compute, program, triangles);
+        else {
+          const auto before = device->Diagnostics().ray_scene_refits;
+          Reject([&] { device->UpdateRayScene(scene, triangles); },
+                 "unadmitted system runtime accepted a native refit");
+          Require(device->Diagnostics().ray_scene_refits == before,
+                  "unadmitted runtime published a refit counter");
+        }
         MixedNodesAndRays(*device, compute, program, scene, triangles);
       }
       std::cout << "Ray backend=" << static_cast<unsigned>(backend)
@@ -822,6 +935,12 @@ void Native(bool enhanced) {
   }
   OpacityMicromaps(*device, compute);
   const auto diagnostics = device->Diagnostics();
+  std::cout << "Native ray scene refits=" << diagnostics.ray_scene_refits
+            << " rebuilds=" << diagnostics.ray_scene_rebuilds << '\n';
+#if defined(NEXORA_TEST_SER_NATIVE)
+  Require(diagnostics.ray_scene_refits == 36,
+          "required private BLAS/TLAS refits were not executed");
+#endif
   const auto feature = caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing)];
   Require(feature.enabled ? diagnostics.ray_dispatch_calls > 0
                           : diagnostics.ray_dispatch_calls == 0,
@@ -857,6 +976,7 @@ void Native(bool enhanced) {
 }
 } // namespace
 int main(int argc, char **argv) {
+  std::cout << std::unitbuf;
   try {
     const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
     Require(argc == 1 || enhanced, "usage: [--enhanced-barriers]");
