@@ -39,8 +39,12 @@ Capability snapshot 也會將1414:008c判定為軟體，不依賴可能缺失的
 Vulkan／Slang／Zig Development configure／build 與 Xvfb CTest225/225通過，零失敗／略過
 （119.67秒）；Shipping Minimal／Monolithic LTO 通過。Portable 策略拒絕、Windows 條件式
 fixture 語法、文件／工作流程16/16、cleanup31/31、雙語 Markdown 與格式／diff 檢查皆通過。
-一般／預覽 Windows 實際執行仍為必要 CI 合併門檻；實體進階功能／效能與完整 V2-GFX-1
-維持未完成。
+
+✅ Hosted 介面卡策略驗收：[PR639](https://github.com/jimlee1972/Nexora/pull/639) 在固定e395af42
+的全部38項檢查與 push39096066507／PR39096069191 workflow 皆成功後，合併為7c85bbca。
+兩套桌面矩陣皆通過 Windows321／Linux371／macOS309，兩套私有預覽皆8/8。一般／私有策略
+fixture 驗證身分、WARP 主機真正耗盡相容硬體的回報、輸出見證與獨立工廠生命週期。這不代表
+實體進階功能／效能驗收，也不關閉完整 V2-GFX-1。
 
 CI 清理僅將本次介面卡策略分支的精確名稱加入既有自有清單；owner／同儲存庫／即時 ref
 檢查會保留最新 head 的兩種事件與其他貢獻者工作。
@@ -704,7 +708,7 @@ TLAS。兩次明確大小讀回／三次等待屬於資源建構，CPU hit 結�
 Fixture 對1／2／8三角形的 pipeline／inline／SER 執行 compaction／refit／compaction 往返，
 比對舊／新 CPU 輸出、canary 與 lifetime／admission 拒絕。私有 Windows 驗收要求每種
 barrier 模式45次 refit（原有36加九次往返）與18次場景 compaction。實際 SDK 與 Windows
-條件式語法通過；完整本機與固定 head 的 hosted CI 仍為必要條件。一般／OMM compaction、
+條件式語法通過；最終本機與 hosted 驗收記錄於下方。一般／OMM compaction、
 實體預算／裝置遺失與完整 V2-GFX-3 維持未完成。
 
 
@@ -712,20 +716,36 @@ barrier 模式45次 refit（原有36加九次往返）與18次場景 compaction�
 Development configure／build 與 Xvfb 完整 CTest225/225通過，零失敗／略過（121.89秒）；
 Shipping Minimal／Monolithic LTO、釘選 SDK／Windows 條件式語法、文件16/16、cleanup35/35、
 雙語 Markdown 與格式／diff 皆通過。CI 清理僅增加本次自有壓縮分支的精確名稱，保留最新 head
-兩種事件、其他 actor 與相似名稱分支。原生 compaction 驗收仍須固定 head 的 Windows 執行
-證據，完成後才可合併。
+兩種事件、其他 actor 與相似名稱分支。最終 hosted compaction 驗收見下方。
 
 
 整合 runtime 准入 refit 與明確完整重建後，compaction 要求已准入的私有更新配方，更新／重建
 保留兩種場景旗標；system runtime 的 opt-in／compaction 在 GPU 工作前拒絕。上述整合本機
-gate 已通過，最終 hosted 驗證仍為必要門檻。
+gate 與下方最終 hosted gate 均已通過。
 
 Hosted 私有工作117606800925在fb0d8af6通過6/8；兩個 ray fixture 都因有效壓縮大小向上
 補齊後超過原 buffer width 而拒絕。DXR 要求目的位址對齊，並未要求 buffer 長度對齊。
 保留查詢所得的精確正值長度與原有每個 AS／64MiB 上限，另外檢查目的 GPU 位址256-byte
 對齊。修正後原生 Vulkan／Slang／Zig Development configure／build 與完整225/225通過，
 零失敗／略過（121.89秒）；Shipping Minimal／Monolithic LTO、釘選 SDK 語法、文件16/16、
-cleanup35/35、雙語／格式／diff 通過。新 head 的原生壓縮與全部 hosted gate 仍為必要門檻。
+cleanup35/35、雙語／格式／diff 通過。
+
+### Hosted 有界 compaction 驗收
+
+✅ [PR641](https://github.com/jimlee1972/Nexora/pull/641) 在固定12a34eb5的全部38項檢查與
+push39105304460／PR39105306645 workflow 皆成功後，合併為f5cea4fb。兩套桌面矩陣皆通過
+Windows321／Linux371／macOS309。私有工作117609872821／117609938174皆8/8（5.80／
+4.64秒）；每種 legacy／enhanced 模式回報45次明確 refit、9次完整重建及18次真正 compaction。
+每種模式的九組 fixture 各比對256筆舊／新 CPU 輸出與 canary，涵蓋 compaction／refit／
+compaction 往返。四種模式／事件執行合計72次場景 compaction。System fixture 在 GPU 工作
+前拒絕未准入 refit／compaction（兩種計數皆0），每種 barrier 模式執行6次原生完整重建，
+並保留原有不可變射線輸出覆蓋。
+
+對齊修正保留查詢所得精確長度，另外檢查目的 GPUVA 的256-byte 對齊。Hosted WARP 對
+1／2／8三角形的兩次呼叫，其邏輯 AS buffer 位元組總量前後皆為976／1232／2768；原生
+複製／輸出／生命週期通過，但未觀察到 buffer 縮減。這是軟體正確性證據，不代表實體記憶體
+減量或效能驗收。一般／OMM compaction、完成失敗注入、實體裝置遺失／效能、較廣的 system
+refit（`nexora-45y.4.7`）與五個完整 V2-GFX gate 持續開放。
 
 ## 有界 BLAS／TLAS refit 施工 — 2026-10-18
 
@@ -742,8 +762,8 @@ Fixture 對1／2／8三角形的 pipeline／inline 與可用 SER 模式各進行
 來源e395af42後，原生 Vulkan／Slang／Zig Development configure／build 與 Xvfb 完整 CTest
 225/225通過，零失敗／略過（119.56秒）；Shipping Minimal／Monolithic LTO、文件16/16、
 cleanup33/33、雙語 Markdown 與格式／diff 皆通過。私有 Windows 驗收要求全部三種 ray 模式
-與每種 barrier 模式恰好36次原生 refit；固定 head 的實際 hosted CI 仍為必要合併門檻。
-一般更新、compaction、光照、實體效能／裝置遺失驗收及完整 V2-GFX-3 維持未完成。
+與每種 barrier 模式恰好36次原生 refit；最終 hosted 驗收記錄於下方。
+一般更新、通用 AS compaction、光照、實體效能／裝置遺失驗收及完整 V2-GFX-3 維持未完成。
 
 
 CI 清理另外僅納入本次自有 refit 分支的精確名稱，沿用即時 ref 保護，保留最新 head 的兩種
