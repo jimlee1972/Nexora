@@ -84,18 +84,24 @@ void TestNative() {
     auto device = Create(D3D12AdapterPolicy::PreferHardware);
     return Exercise(*device);
   }();
+  if (original.vendor_id == 0x1414 && original.device_id == 0x008c)
+    Require(original.software_device, "known WARP identity was misreported as hardware");
   if (preview)
     Require(original.software_device, "preview default stopped selecting WARP");
-  else
+  else if (original.vendor_id != 0x1414 || original.device_id != 0x008c)
     Require(original.software_device == preferred.software_device &&
                 original.vendor_id == preferred.vendor_id &&
                 original.device_id == preferred.device_id,
             "ordinary default stopped preferring the same hardware with WARP fallback");
+  Require(preferred.software_device || preferred.vendor_id != 0x1414 ||
+              preferred.device_id != 0x008c,
+          "hardware preference admitted known WARP identity without its software flag");
   try {
     auto hardware = Create(D3D12AdapterPolicy::RequireHardware);
     const auto caps = Exercise(*hardware);
-    Require(!caps.software_device && !preferred.software_device &&
-                caps.vendor_id == preferred.vendor_id && caps.device_id == preferred.device_id,
+    Require(!caps.software_device && (caps.vendor_id != 0x1414 || caps.device_id != 0x008c) &&
+                !preferred.software_device && caps.vendor_id == preferred.vendor_id &&
+                caps.device_id == preferred.device_id,
             "required hardware silently selected software or differs from hardware preference");
     std::cout << "RequireHardware selected a nonsoftware DXGI adapter\n";
   } catch (const D3D12HardwareUnavailableError &) {

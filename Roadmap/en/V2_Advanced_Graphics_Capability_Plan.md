@@ -37,12 +37,16 @@ General RenderGraph scheduling and other backend worker ownership are not comple
 for ordinary and isolated preview factories. Default keeps ordinary hardware preference/WARP
 fallback and preview WARP behavior. Required hardware never falls back; compatible-adapter
 exhaustion has a distinct exception, while enumeration/description/runtime faults remain errors.
+The first Windows preview run exposed1414:008c enumerated without the software flag; explicit
+hardware policies now exclude that known WARP identity while ordinary Default preserves legacy
+selection. Hardware-required tests must report real compatible-adapter exhaustion on that host.
+The capability snapshot also classifies1414:008c as software regardless of the omitted flag.
 The shared selection helper bounds discovery to64 adapters and leaves private factory ownership,
 feature admission and the stable C ABI unchanged. Non-D3D12/invalid policies fail before backend
 creation. Dedicated Windows policy tests compare identities, submit/read buffer witnesses and
 retain an earlier device across independent factory destruction. The preview fixture deploys to
 its own leaf directory. Local native Vulkan/Slang/Zig Development configure/build and Xvfb CTest
-pass225/225, zero failures/skips (147.61s); Shipping Minimal/Monolithic LTO passes. Portable policy
+pass225/225, zero failures/skips (121.26s); Shipping Minimal/Monolithic LTO passes. Portable policy
 rejection, Windows-conditional fixture syntax, documentation/workflow16/16, cleanup29/29, paired
 Markdown and touched-format/diff checks pass. Actual ordinary/preview Windows execution remains a
 required CI merge gate; physical advanced-feature/performance and full V2-GFX-1 stay open.

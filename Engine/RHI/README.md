@@ -887,8 +887,11 @@ remains required independently from the compute oracle; mismatch diagnostics ret
 `DeviceCreationOptions::d3d12_adapter_policy` applies to the ordinary and isolated preview factories.
 `Default` preserves ordinary high-performance hardware preference with WARP fallback and preview
 WARP selection. `Software` explicitly selects WARP; `PreferHardware` tries nonsoftware DXGI adapters
-in high-performance order before WARP; `RequireHardware` never selects WARP. Exhausted compatible
-hardware discovery throws `D3D12HardwareUnavailableError`. DXGI enumeration/description failures,
+in high-performance order before WARP; `RequireHardware` never selects WARP. Explicit hardware
+policies also exclude known Microsoft Basic Render Driver/WARP identity1414:008c, even when DXGI
+omits its software flag. The ordinary `Default` retains its existing flag-based enumeration for
+compatibility. Exhausted compatible hardware discovery throws `D3D12HardwareUnavailableError`.
+DXGI enumeration/description failures,
 resource exhaustion, device removal and other runtime failures propagate as ordinary runtime errors;
 only unsupported feature-level/interface results allow the next candidate. Enumeration is bounded
 to64 adapters and exceeding the bound fails. Invalid enum values and explicit policies on other
@@ -898,7 +901,9 @@ their order; all C++ consumers rebuild for the appended field. The stable C ABI 
 Both routes select the adapter through the same helper while retaining their own device creation
 entry points. The independent preview factory still outlives its resources and never publishes global
 state. Selection does not enable additional features or relax actual Shader Model, private-runtime,
-artifact or per-pipeline admission. `software_device` reports DXGI flags, not physical-host acceptance.
+artifact or per-pipeline admission. `software_device` conservatively reports DXGI software flags or
+known WARP identity1414:008c, not physical-host acceptance. This corrects the hosted flag omission
+without changing the ordinary Default adapter choice.
 Windows tests exercise all four policies, submission/buffer witnesses, retained-device lifetime and
 hardware-required success or its specific exhaustion error. The preview test has its own executable,
 WARP/Agility deployment directory and working directory. Physical modern-feature correctness and

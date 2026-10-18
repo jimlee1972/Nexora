@@ -65,7 +65,7 @@ GraphicsDeviceCapabilities QueryCapabilities(ID3D12Device &device, IDXGIAdapter1
   result.backend = Backend::Direct3D12;
   DXGI_ADAPTER_DESC1 identity{};
   if (SUCCEEDED(adapter.GetDesc1(&identity))) {
-    result.software_device = (identity.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0;
+    result.software_device = detail::IsD3D12SoftwareAdapter(identity);
     result.vendor_id = identity.VendorId;
     result.device_id = identity.DeviceId;
   }

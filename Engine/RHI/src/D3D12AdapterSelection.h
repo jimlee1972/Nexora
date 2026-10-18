@@ -3,6 +3,10 @@
 // Included after Device.h, DXGI, D3D12 and WRL. The callback owns the ordinary/private factory
 // route.
 namespace nexora::rhi::detail {
+inline bool IsD3D12SoftwareAdapter(const DXGI_ADAPTER_DESC1 &description) noexcept {
+  return (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0 ||
+         (description.VendorId == 0x1414 && description.DeviceId == 0x008c);
+}
 template <class Create>
 void SelectD3D12Adapter(D3D12AdapterPolicy policy, bool preview, Create create,
                         Microsoft::WRL::ComPtr<ID3D12Device> &device,
@@ -12,6 +16,7 @@ void SelectD3D12Adapter(D3D12AdapterPolicy policy, bool preview, Create create,
       throw std::runtime_error(std::string(operation) + " failed (HRESULT " +
                                std::to_string(static_cast<unsigned long>(result)) + ")");
   };
+  const bool preserve_ordinary_default = policy == D3D12AdapterPolicy::Default && !preview;
   if (policy == D3D12AdapterPolicy::Default)
     policy = preview ? D3D12AdapterPolicy::Software : D3D12AdapterPolicy::PreferHardware;
   Microsoft::WRL::ComPtr<IDXGIFactory6> dxgi;
@@ -31,7 +36,12 @@ void SelectD3D12Adapter(D3D12AdapterPolicy policy, bool preview, Create create,
       check(result, "EnumAdapterByGpuPreference");
       DXGI_ADAPTER_DESC1 description{};
       check(candidate->GetDesc1(&description), "IDXGIAdapter1::GetDesc1");
-      if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
+      // Hosted DXGI can enumerate Microsoft Basic Render Driver/WARP (1414:008c) without
+      // SOFTWARE, while EnumWarpAdapter reports the same identity with SOFTWARE. Explicit
+      // hardware requests exclude that known software identity. Preserve the ordinary Default
+      // route's existing enumeration behavior for compatibility.
+      if (preserve_ordinary_default ? (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0
+                                    : IsD3D12SoftwareAdapter(description))
         continue;
       Microsoft::WRL::ComPtr<ID3D12Device> created;
       const auto creation = create(candidate.Get(), created.GetAddressOf());
