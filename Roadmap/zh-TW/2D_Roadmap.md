@@ -1,6 +1,6 @@
 # Nexora 2D 引擎 Roadmap
 
-> 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-17
+> 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-18
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
 > Portable／Linux 功能證據。M6 本機 DX12 Screening 超出預算，最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
@@ -33,10 +33,21 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
-| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；輸入、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入（含任一實體遊戲控制器）、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；鍵鼠／實體遊戲控制器、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M10 | P1，條件式 | Tilemap | 圖層、繪製、碰撞資料、區塊載入／剔除 | 實作繪製、圖層／碰撞資料及區塊載入／剔除，通過 Undo／儲存／重開及區塊邊界渲染／查詢測試；決定延後仍維持未驗收 | ✅ Portable／Linux 能力驗收；證據見下方 |
+
+### M7 實體遊戲控制器驗收
+
+可使用任一實體遊戲控制器完成 M7 輸入驗收，例如 DUALSHOCK、DualSense、Xbox 控制器或
+其他搖桿；不限定品牌或 XInput。須由遊戲實際讀取並驗證產品所需的按鈕、搖桿軸／死區、
+UI 導覽／確認／取消、插拔重連、鍵鼠切換及失焦重設。保留型號、連線方式、輸入後端與操作結果；
+單一裝置通過只證明該型號及連線方式，不表示所有控制器均已相容。
+
+目前 Windows 原生 Adapter 使用 XInput；其他裝置的輸入路徑仍須實作或整合並實測。
+作業系統辨識到 DUALSHOCK／其他 HID 裝置本身，不等於遊戲已收到輸入。
+實作範圍見[輸入契約](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence)。
 
 ## 3. 依賴與施工順序
 
@@ -347,7 +358,7 @@ UTF-8 BMP 語料；缺字會失敗。使用者目錄中的永久存檔仍由模�
 測試驗證通用 Player 路徑。參見[驗收紀錄](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)與
 [Windows 實機清單](../../Tools/TwoD/WindowsAcceptance.md)。
 
-正式美術／字型／玩法，以及 Windows 實際聽音、XInput 裝置、焦點／DPI、乾淨電腦啟動與最低
+正式美術／字型／玩法，以及 Windows 實際聽音、實體遊戲控制器、焦點／DPI、乾淨電腦啟動與最低
 硬體驗收，仍需真正專案與目標機。作者端 Sprite 持久化、Editor Tilemap 掛接、無縫 reload
 仍未完成。M6／M7 與 **9/11（82%）** 不變；hosted MSVC CI 與軟體 Vulkan 不算實體產品驗收。
 
@@ -393,7 +404,8 @@ DX12／Vulkan 呈現。人工確認實際聽到 probe、Music／SFX 循環、三
 位置與重綁狀態跨獨立 DX12／Vulkan 程序保留。原始計數與人工觀察分開保存在
 [驗收紀錄](../../Engine/TwoD/evidence/Windows-Host-M6M7-2026-10-17/acceptance.md)。
 
-本機有 PS4 USB HID，但 XInput 槽位皆未連線，該實體 gate 保留。標準縮放選單最高 175%，
+本機有 PS4 USB HID，但該輪使用的 XInput 後端未讀到其輸入，實體控制器 gate 仍未驗收。
+後續可使用 DUALSHOCK 或其他搖桿依上方條件實測，不要求另備 XInput 裝置。標準縮放選單最高 175%，
 200% 與跨螢幕為 NOT RUN。喇叭連線恢復未造成 waveOut 失效／重開，不能證明 USB 端點失效／
 預設裝置切換恢復。UI-only fixture 與 Sprite 壓力負載、正式遊戲分開；乾淨主機、最低規格／
 整合負載／長時間運行、Editor 生命週期與完整裝置 gate 仍開放。

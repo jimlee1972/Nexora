@@ -1,6 +1,6 @@
 # Nexora 2D Engine Roadmap
 
-> Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-17
+> Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-18
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
 > have portable/Linux functional evidence. M6 local DX12 screening exceeded its budgets; physical minimum-PC acceptance remains open.
@@ -35,10 +35,24 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
 | 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 60 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input, UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; input, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
+
+### M7 physical game controller acceptance
+
+Any physical game controller may be used for M7 input acceptance, including DUALSHOCK, DualSense,
+Xbox controllers or other joysticks; no brand or XInput requirement applies. The game must actually
+receive and verify the buttons, axes/deadzones and UI navigation/confirm/cancel required by the
+product, plus disconnect/reconnect, keyboard/mouse switching and focus reset. Retain the model,
+connection type, input backend and observed results. A pass covers that model and connection;
+it does not establish compatibility with every controller.
+
+The current native Windows adapter uses XInput; input paths for other devices still require
+implementation or integration and real testing. OS detection of a DUALSHOCK or another HID
+device alone does not establish game input. See the current implementation scope in the
+[input contract](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence).
 
 ## 3. Dependencies and implementation order
 
@@ -383,7 +397,7 @@ Linux Vulkan pixels validate 32 Play lifetimes; real Zig Shipping export and ind
 restart/corruption checks validate the general Player path. See the [acceptance record](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)
 and [Windows checklist](../../Tools/TwoD/WindowsAcceptance.md).
 
-Formal art/fonts/game rules and physical Windows sound, XInput devices, focus/DPI, clean-machine
+Formal art/fonts/game rules and physical Windows sound, physical game controllers, focus/DPI, clean-machine
 runtime and minimum-PC acceptance require the actual project/target host. Authored Sprite
 persistence, Editor Tilemap binding and seamless reload remain open. M6/M7 and **9/11 (82%)**
 are unchanged. Hosted MSVC CI and software Vulkan are not physical product acceptance.
@@ -437,7 +451,9 @@ normally; the repeat records 87 wheel events and four UI cancels. Position and r
 across independent DX12/Vulkan processes. Raw host counters and human observations are retained
 separately in the [acceptance record](../../Engine/TwoD/evidence/Windows-Host-M6M7-2026-10-17/acceptance.md).
 
-PS4 USB HID is present but no XInput slot is connected; its physical gate remains open. The
+PS4 USB HID is present, but the XInput backend used in that run received no input from it;
+physical controller acceptance remains open. A subsequent run may use DUALSHOCK or another
+joystick under the criteria above; a separate XInput device is not required. The
 standard display menu stops at 175%, so 200% and multi-monitor tests are NOT RUN. Speaker cable
 recovery caused no waveOut failure/reopen and does not prove USB endpoint-loss/default-switch
 recovery. The UI-only fixture is separate from the sprite stress workload and a production game.
