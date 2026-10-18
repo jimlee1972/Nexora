@@ -1,0 +1,91 @@
+[HANDLER_OUTPUT] 
+Test project G:/proj/Nexora/build/windows-development
+
+      Start  30: window_presentation.contracts
+ 1/33 Test  #30: window_presentation.contracts ...................   Passed    2.49 sec
+      Start  31: window_presentation.staged_upload_allocation
+ 2/33 Test  #31: window_presentation.staged_upload_allocation ....   Passed    0.05 sec
+      Start  32: window_presentation.scene_geometry_upload_key
+ 3/33 Test  #32: window_presentation.scene_geometry_upload_key ...   Passed    0.05 sec
+      Start  33: window_presentation.scene_geometry_residency
+ 4/33 Test  #33: window_presentation.scene_geometry_residency ....   Passed    0.04 sec
+      Start  34: window_presentation.scene_instance_contract
+ 5/33 Test  #34: window_presentation.scene_instance_contract .....   Passed    0.07 sec
+      Start  35: window_presentation.scene_view_admission
+ 6/33 Test  #35: window_presentation.scene_view_admission ........   Passed    0.04 sec
+      Start  36: window_presentation.vulkan_swapchain
+ 7/33 Test  #36: window_presentation.vulkan_swapchain ............   Passed    9.86 sec
+      Start  37: window_presentation.dx12_swapchain
+ 8/33 Test  #37: window_presentation.dx12_swapchain ..............   Passed    8.47 sec
+      Start  38: window_presentation.dx12_pbr
+ 9/33 Test  #38: window_presentation.dx12_pbr ....................   Passed    4.36 sec
+      Start  39: window_presentation.windows_vulkan_pbr
+10/33 Test  #39: window_presentation.windows_vulkan_pbr ..........   Passed    3.85 sec
+      Start  40: window_presentation.hlsl_embedding
+11/33 Test  #40: window_presentation.hlsl_embedding ..............   Passed    0.34 sec
+      Start  41: window_presentation.gpu_timing
+12/33 Test  #41: window_presentation.gpu_timing ..................   Passed    0.04 sec
+      Start 121: twod.runtime_contracts
+13/33 Test #121: twod.runtime_contracts ..........................   Passed    0.39 sec
+      Start 122: twod.windows_vm_transport
+14/33 Test #122: twod.windows_vm_transport .......................   Passed    1.73 sec
+      Start 123: twod.windows_vm_guest
+15/33 Test #123: twod.windows_vm_guest ...........................   Passed    2.52 sec
+      Start 124: twod.gameplay_bridge
+16/33 Test #124: twod.gameplay_bridge ............................   Passed    0.06 sec
+      Start 125: twod.project_play_assets
+17/33 Test #125: twod.project_play_assets ........................   Passed    0.51 sec
+      Start 126: twod.content_import
+18/33 Test #126: twod.content_import .............................   Passed   26.99 sec
+      Start 127: twod.play_assets
+19/33 Test #127: twod.play_assets ................................   Passed    0.37 sec
+      Start 128: twod.authoring_contracts
+20/33 Test #128: twod.authoring_contracts ........................   Passed    0.13 sec
+      Start 129: twod.play_context
+21/33 Test #129: twod.play_context ...............................   Passed    1.82 sec
+      Start 130: twod.asset_tool
+22/33 Test #130: twod.asset_tool .................................   Passed    0.55 sec
+      Start 131: twod.cpu_stress
+23/33 Test #131: twod.cpu_stress .................................   Passed    2.79 sec
+      Start 132: twod.benchmark_trace
+24/33 Test #132: twod.benchmark_trace ............................   Passed    4.88 sec
+      Start 133: twod.gameplay_ui
+25/33 Test #133: twod.gameplay_ui ................................   Passed    0.05 sec
+      Start 134: gameplay.zig_ui_wire_layout
+26/33 Test #134: gameplay.zig_ui_wire_layout .....................   Passed    5.12 sec
+      Start 135: twod.gameplay_content
+27/33 Test #135: twod.gameplay_content ...........................   Passed    0.06 sec
+      Start 136: gameplay.zig_content_wire_layout
+28/33 Test #136: gameplay.zig_content_wire_layout ................   Passed    4.66 sec
+      Start 137: twod.host_fixture
+29/33 Test #137: twod.host_fixture ...............................   Passed    2.90 sec
+      Start 138: twod.project_export
+30/33 Test #138: twod.project_export .............................   Passed    2.48 sec
+      Start 139: twod.windows_font_bake
+31/33 Test #139: twod.windows_font_bake ..........................   Passed    4.35 sec
+      Start 140: twod.backend_options
+32/33 Test #140: twod.backend_options ............................   Passed    2.47 sec
+      Start 141: twod.project_manifest
+33/33 Test #141: twod.project_manifest ...........................   Passed    0.14 sec
+
+100% tests passed, 0 tests failed out of 33
+
+Label Time Summary:
+cli               =   2.47 sec*proc (1 test)
+dx12              =  12.83 sec*proc (2 tests)
+export            =   2.48 sec*proc (1 test)
+font              =   4.35 sec*proc (1 test)
+host              =   2.90 sec*proc (1 test)
+native-display    =  26.54 sec*proc (4 tests)
+presentation      =   2.47 sec*proc (1 test)
+project           =   2.48 sec*proc (1 test)
+showcase          =   8.21 sec*proc (2 tests)
+storage           =   2.90 sec*proc (1 test)
+tools             =   9.13 sec*proc (3 tests)
+twod              =  21.33 sec*proc (7 tests)
+ui                =   2.90 sec*proc (1 test)
+vm                =   4.25 sec*proc (2 tests)
+vulkan            =  13.71 sec*proc (2 tests)
+windows           =   4.35 sec*proc (1 test)
+
+Total Test time (real) =  94.86 sec

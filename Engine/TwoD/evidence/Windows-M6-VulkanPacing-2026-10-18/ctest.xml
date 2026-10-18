@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Win32-MSBuild"
+	tests="31"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="Jim-PC"
+	time="98"
+	timestamp="2026-10-18T16:20:11"
+	>
+	<testcase name="window_presentation.contracts" classname="window_presentation.contracts" time="4.4198" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="window_presentation.staged_upload_allocation" classname="window_presentation.staged_upload_allocation" time="0.258007" status="run">
+		<properties/>
+		<system-out>Staged upload allocation contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_geometry_upload_key" classname="window_presentation.scene_geometry_upload_key" time="0.0872726" status="run">
+		<properties/>
+		<system-out>Exact geometry upload key contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_geometry_residency" classname="window_presentation.scene_geometry_residency" time="0.218497" status="run">
+		<properties/>
+		<system-out>Canonical mesh residency, budget and lease contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_instance_contract" classname="window_presentation.scene_instance_contract" time="0.120863" status="run">
+		<properties/>
+		<system-out>Scene instance affine contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_view_admission" classname="window_presentation.scene_view_admission" time="0.0802081" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="window_presentation.vulkan_swapchain" classname="window_presentation.vulkan_swapchain" time="10.2207" status="run">
+		<properties>
+			<property name="cmake_labels" value="native-display;vulkan"/>
+		</properties>
+		<system-out>Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateFence (FIFO image readiness) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateFence (FIFO image readiness) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan FIFO/image semaphore, frame-slot, recovery and cleanup contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.dx12_pbr" classname="window_presentation.dx12_pbr" time="4.96331" status="run">
+		<properties>
+			<property name="cmake_labels" value="dx12;native-display;showcase"/>
+		</properties>
+		<system-out>PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, linear-space sRGB filtering, linear ORM/legacy filtering, missing-map defaults, invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI invariance, linear HDR translucent/tinted blending, bounded planar mirrors with source movement and restoration, bounded opaque-HDR refraction, color-correct mip minification, world-projected maps/normals, linear HDR atmosphere and unlit exclusion, alpha cutout/shadow agreement, GPU wind/replay, leaf transmission and bounded HDR anti-aliasing/restoration and thin dielectric normal/grazing transmission
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.windows_vulkan_pbr" classname="window_presentation.windows_vulkan_pbr" time="4.22779" status="run">
+		<properties>
+			<property name="cmake_labels" value="native-display;showcase;vulkan"/>
+		</properties>
+		<system-out>PASS: shared Slang PBR emission, normal, mirrored tangent handedness, ORM, linear-space sRGB filtering, linear ORM/legacy filtering, missing-map defaults, invalid descriptors, HDR IBL radiance, roughness mips, metal/diffuse separation, reflection rotation/view/seam, IBL disable, frame reuse, direct/offscreen draws and resize pixels; directional shadow movement, XY projection, PCF edge, map reuse, shadow disable, stylized tint and thresholded HDR bloom, depth-aware focus and UI invariance, linear HDR translucent/tinted blending, bounded planar mirrors with source movement and restoration, bounded opaque-HDR refraction, color-correct mip minification, world-projected maps/normals, linear HDR atmosphere and unlit exclusion, alpha cutout/shadow agreement, GPU wind/replay, leaf transmission and bounded HDR anti-aliasing/restoration and thin dielectric normal/grazing transmission
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.hlsl_embedding" classname="window_presentation.hlsl_embedding" time="0.443483" status="run">
+		<properties/>
+		<system-out>...
+----------------------------------------------------------------------
+Ran 3 tests in 0.009s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.gpu_timing" classname="window_presentation.gpu_timing" time="0.11262" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.runtime_contracts" classname="twod.runtime_contracts" time="0.491163" status="run">
+		<properties/>
+		<system-out>2D runtime contracts passed
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_vm_transport" classname="twod.windows_vm_transport" time="2.03689" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod;vm"/>
+		</properties>
+		<system-out>............
+----------------------------------------------------------------------
+Ran 12 tests in 1.244s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_vm_guest" classname="twod.windows_vm_guest" time="4.00977" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod;vm"/>
+		</properties>
+		<system-out>Windows guest UTF-8/NUL, immutable evidence and full stdout/stderr pipe regressions PASS
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_bridge" classname="twod.gameplay_bridge" time="0.102675" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.project_play_assets" classname="twod.project_play_assets" time="0.609307" status="run">
+		<properties/>
+		<system-out>Project 2D Play assets: exact source scope, cooked closure and immutable lifetime passed
+</system-out>
+	</testcase>
+	<testcase name="twod.content_import" classname="twod.content_import" time="30.6438" status="run">
+		<properties/>
+		<system-out>2D typed Content: stable identity, immutable reimport, dependency and budget conservation passed
+</system-out>
+	</testcase>
+	<testcase name="twod.play_assets" classname="twod.play_assets" time="0.427385" status="run">
+		<properties/>
+		<system-out>2D cooked Play assets: generation isolation, closure, budgets and residency passed
+</system-out>
+	</testcase>
+	<testcase name="twod.authoring_contracts" classname="twod.authoring_contracts" time="0.195747" status="run">
+		<properties/>
+		<system-out>2D authoring, tilemap and isolated Play passed
+</system-out>
+	</testcase>
+	<testcase name="twod.play_context" classname="twod.play_context" time="1.86295" status="run">
+		<properties/>
+		<system-out>2D Play context: 32 isolated sessions, frozen assets, callbacks, frames and source history passed
+</system-out>
+	</testcase>
+	<testcase name="twod.asset_tool" classname="twod.asset_tool" time="0.589257" status="run">
+		<properties/>
+		<system-out>320 bytes written
+320 bytes written
+320 bytes written
+84 bytes written
+84 bytes written
+PNG slicing, packing, clips and failed publication passed
+</system-out>
+	</testcase>
+	<testcase name="twod.cpu_stress" classname="twod.cpu_stress" time="2.83984" status="run">
+		<properties/>
+		<system-out>Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_ui" classname="twod.gameplay_ui" time="0.183788" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_ui_wire_layout" classname="gameplay.zig_ui_wire_layout" time="6.89293" status="run">
+		<properties/>
+		<system-out>1/1 GameplayUiLayout.test.gameplay UI C/Zig layout...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_content" classname="twod.gameplay_content" time="0.107647" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_content_wire_layout" classname="gameplay.zig_content_wire_layout" time="6.12937" status="run">
+		<properties/>
+		<system-out>1/1 GameplayContentLayout.test.gameplay cooked content C/Zig layout...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="twod.host_fixture" classname="twod.host_fixture" time="5.57812" status="run">
+		<properties>
+			<property name="cmake_labels" value="host;storage;twod;ui"/>
+		</properties>
+		<system-out>Headless host-fixture storage/rebinding/strict font admission contracts pass
+</system-out>
+	</testcase>
+	<testcase name="twod.project_export" classname="twod.project_export" time="2.58978" status="run">
+		<properties>
+			<property name="cmake_labels" value="export;project;twod"/>
+		</properties>
+		<system-out>Project export: independent module, UI-only game, Unicode paths, process restart, immutable package and corruption rejection passed
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_font_bake" classname="twod.windows_font_bake" time="5.11493" status="run">
+		<properties>
+			<property name="cmake_labels" value="font;twod;windows"/>
+		</properties>
+		<system-out>Windows GDI font corpus bake, alpha, metrics, overwrite and missing-glyph checks passed
+</system-out>
+	</testcase>
+	<testcase name="twod.backend_options" classname="twod.backend_options" time="2.76938" status="run">
+		<properties>
+			<property name="cmake_labels" value="cli;presentation;twod"/>
+		</properties>
+		<system-out>Backend admission and headless provenance pass
+</system-out>
+	</testcase>
+	<testcase name="twod.project_manifest" classname="twod.project_manifest" time="0.208349" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+</testsuite>

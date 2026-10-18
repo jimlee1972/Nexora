@@ -1,0 +1,46 @@
+{
+  "baseline": "Engine\\TwoD\\evidence\\Windows-M6-SharedPath-2026-10-18",
+  "fields": [
+    "objects",
+    "sparse",
+    "overlap",
+    "native",
+    "frames",
+    "warmup_frames",
+    "visible",
+    "culled",
+    "sprite_batches",
+    "covered_aabb_ratio",
+    "query_hits",
+    "gpu_samples",
+    "device_name",
+    "vendor_id",
+    "device_id",
+    "driver_version",
+    "driver_version_format",
+    "backend_requested"
+  ],
+  "runs": [
+    {
+      "run": "dx12-1",
+      "rows": 6,
+      "all_fields_equal": true
+    },
+    {
+      "run": "vulkan-1",
+      "rows": 6,
+      "all_fields_equal": true
+    },
+    {
+      "run": "dx12-2",
+      "rows": 6,
+      "all_fields_equal": true
+    },
+    {
+      "run": "vulkan-2",
+      "rows": 6,
+      "all_fields_equal": true
+    }
+  ],
+  "benchmark_source_unchanged": true
+}

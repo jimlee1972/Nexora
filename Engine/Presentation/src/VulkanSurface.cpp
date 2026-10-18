@@ -87,7 +87,8 @@ public:
   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
         requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode),
-        gpuTimingEnabled_(descriptor.enableGpuTiming) {
+        gpuTimingEnabled_(descriptor.enableGpuTiming), requestedFrames_(descriptor.framesInFlight),
+        pendingWidth_(descriptor.width), pendingHeight_(descriptor.height) {
     if (!descriptor.window.IsValid() || descriptor.framesInFlight < 2 ||
         descriptor.framesInFlight > kMaxFrames)
       return;
@@ -237,8 +238,10 @@ public:
     meshResidency_.BeginFrame();
     DestroyFrameRetirements(frame);
     ++diagnostics_.fenceWaits;
+    if (imageReady_ && vkResetFences(device_, 1, &imageReady_) != VK_SUCCESS)
+      return SurfaceStatus::DeviceLost;
     const auto result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, frame.available,
-                                              VK_NULL_HANDLE, &imageIndex_);
+                                              imageReady_, &imageIndex_);
     diagnostics_.lastPlatformResult = result;
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
       return SurfaceStatus::OutOfDate;
@@ -246,6 +249,14 @@ public:
       return SurfaceStatus::SurfaceLost;
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
       return SurfaceStatus::DeviceLost;
+    if (imageReady_) {
+      // FIFO can return an image whose availability signal is still pending. Admit CPU work
+      // only once that image is available, rather than queueing bursts behind future WSI waits
+      // after a resource drain. The GPU semaphore dependency below is still required.
+      if (vkWaitForFences(device_, 1, &imageReady_, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
+        return SurfaceStatus::DeviceLost;
+      ++diagnostics_.fenceWaits;
+    }
     // Only reset the fence once we are committed to resubmitting on it below --
     // resetting it earlier and then bailing out on an acquire failure would leave
     // it permanently unsignaled, so the next Acquire() cycling back to this frame
@@ -1102,6 +1113,9 @@ public:
     if (sceneOffscreen_ && !sceneComposited_)
       return SurfaceStatus::InvalidDescriptor;
     auto &frame = frames_[frame_];
+    // A submit fence protects frame uploads, but does not retire a presentation wait.
+    // Reacquiring this image and waiting on frame.available below permits its semaphore reuse.
+    const auto finished = presentReady_[imageIndex_];
     VkImageMemoryBarrier toPresent{};
     toPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     toPresent.srcAccessMask =
@@ -1134,7 +1148,7 @@ public:
     submit.commandBufferCount = 1;
     submit.pCommandBuffers = &frame.commands;
     submit.signalSemaphoreCount = 1;
-    submit.pSignalSemaphores = &frame.finished;
+    submit.pSignalSemaphores = &finished;
     if (gpuTimingEnabled_)
       frame.submittedAt = std::chrono::steady_clock::now();
     if (vkQueueSubmit(queue_, 1, &submit, frame.fence) != VK_SUCCESS)
@@ -1144,7 +1158,7 @@ public:
     VkPresentInfoKHR present{};
     present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present.waitSemaphoreCount = 1;
-    present.pWaitSemaphores = &frame.finished;
+    present.pWaitSemaphores = &finished;
     present.swapchainCount = 1;
     present.pSwapchains = &swapchain_;
     present.pImageIndices = &imageIndex_;
@@ -1256,7 +1270,6 @@ private:
   struct Frame {
     VkCommandBuffer commands{};
     VkSemaphore available{};
-    VkSemaphore finished{};
     VkFence fence{};
     VkQueryPool timestamps{};
     std::uint64_t timingSequence{};
@@ -2697,10 +2710,15 @@ private:
         vkDestroyFence(device_, frame.fence, nullptr);
       if (frame.available)
         vkDestroySemaphore(device_, frame.available, nullptr);
-      if (frame.finished)
-        vkDestroySemaphore(device_, frame.finished, nullptr);
     }
     frames_.clear();
+    if (imageReady_)
+      vkDestroyFence(device_, imageReady_, nullptr);
+    imageReady_ = VK_NULL_HANDLE;
+    for (const auto semaphore : presentReady_)
+      if (semaphore)
+        vkDestroySemaphore(device_, semaphore, nullptr);
+    presentReady_.clear();
     if (shadowPipeline_)
       vkDestroyPipeline(device_, shadowPipeline_, nullptr);
     if (shadowRenderPass_)
@@ -2809,8 +2827,9 @@ private:
     VkSwapchainCreateInfoKHR create{};
     create.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create.surface = surface_;
-    create.minImageCount = std::clamp(2U, capabilities.minImageCount,
-                                      capabilities.maxImageCount ? capabilities.maxImageCount : 3U);
+    create.minImageCount =
+        std::clamp(requestedFrames_, capabilities.minImageCount,
+                   capabilities.maxImageCount ? capabilities.maxImageCount : UINT32_MAX);
     create.imageFormat = selected.format;
     create.imageColorSpace = selected.colorSpace;
     create.imageExtent = extent;
@@ -2829,6 +2848,13 @@ private:
     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, nullptr);
     images_.resize(imageCount);
     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, images_.data());
+    presentReady_.resize(imageCount);
+    VkSemaphoreCreateInfo semaphore{};
+    semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    for (auto &ready : presentReady_)
+      if (!Initialized(vkCreateSemaphore(device_, &semaphore, nullptr, &ready),
+                       "vkCreateSemaphore (present image)"))
+        return false;
     imageViews_.resize(imageCount);
     for (std::size_t index = 0; index < images_.size(); ++index) {
       VkImageViewCreateInfo view{};
@@ -2845,7 +2871,7 @@ private:
     if (!CreateUiResources() || !CreateSceneResources())
       return false;
 #endif
-    frames_.resize(std::min<std::size_t>(kMaxFrames, images_.size()));
+    frames_.resize(std::min<std::size_t>(requestedFrames_, images_.size()));
     std::vector<VkCommandBuffer> commands(frames_.size());
     VkCommandBufferAllocateInfo allocate{};
     allocate.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -2855,10 +2881,12 @@ private:
     if (!Initialized(vkAllocateCommandBuffers(device_, &allocate, commands.data()),
                      "vkAllocateCommandBuffers"))
       return false;
-    VkSemaphoreCreateInfo semaphore{};
-    semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     VkFenceCreateInfo fence{};
     fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    if (mode == VK_PRESENT_MODE_FIFO_KHR &&
+        !Initialized(vkCreateFence(device_, &fence, nullptr, &imageReady_),
+                     "vkCreateFence (FIFO image readiness)"))
+      return false;
     fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
     for (std::size_t index = 0; index < frames_.size(); ++index) {
       frames_[index].commands = commands[index];
@@ -2873,7 +2901,6 @@ private:
       }
       if (vkCreateSemaphore(device_, &semaphore, nullptr, &frames_[index].available) !=
               VK_SUCCESS ||
-          vkCreateSemaphore(device_, &semaphore, nullptr, &frames_[index].finished) != VK_SUCCESS ||
           vkCreateFence(device_, &fence, nullptr, &frames_[index].fence) != VK_SUCCESS)
         return false;
     }
@@ -2884,6 +2911,7 @@ private:
   ColorSpace requestedColorSpace_{};
   PresentMode requestedPresentMode_{};
   bool gpuTimingEnabled_{};
+  std::uint32_t requestedFrames_{};
   bool valid_{}, destroyed_{}, acquired_{};
   std::atomic<std::uint32_t> pendingWidth_{}, pendingHeight_{};
   std::atomic_bool dirty_{};
@@ -2902,9 +2930,11 @@ private:
   std::uint64_t timingSequence_{};
   VkSurfaceKHR surface_{};
   VkSwapchainKHR swapchain_{};
+  VkFence imageReady_{};
   VkCommandPool commandPool_{};
   VkFormat swapchainFormat_{};
   std::vector<VkImage> images_;
+  std::vector<VkSemaphore> presentReady_;
   std::vector<VkImageView> imageViews_;
   std::vector<Frame> frames_;
   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;

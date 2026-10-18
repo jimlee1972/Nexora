@@ -173,3 +173,29 @@ distinct range 進行 admission。大量重複 batch 保留 exact geometry 重�
 回退，保留先前成功／失敗 memo 結果。Portable full-limit 上限與真正 native pixels 驗證此
 擴充，不增加 GPU entry／memory 上限。
 [證據](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md)。
+
+## Vulkan FIFO 影像就緒與呈現同步（2026-10-18）
+
+✅ 共用 Vulkan 呈現以一個可重用 fence 等待 FIFO 影像就緒，再開始 CPU frame work；
+Immediate 保留非同步行為。呈現 semaphore 由各影像持有；受 fence 保護的 upload／timestamp
+遵循 descriptor 的有界 frame slot。預設雙影像 VSync 與公開 C++／C／Zig layout 不變。
+Native regression 涵蓋首次 SUBOPTIMAL 尺寸恢復與部分配置清理。本機 MSVC Development
+完整建置／Shipping、native 生命週期／失敗測試及原負載 Vulkan 兩輪各六組實體 2D 篩檢均通過。
+[證據](../../Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18/acceptance.md) 區分逐幀診斷、正式篩檢及最終 PR CI。此結果不驗收其他 Showcase 視覺預算、
+輸入到顯示延遲、任意 GPU-heavy 吞吐、產品最低 PC／長時間或乾淨主機 gate。
+該次混合篩檢記錄為 23/24；保留當時 DX12 sparse 一次 72.36 ms 最大值，超過 66.67 ms 上限。
+
+## DX12 VSync 佇列 admission（2026-10-18）
+
+✅ 共用 DX12 VSync 持有一個 DXGI waitable handle，於呈現佇列有容量後開始每個 CPU 幀。
+上限遵循既有二／三個 slot，保留 CPU／GPU 平行處理；獨立 GPU fence 繼續保護 allocator、
+upload、timestamp 與 retirement 的重用。Immediate 保留非同步取得。縮放保留建立旗標／handle，
+零尺寸在等待前暫停，等待失敗於 slot reset 前拒絕，釋放僅關閉 handle 一次。原生二／三 slot、
+首幀、錯誤執行緒、等待失敗、縮放／恢復與未提交幀 regression 通過；舊 adapter 因缺少 admission
+被同一回歸拒絕。此 DX12 變更不改公開 header／C／Zig ABI 或預設影像數。
+
+實體原負載 2D 篩檢現為 24/24，並保留可選緩衝逐幀證據；本機相關回歸 33/33 與完整
+Development／Shipping 建置通過。[證據](../../Engine/TwoD/evidence/Windows-M6-DX12Pacing-2026-10-18/acceptance.md) 保留不採用的單一排隊幀退步試驗及
+歷史 72.3556 ms DX12 失敗，該次事件唯一原因仍未追出。最終 head 的託管 gate 見
+[PR #644](https://github.com/jimlee1972/Nexora/pull/644)。此結果不驗收 Showcase 視覺預算、
+任意 GPU-heavy 吞吐、輸入到顯示延遲、完整 M6 或最低 PC／長時間 gate。

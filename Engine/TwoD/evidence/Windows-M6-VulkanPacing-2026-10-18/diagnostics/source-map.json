@@ -1,0 +1,142 @@
+[
+  {
+    "stage": "diagnostic-before",
+    "original_path": "Engine\\Presentation\\src\\VulkanSurface.cpp",
+    "archive": "VulkanSurface.before.cpp.gz",
+    "transform": "Git LF converted to Windows CRLF",
+    "verified_sha256": "f9df4dcb29b1f014a23eb832e8a7febeb2dac5fe71e4c2557d035a3963cb8c44"
+  },
+  {
+    "stage": "diagnostic-before",
+    "original_path": "Tools\\TwoD\\Benchmark.cpp",
+    "archive": null,
+    "transform": "exact bytes",
+    "verified_sha256": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737"
+  },
+  {
+    "stage": "diagnostic-before",
+    "original_path": "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp",
+    "archive": "BenchmarkProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb"
+  },
+  {
+    "stage": "diagnostic-before",
+    "original_path": "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp",
+    "archive": "VulkanProfile.base.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "6d2715577b79f80d15dafc7f1ac203a94a514803c7dfbc962967e970f5b77303"
+  },
+  {
+    "stage": "diagnostic-sync",
+    "original_path": "Engine\\Presentation\\src\\VulkanSurface.cpp",
+    "archive": "VulkanSurface.sync.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "67b458c4ee73cb70bfa9d7958a8b1712ed701810572cc5707428d0eb95ec84af"
+  },
+  {
+    "stage": "diagnostic-sync",
+    "original_path": "Tools\\TwoD\\Benchmark.cpp",
+    "archive": null,
+    "transform": "exact bytes",
+    "verified_sha256": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737"
+  },
+  {
+    "stage": "diagnostic-sync",
+    "original_path": "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp",
+    "archive": "BenchmarkProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb"
+  },
+  {
+    "stage": "diagnostic-sync",
+    "original_path": "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp",
+    "archive": "VulkanProfile.base.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "6d2715577b79f80d15dafc7f1ac203a94a514803c7dfbc962967e970f5b77303"
+  },
+  {
+    "stage": "diagnostic-drain",
+    "original_path": "Engine\\Presentation\\src\\VulkanSurface.cpp",
+    "archive": "VulkanSurface.sync.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "67b458c4ee73cb70bfa9d7958a8b1712ed701810572cc5707428d0eb95ec84af"
+  },
+  {
+    "stage": "diagnostic-drain",
+    "original_path": "Tools\\TwoD\\Benchmark.cpp",
+    "archive": null,
+    "transform": "exact bytes",
+    "verified_sha256": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737"
+  },
+  {
+    "stage": "diagnostic-drain",
+    "original_path": "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp",
+    "archive": "BenchmarkProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb"
+  },
+  {
+    "stage": "diagnostic-drain",
+    "original_path": "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp",
+    "archive": "VulkanProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "e0bfa3e1e5d3e7aa6c5572527ed075600ea1c017cd3020e88d8f983b221a1b42"
+  },
+  {
+    "stage": "diagnostic-image-ready",
+    "original_path": "Engine\\Presentation\\src\\VulkanSurface.cpp",
+    "archive": "VulkanSurface.sync.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "67b458c4ee73cb70bfa9d7958a8b1712ed701810572cc5707428d0eb95ec84af"
+  },
+  {
+    "stage": "diagnostic-image-ready",
+    "original_path": "Tools\\TwoD\\Benchmark.cpp",
+    "archive": null,
+    "transform": "exact bytes",
+    "verified_sha256": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737"
+  },
+  {
+    "stage": "diagnostic-image-ready",
+    "original_path": "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp",
+    "archive": "BenchmarkProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb"
+  },
+  {
+    "stage": "diagnostic-image-ready",
+    "original_path": "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp",
+    "archive": "VulkanProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "e0bfa3e1e5d3e7aa6c5572527ed075600ea1c017cd3020e88d8f983b221a1b42"
+  },
+  {
+    "stage": "diagnostic-dx12-tail",
+    "original_path": "Engine\\Presentation\\src\\VulkanSurface.cpp",
+    "archive": null,
+    "transform": "exact bytes",
+    "verified_sha256": "f31f0378019500301f2d279dcf10dee6813b98e75d276da301046f5514f8eecd"
+  },
+  {
+    "stage": "diagnostic-dx12-tail",
+    "original_path": "Engine\\Presentation\\src\\Dx12Surface.cpp",
+    "archive": null,
+    "transform": "exact bytes",
+    "verified_sha256": "613b90d1afea395903bd0423f0d593b8b41907f0daf8f97f4587a50b2c8ff44c"
+  },
+  {
+    "stage": "diagnostic-dx12-tail",
+    "original_path": "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp",
+    "archive": "VulkanProfile.base.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "6d2715577b79f80d15dafc7f1ac203a94a514803c7dfbc962967e970f5b77303"
+  },
+  {
+    "stage": "diagnostic-dx12-tail",
+    "original_path": "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp",
+    "archive": "BenchmarkProfile.probe.cpp.gz",
+    "transform": "exact bytes",
+    "verified_sha256": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb"
+  }
+]

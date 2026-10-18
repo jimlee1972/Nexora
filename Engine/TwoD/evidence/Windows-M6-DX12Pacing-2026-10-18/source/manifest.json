@@ -1,0 +1,86 @@
+[
+  {
+    "source": "Engine\\TwoD\\src\\Queries.cpp",
+    "sha256": "30b3f4d34fe5e8c85bed7b7aa887fb47f178c6532c2572b335ff81007a89dbda",
+    "archive": "source\\Engine\\TwoD\\src\\Queries.cpp.gz",
+    "archive_sha256": "02bf58927a57e2b6474cc4320d45b1d1fecb89e503eeb96f992a74cbf8254f96"
+  },
+  {
+    "source": "Engine\\TwoD\\src\\Scene.cpp",
+    "sha256": "a8872cbeb5724fd3a0632d34c2466d1e67f7491e2b71f654aec7bffb7d767e47",
+    "archive": "source\\Engine\\TwoD\\src\\Scene.cpp.gz",
+    "archive_sha256": "7f089c84f09ce34942c72e07cc8237af7c31273edeb9d0c420c5ffccd856956a"
+  },
+  {
+    "source": "Engine\\TwoD\\include\\Nexora\\TwoD\\Queries.h",
+    "sha256": "879790a60407666f44376eae7ddd565ea05be8a474889be0e77c0b53d9938640",
+    "archive": "source\\Engine\\TwoD\\include\\Nexora\\TwoD\\Queries.h.gz",
+    "archive_sha256": "5742d26dc660d12bc2959600863e5ca5edd9af5788b5ef849d6c3eef97bdb759"
+  },
+  {
+    "source": "Tools\\TwoD\\Benchmark.cpp",
+    "sha256": "a2edb69c49326cf1e97d61222e6af67d38eb2731afa2d437461ad36ce5fc0333",
+    "archive": "source\\Tools\\TwoD\\Benchmark.cpp.gz",
+    "archive_sha256": "edda15048458e4d3e9e291c5a2cfcea8602256f6af2648fa53e6a827466ae494"
+  },
+  {
+    "source": "Tests\\TwoD\\TwoDTests.cpp",
+    "sha256": "113531e0ccc8658a989b228148db072940f1197156341fbf75477fefd993eef6",
+    "archive": "source\\Tests\\TwoD\\TwoDTests.cpp.gz",
+    "archive_sha256": "7261094936b376768289c211c2f7039c680de093e37c45ff221305e985f6deec"
+  },
+  {
+    "source": "Engine\\Presentation\\src\\Dx12Surface.cpp",
+    "sha256": "540d04f4a05532d07a14aa4a7fc3dad7a2000d2260cf9ec101c6cea41c3a267b",
+    "archive": "source\\Engine\\Presentation\\src\\Dx12Surface.cpp.gz",
+    "archive_sha256": "ff26b79852a33265c839c6bf42014f96c0eef94f35fdcd38e8bda18719561731"
+  },
+  {
+    "source": "Tests\\WindowPresentation\\Dx12SwapchainTests.cpp",
+    "sha256": "77c528212d31fcfbb6a5a09dcf45c981106fa7564753cbc4dda28b8c6f0c9d3a",
+    "archive": "source\\Tests\\WindowPresentation\\Dx12SwapchainTests.cpp.gz",
+    "archive_sha256": "3e328beb6bdf7150db7d7a51e87867eef4933627976c11e0a9dc0cfb426c1db5"
+  },
+  {
+    "source": "Engine\\Presentation\\src\\VulkanSurface.cpp",
+    "sha256": "f31f0378019500301f2d279dcf10dee6813b98e75d276da301046f5514f8eecd",
+    "archive": "source\\Engine\\Presentation\\src\\VulkanSurface.cpp.gz",
+    "archive_sha256": "d68d5a4e74517f1153c4c51bb65223426e4e5a8bdd2c1154f2d04062e40b3903"
+  },
+  {
+    "source": "Tests\\WindowPresentation\\VulkanSwapchainTests.cpp",
+    "sha256": "2a7c54fde1bccea58401a4c831b4a853053f193a8b52d49d3303566781581d73",
+    "archive": "source\\Tests\\WindowPresentation\\VulkanSwapchainTests.cpp.gz",
+    "archive_sha256": "c30b746966b2b6d8140f97647783db609dfd1047e69487d017097ddc76a0f07c"
+  },
+  {
+    "source": "Tests\\WindowPresentation\\CMakeLists.txt",
+    "sha256": "2991128ba7626382c62f787bc0447b63f83b416281c36fc8de39cbabc44a2f40",
+    "archive": "source\\Tests\\WindowPresentation\\CMakeLists.txt.gz",
+    "archive_sha256": "ead79ce0fe517f80a3f8c047b5261b3a90d52a49abab39fffd4f9eb2242efbb6"
+  },
+  {
+    "source": "Tests\\Showcase\\LinuxVulkanSceneAcceptance.py",
+    "sha256": "ce23f02100003f13724f5884e4d339c2185311c45b1149f32731b71fd0111d1f",
+    "archive": "source\\Tests\\Showcase\\LinuxVulkanSceneAcceptance.py.gz",
+    "archive_sha256": "e6b2f5199f5d580cb0f9247e6fc414e64c62518cab1c0e5579bc0cd33eec3b2c"
+  },
+  {
+    "source": "Tests\\TwoD\\CMakeLists.txt",
+    "sha256": "d2e561912c666996eb48bcb389a3c26f05d5504b704685b5e3bf2f80b100f2a9",
+    "archive": "source\\Tests\\TwoD\\CMakeLists.txt.gz",
+    "archive_sha256": "e92f435c96ec75c4d6d2c7cae5564a200b53e5d62e0ed47865166ea945ebdab7"
+  },
+  {
+    "source": "Tests\\TwoD\\BenchmarkTraceAcceptance.py",
+    "sha256": "cdc979ee1f9c681b575c7faf23f18c2661e26499deffc42e231d978e6957f89d",
+    "archive": "source\\Tests\\TwoD\\BenchmarkTraceAcceptance.py.gz",
+    "archive_sha256": "a69d8412acd579aef691c69122913da242fb5181f54ab19e3f3f1a86463c1daf"
+  },
+  {
+    "source": "Tools\\TwoD\\README.md",
+    "sha256": "7965c9c7f35fec14e28465974bfd01f1be6905b157534c08a5ced2215a7b2150",
+    "archive": "source\\Tools\\TwoD\\README.md.gz",
+    "archive_sha256": "434f935cf7342d084cd332096217ed16f9ee08bd78c4aff7312e692813f1a49b"
+  }
+]

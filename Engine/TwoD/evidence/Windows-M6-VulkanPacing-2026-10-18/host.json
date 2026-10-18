@@ -1,0 +1,29 @@
+{
+  "captured_at_utc": "2026-10-18T08:06:14.3970467Z",
+  "cpu": [
+    {
+      "Name": "AMD FX(tm)-6100 Six-Core Processor             ",
+      "NumberOfCores": 3,
+      "NumberOfLogicalProcessors": 6,
+      "MaxClockSpeed": 3300
+    }
+  ],
+  "ram_bytes": 17134051328,
+  "os": {
+    "Caption": "Microsoft Windows 10 家用版",
+    "Version": "10.0.19045",
+    "BuildNumber": "19045",
+    "OSArchitecture": "64 位元"
+  },
+  "gpu": [
+    {
+      "Name": "NVIDIA GeForce GTX 960",
+      "AdapterRAM": 2147483648,
+      "DriverVersion": "32.0.15.8180",
+      "CurrentHorizontalResolution": 1920,
+      "CurrentVerticalResolution": 1080,
+      "CurrentRefreshRate": 60
+    }
+  ],
+  "configuration": "x64 MSVC Monolithic Shipping; 640x480 client; requested FIFO VSync; fixed simulation 1/60; default two frames/images retained"
+}

@@ -1,0 +1,567 @@
+diff --git a/Engine/Presentation/src/VulkanSurface.cpp b/Engine/Presentation/src/VulkanSurface.cpp
+index 9d400810..b5601010 100644
+--- a/Engine/Presentation/src/VulkanSurface.cpp
++++ b/Engine/Presentation/src/VulkanSurface.cpp
+@@ -87,7 +87,8 @@ public:
+   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
+       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
+         requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode),
+-        gpuTimingEnabled_(descriptor.enableGpuTiming) {
++        gpuTimingEnabled_(descriptor.enableGpuTiming), requestedFrames_(descriptor.framesInFlight),
++        pendingWidth_(descriptor.width), pendingHeight_(descriptor.height) {
+     if (!descriptor.window.IsValid() || descriptor.framesInFlight < 2 ||
+         descriptor.framesInFlight > kMaxFrames)
+       return;
+@@ -237,8 +238,10 @@ public:
+     meshResidency_.BeginFrame();
+     DestroyFrameRetirements(frame);
+     ++diagnostics_.fenceWaits;
++    if (imageReady_ && vkResetFences(device_, 1, &imageReady_) != VK_SUCCESS)
++      return SurfaceStatus::DeviceLost;
+     const auto result = vkAcquireNextImageKHR(device_, swapchain_, UINT64_MAX, frame.available,
+-                                              VK_NULL_HANDLE, &imageIndex_);
++                                              imageReady_, &imageIndex_);
+     diagnostics_.lastPlatformResult = result;
+     if (result == VK_ERROR_OUT_OF_DATE_KHR)
+       return SurfaceStatus::OutOfDate;
+@@ -246,6 +249,14 @@ public:
+       return SurfaceStatus::SurfaceLost;
+     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+       return SurfaceStatus::DeviceLost;
++    if (imageReady_) {
++      // FIFO can return an image whose availability signal is still pending. Admit CPU work
++      // only once that image is available, rather than queueing bursts behind future WSI waits
++      // after a resource drain. The GPU semaphore dependency below is still required.
++      if (vkWaitForFences(device_, 1, &imageReady_, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
++        return SurfaceStatus::DeviceLost;
++      ++diagnostics_.fenceWaits;
++    }
+     // Only reset the fence once we are committed to resubmitting on it below --
+     // resetting it earlier and then bailing out on an acquire failure would leave
+     // it permanently unsignaled, so the next Acquire() cycling back to this frame
+@@ -1102,6 +1113,9 @@ public:
+     if (sceneOffscreen_ && !sceneComposited_)
+       return SurfaceStatus::InvalidDescriptor;
+     auto &frame = frames_[frame_];
++    // A submit fence protects frame uploads, but does not retire a presentation wait.
++    // Reacquiring this image and waiting on frame.available below permits its semaphore reuse.
++    const auto finished = presentReady_[imageIndex_];
+     VkImageMemoryBarrier toPresent{};
+     toPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+     toPresent.srcAccessMask =
+@@ -1134,7 +1148,7 @@ public:
+     submit.commandBufferCount = 1;
+     submit.pCommandBuffers = &frame.commands;
+     submit.signalSemaphoreCount = 1;
+-    submit.pSignalSemaphores = &frame.finished;
++    submit.pSignalSemaphores = &finished;
+     if (gpuTimingEnabled_)
+       frame.submittedAt = std::chrono::steady_clock::now();
+     if (vkQueueSubmit(queue_, 1, &submit, frame.fence) != VK_SUCCESS)
+@@ -1144,7 +1158,7 @@ public:
+     VkPresentInfoKHR present{};
+     present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+     present.waitSemaphoreCount = 1;
+-    present.pWaitSemaphores = &frame.finished;
++    present.pWaitSemaphores = &finished;
+     present.swapchainCount = 1;
+     present.pSwapchains = &swapchain_;
+     present.pImageIndices = &imageIndex_;
+@@ -1256,7 +1270,6 @@ private:
+   struct Frame {
+     VkCommandBuffer commands{};
+     VkSemaphore available{};
+-    VkSemaphore finished{};
+     VkFence fence{};
+     VkQueryPool timestamps{};
+     std::uint64_t timingSequence{};
+@@ -2697,10 +2710,15 @@ private:
+         vkDestroyFence(device_, frame.fence, nullptr);
+       if (frame.available)
+         vkDestroySemaphore(device_, frame.available, nullptr);
+-      if (frame.finished)
+-        vkDestroySemaphore(device_, frame.finished, nullptr);
+     }
+     frames_.clear();
++    if (imageReady_)
++      vkDestroyFence(device_, imageReady_, nullptr);
++    imageReady_ = VK_NULL_HANDLE;
++    for (const auto semaphore : presentReady_)
++      if (semaphore)
++        vkDestroySemaphore(device_, semaphore, nullptr);
++    presentReady_.clear();
+     if (shadowPipeline_)
+       vkDestroyPipeline(device_, shadowPipeline_, nullptr);
+     if (shadowRenderPass_)
+@@ -2809,8 +2827,9 @@ private:
+     VkSwapchainCreateInfoKHR create{};
+     create.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+     create.surface = surface_;
+-    create.minImageCount = std::clamp(2U, capabilities.minImageCount,
+-                                      capabilities.maxImageCount ? capabilities.maxImageCount : 3U);
++    create.minImageCount =
++        std::clamp(requestedFrames_, capabilities.minImageCount,
++                   capabilities.maxImageCount ? capabilities.maxImageCount : UINT32_MAX);
+     create.imageFormat = selected.format;
+     create.imageColorSpace = selected.colorSpace;
+     create.imageExtent = extent;
+@@ -2829,6 +2848,13 @@ private:
+     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, nullptr);
+     images_.resize(imageCount);
+     vkGetSwapchainImagesKHR(device_, swapchain_, &imageCount, images_.data());
++    presentReady_.resize(imageCount);
++    VkSemaphoreCreateInfo semaphore{};
++    semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
++    for (auto &ready : presentReady_)
++      if (!Initialized(vkCreateSemaphore(device_, &semaphore, nullptr, &ready),
++                       "vkCreateSemaphore (present image)"))
++        return false;
+     imageViews_.resize(imageCount);
+     for (std::size_t index = 0; index < images_.size(); ++index) {
+       VkImageViewCreateInfo view{};
+@@ -2845,7 +2871,7 @@ private:
+     if (!CreateUiResources() || !CreateSceneResources())
+       return false;
+ #endif
+-    frames_.resize(std::min<std::size_t>(kMaxFrames, images_.size()));
++    frames_.resize(std::min<std::size_t>(requestedFrames_, images_.size()));
+     std::vector<VkCommandBuffer> commands(frames_.size());
+     VkCommandBufferAllocateInfo allocate{};
+     allocate.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+@@ -2855,10 +2881,12 @@ private:
+     if (!Initialized(vkAllocateCommandBuffers(device_, &allocate, commands.data()),
+                      "vkAllocateCommandBuffers"))
+       return false;
+-    VkSemaphoreCreateInfo semaphore{};
+-    semaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+     VkFenceCreateInfo fence{};
+     fence.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
++    if (mode == VK_PRESENT_MODE_FIFO_KHR &&
++        !Initialized(vkCreateFence(device_, &fence, nullptr, &imageReady_),
++                     "vkCreateFence (FIFO image readiness)"))
++      return false;
+     fence.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+     for (std::size_t index = 0; index < frames_.size(); ++index) {
+       frames_[index].commands = commands[index];
+@@ -2873,7 +2901,6 @@ private:
+       }
+       if (vkCreateSemaphore(device_, &semaphore, nullptr, &frames_[index].available) !=
+               VK_SUCCESS ||
+-          vkCreateSemaphore(device_, &semaphore, nullptr, &frames_[index].finished) != VK_SUCCESS ||
+           vkCreateFence(device_, &fence, nullptr, &frames_[index].fence) != VK_SUCCESS)
+         return false;
+     }
+@@ -2884,6 +2911,7 @@ private:
+   ColorSpace requestedColorSpace_{};
+   PresentMode requestedPresentMode_{};
+   bool gpuTimingEnabled_{};
++  std::uint32_t requestedFrames_{};
+   bool valid_{}, destroyed_{}, acquired_{};
+   std::atomic<std::uint32_t> pendingWidth_{}, pendingHeight_{};
+   std::atomic_bool dirty_{};
+@@ -2902,9 +2930,11 @@ private:
+   std::uint64_t timingSequence_{};
+   VkSurfaceKHR surface_{};
+   VkSwapchainKHR swapchain_{};
++  VkFence imageReady_{};
+   VkCommandPool commandPool_{};
+   VkFormat swapchainFormat_{};
+   std::vector<VkImage> images_;
++  std::vector<VkSemaphore> presentReady_;
+   std::vector<VkImageView> imageViews_;
+   std::vector<Frame> frames_;
+   std::unordered_map<std::uint64_t, UiTexture> uiTextures_;
+diff --git a/Tests/Showcase/LinuxVulkanSceneAcceptance.py b/Tests/Showcase/LinuxVulkanSceneAcceptance.py
+index 914162c2..ca159cf1 100644
+--- a/Tests/Showcase/LinuxVulkanSceneAcceptance.py
++++ b/Tests/Showcase/LinuxVulkanSceneAcceptance.py
+@@ -14,6 +14,7 @@ def main() -> int:
+     parser = argparse.ArgumentParser(description=__doc__)
+     target = parser.add_mutually_exclusive_group(required=True)
+     target.add_argument("--native-test")
++    target.add_argument("--native-contract")
+     target.add_argument("--showcase")
+     parser.add_argument("--interactive", action="store_true")
+     parser.add_argument("--evidence-dir", type=Path, required=True)
+@@ -34,11 +35,16 @@ def main() -> int:
+             server.terminate()
+             _, errors = server.communicate(timeout=3)
+             return unavailable(f"Xvfb failed to start: {errors.strip()}")
+-        command = ([args.native_test, str(output / "scene.ppm")] if args.native_test else [
+-            args.showcase, "--mode=interactive", "--scene=rendering", "--backend=vulkan",
+-            f"--frames={frames}", "--resize=960x540", "--no-reload", "--gameplay-module=static",
+-            f"--report={output / 'scene.json'}",
+-        ])
++        if args.native_contract:
++            command = [args.native_contract]
++        elif args.native_test:
++            command = [args.native_test, str(output / "scene.ppm")]
++        else:
++            command = [
++                args.showcase, "--mode=interactive", "--scene=rendering", "--backend=vulkan",
++                f"--frames={frames}", "--resize=960x540", "--no-reload", "--gameplay-module=static",
++                f"--report={output / 'scene.json'}",
++            ]
+         environment = os.environ.copy()
+         environment["DISPLAY"] = display
+         if args.interactive:
+@@ -68,7 +74,9 @@ def main() -> int:
+         (output / "stdout.log").write_text(run.stdout, encoding="utf-8")
+         (output / "stderr.log").write_text(run.stderr, encoding="utf-8")
+         launch = {"command": command, "exit_code": run.returncode, "acceptance_passed": False,
+-                  "scope": "Linux/X11/Vulkan GPU scene on virtual display",
++                  "scope": ("Linux/X11/Vulkan adapter contracts on virtual display"
++                            if args.native_contract else
++                            "Linux/X11/Vulkan GPU scene on virtual display"),
+                   "physical_display_verified": False,
+                   "validation_layer_requested": "VK_LAYER_KHRONOS_validation" in
+                       environment.get("VK_INSTANCE_LAYERS", "")}
+@@ -104,7 +112,7 @@ def main() -> int:
+                     error = "normalized D input did not move the gallery camera"
+             except (OSError, ValueError, KeyError, TypeError) as failure:
+                 error = f"invalid Rendering Room report: {failure}"
+-        elif not (output / "scene.ppm").is_file():
++        elif not args.native_contract and not (output / "scene.ppm").is_file():
+             error = "native pixel gate did not retain its capture"
+         if "Validation Error" in run.stdout + run.stderr:
+             error = "Khronos validation reported a Vulkan error"
+diff --git a/Tests/WindowPresentation/CMakeLists.txt b/Tests/WindowPresentation/CMakeLists.txt
+index 6473662a..5a141f08 100644
+--- a/Tests/WindowPresentation/CMakeLists.txt
++++ b/Tests/WindowPresentation/CMakeLists.txt
+@@ -76,6 +76,32 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+     LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+ endif()
+ 
++if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
++   (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
++  add_executable(NexoraVulkanSwapchainTests VulkanSwapchainTests.cpp)
++  target_include_directories(NexoraVulkanSwapchainTests PRIVATE
++    "${CMAKE_SOURCE_DIR}/Engine/Presentation/include" "${NEXORA_VULKAN_INCLUDE_DIR}")
++  target_compile_definitions(NexoraVulkanSwapchainTests PRIVATE NEXORA_PRESENTATION_STATIC=1)
++  target_link_libraries(NexoraVulkanSwapchainTests PRIVATE
++    Nexora::RHI Nexora::Window "${NEXORA_VULKAN_LIBRARY}")
++  nexora_apply_defaults(NexoraVulkanSwapchainTests)
++  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
++    find_package(X11 REQUIRED)
++    target_link_libraries(NexoraVulkanSwapchainTests PRIVATE X11::X11)
++    add_test(NAME window_presentation.vulkan_swapchain
++      COMMAND "${Python3_EXECUTABLE}"
++        "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
++        --native-contract "$<TARGET_FILE:NexoraVulkanSwapchainTests>"
++        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/vulkan-swapchain")
++    set_tests_properties(window_presentation.vulkan_swapchain PROPERTIES
++      LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 90)
++  else()
++    add_test(NAME window_presentation.vulkan_swapchain COMMAND NexoraVulkanSwapchainTests)
++    set_tests_properties(window_presentation.vulkan_swapchain PROPERTIES
++      LABELS "vulkan;native-display" RUN_SERIAL TRUE TIMEOUT 90)
++  endif()
++endif()
++
+ if(WIN32)
+   add_executable(NexoraDx12PbrTests VulkanPbrTests.cpp)
+   target_link_libraries(NexoraDx12PbrTests PRIVATE Nexora::Presentation user32 gdi32)
+diff --git a/Tests/WindowPresentation/VulkanSwapchainTests.cpp b/Tests/WindowPresentation/VulkanSwapchainTests.cpp
+new file mode 100644
+index 00000000..fbc60d35
+--- /dev/null
++++ b/Tests/WindowPresentation/VulkanSwapchainTests.cpp
+@@ -0,0 +1,297 @@
++// Compile the private adapter with Vulkan call tracing; production exports no test hooks.
++#include <algorithm>
++#include <array>
++#include <cstdint>
++#include <iostream>
++#include <map>
++#include <stdexcept>
++#include <unordered_map>
++#include <unordered_set>
++#include <utility>
++#include <vulkan/vulkan.h>
++
++namespace SyncTrace {
++using Image = std::pair<VkSwapchainKHR, std::uint32_t>;
++std::map<Image, VkSemaphore> imageSignals;
++std::unordered_map<VkSemaphore, Image> acquisitions, submissions, presentations;
++std::unordered_set<VkSemaphore> semaphores;
++std::unordered_set<VkFence> fences;
++std::unordered_set<VkSwapchainKHR> swapchains;
++std::size_t violations{}, submits{}, presents{}, creations{}, failAt{};
++std::size_t fenceCreations{}, failFenceAt{};
++bool drained = true, failAcquire{}, suboptimalPresent{};
++VkFence acquiredFence{};
++bool imageReady{};
++VkPresentModeKHR mode{};
++std::uint32_t requestedImages{}, actualImages{};
++
++VkResult MakeSemaphore(VkDevice device, const VkSemaphoreCreateInfo *info,
++                       const VkAllocationCallbacks *allocator, VkSemaphore *semaphore) {
++  if (++creations == failAt) {
++    *semaphore = VK_NULL_HANDLE;
++    return VK_ERROR_OUT_OF_HOST_MEMORY;
++  }
++  const auto result = vkCreateSemaphore(device, info, allocator, semaphore);
++  if (result == VK_SUCCESS)
++    semaphores.insert(*semaphore);
++  return result;
++}
++void DestroySemaphore(VkDevice device, VkSemaphore semaphore,
++                      const VkAllocationCallbacks *allocator) {
++  violations += !drained || semaphores.erase(semaphore) != 1;
++  acquisitions.erase(semaphore);
++  submissions.erase(semaphore);
++  presentations.erase(semaphore);
++  vkDestroySemaphore(device, semaphore, allocator);
++}
++VkResult MakeFence(VkDevice device, const VkFenceCreateInfo *info,
++                   const VkAllocationCallbacks *allocator, VkFence *fence) {
++  if (++fenceCreations == failFenceAt) {
++    *fence = VK_NULL_HANDLE;
++    return VK_ERROR_OUT_OF_HOST_MEMORY;
++  }
++  const auto result = vkCreateFence(device, info, allocator, fence);
++  if (result == VK_SUCCESS)
++    fences.insert(*fence);
++  return result;
++}
++void DestroyFence(VkDevice device, VkFence fence, const VkAllocationCallbacks *allocator) {
++  violations += !drained || fences.erase(fence) != 1;
++  vkDestroyFence(device, fence, allocator);
++}
++VkResult Wait(VkDevice device, std::uint32_t count, const VkFence *waited, VkBool32 all,
++              std::uint64_t timeout) {
++  const auto result = vkWaitForFences(device, count, waited, all, timeout);
++  if (result == VK_SUCCESS && std::find(waited, waited + count, acquiredFence) != waited + count)
++    imageReady = true;
++  return result;
++}
++VkResult CreateSwapchain(VkDevice device, const VkSwapchainCreateInfoKHR *info,
++                         const VkAllocationCallbacks *allocator, VkSwapchainKHR *swapchain) {
++  mode = info->presentMode;
++  requestedImages = info->minImageCount;
++  const auto result = vkCreateSwapchainKHR(device, info, allocator, swapchain);
++  if (result == VK_SUCCESS)
++    swapchains.insert(*swapchain);
++  return result;
++}
++VkResult GetImages(VkDevice device, VkSwapchainKHR swapchain, std::uint32_t *count,
++                   VkImage *images) {
++  const auto result = vkGetSwapchainImagesKHR(device, swapchain, count, images);
++  if (result == VK_SUCCESS)
++    actualImages = *count;
++  return result;
++}
++void DestroySwapchain(VkDevice device, VkSwapchainKHR swapchain,
++                      const VkAllocationCallbacks *allocator) {
++  violations += !drained || swapchains.erase(swapchain) != 1;
++  std::erase_if(imageSignals, [&](const auto &entry) { return entry.first.first == swapchain; });
++  vkDestroySwapchainKHR(device, swapchain, allocator);
++}
++VkResult Acquire(VkDevice device, VkSwapchainKHR swapchain, std::uint64_t timeout,
++                 VkSemaphore semaphore, VkFence fence, std::uint32_t *index) {
++  if (std::exchange(failAcquire, false))
++    return VK_ERROR_OUT_OF_DATE_KHR;
++  const auto result = vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, index);
++  if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
++    acquisitions[semaphore] = {swapchain, *index};
++    acquiredFence = fence;
++    imageReady = false;
++  }
++  return result;
++}
++VkResult Submit(VkQueue queue, std::uint32_t count, const VkSubmitInfo *infos, VkFence fence) {
++  for (std::uint32_t i = 0; i < count; ++i) {
++    const auto &info = infos[i];
++    for (std::uint32_t w = 0; w < info.waitSemaphoreCount; ++w) {
++      const auto acquired = acquisitions.find(info.pWaitSemaphores[w]);
++      if (acquired == acquisitions.end())
++        continue;
++      for (std::uint32_t s = 0; s < info.signalSemaphoreCount; ++s) {
++        const auto signal = info.pSignalSemaphores[s];
++        const auto pending = presentations.find(signal);
++        // A submit fence alone cannot retire a presentation wait. Reuse requires the same
++        // image's acquire semaphore in this submission's dependency chain.
++        violations += pending != presentations.end() && pending->second != acquired->second;
++        if (pending != presentations.end())
++          presentations.erase(pending);
++        const auto [previous, inserted] = imageSignals.emplace(acquired->second, signal);
++        violations += !inserted && previous->second != signal;
++        submissions[signal] = acquired->second;
++      }
++      acquisitions.erase(acquired);
++    }
++  }
++  const auto result = vkQueueSubmit(queue, count, infos, fence);
++  if (result == VK_SUCCESS) {
++    drained = false;
++    ++submits;
++  }
++  return result;
++}
++VkResult Present(VkQueue queue, const VkPresentInfoKHR *info) {
++  for (std::uint32_t i = 0; i < info->swapchainCount; ++i) {
++    const Image image{info->pSwapchains[i], info->pImageIndices[i]};
++    for (std::uint32_t w = 0; w < info->waitSemaphoreCount; ++w) {
++      const auto semaphore = info->pWaitSemaphores[w];
++      const auto submitted = submissions.find(semaphore);
++      violations += submitted == submissions.end() || submitted->second != image;
++      presentations[semaphore] = image;
++    }
++  }
++  const auto result = vkQueuePresentKHR(queue, info);
++  if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
++    ++presents;
++  return result == VK_SUCCESS && std::exchange(suboptimalPresent, false) ? VK_SUBOPTIMAL_KHR
++                                                                         : result;
++}
++VkResult Idle(VkDevice device) {
++  const auto result = vkDeviceWaitIdle(device);
++  if (result == VK_SUCCESS)
++    drained = true;
++  return result;
++}
++} // namespace SyncTrace
++
++#define vkCreateSemaphore SyncTrace::MakeSemaphore
++#define vkDestroySemaphore SyncTrace::DestroySemaphore
++#define vkCreateFence SyncTrace::MakeFence
++#define vkDestroyFence SyncTrace::DestroyFence
++#define vkWaitForFences SyncTrace::Wait
++#define vkCreateSwapchainKHR SyncTrace::CreateSwapchain
++#define vkGetSwapchainImagesKHR SyncTrace::GetImages
++#define vkDestroySwapchainKHR SyncTrace::DestroySwapchain
++#define vkAcquireNextImageKHR SyncTrace::Acquire
++#define vkQueueSubmit SyncTrace::Submit
++#define vkQueuePresentKHR SyncTrace::Present
++#define vkDeviceWaitIdle SyncTrace::Idle
++#include "../../Engine/Presentation/src/VulkanSurface.cpp"
++#undef vkCreateSemaphore
++#undef vkDestroySemaphore
++#undef vkCreateFence
++#undef vkDestroyFence
++#undef vkWaitForFences
++#undef vkCreateSwapchainKHR
++#undef vkGetSwapchainImagesKHR
++#undef vkDestroySwapchainKHR
++#undef vkAcquireNextImageKHR
++#undef vkQueueSubmit
++#undef vkQueuePresentKHR
++#undef vkDeviceWaitIdle
++#undef None
++
++namespace {
++using namespace Nexora;
++using namespace Nexora::Presentation;
++void Require(bool condition, const char *message) {
++  if (!condition)
++    throw std::runtime_error(message);
++}
++void Clean() {
++  Require(SyncTrace::semaphores.empty() && SyncTrace::fences.empty() &&
++              SyncTrace::swapchains.empty() && SyncTrace::imageSignals.empty() &&
++              SyncTrace::acquisitions.empty() && SyncTrace::submissions.empty() &&
++              SyncTrace::presentations.empty() && SyncTrace::violations == 0,
++          "swapchain synchronization ownership, drain or cleanup failed");
++}
++void Run(PresentMode mode, std::uint8_t slots) {
++  auto windows = Window::CreateWindowSystem();
++  const auto window = windows->Create({"Nexora Vulkan swapchain contracts", 320, 240, true, true});
++  Require(bool(window), "swapchain fixture window unavailable");
++  VulkanSurface surface(
++      {window.handle, 320, 240, slots, mode, ColorSpace::Srgb, SurfaceBackend::Vulkan, true},
++      *windows);
++  const auto acquired = [&] {
++    static_cast<void>(windows->PumpEvents());
++    Require(surface.Acquire() == SurfaceStatus::Ready, "swapchain acquire failed");
++    Require(SyncTrace::semaphores.size() ==
++                SyncTrace::actualImages + std::min<unsigned>(slots, SyncTrace::actualImages),
++            "image synchronization and frame upload slots have coupled lifetimes");
++    const bool fifo = surface.Diagnostics().negotiatedPresentMode == PresentMode::VSync;
++    Require(fifo ? SyncTrace::acquiredFence != VK_NULL_HANDLE && SyncTrace::imageReady
++                 : SyncTrace::acquiredFence == VK_NULL_HANDLE,
++            "FIFO admitted CPU work before image readiness or Immediate gained a host wait");
++    Require(SyncTrace::fences.size() ==
++                std::min<unsigned>(slots, SyncTrace::actualImages) + (fifo ? 1 : 0),
++            "image readiness allocated an unbounded fence stream");
++  };
++  const auto presented = [&] {
++    Require(surface.Present() == SurfaceStatus::Ready, "swapchain present failed");
++  };
++  for (unsigned i = 0; i < 48; ++i) {
++    acquired();
++    presented();
++  }
++  Require(SyncTrace::mode == (surface.Diagnostics().negotiatedPresentMode == PresentMode::VSync
++                                  ? VK_PRESENT_MODE_FIFO_KHR
++                                  : VK_PRESENT_MODE_IMMEDIATE_KHR),
++          "presentation mode changed while choosing image capacity");
++  Require(surface.Diagnostics().gpuTiming.completedSubmission > 0,
++          "frame-slot change stopped completed GPU timing");
++  Require(surface.ReleaseSpriteTextures({}) == SurfaceStatus::Ready,
++          "between-frame resource drain failed");
++  for (unsigned i = 0; i < 12; ++i) {
++    acquired();
++    presented();
++  }
++  Require(SyncTrace::violations == 0, "present semaphore was reused by a different image");
++  SyncTrace::failAcquire = true;
++  Require(surface.Acquire() == SurfaceStatus::OutOfDate, "acquire failure injection did not run");
++  for (unsigned i = 0; i < 6; ++i) {
++    acquired();
++    presented();
++  }
++  acquired();
++  SyncTrace::suboptimalPresent = true;
++  Require(surface.Present() == SurfaceStatus::OutOfDate, "submitted recovery frame was lost");
++  for (unsigned i = 0; i < 6; ++i) {
++    acquired();
++    presented();
++  }
++  Require(surface.NotifyWindowExtent(0, 0) == SurfaceStatus::ZeroExtent &&
++              surface.Acquire() == SurfaceStatus::ZeroExtent,
++          "zero extent did not suspend acquire");
++  Require(surface.NotifyWindowExtent(320, 240) == SurfaceStatus::Ready, "swapchain resume failed");
++  acquired(); // Abandon an acquired command buffer before teardown.
++  Require(surface.DrainAndDestroy() == SurfaceStatus::Ready &&
++              surface.DrainAndDestroy() == SurfaceStatus::Ready,
++          "swapchain drain is not idempotent");
++  Clean();
++  // Both partially allocated image semaphores and partially allocated frame slots must unwind.
++  for (const auto failure : {1U, 2U, SyncTrace::actualImages + 1}) {
++    SyncTrace::failAt = SyncTrace::creations + failure;
++    VulkanSurface failed(
++        {window.handle, 320, 240, slots, mode, ColorSpace::Srgb, SurfaceBackend::Vulkan}, *windows);
++    Require(failed.Acquire() == SurfaceStatus::Unsupported, "semaphore failure did not reject");
++    Require(failed.DrainAndDestroy() == SurfaceStatus::Ready, "partial swapchain drain failed");
++    Clean();
++  }
++  SyncTrace::failAt = 0;
++  for (const auto failure : {1U, 2U}) {
++    SyncTrace::failFenceAt = SyncTrace::fenceCreations + failure;
++    VulkanSurface failed(
++        {window.handle, 320, 240, slots, mode, ColorSpace::Srgb, SurfaceBackend::Vulkan}, *windows);
++    Require(failed.Acquire() == SurfaceStatus::Unsupported, "fence failure did not reject");
++    Require(failed.DrainAndDestroy() == SurfaceStatus::Ready, "partial fence drain failed");
++    Clean();
++  }
++  SyncTrace::failFenceAt = 0;
++  Require(windows->Destroy(window.handle) == Window::WindowError::None,
++          "swapchain fixture teardown failed");
++}
++} // namespace
++
++int main() {
++  try {
++    Run(PresentMode::VSync, 2);
++    Run(PresentMode::VSync, 3);
++    Run(PresentMode::Immediate, 2);
++    Require(SyncTrace::submits >= 180 && SyncTrace::presents == SyncTrace::submits,
++            "swapchain fixture omitted submitted frames");
++    std::cout << "Vulkan FIFO/image semaphore, frame-slot, recovery and cleanup contracts passed\n";
++    return 0;
++  } catch (const std::exception &error) {
++    std::cerr << error.what() << '\n';
++    return 1;
++  }
++}

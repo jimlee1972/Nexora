@@ -1,0 +1,440 @@
+**********************************************************************
+** Visual Studio 2022 Developer Command Prompt v17.14.35
+** Copyright (c) 2025 Microsoft Corporation
+**********************************************************************
+-- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.19045.
+-- Nexora Cryptography: unavailable provider (verification fails closed)
+-- Configuring done (12.0s)
+-- Generating done (15.6s)
+-- Build files have been written to: G:/proj/Nexora/build/windows-development
+.NET Framework 的 MSBuild 版本 17.14.40+3e7442088
+
+  1>Checking Build System
+  BuildInfo.cpp
+  NexoraFoundation.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraFoundation.dll
+  NexoraDynamicGameplayFailing.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraDynamicGameplayFailing.dll
+  NexoraPluginLifecycleFixture4.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture4.dll
+  NexoraPluginLifecycleFixture2.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture2.dll
+  NexoraNativeToolFixture2.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture2.dll
+  NexoraPluginLifecycleFixture13.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture13.dll
+  NexoraNativeToolFixture3.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture3.dll
+  NexoraNativeToolFixture5.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture5.dll
+  NexoraPluginLifecycleFixture11.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture11.dll
+  NexoraNativeToolFixture6.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture6.dll
+  NexoraNativeToolFixture9.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture9.dll
+  NexoraPluginLifecycleFixture1.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture1.dll
+  NexoraPluginLifecycleFixture10.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture10.dll
+  NexoraNativeToolFixture7.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture7.dll
+  NexoraPluginLifecycleFixture12.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture12.dll
+  NexoraPluginLifecycleFixture14.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture14.dll
+  NexoraNativeToolFixture4.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture4.dll
+  NexoraPluginLifecycleFixture3.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture3.dll
+  NexoraDynamicGameplayFirst.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraDynamicGameplayFirst.dll
+  NexoraPluginLifecycleFixture5.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture5.dll
+  NexoraPluginLifecycleFixture6.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture6.dll
+  NexoraDynamicGameplaySecond.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraDynamicGameplaySecond.dll
+  NexoraPluginLifecycleFixture7.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture7.dll
+  NexoraExamplePlugin.vcxproj -> G:\proj\Nexora\build\windows-development\Plugins\Example\Development\NexoraExamplePlugin.dll
+  NexoraPluginLifecycleFixture8.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture8.dll
+  NexoraPluginLifecycleFixture9.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Runtime\Development\NexoraPluginLifecycleFixture9.dll
+  NexoraNativeToolFixture1.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture1.dll
+  NexoraNativeToolFixture10.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture10.dll
+  NexoraCore.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraCore.dll
+  NexoraCryptography.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraCryptography.dll
+  NexoraNativeToolFixture11.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture11.dll
+  NexoraNativeToolFixture8.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture8.dll
+  NexoraNativeToolFixture12.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture12.dll
+  NexoraNativeToolFixture13.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture13.dll
+  NexoraNativeToolFixture14.vcxproj -> G:\proj\Nexora\build\windows-development\Tests\Editor\Development\NexoraNativeToolFixture14.dll
+  NexoraWindow.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraWindow.dll
+  Capabilities.cpp
+  DxilArtifact.cpp
+  SpirvArtifact.cpp
+  ShaderReflection.cpp
+  ValidationDevice.cpp
+  DeviceFactory.cpp
+  D3D12Device.cpp
+  VulkanDevice.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-development/Engine/RHI/Development/NexoraRHI.lib 和物件 G:/proj/Nexora/build/windows-development/Engine/RHI/Development/NexoraRHI.exp
+  NexoraRHI.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRHI.dll
+  FramePipeline.cpp
+  Presentation.cpp
+  RenderSurface.cpp
+  GPUDrivenPipeline.cpp
+  SpriteDraws.cpp
+  Dx12Surface.cpp
+  MeshTangents.cpp
+  PipelineCache.cpp
+  VulkanSurface.cpp
+  RenderGraph.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-development/Engine/Presentation/Development/NexoraPresentation.lib 和物件 G:/proj/Nexora/build/windows-development/Engine/Presentation/Development/NexoraPresentation.exp
+  NexoraPresentation.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPresentation.dll
+  SceneFrame.cpp
+  正在產生程式碼...
+  NexoraRenderer.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRenderer.dll
+  CookedSceneAssets.cpp
+  EditorSdk.cpp
+  GameWorld.cpp
+  GameplayHostBridge.cpp
+  ProjectPackage.cpp
+  RenderSync.cpp
+  Runtime.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-development/Engine/Runtime/Development/NexoraRuntime.lib 和物件 G:/proj/Nexora/build/windows-development/Engine/Runtime/Development/NexoraRuntime.exp
+  NexoraRuntime.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRuntime.dll
+  GameplayBridge.cpp
+  GameplayContent.cpp
+  Lifecycle.cpp
+  Scene.cpp
+  Tilemap.cpp
+  正在產生程式碼...
+  NexoraTwoD.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoD.dll
+  AdditiveSceneComposition.cpp
+  AdditiveSceneSession.cpp
+  AssetImport.cpp
+  EditorWorkspace.cpp
+  MaterialAssetCatalog.cpp
+  MaterialToolSourceSession.cpp
+  MeshAssetCatalog.cpp
+  NativeTool.cpp
+  PlayApply.cpp
+  PluginManager.cpp
+  PrefabAssets.cpp
+  PrefabComparison.cpp
+  PrefabDocumentSession.cpp
+  PrefabInstantiation.cpp
+  PrefabPlacement.cpp
+  PrefabPlacementInspection.cpp
+  PrefabPlacementOverrides.cpp
+  PrefabPlacementRebase.cpp
+  PrefabPropertyPlan.cpp
+  PrefabRebase.cpp
+  正在產生程式碼...
+  正在編譯...
+  ProjectChromeTrace.cpp
+  ProjectContent.cpp
+  ProjectInputBindings.cpp
+  ProjectPrefabPlacement.cpp
+  ProjectTwoDPlayAssets.cpp
+  ProjectWorkspace.cpp
+  PropertySnapshot.cpp
+  ReflectedInspector.cpp
+  SceneAuthoring.cpp
+  SceneComparison.cpp
+  SceneComparisonJob.cpp
+  SceneFiles.cpp
+  SceneSaveBatch.cpp
+  SignedExtensionHost.cpp
+  StaticProjectExport.cpp
+  StaticProjectExportJob.cpp
+  TargetedPrefabPropertyPlan.cpp
+  TwoDDocument.cpp
+  TwoDPlayContext.cpp
+  ViewportMath.cpp
+  正在產生程式碼...
+     正在建立程式庫 G:/proj/Nexora/build/windows-development/Engine/Editor/Development/NexoraEditorCore.lib 和物件 G:/proj/Nexora/build/windows-development/Engine/Editor/Development/NexoraEditorCore.exp
+  NexoraEditorCore.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditorCore.dll
+  NexoraScalarMaterialPlugin.vcxproj -> G:\proj\Nexora\build\windows-development\Plugins\ScalarMaterial\Development\NexoraScalarMaterialPlugin.dll
+  NexoraAI.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAI.dll
+  AdditiveSceneCompositionTests.cpp
+  AdditiveSceneSessionTests.cpp
+  AdditiveSceneTests.cpp
+  NexoraAdditiveSceneTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAdditiveSceneTests.exe
+  IntentAdapter.cpp
+  NexoraAdditiveSceneSessionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAdditiveSceneSessionTests.exe
+  NexoraAdditiveSceneCompositionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAdditiveSceneCompositionTests.exe
+  NexoraAnimation.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAnimation.dll
+  NexoraApiCoreContractTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraApiCoreContractTests.exe
+  NexoraApiFoundationSample.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraApiFoundationSample.exe
+  NexoraApiFoundationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraApiFoundationTests.exe
+  NexoraApiM6CConsumer.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraApiM6CConsumer.exe
+  NexoraAsyncLogStreamTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAsyncLogStreamTests.exe
+  AssetSourceTests.cpp
+  AutosaveJournalTests.cpp
+  NexoraAnimationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAnimationTests.exe
+  NexoraAIIntegration.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAIIntegration.dll
+  BoundedSceneSaveTests.cpp
+  NexoraAutosaveJournalTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAutosaveJournalTests.exe
+  NexoraBuildArtifactVerificationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraBuildArtifactVerificationTests.exe
+  NexoraBuildProcessFixture.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraBuildProcessFixture.exe
+  NexoraAssetSourceTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAssetSourceTests.exe
+  NexoraBoundedSceneSaveTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraBoundedSceneSaveTests.exe
+  AIIntentAdapterTests.cpp
+  BuiltinCreationTests.cpp
+  NexoraBuildProcessTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraBuildProcessTests.exe
+  NexoraBundleMountTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraBundleMountTests.exe
+  ChromeTraceTests.cpp
+  NexoraAIIntentAdapterTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraAIIntentAdapterTests.exe
+  CookedSceneAssetTests.cpp
+  NexoraBuiltinCreationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraBuiltinCreationTests.exe
+  NexoraCoreTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraCoreTests.exe
+  NexoraCryptographyTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraCryptographyTests.exe
+  D3D12AdapterPolicyTests.cpp
+  NexoraChromeTraceTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraChromeTraceTests.exe
+  VulkanDescriptorIsolationTests.cpp
+  NexoraCookedSceneAssetTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraCookedSceneAssetTests.exe
+  NexoraNetwork.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraNetwork.dll
+  NexoraDx12PbrTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraDx12PbrTests.exe
+  DxilArtifactTests.cpp
+  NexoraD3D12AdapterPolicyTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraD3D12AdapterPolicyTests.exe
+  NexoraDynamicGameplayModuleTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraDynamicGameplayModuleTests.exe
+  NexoraDedicatedServer.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraDedicatedServer.exe
+  main.cpp
+  AffineGizmoTests.cpp
+  NexoraD3D12RecordingIsolationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraD3D12RecordingIsolationTests.exe
+  NexoraDxilArtifactTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraDxilArtifactTests.exe
+  ComponentResetTests.cpp
+  NexoraEditor.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditor.exe
+  NexoraEditorShaderTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditorShaderTests.exe
+  EditorTests.cpp
+  NexoraEditorAffineGizmoTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditorAffineGizmoTests.exe
+  ViewportMathTests.cpp
+  NexoraEditorComponentResetTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditorComponentResetTests.exe
+  EnhancedBarrierProjectionTests.cpp
+  NexoraEditorViewportMathTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditorViewportMathTests.exe
+  NexoraExtensionTrustTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraExtensionTrustTests.exe
+  NexoraEnhancedBarrierProjectionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEnhancedBarrierProjectionTests.exe
+  ExternalSceneSaveTests.cpp
+  ForestImportTests.cpp
+  NexoraEditorTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraEditorTests.exe
+  NexoraFoundationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraFoundationTests.exe
+  GPUDrivenPipelineTests.cpp
+  NexoraForestImportTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraForestImportTests.exe
+  NexoraExternalSceneSaveTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraExternalSceneSaveTests.exe
+  NexoraGPUSceneTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGPUSceneTests.exe
+  NexoraGameplayAbiTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayAbiTests.exe
+  GameWorldTests.cpp
+  NexoraGameplayAudioQueueTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayAudioQueueTests.exe
+  NexoraGPUDrivenTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGPUDrivenTests.exe
+  NexoraGameplayAudioTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayAudioTests.exe
+  GameplayContentTests.cpp
+  NexoraGameplayGamepadTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayGamepadTests.exe
+  GameplayHostBridgeTests.cpp
+  NexoraGameWorldTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameWorldTests.exe
+  NexoraGameplayInputTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayInputTests.exe
+  NexoraGameplayModuleHostTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayModuleHostTests.exe
+  NexoraGameplayContentTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayContentTests.exe
+  NexoraGameplayStorageTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayStorageTests.exe
+  NexoraGameplayUiTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayUiTests.exe
+  NexoraGameplayHostBridgeTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGameplayHostBridgeTests.exe
+  NexoraGoldenImageTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGoldenImageTests.exe
+  GpuTimingCaptureTests.cpp
+  NexoraGpuProfileTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGpuProfileTests.exe
+  NexoraGpuTimingTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGpuTimingTests.exe
+  GraphicsCapabilityTests.cpp
+  HierarchySnapshotIndexTests.cpp
+  NexoraGraphicsCapabilityTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGraphicsCapabilityTests.exe
+  main.cpp
+  NexoraGpuTimingCaptureTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraGpuTimingCaptureTests.exe
+  NexoraInertialBlendTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraInertialBlendTests.exe
+  NexoraHierarchySnapshotIndexTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraHierarchySnapshotIndexTests.exe
+  InspectorBatchTests.cpp
+  MaterialCatalogTests.cpp
+  NexoraHost.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraHost.exe
+  MaterialImportTests.cpp
+  NexoraInspectorBatchTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraInspectorBatchTests.exe
+  NexoraMaterialTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMaterialTests.exe
+  NexoraMaterialCatalogTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMaterialCatalogTests.exe
+  ManagedToolInvocationTests.cpp
+  MaterialToolDocumentTests.cpp
+  NexoraMaterialImportTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMaterialImportTests.exe
+  MaterialToolSourceSessionTests.cpp
+  NexoraMaterialToolDocumentTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMaterialToolDocumentTests.exe
+  MeshAssetCatalogTests.cpp
+  NexoraManagedToolInvocationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraManagedToolInvocationTests.exe
+  MeshImportTests.cpp
+  NexoraMaterialToolSourceSessionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMaterialToolSourceSessionTests.exe
+  MeshMemoryCaptureTests.cpp
+  NexoraMeshAssetCatalogTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMeshAssetCatalogTests.exe
+  NexoraMeshMemoryProfileTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMeshMemoryProfileTests.exe
+  MeshReimportTests.cpp
+  NexoraMeshImportTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMeshImportTests.exe
+  MeshShaderTests.cpp
+  NexoraMeshMemoryCaptureTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMeshMemoryCaptureTests.exe
+  ModernComputeFallbackTests.cpp
+  NexoraMeshShaderTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMeshShaderTests.exe
+  VulkanTextureRecordingTests.cpp
+  NexoraMeshReimportTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraMeshReimportTests.exe
+  NexoraNativeToolC.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraNativeToolC.exe
+  NexoraNetworkTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraNetworkTests.exe
+  ParallelRenderGraphTests.cpp
+  NexoraModernComputeFallbackTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraModernComputeFallbackTests.exe
+  NativeToolTests.cpp
+  NexoraNativeTextureRecordingTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraNativeTextureRecordingTests.exe
+  ParentingTests.cpp
+  NexoraParallelRenderGraphTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraParallelRenderGraphTests.exe
+  ParserRobustnessTests.cpp
+  PlayInputSettingsTests.cpp
+  NexoraParentingTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraParentingTests.exe
+  NexoraNativeToolTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraNativeToolTests.exe
+  NexoraPluginLifecycleC.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPluginLifecycleC.exe
+  PluginManagerTests.cpp
+  NexoraPlayInputSettingsTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPlayInputSettingsTests.exe
+  NexoraPoseGraphTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPoseGraphTests.exe
+  NexoraPoseSearch.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPoseSearch.dll
+  NexoraPoseSearchTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPoseSearchTests.exe
+  NexoraParserRobustnessTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraParserRobustnessTests.exe
+  PrefabAssetsTests.cpp
+  PluginServiceOwnershipTests.cpp
+  NexoraPluginServiceOwnershipTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPluginServiceOwnershipTests.exe
+  NexoraPluginManagerTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPluginManagerTests.exe
+  PrefabComparisonTests.cpp
+  PrefabDocumentSessionTests.cpp
+  PluginLifecycleTests.cpp
+  NexoraPrefabComparisonTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabComparisonTests.exe
+  NexoraPrefabDocumentSessionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabDocumentSessionTests.exe
+  PrefabInstantiationTests.cpp
+  NexoraPluginLifecycleTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPluginLifecycleTests.exe
+  PrefabPlacementRebaseTests.cpp
+  NexoraPrefabAssetTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabAssetTests.exe
+  PrefabPlacementSnapshotTests.cpp
+  PrefabPropertyPlanTests.cpp
+  NexoraPrefabInstantiationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabInstantiationTests.exe
+  PrefabRevisionTests.cpp
+  NexoraPrefabPlacementRebaseTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabPlacementRebaseTests.exe
+  NexoraPrefabPlacementSnapshotTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabPlacementSnapshotTests.exe
+  PreparedSceneSaveTests.cpp
+  NexoraPrefabPropertyPlanTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabPropertyPlanTests.exe
+  ProcessMemoryCaptureTests.cpp
+  NexoraPrefabRevisionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPrefabRevisionTests.exe
+  NexoraProcessMemoryTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProcessMemoryTests.exe
+  NexoraProcessMemoryProfileTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProcessMemoryProfileTests.exe
+  ProjectPackageTests.cpp
+  NexoraPreparedSceneSaveTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPreparedSceneSaveTests.exe
+  ProjectPrefabPlacementTests.cpp
+  NexoraProcessMemoryCaptureTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProcessMemoryCaptureTests.exe
+  ProjectPlayAssetTests.cpp
+  NexoraProjectPackageTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProjectPackageTests.exe
+  ProjectUpgradeTests.cpp
+  NexoraProjectPrefabPlacementTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProjectPrefabPlacementTests.exe
+  PropertySnapshotHintTests.cpp
+  PropertySnapshotTests.cpp
+  NexoraProjectUpgradeTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProjectUpgradeTests.exe
+  NexoraProjectTwoDPlayAssetTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraProjectTwoDPlayAssetTests.exe
+  RayTracingTests.cpp
+  NexoraPropertySnapshotHintTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPropertySnapshotHintTests.exe
+  ReflectedInspectorTests.cpp
+  NexoraRayTracingTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRayTracingTests.exe
+  NexoraPropertySnapshotTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraPropertySnapshotTests.exe
+  RenderGraphBufferTests.cpp
+  RenderSyncTests.cpp
+  NexoraReflectedInspectorTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraReflectedInspectorTests.exe
+  RendererTests.cpp
+  NexoraRenderGraphBufferTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRenderGraphBufferTests.exe
+  RuntimeConsoleTests.cpp
+  NexoraRenderSyncTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRenderSyncTests.exe
+  RuntimeTests.cpp
+  NexoraRendererTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRendererTests.exe
+  SamplerFeedbackTests.cpp
+  NexoraRuntimeConsoleTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRuntimeConsoleTests.exe
+  NexoraRuntimeTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraRuntimeTests.exe
+  ScalarMaterialToolTests.cpp
+  SceneComparisonJobTests.cpp
+  NexoraSamplerFeedbackTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSamplerFeedbackTests.exe
+  SceneComparisonTests.cpp
+  NexoraScalarMaterialToolTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraScalarMaterialToolTests.exe
+  SceneFileTests.cpp
+  NexoraSceneComparisonJobTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneComparisonJobTests.exe
+  SceneFrameTests.cpp
+  NexoraSceneComparisonTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneComparisonTests.exe
+  NexoraSceneGeometryResidencyTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneGeometryResidencyTests.exe
+  NexoraSceneGeometryUploadKeyTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneGeometryUploadKeyTests.exe
+  NexoraSceneFrameTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneFrameTests.exe
+  SceneRuntimeCaptureTests.cpp
+  NexoraSceneInstanceTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneInstanceTests.exe
+  SceneSaveBatchTests.cpp
+  NexoraSceneFileTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneFileTests.exe
+  NexoraSceneViewAdmissionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneViewAdmissionTests.exe
+  SceneWorldPoseTests.cpp
+  NexoraSceneWorldPoseTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneWorldPoseTests.exe
+  ShadingRateImageTests.cpp
+  NexoraShaderRuntimeTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraShaderRuntimeTests.exe
+  NexoraSceneSaveBatchTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneSaveBatchTests.exe
+  ShadingRateTests.cpp
+  SignedExtensionTests.cpp
+  NexoraShadingRateImageTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraShadingRateImageTests.exe
+  NexoraSceneRuntimeCaptureTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSceneRuntimeCaptureTests.exe
+  SignedToolInvocationTests.cpp
+  NexoraShadingRateTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraShadingRateTests.exe
+  NexoraStagedUploadAllocationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraStagedUploadAllocationTests.exe
+  StaticProjectExportJobTests.cpp
+  NexoraSignedExtensionTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSignedExtensionTests.exe
+  StaticProjectExportTests.cpp
+  NexoraSignedToolInvocationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSignedToolInvocationTests.exe
+  SubmissionGpuTimingTests.cpp
+  NexoraStaticProjectExportJobTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraStaticProjectExportJobTests.exe
+  NexoraSyncGroupGraphTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSyncGroupGraphTests.exe
+  NexoraSyncGroupTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSyncGroupTests.exe
+  TessellationTests.cpp
+  NexoraSubmissionGpuTimingTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraSubmissionGpuTimingTests.exe
+  NexoraToolCapabilityTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraToolCapabilityTests.exe
+  TransformTests.cpp
+  NexoraStaticProjectExportTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraStaticProjectExportTests.exe
+  TransformValueTests.cpp
+  NexoraTessellationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTessellationTests.exe
+  NexoraTwoDAssetCompiler.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDAssetCompiler.exe
+  NexoraTwoDAudioProbe.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDAudioProbe.exe
+  AuthoringTests.cpp
+  NexoraTransformTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTransformTests.exe
+  Benchmark.cpp
+  NexoraTransformValueTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTransformValueTests.exe
+  ContentImportTests.cpp
+  NexoraTwoDAuthoringTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDAuthoringTests.exe
+  GameplayBridgeTests.cpp
+  NexoraTwoDBenchmark.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDBenchmark.exe
+  NexoraTwoDHostFixture.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDHostFixture.dll
+  PlayAssetTests.cpp
+  NexoraTwoDContentImportTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDContentImportTests.exe
+  PlayContextTests.cpp
+  NexoraTwoDGameplayTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDGameplayTests.exe
+  TwoDPlayer.cpp
+  NexoraTwoDPlayAssetTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDPlayAssetTests.exe
+  NexoraTwoDProjectFixture.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDProjectFixture.dll
+  Building Custom Rule G:/proj/Nexora/tools/TwoD/CMakeLists.txt
+  BenchmarkProfile.cpp
+  NexoraTwoDPlayContextTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDPlayContextTests.exe
+  TwoDTests.cpp
+  NexoraTwoDPlayerHost.vcxproj -> G:\proj\Nexora\build\windows-development\Apps\TwoDPlayer\Development\NexoraTwoDPlayerHost.lib
+  NexoraV1M10Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M10Tests.exe
+  NexoraTwoDPlayer.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDPlayer.exe
+  VulkanProfile.cpp
+  NexoraTwoDProjectManifestTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDProjectManifestTests.exe
+  NexoraV1M11Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M11Tests.exe
+  NexoraV1M12Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M12Tests.exe
+  V1M4Tests.cpp
+  NexoraTwoDTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDTests.exe
+  NexoraV1M5Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M5Tests.exe
+  V1M6Tests.cpp
+  正在產生程式碼...
+  NexoraV1M4Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M4Tests.exe
+  NexoraTwoDTailProfile.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraTwoDTailProfile.exe
+  NexoraV1M7Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M7Tests.exe
+  NexoraV1M8Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M8Tests.exe
+  NexoraV2M11Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV2M11Tests.exe
+  NexoraV1M9Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M9Tests.exe
+  NexoraV2M7Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV2M7Tests.exe
+  NexoraV2M12Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV2M12Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  NexoraV2M9Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV2M9Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/WindowPresentation/CMakeLists.txt
+  VulkanDescriptorIsolationTests.cpp
+  VulkanSwapchainTests.cpp
+  NexoraV1M6Tests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraV1M6Tests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/Renderer/CMakeLists.txt
+  VulkanTextureRecordingTests.cpp
+  NexoraVulkanTextureRecordingTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraVulkanTextureRecordingTests.exe
+  NexoraWindowPresentationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraWindowPresentationTests.exe
+  Building Custom Rule G:/proj/Nexora/Tests/WindowPresentation/CMakeLists.txt
+  NexoraVulkanDescriptorIsolationTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraVulkanDescriptorIsolationTests.exe
+  VulkanPbrTests.cpp
+  WorkGraphTests.cpp
+  NexoraVulkanSwapchainTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraVulkanSwapchainTests.exe
+  WorkspaceBudgetTests.cpp
+  NexoraWorkGraphTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraWorkGraphTests.exe
+  WorldIdentityTests.cpp
+  NexoraWindowsVulkanPbrTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraWindowsVulkanPbrTests.exe
+  NexoraWorkspaceBudgetTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraWorkspaceBudgetTests.exe
+  NexoraWorldIdentityTests.vcxproj -> G:\proj\Nexora\build\windows-development\bin\Development\NexoraWorldIdentityTests.exe
+  Building Custom Rule G:/proj/Nexora/CMakeLists.txt

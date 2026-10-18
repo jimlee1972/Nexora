@@ -243,10 +243,12 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
   };
   std::vector<Item> items;
   items.reserve(instances.size());
-  std::set<std::uint64_t> ids;
+  std::vector<std::uint64_t> ids;
+  ids.reserve(instances.size());
   for (const auto &instance : instances) {
-    if (!instance.id || !ids.insert(instance.id).second || !ValidateSprite(instance.sprite))
+    if (!instance.id || !ValidateSprite(instance.sprite))
       return std::nullopt;
+    ids.push_back(instance.id);
     if (instance.matrix[3] != 0 || instance.matrix[7] != 0 || instance.matrix[11] != 0 ||
         instance.matrix[15] != 1)
       return std::nullopt;
@@ -258,10 +260,21 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       items.push_back(
           {instance.id, &sprite, instance.matrix, sprite.sortY ? -instance.matrix[13] : 0});
   }
-  std::sort(items.begin(), items.end(), [](const Item &a, const Item &b) {
-    return std::tie(a.sprite->layer, a.sprite->order, a.y, a.id) <
-           std::tie(b.sprite->layer, b.sprite->order, b.y, b.id);
-  });
+  if (!std::is_sorted(ids.begin(), ids.end()))
+    std::sort(ids.begin(), ids.end());
+  if (std::adjacent_find(ids.begin(), ids.end()) != ids.end())
+    return std::nullopt;
+  // Sort compact references while preserving the pre-resolver matrix/identity snapshot.
+  std::vector<const Item *> ordered;
+  ordered.reserve(items.size());
+  for (const auto &item : items)
+    ordered.push_back(&item);
+  const auto byOrder = [](const Item *a, const Item *b) {
+    return std::tie(a->sprite->layer, a->sprite->order, a->y, a->id) <
+           std::tie(b->sprite->layer, b->sprite->order, b->y, b->id);
+  };
+  if (!std::is_sorted(ordered.begin(), ordered.end(), byOrder))
+    std::sort(ordered.begin(), ordered.end(), byOrder);
   SpriteFrame frame;
   frame.statistics.input = instances.size();
   frame.vertices.reserve(items.size() * 4);
@@ -271,16 +284,17 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
   std::unordered_set<AssetId, runtime::AssetUuidHash> unavailable;
   const double scale = double(camera.height) / camera.verticalSize,
                cosine = std::cos(camera.rotationRadians), sine = std::sin(camera.rotationRadians);
-  for (const auto &item : items) {
-    const auto &s = *item.sprite;
+  for (const auto *item : ordered) {
+    const auto &s = *item->sprite;
+    const auto &matrix = item->matrix;
     std::array<Nexora::Presentation::UiVertex, 4> vertices{};
     double minimumX = INFINITY, minimumY = INFINITY, maximumX = -INFINITY, maximumY = -INFINITY;
     for (std::size_t i = 0; i < 4; ++i) {
       const double x =
           ((i == 1 || i == 2) ? 1 : 0) * double(s.size.x) - double(s.pivot.x) * s.size.x;
       const double y = (i >= 2 ? 1 : 0) * double(s.size.y) - double(s.pivot.y) * s.size.y;
-      const double wx = item.matrix[0] * x + item.matrix[4] * y + item.matrix[12] - camera.center.x;
-      const double wy = item.matrix[1] * x + item.matrix[5] * y + item.matrix[13] - camera.center.y;
+      const double wx = matrix[0] * x + matrix[4] * y + matrix[12] - camera.center.x;
+      const double wy = matrix[1] * x + matrix[5] * y + matrix[13] - camera.center.y;
       const double px = (cosine * wx + sine * wy) * scale + double(camera.width) / 2;
       const double py = -(-sine * wx + cosine * wy) * scale + double(camera.height) / 2;
       if (!std::isfinite(px) || !std::isfinite(py) ||

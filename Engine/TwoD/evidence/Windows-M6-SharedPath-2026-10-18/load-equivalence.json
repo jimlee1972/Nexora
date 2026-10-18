@@ -1,0 +1,86 @@
+[
+  {
+    "run": "dx12-1",
+    "matching_cases": 6,
+    "unchanged_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "backend_requested",
+      "vendor_id",
+      "device_id",
+      "gpu_samples"
+    ]
+  },
+  {
+    "run": "vulkan-1",
+    "matching_cases": 6,
+    "unchanged_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "backend_requested",
+      "vendor_id",
+      "device_id",
+      "gpu_samples"
+    ]
+  },
+  {
+    "run": "dx12-2",
+    "matching_cases": 6,
+    "unchanged_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "backend_requested",
+      "vendor_id",
+      "device_id",
+      "gpu_samples"
+    ]
+  },
+  {
+    "run": "vulkan-2",
+    "matching_cases": 6,
+    "unchanged_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "backend_requested",
+      "vendor_id",
+      "device_id",
+      "gpu_samples"
+    ]
+  }
+]

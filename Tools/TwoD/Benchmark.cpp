@@ -3,6 +3,7 @@
 #include "Nexora/Core/Vfs.h"
 #include "Nexora/TwoD/Lifecycle.h"
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <chrono>
 #include <cmath>
@@ -74,7 +75,7 @@ runtime::RuntimeBlob LoadCooked(const std::filesystem::path &path) {
 void Measure(std::ostream &report, std::size_t count, bool overlap, bool native, unsigned frames,
              const std::optional<twod::Atlas> &sourceAtlas,
              const std::optional<twod::Clip> &sourceClip, bool sparse,
-             Nexora::Presentation::SurfaceBackend backend) {
+             Nexora::Presentation::SurfaceBackend backend, std::ostream *frameTrace) {
   const auto loading = Clock::now();
   twod::Image image{1, 8, 8, twod::Bytes(256, std::byte{255})};
   auto atlas = twod::PackAtlas({9, 17}, std::span(&image, 1), 32, 32, true);
@@ -128,8 +129,22 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
   double coverage{}, reloadMs{};
   std::uint64_t texture = 201;
   constexpr unsigned warmup = 4;
+  struct FrameSample {
+    unsigned frame;
+    double cpu{}, whole{};
+    std::array<Clock::time_point, 9> points{};
+  };
+  std::vector<FrameSample> samples;
+  if (frameTrace)
+    samples.reserve(frames + warmup);
   for (unsigned frame = 0; frame < frames + warmup; ++frame) {
     const auto begin = Clock::now();
+    FrameSample sample{frame};
+    sample.points[0] = begin;
+    const auto stamp = [&](unsigned point) {
+      if (frameTrace)
+        sample.points[point] = Clock::now();
+    };
     if (frame == warmup + frames / 2) {
       const auto reloadStart = Clock::now();
       Check(pool.Destroy(*handles), "bulk recycle");
@@ -144,10 +159,13 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
       shared = std::make_shared<const twod::Atlas>(*atlas);
       reloadMs = Milliseconds(reloadStart);
     }
+    stamp(1);
     if (native)
       Check(surface.surface->BeginFrame() == Nexora::Presentation::SurfaceStatus::Ready,
             "stress acquire");
     const auto update = Clock::now();
+    if (frameTrace)
+      sample.points[2] = update;
     auto tick = step.Advance(1.0 / 60);
     Check(tick && tick->steps == 1, "fixed tick");
     steps += tick->steps;
@@ -169,11 +187,14 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
       s.radius = 0.05F;
       shapes.push_back(s);
     });
+    stamp(3);
     Check(index.Build(shapes), "mixed query build");
+    stamp(4);
     twod::Shape query;
     query.radius = overlap ? 0.1F : 2.0F;
     queries += index.Query(query).size();
     static_cast<void>(index.Sweep({-1, 0}, {1, 0}, 0.05F));
+    stamp(5);
     auto extracted =
         twod::ExtractSprites(sprites, camera, [&](auto) -> std::optional<twod::AtlasBinding> {
           return twod::AtlasBinding{shared, texture};
@@ -183,11 +204,17 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
     culled = extracted->statistics.culled;
     coverage = extracted->statistics.coveredPixels / (camera.width * camera.height);
     draws = extracted->statistics.batches;
-    if (frame >= warmup)
-      cpu.push_back(Milliseconds(update));
-    if (native) {
+    if (frame >= warmup || frameTrace) {
+      sample.cpu = Milliseconds(update);
+      if (frame >= warmup)
+        cpu.push_back(sample.cpu);
+    }
+    stamp(6);
+    if (native)
       Check(extracted->Draw(*surface.surface) == Nexora::Presentation::SurfaceStatus::Ready,
             "stress draw");
+    stamp(7);
+    if (native) {
       Check(surface.surface->EndFrame() == Nexora::Presentation::SurfaceStatus::Ready,
             "stress present");
       const auto timing = surface.surface->Diagnostics().gpuTiming;
@@ -197,8 +224,14 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
         gpu.push_back(*timing.milliseconds);
       }
     }
-    if (frame >= warmup)
-      whole.push_back(Milliseconds(begin));
+    if (frame >= warmup || frameTrace) {
+      sample.points[8] = Clock::now();
+      sample.whole = std::chrono::duration<double, std::milli>(sample.points[8] - begin).count();
+      if (frame >= warmup)
+        whole.push_back(sample.whole);
+      if (frameTrace)
+        samples.push_back(sample);
+    }
     peak = std::max(peak, ResidentBytes());
   }
   Check(steps == frames + warmup && pool.Size() == count, "mixed lifetime state");
@@ -206,6 +239,21 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
     Check(surface.surface->Diagnostics().nativeUiTextureUploads == 3, "stress reuploads atlas");
     Check(surface.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready,
           "stress drain");
+  }
+  // Buffer every sample; no file output is part of a measured frame.
+  if (frameTrace) {
+    *frameTrace << std::setprecision(17);
+    for (const auto &sample : samples) {
+      *frameTrace << count << ',' << sparse << ',' << overlap << ',' << native << ','
+                  << sample.frame << ',' << (sample.frame < warmup) << ',' << sample.cpu << ','
+                  << sample.whole;
+      for (unsigned point = 0; point < 8; ++point)
+        *frameTrace << ','
+                    << std::chrono::duration<double, std::milli>(sample.points[point + 1] -
+                                                                 sample.points[point])
+                           .count();
+      *frameTrace << '\n';
+    }
   }
   report << count << ',' << sparse << ',' << reloadMs << ',' << overlap << ',' << native << ','
          << frames << ',' << warmup << ',' << loadMs << ',' << Percentile(cpu, 0.5) << ','
@@ -226,7 +274,7 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
 } // namespace
 int main(int argc, char **argv) {
   try {
-    std::string reportPath, atlasPath, clipPath;
+    std::string reportPath, atlasPath, clipPath, frameTracePath;
     bool native = false;
     auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
     unsigned frames = 48;
@@ -252,6 +300,8 @@ int main(int argc, char **argv) {
         clipPath = argv[++i];
       else if (a == "--report" && i + 1 < argc)
         reportPath = argv[++i];
+      else if (a == "--frame-trace" && i + 1 < argc)
+        frameTracePath = argv[++i];
       else if (a == "--frames" && i + 1 < argc) {
         std::string_view n = argv[++i];
         auto r = std::from_chars(n.data(), n.data() + n.size(), frames);
@@ -260,7 +310,7 @@ int main(int argc, char **argv) {
       } else
         throw std::runtime_error(
             "usage: NexoraTwoDBenchmark [--native --backend auto|dx12|vulkan|metal --frames 48] "
-            "--report FILE.csv");
+            "--report FILE.csv [--frame-trace FRAMES.csv]");
     }
     Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
           "explicit backend requires native presentation");
@@ -295,6 +345,18 @@ int main(int argc, char **argv) {
       Check(clipPath.empty(), "clip requires atlas");
     std::ofstream report(reportPath);
     Check(bool(report), "report output");
+    std::ofstream frameTrace;
+    if (!frameTracePath.empty()) {
+      std::error_code error;
+      Check(!std::filesystem::equivalent(reportPath, frameTracePath, error),
+            "frame trace must differ from report");
+      frameTrace.open(frameTracePath);
+      Check(bool(frameTrace), "frame trace output");
+      frameTrace
+          << "objects,sparse,overlap,native,frame,warmup,cpu_ms,frame_ms,reload_ms,"
+             "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
+    }
+    auto *trace = frameTrace.is_open() ? &frameTrace : nullptr;
     report << "objects,sparse,reload_ms,overlap,native,frames,warmup_frames,loading_ms,cpu_p50_ms,"
               "cpu_p95_ms,cpu_"
               "p99_ms,cpu_max_"
@@ -303,9 +365,13 @@ int main(int argc, char **argv) {
               "device_name,vendor_id,device_id,driver_version,driver_version_format,backend_"
               "requested\n";
     for (auto count : {100U, 1000U, 5000U, 10000U})
-      Measure(report, count, false, native, frames, loadedAtlas, loadedClip, false, backend);
-    Measure(report, 1000, true, native, frames, loadedAtlas, loadedClip, false, backend);
-    Measure(report, 10000, false, native, frames, loadedAtlas, loadedClip, true, backend);
+      Measure(report, count, false, native, frames, loadedAtlas, loadedClip, false, backend, trace);
+    Measure(report, 1000, true, native, frames, loadedAtlas, loadedClip, false, backend, trace);
+    Measure(report, 10000, false, native, frames, loadedAtlas, loadedClip, true, backend, trace);
+    if (trace) {
+      frameTrace.flush();
+      Check(bool(frameTrace), "frame trace write");
+    }
     Check(bool(report), "report write");
     std::cout << "Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: "
                  "NOT RUN.\n";

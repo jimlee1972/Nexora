@@ -1,0 +1,79 @@
+{
+  "captured_at_utc": "2026-10-18T05:59:35.2151127Z",
+  "cpu": [
+    {
+      "Name": "AMD FX(tm)-6100 Six-Core Processor             ",
+      "NumberOfCores": 3,
+      "NumberOfLogicalProcessors": 6
+    }
+  ],
+  "os": [
+    {
+      "Caption": "Microsoft Windows 10 家用版",
+      "Version": "10.0.19045",
+      "BuildNumber": "19045",
+      "TotalVisibleMemorySize": 16732472
+    }
+  ],
+  "gpu": [
+    {
+      "Name": "NVIDIA GeForce GTX 960",
+      "DriverVersion": "32.0.15.8180",
+      "AdapterRAM": 2147483648,
+      "CurrentHorizontalResolution": 1920,
+      "CurrentVerticalResolution": 1080,
+      "CurrentRefreshRate": 60
+    }
+  ],
+  "build": "MSVC x64 Monolithic Shipping; DX12/Vulkan ON; Slang OFF; mimalloc OFF; graphical Editor OFF",
+  "configure": [
+    "CMAKE_CONFIGURATION_TYPES:UNINITIALIZED=Shipping",
+    "NEXORA_BUILD_PROJECT_PLAYER:BOOL=OFF",
+    "NEXORA_BUILD_SHOWCASE:BOOL=OFF",
+    "NEXORA_ENABLE_2D:BOOL=ON",
+    "NEXORA_ENABLE_AI_RUNTIME_BRIDGE:BOOL=ON",
+    "NEXORA_ENABLE_ANIMATION_V2:BOOL=ON",
+    "NEXORA_ENABLE_ASSET_PIPELINE:BOOL=ON",
+    "NEXORA_ENABLE_CAPTURE_ENCODER:BOOL=OFF",
+    "NEXORA_ENABLE_CRYPTOGRAPHY:BOOL=OFF",
+    "NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS:BOOL=OFF",
+    "NEXORA_ENABLE_D3D12_PREVIEW:BOOL=OFF",
+    "NEXORA_ENABLE_D3D12_SER:BOOL=OFF",
+    "NEXORA_ENABLE_D3D12_WORK_GRAPHS:BOOL=OFF",
+    "NEXORA_ENABLE_DEDICATED_SERVER:BOOL=ON",
+    "NEXORA_ENABLE_EDITOR:BOOL=OFF",
+    "NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL:BOOL=OFF",
+    "NEXORA_ENABLE_EDITOR_SDK:BOOL=ON",
+    "NEXORA_ENABLE_GAMEPLAY_SIMULATION:BOOL=ON",
+    "NEXORA_ENABLE_LARGE_WORLD:BOOL=ON",
+    "NEXORA_ENABLE_MEDIA_DRM:BOOL=OFF",
+    "NEXORA_ENABLE_MIMALLOC:BOOL=OFF",
+    "NEXORA_ENABLE_NATIVE_BACKENDS:BOOL=ON",
+    "NEXORA_ENABLE_NETWORK:BOOL=ON",
+    "NEXORA_ENABLE_PLATFORM:BOOL=ON",
+    "NEXORA_ENABLE_POSE_SEARCH:BOOL=ON",
+    "NEXORA_ENABLE_PRESENTATION:BOOL=ON",
+    "NEXORA_ENABLE_PROJECT_PLAYER_NATIVE:BOOL=OFF",
+    "NEXORA_ENABLE_SCENE_RENDERING:BOOL=ON",
+    "NEXORA_ENABLE_SHIPPING:BOOL=ON",
+    "NEXORA_ENABLE_SLANG:BOOL=OFF",
+    "NEXORA_ENABLE_VULKAN_BACKEND:BOOL=ON",
+    "NEXORA_ENABLE_WINDOW_PRESENTATION:BOOL=ON",
+    "NEXORA_ENABLE_ZIG_GAMEPLAY:BOOL=ON",
+    "NEXORA_FEATURE_API_SAMPLES:BOOL=ON",
+    "NEXORA_FEATURE_EXAMPLE_PLUGIN:BOOL=ON",
+    "NEXORA_FEATURE_SCALAR_MATERIAL_TOOL:BOOL=OFF",
+    "NEXORA_HEADLESS:BOOL=OFF",
+    "NEXORA_LINK_MODE:STRING=Monolithic",
+    "NEXORA_SHIPPING_PROFILE:STRING=Full",
+    "NEXORA_VULKAN_LIBRARY:FILEPATH=G:/proj/Nexora/.tools/vulkan-loader-local/vulkan-1.lib",
+    "NEXORA_ZIG_EXECUTABLE:FILEPATH=G:/proj/Nexora/.tools/zig-win-x86_64-0.14.0/zig.exe",
+    "Nexora_BINARY_DIR:STATIC=G:/proj/Nexora/build/windows-showcase-shipping",
+    "Nexora_IS_TOP_LEVEL:STATIC=ON",
+    "Nexora_SOURCE_DIR:STATIC=G:/proj/Nexora",
+    "CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022",
+    "NEXORA_LINK_MODE-STRINGS:INTERNAL=Modular;Monolithic",
+    "NEXORA_SHIPPING_PROFILE-STRINGS:INTERNAL=Minimal;Full;Dedicated",
+    "NEXORA_VULKAN_INCLUDE_DIR:INTERNAL=G:/proj/Nexora/build/windows-development/_deps/nexora_vulkan_headers-src/include"
+  ]
+}

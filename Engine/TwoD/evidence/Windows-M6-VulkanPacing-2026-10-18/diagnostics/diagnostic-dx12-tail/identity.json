@@ -1,0 +1,12 @@
+{
+  "source": "966ced9ba72bddce7bb73430d38c3cf118e99162",
+  "utc": "2026-10-18T08:29:30.985558+00:00",
+  "exe_sha256": "2ae1ad4d7b58c4caf0fc710f891e2bccf5d3dda92ae5107b3e287bea79b3c546",
+  "scope": "DIAGNOSTIC ONLY; original mixed load, stage clocks and buffered per-frame trace",
+  "source_sha256": {
+    "Engine\\Presentation\\src\\VulkanSurface.cpp": "f31f0378019500301f2d279dcf10dee6813b98e75d276da301046f5514f8eecd",
+    "Engine\\Presentation\\src\\Dx12Surface.cpp": "613b90d1afea395903bd0423f0d593b8b41907f0daf8f97f4587a50b2c8ff44c",
+    "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp": "6d2715577b79f80d15dafc7f1ac203a94a514803c7dfbc962967e970f5b77303",
+    "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb"
+  }
+}

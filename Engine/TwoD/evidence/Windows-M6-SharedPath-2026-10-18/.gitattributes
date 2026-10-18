@@ -1,0 +1,3 @@
+# Raw CTest output and unified patch context retain their original whitespace.
+ctest.log -whitespace
+implementation.patch -whitespace

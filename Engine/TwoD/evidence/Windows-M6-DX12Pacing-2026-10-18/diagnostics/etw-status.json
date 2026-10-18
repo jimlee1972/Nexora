@@ -1,0 +1,8 @@
+{
+  "status": "UNAVAILABLE",
+  "xperf_error": "0x3ec",
+  "wpr_error": "0xc5585011",
+  "wpr_message": "Failed to enable the policy to profile system performance.",
+  "recording_active": false,
+  "scope": "Observed command output; no usable kernel scheduling trace. Thread-cycle counts do not uniquely identify an OS scheduler or driver cause."
+}

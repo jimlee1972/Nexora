@@ -48,6 +48,10 @@ Atlas lifetime/sampling and linear blending remain shared with Presentation.
 Sprite batching merges only adjacent matching atlas IDs after `(layer, order, descending world Y,
 entity ID)` sorting; it never groups translucent geometry across intervening layers. A rotated
 orthographic camera projects affine-transformed Sprite corners and culls offscreen bounds.
+Extraction checks all IDs, including invisible inputs, before calling the resolver. ID validation
+uses contiguous scratch storage; ordering sorts compact references to the pre-resolver matrix/ID
+snapshot, skipping a re-sort when the complete order already holds. Returned geometry and Atlas
+owners remain independent of input storage; no persistent per-frame input cache is introduced.
 Covered AABB pixels are an overlap diagnostic, not measured GPU overdraw or fragment invocations.
 RGBA8 pixels/tints follow the shared UI linear-color contract; an sRGB swapchain encodes the final
 linear blend. PNG preparation preserves byte values and does not perform color-profile conversion.
@@ -77,7 +81,13 @@ Advance reject without advancing state; large valid steps emit every event rathe
 updates. A relative 1e-12 frame-duration tolerance stabilizes decimal duration boundaries across
 equivalent delta partitions. It is independent of skeletal animation and application behavior.
 
-SpatialIndex atomically rebuilds a sorted-ID grid of circles/AABBs. Overlap uses symmetric masks;
+SpatialIndex atomically rebuilds a sorted-ID grid of circles/AABBs. Cell references are stored
+contiguously in cell/shape order; queries deduplicate candidates and return IDs in the same sorted
+order. Rebuilds reuse a separate staging snapshot and publish only after complete validation.
+Both snapshots retain their high-water capacity until owner destruction and enforce the same
+limits of 100,000 shapes and 1,000,000 references each; an invalid rebuild may grow staging capacity
+but never changes published shapes or query results. This private C++ layout change requires all consumers to
+rebuild; public signatures and the C/Zig ABI are unchanged. Overlap uses symmetric masks;
 Query excludes the query's nonzero ID. Sweep is an exact point/disc sweep against circles and
 rounded AABBs, sorted by fraction/ID, including initial overlap. Very large queries use a bounded
 complete scan. Invalid queries return no hits; invalid builds preserve the prior index. Limits:

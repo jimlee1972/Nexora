@@ -181,3 +181,34 @@ range admissions. Large repeated batches retain exact geometry reuse; extra rang
 individually, retaining prior success/failure memo results. Portable full-limit bounds and real
 native pixels verify this extension without increasing GPU entry/memory limits.
 [Evidence](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md).
+
+## Vulkan FIFO availability and presentation synchronization (2026-10-18)
+
+✅ Shared Vulkan presentation now waits for FIFO image readiness with one reusable fence before
+admitting CPU frame work. Immediate remains asynchronous. Presentation semaphores belong to
+images; fence-protected uploads/timestamps follow the descriptor's bounded frame slots. Default
+two-image VSync and public C++/C/Zig layouts are unchanged. Initial SUBOPTIMAL extent recovery and
+partial allocation cleanup have native regression coverage. Full local MSVC Development/Shipping,
+native lifecycle/fault tests and both six-case Vulkan physical 2D repeats pass.
+[Evidence](../../Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18/acceptance.md) separates per-frame diagnostics, formal screening and final PR CI.
+This does not accept unrelated Showcase visual budgets, input-to-display latency, arbitrary GPU-heavy
+throughput, production minimum-PC/soak or clean-host gates.
+That prior mixed screen recorded 23/24, including a retained DX12 sparse maximum of 72.36 ms above 66.67 ms.
+
+## DX12 VSync queue admission (2026-10-18)
+
+✅ Shared DX12 VSync owns one DXGI waitable handle and admits each CPU frame after presentation
+capacity is available. Queue capacity follows the existing two/three slots, preserving CPU/GPU
+overlap; separate GPU fences still own allocator/upload/timestamp/retirement reuse. Immediate
+retains asynchronous acquisition. Resize retains creation flags/handle, zero extent suspends
+before waiting, wait failure rejects before slot reset, and teardown closes the handle once.
+Native two/three-slot, first-frame, wrong-thread, wait-failure, resize/resume and abandoned-frame
+regression passes; it rejects the old adapter for missing admission. Public headers/C/Zig ABI
+and default buffer count are unchanged by this DX12 change.
+
+The physical original-load 2D screen is now 24/24 with optional buffered per-frame evidence;
+33/33 related local contracts and complete Development/Shipping builds pass.
+[Evidence](../../Engine/TwoD/evidence/Windows-M6-DX12Pacing-2026-10-18/acceptance.md) retains the rejected single-queued-frame regression and the historical
+72.3556 ms DX12 failure, whose unique cause remains untraced. Final-head hosted gates are on
+[PR #644](https://github.com/jimlee1972/Nexora/pull/644). This does not accept Showcase visual
+budgets, arbitrary GPU-heavy throughput, input-to-display latency, full M6 or minimum-PC/soak.

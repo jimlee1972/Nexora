@@ -148,6 +148,13 @@ public:
       return SurfaceStatus::InvalidDescriptor;
     if (auto s = ApplyResize(); s != SurfaceStatus::Ready)
       return s;
+    // Presentation readiness and GPU completion protect different parts of the frame.
+    // Admit VSync CPU work before it can accumulate behind queued presents/resource drains.
+    if (frameReady_) {
+      if (WaitForSingleObject(frameReady_, INFINITE) != WAIT_OBJECT_0)
+        return SurfaceStatus::SurfaceLost;
+      ++diagnostics_.fenceWaits;
+    }
     frame_ = swapchain_->GetCurrentBackBufferIndex();
     if (fenceValues_[frame_] && fence_->GetCompletedValue() < fenceValues_[frame_]) {
       fence_->SetEventOnCompletion(fenceValues_[frame_], event_);
@@ -1012,6 +1019,10 @@ public:
     scenePbrRootSignature_.Reset();
     sceneRootSignature_.Reset();
     dsvHeap_.Reset();
+    if (frameReady_) {
+      CloseHandle(frameReady_);
+      frameReady_ = nullptr;
+    }
     swapchain_.Reset();
     destroyed_ = true;
     if (event_) {
@@ -1839,13 +1850,26 @@ private:
     d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     d.BufferCount = frames_;
     d.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    d.Flags = allowTearing_ ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+    d.Flags = SwapchainFlags();
     ComPtr<IDXGISwapChain1> s;
     if (FAILED(factory_->CreateSwapChainForHwnd(queue_.Get(), window_, &d, nullptr, nullptr, &s)))
       return false;
-    s.As(&swapchain_);
+    if (FAILED(s.As(&swapchain_)))
+      return false;
+    if (mode_ == PresentMode::VSync) {
+      // Retain CPU/GPU overlap while bounding the presentation queue to the upload slots.
+      if (FAILED(swapchain_->SetMaximumFrameLatency(frames_)))
+        return false;
+      frameReady_ = swapchain_->GetFrameLatencyWaitableObject();
+      if (!frameReady_)
+        return false;
+    }
     factory_->MakeWindowAssociation(window_, DXGI_MWA_NO_ALT_ENTER);
     return RebuildBuffers();
+  }
+  UINT SwapchainFlags() const noexcept {
+    return (allowTearing_ ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0) |
+           (mode_ == PresentMode::VSync ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0);
   }
   bool RebuildBuffers() {
     for (UINT i = 0; i < frames_; ++i) {
@@ -1908,8 +1932,8 @@ private:
     }
     for (auto &b : buffers_)
       b.Reset();
-    auto hr = swapchain_->ResizeBuffers(frames_, w, h, DXGI_FORMAT_R8G8B8A8_UNORM,
-                                        allowTearing_ ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
+    auto hr =
+        swapchain_->ResizeBuffers(frames_, w, h, DXGI_FORMAT_R8G8B8A8_UNORM, SwapchainFlags());
     diagnostics_.lastPlatformResult = hr;
     if (FAILED(hr))
       return hr == DXGI_ERROR_DEVICE_REMOVED ? SurfaceStatus::DeviceLost : SurfaceStatus::OutOfDate;
@@ -1929,6 +1953,7 @@ private:
   std::atomic<uint32_t> pendingWidth_{}, pendingHeight_{};
   std::atomic_bool dirty_{};
   HANDLE event_{};
+  HANDLE frameReady_{};
   UINT increment_{};
   UINT uiDescriptorIncrement_{};
   UINT nextUiDescriptor_{4 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.

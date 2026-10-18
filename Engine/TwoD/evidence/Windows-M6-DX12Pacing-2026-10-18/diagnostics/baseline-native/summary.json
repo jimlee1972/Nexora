@@ -1,0 +1,4426 @@
+{
+  "dx12-1.trace": {
+    "100,0,0": {
+      "frames": 600,
+      "p95_ms": 17.5867,
+      "p99_ms": 18.481099999999998,
+      "max_ms": 36.1042,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 36.1042,
+          "stages": {
+            "reload": 32.8681,
+            "acquire": 0.1312,
+            "populate": 0.0145,
+            "index": 0.0832,
+            "query": 0.0038,
+            "extract": 0.1061,
+            "draw": 2.2594,
+            "end": 0.6379
+          },
+          "native_ms": {
+            "wait": 32.2032,
+            "present": 0.3177,
+            "execute": 0.2186,
+            "signal": 0.0177,
+            "allocation": 2.0459,
+            "map": 0.0208,
+            "reset": 0.0531,
+            "set_event": 0.0085
+          },
+          "native_cycles": {
+            "wait": 249707.0,
+            "present": 940481.0,
+            "execute": 682882.0,
+            "signal": 57936.0,
+            "allocation": 4220524.0,
+            "map": 68554.0,
+            "reset": 177004.0,
+            "set_event": 28154.0
+          },
+          "thread_cycles": 9585483.0
+        },
+        {
+          "frame": 349,
+          "total_ms": 28.3466,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 27.4802,
+            "populate": 0.0164,
+            "index": 0.0544,
+            "query": 0.0031,
+            "extract": 0.0968,
+            "draw": 0.1098,
+            "end": 0.5853
+          },
+          "native_ms": {
+            "wait": 27.3495,
+            "present": 0.3969,
+            "execute": 0.1151,
+            "signal": 0.0071,
+            "allocation": 0.0,
+            "map": 0.0113,
+            "reset": 0.0567,
+            "set_event": 0.008
+          },
+          "native_cycles": {
+            "wait": 238634.0,
+            "present": 1317136.0,
+            "execute": 378286.0,
+            "signal": 23980.0,
+            "allocation": 0.0,
+            "map": 38275.0,
+            "reset": 188846.0,
+            "set_event": 26737.0
+          },
+          "thread_cycles": 3535247.0
+        },
+        {
+          "frame": 430,
+          "total_ms": 22.5022,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 21.5777,
+            "populate": 0.0164,
+            "index": 0.0526,
+            "query": 0.0036,
+            "extract": 0.0908,
+            "draw": 0.2031,
+            "end": 0.5573
+          },
+          "native_ms": {
+            "wait": 21.4364,
+            "present": 0.2838,
+            "execute": 0.1888,
+            "signal": 0.0088,
+            "allocation": 0.0,
+            "map": 0.0167,
+            "reset": 0.0624,
+            "set_event": 0.0094
+          },
+          "native_cycles": {
+            "wait": 228650.0,
+            "present": 942736.0,
+            "execute": 624236.0,
+            "signal": 29795.0,
+            "allocation": 0.0,
+            "map": 43347.0,
+            "reset": 206112.0,
+            "set_event": 30927.0
+          },
+          "thread_cycles": 3493232.0
+        },
+        {
+          "frame": 250,
+          "total_ms": 19.4273,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 18.6112,
+            "populate": 0.0185,
+            "index": 0.1352,
+            "query": 0.0036,
+            "extract": 0.0974,
+            "draw": 0.111,
+            "end": 0.4497
+          },
+          "native_ms": {
+            "wait": 18.4657,
+            "present": 0.2542,
+            "execute": 0.1196,
+            "signal": 0.0099,
+            "allocation": 0.0,
+            "map": 0.0118,
+            "reset": 0.0532,
+            "set_event": 0.0107
+          },
+          "native_cycles": {
+            "wait": 31820.0,
+            "present": 845232.0,
+            "execute": 390898.0,
+            "signal": 36173.0,
+            "allocation": 0.0,
+            "map": 40492.0,
+            "reset": 176973.0,
+            "set_event": 36054.0
+          },
+          "thread_cycles": 2955074.0
+        },
+        {
+          "frame": 189,
+          "total_ms": 18.9125,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 17.9949,
+            "populate": 0.018,
+            "index": 0.0453,
+            "query": 0.0031,
+            "extract": 0.0924,
+            "draw": 0.1289,
+            "end": 0.6291
+          },
+          "native_ms": {
+            "wait": 17.7447,
+            "present": 0.4223,
+            "execute": 0.1272,
+            "signal": 0.0093,
+            "allocation": 0.0,
+            "map": 0.0105,
+            "reset": 0.1144,
+            "set_event": 0.0098
+          },
+          "native_cycles": {
+            "wait": 255982.0,
+            "present": 1402393.0,
+            "execute": 419580.0,
+            "signal": 31081.0,
+            "allocation": 0.0,
+            "map": 35641.0,
+            "reset": 380373.0,
+            "set_event": 33020.0
+          },
+          "thread_cycles": 4119297.0
+        }
+      ]
+    },
+    "1000,0,0": {
+      "frames": 600,
+      "p95_ms": 17.7313,
+      "p99_ms": 18.5223,
+      "max_ms": 36.5531,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 36.5531,
+          "stages": {
+            "reload": 31.9849,
+            "acquire": 0.2594,
+            "populate": 0.0946,
+            "index": 0.4181,
+            "query": 0.0042,
+            "extract": 1.0219,
+            "draw": 2.3931,
+            "end": 0.3769
+          },
+          "native_ms": {
+            "wait": 30.8225,
+            "present": 0.2082,
+            "execute": 0.1031,
+            "signal": 0.0163,
+            "allocation": 1.7568,
+            "map": 0.0186,
+            "reset": 0.0355,
+            "set_event": 0.0077
+          },
+          "native_cycles": {
+            "wait": 245019.0,
+            "present": 691517.0,
+            "execute": 341461.0,
+            "signal": 53227.0,
+            "allocation": 3151467.0,
+            "map": 59332.0,
+            "reset": 118363.0,
+            "set_event": 25844.0
+          },
+          "thread_cycles": 15177766.0
+        },
+        {
+          "frame": 593,
+          "total_ms": 19.447100000000002,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.7844,
+            "populate": 0.1092,
+            "index": 0.6945,
+            "query": 0.004,
+            "extract": 0.9199,
+            "draw": 0.5121,
+            "end": 0.4225
+          },
+          "native_ms": {
+            "wait": 16.6408,
+            "present": 0.2423,
+            "execute": 0.1033,
+            "signal": 0.0084,
+            "allocation": 0.0,
+            "map": 0.0122,
+            "reset": 0.0532,
+            "set_event": 0.0081
+          },
+          "native_cycles": {
+            "wait": 254380.0,
+            "present": 805029.0,
+            "execute": 338397.0,
+            "signal": 28634.0,
+            "allocation": 0.0,
+            "map": 42164.0,
+            "reset": 177109.0,
+            "set_event": 26777.0
+          },
+          "thread_cycles": 9113592.0
+        },
+        {
+          "frame": 130,
+          "total_ms": 19.4053,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 14.5202,
+            "populate": 0.3369,
+            "index": 1.2306,
+            "query": 0.0063,
+            "extract": 1.9255,
+            "draw": 0.69,
+            "end": 0.6954
+          },
+          "native_ms": {
+            "wait": 14.4019,
+            "present": 0.3043,
+            "execute": 0.3095,
+            "signal": 0.0082,
+            "allocation": 0.0,
+            "map": 0.0075,
+            "reset": 0.0432,
+            "set_event": 0.0065
+          },
+          "native_cycles": {
+            "wait": 249945.0,
+            "present": 818612.0,
+            "execute": 689094.0,
+            "signal": 27494.0,
+            "allocation": 0.0,
+            "map": 25309.0,
+            "reset": 144973.0,
+            "set_event": 21610.0
+          },
+          "thread_cycles": 11910703.0
+        },
+        {
+          "frame": 550,
+          "total_ms": 19.2748,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.3945,
+            "populate": 0.1075,
+            "index": 0.9034,
+            "query": 0.0047,
+            "extract": 1.5203,
+            "draw": 0.8417,
+            "end": 0.5022
+          },
+          "native_ms": {
+            "wait": 14.7265,
+            "present": 0.2722,
+            "execute": 0.1227,
+            "signal": 0.0105,
+            "allocation": 0.0,
+            "map": 0.1487,
+            "reset": 0.0604,
+            "set_event": 0.0077
+          },
+          "native_cycles": {
+            "wait": 29211.0,
+            "present": 904386.0,
+            "execute": 404506.0,
+            "signal": 35618.0,
+            "allocation": 0.0,
+            "map": 292990.0,
+            "reset": 198629.0,
+            "set_event": 25777.0
+          },
+          "thread_cycles": 11473102.0
+        },
+        {
+          "frame": 71,
+          "total_ms": 19.0576,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 14.821,
+            "populate": 0.1041,
+            "index": 0.9991,
+            "query": 0.4375,
+            "extract": 1.4027,
+            "draw": 0.7762,
+            "end": 0.5163
+          },
+          "native_ms": {
+            "wait": 14.697,
+            "present": 0.267,
+            "execute": 0.1119,
+            "signal": 0.0066,
+            "allocation": 0.0,
+            "map": 0.0097,
+            "reset": 0.055,
+            "set_event": 0.008
+          },
+          "native_cycles": {
+            "wait": 234602.0,
+            "present": 883746.0,
+            "execute": 367432.0,
+            "signal": 22048.0,
+            "allocation": 0.0,
+            "map": 32768.0,
+            "reset": 183853.0,
+            "set_event": 26403.0
+          },
+          "thread_cycles": 10598540.0
+        }
+      ]
+    },
+    "5000,0,0": {
+      "frames": 600,
+      "p95_ms": 19.5901,
+      "p99_ms": 25.7947,
+      "max_ms": 38.6096,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 513,
+          "total_ms": 38.6096,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 5.6585,
+            "populate": 0.5149,
+            "index": 2.4769,
+            "query": 0.1764,
+            "extract": 17.8796,
+            "draw": 9.3205,
+            "end": 2.582
+          },
+          "native_ms": {
+            "wait": 5.5202,
+            "present": 2.3311,
+            "execute": 0.1472,
+            "signal": 0.0161,
+            "allocation": 0.0,
+            "map": 0.0076,
+            "reset": 0.0453,
+            "set_event": 0.0095
+          },
+          "native_cycles": {
+            "wait": 243606.0,
+            "present": 2153490.0,
+            "execute": 481099.0,
+            "signal": 54206.0,
+            "allocation": 0.0,
+            "map": 28161.0,
+            "reset": 151071.0,
+            "set_event": 31560.0
+          },
+          "thread_cycles": 38201772.0
+        },
+        {
+          "frame": 499,
+          "total_ms": 37.7243,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 3.7408,
+            "populate": 0.6415,
+            "index": 2.9527,
+            "query": 0.1709,
+            "extract": 10.2236,
+            "draw": 18.7125,
+            "end": 1.2817
+          },
+          "native_ms": {
+            "wait": 3.6346,
+            "present": 0.9156,
+            "execute": 0.1835,
+            "signal": 0.0094,
+            "allocation": 0.0,
+            "map": 0.0079,
+            "reset": 0.0442,
+            "set_event": 0.0078
+          },
+          "native_cycles": {
+            "wait": 23423.0,
+            "present": 2343842.0,
+            "execute": 600227.0,
+            "signal": 30795.0,
+            "allocation": 0.0,
+            "map": 26240.0,
+            "reset": 148687.0,
+            "set_event": 26249.0
+          },
+          "thread_cycles": 40227493.0
+        },
+        {
+          "frame": 493,
+          "total_ms": 35.1269,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 4.786,
+            "populate": 0.6295,
+            "index": 2.4737,
+            "query": 0.2424,
+            "extract": 4.079,
+            "draw": 16.7928,
+            "end": 6.1228
+          },
+          "native_ms": {
+            "wait": 4.6002,
+            "present": 5.9068,
+            "execute": 0.1253,
+            "signal": 0.0106,
+            "allocation": 0.0,
+            "map": 0.0691,
+            "reset": 0.0423,
+            "set_event": 0.0102
+          },
+          "native_cycles": {
+            "wait": 22703.0,
+            "present": 1769242.0,
+            "execute": 411622.0,
+            "signal": 35908.0,
+            "allocation": 0.0,
+            "map": 231142.0,
+            "reset": 141160.0,
+            "set_event": 33621.0
+          },
+          "thread_cycles": 37378121.0
+        },
+        {
+          "frame": 304,
+          "total_ms": 33.346199999999996,
+          "stages": {
+            "reload": 18.8694,
+            "acquire": 0.1212,
+            "populate": 2.1921,
+            "index": 2.3209,
+            "query": 0.1893,
+            "extract": 5.2849,
+            "draw": 3.9323,
+            "end": 0.4361
+          },
+          "native_ms": {
+            "wait": 10.6148,
+            "present": 0.2382,
+            "execute": 0.1142,
+            "signal": 0.0349,
+            "allocation": 1.4655,
+            "map": 0.0209,
+            "reset": 0.0589,
+            "set_event": 0.0118
+          },
+          "native_cycles": {
+            "wait": 28315.0,
+            "present": 756366.0,
+            "execute": 378704.0,
+            "signal": 108229.0,
+            "allocation": 3178897.0,
+            "map": 65667.0,
+            "reset": 195117.0,
+            "set_event": 39235.0
+          },
+          "thread_cycles": 61419466.0
+        },
+        {
+          "frame": 404,
+          "total_ms": 29.9613,
+          "stages": {
+            "reload": 0.0015,
+            "acquire": 0.0834,
+            "populate": 2.6354,
+            "index": 5.4274,
+            "query": 0.2201,
+            "extract": 16.8773,
+            "draw": 3.6944,
+            "end": 1.0218
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.7212,
+            "execute": 0.2091,
+            "signal": 0.0116,
+            "allocation": 0.0,
+            "map": 0.0064,
+            "reset": 0.0324,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 2389291.0,
+            "execute": 689740.0,
+            "signal": 39236.0,
+            "allocation": 0.0,
+            "map": 21367.0,
+            "reset": 108877.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 63616080.0
+        }
+      ]
+    },
+    "10000,0,0": {
+      "frames": 600,
+      "p95_ms": 24.8027,
+      "p99_ms": 27.732100000000003,
+      "max_ms": 47.924499999999995,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 22,
+          "total_ms": 47.924499999999995,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0578,
+            "populate": 28.9916,
+            "index": 4.3485,
+            "query": 0.2402,
+            "extract": 8.2135,
+            "draw": 5.5317,
+            "end": 0.5404
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3033,
+            "execute": 0.1413,
+            "signal": 0.0091,
+            "allocation": 0.0,
+            "map": 0.0037,
+            "reset": 0.0205,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1006935.0,
+            "execute": 465746.0,
+            "signal": 30284.0,
+            "allocation": 0.0,
+            "map": 12222.0,
+            "reset": 68924.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 158339562.0
+        },
+        {
+          "frame": 56,
+          "total_ms": 38.9384,
+          "stages": {
+            "reload": 0.0011,
+            "acquire": 0.0627,
+            "populate": 17.5133,
+            "index": 4.9305,
+            "query": 0.2692,
+            "extract": 9.6139,
+            "draw": 6.0383,
+            "end": 0.5094
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2903,
+            "execute": 0.1248,
+            "signal": 0.0153,
+            "allocation": 0.0,
+            "map": 0.0047,
+            "reset": 0.0235,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 964075.0,
+            "execute": 408525.0,
+            "signal": 51760.0,
+            "allocation": 0.0,
+            "map": 16137.0,
+            "reset": 78314.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 127680204.0
+        },
+        {
+          "frame": 304,
+          "total_ms": 32.1625,
+          "stages": {
+            "reload": 8.3444,
+            "acquire": 0.1093,
+            "populate": 2.6244,
+            "index": 4.7081,
+            "query": 0.3613,
+            "extract": 8.7649,
+            "draw": 6.796,
+            "end": 0.4541
+          },
+          "native_ms": {
+            "wait": 0.0015,
+            "present": 0.2567,
+            "execute": 0.1201,
+            "signal": 0.0317,
+            "allocation": 1.1536,
+            "map": 0.0198,
+            "reset": 0.042,
+            "set_event": 0.0112
+          },
+          "native_cycles": {
+            "wait": 4930.0,
+            "present": 852036.0,
+            "execute": 397882.0,
+            "signal": 102552.0,
+            "allocation": 2328428.0,
+            "map": 63090.0,
+            "reset": 140008.0,
+            "set_event": 37315.0
+          },
+          "thread_cycles": 102979642.0
+        },
+        {
+          "frame": 21,
+          "total_ms": 29.9427,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 0.0672,
+            "populate": 8.3275,
+            "index": 4.8631,
+            "query": 0.2746,
+            "extract": 9.8448,
+            "draw": 6.0469,
+            "end": 0.5179
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2933,
+            "execute": 0.1252,
+            "signal": 0.0186,
+            "allocation": 0.0,
+            "map": 0.0036,
+            "reset": 0.0194,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 970784.0,
+            "execute": 412542.0,
+            "signal": 62365.0,
+            "allocation": 0.0,
+            "map": 11950.0,
+            "reset": 64946.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 97936340.0
+        },
+        {
+          "frame": 133,
+          "total_ms": 28.1059,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0572,
+            "populate": 2.4273,
+            "index": 5.2443,
+            "query": 0.3183,
+            "extract": 11.85,
+            "draw": 7.6961,
+            "end": 0.5119
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2928,
+            "execute": 0.1199,
+            "signal": 0.011,
+            "allocation": 0.0,
+            "map": 0.0041,
+            "reset": 0.0194,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 972193.0,
+            "execute": 394977.0,
+            "signal": 36566.0,
+            "allocation": 0.0,
+            "map": 13888.0,
+            "reset": 65200.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 91998357.0
+        }
+      ]
+    },
+    "1000,0,1": {
+      "frames": 600,
+      "p95_ms": 17.6796,
+      "p99_ms": 18.6222,
+      "max_ms": 35.1172,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.1172,
+          "stages": {
+            "reload": 30.727,
+            "acquire": 0.0962,
+            "populate": 0.1014,
+            "index": 0.65,
+            "query": 0.5935,
+            "extract": 0.6784,
+            "draw": 1.9273,
+            "end": 0.3434
+          },
+          "native_ms": {
+            "wait": 29.7898,
+            "present": 0.1872,
+            "execute": 0.0996,
+            "signal": 0.0125,
+            "allocation": 1.4009,
+            "map": 0.0145,
+            "reset": 0.0404,
+            "set_event": 0.0056
+          },
+          "native_cycles": {
+            "wait": 225288.0,
+            "present": 621654.0,
+            "execute": 330036.0,
+            "signal": 41726.0,
+            "allocation": 2571778.0,
+            "map": 46002.0,
+            "reset": 131571.0,
+            "set_event": 18664.0
+          },
+          "thread_cycles": 15317969.0
+        },
+        {
+          "frame": 471,
+          "total_ms": 20.8546,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 17.7877,
+            "populate": 0.083,
+            "index": 0.6858,
+            "query": 0.6064,
+            "extract": 0.8385,
+            "draw": 0.4836,
+            "end": 0.3689
+          },
+          "native_ms": {
+            "wait": 17.6755,
+            "present": 0.1935,
+            "execute": 0.0977,
+            "signal": 0.0065,
+            "allocation": 0.0,
+            "map": 0.0105,
+            "reset": 0.0458,
+            "set_event": 0.0093
+          },
+          "native_cycles": {
+            "wait": 235287.0,
+            "present": 642758.0,
+            "execute": 319239.0,
+            "signal": 21910.0,
+            "allocation": 0.0,
+            "map": 31673.0,
+            "reset": 152414.0,
+            "set_event": 31230.0
+          },
+          "thread_cycles": 10744815.0
+        },
+        {
+          "frame": 49,
+          "total_ms": 20.206,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 14.6579,
+            "populate": 0.1126,
+            "index": 1.4925,
+            "query": 0.655,
+            "extract": 0.936,
+            "draw": 0.8984,
+            "end": 1.4531
+          },
+          "native_ms": {
+            "wait": 14.3409,
+            "present": 0.4858,
+            "execute": 0.7933,
+            "signal": 0.0088,
+            "allocation": 0.0,
+            "map": 0.01,
+            "reset": 0.2394,
+            "set_event": 0.007
+          },
+          "native_cycles": {
+            "wait": 26479.0,
+            "present": 1374563.0,
+            "execute": 1736722.0,
+            "signal": 29733.0,
+            "allocation": 0.0,
+            "map": 33405.0,
+            "reset": 243067.0,
+            "set_event": 23029.0
+          },
+          "thread_cycles": 15606932.0
+        },
+        {
+          "frame": 570,
+          "total_ms": 19.9097,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.8035,
+            "populate": 0.4188,
+            "index": 1.2489,
+            "query": 0.6545,
+            "extract": 0.7901,
+            "draw": 0.5042,
+            "end": 0.4892
+          },
+          "native_ms": {
+            "wait": 15.7027,
+            "present": 0.3119,
+            "execute": 0.108,
+            "signal": 0.0068,
+            "allocation": 0.0,
+            "map": 0.0089,
+            "reset": 0.0415,
+            "set_event": 0.006
+          },
+          "native_cycles": {
+            "wait": 452047.0,
+            "present": 1035224.0,
+            "execute": 356714.0,
+            "signal": 22878.0,
+            "allocation": 0.0,
+            "map": 29846.0,
+            "reset": 138653.0,
+            "set_event": 20193.0
+          },
+          "thread_cycles": 12878952.0
+        },
+        {
+          "frame": 289,
+          "total_ms": 19.1737,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 14.0854,
+            "populate": 0.1046,
+            "index": 1.0406,
+            "query": 1.1122,
+            "extract": 0.8468,
+            "draw": 0.7079,
+            "end": 1.2757
+          },
+          "native_ms": {
+            "wait": 13.958,
+            "present": 0.7702,
+            "execute": 0.2666,
+            "signal": 0.0093,
+            "allocation": 0.0,
+            "map": 0.0114,
+            "reset": 0.0568,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 234039.0,
+            "present": 1597787.0,
+            "execute": 608841.0,
+            "signal": 31306.0,
+            "allocation": 0.0,
+            "map": 37743.0,
+            "reset": 190132.0,
+            "set_event": 21151.0
+          },
+          "thread_cycles": 14981038.0
+        }
+      ]
+    },
+    "10000,1,0": {
+      "frames": 600,
+      "p95_ms": 20.1681,
+      "p99_ms": 24.2829,
+      "max_ms": 36.7864,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 152,
+          "total_ms": 36.7864,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 0.0605,
+            "populate": 1.2598,
+            "index": 9.5983,
+            "query": 0.0413,
+            "extract": 24.9581,
+            "draw": 0.1975,
+            "end": 0.6703
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.4358,
+            "execute": 0.1278,
+            "signal": 0.0253,
+            "allocation": 0.0,
+            "map": 0.0032,
+            "reset": 0.0162,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1113402.0,
+            "execute": 419443.0,
+            "signal": 84484.0,
+            "allocation": 0.0,
+            "map": 10665.0,
+            "reset": 54193.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 63697653.0
+        },
+        {
+          "frame": 528,
+          "total_ms": 33.1815,
+          "stages": {
+            "reload": 0.0011,
+            "acquire": 0.0691,
+            "populate": 1.512,
+            "index": 24.74,
+            "query": 0.0432,
+            "extract": 6.1633,
+            "draw": 0.177,
+            "end": 0.4758
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2553,
+            "execute": 0.1275,
+            "signal": 0.0118,
+            "allocation": 0.0,
+            "map": 0.0051,
+            "reset": 0.0265,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 847495.0,
+            "execute": 419384.0,
+            "signal": 39429.0,
+            "allocation": 0.0,
+            "map": 17191.0,
+            "reset": 88523.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 62872420.0
+        },
+        {
+          "frame": 304,
+          "total_ms": 31.939,
+          "stages": {
+            "reload": 14.4316,
+            "acquire": 0.0901,
+            "populate": 1.7105,
+            "index": 7.9054,
+            "query": 0.0246,
+            "extract": 5.1181,
+            "draw": 2.1275,
+            "end": 0.5312
+          },
+          "native_ms": {
+            "wait": 7.0312,
+            "present": 0.3189,
+            "execute": 0.1257,
+            "signal": 0.0266,
+            "allocation": 1.8558,
+            "map": 0.0213,
+            "reset": 0.0402,
+            "set_event": 0.0088
+          },
+          "native_cycles": {
+            "wait": 21258.0,
+            "present": 1058651.0,
+            "execute": 415733.0,
+            "signal": 81922.0,
+            "allocation": 3353133.0,
+            "map": 67811.0,
+            "reset": 133947.0,
+            "set_event": 29192.0
+          },
+          "thread_cycles": 78472725.0
+        },
+        {
+          "frame": 595,
+          "total_ms": 30.3805,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 0.0476,
+            "populate": 1.1122,
+            "index": 8.0067,
+            "query": 0.0275,
+            "extract": 20.568,
+            "draw": 0.1521,
+            "end": 0.4657
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2684,
+            "execute": 0.1164,
+            "signal": 0.0122,
+            "allocation": 0.0,
+            "map": 0.0031,
+            "reset": 0.015,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 890416.0,
+            "execute": 382521.0,
+            "signal": 40782.0,
+            "allocation": 0.0,
+            "map": 10324.0,
+            "reset": 50409.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 100589719.0
+        },
+        {
+          "frame": 432,
+          "total_ms": 27.1666,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 0.2143,
+            "populate": 1.2906,
+            "index": 13.5719,
+            "query": 0.0374,
+            "extract": 11.4201,
+            "draw": 0.1724,
+            "end": 0.459
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2501,
+            "execute": 0.1181,
+            "signal": 0.0083,
+            "allocation": 0.0,
+            "map": 0.0048,
+            "reset": 0.1703,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 830765.0,
+            "execute": 386919.0,
+            "signal": 27794.0,
+            "allocation": 0.0,
+            "map": 16067.0,
+            "reset": 328768.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 62591450.0
+        }
+      ]
+    }
+  },
+  "dx12-2.trace": {
+    "100,0,0": {
+      "frames": 600,
+      "p95_ms": 17.528000000000002,
+      "p99_ms": 18.2818,
+      "max_ms": 35.0328,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.0328,
+          "stages": {
+            "reload": 32.841,
+            "acquire": 0.1167,
+            "populate": 0.0119,
+            "index": 0.1604,
+            "query": 0.0066,
+            "extract": 0.183,
+            "draw": 1.3311,
+            "end": 0.3821
+          },
+          "native_ms": {
+            "wait": 31.9861,
+            "present": 0.2165,
+            "execute": 0.1027,
+            "signal": 0.0183,
+            "allocation": 1.1331,
+            "map": 0.0171,
+            "reset": 0.0448,
+            "set_event": 0.0073
+          },
+          "native_cycles": {
+            "wait": 215343.0,
+            "present": 719553.0,
+            "execute": 340323.0,
+            "signal": 60660.0,
+            "allocation": 2009186.0,
+            "map": 54401.0,
+            "reset": 149898.0,
+            "set_event": 24136.0
+          },
+          "thread_cycles": 6853650.0
+        },
+        {
+          "frame": 507,
+          "total_ms": 19.125,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 17.6952,
+            "populate": 0.0166,
+            "index": 0.0538,
+            "query": 0.0032,
+            "extract": 0.3001,
+            "draw": 0.3355,
+            "end": 0.7201
+          },
+          "native_ms": {
+            "wait": 17.5714,
+            "present": 0.5201,
+            "execute": 0.1091,
+            "signal": 0.01,
+            "allocation": 0.0,
+            "map": 0.008,
+            "reset": 0.0428,
+            "set_event": 0.0084
+          },
+          "native_cycles": {
+            "wait": 236290.0,
+            "present": 1725452.0,
+            "execute": 358751.0,
+            "signal": 33286.0,
+            "allocation": 0.0,
+            "map": 26696.0,
+            "reset": 143353.0,
+            "set_event": 28313.0
+          },
+          "thread_cycles": 4476755.0
+        },
+        {
+          "frame": 525,
+          "total_ms": 18.6818,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 17.5553,
+            "populate": 0.0229,
+            "index": 0.0671,
+            "query": 0.0027,
+            "extract": 0.1006,
+            "draw": 0.1078,
+            "end": 0.8249
+          },
+          "native_ms": {
+            "wait": 17.4407,
+            "present": 0.2724,
+            "execute": 0.0892,
+            "signal": 0.0076,
+            "allocation": 0.0,
+            "map": 0.0076,
+            "reset": 0.0467,
+            "set_event": 0.0087
+          },
+          "native_cycles": {
+            "wait": 237404.0,
+            "present": 904624.0,
+            "execute": 292136.0,
+            "signal": 25674.0,
+            "allocation": 0.0,
+            "map": 27675.0,
+            "reset": 155386.0,
+            "set_event": 47477.0
+          },
+          "thread_cycles": 3507420.0
+        },
+        {
+          "frame": 441,
+          "total_ms": 18.6172,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 17.6427,
+            "populate": 0.0146,
+            "index": 0.0516,
+            "query": 0.0027,
+            "extract": 0.0883,
+            "draw": 0.0976,
+            "end": 0.719
+          },
+          "native_ms": {
+            "wait": 17.5506,
+            "present": 0.5576,
+            "execute": 0.0872,
+            "signal": 0.0095,
+            "allocation": 0.0,
+            "map": 0.0063,
+            "reset": 0.0386,
+            "set_event": 0.008
+          },
+          "native_cycles": {
+            "wait": 242106.0,
+            "present": 1375562.0,
+            "execute": 287442.0,
+            "signal": 32102.0,
+            "allocation": 0.0,
+            "map": 21158.0,
+            "reset": 128014.0,
+            "set_event": 26948.0
+          },
+          "thread_cycles": 3296135.0
+        },
+        {
+          "frame": 476,
+          "total_ms": 18.495,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 17.7714,
+            "populate": 0.0169,
+            "index": 0.0536,
+            "query": 0.0035,
+            "extract": 0.0885,
+            "draw": 0.1021,
+            "end": 0.4585
+          },
+          "native_ms": {
+            "wait": 17.6271,
+            "present": 0.2649,
+            "execute": 0.1255,
+            "signal": 0.0083,
+            "allocation": 0.0,
+            "map": 0.0103,
+            "reset": 0.0543,
+            "set_event": 0.0091
+          },
+          "native_cycles": {
+            "wait": 234869.0,
+            "present": 879723.0,
+            "execute": 414643.0,
+            "signal": 28056.0,
+            "allocation": 0.0,
+            "map": 34779.0,
+            "reset": 180979.0,
+            "set_event": 29931.0
+          },
+          "thread_cycles": 3104166.0
+        }
+      ]
+    },
+    "1000,0,0": {
+      "frames": 600,
+      "p95_ms": 17.761400000000002,
+      "p99_ms": 18.4229,
+      "max_ms": 34.9137,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.9137,
+          "stages": {
+            "reload": 31.3857,
+            "acquire": 0.0687,
+            "populate": 0.081,
+            "index": 0.5312,
+            "query": 0.0034,
+            "extract": 0.7878,
+            "draw": 1.709,
+            "end": 0.3469
+          },
+          "native_ms": {
+            "wait": 29.9896,
+            "present": 0.1966,
+            "execute": 0.0906,
+            "signal": 0.0224,
+            "allocation": 1.2258,
+            "map": 0.0145,
+            "reset": 0.0306,
+            "set_event": 0.0072
+          },
+          "native_cycles": {
+            "wait": 207266.0,
+            "present": 653136.0,
+            "execute": 299674.0,
+            "signal": 71624.0,
+            "allocation": 2279135.0,
+            "map": 47267.0,
+            "reset": 101939.0,
+            "set_event": 24108.0
+          },
+          "thread_cycles": 13573051.0
+        },
+        {
+          "frame": 430,
+          "total_ms": 18.727300000000003,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.2707,
+            "populate": 0.0988,
+            "index": 0.5422,
+            "query": 0.0039,
+            "extract": 0.7455,
+            "draw": 0.6189,
+            "end": 0.4468
+          },
+          "native_ms": {
+            "wait": 16.1745,
+            "present": 0.2839,
+            "execute": 0.0939,
+            "signal": 0.0085,
+            "allocation": 0.0,
+            "map": 0.0076,
+            "reset": 0.0392,
+            "set_event": 0.0065
+          },
+          "native_cycles": {
+            "wait": 223606.0,
+            "present": 943186.0,
+            "execute": 306050.0,
+            "signal": 28512.0,
+            "allocation": 0.0,
+            "map": 25646.0,
+            "reset": 131383.0,
+            "set_event": 21433.0
+          },
+          "thread_cycles": 8681201.0
+        },
+        {
+          "frame": 475,
+          "total_ms": 18.6163,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 15.545,
+            "populate": 0.1129,
+            "index": 0.4319,
+            "query": 0.0048,
+            "extract": 0.9733,
+            "draw": 1.0292,
+            "end": 0.5188
+          },
+          "native_ms": {
+            "wait": 15.3876,
+            "present": 0.3018,
+            "execute": 0.1168,
+            "signal": 0.0078,
+            "allocation": 0.0,
+            "map": 0.0124,
+            "reset": 0.0582,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 236931.0,
+            "present": 1000502.0,
+            "execute": 384540.0,
+            "signal": 26259.0,
+            "allocation": 0.0,
+            "map": 42490.0,
+            "reset": 193685.0,
+            "set_event": 21646.0
+          },
+          "thread_cycles": 9952549.0
+        },
+        {
+          "frame": 459,
+          "total_ms": 18.576999999999998,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 14.7541,
+            "populate": 0.1036,
+            "index": 0.4855,
+            "query": 0.0045,
+            "extract": 1.9793,
+            "draw": 0.7313,
+            "end": 0.5181
+          },
+          "native_ms": {
+            "wait": 14.5979,
+            "present": 0.3093,
+            "execute": 0.1211,
+            "signal": 0.0082,
+            "allocation": 0.0,
+            "map": 0.0172,
+            "reset": 0.0554,
+            "set_event": 0.0079
+          },
+          "native_cycles": {
+            "wait": 247293.0,
+            "present": 1026529.0,
+            "execute": 394114.0,
+            "signal": 27534.0,
+            "allocation": 0.0,
+            "map": 57920.0,
+            "reset": 186388.0,
+            "set_event": 26429.0
+          },
+          "thread_cycles": 10225488.0
+        },
+        {
+          "frame": 467,
+          "total_ms": 18.5337,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.8695,
+            "populate": 0.1372,
+            "index": 0.4825,
+            "query": 0.0041,
+            "extract": 1.1075,
+            "draw": 0.5276,
+            "end": 0.4048
+          },
+          "native_ms": {
+            "wait": 15.5175,
+            "present": 0.2151,
+            "execute": 0.1093,
+            "signal": 0.0068,
+            "allocation": 0.0,
+            "map": 0.0135,
+            "reset": 0.1867,
+            "set_event": 0.0066
+          },
+          "native_cycles": {
+            "wait": 283983.0,
+            "present": 714529.0,
+            "execute": 357200.0,
+            "signal": 22885.0,
+            "allocation": 0.0,
+            "map": 45496.0,
+            "reset": 496873.0,
+            "set_event": 22037.0
+          },
+          "thread_cycles": 9968179.0
+        }
+      ]
+    },
+    "5000,0,0": {
+      "frames": 600,
+      "p95_ms": 18.6053,
+      "p99_ms": 21.408,
+      "max_ms": 34.2933,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.2933,
+          "stages": {
+            "reload": 23.4492,
+            "acquire": 0.0706,
+            "populate": 1.1838,
+            "index": 1.9768,
+            "query": 0.1387,
+            "extract": 3.7314,
+            "draw": 3.2551,
+            "end": 0.4877
+          },
+          "native_ms": {
+            "wait": 20.1605,
+            "present": 0.2605,
+            "execute": 0.1669,
+            "signal": 0.025,
+            "allocation": 1.2381,
+            "map": 0.0149,
+            "reset": 0.0315,
+            "set_event": 0.0077
+          },
+          "native_cycles": {
+            "wait": 394592.0,
+            "present": 772415.0,
+            "execute": 553476.0,
+            "signal": 81376.0,
+            "allocation": 2342281.0,
+            "map": 48909.0,
+            "reset": 104968.0,
+            "set_event": 25478.0
+          },
+          "thread_cycles": 44793310.0
+        },
+        {
+          "frame": 552,
+          "total_ms": 32.484899999999996,
+          "stages": {
+            "reload": 0.0013,
+            "acquire": 3.8089,
+            "populate": 0.5395,
+            "index": 2.53,
+            "query": 2.7608,
+            "extract": 16.1486,
+            "draw": 6.1593,
+            "end": 0.5365
+          },
+          "native_ms": {
+            "wait": 3.674,
+            "present": 0.2983,
+            "execute": 0.144,
+            "signal": 0.0093,
+            "allocation": 0.0,
+            "map": 0.0111,
+            "reset": 0.0573,
+            "set_event": 0.0112
+          },
+          "native_cycles": {
+            "wait": 494964.0,
+            "present": 991272.0,
+            "execute": 418544.0,
+            "signal": 30980.0,
+            "allocation": 0.0,
+            "map": 37786.0,
+            "reset": 191756.0,
+            "set_event": 37952.0
+          },
+          "thread_cycles": 46050106.0
+        },
+        {
+          "frame": 542,
+          "total_ms": 31.8966,
+          "stages": {
+            "reload": 0.0012,
+            "acquire": 6.6462,
+            "populate": 0.6631,
+            "index": 7.1407,
+            "query": 1.7934,
+            "extract": 12.0719,
+            "draw": 2.9673,
+            "end": 0.6128
+          },
+          "native_ms": {
+            "wait": 6.3881,
+            "present": 0.3028,
+            "execute": 0.1553,
+            "signal": 0.0096,
+            "allocation": 0.0,
+            "map": 0.0095,
+            "reset": 0.1188,
+            "set_event": 0.0112
+          },
+          "native_cycles": {
+            "wait": 246267.0,
+            "present": 1001085.0,
+            "execute": 506873.0,
+            "signal": 31727.0,
+            "allocation": 0.0,
+            "map": 30183.0,
+            "reset": 395316.0,
+            "set_event": 37577.0
+          },
+          "thread_cycles": 62628877.0
+        },
+        {
+          "frame": 333,
+          "total_ms": 31.7317,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 6.438,
+            "populate": 4.1402,
+            "index": 11.9126,
+            "query": 0.8441,
+            "extract": 5.6204,
+            "draw": 2.3473,
+            "end": 0.4285
+          },
+          "native_ms": {
+            "wait": 6.2848,
+            "present": 0.23,
+            "execute": 0.1178,
+            "signal": 0.0072,
+            "allocation": 0.0,
+            "map": 0.0188,
+            "reset": 0.0627,
+            "set_event": 0.0076
+          },
+          "native_cycles": {
+            "wait": 243363.0,
+            "present": 763967.0,
+            "execute": 384627.0,
+            "signal": 24292.0,
+            "allocation": 0.0,
+            "map": 42195.0,
+            "reset": 209775.0,
+            "set_event": 25037.0
+          },
+          "thread_cycles": 62216059.0
+        },
+        {
+          "frame": 373,
+          "total_ms": 26.031,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 5.2137,
+            "populate": 0.7605,
+            "index": 2.4274,
+            "query": 0.1764,
+            "extract": 7.6895,
+            "draw": 8.6675,
+            "end": 1.0951
+          },
+          "native_ms": {
+            "wait": 4.9874,
+            "present": 0.8682,
+            "execute": 0.1251,
+            "signal": 0.0121,
+            "allocation": 0.0,
+            "map": 0.01,
+            "reset": 0.0634,
+            "set_event": 0.011
+          },
+          "native_cycles": {
+            "wait": 230322.0,
+            "present": 2371737.0,
+            "execute": 377129.0,
+            "signal": 40501.0,
+            "allocation": 0.0,
+            "map": 33479.0,
+            "reset": 208876.0,
+            "set_event": 36176.0
+          },
+          "thread_cycles": 52616919.0
+        }
+      ]
+    },
+    "10000,0,0": {
+      "frames": 600,
+      "p95_ms": 25.473399999999998,
+      "p99_ms": 37.9833,
+      "max_ms": 52.8003,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 370,
+          "total_ms": 52.8003,
+          "stages": {
+            "reload": 0.0012,
+            "acquire": 30.6107,
+            "populate": 1.3658,
+            "index": 5.3103,
+            "query": 0.2924,
+            "extract": 8.7124,
+            "draw": 5.8595,
+            "end": 0.648
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3056,
+            "execute": 0.2378,
+            "signal": 0.0123,
+            "allocation": 0.0,
+            "map": 0.0054,
+            "reset": 0.0289,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1014496.0,
+            "execute": 781794.0,
+            "signal": 41361.0,
+            "allocation": 0.0,
+            "map": 18345.0,
+            "reset": 97755.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 71970924.0
+        },
+        {
+          "frame": 371,
+          "total_ms": 44.8013,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.074,
+            "populate": 1.6692,
+            "index": 4.8874,
+            "query": 0.2782,
+            "extract": 31.6128,
+            "draw": 5.7336,
+            "end": 0.5451
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3134,
+            "execute": 0.1383,
+            "signal": 0.0121,
+            "allocation": 0.0,
+            "map": 0.0048,
+            "reset": 0.0244,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1035733.0,
+            "execute": 454629.0,
+            "signal": 40675.0,
+            "allocation": 0.0,
+            "map": 15805.0,
+            "reset": 81814.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 73519931.0
+        },
+        {
+          "frame": 353,
+          "total_ms": 42.0493,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0777,
+            "populate": 1.8291,
+            "index": 6.9957,
+            "query": 0.3602,
+            "extract": 9.4155,
+            "draw": 21.8538,
+            "end": 1.5165
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.5955,
+            "execute": 0.7978,
+            "signal": 0.0304,
+            "allocation": 0.0,
+            "map": 0.0055,
+            "reset": 0.0263,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1258896.0,
+            "execute": 958169.0,
+            "signal": 101288.0,
+            "allocation": 0.0,
+            "map": 18162.0,
+            "reset": 87953.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 80404192.0
+        },
+        {
+          "frame": 358,
+          "total_ms": 41.6106,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.0803,
+            "populate": 1.7781,
+            "index": 4.8803,
+            "query": 0.2916,
+            "extract": 28.3385,
+            "draw": 5.6885,
+            "end": 0.5523
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2933,
+            "execute": 0.1641,
+            "signal": 0.0133,
+            "allocation": 0.0,
+            "map": 0.0048,
+            "reset": 0.0246,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 974042.0,
+            "execute": 538561.0,
+            "signal": 44077.0,
+            "allocation": 0.0,
+            "map": 15688.0,
+            "reset": 81974.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 76245104.0
+        },
+        {
+          "frame": 359,
+          "total_ms": 39.1781,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.061,
+            "populate": 1.3751,
+            "index": 5.7217,
+            "query": 0.2831,
+            "extract": 8.511,
+            "draw": 22.5315,
+            "end": 0.6937
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3119,
+            "execute": 0.1925,
+            "signal": 0.0129,
+            "allocation": 0.0,
+            "map": 0.0043,
+            "reset": 0.0211,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1035401.0,
+            "execute": 634703.0,
+            "signal": 42951.0,
+            "allocation": 0.0,
+            "map": 14667.0,
+            "reset": 71034.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 73384223.0
+        }
+      ]
+    },
+    "1000,0,1": {
+      "frames": 600,
+      "p95_ms": 17.5503,
+      "p99_ms": 18.0406,
+      "max_ms": 34.5244,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.5244,
+          "stages": {
+            "reload": 30.1005,
+            "acquire": 0.0617,
+            "populate": 0.0772,
+            "index": 0.867,
+            "query": 0.5463,
+            "extract": 0.8574,
+            "draw": 1.6729,
+            "end": 0.3414
+          },
+          "native_ms": {
+            "wait": 29.0665,
+            "present": 0.1968,
+            "execute": 0.0867,
+            "signal": 0.0126,
+            "allocation": 1.1546,
+            "map": 0.0144,
+            "reset": 0.0271,
+            "set_event": 0.006
+          },
+          "native_cycles": {
+            "wait": 223619.0,
+            "present": 653515.0,
+            "execute": 287549.0,
+            "signal": 42123.0,
+            "allocation": 1967179.0,
+            "map": 46766.0,
+            "reset": 90431.0,
+            "set_event": 20163.0
+          },
+          "thread_cycles": 15547337.0
+        },
+        {
+          "frame": 257,
+          "total_ms": 20.327,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 14.1696,
+            "populate": 0.1139,
+            "index": 2.344,
+            "query": 0.9057,
+            "extract": 0.8687,
+            "draw": 0.9015,
+            "end": 1.0231
+          },
+          "native_ms": {
+            "wait": 14.0408,
+            "present": 0.3467,
+            "execute": 0.5843,
+            "signal": 0.0071,
+            "allocation": 0.0,
+            "map": 0.0102,
+            "reset": 0.0573,
+            "set_event": 0.0078
+          },
+          "native_cycles": {
+            "wait": 227735.0,
+            "present": 986509.0,
+            "execute": 630007.0,
+            "signal": 23688.0,
+            "allocation": 0.0,
+            "map": 34312.0,
+            "reset": 191459.0,
+            "set_event": 26014.0
+          },
+          "thread_cycles": 14128155.0
+        },
+        {
+          "frame": 559,
+          "total_ms": 18.7051,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 13.9097,
+            "populate": 0.1296,
+            "index": 1.4747,
+            "query": 1.3051,
+            "extract": 1.0483,
+            "draw": 0.4697,
+            "end": 0.3676
+          },
+          "native_ms": {
+            "wait": 13.8299,
+            "present": 0.2004,
+            "execute": 0.0962,
+            "signal": 0.0077,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0328,
+            "set_event": 0.0062
+          },
+          "native_cycles": {
+            "wait": 222508.0,
+            "present": 665797.0,
+            "execute": 315218.0,
+            "signal": 25773.0,
+            "allocation": 0.0,
+            "map": 19844.0,
+            "reset": 109993.0,
+            "set_event": 20827.0
+          },
+          "thread_cycles": 14646437.0
+        },
+        {
+          "frame": 436,
+          "total_ms": 18.6824,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.507,
+            "populate": 0.0948,
+            "index": 0.7118,
+            "query": 0.7434,
+            "extract": 0.7036,
+            "draw": 0.501,
+            "end": 0.4203
+          },
+          "native_ms": {
+            "wait": 15.3589,
+            "present": 0.2406,
+            "execute": 0.1102,
+            "signal": 0.0074,
+            "allocation": 0.0,
+            "map": 0.0117,
+            "reset": 0.056,
+            "set_event": 0.0073
+          },
+          "native_cycles": {
+            "wait": 255955.0,
+            "present": 797154.0,
+            "execute": 364235.0,
+            "signal": 24766.0,
+            "allocation": 0.0,
+            "map": 39112.0,
+            "reset": 186360.0,
+            "set_event": 24336.0
+          },
+          "thread_cycles": 11227294.0
+        },
+        {
+          "frame": 444,
+          "total_ms": 18.537,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.6828,
+            "populate": 0.1044,
+            "index": 0.7343,
+            "query": 0.5981,
+            "extract": 0.6797,
+            "draw": 0.4273,
+            "end": 0.3099
+          },
+          "native_ms": {
+            "wait": 15.5403,
+            "present": 0.1726,
+            "execute": 0.0797,
+            "signal": 0.0062,
+            "allocation": 0.0,
+            "map": 0.0073,
+            "reset": 0.0671,
+            "set_event": 0.0083
+          },
+          "native_cycles": {
+            "wait": 226160.0,
+            "present": 573614.0,
+            "execute": 262087.0,
+            "signal": 20687.0,
+            "allocation": 0.0,
+            "map": 23268.0,
+            "reset": 225279.0,
+            "set_event": 27683.0
+          },
+          "thread_cycles": 10079814.0
+        }
+      ]
+    },
+    "10000,1,0": {
+      "frames": 600,
+      "p95_ms": 20.1552,
+      "p99_ms": 23.6068,
+      "max_ms": 36.1103,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 36.1103,
+          "stages": {
+            "reload": 19.039,
+            "acquire": 0.191,
+            "populate": 1.4018,
+            "index": 7.7988,
+            "query": 0.0284,
+            "extract": 4.8619,
+            "draw": 2.235,
+            "end": 0.5544
+          },
+          "native_ms": {
+            "wait": 11.4803,
+            "present": 0.3288,
+            "execute": 0.1356,
+            "signal": 0.0333,
+            "allocation": 1.9862,
+            "map": 0.022,
+            "reset": 0.0372,
+            "set_event": 0.0126
+          },
+          "native_cycles": {
+            "wait": 18447.0,
+            "present": 1091504.0,
+            "execute": 444706.0,
+            "signal": 106264.0,
+            "allocation": 4068888.0,
+            "map": 72255.0,
+            "reset": 124024.0,
+            "set_event": 41765.0
+          },
+          "thread_cycles": 77944453.0
+        },
+        {
+          "frame": 162,
+          "total_ms": 32.2821,
+          "stages": {
+            "reload": 0.0011,
+            "acquire": 0.0714,
+            "populate": 1.5546,
+            "index": 8.7007,
+            "query": 0.0284,
+            "extract": 20.9703,
+            "draw": 0.1946,
+            "end": 0.761
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.5184,
+            "execute": 0.1456,
+            "signal": 0.0097,
+            "allocation": 0.0,
+            "map": 0.0052,
+            "reset": 0.0268,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1348477.0,
+            "execute": 479944.0,
+            "signal": 32268.0,
+            "allocation": 0.0,
+            "map": 18297.0,
+            "reset": 89916.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 60547155.0
+        },
+        {
+          "frame": 442,
+          "total_ms": 30.127599999999997,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.0698,
+            "populate": 1.5702,
+            "index": 8.9865,
+            "query": 0.0294,
+            "extract": 18.5128,
+            "draw": 0.2699,
+            "end": 0.688
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3512,
+            "execute": 0.2137,
+            "signal": 0.0189,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0243,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1165763.0,
+            "execute": 701304.0,
+            "signal": 63357.0,
+            "allocation": 0.0,
+            "map": 18898.0,
+            "reset": 81395.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 98735974.0
+        },
+        {
+          "frame": 39,
+          "total_ms": 26.8876,
+          "stages": {
+            "reload": 0.0013,
+            "acquire": 0.0703,
+            "populate": 2.4384,
+            "index": 17.5308,
+            "query": 0.0322,
+            "extract": 6.052,
+            "draw": 0.1873,
+            "end": 0.5753
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3316,
+            "execute": 0.1432,
+            "signal": 0.0149,
+            "allocation": 0.0,
+            "map": 0.0039,
+            "reset": 0.0245,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1101678.0,
+            "execute": 470337.0,
+            "signal": 49636.0,
+            "allocation": 0.0,
+            "map": 13322.0,
+            "reset": 85188.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 67896915.0
+        },
+        {
+          "frame": 271,
+          "total_ms": 25.8647,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0471,
+            "populate": 1.1482,
+            "index": 8.8703,
+            "query": 0.0453,
+            "extract": 15.1548,
+            "draw": 0.1611,
+            "end": 0.4371
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2356,
+            "execute": 0.1129,
+            "signal": 0.017,
+            "allocation": 0.0,
+            "map": 0.0032,
+            "reset": 0.0162,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 782551.0,
+            "execute": 372470.0,
+            "signal": 53258.0,
+            "allocation": 0.0,
+            "map": 11008.0,
+            "reset": 54559.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 84816556.0
+        }
+      ]
+    }
+  },
+  "dx12-3.trace": {
+    "100,0,0": {
+      "frames": 600,
+      "p95_ms": 17.5454,
+      "p99_ms": 18.6352,
+      "max_ms": 43.6107,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 43.6107,
+          "stages": {
+            "reload": 32.909,
+            "acquire": 0.2161,
+            "populate": 0.0158,
+            "index": 0.0572,
+            "query": 0.0037,
+            "extract": 0.0992,
+            "draw": 9.7527,
+            "end": 0.557
+          },
+          "native_ms": {
+            "wait": 32.2176,
+            "present": 0.322,
+            "execute": 0.1475,
+            "signal": 0.0237,
+            "allocation": 9.529,
+            "map": 0.0267,
+            "reset": 0.1332,
+            "set_event": 0.0087
+          },
+          "native_cycles": {
+            "wait": 261049.0,
+            "present": 1069125.0,
+            "execute": 487167.0,
+            "signal": 78237.0,
+            "allocation": 3988721.0,
+            "map": 89346.0,
+            "reset": 441099.0,
+            "set_event": 29350.0
+          },
+          "thread_cycles": 9650682.0
+        },
+        {
+          "frame": 578,
+          "total_ms": 34.7451,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 25.3861,
+            "populate": 0.016,
+            "index": 0.0609,
+            "query": 0.0033,
+            "extract": 0.0998,
+            "draw": 0.1127,
+            "end": 9.0654
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 8.7336,
+            "execute": 0.2527,
+            "signal": 0.0103,
+            "allocation": 0.0,
+            "map": 0.0139,
+            "reset": 0.0578,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 2735899.0,
+            "execute": 812204.0,
+            "signal": 34483.0,
+            "allocation": 0.0,
+            "map": 42467.0,
+            "reset": 192703.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 5500789.0
+        },
+        {
+          "frame": 224,
+          "total_ms": 27.7749,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 15.7707,
+            "populate": 0.019,
+            "index": 0.0458,
+            "query": 0.0033,
+            "extract": 0.0942,
+            "draw": 0.1072,
+            "end": 11.7341
+          },
+          "native_ms": {
+            "wait": 15.6297,
+            "present": 1.0319,
+            "execute": 10.6229,
+            "signal": 0.0098,
+            "allocation": 0.0,
+            "map": 0.0116,
+            "reset": 0.0634,
+            "set_event": 0.0104
+          },
+          "native_cycles": {
+            "wait": 239080.0,
+            "present": 2394689.0,
+            "execute": 2274542.0,
+            "signal": 33108.0,
+            "allocation": 0.0,
+            "map": 40004.0,
+            "reset": 211355.0,
+            "set_event": 33639.0
+          },
+          "thread_cycles": 6515931.0
+        },
+        {
+          "frame": 252,
+          "total_ms": 22.973499999999998,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 15.7411,
+            "populate": 0.0204,
+            "index": 0.0509,
+            "query": 0.0041,
+            "extract": 0.1055,
+            "draw": 0.1273,
+            "end": 6.9235
+          },
+          "native_ms": {
+            "wait": 15.5997,
+            "present": 6.6445,
+            "execute": 0.1178,
+            "signal": 0.0112,
+            "allocation": 0.0,
+            "map": 0.0113,
+            "reset": 0.064,
+            "set_event": 0.0092
+          },
+          "native_cycles": {
+            "wait": 37309.0,
+            "present": 2328654.0,
+            "execute": 389998.0,
+            "signal": 37496.0,
+            "allocation": 0.0,
+            "map": 38805.0,
+            "reset": 213539.0,
+            "set_event": 30967.0
+          },
+          "thread_cycles": 4522859.0
+        },
+        {
+          "frame": 210,
+          "total_ms": 21.922,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.2236,
+            "populate": 0.2724,
+            "index": 0.0525,
+            "query": 0.0032,
+            "extract": 0.108,
+            "draw": 0.1126,
+            "end": 5.1492
+          },
+          "native_ms": {
+            "wait": 15.9943,
+            "present": 4.9324,
+            "execute": 0.1313,
+            "signal": 0.0139,
+            "allocation": 0.0,
+            "map": 0.01,
+            "reset": 0.0617,
+            "set_event": 0.0086
+          },
+          "native_cycles": {
+            "wait": 32646.0,
+            "present": 2954095.0,
+            "execute": 433575.0,
+            "signal": 46206.0,
+            "allocation": 0.0,
+            "map": 34493.0,
+            "reset": 207010.0,
+            "set_event": 28524.0
+          },
+          "thread_cycles": 5932283.0
+        }
+      ]
+    },
+    "1000,0,0": {
+      "frames": 600,
+      "p95_ms": 17.6404,
+      "p99_ms": 20.796599999999998,
+      "max_ms": 34.9025,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.9025,
+          "stages": {
+            "reload": 30.8399,
+            "acquire": 0.1862,
+            "populate": 0.1163,
+            "index": 0.4353,
+            "query": 0.0034,
+            "extract": 0.7336,
+            "draw": 2.2245,
+            "end": 0.3633
+          },
+          "native_ms": {
+            "wait": 29.6865,
+            "present": 0.2106,
+            "execute": 0.092,
+            "signal": 0.0158,
+            "allocation": 1.57,
+            "map": 0.0186,
+            "reset": 0.1352,
+            "set_event": 0.0072
+          },
+          "native_cycles": {
+            "wait": 225687.0,
+            "present": 699652.0,
+            "execute": 304993.0,
+            "signal": 51994.0,
+            "allocation": 3401469.0,
+            "map": 60022.0,
+            "reset": 114702.0,
+            "set_event": 24293.0
+          },
+          "thread_cycles": 14233369.0
+        },
+        {
+          "frame": 108,
+          "total_ms": 34.0754,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 14.8993,
+            "populate": 0.1116,
+            "index": 16.6557,
+            "query": 0.005,
+            "extract": 0.8772,
+            "draw": 0.5669,
+            "end": 0.9588
+          },
+          "native_ms": {
+            "wait": 14.7589,
+            "present": 0.663,
+            "execute": 0.191,
+            "signal": 0.0092,
+            "allocation": 0.0,
+            "map": 0.0127,
+            "reset": 0.0615,
+            "set_event": 0.0089
+          },
+          "native_cycles": {
+            "wait": 234723.0,
+            "present": 1687836.0,
+            "execute": 615123.0,
+            "signal": 30730.0,
+            "allocation": 0.0,
+            "map": 42413.0,
+            "reset": 205810.0,
+            "set_event": 29598.0
+          },
+          "thread_cycles": 10052752.0
+        },
+        {
+          "frame": 177,
+          "total_ms": 33.3483,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 14.7912,
+            "populate": 0.1283,
+            "index": 0.4502,
+            "query": 0.0036,
+            "extract": 0.8436,
+            "draw": 0.5449,
+            "end": 16.5859
+          },
+          "native_ms": {
+            "wait": 14.5097,
+            "present": 16.338,
+            "execute": 0.1524,
+            "signal": 0.0085,
+            "allocation": 0.0,
+            "map": 0.0159,
+            "reset": 0.1319,
+            "set_event": 0.0071
+          },
+          "native_cycles": {
+            "wait": 255201.0,
+            "present": 1647001.0,
+            "execute": 499787.0,
+            "signal": 28224.0,
+            "allocation": 0.0,
+            "map": 54997.0,
+            "reset": 438418.0,
+            "set_event": 23817.0
+          },
+          "thread_cycles": 10170438.0
+        },
+        {
+          "frame": 143,
+          "total_ms": 25.5364,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 14.2933,
+            "populate": 0.0983,
+            "index": 0.4384,
+            "query": 0.0043,
+            "extract": 0.7963,
+            "draw": 9.4006,
+            "end": 0.5046
+          },
+          "native_ms": {
+            "wait": 14.1605,
+            "present": 0.2726,
+            "execute": 0.1237,
+            "signal": 0.0074,
+            "allocation": 0.0,
+            "map": 0.0127,
+            "reset": 0.058,
+            "set_event": 0.0094
+          },
+          "native_cycles": {
+            "wait": 238208.0,
+            "present": 905014.0,
+            "execute": 404616.0,
+            "signal": 24962.0,
+            "allocation": 0.0,
+            "map": 41800.0,
+            "reset": 193425.0,
+            "set_event": 31437.0
+          },
+          "thread_cycles": 8904900.0
+        },
+        {
+          "frame": 155,
+          "total_ms": 24.7153,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 22.4239,
+            "populate": 0.0927,
+            "index": 0.3997,
+            "query": 0.0036,
+            "extract": 0.8003,
+            "draw": 0.5238,
+            "end": 0.4708
+          },
+          "native_ms": {
+            "wait": 22.2783,
+            "present": 0.2757,
+            "execute": 0.121,
+            "signal": 0.0095,
+            "allocation": 0.0,
+            "map": 0.0108,
+            "reset": 0.0539,
+            "set_event": 0.0092
+          },
+          "native_cycles": {
+            "wait": 236042.0,
+            "present": 916324.0,
+            "execute": 400112.0,
+            "signal": 32381.0,
+            "allocation": 0.0,
+            "map": 36570.0,
+            "reset": 179843.0,
+            "set_event": 30695.0
+          },
+          "thread_cycles": 8303369.0
+        }
+      ]
+    },
+    "5000,0,0": {
+      "frames": 600,
+      "p95_ms": 18.3035,
+      "p99_ms": 19.2815,
+      "max_ms": 35.3017,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.3017,
+          "stages": {
+            "reload": 23.8492,
+            "acquire": 0.2058,
+            "populate": 1.1463,
+            "index": 2.1705,
+            "query": 0.1678,
+            "extract": 4.2926,
+            "draw": 3.0958,
+            "end": 0.3737
+          },
+          "native_ms": {
+            "wait": 19.9493,
+            "present": 0.2035,
+            "execute": 0.1028,
+            "signal": 0.0208,
+            "allocation": 1.1173,
+            "map": 0.0162,
+            "reset": 0.0988,
+            "set_event": 0.017
+          },
+          "native_cycles": {
+            "wait": 228845.0,
+            "present": 676288.0,
+            "execute": 340515.0,
+            "signal": 67211.0,
+            "allocation": 2043214.0,
+            "map": 52027.0,
+            "reset": 328892.0,
+            "set_event": 56266.0
+          },
+          "thread_cycles": 47802971.0
+        },
+        {
+          "frame": 88,
+          "total_ms": 27.8309,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 4.5945,
+            "populate": 2.4505,
+            "index": 8.9914,
+            "query": 1.5809,
+            "extract": 7.3759,
+            "draw": 2.3607,
+            "end": 0.4764
+          },
+          "native_ms": {
+            "wait": 4.3714,
+            "present": 0.256,
+            "execute": 0.1313,
+            "signal": 0.008,
+            "allocation": 0.0,
+            "map": 0.0089,
+            "reset": 0.1267,
+            "set_event": 0.0086
+          },
+          "native_cycles": {
+            "wait": 248116.0,
+            "present": 850361.0,
+            "execute": 429285.0,
+            "signal": 27376.0,
+            "allocation": 0.0,
+            "map": 29397.0,
+            "reset": 382863.0,
+            "set_event": 28346.0
+          },
+          "thread_cycles": 56531008.0
+        },
+        {
+          "frame": 492,
+          "total_ms": 19.7357,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 7.146,
+            "populate": 1.1349,
+            "index": 2.4181,
+            "query": 0.3299,
+            "extract": 4.9951,
+            "draw": 2.4925,
+            "end": 1.2186
+          },
+          "native_ms": {
+            "wait": 7.0352,
+            "present": 0.9627,
+            "execute": 0.1496,
+            "signal": 0.0126,
+            "allocation": 0.0,
+            "map": 0.0057,
+            "reset": 0.0364,
+            "set_event": 0.0071
+          },
+          "native_cycles": {
+            "wait": 18121.0,
+            "present": 2170924.0,
+            "execute": 490567.0,
+            "signal": 42219.0,
+            "allocation": 0.0,
+            "map": 19861.0,
+            "reset": 122803.0,
+            "set_event": 23533.0
+          },
+          "thread_cycles": 39697229.0
+        },
+        {
+          "frame": 546,
+          "total_ms": 19.4091,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 7.4653,
+            "populate": 1.2728,
+            "index": 2.264,
+            "query": 0.1798,
+            "extract": 4.2646,
+            "draw": 3.5164,
+            "end": 0.4452
+          },
+          "native_ms": {
+            "wait": 7.3297,
+            "present": 0.2372,
+            "execute": 0.1039,
+            "signal": 0.0073,
+            "allocation": 0.0,
+            "map": 0.0118,
+            "reset": 0.0527,
+            "set_event": 0.0131
+          },
+          "native_cycles": {
+            "wait": 235731.0,
+            "present": 787907.0,
+            "execute": 340379.0,
+            "signal": 24337.0,
+            "allocation": 0.0,
+            "map": 39943.0,
+            "reset": 175722.0,
+            "set_event": 43519.0
+          },
+          "thread_cycles": 37099127.0
+        },
+        {
+          "frame": 114,
+          "total_ms": 19.3276,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 5.0643,
+            "populate": 1.85,
+            "index": 2.9863,
+            "query": 0.2007,
+            "extract": 6.047,
+            "draw": 2.619,
+            "end": 0.5596
+          },
+          "native_ms": {
+            "wait": 4.8781,
+            "present": 0.3257,
+            "execute": 0.1381,
+            "signal": 0.0119,
+            "allocation": 0.0,
+            "map": 0.0675,
+            "reset": 0.0422,
+            "set_event": 0.0089
+          },
+          "native_cycles": {
+            "wait": 224737.0,
+            "present": 1081277.0,
+            "execute": 454546.0,
+            "signal": 37529.0,
+            "allocation": 0.0,
+            "map": 224169.0,
+            "reset": 138917.0,
+            "set_event": 29657.0
+          },
+          "thread_cycles": 46709683.0
+        }
+      ]
+    },
+    "10000,0,0": {
+      "frames": 600,
+      "p95_ms": 25.4475,
+      "p99_ms": 29.361800000000002,
+      "max_ms": 40.8817,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 251,
+          "total_ms": 40.8817,
+          "stages": {
+            "reload": 0.0011,
+            "acquire": 0.0884,
+            "populate": 2.2306,
+            "index": 5.1577,
+            "query": 0.4395,
+            "extract": 27.3133,
+            "draw": 4.9201,
+            "end": 0.731
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.4982,
+            "execute": 0.1344,
+            "signal": 0.015,
+            "allocation": 0.0,
+            "map": 0.0056,
+            "reset": 0.0288,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1102610.0,
+            "execute": 439168.0,
+            "signal": 50592.0,
+            "allocation": 0.0,
+            "map": 18418.0,
+            "reset": 95747.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 75447715.0
+        },
+        {
+          "frame": 261,
+          "total_ms": 40.8048,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 0.0627,
+            "populate": 1.5813,
+            "index": 4.4249,
+            "query": 0.2384,
+            "extract": 29.0803,
+            "draw": 4.7139,
+            "end": 0.7024
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3957,
+            "execute": 0.1973,
+            "signal": 0.0158,
+            "allocation": 0.0,
+            "map": 0.0046,
+            "reset": 0.0229,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1312861.0,
+            "execute": 651286.0,
+            "signal": 53821.0,
+            "allocation": 0.0,
+            "map": 15565.0,
+            "reset": 76673.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 71707937.0
+        },
+        {
+          "frame": 179,
+          "total_ms": 30.4266,
+          "stages": {
+            "reload": 0.0013,
+            "acquire": 0.0839,
+            "populate": 2.5731,
+            "index": 6.2838,
+            "query": 0.5295,
+            "extract": 12.2777,
+            "draw": 8.1244,
+            "end": 0.5529
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3039,
+            "execute": 0.1307,
+            "signal": 0.0124,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0301,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1009469.0,
+            "execute": 428385.0,
+            "signal": 41277.0,
+            "allocation": 0.0,
+            "map": 19196.0,
+            "reset": 101564.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 95828018.0
+        },
+        {
+          "frame": 181,
+          "total_ms": 30.304,
+          "stages": {
+            "reload": 0.0015,
+            "acquire": 0.0755,
+            "populate": 3.6877,
+            "index": 7.0422,
+            "query": 0.5008,
+            "extract": 12.5171,
+            "draw": 6.0028,
+            "end": 0.4764
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2583,
+            "execute": 0.1297,
+            "signal": 0.0117,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0298,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 857612.0,
+            "execute": 426020.0,
+            "signal": 39113.0,
+            "allocation": 0.0,
+            "map": 18990.0,
+            "reset": 99587.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 93051621.0
+        },
+        {
+          "frame": 304,
+          "total_ms": 30.3016,
+          "stages": {
+            "reload": 7.2801,
+            "acquire": 0.1578,
+            "populate": 1.8695,
+            "index": 4.8421,
+            "query": 0.2627,
+            "extract": 8.1818,
+            "draw": 7.2904,
+            "end": 0.4172
+          },
+          "native_ms": {
+            "wait": 0.0019,
+            "present": 0.2357,
+            "execute": 0.1043,
+            "signal": 0.0546,
+            "allocation": 1.2791,
+            "map": 0.0193,
+            "reset": 0.1054,
+            "set_event": 0.0098
+          },
+          "native_cycles": {
+            "wait": 6148.0,
+            "present": 782656.0,
+            "execute": 344939.0,
+            "signal": 177558.0,
+            "allocation": 2649356.0,
+            "map": 63368.0,
+            "reset": 350819.0,
+            "set_event": 32527.0
+          },
+          "thread_cycles": 95773811.0
+        }
+      ]
+    },
+    "1000,0,1": {
+      "frames": 600,
+      "p95_ms": 17.747,
+      "p99_ms": 18.419999999999998,
+      "max_ms": 34.969,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.969,
+          "stages": {
+            "reload": 30.7478,
+            "acquire": 0.0917,
+            "populate": 0.1073,
+            "index": 0.6145,
+            "query": 0.5424,
+            "extract": 0.6578,
+            "draw": 1.8527,
+            "end": 0.3548
+          },
+          "native_ms": {
+            "wait": 29.5185,
+            "present": 0.1992,
+            "execute": 0.0958,
+            "signal": 0.0151,
+            "allocation": 1.2318,
+            "map": 0.0139,
+            "reset": 0.0336,
+            "set_event": 0.0062
+          },
+          "native_cycles": {
+            "wait": 223940.0,
+            "present": 659348.0,
+            "execute": 316441.0,
+            "signal": 49202.0,
+            "allocation": 1937063.0,
+            "map": 45243.0,
+            "reset": 112157.0,
+            "set_event": 20650.0
+          },
+          "thread_cycles": 14515119.0
+        },
+        {
+          "frame": 396,
+          "total_ms": 23.5421,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 13.8032,
+            "populate": 0.1199,
+            "index": 0.8809,
+            "query": 0.7147,
+            "extract": 7.0328,
+            "draw": 0.5336,
+            "end": 0.4566
+          },
+          "native_ms": {
+            "wait": 13.5699,
+            "present": 0.2508,
+            "execute": 0.1222,
+            "signal": 0.0066,
+            "allocation": 0.0,
+            "map": 0.0156,
+            "reset": 0.1429,
+            "set_event": 0.0111
+          },
+          "native_cycles": {
+            "wait": 257806.0,
+            "present": 832794.0,
+            "execute": 399393.0,
+            "signal": 22484.0,
+            "allocation": 0.0,
+            "map": 54206.0,
+            "reset": 471519.0,
+            "set_event": 36951.0
+          },
+          "thread_cycles": 13162526.0
+        },
+        {
+          "frame": 368,
+          "total_ms": 19.819,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 13.9531,
+            "populate": 0.1305,
+            "index": 0.9588,
+            "query": 1.2409,
+            "extract": 2.6593,
+            "draw": 0.488,
+            "end": 0.3879
+          },
+          "native_ms": {
+            "wait": 13.8743,
+            "present": 0.2196,
+            "execute": 0.0983,
+            "signal": 0.0075,
+            "allocation": 0.0,
+            "map": 0.0054,
+            "reset": 0.0326,
+            "set_event": 0.0062
+          },
+          "native_cycles": {
+            "wait": 221630.0,
+            "present": 729475.0,
+            "execute": 322786.0,
+            "signal": 25165.0,
+            "allocation": 0.0,
+            "map": 18539.0,
+            "reset": 108881.0,
+            "set_event": 20715.0
+          },
+          "thread_cycles": 15626051.0
+        },
+        {
+          "frame": 548,
+          "total_ms": 19.4514,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 14.1533,
+            "populate": 0.1688,
+            "index": 2.8023,
+            "query": 0.6813,
+            "extract": 0.7485,
+            "draw": 0.5426,
+            "end": 0.3541
+          },
+          "native_ms": {
+            "wait": 14.0282,
+            "present": 0.1935,
+            "execute": 0.0943,
+            "signal": 0.0065,
+            "allocation": 0.0,
+            "map": 0.0061,
+            "reset": 0.0352,
+            "set_event": 0.0341
+          },
+          "native_cycles": {
+            "wait": 228319.0,
+            "present": 642813.0,
+            "execute": 308852.0,
+            "signal": 21956.0,
+            "allocation": 0.0,
+            "map": 20476.0,
+            "reset": 118416.0,
+            "set_event": 74071.0
+          },
+          "thread_cycles": 12964431.0
+        },
+        {
+          "frame": 215,
+          "total_ms": 18.6992,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 13.5336,
+            "populate": 0.1043,
+            "index": 1.2902,
+            "query": 0.7255,
+            "extract": 0.8153,
+            "draw": 1.2214,
+            "end": 1.0084
+          },
+          "native_ms": {
+            "wait": 13.3918,
+            "present": 0.5129,
+            "execute": 0.1247,
+            "signal": 0.0093,
+            "allocation": 0.0,
+            "map": 0.0097,
+            "reset": 0.0514,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 227015.0,
+            "present": 1680475.0,
+            "execute": 399450.0,
+            "signal": 30801.0,
+            "allocation": 0.0,
+            "map": 32558.0,
+            "reset": 171328.0,
+            "set_event": 21365.0
+          },
+          "thread_cycles": 13090540.0
+        }
+      ]
+    },
+    "10000,1,0": {
+      "frames": 600,
+      "p95_ms": 19.9205,
+      "p99_ms": 22.1113,
+      "max_ms": 29.4774,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 278,
+          "total_ms": 29.4774,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 0.0636,
+            "populate": 1.1901,
+            "index": 18.2149,
+            "query": 0.0338,
+            "extract": 8.9122,
+            "draw": 0.3131,
+            "end": 0.749
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.4365,
+            "execute": 0.2006,
+            "signal": 0.0296,
+            "allocation": 0.0,
+            "map": 0.003,
+            "reset": 0.0177,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1448509.0,
+            "execute": 660873.0,
+            "signal": 99003.0,
+            "allocation": 0.0,
+            "map": 10045.0,
+            "reset": 59553.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 79921591.0
+        },
+        {
+          "frame": 304,
+          "total_ms": 28.4067,
+          "stages": {
+            "reload": 8.8526,
+            "acquire": 0.1243,
+            "populate": 2.0321,
+            "index": 9.6902,
+            "query": 0.0307,
+            "extract": 5.6839,
+            "draw": 1.5574,
+            "end": 0.4355
+          },
+          "native_ms": {
+            "wait": 0.0015,
+            "present": 0.2436,
+            "execute": 0.1142,
+            "signal": 0.0346,
+            "allocation": 1.3307,
+            "map": 0.0217,
+            "reset": 0.0511,
+            "set_event": 0.0118
+          },
+          "native_cycles": {
+            "wait": 5260.0,
+            "present": 808850.0,
+            "execute": 377828.0,
+            "signal": 109992.0,
+            "allocation": 2315687.0,
+            "map": 69037.0,
+            "reset": 169974.0,
+            "set_event": 39326.0
+          },
+          "thread_cycles": 90935415.0
+        },
+        {
+          "frame": 70,
+          "total_ms": 26.6577,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0516,
+            "populate": 1.3839,
+            "index": 8.5005,
+            "query": 0.0303,
+            "extract": 8.1226,
+            "draw": 0.1873,
+            "end": 8.3807
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.6564,
+            "execute": 7.6311,
+            "signal": 0.0085,
+            "allocation": 0.0,
+            "map": 0.0033,
+            "reset": 0.0192,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1534302.0,
+            "execute": 1957551.0,
+            "signal": 28367.0,
+            "allocation": 0.0,
+            "map": 11135.0,
+            "reset": 63464.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 60099154.0
+        },
+        {
+          "frame": 250,
+          "total_ms": 25.541700000000002,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.0572,
+            "populate": 1.3351,
+            "index": 16.4311,
+            "query": 0.0362,
+            "extract": 6.671,
+            "draw": 0.2623,
+            "end": 0.7478
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.5001,
+            "execute": 0.1464,
+            "signal": 0.0162,
+            "allocation": 0.0,
+            "map": 0.0038,
+            "reset": 0.0207,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1659009.0,
+            "execute": 481193.0,
+            "signal": 53622.0,
+            "allocation": 0.0,
+            "map": 12635.0,
+            "reset": 69464.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 75228320.0
+        },
+        {
+          "frame": 252,
+          "total_ms": 25.3304,
+          "stages": {
+            "reload": 0.0012,
+            "acquire": 0.0733,
+            "populate": 1.3992,
+            "index": 11.9928,
+            "query": 0.0352,
+            "extract": 10.8916,
+            "draw": 0.2003,
+            "end": 0.7368
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3639,
+            "execute": 0.2133,
+            "signal": 0.009,
+            "allocation": 0.0,
+            "map": 0.0053,
+            "reset": 0.0259,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 981562.0,
+            "execute": 703383.0,
+            "signal": 30107.0,
+            "allocation": 0.0,
+            "map": 18061.0,
+            "reset": 86217.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 69610027.0
+        }
+      ]
+    }
+  },
+  "dx12-4.trace": {
+    "100,0,0": {
+      "frames": 600,
+      "p95_ms": 17.4572,
+      "p99_ms": 17.7817,
+      "max_ms": 35.6336,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.6336,
+          "stages": {
+            "reload": 33.182,
+            "acquire": 0.0689,
+            "populate": 0.0174,
+            "index": 0.048,
+            "query": 0.0023,
+            "extract": 0.0872,
+            "draw": 1.8661,
+            "end": 0.3617
+          },
+          "native_ms": {
+            "wait": 32.5569,
+            "present": 0.1924,
+            "execute": 0.0998,
+            "signal": 0.0146,
+            "allocation": 1.4357,
+            "map": 0.0149,
+            "reset": 0.0297,
+            "set_event": 0.0065
+          },
+          "native_cycles": {
+            "wait": 223978.0,
+            "present": 639013.0,
+            "execute": 326700.0,
+            "signal": 48193.0,
+            "allocation": 2978795.0,
+            "map": 49166.0,
+            "reset": 99282.0,
+            "set_event": 21734.0
+          },
+          "thread_cycles": 7160027.0
+        },
+        {
+          "frame": 156,
+          "total_ms": 20.506999999999998,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.9731,
+            "populate": 0.017,
+            "index": 0.0418,
+            "query": 0.0032,
+            "extract": 0.0872,
+            "draw": 0.2497,
+            "end": 3.1345
+          },
+          "native_ms": {
+            "wait": 16.8463,
+            "present": 2.8213,
+            "execute": 0.1904,
+            "signal": 0.0149,
+            "allocation": 0.0,
+            "map": 0.0103,
+            "reset": 0.0593,
+            "set_event": 0.0061
+          },
+          "native_cycles": {
+            "wait": 215343.0,
+            "present": 1837426.0,
+            "execute": 629459.0,
+            "signal": 50527.0,
+            "allocation": 0.0,
+            "map": 34880.0,
+            "reset": 197035.0,
+            "set_event": 20366.0
+          },
+          "thread_cycles": 4712797.0
+        },
+        {
+          "frame": 420,
+          "total_ms": 18.2575,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 16.6771,
+            "populate": 0.0172,
+            "index": 0.0523,
+            "query": 0.0027,
+            "extract": 0.085,
+            "draw": 0.3412,
+            "end": 1.0816
+          },
+          "native_ms": {
+            "wait": 16.2981,
+            "present": 0.7312,
+            "execute": 0.0947,
+            "signal": 0.0118,
+            "allocation": 0.0,
+            "map": 0.0069,
+            "reset": 0.1013,
+            "set_event": 0.0066
+          },
+          "native_cycles": {
+            "wait": 223976.0,
+            "present": 1361118.0,
+            "execute": 311932.0,
+            "signal": 39439.0,
+            "allocation": 0.0,
+            "map": 22859.0,
+            "reset": 338364.0,
+            "set_event": 21871.0
+          },
+          "thread_cycles": 4492741.0
+        },
+        {
+          "frame": 62,
+          "total_ms": 18.051299999999998,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 16.514,
+            "populate": 0.0171,
+            "index": 0.5257,
+            "query": 0.0029,
+            "extract": 0.0971,
+            "draw": 0.3934,
+            "end": 0.5005
+          },
+          "native_ms": {
+            "wait": 16.4309,
+            "present": 0.2775,
+            "execute": 0.1604,
+            "signal": 0.0071,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0347,
+            "set_event": 0.0077
+          },
+          "native_cycles": {
+            "wait": 225188.0,
+            "present": 921306.0,
+            "execute": 529165.0,
+            "signal": 24062.0,
+            "allocation": 0.0,
+            "map": 19257.0,
+            "reset": 116303.0,
+            "set_event": 27361.0
+          },
+          "thread_cycles": 4351775.0
+        },
+        {
+          "frame": 539,
+          "total_ms": 18.0165,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 17.4273,
+            "populate": 0.0143,
+            "index": 0.0482,
+            "query": 0.0023,
+            "extract": 0.0798,
+            "draw": 0.1492,
+            "end": 0.295
+          },
+          "native_ms": {
+            "wait": 17.3346,
+            "present": 0.1748,
+            "execute": 0.0711,
+            "signal": 0.006,
+            "allocation": 0.0,
+            "map": 0.0053,
+            "reset": 0.0322,
+            "set_event": 0.0074
+          },
+          "native_cycles": {
+            "wait": 222023.0,
+            "present": 580964.0,
+            "execute": 234721.0,
+            "signal": 20262.0,
+            "allocation": 0.0,
+            "map": 17598.0,
+            "reset": 106491.0,
+            "set_event": 24666.0
+          },
+          "thread_cycles": 2477839.0
+        }
+      ]
+    },
+    "1000,0,0": {
+      "frames": 600,
+      "p95_ms": 17.5218,
+      "p99_ms": 18.4319,
+      "max_ms": 36.956199999999995,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 36.956199999999995,
+          "stages": {
+            "reload": 31.9501,
+            "acquire": 0.1146,
+            "populate": 0.1783,
+            "index": 0.4583,
+            "query": 0.0041,
+            "extract": 0.7968,
+            "draw": 2.4951,
+            "end": 0.9589
+          },
+          "native_ms": {
+            "wait": 30.5393,
+            "present": 0.4403,
+            "execute": 0.3804,
+            "signal": 0.0207,
+            "allocation": 1.6632,
+            "map": 0.0253,
+            "reset": 0.0539,
+            "set_event": 0.0066
+          },
+          "native_cycles": {
+            "wait": 21343.0,
+            "present": 1418609.0,
+            "execute": 1014111.0,
+            "signal": 65908.0,
+            "allocation": 3244868.0,
+            "map": 83115.0,
+            "reset": 180021.0,
+            "set_event": 21949.0
+          },
+          "thread_cycles": 16822387.0
+        },
+        {
+          "frame": 4,
+          "total_ms": 18.851399999999998,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.5809,
+            "populate": 0.0934,
+            "index": 0.6693,
+            "query": 0.0033,
+            "extract": 0.7073,
+            "draw": 0.4594,
+            "end": 0.3373
+          },
+          "native_ms": {
+            "wait": 16.4918,
+            "present": 0.1826,
+            "execute": 0.0914,
+            "signal": 0.0061,
+            "allocation": 0.0,
+            "map": 0.0066,
+            "reset": 0.0384,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 223781.0,
+            "present": 607019.0,
+            "execute": 296972.0,
+            "signal": 20633.0,
+            "allocation": 0.0,
+            "map": 21795.0,
+            "reset": 128259.0,
+            "set_event": 21136.0
+          },
+          "thread_cycles": 7839650.0
+        },
+        {
+          "frame": 390,
+          "total_ms": 18.5756,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 14.2733,
+            "populate": 0.623,
+            "index": 1.0151,
+            "query": 0.0748,
+            "extract": 1.7199,
+            "draw": 0.5109,
+            "end": 0.3581
+          },
+          "native_ms": {
+            "wait": 13.9622,
+            "present": 0.1902,
+            "execute": 0.0934,
+            "signal": 0.0064,
+            "allocation": 0.0,
+            "map": 0.0115,
+            "reset": 0.0617,
+            "set_event": 0.0071
+          },
+          "native_cycles": {
+            "wait": 216497.0,
+            "present": 631996.0,
+            "execute": 305256.0,
+            "signal": 21559.0,
+            "allocation": 0.0,
+            "map": 38648.0,
+            "reset": 204712.0,
+            "set_event": 23532.0
+          },
+          "thread_cycles": 10328947.0
+        },
+        {
+          "frame": 421,
+          "total_ms": 18.5666,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 16.1917,
+            "populate": 0.181,
+            "index": 0.3935,
+            "query": 0.0032,
+            "extract": 0.6933,
+            "draw": 0.4545,
+            "end": 0.649
+          },
+          "native_ms": {
+            "wait": 16.022,
+            "present": 0.4739,
+            "execute": 0.1115,
+            "signal": 0.0078,
+            "allocation": 0.0,
+            "map": 0.0164,
+            "reset": 0.0825,
+            "set_event": 0.0069
+          },
+          "native_cycles": {
+            "wait": 243889.0,
+            "present": 1483562.0,
+            "execute": 367811.0,
+            "signal": 26048.0,
+            "allocation": 0.0,
+            "map": 51761.0,
+            "reset": 174112.0,
+            "set_event": 23111.0
+          },
+          "thread_cycles": 8476981.0
+        },
+        {
+          "frame": 409,
+          "total_ms": 18.497,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.5752,
+            "populate": 0.2292,
+            "index": 0.4887,
+            "query": 0.004,
+            "extract": 1.3288,
+            "draw": 0.5012,
+            "end": 0.3694
+          },
+          "native_ms": {
+            "wait": 15.4288,
+            "present": 0.1988,
+            "execute": 0.0978,
+            "signal": 0.0073,
+            "allocation": 0.0,
+            "map": 0.0294,
+            "reset": 0.0461,
+            "set_event": 0.0068
+          },
+          "native_cycles": {
+            "wait": 250469.0,
+            "present": 660459.0,
+            "execute": 321667.0,
+            "signal": 24504.0,
+            "allocation": 0.0,
+            "map": 45059.0,
+            "reset": 151752.0,
+            "set_event": 22893.0
+          },
+          "thread_cycles": 9119139.0
+        }
+      ]
+    },
+    "5000,0,0": {
+      "frames": 600,
+      "p95_ms": 18.1605,
+      "p99_ms": 19.3129,
+      "max_ms": 34.6227,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.6227,
+          "stages": {
+            "reload": 23.3588,
+            "acquire": 0.081,
+            "populate": 1.1846,
+            "index": 2.118,
+            "query": 0.1424,
+            "extract": 3.8323,
+            "draw": 3.5123,
+            "end": 0.3933
+          },
+          "native_ms": {
+            "wait": 19.854,
+            "present": 0.2208,
+            "execute": 0.1067,
+            "signal": 0.0208,
+            "allocation": 1.3537,
+            "map": 0.0161,
+            "reset": 0.0347,
+            "set_event": 0.0079
+          },
+          "native_cycles": {
+            "wait": 255165.0,
+            "present": 733546.0,
+            "execute": 353363.0,
+            "signal": 67905.0,
+            "allocation": 2604334.0,
+            "map": 52485.0,
+            "reset": 115287.0,
+            "set_event": 26440.0
+          },
+          "thread_cycles": 45305979.0
+        },
+        {
+          "frame": 119,
+          "total_ms": 20.380499999999998,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 5.6633,
+            "populate": 2.0714,
+            "index": 2.6095,
+            "query": 0.2521,
+            "extract": 6.1812,
+            "draw": 2.89,
+            "end": 0.7123
+          },
+          "native_ms": {
+            "wait": 5.5525,
+            "present": 0.4189,
+            "execute": 0.1299,
+            "signal": 0.0101,
+            "allocation": 0.0,
+            "map": 0.0076,
+            "reset": 0.0446,
+            "set_event": 0.0091
+          },
+          "native_cycles": {
+            "wait": 226269.0,
+            "present": 1390253.0,
+            "execute": 423973.0,
+            "signal": 34176.0,
+            "allocation": 0.0,
+            "map": 25927.0,
+            "reset": 149719.0,
+            "set_event": 30346.0
+          },
+          "thread_cycles": 48341420.0
+        },
+        {
+          "frame": 393,
+          "total_ms": 20.3263,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 6.4398,
+            "populate": 1.6155,
+            "index": 2.9729,
+            "query": 0.2235,
+            "extract": 6.0888,
+            "draw": 2.3797,
+            "end": 0.6054
+          },
+          "native_ms": {
+            "wait": 6.2775,
+            "present": 0.3365,
+            "execute": 0.1469,
+            "signal": 0.0134,
+            "allocation": 0.0,
+            "map": 0.0101,
+            "reset": 0.0567,
+            "set_event": 0.0104
+          },
+          "native_cycles": {
+            "wait": 272395.0,
+            "present": 1117720.0,
+            "execute": 484195.0,
+            "signal": 44858.0,
+            "allocation": 0.0,
+            "map": 35755.0,
+            "reset": 189846.0,
+            "set_event": 34637.0
+          },
+          "thread_cycles": 46807343.0
+        },
+        {
+          "frame": 592,
+          "total_ms": 19.5943,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 8.3467,
+            "populate": 0.8182,
+            "index": 2.9645,
+            "query": 0.1706,
+            "extract": 4.6628,
+            "draw": 2.1184,
+            "end": 0.5126
+          },
+          "native_ms": {
+            "wait": 8.0787,
+            "present": 0.2843,
+            "execute": 0.1367,
+            "signal": 0.0107,
+            "allocation": 0.0,
+            "map": 0.0089,
+            "reset": 0.038,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 222890.0,
+            "present": 941827.0,
+            "execute": 444883.0,
+            "signal": 33882.0,
+            "allocation": 0.0,
+            "map": 31752.0,
+            "reset": 126402.0,
+            "set_event": 21248.0
+          },
+          "thread_cycles": 38176707.0
+        },
+        {
+          "frame": 75,
+          "total_ms": 19.5092,
+          "stages": {
+            "reload": 0.0015,
+            "acquire": 4.381,
+            "populate": 1.5724,
+            "index": 2.5092,
+            "query": 0.1945,
+            "extract": 6.296,
+            "draw": 3.7113,
+            "end": 0.8433
+          },
+          "native_ms": {
+            "wait": 4.1479,
+            "present": 0.5413,
+            "execute": 0.133,
+            "signal": 0.0171,
+            "allocation": 0.0,
+            "map": 0.0071,
+            "reset": 0.16,
+            "set_event": 0.0179
+          },
+          "native_cycles": {
+            "wait": 227356.0,
+            "present": 1469574.0,
+            "execute": 433427.0,
+            "signal": 57937.0,
+            "allocation": 0.0,
+            "map": 23847.0,
+            "reset": 532069.0,
+            "set_event": 59294.0
+          },
+          "thread_cycles": 48233239.0
+        }
+      ]
+    },
+    "10000,0,0": {
+      "frames": 600,
+      "p95_ms": 23.5109,
+      "p99_ms": 26.607,
+      "max_ms": 29.7237,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 587,
+          "total_ms": 29.7237,
+          "stages": {
+            "reload": 0.0016,
+            "acquire": 0.1306,
+            "populate": 12.6399,
+            "index": 4.7032,
+            "query": 0.223,
+            "extract": 7.2579,
+            "draw": 4.3581,
+            "end": 0.4094
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2175,
+            "execute": 0.1125,
+            "signal": 0.01,
+            "allocation": 0.0,
+            "map": 0.0082,
+            "reset": 0.0688,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 722081.0,
+            "execute": 369961.0,
+            "signal": 33595.0,
+            "allocation": 0.0,
+            "map": 27066.0,
+            "reset": 228326.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 96813838.0
+        },
+        {
+          "frame": 349,
+          "total_ms": 27.9772,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0607,
+            "populate": 2.482,
+            "index": 6.1271,
+            "query": 0.348,
+            "extract": 12.3482,
+            "draw": 5.9829,
+            "end": 0.6275
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3484,
+            "execute": 0.1642,
+            "signal": 0.0187,
+            "allocation": 0.0,
+            "map": 0.0041,
+            "reset": 0.0223,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1155239.0,
+            "execute": 540415.0,
+            "signal": 59323.0,
+            "allocation": 0.0,
+            "map": 13574.0,
+            "reset": 74610.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 91978920.0
+        },
+        {
+          "frame": 141,
+          "total_ms": 27.9649,
+          "stages": {
+            "reload": 0.0017,
+            "acquire": 0.0753,
+            "populate": 2.3706,
+            "index": 6.0441,
+            "query": 0.2941,
+            "extract": 12.477,
+            "draw": 6.057,
+            "end": 0.6451
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.366,
+            "execute": 0.1614,
+            "signal": 0.0136,
+            "allocation": 0.0,
+            "map": 0.005,
+            "reset": 0.0269,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1215607.0,
+            "execute": 531026.0,
+            "signal": 41829.0,
+            "allocation": 0.0,
+            "map": 16377.0,
+            "reset": 91637.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 92660779.0
+        },
+        {
+          "frame": 295,
+          "total_ms": 27.791900000000002,
+          "stages": {
+            "reload": 0.002,
+            "acquire": 0.1216,
+            "populate": 2.3405,
+            "index": 8.8312,
+            "query": 0.2546,
+            "extract": 11.2739,
+            "draw": 4.4699,
+            "end": 0.4982
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2819,
+            "execute": 0.1273,
+            "signal": 0.0084,
+            "allocation": 0.0,
+            "map": 0.0091,
+            "reset": 0.0484,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 935787.0,
+            "execute": 417549.0,
+            "signal": 28167.0,
+            "allocation": 0.0,
+            "map": 30162.0,
+            "reset": 161344.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 80722322.0
+        },
+        {
+          "frame": 553,
+          "total_ms": 27.4675,
+          "stages": {
+            "reload": 0.002,
+            "acquire": 0.0747,
+            "populate": 2.1392,
+            "index": 6.2767,
+            "query": 0.2928,
+            "extract": 11.7385,
+            "draw": 6.3158,
+            "end": 0.6278
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3461,
+            "execute": 0.1538,
+            "signal": 0.0192,
+            "allocation": 0.0,
+            "map": 0.0057,
+            "reset": 0.0262,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1148867.0,
+            "execute": 503677.0,
+            "signal": 59629.0,
+            "allocation": 0.0,
+            "map": 17927.0,
+            "reset": 88458.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 90578844.0
+        }
+      ]
+    },
+    "1000,0,1": {
+      "frames": 600,
+      "p95_ms": 17.7185,
+      "p99_ms": 19.0077,
+      "max_ms": 35.7503,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.7503,
+          "stages": {
+            "reload": 31.2417,
+            "acquire": 0.0635,
+            "populate": 0.1511,
+            "index": 0.6444,
+            "query": 0.6437,
+            "extract": 0.7237,
+            "draw": 1.924,
+            "end": 0.3582
+          },
+          "native_ms": {
+            "wait": 30.2677,
+            "present": 0.2045,
+            "execute": 0.0965,
+            "signal": 0.013,
+            "allocation": 1.403,
+            "map": 0.0141,
+            "reset": 0.0278,
+            "set_event": 0.0061
+          },
+          "native_cycles": {
+            "wait": 239533.0,
+            "present": 676479.0,
+            "execute": 318648.0,
+            "signal": 43354.0,
+            "allocation": 2757039.0,
+            "map": 46367.0,
+            "reset": 93143.0,
+            "set_event": 20392.0
+          },
+          "thread_cycles": 15990360.0
+        },
+        {
+          "frame": 49,
+          "total_ms": 21.0513,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 14.6082,
+            "populate": 0.1402,
+            "index": 1.5365,
+            "query": 1.16,
+            "extract": 1.1305,
+            "draw": 1.3657,
+            "end": 1.1098
+          },
+          "native_ms": {
+            "wait": 14.0082,
+            "present": 0.5133,
+            "execute": 0.4638,
+            "signal": 0.0101,
+            "allocation": 0.0,
+            "map": 0.0048,
+            "reset": 0.0312,
+            "set_event": 0.006
+          },
+          "native_cycles": {
+            "wait": 249777.0,
+            "present": 1703143.0,
+            "execute": 1071751.0,
+            "signal": 221854.0,
+            "allocation": 0.0,
+            "map": 16288.0,
+            "reset": 104501.0,
+            "set_event": 20083.0
+          },
+          "thread_cycles": 20309710.0
+        },
+        {
+          "frame": 475,
+          "total_ms": 20.753,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 16.115,
+            "populate": 0.1193,
+            "index": 1.1971,
+            "query": 1.7385,
+            "extract": 0.7528,
+            "draw": 0.4769,
+            "end": 0.353
+          },
+          "native_ms": {
+            "wait": 15.8993,
+            "present": 0.1932,
+            "execute": 0.0926,
+            "signal": 0.0068,
+            "allocation": 0.0,
+            "map": 0.0071,
+            "reset": 0.101,
+            "set_event": 0.0058
+          },
+          "native_cycles": {
+            "wait": 20793.0,
+            "present": 641684.0,
+            "execute": 303611.0,
+            "signal": 22700.0,
+            "allocation": 0.0,
+            "map": 227259.0,
+            "reset": 336346.0,
+            "set_event": 19362.0
+          },
+          "thread_cycles": 13428127.0
+        },
+        {
+          "frame": 127,
+          "total_ms": 20.3153,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 13.7484,
+            "populate": 0.1245,
+            "index": 0.6731,
+            "query": 0.8899,
+            "extract": 3.7878,
+            "draw": 0.766,
+            "end": 0.3252
+          },
+          "native_ms": {
+            "wait": 13.6752,
+            "present": 0.1727,
+            "execute": 0.0839,
+            "signal": 0.0062,
+            "allocation": 0.0,
+            "map": 0.0055,
+            "reset": 0.0293,
+            "set_event": 0.007
+          },
+          "native_cycles": {
+            "wait": 224664.0,
+            "present": 573642.0,
+            "execute": 274724.0,
+            "signal": 20701.0,
+            "allocation": 0.0,
+            "map": 18490.0,
+            "reset": 98606.0,
+            "set_event": 23285.0
+          },
+          "thread_cycles": 15510085.0
+        },
+        {
+          "frame": 376,
+          "total_ms": 19.403200000000002,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 14.1272,
+            "populate": 0.6859,
+            "index": 0.8262,
+            "query": 0.9996,
+            "extract": 1.4068,
+            "draw": 0.5101,
+            "end": 0.847
+          },
+          "native_ms": {
+            "wait": 14.0211,
+            "present": 0.642,
+            "execute": 0.1254,
+            "signal": 0.0091,
+            "allocation": 0.0,
+            "map": 0.0107,
+            "reset": 0.0429,
+            "set_event": 0.0068
+          },
+          "native_cycles": {
+            "wait": 229736.0,
+            "present": 1677159.0,
+            "execute": 411802.0,
+            "signal": 30454.0,
+            "allocation": 0.0,
+            "map": 36057.0,
+            "reset": 142865.0,
+            "set_event": 22687.0
+          },
+          "thread_cycles": 13967582.0
+        }
+      ]
+    },
+    "10000,1,0": {
+      "frames": 600,
+      "p95_ms": 19.8577,
+      "p99_ms": 22.8416,
+      "max_ms": 31.7121,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 27,
+          "total_ms": 31.7121,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 0.078,
+            "populate": 2.0583,
+            "index": 23.9637,
+            "query": 0.0289,
+            "extract": 4.9285,
+            "draw": 0.1528,
+            "end": 0.501
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2879,
+            "execute": 0.1183,
+            "signal": 0.024,
+            "allocation": 0.0,
+            "map": 0.0038,
+            "reset": 0.0202,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 793945.0,
+            "execute": 388379.0,
+            "signal": 79836.0,
+            "allocation": 0.0,
+            "map": 12863.0,
+            "reset": 67298.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 57614211.0
+        },
+        {
+          "frame": 520,
+          "total_ms": 30.3196,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0501,
+            "populate": 16.6935,
+            "index": 8.1033,
+            "query": 0.0247,
+            "extract": 4.9031,
+            "draw": 0.1502,
+            "end": 0.3939
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.1939,
+            "execute": 0.1244,
+            "signal": 0.0061,
+            "allocation": 0.0,
+            "map": 0.0032,
+            "reset": 0.0178,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 643683.0,
+            "execute": 409625.0,
+            "signal": 20633.0,
+            "allocation": 0.0,
+            "map": 10993.0,
+            "reset": 59650.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 100149651.0
+        },
+        {
+          "frame": 59,
+          "total_ms": 25.9152,
+          "stages": {
+            "reload": 0.0011,
+            "acquire": 0.089,
+            "populate": 2.3585,
+            "index": 10.7784,
+            "query": 0.0441,
+            "extract": 11.9152,
+            "draw": 0.1731,
+            "end": 0.5558
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3389,
+            "execute": 0.1162,
+            "signal": 0.0144,
+            "allocation": 0.0,
+            "map": 0.0052,
+            "reset": 0.0272,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 859197.0,
+            "execute": 381328.0,
+            "signal": 48183.0,
+            "allocation": 0.0,
+            "map": 16661.0,
+            "reset": 89435.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 83966931.0
+        },
+        {
+          "frame": 500,
+          "total_ms": 24.6002,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 0.0668,
+            "populate": 1.6686,
+            "index": 10.9757,
+            "query": 0.039,
+            "extract": 10.6105,
+            "draw": 0.6857,
+            "end": 0.5531
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.225,
+            "execute": 0.2291,
+            "signal": 0.0071,
+            "allocation": 0.0,
+            "map": 0.0042,
+            "reset": 0.0215,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 747261.0,
+            "execute": 408797.0,
+            "signal": 23855.0,
+            "allocation": 0.0,
+            "map": 14387.0,
+            "reset": 72245.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 62599332.0
+        },
+        {
+          "frame": 429,
+          "total_ms": 24.1556,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 0.0491,
+            "populate": 1.3237,
+            "index": 9.7693,
+            "query": 0.0279,
+            "extract": 12.3403,
+            "draw": 0.1717,
+            "end": 0.4729
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2707,
+            "execute": 0.1155,
+            "signal": 0.0119,
+            "allocation": 0.0,
+            "map": 0.0032,
+            "reset": 0.0174,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 896681.0,
+            "execute": 379911.0,
+            "signal": 39647.0,
+            "allocation": 0.0,
+            "map": 11174.0,
+            "reset": 58737.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 77163625.0
+        }
+      ]
+    }
+  }
+}

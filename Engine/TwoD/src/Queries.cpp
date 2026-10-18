@@ -3,7 +3,6 @@
 #include <cmath>
 #include <limits>
 #include <numeric>
-#include <set>
 #include <stdexcept>
 #include <tuple>
 namespace nexora::twod {
@@ -114,7 +113,7 @@ SpatialIndex::SpatialIndex(float cellSize) : cellSize_(cellSize) {
   if (!std::isfinite(cellSize) || cellSize < 0.001F || cellSize > 1000000)
     throw std::invalid_argument("2D grid cell size");
 }
-std::optional<std::vector<SpatialIndex::Cell>> SpatialIndex::Cells(Bounds b) const {
+std::optional<SpatialIndex::CellRange> SpatialIndex::Cells(Bounds b) const {
   const auto x0 = std::floor(double(b.minimum.x) / cellSize_),
              x1 = std::floor(double(b.maximum.x) / cellSize_);
   const auto y0 = std::floor(double(b.minimum.y) / cellSize_),
@@ -123,20 +122,21 @@ std::optional<std::vector<SpatialIndex::Cell>> SpatialIndex::Cells(Bounds b) con
       x0 < INT32_MIN || x1 > INT32_MAX || y0 < INT32_MIN || y1 > INT32_MAX || x1 < x0 || y1 < y0 ||
       (x1 - x0 + 1) * (y1 - y0 + 1) > 4096)
     return std::nullopt;
-  std::vector<Cell> result;
-  result.reserve(static_cast<std::size_t>((x1 - x0 + 1) * (y1 - y0 + 1)));
-  for (auto y = static_cast<std::int64_t>(y0); y <= static_cast<std::int64_t>(y1); ++y)
-    for (auto x = static_cast<std::int64_t>(x0); x <= static_cast<std::int64_t>(x1); ++x)
-      result.emplace_back(static_cast<std::int32_t>(x), static_cast<std::int32_t>(y));
-  return result;
+  return CellRange{{static_cast<std::int32_t>(x0), static_cast<std::int32_t>(y0)},
+                   {static_cast<std::int32_t>(x1), static_cast<std::int32_t>(y1)}};
 }
 bool SpatialIndex::Build(std::span<const Shape> input) {
   if (input.size() > 100000)
     return false;
-  std::vector<Shape> shapes(input.begin(), input.end());
-  std::sort(shapes.begin(), shapes.end(),
-            [](const Shape &a, const Shape &b) { return a.id < b.id; });
-  std::map<Cell, std::vector<std::size_t>> cells;
+  auto &shapes = stagingShapes_;
+  auto &cells = stagingCells_;
+  if (input.size() > shapes.capacity())
+    shapes.reserve(input.size());
+  shapes.assign(input.begin(), input.end());
+  const auto byId = [](const Shape &a, const Shape &b) { return a.id < b.id; };
+  if (!std::is_sorted(shapes.begin(), shapes.end(), byId))
+    std::sort(shapes.begin(), shapes.end(), byId);
+  cells.clear();
   std::size_t coverage = 0;
   std::uint64_t previous = 0;
   for (std::size_t i = 0; i < shapes.size(); ++i) {
@@ -145,12 +145,20 @@ bool SpatialIndex::Build(std::span<const Shape> input) {
       return false;
     previous = s.id;
     auto keys = Cells(ShapeBounds(s));
-    if (!keys || keys->size() > 1000000 - coverage)
+    if (!keys)
       return false;
-    coverage += keys->size();
-    for (const auto &key : *keys)
-      cells[key].push_back(i);
+    const auto count = std::size_t(std::int64_t(keys->maximum.first) - keys->minimum.first + 1) *
+                       std::size_t(std::int64_t(keys->maximum.second) - keys->minimum.second + 1);
+    if (count > 1000000 - coverage)
+      return false;
+    coverage += count;
+    if (coverage > cells.capacity())
+      cells.reserve(std::min(std::size_t{1000000}, std::max(coverage, cells.capacity() * 2)));
+    for (std::int64_t y = keys->minimum.second; y <= keys->maximum.second; ++y)
+      for (std::int64_t x = keys->minimum.first; x <= keys->maximum.first; ++x)
+        cells.push_back({{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)}, i});
   }
+  std::sort(cells.begin(), cells.end());
   shapes_.swap(shapes);
   cells_.swap(cells);
   return true;
@@ -164,11 +172,15 @@ std::vector<std::size_t> SpatialIndex::Candidates(Bounds bounds) const {
     std::iota(result.begin(), result.end(), 0);
     return result;
   }
-  for (const auto &key : *keys) {
-    const auto it = cells_.find(key);
-    if (it != cells_.end())
-      result.insert(result.end(), it->second.begin(), it->second.end());
-  }
+  for (std::int64_t y = keys->minimum.second; y <= keys->maximum.second; ++y)
+    for (std::int64_t x = keys->minimum.first; x <= keys->maximum.first; ++x) {
+      const Cell key{static_cast<std::int32_t>(x), static_cast<std::int32_t>(y)};
+      auto it = std::lower_bound(
+          cells_.begin(), cells_.end(), key,
+          [](const CellEntry &entry, const Cell &cell) { return entry.first < cell; });
+      for (; it != cells_.end() && it->first == key; ++it)
+        result.push_back(it->second);
+    }
   std::sort(result.begin(), result.end());
   result.erase(std::unique(result.begin(), result.end()), result.end());
   return result;

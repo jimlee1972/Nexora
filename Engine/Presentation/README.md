@@ -57,6 +57,20 @@ DX12 surface diagnostics report the selected presentation mode used by `Present`
 sync interval 1; Immediate uses 0 and requests tearing when the DXGI factory supports it.
 This observation does not guarantee a display refresh rate or exclude compositor pacing.
 
+DX12 VSync owns one DXGI frame-latency waitable handle per swapchain. `Acquire` waits for
+presentation capacity before admitting CPU frame work, including the first frame; the maximum
+queued frames are `framesInFlight`, retaining the descriptor's two/three buffers and upload
+slots. The separate GPU fence still protects each slot's allocator, uploads, timestamps and
+retired resources. Immediate keeps its asynchronous admission without this handle or wait.
+Successful presentation-admission waits increment `fenceWaits` alongside upload-slot waits;
+this counter measures wait calls rather than blocked time.
+Resize preserves the creation flags and handle, zero extent returns before waiting, and final
+GPU drain closes the handle exactly once, including partial initialization. Creation failure
+rejects the surface; a failed admission wait returns `SurfaceLost` before acquiring/resetting
+a slot. This bounds run-ahead around resource drains and can reduce CPU/GPU overlap; it does
+not guarantee arbitrary GPU-heavy throughput, input-to-display latency or immunity to host stalls.
+See Microsoft's [DXGI waitable handle contract](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_3/nf-dxgi1_3-idxgiswapchain2-getframelatencywaitableobject).
+
 `SurfaceDiagnostics::device` copies the selected native device's UTF-8 name and observed IDs/driver
 version into bounded value storage. It allocates no memory, owns no native handle, follows the
 existing diagnostics render-thread contract, and survives resize and drain. Vulkan supplies
@@ -117,6 +131,27 @@ committed only after replacement resources succeed. `OutOfDate`, `SurfaceLost`, 
 observable diagnostics. `RecoveryAction()` is the application policy boundary: zero extent/occlusion suspend, out-of-date or surface loss recreate the surface, and device loss requires device recreation rather than an unsafe surface-only retry.
 
 `Present` may report `OutOfDate` (including Vulkan `SUBOPTIMAL`) for a frame that was already submitted; the surface schedules swapchain replacement for the next `Acquire`, and callers drop that frame rather than treating it as fatal.
+
+Vulkan owns one presentation-wait semaphore per swapchain image. A submission waits on the
+current frame slot's acquire semaphore before signaling the acquired image's presentation semaphore;
+only reacquiring that image permits this reuse. A submit fence protects command buffers, timestamps
+and upload slots, but does not establish completion of a presentation wait. Frame storage follows
+the descriptor's two/three `framesInFlight`, capped by the actual image count, independently of image
+semaphore storage. Resize/recovery and final teardown drain the device before releasing both sets;
+partial semaphore allocation also unwinds. Pending extent starts with the descriptor's dimensions,
+so a first `SUBOPTIMAL` recovery preserves the current extent before any resize notification.
+FIFO VSync additionally owns one reusable image-readiness fence. `Acquire` resets it, acquires
+and waits for WSI image availability before admitting CPU frame work; submission still waits on
+the acquire semaphore for the GPU dependency. This prevents future image waits from clustering
+queued CPU frames after a resource drain. Immediate mode retains asynchronous acquisition without
+this host wait. The fence is reused without per-frame allocation, drained with the swapchain,
+and counted in `fenceWaits` alongside upload-slot waits. Image count, resolution and VSync mode
+are unchanged for default two-slot consumers. This pacing boundary can reduce CPU run-ahead;
+it does not measure input-to-display latency or promise throughput for arbitrary GPU-heavy content.
+The private adapter regression exercises resource drains, image/slot reuse, acquire failure,
+submitted recovery, suspension/resume, abandoned recording and allocation failure on Windows/Linux.
+This follows the [Vulkan presentation semaphore reuse rule](https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html).
+No public C++ layout or C/Zig ABI changes are introduced.
 
 `DrainAndDestroy()` is idempotent, waits for submitted GPU work, and releases all backend objects before
 the source window. Portable tests cover multi-surface lifetime, 2,048 resize cycles, zero extent,

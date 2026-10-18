@@ -2,9 +2,9 @@
 #include "Nexora/Math/Math.h"
 #include "Nexora/TwoD/Api.h"
 #include <cstdint>
-#include <map>
 #include <optional>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace nexora::twod {
@@ -40,10 +40,17 @@ public:
 
 private:
   using Cell = std::pair<std::int32_t, std::int32_t>;
-  [[nodiscard]] std::optional<std::vector<Cell>> Cells(Bounds bounds) const;
+  struct CellRange {
+    Cell minimum, maximum;
+  };
+  using CellEntry = std::pair<Cell, std::size_t>;
+  [[nodiscard]] std::optional<CellRange> Cells(Bounds bounds) const;
   [[nodiscard]] std::vector<std::size_t> Candidates(Bounds bounds) const;
   float cellSize_;
   std::vector<Shape> shapes_;
-  std::map<Cell, std::vector<std::size_t>> cells_;
+  std::vector<CellEntry> cells_;
+  // Reuse the previous snapshot's bounded storage without mutating the published index.
+  std::vector<Shape> stagingShapes_;
+  std::vector<CellEntry> stagingCells_;
 };
 } // namespace nexora::twod

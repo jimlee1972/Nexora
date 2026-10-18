@@ -1,0 +1,58 @@
+{
+  "source": "966ced9ba72bddce7bb73430d38c3cf118e99162",
+  "declared_at_utc": "2026-10-18T08:22:48.855775+00:00",
+  "target_fps": 30,
+  "frame_budget_ms": {
+    "p95": 33.333333333333336,
+    "p99": 33.333333333333336,
+    "maximum": 66.66666666666667
+  },
+  "repeats": 2,
+  "backends": [
+    "dx12",
+    "vulkan"
+  ],
+  "frames_per_case": 600,
+  "warmup_frames": 4,
+  "viewport": [
+    640,
+    480
+  ],
+  "present_mode": "VSync",
+  "simulation_step_seconds": 0.016666666666666666,
+  "cases": [
+    "100 mixed",
+    "1000 mixed",
+    "5000 mixed",
+    "10000 mixed",
+    "1000 overlap",
+    "10000 sparse"
+  ],
+  "scope": "Current physical developer-PC candidate screening; minimum product specification remains undeclared",
+  "load": "Unmodified mixed benchmark: animation, movement, spatial rebuild/query/sweep, extraction/culling/sorting, instanced draws, full pool recycle and immutable atlas retirement/reload at measured midpoint",
+  "exclusions": [
+    "integrated UI/VFX product load",
+    "allocator/VRAM accounting",
+    "long-duration soak",
+    "formal benchmark emits aggregate CSV; separate stage traces retained as diagnostics"
+  ],
+  "run_conditions": "Sequential runs; no builds or other Nexora fixtures during timing; normal desktop applications remain open",
+  "failure_policy": "All rows and both repeats must satisfy all three predeclared limits. Do not alter budgets or omit failed repeats.",
+  "executable_sha256": "df3f76fcc77a61a2c2b92202bf159c61acbfab8b46f27d41bc912aee07cdee04",
+  "executable": "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+  "source_clean": false,
+  "source_files_sha256": {
+    "Engine\\TwoD\\src\\Queries.cpp": "30b3f4d34fe5e8c85bed7b7aa887fb47f178c6532c2572b335ff81007a89dbda",
+    "Engine\\TwoD\\src\\Scene.cpp": "a8872cbeb5724fd3a0632d34c2466d1e67f7491e2b71f654aec7bffb7d767e47",
+    "Engine\\TwoD\\include\\Nexora\\TwoD\\Queries.h": "879790a60407666f44376eae7ddd565ea05be8a474889be0e77c0b53d9938640",
+    "Tools\\TwoD\\Benchmark.cpp": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737",
+    "Tests\\TwoD\\TwoDTests.cpp": "113531e0ccc8658a989b228148db072940f1197156341fbf75477fefd993eef6",
+    "Engine\\Presentation\\src\\VulkanSurface.cpp": "f31f0378019500301f2d279dcf10dee6813b98e75d276da301046f5514f8eecd",
+    "Tests\\WindowPresentation\\VulkanSwapchainTests.cpp": "2a7c54fde1bccea58401a4c831b4a853053f193a8b52d49d3303566781581d73",
+    "Tests\\WindowPresentation\\CMakeLists.txt": "c6e512379a07ce0dc12a05377b0929cc5a73a9f5f1845bbac48b7a78c026b9d3",
+    "Tests\\Showcase\\LinuxVulkanSceneAcceptance.py": "ce23f02100003f13724f5884e4d339c2185311c45b1149f32731b71fd0111d1f"
+  },
+  "baseline_evidence": "Engine/TwoD/evidence/Windows-M6-SharedPath-2026-10-18",
+  "baseline_executable_sha256": "9a9461cac9baa677a6af3f400aa88374fa9ae9349690211719f96b96064da2b4",
+  "native_policy": "FIFO VSync waits on a reusable image-readiness fence; per-image presentation semaphores; original two-slot/two-image default retained on this GPU"
+}
