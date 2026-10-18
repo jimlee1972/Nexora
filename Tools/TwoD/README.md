@@ -116,6 +116,67 @@ integrated product/UI/text/save/shutdown and display/DPI stay open in that VM sl
 Software VM timing is not physical M6 acceptance. See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).
 
+## Integrated 10k load and sustained native validation
+
+The opt-in `NexoraTwoDBenchmark --integrated --frames 600 --reload-every 300 --report load.csv
+--frame-trace frames.csv` runs one integrated fixture; omitting `--integrated` preserves the original
+six cases, report schema, workload and 4..600 frame limit. Integrated mode always updates 10,000
+objects, builds all 10,000 query shapes, performs circle/sweep queries, animation and extraction,
+then draws 256 moving translucent VFX and a real `GameplayUi` overlay in the same native pass.
+The two Sprite atlases/batches are followed by 16 panels, eight buttons and eight ten-glyph labels
+(120 UI quads/commands). Deterministic navigation/activation validates UI service execution, not
+physical input. The supplied readable ASCII font and two-region animation are fixtures, not
+production art/fonts. No gameplay, GPU simulation or skipped CPU updates are introduced.
+
+At each reload cadence the full pool is recycled with stale-handle rejection, an 8 MiB allocation
+is touched at 4 KiB intervals plus its last byte (volatile stores survive LTCG) and freed through
+`TrackingAllocator`, the Atlas codec is decoded again, and both old
+GPU atlas generations are retired before new IDs upload. This is in-memory loading churn, not
+asynchronous disk IO. Mixed and sparse layouts alternate at these boundaries, preserving the
+original spacing, sizes, movement and camera. Visible counts including VFX are 9,956/451; all
+10,000 ordinary objects are updated/queried in either layout. Fixed simulation time is 1/60 s per
+rendered frame; it is not a real-time gameplay clock.
+
+`--soak-seconds 1800` runs for at least 30 measured minutes after 1,200 warm-up frames, with no
+duration-dependent in-memory sample buffer. It also satisfies the supplied minimum `--frames`.
+Duration/cadence accept 1..14400; these options require integrated mode, which requires a distinct
+trace path. Native integrated runs reject software rendering and viewport changes. Any failed
+update, query, UI command, submission, resource retirement, drain or output write exits nonzero.
+The original native APIs/ABI and engine lifetime contracts are unchanged.
+
+Every frame is retained in CSV through one pending record. Trace output of the preceding record,
+frame-local destruction and every-60-frame resource polls are included in the full interval;
+`cycle_ms` spans frame start to next frame start and includes loop/trace overhead. The final record
+uses the loop's final boundary. Nine work stages are contained in the full interval; their sum
+excludes trace output, destruction and resource polls. CPU spans simulation through UI building.
+Native GPU intervals identify unique earlier completed submissions, excluding warm-up submissions
+from measured GPU aggregates; they do not measure same-frame GPU work or display latency.
+
+Resource observations are optional fields, never fabricated zero: process RSS on supported hosts;
+Windows private commit/handle count and DXGI node-0 local/nonlocal process usage on a unique matching
+PCI vendor/device adapter. Local usage/budget is WDDM accounting, not physical VRAM residency or
+per-texture allocation. `fixture_alloc_*` covers only the explicit loading allocation, not STL,
+driver or total engine allocations. Native buffer reallocation/texture upload/rejection counts
+are cumulative engine diagnostics; RSS/commit include drivers. Driver memory identity is retained
+as exact integer CSV text. No global allocator hooks or platform security/power settings change.
+
+```bash
+python3 Tools/TwoD/RunIntegratedAcceptance.py --benchmark path/to/NexoraTwoDBenchmark.exe --output fresh/evidence --seconds 1800
+```
+
+The runner writes a fixed plan with executable/source hashes before executing two repetitions of
+all original six-case screens, two integrated 600-frame screens (reload every 300), then one
+continuous soak per backend (reload every 600). DX12/Vulkan run sequentially. It retains every exit,
+frame and failure, checks all 10k updates/native counters and rejects missing samples/wrong devices.
+Default expected hardware is this developer PC's NVIDIA 4318/5121; explicit IDs select another host.
+Full/cycle and each phase must meet p95/p99 <=33.3333 ms and max <=66.6667 ms. Soak resource limits are
+512 MiB sampled process RSS/private/local GPU usage, first/last five-minute median growth <=32/32/16 MiB,
+<=4096 handles with growth <=8, and <=8 native buffer reallocations without median growth. These
+are predeclared current-host fixture budgets; product minimum hardware, full allocator accounting,
+production content and M7 device/clean-host acceptance remain independent. Stop local builds/other
+native fixtures during measurement; ordinary desktop apps may remain open. Analysis runs only
+after all native processes finish. Never retry until passing or omit a measured spike.
+
 
 ## Device audio probe
 

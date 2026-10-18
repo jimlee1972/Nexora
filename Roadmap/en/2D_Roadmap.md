@@ -3,7 +3,8 @@
 > Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-18
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
-> have portable/Linux functional evidence. M6 same-host 30 FPS screen is 24/24 (DX12/Vulkan each 12/12); physical minimum-PC acceptance remains open.
+> have portable/Linux functional evidence. Latest M6 same-host 30 FPS screen is 23/24; integrated
+> short screens are 3/4 and 30-minute soaks 1/2. Physical minimum-PC acceptance remains open.
 > M7 clean Windows runtime/Shipping remains **PARTIAL / NOT ACCEPTED**. The rebuilt current-main VM
 > package passes CPU, native software DX12, Zig instancing and human keyboard movement; full device/product
 > integration remains open. The current physical developer PC adds hardware DX12/Vulkan UI smokes,
@@ -34,7 +35,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M3 | P0 | Lightweight 2D collision/queries | Circle/AABB overlap, filters, range queries, spatial index and swept checks for fast movement | Compare indexed results with an independent brute-force oracle; cover boundaries, filtering, fast motion and insert/remove | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
-| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 30 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Current-PC DX12/Vulkan 30 FPS screen 24/24; minimum-PC gate NOT ACCEPTED |
+| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 30 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Latest current-PC screen 23/24, integrated 3/4, 30-minute soak 1/2; M6 NOT ACCEPTED |
 | 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
@@ -85,8 +86,9 @@ device alone does not establish game input. See the current implementation scope
 
 M6 targets 30 FPS on the specified minimum PC. Before acceptance, fix minimum CPU/GPU/RAM, Windows version, backend/driver,
 resolution, build and frame pacing. Fix visible/updated/colliding counts, Atlas/material count,
-Sprite pixel coverage/overlap, animation rate, VFX/UI load and loading churn. Hardware/workload
-budgets are currently **TBD**; object count alone is not a performance claim.
+Sprite pixel coverage/overlap, animation rate, VFX/UI load and loading churn. Product minimum hardware/workload
+budgets remain **TBD**; dated current-host fixture plans below declare their own fixed loads and
+resource limits. Object count alone is not a performance claim.
 
 Use deterministic synthetic objects, animations, moving query shapes, VFX and UI, without game
 mechanics. Include baseline, high-count, transparent-overlap and allocation/loading spikes.
@@ -554,3 +556,42 @@ same-frame cause remains untraced, and current Windows policy prevents kernel CP
 This screen does not prove that historical cause eliminated. Product minimum specification,
 integrated UI/VFX, allocator/VRAM and sustained acceptance remain open.
 **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged.**
+
+## Integrated 10k UI/VFX and physical 30-minute soaks (2026-10-18)
+
+✅ An opt-in benchmark mode and fixed-plan runner preserve the original six-case `Measure` body,
+all 10,000 CPU updates/query shapes and the original 30 FPS limits. The integrated native pass adds
+256 animated translucent VFX, two Sprite atlases/batches and actual GameplayUi panels/buttons/text
+(120 UI quads/commands). Full-pool/immutable-atlas recycling, codec reload and a touched/freed 8 MiB
+scoped allocation repeat while mixed/sparse layouts alternate. Real-time simulation, production
+art, asynchronous disk IO and physical input are not inferred from these deterministic fixtures.
+
+✅ Both hardware backends complete 1,800 measured seconds after 1,200 warm-up frames, with zero
+lost frame/completed GPU samples and balanced teardown. The formal suite retains 210,785 raw
+frames and exact source/executable identities. Original workload non-timing outputs match the
+preceding screen. Local Development/Shipping builds and 34/34 related tests pass without skips.
+
+Strict performance is **NOT ACCEPTED**: original screens are 23/24 (DX12 11/12, Vulkan 12/12),
+integrated short screens 3/4 and soaks 1/2. DX12 soak has 95,701 measured frames, cycle p99/max
+28.4662/62.8658 ms. Vulkan has 95,772, p99 27.7955 ms but max **134.9232 ms**, exceeding the
+unchanged 66.6667 ms maximum. DX12 original mixed-10k repeat 1 p99 is 39.3942 ms; Vulkan integrated
+repeat 2 p95/p99 is 33.5469/49.2560 ms. No failed rows, cold measured frames or spikes are excluded.
+
+Vulkan frame 24,415 has CPU 14.9771 ms, Draw 5.6583 ms and EndFrame **113.6250 ms**, with neither
+reload nor resource polling. Matching submission 24,416 has GPU interval **0.448736 ms**, observed
+two frames later. This isolates the broad submit/present boundary, not an individual API or OS/driver
+cause. Native API/thread-cycle/scheduling tracing is tracked by `nexora-j4q.2.6`; the earlier DX12
+72.3556 ms cause remains separately untraced under `nexora-j4q.2.4`.
+
+✅ All six integrated resource screens meet fixed sampled caps/growth limits. Both soaks retain
+two native buffer reallocations, 161 balanced scoped allocations/frees and zero rejected textures.
+DX12 private-memory first/last-five-minute median growth is 0.3984 MiB; Vulkan is -0.0078 MiB;
+local GPU usage median growth is zero for both. Post-frame RSS/commit/WDDM budget usage and the
+explicit loading allocation do not establish full allocator accounting or physical VRAM residency.
+
+[Complete plan, results, failed frames and compressed raw evidence](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/acceptance.md).
+[Tool contract](../../Tools/TwoD/README.md#integrated-10k-load-and-sustained-native-validation).
+This record supplements the earlier successful 24/24 screen without replacing its historical verdict.
+Keep **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged**. Product minimum specification and broader
+allocator/production/device/clean-host gates remain open. The delivery PR must remain unmerged while
+this fixed physical performance gate fails, regardless of portable/hosted CI success.

@@ -1,3 +1,4 @@
+#include "IntegratedStress.h"
 #include "Nexora/Core/Engine.h"
 #include "Nexora/Core/JobSystem.h"
 #include "Nexora/Core/Vfs.h"
@@ -276,13 +277,29 @@ int main(int argc, char **argv) {
   try {
     std::string reportPath, atlasPath, clipPath, frameTracePath;
     bool native = false;
+    bool integrated = false;
+    bool integratedOptions = false;
+    unsigned soakSeconds = 0, reloadEvery = 600;
     auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
     unsigned frames = 48;
     for (int i = 1; i < argc; ++i) {
       std::string_view a = argv[i];
       if (a == "--native")
         native = true;
-      else if (a == "--backend" && i + 1 < argc) {
+      else if (a == "--integrated")
+        integrated = true;
+      else if ((a == "--soak-seconds" || a == "--reload-every") && i + 1 < argc) {
+        integratedOptions = true;
+        std::string_view n = argv[++i];
+        unsigned value{};
+        auto r = std::from_chars(n.data(), n.data() + n.size(), value);
+        Check(r.ec == std::errc{} && r.ptr == n.data() + n.size() && value >= 1 && value <= 14400,
+              "integrated duration/reload 1..14400 required");
+        if (a == "--soak-seconds")
+          soakSeconds = value;
+        else
+          reloadEvery = value;
+      } else if (a == "--backend" && i + 1 < argc) {
         const std::string_view value(argv[++i]);
         if (value == "auto")
           backend = Nexora::Presentation::SurfaceBackend::Automatic;
@@ -315,6 +332,8 @@ int main(int argc, char **argv) {
     Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
           "explicit backend requires native presentation");
     Check(!reportPath.empty(), "report required");
+    Check(integrated || !integratedOptions, "soak/reload options require integrated mode");
+    Check(!integrated || !frameTracePath.empty(), "integrated mode requires frame trace");
     std::optional<twod::Atlas> loadedAtlas;
     std::optional<twod::Clip> loadedClip;
     if (!atlasPath.empty()) {
@@ -352,9 +371,17 @@ int main(int argc, char **argv) {
             "frame trace must differ from report");
       frameTrace.open(frameTracePath);
       Check(bool(frameTrace), "frame trace output");
-      frameTrace
-          << "objects,sparse,overlap,native,frame,warmup,cpu_ms,frame_ms,reload_ms,"
-             "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
+      if (!integrated)
+        frameTrace
+            << "objects,sparse,overlap,native,frame,warmup,cpu_ms,frame_ms,reload_ms,"
+               "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
+    }
+    if (integrated) {
+      twod::validation::IntegratedStress(report, frameTrace,
+                                         {native, frames, soakSeconds, reloadEvery, backend},
+                                         loadedAtlas, loadedClip);
+      std::cout << "Integrated 10k fixture completed; product minimum-PC acceptance is separate.\n";
+      return 0;
     }
     auto *trace = frameTrace.is_open() ? &frameTrace : nullptr;
     report << "objects,sparse,reload_ms,overlap,native,frames,warmup_frames,loading_ms,cpu_p50_ms,"

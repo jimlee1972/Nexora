@@ -1,0 +1,2 @@
+objects,vfx,frames,warmup_frames,measured_seconds,loading_ms,reload_every,reloads,steps,animation_events,activations,gpu_samples,acquired,presented,texture_uploads,buffer_reallocations,fixture_alloc_live,fixture_alloc_peak,fixture_allocations,fixture_frees,device_name,vendor_id,device_id,driver_version,backend_requested
+10000,256,600,4,11.926793799999999,863.97349999999994,300,2,604,100,7,598,604,604,9,2,0,8388608,2,2,"NVIDIA GeForce GTX 960",4318,5121,2438201344,vulkan

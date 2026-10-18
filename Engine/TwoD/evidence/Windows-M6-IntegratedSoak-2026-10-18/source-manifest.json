@@ -1,0 +1,145 @@
+{
+  "base": "3ddace3b63c4386a15e30013894c81f8f1662e25",
+  "candidate_base": "04979eb128d980f4ac2749062a28c10730e31761",
+  "scope": "Measured working source is base plus implementation.patch and exact byte source snapshots.",
+  "files": {
+    "Engine/Core/include/Nexora/Core/Memory.h": {
+      "sha256": "370ebd14ece6adc8e0c9fb345a30166c313e3f1f6ec9e87adc864311c660ec8a",
+      "lf_sha256": "cfba97693329480394f77422a21175421b65afbfda391cd951a6343414c0c6e0",
+      "size": 1626
+    },
+    "Engine/Core/include/Nexora/Core/ProcessMemory.h": {
+      "sha256": "72e196da8a9d223eee8c0bff863aa99ee349493a24d9c0aacbad1e57526cc94c",
+      "lf_sha256": "710c0d9dbc5acda6f6d1814fda0bb40c5709a3cfe3268d44b5cd8dfd92891dcd",
+      "size": 517
+    },
+    "Engine/Core/src/Memory.cpp": {
+      "sha256": "9c05acb6b6e9f23452694d87790f7321740b032313938a4bc029ddcce7144db9",
+      "lf_sha256": "42af02ec7137f8d59bcfe914b9c1ee012009c87606919853cb999d7c18893f0e",
+      "size": 3255
+    },
+    "Engine/Core/src/ProcessMemory.cpp": {
+      "sha256": "53b3c56afa74f1dc9543a187828a19d2f9d767135976eeba45c12030b18eb64a",
+      "lf_sha256": "9891e8b877de2590796c1422e63bdc8c2c2c5019f387c8746c8ac201a41a58ca",
+      "size": 1738
+    },
+    "Engine/Presentation/include/Nexora/Presentation/RenderSurface.h": {
+      "sha256": "399ce867e7dd9c30789e612ad0940d2a80277d440b136ab8334b9090cfef892e",
+      "lf_sha256": "c7350aa62270d74f32472de34701ec28312d2bf9bda435bc3f691db4cfbb6b2e",
+      "size": 4966
+    },
+    "Engine/Presentation/include/Nexora/Presentation/Surface.h": {
+      "sha256": "6f96163c5de8a3ebb33f272628045a3e84dad13d5bb1864a8d88b36e931567df",
+      "lf_sha256": "38b985cbea638ef9928cb013abab19154457a383f1a17d8eb45dbefc9d4306d7",
+      "size": 27332
+    },
+    "Engine/Presentation/src/Dx12Surface.cpp": {
+      "sha256": "540d04f4a05532d07a14aa4a7fc3dad7a2000d2260cf9ec101c6cea41c3a267b",
+      "lf_sha256": "76bd437978907dd73aeeddf9dcfe2a5cb291116c079bc99f96c5310b303b1cd5",
+      "size": 110433
+    },
+    "Engine/Presentation/src/RenderSurface.cpp": {
+      "sha256": "417583b3b43b6dabb8d1ad9a0acf43ec87bc03108160586abbb722873174af54",
+      "lf_sha256": "8be296974524b0cdeaeaa59d3fed914d3b4b3972ceaceb2830d34c254c41fa13",
+      "size": 11530
+    },
+    "Engine/Presentation/src/VulkanSurface.cpp": {
+      "sha256": "f31f0378019500301f2d279dcf10dee6813b98e75d276da301046f5514f8eecd",
+      "lf_sha256": "589569bcdc07db00c5d28cd77fbbb1d6420d648ffc2698926ff118f3abd0f699",
+      "size": 157384
+    },
+    "Engine/TwoD/include/Nexora/TwoD/Assets.h": {
+      "sha256": "c5b0865a2fd87686f9ad2c2e75d37e0eacdf78932aa55dd5736be4c892f29ce0",
+      "lf_sha256": "bbdf7929a4ca1e958e6b9817228c309315b5324a641df41518f6a8eacae64915",
+      "size": 2630
+    },
+    "Engine/TwoD/include/Nexora/TwoD/GameplayUi.h": {
+      "sha256": "072adfef2ef7b6a5869edbb33f829ea46fe408ccb43b9c0e53f75c7832d954fd",
+      "lf_sha256": "2e9d43942e16e4aeb48693132eb821279642ca54d69044d9601ecf368b013a57",
+      "size": 2150
+    },
+    "Engine/TwoD/include/Nexora/TwoD/Lifecycle.h": {
+      "sha256": "c39d3b7c9692847524d91be5e71e61909edafe5fab1f1c930e50a0e407194680",
+      "lf_sha256": "3438ddbad8b08970c8aa97d35a3a2ea6053b0aea1502f73b0e59710b1072c4ac",
+      "size": 1851
+    },
+    "Engine/TwoD/include/Nexora/TwoD/Queries.h": {
+      "sha256": "879790a60407666f44376eae7ddd565ea05be8a474889be0e77c0b53d9938640",
+      "lf_sha256": "f703dd5ef37c51eb7ecae3d2b054c86d1d9b5cb5115a4753558566ce011b7e9c",
+      "size": 2172
+    },
+    "Engine/TwoD/include/Nexora/TwoD/Scene.h": {
+      "sha256": "f01b1ff28f208f8297c9679eacb57141d54015d47118b34a790b7bb30b3fb68a",
+      "lf_sha256": "955cdaf810d1094d9ca30822a8b0462d7f9e1d77c323bd0a4cc103fbe6577631",
+      "size": 3844
+    },
+    "Engine/TwoD/src/Assets.cpp": {
+      "sha256": "c0ab1dd77c3ac3aa2735b3047e7b5807331380320a7129814504233261f64fde",
+      "lf_sha256": "7eaf668e0907a879032d141d08f7ab448e6373033899163392342ebed8a04374",
+      "size": 9832
+    },
+    "Engine/TwoD/src/GameplayUi.cpp": {
+      "sha256": "ff8659d48cb9945d749067d2421748bb7841edd1ce113362e497102c93437353",
+      "lf_sha256": "0a881b1963e0b5f8a4d3e811ae35d5d9680fd402ece72934a19f5dc7cffee2dd",
+      "size": 16108
+    },
+    "Engine/TwoD/src/Lifecycle.cpp": {
+      "sha256": "7f7a08602795751201293036438d813da671174519696f6c0d0079f099824ccd",
+      "lf_sha256": "43fae84860e0c77f0e13efaf2f4bae3eb9b77a3f28bf37b4a207407c07c7f2bd",
+      "size": 3833
+    },
+    "Engine/TwoD/src/Queries.cpp": {
+      "sha256": "30b3f4d34fe5e8c85bed7b7aa887fb47f178c6532c2572b335ff81007a89dbda",
+      "lf_sha256": "8be0b65edb4c7f1f4137300ecb501ea83f34275d77bbe46fc3a2638401ce99d5",
+      "size": 10053
+    },
+    "Engine/TwoD/src/Scene.cpp": {
+      "sha256": "a8872cbeb5724fd3a0632d34c2466d1e67f7491e2b71f654aec7bffb7d767e47",
+      "lf_sha256": "395e4972d703db24efeb319ebee8de503bcd7cf87d28c208fd5ce1bcc90f0baa",
+      "size": 17864
+    },
+    "Tests/TwoD/CMakeLists.txt": {
+      "sha256": "6ef6f6ac2da1c57bf0007565bcf62215962d4d69c0497117f544a0ea13587ad8",
+      "lf_sha256": "851bd4828444118273dbbfdd85ba9751213686cc5d428834947345494531f8e9",
+      "size": 11949
+    },
+    "Tests/TwoD/IntegratedStressAcceptance.py": {
+      "sha256": "c001a5eca4e75cbc033fc00ef5895a7a6bef0e54c7cb2ff78abd713a54bad295",
+      "lf_sha256": "c001a5eca4e75cbc033fc00ef5895a7a6bef0e54c7cb2ff78abd713a54bad295",
+      "size": 4792
+    },
+    "Tools/TwoD/Benchmark.cpp": {
+      "sha256": "acf1a5208f635038a8ccf21b1ac2b3afde9fa7fa9604222cec436c83c01e4a36",
+      "lf_sha256": "1e348136a18d972f38c4f4641d825bd993a1041e12044ebdf69598411ead90cf",
+      "size": 18044
+    },
+    "Tools/TwoD/CMakeLists.txt": {
+      "sha256": "361491ba920a808485a05130295e0377da76c8912fac21623dcd85dc116c7fc4",
+      "lf_sha256": "e02ae6c08aac34bdfdfc692412f5730ecb994bbceb34dc58fc58f1fda1a27d56",
+      "size": 923
+    },
+    "Tools/TwoD/IntegratedStress.cpp": {
+      "sha256": "fc00225c64b6c8b75420ccad3e8cfdd644db153e9ffb8e6a11832731a0fa7a21",
+      "lf_sha256": "fc00225c64b6c8b75420ccad3e8cfdd644db153e9ffb8e6a11832731a0fa7a21",
+      "size": 21783
+    },
+    "Tools/TwoD/IntegratedStress.h": {
+      "sha256": "9df28e2df78d68ff6416af2842fd2a8ecdfb88ab0dc4e9938576a39d63cfe865",
+      "lf_sha256": "9df28e2df78d68ff6416af2842fd2a8ecdfb88ab0dc4e9938576a39d63cfe865",
+      "size": 676
+    },
+    "Tools/TwoD/README.md": {
+      "sha256": "a1a5ec74652f5c5165b9c0244c14f39ddc4021cf615a145c77c356b4ca706d66",
+      "lf_sha256": "b788445c7f565956bb52103e1ba658f5225e9fc2f96f9053ddf74605524829a6",
+      "size": 22291
+    },
+    "Tools/TwoD/RunIntegratedAcceptance.py": {
+      "sha256": "a90ba0ddaee7f53291833d5040eb1eeaf0db8b2fd3e880aad53c0b58d031e446",
+      "lf_sha256": "a90ba0ddaee7f53291833d5040eb1eeaf0db8b2fd3e880aad53c0b58d031e446",
+      "size": 18488
+    }
+  },
+  "patch_sha256": "a87c1bafe2522a0dea6b2902024639abfa6b48aea4bbd8c3d4b7339c4007f151",
+  "original_measure_body_sha256": "965110db9fdf90967b1ac558e466efba93385fc5fe70628f5ccbda9a835ac6fc",
+  "executable_sha256": "621ccc04c7352044f2daacfffa731f05b5718c95477faf47cf38bfcc48eac44c"
+}

@@ -212,3 +212,18 @@ The physical original-load 2D screen is now 24/24 with optional buffered per-fra
 72.3556 ms DX12 failure, whose unique cause remains untraced. Final-head hosted gates are on
 [PR #644](https://github.com/jimlee1972/Nexora/pull/644). This does not accept Showcase visual
 budgets, arbitrary GPU-heavy throughput, input-to-display latency, full M6 or minimum-PC/soak.
+
+## Integrated 2D soak follow-up (2026-10-18)
+
+The next fixed same-PC suite retains all original 10k workloads and adds UI/VFX plus 30 measured
+minutes per native backend. Local related contracts pass 34/34 and all native functional/sample
+checks pass, but current physical performance is **NOT ACCEPTED**: original23/24, integrated3/4,
+soak1/2. DX12 soak cycle p99/max is 28.4662/62.8658 ms; Vulkan is 27.7955/**134.9232 ms**.
+
+Vulkan frame24,415 spends 113.6250 ms in EndFrame; matching GPU submission24,416 measures
+0.448736 ms. No reload/resource poll occurs on that frame. The boundary includes command
+finalization, queue submit/present and metric reads; no individual API or OS/driver cause is
+proved. No native API, buffer count, VSync policy or engine ABI changes in this follow-up.
+[Raw evidence and retained failures](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/acceptance.md);
+`nexora-j4q.2.6` tracks native API/thread-cycle/scheduling correlation. The older24/24 result is
+historical evidence, not proof that every later or longer run passes. Full M6 remains open.
