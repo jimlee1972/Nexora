@@ -6,8 +6,11 @@ if(NEXORA_ENABLE_EDITOR AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   target_link_libraries(NexoraTwoDStudio PRIVATE Nexora::EditorImGui)
   nexora_apply_defaults(NexoraTwoDStudio)
 endif()
-add_executable(NexoraTwoDBenchmark Benchmark.cpp)
+add_executable(NexoraTwoDBenchmark Benchmark.cpp IntegratedStress.cpp)
 target_link_libraries(NexoraTwoDBenchmark PRIVATE Nexora::TwoD)
+if(WIN32)
+  target_link_libraries(NexoraTwoDBenchmark PRIVATE dxgi)
+endif()
 nexora_apply_defaults(NexoraTwoDBenchmark)
 
 # Runtime-only device probe, also available in Editor-free Monolithic Shipping.

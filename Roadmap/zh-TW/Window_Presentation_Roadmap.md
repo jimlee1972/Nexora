@@ -199,3 +199,17 @@ Development／Shipping 建置通過。[證據](../../Engine/TwoD/evidence/Window
 歷史 72.3556 ms DX12 失敗，該次事件唯一原因仍未追出。最終 head 的託管 gate 見
 [PR #644](https://github.com/jimlee1972/Nexora/pull/644)。此結果不驗收 Showcase 視覺預算、
 任意 GPU-heavy 吞吐、輸入到顯示延遲、完整 M6 或最低 PC／長時間 gate。
+
+## 整合 2D 長測後續（2026-10-18）
+
+後續固定同機流程保留全部原 10k 負載，新增 UI／VFX 與每原生後端 30 分鐘測量。本機相關
+契約 34/34、原生功能／樣本檢查全部通過，但實機效能仍為 **NOT ACCEPTED**：原篩檢
+23/24、整合 3/4、長測 1/2。DX12 長測 cycle p99／最大值為 28.4662／62.8658 ms；
+Vulkan 為 27.7955／**134.9232 ms**。
+
+Vulkan 第 24,415 幀 EndFrame 花費 113.6250 ms；對應 GPU 提交 24,416 的區間為
+0.448736 ms，該幀沒有重載／資源取樣。此邊界包含命令結束、queue submit／present 與
+指標讀取，尚未證明個別 API 或 OS／Driver 原因。本次不改原生 API、buffer 數、VSync
+政策或引擎 ABI。[原始證據與保留失敗](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/acceptance.md)；
+`nexora-j4q.2.6` 追蹤原生 API／執行緒週期／排程關聯。先前 24/24 為歷史證據，
+不代表後續或更長運行必然通過；完整 M6 維持未驗收。

@@ -3,7 +3,8 @@
 > 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-18
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
-> Portable／Linux 功能證據。M6 同機 30 FPS 篩檢為 24/24（DX12／Vulkan 各 12/12），最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
+> Portable／Linux 功能證據。M6 最新同機 30 FPS 篩檢為 23/24，整合短測 3/4、30 分鐘長測 1/2；
+> 最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
 > Runtime／Shipping 維持 **PARTIAL／NOT ACCEPTED**；重建的目前 main VM 封裝已通過 CPU、
 > 原生軟體 DX12、Zig Instancing 及人工鍵盤移動，完整裝置／產品整合仍待完成。目前實體開發機新增
 > 硬體 DX12／Vulkan UI 短測、人工鍵盤／中文 UI／音訊與 100／150／175% DPI 證據；乾淨主機／完整裝置 gate 仍開放。
@@ -32,7 +33,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
-| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 目前 PC DX12／Vulkan 30 FPS 篩檢 24/24；最低 PC gate 為 NOT ACCEPTED |
+| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 最新同機篩檢 23/24、整合 3/4、30 分鐘長測 1/2；M6 NOT ACCEPTED |
 | 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入（含任一實體遊戲控制器）、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；鍵鼠／實體遊戲控制器、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -75,7 +76,8 @@ UI 導覽／確認／取消、插拔重連、鍵鼠切換及失焦重設。保�
 
 M6 最低規格驗收目標為 30 FPS。驗收前，先固定最低 CPU／GPU／RAM、Windows 版本、後端／Driver、解析度、建置與
 Frame Pacing；固定可見／更新／碰撞物件數、Atlas／材質數、Sprite 像素覆蓋／重疊、動畫頻率、
-VFX／UI 負載與載入變動量。硬體／負載預算目前為 **TBD**；物件數本身不是效能保證。
+VFX／UI 負載與載入變動量。產品最低硬體／負載預算仍為 **TBD**；下方各次同機 fixture 計畫
+另行固定其負載與資源門檻。物件數本身不是效能保證。
 
 使用可重現合成物件、動畫、移動查詢形狀、VFX 與 UI，不需遊戲機制。
 涵蓋基線、大量物件、透明重疊及配置／載入尖峰；保留暖機／測試時間、平均／p95／p99／
@@ -495,3 +497,37 @@ extraction／排序、instanced draw 與中途 pool／Atlas reload 工作全部�
 目前 Windows 原則阻擋 kernel CPU trace。本次通過不證明該歷史原因已排除。
 產品最低規格、整合 UI／VFX、allocator／VRAM 與長時間驗收仍開放。
 **M6 NOT ACCEPTED；9/11（82%）、P0 6/8 不變。**
+
+## 整合 10k UI／VFX 與實體 30 分鐘長測（2026-10-18）
+
+✅ 新增可選 benchmark 模式與固定計畫 runner，保留原六組 `Measure` 本體、全部 10,000 個 CPU
+更新／查詢形狀與原 30 FPS 門檻。同一原生 pass 新增 256 個動畫透明 VFX、兩組 Sprite Atlas／
+batch，以及實際 GameplayUi 面板／按鈕／文字（120 個 UI 四邊形／command）。一般／稀疏布局
+交替時，反覆執行完整物件池／不可變 Atlas 回收、codec 重載及觸頁後釋放的 8 MiB 範圍配置。
+此可重現 fixture 不推論即時模擬、正式美術、非同步磁碟 I/O 或實體輸入驗收。
+
+✅ 兩個硬體後端皆在 1,200 幀暖機後完成 1,800 秒測量，沒有遺失幀／已完成 GPU 樣本，正常釋放。
+正式流程保留 210,785 個原始幀與精確來源／執行檔身分。原負載的非計時輸出與前次篩檢一致；
+本機 Development／Shipping 建置及相關 34/34 測試通過，無略過。
+
+嚴格效能仍為 **NOT ACCEPTED**：原篩檢 23/24（DX12 11/12、Vulkan 12/12）、整合短測 3/4、
+長測 1/2。DX12 長測共 95,701 個測量幀，cycle p99／最大值 28.4662／62.8658 ms。Vulkan 共
+95,772 幀，p99 27.7955 ms，但最大值 **134.9232 ms** 超出原 66.6667 ms 門檻。DX12 原混合
+10k 第一輪 p99 為 39.3942 ms；Vulkan 整合第二輪 p95／p99 為 33.5469／49.2560 ms。
+保留全部失敗列、測量區間冷幀與尖峰。
+
+Vulkan 第 24,415 幀 CPU 14.9771 ms、Draw 5.6583 ms、EndFrame **113.6250 ms**，當幀沒有
+重載或資源取樣。對應提交 24,416 的 GPU 區間為 **0.448736 ms**，於兩幀後觀測到。此資料縮小
+到提交／呈現邊界，尚不能識別個別 API 或 OS／Driver 原因。`nexora-j4q.2.6` 追蹤原生 API／
+執行緒週期／排程關聯；歷史 DX12 72.3556 ms 原因仍由 `nexora-j4q.2.4` 獨立追查。
+
+✅ 六組整合資源篩檢皆符合固定取樣峰值／成長門檻。兩次長測皆維持兩次原生 buffer 配置、
+161 次平衡的範圍配置／釋放，且沒有拒絕貼圖。DX12 private memory 前後五分鐘中位數成長
+0.3984 MiB，Vulkan 為 -0.0078 MiB；兩後端 local GPU usage 中位數成長皆為零。幀後 RSS／
+commit／WDDM 預算用量及明確載入配置，不代表全引擎 allocator 統計或實體 VRAM residency。
+
+[完整計畫、結果、失敗幀與壓縮原始證據](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/acceptance.md)。
+[工具契約](../../Tools/TwoD/README.md#integrated-10k-load-and-sustained-native-validation)。
+本次補充前一輪成功的 24/24 紀錄，保留該次歷史判定。**M6 NOT ACCEPTED；9/11（82%）、
+P0 6/8 不變。** 產品最低規格與完整 allocator／正式負載／裝置／乾淨主機 gate 仍開放。
+此固定實機效能 gate 未通過時，交付 PR 維持未合併，Portable／託管 CI 通過也不豁免。

@@ -1,0 +1,52 @@
+[
+  {
+    "stem": "dx12-original-1",
+    "exit_code": 0,
+    "wall_seconds": 78.64183189999312
+  },
+  {
+    "stem": "dx12-integrated-1",
+    "exit_code": 0,
+    "wall_seconds": 14.388489900156856
+  },
+  {
+    "stem": "vulkan-original-1",
+    "exit_code": 0,
+    "wall_seconds": 68.59539740020409
+  },
+  {
+    "stem": "vulkan-integrated-1",
+    "exit_code": 0,
+    "wall_seconds": 13.271549500059336
+  },
+  {
+    "stem": "dx12-original-2",
+    "exit_code": 0,
+    "wall_seconds": 75.90116929961368
+  },
+  {
+    "stem": "dx12-integrated-2",
+    "exit_code": 0,
+    "wall_seconds": 14.132612599991262
+  },
+  {
+    "stem": "vulkan-original-2",
+    "exit_code": 0,
+    "wall_seconds": 67.58655450027436
+  },
+  {
+    "stem": "vulkan-integrated-2",
+    "exit_code": 0,
+    "wall_seconds": 15.998656900133938
+  },
+  {
+    "stem": "dx12-soak",
+    "exit_code": 0,
+    "wall_seconds": 1827.1055795000866
+  },
+  {
+    "stem": "vulkan-soak",
+    "exit_code": 0,
+    "wall_seconds": 1828.8169386000372
+  }
+]

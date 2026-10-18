@@ -1,0 +1,1090 @@
+diff --git a/Tests/TwoD/CMakeLists.txt b/Tests/TwoD/CMakeLists.txt
+index 3f5db90b..93384d65 100644
+--- a/Tests/TwoD/CMakeLists.txt
++++ b/Tests/TwoD/CMakeLists.txt
+@@ -72,6 +72,10 @@ add_test(NAME twod.benchmark_trace COMMAND "${Python3_EXECUTABLE}"
+   "${CMAKE_CURRENT_SOURCE_DIR}/BenchmarkTraceAcceptance.py"
+   --benchmark "$<TARGET_FILE:NexoraTwoDBenchmark>")
+ set_tests_properties(twod.benchmark_trace PROPERTIES TIMEOUT 60 LABELS "twod;tools")
++add_test(NAME twod.integrated_stress COMMAND "${Python3_EXECUTABLE}"
++  "${CMAKE_CURRENT_SOURCE_DIR}/IntegratedStressAcceptance.py"
++  --benchmark "$<TARGET_FILE:NexoraTwoDBenchmark>")
++set_tests_properties(twod.integrated_stress PROPERTIES TIMEOUT 60 LABELS "twod;tools")
+ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+   set(twod_studio_args)
+   if(TARGET NexoraTwoDStudio)
+diff --git a/Tests/TwoD/IntegratedStressAcceptance.py b/Tests/TwoD/IntegratedStressAcceptance.py
+new file mode 100644
+index 00000000..d3db8bb4
+--- /dev/null
++++ b/Tests/TwoD/IntegratedStressAcceptance.py
+@@ -0,0 +1,84 @@
++"""Check the integrated load against independent geometry/lifecycle observations."""
++import argparse
++import csv
++import importlib.util
++import math
++from pathlib import Path
++import subprocess
++import tempfile
++
++
++def check(value, message):
++    if not value:
++        raise RuntimeError(message)
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--benchmark', type=Path, required=True)
++    args = parser.parse_args()
++    spec = importlib.util.spec_from_file_location(
++        'integrated_gate', Path(__file__).resolve().parents[2] / 'Tools/TwoD/RunIntegratedAcceptance.py')
++    gate = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(gate)
++    with tempfile.TemporaryDirectory(prefix='nexora-integrated-') as directory:
++        work = Path(directory)
++        report, trace = work / 'report.csv', work / 'frames.csv'
++        command = [str(args.benchmark.resolve()), '--integrated', '--frames', '128',
++                   '--reload-every', '120', '--report', str(report), '--frame-trace', str(trace)]
++        subprocess.run(command, check=True, timeout=45)
++        summary = list(csv.DictReader(report.open(encoding='utf-8')))
++        rows = list(csv.DictReader(trace.open(encoding='utf-8')))
++        check(len(summary) == 1 and len(rows) == 132, 'omitted frames/summary')
++        header = summary[0]
++        check((header['objects'], header['vfx'], header['frames'], header['warmup_frames']) ==
++              ('10000', '256', '128', '4'), 'workload count changed')
++        check(header['steps'] == '132' and header['reloads'] == '1', 'lost update/reload')
++        check(int(header['animation_events']) == 22 and int(header['activations']) >= 1,
++              'animation or UI input did not advance')
++        stages = ['reload_ms', 'begin_frame_ms', 'populate_ms', 'index_ms', 'query_ms',
++                  'extract_ms', 'ui_ms', 'draw_ms', 'end_frame_ms']
++        for frame, row in enumerate(rows):
++            sparse = (frame // 120) % 2 == 1
++            check(int(row['frame']) == frame and int(row['warmup']) == (frame < 4),
++                  'frame identity/dropped sample')
++            check(int(row['sparse']) == sparse and int(row['reloaded']) ==
++                  (frame > 0 and frame % 120 == 0), 'phase/reload cadence')
++            spacing = 2 if sparse else .25
++            shift = (frame % 120 + 1) * .0001
++            centers = [(i % 100 * spacing - 12 + shift, i // 100 * spacing - 12)
++                       for i in range(10000)]
++            query = sum(x*x + y*y <= 2.05**2 for x, y in centers)
++            sweep = sum((x - min(1, max(-1, x)))**2 + y*y <= .1**2
++                        for x, y in centers)
++            check(int(row['query_hits']) == query and int(row['sweep_hits']) == sweep,
++                  'query/sweep differs from independent all-object oracle')
++            check(gate.query_oracle(sparse, frame % 120 + 1) == (query, sweep),
++                  'acceptance runner failed to account for moving query boundaries')
++            # Orthographic bounds: x in [-16,16], y in [-12,12], sprite half size .075.
++            visible = sum(-16.075 <= x <= 16.075 and -12.075 <= y <= 12.075
++                          for x, y in centers) + 256
++            check(int(row['visible']) == visible and int(row['culled']) == 10256 - visible,
++                  'CPU culling differs from independent camera oracle')
++            check(row['sprite_batches'] == '2' and row['ui_quads'] == '120' and
++                  row['ui_commands'] == '120', 'missing integrated render/UI load')
++            values = [float(row[key]) for key in stages]
++            check(all(math.isfinite(v) and v >= 0 for v in values), 'invalid intervals')
++            check(sum(values) <= float(row['frame_ms']) + 1e-6 and
++                  float(row['cpu_ms']) <= float(row['frame_ms']) <= float(row['cycle_ms']),
++                  'timing containment')
++            check(row['fixture_alloc_live'] == '0' and
++                  row['fixture_allocations'] == row['fixture_frees'], 'allocation imbalance')
++            check(int(row['fixture_allocations']) == frame // 120 and
++                  int(row['fixture_alloc_peak']) == (8388608 if frame >= 120 else 0),
++                  'declared loading allocation missing')
++        for option in [['--integrated'], ['--soak-seconds', '1'], ['--reload-every', '0'],
++                       ['--integrated', '--soak-seconds', '14401']]:
++            failed = subprocess.run([str(args.benchmark.resolve()), '--report', str(report)] +
++                                    option, capture_output=True, timeout=10)
++            check(failed.returncode != 0, f'invalid invocation accepted: {option}')
++    print('Integrated 10k updates, independent queries/culling, UI/VFX, reload and trace pass')
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/Tools/TwoD/Benchmark.cpp b/Tools/TwoD/Benchmark.cpp
+index 6ffac99e..60c906bf 100644
+--- a/Tools/TwoD/Benchmark.cpp
++++ b/Tools/TwoD/Benchmark.cpp
+@@ -1,3 +1,4 @@
++#include "IntegratedStress.h"
+ #include "Nexora/Core/Engine.h"
+ #include "Nexora/Core/JobSystem.h"
+ #include "Nexora/Core/Vfs.h"
+@@ -276,13 +277,29 @@ int main(int argc, char **argv) {
+   try {
+     std::string reportPath, atlasPath, clipPath, frameTracePath;
+     bool native = false;
++    bool integrated = false;
++    bool integratedOptions = false;
++    unsigned soakSeconds = 0, reloadEvery = 600;
+     auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
+     unsigned frames = 48;
+     for (int i = 1; i < argc; ++i) {
+       std::string_view a = argv[i];
+       if (a == "--native")
+         native = true;
+-      else if (a == "--backend" && i + 1 < argc) {
++      else if (a == "--integrated")
++        integrated = true;
++      else if ((a == "--soak-seconds" || a == "--reload-every") && i + 1 < argc) {
++        integratedOptions = true;
++        std::string_view n = argv[++i];
++        unsigned value{};
++        auto r = std::from_chars(n.data(), n.data() + n.size(), value);
++        Check(r.ec == std::errc{} && r.ptr == n.data() + n.size() && value >= 1 && value <= 14400,
++              "integrated duration/reload 1..14400 required");
++        if (a == "--soak-seconds")
++          soakSeconds = value;
++        else
++          reloadEvery = value;
++      } else if (a == "--backend" && i + 1 < argc) {
+         const std::string_view value(argv[++i]);
+         if (value == "auto")
+           backend = Nexora::Presentation::SurfaceBackend::Automatic;
+@@ -315,6 +332,8 @@ int main(int argc, char **argv) {
+     Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
+           "explicit backend requires native presentation");
+     Check(!reportPath.empty(), "report required");
++    Check(integrated || !integratedOptions, "soak/reload options require integrated mode");
++    Check(!integrated || !frameTracePath.empty(), "integrated mode requires frame trace");
+     std::optional<twod::Atlas> loadedAtlas;
+     std::optional<twod::Clip> loadedClip;
+     if (!atlasPath.empty()) {
+@@ -352,9 +371,17 @@ int main(int argc, char **argv) {
+             "frame trace must differ from report");
+       frameTrace.open(frameTracePath);
+       Check(bool(frameTrace), "frame trace output");
+-      frameTrace
+-          << "objects,sparse,overlap,native,frame,warmup,cpu_ms,frame_ms,reload_ms,"
+-             "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
++      if (!integrated)
++        frameTrace
++            << "objects,sparse,overlap,native,frame,warmup,cpu_ms,frame_ms,reload_ms,"
++               "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
++    }
++    if (integrated) {
++      twod::validation::IntegratedStress(report, frameTrace,
++                                         {native, frames, soakSeconds, reloadEvery, backend},
++                                         loadedAtlas, loadedClip);
++      std::cout << "Integrated 10k fixture completed; product minimum-PC acceptance is separate.\n";
++      return 0;
+     }
+     auto *trace = frameTrace.is_open() ? &frameTrace : nullptr;
+     report << "objects,sparse,reload_ms,overlap,native,frames,warmup_frames,loading_ms,cpu_p50_ms,"
+diff --git a/Tools/TwoD/CMakeLists.txt b/Tools/TwoD/CMakeLists.txt
+index 40c7082b..0ee61f85 100644
+--- a/Tools/TwoD/CMakeLists.txt
++++ b/Tools/TwoD/CMakeLists.txt
+@@ -6,8 +6,11 @@ if(NEXORA_ENABLE_EDITOR AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+   target_link_libraries(NexoraTwoDStudio PRIVATE Nexora::EditorImGui)
+   nexora_apply_defaults(NexoraTwoDStudio)
+ endif()
+-add_executable(NexoraTwoDBenchmark Benchmark.cpp)
++add_executable(NexoraTwoDBenchmark Benchmark.cpp IntegratedStress.cpp)
+ target_link_libraries(NexoraTwoDBenchmark PRIVATE Nexora::TwoD)
++if(WIN32)
++  target_link_libraries(NexoraTwoDBenchmark PRIVATE dxgi)
++endif()
+ nexora_apply_defaults(NexoraTwoDBenchmark)
+ 
+ # Runtime-only device probe, also available in Editor-free Monolithic Shipping.
+diff --git a/Tools/TwoD/IntegratedStress.cpp b/Tools/TwoD/IntegratedStress.cpp
+new file mode 100644
+index 00000000..4093bc41
+--- /dev/null
++++ b/Tools/TwoD/IntegratedStress.cpp
+@@ -0,0 +1,469 @@
++#include "IntegratedStress.h"
++#include "Nexora/Core/Memory.h"
++#include "Nexora/Core/ProcessMemory.h"
++#include "Nexora/TwoD/GameplayUi.h"
++#include "Nexora/TwoD/Lifecycle.h"
++#include <array>
++#include <chrono>
++#include <cmath>
++#include <iomanip>
++#include <stdexcept>
++#if defined(_WIN32)
++#define NOMINMAX
++#include <Windows.h>
++#include <dxgi1_4.h>
++#include <psapi.h>
++#include <wrl/client.h>
++#endif
++
++namespace nexora::twod::validation {
++namespace {
++using Clock = std::chrono::steady_clock;
++using namespace Nexora::Presentation;
++constexpr std::size_t objects = 10000, particles = 256;
++constexpr std::size_t loadingBytes = 8 * 1024 * 1024;
++void Check(bool value, const char *message) {
++  if (!value)
++    throw std::runtime_error(message);
++}
++double Ms(Clock::time_point a, Clock::time_point b) {
++  return std::chrono::duration<double, std::milli>(b - a).count();
++}
++struct MemorySample {
++  std::optional<std::uint64_t> rss, privateBytes, handles, localUsage, localBudget, nonlocalUsage;
++};
++class MemoryProbe {
++public:
++  explicit MemoryProbe(const SurfaceDeviceInfo &device) {
++#if defined(_WIN32)
++    using Microsoft::WRL::ComPtr;
++    ComPtr<IDXGIFactory1> factory;
++    if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))))
++      return;
++    unsigned matches = 0;
++    for (unsigned i = 0;; ++i) {
++      ComPtr<IDXGIAdapter1> candidate;
++      if (factory->EnumAdapters1(i, &candidate) == DXGI_ERROR_NOT_FOUND)
++        break;
++      if (!candidate)
++        break;
++      DXGI_ADAPTER_DESC1 description{};
++      if (SUCCEEDED(candidate->GetDesc1(&description)) && device.deviceIdsAvailable &&
++          description.VendorId == device.vendorId && description.DeviceId == device.deviceId) {
++        ++matches;
++        candidate.As(&adapter_);
++      }
++    }
++    // Do not silently attribute another identical board's usage to the renderer.
++    if (matches != 1)
++      adapter_.Reset();
++#else
++    (void)device;
++#endif
++  }
++  MemorySample Read() const {
++    MemorySample sample;
++    sample.rss = core::CurrentProcessResidentBytes();
++#if defined(_WIN32)
++    PROCESS_MEMORY_COUNTERS_EX memory{};
++    if (K32GetProcessMemoryInfo(GetCurrentProcess(),
++                                reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&memory),
++                                sizeof(memory)))
++      sample.privateBytes = memory.PrivateUsage;
++    DWORD count{};
++    if (GetProcessHandleCount(GetCurrentProcess(), &count))
++      sample.handles = count;
++    DXGI_QUERY_VIDEO_MEMORY_INFO info{};
++    if (adapter_ &&
++        SUCCEEDED(adapter_->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_LOCAL, &info))) {
++      sample.localUsage = info.CurrentUsage;
++      sample.localBudget = info.Budget;
++    }
++    if (adapter_ &&
++        SUCCEEDED(adapter_->QueryVideoMemoryInfo(0, DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL, &info)))
++      sample.nonlocalUsage = info.CurrentUsage;
++#endif
++    return sample;
++  }
++
++private:
++#if defined(_WIN32)
++  Microsoft::WRL::ComPtr<IDXGIAdapter3> adapter_;
++#endif
++};
++GameplayUiFont Font() {
++  constexpr std::string_view text = " 10KUIVFX";
++  constexpr std::array<std::array<unsigned, 7>, 9> bits{{{0, 0, 0, 0, 0, 0, 0},
++                                                         {4, 12, 4, 4, 4, 4, 14},
++                                                         {14, 17, 19, 21, 25, 17, 14},
++                                                         {17, 18, 20, 24, 20, 18, 17},
++                                                         {17, 17, 17, 17, 17, 17, 14},
++                                                         {14, 4, 4, 4, 4, 4, 14},
++                                                         {17, 17, 17, 17, 17, 10, 4},
++                                                         {31, 16, 16, 30, 16, 16, 16},
++                                                         {17, 17, 10, 4, 10, 17, 17}}};
++  GameplayUiFont font;
++  font.texture_id = std::uint64_t{1} << 60;
++  font.width = 54;
++  font.height = 8;
++  font.pixel_size = 7;
++  font.line_height = 8;
++  font.rgba.resize(font.width * font.height * 4);
++  for (unsigned i = 0; i < text.size(); ++i) {
++    for (unsigned y = 0; y < 7; ++y)
++      for (unsigned x = 0; x < 5; ++x)
++        if (bits[i][y] & (1U << (4 - x)))
++          for (unsigned c = 0; c < 4; ++c)
++            font.rgba[((y * font.width + i * 6 + x) * 4) + c] = std::byte{255};
++    font.glyphs.push_back({static_cast<std::uint32_t>(text[i]), 6, 0, 0, 5, 7,
++                           float(i * 6) / float(font.width), 0,
++                           float(i * 6 + 5) / float(font.width), 7.F / 8});
++  }
++  return font;
++}
++struct Sample {
++  std::uint64_t frame{}, reloads{}, queryHits{}, sweepHits{}, gpuSubmission{}, activations{};
++  bool warmup{}, sparse{}, reloaded{}, memorySampled{};
++  std::size_t visible{}, culled{}, batches{}, uiQuads{}, uiCommands{};
++  double cpu{}, full{}, cycle{}, elapsed{}, coverage{};
++  std::array<double, 9> stages{};
++  std::optional<double> gpu;
++  SurfaceDiagnostics diagnostics;
++  MemorySample memory;
++  core::MemoryStatistics allocation;
++};
++template <class T> void Optional(std::ostream &out, const std::optional<T> &value) {
++  if (value)
++    out << *value;
++}
++void Write(std::ostream &out, const Sample &s) {
++  out << s.frame << ',' << s.warmup << ',' << s.sparse << ',' << s.reloaded << ',' << s.elapsed
++      << ',' << objects << ',' << particles << ',' << s.visible << ',' << s.culled << ','
++      << s.batches << ',' << s.coverage << ',' << s.uiQuads << ',' << s.uiCommands << ','
++      << s.queryHits << ',' << s.sweepHits << ',' << s.activations << ',' << s.cpu << ',' << s.full
++      << ',' << s.cycle;
++  for (const auto duration : s.stages)
++    out << ',' << duration;
++  out << ',' << s.gpuSubmission << ',';
++  Optional(out, s.gpu);
++  out << ',' << s.reloads << ',' << s.diagnostics.acquiredFrames << ','
++      << s.diagnostics.presentedFrames << ',' << s.diagnostics.spriteInstancedDrawCalls << ','
++      << s.diagnostics.spriteGpuInstances << ',' << s.diagnostics.nativeUiDrawCalls << ','
++      << s.diagnostics.nativeUiTextureUploads << ',' << s.diagnostics.nativeUiBufferReallocations
++      << ',' << s.diagnostics.nativeUiRejectedTextures << ',' << s.allocation.live_bytes << ','
++      << s.allocation.peak_bytes << ',' << s.allocation.allocation_count << ','
++      << s.allocation.free_count << ',' << s.memorySampled;
++  for (const auto &value : {s.memory.rss, s.memory.privateBytes, s.memory.handles,
++                            s.memory.localUsage, s.memory.localBudget, s.memory.nonlocalUsage}) {
++    out << ',';
++    Optional(out, value);
++  }
++  out << '\n';
++  Check(bool(out), "integrated trace write");
++}
++} // namespace
++
++void IntegratedStress(std::ostream &report, std::ostream &trace, const IntegratedOptions &options,
++                      const std::optional<Atlas> &sourceAtlas,
++                      const std::optional<Clip> &sourceClip) {
++  const auto loading = Clock::now();
++  Image white{1, 8, 8, Bytes(256, std::byte{255})};
++  Image alternate = white;
++  alternate.id = 2;
++  for (std::size_t i = 0; i < alternate.rgba.size(); i += 4)
++    alternate.rgba[i] = std::byte{128};
++  const std::array images{white, alternate};
++  auto atlas = sourceAtlas ? sourceAtlas : PackAtlas({9, 17}, images, 32, 32, true);
++  auto effect = PackAtlas({29, 31}, std::span(&white, 1), 32, 32, true);
++  Check(atlas && effect, "integrated atlases");
++  std::array<std::shared_ptr<const Atlas>, 2> owners{std::make_shared<const Atlas>(*atlas),
++                                                     std::make_shared<const Atlas>(*effect)};
++  std::array<std::uint64_t, 2> textures{201, 202};
++  Check(atlas->id != effect->id, "integrated atlas identities must differ");
++  // A real atlas codec round trip occurs at each loading spike (not disk IO).
++  const auto encodedAtlas = EncodeAtlas(*atlas);
++  Check(!encodedAtlas.empty(), "integrated atlas encode");
++  InstancePool pool(objects);
++  std::vector<Instance> initial(objects);
++  const auto populateInitial = [&](bool sparse) {
++    for (std::size_t i = 0; i < objects; ++i) {
++      auto &instance = initial[i];
++      instance.sprite.atlas = atlas->id;
++      instance.sprite.region = atlas->regions.front().id;
++      instance.sprite.size = {0.15F, 0.15F};
++      instance.sprite.color = {0.2F, 0.7F, 1.F, 1.F};
++      instance.transform.x = double(i % 100) * (sparse ? 2.0 : 0.25) - 12;
++      instance.transform.y = double(i / 100) * (sparse ? 2.0 : 0.25) - 12;
++    }
++  };
++  populateInitial(false);
++  auto handles = pool.Create(initial);
++  Check(bool(handles), "integrated initial pool");
++  RenderSurfaceResult surface;
++  if (options.native) {
++    RenderSurfaceDescriptor descriptor;
++    descriptor.title = "Nexora 2D integrated 10k soak";
++    descriptor.width = 640;
++    descriptor.height = 480;
++    descriptor.enableGpuTiming = true;
++    descriptor.backend = options.backend;
++    surface = CreateRenderSurface(descriptor);
++    Check(bool(surface), "integrated native surface");
++  }
++  const auto device = options.native ? surface.surface->Diagnostics().device : SurfaceDeviceInfo{};
++  Check(!options.native || !surface.surface->Diagnostics().softwareRasterizer,
++        "integrated physical run rejects software rasterizer");
++  MemoryProbe memory(device);
++  GameplayUi ui;
++  Check(ui.RegisterFont(Font()), "integrated fixture font");
++  NexoraGameplayUiApiV1 api{};
++  api.struct_size = sizeof(api);
++  Check(ui.GetApi(&api) == 0, "integrated UI negotiation");
++  std::uint64_t font{};
++  Check(api.get_font(api.context, 0, &font) == 0, "integrated UI font");
++  Animator animation;
++  Check(animation.Play(sourceClip ? *sourceClip
++                                  : Clip{{18, 19},
++                                         atlas->id,
++                                         true,
++                                         {{atlas->regions.front().id, 0.1, "tick"},
++                                          {atlas->regions.back().id, 0.1, "tick"}}}),
++        "integrated animation");
++  FixedStepper step;
++  SpatialIndex index(2);
++  core::TrackingAllocator allocator;
++  Camera camera;
++  camera.width = 640;
++  camera.height = 480;
++  camera.verticalSize = 24;
++  const unsigned warmup = options.seconds ? 1200 : 4;
++  const auto loopStart = Clock::now();
++  auto measuredStart = loopStart;
++  auto previousStart = loopStart;
++  std::optional<Sample> pending;
++  std::uint64_t frames{}, reloads{}, steps{}, events{}, activations{}, totalInstances{};
++  std::uint64_t lastGpu{}, gpuSamples{};
++  bool sparse = false;
++  trace << "frame,warmup,sparse,reloaded,elapsed_seconds,objects,vfx,visible,culled,sprite_batches,"
++           "covered_aabb_ratio,ui_quads,ui_commands,query_hits,sweep_hits,activations,cpu_ms,"
++           "frame_ms,cycle_ms,reload_ms,begin_frame_ms,populate_ms,index_ms,query_ms,"
++           "extract_ms,ui_ms,draw_ms,end_frame_ms,gpu_submission,gpu_ms,reloads,acquired,"
++           "presented,instanced_draws,gpu_instances,ui_draws,texture_uploads,buffer_reallocations,"
++           "rejected_textures,fixture_alloc_live,fixture_alloc_peak,fixture_allocations,fixture_"
++           "frees,"
++           "memory_sampled,rss_bytes,private_bytes,process_handles,gpu_local_usage_bytes,"
++           "gpu_local_budget_bytes,gpu_nonlocal_usage_bytes\n";
++  trace << std::setprecision(17);
++  for (;;) {
++    const auto begin = Clock::now();
++    if (pending) {
++      pending->cycle = Ms(previousStart, begin);
++      Write(trace, *pending); // This IO is included in the new frame/cycle interval.
++      pending.reset();
++    }
++    if (frames == warmup)
++      measuredStart = begin;
++    if (frames >= std::uint64_t(warmup) + options.frames &&
++        (!options.seconds || Ms(measuredStart, begin) >= options.seconds * 1000.0))
++      break;
++    Sample sample;
++    sample.frame = frames;
++    sample.warmup = frames < warmup;
++    sample.elapsed = Ms(loopStart, begin) / 1000;
++    std::array<Clock::time_point, 10> points;
++    points[0] = Clock::now();
++    if (frames && frames % options.reloadEvery == 0) {
++      auto *scratch = allocator.Allocate(loadingBytes, 64, 6);
++      // Touch the declared allocation, and balance it even if validation throws.
++      const auto freeScratch = [&](void *p) { allocator.Deallocate(p); };
++      std::unique_ptr<void, decltype(freeScratch)> scratchOwner(scratch, freeScratch);
++      // Volatile page touches cannot disappear as dead stores in monolithic LTCG builds.
++      auto *pages = static_cast<volatile std::byte *>(scratch);
++      for (std::size_t offset = 0; offset < loadingBytes; offset += 4096)
++        pages[offset] = std::byte{0x5a};
++      pages[loadingBytes - 1] = std::byte{0x5a};
++      auto decoded = DecodeAtlas(encodedAtlas);
++      Check(decoded && decoded->id == atlas->id, "integrated loading decode");
++      Check(pool.Destroy(*handles) && !pool.Find(handles->front()), "integrated stale handles");
++      sparse = !sparse;
++      populateInitial(sparse);
++      handles = pool.Create(initial);
++      Check(bool(handles), "integrated pool recreate");
++      if (options.native)
++        Check(surface.surface->ReleaseSpriteTextures(textures) == SurfaceStatus::Ready,
++              "integrated retire atlases");
++      textures[0] += 2;
++      textures[1] += 2;
++      owners = {std::make_shared<const Atlas>(std::move(*decoded)),
++                std::make_shared<const Atlas>(*effect)};
++      ++reloads;
++      sample.reloaded = true;
++    }
++    points[1] = Clock::now();
++    if (options.native) {
++      Check(surface.surface->BeginFrame() == SurfaceStatus::Ready, "integrated acquire");
++      Check(!surface.surface->CloseRequested(), "integrated interrupted by window close");
++      const auto size = surface.surface->FrameInfo();
++      Check(size.width == 640 && size.height == 480, "integrated viewport changed");
++    }
++    points[2] = Clock::now();
++    {
++      const auto tick = step.Advance(1.0 / 60);
++      Check(tick && tick->steps == 1, "integrated fixed step");
++      steps += tick->steps;
++      const auto animated = animation.Advance(step.StepSeconds());
++      Check(bool(animated), "integrated animation advance");
++      events += animated->events.size();
++      std::vector<SpriteInstance> sprites;
++      std::vector<Shape> shapes;
++      sprites.reserve(objects + particles);
++      shapes.reserve(objects);
++      std::uint64_t id = 0;
++      pool.ForEach([&](auto &instance) {
++        instance.transform.x += 0.0001;
++        instance.sprite.region = animated->region;
++        const auto identity = ++id;
++        sprites.push_back({identity, instance.sprite, runtime::ToMatrix(instance.transform)});
++        Shape shape;
++        shape.id = identity;
++        shape.center = {float(instance.transform.x), float(instance.transform.y)};
++        shape.radius = 0.05F;
++        shapes.push_back(shape);
++      });
++      Check(id == objects && shapes.size() == objects, "integrated full updates");
++      for (std::size_t i = 0; i < particles; ++i) {
++        Sprite particle;
++        particle.atlas = effect->id;
++        particle.region = 1;
++        particle.size = {0.6F, 0.6F};
++        particle.color = {1.F, 0.2F, 0.05F, 0.125F};
++        particle.layer = 1;
++        runtime::Transform transform;
++        const double phase = double(frames % 600) / 60 + double(i) * 0.02454369260617026;
++        transform.x = double(i % 16) * 0.4 - 3 + std::sin(phase) * 0.2;
++        transform.y = double(i / 16) * 0.4 - 3 + std::cos(phase) * 0.2;
++        sprites.push_back({objects + i + 1, particle, runtime::ToMatrix(transform)});
++      }
++      points[3] = Clock::now();
++      Check(index.Build(shapes), "integrated full query rebuild");
++      points[4] = Clock::now();
++      Shape query;
++      query.radius = 2;
++      sample.queryHits = index.Query(query).size();
++      sample.sweepHits = index.Sweep({-1, 0}, {1, 0}, 0.05F).size();
++      points[5] = Clock::now();
++      auto extracted =
++          ExtractSprites(sprites, camera, [&](AssetId asset) -> std::optional<AtlasBinding> {
++            if (asset == atlas->id)
++              return AtlasBinding{owners[0], textures[0]};
++            if (asset == effect->id)
++              return AtlasBinding{owners[1], textures[1]};
++            return std::nullopt;
++          });
++      Check(extracted && extracted->statistics.input == objects + particles &&
++                extracted->statistics.unavailable == 0 && extracted->statistics.batches == 2,
++            "integrated extraction counts");
++      sample.visible = extracted->statistics.visible;
++      sample.culled = extracted->statistics.culled;
++      sample.batches = extracted->statistics.batches;
++      sample.coverage = extracted->statistics.coveredPixels / (640 * 480);
++      points[6] = Clock::now();
++      GameplayUiInput input;
++      input.pointer_x = input.pointer_y = -1;
++      input.navigate = frames % 60 == 0 ? 1 : 0;
++      input.activate = frames % 90 == 0;
++      ui.BeginInput(input);
++      Check(api.begin_frame(api.context, 640, 480) == 0, "integrated UI begin");
++      for (unsigned i = 0; i < 16; ++i)
++        Check(api.panel(api.context, {float(i % 8) * 80, float(i / 8) * 28, 76, 24},
++                        0x90403020u + static_cast<unsigned>(frames % 32)) == 0,
++              "integrated panels");
++      for (unsigned i = 0; i < 8; ++i) {
++        std::uint32_t state{};
++        Check(api.button(api.context, i + 1, {float(i) * 80, 60, 76, 24}, "UI", 2, font, 14, 1,
++                         &state) == 0,
++              "integrated buttons");
++        activations += (state & NEXORA_UI_ACTIVATED) != 0;
++        Check(api.text(api.context, font, 7, {float(i) * 80, 90, 76, 20}, "10K UI VFX", 10,
++                       0xffffffffu) == 0,
++              "integrated labels");
++      }
++      Check(api.end_frame(api.context) == 0, "integrated UI end");
++      const auto overlay = ui.Frame();
++      sample.uiQuads = overlay.vertices.size() / 4;
++      sample.uiCommands = overlay.commands.size();
++      Check(sample.uiQuads == 120 && sample.uiCommands == 120, "integrated UI counts");
++      points[7] = Clock::now();
++      sample.cpu = Ms(points[2], points[7]);
++      if (options.native)
++        Check(extracted->Draw(*surface.surface, overlay.DrawData()) == SurfaceStatus::Ready,
++              "integrated draw");
++      points[8] = Clock::now();
++      if (options.native) {
++        Check(surface.surface->EndFrame() == SurfaceStatus::Ready, "integrated present");
++        sample.diagnostics = surface.surface->Diagnostics();
++        const auto timing = sample.diagnostics.gpuTiming;
++        if (timing.milliseconds && timing.completedSubmission != lastGpu) {
++          lastGpu = timing.completedSubmission;
++          sample.gpuSubmission = lastGpu;
++          sample.gpu = timing.milliseconds;
++          if (!sample.warmup && lastGpu > warmup)
++            ++gpuSamples;
++        }
++        totalInstances += sample.visible;
++        Check(sample.diagnostics.acquiredFrames == frames + 1 &&
++                  sample.diagnostics.presentedFrames == frames + 1 &&
++                  sample.diagnostics.spriteGpuInstances == totalInstances &&
++                  sample.diagnostics.spriteInstancedDrawCalls == (frames + 1) * 2 &&
++                  sample.diagnostics.nativeUiRejectedTextures == 0,
++              "integrated native submission balance");
++      }
++      points[9] = Clock::now();
++    } // Include frame-owned vectors/owners' destruction in full/cycle time.
++    sample.memorySampled = frames % 60 == 0;
++    if (sample.memorySampled)
++      sample.memory = memory.Read();
++    sample.allocation = allocator.Statistics();
++    Check(sample.allocation.live_bytes == 0 &&
++              sample.allocation.allocation_count == sample.allocation.free_count,
++          "integrated fixture allocation balance");
++    for (unsigned i = 0; i < sample.stages.size(); ++i)
++      sample.stages[i] = Ms(points[i], points[i + 1]);
++    sample.full = Ms(begin, Clock::now());
++    sample.sparse = sparse;
++    sample.reloads = reloads;
++    sample.activations = activations;
++    previousStart = begin;
++    pending = sample;
++    ++frames;
++  }
++  const auto measuredSeconds = Ms(measuredStart, Clock::now()) / 1000;
++  Check(!pending && steps == frames && pool.Size() == objects, "integrated final state");
++  SurfaceDiagnostics final;
++  if (options.native) {
++    final = surface.surface->Diagnostics();
++    Check(surface.surface->DrainAndDestroy() == SurfaceStatus::Ready, "integrated drain");
++  }
++  Check(pool.Destroy(*handles) && pool.Size() == 0 && !pool.Find(handles->front()),
++        "integrated final pool release");
++  trace.flush();
++  Check(bool(trace), "integrated trace flush");
++  report << std::setprecision(17)
++         << "objects,vfx,frames,warmup_frames,measured_seconds,loading_ms,reload_every,reloads,"
++            "steps,animation_events,activations,gpu_samples,acquired,presented,texture_uploads,"
++            "buffer_reallocations,fixture_alloc_live,fixture_alloc_peak,fixture_allocations,"
++            "fixture_frees,device_name,vendor_id,device_id,driver_version,backend_requested\n"
++         << objects << ',' << particles << ',' << frames - warmup << ',' << warmup << ','
++         << measuredSeconds << ',' << Ms(loading, loopStart) << ',' << options.reloadEvery << ','
++         << reloads << ',' << steps << ',' << events << ',' << activations << ',' << gpuSamples
++         << ',' << final.acquiredFrames << ',' << final.presentedFrames << ','
++         << final.nativeUiTextureUploads << ',' << final.nativeUiBufferReallocations << ','
++         << allocator.Statistics().live_bytes << ',' << allocator.Statistics().peak_bytes << ','
++         << allocator.Statistics().allocation_count << ',' << allocator.Statistics().free_count
++         << ',' << std::quoted(std::string(device.name.data())) << ',' << device.vendorId << ','
++         << device.deviceId << ',' << device.driverVersion << ','
++         << (options.native ? ToString(options.backend) : "none") << '\n';
++  report.flush();
++  Check(bool(report), "integrated report write");
++}
++} // namespace nexora::twod::validation
+diff --git a/Tools/TwoD/IntegratedStress.h b/Tools/TwoD/IntegratedStress.h
+new file mode 100644
+index 00000000..b4fc39c2
+--- /dev/null
++++ b/Tools/TwoD/IntegratedStress.h
+@@ -0,0 +1,16 @@
++#pragma once
++#include "Nexora/Presentation/RenderSurface.h"
++#include "Nexora/TwoD/Assets.h"
++#include <iosfwd>
++#include <optional>
++
++namespace nexora::twod::validation {
++// Tool policy only; no engine/public ABI or original benchmark workload changes.
++struct IntegratedOptions {
++  bool native{};
++  unsigned frames{48}, seconds{}, reloadEvery{600};
++  Nexora::Presentation::SurfaceBackend backend{Nexora::Presentation::SurfaceBackend::Automatic};
++};
++void IntegratedStress(std::ostream &report, std::ostream &trace, const IntegratedOptions &options,
++                      const std::optional<Atlas> &atlas, const std::optional<Clip> &clip);
++} // namespace nexora::twod::validation
+diff --git a/Tools/TwoD/README.md b/Tools/TwoD/README.md
+index 5ab06eb6..543ee3a0 100644
+--- a/Tools/TwoD/README.md
++++ b/Tools/TwoD/README.md
+@@ -116,6 +116,67 @@ integrated product/UI/text/save/shutdown and display/DPI stay open in that VM sl
+ Software VM timing is not physical M6 acceptance. See [module contracts](../../Engine/TwoD/README.md) and
+ [2D roadmap](../../Roadmap/en/2D_Roadmap.md).
+ 
++## Integrated 10k load and sustained native validation
++
++The opt-in `NexoraTwoDBenchmark --integrated --frames 600 --reload-every 300 --report load.csv
++--frame-trace frames.csv` runs one integrated fixture; omitting `--integrated` preserves the original
++six cases, report schema, workload and 4..600 frame limit. Integrated mode always updates 10,000
++objects, builds all 10,000 query shapes, performs circle/sweep queries, animation and extraction,
++then draws 256 moving translucent VFX and a real `GameplayUi` overlay in the same native pass.
++The two Sprite atlases/batches are followed by 16 panels, eight buttons and eight ten-glyph labels
++(120 UI quads/commands). Deterministic navigation/activation validates UI service execution, not
++physical input. The supplied readable ASCII font and two-region animation are fixtures, not
++production art/fonts. No gameplay, GPU simulation or skipped CPU updates are introduced.
++
++At each reload cadence the full pool is recycled with stale-handle rejection, an 8 MiB allocation
++is touched at 4 KiB intervals plus its last byte (volatile stores survive LTCG) and freed through
++`TrackingAllocator`, the Atlas codec is decoded again, and both old
++GPU atlas generations are retired before new IDs upload. This is in-memory loading churn, not
++asynchronous disk IO. Mixed and sparse layouts alternate at these boundaries, preserving the
++original spacing, sizes, movement and camera. Visible counts including VFX are 9,956/451; all
++10,000 ordinary objects are updated/queried in either layout. Fixed simulation time is 1/60 s per
++rendered frame; it is not a real-time gameplay clock.
++
++`--soak-seconds 1800` runs for at least 30 measured minutes after 1,200 warm-up frames, with no
++duration-dependent in-memory sample buffer. It also satisfies the supplied minimum `--frames`.
++Duration/cadence accept 1..14400; these options require integrated mode, which requires a distinct
++trace path. Native integrated runs reject software rendering and viewport changes. Any failed
++update, query, UI command, submission, resource retirement, drain or output write exits nonzero.
++The original native APIs/ABI and engine lifetime contracts are unchanged.
++
++Every frame is retained in CSV through one pending record. Trace output of the preceding record,
++frame-local destruction and every-60-frame resource polls are included in the full interval;
++`cycle_ms` spans frame start to next frame start and includes loop/trace overhead. The final record
++uses the loop's final boundary. Nine work stages are contained in the full interval; their sum
++excludes trace output, destruction and resource polls. CPU spans simulation through UI building.
++Native GPU intervals identify unique earlier completed submissions, excluding warm-up submissions
++from measured GPU aggregates; they do not measure same-frame GPU work or display latency.
++
++Resource observations are optional fields, never fabricated zero: process RSS on supported hosts;
++Windows private commit/handle count and DXGI node-0 local/nonlocal process usage on a unique matching
++PCI vendor/device adapter. Local usage/budget is WDDM accounting, not physical VRAM residency or
++per-texture allocation. `fixture_alloc_*` covers only the explicit loading allocation, not STL,
++driver or total engine allocations. Native buffer reallocation/texture upload/rejection counts
++are cumulative engine diagnostics; RSS/commit include drivers. Driver memory identity is retained
++as exact integer CSV text. No global allocator hooks or platform security/power settings change.
++
++```bash
++python3 Tools/TwoD/RunIntegratedAcceptance.py --benchmark path/to/NexoraTwoDBenchmark.exe --output fresh/evidence --seconds 1800
++```
++
++The runner writes a fixed plan with executable/source hashes before executing two repetitions of
++all original six-case screens, two integrated 600-frame screens (reload every 300), then one
++continuous soak per backend (reload every 600). DX12/Vulkan run sequentially. It retains every exit,
++frame and failure, checks all 10k updates/native counters and rejects missing samples/wrong devices.
++Default expected hardware is this developer PC's NVIDIA 4318/5121; explicit IDs select another host.
++Full/cycle and each phase must meet p95/p99 <=33.3333 ms and max <=66.6667 ms. Soak resource limits are
++512 MiB sampled process RSS/private/local GPU usage, first/last five-minute median growth <=32/32/16 MiB,
++<=4096 handles with growth <=8, and <=8 native buffer reallocations without median growth. These
++are predeclared current-host fixture budgets; product minimum hardware, full allocator accounting,
++production content and M7 device/clean-host acceptance remain independent. Stop local builds/other
++native fixtures during measurement; ordinary desktop apps may remain open. Analysis runs only
++after all native processes finish. Never retry until passing or omit a measured spike.
++
+ 
+ ## Device audio probe
+ 
+diff --git a/Tools/TwoD/RunIntegratedAcceptance.py b/Tools/TwoD/RunIntegratedAcceptance.py
+new file mode 100644
+index 00000000..7b530f37
+--- /dev/null
++++ b/Tools/TwoD/RunIntegratedAcceptance.py
+@@ -0,0 +1,323 @@
++"""Fixed original-load screen plus integrated native soak; retain every run and failure.
++
++This is a current-host fixture gate, not a declaration of product minimum hardware.
++Run on an idle build tree; no local compilation/other native fixtures during measurement.
++"""
++import argparse
++import csv
++import datetime
++import hashlib
++import json
++import math
++from functools import lru_cache
++from pathlib import Path
++import statistics
++import struct
++import subprocess
++import time
++
++ROOT = Path(__file__).resolve().parents[2]
++LIMITS = {'p95_ms': 1000 / 30, 'p99_ms': 1000 / 30, 'max_ms': 2000 / 30}
++MIB = 1024 * 1024
++SOURCES = ['Tools/TwoD/Benchmark.cpp', 'Tools/TwoD/IntegratedStress.cpp',
++           'Tools/TwoD/IntegratedStress.h', 'Tools/TwoD/RunIntegratedAcceptance.py',
++           'Engine/TwoD/src/Scene.cpp', 'Engine/TwoD/src/Queries.cpp',
++           'Engine/TwoD/src/GameplayUi.cpp', 'Engine/Presentation/src/Dx12Surface.cpp',
++           'Engine/Presentation/src/VulkanSurface.cpp']
++
++
++def digest(path):
++    with path.open('rb') as stream:
++        return hashlib.file_digest(stream, 'sha256').hexdigest()
++
++
++def save(path, data):
++    path.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
++
++
++def distribution(values):
++    values = sorted(values)
++    if not values or not all(math.isfinite(v) and v >= 0 for v in values):
++        raise ValueError('missing/invalid timing samples')
++    return dict(samples=len(values), average_ms=statistics.fmean(values),
++                p95_ms=values[math.ceil(.95 * len(values)) - 1],
++                p99_ms=values[math.ceil(.99 * len(values)) - 1], max_ms=values[-1])
++
++
++def within(stats):
++    return all(stats[key] <= limit for key, limit in LIMITS.items())
++
++
++@lru_cache(maxsize=28800)
++def query_oracle(sparse, step):
++    """Independent disc/segment distance counts for the declared moving regular grid."""
++    def f32(value):
++        return struct.unpack('<f', struct.pack('<f', value))[0]
++    spacing = 2 if sparse else .25
++    xs = [f32(column * spacing - 12 + step * .0001) for column in range(100)]
++    ys = [row * spacing - 12 for row in range(100)]
++    radius = f32(.05)
++    query = sum(x*x + y*y <= (2 + radius)**2 for y in ys if abs(y) <= 2 + radius for x in xs)
++    sweep = sum((x - min(1, max(-1, x)))**2 + y*y <= (2 * radius)**2
++                for y in ys if abs(y) <= 2 * radius for x in xs)
++    return query, sweep
++
++
++def original_result(report, trace):
++    rows = list(csv.DictReader(report.open(encoding='utf-8')))
++    samples = list(csv.DictReader(trace.open(encoding='utf-8')))
++    expected = [('100', '0', '0'), ('1000', '0', '0'), ('5000', '0', '0'),
++                ('10000', '0', '0'), ('1000', '0', '1'), ('10000', '1', '0')]
++    valid = len(rows) == 6 and len(samples) == 3624
++    cases = []
++    for index, (row, case) in enumerate(zip(rows, expected)):
++        chunk = samples[index * 604:(index + 1) * 604]
++        valid &= ((row['objects'], row['sparse'], row['overlap']) == case and
++                  row['frames'] == '600' and row['warmup_frames'] == '4')
++        valid &= all((s['objects'], s['sparse'], s['overlap']) == case and
++                     int(s['frame']) == frame and int(s['warmup']) == (frame < 4)
++                     for frame, s in enumerate(chunk))
++        stats = distribution([float(s['frame_ms']) for s in chunk[4:]])
++        for key in LIMITS:
++            valid &= math.isclose(stats[key], float(row[f'frame_{key}']),
++                                  rel_tol=1e-5, abs_tol=1e-5)
++        cases.append(dict(case=case, timing=stats, pass_budget=within(stats)))
++    return dict(rows=rows, cases=cases, frame_samples=len(samples), correctness_pass=bool(valid),
++                performance_pass=len(cases) == 6 and all(c['pass_budget'] for c in cases),
++                resource_pass=None)
++
++
++def integrated_result(report, trace, seconds, cadence):
++    aggregate = list(csv.DictReader(report.open(encoding='utf-8')))
++    if len(aggregate) != 1:
++        raise ValueError('missing integrated summary')
++    summary = aggregate[0]
++    timing = {key: [] for key in ['frame_ms', 'cycle_ms', 'cpu_ms', 'gpu_ms']}
++    phase = {False: [], True: []}
++    memory = []
++    worst = []
++    errors = []
++    frames = 0
++    visible_total = 0
++    warmup = int(summary['warmup_frames'])
++    previous_gpu = 0
++    unique_gpu = 0
++    stages = ['reload_ms', 'begin_frame_ms', 'populate_ms', 'index_ms', 'query_ms',
++              'extract_ms', 'ui_ms', 'draw_ms', 'end_frame_ms']
++    for row in csv.DictReader(trace.open(encoding='utf-8')):
++        frame = int(row['frame'])
++        sparse = (frame // cadence) % 2 == 1
++        expected_visible = 451 if sparse else 9956
++        visible_total += expected_visible
++        expected_reload = frame // cadence
++        query, sweep = query_oracle(sparse, frame % cadence + 1)
++        expected = {
++            'frame': frames, 'warmup': int(frame < warmup), 'objects': 10000, 'vfx': 256,
++            'sparse': int(sparse), 'reloaded': int(frame > 0 and frame % cadence == 0),
++            'visible': expected_visible, 'culled': 10256 - expected_visible,
++            'sprite_batches': 2, 'ui_quads': 120, 'ui_commands': 120,
++            'query_hits': query, 'sweep_hits': sweep,
++            'reloads': expected_reload, 'fixture_alloc_live': 0,
++            'fixture_allocations': expected_reload, 'fixture_frees': expected_reload,
++            'acquired': frame + 1, 'presented': frame + 1,
++            'instanced_draws': (frame + 1) * 2, 'gpu_instances': visible_total,
++            'ui_draws': (frame + 1) * 123, 'texture_uploads': 5 + expected_reload * 2,
++            'rejected_textures': 0, 'memory_sampled': int(frame % 60 == 0),
++        }
++        if any(int(row[key]) != value for key, value in expected.items()) and len(errors) < 20:
++            errors.append({'frame': frame, 'mismatches': {
++                key: [value, row[key]] for key, value in expected.items()
++                if int(row[key]) != value}})
++        values = [float(row[key]) for key in stages]
++        full, cycle = float(row['frame_ms']), float(row['cycle_ms'])
++        if (not all(math.isfinite(v) and v >= 0 for v in values) or
++                sum(values) > full + 1e-5 or not 0 <= float(row['cpu_ms']) <= full <= cycle):
++            if len(errors) < 20:
++                errors.append({'frame': frame, 'error': 'timing containment'})
++        if row['gpu_ms']:
++            submission = int(row['gpu_submission'])
++            if submission <= previous_gpu and len(errors) < 20:
++                errors.append({'frame': frame, 'error': 'duplicate GPU sample'})
++            previous_gpu = submission
++        if frame >= warmup:
++            for key in timing:
++                if row[key] and (key != 'gpu_ms' or int(row['gpu_submission']) > warmup):
++                    timing[key].append(float(row[key]))
++            phase[sparse].append(cycle)
++            worst.append(row)
++            worst.sort(key=lambda sample: float(sample['cycle_ms']), reverse=True)
++            del worst[20:]
++            unique_gpu += bool(row['gpu_ms']) and int(row['gpu_submission']) > warmup
++            if row['memory_sampled'] == '1':
++                memory.append(row)
++        frames += 1
++    measured = frames - warmup
++    if measured != int(summary['frames']) or frames != int(summary['steps']):
++        errors.append({'error': 'omitted frame/update'})
++    if seconds and float(summary['measured_seconds']) < seconds:
++        errors.append({'error': 'duration below fixed minimum'})
++    if unique_gpu != int(summary['gpu_samples']) or unique_gpu != measured - 2:
++        errors.append({'error': 'missing completed GPU timing samples'})
++    resources = {}
++    # These are observed-process budgets; fixture allocation is scoped, not all engine new/malloc.
++    for key, cap, growth in [('rss_bytes', 512 * MIB, 32 * MIB),
++                             ('private_bytes', 512 * MIB, 32 * MIB),
++                             ('gpu_local_usage_bytes', 512 * MIB, 16 * MIB),
++                             ('process_handles', 4096, 8),
++                             ('buffer_reallocations', 8, 0)]:
++        observed = [sample for sample in memory if sample[key] != '']
++        item = {'available': bool(observed), 'peak_limit': cap, 'growth_limit': growth}
++        if observed:
++            start, end = float(observed[0]['elapsed_seconds']), float(observed[-1]['elapsed_seconds'])
++            first = [int(sample[key]) for sample in observed
++                     if float(sample['elapsed_seconds']) <= start + 300]
++            last = [int(sample[key]) for sample in observed
++                    if float(sample['elapsed_seconds']) >= end - 300]
++            item.update(peak=max(int(s[key]) for s in observed),
++                        first_window_median=statistics.median(first),
++                        last_window_median=statistics.median(last))
++            item['median_growth'] = item['last_window_median'] - item['first_window_median']
++            item['pass_budget'] = item['peak'] <= cap and item['median_growth'] <= growth
++        resources[key] = item
++    stats = {key: distribution(values) for key, values in timing.items() if values}
++    phases = {('sparse' if sparse else 'mixed'): distribution(values)
++              for sparse, values in phase.items() if values}
++    return {'summary': summary, 'frames': frames, 'measured_frames': measured,
++            'correctness_errors': errors, 'correctness_pass': not errors,
++            'timing': stats, 'phases_cycle': phases, 'worst_frames': worst,
++            'performance_pass': within(stats['cycle_ms']) and within(stats['frame_ms']) and
++                                all(within(s) for s in phases.values()),
++            'resources': resources,
++            'resource_pass': all(item.get('pass_budget', False) for item in resources.values()),
++            'memory_samples': len(memory), 'pending_gpu_submissions': frames - previous_gpu,
++            'dropped_gpu_samples': max(0, measured - 2 - unique_gpu),
++            'dropped_frame_samples': max(0, int(summary['steps']) - frames)}
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--benchmark', type=Path, required=True)
++    parser.add_argument('--output', type=Path, required=True)
++    parser.add_argument('--seconds', type=int, default=1800)
++    parser.add_argument('--backends', nargs='+', choices=['dx12', 'vulkan'], default=['dx12', 'vulkan'])
++    parser.add_argument('--vendor-id', type=int, default=4318)
++    parser.add_argument('--device-id', type=int, default=5121)
++    args = parser.parse_args()
++    if not 1 <= args.seconds <= 14400:
++        parser.error('seconds 1..14400 required')
++    exe, output = args.benchmark.resolve(), args.output.resolve()
++    output.mkdir(parents=True, exist_ok=False)
++    runs = []
++    for repeat in [1, 2]:
++        for backend in args.backends:
++            runs.append(dict(stem=f'{backend}-original-{repeat}', backend=backend, mode='original',
++                             frames=600, seconds=0, reload_every=None))
++            runs.append(dict(stem=f'{backend}-integrated-{repeat}', backend=backend, mode='integrated',
++                             frames=600, seconds=0, reload_every=300))
++    for backend in args.backends:
++        runs.append(dict(stem=f'{backend}-soak', backend=backend, mode='integrated', frames=48,
++                         seconds=args.seconds, reload_every=600))
++    for run in runs:
++        stem = run['stem']
++        command = [str(exe), '--native', '--backend', run['backend'], '--frames', str(run['frames']),
++                   '--report', str(output / f'{stem}.csv'),
++                   '--frame-trace', str(output / f'{stem}-frames.csv')]
++        if run['mode'] == 'integrated':
++            command += ['--integrated', '--reload-every', str(run['reload_every'])]
++            if run['seconds']:
++                command += ['--soak-seconds', str(run['seconds'])]
++        run['command'] = command
++    plan = dict(declared_at_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),
++                source=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
++                executable=str(exe), executable_sha256=digest(exe),
++                source_sha256={path: digest(ROOT / path) for path in SOURCES},
++                viewport=[640, 480], present_mode='VSync', frames_in_flight=2,
++                target_fps=30, frame_budgets=LIMITS, runs=runs,
++                integrated=dict(updated_objects=10000, query_shapes=10000, vfx=256,
++                                sprite_size=.15, vfx_size=.6, vfx_alpha=.125,
++                                fixed_step_seconds=1/60, animation_frame_seconds=.1,
++                                sprite_atlases=2, sprite_batches=2, ui_panels=16, ui_buttons=8,
++                                material='one unlit Sprite program, one indexed UI program; no material asset switches',
++                                ui_labels=8, ui_quads=120, ui_commands=120,
++                                visible_mixed=9956, visible_sparse=451,
++                                allocation_per_reload_bytes=8388608,
++                                loading='pool recycle; touched scoped allocation; atlas codec decode; GPU retirement/reupload; no disk IO'),
++                soak=dict(minimum_measured_seconds=args.seconds, warmup_frames=1200,
++                          memory_scope='Post-frame sampled peaks, not lifetime/intraframe peaks; explicit fixture allocation has exact scoped accounting.',
++                          phase_and_reload_every_frames=600, resource_sample_every_frames=60,
++                          process_bytes_peak=512*MIB, process_median_growth_bytes=32*MIB,
++                          gpu_local_usage_peak_bytes=512*MIB, gpu_local_median_growth_bytes=16*MIB,
++                          process_handles_peak=4096, process_handles_median_growth=8,
++                          buffer_reallocations_peak=8, buffer_reallocations_growth=0,
++                          comparison_windows_seconds=300),
++                gpu_sample_policy='Every measured submission except the final two in-flight submissions; no duplicate or missing completed samples.',
++                scope='Current physical developer-PC integrated fixture. Product minimum spec, total allocator accounting, physical VRAM residency and M7 device gates remain separate.',
++                timing='Integrated full includes preceding buffered trace output, frame destruction and resource polls. Cycle is start-to-next-start; both must pass. GPU samples are earlier completed submissions, not same-frame or display latency.',
++                policy='No build/other native fixture during timing; keep ordinary desktop apps. All rows/runs/frames retained. No retries after performance failure, no excluded measured spikes. Any missing sample, wrong native device or nonzero exit fails.')
++    save(output / 'plan.json', plan)
++    executions = []
++    for run in runs:
++        stem = run['stem']
++        print(f'Start {stem}: fixed minimum seconds={run["seconds"]}', flush=True)
++        started = time.monotonic()
++        with (output / f'{stem}.stdout').open('wb') as out, (output / f'{stem}.stderr').open('wb') as err:
++            process = subprocess.Popen(run['command'], cwd=ROOT, stdout=out, stderr=err)
++            deadline = started + run['seconds'] + 600
++            while True:
++                try:
++                    code = process.wait(timeout=min(45, max(.01, deadline-time.monotonic())))
++                    break
++                except subprocess.TimeoutExpired:
++                    if time.monotonic() >= deadline:
++                        process.kill()
++                        process.wait()
++                        code = 'timeout'
++                        break
++                    # Only a bounded tail read, never percentile analysis during native timing.
++                    tail = output / f'{stem}-frames.csv'
++                    latest = ''
++                    if tail.exists():
++                        with tail.open('rb') as stream:
++                            stream.seek(max(0, tail.stat().st_size - 4096))
++                            lines = stream.read().splitlines()
++                            if len(lines) > 2:
++                                latest = lines[-2].decode('ascii').split(',', 5)[0]
++                    print(f'Progress {stem}: wall={time.monotonic()-started:.0f}s last_flushed_frame={latest}',
++                          flush=True)
++        executions.append(dict(stem=stem, exit_code=code, wall_seconds=time.monotonic()-started))
++        save(output / 'executions.json', executions)
++        print(f'End {stem}: exit={code}', flush=True)
++    # Analyse after every native process has finished, avoiding analysis load during measurement.
++    results = []
++    for run, execution in zip(runs, executions):
++        stem = run['stem']
++        item = dict(execution)
++        if execution['exit_code'] != 0:
++            item['correctness_pass'] = False
++        else:
++            report, trace = output / f'{stem}.csv', output / f'{stem}-frames.csv'
++            if run['mode'] == 'original':
++                item.update(original_result(report, trace))
++                rows = item['rows']
++            else:
++                item.update(integrated_result(report, trace, run['seconds'], run['reload_every']))
++                rows = [item['summary']]
++            item['device_pass'] = all(r['vendor_id'] == str(args.vendor_id) and
++                                      r['device_id'] == str(args.device_id) and
++                                      r['backend_requested'] == run['backend'] for r in rows)
++        results.append(item)
++    save(output / 'results.json', results)
++    identity = dict(executable_sha256_before=plan['executable_sha256'], executable_sha256_after=digest(exe),
++                    source_sha256_after={path:digest(ROOT/path) for path in SOURCES},
++                    artifacts={p.name:digest(p) for p in sorted(output.iterdir()) if p.is_file()})
++    save(output / 'identity.json', identity)
++    passed = (identity['executable_sha256_before'] == identity['executable_sha256_after'] and
++              plan['source_sha256'] == identity['source_sha256_after']) and all(
++        item.get('correctness_pass') and item.get('device_pass') and item.get('performance_pass') and
++        (item.get('resource_pass') is not False) for item in results)
++    print(f'Fixed current-host gate passed={passed}. Product M6 acceptance requires scope review.', flush=True)
++    return 0 if passed else 1
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
