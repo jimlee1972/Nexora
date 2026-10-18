@@ -753,6 +753,47 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## Explicit bounded ray-scene compaction construction — 2026-10-18
+
+`nexora-45y.4.6` adds opt-in ordinary triangle BLAS/TLAS compaction. Default scene creation preserves
+runtime-specific immutable/updatable behavior; explicit creation on the admitted private refit
+runtime adds compatible ALLOW_COMPACTION metadata. Three
+owner-serialized phases query real GPU compacted sizes, compact BLAS, refit TLAS to the relocated
+BLAS, query its size and compact TLAS. Two explicit size readbacks/three waits belong to resource
+construction; no CPU hit result chooses GPU work. Positive/per-AS non-increasing64MiB
+bounds fail closed before publication. Older lists retain original scene snapshots and late native
+failure retains the complete accepted phase. OMM/unopted/stale calls reject; C++ consumers rebuild,
+stable C ABI and shader profiles stay unchanged. Diagnostic byte totals describe logical native AS
+buffer widths, not physical memory or guaranteed reduction.
+
+Fixtures add compaction/refit/compaction round trips for1/2/8 triangles in pipeline/inline/SER,
+old/new CPU outputs, canaries and lifetime/admission negatives. Private Windows acceptance requires
+45 refits (original36 plus nine round trips) and18 scene compactions per barrier mode. Actual SDK
+and Windows-conditional syntax pass; full local and final-head hosted CI remain required. General
+and OMM compaction, physical budgets/device-loss and the complete V2-GFX-3 gate stay open.
+
+
+✅ Opt-in API/ownership contracts and SDK-checked bounded construction are implemented. Local native
+Vulkan/Slang/Zig Development configure/build and Xvfb full CTest pass225/225, zero failures/skips
+(121.89s); Shipping Minimal/Monolithic LTO, pinned SDK/Windows-conditional syntax, documentation16/16,
+cleanup35/35, paired Markdown and touched format/diff pass. Only the exact owned compaction branch
+joins guarded cleanup; current-head events, other actors and similarly named branches remain
+protected. Native compaction acceptance still requires final-head Windows execution before merge.
+
+
+Integrated with runtime-admitted refits and explicit full rebuilds: compaction requires the admitted
+private update recipe, preserves both scene flags across updates/rebuilds and rejects system-runtime
+opt-in/compaction before GPU work. The integrated local gate above passes; final hosted validation
+remains required.
+
+Hosted private job117606800925 atfb0d8af6 passes6/8 but rejects both ray fixtures when a valid
+compacted size is padded past the original buffer width. The DXR contract aligns destination
+addresses, not buffer lengths. Preserve exact positive queried extents and original per-AS/64MiB
+bounds, with a separate256-byte destination-address check. Repaired native Vulkan/Slang/Zig
+Development configure/build and full225/225 pass, zero failures/skips (121.89s); Shipping Minimal/
+Monolithic LTO, pinned SDK syntax, docs16/16, cleanup35/35 and paired/format/diff checks pass.
+New-head native compaction and all hosted gates remain required.
+
 ## Bounded BLAS/TLAS refit construction — 2026-10-18
 
 ✅ The `nexora-45y.4.5` implementation adds native out-of-place same-topology ordinary triangle scene updates.
@@ -792,6 +833,13 @@ old/new snapshots and its own `ray_scene_rebuilds` counter. Both system and priv
 exercise128 CPU comparisons per rebuild; unadmitted refits publish no update counters. Default
 initial AS flags remain unchanged on the system route. Private native refit36 acceptance remains
 required, alongside full rebuilds and ordinary immutable ray/compute/cancellation regression tests.
+
+✅ Hosted refit/full-rebuild acceptance: PR640 merged as0390d2f3 after all38 checks and both push/PR
+workflows succeeded at unchangedf1595cdf. Both desktop matrices pass Windows321/Linux371/macOS309;
+both private preview suites pass8/8, each barrier mode executing36 refits and9 full rebuilds with
+independent old/new outputs. System ray fixtures each execute6 native full rebuilds and reject
+unadmitted refits (counter0). General system-runtime refit isolation remains open in `nexora-45y.4.7`;
+this scoped native acceptance does not close the full V2-GFX-3 gate.
 
 ## V2-GFX-3 bounded triangle-ray construction status
 

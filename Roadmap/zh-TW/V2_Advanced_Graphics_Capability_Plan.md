@@ -690,6 +690,43 @@ Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Obje
 **13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
 Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
 
+## 明確 opt-in 的有界射線場景 compaction 施工 — 2026-10-18
+
+`nexora-45y.4.6` 為一般三角形 BLAS／TLAS 加入明確 opt-in 壓縮。預設建立維持 runtime 原有不可變／可更新
+行為；已准入私有 refit runtime 的明確建立才加入相容 ALLOW_COMPACTION 中繼資料。三個 owner
+序列階段會查詢真正的 GPU 壓縮大小、壓縮 BLAS、refit TLAS 指向新 BLAS、再查詢並壓縮
+TLAS。兩次明確大小讀回／三次等待屬於資源建構，CPU hit 結果不會決定 GPU 工作。
+大小須為正值且每個 AS 不超過原有 buffer 與64MiB，全部完成前不發布。舊 List 保留
+原有場景，較晚的原生失敗會保留完整已接受階段。OMM／未 opt-in／失效呼叫會拒絕；C++
+消費端重編，穩定 C ABI 與 Shader profile 不變。診斷位元組總量代表邏輯 AS buffer width，
+不是實體記憶體，也不保證縮減。
+
+Fixture 對1／2／8三角形的 pipeline／inline／SER 執行 compaction／refit／compaction 往返，
+比對舊／新 CPU 輸出、canary 與 lifetime／admission 拒絕。私有 Windows 驗收要求每種
+barrier 模式45次 refit（原有36加九次往返）與18次場景 compaction。實際 SDK 與 Windows
+條件式語法通過；完整本機與固定 head 的 hosted CI 仍為必要條件。一般／OMM compaction、
+實體預算／裝置遺失與完整 V2-GFX-3 維持未完成。
+
+
+✅ Opt-in API／所有權 contract 與經 SDK 語法檢查的有界建構已實作。本機原生 Vulkan／Slang／Zig
+Development configure／build 與 Xvfb 完整 CTest225/225通過，零失敗／略過（121.89秒）；
+Shipping Minimal／Monolithic LTO、釘選 SDK／Windows 條件式語法、文件16/16、cleanup35/35、
+雙語 Markdown 與格式／diff 皆通過。CI 清理僅增加本次自有壓縮分支的精確名稱，保留最新 head
+兩種事件、其他 actor 與相似名稱分支。原生 compaction 驗收仍須固定 head 的 Windows 執行
+證據，完成後才可合併。
+
+
+整合 runtime 准入 refit 與明確完整重建後，compaction 要求已准入的私有更新配方，更新／重建
+保留兩種場景旗標；system runtime 的 opt-in／compaction 在 GPU 工作前拒絕。上述整合本機
+gate 已通過，最終 hosted 驗證仍為必要門檻。
+
+Hosted 私有工作117606800925在fb0d8af6通過6/8；兩個 ray fixture 都因有效壓縮大小向上
+補齊後超過原 buffer width 而拒絕。DXR 要求目的位址對齊，並未要求 buffer 長度對齊。
+保留查詢所得的精確正值長度與原有每個 AS／64MiB 上限，另外檢查目的 GPU 位址256-byte
+對齊。修正後原生 Vulkan／Slang／Zig Development configure／build 與完整225/225通過，
+零失敗／略過（121.89秒）；Shipping Minimal／Monolithic LTO、釘選 SDK 語法、文件16/16、
+cleanup35/35、雙語／格式／diff 通過。新 head 的原生壓縮與全部 hosted gate 仍為必要門檻。
+
 ## 有界 BLAS／TLAS refit 施工 — 2026-10-18
 
 ✅ `nexora-45y.4.5` 的實作為一般三角形場景加入相同拓樸、使用新儲存空間的原生更新。准入可更新的 BLAS／
@@ -725,6 +762,12 @@ Windows 條件式語法、文件16/16與 cleanup33/33皆通過。最終 hosted g
 `ray_scene_rebuilds` 計數。System 與私有 ray fixture 每次重建皆比對128筆 CPU 輸出，未准入
 refit 不會發布更新計數。System route 的初次 AS 旗標維持不變；私有原生36次 refit、完整
 重建及原有不可變射線／compute／取消重播回歸仍為必要驗收。
+
+✅ Hosted refit／完整重建驗收：PR640 在固定f1595cdf的全部38項檢查與 push／PR workflow
+皆成功後，合併為0390d2f3。兩套桌面矩陣皆通過 Windows321／Linux371／macOS309；兩套
+私有預覽皆8/8，每種 barrier 模式執行36次 refit 與9次完整重建，舊／新輸出獨立比對通過。
+System ray fixture 各執行6次原生完整重建，拒絕未准入 refit（計數0）。一般 system-runtime
+refit 隔離調查維持 `nexora-45y.4.7` 開放；此有界原生驗收不關閉完整 V2-GFX-3 gate。
 
 ## V2-GFX-3 有界三角形 Ray 施工狀態
 

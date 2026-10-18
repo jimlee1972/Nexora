@@ -64,6 +64,9 @@ struct DeviceDiagnostics final {
   std::uint64_t work_graph_dispatch_calls{};
   std::uint64_t ray_scene_refits{};
   std::uint64_t ray_scene_rebuilds{};
+  std::uint64_t ray_scene_compactions{};
+  std::uint64_t ray_compaction_buffer_bytes_before{};
+  std::uint64_t ray_compaction_buffer_bytes_after{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -181,6 +184,13 @@ public:
   [[nodiscard]] virtual RaySceneHandle CreateRayScene(std::span<const RayTriangle>) {
     throw std::logic_error("ray tracing scenes are unsupported");
   }
+  [[nodiscard]] virtual RaySceneHandle
+  CreateRaySceneWithOptions(std::span<const RayTriangle> triangles,
+                            const RaySceneCreationOptions &options) {
+    if (options.allow_compaction)
+      throw std::logic_error("ray tracing scene compaction is unsupported");
+    return CreateRayScene(triangles);
+  }
   [[nodiscard]] virtual RaySceneHandle CreateOpacityMicromapScene(std::span<const RayTriangle>,
                                                                   std::span<const std::uint8_t>) {
     throw std::logic_error("opacity micromap scenes are unsupported");
@@ -192,6 +202,10 @@ public:
   // Explicit full native build; supports bounded count changes and retains older snapshots.
   virtual void RebuildRayScene(RaySceneHandle, std::span<const RayTriangle>) {
     throw std::logic_error("ray tracing scene rebuilds are unsupported");
+  }
+  // Explicit synchronous construction, including native compacted-size metadata readback.
+  virtual void CompactRayScene(RaySceneHandle) {
+    throw std::logic_error("ray tracing scene compaction is unsupported");
   }
   virtual void DestroyRayScene(RaySceneHandle) {
     throw std::logic_error("ray tracing scenes are unsupported");
