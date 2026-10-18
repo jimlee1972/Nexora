@@ -32,7 +32,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
-| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 60 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
+| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
 | 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入（含任一實體遊戲控制器）、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；鍵鼠／實體遊戲控制器、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -73,14 +73,17 @@ UI 導覽／確認／取消、插拔重連、鍵鼠切換及失焦重設。保�
 
 ## 5. 效能與平台證據
 
-宣稱 60 FPS 前，先固定最低 CPU／GPU／RAM、Windows 版本、後端／Driver、解析度、建置與
+M6 最低規格驗收目標為 30 FPS。驗收前，先固定最低 CPU／GPU／RAM、Windows 版本、後端／Driver、解析度、建置與
 Frame Pacing；固定可見／更新／碰撞物件數、Atlas／材質數、Sprite 像素覆蓋／重疊、動畫頻率、
 VFX／UI 負載與載入變動量。硬體／負載預算目前為 **TBD**；物件數本身不是效能保證。
 
 使用可重現合成物件、動畫、移動查詢形狀、VFX 與 UI，不需遊戲機制。
 涵蓋基線、大量物件、透明重疊及配置／載入尖峰；保留暖機／測試時間、平均／p95／p99／
 最大幀時間、可取得時的獨立 CPU／GPU 區間、記憶體峰值與遺失樣本。
-60 FPS 對應 16.67 ms 幀預算，先定義允許尖峰再驗收；軟體光柵器只作正確性證據。
+30 FPS 對應約 33.33 ms 幀預算，先定義允許尖峰再驗收；軟體光柵器只作正確性證據。
+
+2026-10-18 依使用者要求將 M6 必要目標由 60 FPS 調整為 30 FPS。既有 60 FPS／16.67 ms
+Screening 紀錄保留其原先預算與判定；此次目標調整本身不代表最低規格實體 PC 驗收通過。
 
 Windows DX12 為主；提供 Windows Vulkan 支援時另記錄，證據不跨後端轉用。
 Linux 可驗證 Portable Contract 與 Vulkan 正確性；Windows 實體 PC／乾淨機器證據須由
@@ -114,7 +117,7 @@ Studio 頁籤、Sprite／Collider／正交預覽、Atlas／Clip 逐格事件控�
 
 M6 雲端切片：✅ CPU／GPU 時間、Load／Reload 尖峰、Process RSS、批次、AABB 覆蓋、
 Sparse／Overlap 情境皆可重現。硬體／最低規格／尖峰預算仍為 TBD；軟體 Vulkan 數據不代表
-實體 PC 60 FPS gate 通過。
+實體 PC 30 FPS gate 通過。
 M7 雲端切片：✅ Linux Monolithic Shipping 已用 Cooked Hash、Core 非同步載入、損毀拒絕
 及不依賴 Editor／Development Engine Library 的獨立封裝驗證。第 10 節記錄 Windows VM
 相依／CPU 部分驗證；原生 DX12 失敗、Vulkan 不可用。鍵鼠／手把、UI／文字、實際音效、

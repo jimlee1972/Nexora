@@ -126,7 +126,9 @@ rejection, then runs without Editor or development engine libraries.
 These establish portable/Linux correctness. The [local Windows record](evidence/Windows-2026-10-14/acceptance.md)
 also verifies MSVC contracts, physical DX12 mixed stress, Studio save/reopen and staged Monolithic
 Shipping with Cooked loading/corruption rejection, plus 600 native Zig frames using synthetic input.
-Physical minimum-PC 60 FPS remains **NOT ACCEPTED**. The
+Physical minimum-PC acceptance targets **30 FPS** (approximately **33.33 ms per frame**) under the
+[2D roadmap](../../Roadmap/en/2D_Roadmap.md#5-performance-and-platform-evidence) and remains **NOT ACCEPTED**.
+Historical 60 FPS screening records retain their original budgets and conclusions. The
 [current-main Windows VM slice](evidence/Windows-VirtualBox-Current-2026-10-16/acceptance.md)
 passes CPU/cooked/hash/corruption checks, DX12 software draw/present and Zig instancing/reload;
 a visible 1,800-frame desktop run and separately verified human D/W movement/Escape are retained.
