@@ -68,6 +68,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_
 endif()
 add_test(NAME twod.asset_tool COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AssetToolTests.py" "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
 add_test(NAME twod.cpu_stress COMMAND NexoraTwoDBenchmark --frames 8 --report "${CMAKE_BINARY_DIR}/twod-cpu-stress.csv")
+add_test(NAME twod.benchmark_trace COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/BenchmarkTraceAcceptance.py"
+  --benchmark "$<TARGET_FILE:NexoraTwoDBenchmark>")
+set_tests_properties(twod.benchmark_trace PROPERTIES TIMEOUT 60 LABELS "twod;tools")
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
   set(twod_studio_args)
   if(TARGET NexoraTwoDStudio)

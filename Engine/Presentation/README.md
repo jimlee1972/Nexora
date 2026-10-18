@@ -57,6 +57,20 @@ DX12 surface diagnostics report the selected presentation mode used by `Present`
 sync interval 1; Immediate uses 0 and requests tearing when the DXGI factory supports it.
 This observation does not guarantee a display refresh rate or exclude compositor pacing.
 
+DX12 VSync owns one DXGI frame-latency waitable handle per swapchain. `Acquire` waits for
+presentation capacity before admitting CPU frame work, including the first frame; the maximum
+queued frames are `framesInFlight`, retaining the descriptor's two/three buffers and upload
+slots. The separate GPU fence still protects each slot's allocator, uploads, timestamps and
+retired resources. Immediate keeps its asynchronous admission without this handle or wait.
+Successful presentation-admission waits increment `fenceWaits` alongside upload-slot waits;
+this counter measures wait calls rather than blocked time.
+Resize preserves the creation flags and handle, zero extent returns before waiting, and final
+GPU drain closes the handle exactly once, including partial initialization. Creation failure
+rejects the surface; a failed admission wait returns `SurfaceLost` before acquiring/resetting
+a slot. This bounds run-ahead around resource drains and can reduce CPU/GPU overlap; it does
+not guarantee arbitrary GPU-heavy throughput, input-to-display latency or immunity to host stalls.
+See Microsoft's [DXGI waitable handle contract](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_3/nf-dxgi1_3-idxgiswapchain2-getframelatencywaitableobject).
+
 `SurfaceDiagnostics::device` copies the selected native device's UTF-8 name and observed IDs/driver
 version into bounded value storage. It allocates no memory, owns no native handle, follows the
 existing diagnostics render-thread contract, and survives resize and drain. Vulkan supplies

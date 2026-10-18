@@ -1,0 +1,23 @@
+{
+  "source": "6d113e80144f18574a1afda440c40922f4a0ac29",
+  "utc": "2026-10-18T10:06:31.842707+00:00",
+  "exe_sha256": "7720c3786ba408929f497189753085bcccfaa1586ebc34877de3cbcf11c5b0eb",
+  "scope": "DIAGNOSTIC ONLY; fixed repeats, original six mixed workloads, 600 measured + 4 warm-up per case; buffered native API/stage clocks and thread cycle counters",
+  "native_slots": [
+    "wait",
+    "present",
+    "execute",
+    "signal",
+    "allocation",
+    "map",
+    "reset",
+    "set_event"
+  ],
+  "source_sha256": {
+    "Engine\\Presentation\\src\\Dx12Surface.cpp": "613b90d1afea395903bd0423f0d593b8b41907f0daf8f97f4587a50b2c8ff44c",
+    "Tools\\TwoD\\Benchmark.cpp": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737",
+    "build\\windows-dx12-tail-20261018\\BenchmarkProfile.cpp": "85a421b0afea906e61e5cae5b29d0be520de7a4e9caefeffa70a499f81917d57",
+    "build\\windows-dx12-tail-20261018\\Dx12Profile.cpp": "86f634aa58de8a7edd93b226a2bc90d36881c30996ea244488b7ee7423c32da7",
+    "build\\windows-dx12-tail-20261018\\ProfileTrace.h": "b3517d29c880285c1072dbf4eca8115e18cb1a1351aa3fe6bf50d7f1567960e9"
+  }
+}

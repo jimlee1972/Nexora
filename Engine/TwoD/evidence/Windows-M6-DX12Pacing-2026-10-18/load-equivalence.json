@@ -1,0 +1,102 @@
+[
+  {
+    "run": "dx12-1",
+    "rows": 6,
+    "compared_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "gpu_samples",
+      "device_name",
+      "vendor_id",
+      "device_id",
+      "driver_version",
+      "driver_version_format",
+      "backend_requested"
+    ],
+    "differences": []
+  },
+  {
+    "run": "vulkan-1",
+    "rows": 6,
+    "compared_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "gpu_samples",
+      "device_name",
+      "vendor_id",
+      "device_id",
+      "driver_version",
+      "driver_version_format",
+      "backend_requested"
+    ],
+    "differences": []
+  },
+  {
+    "run": "dx12-2",
+    "rows": 6,
+    "compared_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "gpu_samples",
+      "device_name",
+      "vendor_id",
+      "device_id",
+      "driver_version",
+      "driver_version_format",
+      "backend_requested"
+    ],
+    "differences": []
+  },
+  {
+    "run": "vulkan-2",
+    "rows": 6,
+    "compared_columns": [
+      "objects",
+      "sparse",
+      "overlap",
+      "native",
+      "frames",
+      "warmup_frames",
+      "visible",
+      "culled",
+      "sprite_batches",
+      "covered_aabb_ratio",
+      "query_hits",
+      "gpu_samples",
+      "device_name",
+      "vendor_id",
+      "device_id",
+      "driver_version",
+      "driver_version_format",
+      "backend_requested"
+    ],
+    "differences": []
+  }
+]

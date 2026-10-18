@@ -83,6 +83,18 @@ Sprite batches and covered AABB ratio. GPU time measures native command buffers,
 latency; CPU time measures the update/query/extraction section. Native draw counts also include
 the background. Whole-process RSS includes drivers; no total allocator count is inferred.
 
+Optional `--frame-trace FRAMES.csv` retains every frame, including explicitly marked warm-up
+frames, with its CPU/full interval and eight contiguous stages: reload, BeginFrame, population,
+spatial build, query/sweep, extraction, draw and EndFrame/metrics. The ordinary aggregate CSV and
+all six workloads remain the same. Stage clocks add measured instrumentation cost; samples use
+bounded per-case storage (at most 604) and write only after that case drains. Full intervals retain
+their original boundaries through post-Present timing collection, excluding local destruction
+and trace output. BeginFrame includes window event pumping and surface acquisition; it is not a
+GPU-wait measurement. GPU samples in the aggregate report belong to completed earlier submissions.
+Use the same frame's stages to investigate spikes, rather than combining independent maxima.
+The trace path must differ from the report (including an existing file alias); open/write failures
+exit nonzero. CPU-only runs support the same trace for portable regression checks.
+
 StageValidation copies the monolithic executable and cooked assets to a fresh directory, emits
 SHA-256 hashes, removes development library search paths, runs the staged CPU workload and rejects
 a deliberately corrupted cook. It checks unresolved/engine shared dependencies on Linux. The

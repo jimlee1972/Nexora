@@ -1,0 +1,526 @@
+diff --git a/Engine/Presentation/src/Dx12Surface.cpp b/Engine/Presentation/src/Dx12Surface.cpp
+index a45163e2..e5c89588 100644
+--- a/Engine/Presentation/src/Dx12Surface.cpp
++++ b/Engine/Presentation/src/Dx12Surface.cpp
+@@ -148,6 +148,13 @@ public:
+       return SurfaceStatus::InvalidDescriptor;
+     if (auto s = ApplyResize(); s != SurfaceStatus::Ready)
+       return s;
++    // Presentation readiness and GPU completion protect different parts of the frame.
++    // Admit VSync CPU work before it can accumulate behind queued presents/resource drains.
++    if (frameReady_) {
++      if (WaitForSingleObject(frameReady_, INFINITE) != WAIT_OBJECT_0)
++        return SurfaceStatus::SurfaceLost;
++      ++diagnostics_.fenceWaits;
++    }
+     frame_ = swapchain_->GetCurrentBackBufferIndex();
+     if (fenceValues_[frame_] && fence_->GetCompletedValue() < fenceValues_[frame_]) {
+       fence_->SetEventOnCompletion(fenceValues_[frame_], event_);
+@@ -1012,6 +1019,10 @@ public:
+     scenePbrRootSignature_.Reset();
+     sceneRootSignature_.Reset();
+     dsvHeap_.Reset();
++    if (frameReady_) {
++      CloseHandle(frameReady_);
++      frameReady_ = nullptr;
++    }
+     swapchain_.Reset();
+     destroyed_ = true;
+     if (event_) {
+@@ -1839,14 +1850,27 @@ private:
+     d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+     d.BufferCount = frames_;
+     d.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+-    d.Flags = allowTearing_ ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
++    d.Flags = SwapchainFlags();
+     ComPtr<IDXGISwapChain1> s;
+     if (FAILED(factory_->CreateSwapChainForHwnd(queue_.Get(), window_, &d, nullptr, nullptr, &s)))
+       return false;
+-    s.As(&swapchain_);
++    if (FAILED(s.As(&swapchain_)))
++      return false;
++    if (mode_ == PresentMode::VSync) {
++      // Retain CPU/GPU overlap while bounding the presentation queue to the upload slots.
++      if (FAILED(swapchain_->SetMaximumFrameLatency(frames_)))
++        return false;
++      frameReady_ = swapchain_->GetFrameLatencyWaitableObject();
++      if (!frameReady_)
++        return false;
++    }
+     factory_->MakeWindowAssociation(window_, DXGI_MWA_NO_ALT_ENTER);
+     return RebuildBuffers();
+   }
++  UINT SwapchainFlags() const noexcept {
++    return (allowTearing_ ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0) |
++           (mode_ == PresentMode::VSync ? DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT : 0);
++  }
+   bool RebuildBuffers() {
+     for (UINT i = 0; i < frames_; ++i) {
+       if (FAILED(swapchain_->GetBuffer(i, IID_PPV_ARGS(&buffers_[i]))))
+@@ -1908,8 +1932,8 @@ private:
+     }
+     for (auto &b : buffers_)
+       b.Reset();
+-    auto hr = swapchain_->ResizeBuffers(frames_, w, h, DXGI_FORMAT_R8G8B8A8_UNORM,
+-                                        allowTearing_ ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
++    auto hr =
++        swapchain_->ResizeBuffers(frames_, w, h, DXGI_FORMAT_R8G8B8A8_UNORM, SwapchainFlags());
+     diagnostics_.lastPlatformResult = hr;
+     if (FAILED(hr))
+       return hr == DXGI_ERROR_DEVICE_REMOVED ? SurfaceStatus::DeviceLost : SurfaceStatus::OutOfDate;
+@@ -1929,6 +1953,7 @@ private:
+   std::atomic<uint32_t> pendingWidth_{}, pendingHeight_{};
+   std::atomic_bool dirty_{};
+   HANDLE event_{};
++  HANDLE frameReady_{};
+   UINT increment_{};
+   UINT uiDescriptorIncrement_{};
+   UINT nextUiDescriptor_{4 * kMaximumFrames}; // Fence-owned HDR SRVs reserve the first frame slots.
+diff --git a/Tests/TwoD/BenchmarkTraceAcceptance.py b/Tests/TwoD/BenchmarkTraceAcceptance.py
+new file mode 100644
+index 00000000..9fc073ae
+--- /dev/null
++++ b/Tests/TwoD/BenchmarkTraceAcceptance.py
+@@ -0,0 +1,72 @@
++"""Verify the public trace artifact against the unchanged aggregate/workload contract."""
++import argparse
++import csv
++import math
++import pathlib
++import subprocess
++import tempfile
++
++
++def check(value, message):
++    if not value:
++        raise RuntimeError(message)
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--benchmark', type=pathlib.Path, required=True)
++    args = parser.parse_args()
++    benchmark = args.benchmark.resolve()
++    with tempfile.TemporaryDirectory(prefix='nexora-benchmark-trace-') as directory:
++        work = pathlib.Path(directory)
++        report, trace = work / 'report.csv', work / 'frames.csv'
++        command = [str(benchmark), '--frames', '8', '--report', str(report)]
++        subprocess.run(command + ['--frame-trace', str(trace)], check=True, timeout=45)
++        aggregate = list(csv.DictReader(report.open(encoding='utf-8')))
++        samples = list(csv.DictReader(trace.open(encoding='utf-8')))
++        cases = [(100, 0, 0), (1000, 0, 0), (5000, 0, 0), (10000, 0, 0),
++                 (1000, 0, 1), (10000, 1, 0)]
++        check(len(aggregate) == 6 and len(samples) == 72, 'trace omitted workload/warm-up frames')
++        stages = ['reload_ms', 'begin_frame_ms', 'populate_ms', 'index_ms', 'query_ms',
++                  'extract_ms', 'draw_ms', 'end_frame_ms']
++        for case_index, (objects, sparse, overlap) in enumerate(cases):
++            row = aggregate[case_index]
++            case = samples[case_index * 12:(case_index + 1) * 12]
++            for frame, sample in enumerate(case):
++                check((int(sample['objects']), int(sample['sparse']), int(sample['overlap'])) ==
++                      (objects, sparse, overlap), 'trace case identity/order changed')
++                check(int(sample['frame']) == frame and int(sample['warmup']) == (frame < 4)
++                      and sample['native'] == '0', 'trace frame/warm-up identity changed')
++                values = [float(sample[k]) for k in stages]
++                check(all(math.isfinite(v) and v >= 0 for v in values), 'invalid stage interval')
++                check(math.isclose(sum(values), float(sample['frame_ms']), abs_tol=1e-6),
++                      'stage partition does not match the same full frame')
++                check(0 <= float(sample['cpu_ms']) <= float(sample['frame_ms']),
++                      'CPU interval is not contained in its full frame')
++            measured = case[4:]
++            for prefix, field in [('frame', 'frame_ms'), ('cpu', 'cpu_ms')]:
++                values = sorted(float(s[field]) for s in measured)
++                for suffix, value in [('p95_ms', values[math.ceil(.95 * len(values)) - 1]),
++                                      ('p99_ms', values[math.ceil(.99 * len(values)) - 1]),
++                                      ('max_ms', values[-1])]:
++                    check(math.isclose(float(row[f'{prefix}_{suffix}']), value,
++                                       rel_tol=1e-5, abs_tol=1e-5), 'trace/aggregate disagree')
++        plain = work / 'plain.csv'
++        subprocess.run([str(benchmark), '--frames', '4', '--report', str(plain)],
++                       check=True, timeout=45)
++        plain_rows = list(csv.DictReader(plain.open(encoding='utf-8')))
++        check(len(plain_rows) == 6 and plain_rows[0].keys() == aggregate[0].keys(),
++              'optional trace changed ordinary report schema')
++        rejected = subprocess.run(command + ['--frame-trace', str(report)],
++                                  capture_output=True, text=True, timeout=10)
++        check(rejected.returncode != 0 and 'frame trace must differ' in rejected.stderr,
++              'trace/report alias did not reject')
++        rejected = subprocess.run(command + ['--frame-trace', str(work / 'missing' / 'trace.csv')],
++                                  capture_output=True, text=True, timeout=10)
++        check(rejected.returncode != 0 and 'frame trace output' in rejected.stderr,
++              'invalid trace output silently succeeded')
++    print('All six benchmark cases, warm-up, same-frame partitions and output failures passed')
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/Tests/TwoD/CMakeLists.txt b/Tests/TwoD/CMakeLists.txt
+index f4775c1d..3f5db90b 100644
+--- a/Tests/TwoD/CMakeLists.txt
++++ b/Tests/TwoD/CMakeLists.txt
+@@ -68,6 +68,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_
+ endif()
+ add_test(NAME twod.asset_tool COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AssetToolTests.py" "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
+ add_test(NAME twod.cpu_stress COMMAND NexoraTwoDBenchmark --frames 8 --report "${CMAKE_BINARY_DIR}/twod-cpu-stress.csv")
++add_test(NAME twod.benchmark_trace COMMAND "${Python3_EXECUTABLE}"
++  "${CMAKE_CURRENT_SOURCE_DIR}/BenchmarkTraceAcceptance.py"
++  --benchmark "$<TARGET_FILE:NexoraTwoDBenchmark>")
++set_tests_properties(twod.benchmark_trace PROPERTIES TIMEOUT 60 LABELS "twod;tools")
+ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+   set(twod_studio_args)
+   if(TARGET NexoraTwoDStudio)
+diff --git a/Tests/WindowPresentation/CMakeLists.txt b/Tests/WindowPresentation/CMakeLists.txt
+index 5a141f08..28820f0d 100644
+--- a/Tests/WindowPresentation/CMakeLists.txt
++++ b/Tests/WindowPresentation/CMakeLists.txt
+@@ -103,6 +103,17 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
+ endif()
+ 
+ if(WIN32)
++  add_executable(NexoraDx12SwapchainTests Dx12SwapchainTests.cpp)
++  target_include_directories(NexoraDx12SwapchainTests PRIVATE
++    "${CMAKE_SOURCE_DIR}/Engine/Presentation/include")
++  target_compile_definitions(NexoraDx12SwapchainTests PRIVATE NEXORA_PRESENTATION_STATIC=1)
++  target_link_libraries(NexoraDx12SwapchainTests PRIVATE Nexora::RHI Nexora::Window
++    d3d12 d3dcompiler dxgi)
++  nexora_apply_defaults(NexoraDx12SwapchainTests)
++  add_test(NAME window_presentation.dx12_swapchain COMMAND NexoraDx12SwapchainTests)
++  set_tests_properties(window_presentation.dx12_swapchain PROPERTIES
++    LABELS "dx12;native-display" RUN_SERIAL TRUE TIMEOUT 90)
++
+   add_executable(NexoraDx12PbrTests VulkanPbrTests.cpp)
+   target_link_libraries(NexoraDx12PbrTests PRIVATE Nexora::Presentation user32 gdi32)
+   nexora_apply_defaults(NexoraDx12PbrTests)
+diff --git a/Tests/WindowPresentation/Dx12SwapchainTests.cpp b/Tests/WindowPresentation/Dx12SwapchainTests.cpp
+new file mode 100644
+index 00000000..d8b22a8e
+--- /dev/null
++++ b/Tests/WindowPresentation/Dx12SwapchainTests.cpp
+@@ -0,0 +1,131 @@
++// Exercise the actual private DX12 adapter with native wait/handle tracing.
++#define NOMINMAX
++#define WIN32_LEAN_AND_MEAN
++#include <iostream>
++#include <stdexcept>
++#include <unordered_set>
++#include <utility>
++#include <windows.h>
++
++namespace Dx12Trace {
++std::unordered_set<HANDLE> events, pacing;
++std::size_t pacingWaits{}, pacingCloses{}, violations{};
++bool failWait{};
++HANDLE MakeEvent(LPSECURITY_ATTRIBUTES attributes, BOOL manual, BOOL initial, LPCWSTR name) {
++  const auto handle = CreateEventW(attributes, manual, initial, name);
++  if (handle)
++    events.insert(handle);
++  return handle;
++}
++DWORD Wait(HANDLE handle, DWORD milliseconds) {
++  if (!events.contains(handle)) {
++    pacing.insert(handle);
++    ++pacingWaits;
++    if (std::exchange(failWait, false))
++      return WAIT_FAILED;
++  }
++  return WaitForSingleObject(handle, milliseconds);
++}
++BOOL Close(HANDLE handle) {
++  if (!events.erase(handle)) {
++    violations += pacing.erase(handle) != 1;
++    ++pacingCloses;
++  }
++  return CloseHandle(handle);
++}
++} // namespace Dx12Trace
++
++#define CreateEventW Dx12Trace::MakeEvent
++#define WaitForSingleObject Dx12Trace::Wait
++#define CloseHandle Dx12Trace::Close
++#include "../../Engine/Presentation/src/Dx12Surface.cpp"
++#undef CreateEventW
++#undef WaitForSingleObject
++#undef CloseHandle
++
++namespace {
++using namespace Nexora;
++using namespace Nexora::Presentation;
++void Require(bool value, const char *message) {
++  if (!value)
++    throw std::runtime_error(message);
++}
++void Run(PresentMode mode, std::uint8_t slots) {
++  auto windows = Window::CreateWindowSystem();
++  const auto window = windows->Create({"Nexora DX12 swapchain contracts", 320, 240, true, true});
++  Require(bool(window), "DX12 native fixture window unavailable");
++  const bool vsync = mode == PresentMode::VSync;
++  const auto closes = Dx12Trace::pacingCloses;
++  Dx12Surface surface(
++      {window.handle, 320, 240, slots, mode, ColorSpace::Srgb, SurfaceBackend::Dx12, true},
++      *windows);
++  const auto acquired = [&] {
++    static_cast<void>(windows->PumpEvents());
++    const auto waited = Dx12Trace::pacingWaits;
++    Require(surface.Acquire() == SurfaceStatus::Ready, "DX12 acquire failed");
++    Require(Dx12Trace::pacingWaits == waited + (vsync ? 1 : 0),
++            "VSync CPU work lacks frame admission or Immediate gained a pacing wait");
++    Require(Dx12Trace::pacing.size() == (vsync ? 1U : 0U),
++            "DX12 pacing allocates a handle stream instead of one swapchain handle");
++  };
++  const auto presented = [&] {
++    Require(surface.Present() == SurfaceStatus::Ready, "DX12 presentation failed");
++  };
++  for (unsigned i = 0; i < 48; ++i) {
++    acquired();
++    Require(surface.Acquire() == SurfaceStatus::InvalidDescriptor,
++            "duplicate acquire consumed presentation readiness");
++    presented();
++  }
++  Require(surface.Diagnostics().negotiatedPresentMode == mode &&
++              surface.Diagnostics().gpuTiming.completedSubmission > 0,
++          "DX12 pacing changed mode or stopped completed-slot GPU timing");
++  Require(surface.ReleaseSpriteTextures({}) == SurfaceStatus::Ready, "DX12 resource drain failed");
++  for (unsigned i = 0; i < 12; ++i) {
++    acquired();
++    presented();
++  }
++  SurfaceStatus wrongThread{};
++  std::thread other([&] { wrongThread = surface.Acquire(); });
++  other.join();
++  Require(wrongThread == SurfaceStatus::WrongThread, "DX12 admitted a foreign render thread");
++  if (vsync) {
++    Dx12Trace::failWait = true;
++    Require(surface.Acquire() == SurfaceStatus::SurfaceLost,
++            "DX12 wait failure admitted an acquired command list");
++    acquired(); // Failed wait must not consume the real signal or reset the upload slot.
++    presented();
++  }
++  const auto waited = Dx12Trace::pacingWaits;
++  Require(surface.NotifyWindowExtent(0, 0) == SurfaceStatus::ZeroExtent &&
++              surface.Acquire() == SurfaceStatus::ZeroExtent && Dx12Trace::pacingWaits == waited,
++          "DX12 zero extent waited on presentation instead of suspending");
++  Require(surface.NotifyWindowExtent(400, 300) == SurfaceStatus::Ready,
++          "DX12 resume notification failed");
++  acquired();
++  presented();
++  Require(surface.Diagnostics().resizeGenerations > 0, "DX12 resize flags rejected recovery");
++  acquired(); // Teardown also owns an acquired, unsubmitted command list.
++  Require(surface.DrainAndDestroy() == SurfaceStatus::Ready &&
++              surface.DrainAndDestroy() == SurfaceStatus::Ready,
++          "DX12 drain is not idempotent");
++  Require(Dx12Trace::pacing.empty() && Dx12Trace::events.empty() && Dx12Trace::violations == 0 &&
++              Dx12Trace::pacingCloses == closes + (vsync ? 1 : 0),
++          "DX12 swapchain pacing handle leaked or closed more than once");
++  Require(windows->Destroy(window.handle) == Window::WindowError::None,
++          "DX12 native fixture teardown failed");
++}
++} // namespace
++
++int main() {
++  try {
++    Run(PresentMode::VSync, 2);
++    Run(PresentMode::VSync, 3);
++    Run(PresentMode::Immediate, 2);
++    std::cout << "DX12 VSync admission, frame-slot, resize, wait failure and cleanup passed\n";
++    return 0;
++  } catch (const std::exception &error) {
++    std::cerr << error.what() << '\n';
++    return 1;
++  }
++}
+diff --git a/Tools/TwoD/Benchmark.cpp b/Tools/TwoD/Benchmark.cpp
+index 49b22d1d..6ffac99e 100644
+--- a/Tools/TwoD/Benchmark.cpp
++++ b/Tools/TwoD/Benchmark.cpp
+@@ -3,6 +3,7 @@
+ #include "Nexora/Core/Vfs.h"
+ #include "Nexora/TwoD/Lifecycle.h"
+ #include <algorithm>
++#include <array>
+ #include <charconv>
+ #include <chrono>
+ #include <cmath>
+@@ -74,7 +75,7 @@ runtime::RuntimeBlob LoadCooked(const std::filesystem::path &path) {
+ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native, unsigned frames,
+              const std::optional<twod::Atlas> &sourceAtlas,
+              const std::optional<twod::Clip> &sourceClip, bool sparse,
+-             Nexora::Presentation::SurfaceBackend backend) {
++             Nexora::Presentation::SurfaceBackend backend, std::ostream *frameTrace) {
+   const auto loading = Clock::now();
+   twod::Image image{1, 8, 8, twod::Bytes(256, std::byte{255})};
+   auto atlas = twod::PackAtlas({9, 17}, std::span(&image, 1), 32, 32, true);
+@@ -128,8 +129,22 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+   double coverage{}, reloadMs{};
+   std::uint64_t texture = 201;
+   constexpr unsigned warmup = 4;
++  struct FrameSample {
++    unsigned frame;
++    double cpu{}, whole{};
++    std::array<Clock::time_point, 9> points{};
++  };
++  std::vector<FrameSample> samples;
++  if (frameTrace)
++    samples.reserve(frames + warmup);
+   for (unsigned frame = 0; frame < frames + warmup; ++frame) {
+     const auto begin = Clock::now();
++    FrameSample sample{frame};
++    sample.points[0] = begin;
++    const auto stamp = [&](unsigned point) {
++      if (frameTrace)
++        sample.points[point] = Clock::now();
++    };
+     if (frame == warmup + frames / 2) {
+       const auto reloadStart = Clock::now();
+       Check(pool.Destroy(*handles), "bulk recycle");
+@@ -144,10 +159,13 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+       shared = std::make_shared<const twod::Atlas>(*atlas);
+       reloadMs = Milliseconds(reloadStart);
+     }
++    stamp(1);
+     if (native)
+       Check(surface.surface->BeginFrame() == Nexora::Presentation::SurfaceStatus::Ready,
+             "stress acquire");
+     const auto update = Clock::now();
++    if (frameTrace)
++      sample.points[2] = update;
+     auto tick = step.Advance(1.0 / 60);
+     Check(tick && tick->steps == 1, "fixed tick");
+     steps += tick->steps;
+@@ -169,11 +187,14 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+       s.radius = 0.05F;
+       shapes.push_back(s);
+     });
++    stamp(3);
+     Check(index.Build(shapes), "mixed query build");
++    stamp(4);
+     twod::Shape query;
+     query.radius = overlap ? 0.1F : 2.0F;
+     queries += index.Query(query).size();
+     static_cast<void>(index.Sweep({-1, 0}, {1, 0}, 0.05F));
++    stamp(5);
+     auto extracted =
+         twod::ExtractSprites(sprites, camera, [&](auto) -> std::optional<twod::AtlasBinding> {
+           return twod::AtlasBinding{shared, texture};
+@@ -183,11 +204,17 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+     culled = extracted->statistics.culled;
+     coverage = extracted->statistics.coveredPixels / (camera.width * camera.height);
+     draws = extracted->statistics.batches;
+-    if (frame >= warmup)
+-      cpu.push_back(Milliseconds(update));
+-    if (native) {
++    if (frame >= warmup || frameTrace) {
++      sample.cpu = Milliseconds(update);
++      if (frame >= warmup)
++        cpu.push_back(sample.cpu);
++    }
++    stamp(6);
++    if (native)
+       Check(extracted->Draw(*surface.surface) == Nexora::Presentation::SurfaceStatus::Ready,
+             "stress draw");
++    stamp(7);
++    if (native) {
+       Check(surface.surface->EndFrame() == Nexora::Presentation::SurfaceStatus::Ready,
+             "stress present");
+       const auto timing = surface.surface->Diagnostics().gpuTiming;
+@@ -197,8 +224,14 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+         gpu.push_back(*timing.milliseconds);
+       }
+     }
+-    if (frame >= warmup)
+-      whole.push_back(Milliseconds(begin));
++    if (frame >= warmup || frameTrace) {
++      sample.points[8] = Clock::now();
++      sample.whole = std::chrono::duration<double, std::milli>(sample.points[8] - begin).count();
++      if (frame >= warmup)
++        whole.push_back(sample.whole);
++      if (frameTrace)
++        samples.push_back(sample);
++    }
+     peak = std::max(peak, ResidentBytes());
+   }
+   Check(steps == frames + warmup && pool.Size() == count, "mixed lifetime state");
+@@ -207,6 +240,21 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+     Check(surface.surface->DrainAndDestroy() == Nexora::Presentation::SurfaceStatus::Ready,
+           "stress drain");
+   }
++  // Buffer every sample; no file output is part of a measured frame.
++  if (frameTrace) {
++    *frameTrace << std::setprecision(17);
++    for (const auto &sample : samples) {
++      *frameTrace << count << ',' << sparse << ',' << overlap << ',' << native << ','
++                  << sample.frame << ',' << (sample.frame < warmup) << ',' << sample.cpu << ','
++                  << sample.whole;
++      for (unsigned point = 0; point < 8; ++point)
++        *frameTrace << ','
++                    << std::chrono::duration<double, std::milli>(sample.points[point + 1] -
++                                                                 sample.points[point])
++                           .count();
++      *frameTrace << '\n';
++    }
++  }
+   report << count << ',' << sparse << ',' << reloadMs << ',' << overlap << ',' << native << ','
+          << frames << ',' << warmup << ',' << loadMs << ',' << Percentile(cpu, 0.5) << ','
+          << Percentile(cpu, 0.95) << ',' << Percentile(cpu, 0.99) << ','
+@@ -226,7 +274,7 @@ void Measure(std::ostream &report, std::size_t count, bool overlap, bool native,
+ } // namespace
+ int main(int argc, char **argv) {
+   try {
+-    std::string reportPath, atlasPath, clipPath;
++    std::string reportPath, atlasPath, clipPath, frameTracePath;
+     bool native = false;
+     auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
+     unsigned frames = 48;
+@@ -252,6 +300,8 @@ int main(int argc, char **argv) {
+         clipPath = argv[++i];
+       else if (a == "--report" && i + 1 < argc)
+         reportPath = argv[++i];
++      else if (a == "--frame-trace" && i + 1 < argc)
++        frameTracePath = argv[++i];
+       else if (a == "--frames" && i + 1 < argc) {
+         std::string_view n = argv[++i];
+         auto r = std::from_chars(n.data(), n.data() + n.size(), frames);
+@@ -260,7 +310,7 @@ int main(int argc, char **argv) {
+       } else
+         throw std::runtime_error(
+             "usage: NexoraTwoDBenchmark [--native --backend auto|dx12|vulkan|metal --frames 48] "
+-            "--report FILE.csv");
++            "--report FILE.csv [--frame-trace FRAMES.csv]");
+     }
+     Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
+           "explicit backend requires native presentation");
+@@ -295,6 +345,18 @@ int main(int argc, char **argv) {
+       Check(clipPath.empty(), "clip requires atlas");
+     std::ofstream report(reportPath);
+     Check(bool(report), "report output");
++    std::ofstream frameTrace;
++    if (!frameTracePath.empty()) {
++      std::error_code error;
++      Check(!std::filesystem::equivalent(reportPath, frameTracePath, error),
++            "frame trace must differ from report");
++      frameTrace.open(frameTracePath);
++      Check(bool(frameTrace), "frame trace output");
++      frameTrace
++          << "objects,sparse,overlap,native,frame,warmup,cpu_ms,frame_ms,reload_ms,"
++             "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
++    }
++    auto *trace = frameTrace.is_open() ? &frameTrace : nullptr;
+     report << "objects,sparse,reload_ms,overlap,native,frames,warmup_frames,loading_ms,cpu_p50_ms,"
+               "cpu_p95_ms,cpu_"
+               "p99_ms,cpu_max_"
+@@ -303,9 +365,13 @@ int main(int argc, char **argv) {
+               "device_name,vendor_id,device_id,driver_version,driver_version_format,backend_"
+               "requested\n";
+     for (auto count : {100U, 1000U, 5000U, 10000U})
+-      Measure(report, count, false, native, frames, loadedAtlas, loadedClip, false, backend);
+-    Measure(report, 1000, true, native, frames, loadedAtlas, loadedClip, false, backend);
+-    Measure(report, 10000, false, native, frames, loadedAtlas, loadedClip, true, backend);
++      Measure(report, count, false, native, frames, loadedAtlas, loadedClip, false, backend, trace);
++    Measure(report, 1000, true, native, frames, loadedAtlas, loadedClip, false, backend, trace);
++    Measure(report, 10000, false, native, frames, loadedAtlas, loadedClip, true, backend, trace);
++    if (trace) {
++      frameTrace.flush();
++      Check(bool(frameTrace), "frame trace write");
++    }
+     Check(bool(report), "report write");
+     std::cout << "Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: "
+                  "NOT RUN.\n";

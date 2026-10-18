@@ -1,0 +1,3594 @@
+{
+  "dx12-1.trace": {
+    "100,0,0": {
+      "frames": 600,
+      "p95_ms": 17.6455,
+      "p99_ms": 18.0003,
+      "max_ms": 34.893299999999996,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.893299999999996,
+          "stages": {
+            "reload": 32.5119,
+            "acquire": 0.0955,
+            "populate": 0.0172,
+            "index": 0.0516,
+            "query": 0.0036,
+            "extract": 0.0815,
+            "draw": 1.5392,
+            "end": 0.5928
+          },
+          "native_ms": {
+            "wait": 31.789,
+            "present": 0.3302,
+            "execute": 0.094,
+            "signal": 0.0202,
+            "allocation": 1.3851,
+            "map": 0.015,
+            "reset": 0.0454,
+            "set_event": 0.0075
+          },
+          "native_cycles": {
+            "wait": 225734.0,
+            "present": 832001.0,
+            "execute": 308975.0,
+            "signal": 66967.0,
+            "allocation": 3029999.0,
+            "map": 50588.0,
+            "reset": 150793.0,
+            "set_event": 25189.0
+          },
+          "thread_cycles": 7721663.0,
+          "native_acquire_ms": 0.0896,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 1748202.0,
+            "acquire": 313186.0,
+            "populate": 57514.0,
+            "index": 169587.0,
+            "query": 11344.0,
+            "extract": 272046.0,
+            "draw": 3533250.0,
+            "end": 1615087.0
+          },
+          "qpc": [
+            32750266901317.0,
+            32750267226448.0,
+            32750267227394.0,
+            32750267227568.0,
+            32750267228079.0,
+            32750267228113.0,
+            32750267228935.0,
+            32750267244324.0,
+            32750267250247.0
+          ]
+        },
+        {
+          "frame": 523,
+          "total_ms": 19.7973,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 18.8789,
+            "populate": 0.0172,
+            "index": 0.2218,
+            "query": 0.0039,
+            "extract": 0.2913,
+            "draw": 0.0825,
+            "end": 0.301
+          },
+          "native_ms": {
+            "wait": 18.6808,
+            "present": 0.1734,
+            "execute": 0.0754,
+            "signal": 0.0065,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0355,
+            "set_event": 0.0617
+          },
+          "native_cycles": {
+            "wait": 206401.0,
+            "present": 575980.0,
+            "execute": 250075.0,
+            "signal": 21889.0,
+            "allocation": 0.0,
+            "map": 19273.0,
+            "reset": 118673.0,
+            "set_event": 204545.0
+          },
+          "thread_cycles": 3615516.0,
+          "native_acquire_ms": 18.876,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1772.0,
+            "acquire": 861228.0,
+            "populate": 244005.0,
+            "index": 546908.0,
+            "query": 12213.0,
+            "extract": 679045.0,
+            "draw": 272382.0,
+            "end": 996713.0
+          },
+          "qpc": [
+            32750303404034.0,
+            32750303404039.0,
+            32750303592836.0,
+            32750303593572.0,
+            32750303595222.0,
+            32750303595258.0,
+            32750303598176.0,
+            32750303598997.0,
+            32750303602005.0
+          ]
+        },
+        {
+          "frame": 448,
+          "total_ms": 18.0991,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 17.5116,
+            "populate": 0.0167,
+            "index": 0.0529,
+            "query": 0.0035,
+            "extract": 0.0864,
+            "draw": 0.0888,
+            "end": 0.3387
+          },
+          "native_ms": {
+            "wait": 17.4203,
+            "present": 0.1935,
+            "execute": 0.0874,
+            "signal": 0.0079,
+            "allocation": 0.0,
+            "map": 0.0071,
+            "reset": 0.0382,
+            "set_event": 0.0066
+          },
+          "native_cycles": {
+            "wait": 225952.0,
+            "present": 642914.0,
+            "execute": 289067.0,
+            "signal": 26281.0,
+            "allocation": 0.0,
+            "map": 24048.0,
+            "reset": 127054.0,
+            "set_event": 22153.0
+          },
+          "thread_cycles": 2471596.0,
+          "native_acquire_ms": 17.5089,
+          "retirement_ms": 0.0013,
+          "stage_cycles": {
+            "reload": 1214.0,
+            "acquire": 525670.0,
+            "populate": 54738.0,
+            "index": 175137.0,
+            "query": 11028.0,
+            "extract": 287092.0,
+            "draw": 294227.0,
+            "end": 1121082.0
+          },
+          "qpc": [
+            32750290892055.0,
+            32750290892059.0,
+            32750291067180.0,
+            32750291067345.0,
+            32750291067875.0,
+            32750291067907.0,
+            32750291068774.0,
+            32750291069662.0,
+            32750291073046.0
+          ]
+        },
+        {
+          "frame": 507,
+          "total_ms": 18.0531,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 17.4148,
+            "populate": 0.015,
+            "index": 0.0532,
+            "query": 0.004,
+            "extract": 0.0827,
+            "draw": 0.1031,
+            "end": 0.3797
+          },
+          "native_ms": {
+            "wait": 17.2599,
+            "present": 0.1676,
+            "execute": 0.0788,
+            "signal": 0.0061,
+            "allocation": 0.0,
+            "map": 0.0064,
+            "reset": 0.0368,
+            "set_event": 0.0087
+          },
+          "native_cycles": {
+            "wait": 469722.0,
+            "present": 556694.0,
+            "execute": 259604.0,
+            "signal": 20479.0,
+            "allocation": 0.0,
+            "map": 21278.0,
+            "reset": 123034.0,
+            "set_event": 29458.0
+          },
+          "thread_cycles": 2939866.0,
+          "native_acquire_ms": 17.4117,
+          "retirement_ms": 0.0011,
+          "stage_cycles": {
+            "reload": 1363.0,
+            "acquire": 826259.0,
+            "populate": 49276.0,
+            "index": 176478.0,
+            "query": 12002.0,
+            "extract": 275192.0,
+            "draw": 341250.0,
+            "end": 1256771.0
+          },
+          "qpc": [
+            32750300727168.0,
+            32750300727172.0,
+            32750300901324.0,
+            32750300901474.0,
+            32750300902009.0,
+            32750300902046.0,
+            32750300902874.0,
+            32750300903905.0,
+            32750300907697.0
+          ]
+        },
+        {
+          "frame": 82,
+          "total_ms": 18.0336,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 16.2296,
+            "populate": 0.0174,
+            "index": 0.0449,
+            "query": 0.0043,
+            "extract": 0.1092,
+            "draw": 0.1169,
+            "end": 1.5107
+          },
+          "native_ms": {
+            "wait": 16.0907,
+            "present": 1.1531,
+            "execute": 0.1176,
+            "signal": 0.01,
+            "allocation": 0.0,
+            "map": 0.0116,
+            "reset": 0.0633,
+            "set_event": 0.0074
+          },
+          "native_cycles": {
+            "wait": 237292.0,
+            "present": 2576613.0,
+            "execute": 389622.0,
+            "signal": 33577.0,
+            "allocation": 0.0,
+            "map": 39765.0,
+            "reset": 211194.0,
+            "set_event": 24430.0
+          },
+          "thread_cycles": 5380192.0,
+          "native_acquire_ms": 16.2251,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1508.0,
+            "acquire": 691861.0,
+            "populate": 57535.0,
+            "index": 148858.0,
+            "query": 13281.0,
+            "extract": 363182.0,
+            "draw": 388476.0,
+            "end": 3712931.0
+          },
+          "qpc": [
+            32750229890545.0,
+            32750229890550.0,
+            32750230052849.0,
+            32750230053023.0,
+            32750230053472.0,
+            32750230053512.0,
+            32750230054610.0,
+            32750230055784.0,
+            32750230070882.0
+          ]
+        }
+      ]
+    },
+    "1000,0,0": {
+      "frames": 600,
+      "p95_ms": 17.6522,
+      "p99_ms": 18.2701,
+      "max_ms": 36.6779,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 36.6779,
+          "stages": {
+            "reload": 31.7253,
+            "acquire": 0.6008,
+            "populate": 0.192,
+            "index": 0.5936,
+            "query": 0.0066,
+            "extract": 0.9058,
+            "draw": 2.2039,
+            "end": 0.4499
+          },
+          "native_ms": {
+            "wait": 29.6462,
+            "present": 0.2604,
+            "execute": 0.1111,
+            "signal": 0.0253,
+            "allocation": 1.4498,
+            "map": 0.0205,
+            "reset": 0.0574,
+            "set_event": 0.0098
+          },
+          "native_cycles": {
+            "wait": 271953.0,
+            "present": 864669.0,
+            "execute": 367840.0,
+            "signal": 81024.0,
+            "allocation": 3182648.0,
+            "map": 69522.0,
+            "reset": 191775.0,
+            "set_event": 32004.0
+          },
+          "thread_cycles": 17752663.0,
+          "native_acquire_ms": 0.594,
+          "retirement_ms": 0.0012,
+          "stage_cycles": {
+            "reload": 3662241.0,
+            "acquire": 1399250.0,
+            "populate": 634154.0,
+            "index": 1968115.0,
+            "query": 18801.0,
+            "extract": 3006567.0,
+            "draw": 5573578.0,
+            "end": 1488356.0
+          },
+          "qpc": [
+            32750409251811.0,
+            32750409569072.0,
+            32750409575088.0,
+            32750409577001.0,
+            32750409582938.0,
+            32750409582994.0,
+            32750409592066.0,
+            32750409614097.0,
+            32750409618588.0
+          ]
+        },
+        {
+          "frame": 159,
+          "total_ms": 19.0183,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 14.2058,
+            "populate": 0.1287,
+            "index": 0.7478,
+            "query": 0.0056,
+            "extract": 1.3122,
+            "draw": 2.2202,
+            "end": 0.3976
+          },
+          "native_ms": {
+            "wait": 14.1343,
+            "present": 0.2213,
+            "execute": 0.0984,
+            "signal": 0.0077,
+            "allocation": 0.0,
+            "map": 0.0055,
+            "reset": 0.03,
+            "set_event": 0.0057
+          },
+          "native_cycles": {
+            "wait": 203681.0,
+            "present": 732529.0,
+            "execute": 326025.0,
+            "signal": 26075.0,
+            "allocation": 0.0,
+            "map": 18507.0,
+            "reset": 99472.0,
+            "set_event": 18786.0
+          },
+          "thread_cycles": 11392556.0,
+          "native_acquire_ms": 14.2033,
+          "retirement_ms": 0.0006,
+          "stage_cycles": {
+            "reload": 1079.0,
+            "acquire": 437564.0,
+            "populate": 428035.0,
+            "index": 1668893.0,
+            "query": 14487.0,
+            "extract": 3524262.0,
+            "draw": 4007360.0,
+            "end": 1309250.0
+          },
+          "qpc": [
+            32750385077803.0,
+            32750385077807.0,
+            32750385219868.0,
+            32750385221160.0,
+            32750385228647.0,
+            32750385228688.0,
+            32750385241823.0,
+            32750385264035.0,
+            32750385267988.0
+          ]
+        },
+        {
+          "frame": 373,
+          "total_ms": 18.6262,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 14.6155,
+            "populate": 0.1217,
+            "index": 1.2157,
+            "query": 0.0068,
+            "extract": 1.1446,
+            "draw": 0.7873,
+            "end": 0.734
+          },
+          "native_ms": {
+            "wait": 14.5033,
+            "present": 0.2943,
+            "execute": 0.301,
+            "signal": 0.0086,
+            "allocation": 0.0,
+            "map": 0.0083,
+            "reset": 0.0502,
+            "set_event": 0.0072
+          },
+          "native_cycles": {
+            "wait": 227494.0,
+            "present": 978014.0,
+            "execute": 997240.0,
+            "signal": 29103.0,
+            "allocation": 0.0,
+            "map": 28004.0,
+            "reset": 167895.0,
+            "set_event": 23750.0
+          },
+          "thread_cycles": 12346171.0,
+          "native_acquire_ms": 14.6116,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1518.0,
+            "acquire": 594277.0,
+            "populate": 404771.0,
+            "index": 2943741.0,
+            "query": 19584.0,
+            "extract": 3798067.0,
+            "draw": 2285813.0,
+            "end": 2296819.0
+          },
+          "qpc": [
+            32750420748759.0,
+            32750420748763.0,
+            32750420894921.0,
+            32750420896143.0,
+            32750420908307.0,
+            32750420908364.0,
+            32750420919833.0,
+            32750420927717.0,
+            32750420935020.0
+          ]
+        },
+        {
+          "frame": 417,
+          "total_ms": 18.4883,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 14.2154,
+            "populate": 0.2187,
+            "index": 1.5754,
+            "query": 0.0047,
+            "extract": 1.4161,
+            "draw": 0.7206,
+            "end": 0.3368
+          },
+          "native_ms": {
+            "wait": 14.1245,
+            "present": 0.187,
+            "execute": 0.0872,
+            "signal": 0.0066,
+            "allocation": 0.0,
+            "map": 0.0052,
+            "reset": 0.0318,
+            "set_event": 0.006
+          },
+          "native_cycles": {
+            "wait": 205905.0,
+            "present": 621632.0,
+            "execute": 289274.0,
+            "signal": 21901.0,
+            "allocation": 0.0,
+            "map": 17747.0,
+            "reset": 106883.0,
+            "set_event": 19965.0
+          },
+          "thread_cycles": 9889531.0,
+          "native_acquire_ms": 14.2127,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1111.0,
+            "acquire": 504039.0,
+            "populate": 740533.0,
+            "index": 3246636.0,
+            "query": 12684.0,
+            "extract": 2438151.0,
+            "draw": 1831191.0,
+            "end": 1113639.0
+          },
+          "qpc": [
+            32750428086656.0,
+            32750428086660.0,
+            32750428228819.0,
+            32750428231072.0,
+            32750428246766.0,
+            32750428246803.0,
+            32750428260970.0,
+            32750428268179.0,
+            32750428271538.0
+          ]
+        },
+        {
+          "frame": 425,
+          "total_ms": 18.4428,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 13.7837,
+            "populate": 0.1099,
+            "index": 0.5972,
+            "query": 0.0077,
+            "extract": 1.5311,
+            "draw": 1.8522,
+            "end": 0.5605
+          },
+          "native_ms": {
+            "wait": 13.6622,
+            "present": 0.3479,
+            "execute": 0.1122,
+            "signal": 0.0093,
+            "allocation": 0.0,
+            "map": 0.0103,
+            "reset": 0.0524,
+            "set_event": 0.0069
+          },
+          "native_cycles": {
+            "wait": 230149.0,
+            "present": 968287.0,
+            "execute": 372294.0,
+            "signal": 31389.0,
+            "allocation": 0.0,
+            "map": 34606.0,
+            "reset": 175834.0,
+            "set_event": 22913.0
+          },
+          "thread_cycles": 10630945.0,
+          "native_acquire_ms": 13.7798,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1207.0,
+            "acquire": 629786.0,
+            "populate": 364403.0,
+            "index": 1806513.0,
+            "query": 19057.0,
+            "extract": 3732289.0,
+            "draw": 2408404.0,
+            "end": 1667610.0
+          },
+          "qpc": [
+            32750429435021.0,
+            32750429435025.0,
+            32750429572869.0,
+            32750429573971.0,
+            32750429579957.0,
+            32750429580012.0,
+            32750429595334.0,
+            32750429613855.0,
+            32750429619449.0
+          ]
+        }
+      ]
+    },
+    "5000,0,0": {
+      "frames": 600,
+      "p95_ms": 18.2356,
+      "p99_ms": 19.3168,
+      "max_ms": 34.668,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.668,
+          "stages": {
+            "reload": 23.5011,
+            "acquire": 0.1006,
+            "populate": 1.0984,
+            "index": 2.1551,
+            "query": 0.1615,
+            "extract": 3.8402,
+            "draw": 3.3661,
+            "end": 0.445
+          },
+          "native_ms": {
+            "wait": 20.0103,
+            "present": 0.215,
+            "execute": 0.1641,
+            "signal": 0.0226,
+            "allocation": 1.2773,
+            "map": 0.0148,
+            "reset": 0.0376,
+            "set_event": 0.008
+          },
+          "native_cycles": {
+            "wait": 19819.0,
+            "present": 714177.0,
+            "execute": 544808.0,
+            "signal": 73875.0,
+            "allocation": 2403902.0,
+            "map": 49505.0,
+            "reset": 125360.0,
+            "set_event": 26702.0
+          },
+          "thread_cycles": 45392805.0,
+          "native_acquire_ms": 0.0951,
+          "retirement_ms": 0.0005,
+          "stage_cycles": {
+            "reload": 10793874.0,
+            "acquire": 332262.0,
+            "populate": 3640398.0,
+            "index": 6831928.0,
+            "query": 534259.0,
+            "extract": 12461566.0,
+            "draw": 9323370.0,
+            "end": 1473615.0
+          },
+          "qpc": [
+            32750552160655.0,
+            32750552395669.0,
+            32750552396673.0,
+            32750552407668.0,
+            32750552429213.0,
+            32750552430823.0,
+            32750552469229.0,
+            32750552502887.0,
+            32750552507334.0
+          ]
+        },
+        {
+          "frame": 354,
+          "total_ms": 21.6673,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 7.036,
+            "populate": 1.7946,
+            "index": 3.2921,
+            "query": 0.2604,
+            "extract": 6.3356,
+            "draw": 2.2532,
+            "end": 0.6947
+          },
+          "native_ms": {
+            "wait": 6.9293,
+            "present": 0.4499,
+            "execute": 0.137,
+            "signal": 0.0124,
+            "allocation": 0.0,
+            "map": 0.0061,
+            "reset": 0.0403,
+            "set_event": 0.009
+          },
+          "native_cycles": {
+            "wait": 223586.0,
+            "present": 1128408.0,
+            "execute": 457124.0,
+            "signal": 41135.0,
+            "allocation": 0.0,
+            "map": 20180.0,
+            "reset": 132624.0,
+            "set_event": 29680.0
+          },
+          "thread_cycles": 47246084.0,
+          "native_acquire_ms": 7.0317,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1606.0,
+            "acquire": 570576.0,
+            "populate": 5944402.0,
+            "index": 10468915.0,
+            "query": 863250.0,
+            "extract": 19993953.0,
+            "draw": 7471205.0,
+            "end": 1930809.0
+          },
+          "qpc": [
+            32750560490824.0,
+            32750560490829.0,
+            32750560561192.0,
+            32750560579144.0,
+            32750560612070.0,
+            32750560614676.0,
+            32750560678026.0,
+            32750560700562.0,
+            32750560707499.0
+          ]
+        },
+        {
+          "frame": 521,
+          "total_ms": 21.3298,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 5.1511,
+            "populate": 1.4494,
+            "index": 4.5857,
+            "query": 0.1798,
+            "extract": 6.4255,
+            "draw": 2.8073,
+            "end": 0.7303
+          },
+          "native_ms": {
+            "wait": 5.0144,
+            "present": 0.4065,
+            "execute": 0.2068,
+            "signal": 0.0104,
+            "allocation": 0.0,
+            "map": 0.0119,
+            "reset": 0.0573,
+            "set_event": 0.0101
+          },
+          "native_cycles": {
+            "wait": 253535.0,
+            "present": 1124535.0,
+            "execute": 680239.0,
+            "signal": 34607.0,
+            "allocation": 0.0,
+            "map": 40427.0,
+            "reset": 192020.0,
+            "set_event": 33503.0
+          },
+          "thread_cycles": 42442188.0,
+          "native_acquire_ms": 5.1457,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 1615.0,
+            "acquire": 700406.0,
+            "populate": 2858406.0,
+            "index": 10059657.0,
+            "query": 591905.0,
+            "extract": 17089092.0,
+            "draw": 8967341.0,
+            "end": 2172086.0
+          },
+          "qpc": [
+            32750588362093.0,
+            32750588362099.0,
+            32750588413611.0,
+            32750588428123.0,
+            32750588473979.0,
+            32750588475764.0,
+            32750588540034.0,
+            32750588568117.0,
+            32750588575390.0
+          ]
+        },
+        {
+          "frame": 227,
+          "total_ms": 21.1415,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 6.1276,
+            "populate": 1.7183,
+            "index": 3.1958,
+            "query": 0.1931,
+            "extract": 6.3952,
+            "draw": 2.6001,
+            "end": 0.9107
+          },
+          "native_ms": {
+            "wait": 5.9291,
+            "present": 0.6185,
+            "execute": 0.1736,
+            "signal": 0.021,
+            "allocation": 0.0,
+            "map": 0.0051,
+            "reset": 0.1337,
+            "set_event": 0.0077
+          },
+          "native_cycles": {
+            "wait": 206401.0,
+            "present": 1865275.0,
+            "execute": 574719.0,
+            "signal": 70000.0,
+            "allocation": 0.0,
+            "map": 17252.0,
+            "reset": 364298.0,
+            "set_event": 25623.0
+          },
+          "thread_cycles": 48667406.0,
+          "native_acquire_ms": 6.1243,
+          "retirement_ms": 0.0006,
+          "stage_cycles": {
+            "reload": 1384.0,
+            "acquire": 780857.0,
+            "populate": 4984172.0,
+            "index": 9893276.0,
+            "query": 632446.0,
+            "extract": 20938158.0,
+            "draw": 8609143.0,
+            "end": 2825319.0
+          },
+          "qpc": [
+            32750539334535.0,
+            32750539334539.0,
+            32750539395833.0,
+            32750539413010.0,
+            32750539444988.0,
+            32750539446891.0,
+            32750539510856.0,
+            32750539536861.0,
+            32750539545953.0
+          ]
+        },
+        {
+          "frame": 48,
+          "total_ms": 20.5596,
+          "stages": {
+            "reload": 0.0012,
+            "acquire": 5.2431,
+            "populate": 2.1739,
+            "index": 4.6171,
+            "query": 0.1832,
+            "extract": 5.1611,
+            "draw": 2.5659,
+            "end": 0.6141
+          },
+          "native_ms": {
+            "wait": 5.1041,
+            "present": 0.2698,
+            "execute": 0.2592,
+            "signal": 0.0084,
+            "allocation": 0.0,
+            "map": 0.0089,
+            "reset": 0.051,
+            "set_event": 0.0106
+          },
+          "native_cycles": {
+            "wait": 422250.0,
+            "present": 893444.0,
+            "execute": 495420.0,
+            "signal": 27417.0,
+            "allocation": 0.0,
+            "map": 30249.0,
+            "reset": 171475.0,
+            "set_event": 35116.0
+          },
+          "thread_cycles": 39326884.0,
+          "native_acquire_ms": 5.2382,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 2039.0,
+            "acquire": 878587.0,
+            "populate": 4742577.0,
+            "index": 7505202.0,
+            "query": 603128.0,
+            "extract": 16337139.0,
+            "draw": 7591858.0,
+            "end": 1664491.0
+          },
+          "qpc": [
+            32750509516679.0,
+            32750509516686.0,
+            32750509569119.0,
+            32750509590867.0,
+            32750509637044.0,
+            32750509638862.0,
+            32750509690487.0,
+            32750509716143.0,
+            32750509722272.0
+          ]
+        }
+      ]
+    },
+    "10000,0,0": {
+      "frames": 600,
+      "p95_ms": 22.8257,
+      "p99_ms": 26.3904,
+      "max_ms": 36.5176,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 216,
+          "total_ms": 36.5176,
+          "stages": {
+            "reload": 0.0017,
+            "acquire": 0.1093,
+            "populate": 2.6619,
+            "index": 7.7297,
+            "query": 0.6463,
+            "extract": 18.3745,
+            "draw": 6.4281,
+            "end": 0.5661
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3347,
+            "execute": 0.1299,
+            "signal": 0.0143,
+            "allocation": 0.0,
+            "map": 0.0077,
+            "reset": 0.0475,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1111201.0,
+            "execute": 429684.0,
+            "signal": 47736.0,
+            "allocation": 0.0,
+            "map": 28552.0,
+            "reset": 159807.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 86780845.0,
+          "native_acquire_ms": 0.1038,
+          "retirement_ms": 0.0013,
+          "stage_cycles": {
+            "reload": 3378.0,
+            "acquire": 363039.0,
+            "populate": 7200050.0,
+            "index": 21612411.0,
+            "query": 1535217.0,
+            "extract": 36634118.0,
+            "draw": 17563695.0,
+            "end": 1867235.0
+          },
+          "qpc": [
+            32750694086450.0,
+            32750694086455.0,
+            32750694087554.0,
+            32750694114185.0,
+            32750694191480.0,
+            32750694197946.0,
+            32750694381697.0,
+            32750694445982.0,
+            32750694451615.0
+          ]
+        },
+        {
+          "frame": 358,
+          "total_ms": 28.6695,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 0.0584,
+            "populate": 1.6088,
+            "index": 8.7844,
+            "query": 0.3705,
+            "extract": 10.9443,
+            "draw": 6.1397,
+            "end": 0.7625
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3078,
+            "execute": 0.3607,
+            "signal": 0.0141,
+            "allocation": 0.0,
+            "map": 0.0041,
+            "reset": 0.022,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1021522.0,
+            "execute": 1157048.0,
+            "signal": 47627.0,
+            "allocation": 0.0,
+            "map": 13642.0,
+            "reset": 74721.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 77813743.0,
+          "native_acquire_ms": 0.0544,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 1558.0,
+            "acquire": 193305.0,
+            "populate": 5174882.0,
+            "index": 17915456.0,
+            "query": 1223977.0,
+            "extract": 32755374.0,
+            "draw": 18064715.0,
+            "end": 2482055.0
+          },
+          "qpc": [
+            32750721499192.0,
+            32750721499197.0,
+            32750721499783.0,
+            32750721515894.0,
+            32750721603734.0,
+            32750721607425.0,
+            32750721716874.0,
+            32750721778271.0,
+            32750721785888.0
+          ]
+        },
+        {
+          "frame": 124,
+          "total_ms": 27.4156,
+          "stages": {
+            "reload": 0.0016,
+            "acquire": 0.1064,
+            "populate": 2.6009,
+            "index": 6.4297,
+            "query": 0.2751,
+            "extract": 11.9621,
+            "draw": 5.2836,
+            "end": 0.7562
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.4725,
+            "execute": 0.157,
+            "signal": 0.0228,
+            "allocation": 0.0,
+            "map": 0.0079,
+            "reset": 0.0401,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1478906.0,
+            "execute": 520531.0,
+            "signal": 75965.0,
+            "allocation": 0.0,
+            "map": 27537.0,
+            "reset": 131771.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 85855112.0,
+          "native_acquire_ms": 0.0997,
+          "retirement_ms": 0.0013,
+          "stage_cycles": {
+            "reload": 3678.0,
+            "acquire": 353285.0,
+            "populate": 7843157.0,
+            "index": 20448202.0,
+            "query": 905986.0,
+            "extract": 36393937.0,
+            "draw": 17503083.0,
+            "end": 2402076.0
+          },
+          "qpc": [
+            32750674739260.0,
+            32750674739267.0,
+            32750674740344.0,
+            32750674766368.0,
+            32750674830659.0,
+            32750674833397.0,
+            32750674953031.0,
+            32750675005890.0,
+            32750675013407.0
+          ]
+        },
+        {
+          "frame": 217,
+          "total_ms": 27.36,
+          "stages": {
+            "reload": 0.0701,
+            "acquire": 0.095,
+            "populate": 1.9152,
+            "index": 6.2992,
+            "query": 0.2836,
+            "extract": 12.1976,
+            "draw": 5.1159,
+            "end": 1.3834
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 1.0061,
+            "execute": 0.2232,
+            "signal": 0.0102,
+            "allocation": 0.0,
+            "map": 0.0055,
+            "reset": 0.0327,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 2945668.0,
+            "execute": 738082.0,
+            "signal": 34530.0,
+            "allocation": 0.0,
+            "map": 19307.0,
+            "reset": 110120.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 85665239.0,
+          "native_acquire_ms": 0.0892,
+          "retirement_ms": 0.0011,
+          "stage_cycles": {
+            "reload": 229470.0,
+            "acquire": 314442.0,
+            "populate": 6279566.0,
+            "index": 17737704.0,
+            "query": 935633.0,
+            "extract": 39024279.0,
+            "draw": 16960991.0,
+            "end": 4181219.0
+          },
+          "qpc": [
+            32750694457042.0,
+            32750694457732.0,
+            32750694458683.0,
+            32750694477849.0,
+            32750694540844.0,
+            32750694543662.0,
+            32750694665653.0,
+            32750694716823.0,
+            32750694730629.0
+          ]
+        },
+        {
+          "frame": 215,
+          "total_ms": 26.7641,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 0.0695,
+            "populate": 1.8658,
+            "index": 4.5701,
+            "query": 0.2733,
+            "extract": 12.3638,
+            "draw": 4.7254,
+            "end": 2.8953
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 2.2738,
+            "execute": 0.4384,
+            "signal": 0.0474,
+            "allocation": 0.0,
+            "map": 0.0039,
+            "reset": 0.022,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1710011.0,
+            "execute": 1085539.0,
+            "signal": 56929.0,
+            "allocation": 0.0,
+            "map": 13082.0,
+            "reset": 73575.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 78084305.0,
+          "native_acquire_ms": 0.0651,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1818.0,
+            "acquire": 230410.0,
+            "populate": 5513514.0,
+            "index": 14623674.0,
+            "query": 900696.0,
+            "extract": 37868115.0,
+            "draw": 15656892.0,
+            "end": 3287364.0
+          },
+          "qpc": [
+            32750693811133.0,
+            32750693811138.0,
+            32750693811837.0,
+            32750693830509.0,
+            32750693876223.0,
+            32750693878937.0,
+            32750694002580.0,
+            32750694049842.0,
+            32750694078772.0
+          ]
+        }
+      ]
+    },
+    "1000,0,1": {
+      "frames": 600,
+      "p95_ms": 17.7401,
+      "p99_ms": 18.6904,
+      "max_ms": 35.0953,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.0953,
+          "stages": {
+            "reload": 30.9511,
+            "acquire": 0.0697,
+            "populate": 0.1531,
+            "index": 0.6199,
+            "query": 0.5994,
+            "extract": 0.6867,
+            "draw": 1.6687,
+            "end": 0.3467
+          },
+          "native_ms": {
+            "wait": 29.6634,
+            "present": 0.1907,
+            "execute": 0.0941,
+            "signal": 0.013,
+            "allocation": 1.1569,
+            "map": 0.0133,
+            "reset": 0.0303,
+            "set_event": 0.0066
+          },
+          "native_cycles": {
+            "wait": 240543.0,
+            "present": 633563.0,
+            "execute": 312066.0,
+            "signal": 43304.0,
+            "allocation": 2191103.0,
+            "map": 44806.0,
+            "reset": 100920.0,
+            "set_event": 21833.0
+          },
+          "thread_cycles": 15412438.0,
+          "native_acquire_ms": 0.0652,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 3323788.0,
+            "acquire": 228590.0,
+            "populate": 508286.0,
+            "index": 2054618.0,
+            "query": 1987108.0,
+            "extract": 2275607.0,
+            "draw": 3885281.0,
+            "end": 1147634.0
+          },
+          "qpc": [
+            32750862608317.0,
+            32750862917836.0,
+            32750862918526.0,
+            32750862920062.0,
+            32750862926259.0,
+            32750862932253.0,
+            32750862939117.0,
+            32750862955807.0,
+            32750862959270.0
+          ]
+        },
+        {
+          "frame": 279,
+          "total_ms": 19.9623,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 14.3296,
+            "populate": 0.1283,
+            "index": 1.2609,
+            "query": 0.7136,
+            "extract": 1.5148,
+            "draw": 1.3258,
+            "end": 0.6888
+          },
+          "native_ms": {
+            "wait": 14.2398,
+            "present": 0.3497,
+            "execute": 0.2683,
+            "signal": 0.0072,
+            "allocation": 0.0,
+            "map": 0.0051,
+            "reset": 0.0292,
+            "set_event": 0.0059
+          },
+          "native_cycles": {
+            "wait": 225798.0,
+            "present": 1160715.0,
+            "execute": 598186.0,
+            "signal": 23934.0,
+            "allocation": 0.0,
+            "map": 17503.0,
+            "reset": 96835.0,
+            "set_event": 19524.0
+          },
+          "thread_cycles": 17023567.0,
+          "native_acquire_ms": 14.3272,
+          "retirement_ms": 0.0006,
+          "stage_cycles": {
+            "reload": 1135.0,
+            "acquire": 521731.0,
+            "populate": 423630.0,
+            "index": 3172393.0,
+            "query": 2363158.0,
+            "extract": 4634465.0,
+            "draw": 3921969.0,
+            "end": 1983779.0
+          },
+          "qpc": [
+            32750858437852.0,
+            32750858437856.0,
+            32750858581160.0,
+            32750858582437.0,
+            32750858595056.0,
+            32750858602196.0,
+            32750858617342.0,
+            32750858630602.0,
+            32750858637475.0
+          ]
+        },
+        {
+          "frame": 416,
+          "total_ms": 19.1277,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 15.1149,
+            "populate": 0.1152,
+            "index": 0.8969,
+            "query": 0.6813,
+            "extract": 0.8298,
+            "draw": 0.7538,
+            "end": 0.7354
+          },
+          "native_ms": {
+            "wait": 14.9937,
+            "present": 0.4567,
+            "execute": 0.1937,
+            "signal": 0.0069,
+            "allocation": 0.0,
+            "map": 0.0131,
+            "reset": 0.0525,
+            "set_event": 0.0068
+          },
+          "native_cycles": {
+            "wait": 243994.0,
+            "present": 1350086.0,
+            "execute": 572010.0,
+            "signal": 23016.0,
+            "allocation": 0.0,
+            "map": 44112.0,
+            "reset": 173946.0,
+            "set_event": 22443.0
+          },
+          "thread_cycles": 12841015.0,
+          "native_acquire_ms": 15.112,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1118.0,
+            "acquire": 640792.0,
+            "populate": 382139.0,
+            "index": 2634589.0,
+            "query": 2257267.0,
+            "extract": 2576345.0,
+            "draw": 2151574.0,
+            "end": 2195803.0
+          },
+          "qpc": [
+            32750881276509.0,
+            32750881276512.0,
+            32750881427666.0,
+            32750881428820.0,
+            32750881437793.0,
+            32750881444610.0,
+            32750881452916.0,
+            32750881460446.0,
+            32750881467786.0
+          ]
+        },
+        {
+          "frame": 595,
+          "total_ms": 18.9726,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.105,
+            "populate": 0.0979,
+            "index": 1.3403,
+            "query": 0.771,
+            "extract": 0.6143,
+            "draw": 0.4352,
+            "end": 0.6084
+          },
+          "native_ms": {
+            "wait": 14.994,
+            "present": 0.4586,
+            "execute": 0.088,
+            "signal": 0.0061,
+            "allocation": 0.0,
+            "map": 0.0073,
+            "reset": 0.0396,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 207344.0,
+            "present": 704254.0,
+            "execute": 292080.0,
+            "signal": 20399.0,
+            "allocation": 0.0,
+            "map": 24959.0,
+            "reset": 132633.0,
+            "set_event": 21105.0
+          },
+          "thread_cycles": 11210449.0,
+          "native_acquire_ms": 15.1016,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1245.0,
+            "acquire": 571038.0,
+            "populate": 325451.0,
+            "index": 3086838.0,
+            "query": 2550196.0,
+            "extract": 2035483.0,
+            "draw": 1441108.0,
+            "end": 1197719.0
+          },
+          "qpc": [
+            32750911118854.0,
+            32750911118858.0,
+            32750911269913.0,
+            32750911270895.0,
+            32750911284302.0,
+            32750911292005.0,
+            32750911298144.0,
+            32750911302499.0,
+            32750911308579.0
+          ]
+        },
+        {
+          "frame": 587,
+          "total_ms": 18.7704,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 13.8402,
+            "populate": 0.1333,
+            "index": 2.0815,
+            "query": 1.0309,
+            "extract": 0.7519,
+            "draw": 0.5109,
+            "end": 0.4212
+          },
+          "native_ms": {
+            "wait": 13.7355,
+            "present": 0.2434,
+            "execute": 0.1029,
+            "signal": 0.007,
+            "allocation": 0.0,
+            "map": 0.0062,
+            "reset": 0.0364,
+            "set_event": 0.0062
+          },
+          "native_cycles": {
+            "wait": 223803.0,
+            "present": 671726.0,
+            "execute": 341298.0,
+            "signal": 23329.0,
+            "allocation": 0.0,
+            "map": 21192.0,
+            "reset": 122920.0,
+            "set_event": 20631.0
+          },
+          "thread_cycles": 12938673.0,
+          "native_acquire_ms": 13.8374,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1208.0,
+            "acquire": 567317.0,
+            "populate": 443643.0,
+            "index": 3750056.0,
+            "query": 2734189.0,
+            "extract": 2488805.0,
+            "draw": 1693483.0,
+            "end": 1258179.0
+          },
+          "qpc": [
+            32750909788089.0,
+            32750909788093.0,
+            32750909926500.0,
+            32750909927839.0,
+            32750909948658.0,
+            32750909958970.0,
+            32750909966476.0,
+            32750909971584.0,
+            32750909975793.0
+          ]
+        }
+      ]
+    },
+    "10000,1,0": {
+      "frames": 600,
+      "p95_ms": 25.5666,
+      "p99_ms": 33.6428,
+      "max_ms": 45.3715,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 400,
+          "total_ms": 45.3715,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.0769,
+            "populate": 1.8764,
+            "index": 11.348,
+            "query": 0.0522,
+            "extract": 30.8208,
+            "draw": 0.1861,
+            "end": 1.0101
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.391,
+            "execute": 0.216,
+            "signal": 0.3181,
+            "allocation": 0.0,
+            "map": 0.0055,
+            "reset": 0.0284,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1100733.0,
+            "execute": 457948.0,
+            "signal": 513371.0,
+            "allocation": 0.0,
+            "map": 17793.0,
+            "reset": 95749.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 79791277.0,
+          "native_acquire_ms": 0.0711,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1800.0,
+            "acquire": 255150.0,
+            "populate": 6225481.0,
+            "index": 33822217.0,
+            "query": 165385.0,
+            "extract": 36358196.0,
+            "draw": 612586.0,
+            "end": 2347275.0
+          },
+          "qpc": [
+            32751054360134.0,
+            32751054360139.0,
+            32751054360912.0,
+            32751054379695.0,
+            32751054493182.0,
+            32751054493677.0,
+            32751054801901.0,
+            32751054803750.0,
+            32751054813847.0
+          ]
+        },
+        {
+          "frame": 402,
+          "total_ms": 38.7962,
+          "stages": {
+            "reload": 0.0014,
+            "acquire": 0.073,
+            "populate": 2.076,
+            "index": 29.7192,
+            "query": 0.0466,
+            "extract": 5.9313,
+            "draw": 0.1934,
+            "end": 0.7553
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.4309,
+            "execute": 0.2207,
+            "signal": 0.0155,
+            "allocation": 0.0,
+            "map": 0.005,
+            "reset": 0.0274,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1423426.0,
+            "execute": 732810.0,
+            "signal": 52004.0,
+            "allocation": 0.0,
+            "map": 17539.0,
+            "reset": 90972.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 64924922.0,
+          "native_acquire_ms": 0.068,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 2168.0,
+            "acquire": 242773.0,
+            "populate": 6873889.0,
+            "index": 34854194.0,
+            "query": 148721.0,
+            "extract": 19666584.0,
+            "draw": 640232.0,
+            "end": 2493888.0
+          },
+          "qpc": [
+            32751055021513.0,
+            32751055021519.0,
+            32751055022257.0,
+            32751055043023.0,
+            32751055340224.0,
+            32751055340670.0,
+            32751055399991.0,
+            32751055401924.0,
+            32751055409470.0
+          ]
+        },
+        {
+          "frame": 117,
+          "total_ms": 36.5612,
+          "stages": {
+            "reload": 0.001,
+            "acquire": 0.0628,
+            "populate": 2.2084,
+            "index": 27.1364,
+            "query": 0.0456,
+            "extract": 5.8849,
+            "draw": 0.1951,
+            "end": 1.027
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.5541,
+            "execute": 0.2965,
+            "signal": 0.0177,
+            "allocation": 0.0,
+            "map": 0.0041,
+            "reset": 0.0236,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1445551.0,
+            "execute": 979913.0,
+            "signal": 59583.0,
+            "allocation": 0.0,
+            "map": 13811.0,
+            "reset": 79008.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 62733710.0,
+          "native_acquire_ms": 0.0582,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1881.0,
+            "acquire": 207764.0,
+            "populate": 7317082.0,
+            "index": 31912615.0,
+            "query": 144656.0,
+            "extract": 19498393.0,
+            "draw": 644317.0,
+            "end": 3005306.0
+          },
+          "qpc": [
+            32750996829565.0,
+            32750996829570.0,
+            32750996830200.0,
+            32750996852300.0,
+            32750997123672.0,
+            32750997124106.0,
+            32750997182967.0,
+            32750997184915.0,
+            32750997195173.0
+          ]
+        },
+        {
+          "frame": 262,
+          "total_ms": 35.681200000000004,
+          "stages": {
+            "reload": 0.0012,
+            "acquire": 0.0843,
+            "populate": 19.4172,
+            "index": 8.5708,
+            "query": 0.0326,
+            "extract": 6.8342,
+            "draw": 0.1886,
+            "end": 0.5523
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3055,
+            "execute": 0.1482,
+            "signal": 0.0158,
+            "allocation": 0.0,
+            "map": 0.0052,
+            "reset": 0.0251,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1014942.0,
+            "execute": 487033.0,
+            "signal": 53230.0,
+            "allocation": 0.0,
+            "map": 17291.0,
+            "reset": 83489.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 115180396.0,
+          "native_acquire_ms": 0.079,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 2815.0,
+            "acquire": 279062.0,
+            "populate": 62157481.0,
+            "index": 27894725.0,
+            "query": 106256.0,
+            "extract": 22291557.0,
+            "draw": 623587.0,
+            "end": 1823259.0
+          },
+          "qpc": [
+            32751027239740.0,
+            32751027239748.0,
+            32751027240593.0,
+            32751027434776.0,
+            32751027520476.0,
+            32751027520796.0,
+            32751027589149.0,
+            32751027591031.0,
+            32751027596547.0
+          ]
+        },
+        {
+          "frame": 123,
+          "total_ms": 35.332,
+          "stages": {
+            "reload": 0.0012,
+            "acquire": 0.0662,
+            "populate": 2.2508,
+            "index": 9.6205,
+            "query": 0.045,
+            "extract": 22.5341,
+            "draw": 0.196,
+            "end": 0.6182
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3643,
+            "execute": 0.1518,
+            "signal": 0.0115,
+            "allocation": 0.0,
+            "map": 0.0047,
+            "reset": 0.0231,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1173874.0,
+            "execute": 513807.0,
+            "signal": 38735.0,
+            "allocation": 0.0,
+            "map": 15192.0,
+            "reset": 76703.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 66397181.0,
+          "native_acquire_ms": 0.0617,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1983.0,
+            "acquire": 218715.0,
+            "populate": 7434327.0,
+            "index": 31870540.0,
+            "query": 143818.0,
+            "extract": 24035536.0,
+            "draw": 646733.0,
+            "end": 2042597.0
+          },
+          "qpc": [
+            32750998443978.0,
+            32750998443984.0,
+            32750998444650.0,
+            32750998467167.0,
+            32750998563381.0,
+            32750998563815.0,
+            32750998789164.0,
+            32750998791116.0,
+            32750998797293.0
+          ]
+        }
+      ]
+    }
+  },
+  "dx12-2.trace": {
+    "100,0,0": {
+      "frames": 600,
+      "p95_ms": 17.3931,
+      "p99_ms": 17.836,
+      "max_ms": 34.5832,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 34.5832,
+          "stages": {
+            "reload": 32.4934,
+            "acquire": 0.1019,
+            "populate": 0.0127,
+            "index": 0.0572,
+            "query": 0.0032,
+            "extract": 0.1277,
+            "draw": 1.4048,
+            "end": 0.3823
+          },
+          "native_ms": {
+            "wait": 32.0391,
+            "present": 0.2214,
+            "execute": 0.1012,
+            "signal": 0.0126,
+            "allocation": 1.1128,
+            "map": 0.0153,
+            "reset": 0.051,
+            "set_event": 0.0064
+          },
+          "native_cycles": {
+            "wait": 214883.0,
+            "present": 735312.0,
+            "execute": 335926.0,
+            "signal": 41712.0,
+            "allocation": 2111963.0,
+            "map": 52653.0,
+            "reset": 168788.0,
+            "set_event": 21278.0
+          },
+          "thread_cycles": 6439672.0,
+          "native_acquire_ms": 0.0962,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 1223690.0,
+            "acquire": 334764.0,
+            "populate": 42145.0,
+            "index": 189390.0,
+            "query": 10219.0,
+            "extract": 298704.0,
+            "draw": 3073563.0,
+            "end": 1265625.0
+          },
+          "qpc": [
+            32751191427862.0,
+            32751191752805.0,
+            32751191753816.0,
+            32751191753943.0,
+            32751191754515.0,
+            32751191754546.0,
+            32751191755825.0,
+            32751191769874.0,
+            32751191773693.0
+          ]
+        },
+        {
+          "frame": 248,
+          "total_ms": 18.0326,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 16.4458,
+            "populate": 0.2402,
+            "index": 0.0506,
+            "query": 0.0036,
+            "extract": 0.1122,
+            "draw": 0.1492,
+            "end": 1.0301
+          },
+          "native_ms": {
+            "wait": 16.2895,
+            "present": 0.7869,
+            "execute": 0.1476,
+            "signal": 0.0081,
+            "allocation": 0.0,
+            "map": 0.0111,
+            "reset": 0.0565,
+            "set_event": 0.0087
+          },
+          "native_cycles": {
+            "wait": 24376.0,
+            "present": 2047427.0,
+            "execute": 419764.0,
+            "signal": 27181.0,
+            "allocation": 0.0,
+            "map": 37844.0,
+            "reset": 188814.0,
+            "set_event": 28206.0
+          },
+          "thread_cycles": 4375561.0,
+          "native_acquire_ms": 16.4408,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 2134.0,
+            "acquire": 537611.0,
+            "populate": 89999.0,
+            "index": 166075.0,
+            "query": 11629.0,
+            "extract": 370292.0,
+            "draw": 455777.0,
+            "end": 2740531.0
+          },
+          "qpc": [
+            32751182089112.0,
+            32751182089123.0,
+            32751182253582.0,
+            32751182255989.0,
+            32751182256488.0,
+            32751182256523.0,
+            32751182257647.0,
+            32751182259148.0,
+            32751182269436.0
+          ]
+        },
+        {
+          "frame": 355,
+          "total_ms": 18.0048,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.4945,
+            "populate": 0.0124,
+            "index": 0.0604,
+            "query": 0.0037,
+            "extract": 0.1291,
+            "draw": 0.649,
+            "end": 0.6552
+          },
+          "native_ms": {
+            "wait": 16.409,
+            "present": 0.3653,
+            "execute": 0.1464,
+            "signal": 0.0098,
+            "allocation": 0.0,
+            "map": 0.0062,
+            "reset": 0.0359,
+            "set_event": 0.0067
+          },
+          "native_cycles": {
+            "wait": 208321.0,
+            "present": 1215548.0,
+            "execute": 484992.0,
+            "signal": 32752.0,
+            "allocation": 0.0,
+            "map": 20372.0,
+            "reset": 120528.0,
+            "set_event": 22050.0
+          },
+          "thread_cycles": 3892846.0,
+          "native_acquire_ms": 16.4918,
+          "retirement_ms": 0.0014,
+          "stage_cycles": {
+            "reload": 1298.0,
+            "acquire": 488664.0,
+            "populate": 40745.0,
+            "index": 197122.0,
+            "query": 10566.0,
+            "extract": 325280.0,
+            "draw": 660724.0,
+            "end": 2167102.0
+          },
+          "qpc": [
+            32751199920514.0,
+            32751199920518.0,
+            32751200085466.0,
+            32751200085589.0,
+            32751200086197.0,
+            32751200086229.0,
+            32751200087525.0,
+            32751200094016.0,
+            32751200100562.0
+          ]
+        },
+        {
+          "frame": 23,
+          "total_ms": 17.9742,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.8248,
+            "populate": 0.017,
+            "index": 0.0439,
+            "query": 0.0044,
+            "extract": 0.3293,
+            "draw": 0.1118,
+            "end": 0.6425
+          },
+          "native_ms": {
+            "wait": 16.7418,
+            "present": 0.4834,
+            "execute": 0.0841,
+            "signal": 0.0126,
+            "allocation": 0.0,
+            "map": 0.0053,
+            "reset": 0.034,
+            "set_event": 0.0061
+          },
+          "native_cycles": {
+            "wait": 222125.0,
+            "present": 1299799.0,
+            "execute": 280455.0,
+            "signal": 43277.0,
+            "allocation": 0.0,
+            "map": 17992.0,
+            "reset": 115349.0,
+            "set_event": 20240.0
+          },
+          "thread_cycles": 3682151.0,
+          "native_acquire_ms": 16.8222,
+          "retirement_ms": 0.0006,
+          "stage_cycles": {
+            "reload": 1235.0,
+            "acquire": 493490.0,
+            "populate": 55908.0,
+            "index": 146054.0,
+            "query": 13563.0,
+            "extract": 782737.0,
+            "draw": 366796.0,
+            "end": 1821053.0
+          },
+          "qpc": [
+            32751144582882.0,
+            32751144582886.0,
+            32751144751138.0,
+            32751144751307.0,
+            32751144751748.0,
+            32751144751789.0,
+            32751144755095.0,
+            32751144756210.0,
+            32751144762625.0
+          ]
+        },
+        {
+          "frame": 590,
+          "total_ms": 17.957,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 17.2342,
+            "populate": 0.0146,
+            "index": 0.0538,
+            "query": 0.0035,
+            "extract": 0.103,
+            "draw": 0.0984,
+            "end": 0.449
+          },
+          "native_ms": {
+            "wait": 17.1292,
+            "present": 0.2942,
+            "execute": 0.0911,
+            "signal": 0.0084,
+            "allocation": 0.0,
+            "map": 0.007,
+            "reset": 0.0467,
+            "set_event": 0.0072
+          },
+          "native_cycles": {
+            "wait": 435001.0,
+            "present": 977937.0,
+            "execute": 302273.0,
+            "signal": 28061.0,
+            "allocation": 0.0,
+            "map": 23084.0,
+            "reset": 156583.0,
+            "set_event": 23888.0
+          },
+          "thread_cycles": 3173809.0,
+          "native_acquire_ms": 17.2316,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1160.0,
+            "acquire": 779488.0,
+            "populate": 47508.0,
+            "index": 177872.0,
+            "query": 11216.0,
+            "extract": 342303.0,
+            "draw": 327162.0,
+            "end": 1485313.0
+          },
+          "qpc": [
+            32751239096891.0,
+            32751239096894.0,
+            32751239269243.0,
+            32751239269386.0,
+            32751239269922.0,
+            32751239269956.0,
+            32751239270993.0,
+            32751239271978.0,
+            32751239276460.0
+          ]
+        }
+      ]
+    },
+    "1000,0,0": {
+      "frames": 600,
+      "p95_ms": 17.5146,
+      "p99_ms": 18.1046,
+      "max_ms": 35.4096,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.4096,
+          "stages": {
+            "reload": 31.9789,
+            "acquire": 0.1013,
+            "populate": 0.1018,
+            "index": 0.3882,
+            "query": 0.0032,
+            "extract": 0.7417,
+            "draw": 1.7447,
+            "end": 0.3498
+          },
+          "native_ms": {
+            "wait": 30.6526,
+            "present": 0.2041,
+            "execute": 0.0874,
+            "signal": 0.0164,
+            "allocation": 1.2477,
+            "map": 0.016,
+            "reset": 0.0366,
+            "set_event": 0.0055
+          },
+          "native_cycles": {
+            "wait": 225121.0,
+            "present": 677858.0,
+            "execute": 290165.0,
+            "signal": 54171.0,
+            "allocation": 2200532.0,
+            "map": 53432.0,
+            "reset": 124763.0,
+            "set_event": 18386.0
+          },
+          "thread_cycles": 12059823.0,
+          "native_acquire_ms": 0.0958,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 2949480.0,
+            "acquire": 333465.0,
+            "populate": 337219.0,
+            "index": 1285957.0,
+            "query": 10438.0,
+            "extract": 2161006.0,
+            "draw": 3822465.0,
+            "end": 1158239.0
+          },
+          "qpc": [
+            32751333774888.0,
+            32751334094687.0,
+            32751334095694.0,
+            32751334096712.0,
+            32751334100591.0,
+            32751334100622.0,
+            32751334108043.0,
+            32751334125488.0,
+            32751334128984.0
+          ]
+        },
+        {
+          "frame": 479,
+          "total_ms": 18.9416,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 15.9578,
+            "populate": 0.1037,
+            "index": 0.8351,
+            "query": 0.0063,
+            "extract": 1.0066,
+            "draw": 0.5802,
+            "end": 0.4513
+          },
+          "native_ms": {
+            "wait": 15.8253,
+            "present": 0.2505,
+            "execute": 0.1122,
+            "signal": 0.0095,
+            "allocation": 0.0,
+            "map": 0.0122,
+            "reset": 0.0576,
+            "set_event": 0.0078
+          },
+          "native_cycles": {
+            "wait": 271262.0,
+            "present": 832601.0,
+            "execute": 372162.0,
+            "signal": 31686.0,
+            "allocation": 0.0,
+            "map": 41538.0,
+            "reset": 193355.0,
+            "set_event": 26232.0
+          },
+          "thread_cycles": 9120115.0,
+          "native_acquire_ms": 15.9544,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1549.0,
+            "acquire": 706071.0,
+            "populate": 343765.0,
+            "index": 1778807.0,
+            "query": 18305.0,
+            "extract": 3042303.0,
+            "draw": 1733677.0,
+            "end": 1493613.0
+          },
+          "qpc": [
+            32751362943387.0,
+            32751362943392.0,
+            32751363102977.0,
+            32751363104015.0,
+            32751363112368.0,
+            32751363112422.0,
+            32751363122508.0,
+            32751363128297.0,
+            32751363132804.0
+          ]
+        },
+        {
+          "frame": 497,
+          "total_ms": 18.4622,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 16.407,
+            "populate": 0.1187,
+            "index": 0.406,
+            "query": 0.0048,
+            "extract": 0.7094,
+            "draw": 0.4666,
+            "end": 0.3492
+          },
+          "native_ms": {
+            "wait": 16.3216,
+            "present": 0.2017,
+            "execute": 0.0845,
+            "signal": 0.0062,
+            "allocation": 0.0,
+            "map": 0.0061,
+            "reset": 0.0349,
+            "set_event": 0.0065
+          },
+          "native_cycles": {
+            "wait": 224556.0,
+            "present": 669768.0,
+            "execute": 280594.0,
+            "signal": 20698.0,
+            "allocation": 0.0,
+            "map": 20537.0,
+            "reset": 117355.0,
+            "set_event": 21808.0
+          },
+          "thread_cycles": 7315943.0,
+          "native_acquire_ms": 16.4039,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1282.0,
+            "acquire": 505010.0,
+            "populate": 393697.0,
+            "index": 1346375.0,
+            "query": 13078.0,
+            "extract": 2352332.0,
+            "draw": 1547021.0,
+            "end": 1155974.0
+          },
+          "qpc": [
+            32751365940252.0,
+            32751365940256.0,
+            32751366104333.0,
+            32751366105522.0,
+            32751366109584.0,
+            32751366109622.0,
+            32751366116718.0,
+            32751366121385.0,
+            32751366124873.0
+          ]
+        },
+        {
+          "frame": 476,
+          "total_ms": 18.4593,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.4347,
+            "populate": 0.1141,
+            "index": 0.6599,
+            "query": 0.0054,
+            "extract": 0.9396,
+            "draw": 0.7295,
+            "end": 0.5756
+          },
+          "native_ms": {
+            "wait": 15.3528,
+            "present": 0.2495,
+            "execute": 0.1801,
+            "signal": 0.0083,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0328,
+            "set_event": 0.006
+          },
+          "native_cycles": {
+            "wait": 222127.0,
+            "present": 828515.0,
+            "execute": 596643.0,
+            "signal": 27903.0,
+            "allocation": 0.0,
+            "map": 19363.0,
+            "reset": 110393.0,
+            "set_event": 20180.0
+          },
+          "thread_cycles": 9455190.0,
+          "native_acquire_ms": 15.4321,
+          "retirement_ms": 0.0006,
+          "stage_cycles": {
+            "reload": 1226.0,
+            "acquire": 489981.0,
+            "populate": 348325.0,
+            "index": 1783307.0,
+            "query": 15935.0,
+            "extract": 2936306.0,
+            "draw": 1973864.0,
+            "end": 1904832.0
+          },
+          "qpc": [
+            32751362446361.0,
+            32751362446365.0,
+            32751362600716.0,
+            32751362601867.0,
+            32751362608462.0,
+            32751362608508.0,
+            32751362617921.0,
+            32751362625208.0,
+            32751362630955.0
+          ]
+        },
+        {
+          "frame": 35,
+          "total_ms": 18.2648,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 15.4449,
+            "populate": 0.2408,
+            "index": 0.419,
+            "query": 0.0046,
+            "extract": 1.0924,
+            "draw": 0.5687,
+            "end": 0.4939
+          },
+          "native_ms": {
+            "wait": 15.3202,
+            "present": 0.2806,
+            "execute": 0.1269,
+            "signal": 0.0125,
+            "allocation": 0.0,
+            "map": 0.0072,
+            "reset": 0.0507,
+            "set_event": 0.0079
+          },
+          "native_cycles": {
+            "wait": 226016.0,
+            "present": 933348.0,
+            "execute": 421296.0,
+            "signal": 41075.0,
+            "allocation": 0.0,
+            "map": 23840.0,
+            "reset": 168053.0,
+            "set_event": 26580.0
+          },
+          "thread_cycles": 9242223.0,
+          "native_acquire_ms": 15.441,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1256.0,
+            "acquire": 632127.0,
+            "populate": 652549.0,
+            "index": 1387331.0,
+            "query": 13282.0,
+            "extract": 3035316.0,
+            "draw": 1880970.0,
+            "end": 1635044.0
+          },
+          "qpc": [
+            32751288938022.0,
+            32751288938026.0,
+            32751289092479.0,
+            32751289094898.0,
+            32751289099082.0,
+            32751289099121.0,
+            32751289110067.0,
+            32751289115735.0,
+            32751289120671.0
+          ]
+        }
+      ]
+    },
+    "5000,0,0": {
+      "frames": 600,
+      "p95_ms": 18.235,
+      "p99_ms": 19.665,
+      "max_ms": 32.9998,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 32.9998,
+          "stages": {
+            "reload": 22.1495,
+            "acquire": 0.0948,
+            "populate": 1.0032,
+            "index": 2.0459,
+            "query": 0.1432,
+            "extract": 3.7258,
+            "draw": 3.4436,
+            "end": 0.3938
+          },
+          "native_ms": {
+            "wait": 18.4474,
+            "present": 0.2271,
+            "execute": 0.1009,
+            "signal": 0.0226,
+            "allocation": 1.3687,
+            "map": 0.0149,
+            "reset": 0.0353,
+            "set_event": 0.0083
+          },
+          "native_cycles": {
+            "wait": 223341.0,
+            "present": 754019.0,
+            "execute": 334604.0,
+            "signal": 72372.0,
+            "allocation": 2411444.0,
+            "map": 49454.0,
+            "reset": 117560.0,
+            "set_event": 27485.0
+          },
+          "thread_cycles": 44680595.0,
+          "native_acquire_ms": 0.0864,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 11194087.0,
+            "acquire": 312632.0,
+            "populate": 3323594.0,
+            "index": 6433700.0,
+            "query": 473277.0,
+            "extract": 12355041.0,
+            "draw": 9283553.0,
+            "end": 1303213.0
+          },
+          "qpc": [
+            32751476708755.0,
+            32751476930284.0,
+            32751476931197.0,
+            32751476941237.0,
+            32751476961693.0,
+            32751476963120.0,
+            32751477000389.0,
+            32751477034817.0,
+            32751477038749.0
+          ]
+        },
+        {
+          "frame": 24,
+          "total_ms": 21.2183,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 5.6546,
+            "populate": 1.8248,
+            "index": 4.2415,
+            "query": 0.2096,
+            "extract": 6.0819,
+            "draw": 2.5323,
+            "end": 0.6728
+          },
+          "native_ms": {
+            "wait": 5.1126,
+            "present": 0.3967,
+            "execute": 0.1965,
+            "signal": 0.0086,
+            "allocation": 0.0,
+            "map": 0.0059,
+            "reset": 0.0377,
+            "set_event": 0.0088
+          },
+          "native_cycles": {
+            "wait": 241723.0,
+            "present": 1314568.0,
+            "execute": 649810.0,
+            "signal": 28472.0,
+            "allocation": 0.0,
+            "map": 19972.0,
+            "reset": 126558.0,
+            "set_event": 29418.0
+          },
+          "thread_cycles": 49725272.0,
+          "native_acquire_ms": 5.6507,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 1631.0,
+            "acquire": 923753.0,
+            "populate": 5357250.0,
+            "index": 11988748.0,
+            "query": 688985.0,
+            "extract": 20153319.0,
+            "draw": 8386849.0,
+            "end": 2222974.0
+          },
+          "qpc": [
+            32751430041642.0,
+            32751430041647.0,
+            32751430098201.0,
+            32751430116461.0,
+            32751430158886.0,
+            32751430160960.0,
+            32751430221787.0,
+            32751430247101.0,
+            32751430253824.0
+          ]
+        },
+        {
+          "frame": 351,
+          "total_ms": 20.289,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 6.3521,
+            "populate": 1.7547,
+            "index": 2.8965,
+            "query": 0.1888,
+            "extract": 5.6903,
+            "draw": 2.8127,
+            "end": 0.5933
+          },
+          "native_ms": {
+            "wait": 6.2327,
+            "present": 0.3199,
+            "execute": 0.1621,
+            "signal": 0.013,
+            "allocation": 0.0,
+            "map": 0.006,
+            "reset": 0.0351,
+            "set_event": 0.0079
+          },
+          "native_cycles": {
+            "wait": 41087.0,
+            "present": 1062804.0,
+            "execute": 537383.0,
+            "signal": 43453.0,
+            "allocation": 0.0,
+            "map": 20387.0,
+            "reset": 118522.0,
+            "set_event": 26087.0
+          },
+          "thread_cycles": 44693609.0,
+          "native_acquire_ms": 6.3482,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1402.0,
+            "acquire": 435809.0,
+            "populate": 4938757.0,
+            "index": 8846002.0,
+            "query": 622779.0,
+            "extract": 18834452.0,
+            "draw": 9047839.0,
+            "end": 1964985.0
+          },
+          "qpc": [
+            32751484529995.0,
+            32751484529999.0,
+            32751484593542.0,
+            32751484611078.0,
+            32751484640053.0,
+            32751484641927.0,
+            32751484698852.0,
+            32751484726963.0,
+            32751484732891.0
+          ]
+        },
+        {
+          "frame": 163,
+          "total_ms": 20.224899999999998,
+          "stages": {
+            "reload": 0.0008,
+            "acquire": 6.0037,
+            "populate": 1.5958,
+            "index": 2.5135,
+            "query": 0.5245,
+            "extract": 6.9514,
+            "draw": 2.2577,
+            "end": 0.3775
+          },
+          "native_ms": {
+            "wait": 5.8829,
+            "present": 0.1915,
+            "execute": 0.1063,
+            "signal": 0.0063,
+            "allocation": 0.0,
+            "map": 0.0101,
+            "reset": 0.0509,
+            "set_event": 0.0089
+          },
+          "native_cycles": {
+            "wait": 251103.0,
+            "present": 636158.0,
+            "execute": 351877.0,
+            "signal": 20996.0,
+            "allocation": 0.0,
+            "map": 33829.0,
+            "reset": 169863.0,
+            "set_event": 29797.0
+          },
+          "thread_cycles": 41694293.0,
+          "native_acquire_ms": 5.9992,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 1807.0,
+            "acquire": 644287.0,
+            "populate": 4669125.0,
+            "index": 7680086.0,
+            "query": 1737115.0,
+            "extract": 18230190.0,
+            "draw": 7482713.0,
+            "end": 1247536.0
+          },
+          "qpc": [
+            32751453195616.0,
+            32751453195621.0,
+            32751453255661.0,
+            32751453271629.0,
+            32751453296763.0,
+            32751453302003.0,
+            32751453371527.0,
+            32751453394099.0,
+            32751453397863.0
+          ]
+        },
+        {
+          "frame": 537,
+          "total_ms": 20.1216,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 7.3062,
+            "populate": 2.5655,
+            "index": 3.6355,
+            "query": 0.1647,
+            "extract": 3.9151,
+            "draw": 2.1667,
+            "end": 0.3672
+          },
+          "native_ms": {
+            "wait": 6.6983,
+            "present": 0.1977,
+            "execute": 0.0966,
+            "signal": 0.0066,
+            "allocation": 0.0,
+            "map": 0.0063,
+            "reset": 0.0379,
+            "set_event": 0.0075
+          },
+          "native_cycles": {
+            "wait": 226099.0,
+            "present": 657031.0,
+            "execute": 320321.0,
+            "signal": 21984.0,
+            "allocation": 0.0,
+            "map": 21706.0,
+            "reset": 127245.0,
+            "set_event": 24903.0
+          },
+          "thread_cycles": 39854851.0,
+          "native_acquire_ms": 7.3026,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1431.0,
+            "acquire": 1273819.0,
+            "populate": 6786715.0,
+            "index": 9869169.0,
+            "query": 544193.0,
+            "extract": 12981055.0,
+            "draw": 7182407.0,
+            "end": 1214582.0
+          },
+          "qpc": [
+            32751515531829.0,
+            32751515531833.0,
+            32751515604905.0,
+            32751515630562.0,
+            32751515666916.0,
+            32751515668556.0,
+            32751515707712.0,
+            32751515729378.0,
+            32751515733042.0
+          ]
+        }
+      ]
+    },
+    "10000,0,0": {
+      "frames": 600,
+      "p95_ms": 22.6906,
+      "p99_ms": 26.904899999999998,
+      "max_ms": 38.561,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 452,
+          "total_ms": 38.561,
+          "stages": {
+            "reload": 0.0007,
+            "acquire": 0.0496,
+            "populate": 1.4107,
+            "index": 3.9606,
+            "query": 0.3023,
+            "extract": 28.3665,
+            "draw": 4.0107,
+            "end": 0.4599
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.2591,
+            "execute": 0.1192,
+            "signal": 0.0102,
+            "allocation": 0.0,
+            "map": 0.0031,
+            "reset": 0.0163,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 859970.0,
+            "execute": 394827.0,
+            "signal": 33835.0,
+            "allocation": 0.0,
+            "map": 10348.0,
+            "reset": 54436.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 127510378.0,
+          "native_acquire_ms": 0.0453,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 1562.0,
+            "acquire": 164424.0,
+            "populate": 4671568.0,
+            "index": 13122251.0,
+            "query": 1005235.0,
+            "extract": 93734321.0,
+            "draw": 13289081.0,
+            "end": 1520551.0
+          },
+          "qpc": [
+            32751662169111.0,
+            32751662169115.0,
+            32751662169615.0,
+            32751662183726.0,
+            32751662223327.0,
+            32751662226362.0,
+            32751662510025.0,
+            32751662550132.0,
+            32751662554719.0
+          ]
+        },
+        {
+          "frame": 534,
+          "total_ms": 30.1179,
+          "stages": {
+            "reload": 0.0022,
+            "acquire": 0.0898,
+            "populate": 2.3014,
+            "index": 5.18,
+            "query": 0.2612,
+            "extract": 15.7148,
+            "draw": 5.0181,
+            "end": 1.5504
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 1.1842,
+            "execute": 0.2369,
+            "signal": 0.0239,
+            "allocation": 0.0,
+            "map": 0.0067,
+            "reset": 0.0339,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1714198.0,
+            "execute": 782370.0,
+            "signal": 80038.0,
+            "allocation": 0.0,
+            "map": 21530.0,
+            "reset": 114208.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 76490940.0,
+          "native_acquire_ms": 0.0839,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 2141.0,
+            "acquire": 296997.0,
+            "populate": 7480445.0,
+            "index": 16166014.0,
+            "query": 862609.0,
+            "extract": 32256373.0,
+            "draw": 16508742.0,
+            "end": 2915695.0
+          },
+          "qpc": [
+            32751678796365.0,
+            32751678796370.0,
+            32751678797274.0,
+            32751678820292.0,
+            32751678872100.0,
+            32751678874701.0,
+            32751679031857.0,
+            32751679082054.0,
+            32751679097529.0
+          ]
+        },
+        {
+          "frame": 532,
+          "total_ms": 28.4318,
+          "stages": {
+            "reload": 0.0013,
+            "acquire": 0.0762,
+            "populate": 3.9901,
+            "index": 4.8369,
+            "query": 0.286,
+            "extract": 13.346,
+            "draw": 5.3143,
+            "end": 0.581
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3423,
+            "execute": 0.1439,
+            "signal": 0.0135,
+            "allocation": 0.0,
+            "map": 0.0058,
+            "reset": 0.0277,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1132731.0,
+            "execute": 479237.0,
+            "signal": 44416.0,
+            "allocation": 0.0,
+            "map": 18742.0,
+            "reset": 92907.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 82312887.0,
+          "native_acquire_ms": 0.0708,
+          "retirement_ms": 0.0011,
+          "stage_cycles": {
+            "reload": 1817.0,
+            "acquire": 253091.0,
+            "populate": 12165891.0,
+            "index": 16020905.0,
+            "query": 940838.0,
+            "extract": 34558781.0,
+            "draw": 16453650.0,
+            "end": 1916061.0
+          },
+          "qpc": [
+            32751678237780.0,
+            32751678237789.0,
+            32751678238553.0,
+            32751678278468.0,
+            32751678326856.0,
+            32751678329687.0,
+            32751678463157.0,
+            32751678516302.0,
+            32751678522092.0
+          ]
+        },
+        {
+          "frame": 279,
+          "total_ms": 27.9585,
+          "stages": {
+            "reload": 0.0019,
+            "acquire": 0.1816,
+            "populate": 2.8102,
+            "index": 5.6919,
+            "query": 0.3085,
+            "extract": 12.4842,
+            "draw": 5.8056,
+            "end": 0.6746
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3664,
+            "execute": 0.1919,
+            "signal": 0.018,
+            "allocation": 0.0,
+            "map": 0.0078,
+            "reset": 0.0466,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1217025.0,
+            "execute": 636900.0,
+            "signal": 60201.0,
+            "allocation": 0.0,
+            "map": 25302.0,
+            "reset": 155658.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 87710842.0,
+          "native_acquire_ms": 0.1123,
+          "retirement_ms": 0.0015,
+          "stage_cycles": {
+            "reload": 4839.0,
+            "acquire": 599227.0,
+            "populate": 7735161.0,
+            "index": 18404436.0,
+            "query": 1017057.0,
+            "extract": 38486796.0,
+            "draw": 19231925.0,
+            "end": 2229593.0
+          },
+          "qpc": [
+            32751628613366.0,
+            32751628613384.0,
+            32751628615191.0,
+            32751628643313.0,
+            32751628700235.0,
+            32751628703304.0,
+            32751628828149.0,
+            32751628886207.0,
+            32751628892939.0
+          ]
+        },
+        {
+          "frame": 581,
+          "total_ms": 27.7668,
+          "stages": {
+            "reload": 0.0009,
+            "acquire": 0.0753,
+            "populate": 2.1069,
+            "index": 6.374,
+            "query": 0.2813,
+            "extract": 12.6391,
+            "draw": 5.24,
+            "end": 1.0493
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.7919,
+            "execute": 0.1489,
+            "signal": 0.0174,
+            "allocation": 0.0,
+            "map": 0.0049,
+            "reset": 0.0243,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1961330.0,
+            "execute": 493405.0,
+            "signal": 56862.0,
+            "allocation": 0.0,
+            "map": 15575.0,
+            "reset": 84286.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 87992696.0,
+          "native_acquire_ms": 0.0701,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 1980.0,
+            "acquire": 250740.0,
+            "populate": 6986196.0,
+            "index": 20352454.0,
+            "query": 929591.0,
+            "extract": 39825860.0,
+            "draw": 16836892.0,
+            "end": 2806545.0
+          },
+          "qpc": [
+            32751688834720.0,
+            32751688834726.0,
+            32751688835485.0,
+            32751688856568.0,
+            32751688920302.0,
+            32751688923107.0,
+            32751689049516.0,
+            32751689101907.0,
+            32751689112388.0
+          ]
+        }
+      ]
+    },
+    "1000,0,1": {
+      "frames": 600,
+      "p95_ms": 17.619,
+      "p99_ms": 18.7321,
+      "max_ms": 35.510799999999996,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 304,
+          "total_ms": 35.510799999999996,
+          "stages": {
+            "reload": 31.2626,
+            "acquire": 0.0791,
+            "populate": 0.1141,
+            "index": 0.6565,
+            "query": 0.6062,
+            "extract": 0.7718,
+            "draw": 1.6865,
+            "end": 0.334
+          },
+          "native_ms": {
+            "wait": 30.2718,
+            "present": 0.1862,
+            "execute": 0.0884,
+            "signal": 0.015,
+            "allocation": 1.1296,
+            "map": 0.0168,
+            "reset": 0.0287,
+            "set_event": 0.007
+          },
+          "native_cycles": {
+            "wait": 468607.0,
+            "present": 618609.0,
+            "execute": 292899.0,
+            "signal": 49400.0,
+            "allocation": 2238651.0,
+            "map": 56394.0,
+            "reset": 95767.0,
+            "set_event": 23357.0
+          },
+          "thread_cycles": 15849086.0,
+          "native_acquire_ms": 0.0749,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 3277634.0,
+            "acquire": 260768.0,
+            "populate": 377820.0,
+            "index": 2176646.0,
+            "query": 2010419.0,
+            "extract": 2558872.0,
+            "draw": 4079763.0,
+            "end": 1105621.0
+          },
+          "qpc": [
+            32751788297503.0,
+            32751788610132.0,
+            32751788610922.0,
+            32751788612062.0,
+            32751788618628.0,
+            32751788624693.0,
+            32751788632411.0,
+            32751788649275.0,
+            32751788652612.0
+          ]
+        },
+        {
+          "frame": 376,
+          "total_ms": 22.0186,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 12.9873,
+            "populate": 4.0549,
+            "index": 1.1626,
+            "query": 0.7088,
+            "extract": 1.4699,
+            "draw": 0.6948,
+            "end": 0.9398
+          },
+          "native_ms": {
+            "wait": 12.8525,
+            "present": 0.6787,
+            "execute": 0.1461,
+            "signal": 0.01,
+            "allocation": 0.0,
+            "map": 0.0082,
+            "reset": 0.0472,
+            "set_event": 0.0093
+          },
+          "native_cycles": {
+            "wait": 228808.0,
+            "present": 1316966.0,
+            "execute": 483785.0,
+            "signal": 33489.0,
+            "allocation": 0.0,
+            "map": 27441.0,
+            "reset": 158301.0,
+            "set_event": 30895.0
+          },
+          "thread_cycles": 14530394.0,
+          "native_acquire_ms": 12.9832,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 1465.0,
+            "acquire": 672138.0,
+            "populate": 832923.0,
+            "index": 3196705.0,
+            "query": 2350041.0,
+            "extract": 3221717.0,
+            "draw": 2081598.0,
+            "end": 2172382.0
+          },
+          "qpc": [
+            32751800308161.0,
+            32751800308165.0,
+            32751800438042.0,
+            32751800478613.0,
+            32751800490223.0,
+            32751800497314.0,
+            32751800512012.0,
+            32751800518974.0,
+            32751800528347.0
+          ]
+        },
+        {
+          "frame": 351,
+          "total_ms": 20.05,
+          "stages": {
+            "reload": 0.0004,
+            "acquire": 13.3672,
+            "populate": 0.1254,
+            "index": 0.9585,
+            "query": 1.5298,
+            "extract": 2.927,
+            "draw": 0.7076,
+            "end": 0.4341
+          },
+          "native_ms": {
+            "wait": 13.2764,
+            "present": 0.2398,
+            "execute": 0.11,
+            "signal": 0.0084,
+            "allocation": 0.0,
+            "map": 0.0065,
+            "reset": 0.0396,
+            "set_event": 0.006
+          },
+          "native_cycles": {
+            "wait": 224564.0,
+            "present": 796347.0,
+            "execute": 364425.0,
+            "signal": 28849.0,
+            "allocation": 0.0,
+            "map": 21929.0,
+            "reset": 132076.0,
+            "set_event": 20054.0
+          },
+          "thread_cycles": 16053457.0,
+          "native_acquire_ms": 13.3648,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 1182.0,
+            "acquire": 523178.0,
+            "populate": 415243.0,
+            "index": 2739451.0,
+            "query": 3515480.0,
+            "extract": 5079345.0,
+            "draw": 2342272.0,
+            "end": 1435431.0
+          },
+          "qpc": [
+            32751796136635.0,
+            32751796136638.0,
+            32751796270317.0,
+            32751796271570.0,
+            32751796281164.0,
+            32751796296458.0,
+            32751796325739.0,
+            32751796332804.0,
+            32751796337136.0
+          ]
+        },
+        {
+          "frame": 49,
+          "total_ms": 19.2367,
+          "stages": {
+            "reload": 0.0005,
+            "acquire": 13.6903,
+            "populate": 0.1056,
+            "index": 0.8087,
+            "query": 1.5224,
+            "extract": 1.1153,
+            "draw": 0.6194,
+            "end": 1.3745
+          },
+          "native_ms": {
+            "wait": 13.579,
+            "present": 1.0491,
+            "execute": 0.1744,
+            "signal": 0.0104,
+            "allocation": 0.0,
+            "map": 0.0083,
+            "reset": 0.0474,
+            "set_event": 0.0063
+          },
+          "native_cycles": {
+            "wait": 19093.0,
+            "present": 1767329.0,
+            "execute": 577453.0,
+            "signal": 35295.0,
+            "allocation": 0.0,
+            "map": 27643.0,
+            "reset": 158670.0,
+            "set_event": 20821.0
+          },
+          "thread_cycles": 14552164.0,
+          "native_acquire_ms": 13.6876,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 1187.0,
+            "acquire": 385483.0,
+            "populate": 349700.0,
+            "index": 2529061.0,
+            "query": 3231667.0,
+            "extract": 3221984.0,
+            "draw": 1992687.0,
+            "end": 2838715.0
+          },
+          "qpc": [
+            32751745798980.0,
+            32751745798984.0,
+            32751745935894.0,
+            32751745936949.0,
+            32751745945044.0,
+            32751745960266.0,
+            32751745971420.0,
+            32751745977617.0,
+            32751745991347.0
+          ]
+        },
+        {
+          "frame": 390,
+          "total_ms": 19.0696,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 16.0651,
+            "populate": 0.0915,
+            "index": 0.6884,
+            "query": 0.6265,
+            "extract": 0.7633,
+            "draw": 0.4925,
+            "end": 0.3417
+          },
+          "native_ms": {
+            "wait": 15.9804,
+            "present": 0.1881,
+            "execute": 0.0934,
+            "signal": 0.0066,
+            "allocation": 0.0,
+            "map": 0.0062,
+            "reset": 0.0364,
+            "set_event": 0.0068
+          },
+          "native_cycles": {
+            "wait": 224126.0,
+            "present": 624799.0,
+            "execute": 309566.0,
+            "signal": 22069.0,
+            "allocation": 0.0,
+            "map": 20498.0,
+            "reset": 120926.0,
+            "set_event": 22765.0
+          },
+          "thread_cycles": 10460991.0,
+          "native_acquire_ms": 16.0617,
+          "retirement_ms": 0.0006,
+          "stage_cycles": {
+            "reload": 1561.0,
+            "acquire": 500956.0,
+            "populate": 303000.0,
+            "index": 2282288.0,
+            "query": 2077684.0,
+            "extract": 2530208.0,
+            "draw": 1632829.0,
+            "end": 1131129.0
+          },
+          "qpc": [
+            32751802628466.0,
+            32751802628471.0,
+            32751802789123.0,
+            32751802790038.0,
+            32751802796922.0,
+            32751802803190.0,
+            32751802810822.0,
+            32751802815748.0,
+            32751802819161.0
+          ]
+        }
+      ]
+    },
+    "10000,1,0": {
+      "frames": 600,
+      "p95_ms": 20.255,
+      "p99_ms": 23.6331,
+      "max_ms": 38.1484,
+      "over_limit": [],
+      "top": [
+        {
+          "frame": 581,
+          "total_ms": 38.1484,
+          "stages": {
+            "reload": 0.0013,
+            "acquire": 15.2239,
+            "populate": 2.9345,
+            "index": 13.3613,
+            "query": 0.0332,
+            "extract": 5.9056,
+            "draw": 0.1782,
+            "end": 0.5104
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.286,
+            "execute": 0.1279,
+            "signal": 0.0157,
+            "allocation": 0.0,
+            "map": 0.0129,
+            "reset": 0.0544,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 951226.0,
+            "execute": 425333.0,
+            "signal": 52749.0,
+            "allocation": 0.0,
+            "map": 39866.0,
+            "reset": 181564.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 64085098.0,
+          "native_acquire_ms": 1.7134,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 2531.0,
+            "acquire": 2151178.0,
+            "populate": 6910778.0,
+            "index": 33107246.0,
+            "query": 106450.0,
+            "extract": 19525929.0,
+            "draw": 588293.0,
+            "end": 1690655.0
+          },
+          "qpc": [
+            32751981241947.0,
+            32751981241953.0,
+            32751981394210.0,
+            32751981423551.0,
+            32751981557161.0,
+            32751981557481.0,
+            32751981616546.0,
+            32751981618321.0,
+            32751981623423.0
+          ]
+        },
+        {
+          "frame": 119,
+          "total_ms": 32.7815,
+          "stages": {
+            "reload": 0.0006,
+            "acquire": 1.5883,
+            "populate": 18.0892,
+            "index": 7.3274,
+            "query": 0.0279,
+            "extract": 5.1526,
+            "draw": 0.1527,
+            "end": 0.4428
+          },
+          "native_ms": {
+            "wait": 1.5082,
+            "present": 0.2421,
+            "execute": 0.1226,
+            "signal": 0.0068,
+            "allocation": 0.0,
+            "map": 0.0056,
+            "reset": 0.0299,
+            "set_event": 0.0074
+          },
+          "native_cycles": {
+            "wait": 242818.0,
+            "present": 800505.0,
+            "execute": 406615.0,
+            "signal": 22648.0,
+            "allocation": 0.0,
+            "map": 18603.0,
+            "reset": 100458.0,
+            "set_event": 24477.0
+          },
+          "thread_cycles": 103486099.0,
+          "native_acquire_ms": 1.5843,
+          "retirement_ms": 0.001,
+          "stage_cycles": {
+            "reload": 1254.0,
+            "acquire": 505230.0,
+            "populate": 59670088.0,
+            "index": 24174137.0,
+            "query": 91799.0,
+            "extract": 17073573.0,
+            "draw": 504907.0,
+            "end": 1463647.0
+          },
+          "qpc": [
+            32751900920379.0,
+            32751900920383.0,
+            32751900936271.0,
+            32751901117175.0,
+            32751901190437.0,
+            32751901190713.0,
+            32751901242244.0,
+            32751901243767.0,
+            32751901248193.0
+          ]
+        },
+        {
+          "frame": 494,
+          "total_ms": 27.3428,
+          "stages": {
+            "reload": 0.0011,
+            "acquire": 0.0878,
+            "populate": 1.386,
+            "index": 16.6005,
+            "query": 0.0429,
+            "extract": 8.0745,
+            "draw": 0.1986,
+            "end": 0.9514
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.5115,
+            "execute": 0.1492,
+            "signal": 0.0137,
+            "allocation": 0.0,
+            "map": 0.0047,
+            "reset": 0.0283,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1404462.0,
+            "execute": 493600.0,
+            "signal": 45862.0,
+            "allocation": 0.0,
+            "map": 15573.0,
+            "reset": 95004.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 74649074.0,
+          "native_acquire_ms": 0.0825,
+          "retirement_ms": 0.0008,
+          "stage_cycles": {
+            "reload": 2430.0,
+            "acquire": 290639.0,
+            "populate": 4592477.0,
+            "index": 44484924.0,
+            "query": 135441.0,
+            "extract": 21998080.0,
+            "draw": 652646.0,
+            "end": 2490819.0
+          },
+          "qpc": [
+            32751965168871.0,
+            32751965168878.0,
+            32751965169760.0,
+            32751965183627.0,
+            32751965349644.0,
+            32751965350053.0,
+            32751965430816.0,
+            32751965432786.0,
+            32751965442294.0
+          ]
+        },
+        {
+          "frame": 493,
+          "total_ms": 25.5215,
+          "stages": {
+            "reload": 0.0013,
+            "acquire": 0.0706,
+            "populate": 6.0851,
+            "index": 11.6585,
+            "query": 0.0451,
+            "extract": 6.9128,
+            "draw": 0.1954,
+            "end": 0.5527
+          },
+          "native_ms": {
+            "wait": 0.0,
+            "present": 0.3142,
+            "execute": 0.1394,
+            "signal": 0.0138,
+            "allocation": 0.0,
+            "map": 0.0047,
+            "reset": 0.0264,
+            "set_event": 0.0
+          },
+          "native_cycles": {
+            "wait": 0.0,
+            "present": 1043554.0,
+            "execute": 462989.0,
+            "signal": 46383.0,
+            "allocation": 0.0,
+            "map": 15947.0,
+            "reset": 88080.0,
+            "set_event": 0.0
+          },
+          "thread_cycles": 68967971.0,
+          "native_acquire_ms": 0.0658,
+          "retirement_ms": 0.0009,
+          "stage_cycles": {
+            "reload": 2193.0,
+            "acquire": 234575.0,
+            "populate": 11750016.0,
+            "index": 34130642.0,
+            "query": 142503.0,
+            "extract": 20235639.0,
+            "draw": 641960.0,
+            "end": 1828552.0
+          },
+          "qpc": [
+            32751964909098.0,
+            32751964909104.0,
+            32751964909815.0,
+            32751964970679.0,
+            32751965087271.0,
+            32751965087700.0,
+            32751965156841.0,
+            32751965158787.0,
+            32751965164306.0
+          ]
+        },
+        {
+          "frame": 304,
+          "total_ms": 24.5621,
+          "stages": {
+            "reload": 7.5523,
+            "acquire": 0.0796,
+            "populate": 1.4159,
+            "index": 7.4646,
+            "query": 0.0291,
+            "extract": 5.9872,
+            "draw": 1.619,
+            "end": 0.4144
+          },
+          "native_ms": {
+            "wait": 0.0013,
+            "present": 0.2459,
+            "execute": 0.095,
+            "signal": 0.0264,
+            "allocation": 1.378,
+            "map": 0.0161,
+            "reset": 0.035,
+            "set_event": 0.0097
+          },
+          "native_cycles": {
+            "wait": 4723.0,
+            "present": 816273.0,
+            "execute": 314866.0,
+            "signal": 85169.0,
+            "allocation": 2886386.0,
+            "map": 54178.0,
+            "reset": 116932.0,
+            "set_event": 32221.0
+          },
+          "thread_cycles": 75442853.0,
+          "native_acquire_ms": 0.0748,
+          "retirement_ms": 0.0007,
+          "stage_cycles": {
+            "reload": 22725060.0,
+            "acquire": 262541.0,
+            "populate": 4690804.0,
+            "index": 24661035.0,
+            "query": 95677.0,
+            "extract": 17956755.0,
+            "draw": 3677405.0,
+            "end": 1372131.0
+          },
+          "qpc": [
+            32751933421658.0,
+            32751933497183.0,
+            32751933497977.0,
+            32751933512141.0,
+            32751933586784.0,
+            32751933587072.0,
+            32751933646953.0,
+            32751933663136.0,
+            32751933667277.0
+          ]
+        }
+      ]
+    }
+  }
+}

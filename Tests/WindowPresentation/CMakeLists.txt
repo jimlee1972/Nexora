@@ -103,6 +103,17 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
 endif()
 
 if(WIN32)
+  add_executable(NexoraDx12SwapchainTests Dx12SwapchainTests.cpp)
+  target_include_directories(NexoraDx12SwapchainTests PRIVATE
+    "${CMAKE_SOURCE_DIR}/Engine/Presentation/include")
+  target_compile_definitions(NexoraDx12SwapchainTests PRIVATE NEXORA_PRESENTATION_STATIC=1)
+  target_link_libraries(NexoraDx12SwapchainTests PRIVATE Nexora::RHI Nexora::Window
+    d3d12 d3dcompiler dxgi)
+  nexora_apply_defaults(NexoraDx12SwapchainTests)
+  add_test(NAME window_presentation.dx12_swapchain COMMAND NexoraDx12SwapchainTests)
+  set_tests_properties(window_presentation.dx12_swapchain PROPERTIES
+    LABELS "dx12;native-display" RUN_SERIAL TRUE TIMEOUT 90)
+
   add_executable(NexoraDx12PbrTests VulkanPbrTests.cpp)
   target_link_libraries(NexoraDx12PbrTests PRIVATE Nexora::Presentation user32 gdi32)
   nexora_apply_defaults(NexoraDx12PbrTests)

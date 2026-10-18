@@ -3,7 +3,7 @@
 > 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-18
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
-> Portable／Linux 功能證據。M6 同機 30 FPS 篩檢為 23/24（Vulkan 12/12），最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
+> Portable／Linux 功能證據。M6 同機 30 FPS 篩檢為 24/24（DX12／Vulkan 各 12/12），最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
 > Runtime／Shipping 維持 **PARTIAL／NOT ACCEPTED**；重建的目前 main VM 封裝已通過 CPU、
 > 原生軟體 DX12、Zig Instancing 及人工鍵盤移動，完整裝置／產品整合仍待完成。目前實體開發機新增
 > 硬體 DX12／Vulkan UI 短測、人工鍵盤／中文 UI／音訊與 100／150／175% DPI 證據；乾淨主機／完整裝置 gate 仍開放。
@@ -32,7 +32,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
-| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 目前 PC DX12／Vulkan 30 FPS 篩檢 23/24；最低 PC gate 為 NOT ACCEPTED |
+| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 目前 PC DX12／Vulkan 30 FPS 篩檢 24/24；最低 PC gate 為 NOT ACCEPTED |
 | 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入（含任一實體遊戲控制器）、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；鍵鼠／實體遊戲控制器、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -470,3 +470,28 @@ DX12 為 6/6、5/6。第二輪 10k sparse 的 p99 為 21.55 ms，但最大值 72
 
 本次驗收範圍為目前開發機篩檢；產品最低規格、整合 UI／VFX、allocator／VRAM 及長時間驗收
 仍待完成。**M6 NOT ACCEPTED；9/11（82%）、P0 6/8 不變。**
+
+## DX12 VSync admission 與同幀篩檢（2026-10-18）
+
+✅ 共用 DX12 VSync 現以一個 DXGI frame-latency handle 控制 CPU frame work 的開始，
+佇列上限與既有二／三個 frame slot 一致。獨立 GPU fence 繼續保護 upload、allocator 與
+retirement。Immediate、影像數、縮放／恢復、零尺寸與釋放均有涵蓋。單一排隊幀試驗使
+10k p99 退步，因此不採用；失敗的兩輪仍保留於證據。最終策略保留 CPU／GPU 平行處理。
+
+✅ Benchmark 可選 `--frame-trace` 緩衝每幀 CPU／完整區間與八個連續分段，明確標記
+暖機幀，幀內不寫檔。額外時鐘成本納入量測；原動畫、移動、完整 query rebuild／sweep、
+extraction／排序、instanced draw 與中途 pool／Atlas reload 工作全部保留。聚合 CSV schema
+及區間邊界不變。Portable regression 由同一批幀重算 p95／p99／max，並檢查輸出失敗。
+
+實體 FX-6100／GTX 960 篩檢通過 **24/24**：DX12 與 Vulkan 兩輪均各 6/6，維持原
+640x480 VSync、600 個量測幀＋四個暖機幀、p95／p99 <= 1000/30 ms、最大值 <= 2000/30 ms。
+物件計數、覆蓋率、query、GPU 樣本與原生裝置身分全部符合前次篩檢。本機 MSVC Development
+完整建置與正式 Shipping 建置通過；相關 CTest 33/33、無 skip。
+[證據](../../Engine/TwoD/evidence/Windows-M6-DX12Pacing-2026-10-18/acceptance.md) 保留所有正式幀、未採用的試驗、精確來源／執行檔身分與原失敗篩檢連結。
+最終 head 的完整託管 Linux／Shipping 及其他平台 gate 記錄於
+[PR #644](https://github.com/jimlee1972/Nexora/pull/644)。
+
+前次 72.3556 ms DX12 事件未在固定診斷輪次重現，該次事件的唯一同幀原因仍未追出；
+目前 Windows 原則阻擋 kernel CPU trace。本次通過不證明該歷史原因已排除。
+產品最低規格、整合 UI／VFX、allocator／VRAM 與長時間驗收仍開放。
+**M6 NOT ACCEPTED；9/11（82%）、P0 6/8 不變。**

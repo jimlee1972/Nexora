@@ -1,0 +1,65 @@
+{
+  "source": "6d113e80144f18574a1afda440c40922f4a0ac29",
+  "declared_at_utc": "2026-10-18T10:40:01.370429+00:00",
+  "target_fps": 30,
+  "frame_budget_ms": {
+    "p95": 33.333333333333336,
+    "p99": 33.333333333333336,
+    "maximum": 66.66666666666667
+  },
+  "repeats": 2,
+  "backends": [
+    "dx12",
+    "vulkan"
+  ],
+  "frames_per_case": 600,
+  "warmup_frames": 4,
+  "viewport": [
+    640,
+    480
+  ],
+  "present_mode": "VSync",
+  "simulation_step_seconds": 0.016666666666666666,
+  "cases": [
+    "100 mixed",
+    "1000 mixed",
+    "5000 mixed",
+    "10000 mixed",
+    "1000 overlap",
+    "10000 sparse"
+  ],
+  "scope": "Current physical developer-PC candidate screening; minimum product specification remains undeclared",
+  "load": "Original complete mixed workload with optional buffered stage tracing: animation, movement, spatial rebuild/query/sweep, extraction/culling/sorting, instanced draws, full pool recycle and immutable atlas retirement/reload at measured midpoint",
+  "exclusions": [
+    "integrated UI/VFX product load",
+    "allocator/VRAM accounting",
+    "long-duration soak",
+    "OS scheduling/driver attribution requires unavailable kernel trace; separate native API diagnostics retained"
+  ],
+  "run_conditions": "Sequential runs; no builds or other Nexora fixtures during timing; normal desktop applications remain open",
+  "failure_policy": "All rows and both repeats must satisfy all three predeclared limits. Do not alter budgets or omit failed repeats.",
+  "executable_sha256": "1056116eee10813fc1b5767ab21dd01beeb91ded2810cc5b756245287264aace",
+  "executable": "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+  "source_clean": false,
+  "source_files_sha256": {
+    "Engine\\TwoD\\src\\Queries.cpp": "30b3f4d34fe5e8c85bed7b7aa887fb47f178c6532c2572b335ff81007a89dbda",
+    "Engine\\TwoD\\src\\Scene.cpp": "a8872cbeb5724fd3a0632d34c2466d1e67f7491e2b71f654aec7bffb7d767e47",
+    "Engine\\TwoD\\include\\Nexora\\TwoD\\Queries.h": "879790a60407666f44376eae7ddd565ea05be8a474889be0e77c0b53d9938640",
+    "Tools\\TwoD\\Benchmark.cpp": "a2edb69c49326cf1e97d61222e6af67d38eb2731afa2d437461ad36ce5fc0333",
+    "Tests\\TwoD\\TwoDTests.cpp": "113531e0ccc8658a989b228148db072940f1197156341fbf75477fefd993eef6",
+    "Engine\\Presentation\\src\\Dx12Surface.cpp": "540d04f4a05532d07a14aa4a7fc3dad7a2000d2260cf9ec101c6cea41c3a267b",
+    "Tests\\WindowPresentation\\Dx12SwapchainTests.cpp": "77c528212d31fcfbb6a5a09dcf45c981106fa7564753cbc4dda28b8c6f0c9d3a",
+    "Engine\\Presentation\\src\\VulkanSurface.cpp": "f31f0378019500301f2d279dcf10dee6813b98e75d276da301046f5514f8eecd",
+    "Tests\\WindowPresentation\\VulkanSwapchainTests.cpp": "2a7c54fde1bccea58401a4c831b4a853053f193a8b52d49d3303566781581d73",
+    "Tests\\WindowPresentation\\CMakeLists.txt": "2991128ba7626382c62f787bc0447b63f83b416281c36fc8de39cbabc44a2f40",
+    "Tests\\Showcase\\LinuxVulkanSceneAcceptance.py": "ce23f02100003f13724f5884e4d339c2185311c45b1149f32731b71fd0111d1f",
+    "Tests\\TwoD\\CMakeLists.txt": "d2e561912c666996eb48bcb389a3c26f05d5504b704685b5e3bf2f80b100f2a9",
+    "Tests\\TwoD\\BenchmarkTraceAcceptance.py": "cdc979ee1f9c681b575c7faf23f18c2661e26499deffc42e231d978e6957f89d",
+    "Tools\\TwoD\\README.md": "7965c9c7f35fec14e28465974bfd01f1be6905b157534c08a5ced2215a7b2150"
+  },
+  "baseline_evidence": "Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18",
+  "baseline_executable_sha256": "df3f76fcc77a61a2c2b92202bf159c61acbfab8b46f27d41bc912aee07cdee04",
+  "baseline_benchmark_source_sha256": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737",
+  "instrumentation": "Checked-in optional buffered per-frame clocks are enabled. Original six workloads and full-frame boundaries remain; instrumentation adds measured cost and never subtracts from reported intervals.",
+  "native_policy": "DX12 VSync admits CPU frames via one DXGI waitable handle with framesInFlight queued frames, retaining separate GPU upload fences and CPU/GPU overlap; Vulkan retains reusable FIFO image-readiness fence and per-image presentation semaphores; default two images/slots and all benchmark work unchanged"
+}

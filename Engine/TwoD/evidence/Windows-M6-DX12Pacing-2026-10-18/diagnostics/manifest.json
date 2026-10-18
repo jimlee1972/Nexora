@@ -1,0 +1,338 @@
+[
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-1.csv",
+    "sha256": "31903213c5cfca31810862a874e75185dea024761cc781ae4baac77fa4b674fb",
+    "archive": "diagnostics\\baseline-native\\dx12-1.csv",
+    "archive_sha256": "31903213c5cfca31810862a874e75185dea024761cc781ae4baac77fa4b674fb"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-1.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\baseline-native\\dx12-1.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-1.trace",
+    "sha256": "e605fadbe41b30dfa841ce13256d0d3eb4a3e0176088628281ab460c839cdc01",
+    "archive": "diagnostics\\baseline-native\\dx12-1.trace.gz",
+    "archive_sha256": "121f949697f6a83e1d1dcbfae14635c4c34e50837499c720075c49ff8ae68ac6"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-2.csv",
+    "sha256": "f4a86b9228d7590c6b6a49252caafdb16e6496713166d0317982b0c45802ee2f",
+    "archive": "diagnostics\\baseline-native\\dx12-2.csv",
+    "archive_sha256": "f4a86b9228d7590c6b6a49252caafdb16e6496713166d0317982b0c45802ee2f"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-2.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\baseline-native\\dx12-2.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-2.trace",
+    "sha256": "b86b23d4d29f6258c83541957b5e61b23a91c3bb3f855427dfb9a7180a46cc88",
+    "archive": "diagnostics\\baseline-native\\dx12-2.trace.gz",
+    "archive_sha256": "c24f7cecb4b347839c96db29d16873f8f89c68409e9b27bd8056153a127945b6"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-3.csv",
+    "sha256": "226edb3f58e534e0a5ec376c865856402ababd756c9b0dfb597f0c9453dedd13",
+    "archive": "diagnostics\\baseline-native\\dx12-3.csv",
+    "archive_sha256": "226edb3f58e534e0a5ec376c865856402ababd756c9b0dfb597f0c9453dedd13"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-3.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\baseline-native\\dx12-3.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-3.trace",
+    "sha256": "71d284d64a7a792d539b2c61592edf51e6b29a440458c6f3de7867718260be17",
+    "archive": "diagnostics\\baseline-native\\dx12-3.trace.gz",
+    "archive_sha256": "441382c50951af499f5d9d1fb255ba0c53ee042f3f891016641c6ec8b4b05f6d"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-4.csv",
+    "sha256": "2c3b14fe92e532ea1a0d6a2cf129e7fc450b5ccfd2b7fba3d10f56a160e70a2d",
+    "archive": "diagnostics\\baseline-native\\dx12-4.csv",
+    "archive_sha256": "2c3b14fe92e532ea1a0d6a2cf129e7fc450b5ccfd2b7fba3d10f56a160e70a2d"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-4.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\baseline-native\\dx12-4.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\dx12-4.trace",
+    "sha256": "f0e992d3ae462d2acad23336268a3115ed8b17e1608595408672b3e871ea5b3e",
+    "archive": "diagnostics\\baseline-native\\dx12-4.trace.gz",
+    "archive_sha256": "eb6dd397e86041df527a9b1dfaf66d2af10a04b728775d8e94ffc1471a5c7ef4"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\identity.json",
+    "sha256": "b52d24374c6215df2ff3b0e02a0bf59eb7e10b10c8ce4193c5157058e745c72b",
+    "archive": "diagnostics\\baseline-native\\identity.json",
+    "archive_sha256": "b52d24374c6215df2ff3b0e02a0bf59eb7e10b10c8ce4193c5157058e745c72b"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\baseline-native\\summary.json",
+    "sha256": "dcd86dbe08afc94966b3a72bf811104c0bcb340305e1e8c595c9f4bfda4973cb",
+    "archive": "diagnostics\\baseline-native\\summary.json",
+    "archive_sha256": "dcd86dbe08afc94966b3a72bf811104c0bcb340305e1e8c595c9f4bfda4973cb"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\dx12-1.csv",
+    "sha256": "fd46de9f52c03a7805eaca590ccc7724d93692b215813377c4357701d9016c7d",
+    "archive": "diagnostics\\scheduling-native\\dx12-1.csv",
+    "archive_sha256": "fd46de9f52c03a7805eaca590ccc7724d93692b215813377c4357701d9016c7d"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\dx12-1.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\scheduling-native\\dx12-1.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\dx12-1.trace",
+    "sha256": "76ef6d942042cc88bbb96173d4c450bc8bcd97abb496ec6757359a18f92b11c3",
+    "archive": "diagnostics\\scheduling-native\\dx12-1.trace.gz",
+    "archive_sha256": "b8a579427f2d015054a18d648a7daa3723c64ddc48553795a67cbcabc161fc9b"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\dx12-2.csv",
+    "sha256": "6ce0e85efe4812d44da4eff74914b8c39979adcd1251ba42fc76b03f6722a07a",
+    "archive": "diagnostics\\scheduling-native\\dx12-2.csv",
+    "archive_sha256": "6ce0e85efe4812d44da4eff74914b8c39979adcd1251ba42fc76b03f6722a07a"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\dx12-2.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\scheduling-native\\dx12-2.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\dx12-2.trace",
+    "sha256": "626f50a8e0f2570057ab779d53607952157f033e4c91231824f970701fbe800c",
+    "archive": "diagnostics\\scheduling-native\\dx12-2.trace.gz",
+    "archive_sha256": "ce3a57b32765fe4dc85982209fb8b6f6d828d996735219291c91976752792740"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\identity.json",
+    "sha256": "2dd897ee68813b403c6567f92d1dba3b474487fca2f4ab0cabf556e0b1e7d0ef",
+    "archive": "diagnostics\\scheduling-native\\identity.json",
+    "archive_sha256": "2dd897ee68813b403c6567f92d1dba3b474487fca2f4ab0cabf556e0b1e7d0ef"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\scheduling-native\\summary.json",
+    "sha256": "791ad4115c47a36205ee9a946fafe6e0eb3a8bff5c21c2320d5934af7bac2105",
+    "archive": "diagnostics\\scheduling-native\\summary.json",
+    "archive_sha256": "791ad4115c47a36205ee9a946fafe6e0eb3a8bff5c21c2320d5934af7bac2105"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\dx12-1.csv",
+    "sha256": "f077839d7afb6e2e271f67a839d9f1d8a82362cddc6305e72f6455c6b3c48117",
+    "archive": "diagnostics\\candidate-admission\\dx12-1.csv",
+    "archive_sha256": "f077839d7afb6e2e271f67a839d9f1d8a82362cddc6305e72f6455c6b3c48117"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\dx12-1.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\candidate-admission\\dx12-1.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\dx12-1.trace",
+    "sha256": "10ea9e1e44cca9e20b0d91b0be7a00cc46aa256485dafd7e2d19bf5760391c4a",
+    "archive": "diagnostics\\candidate-admission\\dx12-1.trace.gz",
+    "archive_sha256": "af362f1634c1bb4256d832b9e583ac17b3413258e9e418844d0235c683e31840"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\dx12-2.csv",
+    "sha256": "9036a3a18ea1027d754849acf4dfbb9330f52235b443738378e675baf2f8f676",
+    "archive": "diagnostics\\candidate-admission\\dx12-2.csv",
+    "archive_sha256": "9036a3a18ea1027d754849acf4dfbb9330f52235b443738378e675baf2f8f676"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\dx12-2.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\candidate-admission\\dx12-2.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\dx12-2.trace",
+    "sha256": "7dfa17c5dd1b5644e1a12ed7ac5b9ef34875eedc1e0905031e88312f09bffa8b",
+    "archive": "diagnostics\\candidate-admission\\dx12-2.trace.gz",
+    "archive_sha256": "04e0b98728bebad62781697294010907e2181de194d201c0b3dca7cdcd5ba44d"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\identity.json",
+    "sha256": "19a00c25722e90e918786153b05d23040e11b4051abb6c1cfc2e10cf0a73b49d",
+    "archive": "diagnostics\\candidate-admission\\identity.json",
+    "archive_sha256": "19a00c25722e90e918786153b05d23040e11b4051abb6c1cfc2e10cf0a73b49d"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-admission\\summary.json",
+    "sha256": "f44e2b56fe7025ee49baed0dbad50df63f529cfbda3317ade9f508cc38b737ea",
+    "archive": "diagnostics\\candidate-admission\\summary.json",
+    "archive_sha256": "f44e2b56fe7025ee49baed0dbad50df63f529cfbda3317ade9f508cc38b737ea"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\dx12-1.csv",
+    "sha256": "28ef18abf588ebf0e3aa04f42b069fc2d28ef927c619e291323a7a8f7e4ae89e",
+    "archive": "diagnostics\\candidate-two-queued\\dx12-1.csv",
+    "archive_sha256": "28ef18abf588ebf0e3aa04f42b069fc2d28ef927c619e291323a7a8f7e4ae89e"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\dx12-1.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\candidate-two-queued\\dx12-1.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\dx12-1.trace",
+    "sha256": "1b9491ab12e4ef9f84276f2aa273838285ca373fee14005014d81ab17c383509",
+    "archive": "diagnostics\\candidate-two-queued\\dx12-1.trace.gz",
+    "archive_sha256": "239a8ccf80c0513b766d01034ec693440fe2ef3ae725d8e4789abfd986d10b5b"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\dx12-2.csv",
+    "sha256": "ecdcf207a96a0029ca9290d1a4a3022636c5d80ddcd9480b08adf99655309ea9",
+    "archive": "diagnostics\\candidate-two-queued\\dx12-2.csv",
+    "archive_sha256": "ecdcf207a96a0029ca9290d1a4a3022636c5d80ddcd9480b08adf99655309ea9"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\dx12-2.stdout",
+    "sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397",
+    "archive": "diagnostics\\candidate-two-queued\\dx12-2.stdout",
+    "archive_sha256": "3c9111a03e547ead11b7c87f1f82a352070a48de81558e23f1a265c67413d397"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\dx12-2.trace",
+    "sha256": "9986e953aede19bab6d58f5229369dda6307dbd89b6de9b2a200a1abd247ff07",
+    "archive": "diagnostics\\candidate-two-queued\\dx12-2.trace.gz",
+    "archive_sha256": "1f831cd0682f0e6e20c02c6d41166fcaa39750ea8e084fa008f61dac2f03544c"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\identity.json",
+    "sha256": "59ffcd2ce2e1b3e5bd23cc30d84c159a2dcc6ec0148a1098ca06ca0de45aa67c",
+    "archive": "diagnostics\\candidate-two-queued\\identity.json",
+    "archive_sha256": "59ffcd2ce2e1b3e5bd23cc30d84c159a2dcc6ec0148a1098ca06ca0de45aa67c"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\candidate-two-queued\\summary.json",
+    "sha256": "3c40e3ea326a1de9ab9cc1986a0fd0ef9569dfd3fbaa0f7730a1a5ed1c110351",
+    "archive": "diagnostics\\candidate-two-queued\\summary.json",
+    "archive_sha256": "3c40e3ea326a1de9ab9cc1986a0fd0ef9569dfd3fbaa0f7730a1a5ed1c110351"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v1\\BenchmarkProfile.cpp",
+    "sha256": "1e3bfb3f41c94f2710aff94665f58fefa14389166b3a6af9cf686a0739d63432",
+    "archive": "diagnostics\\source\\profile-v1\\BenchmarkProfile.cpp.gz",
+    "archive_sha256": "4a545bac3af334e29dcfc07b290a7de854bfc810ab2f8602c476caf1920594ec"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v1\\Dx12Profile.cpp",
+    "sha256": "b3c7926b5000b81c9099bd66394bce7523bd00d1017d98125af4ae43ef969859",
+    "archive": "diagnostics\\source\\profile-v1\\Dx12Profile.cpp.gz",
+    "archive_sha256": "7668f5e250c368dc90e290435e4dbb120fd1ed5c84c911a02f404b02e42bf764"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v1\\ProfileTrace.h",
+    "sha256": "e74bfbb5a91ffe6942864d0009f351b08b3ab12df089d6bad3e9ef4d350df0d3",
+    "archive": "diagnostics\\source\\profile-v1\\ProfileTrace.h.gz",
+    "archive_sha256": "3888d88068b58dc8ca2d8c7ff8a72ad4e60d3e9a3c04927bb6cf3868fb0b9b2e"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v2\\BenchmarkProfile.cpp",
+    "sha256": "85a421b0afea906e61e5cae5b29d0be520de7a4e9caefeffa70a499f81917d57",
+    "archive": "diagnostics\\source\\profile-v2\\BenchmarkProfile.cpp.gz",
+    "archive_sha256": "34e3a265d0217ca8c49a8695830a0e9827c352d7ee83a137c4f436728c7bdf7e"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v2\\Dx12Profile.cpp",
+    "sha256": "86f634aa58de8a7edd93b226a2bc90d36881c30996ea244488b7ee7423c32da7",
+    "archive": "diagnostics\\source\\profile-v2\\Dx12Profile.cpp.gz",
+    "archive_sha256": "64fcea3d7994a465f327f3d5a755ac9408bf61236b9482945d175f6791cd473b"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v2\\ProfileTrace.h",
+    "sha256": "b3517d29c880285c1072dbf4eca8115e18cb1a1351aa3fe6bf50d7f1567960e9",
+    "archive": "diagnostics\\source\\profile-v2\\ProfileTrace.h.gz",
+    "archive_sha256": "7e48483f45f68828c345d0e380ecde4e0b92b58716067ee0c823bb9e8ebc9ffc"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v3-one-queued\\BenchmarkProfile.cpp",
+    "sha256": "85a421b0afea906e61e5cae5b29d0be520de7a4e9caefeffa70a499f81917d57",
+    "archive": "diagnostics\\source\\profile-v3-one-queued\\BenchmarkProfile.cpp.gz",
+    "archive_sha256": "34e3a265d0217ca8c49a8695830a0e9827c352d7ee83a137c4f436728c7bdf7e"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v3-one-queued\\Dx12Profile.cpp",
+    "sha256": "f1c940ea2a03f5910c66b4dbf7e5e757b1ae79efdba7d85517ba300c10caf371",
+    "archive": "diagnostics\\source\\profile-v3-one-queued\\Dx12Profile.cpp.gz",
+    "archive_sha256": "5633980140fb1b3dbcf51b2a0b8bc5c11856bba37db4b193610aa185c017c2d8"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\profile-v3-one-queued\\ProfileTrace.h",
+    "sha256": "b3517d29c880285c1072dbf4eca8115e18cb1a1351aa3fe6bf50d7f1567960e9",
+    "archive": "diagnostics\\source\\profile-v3-one-queued\\ProfileTrace.h.gz",
+    "archive_sha256": "7e48483f45f68828c345d0e380ecde4e0b92b58716067ee0c823bb9e8ebc9ffc"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\BenchmarkProfile.cpp",
+    "sha256": "85a421b0afea906e61e5cae5b29d0be520de7a4e9caefeffa70a499f81917d57",
+    "archive": "diagnostics\\source\\final\\BenchmarkProfile.cpp.gz",
+    "archive_sha256": "34e3a265d0217ca8c49a8695830a0e9827c352d7ee83a137c4f436728c7bdf7e"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\Dx12Profile.cpp",
+    "sha256": "94543fff4f027172a564bc2cc66b402e690d9c3eb40c3009815841124967cec3",
+    "archive": "diagnostics\\source\\final\\Dx12Profile.cpp.gz",
+    "archive_sha256": "140d9e97addbc5a00bafceae67daf4729a7d978efb202920f7909a32f28f6257"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\ProfileTrace.h",
+    "sha256": "b3517d29c880285c1072dbf4eca8115e18cb1a1351aa3fe6bf50d7f1567960e9",
+    "archive": "diagnostics\\source\\final\\ProfileTrace.h.gz",
+    "archive_sha256": "7e48483f45f68828c345d0e380ecde4e0b92b58716067ee0c823bb9e8ebc9ffc"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\run_diagnostic.py",
+    "sha256": "429ab4d83b3dbb6cfdac2c9ed5be8c042fd51fb880c5e1c37d8fe765f6e8c92c",
+    "archive": "diagnostics\\source\\final\\run_diagnostic.py.gz",
+    "archive_sha256": "5f580e970bd5874225d2d002d55bc61fb69ae4c363e6a7f902635eddfeaf10cd"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\summarize.py",
+    "sha256": "4578a99d0adde6c47d0a7bed7bd4f58399175ee759e85557d5df65f1378c53bb",
+    "archive": "diagnostics\\source\\final\\summarize.py.gz",
+    "archive_sha256": "9ae5ba8020f18242ee183eb5e374688505babde687d70cc4a1bc6559e7571e2b"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\prepare_profile.py",
+    "sha256": "95151cb20fdcf15e001196daeedf96d67071827b720c4874a2ffb7b2358dff14",
+    "archive": "diagnostics\\source\\final\\prepare_profile.py.gz",
+    "archive_sha256": "fcf4962a8fd10e44dd1ea6ae4346a629d19fb4f47de1f2d5f74f0251ac4e9b2f"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\enhance_profile.py",
+    "sha256": "7c47bea7aacf12076b1af1003e312e23d69ef85fb28baa4dbca8d6e16b7573ba",
+    "archive": "diagnostics\\source\\final\\enhance_profile.py.gz",
+    "archive_sha256": "228c4c53d76d078ad5ebdc667c27f7a1ecd850903a0216a80f1303faf7c09d65"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\prepare_candidate.py",
+    "sha256": "2036670b4fcd0ffb7b5666271834f030aaf046b683df5fe388c0aaf548efdbf4",
+    "archive": "diagnostics\\source\\final\\prepare_candidate.py.gz",
+    "archive_sha256": "0784d6a629ab7b04e707c8591bc6e8e43a857943435e7ba89ab64b35f2e1f7ec"
+  },
+  {
+    "source": "build\\windows-dx12-tail-20261018\\trial-one-queued-Dx12Surface.cpp",
+    "sha256": "7445f519490f37f5888b3aaaa47c76de7dce48c5c8216e68b63b7f9033ec389a",
+    "archive": "diagnostics\\source\\trial-one-queued-Dx12Surface.cpp.gz",
+    "archive_sha256": "f15e7a8069af3a5a50fc0f2c83215ab5f2371f96100dd02822651c7319e14955"
+  }
+]
