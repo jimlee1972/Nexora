@@ -1,0 +1,2 @@
+host fixture loaded position=17.250000 rebound=1
+host_fixture {"position":17.250000,"rebound":1,"saves":0,"opens":0,"keyboard_movement_frames":0,"gamepad_movement_frames":0,"buttons_seen":0,"bus_changes":0,"plays":0,"pauses":0,"stops":0,"cancels":0,"final_save_ok":true,"axes_min":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000],"axes_max":[0.000000,0.000000,0.000000,0.000000,0.000000,0.000000]}

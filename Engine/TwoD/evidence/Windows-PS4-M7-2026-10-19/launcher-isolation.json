@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "exit_code": 0,
+  "cwd": "unrelated Unicode directory",
+  "path": "Windows System32 only",
+  "development_sdk_variables_removed": true,
+  "package_hashes_unchanged": true,
+  "native_frames": 0,
+  "clean_host_verified": false,
+  "scope": "Installed developer-host headless Run.cmd isolation only; not clean host or human double-click acceptance."
+}

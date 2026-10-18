@@ -1,8 +1,8 @@
 # Windows／MSVC 實機驗收
 
-目標是實際交付的 x64 Monolithic Shipping 遊戲封裝。Linux 軟體 Vulkan、ALSA null 與 hosted
+M7 目標是獨立 Cooked x64 Monolithic Shipping 驗證封裝，不要求正式遊戲完成。Linux 軟體 Vulkan、ALSA null 與 hosted
 Windows CI 只能提供自動化證據；下列項目必須在 Windows 目標機驗證，不能由提交成功推定通過。
-遊戲規則、正式美術、WAV 與有授權的中文字型由遊戲專案提供。
+驗證 fixture 可使用固定測試內容／schema、測試 WAV 與指定中文字型；正式遊戲規則、美術與存檔遷移由遊戲專案負責，不阻擋 M7。
 
 先依 [2D Player 指南](../../Apps/TwoDPlayer/README.md) 建立專案描述檔、烘焙字型與封裝。
 在 MSVC developer shell 建置對應 Shipping preset 的 `NexoraTwoDPlayer`、
@@ -63,7 +63,7 @@ Guest Control 本身在 Session 0 執行，因此透過本輪唯一的 Interacti
 啟動前須有「VM 設定 RAM + 預留 1024 MiB」的可用主機 RAM。工具不會替使用者改 VM 配置
 或關閉其他應用程式；資源不足時應先正常關機再調整。timeout／RPC 失敗後保留原始診斷，
 不自動重試結果不明的 guest 操作；清理僅嘗試 ACPI，失敗時需人工確認狀態後再開新一輪。
-這是既有 VM 的 fixture／傳輸／生命週期證據，仍需下面的實體裝置與完整產品驗收。
+這是既有 VM 的 fixture／傳輸／生命週期證據，仍需下面的實體裝置與獨立乾淨主機驗收。
 兩輪之間即使已回報 poweroff，前端仍可能尚未釋放 RAM；工具最多等待 60 秒實際可用量
 達到相同門檻，未達時仍失敗，不會減少預留額度。
 清理失敗時總結的 final state 為 unknown，另保留最後觀測狀態；不能沿用上一輪的 poweroff。
@@ -86,7 +86,7 @@ snapshot，區分「本輪未再發生」與「已證明永久排除根因」。
 
 `Tests/TwoD/HostModule.cpp` 是只使用公開 C ABI 的獨立測試模組，提供中文 UI、D/A 移動、
 D/F 重綁、SAVE/OPEN、Master/Music/SFX 音量及兩個循環 WAV。它沒有正式遊戲規則或 Sprite
-負載，不能取代整合產品或 M6 效能驗收。`twod.host_fixture` 只驗證 headless 存檔／重啟／
+負載；可驗證 M7 主機服務，但不能取代 M6 效能驗收。`twod.host_fixture` 只驗證 headless 存檔／重啟／
 損壞資料保留，使用的合成字型不能用來驗收外觀。
 
 實機操作須先編譯這個模組、用 `BakeWindowsFont.ps1` 為其語料烘焙真實字型，再以 fresh
@@ -97,7 +97,7 @@ python Tests/TwoD/HostAcceptance.py --app <Shipping-Player.exe> --module <HostMo
   --shipping --redist <matching-x64-CRT-directory> --real-font <baked-corpus.nxfont> `
   --output <fresh-fixture-directory> --stage-only
 <fresh-fixture-directory>/package/NexoraTwoDPlayer.exe `
-  --run-2d-project <fresh-fixture-directory>/package/game.nx2game --backend dx12 `
+  --run-2d-project <fresh-fixture-directory>/package/game.nx2game --native --backend dx12 `
   --save-directory <dedicated-test-save-directory> --report <fresh-report.json>
 ```
 
@@ -105,20 +105,31 @@ python Tests/TwoD/HostAcceptance.py --app <Shipping-Player.exe> --module <HostMo
 使用右上角 X 正常結束，Escape 保留為 UI 取消。保留 host JSON 及 stderr 的 `host_fixture`
 操作計數，再加上人工確認；幀數、按鍵計數或音訊成功提交各自不能代替顯示／操作／聽音驗收。
 實體控制器驗收可使用 DUALSHOCK、DualSense、Xbox 控制器或其他搖桿，不限定品牌或 XInput。
-目前 Windows 原生 Adapter 使用 XInput；選用其他裝置時須有可用的輸入路徑，並確認遊戲實際
+Windows 原生 Adapter 使用 XInput 加 DirectInput；DUALSHOCK 4 使用專屬按鈕／軸對應，其他
+DirectInput 搖桿可重綁。確認遊戲實際
 收到按鈕及搖桿軸。僅由作業系統辨識到 HID 裝置不能算通過。保留型號、連線方式及輸入後端，
 驗收結果以實際受測組合為範圍。
 
 | 實機項目 | 操作與通過條件 | 要保留的證據 |
 | --- | --- | --- |
-| 鍵鼠／重綁 | 測試所有遊戲動作、滑鼠按鍵與滾輪；重綁後舊鍵不再觸發，新鍵與 UI 操作一致。若遊戲提供設定保存，重啟後確認保留。 | 按鍵／動作表、重綁前後結果 |
-| 實體遊戲控制器 | 使用任一實體控制器，測試產品所需的按鈕、搖桿軸／死區、UI 導覽及確認／取消；遊戲中插拔與重新連接；鍵鼠／控制器切換後裝置提示正確，失焦後沒有卡住的按鍵。 | 控制器型號（如 DUALSHOCK）、連線方式、實際輸入後端與操作／插拔結果；不限定 XInput |
-| 焦點與視窗 | 持續移動／按住按鍵時 Alt-Tab、點到其他程式、最小化、恢復；失焦後不繼續操作或殘留滑鼠狀態；Editor 中擷取 Game View 的第一次點擊不觸發遊戲。 | 失焦／恢復與擷取結果 |
+| 鍵鼠／重綁 | 測試 fixture 的動作、滑鼠按鍵與滾輪；重綁後舊鍵不再觸發，新鍵與 UI 操作一致；重啟後確認設定保留。 | 按鍵／動作表、重綁前後結果 |
+| 實體遊戲控制器 | 使用任一實體控制器，測試 fixture 的按鈕、搖桿軸／死區、UI 導覽及確認／取消；程式中插拔與重新連接；鍵鼠／控制器切換與失焦後沒有卡住的按鍵。PS4 用左搖桿移動、十字鍵上下選單、Cross 確認、Circle 取消；PAD 行顯示按鈕及六軸。 | 控制器型號、連線方式、實際輸入後端與操作／插拔結果；不限定 XInput |
+| 焦點與視窗 | 持續移動／按住按鍵時 Alt-Tab、點到其他程式、最小化、恢復；失焦後不繼續操作或殘留滑鼠狀態。 | 失焦／恢復結果 |
 | 音效／背景音樂 | 先執行 `NexoraTwoDAudioProbe --frames 48000` 並由人確認真的出聲；再在遊戲中分別調整 Master／Music／SFX，測試播放、暫停、停止與循環。測試預設裝置切換、耳機／USB 裝置拔除與恢復，記錄後端實際結果。 | probe JSON、輸出裝置、人工聽音結果、恢復結果；提交音訊資料本身不算通過 |
-| 中文 UI／DPI | 使用正式語料與指定字型，確認所有中文字、標點、數字與換行；選卡、HUD、按鈕焦點／取消、滑鼠命中區正確。測試 100%／150%／200% DPI、縮放視窗與跨螢幕移動。缺字必須報錯，不能把方框當成完成。 | 字型／語料版本、各 DPI 截圖與操作結果 |
-| 永久存檔／續局 | 在遊戲設計的存檔點保存，完整離開再啟動；確認狀態還原。確認 `%LOCALAPPDATA%/Nexora/Games/game-<id>/saves` 與不同專案隔離；測試中文使用者路徑、寫入失敗和損壞資料；失敗不能靜默覆蓋原檔。 | 前後狀態、slot/schema、錯誤顯示與重啟結果；正式 schema／遷移由遊戲實作 |
+| 中文 UI／DPI | 使用 fixture 語料與指定字型，確認中文字、標點、數字、按鈕焦點／取消與滑鼠命中區。當前單螢幕測試 100%／150%／175% DPI 及縮放視窗；200% 不列入要求或待辦。跨螢幕僅適用於宣告的多螢幕配置。缺字必須報錯。 | 字型／語料版本、各支援 DPI 的人工顯示與操作結果；原始計數不可替代外觀確認 |
+| 永久存檔／重開 | 使用 fixture 固定 schema 保存，完整離開再啟動並確認還原。確認 `%LOCALAPPDATA%/Nexora/Games/game-<id>/saves` 專案隔離；測試 Unicode 路徑、寫入失敗和損壞資料；失敗不能靜默覆蓋原檔。 | 前後狀態、fixture slot/schema、錯誤與重啟結果；正式遊戲 schema／遷移不屬 M7 |
 | 乾淨電腦啟動 | 在未安裝 Editor、Zig、Python、MSVC developer tools 的 Windows 電腦雙擊 `Run.cmd`；封裝內 CRT、DLL、素材齊全，以硬體 DX12 呈現。確認不依賴開發機 PATH、原始專案或網路。 | 實際目標機配置、封裝 hash、啟動／退出結果 |
-| 關閉與長時間運行 | 重複啟動／退出、Editor Play／Stop、音訊開關與裝置恢復；正常關閉後沒有殘留程序、聲音或檔案鎖。以目標最低規格執行真正整合 UI／特效負載，依 M6 的 30 FPS（約 33.33 ms／幀）目標與預先宣告的尖峰預算，量測持續幀時間與記憶體。 | 次數、持續時間、程序／資源與效能觀測；VM 軟體光柵化不算最低硬體驗收 |
+| 關閉與資源釋放 | 重複啟動／退出獨立 Player、音訊開關與裝置恢復；正常關閉後沒有殘留程序、聲音或檔案鎖。 | 次數、退出碼、配置平衡及程序／檔案觀測 |
+
+### 移出 M7 的驗收
+
+- 最低規格、整合 10k UI／VFX、30 FPS／尖峰、allocator／VRAM 與長時間效能歸 [M6](../../Roadmap/zh-TW/2D_Roadmap.md#2-能力里程碑)。
+- 主 Editor Game View 擷取、第一次點擊與 Play／Stop 歸 [Editor Roadmap](../../Roadmap/zh-TW/Editor_Roadmap.md)。
+- 正式遊戲玩法、選卡、內容、存檔 schema 與遷移歸各遊戲專案；不要求以正式遊戲替代 M7 fixture。
+
+目前開發機可驗證項目與獨立乾淨 Windows 主機 gate 分開記錄；後者維持開放，不能用 PATH 隔離或既有 VM 替代。
+已確認的人工 UI／音訊／支援 DPI 操作可沿用既有證據，不要求重測。音訊以受測配置的可聽播放及
+可用拔插／切換恢復為準；未觸發的端點故障只限制相容性結論，不額外要求本機故障注入。
 
 這份清單不宣稱已完成上述實機驗收。主 Editor 的 2D Play 綁定仍限於所選的一個場景與凍結的
 Atlas／Clip；沒有自動保存 authored Sprite、Tilemap 專案綁定或無縫熱更新。獨立 Player 可用

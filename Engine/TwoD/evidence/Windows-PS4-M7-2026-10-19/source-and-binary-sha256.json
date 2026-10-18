@@ -1,0 +1,12 @@
+{
+  "Engine/Runtime/src/GameplayGamepad.cpp": "16df08c9f02a45ed890a007748944ed733832deebbb59c24449252c0f3a8724d",
+  "Engine/Runtime/src/GameplayDirectInputState.h": "38a70141c750445a39e6c868e7868a63db50f4367a1dc21f6e411d6cdc3be8ea",
+  "Engine/Runtime/include/Nexora/Runtime/GameplayGamepad.h": "ff4b31c6cd3a89bef5d4a0f291eed6343cba826c22262ce7ec4dc5bb5cb972d5",
+  "Engine/Runtime/CMakeLists.txt": "72b0fc855c12a02c2e5f7029f6013c53da5663b8238e57c918866a628d69387b",
+  "Tests/Runtime/GameplayGamepadTests.cpp": "fdfdd968cedceb85efd83fd415c7ab95d589258ce32f1257b592d983f3c0e7d5",
+  "Tests/TwoD/HostModule.cpp": "bde024009d5a259955b354713034a1c8bf7504e7f1c9ec0e2a1983ec968fecfd",
+  "Tools/TwoD/ExportGame.py": "50ce6a78c7bd0575a187cf179c4396ef53874eb58b5e9dbb27849442804379b1",
+  "fixture-04/package/NexoraTwoDPlayer.exe": "e441ae5c79b327c6aa2e13754313938191ecb1b5b1701e028a0fdb217f57c68d",
+  "fixture-04/package/gameplay.dll": "83f4529ff62bdb479878e164fcfa1e70a614984018c52c6b86c9ca4f8b2abf54",
+  "font.nxfont": "87d90e96cd4cf897052f3a3f9f71296348815c4a3305c857b7f3ebc2033bc2cf"
+}

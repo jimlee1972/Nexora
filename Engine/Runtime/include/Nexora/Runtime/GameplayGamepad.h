@@ -4,7 +4,7 @@
 #include <chrono>
 #include <memory>
 namespace nexora::runtime {
-// Linux joystick / Windows XInput adapter. Device IDs are js0..3 / XInput slots 0..3.
+// Linux joystick / Windows XInput + DirectInput adapter. Four device slots (0..3).
 // See GameplayInput.md for raw button/axis mappings and per-model rebinding.
 // Other platforms return false (no simulated controller is advertised).
 class NEXORA_RUNTIME_API NativeGameplayGamepad final {
