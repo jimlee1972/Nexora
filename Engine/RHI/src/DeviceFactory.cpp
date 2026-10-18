@@ -32,6 +32,18 @@ std::unique_ptr<Device> CreateDevice(Backend backend) {
 }
 std::unique_ptr<Device> CreateDeviceWithOptions(Backend backend,
                                                 const DeviceCreationOptions &options) {
+  switch (options.d3d12_adapter_policy) {
+  case D3D12AdapterPolicy::Default:
+    break;
+  case D3D12AdapterPolicy::Software:
+  case D3D12AdapterPolicy::PreferHardware:
+  case D3D12AdapterPolicy::RequireHardware:
+    if (backend != Backend::Direct3D12)
+      throw std::invalid_argument("adapter policy is D3D12-only");
+    break;
+  default:
+    throw std::invalid_argument("unknown D3D12 adapter policy");
+  }
   if (options.enable_d3d12_preview_runtime && backend != Backend::Direct3D12)
     throw std::invalid_argument("preview runtime is D3D12-only");
   switch (backend) {

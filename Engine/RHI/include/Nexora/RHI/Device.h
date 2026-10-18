@@ -15,6 +15,13 @@
 #include <string_view>
 
 namespace nexora::rhi {
+enum class D3D12AdapterPolicy : std::uint8_t { Default, Software, PreferHardware, RequireHardware };
+// Only exhausted compatible-hardware discovery produces this error. DXGI/runtime failures
+// propagate.
+class D3D12HardwareUnavailableError final : public std::runtime_error {
+public:
+  using std::runtime_error::runtime_error;
+};
 struct DeviceCreationOptions final {
   // Best effort, default off. Unsupported/failed observations remain explicitly unavailable.
   bool enable_gpu_timing{};
@@ -22,8 +29,10 @@ struct DeviceCreationOptions final {
   bool enable_recording_resource_reuse{};
   // D3D12-only optional route; unknown/unsupported SDK/runtime keeps legacy barriers.
   bool enable_enhanced_barriers{};
-  // Explicit isolated experimental WARP route; requires a separately compiled preview build.
+  // Explicit isolated experimental runtime; requires a separately compiled preview build.
   bool enable_d3d12_preview_runtime{};
+  // Default preserves ordinary hardware preference and isolated preview WARP selection.
+  D3D12AdapterPolicy d3d12_adapter_policy{D3D12AdapterPolicy::Default};
 };
 struct DeviceDiagnostics final {
   std::uint64_t submitted_command_lists{};

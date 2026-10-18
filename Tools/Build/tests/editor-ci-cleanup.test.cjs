@@ -146,14 +146,16 @@ test('2D branch advancement preserves every remaining run', async () => {
 });
 
 for (const graphics of ['feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern-shader-programs',
-                        'feat/v2-native-ser-programs', 'feat/v2-native-vrs-images', 'feat/v2-portable-modern-compute']) {
+                        'feat/v2-native-ser-programs', 'feat/v2-native-vrs-images', 'feat/v2-portable-modern-compute',
+                        'feat/v2-explicit-preview-adapter-selection']) {
   test(`graphics cleanup retains both current events and rejects other actors: ${graphics}`, async () => {
     const f = fixture({current: graphics, target: graphics, actorRuns: true});
     await cleanup(f);
     assert.deepEqual(f.cancelled, [1, 2]);
     assert(f.calls.filter(([kind]) => kind === 'ref').every(([, args]) =>
       ['heads/feat/v2-native-minmip-feedback', 'heads/feat/v2-opt-in-modern-shader-programs',
-       'heads/feat/v2-native-ser-programs', 'heads/feat/v2-native-vrs-images', 'heads/feat/v2-portable-modern-compute'].includes(args.ref)));
+       'heads/feat/v2-native-ser-programs', 'heads/feat/v2-native-vrs-images', 'heads/feat/v2-portable-modern-compute',
+       'heads/feat/v2-explicit-preview-adapter-selection'].includes(args.ref)));
   });
   test(`graphics cleanup requires the repository owner actor: ${graphics}`, async () => {
     const f = fixture({current: graphics, target: graphics, actor: 'contributor'});
@@ -162,7 +164,7 @@ for (const graphics of ['feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern
   });
 }
 test('graphics cleanup excludes similarly named future or unrelated branches', async () => {
-  for (const current of ['feat/v2-native-minmip-feedback-other', 'feat/v2-portable-modern-compute-other', 'feat/v2-other', 'main']) {
+  for (const current of ['feat/v2-native-minmip-feedback-other', 'feat/v2-portable-modern-compute-other', 'feat/v2-explicit-preview-adapter-selection-other', 'feat/v2-other', 'main']) {
     const f = fixture({current}); await cleanup(f);
     assert.deepEqual(f.calls, []);
   }
