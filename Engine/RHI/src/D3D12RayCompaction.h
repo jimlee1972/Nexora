@@ -57,11 +57,16 @@ inline UINT64 ReadRayCompactedSize(PendingRayScene &completed, std::uint32_t ind
   completed.compact_readback->Unmap(0, &written);
   if (!bytes || bytes > RayAllocationLimit || bytes > source_bytes)
     throw std::runtime_error("invalid native compacted acceleration structure size");
-  constexpr UINT64 alignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
-  const auto aligned = (bytes + alignment - 1) & ~(alignment - 1);
-  if (aligned > RayAllocationLimit || aligned > source_bytes)
-    throw std::runtime_error("aligned compaction size exceeds original AS storage");
-  return aligned;
+  // DXR aligns AS addresses, not queried storage extents. Padding a valid query can exceed
+  // an unaligned original buffer width even when the native compacted result fits exactly.
+  return bytes;
+}
+inline ComPtr<ID3D12Resource> RayCompactionBuffer(ID3D12Device5 &device, UINT64 bytes) {
+  auto buffer =
+      RayBuffer(device, bytes, false, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+  if (buffer->GetGPUVirtualAddress() % D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT)
+    throw std::runtime_error("unaligned native compaction destination address");
+  return buffer;
 }
 inline PendingRayScene QueryRayCompaction(ID3D12Device5 &device, const NativeRayScene &source) {
   if (!source.updatable || source.opacity_micromaps || !source.allow_compaction || !source.bottom ||
@@ -78,8 +83,7 @@ inline PendingRayScene QueryRayCompaction(ID3D12Device5 &device, const NativeRay
 inline PendingRayScene CompactRayBottomAndRelinkTop(ID3D12Device5 &device, PendingRayScene pending,
                                                     UINT64 bottom_bytes) {
   BeginRayCompactionCommands(device, pending);
-  pending.scene.bottom = RayBuffer(device, bottom_bytes, false,
-                                   D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+  pending.scene.bottom = RayCompactionBuffer(device, bottom_bytes);
   D3D12_RAYTRACING_INSTANCE_DESC instance{};
   instance.Transform[0][0] = instance.Transform[1][1] = instance.Transform[2][2] = 1;
   instance.InstanceMask = 0xff;
@@ -120,8 +124,7 @@ inline PendingRayScene CompactRayTop(ID3D12Device5 &device, PendingRayScene pend
   BeginRayCompactionCommands(device, pending);
   // The completed relink's TLAS must remain alive as the final compact copy's source.
   pending.source = pending.scene;
-  pending.scene.top =
-      RayBuffer(device, top_bytes, false, D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
+  pending.scene.top = RayCompactionBuffer(device, top_bytes);
   pending.commands->CopyRaytracingAccelerationStructure(
       pending.scene.top->GetGPUVirtualAddress(), pending.source.top->GetGPUVirtualAddress(),
       D3D12_RAYTRACING_ACCELERATION_STRUCTURE_COPY_MODE_COMPACT);

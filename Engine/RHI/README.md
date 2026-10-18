@@ -888,9 +888,11 @@ explicit compaction admission; the stable C ABI is unchanged and C++ consumers r
 runs three bounded resource-construction phases on the existing direct queue: GPU postbuild query
 of BLAS compacted size and explicit eight-byte metadata readback; actual BLAS COMPACT copy and TLAS
 out-of-place refit linking the new BLAS, followed by TLAS compacted-size query/readback; then actual
-TLAS COMPACT copy. UAV dependencies order writes, queries and copies. Queried sizes must be positive; allocations round up to256-byte alignment and must fit both64MiB
-and the original per-AS buffer width. A relinked TLAS that
-cannot fit the original buffer bound rejects without replacing the scene. No strict shrinkage is
+TLAS COMPACT copy. UAV dependencies order writes, queries and copies. Queried sizes must be
+positive and fit both64MiB and the original per-AS buffer width. Allocate the exact queried extent and separately validate
+256-byte destination GPU-address alignment; DXR does not require256-byte-aligned buffer lengths.
+Each AS owns a committed resource, so adjacent suballocation strides do not need padding.
+A relinked TLAS that cannot fit the original buffer bound rejects without replacing the scene. No strict shrinkage is
 required. This is an explicit allocation operation with three completion waits and two metadata
 readbacks, not an implicit frame/render or CPU-hit-result path.
 
