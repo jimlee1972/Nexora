@@ -1,0 +1,358 @@
+[
+  {
+    "backend": "dx12",
+    "repeat": 1,
+    "args": [
+      "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+      "--native",
+      "--backend",
+      "dx12",
+      "--frames",
+      "600",
+      "--report",
+      "G:\\proj\\Nexora\\Engine\\TwoD\\evidence\\Windows-M6-30FPS-2026-10-18\\dx12-1.csv"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 96.501,
+    "memory_samples": 939,
+    "peak_working_set_bytes": 87490560,
+    "peak_private_commit_bytes": 108404736,
+    "rows": [
+      {
+        "objects": 100,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 17.6365,
+        "p99_ms": 17.9992,
+        "max_ms": 34.7321,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 18.3982,
+        "p99_ms": 27.1969,
+        "max_ms": 47.7896,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 5000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 21.4926,
+        "p99_ms": 31.8443,
+        "max_ms": 44.4234,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 36.309,
+        "p99_ms": 40.0794,
+        "max_ms": 50.8253,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "1",
+        "p95_ms": 17.7044,
+        "p99_ms": 18.4387,
+        "max_ms": 34.6576,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "1",
+        "overlap": "0",
+        "p95_ms": 46.4469,
+        "p99_ms": 60.5572,
+        "max_ms": 72.0364,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      }
+    ],
+    "correctness_pass": true,
+    "performance_pass": false
+  },
+  {
+    "backend": "vulkan",
+    "repeat": 1,
+    "args": [
+      "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+      "--native",
+      "--backend",
+      "vulkan",
+      "--frames",
+      "600",
+      "--report",
+      "G:\\proj\\Nexora\\Engine\\TwoD\\evidence\\Windows-M6-30FPS-2026-10-18\\vulkan-1.csv"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 83.788,
+    "memory_samples": 826,
+    "peak_working_set_bytes": 111464448,
+    "peak_private_commit_bytes": 158904320,
+    "rows": [
+      {
+        "objects": 100,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 33.1041,
+        "p99_ms": 33.5887,
+        "max_ms": 35.2501,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 31.3595,
+        "p99_ms": 32.1759,
+        "max_ms": 35.324,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 5000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 18.4025,
+        "p99_ms": 20.5976,
+        "max_ms": 28.3454,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 30.5328,
+        "p99_ms": 35.6724,
+        "max_ms": 45.6703,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "1",
+        "p95_ms": 31.0185,
+        "p99_ms": 31.9319,
+        "max_ms": 44.3495,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "1",
+        "overlap": "0",
+        "p95_ms": 47.5299,
+        "p99_ms": 56.8927,
+        "max_ms": 82.2892,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      }
+    ],
+    "correctness_pass": true,
+    "performance_pass": false
+  },
+  {
+    "backend": "dx12",
+    "repeat": 2,
+    "args": [
+      "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+      "--native",
+      "--backend",
+      "dx12",
+      "--frames",
+      "600",
+      "--report",
+      "G:\\proj\\Nexora\\Engine\\TwoD\\evidence\\Windows-M6-30FPS-2026-10-18\\dx12-2.csv"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 89.662,
+    "memory_samples": 888,
+    "peak_working_set_bytes": 88952832,
+    "peak_private_commit_bytes": 109588480,
+    "rows": [
+      {
+        "objects": 100,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 17.4219,
+        "p99_ms": 17.6324,
+        "max_ms": 35.075,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 17.7884,
+        "p99_ms": 18.5122,
+        "max_ms": 35.2013,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 5000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 18.5595,
+        "p99_ms": 21.0454,
+        "max_ms": 34.0058,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 32.5569,
+        "p99_ms": 39.9537,
+        "max_ms": 44.906,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "1",
+        "p95_ms": 17.5714,
+        "p99_ms": 18.5442,
+        "max_ms": 34.3574,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "1",
+        "overlap": "0",
+        "p95_ms": 36.4498,
+        "p99_ms": 47.2952,
+        "max_ms": 55.6844,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      }
+    ],
+    "correctness_pass": true,
+    "performance_pass": false
+  },
+  {
+    "backend": "vulkan",
+    "repeat": 2,
+    "args": [
+      "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+      "--native",
+      "--backend",
+      "vulkan",
+      "--frames",
+      "600",
+      "--report",
+      "G:\\proj\\Nexora\\Engine\\TwoD\\evidence\\Windows-M6-30FPS-2026-10-18\\vulkan-2.csv"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 81.884,
+    "memory_samples": 810,
+    "peak_working_set_bytes": 110395392,
+    "peak_private_commit_bytes": 158736384,
+    "rows": [
+      {
+        "objects": 100,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 33.1051,
+        "p99_ms": 33.4678,
+        "max_ms": 37.5524,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 31.6838,
+        "p99_ms": 32.2094,
+        "max_ms": 35.7896,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 5000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 18.3389,
+        "p99_ms": 20.4999,
+        "max_ms": 34.9031,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "0",
+        "overlap": "0",
+        "p95_ms": 30.1503,
+        "p99_ms": 35.2897,
+        "max_ms": 43.573,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 1000,
+        "sparse": "0",
+        "overlap": "1",
+        "p95_ms": 30.9496,
+        "p99_ms": 31.8014,
+        "max_ms": 34.6796,
+        "pass_budget": true,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      },
+      {
+        "objects": 10000,
+        "sparse": "1",
+        "overlap": "0",
+        "p95_ms": 38.3926,
+        "p99_ms": 44.068,
+        "max_ms": 47.1291,
+        "pass_budget": false,
+        "hardware_nvidia": true,
+        "frames_valid": true
+      }
+    ],
+    "correctness_pass": true,
+    "performance_pass": false
+  }
+]

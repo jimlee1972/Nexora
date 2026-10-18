@@ -469,3 +469,18 @@ Clean host, minimum-PC/integrated-load/soak, Editor lifecycle and full device ga
 Current-PC screening completes all six 600-frame cases on both hardware backends, but all 12 rows exceed the predeclared p95/p99/max budgets. 10k mixed frame p95: DX12 31.97 ms, Vulkan 30.99 ms; 10k sparse: 40.33/49.06 ms. External process peak working set is 90.9/148.0 MB; no allocator/VRAM or minimum-PC claim. Functional gates pass independently of this unaccepted M6 performance result.
 
 These rows already use GPU instancing. A separate 60-frame DX12 diagnostic points to CPU extraction (10k mixed p95 16.48 ms) and spatial-index rebuilding (10k sparse p95 27.16 ms); a render-only baseline and optimization remain pending. The host fixture also exposed system gamepad input entering headless Linux runs; native polling is now confined to native mode, with zero-input storage/resume assertions. Linux headless fixture audio uses an explicit ALSA null configuration under sanitizers, independently of physical output. See the same acceptance record for failure evidence and diagnostic limits.
+
+## Windows M6 30 FPS local revalidation (2026-10-18)
+
+✅ Rebuilt x64 MSVC Monolithic Shipping from `9e3adfdd` against the revised 30 FPS target.
+The physical FX-6100/GTX 960 host completed two repeats per DX12/Vulkan backend, each containing
+six unchanged mixed workloads of 600 frames. All four processes exit 0 with hardware identity
+and native lifecycle checks passing. Advance limits were p95/p99 ≤ 33.3333 ms and maximum
+≤ 66.6667 ms; 10k mixed and 10k sparse exceed them in both repeats on both backends.
+All 24 rows, raw CPU/GPU/frame metrics, process memory samples, advance plan and binary hashes
+are retained in [the new evidence](../../Engine/TwoD/evidence/Windows-M6-30FPS-2026-10-18/acceptance.md).
+
+This is a current developer-PC revalidation without engine changes or reduced mixed workloads.
+The older 60 FPS screening retains its original verdict. Product minimum specification,
+integrated UI/VFX, allocation/VRAM, sustained operation and per-frame traces remain open.
+**M6 NOT ACCEPTED; 9/11 (82%), P0 6/8** are unchanged; M7 gates were not exercised in this run.

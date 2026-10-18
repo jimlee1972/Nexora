@@ -1,0 +1,44 @@
+{
+  "source": "9e3adfdd73a52286690d8018fa2ba8970f5138ad",
+  "declared_at_utc": "2026-10-18T05:59:10.351867+00:00",
+  "target_fps": 30,
+  "frame_budget_ms": {
+    "p95": 33.333333333333336,
+    "p99": 33.333333333333336,
+    "maximum": 66.66666666666667
+  },
+  "repeats": 2,
+  "backends": [
+    "dx12",
+    "vulkan"
+  ],
+  "frames_per_case": 600,
+  "warmup_frames": 4,
+  "viewport": [
+    640,
+    480
+  ],
+  "present_mode": "VSync",
+  "simulation_step_seconds": 0.016666666666666666,
+  "cases": [
+    "100 mixed",
+    "1000 mixed",
+    "5000 mixed",
+    "10000 mixed",
+    "1000 overlap",
+    "10000 sparse"
+  ],
+  "scope": "Current physical developer-PC candidate screening; minimum product specification remains undeclared",
+  "load": "Unmodified mixed benchmark: animation, movement, spatial rebuild/query/sweep, extraction/culling/sorting, instanced draws, full pool recycle and immutable atlas retirement/reload at measured midpoint",
+  "exclusions": [
+    "integrated UI/VFX product load",
+    "allocator/VRAM accounting",
+    "long-duration soak",
+    "per-frame trace (benchmark emits aggregate CSV)"
+  ],
+  "run_conditions": "Sequential runs; no builds or other Nexora fixtures during timing; normal desktop applications remain open",
+  "failure_policy": "All rows and both repeats must satisfy all three predeclared limits. Do not alter budgets or omit failed repeats.",
+  "executable_sha256": "10ac037df9bc87e78a9fefafc0dd6cd86d452124e0a5ef0773be18ed9ba1b170",
+  "executable": "G:\\proj\\Nexora\\build\\windows-showcase-shipping\\bin\\Shipping\\NexoraTwoDBenchmark.exe",
+  "source_clean": true
+}
