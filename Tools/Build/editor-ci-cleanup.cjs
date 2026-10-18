@@ -42,7 +42,7 @@ const twoDSessionBranches = Object.freeze(['feat/twod-cooked-services']);
 const graphicsSessionBranches = Object.freeze([
   'feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern-shader-programs',
   'feat/v2-native-ser-programs', 'feat/v2-native-vrs-images', 'feat/v2-portable-modern-compute',
-  'feat/v2-explicit-preview-adapter-selection',
+  'feat/v2-explicit-preview-adapter-selection', 'feat/v2-bounded-ray-scene-refits',
 ]);
 
 async function cleanup({github, context, core}) {

@@ -753,6 +753,30 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## Bounded BLAS/TLAS refit construction — 2026-10-18
+
+✅ The `nexora-45y.4.5` implementation adds native out-of-place same-topology ordinary triangle scene updates.
+Initial BLAS/TLAS builds allow updates; replacement builds use PERFORM_UPDATE with actual source
+AS addresses and queried update scratch, then publish only after the direct-queue completion fence.
+Earlier recorded lists retain old scene resources; later recording captures new geometry under the
+same handle. Invalid/stale/changed-count/OMM updates fail before GPU execution and diagnostics.
+One accepted build is retained after Signal/wait failure; further AS construction fails closed until
+device recreation. All C++ consumers rebuild; the stable C ABI and shader profiles stay unchanged.
+
+Fixtures add four refits for1/2/8 triangles in pipeline/inline and available SER modes,512 old/new
+CPU comparisons per fixture, canaries, rejected mutations and destroyed-handle submission checks.
+Actual pinned SDK helper and Windows-conditional fixture syntax pass with warnings-as-errors.
+Integrated with own adapter-policy PR639 sourcee395af42, native Vulkan/Slang/Zig Development
+configure/build and Xvfb full CTest pass225/225, zero failures/skips (119.56s); Shipping Minimal/
+Monolithic LTO, documentation16/16, cleanup33/33, paired Markdown and touched format/diff pass.
+Private Windows acceptance requires all three ray modes and exactly36 native refits per barrier
+mode; actual unchanged-head hosted CI remains a required merge gate. This does not close general
+updates, compaction, lighting, physical performance/device-loss acceptance or the full V2-GFX-3 gate.
+
+
+Cleanup additionally admits only the exact owned refit branch, preserving both current-head events,
+other actors/repositories and similarly named branches through the existing live-ref guards.
+
 ## V2-GFX-3 bounded triangle-ray construction status
 
 `feat/v2-bounded-native-rays`, Beads `nexora-45y.4.2`, implements an immutable one-to-eight-triangle

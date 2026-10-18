@@ -830,6 +830,38 @@ compares both visible-record outputs and the ray result. Ray selection clears th
 Work Graph; a later node dispatch requires explicit rebind. Each path retains its own roots, state,
 backing/table/AS resources and native command-list interfaces until list destruction/completion.
 
+## Bounded native triangle-scene refits
+
+`UpdateRayScene(handle, triangles)` supports the D3D12 ordinary1–8-triangle recipe only, with the
+same triangle count, one triangle geometry, vertex format/stride and one TLAS instance. Empty,
+nonfinite/degenerate geometry, changed counts, stale handles and OMM scenes reject before native
+execution or publication. Other backends and builds without pinned ray artifacts explicitly throw
+unsupported. General topology/material/instance edits, OMM updates and AS compaction remain open.
+The C++ virtual surface/diagnostics require consumer rebuilds; the new diagnostic is appended to
+preserve existing aggregate field order. The stable C ABI is unchanged.
+
+Ordinary initial BLAS/TLAS builds request ALLOW_UPDATE. Each update allocates private replacement
+vertex/instance/result storage and uses actual PERFORM_UPDATE with the previous BLAS/TLAS GPU
+addresses as sources. Queried update scratch is separately bounded to64MiB per resource; zero
+scratch remains valid. BLAS UAV dependency precedes TLAS update and a final TLAS dependency precedes
+publication. The same direct queue completes a fence before replacing the handle's scene snapshot.
+No CPU traversal result drives production geometry or GPU work. `ray_scene_refits` counts successful
+published scene updates; initial builds and rejected/failed updates do not increment it.
+
+Mutation stays caller-serialized against recording/submit. Lists recorded before publication retain
+the old complete scene; later lists capture the new scene under the same live handle. Destroying the
+handle still rejects submission of recorded lists. Source AS, upload/result/scratch resources,
+allocator and list remain device-owned after native execution is accepted until completion. A late
+Signal/wait failure retains one bounded pending build, leaves the published scene unchanged and
+rejects further AS construction/refits until device recreation. Device shutdown attempts queue idle
+before releasing retained resources. Native completion-failure injection and physical device-loss
+acceptance remain separate from ordinary hosted output/lifetime coverage.
+
+Native fixtures perform four updates for each1/2/8-triangle pipeline/inline recipe, compare512 old/
+new outputs to the double-precision CPU oracle, keep earlier lists through later publication and
+check invalid/topology/OMM/stale rejection and canaries. The same fixtures run with legacy/enhanced
+barriers and the existing preview/SER suite. Physical performance and full V2-GFX-3 remain open.
+
 ## Bounded min-mip sampler feedback footprint
 
 `SamplerFeedback.h` exposes an explicit metadata-footprint bootstrap program and16-byte GPU

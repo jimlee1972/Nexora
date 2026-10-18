@@ -4,6 +4,7 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 // Include after d3d12.h. Baseline SDK builds need not declare ray interfaces.
 #if defined(__ID3D12Device5_INTERFACE_DEFINED__) &&                                                \
     defined(__ID3D12GraphicsCommandList4_INTERFACE_DEFINED__)
@@ -40,9 +41,10 @@ inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool 
   return result;
 }
 inline void ValidateRayPrebuild(const D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO &size,
-                                const char *operation) {
+                                const char *operation, bool updatable = false) {
   if (!size.ResultDataMaxSizeInBytes || size.ResultDataMaxSizeInBytes > RayAllocationLimit ||
-      size.ScratchDataSizeInBytes > RayAllocationLimit)
+      size.ScratchDataSizeInBytes > RayAllocationLimit ||
+      (updatable && size.UpdateScratchDataSizeInBytes > RayAllocationLimit))
     throw std::runtime_error(std::string(operation) + " prebuild exceeds bounded size: result=" +
                              std::to_string(size.ResultDataMaxSizeInBytes) +
                              " scratch=" + std::to_string(size.ScratchDataSizeInBytes));
@@ -71,8 +73,11 @@ struct NativeRayScene final {
 #endif
   ComPtr<ID3D12Resource> vertices, instances, bottom, top;
   bool opacity_micromaps{};
+  std::uint32_t triangle_count{};
 };
 struct PendingRayScene final {
+  // An out-of-place update reads old AS storage until its build completion, even on late failure.
+  NativeRayScene source;
   NativeRayScene scene;
   ComPtr<ID3D12Resource> bottom_scratch, top_scratch;
 #if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
@@ -81,9 +86,12 @@ struct PendingRayScene final {
   ComPtr<ID3D12CommandAllocator> allocator;
   ComPtr<ID3D12GraphicsCommandList4> commands;
 };
+static_assert(std::is_nothrow_move_constructible_v<PendingRayScene>);
+static_assert(std::is_nothrow_move_assignable_v<NativeRayScene>);
 inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
                                            std::span<const RayTriangle> triangles,
-                                           std::span<const std::uint8_t> opacity_masks = {}) {
+                                           std::span<const std::uint8_t> opacity_masks = {},
+                                           const NativeRayScene *source = nullptr) {
   if (!IsRaySceneValid(triangles))
     throw std::invalid_argument("ray scene requires one to eight finite nondegenerate triangles");
   if (!opacity_masks.empty() && !IsRayOpacitySceneValid(triangles, opacity_masks))
@@ -92,7 +100,13 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   if (!opacity_masks.empty())
     throw std::invalid_argument("opacity micromaps were not compiled in");
 #endif
+  if (source && (source->opacity_micromaps || !opacity_masks.empty() ||
+                 source->triangle_count != triangles.size() || !source->bottom || !source->top))
+    throw std::invalid_argument("ray refit requires an ordinary same-topology source scene");
   PendingRayScene result;
+  result.scene.triangle_count = static_cast<std::uint32_t>(triangles.size());
+  if (source)
+    result.source = *source;
   result.scene.vertices =
       RayBuffer(device, triangles.size_bytes(), true, D3D12_RESOURCE_STATE_GENERIC_READ);
   UploadRayBytes(*result.scene.vertices.Get(), std::as_bytes(triangles));
@@ -159,15 +173,18 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottom{};
   bottom.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
   bottom.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+  if (opacity_masks.empty())
+    bottom.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
   bottom.NumDescs = 1;
   bottom.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   bottom.pGeometryDescs = &geometry;
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottom_size{};
   device.GetRaytracingAccelerationStructurePrebuildInfo(&bottom, &bottom_size);
-  ValidateRayPrebuild(bottom_size, "BLAS");
+  ValidateRayPrebuild(bottom_size, "BLAS", opacity_masks.empty());
   result.scene.bottom = RayBuffer(device, bottom_size.ResultDataMaxSizeInBytes, false,
                                   D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-  result.bottom_scratch = RayScratchBuffer(device, bottom_size.ScratchDataSizeInBytes);
+  result.bottom_scratch = RayScratchBuffer(device, source ? bottom_size.UpdateScratchDataSizeInBytes
+                                                          : bottom_size.ScratchDataSizeInBytes);
   D3D12_RAYTRACING_INSTANCE_DESC instance{};
   instance.Transform[0][0] = instance.Transform[1][1] = instance.Transform[2][2] = 1;
   instance.InstanceMask = 0xff;
@@ -183,10 +200,15 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   top.InstanceDescs = result.scene.instances->GetGPUVirtualAddress();
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_size{};
   device.GetRaytracingAccelerationStructurePrebuildInfo(&top, &top_size);
-  ValidateRayPrebuild(top_size, "TLAS");
+  ValidateRayPrebuild(top_size, "TLAS", opacity_masks.empty());
   result.scene.top = RayBuffer(device, top_size.ResultDataMaxSizeInBytes, false,
                                D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
-  result.top_scratch = RayScratchBuffer(device, top_size.ScratchDataSizeInBytes);
+  result.top_scratch = RayScratchBuffer(device, source ? top_size.UpdateScratchDataSizeInBytes
+                                                       : top_size.ScratchDataSizeInBytes);
+  if (source) {
+    bottom.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+    top.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+  }
   CheckRay(device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
                                          IID_PPV_ARGS(&result.allocator)),
            "Create ray build allocator");
@@ -206,7 +228,8 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   }
 #endif
   const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottom_build{
-      result.scene.bottom->GetGPUVirtualAddress(), bottom, 0,
+      result.scene.bottom->GetGPUVirtualAddress(), bottom,
+      source ? source->bottom->GetGPUVirtualAddress() : 0,
       RayScratchAddress(result.bottom_scratch)};
   result.commands->BuildRaytracingAccelerationStructure(&bottom_build, 0, nullptr);
   D3D12_RESOURCE_BARRIER barrier{};
@@ -214,7 +237,8 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   barrier.UAV.pResource = result.scene.bottom.Get();
   result.commands->ResourceBarrier(1, &barrier);
   const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC top_build{
-      result.scene.top->GetGPUVirtualAddress(), top, 0, RayScratchAddress(result.top_scratch)};
+      result.scene.top->GetGPUVirtualAddress(), top,
+      source ? source->top->GetGPUVirtualAddress() : 0, RayScratchAddress(result.top_scratch)};
   result.commands->BuildRaytracingAccelerationStructure(&top_build, 0, nullptr);
   barrier.UAV.pResource = result.scene.top.Get();
   result.commands->ResourceBarrier(1, &barrier);
