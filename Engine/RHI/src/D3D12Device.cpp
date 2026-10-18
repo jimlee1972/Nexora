@@ -638,6 +638,10 @@ public:
                                                nullptr, IID_PPV_ARGS(&probe))))
         ray.enabled = SUCCEEDED(probe->Close());
     }
+    // Raw DXR support does not prove this update recipe on the system runtime. Hosted system
+    // execution crashes while the isolated pinned runtime passes both update/output fixtures.
+    capabilities_.ray_scene_refit_enabled =
+        ray.enabled && capabilities_.d3d12_preview_runtime_enabled;
 #endif
 #if NEXORA_D3D12_SAMPLER_FEEDBACK && NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
     auto &feedback =
@@ -1168,7 +1172,8 @@ public:
     // creation.
     std::lock_guard lock{mutex_};
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
-    auto scene = CompleteRayBuild(detail::BuildNativeRayScene(*ray_device_.Get(), triangles));
+    auto scene = CompleteRayBuild(detail::BuildNativeRayScene(
+        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled));
     const auto handle = ray_scene_pool_.Create();
     try {
       ray_scenes_.emplace(Key(handle), std::move(scene));
@@ -1201,6 +1206,8 @@ public:
   }
 #endif
   void UpdateRayScene(RaySceneHandle scene, std::span<const RayTriangle> triangles) override {
+    if (!capabilities_.ray_scene_refit_enabled)
+      throw std::logic_error("ray scene refit requires the admitted private runtime");
     RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
     if (!IsRaySceneValid(triangles))
       throw std::invalid_argument("invalid bounded refit triangles");
@@ -1208,7 +1215,7 @@ public:
     Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
             "updating stale ray scene");
     const auto &source = ray_scenes_.at(Key(scene));
-    if (source.opacity_micromaps || source.triangle_count != triangles.size())
+    if (!source.updatable || source.opacity_micromaps || source.triangle_count != triangles.size())
       throw std::invalid_argument("ray refit requires an ordinary same-topology scene");
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
     auto replacement =
@@ -1216,6 +1223,21 @@ public:
     // Move assignment of native ComPtrs cannot allocate. Publish only after the update fence.
     ray_scenes_.at(Key(scene)) = std::move(replacement);
     ++diagnostics_.ray_scene_refits;
+  }
+  void RebuildRayScene(RaySceneHandle scene, std::span<const RayTriangle> triangles) override {
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
+    if (!IsRaySceneValid(triangles))
+      throw std::invalid_argument("invalid bounded rebuild triangles");
+    std::lock_guard lock{mutex_};
+    Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
+            "rebuilding stale ray scene");
+    if (ray_scenes_.at(Key(scene)).opacity_micromaps)
+      throw std::invalid_argument("ordinary rebuild cannot replace OMM linkage");
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    auto replacement = CompleteRayBuild(detail::BuildNativeRayScene(
+        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled));
+    ray_scenes_.at(Key(scene)) = std::move(replacement);
+    ++diagnostics_.ray_scene_rebuilds;
   }
   void DestroyRayScene(RaySceneHandle scene) override {
     std::lock_guard lock{mutex_};

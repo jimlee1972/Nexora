@@ -82,6 +82,8 @@ struct GraphicsDeviceCapabilities final {
   CapabilitySupport linear_algebra_f32_matvec_support{CapabilitySupport::Unknown};
   CapabilitySupport compute_shared_memory_support{CapabilitySupport::Unknown};
   std::uint32_t maximum_compute_shared_memory_bytes{};
+  // Bounded scene-update runtime admission; independent from immutable native ray support.
+  bool ray_scene_refit_enabled{};
 };
 struct GraphicsRequirements final {
   // {0, 0} means unused. Tierless features use {1, 0}; feedback may require {0, 9}.

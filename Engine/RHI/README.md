@@ -832,7 +832,13 @@ backing/table/AS resources and native command-list interfaces until list destruc
 
 ## Bounded native triangle-scene refits
 
-`UpdateRayScene(handle, triangles)` supports the D3D12 ordinary1–8-triangle recipe only, with the
+`UpdateRayScene(handle, triangles)` requires `Capabilities().ray_scene_refit_enabled`. This defaults
+closed and is admitted only on the explicitly selected independent pinned runtime with native ray
+support. Hosted system-runtime execution at0a4acdad segfaults in both ray fixtures, while both
+isolated preview suites pass36 updates per barrier mode; the exact crashing native call is not yet
+established. Preserve ordinary system-runtime immutable scene construction without ALLOW_UPDATE
+and reject updates before GPU work. Raw DXR support alone does not authorize this bounded recipe.
+The admitted D3D12 ordinary1–8-triangle recipe keeps the
 same triangle count, one triangle geometry, vertex format/stride and one TLAS instance. Empty,
 nonfinite/degenerate geometry, changed counts, stale handles and OMM scenes reject before native
 execution or publication. Other backends and builds without pinned ray artifacts explicitly throw
@@ -840,7 +846,12 @@ unsupported. General topology/material/instance edits, OMM updates and AS compac
 The C++ virtual surface/diagnostics require consumer rebuilds; the new diagnostic is appended to
 preserve existing aggregate field order. The stable C ABI is unchanged.
 
-Ordinary initial BLAS/TLAS builds request ALLOW_UPDATE. Each update allocates private replacement
+`RebuildRayScene(handle, triangles)` is the explicit full-native-build alternative on admitted native
+ray backends, including the ordinary system route. It accepts bounded count changes, replaces the
+scene only after completion, preserves previously recorded snapshots, rejects OMM/stale/invalid
+requests and increments only `ray_scene_rebuilds`. It does not imply update/performance support.
+
+Only admitted updatable BLAS/TLAS builds request ALLOW_UPDATE. Each update allocates private replacement
 vertex/instance/result storage and uses actual PERFORM_UPDATE with the previous BLAS/TLAS GPU
 addresses as sources. Queried update scratch is separately bounded to64MiB per resource; zero
 scratch remains valid. BLAS UAV dependency precedes TLAS update and a final TLAS dependency precedes

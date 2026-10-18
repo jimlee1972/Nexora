@@ -756,7 +756,7 @@ pending; successful Linux compute fallback is not native node proof.
 ## Bounded BLAS/TLAS refit construction — 2026-10-18
 
 ✅ The `nexora-45y.4.5` implementation adds native out-of-place same-topology ordinary triangle scene updates.
-Initial BLAS/TLAS builds allow updates; replacement builds use PERFORM_UPDATE with actual source
+Admitted updatable BLAS/TLAS builds allow updates; replacement builds use PERFORM_UPDATE with actual source
 AS addresses and queried update scratch, then publish only after the direct-queue completion fence.
 Earlier recorded lists retain old scene resources; later recording captures new geometry under the
 same handle. Invalid/stale/changed-count/OMM updates fail before GPU execution and diagnostics.
@@ -776,6 +776,22 @@ updates, compaction, lighting, physical performance/device-loss acceptance or th
 
 Cleanup additionally admits only the exact owned refit branch, preserving both current-head events,
 other actors/repositories and similarly named branches through the existing live-ref guards.
+
+The hosted system-runtime0a4acdad Windows job117591168721 passes319/321 but segfaults in both ray
+fixtures; both isolated preview suites pass8/8 and36 refits per barrier mode. This does not identify
+the exact crashing native call or establish a driver defect. The follow-up preserves legacy system
+immutable AS flags and exposes default-closed `ray_scene_refit_enabled`, enabled only for explicit
+independent runtime creation with admitted native rays. Unadmitted updates reject before GPU work;
+raw DXR tiers remain unchanged. Windows ray/feedback preflight now runs before the full desktop
+build and unit-buffered diagnostics expose failures earlier. The repaired native Vulkan/Slang/Zig
+Development gate passes225/225, zero failures/skips (119.14s); Shipping Minimal/Monolithic LTO,
+pinned SDK/Windows-conditional syntax, docs16/16 and cleanup33/33 pass. Final hosted gates must pass again.
+
+An explicit `RebuildRayScene` supplies the full-native-build alternative, with bounded count changes,
+old/new snapshots and its own `ray_scene_rebuilds` counter. Both system and private ray fixtures
+exercise128 CPU comparisons per rebuild; unadmitted refits publish no update counters. Default
+initial AS flags remain unchanged on the system route. Private native refit36 acceptance remains
+required, alongside full rebuilds and ordinary immutable ray/compute/cancellation regression tests.
 
 ## V2-GFX-3 bounded triangle-ray construction status
 

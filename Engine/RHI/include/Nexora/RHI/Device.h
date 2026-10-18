@@ -63,6 +63,7 @@ struct DeviceDiagnostics final {
   std::uint64_t mesh_dispatch_calls{};
   std::uint64_t work_graph_dispatch_calls{};
   std::uint64_t ray_scene_refits{};
+  std::uint64_t ray_scene_rebuilds{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -187,6 +188,10 @@ public:
   // Same triangle count/topology; caller-serialized. Previously recorded lists retain old geometry.
   virtual void UpdateRayScene(RaySceneHandle, std::span<const RayTriangle>) {
     throw std::logic_error("ray tracing scene updates are unsupported");
+  }
+  // Explicit full native build; supports bounded count changes and retains older snapshots.
+  virtual void RebuildRayScene(RaySceneHandle, std::span<const RayTriangle>) {
+    throw std::logic_error("ray tracing scene rebuilds are unsupported");
   }
   virtual void DestroyRayScene(RaySceneHandle) {
     throw std::logic_error("ray tracing scenes are unsupported");

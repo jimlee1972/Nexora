@@ -211,6 +211,38 @@ void Execute(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHa
   commands.reset();
   Compare(device, work);
 }
+void TestRebuilds(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                  std::span<const rhi::RayTriangle> triangles) {
+  const auto scene = device.CreateRayScene(triangles);
+  const auto before = device.Diagnostics();
+  auto old = Make(device, triangles, 64);
+  auto retained = device.CreateCommandList(rhi::QueueType::Compute);
+  Record(*retained, compute, program, scene, old);
+  Reject([&] { device.RebuildRayScene(scene, {}); }, "empty rebuild admitted");
+  auto replacement = Triangles(triangles.size() == 1 ? 2 : 1);
+  for (auto &triangle : replacement)
+    for (std::size_t vertex = 0; vertex < 3; ++vertex)
+      triangle.vertices[vertex * 3 + 2] += 0.125F;
+  device.RebuildRayScene(scene, replacement);
+  Require(device.Diagnostics().ray_scene_rebuilds == before.ray_scene_rebuilds + 1 &&
+              device.Diagnostics().ray_scene_refits == before.ray_scene_refits,
+          "full native rebuild was misreported as a refit");
+  device.WaitForSubmission(device.Submit(*retained));
+  retained.reset();
+  Compare(device, old);
+  auto updated = Make(device, replacement, 64);
+  Require(old.expected.front().distance != updated.expected.front().distance,
+          "rebuild oracle failed to distinguish scene generations");
+  Execute(device, compute, program, scene, updated);
+  Destroy(device, old);
+  Destroy(device, updated);
+  device.DestroyRayScene(scene);
+  Reject([&] { device.RebuildRayScene(scene, replacement); }, "stale rebuild admitted");
+  Require(device.Diagnostics().ray_scene_rebuilds == before.ray_scene_rebuilds + 1,
+          "rejected rebuild published a counter");
+  std::cout << "Native full rebuild old_triangles=" << triangles.size()
+            << " new_triangles=" << replacement.size() << " CPU comparisons=128 passed\n";
+}
 void TestRefits(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
                 std::span<const rhi::RayTriangle> triangles) {
   const auto scene = device.CreateRayScene(triangles);
@@ -627,6 +659,10 @@ void OpacityMicromaps(rhi::Device &device, rhi::PipelineHandle compute) {
     const auto ordinary_scene = device.CreateRayScene(triangles);
     const auto refits = device.Diagnostics().ray_scene_refits;
     Reject([&] { device.UpdateRayScene(scene, triangles); }, "OMM scene accepted ordinary refit");
+    const auto rebuilds = device.Diagnostics().ray_scene_rebuilds;
+    Reject([&] { device.RebuildRayScene(scene, triangles); },
+           "OMM scene accepted ordinary rebuild");
+    Require(device.Diagnostics().ray_scene_rebuilds == rebuilds, "OMM rebuild published state");
     Require(device.Diagnostics().ray_scene_refits == refits, "rejected OMM refit published state");
     auto work = Make(device, triangles, 64);
     {
@@ -708,9 +744,13 @@ void Portable() {
               .failure == rhi::CapabilityFailure::InsufficientImplementedTier,
       "unimplemented DXR1.2 admitted");
   auto model = rhi::CreateValidationDevice();
+  Require(!rhi::GraphicsDeviceCapabilities{}.ray_scene_refit_enabled &&
+              !model->Capabilities().ray_scene_refit_enabled,
+          "unadmitted refit runtime must default closed");
   Reject([&] { (void)model->CreateRayScene(triangle); },
          "Validation fabricated acceleration structure");
   Reject([&] { model->UpdateRayScene({}, triangle); }, "Validation fabricated native AS refit");
+  Reject([&] { model->RebuildRayScene({}, triangle); }, "Validation fabricated native AS rebuild");
   Reject([&] { (void)model->CreateRayProgram({}); }, "Validation fabricated ray pipeline");
   rhi::PipelineDescriptor pipeline{1, 2, rhi::TextureFormat::Rgba8Unorm, "ray cache admission"};
   pipeline.type = rhi::PipelineType::Compute;
@@ -769,6 +809,9 @@ void Native(bool enhanced) {
 #endif
   auto device = rhi::CreateDeviceWithOptions(backend, options);
   const auto caps = device->Capabilities();
+  std::cout << "Ray adapter vendor=" << caps.vendor_id << " device=" << caps.device_id
+            << " software=" << caps.software_device
+            << " refit_enabled=" << caps.ray_scene_refit_enabled << '\n';
 #if defined(NEXORA_TEST_SER_NATIVE)
   std::cout << "Preview adapter vendor=" << caps.vendor_id << " device=" << caps.device_id
             << " driver=" << caps.driver_version << " software=" << caps.software_device
@@ -867,7 +910,16 @@ void Native(bool enhanced) {
       Parallel(*device, compute, program, scene, triangles);
       if (enabled) {
         TestLifetime(*device, compute, program, scene, descriptor, triangles);
-        TestRefits(*device, compute, program, triangles);
+        TestRebuilds(*device, compute, program, triangles);
+        if (caps.ray_scene_refit_enabled)
+          TestRefits(*device, compute, program, triangles);
+        else {
+          const auto before = device->Diagnostics().ray_scene_refits;
+          Reject([&] { device->UpdateRayScene(scene, triangles); },
+                 "unadmitted system runtime accepted a native refit");
+          Require(device->Diagnostics().ray_scene_refits == before,
+                  "unadmitted runtime published a refit counter");
+        }
         MixedNodesAndRays(*device, compute, program, scene, triangles);
       }
       std::cout << "Ray backend=" << static_cast<unsigned>(backend)
@@ -883,7 +935,8 @@ void Native(bool enhanced) {
   }
   OpacityMicromaps(*device, compute);
   const auto diagnostics = device->Diagnostics();
-  std::cout << "Native ray scene refits=" << diagnostics.ray_scene_refits << '\n';
+  std::cout << "Native ray scene refits=" << diagnostics.ray_scene_refits
+            << " rebuilds=" << diagnostics.ray_scene_rebuilds << '\n';
 #if defined(NEXORA_TEST_SER_NATIVE)
   Require(diagnostics.ray_scene_refits == 36,
           "required private BLAS/TLAS refits were not executed");
@@ -923,6 +976,7 @@ void Native(bool enhanced) {
 }
 } // namespace
 int main(int argc, char **argv) {
+  std::cout << std::unitbuf;
   try {
     const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
     Require(argc == 1 || enhanced, "usage: [--enhanced-barriers]");
