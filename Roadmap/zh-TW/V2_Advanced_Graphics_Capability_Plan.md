@@ -37,10 +37,14 @@ Capability snapshot 也會將1414:008c判定為軟體，不依賴可能缺失的
 無效策略在建立後端前拒絕。專用 Windows 測試比對身分、提交／讀回 buffer 見證，並驗證
 其他獨立工廠銷毀後先前裝置仍可使用。預覽 fixture 使用獨立的部署子目錄。本機原生
 Vulkan／Slang／Zig Development configure／build 與 Xvfb CTest225/225通過，零失敗／略過
-（121.26秒）；Shipping Minimal／Monolithic LTO 通過。Portable 策略拒絕、Windows 條件式
-fixture 語法、文件／工作流程16/16、cleanup29/29、雙語 Markdown 與格式／diff 檢查皆通過。
+（119.67秒）；Shipping Minimal／Monolithic LTO 通過。Portable 策略拒絕、Windows 條件式
+fixture 語法、文件／工作流程16/16、cleanup31/31、雙語 Markdown 與格式／diff 檢查皆通過。
 一般／預覽 Windows 實際執行仍為必要 CI 合併門檻；實體進階功能／效能與完整 V2-GFX-1
 維持未完成。
+
+CI 清理僅將本次介面卡策略分支的精確名稱加入既有自有清單；owner／同儲存庫／即時 ref
+檢查會保留最新 head 的兩種事件與其他貢獻者工作。
+
 
 ### 已回收 Vulkan Descriptor Pool 儲存空間 — 2026-10-17
 

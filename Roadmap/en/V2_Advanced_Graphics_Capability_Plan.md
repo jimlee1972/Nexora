@@ -46,10 +46,14 @@ feature admission and the stable C ABI unchanged. Non-D3D12/invalid policies fai
 creation. Dedicated Windows policy tests compare identities, submit/read buffer witnesses and
 retain an earlier device across independent factory destruction. The preview fixture deploys to
 its own leaf directory. Local native Vulkan/Slang/Zig Development configure/build and Xvfb CTest
-pass225/225, zero failures/skips (121.26s); Shipping Minimal/Monolithic LTO passes. Portable policy
-rejection, Windows-conditional fixture syntax, documentation/workflow16/16, cleanup29/29, paired
+pass225/225, zero failures/skips (119.67s); Shipping Minimal/Monolithic LTO passes. Portable policy
+rejection, Windows-conditional fixture syntax, documentation/workflow16/16, cleanup31/31, paired
 Markdown and touched-format/diff checks pass. Actual ordinary/preview Windows execution remains a
 required CI merge gate; physical advanced-feature/performance and full V2-GFX-1 stay open.
+
+Guarded CI cleanup adds only the exact adapter-policy branch to the existing owned graphics list;
+owner/same-repository/live-ref checks preserve both latest-head events and other contributors.
+
 
 ### Retired Vulkan descriptor pool storage — 2026-10-17
 
