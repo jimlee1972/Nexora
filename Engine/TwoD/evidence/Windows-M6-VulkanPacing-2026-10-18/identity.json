@@ -1,0 +1,12 @@
+{
+  "source": "966ced9ba72bddce7bb73430d38c3cf118e99162",
+  "executable_sha256_before": "df3f76fcc77a61a2c2b92202bf159c61acbfab8b46f27d41bc912aee07cdee04",
+  "executable_sha256_after": "df3f76fcc77a61a2c2b92202bf159c61acbfab8b46f27d41bc912aee07cdee04",
+  "plan_sha256": "8ae28f3a8111322d66eee37b22eaf36b52215f60bbb2a8b632f81ded7e222ae3",
+  "csv_sha256": {
+    "dx12-1.csv": "01b7d177b04c8331f7fbec8fbfffd05e350b6f38f8ed29604605fb401553213d",
+    "dx12-2.csv": "2e28fbb414607aba7eda7057cc5e36858835063f56e4b400a51e35003cd6a756",
+    "vulkan-1.csv": "aca9b28d6d703bed1251325aef6670cec264795429f55dcd7d6bcfb1d2c6022a",
+    "vulkan-2.csv": "3d84bbde67710c578856ce8f130e8f6f6137586b5407e6f477652143b9600457"
+  }
+}

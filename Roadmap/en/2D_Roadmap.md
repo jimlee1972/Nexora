@@ -3,7 +3,7 @@
 > Version: v1.6 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-18
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10
-> have portable/Linux functional evidence. M6 local DX12 screening exceeded its budgets; physical minimum-PC acceptance remains open.
+> have portable/Linux functional evidence. M6 same-host 30 FPS screen is 23/24 (Vulkan 12/12); physical minimum-PC acceptance remains open.
 > M7 clean Windows runtime/Shipping remains **PARTIAL / NOT ACCEPTED**. The rebuilt current-main VM
 > package passes CPU, native software DX12, Zig instancing and human keyboard movement; full device/product
 > integration remains open. The current physical developer PC adds hardware DX12/Vulkan UI smokes,
@@ -34,7 +34,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M3 | P0 | Lightweight 2D collision/queries | Circle/AABB overlap, filters, range queries, spatial index and swept checks for fast movement | Compare indexed results with an independent brute-force oracle; cover boundaries, filtering, fast motion and insert/remove | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
-| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 30 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Local DX12 screening recorded; minimum-PC gate NOT ACCEPTED |
+| 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible mixed engine workload meets declared 30 FPS/frame-time budgets on the specified minimum PC; retain traces/configuration | Current-PC DX12/Vulkan 30 FPS screen 23/24; minimum-PC gate NOT ACCEPTED |
 | 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
@@ -502,3 +502,27 @@ retain source patch/hashes, CPU/GPU/frame distributions and process memory. Full
 This is a shared engine improvement and developer-PC screen. Product minimum specification,
 integrated UI/VFX, allocator/VRAM, per-frame traces and sustained acceptance remain open.
 **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged.**
+
+## Vulkan FIFO pacing and same-host revalidation (2026-10-18)
+
+✅ The shared Vulkan surface now admits FIFO CPU work after image readiness, using one reusable
+fence and per-image presentation semaphores. Immediate acquisition stays asynchronous; two/three
+upload slots follow the descriptor independently of image synchronization. Initial SUBOPTIMAL
+recovery, partial allocation cleanup, zero extent, resource drain and abandoned frames have native
+regression coverage. Default image count, VSync, resolution, benchmark source and all 10,000-object
+update/query/extraction/reload work remain unchanged.
+
+The physical FX-6100/GTX 960 screen passes **23/24**: Vulkan passes 6/6 in both repeats,
+with four warm-up plus 600 measured frames per case at 640x480 and the original p95/p99 <= 1000/30 ms,
+maximum <= 2000/30 ms limits. Visible/culled counts, batches, coverage, query hits and GPU samples
+match the prior screen in all rows. Full local MSVC Development and Shipping builds pass;
+31/31 related local contracts pass without skips. [Evidence](../../Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18/acceptance.md) retains the complete
+results, executable/source hashes, process memory and separate per-frame/render-only diagnostics.
+Full Linux/native pixel and other hosted gates are tracked on the final PR CI.
+
+DX12 passes 6/6 then 5/6. The second 10k sparse run has p99 21.55 ms but maximum 72.36 ms,
+exceeding the unchanged 66.67 ms spike limit. This failure is retained and remains open;
+Vulkan's three prior p99 failures are resolved by this screen. No all-backend acceptance is claimed.
+
+This records the current developer-PC screen. Product minimum specification, integrated UI/VFX,
+allocator/VRAM and sustained acceptance remain open. **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged.**

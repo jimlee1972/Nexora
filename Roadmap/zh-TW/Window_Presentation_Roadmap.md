@@ -173,3 +173,14 @@ distinct range 進行 admission。大量重複 batch 保留 exact geometry 重�
 回退，保留先前成功／失敗 memo 結果。Portable full-limit 上限與真正 native pixels 驗證此
 擴充，不增加 GPU entry／memory 上限。
 [證據](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md)。
+
+## Vulkan FIFO 影像就緒與呈現同步（2026-10-18）
+
+✅ 共用 Vulkan 呈現以一個可重用 fence 等待 FIFO 影像就緒，再開始 CPU frame work；
+Immediate 保留非同步行為。呈現 semaphore 由各影像持有；受 fence 保護的 upload／timestamp
+遵循 descriptor 的有界 frame slot。預設雙影像 VSync 與公開 C++／C／Zig layout 不變。
+Native regression 涵蓋首次 SUBOPTIMAL 尺寸恢復與部分配置清理。本機 MSVC Development
+完整建置／Shipping、native 生命週期／失敗測試及原負載 Vulkan 兩輪各六組實體 2D 篩檢均通過。
+[證據](../../Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18/acceptance.md) 區分逐幀診斷、正式篩檢及最終 PR CI。此結果不驗收其他 Showcase 視覺預算、
+輸入到顯示延遲、任意 GPU-heavy 吞吐、產品最低 PC／長時間或乾淨主機 gate。
+完整混合篩檢為 23/24；DX12 sparse 新出現一次 72.36 ms 最大值，仍超過 66.67 ms 上限。

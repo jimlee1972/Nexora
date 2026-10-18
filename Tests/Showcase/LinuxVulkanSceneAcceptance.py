@@ -14,6 +14,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     target = parser.add_mutually_exclusive_group(required=True)
     target.add_argument("--native-test")
+    target.add_argument("--native-contract")
     target.add_argument("--showcase")
     parser.add_argument("--interactive", action="store_true")
     parser.add_argument("--evidence-dir", type=Path, required=True)
@@ -34,11 +35,16 @@ def main() -> int:
             server.terminate()
             _, errors = server.communicate(timeout=3)
             return unavailable(f"Xvfb failed to start: {errors.strip()}")
-        command = ([args.native_test, str(output / "scene.ppm")] if args.native_test else [
-            args.showcase, "--mode=interactive", "--scene=rendering", "--backend=vulkan",
-            f"--frames={frames}", "--resize=960x540", "--no-reload", "--gameplay-module=static",
-            f"--report={output / 'scene.json'}",
-        ])
+        if args.native_contract:
+            command = [args.native_contract]
+        elif args.native_test:
+            command = [args.native_test, str(output / "scene.ppm")]
+        else:
+            command = [
+                args.showcase, "--mode=interactive", "--scene=rendering", "--backend=vulkan",
+                f"--frames={frames}", "--resize=960x540", "--no-reload", "--gameplay-module=static",
+                f"--report={output / 'scene.json'}",
+            ]
         environment = os.environ.copy()
         environment["DISPLAY"] = display
         if args.interactive:
@@ -68,7 +74,9 @@ def main() -> int:
         (output / "stdout.log").write_text(run.stdout, encoding="utf-8")
         (output / "stderr.log").write_text(run.stderr, encoding="utf-8")
         launch = {"command": command, "exit_code": run.returncode, "acceptance_passed": False,
-                  "scope": "Linux/X11/Vulkan GPU scene on virtual display",
+                  "scope": ("Linux/X11/Vulkan adapter contracts on virtual display"
+                            if args.native_contract else
+                            "Linux/X11/Vulkan GPU scene on virtual display"),
                   "physical_display_verified": False,
                   "validation_layer_requested": "VK_LAYER_KHRONOS_validation" in
                       environment.get("VK_INSTANCE_LAYERS", "")}
@@ -104,7 +112,7 @@ def main() -> int:
                     error = "normalized D input did not move the gallery camera"
             except (OSError, ValueError, KeyError, TypeError) as failure:
                 error = f"invalid Rendering Room report: {failure}"
-        elif not (output / "scene.ppm").is_file():
+        elif not args.native_contract and not (output / "scene.ppm").is_file():
             error = "native pixel gate did not retain its capture"
         if "Validation Error" in run.stdout + run.stderr:
             error = "Khronos validation reported a Vulkan error"

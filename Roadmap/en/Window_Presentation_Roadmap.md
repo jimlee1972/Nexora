@@ -181,3 +181,16 @@ range admissions. Large repeated batches retain exact geometry reuse; extra rang
 individually, retaining prior success/failure memo results. Portable full-limit bounds and real
 native pixels verify this extension without increasing GPU entry/memory limits.
 [Evidence](../../Tools/Build/evidence/EditorEDM2-FullBatchResidency-2026-10-13.md).
+
+## Vulkan FIFO availability and presentation synchronization (2026-10-18)
+
+✅ Shared Vulkan presentation now waits for FIFO image readiness with one reusable fence before
+admitting CPU frame work. Immediate remains asynchronous. Presentation semaphores belong to
+images; fence-protected uploads/timestamps follow the descriptor's bounded frame slots. Default
+two-image VSync and public C++/C/Zig layouts are unchanged. Initial SUBOPTIMAL extent recovery and
+partial allocation cleanup have native regression coverage. Full local MSVC Development/Shipping,
+native lifecycle/fault tests and both six-case Vulkan physical 2D repeats pass.
+[Evidence](../../Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18/acceptance.md) separates per-frame diagnostics, formal screening and final PR CI.
+This does not accept unrelated Showcase visual budgets, input-to-display latency, arbitrary GPU-heavy
+throughput, production minimum-PC/soak or clean-host gates.
+The full mixed screen is 23/24: one new DX12 sparse maximum of 72.36 ms remains above 66.67 ms.

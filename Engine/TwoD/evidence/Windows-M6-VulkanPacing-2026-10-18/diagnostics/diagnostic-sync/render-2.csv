@@ -1,0 +1,1 @@
+objects,sparse,reload_ms,overlap,native,frames,warmup_frames,loading_ms,cpu_p50_ms,cpu_p95_ms,cpu_p99_ms,cpu_max_ms,frame_p95_ms,gpu_samples,gpu_p95_ms,peak_process_rss_bytes,visible,culled,sprite_batches,covered_aabb_ratio,query_hits,frame_average_ms,frame_p99_ms,frame_max_ms,device_name,vendor_id,device_id,driver_version,driver_version_format,backend_requested

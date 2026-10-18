@@ -1,0 +1,9 @@
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateFence (FIFO image readiness) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateFence (FIFO image readiness) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan presentation initialization failed: vkCreateSemaphore (present image) (VkResult=-1)
+Vulkan FIFO/image semaphore, frame-slot, recovery and cleanup contracts passed

@@ -3,7 +3,7 @@
 > 版本：v1.6 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-18
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
-> Portable／Linux 功能證據。M6 本機 DX12 Screening 超出預算，最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
+> Portable／Linux 功能證據。M6 同機 30 FPS 篩檢為 23/24（Vulkan 12/12），最低規格實體 PC 驗收仍待完成。M7 乾淨 Windows
 > Runtime／Shipping 維持 **PARTIAL／NOT ACCEPTED**；重建的目前 main VM 封裝已通過 CPU、
 > 原生軟體 DX12、Zig Instancing 及人工鍵盤移動，完整裝置／產品整合仍待完成。目前實體開發機新增
 > 硬體 DX12／Vulkan UI 短測、人工鍵盤／中文 UI／音訊與 100／150／175% DPI 證據；乾淨主機／完整裝置 gate 仍開放。
@@ -32,7 +32,7 @@ P0 建立可用 Runtime 與證據；P1 改善製作效率，Tilemap 為條件式
 | ✅ 2D-M3 | P0 | 輕量 2D 碰撞／查詢 | 圓形／AABB 重疊、分組、範圍查詢、空間索引與高速移動掃掠檢查 | 以獨立暴力比對驗證索引結果，涵蓋邊界、分組、高速移動及插入／移除 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M4 | P0 | 大量物件生命週期／更新 | 批量生成／回收、世代識別、配置控制、資料導向更新與固定時間步進 | 反覆操作拒絕過期 handle、安全釋放並記錄配置／幀時間尖峰；不同 frame delta 驗證固定步數、順序、累積餘額及相同模擬時間下的等價狀態 | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M5 | P0 | 大量 Sprite 渲染 | 經由既有 RHI 整合圖集批次／實例化、可見性剔除、透明排序與 overdraw 控制 | 原生畫面保留跨批次排序；稀疏／重疊負載記錄繪製呼叫數與 CPU／GPU 時間 | ✅ Portable／Linux 能力驗收；證據見下方 |
-| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 本機 DX12 Screening 已記錄；最低 PC gate 為 NOT ACCEPTED |
+| 2D-M6 | P0 | 效能分析／壓力驗收 | CPU／GPU 幀時間、記憶體、繪製呼叫、配置尖峰與透明重疊 | 可重現混合引擎負載在指定最低 PC 配備達到預定 30 FPS／幀時間預算；保留 trace／設定 | 目前 PC DX12／Vulkan 30 FPS 篩檢 23/24；最低 PC gate 為 NOT ACCEPTED |
 | 2D-M7 | P0 | Windows Runtime／Shipping 驗收 | 輸入（含任一實體遊戲控制器）、UI／文字、音效、非同步載入、序列化／存檔、Cooked 資產與獨立打包 | 乾淨 Windows 電腦無 Editor／開發依賴即可執行 Cooked 2D 驗證程式；鍵鼠／實體遊戲控制器、UI／文字呈現、音訊播放、非同步載入完成／失敗、重載、存檔／重開及釋放通過 | VM CPU／軟體 DX12／Zig，加上實體開發機 DX12／Vulkan UI、人工鍵盤／音訊及 100／150／175% DPI 切片通過；乾淨主機／完整裝置／產品 gate 仍開放；M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D 場景製作工具 | Sprite 放置、Pivot／排序編輯、碰撞視覺化與 Editor 正交預覽 | 編輯／預覽／Undo／Redo／儲存／重開保留場景；隔離 Play 不改製作 World | ✅ Portable／Linux 能力驗收；證據見下方 |
 | ✅ 2D-M9 | P1 | Atlas／動畫工具 | 切圖／Atlas 預覽、打包診斷、逐格編輯、播放／事件預覽 | Cooked 輸出與 Runtime 呈現一致；驗證 Undo／Redo、無效資料及重新匯入 | ✅ Portable／Linux 能力驗收；證據見下方 |
@@ -448,3 +448,25 @@ Vulkan 兩輪各 4/6、5/6 符合原 30 FPS／尖峰預算；四個程序退出�
 
 這是共用引擎改善與目前開發機篩檢；未完成最低產品規格、整合 UI／VFX、配置／VRAM、
 逐幀 trace 與持續運行驗收。**M6 NOT ACCEPTED、9/11（82%）、P0 6/8** 不變。
+
+## Vulkan FIFO 節奏與同機重驗（2026-10-18）
+
+✅ 共用 Vulkan surface 現於 FIFO 影像真正可用後才開始 CPU frame work，使用一個可重用 fence
+及每張影像各自持有的呈現 semaphore。Immediate 仍採非同步取得；兩／三個 upload slot 依
+descriptor 配置，與影像同步資源分開。Native regression 涵蓋首次 SUBOPTIMAL 恢復、部分配置
+失敗清理、零尺寸、資源 drain 及放棄中的 frame。預設影像數、VSync、解析度、benchmark 原始碼
+及全部 10,000 物件的更新／查詢／擷取／重載工作均未減少。
+
+FX-6100／GTX 960 實機篩檢通過 **23/24**：Vulkan 兩輪皆為 6/6；每組四個暖身幀
+加 600 個量測幀，640x480，沿用 p95／p99 <= 1000/30 ms、最大值 <= 2000/30 ms 門檻。
+全部資料列的可見／剔除數、batch、覆蓋率、查詢命中及 GPU sample 與前輪相同。
+本機 MSVC Development 完整建置與 Shipping 建置通過；相關測試 31/31，無略過。
+[證據](../../Engine/TwoD/evidence/Windows-M6-VulkanPacing-2026-10-18/acceptance.md) 保留完整結果、執行檔／來源雜湊、process memory，以及獨立逐幀／render-only 診斷。
+完整 Linux／native pixel 與其他 hosted gate 由最終 PR CI 記錄。
+
+DX12 為 6/6、5/6。第二輪 10k sparse 的 p99 為 21.55 ms，但最大值 72.36 ms，超過原訂
+66.67 ms 尖峰上限。此失敗完整保留並持續追蹤；Vulkan 原三組 p99 超標已由本輪篩檢消除。
+不宣稱全部 backend 已通過驗收。
+
+本次驗收範圍為目前開發機篩檢；產品最低規格、整合 UI／VFX、allocator／VRAM 及長時間驗收
+仍待完成。**M6 NOT ACCEPTED；9/11（82%）、P0 6/8 不變。**

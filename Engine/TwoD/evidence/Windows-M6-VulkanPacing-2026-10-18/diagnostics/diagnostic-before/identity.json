@@ -1,0 +1,16 @@
+{
+  "source": "966ced9ba72bddce7bb73430d38c3cf118e99162",
+  "utc": "2026-10-18T07:39:04.382538+00:00",
+  "exe_sha256": "248196484f3bf6cf96691a6a8abe199d0c66e9a0d259c31ff91d30b1e3437d78",
+  "workload": "DIAGNOSTIC ONLY; mixed preserves load, render-only omits CPU updates/reload",
+  "images": [
+    2,
+    3
+  ],
+  "source_sha256": {
+    "Engine\\Presentation\\src\\VulkanSurface.cpp": "f9df4dcb29b1f014a23eb832e8a7febeb2dac5fe71e4c2557d035a3963cb8c44",
+    "Tools\\TwoD\\Benchmark.cpp": "73a24631645e23d82b553a73de4c42e9d0027a17b816e61d2ec4648356a5a737",
+    "build\\windows-vulkan-tail-20261018\\BenchmarkProfile.cpp": "956631d0f73ef291f8787cf118d0fffdaeedb7d2e4b0eb308f5ba29dd9b11acb",
+    "build\\windows-vulkan-tail-20261018\\VulkanProfile.cpp": "6d2715577b79f80d15dafc7f1ac203a94a514803c7dfbc962967e970f5b77303"
+  }
+}

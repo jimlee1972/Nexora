@@ -76,6 +76,32 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
     LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
 endif()
 
+if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
+   (WIN32 OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+  add_executable(NexoraVulkanSwapchainTests VulkanSwapchainTests.cpp)
+  target_include_directories(NexoraVulkanSwapchainTests PRIVATE
+    "${CMAKE_SOURCE_DIR}/Engine/Presentation/include" "${NEXORA_VULKAN_INCLUDE_DIR}")
+  target_compile_definitions(NexoraVulkanSwapchainTests PRIVATE NEXORA_PRESENTATION_STATIC=1)
+  target_link_libraries(NexoraVulkanSwapchainTests PRIVATE
+    Nexora::RHI Nexora::Window "${NEXORA_VULKAN_LIBRARY}")
+  nexora_apply_defaults(NexoraVulkanSwapchainTests)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(X11 REQUIRED)
+    target_link_libraries(NexoraVulkanSwapchainTests PRIVATE X11::X11)
+    add_test(NAME window_presentation.vulkan_swapchain
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+        --native-contract "$<TARGET_FILE:NexoraVulkanSwapchainTests>"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/vulkan-swapchain")
+    set_tests_properties(window_presentation.vulkan_swapchain PROPERTIES
+      LABELS "vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 90)
+  else()
+    add_test(NAME window_presentation.vulkan_swapchain COMMAND NexoraVulkanSwapchainTests)
+    set_tests_properties(window_presentation.vulkan_swapchain PROPERTIES
+      LABELS "vulkan;native-display" RUN_SERIAL TRUE TIMEOUT 90)
+  endif()
+endif()
+
 if(WIN32)
   add_executable(NexoraDx12PbrTests VulkanPbrTests.cpp)
   target_link_libraries(NexoraDx12PbrTests PRIVATE Nexora::Presentation user32 gdi32)
