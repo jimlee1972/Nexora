@@ -45,6 +45,7 @@
 
 #include "D3D12EnhancedBarriers.h"
 #include "D3D12MeshPipeline.h"
+#include "D3D12RayCompaction.h"
 #include "D3D12RayTracing.h"
 #include "D3D12SamplerFeedback.h"
 #if NEXORA_HAS_PINNED_FEEDBACK_ARTIFACTS
@@ -1165,18 +1166,25 @@ public:
 #endif
 #if NEXORA_D3D12_RAY_TRACING && NEXORA_HAS_PINNED_RAY_ARTIFACTS
   RaySceneHandle CreateRayScene(std::span<const RayTriangle> triangles) override {
+    return CreateRaySceneWithOptions(triangles, {});
+  }
+  RaySceneHandle CreateRaySceneWithOptions(std::span<const RayTriangle> triangles,
+                                           const RaySceneCreationOptions &options) override {
     RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
+    if (options.allow_compaction && !capabilities_.ray_scene_refit_enabled)
+      throw std::logic_error("ray compaction requires the admitted private runtime");
     if (!IsRaySceneValid(triangles))
       throw std::invalid_argument("invalid bounded ray triangles");
     // Immutable construction is caller-serialized with submit/mutation, like other resource
     // creation.
     std::lock_guard lock{mutex_};
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
-    auto scene = CompleteRayBuild(detail::BuildNativeRayScene(
-        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled));
+    auto completed = CompleteRayBuild(detail::BuildNativeRayScene(
+        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled,
+        options.allow_compaction));
     const auto handle = ray_scene_pool_.Create();
     try {
-      ray_scenes_.emplace(Key(handle), std::move(scene));
+      ray_scenes_.emplace(Key(handle), std::move(completed.scene));
     } catch (...) {
       (void)ray_scene_pool_.Destroy(handle);
       throw;
@@ -1193,11 +1201,11 @@ public:
       throw std::invalid_argument("invalid bounded opacity triangles or masks");
     std::lock_guard lock{mutex_};
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
-    auto scene =
+    auto completed =
         CompleteRayBuild(detail::BuildNativeRayScene(*ray_device_.Get(), triangles, masks));
     const auto handle = ray_scene_pool_.Create();
     try {
-      ray_scenes_.emplace(Key(handle), std::move(scene));
+      ray_scenes_.emplace(Key(handle), std::move(completed.scene));
     } catch (...) {
       (void)ray_scene_pool_.Destroy(handle);
       throw;
@@ -1221,7 +1229,7 @@ public:
     auto replacement =
         CompleteRayBuild(detail::BuildNativeRayScene(*ray_device_.Get(), triangles, {}, &source));
     // Move assignment of native ComPtrs cannot allocate. Publish only after the update fence.
-    ray_scenes_.at(Key(scene)) = std::move(replacement);
+    ray_scenes_.at(Key(scene)) = std::move(replacement.scene);
     ++diagnostics_.ray_scene_refits;
   }
   void RebuildRayScene(RaySceneHandle scene, std::span<const RayTriangle> triangles) override {
@@ -1235,9 +1243,37 @@ public:
       throw std::invalid_argument("ordinary rebuild cannot replace OMM linkage");
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
     auto replacement = CompleteRayBuild(detail::BuildNativeRayScene(
-        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled));
-    ray_scenes_.at(Key(scene)) = std::move(replacement);
+        *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled,
+        ray_scenes_.at(Key(scene)).allow_compaction));
+    ray_scenes_.at(Key(scene)) = std::move(replacement.scene);
     ++diagnostics_.ray_scene_rebuilds;
+  }
+  void CompactRayScene(RaySceneHandle scene) override {
+    if (!capabilities_.ray_scene_refit_enabled)
+      throw std::logic_error("ray compaction requires the admitted private runtime");
+    RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
+    std::lock_guard lock{mutex_};
+    Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
+            "compacting stale ray scene");
+    const auto &source = ray_scenes_.at(Key(scene));
+    if (!source.updatable || source.opacity_micromaps || !source.allow_compaction)
+      throw std::invalid_argument("compaction requires an explicitly opted ordinary scene");
+    Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
+    const auto before = source.bottom->GetDesc().Width + source.top->GetDesc().Width;
+    auto query = CompleteRayBuild(detail::QueryRayCompaction(*ray_device_.Get(), source));
+    const auto bottom_bytes =
+        detail::ReadRayCompactedSize(query, 0, source.bottom->GetDesc().Width);
+    auto relink = CompleteRayBuild(
+        detail::CompactRayBottomAndRelinkTop(*ray_device_.Get(), std::move(query), bottom_bytes));
+    const auto top_bytes = detail::ReadRayCompactedSize(relink, 0, source.top->GetDesc().Width);
+    auto compacted =
+        CompleteRayBuild(detail::CompactRayTop(*ray_device_.Get(), std::move(relink), top_bytes));
+    const auto after =
+        compacted.scene.bottom->GetDesc().Width + compacted.scene.top->GetDesc().Width;
+    ray_scenes_.at(Key(scene)) = std::move(compacted.scene);
+    ++diagnostics_.ray_scene_compactions;
+    diagnostics_.ray_compaction_buffer_bytes_before += before;
+    diagnostics_.ray_compaction_buffer_bytes_after += after;
   }
   void DestroyRayScene(RaySceneHandle scene) override {
     std::lock_guard lock{mutex_};
@@ -1666,7 +1702,7 @@ private:
   // Called with mutex_ held. Only one accepted build can remain quarantined after Signal/wait
   // failure; further AS construction fails closed until device recreation. Existing scenes and
   // recorded snapshots stay unchanged. The destructor attempts queue idle before releasing it.
-  detail::NativeRayScene CompleteRayBuild(detail::PendingRayScene build) {
+  detail::PendingRayScene CompleteRayBuild(detail::PendingRayScene build) {
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
     Check(build.commands->Close(), "Close ray scene build list");
     pending_ray_build_.emplace(std::move(build));
@@ -1676,7 +1712,7 @@ private:
     const auto completion = ++next_fence_;
     Check(queue_->Signal(fence_.Get(), completion), "Signal ray scene build");
     WaitForFence(completion);
-    auto result = std::move(pending.scene);
+    auto result = std::move(pending);
     pending_ray_build_.reset();
     return result;
   }

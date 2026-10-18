@@ -753,6 +753,39 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## Explicit bounded ray-scene compaction construction — 2026-10-18
+
+`nexora-45y.4.6` adds opt-in ordinary triangle BLAS/TLAS compaction. Default scene creation preserves
+runtime-specific immutable/updatable behavior; explicit creation on the admitted private refit
+runtime adds compatible ALLOW_COMPACTION metadata. Three
+owner-serialized phases query real GPU compacted sizes, compact BLAS, refit TLAS to the relocated
+BLAS, query its size and compact TLAS. Two explicit size readbacks/three waits belong to resource
+construction; no CPU hit result chooses GPU work. Positive/aligned/per-AS non-increasing64MiB
+bounds fail closed before publication. Older lists retain original scene snapshots and late native
+failure retains the complete accepted phase. OMM/unopted/stale calls reject; C++ consumers rebuild,
+stable C ABI and shader profiles stay unchanged. Diagnostic byte totals describe logical native AS
+buffer widths, not physical memory or guaranteed reduction.
+
+Fixtures add compaction/refit/compaction round trips for1/2/8 triangles in pipeline/inline/SER,
+old/new CPU outputs, canaries and lifetime/admission negatives. Private Windows acceptance requires
+45 refits (original36 plus nine round trips) and18 scene compactions per barrier mode. Actual SDK
+and Windows-conditional syntax pass; full local and final-head hosted CI remain required. General
+and OMM compaction, physical budgets/device-loss and the complete V2-GFX-3 gate stay open.
+
+
+✅ Opt-in API/ownership contracts and SDK-checked bounded construction are implemented. Local native
+Vulkan/Slang/Zig Development configure/build and Xvfb full CTest pass225/225, zero failures/skips
+(118.90s); Shipping Minimal/Monolithic LTO, pinned SDK/Windows-conditional syntax, documentation16/16,
+cleanup35/35, paired Markdown and touched format/diff pass. Only the exact owned compaction branch
+joins guarded cleanup; current-head events, other actors and similarly named branches remain
+protected. Native compaction acceptance still requires final-head Windows execution before merge.
+
+
+Integrated with runtime-admitted refits and explicit full rebuilds: compaction requires the admitted
+private update recipe, preserves both scene flags across updates/rebuilds and rejects system-runtime
+opt-in/compaction before GPU work. The integrated local gate above passes; final hosted validation
+remains required.
+
 ## Bounded BLAS/TLAS refit construction — 2026-10-18
 
 ✅ The `nexora-45y.4.5` implementation adds native out-of-place same-topology ordinary triangle scene updates.

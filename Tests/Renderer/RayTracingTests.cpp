@@ -296,6 +296,65 @@ void TestRefits(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgra
   std::cout << "Native BLAS/TLAS out-of-place refits=4 triangles=" << triangles.size()
             << " old/new CPU comparisons=512; invalid/topology/stale/canaries passed\n";
 }
+void TestCompaction(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                    std::span<const rhi::RayTriangle> triangles) {
+  const auto unopted = device.CreateRayScene(triangles);
+  const auto count = device.Diagnostics().ray_scene_compactions;
+  Reject([&] { device.CompactRayScene(unopted); }, "unopted scene admitted compaction");
+  Require(device.Diagnostics().ray_scene_compactions == count,
+          "unopted compaction published state");
+  device.DestroyRayScene(unopted);
+  const auto scene = device.CreateRaySceneWithOptions(triangles, {true});
+  auto original = Make(device, triangles, 64);
+  auto retained = device.CreateCommandList(rhi::QueueType::Compute);
+  Record(*retained, compute, program, scene, original);
+  const auto before = device.Diagnostics();
+  device.CompactRayScene(scene);
+  auto first = device.Diagnostics();
+  Require(
+      first.ray_scene_compactions == before.ray_scene_compactions + 1 &&
+          first.ray_compaction_buffer_bytes_before > before.ray_compaction_buffer_bytes_before &&
+          first.ray_compaction_buffer_bytes_after > before.ray_compaction_buffer_bytes_after &&
+          first.ray_compaction_buffer_bytes_after - before.ray_compaction_buffer_bytes_after <=
+              first.ray_compaction_buffer_bytes_before - before.ray_compaction_buffer_bytes_before,
+      "native compaction did not report positive non-increasing AS buffer storage");
+  device.WaitForSubmission(device.Submit(*retained));
+  retained.reset();
+  Compare(device, original);
+  auto copied = Make(device, triangles, 64);
+  Execute(device, compute, program, scene, copied);
+  Destroy(device, original);
+  Destroy(device, copied);
+  auto moved = std::vector<rhi::RayTriangle>{triangles.begin(), triangles.end()};
+  for (auto &triangle : moved)
+    for (std::size_t vertex = 0; vertex < 3; ++vertex)
+      triangle.vertices[vertex * 3 + 2] += 0.125F;
+  device.UpdateRayScene(scene, moved);
+  auto updated = Make(device, moved, 64);
+  Execute(device, compute, program, scene, updated);
+  Destroy(device, updated);
+  device.CompactRayScene(scene);
+  auto repeated = Make(device, moved, 64);
+  Execute(device, compute, program, scene, repeated);
+  Destroy(device, repeated);
+  const auto after = device.Diagnostics();
+  Require(after.ray_scene_compactions == before.ray_scene_compactions + 2 &&
+              after.ray_scene_refits == before.ray_scene_refits + 1 &&
+              after.ray_compaction_buffer_bytes_after - first.ray_compaction_buffer_bytes_after <=
+                  after.ray_compaction_buffer_bytes_before -
+                      first.ray_compaction_buffer_bytes_before,
+          "compaction/refit/compaction round trip lost native update permission or accounting");
+  device.DestroyRayScene(scene);
+  Reject([&] { device.CompactRayScene(scene); }, "destroyed compaction handle admitted");
+  Require(device.Diagnostics().ray_scene_compactions == after.ray_scene_compactions,
+          "stale compaction published a counter");
+  std::cout << "Native BLAS/TLAS compactions=2 triangles=" << triangles.size()
+            << " old/new CPU comparisons=256 compact/refit/compact passed; AS buffer bytes="
+            << after.ray_compaction_buffer_bytes_before - before.ray_compaction_buffer_bytes_before
+            << " -> "
+            << after.ray_compaction_buffer_bytes_after - before.ray_compaction_buffer_bytes_after
+            << '\n';
+}
 void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
               rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles) {
   std::array work{Make(device, triangles, 64), Make(device, triangles, 64)};
@@ -663,6 +722,10 @@ void OpacityMicromaps(rhi::Device &device, rhi::PipelineHandle compute) {
     Reject([&] { device.RebuildRayScene(scene, triangles); },
            "OMM scene accepted ordinary rebuild");
     Require(device.Diagnostics().ray_scene_rebuilds == rebuilds, "OMM rebuild published state");
+    const auto compactions = device.Diagnostics().ray_scene_compactions;
+    Reject([&] { device.CompactRayScene(scene); }, "OMM scene accepted ordinary compaction");
+    Require(device.Diagnostics().ray_scene_compactions == compactions,
+            "rejected OMM compaction published state");
     Require(device.Diagnostics().ray_scene_refits == refits, "rejected OMM refit published state");
     auto work = Make(device, triangles, 64);
     {
@@ -751,6 +814,9 @@ void Portable() {
          "Validation fabricated acceleration structure");
   Reject([&] { model->UpdateRayScene({}, triangle); }, "Validation fabricated native AS refit");
   Reject([&] { model->RebuildRayScene({}, triangle); }, "Validation fabricated native AS rebuild");
+  Reject([&] { model->CompactRayScene({}); }, "Validation fabricated native AS compaction");
+  Reject([&] { (void)model->CreateRaySceneWithOptions(triangle, {true}); },
+         "Validation fabricated compactable native AS storage");
   Reject([&] { (void)model->CreateRayProgram({}); }, "Validation fabricated ray pipeline");
   rhi::PipelineDescriptor pipeline{1, 2, rhi::TextureFormat::Rgba8Unorm, "ray cache admission"};
   pipeline.type = rhi::PipelineType::Compute;
@@ -911,14 +977,20 @@ void Native(bool enhanced) {
       if (enabled) {
         TestLifetime(*device, compute, program, scene, descriptor, triangles);
         TestRebuilds(*device, compute, program, triangles);
-        if (caps.ray_scene_refit_enabled)
+        if (caps.ray_scene_refit_enabled) {
           TestRefits(*device, compute, program, triangles);
-        else {
-          const auto before = device->Diagnostics().ray_scene_refits;
+          TestCompaction(*device, compute, program, triangles);
+        } else {
+          const auto before = device->Diagnostics();
           Reject([&] { device->UpdateRayScene(scene, triangles); },
                  "unadmitted system runtime accepted a native refit");
-          Require(device->Diagnostics().ray_scene_refits == before,
-                  "unadmitted runtime published a refit counter");
+          Reject([&] { device->CompactRayScene(scene); },
+                 "unadmitted system runtime accepted compaction");
+          Reject([&] { (void)device->CreateRaySceneWithOptions(triangles, {true}); },
+                 "unadmitted system runtime accepted compactable storage");
+          Require(device->Diagnostics().ray_scene_refits == before.ray_scene_refits &&
+                      device->Diagnostics().ray_scene_compactions == before.ray_scene_compactions,
+                  "unadmitted runtime published update/compaction counters");
         }
         MixedNodesAndRays(*device, compute, program, scene, triangles);
       }
@@ -936,10 +1008,11 @@ void Native(bool enhanced) {
   OpacityMicromaps(*device, compute);
   const auto diagnostics = device->Diagnostics();
   std::cout << "Native ray scene refits=" << diagnostics.ray_scene_refits
-            << " rebuilds=" << diagnostics.ray_scene_rebuilds << '\n';
+            << " rebuilds=" << diagnostics.ray_scene_rebuilds
+            << " compactions=" << diagnostics.ray_scene_compactions << '\n';
 #if defined(NEXORA_TEST_SER_NATIVE)
-  Require(diagnostics.ray_scene_refits == 36,
-          "required private BLAS/TLAS refits were not executed");
+  Require(diagnostics.ray_scene_refits == 45 && diagnostics.ray_scene_compactions == 18,
+          "required private BLAS/TLAS refit/compaction round trips were not executed");
 #endif
   const auto feature = caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing)];
   Require(feature.enabled ? diagnostics.ray_dispatch_calls > 0

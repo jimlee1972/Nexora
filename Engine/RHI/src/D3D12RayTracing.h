@@ -19,11 +19,15 @@ inline void CheckRay(HRESULT result, const char *operation) {
                              std::to_string(static_cast<unsigned long>(result)));
 }
 inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool upload,
-                                        D3D12_RESOURCE_STATES state) {
+                                        D3D12_RESOURCE_STATES state, bool readback = false) {
   if (!size || size > RayAllocationLimit)
     throw std::invalid_argument("ray allocation exceeds bounded size: " + std::to_string(size));
   D3D12_HEAP_PROPERTIES heap{};
-  heap.Type = upload ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_DEFAULT;
+  if (upload && readback)
+    throw std::invalid_argument("ray storage cannot be both upload and readback");
+  heap.Type = upload     ? D3D12_HEAP_TYPE_UPLOAD
+              : readback ? D3D12_HEAP_TYPE_READBACK
+                         : D3D12_HEAP_TYPE_DEFAULT;
   heap.CreationNodeMask = heap.VisibleNodeMask = 1;
   D3D12_RESOURCE_DESC description{};
   description.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -32,7 +36,7 @@ inline ComPtr<ID3D12Resource> RayBuffer(ID3D12Device &device, UINT64 size, bool 
   description.DepthOrArraySize = description.MipLevels = 1;
   description.SampleDesc.Count = 1;
   description.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-  if (!upload)
+  if (!upload && !readback)
     description.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
   ComPtr<ID3D12Resource> result;
   CheckRay(device.CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &description, state, nullptr,
@@ -74,6 +78,7 @@ struct NativeRayScene final {
   ComPtr<ID3D12Resource> vertices, instances, bottom, top;
   bool opacity_micromaps{};
   bool updatable{};
+  bool allow_compaction{};
   std::uint32_t triangle_count{};
 };
 struct PendingRayScene final {
@@ -81,6 +86,8 @@ struct PendingRayScene final {
   NativeRayScene source;
   NativeRayScene scene;
   ComPtr<ID3D12Resource> bottom_scratch, top_scratch;
+  ComPtr<ID3D12Resource> compact_info, compact_readback;
+  std::uint32_t compact_info_count{};
 #if NEXORA_ENABLE_D3D12_OPACITY_MICROMAPS
   ComPtr<ID3D12Resource> opacity_scratch;
 #endif
@@ -93,7 +100,7 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
                                            std::span<const RayTriangle> triangles,
                                            std::span<const std::uint8_t> opacity_masks = {},
                                            const NativeRayScene *source = nullptr,
-                                           bool updatable = false) {
+                                           bool updatable = false, bool allow_compaction = false) {
   if (!IsRaySceneValid(triangles))
     throw std::invalid_argument("ray scene requires one to eight finite nondegenerate triangles");
   if (!opacity_masks.empty() && !IsRayOpacitySceneValid(triangles, opacity_masks))
@@ -105,12 +112,17 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   if (source && (!source->updatable || source->opacity_micromaps || !opacity_masks.empty() ||
                  source->triangle_count != triangles.size() || !source->bottom || !source->top))
     throw std::invalid_argument("ray refit requires an ordinary same-topology source scene");
-  if (source)
+  if (source) {
     updatable = source->updatable;
+    allow_compaction = source->allow_compaction;
+  }
   if (updatable && !opacity_masks.empty())
     throw std::invalid_argument("ordinary refit cannot update OMM scenes");
+  if (allow_compaction && (!updatable || !opacity_masks.empty()))
+    throw std::invalid_argument("compaction requires an admitted updatable ordinary scene");
   PendingRayScene result;
   result.scene.updatable = updatable;
+  result.scene.allow_compaction = allow_compaction;
   result.scene.triangle_count = static_cast<std::uint32_t>(triangles.size());
   if (source)
     result.source = *source;
@@ -182,6 +194,8 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   bottom.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
   if (updatable)
     bottom.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
+  if (allow_compaction)
+    bottom.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION;
   bottom.NumDescs = 1;
   bottom.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   bottom.pGeometryDescs = &geometry;
