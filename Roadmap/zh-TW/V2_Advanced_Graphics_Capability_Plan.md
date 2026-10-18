@@ -25,6 +25,20 @@ artifact 矩陣整合、CPU／GPU 基準，以及 V2-GFX-2～V2-GFX-5 原生執�
 缺少／過期綁定的拒絕。輸出 identity、分類資料及間接繪製前綴均符合 CPU 參考結果。
 Snapshot 中平行錄製能力仍未啟用／未實作；完整 RenderGraph 排程與其他後端 worker 所有權尚未完成。
 
+### 明確的 D3D12 介面卡策略 — 2026-10-18
+
+✅ `nexora-45y.2.15` 的限縮實作為一般與獨立預覽工廠加入 Default／Software／PreferHardware／
+RequireHardware 選擇。Default 保留一般模式優先硬體、失敗後 WARP，以及預覽模式 WARP 行為。
+強制硬體永不退回軟體；耗盡相容介面卡有獨立例外，列舉／描述／執行階段故障仍為錯誤。
+共用選擇器最多列舉64張介面卡，保留私有工廠所有權、功能准入與穩定 C ABI；其他後端或
+無效策略在建立後端前拒絕。專用 Windows 測試比對身分、提交／讀回 buffer 見證，並驗證
+其他獨立工廠銷毀後先前裝置仍可使用。預覽 fixture 使用獨立的部署子目錄。本機原生
+Vulkan／Slang／Zig Development configure／build 與 Xvfb CTest225/225通過，零失敗／略過
+（147.61秒）；Shipping Minimal／Monolithic LTO 通過。Portable 策略拒絕、Windows 條件式
+fixture 語法、文件／工作流程16/16、cleanup29/29、雙語 Markdown 與格式／diff 檢查皆通過。
+一般／預覽 Windows 實際執行仍為必要 CI 合併門檻；實體進階功能／效能與完整 V2-GFX-1
+維持未完成。
+
 ### 已回收 Vulkan Descriptor Pool 儲存空間 — 2026-10-17
 
 ✅ 選用配置快取擴充為每份閒置項目最多兩個已 Reset 的原生 Descriptor Pool

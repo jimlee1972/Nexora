@@ -882,11 +882,33 @@ MIN_MIP decode explicitly uses source subresource UINT_MAX (the complete flatten
 chain) and destination slice0. Per-mip source0 is not valid for this recipe. Windows execution
 remains required independently from the compute oracle; mismatch diagnostics retain all map words.
 
+## Explicit D3D12 adapter selection
+
+`DeviceCreationOptions::d3d12_adapter_policy` applies to the ordinary and isolated preview factories.
+`Default` preserves ordinary high-performance hardware preference with WARP fallback and preview
+WARP selection. `Software` explicitly selects WARP; `PreferHardware` tries nonsoftware DXGI adapters
+in high-performance order before WARP; `RequireHardware` never selects WARP. Exhausted compatible
+hardware discovery throws `D3D12HardwareUnavailableError`. DXGI enumeration/description failures,
+resource exhaustion, device removal and other runtime failures propagate as ordinary runtime errors;
+only unsupported feature-level/interface results allow the next candidate. Enumeration is bounded
+to64 adapters and exceeding the bound fails. Invalid enum values and explicit policies on other
+backends fail with `invalid_argument` before backend creation. Existing aggregate boolean fields keep
+their order; all C++ consumers rebuild for the appended field. The stable C ABI is unchanged.
+
+Both routes select the adapter through the same helper while retaining their own device creation
+entry points. The independent preview factory still outlives its resources and never publishes global
+state. Selection does not enable additional features or relax actual Shader Model, private-runtime,
+artifact or per-pipeline admission. `software_device` reports DXGI flags, not physical-host acceptance.
+Windows tests exercise all four policies, submission/buffer witnesses, retained-device lifetime and
+hardware-required success or its specific exhaustion error. The preview test has its own executable,
+WARP/Agility deployment directory and working directory. Physical modern-feature correctness and
+performance require separate target-GPU evidence.
+
 ## Isolated modern compute opt-in
 
 `NEXORA_ENABLE_D3D12_PREVIEW` is default off and Windows-only. Stage the hash-pinned packages with
 `Tools/Build/PrepareD3D12Preview.py --destination <external-directory>` and configure
-`NEXORA_D3D12_PREVIEW_ROOT`. Only the dedicated test receives local WARP/Agility DLLs. The explicit
+`NEXORA_D3D12_PREVIEW_ROOT`. Only dedicated preview tests receive local WARP/Agility DLLs. The explicit
 `DeviceCreationOptions::enable_d3d12_preview_runtime` uses an independent SDK721 factory; it never
 changes global D3D12 configuration or OS settings. Experimental shaders require host Developer Mode.
 The factory remains alive beyond the native device and resources. Other backends reject this option.

@@ -31,6 +31,7 @@
 #include <utility>
 #include <vector>
 
+#include "D3D12AdapterSelection.h"
 #include "D3D12PreviewRuntime.h"
 #if NEXORA_ENABLE_D3D12_SER
 #include "SerArtifactIdentity.h"
@@ -501,33 +502,17 @@ public:
     ComPtr<IDXGIAdapter1> selected;
     if (options.enable_d3d12_preview_runtime) {
 #if NEXORA_ENABLE_D3D12_PREVIEW
-      preview_runtime_.Create(device_, selected);
+      preview_runtime_.Create(device_, selected, options.d3d12_adapter_policy);
 #else
       throw std::invalid_argument("D3D12 preview runtime was not compiled in");
 #endif
     } else {
-      ComPtr<IDXGIFactory6> factory;
-      Check(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)), "CreateDXGIFactory2");
-
-      for (UINT index = 0;
-           factory->EnumAdapterByGpuPreference(index, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,
-                                               IID_PPV_ARGS(&selected)) != DXGI_ERROR_NOT_FOUND;
-           ++index) {
-        DXGI_ADAPTER_DESC1 description{};
-        Check(selected->GetDesc1(&description), "IDXGIAdapter1::GetDesc1");
-        if ((description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0)
-          continue;
-        if (SUCCEEDED(D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0,
-                                        IID_PPV_ARGS(&device_)))) {
-          break;
-        }
-        selected.Reset();
-      }
-      if (!device_) {
-        Check(factory->EnumWarpAdapter(IID_PPV_ARGS(&selected)), "EnumWarpAdapter");
-        Check(D3D12CreateDevice(selected.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device_)),
-              "D3D12CreateDevice(WARP)");
-      }
+      detail::SelectD3D12Adapter(
+          options.d3d12_adapter_policy, false,
+          [](IDXGIAdapter1 *adapter, ID3D12Device **device) {
+            return D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(device));
+          },
+          device_, selected);
     }
 
     capabilities_ = QueryCapabilities(*device_.Get(), *selected.Get());

@@ -6,7 +6,7 @@ namespace nexora::rhi::detail {
 class D3D12PreviewRuntime final {
 public:
   void Create(Microsoft::WRL::ComPtr<ID3D12Device> &device,
-              Microsoft::WRL::ComPtr<IDXGIAdapter1> &adapter) {
+              Microsoft::WRL::ComPtr<IDXGIAdapter1> &adapter, D3D12AdapterPolicy policy) {
     const auto check = [](HRESULT result, const char *operation) {
       if (FAILED(result))
         throw std::runtime_error(std::string(operation) + " failed (HRESULT " +
@@ -25,11 +25,12 @@ public:
     const GUID shader_models = D3D12ExperimentalShaderModels;
     check(factory_->EnableExperimentalFeatures(1, &shader_models, nullptr, nullptr),
           "EnableExperimentalFeatures(private shader models)");
-    Microsoft::WRL::ComPtr<IDXGIFactory6> dxgi;
-    check(CreateDXGIFactory2(0, IID_PPV_ARGS(&dxgi)), "CreateDXGIFactory2(preview)");
-    check(dxgi->EnumWarpAdapter(IID_PPV_ARGS(&adapter)), "EnumWarpAdapter(preview)");
-    check(factory_->CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device)),
-          "CreateDevice(private preview WARP)");
+    SelectD3D12Adapter(
+        policy, true,
+        [this](IDXGIAdapter1 *candidate, ID3D12Device **created) {
+          return factory_->CreateDevice(candidate, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(created));
+        },
+        device, adapter);
   }
 
 private:

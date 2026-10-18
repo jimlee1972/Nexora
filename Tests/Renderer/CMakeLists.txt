@@ -1,6 +1,32 @@
 include(NexoraTarget)
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_executable(NexoraD3D12AdapterPolicyTests D3D12AdapterPolicyTests.cpp)
+target_link_libraries(NexoraD3D12AdapterPolicyTests PRIVATE Nexora::RHI)
+nexora_apply_defaults(NexoraD3D12AdapterPolicyTests)
+add_test(NAME renderer.d3d12_adapter_policy COMMAND NexoraD3D12AdapterPolicyTests)
+set_tests_properties(renderer.d3d12_adapter_policy PROPERTIES TIMEOUT 120)
+if(WIN32 AND NEXORA_ENABLE_NATIVE_BACKENDS)
+  target_compile_definitions(NexoraD3D12AdapterPolicyTests PRIVATE NEXORA_TEST_D3D12_ADAPTER_NATIVE=1)
+endif()
+if(NEXORA_ENABLE_D3D12_PREVIEW)
+  add_executable(NexoraD3D12AdapterPreviewTests D3D12AdapterPolicyTests.cpp)
+  target_link_libraries(NexoraD3D12AdapterPreviewTests PRIVATE Nexora::RHI)
+  target_compile_definitions(NexoraD3D12AdapterPreviewTests PRIVATE
+    NEXORA_TEST_D3D12_ADAPTER_NATIVE=1 NEXORA_TEST_D3D12_ADAPTER_PREVIEW=1)
+  nexora_apply_defaults(NexoraD3D12AdapterPreviewTests)
+  set_target_properties(NexoraD3D12AdapterPreviewTests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/adapter-preview-runtime")
+  add_custom_command(TARGET NexoraD3D12AdapterPreviewTests POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different $<TARGET_RUNTIME_DLLS:NexoraD3D12AdapterPreviewTests> "$<TARGET_FILE_DIR:NexoraD3D12AdapterPreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${NEXORA_D3D12_PREVIEW_ROOT}/warp/build/native/bin/x64/d3d10warp.dll" "$<TARGET_FILE_DIR:NexoraD3D12AdapterPreviewTests>"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${NEXORA_D3D12_PREVIEW_ROOT}/agility/build/native/bin/x64" "$<TARGET_FILE_DIR:NexoraD3D12AdapterPreviewTests>/Agility"
+    COMMAND_EXPAND_LISTS VERBATIM)
+  add_test(NAME renderer.d3d12_adapter_preview COMMAND NexoraD3D12AdapterPreviewTests)
+  set_tests_properties(renderer.d3d12_adapter_preview PROPERTIES TIMEOUT 120
+    WORKING_DIRECTORY "$<TARGET_FILE_DIR:NexoraD3D12AdapterPreviewTests>"
+    ENVIRONMENT "NEXORA_D3D12_PREVIEW_SDK_PATH=./Agility/")
+endif()
 add_executable(NexoraSubmissionGpuTimingTests SubmissionGpuTimingTests.cpp)
 target_link_libraries(NexoraSubmissionGpuTimingTests PRIVATE Nexora::Renderer)
 if(WIN32)
