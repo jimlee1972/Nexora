@@ -214,8 +214,8 @@ ImportOperationId AssetImportQueue::Start(ReimportJobRequest request, std::strin
   std::error_code ec;
   const auto source = std::filesystem::canonical(request.source, ec);
   if (request.project_generation == 0 || request.asset == runtime::AssetUuid{} ||
-      request.previous_artifact.empty() || request.settings_hash.empty() || ec ||
-      !std::filesystem::is_regular_file(source, ec)) {
+      (request.previous_artifact.empty() != request.initial_import) ||
+      request.settings_hash.empty() || ec || !std::filesystem::is_regular_file(source, ec)) {
     if (error)
       *error = "reimport request has an invalid generation, asset, source, or hash";
     return 0;

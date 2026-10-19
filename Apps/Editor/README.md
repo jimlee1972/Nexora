@@ -416,6 +416,14 @@ save; rejection reopens the path dialog with its attempted filename and error. C
 case variants cannot bypass reserved metadata policy or save a scene over another file type.
 Content paths, folder/asset labels, search and rename input use UTF-8 with native filesystem paths;
 Unicode scene discovery, folder navigation, rename/move and Undo avoid system code-page conversion.
+Selecting one failed asset shows its initial import reason under Asset details, with wrapped
+literal text. The owning diagnostic is limited to 1024 UTF-8 bytes and remains available in
+read-only projects. Changing/clearing selection, hiding the panel or closing Content clears the
+displayed observation. Successful reimport clears the resolved failure from the item and its
+Content Undo snapshot; failed reimport preserves the item and reports the current operation
+separately. The existing Reimport action can retry an initial failure without an old artifact,
+using explicit recovery admission and the same publication revision checks. These diagnostics
+are reconstructed from indexing rather than persisted in scenes.
 Focused Content F2 renames one selected asset with focused/select-all UTF-8 filename input;
 Enter/Apply commits one Content Undo and Escape/Cancel abandons it. Context Rename shares this
 flow. Invalid names are retryable and unchanged names close without a filesystem transaction.

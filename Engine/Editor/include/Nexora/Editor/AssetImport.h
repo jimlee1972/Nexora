@@ -82,6 +82,9 @@ struct ReimportJobRequest final {
   std::vector<runtime::AssetUuid> dependencies;
   // Persistent importer type; empty derives it from the source extension.
   std::string type{};
+  // Explicit recovery of an initial failure with no prior artifact. Must match an empty
+  // previous_artifact; normal reimports retain their nonempty-baseline admission contract.
+  bool initial_import{};
 };
 
 struct ImportOperationResult final {

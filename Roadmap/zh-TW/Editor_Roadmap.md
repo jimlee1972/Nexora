@@ -257,8 +257,16 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   sidecar），每條專案相對路徑最多 1024 UTF-8 bytes，可透過 `AssetIndexLimits` 調整。兩項限制都在
   列舉階段、寫入任何 identity sidecar 之前檢查：超限的目錄樹會以可操作的錯誤失敗、保留先前的 index、
   不留下半成品 sidecar，列舉也會提早停止而不是讓記憶體無限成長。`editor.asset_source` 涵蓋剛好在
-  上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。單一 entry 的診斷
-  文字、縮圖與實體 workflow gate 仍待完成。
+  上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。縮圖與實體
+  workflow gate 仍待完成；有界的單一 entry Content 診斷見下項。
+
+- ✅ Content Browser 現會顯示所選資產的 owning 初次匯入失敗原因，包含唯讀檢視，admission 限制為
+  最多 1024 bytes、合法 UTF-8 且不含 NUL。無效 Reset／Discover 保留 live model；成功 reimport
+  同時清除 live item 與保留的 Content Undo 診斷。背景 Reimport 以明確的復原模式重試尚無舊
+  artifact 的初次失敗資產，維持一般 baseline admission 及 publication revision 檢查。
+  Portable 與 1x／2x 真實 ImGui input 測試涵蓋拒絕、selection、同步／背景修復、Undo 及 reindex。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ContentDiagnostics-Linux-2026-10-19.md)。
+  實體 workflow 驗收與所有 ED 里程碑完成數維持不變。
 
 - ✅ 一般資產 indexing 及同步／背景 reimport 現以 8 KiB read chunk 串流計算 binary source hash，
   不再保留整個來源檔案。讀取中取消不發布 partial hash；空檔案、embedded NUL、完整 chunk

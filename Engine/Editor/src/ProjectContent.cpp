@@ -96,6 +96,11 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
   items.reserve(assets.Entries().size());
   AssetDependencyGraph dependencies;
   for (const auto &entry : assets.Entries()) {
+    if (entry.error.size() > ContentItem::kMaximumImportDiagnosticBytes ||
+        entry.error.find('\0') != std::string::npos || !foundation::IsValidUtf8(entry.error))
+      return Fail("asset import diagnostic is invalid or exceeds 1024 UTF-8 bytes: " +
+                      entry.relative_path,
+                  error);
     const auto path = std::filesystem::path("Content") /
                       std::filesystem::path(
                           std::u8string(entry.relative_path.begin(), entry.relative_path.end()));
@@ -103,7 +108,8 @@ bool ProjectContentSession::Open(const ProjectWorkspace &workspace, const AssetW
         !dependencies.Set(entry.id, detail::TwoDDependencies(entry.twod)))
       return Fail("asset index contains an invalid entry", error);
     items.push_back({entry.id, path.lexically_normal(), entry.type, entry.artifact_hash,
-                     ThumbnailFor(entry.state), entry.mesh, entry.material, entry.twod});
+                     ThumbnailFor(entry.state), entry.mesh, entry.material, entry.twod,
+                     entry.error});
   }
 
   auto browser = browser_;
@@ -435,6 +441,7 @@ bool ProjectContentSession::BeginReimport(AssetImportQueue &imports, runtime::As
   ReimportJobRequest request{
       browser_.ProjectGeneration(), asset,     source, item->artifact_hash, "default-v1",
       dependencies_.Forward(asset), item->type};
+  request.initial_import = item->artifact_hash.empty() && item->thumbnail == ThumbnailState::Failed;
   std::string start_error;
   const auto operation = imports.Start(request, &start_error);
   if (operation == 0)

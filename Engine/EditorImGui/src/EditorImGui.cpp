@@ -505,6 +505,7 @@ struct EditorImGuiHost::State final {
   bool content_import_active = false;
   ImportOperationState content_import_state = ImportOperationState::Succeeded;
   std::uint32_t content_import_diagnostics = 0;
+  std::string content_asset_diagnostic;
   std::uint32_t content_conflicts = 0;
   bool content_conflict_visible = false;
   bool content_conflict_compare_visible = false;
@@ -3988,6 +3989,14 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       ImGui::Text("UUID: %s", item->id.ToString().c_str());
       ImGui::Text("Type: %s", item->type.c_str());
       ImGui::Text("Artifact: %s", item->artifact_hash.c_str());
+      if (!item->import_diagnostic.empty()) {
+        ImGui::TextUnformatted("Import failure:");
+        ImGui::PushTextWrapPos(0.0F);
+        ImGui::TextUnformatted(item->import_diagnostic.data(),
+                               item->import_diagnostic.data() + item->import_diagnostic.size());
+        ImGui::PopTextWrapPos();
+        state.content_asset_diagnostic = item->import_diagnostic;
+      }
       const auto forward = content.Dependencies().Forward(item->id);
       const auto reverse = content.Dependencies().Reverse(item->id);
       state.content_forward_dependencies = static_cast<std::uint32_t>(forward.size());
@@ -4712,6 +4721,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->content_add_mesh_position.reset();
   state_->content_open_scene_position.reset();
   state_->content_asset_positions.clear();
+  state_->content_asset_diagnostic.clear();
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
   state_->inspector_opaque_info.clear();
@@ -8113,6 +8123,10 @@ EditorImGuiTestAccess::GameInputChoicePosition(const EditorImGuiHost &host,
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentSearchPosition(const EditorImGuiHost &host) noexcept {
   return host.state_->content_search_position;
+}
+std::string_view
+EditorImGuiTestAccess::ContentAssetDiagnostic(const EditorImGuiHost &host) noexcept {
+  return host.state_->content_asset_diagnostic;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAddMeshPosition(const EditorImGuiHost &host) noexcept {

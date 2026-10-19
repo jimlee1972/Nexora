@@ -74,6 +74,11 @@ bool SafeRelative(const std::filesystem::path &path) {
       return false;
   return true;
 }
+bool ValidDiagnostic(const ContentItem &item) {
+  return item.import_diagnostic.size() <= ContentItem::kMaximumImportDiagnosticBytes &&
+         item.import_diagnostic.find('\0') == std::string::npos &&
+         foundation::IsValidUtf8(item.import_diagnostic);
+}
 } // namespace
 
 ContentBrowserModel::ContentBrowserModel(std::uint64_t project_generation)
@@ -87,7 +92,7 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> ids;
   std::unordered_set<std::string> paths;
   for (const auto &item : items)
-    if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) ||
+    if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) || !ValidDiagnostic(item) ||
         !ids.insert(item.id).second || !paths.insert(PathUtf8(item.path)).second)
       return false;
   items_.assign(items.begin(), items.end());
@@ -100,8 +105,8 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   return true;
 }
 bool ContentBrowserModel::Discover(ContentItem item) {
-  if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) || Find(item.id) ||
-      !ValidDestination(item.path))
+  if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) || !ValidDiagnostic(item) ||
+      Find(item.id) || !ValidDestination(item.path))
     return false;
   auto next = items_;
   next.push_back(item);
@@ -368,10 +373,13 @@ bool ContentBrowserModel::PublishArtifact(runtime::AssetUuid id, std::string art
     found->twod = std::move(twod);
   found->artifact_hash = std::move(artifact_hash);
   found->thumbnail = thumbnail;
+  if (thumbnail == ThumbnailState::Ready)
+    found->import_diagnostic.clear();
   const auto undo = std::ranges::find(undo_, id, &ContentItem::id);
   if (undo != undo_.end()) {
     undo->artifact_hash = found->artifact_hash;
     undo->thumbnail = thumbnail;
+    undo->import_diagnostic = found->import_diagnostic;
     undo->mesh = found->mesh;
     undo->material = found->material;
     undo->twod = found->twod;

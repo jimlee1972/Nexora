@@ -1,3 +1,8 @@
+add_executable(NexoraContentDiagnosticTests ContentDiagnosticTests.cpp)
+target_link_libraries(NexoraContentDiagnosticTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentDiagnosticTests)
+add_test(NAME editor.content_diagnostics COMMAND NexoraContentDiagnosticTests)
+
 add_executable(NexoraExtensionTrustTests ExtensionTrustTests.cpp)
 add_executable(NexoraChromeTraceTests ChromeTraceTests.cpp)
 target_link_libraries(NexoraChromeTraceTests PRIVATE Nexora::Editor)

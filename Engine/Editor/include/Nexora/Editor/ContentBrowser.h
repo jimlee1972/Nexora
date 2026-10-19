@@ -22,6 +22,7 @@ class TwoDAssetPayload;
 enum class ThumbnailState { Loading, Ready, Failed };
 
 struct ContentItem final {
+  static constexpr std::size_t kMaximumImportDiagnosticBytes = 1024;
   runtime::AssetUuid id;
   std::filesystem::path path;
   std::string type;
@@ -32,6 +33,8 @@ struct ContentItem final {
   // Owning immutable schema-1 scalar PBR data, retained across model/Undo copies.
   std::shared_ptr<const MaterialAsset> material{};
   std::shared_ptr<const TwoDAssetPayload> twod{};
+  // Owning initial-import failure text. Empty or valid UTF-8 without NUL, bounded at admission.
+  std::string import_diagnostic{};
 };
 
 struct Breadcrumb final {

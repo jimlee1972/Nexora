@@ -132,6 +132,8 @@ public:
   GameInputChoicePosition(const EditorImGuiHost &host, PlayInputControl control) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentSearchPosition(const EditorImGuiHost &host) noexcept;
+  [[nodiscard]] static std::string_view
+  ContentAssetDiagnostic(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentAddMeshPosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
