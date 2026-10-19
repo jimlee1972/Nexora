@@ -277,6 +277,12 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   source/sidecar bytes, revision and pending Undo. Physical accessibility/workflow acceptance remains open.
   [Linux evidence](../../Tools/Build/evidence/EditorEDM1-LiteralContentLabels-Linux-2026-10-20.md).
 
+- ✅ Content folder rows now derive only from strict descendants of the current directory;
+  sibling, prefix-sibling, ancestor and unrelated-root assets cannot synthesize parent rows.
+  Portable scope/filter/selection/Undo tests and actual 1x/2x writable/read-only folder and
+  breadcrumb controls preserve explicit parent navigation and source/sidecar bytes.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-ChildFolderScope-Linux-2026-10-20.md).
+
 - ✅ Content dependency inspection now offers UUID-scoped Reveal for forward and reverse live
   targets, navigating to their folder, clearing query/type filters, selecting and scrolling clipped
   rows. Read-only inspection, missing-target rejection, literal names, scope/input guards and

@@ -832,6 +832,48 @@ int Run() {
               cancelled.Entries().front().state == editor::ImportState::Cancelled,
           "asset cancellation failed");
 
+  editor::ContentBrowserModel descendants(11);
+  const runtime::AssetUuid retained{101, 1};
+  const std::array<editor::ContentItem, 8> scoped_items{{
+      {retained, "Content/Child/Keep.obj", ".obj", "v1", editor::ThumbnailState::Ready},
+      {{101, 2}, "Content/Child/Wanted.txt", ".txt", "v1", editor::ThumbnailState::Ready},
+      {{101, 3}, "Content/Child/Alpha/A.txt", ".txt", "v1", editor::ThumbnailState::Ready},
+      {{101, 4}, "Content/Child/Alpha/B.txt", ".txt", "v1", editor::ThumbnailState::Ready},
+      {{101, 5},
+       fs::path(u8"Content/Child/資料###same/Asset.txt"),
+       ".txt",
+       "v1",
+       editor::ThumbnailState::Ready},
+      {{101, 6}, "Content/Childish/Other.txt", ".txt", "v1", editor::ThumbnailState::Ready},
+      {{101, 7}, "Content/Sibling/Other.txt", ".txt", "v1", editor::ThumbnailState::Ready},
+      {{101, 8}, "Archive/Sub/Other.txt", ".txt", "v1", editor::ThumbnailState::Ready},
+  }};
+  Require(descendants.Reset(scoped_items, 11) && descendants.Select(retained) &&
+              descendants.Rename(retained, "Renamed.obj") && descendants.SetFolder("Content/Child"),
+          "descendant folder setup failed");
+  descendants.SetFilter("Wanted", ".obj");
+  const auto scoped_revision = descendants.Revision();
+  const auto children = descendants.ChildFolders();
+  Require(children.size() == 2 && children[0].path == "Content/Child/Alpha" &&
+              children[1].path == fs::path(u8"Content/Child/資料###same"),
+          "child folders included parent/sibling/prefix-sibling paths or duplicated a child");
+  Require(descendants.SetFolder("Content/Child/Alpha") && descendants.ChildFolders().empty() &&
+              descendants.SetFolder("Content/Missing") && descendants.ChildFolders().empty(),
+          "leaf or missing folder manufactured parent routes from unrelated assets");
+  Require(descendants.SetFolder("Content"), "root child folder query failed");
+  const auto root_children = descendants.ChildFolders();
+  Require(root_children.size() == 3 && root_children[0].path == "Content/Child" &&
+              root_children[1].path == "Content/Childish" &&
+              root_children[2].path == "Content/Sibling" && descendants.SetFolder("Archive") &&
+              descendants.ChildFolders().size() == 1 &&
+              descendants.ChildFolders().front().path == "Archive/Sub",
+          "folder scope used a string prefix or admitted unrelated roots");
+  Require(descendants.SetFolder("Content/Child") && descendants.VisibleCount() == 0 &&
+              descendants.Revision() == scoped_revision && descendants.Items().size() == 8 &&
+              descendants.Selection() == std::vector{retained} && descendants.Undo() &&
+              descendants.Find(retained)->path == "Content/Child/Keep.obj",
+          "child folder inspection changed filters, selection, revision, items or pending Undo");
+
   editor::ContentBrowserModel parentless(1);
   const editor::ContentItem parentless_item{
       {98, 98}, "Standalone.txt", ".txt", "v1", editor::ThumbnailState::Ready};

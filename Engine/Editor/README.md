@@ -610,6 +610,11 @@ write failure leaves original scene files and dirty baselines unchanged.
   search, discovery, folder navigation and Undo never convert through a system code page.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
+  `ChildFolders` derives sorted, deduplicated immediate directories only from strict descendants
+  of the current folder. Ancestor/sibling paths, component-prefix siblings and unrelated roots
+  cannot manufacture `..` rows. The owning query result is independent of asset filters and
+  preserves selection, revision and pending mutation Undo; explicit parent navigation remains
+  available through breadcrumbs and Alt+Up in the graphical host.
 - `ContentBrowserModel::RevealAsset` is an inspection-only UUID operation: it stages the target's
   parent folder/breadcrumbs and sole selection before clearing query/type filters. Missing IDs or
   paths without a revealable relative parent preserve the complete view state. It does not touch

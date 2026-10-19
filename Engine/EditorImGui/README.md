@@ -1121,7 +1121,9 @@ state. Every use rechecks visible membership, including externally changed filte
 State retains owning UUIDs and scope values; no ContentItem borrow crosses frames. Rename and
 Delete continue to act on the resulting owning selection.
 
-Content folder rows participate in Dear ImGui Tab navigation. Enter activates the focused folder,
+Content folder rows contain only immediate children derived from indexed descendants of the
+current folder; unrelated assets do not manufacture parent rows. Breadcrumbs and Alt+Up retain
+explicit parent navigation. Content folder rows participate in Dear ImGui Tab navigation. Enter activates the focused folder,
 while a single pointer click retains the existing inspection behavior and double-click opens it.
 Focused Alt+Up moves to the preceding breadcrumb once per press, stopping at the Content root.
 These operations work read-only, preserve asset selection/filter and mutation history, and reset
