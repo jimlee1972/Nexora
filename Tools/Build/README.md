@@ -162,6 +162,25 @@ Python `-O`. Record local overrides and original failures; CI retains all defaul
 與原始失敗；CI 維持所有預設。
 
 
+The 100k-node hierarchy correctness and lifecycle executable emits flushed phase transitions to
+stderr, including run, dataset, DPI, cycle (`-1` for correctness), and elapsed milliseconds on
+completion or exception. Source generation/write, scene load, warmup/navigation/reload, source/history
+checks and fixture destruction are distinguishable. A hard timeout can leave a final `status=start`
+without completion; that identifies active work, not its cause. Benchmark stdout remains schema-1
+JSONL, and phase logging stays outside each measured frame. Run `ctest --preset linux-development
+--output-on-failure` for failures, or add `-V` for successful phase output; CTest also retains it in
+`build/linux-development/Testing/Temporary/LastTest.log`. The same-commit Windows timeout investigation
+remains open; fixture sizes, samples, assertions, deadlines and production budgets are unchanged.
+
+10 萬節點 Hierarchy 正確性／生命週期程式會把階段切換立即 flush 至 stderr，包含 run、
+dataset、DPI、cycle（正確性為 `-1`），完成或例外時記錄毫秒耗時。可區分 source 產生／寫入、
+scene 載入、warmup／navigation／reload、source／history 檢查與 fixture 銷毀。硬性逾時可能只
+留下最後的 `status=start`，可定位當時執行的工作，但不能證明原因。Benchmark stdout 保持
+schema-1 JSONL，階段輸出位於個別量測 frame 之外。CTest 的 `--output-on-failure` 顯示失敗
+輸出，`-V` 可顯示成功輸出；完整紀錄亦保留於上述 `LastTest.log`。相同 commit 的 Windows
+耗時差異仍待調查；fixture 規模、sample、斷言、期限與 production budget 均未改動。
+
+
 The exact session-owned `feat/twod-cooked-services` branch uses the existing stale-run cleanup
 with a separate one-branch allowlist. Only repository-owner runs at superseded SHAs are eligible;
 current-head push/PR runs, contributor actors, forks, other branches and a branch that advances

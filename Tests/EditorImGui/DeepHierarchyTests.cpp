@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <initializer_list>
 #include <iomanip>
@@ -16,6 +17,7 @@
 #include <iterator>
 #include <ranges>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace {
@@ -28,6 +30,48 @@ void Require(bool condition, const char *message) {
   if (!condition)
     throw std::runtime_error(message);
 }
+struct ProgressContext final {
+  const char *run;
+  const char *dataset;
+  float dpi;
+  int cycle = -1;
+};
+// Keep diagnostics on stderr and outside measured frames: stdout remains schema-1 JSONL.
+// Flush every transition so CTest retains the last active phase even after a hard timeout.
+class Progress final {
+public:
+  explicit Progress(ProgressContext context) : context_(context) {}
+  ~Progress() { Finish(std::uncaught_exceptions() > exceptions_ ? "failed" : "done"); }
+  Progress(const Progress &) = delete;
+  Progress &operator=(const Progress &) = delete;
+  void Start(std::string_view phase) {
+    Finish("done");
+    phase_ = phase;
+    begin_ = std::chrono::steady_clock::now();
+    Report("start");
+  }
+
+private:
+  void Report(const char *status) const {
+    std::clog << "[hierarchy] run=" << context_.run << " dataset=" << context_.dataset
+              << " dpi=" << context_.dpi << " cycle=" << context_.cycle << " phase=" << phase_
+              << " status=" << status;
+    if (std::string_view(status) != "start")
+      std::clog << " elapsed_ms="
+                << std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() -
+                                                             begin_)
+                       .count();
+    std::clog << std::endl;
+  }
+  void Finish(const char *status) {
+    if (!phase_.empty())
+      Report(status);
+  }
+  ProgressContext context_;
+  std::string_view phase_;
+  std::chrono::steady_clock::time_point begin_;
+  int exceptions_ = std::uncaught_exceptions();
+};
 std::string Source(bool deep) {
   std::string text = "NEXORA_EDITOR_SCENE 3\n";
   for (std::size_t i = 0; i < kCount; ++i) {
@@ -57,15 +101,22 @@ struct Fixture final {
   editor::imgui::EditorImGuiHost ui;
   std::filesystem::path path = root / "Content/Large.scene";
   std::string source;
-  Fixture(bool deep, float scale) : source(Source(deep)) {
+  Fixture(bool deep, float scale, ProgressContext context) {
+    Progress progress(context);
+    progress.Start("source-generate");
+    source = Source(deep);
+    progress.Start("workspace-create");
     Require(workspace.Create(root, "Large hierarchy") && world.Activate(scene_id),
             "large hierarchy workspace setup failed");
+    progress.Start("source-write");
     std::ofstream output(path, std::ios::binary);
     output << source;
     output.close();
-    Require(!output.fail() && scene.Reload(path) && scene.Nodes().size() == kCount &&
-                !scene.Dirty(),
+    Require(!output.fail(), "large hierarchy source write failed");
+    progress.Start("scene-load");
+    Require(scene.Reload(path) && scene.Nodes().size() == kCount && !scene.Dirty(),
             "real 100k authoring scene did not load cleanly");
+    progress.Start("ui-setup");
     ui.SetDisplay(1280 * scale, 900 * scale, scale);
     // Exercise the hierarchy in the production 3D-preview layout. This test does not measure
     // native GPU submission or the separate top-down overview marker traversal.
@@ -108,7 +159,11 @@ struct Fixture final {
   }
 };
 void Deep(float scale) {
-  Fixture f(true, scale);
+  const ProgressContext context{"correctness", "expanded-chain", scale};
+  Progress progress(context);
+  progress.Start("fixture-create");
+  Fixture f(true, scale, context);
+  progress.Start("expand-settle");
   const auto nodes = f.scene.Nodes();
   std::vector<editor::SceneDocument::NodeKey> expanded;
   expanded.reserve(kChain);
@@ -117,6 +172,7 @@ void Deep(float scale) {
   const auto generation = f.scene.Generation();
   Access::SetHierarchyExpanded(f.ui, expanded);
   f.Settled();
+  progress.Start("row-checks");
   const auto rows = Access::HierarchyRows(f.ui, f.scene);
   Require(rows.size() == kCount && Access::Inspect(f.ui).hierarchy_visible_rows == kCount &&
               Access::Inspect(f.ui).hierarchy_rendered_rows > 0 &&
@@ -126,6 +182,7 @@ void Deep(float scale) {
     Require(rows[i].key == nodes[i].Key() && rows[i].depth == (i < kChain ? i : 0) &&
                 rows[i].has_children == (i + 1 < kChain),
             "deep parent-first or root-sibling order, depth or generation changed");
+  progress.Start("keyboard-navigation");
   Access::FocusHierarchy(f.ui);
   f.Draw();
   f.Press(Nexora::Window::Key::End);
@@ -135,6 +192,7 @@ void Deep(float scale) {
   f.Press(Nexora::Window::Key::Home);
   Require(f.scene.Selection().size() == 1 && f.scene.Selection().front() == nodes.front().id,
           "deep Home did not restore the first root selection");
+  progress.Start("collapse-expand");
   Access::QueueHierarchyExpansion(f.ui, nodes.front().Key(), false);
   f.Draw();
   auto collapsed = Access::HierarchyRows(f.ui, f.scene);
@@ -146,6 +204,7 @@ void Deep(float scale) {
   f.Draw();
   Require(Access::HierarchyRows(f.ui, f.scene).size() == kCount,
           "re-expansion lost the retained deep subtree");
+  progress.Start("filter");
   Access::SetHierarchyFilter(f.ui, "Deep leaf");
   f.Draw();
   const auto filtered = Access::HierarchyRows(f.ui, f.scene);
@@ -153,6 +212,7 @@ void Deep(float scale) {
               filtered.front().depth == 0,
           "deep filter did not retain the exact owning identity");
   Access::SetHierarchyFilter(f.ui, "");
+  progress.Start("generation-reload");
   Require(f.scene.Reload(f.path) && f.scene.Generation() != generation,
           "generation invalidation setup failed");
   Access::SetHierarchyExpanded(f.ui, expanded);
@@ -163,11 +223,18 @@ void Deep(float scale) {
               replaced.front().key.document_generation == f.scene.Generation() &&
               rows.front().key.document_generation == generation,
           "stale expansion survived document replacement or owning observations changed");
+  progress.Start("source-history");
   f.Preserved();
+  progress.Start("fixture-destroy");
 }
 void Flat() {
-  Fixture f(false, 1);
+  const ProgressContext context{"correctness", "flat-roots", 1};
+  Progress progress(context);
+  progress.Start("fixture-create");
+  Fixture f(false, 1, context);
+  progress.Start("settle");
   f.Settled();
+  progress.Start("row-checks");
   const auto rows = Access::HierarchyRows(f.ui, f.scene);
   const auto state = Access::Inspect(f.ui);
   Require(rows.size() == kCount && state.hierarchy_visible_rows == kCount &&
@@ -176,10 +243,14 @@ void Flat() {
   for (std::size_t i = 0; i < rows.size(); ++i)
     Require(rows[i].key.id == kFirst + i && rows[i].depth == 0 && !rows[i].has_children,
             "flat sibling order or leaf state changed");
+  progress.Start("source-history");
   f.Preserved();
+  progress.Start("fixture-destroy");
 }
 
 void MixedTopology() {
+  Progress progress({"correctness", "mixed-topology", 1});
+  progress.Start("topology-checks");
   runtime::World world;
   const auto sid = world.LoadScene("Mixed topology");
   editor::SceneDocument scene(world, sid);
@@ -315,13 +386,19 @@ void Benchmark(bool at_end = false) {
       if (at_end && !deep)
         continue;
       for (const float scale : {1.F, 2.F}) {
+        const ProgressContext context{
+            "benchmark", at_end ? "expanded-chain-end" : (deep ? "expanded-chain" : "flat-roots"),
+            scale, cycle};
+        Progress progress(context);
+        progress.Start("fixture-create");
         allocator.stats.peak_bytes = 0;
         std::vector<double> milliseconds;
         milliseconds.reserve(kSamples);
         std::size_t maximum_rows = 0;
         std::size_t maximum_vertices = 0;
         {
-          Fixture f(deep, scale);
+          Fixture f(deep, scale, context);
+          progress.Start("expand-settle");
           // SetDisplay takes logical dimensions; keep the viewport identical across DPI cases.
           f.ui.SetDisplay(1280, 900, scale);
           Require(ImGui::GetIO().DisplaySize.x == 1280 && ImGui::GetIO().DisplaySize.y == 900 &&
@@ -339,6 +416,7 @@ void Benchmark(bool at_end = false) {
           // Six production-shell draws settle docking/focus/atlas before timing starts.
           f.Settled();
           if (at_end) {
+            progress.Start("scroll-end-warmup");
             auto *window = ImGui::FindWindowByName("Hierarchy###nexora.hierarchy");
             Require(window && window->ScrollMax.y > 0, "end benchmark has no scrollable hierarchy");
             ImGui::SetScrollY(window, window->ScrollMax.y);
@@ -348,6 +426,7 @@ void Benchmark(bool at_end = false) {
             Require(window->Scroll.y > 0 && f.scene.Selection().empty(),
                     "end benchmark did not scroll without changing selection");
           }
+          progress.Start("sample-frames");
           for (int sample = 0; sample < kSamples; ++sample) {
             const auto begin = std::chrono::steady_clock::now();
             f.Draw();
@@ -372,11 +451,15 @@ void Benchmark(bool at_end = false) {
             maximum_vertices =
                 std::max(maximum_vertices, static_cast<std::size_t>(draw->TotalVtxCount));
           }
+          progress.Start("source-history");
           f.Preserved();
+          progress.Start("fixture-destroy");
         }
+        progress.Start("teardown-check");
         Require(allocator.stats.live_bytes == 0 && allocator.stats.live_count == 0 &&
                     ImGui::GetCurrentContext() == nullptr,
                 "large-scene host teardown retained ImGui allocations or context");
+        progress.Start("sample-report");
         std::sort(milliseconds.begin(), milliseconds.end());
         std::cout
             << std::fixed << std::setprecision(3)
