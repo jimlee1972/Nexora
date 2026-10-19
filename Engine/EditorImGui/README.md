@@ -479,7 +479,17 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   `AssetWorkspace` on the window/authoring thread, and keeps the selector open after cancellation or
   failure.
 - Content labels, selected paths and drag/context labels convert native paths explicitly to UTF-8;
-  the host never uses the Windows system code page for asset names.
+  the host never uses the Windows system code page for asset names. Asset/folder rows and breadcrumb
+  buttons render the complete literal name, including `##`, `###` and `%`. Their IDs hash canonical
+  project-root bytes, Content generation, role and UUID/relative-path bytes independently of text;
+  user marker sequences cannot reset hashing. Folder and selected-scene Enter routing uses those
+  same row IDs. Folder/root/generation changes mark retired navigation for reinitialization on a
+  subsequent focused Tab, allowing nested/parent traversal without moving the pointer or scrolling
+  before the next click. Surviving breadcrumb/search controls and focused current-view rows clear
+  that pending state. Navigation remains inspection-only;
+  source/sidecar bytes, revision and pending
+  Content Undo are preserved. These are ImGui control identities, not persistent asset identities
+  or a semantic accessibility bridge.
 - The host does not own a native window or swapchain. The application supplies events exposed by
   `RenderSurface::Events`; the native `Render` overload flattens ImGui draw lists into the public
   backend-neutral `UiDrawData` contract. `RenderSurface` records those indexed draws directly into

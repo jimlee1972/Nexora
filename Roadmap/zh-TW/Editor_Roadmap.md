@@ -260,6 +260,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。縮圖與實體
   workflow gate 仍待完成；有界的單一 entry Content 診斷見下項。
 
+- ✅ Content 資產／資料夾列與麵包屑按鈕現完整顯示 UTF-8 原文標記名稱（`##`、`###`、`%），
+  ID 依 project root／generation／role 分隔且獨立於顯示文字。真正 1x／2x 滑鼠及 Tab／Enter
+  測試區分相同尾碼的同層資料夾、巢狀標記路徑與同名場景資產，檢查實際輸出的字形，並保留
+  唯讀檢視、source／sidecar bytes、revision 與 pending Undo。實體無障礙／工作流程驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-LiteralContentLabels-Linux-2026-10-20.md)。
+
 - ✅ Content 依賴檢視現提供以 UUID 定位的正／反向 Reveal：切換目標資料夾、清除 query／
   type filter、選取並捲動至原先被裁切的列。Portable 與真正 1x／2x ImGui 操作涵蓋唯讀、
   缺失目標、原文名稱、scope／input guard，以及 source／sidecar／revision／pending Undo

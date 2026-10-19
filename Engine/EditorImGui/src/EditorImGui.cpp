@@ -301,6 +301,10 @@ struct EditorImGuiHost::State final {
   std::optional<std::array<float, 2>> content_open_scene_position;
   std::string content_scene_error;
   std::vector<std::pair<runtime::AssetUuid, std::array<float, 2>>> content_asset_positions;
+  std::array<std::vector<std::pair<std::filesystem::path, std::array<float, 2>>>, 2>
+      content_path_positions;
+  std::optional<runtime::AssetUuid> content_focused_asset;
+  bool content_navigation_reinit{};
   std::optional<std::array<float, 2>> camera_align_position;
   runtime::Id game_camera_selection{};
   std::uint64_t game_camera_generation{};
@@ -909,6 +913,28 @@ const char *ThumbnailLabel(ThumbnailState state) {
     return "[Failed]";
   }
   return "[Unknown]";
+}
+
+// ImHashStr interprets ### even inside a PushID string. Hash owning scope and identity
+// as raw bytes; display names never participate in control identity.
+ImGuiID ContentIdentity(ImGuiID scope, std::string_view role, std::string_view key) {
+  const auto seed = ImHashData(role.data(), role.size(), scope);
+  return ImHashData(key.data(), key.size(), seed);
+}
+
+ImGuiID ContentRowId(ImGuiID scope, std::string_view role, std::string_view key) {
+  return ImHashStr("##content-row", 0, ContentIdentity(scope, role, key));
+}
+
+bool LiteralContentRow(std::string_view text, bool selected) {
+  auto position = ImGui::GetCursorScreenPos();
+  position.y += ImGui::GetCurrentWindow()->DC.CurrLineTextBaseOffset;
+  const bool activated =
+      ImGui::Selectable("##content-row", selected, ImGuiSelectableFlags_AllowDoubleClick,
+                        ImVec2(0, ImGui::GetTextLineHeight()));
+  ImGui::GetWindowDrawList()->AddText(position, ImGui::GetColorU32(ImGuiCol_Text), text.data(),
+                                      text.data() + text.size());
+  return activated;
 }
 
 bool ActionableConflict(const DirtyConflict &conflict) noexcept {
@@ -3642,6 +3668,9 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_rename_positions = {};
   state.content_search_position.reset();
   state.content_focused_folder.reset();
+  state.content_focused_asset.reset();
+  for (auto &positions : state.content_path_positions)
+    positions.clear();
   if (!ImGui::Begin(window.c_str())) {
     state.content_reveal.reset();
     state.content_rename_target.reset();
@@ -3657,11 +3686,25 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   // SetFolder rebuilds the breadcrumb span being iterated, so defer navigation until the loop ends.
   std::optional<std::filesystem::path> navigate_to;
-  int breadcrumb_index = 0;
+  const auto root_label = PathLabel(content.Root());
+  auto content_scope =
+      ImHashData(root_label.data(), root_label.size(), ImGui::GetID("editor.content.identity"));
+  const auto generation = browser.ProjectGeneration();
+  content_scope = ImHashData(&generation, sizeof(generation), content_scope);
   for (const auto &breadcrumb : browser.Breadcrumbs()) {
-    ImGui::PushID(breadcrumb_index++);
-    if (ImGui::Button(breadcrumb.label.c_str()))
+    ImGui::PushOverrideID(ContentIdentity(content_scope, "breadcrumb", PathLabel(breadcrumb.path)));
+    const auto position = ImGui::GetCursorScreenPos();
+    const auto padding = ImGui::GetStyle().FramePadding;
+    const auto size = ImGui::CalcTextSize(breadcrumb.label.data(),
+                                          breadcrumb.label.data() + breadcrumb.label.size(), false);
+    if (ImGui::Button("##breadcrumb", ImVec2(size.x + padding.x * 2, size.y + padding.y * 2)))
       navigate_to = breadcrumb.path;
+    ImGui::GetWindowDrawList()->AddText(ImVec2(position.x + padding.x, position.y + padding.y),
+                                        ImGui::GetColorU32(ImGuiCol_Text), breadcrumb.label.data(),
+                                        breadcrumb.label.data() + breadcrumb.label.size());
+    const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+    state.content_path_positions[1].push_back(
+        {breadcrumb.path, {(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F}});
     static_cast<void>(AcceptAssetDrop(content, breadcrumb.path));
     ImGui::PopID();
     ImGui::SameLine();
@@ -3710,10 +3753,23 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   }
   const auto navigation_folder =
       browser.Breadcrumbs().empty() ? std::filesystem::path{} : browser.Breadcrumbs().back().path;
-  if (filter_changed || state.content_navigation_generation != browser.ProjectGeneration() ||
-      state.content_navigation_revision != browser.Revision() ||
+  // A retired row must not strand Tab navigation. Wait for keyboard navigation before
+  // reinitializing, so a scope transition cannot move the mouse or scroll before its next click.
+  const bool navigation_scope_changed =
+      state.content_navigation_generation != browser.ProjectGeneration() ||
       state.content_navigation_root != content.Root() ||
-      state.content_navigation_folder != navigation_folder) {
+      state.content_navigation_folder != navigation_folder;
+  if (navigation_scope_changed)
+    state.content_navigation_reinit =
+        ImGui::GetCurrentContext()->NavWindow != ImGui::GetCurrentWindow() ||
+        !ImGui::GetCurrentContext()->NavIdIsAlive;
+  if (state.content_navigation_reinit && keyboard && ImGui::IsKeyPressed(ImGuiKey_Tab, false) &&
+      ImGui::GetCurrentContext()->NavWindow == ImGui::GetCurrentWindow()) {
+    ImGui::NavInitWindow(ImGui::GetCurrentWindow(), true);
+    state.content_navigation_reinit = false;
+  }
+  if (filter_changed || navigation_scope_changed ||
+      state.content_navigation_revision != browser.Revision()) {
     state.content_navigation_cursor.reset();
     state.content_navigation_anchor.reset();
     state.content_navigation_generation = browser.ProjectGeneration();
@@ -3799,8 +3855,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   const auto folders = browser.ChildFolders();
   const bool folder_activation =
       keyboard && std::ranges::any_of(folders, [&](const Breadcrumb &entry) {
-        const auto label = "[Folder] " + entry.label + "##" + PathLabel(entry.path);
-        return ImGui::GetCurrentContext()->NavActivateId == ImGui::GetID(label.c_str());
+        return ImGui::GetCurrentContext()->NavActivateId ==
+               ContentRowId(content_scope, "folder", PathLabel(entry.path));
       });
   const auto selected_assets = browser.Selection();
   const auto *selected_mesh =
@@ -3843,14 +3899,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       std::array{(open_min.x + open_max.x) * 0.5F, (open_min.y + open_max.y) * 0.5F};
   ImGui::EndDisabled();
   const auto activation = ImGui::GetCurrentContext()->NavActivateId;
-  const auto selected_scene_label = selected_scene
-                                        ? std::string(ThumbnailLabel(selected_scene->thumbnail)) +
-                                              " " + PathLabel(selected_scene->path.filename()) +
-                                              "##" + selected_scene->id.ToString()
-                                        : std::string{};
   const bool asset_activation =
       activation == 0 ||
-      (selected_scene && activation == ImGui::GetID(selected_scene_label.c_str()));
+      (selected_scene &&
+       activation == ContentRowId(content_scope, "asset", selected_scene->id.ToString()));
   if (!folder_activation && asset_activation && scene_openable && selected_scene_file &&
       !ImGui::GetIO().WantTextInput &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
@@ -3886,19 +3938,25 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   }
   state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
   for (const auto &folder : folders) {
-    const auto label = "[Folder] " + folder.label + "##" + PathLabel(folder.path);
-    const bool activated =
-        ImGui::Selectable(label.c_str(), false, ImGuiSelectableFlags_AllowDoubleClick);
-    if (ImGui::IsItemFocused())
+    ImGui::PushOverrideID(ContentIdentity(content_scope, "folder", PathLabel(folder.path)));
+    const bool activated = LiteralContentRow("[Folder] " + folder.label, false);
+    const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+    if (ImGui::IsItemVisible())
+      state.content_path_positions[0].push_back(
+          {folder.path, {(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F}});
+    if (ImGui::IsItemFocused()) {
       state.content_focused_folder = folder.path;
+      state.content_navigation_reinit = false;
+    }
     const bool keyboard_activation =
         keyboard && ImGui::GetCurrentContext()->NavActivateId == ImGui::GetItemID();
     if (activated && (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) || keyboard_activation))
       navigate_to = folder.path;
     static_cast<void>(AcceptAssetDrop(content, folder.path));
+    ImGui::PopID();
   }
-  if (navigate_to && browser.Breadcrumbs().back().path != *navigate_to) {
-    static_cast<void>(browser.SetFolder(*navigate_to));
+  if (navigate_to && browser.Breadcrumbs().back().path != *navigate_to &&
+      browser.SetFolder(*navigate_to)) {
     ImGui::SetScrollY(0);
   }
 
@@ -3915,10 +3973,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         browser.Visible(static_cast<std::size_t>(clipper.DisplayStart),
                         static_cast<std::size_t>(clipper.DisplayEnd - clipper.DisplayStart));
     for (const auto *item : visible) {
-      const auto label = std::string(ThumbnailLabel(item->thumbnail)) + " " +
-                         PathLabel(item->path.filename()) + "##" + item->id.ToString();
-      if (ImGui::Selectable(label.c_str(), browser.IsSelected(item->id),
-                            ImGuiSelectableFlags_AllowDoubleClick)) {
+      ImGui::PushOverrideID(ContentIdentity(content_scope, "asset", item->id.ToString()));
+      const auto label =
+          std::string(ThumbnailLabel(item->thumbnail)) + " " + PathLabel(item->path.filename());
+      if (LiteralContentRow(label, browser.IsSelected(item->id))) {
         if (ImGui::GetIO().KeyShift && state.content_navigation_anchor &&
             browser.SelectVisibleRange(*state.content_navigation_anchor, item->id)) {
           // Keep the original anchor when extending or shrinking the visible interval.
@@ -3933,6 +3991,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         if (scene_openable && item->type == ".scene" && item->path.extension() == ".scene" &&
             ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
           BeginContentScene(state, *scene, item->path);
+      }
+      if (ImGui::IsItemFocused()) {
+        state.content_focused_asset = item->id;
+        state.content_navigation_reinit = false;
       }
       const auto asset_min = ImGui::GetItemRectMin(), asset_max = ImGui::GetItemRectMax();
       state.content_asset_positions.push_back(
@@ -3964,6 +4026,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           delete_assets = {item->id};
         ImGui::EndPopup();
       }
+      ImGui::PopID();
     }
   }
 
@@ -4789,6 +4852,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->content_dependency_controls = {};
   state_->content_dependency_headers = {};
   state_->content_asset_positions.clear();
+  state_->content_focused_asset.reset();
+  for (auto &positions : state_->content_path_positions)
+    positions.clear();
   state_->content_asset_diagnostic.clear();
   state_->camera_align_position.reset();
   state_->play_inspector_rendered = 0;
@@ -8130,6 +8196,18 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
 std::optional<std::filesystem::path>
 EditorImGuiTestAccess::ContentFocusedFolder(const EditorImGuiHost &host) {
   return host.state_->content_focused_folder;
+}
+std::optional<runtime::AssetUuid>
+EditorImGuiTestAccess::ContentFocusedAsset(const EditorImGuiHost &host) {
+  return host.state_->content_focused_asset;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentPathPosition(const EditorImGuiHost &host,
+                                           const std::filesystem::path &path, bool breadcrumb) {
+  for (const auto &[candidate, position] : host.state_->content_path_positions[breadcrumb ? 1 : 0])
+    if (candidate == path)
+      return position;
+  return {};
 }
 void EditorImGuiTestAccess::FocusGame(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
