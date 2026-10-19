@@ -270,6 +270,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   mode. Thumbnails and physical workflow gates remain open; bounded per-entry Content diagnostics
   are described below.
 
+- ✅ Content dependency inspection now offers UUID-scoped Reveal for forward and reverse live
+  targets, navigating to their folder, clearing query/type filters, selecting and scrolling clipped
+  rows. Read-only inspection, missing-target rejection, literal names, scope/input guards and
+  source/sidecar/revision/pending-Undo preservation are covered by portable and actual 1x/2x ImGui
+  controls. Physical workflow acceptance remains open.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-DependencyReveal-Linux-2026-10-19.md).
+
 - ✅ Content Browser now shows owning initial import failure text for the selected asset, including
   read-only inspection, with a 1024-byte UTF-8/no-NUL admission limit. Invalid Reset/Discover preserve
   the live model; successful reimport clears both live and retained Content Undo diagnostics.

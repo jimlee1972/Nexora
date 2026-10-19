@@ -260,6 +260,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。縮圖與實體
   workflow gate 仍待完成；有界的單一 entry Content 診斷見下項。
 
+- ✅ Content 依賴檢視現提供以 UUID 定位的正／反向 Reveal：切換目標資料夾、清除 query／
+  type filter、選取並捲動至原先被裁切的列。Portable 與真正 1x／2x ImGui 操作涵蓋唯讀、
+  缺失目標、原文名稱、scope／input guard，以及 source／sidecar／revision／pending Undo
+  保留。實體工作流程驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-DependencyReveal-Linux-2026-10-19.md)。
+
 - ✅ Content Browser 現會顯示所選資產的 owning 初次匯入失敗原因，包含唯讀檢視，admission 限制為
   最多 1024 bytes、合法 UTF-8 且不含 NUL。無效 Reset／Discover 保留 live model；成功 reimport
   同時清除 live item 與保留的 Content Undo 診斷。背景 Reimport 以明確的復原模式重試尚無舊

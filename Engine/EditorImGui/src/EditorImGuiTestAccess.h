@@ -143,6 +143,13 @@ public:
   [[nodiscard]] static std::string_view ContentRenameText(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentAssetPosition(const EditorImGuiHost &host, runtime::AssetUuid asset) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ContentDependencyHeaderPosition(const EditorImGuiHost &host, bool reverse = false) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ContentDependencyPosition(const EditorImGuiHost &host, runtime::AssetUuid asset,
+                            bool reverse = false) noexcept;
+  static void FocusContentDependency(EditorImGuiHost &host, runtime::AssetUuid asset,
+                                     bool reverse = false) noexcept;
   [[nodiscard]] static bool ContentDragActive(const EditorImGuiHost &host) noexcept;
   static void FocusProfiler(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>

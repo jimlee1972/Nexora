@@ -424,6 +424,14 @@ Content Undo snapshot; failed reimport preserves the item and reports the curren
 separately. The existing Reimport action can retry an initial failure without an old artifact,
 using explicit recovery admission and the same publication revision checks. These diagnostics
 are reconstructed from indexing rather than persisted in scenes.
+Asset details offer UUID-scoped Reveal buttons for both Dependencies and Referenced by. A live
+indexed target opens its Content folder, clears search/type filters and becomes the sole selection;
+clipped targets are scrolled into view on the next frame. This also works in read-only inspection
+and does not open a scene, reimport, write source/sidecars, change the content revision or replace
+pending Content Undo. Missing targets retain a literal unavailable UUID and disabled action.
+Input ownership/modal gates apply; deferred scrolling checks current project root, generation,
+revision, folder and selection, and is discarded when Content closes or its panel is hidden.
+Names are printed literally, including Unicode and ImGui marker characters.
 Focused Content F2 renames one selected asset with focused/select-all UTF-8 filename input;
 Enter/Apply commits one Content Undo and Escape/Cancel abandons it. Context Rename shares this
 flow. Invalid names are retryable and unchanged names close without a filesystem transaction.

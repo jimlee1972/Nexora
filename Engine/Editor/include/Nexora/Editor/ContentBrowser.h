@@ -50,6 +50,9 @@ public:
   // folder/filter, and pending content Undo survive; Undo also retains this newly saved asset.
   bool Discover(ContentItem item);
   bool SetFolder(const std::filesystem::path &folder);
+  // Inspect one current asset: reveal its folder, clear filters and replace selection.
+  // Missing/unrevealable IDs preserve view state. Revision and mutation Undo never change.
+  bool RevealAsset(runtime::AssetUuid id);
   void SetFilter(std::string query, std::string type = {});
   [[nodiscard]] std::vector<const ContentItem *> Visible(std::size_t offset,
                                                          std::size_t count) const;

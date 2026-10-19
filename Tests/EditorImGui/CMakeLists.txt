@@ -827,3 +827,9 @@ if(NEXORA_ENABLE_2D AND NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
   set_tests_properties(editor.linux_native_game_twod PROPERTIES
     TIMEOUT 180 RUN_SERIAL TRUE LABELS "editor;twod;vulkan;virtual-display")
 endif()
+
+add_executable(NexoraContentDependencyTests ContentDependencyTests.cpp)
+target_include_directories(NexoraContentDependencyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraContentDependencyTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraContentDependencyTests)
+add_test(NAME editor.content_dependency_reveal COMMAND NexoraContentDependencyTests)

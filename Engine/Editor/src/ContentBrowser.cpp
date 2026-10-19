@@ -143,6 +143,25 @@ bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
   }
   return true;
 }
+bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
+  const auto *item = Find(id);
+  if (!item || !SafeRelative(item->path.parent_path()))
+    return false;
+  auto folder = item->path.parent_path();
+  std::vector<Breadcrumb> breadcrumbs;
+  std::filesystem::path current;
+  for (const auto &part : folder) {
+    current /= part;
+    breadcrumbs.push_back({PathUtf8(part), current});
+  }
+  std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selection{id};
+  folder_.swap(folder);
+  breadcrumbs_.swap(breadcrumbs);
+  selection_.swap(selection);
+  query_.clear();
+  type_.clear();
+  return true;
+}
 void ContentBrowserModel::SetFilter(std::string query, std::string type) {
   query_ = Lower(query);
   type_ = Lower(type);
