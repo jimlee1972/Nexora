@@ -227,6 +227,8 @@ std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const {
       continue;
     auto part = relative.begin();
     const auto name = *part;
+    if (name == "..")
+      continue;
     const auto label = PathUtf8(name);
     if (++part == relative.end())
       continue;

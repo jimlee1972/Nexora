@@ -250,6 +250,10 @@ void MarkerLabels(float dpi) {
       Require(current() == folder, "pointer opened the wrong marker sibling");
       f.Draw();
       f.Draw();
+      Require(browser.ChildFolders().size() == (folder == foo ? 1U : 0U) &&
+                  !Access::ContentPathPosition(f.ui, "Content") &&
+                  Access::ContentPathPosition(f.ui, "Content", true).has_value(),
+              "nested view rendered a parent row or lost the explicit parent breadcrumb");
       RequireLiteral(folder == foo ? "Foo###same" : "Bar###same");
       const auto id = asset_at(folder / name);
       Require(browser.Select(id), "marker asset selection failed");
@@ -284,7 +288,10 @@ void MarkerLabels(float dpi) {
     key(Key::Enter);
     f.Draw();
     f.Draw();
-    Require(current() == nested, "nested marker folder Enter failed");
+    Require(current() == nested && browser.ChildFolders().empty() &&
+                !Access::ContentPathPosition(f.ui, foo) &&
+                Access::ContentPathPosition(f.ui, foo, true).has_value(),
+            "nested marker leaf retained an unrelated parent row or lost its breadcrumb");
     RequireLiteral("Nested##%###same");
     f.Click(Access::ContentPathPosition(f.ui, foo, true));
     f.Draw();

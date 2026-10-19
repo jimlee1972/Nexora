@@ -266,6 +266,11 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   唯讀檢視、source／sidecar bytes、revision 與 pending Undo。實體無障礙／工作流程驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM1-LiteralContentLabels-Linux-2026-10-20.md)。
 
+- ✅ Content 資料夾列現僅從目前目錄的嚴格子孫路徑產生；同層、名稱前綴相似、祖先或
+  不同根目錄的資產不再製造父層列。Portable scope／filter／selection／Undo 測試及真正
+  1x／2x 可寫／唯讀資料夾與麵包屑操作，驗證明確的父層導覽及 source／sidecar bytes 保留。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ChildFolderScope-Linux-2026-10-20.md)。
+
 - ✅ Content 依賴檢視現提供以 UUID 定位的正／反向 Reveal：切換目標資料夾、清除 query／
   type filter、選取並捲動至原先被裁切的列。Portable 與真正 1x／2x ImGui 操作涵蓋唯讀、
   缺失目標、原文名稱、scope／input guard，以及 source／sidecar／revision／pending Undo
