@@ -15,8 +15,8 @@ WINDOWS_OS_IMPORTS = {
     'kernel32.dll', 'kernelbase.dll', 'ntdll.dll', 'user32.dll', 'gdi32.dll', 'imm32.dll',
     'advapi32.dll', 'shell32.dll', 'shlwapi.dll', 'ole32.dll', 'oleaut32.dll', 'comdlg32.dll',
     'comctl32.dll', 'ucrtbase.dll', 'msvcrt.dll', 'ws2_32.dll', 'winmm.dll', 'winhttp.dll',
-    'bcrypt.dll', 'crypt32.dll', 'secur32.dll', 'setupapi.dll', 'version.dll', 'dbghelp.dll',
-    'd3d12.dll', 'd3d11.dll', 'dxgi.dll', 'd3dcompiler_47.dll', 'vulkan-1.dll', 'xinput1_4.dll',
+    'bcrypt.dll', 'crypt32.dll', 'secur32.dll', 'setupapi.dll', 'cfgmgr32.dll', 'version.dll', 'dbghelp.dll',
+    'd3d12.dll', 'd3d11.dll', 'dxgi.dll', 'd3dcompiler_47.dll', 'xinput1_4.dll',
     'dinput8.dll',
 }
 
@@ -56,7 +56,7 @@ def local(root, name):
     return result
 
 
-def dependencies(binary, destination, allow_development, redist):
+def dependencies(binary, destination, allow_development, redist, vulkan_loader=None):
     if sys.platform == 'win32':
         # Only dependency names are ASCII. The source path in dumpbin's heading can use a
         # different Windows console encoding from Python's locale (notably CJK directories).
@@ -75,7 +75,7 @@ def dependencies(binary, destination, allow_development, redist):
                 target = destination / name
                 if not target.exists():
                     shutil.copy2(source, target)
-                    dependencies(source, destination, allow_development, redist)
+                    dependencies(source, destination, allow_development, redist, vulkan_loader)
                 continue
             if lower.startswith(('vcruntime', 'msvcp', 'concrt')):
                 source = (redist / name) if redist else binary.parent / name
@@ -86,7 +86,17 @@ def dependencies(binary, destination, allow_development, redist):
                 target = destination / name
                 if not target.exists():
                     shutil.copy2(source, target)
-                    dependencies(source, destination, allow_development, redist)
+                    dependencies(source, destination, allow_development, redist, vulkan_loader)
+            elif lower == 'vulkan-1.dll':
+                # The Vulkan loader is not a Windows OS component. Static imports require it
+                # even for headless/DX12 startup; never borrow the build machine's PATH copy.
+                if (vulkan_loader is None or vulkan_loader.name.lower() != 'vulkan-1.dll' or
+                        not vulkan_loader.is_file()):
+                    raise ValueError('vulkan-1.dll missing; pass --vulkan-loader with the matching redistributable loader')
+                target = destination / 'vulkan-1.dll'
+                if not target.exists():
+                    shutil.copy2(vulkan_loader, target)
+                    dependencies(vulkan_loader, destination, allow_development, redist, vulkan_loader)
             elif lower not in WINDOWS_OS_IMPORTS and not lower.startswith(('api-ms-win-', 'ext-ms-win-')):
                 raise ValueError('unhandled non-system DLL dependency: ' + name)
     elif sys.platform.startswith('linux'):
@@ -104,7 +114,8 @@ def dependencies(binary, destination, allow_development, redist):
         raise ValueError('game export currently supports Windows and Linux')
 
 
-def export(descriptor, runtime, output, compiler=None, allow_development=False, redist=None):
+def export(descriptor, runtime, output, compiler=None, allow_development=False, redist=None,
+           vulkan_loader=None):
     descriptor, runtime, output = descriptor.resolve(), runtime.resolve(), output.absolute()
     if output.exists():
         raise ValueError('output must be a fresh directory')
@@ -138,9 +149,9 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
         staging = Path(temporary) / 'game'
         staging.mkdir()
         shutil.copy2(runtime, staging / runtime.name)
-        dependencies(runtime, staging, allow_development, redist)
+        dependencies(runtime, staging, allow_development, redist, vulkan_loader)
         shutil.copy2(module, staging / ('gameplay' + module.suffix))
-        dependencies(module, staging, allow_development, redist)
+        dependencies(module, staging, allow_development, redist, vulkan_loader)
         (staging / 'assets').mkdir()
         quote = lambda value: '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
         lines = ['NEXORA_2D_GAME 1']
@@ -216,10 +227,12 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--compiler', type=Path)
     parser.add_argument('--vc-redist', type=Path)
+    parser.add_argument('--vulkan-loader', type=Path,
+                        help='explicit matching redistributable vulkan-1.dll, required when imported')
     parser.add_argument('--allow-development', action='store_true')
     args = parser.parse_args()
     print(export(args.descriptor, args.runtime, args.output, args.compiler,
-                 args.allow_development, args.vc_redist))
+                 args.allow_development, args.vc_redist, args.vulkan_loader))
 
 
 if __name__ == '__main__':

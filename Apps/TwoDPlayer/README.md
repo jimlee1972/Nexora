@@ -85,6 +85,17 @@ launch; no Python, compiler, Editor or source project is needed at runtime. OS/g
 prerequisites and redistribution licensing remain the distributor's responsibility.
 `--allow-development` is for automated internal tests only: its inventory marks that fact and
 it can copy engine libraries/use the build host CRT. It is not a standalone Shipping package.
+
+When the executable or a module imports `vulkan-1.dll`, also pass
+`--vulkan-loader path/to/redistributable/vulkan-1.dll` with the matching architecture. The Vulkan
+loader is not a Windows OS DLL: a static import requires it before `main`, including headless
+or DX12 execution. Export copies only this explicitly supplied loader, recursively checks its
+imports and includes its hash in the inventory. Missing/misnamed loaders and unresolved transitive
+imports fail before output publication, including development test copies. A Vulkan-disabled
+DX12-only binary needs no loader argument. Host fixture and Zig project acceptance scripts accept
+the same option. Supplying the loader does not install a Vulkan ICD/GPU driver or establish
+clean-host acceptance; publish a newly hashed package and rerun that host gate. Preserve the
+redistribution license obligations of the selected loader along with the existing CRT/assets.
 The exporter currently targets Windows and Linux. It never changes existing output directories.
 
 ## Text and fonts

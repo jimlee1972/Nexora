@@ -59,7 +59,7 @@ def stage(args, root):
     descriptor.write_text(json.dumps(config, ensure_ascii=False), encoding='utf-8')
     package = root / 'package'
     exporter.export(descriptor, args.app, package, allow_development=not args.shipping,
-                    redist=args.redist)
+                    redist=args.redist, vulkan_loader=args.vulkan_loader)
     return package
 
 
@@ -125,6 +125,7 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--real-font', type=Path)
     parser.add_argument('--redist', type=Path)
+    parser.add_argument('--vulkan-loader', type=Path)
     parser.add_argument('--shipping', action='store_true')
     parser.add_argument('--stage-only', action='store_true')
     args = parser.parse_args()

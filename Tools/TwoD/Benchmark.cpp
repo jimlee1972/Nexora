@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
     bool native = false;
     bool integrated = false;
     bool integratedOptions = false;
-    unsigned soakSeconds = 0, reloadEvery = 600;
+    unsigned soakSeconds = 0, reloadEvery = 600, objects = 10000;
     auto backend = Nexora::Presentation::SurfaceBackend::Automatic;
     unsigned frames = 48;
     for (int i = 1; i < argc; ++i) {
@@ -288,7 +288,14 @@ int main(int argc, char **argv) {
         native = true;
       else if (a == "--integrated")
         integrated = true;
-      else if ((a == "--soak-seconds" || a == "--reload-every") && i + 1 < argc) {
+      else if (a == "--objects" && i + 1 < argc) {
+        integratedOptions = true;
+        std::string_view n = argv[++i];
+        auto r = std::from_chars(n.data(), n.data() + n.size(), objects);
+        Check(r.ec == std::errc{} && r.ptr == n.data() + n.size() &&
+                  (objects == 1000 || objects == 5000 || objects == 10000),
+              "integrated objects must be 1000, 5000 or 10000");
+      } else if ((a == "--soak-seconds" || a == "--reload-every") && i + 1 < argc) {
         integratedOptions = true;
         std::string_view n = argv[++i];
         unsigned value{};
@@ -327,12 +334,13 @@ int main(int argc, char **argv) {
       } else
         throw std::runtime_error(
             "usage: NexoraTwoDBenchmark [--native --backend auto|dx12|vulkan|metal --frames 48] "
-            "--report FILE.csv [--frame-trace FRAMES.csv]");
+            "--report FILE.csv [--frame-trace FRAMES.csv] "
+            "[--integrated --objects 1000|5000|10000 --reload-every N --soak-seconds N]");
     }
     Check(native || backend == Nexora::Presentation::SurfaceBackend::Automatic,
           "explicit backend requires native presentation");
     Check(!reportPath.empty(), "report required");
-    Check(integrated || !integratedOptions, "soak/reload options require integrated mode");
+    Check(integrated || !integratedOptions, "object/soak/reload options require integrated mode");
     Check(!integrated || !frameTracePath.empty(), "integrated mode requires frame trace");
     std::optional<twod::Atlas> loadedAtlas;
     std::optional<twod::Clip> loadedClip;
@@ -377,10 +385,11 @@ int main(int argc, char **argv) {
                "begin_frame_ms,populate_ms,index_ms,query_ms,extract_ms,draw_ms,end_frame_ms\n";
     }
     if (integrated) {
-      twod::validation::IntegratedStress(report, frameTrace,
-                                         {native, frames, soakSeconds, reloadEvery, backend},
-                                         loadedAtlas, loadedClip);
-      std::cout << "Integrated 10k fixture completed; product minimum-PC acceptance is separate.\n";
+      twod::validation::IntegratedStress(
+          report, frameTrace, {native, frames, soakSeconds, reloadEvery, backend, objects},
+          loadedAtlas, loadedClip);
+      std::cout << "Integrated " << objects
+                << "-object fixture completed; product minimum-PC acceptance is separate.\n";
       return 0;
     }
     auto *trace = frameTrace.is_open() ? &frameTrace : nullptr;
