@@ -1409,6 +1409,12 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   production frame／process-memory budget、native GPU／asset scale、長時間及實體 host soak
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md)。
 
+- ✅ 真正 10 萬節點 Hierarchy 正確性／生命週期程式現將 dataset／DPI／cycle 階段開始、
+  完成／失敗耗時立即 flush 至 stderr，涵蓋載入、UI 操作、取樣與銷毀。Benchmark stdout
+  保持 schema-1 JSONL，個別 frame timer 不包含輸出。已驗證強制中止／例外診斷及原有
+  正確性／生命週期 gate；Windows 相同 commit 耗時差異、production budget 與實體驗收
+  仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM7-HierarchyPhases-Linux-2026-10-19.md)。
+
 - ✅ Hierarchy snapshot 經完整 current-ID／slot-order 驗證後重用 owning metadata index，
   減少重複 hash-node 配置，且不快取 name／parent 或 native／World borrow。同筆數替換、
   Undo／Redo／reload／new／Runtime order 改變保留 snapshot 正確性與既有 name-borrow lifetime。

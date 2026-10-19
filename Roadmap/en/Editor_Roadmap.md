@@ -1439,6 +1439,13 @@ creates property widgets; unknown components retain raw data instead of being si
     frame/process-memory budgets, native GPU/asset scale and long-duration/physical-host soak remain
     open. [Linux evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyScale-Linux-2026-10-12.md).
 
+  - ✅ The real 100k-node hierarchy correctness/lifecycle executable now flushes dataset/DPI/cycle
+    phase starts and elapsed completion/failure records to stderr, covering load, UI work, samples
+    and teardown. Benchmark stdout remains schema-1 JSONL and individual frame timers exclude
+    logging. Forced interruption/exception diagnostics and unchanged correctness/lifecycle gates
+    are verified. Windows same-commit timing variance, production budgets and physical acceptance
+    remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyPhases-Linux-2026-10-19.md).
+
   - ✅ Hierarchy snapshots reuse an owned ID/metadata-slot index after full current-ID/order
     validation, reducing repeated hash-node allocation without caching names, parent relationships
     or native/World borrows. Same-count replacement, Undo/Redo/reload/new/Runtime-order changes
