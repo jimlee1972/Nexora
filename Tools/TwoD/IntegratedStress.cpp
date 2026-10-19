@@ -20,7 +20,7 @@ namespace nexora::twod::validation {
 namespace {
 using Clock = std::chrono::steady_clock;
 using namespace Nexora::Presentation;
-constexpr std::size_t objects = 10000, particles = 256;
+constexpr std::size_t particles = 256;
 constexpr std::size_t loadingBytes = 8 * 1024 * 1024;
 void Check(bool value, const char *message) {
   if (!value)
@@ -136,7 +136,7 @@ template <class T> void Optional(std::ostream &out, const std::optional<T> &valu
   if (value)
     out << *value;
 }
-void Write(std::ostream &out, const Sample &s) {
+void Write(std::ostream &out, const Sample &s, std::size_t objects) {
   out << s.frame << ',' << s.warmup << ',' << s.sparse << ',' << s.reloaded << ',' << s.elapsed
       << ',' << objects << ',' << particles << ',' << s.visible << ',' << s.culled << ','
       << s.batches << ',' << s.coverage << ',' << s.uiQuads << ',' << s.uiCommands << ','
@@ -166,6 +166,9 @@ void Write(std::ostream &out, const Sample &s) {
 void IntegratedStress(std::ostream &report, std::ostream &trace, const IntegratedOptions &options,
                       const std::optional<Atlas> &sourceAtlas,
                       const std::optional<Clip> &sourceClip) {
+  const auto objects = options.objects;
+  Check(objects == 1000 || objects == 5000 || objects == 10000,
+        "integrated objects must be 1000, 5000 or 10000");
   const auto loading = Clock::now();
   Image white{1, 8, 8, Bytes(256, std::byte{255})};
   Image alternate = white;
@@ -202,7 +205,7 @@ void IntegratedStress(std::ostream &report, std::ostream &trace, const Integrate
   RenderSurfaceResult surface;
   if (options.native) {
     RenderSurfaceDescriptor descriptor;
-    descriptor.title = "Nexora 2D integrated 10k soak";
+    descriptor.title = "Nexora 2D integrated soak";
     descriptor.width = 640;
     descriptor.height = 480;
     descriptor.enableGpuTiming = true;
@@ -258,7 +261,7 @@ void IntegratedStress(std::ostream &report, std::ostream &trace, const Integrate
     const auto begin = Clock::now();
     if (pending) {
       pending->cycle = Ms(previousStart, begin);
-      Write(trace, *pending); // This IO is included in the new frame/cycle interval.
+      Write(trace, *pending, objects); // This IO is included in the new frame/cycle interval.
       pending.reset();
     }
     if (frames == warmup)

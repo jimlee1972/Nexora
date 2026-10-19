@@ -102,6 +102,12 @@ python Tests/TwoD/HostAcceptance.py --app <Shipping-Player.exe> --module <HostMo
 ```
 
 `--backend vulkan` 可驗證已啟用 Vulkan 的相同 Shipping build；明確後端不可用時會失敗。
+若 Player／模組的 `dumpbin /DEPENDENTS` 包含 `vulkan-1.dll`，匯出時還須傳入
+`--vulkan-loader <matching-redistributable-vulkan-1.dll>`；即使只執行 headless／DX12，
+靜態相依仍會在進入 main 前載入。工具會將指定 loader 與遞迴相依檢查、SHA-256 清單
+一併納入封裝，缺少時拒絕發布；不能依賴開發機 PATH／Driver 已安裝的 DLL。
+僅 DX12、停用 Vulkan 的建置不需要此選項。Loader 不等於 Vulkan ICD／顯示驅動；仍須
+保留對應再散布授權，重新封裝後記錄新清單並重跑主機啟動／正常退出驗收。
 使用右上角 X 正常結束，Escape 保留為 UI 取消。保留 host JSON 及 stderr 的 `host_fixture`
 操作計數，再加上人工確認；幀數、按鍵計數或音訊成功提交各自不能代替顯示／操作／聽音驗收。
 實體控制器驗收可使用 DUALSHOCK、DualSense、Xbox 控制器或其他搖桿，不限定品牌或 XInput。

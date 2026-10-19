@@ -87,6 +87,13 @@ development tools, with complete dependencies, basic interaction and normal shut
 Developer-PC PATH isolation, VM software rendering and CI do not replace that gate.
 M7 remains incomplete until the clean-host gate passes.
 
+✅ The cloud exporter now requires an explicitly supplied `--vulkan-loader` when a Windows binary imports
+`vulkan-1.dll`, stages it with recursive dependency checks and inventories its hash. This fixes
+the implicit OS-DLL distribution assumption; missing loaders fail before publication. Cloud
+mocked-import regressions do not execute Windows. Old frozen packages remain unchanged and a
+newly hashed package still needs missing-loader-host startup and clean-host acceptance.
+[Cloud validation evidence](../../Tools/Build/evidence/TwoDCloudAcceptancePreparation-Linux-2026-10-20.md).
+
 ✅ 2026-10-19 physical PS4 USB slice: the Shipping Player reads Sony DUALSHOCK 4 (054c:09cc)
 through DirectInput. DX12/Vulkan each exit normally after 120 frames; initial acquisition no longer
 submits half-pressed triggers. Two human DX12 sessions total 5,578 frames and confirm left-stick
@@ -175,10 +182,13 @@ every 600 frames. Keep the existing sampled resource caps/growth limits, correct
 complete frame/completed-GPU sample accounting and teardown checks from the
 [fixed plan](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/plan.json).
 
-**5,000-object integrated acceptance: NOT RUN.** This revision changes planning only; the current
-`--integrated` benchmark/runner still fixes 10,000 objects and needs explicit 5,000-object support
-before that run. Existing 5,000-object single-case screens and 10,000-object integration/soak data
-cannot substitute for fresh integrated evidence. Keep every historical verdict under its original
+**5,000-object physical integrated acceptance: NOT RUN.** ✅ Cloud benchmark/runner support accepts
+explicit `--objects 5000`, retaining 1,000 functional smoke and the default 10,000 stress load.
+Every selected object is fully updated/queried; UI/VFX/reload and existing budgets are unchanged.
+All original six-case correctness and timing verdicts remain retained; only cases at or below
+the selected load gate performance. Cloud checks can validate workload/report contracts; the
+physical PC/30-minute gates still require execution. Existing 5,000-object single-case screens
+and 10,000-object integration/soak data cannot substitute for fresh integrated evidence. Keep every historical verdict under its original
 load and budget. Mark M6 `✅` and close its acceptance task only after all revised required checks
 have retained passing evidence; until then M6 stays NOT ACCEPTED and 9/11 (82%), P0 6/8 is unchanged.
 

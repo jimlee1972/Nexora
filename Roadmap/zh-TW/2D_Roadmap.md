@@ -75,6 +75,12 @@ M7 使用驗證 fixture 的固定 schema 測試引擎存檔契約，不以遊戲
 Editor／Zig／Python／MSVC 開發工具的 Windows 主機驗證啟動、相依完整性、基本互動及正常退出；
 開發機 PATH 隔離、VM 軟體呈現及 CI 不替代此 gate。乾淨主機未驗收前 M7 維持未完成。
 
+✅ 雲端匯出依賴契約：Windows 二進位若匯入 `vulkan-1.dll`，匯出工具現要求明確提供 `--vulkan-loader`，
+將其複製、遞迴檢查相依並納入雜湊清單；不再假設它是 Windows 系統 DLL，缺少時拒絕發布。
+雲端模擬匯入回歸不執行 Windows。既有凍結封裝維持不變，新雜湊封裝仍須完成缺少 loader
+主機的啟動與乾淨主機驗收。
+[雲端驗證證據](../../Tools/Build/evidence/TwoDCloudAcceptancePreparation-Linux-2026-10-20.md)。
+
 ✅ 2026-10-19 PS4 USB 實機切片：Sony DUALSHOCK 4（054c:09cc）透過 DirectInput
 在 Shipping Player 讀取；DX12／Vulkan 各 120 幀正常退出，初始取得裝置不再誤送半按扳機。
 兩輪人工 DX12 共 5,578 幀確認左搖桿、雙扳機、右搖桿 RX／RY -1～1、十字鍵／確認／取消、
@@ -148,8 +154,10 @@ Sprite Atlas 批次與 120 個實際 GameplayUi Quad／Command 不變；混合�
 每 600 幀重載。沿用[固定計畫](../../Engine/TwoD/evidence/Windows-M6-IntegratedSoak-2026-10-18/plan.json)
 的資源取樣峰值／成長門檻、正確性 oracle、完整逐幀／已完成 GPU 樣本核對及釋放檢查。
 
-**5,000 物件整合驗收：NOT RUN。** 此次只修改規劃；目前 `--integrated` benchmark／runner
-仍固定 10,000 個物件，須先提供明確的 5,000 物件支援才能執行。既有 5,000 物件單一案例
+**5,000 物件實體整合驗收：NOT RUN。** ✅ 雲端 Benchmark／runner 現可明確指定
+`--objects 5000`，另保留 1,000 功能短測及預設 10,000 壓測。每個所選物件仍完整更新及查詢，
+UI／VFX／重載與原有預算不變；原始六案例保留全部正確性與效能結果，僅所選負載以內案例
+參與必要效能判定。雲端可驗證負載及報告契約，實體 PC／30 分鐘 gate 仍待執行。既有 5,000 物件單一案例
 篩檢或 10,000 物件整合／長測，不能替代新的整合證據。所有歷史判定保留其原始負載與預算。
 只有修訂後全部必要檢查取得通過證據，才將 M6 標記 `✅` 並關閉驗收任務；在此之前
 M6 維持 NOT ACCEPTED，9/11（82%）、P0 6/8 不變。

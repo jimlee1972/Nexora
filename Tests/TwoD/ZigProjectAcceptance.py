@@ -27,6 +27,7 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--shipping', action='store_true')
     parser.add_argument('--vc-redist', type=Path)
+    parser.add_argument('--vulkan-loader', type=Path)
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists():
@@ -46,7 +47,7 @@ def main():
     descriptor.write_text(json.dumps(config), encoding='utf-8')
     package = output / 'ZigGame-Shipping-Fixture'
     exporter.export(descriptor, args.app, package, allow_development=not args.shipping,
-                    redist=args.vc_redist)
+                    redist=args.vc_redist, vulkan_loader=args.vulkan_loader)
     (output / 'README-fixture.txt').write_text('Engine validation fixture, not production game art.\n'
         'Run.cmd / run.sh starts the real separate Zig module and cooked assets.\n'
         'WASD / controller moves. Close the window to exit; no permanent scene state is invented.\n'
