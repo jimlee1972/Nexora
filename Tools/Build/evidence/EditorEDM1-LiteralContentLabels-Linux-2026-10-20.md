@@ -1,7 +1,8 @@
 # ED-M1 literal Content labels and scoped control identities
 
 Date: 2026-10-20 (Asia/Taipei). Task: `nexora-xke.4`.
-Base: `69cb7b25` on `main`. This supports ED-M1; Editor milestone acceptance remains 0/8.
+Initial base: `69cb7b25`; integrated main: `bfc1111d4c80a65a6dc1e6a13ffbc5eef041441f` (PR #652).
+This supports ED-M1; Editor milestone acceptance remains 0/8.
 
 ## Problem and resulting behavior
 
@@ -112,3 +113,42 @@ Retained local log SHA-256 digests:
 | `literal-configure-final-verified.log` | `c9be1761cd25f0304868b995d9216989e8f2691bc5ec3205631bbf59addb790e` |
 | `literal-build-final-verified.log` | `36f7e86df3e7ea99c6a7b3fda040fd7568f60064fccd394bb548debf048133c9` |
 | `literal-full-ctest-final-verified.log` | `432a4312c469b14c1e9dbab364b80dbc6ca0c3b06157138eb716bdfa8b95cc0d` |
+
+## Validation after main integration
+
+While hosted CI ran, main merged PR #652 (2D selected-load/export/acceptance preparation).
+The feature branch integrated `bfc1111d4c80a65a6dc1e6a13ffbc5eef041441f` without conflicts.
+The three touched UI/test C++ digests remain unchanged; the feature diff against that main still
+contains only its seven intended files. The complete configure/build/CTest gate was repeated for
+the combined tree, with the same Development/Modular, Editor/2D enabled, Slang disabled settings.
+
+`cmake --preset linux-development` and `cmake --build --preset linux-development` passed.
+`CTEST_PARALLEL_LEVEL=4 ctest --preset linux-development --output-on-failure` passed:
+285 registered, 273 passed, 12 native Vulkan environment skips, zero failures, 373.66 s total.
+Lifecycle passed 261.11 s, deep hierarchy 112.54 s, Content shortcuts 47.68 s,
+marker/dependency controls 1.52 s and diagnostic selection 0.05 s. Default deadlines were retained.
+Fresh hosted CI is required for the updated published head before merge.
+
+| Integrated log | SHA-256 |
+| --- | --- |
+| `literal-integrated-configure.log` | `e3048ef95e3f81f5327ba9fba3b400a44131516be4b318417e379202f9e9e742` |
+| `literal-integrated-build.log` | `f45b2f5cc51d108ca430024b73da9efb0f4a5e014f3d2399dc62004f42ecd62f` |
+| `literal-integrated-ctest.log` | `851f683bc2b3fc43aa4e2e7ae1c969e6274c0f93d9e70507a4241b41fb52b590` |
+
+## Additional native sanitizer control
+
+An initial hosted `build-contract` job on the earlier feature head reported LeakSanitizer failures
+in the four native Vulkan tests; that preset excludes these ImGui changes. Independent same-head
+hosted ASan validation passed all four native cases (197 actual passes, seven backend skips,
+204 registered), and TSan passed 193 with no skips. Ubuntu runner image correlation and root
+attribution remain separately tracked in `nexora-0ua.1.17`; this is not a leak-remediation claim.
+
+Additional local `linux-sanitizers` validation compiled the existing four Vulkan targets and ran
+them on isolated Xvfb/llvmpipe: four actual passes, no skips, 30.08 s. Official Ubuntu loader
+1.3.275.0, Mesa 25.2.8 and LLVM 20.1.2 packages were extracted outside the repository, with package
+SHA-256 checks; host compiler was GCC 14.2. The existing pinned Vulkan-Headers v1.3.296 source was
+reused through a local FetchContent source override. LeakSanitizer required approved process
+inspection outside the command sandbox. No repository source, test assertion, sanitizer option,
+timeout, module dependency or CI setting changed for this control. Full logs and exact counts are
+recorded in the task/PR; native-gates.log SHA-256:
+`b6a6b4741be2784f66c5e3146173b9c6ac303740cc0655ae3810190c45416654`.

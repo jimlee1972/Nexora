@@ -233,7 +233,8 @@ historical evidence, not proof that every later or longer run passes. Full M6 re
 The user revised the required current-PC M6 integrated load to 5,000 ordinary objects; 1,000 is
 functional smoke and 10,000 remains additional stress coverage. Keep the UI/VFX/query/update/reload
 functions and existing 30 FPS/spike/resource limits. See the [current M6 plan](2D_Roadmap.md#m6-current-pc-workload-revision-2026-10-19).
-This documentation revision changes no engine or benchmark behavior; the current integrated runner
-still fixes 10,000 objects. Fresh 5,000-object integrated acceptance is NOT RUN, so M6 remains open.
+The benchmark/runner now offers explicit `--objects 5000`, retaining default 10,000 stress and
+1,000 functional smoke. All original six-case correctness/timing verdicts remain retained; only
+cases at or below the selected load gate performance. Fresh 5,000-object integrated acceptance is NOT RUN, so M6 remains open.
 Historical 10k failures and native submit/present follow-ups remain retained; target reduction
 does not prove a stall fixed. Close M6 only after the revised required checks have passing evidence.

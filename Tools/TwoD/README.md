@@ -116,12 +116,13 @@ integrated product/UI/text/save/shutdown and display/DPI stay open in that VM sl
 Software VM timing is not physical M6 acceptance. See [module contracts](../../Engine/TwoD/README.md) and
 [2D roadmap](../../Roadmap/en/2D_Roadmap.md).
 
-## Integrated 10k load and sustained native validation
+## Selected integrated load and sustained native validation
 
 The opt-in `NexoraTwoDBenchmark --integrated --frames 600 --reload-every 300 --report load.csv
 --frame-trace frames.csv` runs one integrated fixture; omitting `--integrated` preserves the original
-six cases, report schema, workload and 4..600 frame limit. Integrated mode always updates 10,000
-objects, builds all 10,000 query shapes, performs circle/sweep queries, animation and extraction,
+six cases, report schema, workload and 4..600 frame limit. Integrated mode accepts
+`--objects 1000|5000|10000` (default 10000); it updates every selected object, builds all
+corresponding query shapes, performs circle/sweep queries, animation and extraction,
 then draws 256 moving translucent VFX and a real `GameplayUi` overlay in the same native pass.
 The two Sprite atlases/batches are followed by 16 panels, eight buttons and eight ten-glyph labels
 (120 UI quads/commands). Deterministic navigation/activation validates UI service execution, not
@@ -133,8 +134,9 @@ is touched at 4 KiB intervals plus its last byte (volatile stores survive LTCG) 
 `TrackingAllocator`, the Atlas codec is decoded again, and both old
 GPU atlas generations are retired before new IDs upload. This is in-memory loading churn, not
 asynchronous disk IO. Mixed and sparse layouts alternate at these boundaries, preserving the
-original spacing, sizes, movement and camera. Visible counts including VFX are 9,956/451; all
-10,000 ordinary objects are updated/queried in either layout. Fixed simulation time is 1/60 s per
+original spacing, sizes, movement and camera. At the declared 300/600-frame cadence, mixed/sparse visible counts including VFX are
+1,256/406 for 1,000 objects, 5,256/451 for 5,000, and 9,956/451 for 10,000. Every selected
+ordinary object is updated/queried in either layout. Fixed simulation time is 1/60 s per
 rendered frame; it is not a real-time gameplay clock.
 
 `--soak-seconds 1800` runs for at least 30 measured minutes after 1,200 warm-up frames, with no
@@ -161,13 +163,19 @@ are cumulative engine diagnostics; RSS/commit include drivers. Driver memory ide
 as exact integer CSV text. No global allocator hooks or platform security/power settings change.
 
 ```bash
-python3 Tools/TwoD/RunIntegratedAcceptance.py --benchmark path/to/NexoraTwoDBenchmark.exe --output fresh/evidence --seconds 1800
+python3 Tools/TwoD/RunIntegratedAcceptance.py --benchmark path/to/NexoraTwoDBenchmark.exe --output fresh/evidence --objects 5000 --seconds 1800
 ```
 
 The runner writes a fixed plan with executable/source hashes before executing two repetitions of
 all original six-case screens, two integrated 600-frame screens (reload every 300), then one
 continuous soak per backend (reload every 600). DX12/Vulkan run sequentially. It retains every exit,
-frame and failure, checks all 10k updates/native counters and rejects missing samples/wrong devices.
+frame and failure, checks every selected update/native counter and rejects missing samples/wrong devices
+or a summary/trace from another load. Runner defaults to 10,000 for historical compatibility;
+select 5,000 explicitly for the current-PC M6 gate. 1,000 is functional smoke only. All six original
+screen cases retain correctness checks and individual timing verdicts; only cases at or below the
+selected object count gate performance, so an extra 10,000-object timing failure does not block
+the 5,000-object gate. Original nonzero exits, wrong devices and correctness failures still fail.
+No historical report or verdict is rewritten.
 Default expected hardware is this developer PC's NVIDIA 4318/5121; explicit IDs select another host.
 Full/cycle and each phase must meet p95/p99 <=33.3333 ms and max <=66.6667 ms. Soak resource limits are
 512 MiB sampled process RSS/private/local GPU usage, first/last five-minute median growth <=32/32/16 MiB,
@@ -260,6 +268,14 @@ runtime copies, a launcher and hash inventory. `BakeWindowsFont.ps1` uses an exp
 Windows GDI font/corpus to produce a bounded real glyph atlas; missing glyphs fail. Neither path
 requires the fixed service-validation artwork. See the guide for commands, format/lifetime/limits
 and the [Windows physical acceptance list](WindowsAcceptance.md) for target-host work.
+
+Windows exports that import `vulkan-1.dll` require explicit
+`--vulkan-loader path/to/redistributable/vulkan-1.dll`. The loader is copied, its imports checked
+recursively and its hash inventoried; it is never assumed to be a Windows OS component or
+borrowed from PATH. Missing/misnamed/unhandled transitive dependencies reject publication.
+`HostAcceptance.py`, `ProjectAcceptance.py` and `ZigProjectAcceptance.py` forward the same option.
+Vulkan-disabled binaries need no loader. This distribution repair does not change old frozen
+packages or establish clean Windows startup; regenerate and verify the new package on that host.
 
 `WindowsVmAcceptance.py` drives an existing, normally powered-off VirtualBox Windows VM through
 two cold boots of the exported UI/independent-Zig Shipping fixtures. See the

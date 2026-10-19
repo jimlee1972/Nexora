@@ -23,6 +23,57 @@ def digest(root):
             for p in root.rglob('*') if p.is_file()}
 
 
+def windows_loader_export(root):
+    source = root / 'loader export Unicode 封裝'
+    source.mkdir()
+    runtime, module = source / 'Player.exe', source / 'module.dll'
+    runtime.write_bytes(b'runtime fixture')
+    module.write_bytes(b'module fixture')
+    loader = source / 'vulkan-1.dll'
+    loader.write_bytes(b'explicit redistributable loader fixture')
+    descriptor = source / 'game.json'
+    descriptor.write_text(json.dumps(dict(schema=1, id='com.nexora.loader', title='Loader',
+                                          scene='Main', module='module.dll', audio='off')))
+    before = digest(source)
+
+    def imports(command):
+        return (b'    KERNEL32.dll\r\n    CFGMGR32.dll\r\n' if command[-1] == str(loader)
+                else b'    KERNEL32.dll\r\n    VULKAN-1.dll\r\n')
+
+    with mock.patch.object(exporter.sys, 'platform', 'win32'), \
+            mock.patch.object(exporter.subprocess, 'check_output', side_effect=imports) as inspect:
+        for index, selected in enumerate([None, source / 'missing' / 'vulkan-1.dll', runtime]):
+            output = root / f'loader-rejected-{index}'
+            try:
+                exporter.export(descriptor, runtime, output, vulkan_loader=selected)
+            except ValueError as error:
+                assert '--vulkan-loader' in str(error)
+            else:
+                raise AssertionError('unavailable/misnamed Vulkan loader was treated as an OS import')
+            assert not output.exists(), 'failed export was published'
+        inspect.reset_mock()
+        package = root / 'loader-complete'
+        exporter.export(descriptor, runtime, package, vulkan_loader=loader)
+        assert (package / 'vulkan-1.dll').read_bytes() == loader.read_bytes()
+        inventory = json.loads((package / 'inventory.json').read_text())
+        assert inventory['files']['vulkan-1.dll'] == hashlib.sha256(loader.read_bytes()).hexdigest()
+        assert not inventory['development_test_copy']
+        assert sum(call.args[0][-1] == str(loader) for call in inspect.call_args_list) == 1
+    with mock.patch.object(exporter.sys, 'platform', 'win32'), \
+            mock.patch.object(exporter.subprocess, 'check_output', side_effect=lambda command:
+                b'    unsupported-loader-helper.dll\r\n' if command[-1] == str(loader)
+                else b'    vulkan-1.dll\r\n'):
+        output = root / 'loader-transitive-rejected'
+        try:
+            exporter.export(descriptor, runtime, output, vulkan_loader=loader)
+        except ValueError as error:
+            assert 'unsupported-loader-helper.dll' in str(error)
+        else:
+            raise AssertionError('unhandled transitive loader dependency was admitted')
+        assert not output.exists()
+    assert digest(source) == before, 'export modified loader/source bytes'
+
+
 def run(app, manifest, saves, success=True, loaded=None, native=False):
     result = subprocess.run([str(app), '--run-2d-project', str(manifest), '--frames', '3',
                              '--backend', 'vulkan' if native and sys.platform.startswith('linux') else 'auto',
@@ -45,6 +96,7 @@ def run(app, manifest, saves, success=True, loaded=None, native=False):
 def acceptance(args):
     with tempfile.TemporaryDirectory(prefix='nexora-game-project-') as temporary:
         root = Path(temporary)
+        windows_loader_export(root)
         # MSVC's heading can contain bytes undefined in Python's Windows codepage. Import
         # names still need strict admission; replacing heading text must not hide unknown DLLs.
         heading = b'Dump of file C:\\unicode-\x81\x9d\\module.dll\r\n'
@@ -69,7 +121,8 @@ def acceptance(args):
         descriptor.write_text(json.dumps(config, ensure_ascii=False), encoding='utf-8')
         baseline = digest(source)
         package = root / 'export Unicode 封裝'
-        exporter.export(descriptor, args.app, package, allow_development=True, redist=args.redist)
+        exporter.export(descriptor, args.app, package, allow_development=True, redist=args.redist,
+                        vulkan_loader=args.vulkan_loader)
         assert digest(source) == baseline
         before = digest(package)
         inventory = json.loads((package / 'inventory.json').read_text())
@@ -106,7 +159,8 @@ def acceptance(args):
             descriptor.write_text(json.dumps(config), encoding='utf-8')
             rejected = root / 'rejected'
             try:
-                exporter.export(descriptor, args.app, rejected, allow_development=True, redist=args.redist)
+                exporter.export(descriptor, args.app, rejected, allow_development=True, redist=args.redist,
+                                vulkan_loader=args.vulkan_loader)
             except (ValueError, OSError):
                 pass
             else:
@@ -120,6 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('--app', required=True, type=Path)
     parser.add_argument('--module', required=True, type=Path)
     parser.add_argument('--redist', type=Path)
+    parser.add_argument('--vulkan-loader', type=Path)
     parser.add_argument('--native', action='store_true')
     args = parser.parse_args()
     if args.native:

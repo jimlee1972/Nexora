@@ -10,6 +10,7 @@ struct IntegratedOptions {
   bool native{};
   unsigned frames{48}, seconds{}, reloadEvery{600};
   Nexora::Presentation::SurfaceBackend backend{Nexora::Presentation::SurfaceBackend::Automatic};
+  unsigned objects{10000};
 };
 void IntegratedStress(std::ostream &report, std::ostream &trace, const IntegratedOptions &options,
                       const std::optional<Atlas> &atlas, const std::optional<Clip> &clip);

@@ -49,13 +49,13 @@ def within(stats):
 
 
 @lru_cache(maxsize=28800)
-def query_oracle(sparse, step):
+def query_oracle(sparse, step, objects=10000):
     """Independent disc/segment distance counts for the declared moving regular grid."""
     def f32(value):
         return struct.unpack('<f', struct.pack('<f', value))[0]
     spacing = 2 if sparse else .25
     xs = [f32(column * spacing - 12 + step * .0001) for column in range(100)]
-    ys = [row * spacing - 12 for row in range(100)]
+    ys = [row * spacing - 12 for row in range(objects // 100)]
     radius = f32(.05)
     query = sum(x*x + y*y <= (2 + radius)**2 for y in ys if abs(y) <= 2 + radius for x in xs)
     sweep = sum((x - min(1, max(-1, x)))**2 + y*y <= (2 * radius)**2
@@ -63,7 +63,16 @@ def query_oracle(sparse, step):
     return query, sweep
 
 
-def original_result(report, trace):
+def visible_oracle(sparse, step, objects):
+    spacing = 2 if sparse else .25
+    columns = sum(-16.075 <= column * spacing - 12 + step * .0001 <= 16.075
+                  for column in range(100))
+    rows = sum(-12.075 <= row * spacing - 12 <= 12.075
+               for row in range(objects // 100))
+    return columns * rows + 256
+
+
+def original_result(report, trace, objects=10000):
     rows = list(csv.DictReader(report.open(encoding='utf-8')))
     samples = list(csv.DictReader(trace.open(encoding='utf-8')))
     expected = [('100', '0', '0'), ('1000', '0', '0'), ('5000', '0', '0'),
@@ -81,13 +90,14 @@ def original_result(report, trace):
         for key in LIMITS:
             valid &= math.isclose(stats[key], float(row[f'frame_{key}']),
                                   rel_tol=1e-5, abs_tol=1e-5)
-        cases.append(dict(case=case, timing=stats, pass_budget=within(stats)))
+        cases.append(dict(case=case, timing=stats, pass_budget=within(stats),
+                          required=int(case[0]) <= objects))
     return dict(rows=rows, cases=cases, frame_samples=len(samples), correctness_pass=bool(valid),
-                performance_pass=len(cases) == 6 and all(c['pass_budget'] for c in cases),
+                performance_pass=len(cases) == 6 and all(c['pass_budget'] for c in cases if c['required']),
                 resource_pass=None)
 
 
-def integrated_result(report, trace, seconds, cadence):
+def integrated_result(report, trace, seconds, cadence, objects=10000):
     aggregate = list(csv.DictReader(report.open(encoding='utf-8')))
     if len(aggregate) != 1:
         raise ValueError('missing integrated summary')
@@ -97,6 +107,10 @@ def integrated_result(report, trace, seconds, cadence):
     memory = []
     worst = []
     errors = []
+    if (int(summary['objects']) != objects or int(summary['vfx']) != 256 or
+            int(summary['reload_every']) != cadence or
+            int(summary['warmup_frames']) != (1200 if seconds else 4)):
+        errors.append({'error': 'summary workload/cadence/warmup mismatch'})
     frames = 0
     visible_total = 0
     warmup = int(summary['warmup_frames'])
@@ -107,14 +121,14 @@ def integrated_result(report, trace, seconds, cadence):
     for row in csv.DictReader(trace.open(encoding='utf-8')):
         frame = int(row['frame'])
         sparse = (frame // cadence) % 2 == 1
-        expected_visible = 451 if sparse else 9956
+        expected_visible = visible_oracle(sparse, frame % cadence + 1, objects)
         visible_total += expected_visible
         expected_reload = frame // cadence
-        query, sweep = query_oracle(sparse, frame % cadence + 1)
+        query, sweep = query_oracle(sparse, frame % cadence + 1, objects)
         expected = {
-            'frame': frames, 'warmup': int(frame < warmup), 'objects': 10000, 'vfx': 256,
+            'frame': frames, 'warmup': int(frame < warmup), 'objects': objects, 'vfx': 256,
             'sparse': int(sparse), 'reloaded': int(frame > 0 and frame % cadence == 0),
-            'visible': expected_visible, 'culled': 10256 - expected_visible,
+            'visible': expected_visible, 'culled': objects + 256 - expected_visible,
             'sprite_batches': 2, 'ui_quads': 120, 'ui_commands': 120,
             'query_hits': query, 'sweep_hits': sweep,
             'reloads': expected_reload, 'fixture_alloc_live': 0,
@@ -199,6 +213,8 @@ def main():
     parser.add_argument('--benchmark', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--seconds', type=int, default=1800)
+    parser.add_argument('--objects', type=int, choices=[1000, 5000, 10000], default=10000,
+                        help='1000 functional, 5000 current-PC M6, 10000 additional stress; default preserves historical plan')
     parser.add_argument('--backends', nargs='+', choices=['dx12', 'vulkan'], default=['dx12', 'vulkan'])
     parser.add_argument('--vendor-id', type=int, default=4318)
     parser.add_argument('--device-id', type=int, default=5121)
@@ -223,7 +239,8 @@ def main():
                    '--report', str(output / f'{stem}.csv'),
                    '--frame-trace', str(output / f'{stem}-frames.csv')]
         if run['mode'] == 'integrated':
-            command += ['--integrated', '--reload-every', str(run['reload_every'])]
+            command += ['--integrated', '--objects', str(args.objects),
+                        '--reload-every', str(run['reload_every'])]
             if run['seconds']:
                 command += ['--soak-seconds', str(run['seconds'])]
         run['command'] = command
@@ -233,13 +250,14 @@ def main():
                 source_sha256={path: digest(ROOT / path) for path in SOURCES},
                 viewport=[640, 480], present_mode='VSync', frames_in_flight=2,
                 target_fps=30, frame_budgets=LIMITS, runs=runs,
-                integrated=dict(updated_objects=10000, query_shapes=10000, vfx=256,
+                integrated=dict(updated_objects=args.objects, query_shapes=args.objects, vfx=256,
                                 sprite_size=.15, vfx_size=.6, vfx_alpha=.125,
                                 fixed_step_seconds=1/60, animation_frame_seconds=.1,
                                 sprite_atlases=2, sprite_batches=2, ui_panels=16, ui_buttons=8,
                                 material='one unlit Sprite program, one indexed UI program; no material asset switches',
                                 ui_labels=8, ui_quads=120, ui_commands=120,
-                                visible_mixed=9956, visible_sparse=451,
+                                visible_mixed=visible_oracle(False, 1, args.objects),
+                                visible_sparse=visible_oracle(True, 1, args.objects),
                                 allocation_per_reload_bytes=8388608,
                                 loading='pool recycle; touched scoped allocation; atlas codec decode; GPU retirement/reupload; no disk IO'),
                 soak=dict(minimum_measured_seconds=args.seconds, warmup_frames=1200,
@@ -254,6 +272,10 @@ def main():
                 scope='Current physical developer-PC integrated fixture. Product minimum spec, total allocator accounting, physical VRAM residency and M7 device gates remain separate.',
                 timing='Integrated full includes preceding buffered trace output, frame destruction and resource polls. Cycle is start-to-next-start; both must pass. GPU samples are earlier completed submissions, not same-frame or display latency.',
                 policy='No build/other native fixture during timing; keep ordinary desktop apps. All rows/runs/frames retained. No retries after performance failure, no excluded measured spikes. Any missing sample, wrong native device or nonzero exit fails.')
+    plan['original_screen_policy'] = ('All six historical cases retain correctness checks and timing verdicts; '
+                                      'only cases with objects <= selected integrated load gate performance.')
+    plan['load_role'] = {1000: 'functional smoke only', 5000: 'current-PC M6 required load',
+                         10000: 'additional stress'}[args.objects]
     save(output / 'plan.json', plan)
     executions = []
     for run in runs:
@@ -297,10 +319,10 @@ def main():
         else:
             report, trace = output / f'{stem}.csv', output / f'{stem}-frames.csv'
             if run['mode'] == 'original':
-                item.update(original_result(report, trace))
+                item.update(original_result(report, trace, args.objects))
                 rows = item['rows']
             else:
-                item.update(integrated_result(report, trace, run['seconds'], run['reload_every']))
+                item.update(integrated_result(report, trace, run['seconds'], run['reload_every'], args.objects))
                 rows = [item['summary']]
             item['device_pass'] = all(r['vendor_id'] == str(args.vendor_id) and
                                       r['device_id'] == str(args.device_id) and
