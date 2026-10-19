@@ -69,6 +69,12 @@ target_link_libraries(NexoraSceneTabTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraSceneTabTests)
 add_test(NAME editor.scene_tabs COMMAND NexoraSceneTabTests)
 
+add_executable(NexoraContentDiagnosticDisplayTests ContentDiagnosticTests.cpp)
+target_include_directories(NexoraContentDiagnosticDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraContentDiagnosticDisplayTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraContentDiagnosticDisplayTests)
+add_test(NAME editor.content_diagnostic_display COMMAND NexoraContentDiagnosticDisplayTests)
+
 add_executable(NexoraConsoleDisplayTests ConsoleDisplayTests.cpp)
 target_include_directories(NexoraConsoleDisplayTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src" "${PROJECT_SOURCE_DIR}/Apps/Editor")
 target_link_libraries(NexoraConsoleDisplayTests PRIVATE Nexora::EditorImGui)

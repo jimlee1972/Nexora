@@ -267,7 +267,17 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   tree fails with an actionable error, keeps the previous index and creates no partial sidecars,
   and enumeration stops instead of growing memory. `editor.asset_source` covers exact-limit
   acceptance, over-limit rejection with index preservation, and sidecar-free rejection in writable
-  mode. Per-entry diagnostic text, thumbnails and physical workflow gates remain open.
+  mode. Thumbnails and physical workflow gates remain open; bounded per-entry Content diagnostics
+  are described below.
+
+- ✅ Content Browser now shows owning initial import failure text for the selected asset, including
+  read-only inspection, with a 1024-byte UTF-8/no-NUL admission limit. Invalid Reset/Discover preserve
+  the live model; successful reimport clears both live and retained Content Undo diagnostics.
+  Background Reimport explicitly recovers failed initial assets without an old artifact while
+  preserving ordinary baseline admission and publication revision checks. Portable and 1x/2x
+  real ImGui input tests cover rejection, selection, synchronous/queued repair, Undo and reindex.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-ContentDiagnostics-Linux-2026-10-19.md).
+  Physical workflow acceptance and all ED milestone counts remain unchanged.
 
 - ✅ Ordinary asset indexing and synchronous/background reimport now stream binary source hashes
   through an 8 KiB read chunk instead of retaining whole files. Mid-file cancellation publishes no

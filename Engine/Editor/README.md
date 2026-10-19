@@ -980,6 +980,24 @@ the core remains the authoring-thread source of truth and never reloads over uns
 Functions report expected failures with `false`, optional values, stable diagnostic codes, or
 per-entry error text; filesystem exceptions are converted to error results where applicable.
 
+Initial indexing failures retain their owning `AssetEntry::error` in
+`ContentItem::import_diagnostic`. Content Reset/Discover and project-session admission require
+at most 1024 valid UTF-8 bytes without NUL per diagnostic; invalid admission preserves the prior
+model, selection, history and generation. Project admission identifies the offending relative
+asset path. This is an in-memory field, not a scene/project schema or persisted error log;
+public C++ consumers rebuild for the appended ContentItem field. Rename/move/delete Undo copies
+retain the diagnostic. Successful Ready artifact publication clears it in both the live item and
+retained Content Undo snapshot, so Undo cannot resurrect a resolved failure. Failed/cancelled/stale
+reimport preserves the last accepted item; current operation diagnostics remain in the separate
+bounded reimport status. Read-only observers retain independent snapshots.
+
+`ReimportJobRequest::initial_import` explicitly admits recovery with no previous artifact;
+it defaults to false and must agree with an empty `previous_artifact`. Ordinary reimports still
+require a nonempty baseline. ProjectContent sets the flag only for failed items without an
+artifact. Publication still revalidates the exact captured empty baseline, project generation,
+path, source revision, settings and dependencies; a worker gains no publication authority.
+This appended C++ request field also requires consumers to rebuild; the plugin C ABI is unchanged.
+
 The `.meta` filename suffix is reserved for asset identity sidecars and is excluded from the source
 asset index. Artifact hashes use the persistent UUID plus source bytes rather than the current path,
 so an Editor move followed by reopen does not invalidate identity or derived-data addressing.
