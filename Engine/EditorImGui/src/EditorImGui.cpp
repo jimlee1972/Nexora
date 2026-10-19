@@ -487,6 +487,19 @@ struct EditorImGuiHost::State final {
   std::array<char, 64> content_type{};
   std::array<char, 1024> content_rename{};
   std::optional<std::array<float, 2>> content_search_position;
+  struct ContentReveal final {
+    runtime::AssetUuid asset;
+    std::uint64_t generation, revision;
+    std::filesystem::path root, folder;
+  };
+  std::optional<ContentReveal> content_reveal;
+  struct ContentDependencyControl final {
+    runtime::AssetUuid asset;
+    std::array<float, 2> position;
+    ImGuiID widget;
+  };
+  std::array<std::vector<ContentDependencyControl>, 2> content_dependency_controls;
+  std::array<std::optional<std::array<float, 2>>, 2> content_dependency_headers;
   std::optional<runtime::AssetUuid> content_navigation_cursor, content_navigation_anchor;
   std::uint64_t content_navigation_generation{}, content_navigation_revision{};
   std::filesystem::path content_navigation_root, content_navigation_folder;
@@ -3630,6 +3643,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_search_position.reset();
   state.content_focused_folder.reset();
   if (!ImGui::Begin(window.c_str())) {
+    state.content_reveal.reset();
     state.content_rename_target.reset();
     if (ImGui::BeginPopupModal("Rename asset###editor.content.rename", nullptr,
                                ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -3709,6 +3723,22 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   }
   std::optional<std::size_t> reveal_row;
   std::optional<runtime::AssetUuid> reveal_asset;
+  if (const auto request = std::exchange(state.content_reveal, std::nullopt)) {
+    if (selection_commands_allowed && request->generation == browser.ProjectGeneration() &&
+        request->revision == browser.Revision() && request->root == content.Root() &&
+        request->folder == navigation_folder && browser.Selection().size() == 1 &&
+        browser.IsSelected(request->asset)) {
+      const auto rows = browser.Visible(0, browser.Items().size());
+      const auto found =
+          std::ranges::find(rows, request->asset, [](const ContentItem *item) { return item->id; });
+      if (found != rows.end()) {
+        reveal_row = static_cast<std::size_t>(found - rows.begin());
+        reveal_asset = request->asset;
+        state.content_navigation_cursor = request->asset;
+        state.content_navigation_anchor = request->asset;
+      }
+    }
+  }
   if (keyboard && !ImGui::GetIO().KeyCtrl && !ImGui::GetIO().KeyAlt && !ImGui::GetIO().KeySuper) {
     const auto pressed = [&](ImGuiKey key) {
       constexpr auto flags = ImGuiInputFlags_RouteFocused | ImGuiInputFlags_Repeat;
@@ -3812,7 +3842,16 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   state.content_open_scene_position =
       std::array{(open_min.x + open_max.x) * 0.5F, (open_min.y + open_max.y) * 0.5F};
   ImGui::EndDisabled();
-  if (!folder_activation && scene_openable && selected_scene_file &&
+  const auto activation = ImGui::GetCurrentContext()->NavActivateId;
+  const auto selected_scene_label = selected_scene
+                                        ? std::string(ThumbnailLabel(selected_scene->thumbnail)) +
+                                              " " + PathLabel(selected_scene->path.filename()) +
+                                              "##" + selected_scene->id.ToString()
+                                        : std::string{};
+  const bool asset_activation =
+      activation == 0 ||
+      (selected_scene && activation == ImGui::GetID(selected_scene_label.c_str()));
+  if (!folder_activation && asset_activation && scene_openable && selected_scene_file &&
       !ImGui::GetIO().WantTextInput &&
       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) &&
       ImGui::IsKeyPressed(ImGuiKey_Enter, false))
@@ -3980,6 +4019,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     ImGui::EndPopup();
   }
 
+  std::optional<runtime::AssetUuid> dependency_reveal;
   const auto selection = browser.Selection();
   state.content_selection = static_cast<std::uint32_t>(selection.size());
   ImGui::SeparatorText("Asset details");
@@ -4001,29 +4041,53 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       const auto reverse = content.Dependencies().Reverse(item->id);
       state.content_forward_dependencies = static_cast<std::uint32_t>(forward.size());
       state.content_reverse_dependencies = static_cast<std::uint32_t>(reverse.size());
-      if (ImGui::TreeNode("Dependencies")) {
-        if (forward.empty())
+      const auto references = [&](const char *label, const auto &ids, std::size_t direction) {
+        const bool open = ImGui::TreeNode(label);
+        const auto min = ImGui::GetItemRectMin(), max = ImGui::GetItemRectMax();
+        state.content_dependency_headers[direction] =
+            std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
+        if (!open)
+          return;
+        if (ids.empty())
           ImGui::TextUnformatted("None");
-        for (const auto dependency : forward) {
+        for (const auto dependency : ids) {
           const auto *target = browser.Find(dependency);
-          ImGui::BulletText("%s", target ? PathLabel(target->path).c_str()
-                                         : dependency.ToString().c_str());
+          const auto uuid = dependency.ToString();
+          ImGui::PushID(uuid.c_str());
+          ImGui::BeginDisabled(!target || !selection_commands_allowed ||
+                               state.content_rename_target);
+          if (ImGui::SmallButton("Reveal"))
+            dependency_reveal = dependency;
+          const auto button_min = ImGui::GetItemRectMin(), button_max = ImGui::GetItemRectMax();
+          state.content_dependency_controls[direction].push_back(
+              {dependency,
+               {(button_min.x + button_max.x) * 0.5F, (button_min.y + button_max.y) * 0.5F},
+               ImGui::GetItemID()});
+          ImGui::EndDisabled();
+          ImGui::SameLine();
+          const auto text = target ? PathLabel(target->path) : "Unavailable: " + uuid;
+          ImGui::TextUnformatted(text.data(), text.data() + text.size());
+          ImGui::PopID();
         }
         ImGui::TreePop();
-      }
-      if (ImGui::TreeNode("Referenced by")) {
-        if (reverse.empty())
-          ImGui::TextUnformatted("None");
-        for (const auto dependency : reverse) {
-          const auto *target = browser.Find(dependency);
-          ImGui::BulletText("%s", target ? PathLabel(target->path).c_str()
-                                         : dependency.ToString().c_str());
-        }
-        ImGui::TreePop();
-      }
+      };
+      references("Dependencies", forward, 0);
+      references("Referenced by", reverse, 1);
     }
   } else {
     ImGui::Text("%zu assets selected", selection.size());
+  }
+  // Consume the current-frame UUID only after all borrowed details/rows have been rendered.
+  if (dependency_reveal && selection_commands_allowed && !state.content_rename_target &&
+      browser.RevealAsset(*dependency_reveal)) {
+    state.content_query.fill(0);
+    state.content_type.fill(0);
+    state.content_navigation_cursor.reset();
+    state.content_navigation_anchor.reset();
+    state.content_reveal = typename StateT::ContentReveal{
+        *dependency_reveal, browser.ProjectGeneration(), browser.Revision(), content.Root(),
+        browser.Breadcrumbs().back().path};
+    ImGui::SetScrollY(0);
   }
   const auto dependency_cycle = content.Dependencies().FindCycle();
   state.content_dependency_cycle = static_cast<std::uint32_t>(
@@ -4720,6 +4784,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   state_->hierarchy_rename_position.reset();
   state_->content_add_mesh_position.reset();
   state_->content_open_scene_position.reset();
+  if (!content)
+    state_->content_reveal.reset();
+  state_->content_dependency_controls = {};
+  state_->content_dependency_headers = {};
   state_->content_asset_positions.clear();
   state_->content_asset_diagnostic.clear();
   state_->camera_align_position.reset();
@@ -8154,6 +8222,32 @@ EditorImGuiTestAccess::ContentAssetPosition(const EditorImGuiHost &host,
                         &decltype(host.state_->content_asset_positions)::value_type::first);
   return found == host.state_->content_asset_positions.end() ? std::nullopt
                                                              : std::optional{found->second};
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentDependencyHeaderPosition(const EditorImGuiHost &host,
+                                                       bool reverse) noexcept {
+  return host.state_->content_dependency_headers[reverse ? 1 : 0];
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentDependencyPosition(const EditorImGuiHost &host,
+                                                 runtime::AssetUuid asset, bool reverse) noexcept {
+  const auto &controls = host.state_->content_dependency_controls[reverse ? 1 : 0];
+  const auto found =
+      std::ranges::find(controls, asset, &EditorImGuiHost::State::ContentDependencyControl::asset);
+  return found == controls.end() ? std::nullopt : std::optional{found->position};
+}
+void EditorImGuiTestAccess::FocusContentDependency(EditorImGuiHost &host, runtime::AssetUuid asset,
+                                                   bool reverse) noexcept {
+  Activate(host.state_->context);
+  const auto &controls = host.state_->content_dependency_controls[reverse ? 1 : 0];
+  const auto found =
+      std::ranges::find(controls, asset, &EditorImGuiHost::State::ContentDependencyControl::asset);
+  auto *window = ImGui::FindWindowByName(PanelWindowName("nexora.content").c_str());
+  if (window && found != controls.end()) {
+    ImGui::FocusWindow(window);
+    ImGui::SetFocusID(found->widget, window);
+    ImGui::SetNavCursorVisibleAfterMove();
+  }
 }
 bool EditorImGuiTestAccess::ContentDragActive(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);

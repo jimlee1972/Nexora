@@ -610,6 +610,12 @@ write failure leaves original scene files and dirty baselines unchanged.
   search, discovery, folder navigation and Undo never convert through a system code page.
   Virtual ranges borrow item pointers until the next mutation. Rename, multi-item move, and delete
   validate a complete replacement snapshot before committing and retain one undo snapshot.
+- `ContentBrowserModel::RevealAsset` is an inspection-only UUID operation: it stages the target's
+  parent folder/breadcrumbs and sole selection before clearing query/type filters. Missing IDs or
+  paths without a revealable relative parent preserve the complete view state. It does not touch
+  content revision, item snapshots, pending mutation Undo, dependency state or files; read-only
+  sessions may use it. The additive C++ method requires rebuilding consumers; persisted formats
+  and stable C/Zig contracts are unchanged.
 - `ContentBrowserModel::SelectVisible` atomically replaces selection with the complete matching
   current-folder query/type row set, including clipped rows. It uses one item scan and preserves
   revision, assets and mutation Undo. No matches clear selection. Batch Delete uses a UUID set to

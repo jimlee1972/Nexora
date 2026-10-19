@@ -832,6 +832,19 @@ int Run() {
               cancelled.Entries().front().state == editor::ImportState::Cancelled,
           "asset cancellation failed");
 
+  editor::ContentBrowserModel parentless(1);
+  const editor::ContentItem parentless_item{
+      {98, 98}, "Standalone.txt", ".txt", "v1", editor::ThumbnailState::Ready};
+  Require(parentless.Reset(std::array{parentless_item}, 1) && parentless.Select(parentless_item.id),
+          "parentless reveal setup failed");
+  parentless.SetFilter("Standalone", ".txt");
+  const auto parentless_revision = parentless.Revision();
+  Require(!parentless.RevealAsset(parentless_item.id) &&
+              parentless.Breadcrumbs().back().path == "Content" &&
+              parentless.IsSelected(parentless_item.id) &&
+              parentless.Revision() == parentless_revision,
+          "unrevealable parent changed view state");
+
   const runtime::AssetUuid mesh_id{1, 1}, material_id{1, 2}, scene_id{1, 3};
   editor::ContentBrowserModel browser(7);
   const std::vector<editor::ContentItem> content{
@@ -850,10 +863,25 @@ int Run() {
               browser.Select(material_id, true) && browser.Selection().size() == 2 &&
               browser.Toggle(mesh_id) && !browser.IsSelected(mesh_id),
           "content filter or stable selection model failed");
+  const auto reveal_revision = browser.Revision();
+  Require(browser.RevealAsset(scene_id) && browser.Selection() == std::vector{scene_id} &&
+              browser.Breadcrumbs().back().path == "Content/Levels" &&
+              browser.VisibleCount() == 1 && browser.Visible(0, 1).front()->id == scene_id &&
+              browser.Revision() == reveal_revision,
+          "asset reveal did not clear filters and preserve content revision");
+  Require(!browser.RevealAsset({99, 99}) && browser.Selection() == std::vector{scene_id} &&
+              browser.Breadcrumbs().back().path == "Content/Levels" &&
+              browser.VisibleCount() == 1 && browser.Revision() == reveal_revision,
+          "missing reveal target changed view state");
+  Require(browser.RevealAsset(material_id), "material reveal failed");
+  browser.SetFilter("hero", "mesh");
   Require(browser.Rename(mesh_id, "Player.mesh", &error) &&
               browser.Find(mesh_id)->path == "Content/Player.mesh" && browser.Undo() &&
               browser.Find(mesh_id)->path == "Content/Hero.mesh",
           "transactional rename/undo failed");
+  Require(browser.Rename(mesh_id, "Reveal.mesh", &error) && browser.RevealAsset(scene_id) &&
+              browser.Undo() && browser.Find(mesh_id)->path == "Content/Hero.mesh",
+          "inspection reveal replaced pending mutation Undo");
   const std::vector<runtime::AssetUuid> move_ids{mesh_id, material_id};
   Require(browser.Move(move_ids, "Content/Characters", &error) &&
               browser.Find(mesh_id)->path == "Content/Characters/Hero.mesh",
