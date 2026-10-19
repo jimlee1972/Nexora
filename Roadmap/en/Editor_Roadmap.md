@@ -270,6 +270,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   mode. Thumbnails and physical workflow gates remain open; bounded per-entry Content diagnostics
   are described below.
 
+- ✅ Content asset/folder rows and breadcrumb buttons now display literal UTF-8 marker names
+  (`##`, `###`, `%`) with project-root/generation/role-scoped IDs independent of display text.
+  Actual 1x/2x pointer and Tab/Enter tests distinguish same-suffix sibling folders, nested marker
+  paths and same-basename scene assets, verify emitted glyphs and preserve read-only inspection,
+  source/sidecar bytes, revision and pending Undo. Physical accessibility/workflow acceptance remains open.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-LiteralContentLabels-Linux-2026-10-20.md).
+
 - ✅ Content dependency inspection now offers UUID-scoped Reveal for forward and reverse live
   targets, navigating to their folder, clearing query/type filters, selecting and scrolling clipped
   rows. Read-only inspection, missing-target rejection, literal names, scope/input guards and

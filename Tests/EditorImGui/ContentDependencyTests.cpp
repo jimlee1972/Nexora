@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -33,6 +34,7 @@ struct Fixture final {
   editor::ProductShell shell;
   editor::imgui::EditorImGuiHost ui;
   editor::ProjectContentSession *active = &content;
+  editor::ProjectWorkspace *workspace_override{};
   runtime::AssetUuid source, target, duplicate, missing{99, 99};
   float dpi;
   Fixture(float scale) : dpi(scale) {
@@ -92,8 +94,11 @@ struct Fixture final {
   }
   void Draw() {
     ui.BeginFrame();
-    ui.SetSceneFileContext({workspace.Project().id, scene.Generation()}, "Content/Untitled.scene");
-    ui.DrawProductShell(shell, &scene, active == &readonly ? &observer : &workspace, active);
+    auto *project = workspace_override    ? workspace_override
+                    : active == &readonly ? &observer
+                                          : &workspace;
+    ui.SetSceneFileContext({project->Project().id, scene.Generation()}, "Content/Untitled.scene");
+    ui.DrawProductShell(shell, &scene, project, active);
     static_cast<void>(ui.EndFrame());
   }
   void Click(std::optional<std::array<float, 2>> point) {
@@ -151,6 +156,200 @@ struct Fixture final {
             "far target was selected but not scrolled into the real clip region");
   }
 };
+// Verify the emitted glyph mesh, rather than a copy of the label supplied to a widget.
+// Normalizing positions permits searching the full literal sequence in the actual draw list.
+void RequireLiteral(std::string_view text) {
+  ImDrawList expected(ImGui::GetDrawListSharedData());
+  expected._ResetForNewFrame();
+  expected.PushClipRectFullScreen();
+  expected.PushTextureID(ImGui::GetFont()->ContainerAtlas->TexID);
+  expected.AddText(ImVec2(0, 0), IM_COL32_WHITE, text.data(), text.data() + text.size());
+  Require(!expected.VtxBuffer.empty(), "literal expectation has no glyphs");
+  const auto *window = ImGui::FindWindowByName("Content###nexora.content");
+  const auto &actual = window->DrawList->VtxBuffer;
+  for (int start = 0; start + expected.VtxBuffer.Size <= actual.Size; ++start) {
+    bool match = true;
+    const auto offset = ImVec2(actual[start].pos.x - expected.VtxBuffer[0].pos.x,
+                               actual[start].pos.y - expected.VtxBuffer[0].pos.y);
+    for (int i = 0; i < expected.VtxBuffer.Size && match; ++i) {
+      const auto &a = actual[start + i];
+      const auto &e = expected.VtxBuffer[i];
+      match = a.uv.x == e.uv.x && a.uv.y == e.uv.y &&
+              std::abs(a.pos.x - offset.x - e.pos.x) < 0.01F &&
+              std::abs(a.pos.y - offset.y - e.pos.y) < 0.01F;
+    }
+    if (match)
+      return;
+  }
+  throw std::runtime_error("full literal Content glyph sequence missing: " + std::string(text));
+}
+void MarkerLabels(float dpi) {
+  Fixture f(dpi);
+  using Key = Nexora::Window::Key;
+  const auto name = std::filesystem::path(u8"同名##%###same.scene");
+  const std::filesystem::path foo = "Content/Foo###same", bar = "Content/Bar###same";
+  const auto nested = foo / "Nested##%###same";
+  for (const auto &folder : {foo, bar, nested}) {
+    std::filesystem::create_directories(f.root / folder);
+    std::ofstream(f.root / folder / name) << "unchanged scene source";
+  }
+  std::ofstream(f.root / "Content" / name) << "root source";
+  Require(f.assets.ImportTree(f.root / "Content", {}, {},
+                              editor::AssetIdentityMode::PersistentReadWrite) &&
+              f.content.Open(f.workspace, f.assets, 7, true) &&
+              f.readonly.Open(f.observer, f.assets, 8, false),
+          "marker content reopen failed");
+  const auto files = f.Files();
+  const auto key = [&](Key value) {
+    Nexora::Window::WindowEvent event;
+    event.type = Nexora::Window::WindowEventType::Key;
+    event.value0 = static_cast<int>(value);
+    event.value1 = 1;
+    f.ui.ProcessEvents(std::array{event});
+    f.Draw();
+    event.value1 = 0;
+    f.ui.ProcessEvents(std::array{event});
+    f.Draw();
+  };
+  const auto current = [&] { return f.active->Browser().Breadcrumbs().back().path; };
+  const auto asset_at = [&](const std::filesystem::path &path) {
+    for (const auto &item : f.active->Browser().Items())
+      if (item.path == path)
+        return item.id;
+    throw std::runtime_error("marker asset missing");
+  };
+  const auto focus_folder = [&](const std::filesystem::path &path) {
+    for (int i = 0; i < 180 && Access::ContentFocusedFolder(f.ui) != path; ++i) {
+      key(Key::Tab);
+    }
+    if (Access::ContentFocusedFolder(f.ui) != path) {
+      auto *g = ImGui::GetCurrentContext();
+      throw std::runtime_error(
+          "Tab marker folder: " + path.string() + " current=" + current().string() +
+          " focused=" + Access::ContentFocusedFolder(f.ui).value_or("<none>").string() +
+          " nav=" + (g->NavWindow ? std::string(g->NavWindow->Name) : "<none>") +
+          " text=" + std::to_string(g->IO.WantTextInput));
+    }
+  };
+  for (bool readonly : {false, true}) {
+    f.active = readonly ? &f.readonly : &f.content;
+    auto &browser = f.active->Browser();
+    Require(browser.SetFolder("Content"), "marker root failed");
+    Access::FocusContent(f.ui);
+    f.Draw();
+    f.Draw();
+    const auto revision = browser.Revision();
+    // The two ###same suffixes collided before this fix. Pointer double-click and
+    // real Tab/Enter must independently open each sibling without opening a scene.
+    RequireLiteral("[Folder] Foo###same");
+    RequireLiteral("[Folder] Bar###same");
+    for (const auto &folder : {foo, bar}) {
+      const auto point = Access::ContentPathPosition(f.ui, folder);
+      f.Click(point);
+      f.Click(point);
+      Require(current() == folder, "pointer opened the wrong marker sibling");
+      f.Draw();
+      f.Draw();
+      RequireLiteral(folder == foo ? "Foo###same" : "Bar###same");
+      const auto id = asset_at(folder / name);
+      Require(browser.Select(id), "marker asset selection failed");
+      f.Draw();
+      f.Draw();
+      RequireLiteral(std::string("[Ready] ") +
+                     reinterpret_cast<const char *>(u8"同名##%###same.scene"));
+      for (int i = 0; i < 180 && Access::ContentFocusedAsset(f.ui) != id; ++i)
+        key(Key::Tab);
+      Require(Access::ContentFocusedAsset(f.ui) == id, "Tab could not focus marker scene row");
+      key(Key::Enter);
+      const auto request = f.ui.TakeSceneFileRequest();
+      Require(request && request->path == folder / name,
+              "focused marker asset Enter did not request the owning scene");
+      f.Click(Access::ContentPathPosition(f.ui, "Content", true));
+      f.Draw();
+      f.Draw();
+      Require(current() == "Content", "root breadcrumb click failed");
+      focus_folder(folder);
+      key(Key::Enter);
+      Require(current() == folder && !f.ui.TakeSceneFileRequest(),
+              "folder Enter opened wrong sibling or selected scene");
+      f.Click(Access::ContentPathPosition(f.ui, "Content", true));
+      f.Draw();
+      f.Draw();
+    }
+    focus_folder(foo);
+    key(Key::Enter);
+    f.Draw();
+    f.Draw();
+    focus_folder(nested);
+    key(Key::Enter);
+    f.Draw();
+    f.Draw();
+    Require(current() == nested, "nested marker folder Enter failed");
+    RequireLiteral("Nested##%###same");
+    f.Click(Access::ContentPathPosition(f.ui, foo, true));
+    f.Draw();
+    f.Draw();
+    Require(current() == foo, "literal marker breadcrumb did not navigate");
+    Require(browser.Revision() == revision && !f.active->CanUndo() && f.Files() == files,
+            "marker navigation mutated source, sidecars or history");
+  }
+  // Scope changes must produce distinct live row IDs even for copied paths and UUIDs.
+  f.active = &f.content;
+  Require(f.content.Browser().SetFolder(foo), "scope folder setup failed");
+  f.Draw();
+  f.Draw();
+  const auto id = asset_at(foo / name);
+  f.Click(Access::ContentAssetPosition(f.ui, id));
+  const auto old_nav = ImGui::GetCurrentContext()->NavId;
+  Require(f.content.Open(f.workspace, f.assets, 9, true) && f.content.Browser().SetFolder(foo),
+          "generation replacement failed");
+  f.Draw();
+  f.Draw();
+  f.Click(Access::ContentAssetPosition(f.ui, id));
+  Require(ImGui::GetCurrentContext()->NavId != old_nav, "generation reused marker control ID");
+  // Inspection with a pending file transaction must preserve exactly that Undo.
+  Require(f.content.Rename(f.source, "Retained.scene"), "pending marker Undo setup failed");
+  const auto pending_files = f.Files();
+  const auto pending_revision = f.content.Browser().Revision();
+  Require(f.content.Browser().SetFolder("Content"), "pending root failed");
+  f.Draw();
+  f.Draw();
+  focus_folder(bar);
+  key(Key::Enter);
+  f.Draw();
+  f.Draw();
+  f.Click(Access::ContentPathPosition(f.ui, "Content", true));
+  Require(f.content.CanUndo() && f.content.Browser().Revision() == pending_revision &&
+              f.Files() == pending_files && f.content.Undo() && f.Files() == files,
+          "marker inspection consumed or changed pending Undo");
+
+  editor::ProjectWorkspace other;
+  editor::AssetWorkspace copied_assets;
+  editor::ProjectContentSession copied_content;
+  Require(other.Create(f.root / "OtherProject", "Copied marker project"), "other project failed");
+  std::filesystem::copy(f.root / "Content", other.Root() / "Content",
+                        std::filesystem::copy_options::recursive |
+                            std::filesystem::copy_options::overwrite_existing);
+  Require(copied_assets.ImportTree(other.Root() / "Content", {}, {},
+                                   editor::AssetIdentityMode::PersistentReadWrite) &&
+              copied_content.Open(other, copied_assets, 9, true) &&
+              copied_content.Browser().SetFolder(foo),
+          "copied scope setup failed");
+  Require(f.content.Browser().SetFolder(foo), "original scope folder failed");
+  f.Draw();
+  f.Draw();
+  f.Click(Access::ContentAssetPosition(f.ui, id));
+  const auto original_root_nav = ImGui::GetCurrentContext()->NavId;
+  f.active = &copied_content;
+  f.workspace_override = &other;
+  f.Draw();
+  f.Draw();
+  Require(copied_content.Browser().Find(id), "copied source did not preserve UUID");
+  f.Click(Access::ContentAssetPosition(f.ui, id));
+  Require(ImGui::GetCurrentContext()->NavId != original_root_nav,
+          "copied root reused marker control ID at same generation");
+  Require(f.Files() == files, "scope replacement wrote source files");
+}
 void Run(float dpi) {
   Fixture f(dpi);
   const auto original_files = f.Files();
@@ -265,9 +464,11 @@ void Run(float dpi) {
 } // namespace
 int main() {
   try {
+    MarkerLabels(1);
+    MarkerLabels(2);
     Run(1);
     Run(2);
-    std::cout << "Graphical forward/reverse dependency Reveal contracts passed\n";
+    std::cout << "Literal Content labels and forward/reverse dependency Reveal contracts passed\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
