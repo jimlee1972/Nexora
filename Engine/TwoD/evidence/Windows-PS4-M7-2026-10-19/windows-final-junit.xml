@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Win32-MSBuild"
+	tests="27"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="Jim-PC"
+	time="99"
+	timestamp="2026-10-19T00:30:56"
+	>
+	<testcase name="build.module_graph" classname="build.module_graph" time="0.291756" status="run">
+		<properties/>
+		<system-out>-- Validated 27 modules: no dependency cycles
+</system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_module_host" classname="runtime.gameplay_module_host" time="0.129582" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_action_input" classname="runtime.gameplay_action_input" time="0.117209" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_audio" classname="runtime.gameplay_audio" time="0.129516" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_persistent_storage" classname="runtime.gameplay_persistent_storage" time="0.250285" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_gamepad_routing" classname="runtime.gameplay_gamepad_routing" time="0.187493" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_audio_queue" classname="runtime.gameplay_audio_queue" time="0.125758" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.runtime_contracts" classname="twod.runtime_contracts" time="0.593912" status="run">
+		<properties/>
+		<system-out>2D runtime contracts passed
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_vm_transport" classname="twod.windows_vm_transport" time="2.2897" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod;vm"/>
+		</properties>
+		<system-out>............
+----------------------------------------------------------------------
+Ran 12 tests in 1.608s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_vm_guest" classname="twod.windows_vm_guest" time="3.20117" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod;vm"/>
+		</properties>
+		<system-out>Windows guest UTF-8/NUL, immutable evidence and full stdout/stderr pipe regressions PASS
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_bridge" classname="twod.gameplay_bridge" time="0.124053" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.project_play_assets" classname="twod.project_play_assets" time="0.692078" status="run">
+		<properties/>
+		<system-out>Project 2D Play assets: exact source scope, cooked closure and immutable lifetime passed
+</system-out>
+	</testcase>
+	<testcase name="twod.content_import" classname="twod.content_import" time="40.9863" status="run">
+		<properties/>
+		<system-out>2D typed Content: stable identity, immutable reimport, dependency and budget conservation passed
+</system-out>
+	</testcase>
+	<testcase name="twod.play_assets" classname="twod.play_assets" time="0.587523" status="run">
+		<properties/>
+		<system-out>2D cooked Play assets: generation isolation, closure, budgets and residency passed
+</system-out>
+	</testcase>
+	<testcase name="twod.authoring_contracts" classname="twod.authoring_contracts" time="0.210864" status="run">
+		<properties/>
+		<system-out>2D authoring, tilemap and isolated Play passed
+</system-out>
+	</testcase>
+	<testcase name="twod.play_context" classname="twod.play_context" time="3.6098" status="run">
+		<properties/>
+		<system-out>2D Play context: 32 isolated sessions, frozen assets, callbacks, frames and source history passed
+</system-out>
+	</testcase>
+	<testcase name="twod.asset_tool" classname="twod.asset_tool" time="0.913846" status="run">
+		<properties/>
+		<system-out>320 bytes written
+320 bytes written
+320 bytes written
+84 bytes written
+84 bytes written
+PNG slicing, packing, clips and failed publication passed
+</system-out>
+	</testcase>
+	<testcase name="twod.cpu_stress" classname="twod.cpu_stress" time="3.94812" status="run">
+		<properties/>
+		<system-out>Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+</system-out>
+	</testcase>
+	<testcase name="twod.benchmark_trace" classname="twod.benchmark_trace" time="6.89258" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod"/>
+		</properties>
+		<system-out>Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+All six benchmark cases, warm-up, same-frame partitions and output failures passed
+</system-out>
+	</testcase>
+	<testcase name="twod.integrated_stress" classname="twod.integrated_stress" time="17.2517" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod"/>
+		</properties>
+		<system-out>Integrated 10k fixture completed; product minimum-PC acceptance is separate.
+Integrated 10k updates, independent queries/culling, UI/VFX, reload and trace pass
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_ui" classname="twod.gameplay_ui" time="0.121179" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.gameplay_content" classname="twod.gameplay_content" time="0.312627" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.host_fixture" classname="twod.host_fixture" time="5.7537" status="run">
+		<properties>
+			<property name="cmake_labels" value="host;storage;twod;ui"/>
+		</properties>
+		<system-out>Headless host-fixture storage/rebinding/strict font admission contracts pass
+</system-out>
+	</testcase>
+	<testcase name="twod.project_export" classname="twod.project_export" time="3.01328" status="run">
+		<properties>
+			<property name="cmake_labels" value="export;project;twod"/>
+		</properties>
+		<system-out>Project export: independent module, UI-only game, Unicode paths, process restart, immutable package and corruption rejection passed
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_font_bake" classname="twod.windows_font_bake" time="4.79306" status="run">
+		<properties>
+			<property name="cmake_labels" value="font;twod;windows"/>
+		</properties>
+		<system-out>Windows GDI font corpus bake, alpha, metrics, overwrite and missing-glyph checks passed
+</system-out>
+	</testcase>
+	<testcase name="twod.backend_options" classname="twod.backend_options" time="2.55506" status="run">
+		<properties>
+			<property name="cmake_labels" value="cli;presentation;twod"/>
+		</properties>
+		<system-out>Backend admission and headless provenance pass
+</system-out>
+	</testcase>
+	<testcase name="twod.project_manifest" classname="twod.project_manifest" time="0.166555" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+</testsuite>

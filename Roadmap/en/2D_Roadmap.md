@@ -7,9 +7,9 @@
 > on the current PC: NOT RUN. Retained 10,000-object stress screens are 23/24, integrated 3/4
 > and 30-minute soaks 1/2; those historical verdicts remain unchanged. M6 remains open.
 > M7 clean Windows runtime/Shipping remains **PARTIAL / NOT ACCEPTED**. The rebuilt current-main VM
-> package passes CPU, native software DX12, Zig instancing and human keyboard movement; full device/product
-> integration remains open. The current physical developer PC adds hardware DX12/Vulkan UI smokes,
-> human keyboard/Chinese UI/audio and 100/150/175% DPI evidence; clean-host/full-device gates remain open.
+> package passes CPU, native software DX12, Zig instancing and human keyboard movement. The current
+> physical developer PC passes the scoped Runtime checks, including PS4 USB, hardware DX12/Vulkan,
+> human Chinese UI/audio and 100/150/175% DPI; independent clean-host acceptance remains open.
 
 ## 1. Scope and baseline
 
@@ -37,7 +37,7 @@ conditional. Every row remains unaccepted until its complete condition passes; o
 | ✅ 2D-M4 | P0 | Bulk lifecycle/updates | Batch create/recycle, generational identity, allocation control, data-oriented updates and fixed-step scheduling | Repeated cycles reject stale handles, preserve safe teardown and report allocation/frame spikes; varied frame deltas verify fixed-step count, ordering, accumulated remainder and equivalent state for the same simulated time | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M5 | P0 | High-volume Sprite rendering | Atlas batching/instancing, visibility culling, transparency ordering and overdraw control via existing RHI | Native captures preserve order across batches; sparse/overlapping workloads retain draw counts and CPU/GPU timings | ✅ Portable/Linux capability acceptance; evidence below |
 | 2D-M6 | P0 | Profiling/stress acceptance | CPU/GPU frame time, memory, draw counts, allocation spikes and transparent overlap | Reproducible 5,000-object integrated workload meets declared 30 FPS/frame-time and resource budgets on the specified PC; retain 10,000-object stress results and traces/configuration | 5,000-object integrated gate NOT RUN; historical 10k stress retained; M6 NOT ACCEPTED |
-| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; clean-host/full-device/product gates open; M7 NOT ACCEPTED |
+| 2D-M7 | P0 | Windows runtime/Shipping acceptance | Input (including any physical game controller), UI/text, audio, async loading, serialization/save, cooked assets and standalone packaging | Clean Windows machine runs cooked 2D validation app without Editor/developer dependencies; keyboard/mouse and a physical game controller, UI/text rendering, audio playback, async-load completion/failure, reload, save/reopen and shutdown pass | VM CPU/software DX12/Zig plus scoped physical-host DX12/Vulkan UI, human keyboard/audio and 100/150/175% DPI passed; PS4 USB/current-host Runtime slice passed; clean-host gate open; M7 NOT ACCEPTED |
 | ✅ 2D-M8 | P1 | 2D scene authoring | Sprite placement, pivot/order editing, collision visualization and orthographic Editor preview | Edit-preview-Undo/Redo-save-reopen preserves authored scene; isolated Play does not change authoring World | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M9 | P1 | Atlas/animation tools | Slice/Atlas preview, packing diagnostics, frame editing and playback/event preview | Cooked output matches runtime rendering; Undo/Redo, invalid data and reimport are verified | ✅ Portable/Linux capability acceptance; evidence below |
 | ✅ 2D-M10 | P1, conditional | Tilemap | Layers, painting, collision metadata, chunk loading/culling | Implemented painting, layers/collision metadata and chunk loading/culling pass Undo/save/reopen and chunk-boundary render/query tests; a decision to defer leaves this milestone unaccepted | ✅ Portable/Linux capability acceptance; evidence below |
@@ -51,10 +51,54 @@ product, plus disconnect/reconnect, keyboard/mouse switching and focus reset. Re
 connection type, input backend and observed results. A pass covers that model and connection;
 it does not establish compatibility with every controller.
 
-The current native Windows adapter uses XInput; input paths for other devices still require
-implementation or integration and real testing. OS detection of a DUALSHOCK or another HID
+The native Windows adapter retains XInput and adds DirectInput joysticks with DUALSHOCK 4
+button/axis mapping. Other models expose rebindable controls; compatibility is limited to tested
+models and connections. OS detection of a DUALSHOCK or another HID
 device alone does not establish game input. See the current implementation scope in the
 [input contract](../../Engine/Runtime/GameplayInput.md#native-gamepad-adapter-and-evidence).
+
+### M7 Runtime/Shipping acceptance scope (revised 2026-10-19)
+
+M7 accepts one standalone cooked 2D Shipping validation application; a finished production game
+is not a prerequisite. Required checks cover keyboard/mouse and any physical joystick actions/
+deadzones, UI navigation/confirm/cancel, disconnect/reconnect and focus reset; Chinese UI,
+human-confirmed audio and available output-device recovery; asynchronous load success/failure,
+cooked corruption rejection, reload, cross-process engine save restoration/isolation/error
+protection, and repeated startup/normal shutdown with resource release.
+Any physical joystick may pass; no brand, XInput or additional controller purchase is required.
+
+The current single-monitor DPI acceptance set is **100/150/175%**, using the retained human
+display/interaction evidence. **200% is neither required nor pending**. Cross-monitor cases apply
+only to a declared multi-monitor configuration and do not block this single-monitor gate.
+Audio acceptance covers audible playback and available unplug/switch recovery in the tested
+output configuration, reusing the user's confirmed earlier checks instead of repeating passes.
+Untriggered endpoint-loss/reopen paths limit compatibility claims; speaker-cable reconnection
+does not establish USB endpoint failure, and an unobserved local fault is not an additional exit prerequisite.
+
+Move these conditions out of M7: minimum hardware, 30 FPS/spikes, integrated UI/VFX, allocator/VRAM and
+soaks belong to [M6](#2-capability-milestones); main Editor Game View acquisition and Play/Stop
+belong to the [Editor Roadmap](Editor_Roadmap.md); production gameplay/content and save schema/
+migration belong to individual game projects. M7 uses a fixed fixture schema to test the engine
+storage contract, without requiring production content completion.
+
+Record current developer-host acceptance separately from the **independent clean Windows host
+gate**. The latter still requires the same package to start without Editor/Zig/Python/MSVC
+development tools, with complete dependencies, basic interaction and normal shutdown.
+Developer-PC PATH isolation, VM software rendering and CI do not replace that gate.
+M7 remains incomplete until the clean-host gate passes.
+
+✅ 2026-10-19 physical PS4 USB slice: the Shipping Player reads Sony DUALSHOCK 4 (054c:09cc)
+through DirectInput. DX12/Vulkan each exit normally after 120 frames; initial acquisition no longer
+submits half-pressed triggers. Two human DX12 sessions total 5,578 frames and confirm left-stick
+movement, both triggers, right-stick RX/RY -1..1, D-pad/confirm/cancel, focus, keyboard switching
+and USB disconnect/reconnect. Normal teardown, cross-process state restoration and Shipping
+corrupt-save rejection pass; full local MSVC Development/Shipping tool builds and 27/27 related
+regressions pass. The user additionally confirms all is normal and was tested previously; retained
+Chinese UI/audio/supported-DPI evidence is reused without another manual run.
+[Raw counters, human replies, source/binary hashes and acceptance boundaries](../../Engine/TwoD/evidence/Windows-PS4-M7-2026-10-19/acceptance.md)
+are retained separately. This slice does not establish every controller or untriggered audio
+endpoint-loss/reopen behavior. Available current-host acceptance is complete; the clean-host gate
+remains open. M7 NOT ACCEPTED, 9/11 (82%), P0 6/8 are unchanged.
 
 ## 3. Dependencies and implementation order
 
@@ -498,10 +542,12 @@ separately in the [acceptance record](../../Engine/TwoD/evidence/Windows-Host-M6
 PS4 USB HID is present, but the XInput backend used in that run received no input from it;
 physical controller acceptance remains open. A subsequent run may use DUALSHOCK or another
 joystick under the criteria above; a separate XInput device is not required. The
-standard display menu stops at 175%, so 200% and multi-monitor tests are NOT RUN. Speaker cable
+standard display menu stops at 175%; 200% and multi-monitor tests were NOT RUN at that time.
+The 2026-10-19 scope removes 200% and makes cross-monitor testing inapplicable to this single-monitor run. Speaker cable
 recovery caused no waveOut failure/reopen and does not prove USB endpoint-loss/default-switch
 recovery. The UI-only fixture is separate from the sprite stress workload and a production game.
-Clean host, minimum-PC/integrated-load/soak, Editor lifecycle and full device gates remain open;
+Those clean-host, minimum-PC/integrated-load/soak, Editor lifecycle and full-device gates were open
+at that time; M6/Editor/game conditions are now tracked separately under the scope above and do not block M7;
 **M6/M7 NOT ACCEPTED, 9/11 (82%), P0 6/8** remain unchanged.
 
 ✅ The real Zig cooked-service fixture additionally passes two 120-frame native processes per backend: 34 visible sprites, one cooked reload, 96,000 audio frames, save/resume and balanced teardown each. Automated fixture movement and audio submission do not add human controller/audibility acceptance.

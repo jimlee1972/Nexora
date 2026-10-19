@@ -18,6 +18,7 @@ struct State {
   unsigned rebound{}, saves{}, opens{}, pauses{}, plays{}, stops{}, cancels{};
   unsigned keyboardMovement{}, gamepadMovement{}, buttonsSeen{}, busChanges{};
   std::array<float, 6> axesMin{}, axesMax{};
+  std::array<float, 6> axes{};
   std::array<unsigned, 3> gains{};
   bool paused{};
 };
@@ -155,6 +156,7 @@ int32_t Update(void *opaque, double delta) {
       if (i < 16 && action.held)
         s.buttonsSeen |= 1U << i;
       if (i >= 16) {
+        s.axes[i - 16] = action.value;
         s.axesMin[i - 16] = std::fmin(s.axesMin[i - 16], action.value);
         s.axesMax[i - 16] = std::fmax(s.axesMax[i - 16], action.value);
       }
@@ -239,6 +241,16 @@ int32_t Update(void *opaque, double delta) {
       s.sfx = 0;
       ++s.stops;
     }
+    char pad[240]{};
+    std::snprintf(pad, sizeof(pad), "PAD %08X LX %.2f LY %.2f LT %.2f RX %.2f RY %.2f RT %.2f",
+                  s.buttonsSeen, double(s.axes[0]), double(s.axes[1]), double(s.axes[2]),
+                  double(s.axes[3]), double(s.axes[4]), double(s.axes[5]));
+    if (ui.text(ui.context, s.font, 14, {16, 310, 608, 28}, pad,
+                static_cast<uint32_t>(std::strlen(pad)), 0xffffffff))
+      return -3;
+    static constexpr char help[] = "D-PAD: MENU  CROSS: OK  CIRCLE: CANCEL";
+    if (ui.text(ui.context, s.font, 16, {16, 348, 608, 28}, help, sizeof(help) - 1, 0xffffffff))
+      return -3;
     if (ui.end_frame(ui.context))
       return -3;
     return 0;

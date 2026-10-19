@@ -34,6 +34,8 @@ target_include_directories(NexoraRuntime PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRE
 target_link_libraries(NexoraRuntime PUBLIC Nexora::Renderer)
 if(NOT WIN32)
   target_link_libraries(NexoraRuntime PRIVATE ${CMAKE_DL_LIBS})
+else()
+  target_link_libraries(NexoraRuntime PRIVATE dinput8 dxguid)
 endif()
 target_compile_definitions(NexoraRuntime PRIVATE NEXORA_RUNTIME_EXPORTS)
 if(NEXORA_ENABLE_ASSET_PIPELINE)

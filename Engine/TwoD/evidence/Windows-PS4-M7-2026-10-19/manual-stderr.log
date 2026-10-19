@@ -1,0 +1,4 @@
+host fixture loaded position=0.000000 rebound=0
+native_gamepad slot=0 backend=DirectInput vid=054c pid=09cc dualshock4=1
+native_gamepad slot=0 backend=DirectInput vid=054c pid=09cc dualshock4=1
+host_fixture {"position":0.138389,"rebound":1,"saves":0,"opens":0,"keyboard_movement_frames":11,"gamepad_movement_frames":200,"buttons_seen":61455,"bus_changes":6,"plays":0,"pauses":0,"stops":0,"cancels":6,"final_save_ok":true,"axes_min":[-1.000000,-0.695334,0.000000,0.000000,-0.054689,0.000000],"axes_max":[1.000000,0.992065,1.000000,0.000000,0.000000,1.000000]}

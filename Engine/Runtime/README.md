@@ -2,7 +2,7 @@
 
 ## Gameplay action input
 
-The additive C/Zig action input service and native Linux gamepad adapter are documented in
+The additive C/Zig action input service and native Linux/Windows gamepad adapters are documented in
 [GameplayInput.md](GameplayInput.md), including ownership, focus/disconnect transitions,
 rebinding, copied snapshots and platform acceptance limits.
 

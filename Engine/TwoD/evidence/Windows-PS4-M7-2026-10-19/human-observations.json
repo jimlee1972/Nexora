@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-19",
+  "round1": {
+    "question": "Left stick movement/release; right stick/triggers; D-pad, Cross/Circle UI; held stick Alt-Tab and keyboard A/D; PS4 USB disconnect/reconnect; normal window X close.",
+    "answer": "正常",
+    "limits": "Round 1 does not show a measurable right-stick sweep; a second run is requested. No endpoint-loss audio acceptance inferred."
+  },
+  "round2": {
+    "question": "Right stick full sweep with RX/RY changes; SAVE/move/OPEN; if available, music playback and headphone/USB removal/default output switch; normal window X close.",
+    "answer": "正常",
+    "limits": "RX/RY full ranges and playback/pause/stop observed. SAVE/OPEN counters stayed zero, so no new manual SAVE/OPEN acceptance is claimed. Audio device/connection unspecified; no waveOut loss/reopen observed (one successful open, zero pump failures)."
+  },
+  "final_confirmation": {
+    "answer": "都正常，上次測過了",
+    "application": "Reuse the existing manual input/UI/audio/supported-DPI passes; no further manual repeat requested. Counter limitations remain recorded; no unobserved endpoint fault is claimed."
+  }
+}

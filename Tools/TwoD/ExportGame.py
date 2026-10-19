@@ -17,6 +17,7 @@ WINDOWS_OS_IMPORTS = {
     'comctl32.dll', 'ucrtbase.dll', 'msvcrt.dll', 'ws2_32.dll', 'winmm.dll', 'winhttp.dll',
     'bcrypt.dll', 'crypt32.dll', 'secur32.dll', 'setupapi.dll', 'version.dll', 'dbghelp.dll',
     'd3d12.dll', 'd3d11.dll', 'dxgi.dll', 'd3dcompiler_47.dll', 'vulkan-1.dll', 'xinput1_4.dll',
+    'dinput8.dll',
 }
 
 
