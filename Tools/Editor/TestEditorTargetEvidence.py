@@ -147,6 +147,8 @@ class EvidenceTests(unittest.TestCase):
                 patch.object(evidence.subprocess, "Popen", FakeEditor), \
                 patch("builtins.input", side_effect=EOFError), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(evidence.record_session(args), 1)
+            with self.assertRaises(FileExistsError):
+                evidence.record_session(args)
         record = json.loads((output / "evidence.json").read_text(encoding="utf-8"))
         self.assertEqual(record["status"], "INCOMPLETE")
         self.assertFalse(record["operator_attested"])
@@ -154,8 +156,14 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(all(row["result"] == "blocked" for row in record["rows"][1:]))
         self.assertTrue((output / record["rows"][0]["artifacts"][0]["path"]).is_file())
         self.assertEqual(list(project.iterdir()), [])
-        with self.assertRaises(FileExistsError):
-            evidence.record_session(args)
+
+    def test_unsupported_host_does_not_create_a_bundle(self):
+        output = self.directory / "unsupported-bundle"
+        args = argparse.Namespace(output=output)
+        with patch.object(evidence.platform, "system", return_value="Darwin"):
+            with self.assertRaisesRegex(ValueError, "Only Linux/X11 and Windows"):
+                evidence.record_session(args)
+        self.assertFalse(output.exists())
 
     def test_cli_rejects_forged_status_without_rewriting_input(self):
         record = self.record()
