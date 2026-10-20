@@ -690,3 +690,16 @@ Keep **M6 NOT ACCEPTED; 9/11 (82%), P0 6/8 unchanged**. Product minimum specific
 allocator/production/device/clean-host gates remain open. At the user's explicit request, the harness
 and retained evidence were merged in [PR #646](https://github.com/jimlee1972/Nexora/pull/646); this
 did not accept M6 or change any failed result. The revised 5,000-object gate above is NOT RUN.
+
+## ALSA configuration lifetime repair (2026-10-20)
+
+✅ `GameplayAudio` now opens Linux output with a private ALSA configuration tree/update
+record and releases both after PCM close and before library unload, including failed opens.
+It preserves system/user/`ALSA_CONFIG_PATH` selection without replacing or freeing another
+client's global configuration. The real-adapter regression matrix covers 65 opens per process
+for null, missing-device, malformed, absent-file and system configurations, both alone and
+with an external live PCM/retained global reference. A second Nexora owner remains usable.
+Local ASan/UBSan/LSan passes all ten cases (650 opens), without suppression; old-code leak
+and external-reference failures are retained in the [evidence](../../Engine/Runtime/evidence/ALSA-Lifetime-Linux-2026-10-20/acceptance.md).
+Hosted sanitizer CI retains the same matrix's stdout/stderr. Silent/null output does not add
+physical audibility or device-recovery acceptance. M6/M7 and 9/11 (82%) remain unchanged.

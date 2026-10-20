@@ -63,7 +63,11 @@ struct GameplayAudio::Impl {
   void *sink_context{};
 #if defined(__linux__)
   void *library{}, *device{};
-  using Open = int (*)(void **, const char *, int, int);
+  using Open = int (*)(void **, const char *, int, int, void *);
+  void *config{}, *config_update{};
+  using UpdateConfig = int (*)(void **, void **, const char *);
+  using FreeConfig = int (*)(void *);
+  FreeConfig delete_config{}, free_update{};
   using Params = int (*)(void *, int, int, unsigned, unsigned, int, unsigned);
   using Write = long (*)(void *, const void *, unsigned long);
   using Recover = int (*)(void *, int, int);
@@ -270,6 +274,12 @@ void GameplayAudio::CloseOutput() {
   if (impl_->device && impl_->close)
     impl_->close(impl_->device);
   impl_->device = nullptr;
+  if (impl_->config)
+    impl_->delete_config(impl_->config);
+  impl_->config = nullptr;
+  if (impl_->config_update)
+    impl_->free_update(impl_->config_update);
+  impl_->config_update = nullptr;
   if (impl_->library)
     dlclose(impl_->library);
   impl_->library = nullptr;
@@ -304,13 +314,22 @@ bool GameplayAudio::OpenDefaultOutput(std::string &error) {
     error = "ALSA library unavailable";
     return false;
   }
-  auto open = reinterpret_cast<Impl::Open>(dlsym(s.library, "snd_pcm_open"));
+  auto open = reinterpret_cast<Impl::Open>(dlsym(s.library, "snd_pcm_open_lconf"));
   auto params = reinterpret_cast<Impl::Params>(dlsym(s.library, "snd_pcm_set_params"));
   s.write = reinterpret_cast<Impl::Write>(dlsym(s.library, "snd_pcm_writei"));
   s.recover = reinterpret_cast<Impl::Recover>(dlsym(s.library, "snd_pcm_recover"));
   s.close = reinterpret_cast<Impl::Close>(dlsym(s.library, "snd_pcm_close"));
-  if (!open || !params || !s.write || !s.recover || !s.close ||
-      open(&s.device, "default", 0, 0) < 0) {
+  auto update_config =
+      reinterpret_cast<Impl::UpdateConfig>(dlsym(s.library, "snd_config_update_r"));
+  s.delete_config = reinterpret_cast<Impl::FreeConfig>(dlsym(s.library, "snd_config_delete"));
+  s.free_update = reinterpret_cast<Impl::FreeConfig>(dlsym(s.library, "snd_config_update_free"));
+  // Use an owner-local root and file-update record. snd_pcm_open instead populates
+  // ALSA's global cache, which outlives PCM close and can leak when we dlclose.
+  // Never free that global cache: unrelated ALSA clients may still own it.
+  if (!open || !params || !s.write || !s.recover || !s.close || !update_config ||
+      !s.delete_config || !s.free_update ||
+      update_config(&s.config, &s.config_update, nullptr) < 0 || !s.config ||
+      open(&s.device, "default", 0, 0, s.config) < 0) {
     error = "ALSA default output unavailable";
     CloseOutput();
     return false;

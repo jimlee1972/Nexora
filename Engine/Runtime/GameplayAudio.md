@@ -33,6 +33,16 @@ missing device, rejected format and write/recovery failures report unavailable
 output; a failed write disables the output until the host configures it again.
 Device-write failure consumes the mixed block rather than replaying it.
 
+Linux loads the configured default device through `snd_config_update_r` and
+`snd_pcm_open_lconf`, with a private configuration tree and file-update record for
+each output generation. System defaults, user configuration hooks and `ALSA_CONFIG_PATH`
+remain ALSA's responsibility. Reopen reads a fresh snapshot; an active generation retains
+its tree until its PCM is closed. Close and partial-open failure release the PCM, private
+tree and update record before unloading `libasound`. The adapter never calls
+`snd_config_update_free_global` or replaces ALSA's global tree: other audio clients may
+still own PCM handles or borrowed nodes from it. Multiple `GameplayAudio` instances own
+independent generations; this does not relax each instance's owner-thread contract.
+
 Windows uses the default WinMM waveOut mapper with stereo PCM16 at the mixer's sample rate.
 `winmm.dll` is loaded from System32 only, without a new import-library dependency. Four fixed
 4,096-frame PCM16 buffers/headers (64 KiB PCM total) belong to the audio owner. `Pump` copies its
@@ -77,6 +87,15 @@ that result separately. It links Runtime only and is built in Editor-free Monoli
 Linux `twod.audio_device_lifecycle` uses actual ALSA null and missing-device configurations to
 verify submission across multiple blocks, reopen, idempotent close and nonzero failure without
 an explicit unavailable expectation. It cannot establish Windows runtime or speaker acceptance.
+
+✅ Linux `runtime.gameplay_alsa_lifetime` performs 65 opens per subprocess for null,
+missing-device, malformed, absent-file and system-default configurations, both alone and
+beside an external ALSA client's live null PCM and retained global configuration reference.
+It checks idempotent close, destructor cleanup, a persistent second Nexora owner, unavailable
+playback rejection and preservation of the external client's borrowed nodes and output.
+System-default availability is observed, not assumed. Only silent frames are submitted.
+The same matrix runs under hosted sanitizers without leak suppression; physical audibility
+and device recovery still require target-host acceptance.
 
 
 `runtime.gameplay_audio_queue` executes the actual portable slot owner used by the Windows sink:

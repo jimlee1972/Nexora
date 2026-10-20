@@ -293,6 +293,16 @@ add_executable(NexoraGameplayAudioTests GameplayAudioTests.cpp)
 target_link_libraries(NexoraGameplayAudioTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraGameplayAudioTests)
 add_test(NAME runtime.gameplay_audio COMMAND NexoraGameplayAudioTests)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_executable(NexoraGameplayAlsaTests GameplayAlsaTests.cpp)
+  target_link_libraries(NexoraGameplayAlsaTests PRIVATE Nexora::Runtime ${CMAKE_DL_LIBS})
+  nexora_apply_defaults(NexoraGameplayAlsaTests)
+  add_test(NAME runtime.gameplay_alsa_lifetime COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/GameplayAlsaAcceptance.py"
+    --test "$<TARGET_FILE:NexoraGameplayAlsaTests>"
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/gameplay-alsa")
+  set_tests_properties(runtime.gameplay_alsa_lifetime PROPERTIES TIMEOUT 120 LABELS "runtime;audio")
+endif()
 
 add_executable(NexoraGameplayStorageTests GameplayStorageTests.cpp)
 target_link_libraries(NexoraGameplayStorageTests PRIVATE Nexora::Runtime)

@@ -1,0 +1,62 @@
+{
+  "null": {
+    "opens": 65,
+    "opened": 65,
+    "peer": false,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "null-peer": {
+    "opens": 65,
+    "opened": 65,
+    "peer": true,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "missing": {
+    "opens": 65,
+    "opened": 0,
+    "peer": false,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "missing-peer": {
+    "opens": 65,
+    "opened": 0,
+    "peer": true,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "malformed": {
+    "opens": 65,
+    "opened": 0,
+    "peer": false,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "malformed-peer": {
+    "opens": 65,
+    "opened": 0,
+    "peer": true,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "absent-file": {
+    "opens": 65,
+    "opened": 0,
+    "peer": false,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "absent-file-peer": {
+    "opens": 65,
+    "opened": 0,
+    "peer": true,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "system": {
+    "opens": 65,
+    "opened": 0,
+    "peer": false,
+    "audible_acceptance": "NOT VERIFIED"
+  },
+  "system-peer": {
+    "opens": 65,
+    "opened": 0,
+    "peer": true,
+    "audible_acceptance": "NOT VERIFIED"
+  }
+}
