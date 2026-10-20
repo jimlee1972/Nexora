@@ -11,7 +11,10 @@ param(
 # The automated part launches the real graphical Editor for a bounded frame count and parses its
 # "graphical evidence:" line. DPI and IME rows can only be judged by a person at the machine, so
 # they are recorded as operator answers and default to "blocked" - never to "pass".
+# This preliminary interview does not cover the full ED-M0 matrix. Use EditorTargetEvidence.py
+# (see Tools/Editor/README.md) for complete, artifact-backed target-host recording.
 $ErrorActionPreference = 'Stop'
+Write-Warning 'Preliminary evidence only: PASS here does not establish ED-M0 acceptance. Use EditorTargetEvidence.py for the complete DPI/IME and shell matrix.'
 $evidence = [IO.Path]::GetFullPath($EvidenceDirectory)
 [IO.Directory]::CreateDirectory($evidence) | Out-Null
 if ([string]::IsNullOrWhiteSpace($Commit)) {
@@ -98,6 +101,7 @@ if (@($monitors | Select-Object -Unique).Count -lt 2) {
 }
 $record = [ordered]@{
     schema = 'nexora.editor.windows.ed_m0.evidence.v1'; status = $overall
+    acceptance_scope = 'preliminary_smoke_and_interview'
     recorded_utc = [DateTime]::UtcNow.ToString('o'); operator_attested_rows = $true; rows = $rows }
 [IO.File]::WriteAllText((Join-Path $evidence 'evidence.json'),
     ($record | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false))

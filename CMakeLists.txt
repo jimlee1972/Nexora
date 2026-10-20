@@ -290,6 +290,10 @@ if(BUILD_TESTING)
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
             -P "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Build/ValidateModuleGraph.cmake")
   add_test(
+    NAME build.editor_target_evidence
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Editor/TestEditorTargetEvidence.py")
+  add_test(
     NAME build.shader_contract
     COMMAND "${CMAKE_COMMAND}" -DROOT=${CMAKE_CURRENT_SOURCE_DIR}
             -P "${CMAKE_CURRENT_SOURCE_DIR}/Tools/Build/ValidateShaderContract.cmake")

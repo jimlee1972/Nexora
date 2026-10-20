@@ -149,6 +149,9 @@ satisfy this milestone.
 - ✅ WP0 reproducibility audit: graphical OFF 71/71 and ON with Slang 115/115 passed, no skips;
   Shipping engine built. [Linux evidence](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)
   and the focused plan now provide the remaining target-host checklist. ED-M0 remains open.
+- ✅ Complete target-host evidence recording and artifact validation are available through
+  [the operator recorder](../../Tools/Editor/README.md), including all four Windows DPI scales.
+  This checks evidence completeness only; physical-host acceptance remains open.
 - Open acceptance: real-display Linux visual/input/recovery evidence and Windows DPI/IME evidence.
   A bounded Windows/DX12 developer-host shell smoke is recorded, but ED-M0 remains open until the
   complete target-host gates pass.

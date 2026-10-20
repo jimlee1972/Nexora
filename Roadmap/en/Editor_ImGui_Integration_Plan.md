@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.5 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-10-06 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Version: v1.6 | Status: implementation in progress; target-host evidence pending |
+> Updated: 2026-10-20 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
 > **Repository audit (2026-10-05):** implementation is **in progress**. The checked foundations
@@ -386,6 +386,17 @@ resize generation and final lifecycle counters remain mandatory.
 Editor display shortcuts use 100 ms native key transitions, matching selector input, so ImGui
 trickling and GPU frames can observe the original press/release sequence.
 
+✅ Target-host evidence tooling now provides a complete Linux/Windows operator checklist through
+`Tools/Editor/EditorTargetEvidence.py` ([usage](../../Tools/Editor/README.md)). It retains exact
+argv, binary hash, source/configuration/host/backend metadata and hashed artifact copies; validation
+rechecks every required row and bounded native smoke logs. Separate Windows 100/125/150/200%
+rows and installed-IME/caret/candidate observations are required. Missing or virtual-only records
+remain incomplete. `COMPLETE_OPERATOR_RECORD` means a complete operator attestation, not automatic
+ED-M0 approval. The older PowerShell interview is preliminary and cannot satisfy this new matrix.
+Portable `build.editor_target_evidence` verifies evidence admission only; physical Linux and
+Windows DPI/IME gates remain open until the artifacts are collected and reviewed.
+See [Linux tooling validation](../../Tools/Build/evidence/EditorEDM0-EvidenceAdmission-Linux-2026-10-20.md).
+
 1. Run the full Linux gate listed in §6 with a clean tree. Because WP1/WP3 alter linkage/API
    boundaries, run `linux-shipping` too.
 2. Under a real X11 display, run a scripted/manual checklist covering launch, visible font/text,
@@ -403,7 +414,7 @@ trickling and GPU frames can observe the original press/release sequence.
    both roadmap languages, inspect the final diff, and only then update ED-M0 status. Panel
    existence alone is not acceptance.
 
-Evidence for the Windows rows is recorded with `Tools/Editor/RecordEditorWindowsEvidence.ps1` (smoke automated; DPI/IME rows operator-attested, default `blocked`). **Status note (2026-10-10):** the script ran once on a single-monitor 100% Windows host. The
+Preliminary Windows observations were recorded with `Tools/Editor/RecordEditorWindowsEvidence.ps1` (smoke automated; DPI/IME rows operator-attested, default `blocked`). **Status note (2026-10-10):** the script ran once on a single-monitor 100% Windows host. The
 operator reported that Latin input worked but Chinese/Bopomofo composition and committed Chinese
 text were not visible. Two causes were fixed afterwards: `WM_IME_COMPOSITION` was consumed without
 reaching `DefWindowProc`, so the system composition/candidate UI never drew, and the Editor atlas

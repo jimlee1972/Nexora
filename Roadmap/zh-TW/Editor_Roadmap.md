@@ -143,6 +143,8 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ WP0 可重現性盤點：graphical OFF 71/71、ON 加 Slang 115/115 通過且無 skipped，
   Shipping engine build 通過。[Linux 證據](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)
   與 focused plan 現已提供剩餘 target-host checklist；ED-M0 維持 open。
+- ✅ 完整 target-host 證據記錄與 artifact 驗證已由[操作者工具](../../Tools/Editor/README.md)
+  提供，涵蓋 Windows 四種 DPI。此功能只檢查證據完整性；實機驗收維持 open。
 - 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
   已記錄 bounded Windows/DX12 開發機 shell smoke，但完整 target-host gate 通過之前 ED-M0
   仍維持 open。
