@@ -65,12 +65,35 @@ std::optional<ReflectedValue> ParseReflectedText(std::string_view text, Reflecte
   }
   return {};
 }
+ReflectedValue InitialReflectedArrayValue(const ReflectedDynamicArray &array) {
+  switch (array.kind) {
+  case ReflectedKind::Boolean:
+    return false;
+  case ReflectedKind::Integer:
+    return std::int64_t{};
+  case ReflectedKind::Number:
+    return 0.;
+  case ReflectedKind::Enum:
+    return array.choices.front().value;
+  case ReflectedKind::Color:
+    return std::array<double, 4>{0, 0, 0, 1};
+  case ReflectedKind::Vector2:
+  case ReflectedKind::Vector3:
+  case ReflectedKind::Vector4:
+    return std::array<double, 4>{};
+  case ReflectedKind::AssetReference:
+    return foundation::Uuid{};
+  default:
+    return std::uint64_t{};
+  }
+}
 template <typename StateT>
 void DrawReflectedInspector(StateT &state, SceneDocument &scene,
                             std::span<const SceneDocument::NodeKey> keys, bool editable) {
   state.reflected_positions.clear();
   state.reflected_choice_positions.clear();
   state.reflected_mixed.clear();
+  state.reflected_array_controls.clear();
   if (ImGui::SmallButton("Reload property metadata"))
     state.reflected_metadata_reload = true;
   if (keys.size() > ReflectedInspector::kMaximumTargets) {
@@ -95,11 +118,69 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
     ImGui::PushID(static_cast<int>(component.type));
     ImGui::PushID(static_cast<int>(component.type >> 32U));
     ImGui::TextUnformatted(component.name.c_str());
+    bool published = false;
+    const auto control_position = [&](std::size_t array, std::string action,
+                                      std::optional<std::size_t> element = {}) {
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state.reflected_array_controls.push_back({component.type,
+                                                component.arrays[array].path,
+                                                std::move(action),
+                                                element,
+                                                {(low.x + high.x) * .5F, (low.y + high.y) * .5F}});
+    };
+    const auto publish_array = [&](const ReflectedArrayEdit &edit) {
+      const bool accepted =
+          state.reflected_inspector.ApplyArray(scene, *observation, edit, editable);
+      if (accepted)
+        state.inspector_error.clear();
+      else
+        state.inspector_error = "Array edit rejected; selection, capacity or source bytes changed.";
+      state.reflected_pending.reset();
+      ++state.reflected_draft_generation;
+      return accepted;
+    };
+    for (std::size_t array_index = 0; array_index < component.arrays.size(); ++array_index) {
+      const auto &array = component.arrays[array_index];
+      const auto &view = observation->arrays[array_index];
+      const auto [minimum, maximum] = std::minmax_element(view.counts.begin(), view.counts.end());
+      ImGui::PushID("dynamic-array");
+      ImGui::PushID(static_cast<int>(array_index));
+      ImGui::TextUnformatted(array.path.c_str());
+      ImGui::SameLine();
+      if (view.mixed)
+        ImGui::TextDisabled("Mixed lengths (%zu..%zu)", *minimum, *maximum);
+      else
+        ImGui::TextDisabled("%zu items", *minimum);
+      ImGui::BeginDisabled(!editable || *maximum == array.maximum_elements);
+      if (ImGui::Button("Add"))
+        published = publish_array(
+            {ReflectedArrayAction::Append, array_index, 0, 0, InitialReflectedArrayValue(array)});
+      control_position(array_index, "Add");
+      if (*maximum == array.maximum_elements &&
+          ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        ImGui::SetTooltip("At least one selected array has reached its %zu item limit.",
+                          array.maximum_elements);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      ImGui::BeginDisabled(!editable || !*maximum || published);
+      if (ImGui::Button("Clear"))
+        published = publish_array({ReflectedArrayAction::Clear, array_index});
+      control_position(array_index, "Clear");
+      ImGui::EndDisabled();
+      ImGui::PopID();
+      ImGui::PopID();
+      if (published)
+        break;
+    }
+    if (published) {
+      ImGui::PopID();
+      ImGui::PopID();
+      continue;
+    }
     ImGui::BeginChild("reflected-properties", {0, 180}, ImGuiChildFlags_Borders);
     ImGuiListClipper clipper;
     clipper.Begin(static_cast<int>(observation->properties.size()),
-                  ImGui::GetFrameHeightWithSpacing());
-    bool published = false;
+                  ImGui::GetFrameHeightWithSpacing() * (component.arrays.empty() ? 1 : 2));
     while (clipper.Step() && !published)
       for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
         const auto index = static_cast<std::size_t>(row);
@@ -191,6 +272,45 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
         state.reflected_positions.emplace_back(
             property.path, std::array{(begin.x + end.x) * .5F, (begin.y + end.y) * .5F});
         ImGui::EndDisabled();
+        std::optional<ReflectedArrayEdit> array_edit;
+        if (!component.arrays.empty()) {
+          if (property.array) {
+            const auto array = *property.array;
+            const auto element = property.element;
+            const auto &schema = component.arrays[array];
+            const auto &view = observation->arrays[array];
+            const auto maximum = *std::max_element(view.counts.begin(), view.counts.end());
+            ImGui::BeginDisabled(!editable || changed);
+            ImGui::BeginDisabled(maximum == schema.maximum_elements);
+            if (ImGui::Button("Insert"))
+              array_edit = ReflectedArrayEdit{ReflectedArrayAction::Insert, array, element, 0,
+                                              InitialReflectedArrayValue(schema)};
+            control_position(array, "Insert", element);
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            if (ImGui::Button("Remove"))
+              array_edit = ReflectedArrayEdit{ReflectedArrayAction::Remove, array, element};
+            control_position(array, "Remove", element);
+            ImGui::SameLine();
+            ImGui::BeginDisabled(element == 0);
+            if (ImGui::Button("Up"))
+              array_edit =
+                  ReflectedArrayEdit{ReflectedArrayAction::Move, array, element, element - 1};
+            control_position(array, "Up", element);
+            ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::BeginDisabled(element + 1 >= view.common_elements);
+            if (ImGui::Button("Down"))
+              array_edit =
+                  ReflectedArrayEdit{ReflectedArrayAction::Move, array, element, element + 1};
+            control_position(array, "Down", element);
+            ImGui::EndDisabled();
+            ImGui::EndDisabled();
+          } else
+            ImGui::Dummy({0, ImGui::GetFrameHeight()});
+        }
+        if (array_edit)
+          published = publish_array(*array_edit);
         if (changed) {
           const auto &source = state.reflected_pending &&
                                        state.reflected_pending_path == property.path &&

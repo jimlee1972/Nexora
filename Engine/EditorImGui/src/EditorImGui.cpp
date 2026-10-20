@@ -426,6 +426,13 @@ struct EditorImGuiHost::State final {
   std::vector<std::pair<std::string, std::array<float, 2>>> reflected_positions;
   std::vector<std::pair<std::string, std::array<float, 2>>> reflected_choice_positions;
   std::vector<std::pair<std::string, bool>> reflected_mixed;
+  struct ReflectedArrayControl final {
+    runtime::TypeId type{};
+    std::string path, action;
+    std::optional<std::size_t> element;
+    std::array<float, 2> position{};
+  };
+  std::vector<ReflectedArrayControl> reflected_array_controls;
   std::vector<runtime::TypeId> reflected_rendered_types;
   std::uint64_t reflected_draft_generation{1};
   std::optional<ReflectedObservation> reflected_pending;
@@ -2931,6 +2938,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.reflected_choice_positions.clear();
   state.reflected_positions.clear();
   state.reflected_mixed.clear();
+  state.reflected_array_controls.clear();
   state.reflected_rendered_types.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
@@ -8188,6 +8196,15 @@ EditorImGuiTestAccess::ReflectedPropertyPosition(const EditorImGuiHost &host,
   for (const auto &[name, point] : host.state_->reflected_positions)
     if (name == path)
       return point;
+  return {};
+}
+std::optional<std::array<float, 2>> EditorImGuiTestAccess::ReflectedArrayControlPosition(
+    const EditorImGuiHost &host, runtime::TypeId type, std::string_view path,
+    std::string_view action, std::optional<std::size_t> element) noexcept {
+  for (const auto &control : host.state_->reflected_array_controls)
+    if (control.type == type && control.path == path && control.action == action &&
+        control.element == element)
+      return control.position;
   return {};
 }
 std::optional<bool> EditorImGuiTestAccess::ReflectedPropertyMixed(const EditorImGuiHost &host,

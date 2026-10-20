@@ -678,6 +678,12 @@ creates property widgets; unknown components retain raw data instead of being si
   entity records reject reload before live mutation. Plugin restoration/execution and full reflected
   editing remain open.
 
+- ✅ Graphical counted-array controls are validated: actual mixed-length Add/Insert/Remove/
+  reorder/Clear and typed common-element editing share the versioned Core transaction contract.
+  Real1x/2x pointer/key controls cover Undo/Redo, explicit scoped Save and fresh World/UI reopen,
+  preserving unknown bytes. Full local/hosted/native acceptance remains separately tracked.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrayUi-Linux-2026-10-20.md).
+
 - Versioned counted-array Core authoring is under validation: version2 metadata derives multiple
   variable tails per source, retaining legacy fixed fields and opaque prefix/other components.
   Mixed multi-selection, insert/append/remove/reorder/clear and value edits share exact-source

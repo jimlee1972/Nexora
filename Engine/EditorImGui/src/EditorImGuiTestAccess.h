@@ -103,6 +103,10 @@ public:
   InspectorOpaqueInfo(const EditorImGuiHost &host);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ReflectedPropertyPosition(const EditorImGuiHost &host, std::string_view path);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ReflectedArrayControlPosition(const EditorImGuiHost &, runtime::TypeId, std::string_view path,
+                                std::string_view action,
+                                std::optional<std::size_t> element = {}) noexcept;
   [[nodiscard]] static std::optional<bool> ReflectedPropertyMixed(const EditorImGuiHost &host,
                                                                   std::string_view path);
   [[nodiscard]] static std::optional<std::array<float, 2>>
