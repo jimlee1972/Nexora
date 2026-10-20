@@ -2,6 +2,7 @@
 #include "AtomicFile.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "PrefabPlacementInternal.h"
+#include "ReflectedArrayTestAccess.h"
 #include "ReimportSource.h"
 
 #include <algorithm>
@@ -14,14 +15,18 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <new>
 #include <ranges>
 #include <set>
 #include <sstream>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace nexora::editor {
 namespace {
+thread_local bool fail_history_admission{};
 constexpr std::size_t kMaximumSceneFileBytes = 64 * 1024 * 1024;
 constexpr std::array kPanels{PanelDescriptor{"nexora.project", "Project"},
                              PanelDescriptor{"nexora.hierarchy", "Hierarchy"},
@@ -522,11 +527,16 @@ SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
     : world_(world), scene_(scene), editor_(world), document_generation_(NextDocumentGeneration()) {
   saved_signature_ = StateSignature().value_or(std::string{});
 }
+void ReflectedArrayTestAccess::FailHistoryAdmission() noexcept { fail_history_admission = true; }
 void SceneDocument::PushUndo(UndoEntry entry) {
+  static_assert(std::is_nothrow_move_constructible_v<UndoEntry>);
   entry.previous_placements = prefab_placements_;
+  if (std::exchange(fail_history_admission, false))
+    throw std::bad_alloc{};
+  // History admission may allocate. Preserve pending Redo until the new entry is owned.
+  undo_.push_back(std::move(entry));
   opaque_dirty_.reset();
   redo_.clear();
-  undo_.push_back(std::move(entry));
 }
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
   return CreateBuiltin(std::move(name), parent, BuiltinEntity::Empty);

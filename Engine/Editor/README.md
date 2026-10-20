@@ -2015,7 +2015,7 @@ Names/paths/labels are bounded UTF-8, ranges cannot overlap, expanded property p
 and schema text is capped at 256 KiB. Boolean uses one byte; integers, enums, flags, entity IDs
 and finite binary64 lanes use little-endian eight-byte values. Asset UUIDs use two little-endian
 64-bit words; colors have four finite lanes in [0,1]. Unknown padding and other components remain
-unchanged. Nested structs use flattened paths; arrays have fixed declared lengths.
+unchanged. Nested structs use flattened paths; version-one arrays have fixed declared lengths.
 
 `Inspect` returns an owning observation of metadata, generation keys, exact source component
 bytes and mixed values for at most 256 targets/1 MiB. `Apply` checks current catalog revision,
@@ -2038,9 +2038,53 @@ tokens/overflow; malformed versions, trailing records and invalid layouts reject
 This is cooperating-project metadata validation, not hostile filesystem race isolation.
 
 Project activation and explicit metadata reload replace interpretation; failures clear the active
-catalog and preserve scene bytes. The host never rewrites metadata. Dynamic arrays, arbitrary
-native plugin object restoration and runtime execution are outside this slice. Public C++
+catalog and preserve scene bytes. The host never rewrites metadata. Dynamic structural controls,
+arbitrary native plugin object restoration and runtime execution remain separate work. Public C++
 consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+### Version-two counted reflected arrays
+
+`NXEDITORREFLECTION 2` keeps version-one fixed-field records and reads
+`type <id> "name" <prefix-bytes> <fixed-field-count> <array-count>`. After the fixed fields,
+`array "path" <kind> <count-offset> <maximum-elements> <choice-count>` and its declared choices
+specify each dynamic tail. Counts are little-endian unsigned64 in nonoverlapping eight-byte
+prefix slots. Prefix padding stays opaque. Tail elements use the existing explicit primitive/
+vector/color/reference encodings and follow the fixed prefix in schema order, with no native
+container header, implicit alignment or trailing padding. Multiple tails may have different
+lengths in each selected component; all following offsets are derived per source. Malformed,
+extra/truncated, oversized or invalid-valued tails remain entirely opaque and cannot be edited.
+
+Version1 remains readable unchanged, with no dynamic declarations or guessed conversion.
+Version2 is an explicit opt-in schema/wire contract; the host never migrates unknown component
+payloads by guessing an old layout or writes a metadata file. A provider/user supplies matching
+version2 data and schema. Existing Scene opaque serialization persists all bytes through its
+existing atomic save path; no Scene format, native object ABI or module dependency changes.
+Unsupported metadata versions fail closed without altering scene payloads. New C++ record members
+and APIs require rebuilding consumers; release owning catalogs/observations before SDK unload.
+
+The combined fixed-field/array count is64 per type, each array admits at most32 typed elements,
+and existing64-type/256KiB schema limits apply. Each complete observation and each replacement
+batch admit at most256 targets/1MiB source payload; individual components remain within the
+existing1MiB unknown-component limit. These logical data bounds are not total process/RSS quotas.
+`Inspect` owns complete exact sources and count/mixed observations, validates even elements outside
+multi-selection's common index intersection, and exposes only common editable element properties.
+Value/flags edits calculate each target's actual offset and retain all other masks/data.
+
+`ApplyArray` supports explicit valued Append/Insert, Remove, Move and Clear. Indices must be valid
+in every target; Append/Clear use each target's own length. The current catalog, complete source,
+selection, generation and explicit authoring authority are rechecked before staging every complete
+replacement and one `ApplyOpaqueComponents` publication. Invalid values/indices, stale observations,
+read-only authorization, corrupt data, budgets or allocation failure preserve bytes/history.
+No-op operations preserve pending Redo. Opaque history admission now owns the new Undo entry before
+clearing Redo or swapping live nodes, so an allocation failure cannot erase the previous Redo.
+Private thread-local one-shot faults cover pre/partial replacement and history admission without
+retaining callbacks/allocators. All calls remain serialized on the authoring thread; this synchronous
+foundation introduces no worker, native plugin execution or retained document pointer.
+
+Core tests cover every supported element kind, mixed lengths and following-tail offsets, exact32
+capacity, invalid/outside-common values, malformed metadata/counts, stale source/catalog/selection/
+reload, allocation rejection with preserved Redo, unknown prefix/components and fresh-World file
+reopen. Structural Add/Remove/reorder widgets, native UI workflow and full M2-03 remain open.
 
 ## Cryptographic extension verification
 

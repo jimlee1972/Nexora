@@ -652,7 +652,12 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正 1x／2x 控制項及原生 Vulkan 編輯／保存／重開的驗收見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md)。
   Native pointer delivery 在慢速 frame 間保留 down／up；連續八次實際執行通過。
-  Dynamic array、原生外掛還原及完整 ED-M2 驗收仍待完成。
+  Dynamic array 結構控制、原生外掛還原及完整 ED-M2 驗收仍待完成。
+
+- ✅ 版本化 counted array Core authoring 已驗證：version2 metadata 依各來源推導多段可變 tail，
+  保留 legacy fixed field、opaque prefix 與其他 component。Mixed 多選、insert／append／remove／
+  reorder／clear 及 value edit 共用精確來源驗證與單次 Undo／Redo；結構 widgets 與完整 M2-03
+  仍待完成。[證據](../../Tools/Build/evidence/EditorEDM2-ReflectedArrays-Linux-2026-10-20.md)。
 
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save

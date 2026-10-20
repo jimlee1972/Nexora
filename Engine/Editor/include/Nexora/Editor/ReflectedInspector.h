@@ -1,6 +1,7 @@
 #pragma once
 #include "Nexora/Editor/EditorWorkspace.h"
 #include <array>
+#include <optional>
 #include <variant>
 
 namespace nexora::editor {
@@ -31,11 +32,21 @@ struct ReflectedField final {
   std::vector<ReflectedChoice> choices{};
   friend bool operator==(const ReflectedField &, const ReflectedField &) = default;
 };
+// Version-two portable wire layout: counts are little-endian u64 in the fixed prefix;
+// array payloads follow that prefix in catalog order. No native container layout is borrowed.
+struct ReflectedDynamicArray final {
+  std::string path;
+  ReflectedKind kind{};
+  std::size_t count_offset{}, maximum_elements{32};
+  std::vector<ReflectedChoice> choices{};
+  friend bool operator==(const ReflectedDynamicArray &, const ReflectedDynamicArray &) = default;
+};
 struct ReflectedComponent final {
   runtime::TypeId type{};
   std::string name;
   std::size_t bytes{};
   std::vector<ReflectedField> fields;
+  std::vector<ReflectedDynamicArray> arrays{};
   friend bool operator==(const ReflectedComponent &, const ReflectedComponent &) = default;
 };
 using ReflectedValue = std::variant<bool, std::int64_t, std::uint64_t, double,
@@ -47,12 +58,29 @@ struct ReflectedProperty final {
   std::vector<ReflectedChoice> choices;
   ReflectedValue value;
   bool mixed{};
+  std::optional<std::size_t> array{};
+  std::size_t element{};
+};
+struct ReflectedArrayObservation final {
+  std::string path;
+  std::vector<std::size_t> counts;
+  std::size_t common_elements{};
+  bool mixed{};
+  friend bool operator==(const ReflectedArrayObservation &,
+                         const ReflectedArrayObservation &) = default;
 };
 struct ReflectedObservation final {
   std::uint64_t catalog_revision{};
   ReflectedComponent component;
   std::vector<std::pair<SceneDocument::NodeKey, OpaqueComponent>> sources;
   std::vector<ReflectedProperty> properties;
+  std::vector<ReflectedArrayObservation> arrays{};
+};
+enum class ReflectedArrayAction : std::uint8_t { Append, Insert, Remove, Move, Clear };
+struct ReflectedArrayEdit final {
+  ReflectedArrayAction action{};
+  std::size_t array{}, index{}, destination{};
+  std::optional<ReflectedValue> value{};
 };
 class NEXORA_EDITOR_API ReflectedInspector final {
 public:
@@ -77,6 +105,11 @@ public:
   // Flags checkbox operation: preserve every target's other bits in one validated batch.
   bool ApplyFlag(SceneDocument &, const ReflectedObservation &, std::size_t property,
                  std::uint64_t bit, bool enabled, bool authorized) const;
+  // Revalidates complete selection/catalog/source; stages every target before one transaction.
+  // Insert/Remove/Move indices must be valid in every target; Append/Clear use each own length.
+  // Missing/invalid/budget/allocation/authority failures leave bytes and history unchanged.
+  bool ApplyArray(SceneDocument &, const ReflectedObservation &, const ReflectedArrayEdit &,
+                  bool authorized) const;
   // Optional project metadata: .nexora/inspector.reflection. Missing means empty catalog.
   // Bounded regular, nonaliased read; malformed input returns no catalog and never mutates sources.
   [[nodiscard]] static std::optional<ReflectedInspector>
