@@ -693,7 +693,7 @@ creates property widgets; unknown components retain raw data instead of being si
   preserving unknown bytes. Full local/hosted/native acceptance remains separately tracked.
   [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrayUi-Linux-2026-10-20.md).
 
-- Versioned counted-array Core authoring is under validation: version2 metadata derives multiple
+- ✅ Versioned counted-array Core authoring is validated: version2 metadata derives multiple
   variable tails per source, retaining legacy fixed fields and opaque prefix/other components.
   Mixed multi-selection, insert/append/remove/reorder/clear and value edits share exact-source
   validation and one Undo/Redo transaction. Structural widgets and complete M2-03 remain open.
@@ -708,7 +708,7 @@ creates property widgets; unknown components retain raw data instead of being si
   1x/2x and native Vulkan edit/save/restart are accepted in
   [the Linux evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md).
   Native pointer delivery retains down/up across slow frames; eight consecutive actual runs pass.
-  Dynamic arrays, native plugin restoration and complete ED-M2 acceptance remain open.
+  Dynamic array structural controls, native plugin restoration and complete ED-M2 acceptance remain open.
 
 - ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
   Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
