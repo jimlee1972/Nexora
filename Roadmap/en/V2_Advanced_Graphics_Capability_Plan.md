@@ -777,7 +777,8 @@ Linux/other unsupported recipes retain native count0 and compare world-space GPU
 with independent CPU geometry. Actual pinned SDK and Windows-conditional fixture syntax and full
 local/hosted gates remain required before acceptance. Only this exact owned transform branch joins
 existing guarded CI cleanup; live-head push/PR events and unrelated actors/branches stay protected.
-General/multi-instance scenes, lighting, system-runtime refit isolation and all full gates stay open.
+General heterogeneous instance assembly, lighting, system-runtime refit isolation and all full gates
+stay open.
 
 ✅ Scoped API/ownership implementation passes native Vulkan/Slang/Zig Development configure/build
 and full Xvfb CTest229/229, zero failures/skips (152.10s), plus Shipping Minimal/Monolithic LTO.
@@ -805,7 +806,7 @@ reset, retained old lists and matrix preservation through refit/compaction/rebui
 
 Ordinary system-runtime modes keep refit/compaction/transform counters0 while executing six full
 rebuilds each. Linux world-space compute exercises1,152 affine outputs with native transform
-count0. This accepts the bounded private software-runtime recipe. General/multi-instance scenes,
+count0. This accepts the bounded private software-runtime recipe. General heterogeneous instance assembly,
 lighting, completion-failure injection, broader system refit (`nexora-45y.4.7`), physical
 performance/device-loss acceptance and all five full V2-GFX gates remain open.
 

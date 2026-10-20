@@ -842,7 +842,8 @@ The admitted D3D12 ordinary1–8-triangle recipe keeps the
 same triangle count, one triangle geometry, vertex format/stride and one TLAS instance. Empty,
 nonfinite/degenerate geometry, changed counts, stale handles and OMM scenes reject before native
 execution or publication. Other backends and builds without pinned ray artifacts explicitly throw
-unsupported. General topology/material/multi-instance edits and OMM updates/compaction remain open.
+unsupported. General topology/material/heterogeneous-instance edits and OMM updates/compaction
+remain open.
 The C++ virtual surface/diagnostics require consumer rebuilds; the new diagnostic is appended to
 preserve existing aggregate field order. The stable C ABI is unchanged.
 
@@ -902,8 +903,8 @@ preservation, invalid/stale/OMM rejection and canaries. Each native fixture comp
 private legacy/enhanced acceptance requires36 transform updates,54 explicit geometry refits,
 18 full rebuilds and27 compactions per mode. Unsupported native recipes exercise the existing
 world-space GPU compute reference with192 comparisons per size/mode without claiming TLAS work.
-Multi-instance scenes, general edits/lighting, completion-failure injection and physical acceptance
-remain open.
+General heterogeneous instance assembly, general edits/lighting, completion-failure injection and
+physical acceptance remain open.
 
 ## Explicit bounded BLAS/TLAS compaction
 

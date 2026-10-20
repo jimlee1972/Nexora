@@ -708,7 +708,7 @@ pending context 保留資源。新診斷附加於既有欄位之後；穩定 C A
 54次明確 refit、18次完整重建及27次 compaction。Linux／其他未支援配方保持原生計數0，
 以 world-space GPU compute 輸出對照獨立 CPU 幾何。釘選 SDK、Windows 條件式語法與完整
 本機／hosted gate 皆仍為必要驗收。既有 CI 清理只增加本次自有變換分支的精確名稱，保留
-即時 head 的 push／PR 及無關 actor／分支。一般／多 instance 場景、光照、system-runtime
+即時 head 的 push／PR 及無關 actor／分支。一般化異質 instance 場景組裝、光照、system-runtime
 refit 隔離與全部完整 gate 持續開放。
 
 ✅ 限縮 API／所有權實作通過原生 Vulkan／Slang／Zig Development configure／build 與 Xvfb
@@ -735,7 +735,7 @@ enhanced 模式執行九組變換 fixture，每組704筆獨立 CPU 舊／新比�
 
 一般 system-runtime 模式保持 refit／compaction／transform 計數0，各執行六次完整重建。
 Linux world-space compute 驗證1,152筆 affine 輸出，原生變換計數0。這接受有界私有軟體
-runtime 配方；一般／多 instance 場景、光照、完成失敗注入、較廣 system refit
+runtime 配方；一般化異質 instance 場景組裝、光照、完成失敗注入、較廣 system refit
 （`nexora-45y.4.7`）、實體效能／裝置遺失驗收與五個完整 V2-GFX gate 持續開放。
 
 ## 明確 opt-in 的有界射線場景 compaction 施工 — 2026-10-18
