@@ -192,6 +192,11 @@ public:
       throw std::logic_error("ray tracing scene compaction is unsupported");
     return CreateRayScene(triangles);
   }
+  [[nodiscard]] virtual RaySceneHandle
+  CreateInstancedRayScene(std::span<const RayTriangle>, std::span<const RayInstanceTransform>,
+                          const RaySceneCreationOptions & = {}) {
+    throw std::logic_error("instanced ray tracing scenes are unsupported");
+  }
   [[nodiscard]] virtual RaySceneHandle CreateOpacityMicromapScene(std::span<const RayTriangle>,
                                                                   std::span<const std::uint8_t>) {
     throw std::logic_error("opacity micromap scenes are unsupported");
@@ -203,6 +208,10 @@ public:
   // Absolute instance transform; caller-serialized. Earlier lists retain their scene snapshot.
   virtual void SetRaySceneTransform(RaySceneHandle, const RayInstanceTransform &) {
     throw std::logic_error("ray tracing instance transforms are unsupported");
+  }
+  // Replace all absolute transforms without changing instance count; caller-serialized.
+  virtual void SetRaySceneTransforms(RaySceneHandle, std::span<const RayInstanceTransform>) {
+    throw std::logic_error("ray tracing instance transform sets are unsupported");
   }
   // Explicit full native build; supports bounded count changes and retains older snapshots.
   virtual void RebuildRayScene(RaySceneHandle, std::span<const RayTriangle>) {

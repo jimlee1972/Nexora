@@ -873,6 +873,39 @@ new outputs to the double-precision CPU oracle, keep earlier lists through later
 check invalid/topology/OMM/stale rejection and canaries. The same fixtures run with legacy/enhanced
 barriers and the existing preview/SER suite. Physical performance and full V2-GFX-3 remain open.
 
+## Bounded shared-BLAS instance sets
+
+`CreateInstancedRayScene(triangles, transforms, options)` copies one to eight absolute row-major
+transforms into an ordinary scene sharing one BLAS. Local triangles times instance count must not
+exceed eight. Every matrix and transformed geometry extent validates before GPU allocation.
+Default scene creation still selects one identity instance. Ordinary system runtime creation and
+full rebuild retain their immutable build flags; compaction opt-in and transform/geometry refit
+still require the separately admitted private runtime. Vulkan/Metal/Validation creation explicitly
+rejects; callers may select the existing compute reference with baked world-space triangles.
+
+Hits use the flattened instance-major index `instance * localTriangleCount + primitive`, bounded
+to0..7, without changing the16-byte hit ABI. Native instance IDs encode this base; pipeline,
+inline-query and SER shaders add it to the local primitive. Single-instance/OMM indices stay
+unchanged. The existing lower-profile reference sees the same instance-major world geometry and
+returns matching indices/distances/barycentrics; it does not claim native instancing.
+
+`SetRaySceneTransforms` replaces every absolute matrix with the same instance count and retains
+the shared BLAS/vertices. The singular setter admits only a one-instance scene. Geometry refit,
+compaction relinking and full rebuild preserve all matrices; rebuild recalculates primitive bases
+if local triangle count changes, subject to the total bound. Changing instance count requires a
+new scene handle. All operations are caller-serialized; old lists retain their complete prior AS,
+instance upload and primitive mapping. Existing construction-fence publication and accepted-failure
+quarantine apply. The transform diagnostic counts scene publications, not individual instances.
+C++ consumers rebuild; stable C ABI, shader profiles and module dependencies are unchanged.
+
+Fixtures pair1/2/8 local triangles with8/4/1 instances, compare every instance's primitive base and
+exercise two overlapping workers, failure/cancellation/replay, retained old/new lists and
+refit/compaction/rebuild mapping. Private fixtures compare704 CPU results each; system and baked
+compute fixtures compare320 each. Private acceptance requires63 refits/27 rebuilds/36 compactions/
+45 transform publications per barrier mode. System modes require12 rebuilds with all three update
+counters0. General heterogeneous meshes, instance masks/materials, lighting, asynchronous retirement
+and physical/full V2-GFX acceptance remain open.
+
 ## Bounded TLAS instance transforms
 
 `SetRaySceneTransform(handle, RayInstanceTransform)` replaces the ordinary scene's absolute
@@ -899,7 +932,7 @@ unchanged; C++ consumers rebuild.
 Fixtures compare translation, rotation/nonuniform scale and reflection with CPU-transformed
 geometry, retained old/new lists and identity reset, then verify geometry-refit/compaction/rebuild
 preservation, invalid/stale/OMM rejection and canaries. Each native fixture compares704 outputs;
-private legacy/enhanced acceptance requires36 transform updates,54 explicit geometry refits,
+private legacy/enhanced acceptance before the additional instance-set fixtures requires36 transform updates,54 explicit geometry refits,
 18 full rebuilds and27 compactions per mode. Unsupported native recipes exercise the existing
 world-space GPU compute reference with192 comparisons per size/mode without claiming TLAS work.
 Multi-instance scenes, general edits/lighting, completion-failure injection and physical acceptance

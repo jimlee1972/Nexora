@@ -457,8 +457,177 @@ void TestTransforms(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayPr
             << " old/new CPU comparisons=704; affine/refit/compact/rebuild/reset/lifetime passed\n";
 }
 void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
-              rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles) {
-  std::array work{Make(device, triangles, 64), Make(device, triangles, 64)};
+              rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles,
+              std::span<const rhi::RayInput> supplied = {});
+std::vector<rhi::RayTriangle>
+InstancedWorld(std::span<const rhi::RayTriangle> local,
+               std::span<const rhi::RayInstanceTransform> transforms) {
+  std::vector<rhi::RayTriangle> world;
+  for (const auto &transform : transforms) {
+    const auto instance = WorldTriangles(local, transform);
+    world.insert(world.end(), instance.begin(), instance.end());
+  }
+  return world;
+}
+void TestInstances(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                   std::span<const rhi::RayTriangle> triangles) {
+  const auto count = rhi::RayMaximumTriangles / triangles.size();
+  std::vector<rhi::RayInstanceTransform> transforms(count);
+  const auto matrices = InstanceTransforms();
+  for (std::size_t i = 0; i < count; ++i) {
+    transforms[i] = matrices[i % matrices.size()];
+    transforms[i].matrix[3] = 4 * static_cast<float>(i);
+  }
+  std::vector<rhi::RayInput> rays;
+  for (std::size_t i = 0; i < 64; ++i) {
+    rhi::RayInput ray{{4 * static_cast<float>(i % count) - .25F, -.25F, 0}, 0, {0, 0, 1}, 100};
+    switch ((i / count) % 8) {
+    case 1:
+      ray.origin[0] += 100;
+      break;
+    case 2:
+      ray.maximum = .5F;
+      break;
+    case 3:
+      ray.minimum = 3;
+      break;
+    case 4:
+      ray.direction = {};
+      break;
+    case 5:
+      ray.maximum = std::numeric_limits<float>::infinity();
+      break;
+    case 6:
+      ray.direction[2] = 2;
+      break;
+    case 7:
+      ray.origin[2] = 17;
+      ray.direction[2] = -1;
+      break;
+    }
+    rays.push_back(ray);
+  }
+  auto local = std::vector<rhi::RayTriangle>{triangles.begin(), triangles.end()};
+  auto world = InstancedWorld(local, transforms);
+  auto initial = Make(device, world, 64, rays);
+  for (std::size_t i = 0; i < count; ++i)
+    Require(initial.expected[i].primitive == i * triangles.size(),
+            "instance oracle does not distinguish every flattened primitive base");
+  const auto before = device.Diagnostics();
+  const bool native = program.IsValid(), updatable = device.Capabilities().ray_scene_refit_enabled;
+  rhi::RaySceneHandle scene{};
+  if (native) {
+    Reject([&] { (void)device.CreateInstancedRayScene(local, {}); }, "empty instance set admitted");
+    const std::array<rhi::RayInstanceTransform, rhi::RayMaximumInstances + 1> excess{};
+    Reject([&] { (void)device.CreateInstancedRayScene(local, excess); },
+           "too many instances admitted");
+    auto invalid = transforms;
+    invalid.back().matrix[0] = std::numeric_limits<float>::quiet_NaN();
+    Reject([&] { (void)device.CreateInstancedRayScene(local, invalid); },
+           "invalid instance admitted");
+    scene = device.CreateInstancedRayScene(local, transforms, {updatable});
+    Reject([&] { device.SetRaySceneTransforms(scene, {}); }, "empty instance update admitted");
+    invalid = transforms;
+    invalid.push_back({});
+    Reject([&] { device.SetRaySceneTransforms(scene, invalid); }, "instance count update admitted");
+    invalid = transforms;
+    invalid.back().matrix[0] = std::numeric_limits<float>::quiet_NaN();
+    Reject([&] { device.SetRaySceneTransforms(scene, invalid); },
+           "invalid instance update admitted");
+    const auto over_budget =
+        Triangles(static_cast<std::uint32_t>(rhi::RayMaximumTriangles / count + 1));
+    Reject([&] { device.RebuildRayScene(scene, over_budget); },
+           "instanced rebuild exceeded total triangle budget");
+    Reject([&] { (void)device.CreateInstancedRayScene(over_budget, transforms); },
+           "instanced creation exceeded total triangle budget");
+    if (count > 1)
+      Reject([&] { device.SetRaySceneTransform(scene, {}); },
+             "singular setter replaced a multiple-instance scene");
+  } else
+    Reject([&] { (void)device.CreateInstancedRayScene(local, transforms); },
+           "unavailable backend fabricated instanced AS");
+  Execute(device, compute, program, scene, initial);
+  Destroy(device, initial);
+  Parallel(device, compute, program, scene, world, rays);
+  // Keep old scene/instance storage recorded across each publication, with independent buffers.
+  auto replace = [&](auto mutation, const std::vector<rhi::RayTriangle> &replacement,
+                     bool distinct) {
+    auto old = Make(device, world, 64, rays), updated = Make(device, replacement, 64, rays);
+    if (distinct)
+      Require(old.expected.front().distance != updated.expected.front().distance,
+              "instanced mutation oracle failed to distinguish scene snapshots");
+    auto retained = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*retained, compute, program, scene, old);
+    mutation();
+    device.WaitForSubmission(device.Submit(*retained));
+    retained.reset();
+    Compare(device, old);
+    Execute(device, compute, program, scene, updated);
+    Destroy(device, old);
+    Destroy(device, updated);
+    world = replacement;
+  };
+  if (native && updatable) {
+    for (auto &transform : transforms)
+      transform.matrix[11] += .5F;
+    replace([&] { device.SetRaySceneTransforms(scene, transforms); },
+            InstancedWorld(local, transforms), true);
+    for (auto &triangle : local)
+      for (std::size_t vertex = 0; vertex < 3; ++vertex)
+        triangle.vertices[vertex * 3 + 2] += .125F;
+    replace([&] { device.UpdateRayScene(scene, local); }, InstancedWorld(local, transforms), true);
+    replace([&] { device.CompactRayScene(scene); }, world, false);
+  } else if (native)
+    Reject([&] { device.SetRaySceneTransforms(scene, transforms); },
+           "unadmitted instanced refit accepted");
+  else {
+    for (auto &transform : transforms)
+      transform.matrix[11] += .5F;
+    world = InstancedWorld(local, transforms);
+    auto fallback = Make(device, world, 64, rays);
+    Execute(device, compute, {}, {}, fallback);
+    Destroy(device, fallback);
+  }
+  local =
+      Triangles(1); // Recompute per-instance primitive bases when the BLAS triangle count changes.
+  for (auto &triangle : local)
+    for (std::size_t vertex = 0; vertex < 3; ++vertex)
+      triangle.vertices[vertex * 3 + 2] += .5F;
+  const auto rebuilt = InstancedWorld(local, transforms);
+  if (native) {
+    replace([&] { device.RebuildRayScene(scene, local); }, rebuilt, true);
+    auto last = Make(device, rebuilt, 64, rays);
+    auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*stale, compute, program, scene, last);
+    device.DestroyRayScene(scene);
+    Reject([&] { device.SetRaySceneTransforms(scene, transforms); },
+           "destroyed instanced handle admitted");
+    const auto submitted = device.Diagnostics().submitted_command_lists;
+    Reject([&] { (void)device.Submit(*stale); }, "destroyed instanced snapshot submitted");
+    stale.reset();
+    Destroy(device, last);
+    const auto after = device.Diagnostics();
+    Require(after.ray_scene_transform_updates ==
+                    before.ray_scene_transform_updates + (updatable ? 1 : 0) &&
+                after.ray_scene_refits == before.ray_scene_refits + (updatable ? 1 : 0) &&
+                after.ray_scene_compactions == before.ray_scene_compactions + (updatable ? 1 : 0) &&
+                after.ray_scene_rebuilds == before.ray_scene_rebuilds + 1 &&
+                after.submitted_command_lists == submitted,
+            "instanced mutation or rejected/stale work accounting changed");
+  } else {
+    auto fallback = Make(device, rebuilt, 64, rays);
+    Execute(device, compute, {}, {}, fallback);
+    Destroy(device, fallback);
+  }
+  std::cout << "Instanced ray native=" << native << " updatable=" << updatable
+            << " instances=" << count << " BLAS triangles=" << triangles.size()
+            << " CPU comparisons=" << (native && updatable ? 704 : 320)
+            << "; flattened identity, bounds, retained snapshots and lifetime passed\n";
+}
+void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+              rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles,
+              std::span<const rhi::RayInput> supplied) {
+  std::array work{Make(device, triangles, 64, supplied), Make(device, triangles, 64, supplied)};
   renderer::RenderGraph graph;
   std::barrier overlap{2};
   core::CancellationSource cancellation;
@@ -928,6 +1097,14 @@ void Portable() {
   invalid_transform.matrix[0] = 1e5F;
   Require(!rhi::IsRayInstanceTransformValid(invalid_transform), "unbounded basis admitted");
   auto model = rhi::CreateValidationDevice();
+  const std::array<rhi::RayInstanceTransform, 4> instances{};
+  Require(rhi::IsRayInstanceSetValid(2, instances) && !rhi::IsRayInstanceSetValid(8, instances) &&
+              !rhi::IsRayInstanceSetValid(0, instances) && !rhi::IsRayInstanceSetValid(1, {}),
+          "bounded instance/triangle admission is incorrect");
+  Reject([&] { (void)model->CreateInstancedRayScene(triangle, instances); },
+         "Validation fabricated instanced AS");
+  Reject([&] { model->SetRaySceneTransforms({}, instances); },
+         "Validation fabricated instanced TLAS updates");
   Require(!rhi::GraphicsDeviceCapabilities{}.ray_scene_refit_enabled &&
               !model->Capabilities().ray_scene_refit_enabled,
           "unadmitted refit runtime must default closed");
@@ -1096,6 +1273,7 @@ void Native(bool enhanced) {
         Destroy(*device, actual);
       }
       Parallel(*device, compute, program, scene, triangles);
+      TestInstances(*device, compute, program, triangles);
       if (!enabled) {
         for (const auto &transform : InstanceTransforms()) {
           const auto world = WorldTriangles(triangles, transform);
@@ -1149,9 +1327,9 @@ void Native(bool enhanced) {
             << " compactions=" << diagnostics.ray_scene_compactions
             << " transforms=" << diagnostics.ray_scene_transform_updates << '\n';
 #if defined(NEXORA_TEST_SER_NATIVE)
-  Require(diagnostics.ray_scene_refits == 54 && diagnostics.ray_scene_rebuilds == 18 &&
-              diagnostics.ray_scene_compactions == 27 &&
-              diagnostics.ray_scene_transform_updates == 36,
+  Require(diagnostics.ray_scene_refits == 63 && diagnostics.ray_scene_rebuilds == 27 &&
+              diagnostics.ray_scene_compactions == 36 &&
+              diagnostics.ray_scene_transform_updates == 45,
           "required private BLAS/TLAS refit/compaction round trips were not executed");
 #endif
   const auto feature = caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing)];

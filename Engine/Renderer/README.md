@@ -586,6 +586,14 @@ the complete pipeline-cache key and selects actual lower-SM traversal on support
 This bounded hit oracle is not integration of ray shadows/reflections/AO, general scene AS updates,
 DXR1.2/SER or a physical performance acceptance result.
 
+Explicit bounded instance sets may share one BLAS across up to eight transforms within the eight
+total-triangle budget. Pre-create/mutate these scenes outside graph callbacks. Each list retains
+the scene's AS/instance data and instance-major flattened primitive mapping; graph buffer access,
+worker ownership and cancellation/submission rules are unchanged. The compute reference consumes
+explicitly baked instance-major world triangles with matching hit IDs. This adds no automatic
+fallback selection, heterogeneous scene assembly or material/lighting integration. See the
+[RHI instance-set contract](../RHI/README.md#bounded-shared-blas-instance-sets).
+
 Bounded sampler-feedback callbacks consume immutable request buffers and write disjoint decoded-map
 buffers in existing compute graph cohorts. The RHI program owns a fixed metadata-only paired texture;
 per-list contexts own opaque/decoded textures and descriptor heaps. Graph ordering/submission and

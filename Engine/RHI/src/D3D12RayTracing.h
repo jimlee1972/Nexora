@@ -80,7 +80,8 @@ struct NativeRayScene final {
   bool updatable{};
   bool allow_compaction{};
   std::uint32_t triangle_count{};
-  RayInstanceTransform transform;
+  std::uint32_t instance_count{1};
+  std::array<RayInstanceTransform, RayMaximumInstances> transforms{};
   std::array<float, 3> geometry_min{}, geometry_max{};
 };
 struct PendingRayScene final {
@@ -123,20 +124,29 @@ inline void ValidateRayInstanceBounds(const NativeRayScene &scene,
       throw std::invalid_argument("transformed ray scene bounds exceed finite float storage");
   }
 }
-inline D3D12_RAYTRACING_INSTANCE_DESC RayInstanceDescriptor(const NativeRayScene &scene) {
-  D3D12_RAYTRACING_INSTANCE_DESC instance{};
-  static_assert(sizeof(instance.Transform) == sizeof(scene.transform.matrix));
-  std::memcpy(instance.Transform, scene.transform.matrix.data(), sizeof(instance.Transform));
-  instance.InstanceMask = 0xff;
-  instance.AccelerationStructure = scene.bottom->GetGPUVirtualAddress();
-  return instance;
+inline std::span<const RayInstanceTransform> RayTransforms(const NativeRayScene &scene) {
+  return {scene.transforms.data(), scene.instance_count};
+}
+inline void UploadRayInstances(ID3D12Device5 &device, NativeRayScene &scene) {
+  std::array<D3D12_RAYTRACING_INSTANCE_DESC, RayMaximumInstances> instances{};
+  for (std::uint32_t i = 0; i < scene.instance_count; ++i) {
+    auto &instance = instances[i];
+    static_assert(sizeof(instance.Transform) == sizeof(scene.transforms[i].matrix));
+    std::memcpy(instance.Transform, scene.transforms[i].matrix.data(), sizeof(instance.Transform));
+    instance.InstanceID = i * scene.triangle_count;
+    instance.InstanceMask = 0xff;
+    instance.AccelerationStructure = scene.bottom->GetGPUVirtualAddress();
+  }
+  const auto bytes = std::as_bytes(std::span{instances.data(), scene.instance_count});
+  scene.instances = RayBuffer(device, bytes.size(), true, D3D12_RESOURCE_STATE_GENERIC_READ);
+  UploadRayBytes(*scene.instances.Get(), bytes);
 }
 inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
                                            std::span<const RayTriangle> triangles,
                                            std::span<const std::uint8_t> opacity_masks = {},
                                            const NativeRayScene *source = nullptr,
                                            bool updatable = false, bool allow_compaction = false,
-                                           const RayInstanceTransform &transform = {}) {
+                                           std::span<const RayInstanceTransform> transforms = {}) {
   if (!IsRaySceneValid(triangles))
     throw std::invalid_argument("ray scene requires one to eight finite nondegenerate triangles");
   if (!opacity_masks.empty() && !IsRayOpacitySceneValid(triangles, opacity_masks))
@@ -160,7 +170,17 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   result.scene.updatable = updatable;
   result.scene.allow_compaction = allow_compaction;
   result.scene.triangle_count = static_cast<std::uint32_t>(triangles.size());
-  result.scene.transform = source ? source->transform : transform;
+  if (source) {
+    result.scene.instance_count = source->instance_count;
+    result.scene.transforms = source->transforms;
+  } else if (!transforms.empty()) {
+    if (transforms.size() > RayMaximumInstances)
+      throw std::invalid_argument("too many bounded ray instances");
+    result.scene.instance_count = static_cast<std::uint32_t>(transforms.size());
+    std::copy(transforms.begin(), transforms.end(), result.scene.transforms.begin());
+  }
+  if (!IsRayInstanceSetValid(triangles.size(), RayTransforms(result.scene)))
+    throw std::invalid_argument("ray instances exceed bounded triangle or transform limits");
   result.scene.geometry_min.fill(std::numeric_limits<float>::infinity());
   result.scene.geometry_max.fill(-std::numeric_limits<float>::infinity());
   for (const auto &triangle : triangles)
@@ -170,7 +190,8 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
         result.scene.geometry_min[axis] = std::min(result.scene.geometry_min[axis], value);
         result.scene.geometry_max[axis] = std::max(result.scene.geometry_max[axis], value);
       }
-  ValidateRayInstanceBounds(result.scene, result.scene.transform);
+  for (const auto &transform : RayTransforms(result.scene))
+    ValidateRayInstanceBounds(result.scene, transform);
   if (source)
     result.source = *source;
   result.scene.vertices =
@@ -253,14 +274,11 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
                                   D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE);
   result.bottom_scratch = RayScratchBuffer(device, source ? bottom_size.UpdateScratchDataSizeInBytes
                                                           : bottom_size.ScratchDataSizeInBytes);
-  const auto instance = RayInstanceDescriptor(result.scene);
-  result.scene.instances =
-      RayBuffer(device, sizeof(instance), true, D3D12_RESOURCE_STATE_GENERIC_READ);
-  UploadRayBytes(*result.scene.instances.Get(), std::as_bytes(std::span{&instance, 1}));
+  UploadRayInstances(device, result.scene);
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS top{};
   top.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
   top.Flags = bottom.Flags;
-  top.NumDescs = 1;
+  top.NumDescs = result.scene.instance_count;
   top.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   top.InstanceDescs = result.scene.instances->GetGPUVirtualAddress();
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO top_size{};
@@ -304,26 +322,27 @@ inline PendingRayScene BuildNativeRayScene(ID3D12Device5 &device,
   result.commands->ResourceBarrier(1, &barrier);
   return result;
 }
-inline PendingRayScene RefitNativeRayTransform(ID3D12Device5 &device, const NativeRayScene &source,
-                                               const RayInstanceTransform &transform) {
+inline PendingRayScene RefitNativeRayTransforms(ID3D12Device5 &device, const NativeRayScene &source,
+                                                std::span<const RayInstanceTransform> transforms) {
   if (!source.updatable || source.opacity_micromaps || !source.bottom || !source.top)
     throw std::invalid_argument("instance transforms require an ordinary updatable source scene");
-  ValidateRayInstanceBounds(source, transform);
+  if (transforms.size() != source.instance_count ||
+      !IsRayInstanceSetValid(source.triangle_count, transforms))
+    throw std::invalid_argument("ray transform update must preserve the bounded instance count");
+  for (const auto &transform : transforms)
+    ValidateRayInstanceBounds(source, transform);
   PendingRayScene pending;
   pending.source = source;
   pending.scene = source; // Keep the existing BLAS and object-space vertex storage.
-  pending.scene.transform = transform;
-  const auto instance = RayInstanceDescriptor(pending.scene);
-  pending.scene.instances =
-      RayBuffer(device, sizeof(instance), true, D3D12_RESOURCE_STATE_GENERIC_READ);
-  UploadRayBytes(*pending.scene.instances.Get(), std::as_bytes(std::span{&instance, 1}));
+  std::copy(transforms.begin(), transforms.end(), pending.scene.transforms.begin());
+  UploadRayInstances(device, pending.scene);
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs{};
   inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
   inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
                  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE;
   if (source.allow_compaction)
     inputs.Flags |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION;
-  inputs.NumDescs = 1;
+  inputs.NumDescs = pending.scene.instance_count;
   inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   inputs.InstanceDescs = pending.scene.instances->GetGPUVirtualAddress();
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO size{};
