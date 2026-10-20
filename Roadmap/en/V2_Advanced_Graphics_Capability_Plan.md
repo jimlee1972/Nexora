@@ -777,14 +777,16 @@ two overlapping workers test failure/cancellation/replay, and mutations retain o
 Private fixtures require704 CPU comparisons each and final per-mode counters63 refits,27 rebuilds,
 36 compactions and45 transform publications. System fixtures require320 comparisons each and12
 rebuilds with all update counters0; unsupported backends execute the same bounded baked geometry
-with320 CPU/compute comparisons per fixture and native counts0. Actual pinned SDK and Windows
+with320 CPU/compute comparisons per fixture and native counts0. Fixture AS rejection queries
+baseline RT independently from selected-program requirements, preserving ordinary scene admission
+when an unavailable inline mode explicitly selects compute. Actual pinned SDK and Windows
 conditional syntax, ordinary Slang library6.3/query6.5 and preview DXC SER6.9 compilation pass;
 native execution and complete final-head gates remain required before acceptance. Cleanup adds
 only this exact owned branch to existing owner/repository/live-head guards. General heterogeneous
 meshes, instance masks/materials, lighting, system-refit isolation, physical and all full gates stay open.
 
 ✅ Scoped API/ownership and shader identity implementation passes full native Vulkan/Slang/Zig
-Development configure/build and Xvfb CTest229/229, zero failures/skips (144.17s), plus Shipping
+Development configure/build and Xvfb CTest229/229, zero failures/skips (140.88s), plus Shipping
 Minimal/Monolithic LTO. New baked instance fixtures compare1,920 GPU compute outputs while native
 AS/update counts stay0. Actual SDK/Windows-conditional syntax, Slang/DXC profiles and pinned
 reflection/bytecode identities pass. Documentation16/16, cleanup39/39, paired Markdown, touched

@@ -709,14 +709,15 @@ Fixture 將1／2／8個局部三角形配對8／4／1個 instance，每個 insta
 兩個重疊 worker 測試失敗／取消／重播，更新保留舊／新 List。私有 fixture 各要求704筆
 CPU 比對，每種模式最終計數63次 refit、27次重建、36次 compaction、45次變換發布。
 System fixture 各要求320筆比對，12次重建且更新計數皆0；未支援後端執行相同有界 baked
-幾何，每組320筆 CPU／compute 比對，原生計數0。釘選 SDK 與 Windows 條件式語法、一般
+幾何，每組320筆 CPU／compute 比對，原生計數0。Fixture 的 AS 拒絕判斷獨立查詢基本 RT
+能力，inline 模式不可用時明確選 compute 後備，並保留一般場景准入。釘選 SDK 與 Windows 條件式語法、一般
 Slang library6.3／query6.5 與預覽 DXC SER6.9 編譯通過；原生執行與固定 head 完整 gate
 仍為必要驗收。Cleanup 僅增加本次自有分支的精確名稱，沿用 owner／儲存庫／即時 head
 保護。一般異質 mesh、instance mask／材質、光照、system refit 隔離、實體與全部完整 gate
 持續開放。
 
 ✅ 限縮 API／所有權與 shader 身分實作通過完整原生 Vulkan／Slang／Zig Development
-configure／build 與 Xvfb CTest229/229，零失敗／略過（144.17秒），以及 Shipping
+configure／build 與 Xvfb CTest229/229，零失敗／略過（140.88秒），以及 Shipping
 Minimal／Monolithic LTO。新增 baked instance fixture 比對1,920筆 GPU compute 輸出，
 原生 AS／更新計數保持0。釘選 SDK／Windows 條件式語法、Slang／DXC profile 與釘選
 反射／bytecode 身分檢查通過。文件16/16、cleanup39/39、雙語 Markdown、touched 格式與

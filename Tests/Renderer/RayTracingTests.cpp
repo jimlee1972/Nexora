@@ -543,7 +543,9 @@ void TestInstances(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayPro
     if (count > 1)
       Reject([&] { device.SetRaySceneTransform(scene, {}); },
              "singular setter replaced a multiple-instance scene");
-  } else
+  } else if (!rhi::CheckGraphicsRequirements(device.Capabilities(),
+                                             rhi::EffectiveRayProgramRequirements({}))
+                  .Succeeded())
     Reject([&] { (void)device.CreateInstancedRayScene(local, transforms); },
            "unavailable backend fabricated instanced AS");
   Execute(device, compute, program, scene, initial);
