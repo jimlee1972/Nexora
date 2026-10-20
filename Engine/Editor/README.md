@@ -1939,6 +1939,58 @@ fabricated exit code; native nonzero exits, signals, incomplete output, cancella
 owner scope cannot publish success. Exited means only actual code zero; independently verified
 artifacts, target manifest, checksums and reproducible build publication remain host obligations.
 The API changes no stable C/Gameplay ABI or module graph; public C++ consumers must rebuild.
+## Bounded Git status observations
+
+`GitStatusProvider` uses the existing managed `BuildProcess` and Core JobSystem to query a
+canonical working-tree root with a `.git` directory or gitfile. The owner supplies an absolute
+trusted Git executable and authorizes repository configuration and the inherited environment;
+this is a cooperating local query, not a configuration/process sandbox. Calls are serialized on
+one owner thread. Workers retain process inputs only, never project/document/provider borrows.
+The JobSystem outlives the provider and every call; Shutdown cancels/drains before destruction.
+Release retained captures and all C++ SDK objects before unloading Editor/Core libraries;
+Shutdown is not a library lifetime lease.
+
+Refresh launches direct fixed argv without shell expansion. It explicitly selects `.git` and the
+current working tree, disables optional index locks, fsmonitor and untracked-cache updates, and
+requests porcelain-v1 `-z`, rename detection, normal untracked entries and no submodule recursion.
+It performs no fetch/push/checkout/merge/index mutation command. Normal untracked directories may
+be collapsed; ignored paths and recursive submodule status are outside this query projection.
+Git 2.15 or newer is required by the command flags. Missing tools/repositories reject explicitly;
+there is no automatic tool discovery, query on project open or fabricated clean-tree fallback.
+
+`DecodePorcelainV1` follows [Git's version-one format](https://git-scm.com/docs/git-status#_porcelain_format_version_1).
+It preserves both status lanes, conflict states, rename/copy destination-then-source order and
+owning unquoted filename bytes, including spaces, newlines and non-UTF8 names. UI consumers must
+escape names for display and key identities with scope plus original path bytes. These observations
+are not filesystem authority, file locks or source-version admission for a later write operation.
+
+Complete output is capped at 256 KiB, 4,096 entries and 4,096 bytes per path. Any dropped output,
+malformed/truncated record, duplicate destination, invalid relative Git path, budget or allocation
+failure rejects the entire candidate. Empty complete output is an available clean result.
+Same-scope last-good captures survive refresh failure/cancellation; accepted results replace one
+immutable owning snapshot. Query describes the latest attempt; retained last-good captures keep
+their older operation IDs and do not represent a successful new refresh. `Capture(current_scope)` cannot return another scope's data, and
+retained snapshots survive refresh, provider shutdown and source-directory removal.
+
+Project/provider replacement requires a fresh nonzero scope; reusing one scope for another root
+rejects. Provider-local operation IDs never wrap. Polling a different scope cancels/drains work
+and permanently invalidates that operation, even if the caller switches back before completion.
+Cancel follows the runner's queued/running admission rule; every accepted query still needs Poll
+or Shutdown to drain. Query exposes bounded typed phase/error/exit/loss metadata, not raw merged
+stderr for direct UI logging. Rejected intake preserves state. Accepted process intake is followed
+only by nonallocating identity publication; later decode/snapshot allocation failures retain
+last-good and report failure. New exports are additive C++ APIs; consumers rebuild. Stable
+C/Gameplay ABI, module dependencies and persisted project/scene formats are unchanged.
+
+The executable `editor.git_porcelain_parser` and `editor.git_status_provider` tests cover actual
+Git in disposable repositories, renamed/Unicode/modified/unmerged files, linked worktrees,
+unchanged index/source bytes, failed intake/commands, malformed/flooding native fault fixtures,
+queued/running cancellation, stale scope, teardown and retained snapshots. Private one-shot
+allocation faults cover intake, outcome copy, partial decode and capture construction with
+unchanged last-good, drained jobs and successful retry; they retain no callback/allocator pointer. Missing Git leaves the
+native integration test explicitly skipped/unavailable. Graphical status/diff/merge, project
+activation/external-change routing and production-scale provider acceptance remain open.
+
 ## Reflected opaque-property authoring
 
 `ReflectedInspector` owns a validated catalog and Runtime reflection descriptors. It interprets

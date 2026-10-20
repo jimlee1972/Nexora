@@ -1055,6 +1055,12 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/advanced native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ A bounded Git status SDK provider now queries actual local repositories through the managed
+    process runner and preserves owning raw-path/status/rename observations. Generation-qualified
+    publication rejects stale, cancelled, malformed and truncated output; failures retain last-good.
+    Disposable-repository/native-process tests cover conflicts, Unicode, linked worktrees and
+    unchanged index/source bytes. Graphical status/diff/merge and full ED-M4 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-GitStatus-Linux-2026-10-20.md).
   - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
     sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
     Targeted fields, source apply, structural bindings and reference rebase remain open.
