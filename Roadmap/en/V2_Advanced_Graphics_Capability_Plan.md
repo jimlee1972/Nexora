@@ -759,6 +759,35 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## Bounded TLAS instance transform construction — 2026-10-20
+
+`nexora-45y.4.8` adds explicit absolute row-major instance transforms for ordinary1–8-triangle scenes
+on the admitted private refit runtime. Transform-only updates retain BLAS/vertices and perform an
+actual out-of-place TLAS PERFORM_UPDATE; they publish after completion and retain old recorded
+snapshots. Finite bounded nonsingular matrices and transformed geometry extents validate before
+GPU allocation. Reflection is admitted. Geometry refit, full rebuild and BLAS/TLAS compaction
+preserve the current matrix. Stale/OMM/unadmitted calls reject without publication/counters;
+accepted late failures retain the complete existing pending context. The new diagnostic appends
+without reordering earlier aggregates. Stable C ABI, shader profiles and module graph are unchanged.
+
+Native fixtures add translation, rotation/nonuniform scale, reflection and identity reset,704 CPU
+old/new comparisons each, metadata preservation and lifetime/canary negatives. Private acceptance
+requires36 transform updates/54 explicit refits/18 full rebuilds/27 compactions per barrier mode.
+Linux/other unsupported recipes retain native count0 and compare world-space GPU compute outputs
+with independent CPU geometry. Actual pinned SDK and Windows-conditional fixture syntax and full
+local/hosted gates remain required before acceptance. Only this exact owned transform branch joins
+existing guarded CI cleanup; live-head push/PR events and unrelated actors/branches stay protected.
+General/multi-instance scenes, lighting, system-runtime refit isolation and all full gates stay open.
+
+✅ Scoped API/ownership implementation passes native Vulkan/Slang/Zig Development configure/build
+and full Xvfb CTest229/229, zero failures/skips (152.10s), plus Shipping Minimal/Monolithic LTO.
+Actual pinned SDK and Windows-conditional fixture syntax pass with warnings-as-errors. A CPU-only
+SDK helper probe rejects near-singular/overflowing transformed bounds without GPU execution.
+Linux world-space compute fixtures verify1,152 outputs while native transform diagnostics stay0.
+Documentation16/16, cleanup37/37 and paired/format/diff checks pass. Actual private Windows
+TLAS-only execution and all final-head CI checks remain required before merge; no physical or
+full V2-GFX-3 acceptance is claimed.
+
 ## Explicit bounded ray-scene compaction construction — 2026-10-18
 
 `nexora-45y.4.6` adds opt-in ordinary triangle BLAS/TLAS compaction. Default scene creation preserves

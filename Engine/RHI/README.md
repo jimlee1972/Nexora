@@ -842,7 +842,7 @@ The admitted D3D12 ordinary1–8-triangle recipe keeps the
 same triangle count, one triangle geometry, vertex format/stride and one TLAS instance. Empty,
 nonfinite/degenerate geometry, changed counts, stale handles and OMM scenes reject before native
 execution or publication. Other backends and builds without pinned ray artifacts explicitly throw
-unsupported. General topology/material/instance edits and OMM updates/compaction remain open.
+unsupported. General topology/material/multi-instance edits and OMM updates/compaction remain open.
 The C++ virtual surface/diagnostics require consumer rebuilds; the new diagnostic is appended to
 preserve existing aggregate field order. The stable C ABI is unchanged.
 
@@ -872,6 +872,38 @@ Native fixtures perform four updates for each1/2/8-triangle pipeline/inline reci
 new outputs to the double-precision CPU oracle, keep earlier lists through later publication and
 check invalid/topology/OMM/stale rejection and canaries. The same fixtures run with legacy/enhanced
 barriers and the existing preview/SER suite. Physical performance and full V2-GFX-3 remain open.
+
+## Bounded TLAS instance transforms
+
+`SetRaySceneTransform(handle, RayInstanceTransform)` replaces the ordinary scene's absolute
+object-to-world3x4 row-major matrix; identity restores object space. It requires the admitted
+private `ray_scene_refit_enabled` profile and rejects OMM/stale/unadmitted requests before GPU work.
+The bounded recipe accepts finite translation components up to1e8 in magnitude and basis-row
+lengths from1e-4 to1e4. A determinant magnitude greater than1e-6 times the product of row lengths
+rejects singular/nearly dependent bases. CPU geometry bounds conservatively reject transforms
+whose absolute intermediate world extents exceed finite float storage. Reflection is admitted;
+this is not a general unbounded numerical-transform contract.
+
+A transform operation retains the existing BLAS/object-space vertices, allocates private instance/
+TLAS/update-scratch storage and records only actual out-of-place TLAS PERFORM_UPDATE with the
+matching original build flags. A TLAS UAV dependency and queue completion precede publication.
+Previous lists retain their complete old snapshot; new recording captures the replacement under
+the live handle. The appended `ray_scene_transform_updates` counts successful publication only,
+separately from geometry refits, full rebuilds and compactions. These operations preserve the
+current matrix, including TLAS relinking after BLAS compaction. The shared pending-context policy
+retains all accepted sources/results/scratch/allocator/list resources after Signal/wait failure;
+subsequent AS construction/mutation rejects until device recreation. Mutation remains caller-
+serialized against recording/submit. Stable C ABI, shader profiles and module dependencies stay
+unchanged; C++ consumers rebuild.
+
+Fixtures compare translation, rotation/nonuniform scale and reflection with CPU-transformed
+geometry, retained old/new lists and identity reset, then verify geometry-refit/compaction/rebuild
+preservation, invalid/stale/OMM rejection and canaries. Each native fixture compares704 outputs;
+private legacy/enhanced acceptance requires36 transform updates,54 explicit geometry refits,
+18 full rebuilds and27 compactions per mode. Unsupported native recipes exercise the existing
+world-space GPU compute reference with192 comparisons per size/mode without claiming TLAS work.
+Multi-instance scenes, general edits/lighting, completion-failure injection and physical acceptance
+remain open.
 
 ## Explicit bounded BLAS/TLAS compaction
 
@@ -907,7 +939,7 @@ Appended diagnostics count successful scene compactions and sum before/after nat
 widths**, not physical heap bytes, RSS, performance or guaranteed memory savings. Tests cover1/2/8
 triangles across pipeline/inline/SER, old/new CPU output/canary checks and rejected admission/lifetime
 cases. Private preview acceptance requires45 explicit refits (the original36 plus nine round trips)
-and18 scene compactions per barrier mode. OMM relocation, general scene compaction, native failure
+and18 scene compactions per barrier mode before the additional transform fixtures above. OMM relocation, general scene compaction, native failure
 injection, physical memory/performance and full V2-GFX-3 acceptance remain open.
 
 ## Bounded min-mip sampler feedback footprint

@@ -694,6 +694,31 @@ Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Obje
 **13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
 Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
 
+## 有界 TLAS instance transform 施工 — 2026-10-20
+
+`nexora-45y.4.8` 為一般1–8三角形場景加入明確、絕對值 row-major instance transform，
+僅限已准入私有 refit runtime。僅變換更新會保留 BLAS／vertices，真正執行使用新儲存空間的
+TLAS PERFORM_UPDATE，完成後才發布，舊錄製快照維持有效。GPU 配置前驗證有限、有界、
+非奇異矩陣及變換後幾何範圍，允許鏡射。幾何 refit、完整重建及 BLAS／TLAS compaction
+都保留目前矩陣。失效／OMM／未准入呼叫拒絕且不發布狀態或計數；已接受的較晚失敗沿用完整
+pending context 保留資源。新診斷附加於既有欄位之後；穩定 C ABI、Shader profile 與模組圖不變。
+
+原生 fixture 加入平移、旋轉／非等比縮放、鏡射、單位矩陣重設，每組704筆舊／新 CPU
+比對、中繼資料保留及生命週期／canary 拒絕。私有驗收要求每種 barrier 模式36次變換更新、
+54次明確 refit、18次完整重建及27次 compaction。Linux／其他未支援配方保持原生計數0，
+以 world-space GPU compute 輸出對照獨立 CPU 幾何。釘選 SDK、Windows 條件式語法與完整
+本機／hosted gate 皆仍為必要驗收。既有 CI 清理只增加本次自有變換分支的精確名稱，保留
+即時 head 的 push／PR 及無關 actor／分支。一般／多 instance 場景、光照、system-runtime
+refit 隔離與全部完整 gate 持續開放。
+
+✅ 限縮 API／所有權實作通過原生 Vulkan／Slang／Zig Development configure／build 與 Xvfb
+完整 CTest229/229，零失敗／略過（152.10秒），以及 Shipping Minimal／Monolithic LTO。
+釘選 SDK 與 Windows 條件式語法皆以 warnings-as-errors 通過；SDK helper 的 CPU-only 探針
+確認近奇異／變換範圍溢位拒絕，不含 GPU 執行。Linux world-space compute fixture 比對
+1,152筆輸出，原生變換診斷維持0。文件16/16、cleanup37/37、雙語／格式／diff 皆通過。
+實際私有 Windows TLAS-only 與固定 head 全部 CI 仍為必要合併門檻；不宣稱實體或完整
+V2-GFX-3 驗收完成。
+
 ## 明確 opt-in 的有界射線場景 compaction 施工 — 2026-10-18
 
 `nexora-45y.4.6` 為一般三角形 BLAS／TLAS 加入明確 opt-in 壓縮。預設建立維持 runtime 原有不可變／可更新
