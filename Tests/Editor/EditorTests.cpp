@@ -209,7 +209,74 @@ void VerifyBuildManifestValidation(const std::filesystem::path &root) {
           "valid manifest retry failed after text/path rejection");
 }
 
+void VerifyChildFolderSnapshots() {
+  using namespace nexora;
+  using editor::ContentBrowserModel;
+  using editor::ContentItem;
+  using editor::ThumbnailState;
+  const runtime::AssetUuid first{401, 1}, second{401, 2}, added{401, 3};
+  const std::array items{
+      ContentItem{first, "Content/A/one.txt", ".txt", "v1", ThumbnailState::Ready},
+      ContentItem{second, "Content/B/two.txt", ".txt", "v1", ThumbnailState::Ready}};
+  ContentBrowserModel model;
+  Require(model.Reset(items, 1), "folder snapshot setup failed");
+  const auto original = model.ChildFolderSnapshot();
+  Require(original->size() == 2 && original->at(0).path == "Content/A" &&
+              original->at(1).path == "Content/B",
+          "folder snapshot order failed");
+  const auto revision = model.Revision();
+  model.SetFilter("absent", ".mesh");
+  Require(model.Select(first) && model.SetFolder("Content") &&
+              model.PublishArtifact(first, "v2", ThumbnailState::Failed) &&
+              !model.SetFolder("../Bad") && !model.Delete(std::array{added}) &&
+              !model.Discover(items[0]) && !model.Reset(std::array{items[0], items[0]}, 2) &&
+              model.ChildFolderSnapshot() == original && model.Revision() == revision + 1,
+          "non-path edits or failed mutations replaced folder projection");
+  auto copied = model;
+  Require(copied.ChildFolderSnapshot() == original && model.Move(std::array{first}, "Content/C") &&
+              model.ChildFolderSnapshot()->at(1).path == "Content/C" &&
+              copied.ChildFolderSnapshot() == original && original->at(0).path == "Content/A",
+          "move/copy changed retained immutable folder snapshot");
+  Require(model.Discover({added, std::filesystem::path(u8"Content/資料###/three.txt"), ".txt", "v1",
+                          ThumbnailState::Ready}) &&
+              model.ChildFolderSnapshot()->size() == 3 && model.Undo() &&
+              model.ChildFolderSnapshot()->at(0).path == "Content/A" &&
+              model.ChildFolderSnapshot()->size() == 3 && model.Find(added),
+          "discovery/Undo did not refresh folders and retain discovered item");
+  Require(model.Delete(std::array{second}) && model.ChildFolderSnapshot()->size() == 2 &&
+              model.Undo() && model.ChildFolderSnapshot()->size() == 3 &&
+              model.SetFolder("Content/A") && model.ChildFolderSnapshot()->empty() &&
+              model.RevealAsset(added) && model.ChildFolderSnapshot()->empty() &&
+              model.SetFolder("Content") && model.ChildFolderSnapshot()->size() == 3,
+          "delete/Undo/folder/reveal cache invalidation failed");
+  const auto before_rename = model.ChildFolderSnapshot();
+  Require(model.Rename(first, "renamed.txt") && model.ChildFolderSnapshot() != before_rename &&
+              model.ChildFolders().size() == 3,
+          "rename did not refresh owning folder query");
+  auto replacement = items;
+  replacement[0].path = "Content/Z/one.txt";
+  replacement[1].path = "Archive/Outside/two.txt";
+  Require(model.Reset(replacement, 1) && model.ChildFolderSnapshot()->size() == 1 &&
+              model.ChildFolderSnapshot()->front().path == "Content/Z",
+          "same-count/same-generation Reset retained stale folder paths");
+  const auto retained = model.ChildFolderSnapshot();
+  auto owning = model.ChildFolders();
+  owning.front().label = "caller-owned";
+  model = ContentBrowserModel{};
+  Require(retained->front().label == "Z" && original->size() == 2 &&
+              model.ChildFolderSnapshot()->empty(),
+          "model replacement or owning query mutated retained folder snapshot");
+  std::shared_ptr<const std::vector<editor::Breadcrumb>> destroyed;
+  {
+    ContentBrowserModel temporary;
+    Require(temporary.Reset(items, 2), "temporary folder setup failed");
+    destroyed = temporary.ChildFolderSnapshot();
+  }
+  Require(destroyed->at(1).path == "Content/B", "folder snapshot borrowed destroyed model");
+}
+
 int Run() {
+  VerifyChildFolderSnapshots();
   using namespace nexora;
   namespace fs = std::filesystem;
   const auto root = fs::temp_directory_path() /

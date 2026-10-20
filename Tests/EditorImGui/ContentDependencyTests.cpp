@@ -575,9 +575,53 @@ void Run(float dpi) {
   Require(window->Scroll.y == 0, "closed Content retained deferred reveal scrolling");
   Require(f.Files() == original_files, "input/close guards changed source or sidecar bytes");
 }
+void FolderDropSnapshot(float dpi) {
+  Fixture f(dpi);
+  const auto files = f.Files();
+  const auto retained = f.content.Browser().ChildFolderSnapshot();
+  Require(f.content.Browser().Select(f.source), "folder drop selection failed");
+  f.Draw();
+  const auto source = Access::ContentAssetPosition(f.ui, f.source);
+  const auto target = Access::ContentPathPosition(f.ui, "Content/Nested");
+  Require(source && target, "folder drop controls absent");
+  Nexora::Window::WindowEvent pointer, button;
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>((*source)[0] * dpi);
+  pointer.value1 = static_cast<int>((*source)[1] * dpi);
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  pointer.value0 += static_cast<int>(24 * dpi);
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  f.Draw();
+  Require(Access::ContentDragActive(f.ui), "folder drop drag did not start");
+  pointer.value0 = static_cast<int>((*target)[0] * dpi);
+  pointer.value1 = static_cast<int>((*target)[1] * dpi);
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  f.Draw();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  f.Draw();
+  Require(f.content.Browser().Find(f.source)->path == "Content/Nested/Source.scene" &&
+              retained->front().path == "Content/Nested" &&
+              f.content.Browser().ChildFolderSnapshot() != retained && f.content.Undo(),
+          "real folder drop failed publication or invalidated retained projection");
+  f.Draw();
+  Require(f.Files() == files && f.content.Browser().Find(f.source)->path == "Content/Source.scene",
+          "folder drop Undo did not preserve source and sidecar bytes");
+}
 } // namespace
 int main() {
   try {
+    FolderDropSnapshot(1);
+    FolderDropSnapshot(2);
     FolderClipping(1);
     FolderClipping(2);
     MarkerLabels(1);

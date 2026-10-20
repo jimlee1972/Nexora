@@ -615,6 +615,13 @@ write failure leaves original scene files and dirty baselines unchanged.
   cannot manufacture `..` rows. The owning query result is independent of asset filters and
   preserves selection, revision and pending mutation Undo; explicit parent navigation remains
   available through breadcrumbs and Alt+Up in the graphical host.
+  `ChildFolderSnapshot` returns an immutable shared-owned projection, lazily reused until successful
+  Reset/Discover/path mutation/Undo or a folder change. Selection, filters, artifact publication,
+  same-folder navigation and failed admission retain it. Copies may share immutable projections;
+  invalidating one model does not invalidate another. Retained snapshots survive assignment and
+  model destruction; no item/World/document borrow is cached. Call only on the authoring thread.
+  `ChildFolders` retains its independent owning-vector API. Consumers must rebuild for the additive
+  C++ API/layout change; persisted formats and the stable C ABI are unchanged.
 - `ContentBrowserModel::RevealAsset` is an inspection-only UUID operation: it stages the target's
   parent folder/breadcrumbs and sole selection before clearing query/type filters. Missing IDs or
   paths without a revealable relative parent preserve the complete view state. It does not touch

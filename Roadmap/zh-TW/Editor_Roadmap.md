@@ -274,8 +274,15 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 - ✅ Content 資料夾控制項現以固定列高獨立裁切，保留邏輯總數、捲動範圍、原文 scoped ID
   與導航所需列。真正 1x／2x 可寫／唯讀測試使用 2048 個資料夾，限制提交列數、以 Tab
   跨越裁切邊界、滑鼠開啟遠端資料夾、定位資料夾清單下方的資產，並保留 filter、source／
-  sidecar bytes、revision 與 pending Undo。資料夾推導／排序仍為 O(n)／O(n log n)；完整規模
+  sidecar bytes、revision 與 pending Undo。Cold 資料夾推導／排序仍為 O(n)／O(n log n)；完整規模
   與實體驗收仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md)。
+
+- ✅ Content 子資料夾投影現於 path publication／資料夾變更之間重用不可變共享快照。
+  Reset／Discover／mutation／Undo 會刷新投影；檢視狀態與 artifact 更新維持快取。
+  真正繪圖保留自己的快照，跨越拖放造成的模型替換；保留版本亦可跨模型複製與銷毀。
+  原有 owning query 與 2048 資料夾 1x／2x 導覽／裁切持續受測。Cold derivation、其他 O(n)
+  工作及實體預算仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-FolderCache-Linux-2026-10-20.md)。
 
 - ✅ Content 依賴檢視現提供以 UUID 定位的正／反向 Reveal：切換目標資料夾、清除 query／
   type filter、選取並捲動至原先被裁切的列。Portable 與真正 1x／2x ImGui 操作涵蓋唯讀、
