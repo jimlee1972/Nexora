@@ -609,6 +609,13 @@ jobs:
       - name: Report native sanitizer positive control
         if: success()
         run: cat build/linux-sanitizers/artifacts/vulkan-sanitizer-positive-control/positive-control.json
+      - name: Retain ALSA sanitizer lifetime evidence
+        if: always() && (steps.sanitizers.outcome == 'success' || steps.sanitizers.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: alsa-sanitizer-lifetime-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/linux-sanitizers/artifacts/gameplay-alsa
+          retention-days: 7
       - name: Retain native sanitizer positive control
         if: always() && (steps.sanitizers.outcome == 'success' || steps.sanitizers.outcome == 'failure')
         uses: actions/upload-artifact@v4

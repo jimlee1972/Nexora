@@ -607,3 +607,15 @@ commit／WDDM 預算用量及明確載入配置，不代表全引擎 allocator �
 P0 6/8 不變。** 產品最低規格與完整 allocator／正式負載／裝置／乾淨主機 gate 仍開放。
 依使用者明確要求，驗收工具與保留證據已於 [PR #646](https://github.com/jimlee1972/Nexora/pull/646) 合併；
 此舉不代表 M6 通過，也不改寫任何失敗結果。上方修訂後的 5,000 物件 gate 仍為 NOT RUN。
+
+## ALSA 配置生命週期修復（2026-10-20）
+
+✅ `GameplayAudio` 現以自有 ALSA 配置樹／更新紀錄開啟 Linux 輸出，於關閉 PCM 後、卸載
+函式庫前釋放兩者，包含開啟失敗路徑。保留系統／使用者／`ALSA_CONFIG_PATH` 選擇，
+不替換或釋放其他用戶端的全域配置。實際 Adapter 回歸矩陣涵蓋 Null、缺少裝置、格式錯誤、
+配置檔不存在及系統配置，每個程序開啟 65 次，分別單獨執行及與持有 PCM／全域配置參考的
+外部用戶端共存；另一個 Nexora 音訊物件亦保持可用。本機 ASan／UBSan／LSan 十組案例
+（650 次開啟）全部通過，未加入 suppression；舊實作的洩漏與外部參考失敗見
+[保留證據](../../Engine/Runtime/evidence/ALSA-Lifetime-Linux-2026-10-20/acceptance.md)。
+Hosted sanitizer CI 保留同一矩陣的 stdout／stderr。靜音／Null 輸出不增加實體可聽音訊或
+裝置復原驗收。M6／M7 與 9/11（82%）維持不變。

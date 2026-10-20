@@ -1,0 +1,4 @@
+ALSA lib confmisc.c:165:(snd_config_get_card) Cannot get card index for NexoraMissingDevice
+ALSA lib confmisc.c:165:(snd_config_get_card) Cannot get card index for NexoraMissingDevice
+ALSA lib confmisc.c:165:(snd_config_get_card) Cannot get card index for NexoraMissingDevice
+Nexora replaced the external global config

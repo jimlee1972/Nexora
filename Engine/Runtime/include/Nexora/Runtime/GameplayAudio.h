@@ -27,6 +27,8 @@ public:
   void SetOutput(Sink sink, void *context);
   // Linux ALSA or Windows waveOut default device, dynamically loaded. Fails
   // when unavailable; other platforms require an application-provided sink.
+  // ALSA owns a private configuration snapshot until close/reopen; it never
+  // replaces or frees another client's global configuration cache.
   bool OpenDefaultOutput(std::string &error);
   void CloseOutput();
   // Mixes and submits up to 4096 stereo frames. No Zig callbacks or asset IO.
