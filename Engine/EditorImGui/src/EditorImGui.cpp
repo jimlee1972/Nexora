@@ -25,6 +25,7 @@
 #include <limits>
 #include <locale>
 #include <map>
+#include <new>
 #include <optional>
 #include <ranges>
 #include <set>
@@ -170,6 +171,14 @@ struct EditorImGuiHost::State final {
   std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
+  bool git_status_open{};
+  std::uint64_t git_status_scope{};
+  std::filesystem::path git_status_root;
+  std::array<char, 4096> git_executable{};
+  ImGuiID git_executable_id{};
+  GitStatusError git_intake_error{GitStatusError::None};
+  std::array<std::optional<std::array<float, 2>>, 3> git_control_positions{};
+  std::size_t git_rendered_rows{};
   bool prefab_isolation_open{};
   std::optional<PrefabIsolationObservation> prefab_isolation;
   std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
@@ -5071,6 +5080,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
       ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
+      ImGui::MenuItem("Source control", "Ctrl+Alt+G", &state_->git_status_open);
       ImGui::EndMenu();
     }
     if (file_context_valid)
@@ -8030,6 +8040,7 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 }
 
 #include "BuildProcessPanel.inl"
+#include "GitStatusPanel.inl"
 #include "PrefabIsolationPanel.inl"
 
 FrameMetrics EditorImGuiHost::EndFrame() {
