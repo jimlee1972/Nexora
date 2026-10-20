@@ -48,7 +48,7 @@ cmake --build --preset linux-shipping -j 2
 - Graphical Development configure and all 783 build steps passed.
 - Shipping engine configure and all 102 build steps passed; this is not a Shipping Editor build.
 - `build.editor_target_evidence` passed with graphical ON and in a separate OFF configure.
-  Its 12 portable cases cover every required scenario, actual DPI mismatch, equal candidate scales,
+  Its current 13 portable cases cover every required scenario, actual DPI mismatch, equal candidate scales,
   virtual/unattested/incomplete metadata, corrupt/outside artifacts, invalid smoke output, duplicate
   records, forged status, interrupted interviews and preservation of blocked rows/artifacts.
 - Separate OFF configure with Slang OFF had no `nexora_imgui` population, `NexoraEditorImGui`
@@ -108,6 +108,24 @@ Standalone validation also returned exit 1. Both raw output and copied hashed ar
 in the session evidence bundle. This verifies that successful native rendering cannot accidentally
 satisfy physical-display/operator acceptance. The Mesa cache warning reflects read-only home storage,
 not a native validation result.
+
+## Hosted fixture correction and semantic handoff
+
+The initial source `8d899641` reached macOS 26.6.2 / Python 3.15 in hosted CI. The new interrupted-
+interview test made its final existing-directory assertion after leaving the simulated Linux host
+scope, so the real Darwin host correctly raised unsupported-platform `ValueError` instead of the
+fixture's expected `FileExistsError`. The assertion now stays inside the simulated host scope.
+A thirteenth case explicitly verifies that an unsupported host creates no bundle. Linux execution
+and an outer Darwin-host simulation both passed all 13 cases; this simulation is not a native macOS
+execution result. Production recording/platform policy is unchanged. Fresh final-source hosted
+checks are required; the failed original-source check is not relabeled as passed.
+
+The paired [accessibility handoff](../../../Roadmap/en/Editor_Accessibility_Handoff.md) inventories
+actual ProductShell panels and scene commands, recovery's host-local identity/display labels,
+missing semantic roles/actions/values, owned scope/action lifetime, focus/error/live regions and
+UIA/AT-SPI/AX candidates. Proposed recovery action IDs and future snapshot/bridge contracts are
+explicitly distinguished from current APIs. Source and Markdown review verify documentation only;
+no accessibility tree, adapter, dependency or physical-reader acceptance is introduced.
 
 ## Remaining acceptance
 

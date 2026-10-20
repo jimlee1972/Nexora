@@ -498,6 +498,10 @@ ED-M0 不交付 Content Browser/thumbnail、Scene View、gizmo、Game View/PIE�
 tool、build/profile UI、detached OS-level ImGui viewport、user-authored theme 或 screen-reader accessibility
 tree。WP2 texture registry 只是未來 panel 可使用的 backend contract，不代表可以提早施工。
 
+✅ 具體的 [ED-M0 至 ED-M7 交接](Editor_Accessibility_Handoff.md) 已盤點既有 panel／command ID、
+缺少的 role／action／value、focus／failure／live-region 需求與 platform bridge 候選方案。
+此項只完成文件交接；未實作 semantic tree 或 reader support，實體鍵盤／無障礙驗收維持 open。
+
 ED-M7 handoff 必須列出 stable semantic ID、label、role/action/value gap、focus order、keyboard-only failure、
 live-region 需求與候選 platform bridge。該文件可建議 secondary accessibility library，但採用 dependency
 需要獨立決策與核准。在此之前，只能誠實宣稱「basic keyboard-operable ED-M0 shell；screen-reader

@@ -571,6 +571,9 @@ The stable `ProductShell` panel and command IDs are the semantic source for a fu
 accessibility tree. Widget labels use those stable IDs and never become the data-model identity.
 Dear ImGui does not provide a native accessibility tree, so keyboard traversal and screen-reader
 bridges remain ED-M7 work; plugins must not inspect the ImGui widget tree to supply semantics.
+The concrete [ED-M0 to ED-M7 handoff](../../Roadmap/en/Editor_Accessibility_Handoff.md) inventories
+current identities and the missing roles/actions/values, scope, focus, failures, live regions and
+platform options. It introduces no semantic API, adapter or dependency and does not certify access.
 
 ## Hierarchy keyboard navigation
 

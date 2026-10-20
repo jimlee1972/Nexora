@@ -1399,6 +1399,9 @@ creates property widgets; unknown components retain raw data instead of being si
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ The [ED-M0 semantic handoff](Editor_Accessibility_Handoff.md) now lists stable IDs,
+    missing role/action/value data, focus/failure/live regions and platform bridge candidates.
+    This delivers the inventory only; semantic adapters and screen-reader acceptance remain open.
   - ✅ Current session CI cleanup adds exact published branch and actor checks; 14 ownership/race
     and 16 documentation-routing tests, full Linux 239/239 and Minimal Shipping pass.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md).

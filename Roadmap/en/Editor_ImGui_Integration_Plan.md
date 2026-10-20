@@ -547,6 +547,11 @@ widgets, specialized tools, build/profile UI, detached OS-level ImGui viewports,
 themes, or a screen-reader accessibility tree. WP2's texture registry is only the backend contract
 those future panels can use; it does not authorize implementing them early.
 
+✅ The concrete [ED-M0 to ED-M7 handoff](Editor_Accessibility_Handoff.md) now inventories existing
+panel/command IDs, missing roles/actions/values, focus/failure/live-region requirements and platform
+bridge candidates. This closes the documentation handoff only; no semantic tree or reader support
+is implemented, and physical keyboard/accessibility acceptance remains open.
+
 The ED-M7 handoff must list stable semantic IDs, labels, roles/actions/value gaps, focus order,
 keyboard-only failures, live-region needs, and candidate platform bridge options. That document may
 recommend a secondary accessibility library, but dependency adoption requires its own decision and

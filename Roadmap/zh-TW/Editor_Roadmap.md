@@ -1366,6 +1366,10 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
+- ✅ [ED-M0 語意交接](Editor_Accessibility_Handoff.md) 已列出 stable ID、缺少的 role／action／
+  value、focus／failure／live-region 與 platform bridge 候選。此項只交付盤點；semantic adapter
+  與 screen-reader 驗收維持 open。
+
 - ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
   guard、16 項 documentation-routing、完整 Linux 239/239 與 Minimal Shipping 通過。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md)。
