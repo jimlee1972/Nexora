@@ -253,6 +253,29 @@ void Run(float scale, const std::filesystem::path &git, const std::filesystem::p
   std::filesystem::remove(f.root / ".fixture-ready");
   f.Click(1);
   f.Marker();
+  f.allowed = false;
+  f.Draw();
+  f.Finish();
+  Require(f.provider.Query().phase == Phase::Cancelled && f.provider.Capture(f.scope) == good,
+          "Revoking refresh permission failed to cancel and retain last-good");
+  f.allowed = true;
+  std::filesystem::remove(f.root / ".fixture-ready");
+  f.Click(1);
+  f.Marker();
+  Nexora::Window::WindowEvent blur;
+  blur.type = Nexora::Window::WindowEventType::FocusChanged;
+  blur.value0 = 0;
+  f.ui.ProcessEvents(std::array{blur});
+  f.Draw();
+  f.Finish();
+  Require(f.provider.Query().phase == Phase::Cancelled && f.provider.Capture(f.scope) == good,
+          "Losing application focus failed to cancel and retain last-good");
+  blur.value0 = 1;
+  f.ui.ProcessEvents(std::array{blur});
+  f.Draw();
+  std::filesystem::remove(f.root / ".fixture-ready");
+  f.Click(1);
+  f.Marker();
   f.scope = 12;
   f.Draw();
   f.Finish();

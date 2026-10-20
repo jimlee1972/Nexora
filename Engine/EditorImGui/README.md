@@ -1460,6 +1460,41 @@ or claim instancing for arbitrary Editor triangles. Public C++ consumers rebuild
 or serialized format changes.
 
 
+## Explicit project-scoped Git status view
+
+Settings → Source control (`Ctrl+Alt+G`) opens a local status observation. The user supplies an
+absolute trusted Git executable and explicitly presses Refresh; project/window opening never
+executes Git. This uses the selected Git installation, inherited environment and repository
+configuration under the cooperating-local-process contract of `GitStatusProvider`. No executable
+choice or credentials are persisted. The view does not fetch, stage, commit, checkout or merge.
+
+`DrawGitStatus` borrows its provider and canonical project root only during the serialized UI
+frame. The caller gives every project lifetime a fresh nonzero scope. Polling continues while
+hidden; loss of permission/focus, Play/modal transitions and scope replacement cancel pending
+work. Scope/root changes clear old executable text, active/deactivated text buffers and local
+errors before another project can use them. The native owner tracks project UUID/root transitions,
+handles identity exhaustion explicitly and shuts down the provider before draining shared jobs.
+The JobSystem and Editor/Core libraries outlive all providers and retained SDK objects. This is
+an additive C++ UI entry point; consumers rebuild. No document format, C ABI or module dependency
+changes.
+
+The view retains no cross-frame capture borrow. A complete immutable capture is obtained for the
+current scope/root each frame, with clipped rows and both index/working-tree status lanes. Valid
+UTF-8 stays readable; control characters, backslashes and invalid filename bytes are escaped for
+single-line display without changing owning path identities. Failed/malformed/cancelled refreshes
+retain and label the last complete snapshot, while absent tools/repositories never appear clean.
+Only validated empty output reports “Clean at last successful refresh.” Raw process diagnostics
+are not copied into UI/log output. Display-allocation failure leaves the capture intact. Read-only
+projects may inspect status without modifying authoring files or the Git index.
+
+`editor.git_status_ui_1x` and `_2x` drive actual product widgets with pointer/keyboard/text events
+and actual Git in disposable Unicode-path repositories. Negative native process fixtures cover
+malformed results, cancellation, stale scope and shutdown; an allocation fault covers rejected
+capture publication. The tests check clean/changed/renamed/raw filenames, source/index preservation,
+read-only inspection, clipped complete data and clearing an active executable draft on project
+replacement. These are headless widget tests, not physical DPI/IME/display acceptance. Nested
+repository discovery, graphical diff/merge and full source-control acceptance remain open.
+
 ## Hierarchy request projection work
 
 Hierarchy request processing stages a full node observation only for expansion pruning, queued

@@ -1988,8 +1988,10 @@ unchanged index/source bytes, failed intake/commands, malformed/flooding native 
 queued/running cancellation, stale scope, teardown and retained snapshots. Private one-shot
 allocation faults cover intake, outcome copy, partial decode and capture construction with
 unchanged last-good, drained jobs and successful retry; they retain no callback/allocator pointer. Missing Git leaves the
-native integration test explicitly skipped/unavailable. Graphical status/diff/merge, project
-activation/external-change routing and production-scale provider acceptance remain open.
+native integration test explicitly skipped/unavailable. The native Editor now owns an explicit
+project-scoped graphical status view; its UI lifetime contract is documented in the EditorImGui
+README. Graphical diff/merge, nested repository discovery, broader external-change routing and
+production-scale provider acceptance remain open.
 
 ## Reflected opaque-property authoring
 
