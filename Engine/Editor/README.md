@@ -622,6 +622,20 @@ write failure leaves original scene files and dirty baselines unchanged.
   model destruction; no item/World/document borrow is cached. Call only on the authoring thread.
   `ChildFolders` retains its independent owning-vector API. Consumers must rebuild for the additive
   C++ API/layout change; persisted formats and the stable C ABI are unchanged.
+- `VisibleCount`, `Visible` and `SelectVisible` share one lazy immutable projection of owning item
+  indices for the current folder and normalized query/type. Successful Reset/Discover/path edits/
+  Undo and actual folder/filter changes revoke it; same-folder navigation, equal normalized filters,
+  selection, artifact-only publication and rejected operations retain it. Reveal also revokes it when
+  clearing active filters, even within the same folder. Model copies may share indices, never item
+  pointers: range results resolve into each model's current item storage, including fresh artifact
+  payloads. Returned item pointers keep their existing mutation-bounded borrow contract.
+  Queries run serially on the authoring thread, like `ChildFolderSnapshot`; const does not grant
+  concurrent access. The first query scans current items and retains O(matches) index storage;
+  warm Count is O(1), while Visible visits only the bounded requested range. Range arithmetic
+  clamps before addition, including zero counts and SIZE_MAX offsets/counts. Selection/history/
+  source semantics stay unchanged. Other lookups, cold folder derivation, indexing, complete frame
+  and production memory/GPU budgets remain separate. Public C++ consumers must rebuild for the
+  private layout change; persisted formats, stable C ABI and module dependencies are unchanged.
 - `ContentBrowserModel::RevealAsset` is an inspection-only UUID operation: it stages the target's
   parent folder/breadcrumbs and sole selection before clearing query/type filters. Missing IDs or
   paths without a revealable relative parent preserve the complete view state. It does not touch
@@ -629,7 +643,7 @@ write failure leaves original scene files and dirty baselines unchanged.
   sessions may use it. The additive C++ method requires rebuilding consumers; persisted formats
   and stable C/Zig contracts are unchanged.
 - `ContentBrowserModel::SelectVisible` atomically replaces selection with the complete matching
-  current-folder query/type row set, including clipped rows. It uses one item scan and preserves
+  current-folder query/type row set, including clipped rows. It consumes the cached matching indices and preserves
   revision, assets and mutation Undo. No matches clear selection. Batch Delete uses a UUID set to
   reject duplicates/missing IDs before publication and compacts surviving items in one scan;
   ProjectContentSession resolves the complete source/sidecar move list through a frame-local UUID

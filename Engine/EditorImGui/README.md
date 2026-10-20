@@ -1121,6 +1121,15 @@ state. Every use rechecks visible membership, including externally changed filte
 State retains owning UUIDs and scope values; no ContentItem borrow crosses frames. Rename and
 Delete continue to act on the resulting owning selection.
 
+The existing asset clipper's Count and range queries now share the model's lazy immutable
+visibility indices. An unchanged folder/query/type and asset path set avoids repeated full scans
+and filename/type folding on each frame/range. Queries still resolve current model-owned items,
+so artifact updates remain visible and copied models retain no foreign item pointers. Path/item
+publication, Undo and actual view changes invalidate the projection; view selection and artifact-only
+publication do not. Keyboard ranges, counts, ordering, drag payloads, selection and source/history
+rules are unchanged. Cold projection, activation/other lookups and complete frame/memory/GPU budgets
+remain separate; this is not constant-time acceptance for the entire Content panel.
+
 Content folder rows contain only immediate children derived from indexed descendants of the
 current folder; unrelated assets do not manufacture parent rows. Breadcrumbs and Alt+Up retain
 explicit parent navigation. Folder rows use a separate fixed-height ImGui clipper before asset
