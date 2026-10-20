@@ -8,6 +8,7 @@
 #include <array>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -23,6 +24,18 @@ void Require(bool condition, const char *message) {
   if (!condition)
     throw std::runtime_error(message);
 }
+#if defined(NEXORA_TEST_VULKAN_LEAK_CONTROL)
+#if defined(__clang__)
+static_assert(__has_feature(address_sanitizer), "The leak control requires AddressSanitizer");
+#elif !defined(__SANITIZE_ADDRESS__)
+#error "The leak control requires AddressSanitizer"
+#endif
+[[gnu::noinline]] void InjectVulkanSanitizerLeak() {
+  void *leaked = std::malloc(17);
+  Require(leaked != nullptr, "positive-control allocation failed");
+  asm volatile("" : : "r"(leaked) : "memory");
+}
+#endif
 unsigned Channel(unsigned long pixel, unsigned long mask) {
   if (!mask)
     return 0;
@@ -690,6 +703,10 @@ int main(int argc, char **argv) {
                  "depth-order invariance, lighting, matrix translation, "
                  "3 resize generations, immutable texture reuse, invalid-input containment and "
                  "ordered teardown\n";
+#if defined(NEXORA_TEST_VULKAN_LEAK_CONTROL)
+    std::cout.flush();
+    InjectVulkanSanitizerLeak();
+#endif
     return 0;
   } catch (const std::exception &error) {
     std::cerr << "FAIL: " << error.what() << '\n';

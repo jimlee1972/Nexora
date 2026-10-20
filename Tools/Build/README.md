@@ -5,6 +5,64 @@ detection` job uses the complete Git diff, validates changed Markdown, and selec
 documentation-only run or all existing build, test, and package jobs. `CI result` always reports a
 final result and fails if change detection or any selected job fails or is cancelled.
 
+## Reproducible Linux Vulkan sanitizer environment
+
+`PrepareVulkanICDOrder.py` collects every ICD manifest from the normal Linux/XDG discovery
+directories, requires exactly one lavapipe descriptor and places it first, followed by every
+other manifest in lexical order. It does not remove drivers or change device-selection rules.
+Existing driver selectors/filters, malformed manifests and ambiguous lavapipe descriptors fail
+closed. The Build contract passes this complete order only to the ASan CTest step and its
+failure collector; desktop/Xvfb and Shipping retain their normal discovery configuration.
+
+With Mesa25.2.8, manifest discovery order can change GNU UNIQUE ownership and whether lavapipe
+remains loaded. Its unload path can leave driver allocations reported after module symbols have
+disappeared. The complete lavapipe-first order stabilizes the existing process-retained driver
+configuration. This is a CI mitigation: it does not repair Mesa unload cleanup or establish
+default-order driver-unload memory cleanliness. That separate follow-up remains open.
+
+The CI ASan configure additionally enables `NEXORA_BUILD_VULKAN_SANITIZER_CONTROL`. Its separate
+`NexoraVulkanSanitizerControl` executable compiles the existing native scene source with a private
+fault define. After all29 scene submissions, pixel/error/teardown assertions, it intentionally
+loses17 bytes. Compilation requires ASan. `VerifyVulkanSanitizerControl.py` requires the completed
+scene marker/capture, a nonzero native exit and exactly that one symbol-attributed17-byte leak;
+disabled detection, unavailable execution, additional errors or unrelated crashes fail. The four
+original acceptance executables retain their assertions and deadlines. Registration of those
+four gates and the positive control is required before the full ASan suite executes. The control
+is opt-in, Linux-native-only, excluded from ordinary Development/Shipping, and adds no skip path.
+
+Linux ASan CI 保留正常 Linux／XDG 搜尋到的全部 ICD，只固定為 lavapipe 優先、其他 manifest
+依路徑排序，不移除驅動或改變裝置選擇規則。這穩定既有的 process-retained 驅動環境，不代表
+Mesa 卸載清理已修復；一般順序／卸載後的記憶體乾淨程度仍待追蹤。獨立原生正向對照完成
+29次場景提交與既有像素／清理斷言後，故意漏出17 bytes，必須由 LSan 精確偵測；關閉偵測、
+缺少原生執行或其他錯誤皆不能通過。原本四個原生驗收程式、期限與 sanitizer 選項維持原樣。
+
+## Failed Linux Vulkan sanitizer diagnostics
+
+The mandatory `linux-sanitizers` CTest gate retains its original exit status. Only after that
+gate fails, `DiagnoseVulkanSanitizers.py` retains its `LastTest.log`, public system Vulkan
+ICD/layer identity fields and fixed graphics/runtime package versions. One additional existing
+native scene helper invocation records Vulkan loader diagnostics and glibc `LD_DEBUG=files`
+mapping bases before driver unload. The helper's 30-second native deadline is unchanged; the
+outer diagnostic invocation is bounded to 45 seconds. Its exit code is retained and propagated.
+It is evidence only and cannot turn the original failed job into a pass.
+
+Only the native child receives tracing variables. The collector preserves its caller's complete
+driver order, layer settings and sanitizer options, without suppression, whole environment dump
+or credential capture. An always-run artifact step
+retains available diagnostic files for seven days after the original sanitizer failure. Passing
+gates incur no diagnostic invocation. Public inventory, the bounded native probe output and
+mapping/unload lines also appear in job logs; the full original suite log stays in the artifact.
+This supports allocation attribution; an unexplained
+passing diagnostic does not prove the hosted leak fixed or complete ED-M7 acceptance.
+Run `python3 Tools/Build/tests/test_vulkan_sanitizer_diagnostics.py -v` for process-level
+checks of native-only tracing, existing driver/sanitizer environment preservation, original
+failure-log conservation, successful-probe nonreplacement, and failure/unavailable exit codes.
+
+Linux sanitizer 原始 CTest 失敗狀態持續保留；僅失敗後收集公開 ICD／layer 身分、固定套件
+版本與原始日誌，再透過既有 native helper 記錄一次 loader 診斷與卸載前 mapping base。
+保留 native 30 秒期限及外層 45 秒界限，繼承呼叫端完整驅動次序與 sanitizer／layer 設定。
+診斷回傳碼會保留並傳遞，檔案保存七天；不擷取完整環境或憑證，不宣稱洩漏已修復。
+
 ## Native Zig test linking
 
 `nexora_add_zig_test` runs ordinary `zig test` on Linux and Windows. On macOS,

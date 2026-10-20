@@ -1,4 +1,10 @@
 include(NexoraTarget)
+option(NEXORA_BUILD_VULKAN_SANITIZER_CONTROL "Build the Linux native ASan fault control" OFF)
+if(NEXORA_BUILD_VULKAN_SANITIZER_CONTROL AND NOT
+   (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
+    NEXORA_ENABLE_VULKAN_BACKEND))
+  message(FATAL_ERROR "The Vulkan sanitizer control requires native Linux Vulkan")
+endif()
 add_executable(NexoraWindowPresentationTests WindowPresentationTests.cpp)
 target_link_libraries(NexoraWindowPresentationTests PRIVATE Nexora::Presentation)
 if(WIN32)
@@ -50,6 +56,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND
       --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/showcase-linux-vulkan-scene")
   set_tests_properties(window_presentation.vulkan_scene PROPERTIES
     LABELS "showcase;vulkan;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45)
+
+  if(NEXORA_BUILD_VULKAN_SANITIZER_CONTROL)
+    add_executable(NexoraVulkanSanitizerControl VulkanSceneTests.cpp)
+    target_compile_definitions(NexoraVulkanSanitizerControl PRIVATE NEXORA_TEST_VULKAN_LEAK_CONTROL=1)
+    target_link_libraries(NexoraVulkanSanitizerControl PRIVATE Nexora::Presentation X11::X11)
+    nexora_apply_defaults(NexoraVulkanSanitizerControl)
+    add_test(NAME window_presentation.vulkan_sanitizer_leak_control
+      COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/Tools/Build/VerifyVulkanSanitizerControl.py"
+        --native-test "$<TARGET_FILE:NexoraVulkanSanitizerControl>"
+        --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/vulkan-sanitizer-positive-control")
+    set_tests_properties(window_presentation.vulkan_sanitizer_leak_control PROPERTIES
+      LABELS "vulkan;virtual-display;sanitizer-positive-control" TIMEOUT 45)
+  endif()
 
   add_executable(NexoraVulkanPbrTests VulkanPbrTests.cpp)
   target_link_libraries(NexoraVulkanPbrTests PRIVATE Nexora::Presentation X11::X11)

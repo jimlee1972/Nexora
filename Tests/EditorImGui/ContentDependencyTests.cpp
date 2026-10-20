@@ -4,6 +4,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fstream>
@@ -156,6 +157,112 @@ struct Fixture final {
             "far target was selected but not scrolled into the real clip region");
   }
 };
+void FolderClipping(float dpi) {
+  using Key = Nexora::Window::Key;
+  Fixture f(dpi);
+  const auto files = f.Files();
+  std::vector<editor::ContentItem> items;
+  std::vector<std::filesystem::path> folders;
+  for (std::uint64_t i = 0; i < 2048; ++i) {
+    const auto number = std::to_string(10000 + i);
+    const auto folder = std::filesystem::path("Content") / ("Folder" + number + "###same");
+    folders.push_back(folder);
+    items.push_back(
+        {{300, i + 1}, folder / "RootNested.txt", ".txt", "v1", editor::ThumbnailState::Ready});
+  }
+  const runtime::AssetUuid first{301, 1}, last{301, 2};
+  items.push_back({first, "Content/RootA.txt", ".txt", "v1", editor::ThumbnailState::Ready});
+  items.push_back({last, "Content/RootZ.txt", ".txt", "v1", editor::ThumbnailState::Ready});
+  const auto key = [&](Key value) {
+    Nexora::Window::WindowEvent event;
+    event.type = Nexora::Window::WindowEventType::Key;
+    event.value0 = static_cast<int>(value);
+    for (int pressed : {1, 0}) {
+      event.value1 = pressed;
+      f.ui.ProcessEvents(std::array{event});
+      f.Draw();
+    }
+  };
+  auto *window = ImGui::FindWindowByName("Content###nexora.content");
+  std::uint32_t maximum_submitted = 0;
+  const auto bounded = [&] {
+    const auto state = Access::Inspect(f.ui);
+    maximum_submitted = std::max(maximum_submitted, state.content_rendered_folders);
+    Require(state.content_visible_folders == folders.size() && state.content_rendered_folders < 128,
+            "Content submitted all folder rows instead of a clipped range");
+  };
+  for (bool readonly : {false, true}) {
+    f.active = readonly ? &f.readonly : &f.content;
+    auto &browser = f.active->Browser();
+    Require(browser.Reset(items, readonly ? 6 : 5) && browser.Select(first) &&
+                browser.Rename(first, "RootRenamed.txt") && browser.SetFolder("Content"),
+            "clipped folder model setup failed");
+    browser.SetFilter("Root", ".txt");
+    const auto revision = browser.Revision();
+    Access::FocusContent(f.ui);
+    ImGui::SetScrollY(window, 0);
+    f.Draw();
+    f.Draw();
+    bounded();
+    Require(Access::ContentPathPosition(f.ui, folders.front()) &&
+                !Access::ContentPathPosition(f.ui, folders.back()) && window->ScrollMax.y > 20000,
+            "folder clipping lost total scroll extent or exposed the far row");
+    ImGui::SetScrollY(window, window->ScrollMax.y * 0.5F);
+    f.Draw();
+    f.Draw();
+    bounded();
+    std::size_t edge = 0;
+    for (std::size_t i = 0; i + 1 < folders.size(); ++i) {
+      if (const auto point = Access::ContentPathPosition(f.ui, folders[i]);
+          point && window->InnerClipRect.Contains(ImVec2((*point)[0], (*point)[1])))
+        edge = i;
+    }
+    Require(edge > 900 && edge < 1200, "middle scrolling did not reach actual folder controls");
+    f.Click(Access::ContentPathPosition(f.ui, folders[edge]));
+    // The first Tab after mouse input reveals the current navigation cursor.
+    key(Key::Tab);
+    Require(Access::ContentFocusedFolder(f.ui) == folders[edge],
+            "first Tab lost the clicked folder focus");
+    key(Key::Tab);
+    f.Draw();
+    f.Draw();
+    if (Access::ContentFocusedFolder(f.ui) != folders[edge + 1])
+      throw std::runtime_error(
+          "Tab clipped boundary expected=" + folders[edge + 1].string() +
+          " actual=" + Access::ContentFocusedFolder(f.ui).value_or("none").string() +
+          " scroll=" + std::to_string(window->Scroll.y) +
+          " nav=" + std::to_string(ImGui::GetCurrentContext()->NavId));
+    bounded();
+    key(Key::Enter);
+    f.Draw();
+    f.Draw();
+    Require(browser.Breadcrumbs().back().path == folders[edge + 1] &&
+                browser.Selection() == std::vector{first} && browser.VisibleCount() == 1,
+            "clipped folder keyboard entry changed selection/filter or opened the wrong folder");
+    f.Click(Access::ContentPathPosition(f.ui, "Content", true));
+    f.Draw();
+    f.Draw();
+    key(Key::End);
+    f.Draw();
+    f.Draw();
+    bounded();
+    const auto asset = Access::ContentAssetPosition(f.ui, last);
+    Require(browser.Selection() == std::vector{last} && asset &&
+                window->InnerClipRect.Contains(ImVec2((*asset)[0], (*asset)[1])),
+            "asset End reveal failed below clipped folders");
+    f.Click(Access::ContentPathPosition(f.ui, folders.back()));
+    f.Click(Access::ContentPathPosition(f.ui, folders.back()));
+    f.Draw();
+    f.Draw();
+    Require(browser.Breadcrumbs().back().path == folders.back() &&
+                browser.Selection() == std::vector{last} && browser.Revision() == revision &&
+                browser.Undo() && browser.Find(first)->path == "Content/RootA.txt" &&
+                f.Files() == files,
+            "far-folder pointer navigation lost model Undo or changed source/sidecar bytes");
+  }
+  std::cout << "Folder clipping dpi=" << dpi << " total=" << folders.size()
+            << " maximum submitted=" << maximum_submitted << '\n';
+}
 // Verify the emitted glyph mesh, rather than a copy of the label supplied to a widget.
 // Normalizing positions permits searching the full literal sequence in the actual draw list.
 void RequireLiteral(std::string_view text) {
@@ -471,6 +578,8 @@ void Run(float dpi) {
 } // namespace
 int main() {
   try {
+    FolderClipping(1);
+    FolderClipping(2);
     MarkerLabels(1);
     MarkerLabels(2);
     Run(1);

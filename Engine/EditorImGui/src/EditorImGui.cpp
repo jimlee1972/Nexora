@@ -515,6 +515,7 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> content_rename_positions;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
+  std::uint32_t content_rendered_folders = 0;
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;
@@ -3646,6 +3647,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   auto &browser = content.Browser();
   state.content_visible_items = 0;
   state.content_visible_folders = 0;
+  state.content_rendered_folders = 0;
   state.content_selection = static_cast<std::uint32_t>(browser.Selection().size());
   state.content_forward_dependencies = 0;
   state.content_reverse_dependencies = 0;
@@ -3937,23 +3939,32 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       begin_rename(*item);
   }
   state.content_visible_folders = static_cast<std::uint32_t>(folders.size());
-  for (const auto &folder : folders) {
-    ImGui::PushOverrideID(ContentIdentity(content_scope, "folder", PathLabel(folder.path)));
-    const bool activated = LiteralContentRow("[Folder] " + folder.label, false);
-    const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
-    if (ImGui::IsItemVisible())
-      state.content_path_positions[0].push_back(
-          {folder.path, {(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F}});
-    if (ImGui::IsItemFocused()) {
-      state.content_focused_folder = folder.path;
-      state.content_navigation_reinit = false;
+  ImGuiListClipper folder_clipper;
+  folder_clipper.Begin(
+      static_cast<int>(std::min<std::size_t>(
+          folders.size(), static_cast<std::size_t>(std::numeric_limits<int>::max()))),
+      ImGui::GetTextLineHeightWithSpacing());
+  while (folder_clipper.Step()) {
+    for (int row = folder_clipper.DisplayStart; row < folder_clipper.DisplayEnd; ++row) {
+      const auto &folder = folders[static_cast<std::size_t>(row)];
+      ++state.content_rendered_folders;
+      ImGui::PushOverrideID(ContentIdentity(content_scope, "folder", PathLabel(folder.path)));
+      const bool activated = LiteralContentRow("[Folder] " + folder.label, false);
+      const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+      if (ImGui::IsItemVisible())
+        state.content_path_positions[0].push_back(
+            {folder.path, {(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F}});
+      if (ImGui::IsItemFocused()) {
+        state.content_focused_folder = folder.path;
+        state.content_navigation_reinit = false;
+      }
+      const bool keyboard_activation =
+          keyboard && ImGui::GetCurrentContext()->NavActivateId == ImGui::GetItemID();
+      if (activated && (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) || keyboard_activation))
+        navigate_to = folder.path;
+      static_cast<void>(AcceptAssetDrop(content, folder.path));
+      ImGui::PopID();
     }
-    const bool keyboard_activation =
-        keyboard && ImGui::GetCurrentContext()->NavActivateId == ImGui::GetItemID();
-    if (activated && (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) || keyboard_activation))
-      navigate_to = folder.path;
-    static_cast<void>(AcceptAssetDrop(content, folder.path));
-    ImGui::PopID();
   }
   if (navigate_to && browser.Breadcrumbs().back().path != *navigate_to &&
       browser.SetFolder(*navigate_to)) {
@@ -8075,6 +8086,7 @@ EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host)
           host.state_->inspector_transform_visible,
           host.state_->content_visible_items,
           host.state_->content_visible_folders,
+          host.state_->content_rendered_folders,
           host.state_->content_selection,
           host.state_->content_forward_dependencies,
           host.state_->content_reverse_dependencies,

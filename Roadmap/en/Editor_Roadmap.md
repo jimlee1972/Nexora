@@ -283,6 +283,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   breadcrumb controls preserve explicit parent navigation and source/sidecar bytes.
   [Linux evidence](../../Tools/Build/evidence/EditorEDM1-ChildFolderScope-Linux-2026-10-20.md).
 
+- ✅ Content folder controls now use fixed-height clipping independently of asset rows, preserving
+  logical counts, scroll extent, literal scoped IDs and navigation-required ranges. Actual 1x/2x
+  writable/read-only tests with 2048 folders bound submitted rows, cross the Tab clipping boundary,
+  open far folders by pointer, reveal assets below folders and preserve filters, source/sidecar bytes,
+  revision and pending Undo. Folder derivation/sorting remain O(n)/O(n log n); full scale and physical
+  acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md).
+
 - ✅ Content dependency inspection now offers UUID-scoped Reveal for forward and reverse live
   targets, navigating to their folder, clearing query/type filters, selecting and scrolling clipped
   rows. Read-only inspection, missing-target rejection, literal names, scope/input guards and
