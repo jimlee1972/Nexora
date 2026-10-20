@@ -1448,6 +1448,13 @@ creates property widgets; unknown components retain raw data instead of being si
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Hierarchy request processing now avoids duplicate full projections during ordinary visible
+    frames. Expansion pruning, queued/range selection, reorder and hidden full-row statistics retain
+    current generation/source checks; visible controls still observe after authoring buttons.
+    Actual 1x/2x hidden selection/reparent/Undo/stale-reload/recovery tests and existing keyboard
+    navigation pass. Complete Linux validation passes 293 registered tests with 12 existing skips
+    and zero failures; production budgets and timing variance remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyRequestWork-Linux-2026-10-20.md).
   - ✅ StaticView verification now flushes/checks report output and returns1 on write failure; real
     read-only stdout handles verify unchanged sink/package bytes in normal/optimized workflows.
     Fixture-to-player CLI failures retain bounded, escaped stdout/stderr, stage

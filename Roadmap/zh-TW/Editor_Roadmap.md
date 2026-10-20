@@ -1413,6 +1413,14 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md)。
 
 ### ED-M7 — Production hardening
+
+- ✅ Hierarchy request processing 現在於一般可見 frame 省去重複完整投影。Expansion pruning、
+  queued／range selection、reorder 及隱藏視窗完整 row 統計仍保留目前 generation／來源檢查；
+  可見 controls 仍在 authoring buttons 之後取得 fresh observation。真實 1x／2x 隱藏視窗的
+  selection／reparent／Undo／stale reload／recovery 與既有鍵盤導覽測試已通過。
+  完整 Linux 驗證通過 293 項登錄測試，12 項既有 skip、零失敗；生產預算與 timing variance
+  保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM7-HierarchyRequestWork-Linux-2026-10-20.md)。
   - ✅ StaticView verification 現 flush／檢查報告輸出，寫入失敗回傳1；一般與 optimized
     工作流程以真實唯讀 stdout handle 驗證 sink／套件 bytes 不變。fixture→player CLI
     失敗保留有界、跳脫後的 stdout/stderr、階段與退出碼，
