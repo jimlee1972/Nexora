@@ -1172,6 +1172,59 @@ a real schema-1 journal and writable owner, checking failed recovery preserves c
 current documents and the journal. Autosave mutations also check source and caller-revision
 preservation. It is a robustness check, not a proof that no malformed input can fail.
 
+### Bounded asynchronous mesh thumbnail snapshots
+
+✅ `BuildMeshThumbnail` rasterizes actual imported geometry into an owning 64×64 opaque
+RGBA8 image. A fixed isometric camera derives framing from referenced positions; two-sided
+flat neutral shading and a depth buffer preserve geometry/occlusion. Cached bounds, materials,
+textures and imported normals do not determine this shape preview. Every position must be finite,
+every index must address the payload, and indices must form triangles. At most 16,384 vertices
+and 24,576 indices (8,192 triangles) are admitted; there is no truncation. Zero projected extent
+or no covered samples returns an explicit failure. Cancellation is checked throughout validation
+and at every triangle/scanline. Allocation/callback exceptions propagate from this pure function.
+
+`MeshThumbnailCache` uses the existing Core JobSystem at Low priority. Each request copies the
+bounded geometry before submission; workers retain no Content/document/UI/owner pointers and
+perform no IO, GPU access or authoring mutation. Requests capture nonzero project generation,
+nonzero asset UUID, an artifact revision of 1..128 bytes and the immutable geometry owner.
+The revision identifies the imported artifact, not a path or global Content revision. `Poll`
+rechecks current generation, asset existence, exact revision and geometry ownership before
+publishing. Even completed work exposes no pixels until that owner-thread check. A superseded
+operation can never publish into the replacement's entry. Ready lookups perform the same checks;
+changed/deleted sources report Stale without exposing old pixels.
+
+All cache calls/destruction run on one serialized non-worker owner thread. The Content model and
+running JobSystem outlive the cache. One cache belongs to one project session. Call `Clear` on
+project replacement/reopen even if its generation is reused; generation changes also clear
+on Request/Poll, while Get already rejects their old images. Operation IDs do not reset on Clear, preventing same-generation reopen ABA.
+Cancel immediately reports Cancelled; collection still waits for job completion and cancellation
+wins over unpublished success. `Shutdown` stops intake, cancels and drains only owned jobs before
+releasing their captured inputs. It is idempotent. A host must call Poll regularly to collect work.
+
+The LRU holds 1..64 entries (default 16), including failed/cancelled observations. The pending-work
+limit is 1..4 (default 4), including cancelled/superseded jobs awaiting collection. A full pending
+budget rejects new work without evicting a current hit. Successful intake evicts the least recently
+requested/read entry as needed; in-flight victims are cancelled. Same-key requests deduplicate
+both successful and failed/cancelled entries; `Invalidate` explicitly enables retry. A Stale
+observation reschedules when Undo restores its source. Validation
+or submission failure returns a diagnostic; worker failure is retained as a Failed observation.
+No automatic retry, placeholder success or reuse of another revision occurs.
+
+At the maximum there are 64 published 16-KiB images (1 MiB), plus at most four pending results,
+bounded input copies and per-worker raster scratch. Ready entries release input geometry after
+collection. These are logical payload/work bounds, not allocator-capacity, RSS or VRAM claims.
+Returned snapshots share immutable pixels and may outlive replacement, eviction and cache
+shutdown; external retained images fall outside the cache's bound.
+
+`editor.mesh_thumbnails` checks actual coverage/shading/depth, extreme finite positions, malformed
+input, exact input/cache/work bounds, scanline cancellation, deferred publication, late cancellation,
+source replacement/deletion, project generation changes, explicit same-generation reopen, LRU,
+visible failure/deduplication, failed submission and retained pixel lifetime. The CPU cache is an
+M1-01 prerequisite. The additive C++ API changes no stable C/Zig ABI, asset format or module
+dependency. Content image upload/drawing, other asset types, representative project/UI
+performance, physical DPI and full ED-M1 acceptance remain open. See the
+[retained evidence](../../Tools/Build/evidence/EditorEDM1-MeshThumbnailJobs-Linux-2026-10-21.md).
+
 ### Mesh reimport publication
 
 ContentItem and ReimportResult own immutable shared mesh payloads. Synchronous and background OBJ

@@ -260,6 +260,19 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   上限時接受、超過上限時拒絕並保留 index，以及可寫模式下拒絕時不產生 sidecar。縮圖與實體
   workflow gate 仍待完成；有界的單一 entry Content 診斷見下項。
 
+- ✅ **M1-01 Mesh 縮圖背景工作前置（2026-10-21）。**
+  `BuildMeshThumbnail` 從實際匯入幾何產生 64×64 RGBA 形狀預覽，採等角取景、中性雙面
+  著色及深度測試。`MeshThumbnailCache` 將有上限的幾何副本交給 Core Job，檢查取消狀態，並於
+  主執行緒發布前驗證目前專案世代、UUID、產物版本與不可變幾何所有權。已取消／過期結果不會
+  覆蓋替換版本；讀取已完成項目時亦拒絕變更／刪除的來源。LRU 最多 64 筆，未收集工作最多
+  四筆（包含已取消工作）。不可變圖像可於淘汰及 Owner 關閉後繼續保留；失敗狀態可供檢視，
+  不會每幀自動重試。新增 `editor.mesh_thumbnails` 驗證像素、生命週期、過期完成及輸入／快取／
+  工作數硬上限。參閱[契約](../../Engine/Editor/README.md#bounded-asynchronous-mesh-thumbnail-snapshots)
+  與[證據](../../Tools/Build/evidence/EditorEDM1-MeshThumbnailJobs-Linux-2026-10-21.md)。
+
+  僅結案 `nexora-gu7.1.1`。Content 原生圖像上傳／繪製、其他資產類型及代表性 UI／效能／DPI
+  驗收仍屬 M1-01 待辦；ED-M1 與整體 Editor 驗收計數不變。
+
 - ✅ Content 資產／資料夾列與麵包屑按鈕現完整顯示 UTF-8 原文標記名稱（`##`、`###`、`%），
   ID 依 project root／generation／role 分隔且獨立於顯示文字。真正 1x／2x 滑鼠及 Tab／Enter
   測試區分相同尾碼的同層資料夾、巢狀標記路徑與同名場景資產，檢查實際輸出的字形，並保留

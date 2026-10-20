@@ -36,6 +36,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/MaterialImport.cpp
   src/MaterialAssetCatalog.cpp
   src/MeshImport.cpp
+  src/MeshThumbnail.cpp
   src/MeshAssetCatalog.cpp
   src/NativeTool.cpp
   src/ShaderAuthoring.cpp
