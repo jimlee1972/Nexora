@@ -206,6 +206,13 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- ✅ Content 來源排序現於 noexcept record swap 前準備有界 owning UTF-8 key 與完整 permutation，
+  保留原有 byte order、payload owner、Undo／discovery；budget／allocation fallback 沿用完整
+  legacy sort。共用 100k metadata phase benchmark 分開量測 Reset 與冷資料夾／搜尋；初步單組
+  Reset 由 15324.49 ms 降至 1999.80 ms。完整 Linux293 項登錄測試通過，12 項既有 skip、
+  零失敗；directory indexing、production assets／RSS 與完整 ED-M1 驗收保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM1-ContentPathSort-Linux-2026-10-20.md)。
+
 - ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，
   並停在 Content 根目錄。唯讀導覽保留 mutation history 與 filter；keyboard ownership gates
   保護 text、panel／focus 與 blocking-modal 狀態。開啟資料夾不會同時觸發 selected-scene
