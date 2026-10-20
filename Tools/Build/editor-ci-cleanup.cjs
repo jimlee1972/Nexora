@@ -38,6 +38,9 @@ const currentSessionBranches = Object.freeze([
 // This 2D goal owns exactly this branch; no similarly named or other-session work is included.
 const twoDSessionBranches = Object.freeze(['feat/twod-cooked-services']);
 
+// This thumbnail task owns only this exact branch, independently of other Editor sessions.
+const thumbnailSessionBranches = Object.freeze(['feat/async-mesh-thumbnail-jobs']);
+
 // Exact branches owned by the current graphics task. Preserve both events at each live head.
 const graphicsSessionBranches = Object.freeze([
   'feat/v2-native-minmip-feedback', 'feat/v2-opt-in-modern-shader-programs',
@@ -56,9 +59,10 @@ async function cleanup({github, context, core}) {
   const currentSession = currentSessionBranches.includes(branch);
   const twoDSession = twoDSessionBranches.includes(branch);
   const graphicsSession = graphicsSessionBranches.includes(branch);
-  const ownerSession = currentSession || twoDSession || graphicsSession;
+  const thumbnailSession = thumbnailSessionBranches.includes(branch);
+  const ownerSession = currentSession || twoDSession || graphicsSession || thumbnailSession;
   if (ownerSession && (!context.actor || context.actor !== owner)) return;
-  const branches = graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
+  const branches = thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
     sessionBranches.includes(branch) ? sessionBranches :
     branch.startsWith('codex/ed-m0-') ? legacyBranches : [];
   for (const candidate of branches) {

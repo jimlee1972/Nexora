@@ -1,0 +1,18 @@
+Full Development gate first timing failure (Runtime source/test unchanged):
+        Start  83: runtime.render_sync
+ 83/206 Test  #83: runtime.render_sync .............................***Failed   11.21 sec
+rejecting a large cycle must stay linear
+
+RenderSync test binary SHA-256: 1a35b8c9d89953ac37686f4be37a542769bb6b4d1e72a7cd0dce68dccc623b58
+Original full log SHA-256: dcb9f155912fe820bd79c923b57b09b18e3f3872cb718ccdd266e53be8ebc04b
+Single subsequent same-binary diagnostic, no budget or source change:
+{
+  "returncode": 0,
+  "wall_seconds": 0.6803837469997234,
+  "child_user_seconds": 0.670188,
+  "child_system_seconds": 0.008659,
+  "voluntary_context_switches": 1,
+  "involuntary_context_switches": 2,
+  "stdout": "",
+  "stderr": ""
+}

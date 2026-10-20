@@ -1,0 +1,19 @@
+Original Windows mimalloc compile failure, PR667 head559ecd3514b27cfe974bcc6eadd49b87fb35792d.
+Workflow job118791061479; fixed by a typed uint16_t zero, preserving all test values/budgets.
+2026-10-20T17:59:42.9312478Z C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\xutility(5604): error C2220: the following warning is treated as an error
+2026-10-20T17:59:42.9411279Z C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\xutility(5604): warning C4244: '=': conversion from 'const _Ty' to 'unsigned short', possible loss of data
+2026-10-20T17:59:42.9527606Z         with
+2026-10-20T17:59:42.9588389Z         [
+2026-10-20T17:59:42.9630589Z             _Ty=int
+2026-10-20T17:59:42.9729471Z         ]
+2026-10-20T17:59:42.9846627Z C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\include\xutility(5604): note: the template instantiation context (the oldest one first) is
+2026-10-20T17:59:42.9934686Z D:\a\Nexora\Nexora\Tests\Editor\MeshThumbnailTests.cpp(158): note: see reference to function template instantiation 'void std::fill<std::_Vector_iterator<std::_Vector_val<std::_Simple_types<_Ty>>>,int>(const _FwdIt,const _FwdIt,const int &)' being compiled
+2026-10-20T17:59:42.9948100Z         with
+2026-10-20T17:59:43.0184055Z         [
+2026-10-20T17:59:43.0285777Z             _Ty=uint16_t,
+2026-10-20T17:59:43.0485753Z             _FwdIt=std::_Vector_iterator<std::_Vector_val<std::_Simple_types<uint16_t>>>
+2026-10-20T17:59:43.0622734Z         ]
+2026-10-20T17:59:43.0707354Z [382/582] Building CXX object Tests\Editor\CMakeFiles\NexoraMeshAssetCatalogTests.dir\MeshAssetCatalogTests.cpp.obj
+2026-10-20T17:59:44.0242997Z [383/582] Building CXX object Tests\Editor\CMakeFiles\NexoraMeshReimportTests.dir\MeshReimportTests.cpp.obj
+2026-10-20T17:59:44.4227544Z [384/582] Building CXX object Tests\Editor\CMakeFiles\NexoraParserRobustnessTests.dir\ParserRobustnessTests.cpp.obj
+2026-10-20T17:59:44.5906049Z [385/582] Building CXX object Tests\Editor\CMakeFiles\NexoraEditorAffineGizmoTests.dir\AffineGizmoTests.cpp.obj
