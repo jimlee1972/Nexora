@@ -36,6 +36,31 @@ enum class RayTracingMode : std::uint8_t {
   ReorderedPipeline,
   ReorderedOpacityPipeline
 };
+struct RayInstanceTransform final {
+  // Absolute object-to-world affine matrix, row major. Default preserves existing geometry.
+  std::array<float, 12> matrix{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0};
+};
+static_assert(sizeof(RayInstanceTransform) == 48);
+inline bool IsRayInstanceTransformValid(const RayInstanceTransform &transform) noexcept {
+  std::array<double, 12> m{};
+  for (std::size_t i = 0; i < m.size(); ++i) {
+    if (!std::isfinite(transform.matrix[i]) || (i % 4 == 3 && std::abs(transform.matrix[i]) > 1e8F))
+      return false;
+    m[i] = transform.matrix[i];
+  }
+  std::array<double, 3> lengths{};
+  constexpr double minimum = static_cast<double>(1e-4F);
+  for (std::size_t row = 0; row < 3; ++row) {
+    for (std::size_t column = 0; column < 3; ++column)
+      lengths[row] += m[row * 4 + column] * m[row * 4 + column];
+    if (lengths[row] < minimum * minimum || lengths[row] > 1e8)
+      return false;
+  }
+  const double determinant = m[0] * (m[5] * m[10] - m[6] * m[9]) -
+                             m[1] * (m[4] * m[10] - m[6] * m[8]) +
+                             m[2] * (m[4] * m[9] - m[5] * m[8]);
+  return std::abs(determinant) > 1e-6 * std::sqrt(lengths[0] * lengths[1] * lengths[2]);
+}
 struct RaySceneCreationOptions final {
   // Explicit opt-in; native compaction metadata can increase initial AS storage/build cost.
   bool allow_compaction{};

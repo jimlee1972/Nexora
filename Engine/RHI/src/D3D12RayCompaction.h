@@ -4,17 +4,6 @@
 // Include after the SDK. Each phase retains all resources until its own queue completion.
 #if NEXORA_D3D12_RAY_TRACING
 namespace nexora::rhi::detail {
-inline void BeginRayCompactionCommands(ID3D12Device5 &device, PendingRayScene &pending) {
-  // A previous phase has completed before this context is recycled.
-  pending.commands.Reset();
-  pending.allocator.Reset();
-  CheckRay(device.CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                         IID_PPV_ARGS(&pending.allocator)),
-           "Create compaction allocator");
-  CheckRay(device.CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, pending.allocator.Get(),
-                                    nullptr, IID_PPV_ARGS(&pending.commands)),
-           "Create compaction list");
-}
 inline void RayCompactionDependency(ID3D12GraphicsCommandList4 &commands,
                                     ID3D12Resource &resource) {
   D3D12_RESOURCE_BARRIER barrier{};
@@ -75,19 +64,16 @@ inline PendingRayScene QueryRayCompaction(ID3D12Device5 &device, const NativeRay
   PendingRayScene pending;
   pending.source = source;
   pending.scene = source;
-  BeginRayCompactionCommands(device, pending);
+  BeginRaySceneCommands(device, pending);
   const std::array addresses{source.bottom->GetGPUVirtualAddress()};
   QueryRayCompactedSizes(device, pending, addresses);
   return pending;
 }
 inline PendingRayScene CompactRayBottomAndRelinkTop(ID3D12Device5 &device, PendingRayScene pending,
                                                     UINT64 bottom_bytes) {
-  BeginRayCompactionCommands(device, pending);
+  BeginRaySceneCommands(device, pending);
   pending.scene.bottom = RayCompactionBuffer(device, bottom_bytes);
-  D3D12_RAYTRACING_INSTANCE_DESC instance{};
-  instance.Transform[0][0] = instance.Transform[1][1] = instance.Transform[2][2] = 1;
-  instance.InstanceMask = 0xff;
-  instance.AccelerationStructure = pending.scene.bottom->GetGPUVirtualAddress();
+  const auto instance = RayInstanceDescriptor(pending.scene);
   pending.scene.instances =
       RayBuffer(device, sizeof(instance), true, D3D12_RESOURCE_STATE_GENERIC_READ);
   UploadRayBytes(*pending.scene.instances.Get(), std::as_bytes(std::span{&instance, 1}));
@@ -121,7 +107,7 @@ inline PendingRayScene CompactRayBottomAndRelinkTop(ID3D12Device5 &device, Pendi
 }
 inline PendingRayScene CompactRayTop(ID3D12Device5 &device, PendingRayScene pending,
                                      UINT64 top_bytes) {
-  BeginRayCompactionCommands(device, pending);
+  BeginRaySceneCommands(device, pending);
   // The completed relink's TLAS must remain alive as the final compact copy's source.
   pending.source = pending.scene;
   pending.scene.top = RayCompactionBuffer(device, top_bytes);

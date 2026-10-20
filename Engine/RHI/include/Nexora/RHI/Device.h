@@ -67,6 +67,7 @@ struct DeviceDiagnostics final {
   std::uint64_t ray_scene_compactions{};
   std::uint64_t ray_compaction_buffer_bytes_before{};
   std::uint64_t ray_compaction_buffer_bytes_after{};
+  std::uint64_t ray_scene_transform_updates{};
 };
 class NEXORA_RHI_API CommandList {
 public:
@@ -198,6 +199,10 @@ public:
   // Same triangle count/topology; caller-serialized. Previously recorded lists retain old geometry.
   virtual void UpdateRayScene(RaySceneHandle, std::span<const RayTriangle>) {
     throw std::logic_error("ray tracing scene updates are unsupported");
+  }
+  // Absolute instance transform; caller-serialized. Earlier lists retain their scene snapshot.
+  virtual void SetRaySceneTransform(RaySceneHandle, const RayInstanceTransform &) {
+    throw std::logic_error("ray tracing instance transforms are unsupported");
   }
   // Explicit full native build; supports bounded count changes and retains older snapshots.
   virtual void RebuildRayScene(RaySceneHandle, std::span<const RayTriangle>) {

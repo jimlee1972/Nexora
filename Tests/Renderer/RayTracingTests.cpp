@@ -355,6 +355,107 @@ void TestCompaction(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayPr
             << after.ray_compaction_buffer_bytes_after - before.ray_compaction_buffer_bytes_after
             << '\n';
 }
+std::vector<rhi::RayTriangle> WorldTriangles(std::span<const rhi::RayTriangle> local,
+                                             const rhi::RayInstanceTransform &transform) {
+  std::vector<rhi::RayTriangle> world{local.begin(), local.end()};
+  for (std::size_t triangle = 0; triangle < local.size(); ++triangle)
+    for (std::size_t vertex = 0; vertex < 3; ++vertex)
+      for (std::size_t row = 0; row < 3; ++row) {
+        double value = transform.matrix[row * 4 + 3];
+        for (std::size_t column = 0; column < 3; ++column)
+          value += static_cast<double>(transform.matrix[row * 4 + column]) *
+                   local[triangle].vertices[vertex * 3 + column];
+        world[triangle].vertices[vertex * 3 + row] = static_cast<float>(value);
+      }
+  return world;
+}
+std::array<rhi::RayInstanceTransform, 3> InstanceTransforms() {
+  return {rhi::RayInstanceTransform{{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, .25F}},
+          rhi::RayInstanceTransform{{0, -.5F, 0, 0, 2, 0, 0, 0, 0, 0, 1.5F, .5F}},
+          rhi::RayInstanceTransform{{-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, .75F, .75F}}};
+}
+void TestTransforms(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
+                    std::span<const rhi::RayTriangle> triangles) {
+  const auto scene = device.CreateRaySceneWithOptions(triangles, {true});
+  const auto before = device.Diagnostics();
+  auto invalid = rhi::RayInstanceTransform{};
+  invalid.matrix[0] = std::numeric_limits<float>::quiet_NaN();
+  Reject([&] { device.SetRaySceneTransform(scene, invalid); }, "nonfinite transform admitted");
+  invalid = {};
+  invalid.matrix[0] = 0;
+  Reject([&] { device.SetRaySceneTransform(scene, invalid); }, "singular transform admitted");
+  invalid = {};
+  invalid.matrix[3] = 1e20F;
+  Reject([&] { device.SetRaySceneTransform(scene, invalid); }, "unbounded translation admitted");
+  Require(device.Diagnostics().ray_scene_transform_updates == before.ray_scene_transform_updates,
+          "rejected transform published a counter");
+  auto local = std::vector<rhi::RayTriangle>{triangles.begin(), triangles.end()};
+  auto world = local;
+  std::uint64_t transforms = 0;
+  auto set = [&](const rhi::RayInstanceTransform &transform) {
+    auto old = Make(device, world, 64);
+    auto retained = device.CreateCommandList(rhi::QueueType::Compute);
+    Record(*retained, compute, program, scene, old);
+    auto replacement = WorldTriangles(local, transform);
+    auto updated = Make(device, replacement, 64);
+    Require(old.expected.front().primitive == 0 && updated.expected.front().primitive == 0 &&
+                old.expected.front().distance != updated.expected.front().distance,
+            "instance transform oracle failed to distinguish scene snapshots");
+    const auto counters = device.Diagnostics();
+    device.SetRaySceneTransform(scene, transform);
+    Require(device.Diagnostics().ray_scene_transform_updates ==
+                    before.ray_scene_transform_updates + ++transforms &&
+                device.Diagnostics().ray_scene_refits == counters.ray_scene_refits &&
+                device.Diagnostics().ray_scene_rebuilds == counters.ray_scene_rebuilds &&
+                device.Diagnostics().ray_scene_compactions == counters.ray_scene_compactions,
+            "TLAS-only transform was misreported as another scene operation");
+    device.WaitForSubmission(device.Submit(*retained));
+    retained.reset();
+    Compare(device, old);
+    Execute(device, compute, program, scene, updated);
+    Destroy(device, old);
+    Destroy(device, updated);
+    world = std::move(replacement);
+  };
+  const auto matrices = InstanceTransforms();
+  for (const auto &matrix : matrices)
+    set(matrix);
+  auto compare_current = [&] {
+    world = WorldTriangles(local, matrices.back());
+    auto work = Make(device, world, 64);
+    Execute(device, compute, program, scene, work);
+    Destroy(device, work);
+  };
+  for (auto &triangle : local)
+    for (std::size_t vertex = 0; vertex < 3; ++vertex)
+      triangle.vertices[vertex * 3 + 2] += .125F;
+  device.UpdateRayScene(scene, local);
+  compare_current();
+  device.CompactRayScene(scene);
+  compare_current();
+  local = Triangles(triangles.size() == 1 ? 2 : 1);
+  device.RebuildRayScene(scene, local);
+  compare_current();
+  set({}); // Reset must use object space, rather than compose with the prior matrix.
+  auto last = Make(device, local, 64);
+  auto stale = device.CreateCommandList(rhi::QueueType::Compute);
+  Record(*stale, compute, program, scene, last);
+  device.DestroyRayScene(scene);
+  Reject([&] { device.SetRaySceneTransform(scene, {}); }, "destroyed transform handle admitted");
+  const auto submitted = device.Diagnostics().submitted_command_lists;
+  Reject([&] { (void)device.Submit(*stale); }, "destroyed transformed snapshot submitted");
+  stale.reset();
+  Destroy(device, last);
+  const auto after = device.Diagnostics();
+  Require(after.ray_scene_transform_updates == before.ray_scene_transform_updates + 4 &&
+              after.ray_scene_refits == before.ray_scene_refits + 1 &&
+              after.ray_scene_rebuilds == before.ray_scene_rebuilds + 1 &&
+              after.ray_scene_compactions == before.ray_scene_compactions + 1 &&
+              after.submitted_command_lists == submitted,
+          "transform/geometry/compaction/rebuild state or stale submission accounting changed");
+  std::cout << "Native TLAS-only transforms=4 triangles=" << triangles.size()
+            << " old/new CPU comparisons=704; affine/refit/compact/rebuild/reset/lifetime passed\n";
+}
 void Parallel(rhi::Device &device, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
               rhi::RaySceneHandle scene, std::span<const rhi::RayTriangle> triangles) {
   std::array work{Make(device, triangles, 64), Make(device, triangles, 64)};
@@ -718,6 +819,10 @@ void OpacityMicromaps(rhi::Device &device, rhi::PipelineHandle compute) {
     const auto ordinary_scene = device.CreateRayScene(triangles);
     const auto refits = device.Diagnostics().ray_scene_refits;
     Reject([&] { device.UpdateRayScene(scene, triangles); }, "OMM scene accepted ordinary refit");
+    const auto transforms = device.Diagnostics().ray_scene_transform_updates;
+    Reject([&] { device.SetRaySceneTransform(scene, {}); }, "OMM instance transform admitted");
+    Require(device.Diagnostics().ray_scene_transform_updates == transforms,
+            "OMM transform published state");
     const auto rebuilds = device.Diagnostics().ray_scene_rebuilds;
     Reject([&] { device.RebuildRayScene(scene, triangles); },
            "OMM scene accepted ordinary rebuild");
@@ -806,6 +911,22 @@ void Portable() {
       rhi::CheckGraphicsRequirements(capabilities, rhi::EffectiveRayProgramRequirements(descriptor))
               .failure == rhi::CapabilityFailure::InsufficientImplementedTier,
       "unimplemented DXR1.2 admitted");
+  Require(rhi::IsRayInstanceTransformValid({}), "identity instance transform rejected");
+  for (const auto &transform : InstanceTransforms())
+    Require(rhi::IsRayInstanceTransformValid(transform), "finite affine transform rejected");
+  auto invalid_transform = rhi::RayInstanceTransform{};
+  invalid_transform.matrix[0] = std::numeric_limits<float>::infinity();
+  Require(!rhi::IsRayInstanceTransformValid(invalid_transform), "nonfinite matrix admitted");
+  invalid_transform = {};
+  invalid_transform.matrix[0] = 0;
+  Require(!rhi::IsRayInstanceTransformValid(invalid_transform), "singular matrix admitted");
+  invalid_transform = {};
+  invalid_transform.matrix[4] = 1;
+  invalid_transform.matrix[5] = 0;
+  Require(!rhi::IsRayInstanceTransformValid(invalid_transform), "dependent basis rows admitted");
+  invalid_transform = {};
+  invalid_transform.matrix[0] = 1e5F;
+  Require(!rhi::IsRayInstanceTransformValid(invalid_transform), "unbounded basis admitted");
   auto model = rhi::CreateValidationDevice();
   Require(!rhi::GraphicsDeviceCapabilities{}.ray_scene_refit_enabled &&
               !model->Capabilities().ray_scene_refit_enabled,
@@ -814,6 +935,7 @@ void Portable() {
          "Validation fabricated acceleration structure");
   Reject([&] { model->UpdateRayScene({}, triangle); }, "Validation fabricated native AS refit");
   Reject([&] { model->RebuildRayScene({}, triangle); }, "Validation fabricated native AS rebuild");
+  Reject([&] { model->SetRaySceneTransform({}, {}); }, "Validation fabricated native TLAS update");
   Reject([&] { model->CompactRayScene({}); }, "Validation fabricated native AS compaction");
   Reject([&] { (void)model->CreateRaySceneWithOptions(triangle, {true}); },
          "Validation fabricated compactable native AS storage");
@@ -974,22 +1096,37 @@ void Native(bool enhanced) {
         Destroy(*device, actual);
       }
       Parallel(*device, compute, program, scene, triangles);
+      if (!enabled) {
+        for (const auto &transform : InstanceTransforms()) {
+          const auto world = WorldTriangles(triangles, transform);
+          auto fallback = Make(*device, world, 64);
+          Execute(*device, compute, {}, {}, fallback);
+          Destroy(*device, fallback);
+        }
+        std::cout << "World-space affine compute fallback triangles=" << size
+                  << " CPU comparisons=192; no native instance update claimed\n";
+      }
       if (enabled) {
         TestLifetime(*device, compute, program, scene, descriptor, triangles);
         TestRebuilds(*device, compute, program, triangles);
         if (caps.ray_scene_refit_enabled) {
           TestRefits(*device, compute, program, triangles);
           TestCompaction(*device, compute, program, triangles);
+          TestTransforms(*device, compute, program, triangles);
         } else {
           const auto before = device->Diagnostics();
           Reject([&] { device->UpdateRayScene(scene, triangles); },
                  "unadmitted system runtime accepted a native refit");
+          Reject([&] { device->SetRaySceneTransform(scene, {}); },
+                 "unadmitted system runtime accepted a TLAS transform");
           Reject([&] { device->CompactRayScene(scene); },
                  "unadmitted system runtime accepted compaction");
           Reject([&] { (void)device->CreateRaySceneWithOptions(triangles, {true}); },
                  "unadmitted system runtime accepted compactable storage");
           Require(device->Diagnostics().ray_scene_refits == before.ray_scene_refits &&
-                      device->Diagnostics().ray_scene_compactions == before.ray_scene_compactions,
+                      device->Diagnostics().ray_scene_compactions == before.ray_scene_compactions &&
+                      device->Diagnostics().ray_scene_transform_updates ==
+                          before.ray_scene_transform_updates,
                   "unadmitted runtime published update/compaction counters");
         }
         MixedNodesAndRays(*device, compute, program, scene, triangles);
@@ -1009,9 +1146,12 @@ void Native(bool enhanced) {
   const auto diagnostics = device->Diagnostics();
   std::cout << "Native ray scene refits=" << diagnostics.ray_scene_refits
             << " rebuilds=" << diagnostics.ray_scene_rebuilds
-            << " compactions=" << diagnostics.ray_scene_compactions << '\n';
+            << " compactions=" << diagnostics.ray_scene_compactions
+            << " transforms=" << diagnostics.ray_scene_transform_updates << '\n';
 #if defined(NEXORA_TEST_SER_NATIVE)
-  Require(diagnostics.ray_scene_refits == 45 && diagnostics.ray_scene_compactions == 18,
+  Require(diagnostics.ray_scene_refits == 54 && diagnostics.ray_scene_rebuilds == 18 &&
+              diagnostics.ray_scene_compactions == 27 &&
+              diagnostics.ray_scene_transform_updates == 36,
           "required private BLAS/TLAS refit/compaction round trips were not executed");
 #endif
   const auto feature = caps.features[static_cast<std::size_t>(rhi::GraphicsFeature::RayTracing)];
