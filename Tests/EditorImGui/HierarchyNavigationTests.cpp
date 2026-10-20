@@ -1,6 +1,9 @@
 #include "EditorImGuiTestAccess.h"
 #include "TemporaryDirectoryCleanup.h"
 
+#include <imgui.h>
+#include <imgui_internal.h>
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -511,6 +514,54 @@ void StorageLifecycle(float dpi, bool macos) {
             << ",\"reload_cycles\":128,\"replacement_cycles\":32,\"baseline_entries\":"
             << initial->entries << ",\"maximum_entries\":" << maximum_entries << "}\n";
 }
+void HiddenRequests(float dpi) {
+  Fixture f(dpi, false);
+  auto *window = ImGui::FindWindowByName("Hierarchy###nexora.hierarchy");
+  Require(window != nullptr, "Hierarchy window missing");
+  const auto hide = [&] {
+    window->HiddenFramesCanSkipItems = 2;
+    window->HiddenFramesCannotSkipItems = 0;
+  };
+  const auto check = [&](std::uint32_t rows) {
+    const auto state = Access::Inspect(f.ui);
+    Require(state.hierarchy_rendered_rows == 0 && state.hierarchy_visible_rows == rows,
+            "Hidden Hierarchy rendered rows or lost its complete current row count");
+  };
+  Access::QueueHierarchySelection(f.ui, *f.scene.Key(f.roots[1]), false, false);
+  hide();
+  f.Draw();
+  check(128);
+  Require(f.Single(f.roots[1]), "Hidden pending selection was not applied");
+  Access::QueueHierarchyMove(f.ui, *f.scene.Key(f.roots[1]), *f.scene.Key(f.roots[0]), 0);
+  hide();
+  f.Draw();
+  Require(f.scene.Parent(f.roots[1]) == f.roots[0], "Hidden pending reparent was not applied");
+  hide();
+  f.Draw();
+  check(127);
+  Require(f.scene.Undo() && !f.scene.Dirty() && f.world.SaveScene(f.scene_id) == f.baseline,
+          "Hidden reparent did not retain one-step Undo and source data");
+  const auto old = *f.scene.Key(f.roots[1]);
+  Require(f.scene.Reload(f.root / "Content/Main.scene"), "Hidden reload failed");
+  Access::QueueHierarchySelection(f.ui, old, false, false);
+  hide();
+  f.Draw();
+  check(128);
+  Require(f.scene.Selection().empty() && !f.scene.Dirty() &&
+              f.world.SaveScene(f.scene_id) == f.baseline,
+          "Hidden stale request selected a replacement generation or changed source");
+  f.document = nullptr;
+  hide();
+  f.Draw();
+  check(0);
+  f.document = &f.scene;
+  window->HiddenFramesCanSkipItems = 0;
+  window->HiddenFramesCannotSkipItems = 0;
+  f.FocusHierarchy();
+  const auto shown = Access::Inspect(f.ui);
+  Require(shown.hierarchy_visible_rows == 128 && shown.hierarchy_rendered_rows > 0,
+          "Hierarchy did not recover current rows after becoming visible");
+}
 void StorageLifecycles() {
   for (const float dpi : {1.F, 2.F})
     for (const bool macos : {false, true})
@@ -519,6 +570,11 @@ void StorageLifecycles() {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string_view(argv[1]) == "--hidden") {
+      HiddenRequests(1);
+      HiddenRequests(2);
+      return 0;
+    }
     if (argc == 2 && std::string_view(argv[1]) == "--storage") {
       StorageLifecycles();
       return 0;
