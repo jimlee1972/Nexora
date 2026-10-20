@@ -669,6 +669,12 @@ creates property widgets; unknown components retain raw data instead of being si
   entity records reject reload before live mutation. Plugin restoration/execution and full reflected
   editing remain open.
 
+- Versioned counted-array Core authoring is under validation: version2 metadata derives multiple
+  variable tails per source, retaining legacy fixed fields and opaque prefix/other components.
+  Mixed multi-selection, insert/append/remove/reorder/clear and value edits share exact-source
+  validation and one Undo/Redo transaction. Structural widgets and complete M2-03 remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrays-Linux-2026-10-20.md).
+
 - ✅ The graphical Inspector now interprets bounded, explicit reflection metadata for opaque
   components: Boolean, signed/unsigned scalars, enum/flags, vectors/colors, full-width entity/asset
   references, fixed arrays and flattened nested paths. Mixed selection commits one exact-source,

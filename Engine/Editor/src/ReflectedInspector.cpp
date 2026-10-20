@@ -1,4 +1,5 @@
 #include "Nexora/Editor/ReflectedInspector.h"
+#include "ReflectedArrayTestAccess.h"
 #include <algorithm>
 #include <bit>
 #include <charconv>
@@ -7,11 +8,13 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <new>
 #include <set>
 #include <sstream>
 
 namespace nexora::editor {
 namespace {
+thread_local std::size_t fail_array_after = std::numeric_limits<std::size_t>::max();
 constexpr std::array names{"bool",    "int64", "uint64",           "double",
                            "enum",    "flags", "vector2",          "vector3",
                            "vector4", "color", "entity_reference", "asset_reference"};
@@ -151,6 +154,47 @@ void Encode(const ReflectedProperty &property, const ReflectedValue &value,
       Write64(bytes, offset + i * 8, std::bit_cast<std::uint64_t>(lanes[i]));
   }
 }
+struct ArraySegment final {
+  std::size_t offset{}, count{};
+};
+std::optional<std::vector<ArraySegment>> ArrayLayout(const ReflectedComponent &component,
+                                                     std::span<const std::uint8_t> bytes) {
+  if (bytes.size() < component.bytes)
+    return {};
+  std::vector<ArraySegment> result;
+  result.reserve(component.arrays.size());
+  auto offset = component.bytes;
+  for (const auto &array : component.arrays) {
+    const auto count = Read64(bytes, array.count_offset);
+    const auto width = Width(array.kind);
+    if (count > array.maximum_elements || count > (bytes.size() - offset) / width)
+      return {};
+    result.push_back({offset, static_cast<std::size_t>(count)});
+    offset += static_cast<std::size_t>(count) * width;
+  }
+  return offset == bytes.size() ? std::optional{std::move(result)} : std::nullopt;
+}
+std::optional<ReflectedObservation> FreshObservation(const ReflectedInspector &inspector,
+                                                     const SceneDocument &scene,
+                                                     const ReflectedObservation &observation,
+                                                     bool authorized) {
+  if (!authorized || observation.catalog_revision != inspector.Revision() ||
+      observation.sources.empty() ||
+      observation.sources.size() > ReflectedInspector::kMaximumTargets ||
+      observation.sources.size() != scene.Selection().size())
+    return {};
+  std::vector<SceneDocument::NodeKey> keys;
+  for (std::size_t i = 0; i < observation.sources.size(); ++i) {
+    if (observation.sources[i].first.id != scene.Selection()[i])
+      return {};
+    keys.push_back(observation.sources[i].first);
+  }
+  auto fresh = inspector.Inspect(scene, keys, observation.component.type);
+  if (!fresh || fresh->component != observation.component ||
+      fresh->sources != observation.sources || fresh->arrays != observation.arrays)
+    return {};
+  return fresh;
+}
 bool Unsigned(std::istream &stream, std::uint64_t &value) {
   std::string word;
   if (!(stream >> word) || word.empty())
@@ -163,7 +207,7 @@ bool End(std::istream &stream) {
   return !(stream >> extra);
 }
 } // namespace
-bool ReflectedInspector::SetComponents(std::vector<ReflectedComponent> components) {
+bool ReflectedInspector::SetComponents(std::vector<ReflectedComponent> components) try {
   if (components.size() > kMaximumTypes || revision_ == std::numeric_limits<std::uint64_t>::max())
     return false;
   runtime::ReflectionRegistry reflection;
@@ -177,18 +221,40 @@ bool ReflectedInspector::SetComponents(std::vector<ReflectedComponent> component
   for (const auto &component : components) {
     if (!component.type || !bounded_name(component.name) || !component.bytes ||
         component.bytes > UnknownComponentStore::kMaximumComponentBytes ||
-        component.fields.empty() || component.fields.size() > kMaximumFields)
+        (component.fields.empty() && component.arrays.empty()) ||
+        component.fields.size() > kMaximumFields ||
+        component.arrays.size() > kMaximumFields - component.fields.size())
       return false;
     runtime::TypeDescriptor descriptor{component.name, component.type, {}};
     std::set<std::string> paths;
     std::set<std::string> expanded_paths;
     std::vector<std::pair<std::size_t, std::size_t>> ranges;
-    for (const auto &field : component.fields) {
+    const auto bounded_choices = [](const auto &field) {
+      return Safe(field.path) && field.choices.size() <= 32 &&
+             std::ranges::all_of(field.choices,
+                                 [](const auto &choice) { return Safe(choice.label); });
+    };
+    if (!std::ranges::all_of(component.fields, bounded_choices) ||
+        !std::ranges::all_of(component.arrays, bounded_choices))
+      return false;
+    auto fields = component.fields;
+    for (const auto &array : component.arrays) {
+      if (!Safe(array.path) || !array.maximum_elements || array.maximum_elements > kMaximumElements)
+        return false;
+      // Reserve every possible element path, including currently absent elements.
+      for (std::size_t i = 0; i < array.maximum_elements; ++i)
+        if (!expanded_paths.insert(array.path + "[" + std::to_string(i) + "]").second)
+          return false;
+      fields.push_back({array.path, array.kind, array.count_offset, 1, array.choices});
+    }
+    for (std::size_t field_index = 0; field_index < fields.size(); ++field_index) {
+      const auto &field = fields[field_index];
+      const bool dynamic = field_index >= component.fields.size();
       if (!bounded_name(field.path) || !paths.insert(field.path).second ||
           static_cast<std::size_t>(field.kind) >= names.size() || !field.elements ||
           field.elements > kMaximumElements || field.offset > component.bytes)
         return false;
-      const auto size = Width(field.kind) * field.elements;
+      const auto size = dynamic ? std::size_t{8} : Width(field.kind) * field.elements;
       for (std::size_t element = 0; element < field.elements; ++element)
         if (!expanded_paths
                  .insert(field.path +
@@ -215,7 +281,9 @@ bool ReflectedInspector::SetComponents(std::vector<ReflectedComponent> component
       } else if (!field.choices.empty())
         return false;
       descriptor.fields.push_back(
-          {field.path, runtime::HashTypeName(names[static_cast<std::size_t>(field.kind)]),
+          {field.path,
+           runtime::HashTypeName(dynamic ? "dynamic_array_count"
+                                         : names[static_cast<std::size_t>(field.kind)]),
            field.offset, size});
     }
     if (!reflection.Register(std::move(descriptor)))
@@ -225,17 +293,20 @@ bool ReflectedInspector::SetComponents(std::vector<ReflectedComponent> component
   reflection_ = std::move(reflection);
   ++revision_;
   return true;
+} catch (const std::bad_alloc &) {
+  return false;
 }
 std::optional<ReflectedObservation>
 ReflectedInspector::Inspect(const SceneDocument &scene,
                             std::span<const SceneDocument::NodeKey> keys,
-                            runtime::TypeId type) const {
+                            runtime::TypeId type) const try {
   const auto found = std::ranges::find(components_, type, &ReflectedComponent::type);
   if (found == components_.end() || keys.empty() || keys.size() > kMaximumTargets ||
       found->bytes > kMaximumObservationBytes / keys.size())
     return {};
   ReflectedObservation result{revision_, *found, {}, {}};
   std::set<runtime::Id> unique;
+  std::size_t remaining = kMaximumObservationBytes;
   for (const auto key : keys) {
     if (!unique.insert(key.id).second)
       return {};
@@ -244,12 +315,13 @@ ReflectedInspector::Inspect(const SceneDocument &scene,
       return {};
     const auto value = std::ranges::find(*components, type, &OpaqueComponent::type);
     if (value == components->end() || value->type_name != found->name ||
-        value->data.size() != found->bytes)
+        value->data.size() > remaining || !ArrayLayout(*found, value->data))
       return {};
+    remaining -= value->data.size();
     result.sources.emplace_back(key, *value);
   }
   const auto *metadata = reflection_.FindById(type);
-  if (!metadata || metadata->fields.size() != found->fields.size())
+  if (!metadata || metadata->fields.size() != found->fields.size() + found->arrays.size())
     return {};
   for (const auto &field : found->fields)
     for (std::size_t element = 0; element < field.elements; ++element) {
@@ -272,7 +344,53 @@ ReflectedInspector::Inspect(const SceneDocument &scene,
       }
       result.properties.push_back(std::move(property));
     }
+  for (std::size_t a = 0; a < found->arrays.size(); ++a) {
+    const auto &array = found->arrays[a];
+    ReflectedArrayObservation view{array.path, {}, array.maximum_elements, false};
+    std::vector<ArraySegment> segments;
+    for (const auto &[key, source] : result.sources) {
+      const auto layout = ArrayLayout(*found, source.data);
+      const auto segment = (*layout)[a];
+      segments.push_back(segment);
+      view.counts.push_back(segment.count);
+      view.common_elements = std::min(view.common_elements, segment.count);
+      view.mixed |= segment.count != view.counts.front();
+      // Validate ALL elements, including ones outside the common multi-selection intersection.
+      for (std::size_t element = 0; element < segment.count; ++element) {
+        const ReflectedProperty property{array.path,
+                                         array.kind,
+                                         segment.offset + element * Width(array.kind),
+                                         array.choices,
+                                         {},
+                                         false,
+                                         a,
+                                         element};
+        if (!Decode(property, source.data))
+          return {};
+      }
+    }
+    for (std::size_t element = 0; element < view.common_elements; ++element) {
+      ReflectedProperty property{array.path + "[" + std::to_string(element) + "]",
+                                 array.kind,
+                                 segments.front().offset + element * Width(array.kind),
+                                 array.choices,
+                                 {},
+                                 false,
+                                 a,
+                                 element};
+      property.value = *Decode(property, result.sources.front().second.data);
+      for (std::size_t target = 1; target < result.sources.size(); ++target) {
+        auto local = property;
+        local.offset = segments[target].offset + element * Width(array.kind);
+        property.mixed |= *Decode(local, result.sources[target].second.data) != property.value;
+      }
+      result.properties.push_back(std::move(property));
+    }
+    result.arrays.push_back(std::move(view));
+  }
   return result;
+} catch (const std::bad_alloc &) {
+  return {};
 }
 bool ReflectedInspector::Apply(SceneDocument &scene, const ReflectedObservation &observation,
                                std::size_t property, const ReflectedValue &value,
@@ -286,24 +404,15 @@ bool ReflectedInspector::ApplyFlag(SceneDocument &scene, const ReflectedObservat
 }
 bool ReflectedInspector::ApplyEdit(SceneDocument &scene, const ReflectedObservation &observation,
                                    std::size_t property, const ReflectedValue &value,
-                                   bool authorized, std::optional<std::uint64_t> flag_bit) const {
-  if (!authorized || observation.catalog_revision != revision_ || observation.sources.empty() ||
-      observation.sources.size() > kMaximumTargets ||
-      observation.sources.size() != scene.Selection().size())
-    return false;
-  std::vector<SceneDocument::NodeKey> keys;
-  for (std::size_t i = 0; i < observation.sources.size(); ++i) {
-    if (observation.sources[i].first.id != scene.Selection()[i])
-      return false;
-    keys.push_back(observation.sources[i].first);
-  }
-  const auto fresh = Inspect(scene, keys, observation.component.type);
-  if (!fresh || fresh->component != observation.component ||
-      fresh->sources != observation.sources || property >= fresh->properties.size() ||
-      property >= observation.properties.size() ||
+                                   bool authorized, std::optional<std::uint64_t> flag_bit) const
+    try {
+  const auto fresh = FreshObservation(*this, scene, observation, authorized);
+  if (!fresh || property >= fresh->properties.size() || property >= observation.properties.size() ||
       observation.properties[property].path != fresh->properties[property].path ||
       observation.properties[property].offset != fresh->properties[property].offset ||
       observation.properties[property].kind != fresh->properties[property].kind ||
+      observation.properties[property].array != fresh->properties[property].array ||
+      observation.properties[property].element != fresh->properties[property].element ||
       !Allowed(fresh->properties[property], value))
     return false;
   const auto &field = fresh->properties[property];
@@ -315,20 +424,125 @@ bool ReflectedInspector::ApplyEdit(SceneDocument &scene, const ReflectedObservat
   std::vector<SceneDocument::OpaqueComponentEdit> edits;
   for (const auto &[key, expected] : fresh->sources) {
     auto replacement = expected;
+    auto local = field;
+    if (field.array) {
+      const auto layout = ArrayLayout(fresh->component, expected.data);
+      local.offset = (*layout)[*field.array].offset + field.element * Width(field.kind);
+    }
     if (flag_bit) {
-      const auto current = Read64(expected.data, field.offset);
-      Encode(field,
+      const auto current = Read64(expected.data, local.offset);
+      Encode(local,
              std::uint64_t{std::get<std::uint64_t>(value) ? current | *flag_bit
                                                           : current & ~*flag_bit},
              replacement.data);
     } else
-      Encode(field, value, replacement.data);
+      Encode(local, value, replacement.data);
     edits.push_back({key, expected, std::move(replacement)});
   }
   return scene.ApplyOpaqueComponents(edits);
+} catch (const std::bad_alloc &) {
+  return false;
+}
+void ReflectedArrayTestAccess::FailAfterReplacements(std::size_t count) noexcept {
+  fail_array_after = count;
+}
+bool ReflectedInspector::ApplyArray(SceneDocument &scene, const ReflectedObservation &observation,
+                                    const ReflectedArrayEdit &edit, bool authorized) const try {
+  const auto fresh = FreshObservation(*this, scene, observation, authorized);
+  if (!fresh || edit.array >= fresh->component.arrays.size())
+    return false;
+  const auto &array = fresh->component.arrays[edit.array];
+  const auto width = Width(array.kind);
+  const bool inserts =
+      edit.action == ReflectedArrayAction::Append || edit.action == ReflectedArrayAction::Insert;
+  const ReflectedProperty element{array.path, array.kind, 0, array.choices, {}, false};
+  if (inserts != edit.value.has_value() || (inserts && !Allowed(element, *edit.value)))
+    return false;
+  switch (edit.action) {
+  case ReflectedArrayAction::Append:
+  case ReflectedArrayAction::Clear:
+    if (edit.index || edit.destination)
+      return false;
+    break;
+  case ReflectedArrayAction::Insert:
+  case ReflectedArrayAction::Remove:
+    if (edit.destination)
+      return false;
+    break;
+  case ReflectedArrayAction::Move:
+    break;
+  default:
+    return false;
+  }
+  std::vector<SceneDocument::OpaqueComponentEdit> edits;
+  edits.reserve(fresh->sources.size());
+  std::size_t remaining = kMaximumObservationBytes;
+  for (const auto &[key, expected] : fresh->sources) {
+    const auto layout = ArrayLayout(fresh->component, expected.data);
+    const auto segment = (*layout)[edit.array];
+    auto count = segment.count;
+    if ((inserts && count == array.maximum_elements) ||
+        (edit.action == ReflectedArrayAction::Insert && edit.index > count) ||
+        ((edit.action == ReflectedArrayAction::Remove ||
+          edit.action == ReflectedArrayAction::Move) &&
+         edit.index >= count) ||
+        (edit.action == ReflectedArrayAction::Move && edit.destination >= count))
+      return false;
+    auto size = expected.data.size();
+    if (inserts)
+      size += width;
+    else if (edit.action == ReflectedArrayAction::Remove)
+      size -= width;
+    else if (edit.action == ReflectedArrayAction::Clear)
+      size -= count * width;
+    if (size > UnknownComponentStore::kMaximumComponentBytes || size > remaining)
+      return false;
+    remaining -= size;
+    if (edits.size() == fail_array_after) {
+      fail_array_after = std::numeric_limits<std::size_t>::max();
+      throw std::bad_alloc{};
+    }
+    auto replacement = expected;
+    const auto offset = segment.offset;
+    auto &bytes = replacement.data;
+    if (inserts) {
+      const auto index = edit.action == ReflectedArrayAction::Append ? count : edit.index;
+      const auto position = offset + index * width;
+      bytes.insert(bytes.begin() + static_cast<std::ptrdiff_t>(position), width, 0);
+      auto property = element;
+      property.offset = position;
+      Encode(property, *edit.value, bytes);
+      ++count;
+    } else if (edit.action == ReflectedArrayAction::Remove) {
+      const auto position = offset + edit.index * width;
+      bytes.erase(bytes.begin() + static_cast<std::ptrdiff_t>(position),
+                  bytes.begin() + static_cast<std::ptrdiff_t>(position + width));
+      --count;
+    } else if (edit.action == ReflectedArrayAction::Clear) {
+      bytes.erase(bytes.begin() + static_cast<std::ptrdiff_t>(offset),
+                  bytes.begin() + static_cast<std::ptrdiff_t>(offset + count * width));
+      count = 0;
+    } else if (edit.index < edit.destination) {
+      std::rotate(bytes.begin() + static_cast<std::ptrdiff_t>(offset + edit.index * width),
+                  bytes.begin() + static_cast<std::ptrdiff_t>(offset + (edit.index + 1) * width),
+                  bytes.begin() +
+                      static_cast<std::ptrdiff_t>(offset + (edit.destination + 1) * width));
+    } else if (edit.index > edit.destination) {
+      std::rotate(bytes.begin() + static_cast<std::ptrdiff_t>(offset + edit.destination * width),
+                  bytes.begin() + static_cast<std::ptrdiff_t>(offset + edit.index * width),
+                  bytes.begin() + static_cast<std::ptrdiff_t>(offset + (edit.index + 1) * width));
+    }
+    Write64(bytes, array.count_offset, count);
+    if (!ArrayLayout(fresh->component, bytes))
+      return false;
+    edits.push_back({key, expected, std::move(replacement)});
+  }
+  return scene.ApplyOpaqueComponents(edits);
+} catch (const std::bad_alloc &) {
+  return false;
 }
 std::optional<ReflectedInspector> ReflectedInspector::LoadProject(const std::filesystem::path &root,
-                                                                  std::string *error) {
+                                                                  std::string *error) try {
   const auto fail = [&]() -> std::optional<ReflectedInspector> {
     if (error)
       *error = "Invalid or over-budget Inspector reflection metadata; component bytes preserved.";
@@ -354,8 +568,10 @@ std::optional<ReflectedInspector> ReflectedInspector::LoadProject(const std::fil
   std::istringstream input(bytes);
   input.imbue(std::locale::classic());
   std::string line;
-  if (!std::getline(input, line) || line != "NXEDITORREFLECTION 1")
+  if (!std::getline(input, line) ||
+      (line != "NXEDITORREFLECTION 1" && line != "NXEDITORREFLECTION 2"))
     return fail();
+  const bool version_two = line == "NXEDITORREFLECTION 2";
   std::vector<ReflectedComponent> components;
   while (std::getline(input, line)) {
     if (components.size() == kMaximumTypes)
@@ -364,14 +580,15 @@ std::optional<ReflectedInspector> ReflectedInspector::LoadProject(const std::fil
     parser.imbue(std::locale::classic());
     std::string tag;
     ReflectedComponent component;
-    std::uint64_t size{}, fields{};
+    std::uint64_t size{}, fields{}, arrays{};
     if (!(parser >> tag) || tag != "type" || !Unsigned(parser, component.type) ||
         !(parser >> std::quoted(component.name)) || !Unsigned(parser, size) ||
         size > UnknownComponentStore::kMaximumComponentBytes || !Unsigned(parser, fields) ||
-        !fields || fields > kMaximumFields || !End(parser))
+        fields > kMaximumFields || (version_two && !Unsigned(parser, arrays)) ||
+        arrays > kMaximumFields - fields || (!fields && !arrays) || !End(parser))
       return fail();
     component.bytes = static_cast<std::size_t>(size);
-    for (std::uint64_t i = 0; i < fields; ++i) {
+    for (std::uint64_t i = 0; i < fields + arrays; ++i) {
       if (!std::getline(input, line))
         return fail();
       std::istringstream field_line(line);
@@ -379,9 +596,9 @@ std::optional<ReflectedInspector> ReflectedInspector::LoadProject(const std::fil
       ReflectedField field;
       std::string kind;
       std::uint64_t offset{}, count{}, choices{};
-      if (!(field_line >> tag >> std::quoted(field.path) >> kind) || tag != "field" ||
-          !Unsigned(field_line, offset) || offset > component.bytes ||
-          !Unsigned(field_line, count) || count > kMaximumElements ||
+      if (!(field_line >> tag >> std::quoted(field.path) >> kind) ||
+          tag != (i < fields ? "field" : "array") || !Unsigned(field_line, offset) ||
+          offset > component.bytes || !Unsigned(field_line, count) || count > kMaximumElements ||
           !Unsigned(field_line, choices) || choices > 32 || !End(field_line))
         return fail();
       const auto found = std::ranges::find(names, kind);
@@ -401,7 +618,11 @@ std::optional<ReflectedInspector> ReflectedInspector::LoadProject(const std::fil
           return fail();
         field.choices.push_back(std::move(choice));
       }
-      component.fields.push_back(std::move(field));
+      if (i < fields)
+        component.fields.push_back(std::move(field));
+      else
+        component.arrays.push_back({std::move(field.path), field.kind, field.offset, field.elements,
+                                    std::move(field.choices)});
     }
     components.push_back(std::move(component));
   }
@@ -409,5 +630,7 @@ std::optional<ReflectedInspector> ReflectedInspector::LoadProject(const std::fil
   if (!catalog.SetComponents(std::move(components)))
     return fail();
   return catalog;
+} catch (const std::bad_alloc &) {
+  return {};
 }
 } // namespace nexora::editor
