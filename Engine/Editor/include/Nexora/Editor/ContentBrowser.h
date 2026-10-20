@@ -54,6 +54,8 @@ public:
   // Missing/unrevealable IDs preserve view state. Revision and mutation Undo never change.
   bool RevealAsset(runtime::AssetUuid id);
   void SetFilter(std::string query, std::string type = {});
+  // Serialized authoring-thread queries cache owning indices for the current folder/filter.
+  // Returned pointers borrow this model's Items until item publication or owner destruction.
   [[nodiscard]] std::vector<const ContentItem *> Visible(std::size_t offset,
                                                          std::size_t count) const;
   [[nodiscard]] std::size_t VisibleCount() const;
@@ -93,6 +95,7 @@ public:
 private:
   bool Commit(std::vector<ContentItem> next, std::string *error);
   [[nodiscard]] bool MatchesVisible(const ContentItem &item) const;
+  [[nodiscard]] const std::vector<std::size_t> &VisibleIndices() const;
   [[nodiscard]] bool ValidDestination(const std::filesystem::path &path,
                                       runtime::AssetUuid except = {}) const;
   std::vector<ContentItem> items_;
@@ -103,6 +106,7 @@ private:
   std::string query_, type_;
   std::vector<Breadcrumb> breadcrumbs_;
   mutable std::shared_ptr<const std::vector<Breadcrumb>> child_folders_;
+  mutable std::shared_ptr<const std::vector<std::size_t>> visible_indices_;
   std::uint64_t generation_{};
   std::uint64_t revision_{};
 };

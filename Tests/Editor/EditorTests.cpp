@@ -275,8 +275,107 @@ void VerifyChildFolderSnapshots() {
   Require(destroyed->at(1).path == "Content/B", "folder snapshot borrowed destroyed model");
 }
 
+void VerifyVisibleProjection() {
+  using namespace nexora;
+  using editor::ContentBrowserModel;
+  using editor::ContentItem;
+  using editor::ThumbnailState;
+  const runtime::AssetUuid alpha{402, 1}, beta{402, 2}, child{402, 3}, added{402, 4};
+  const std::array items{
+      ContentItem{alpha, "Content/Alpha.txt", ".TXT", "v1", ThumbnailState::Ready},
+      ContentItem{beta, "Content/Beta.mesh", ".mesh", "v1", ThumbnailState::Ready},
+      ContentItem{child, "Content/Child/Alpha.txt", ".txt", "v1", ThumbnailState::Ready}};
+  ContentBrowserModel model;
+  Require(model.Reset(items, 1), "visible projection fixture failed");
+  const auto check = [&](const ContentBrowserModel &view,
+                         std::initializer_list<runtime::AssetUuid> expected) {
+    // Count warms the projection; ranges must resolve into this model's current item storage.
+    Require(view.VisibleCount() == expected.size(), "visible count retained stale view inputs");
+    const auto rows = view.Visible(0, std::numeric_limits<std::size_t>::max());
+    Require(rows.size() == expected.size(), "visible slice/count disagree");
+    std::size_t index{};
+    for (const auto id : expected) {
+      Require(rows[index]->id == id && rows[index] == view.Find(id),
+              "visible order or model-owned item pointers changed");
+      const auto single = view.Visible(index++, 1);
+      Require(single.size() == 1 && single[0] == view.Find(id), "visible offset lost its row");
+    }
+    Require(view.Visible(0, 0).empty() && view.Visible(expected.size(), 1).empty() &&
+                view.Visible(std::numeric_limits<std::size_t>::max(),
+                             std::numeric_limits<std::size_t>::max())
+                    .empty(),
+            "empty/end/overflow visible range changed");
+  };
+  check(model, {alpha, beta});
+  model.SetFilter("ALPHA", ".txt");
+  check(model, {alpha});
+  model.SetFilter("alpha", ".TXT");
+  Require(model.SetFolder("Content") && model.Select(alpha) &&
+              model.PublishArtifact(alpha, "v2", ThumbnailState::Failed),
+          "view-only/artifact fixture failed");
+  check(model, {alpha});
+  Require(model.Visible(0, 1)[0]->artifact_hash == "v2" &&
+              model.Visible(0, 1)[0]->thumbnail == ThumbnailState::Failed,
+          "visible query cached obsolete item payloads");
+  auto copied = model;
+  Require(model.Rename(alpha, "Renamed.txt"), "filtered rename fixture failed");
+  check(model, {});
+  check(copied, {alpha});
+  Require(model.Undo(), "filtered rename Undo failed");
+  check(model, {alpha});
+  Require(model.SetFolder("Content/Child"), "nested folder fixture failed");
+  check(model, {child});
+  model.SetFilter("missing");
+  check(model, {});
+  Require(model.RevealAsset(child), "same-folder reveal fixture failed");
+  check(model, {child});
+  Require(model.RevealAsset(beta), "cross-folder reveal fixture failed");
+  check(model, {alpha, beta});
+  Require(model.Move(std::array{beta}, "Content/Child"), "visible move fixture failed");
+  check(model, {alpha});
+  Require(model.Undo(), "visible move Undo failed");
+  check(model, {alpha, beta});
+  Require(model.Delete(std::array{alpha}), "visible delete fixture failed");
+  check(model, {beta});
+  Require(model.Discover({added, "Content/Aardvark.txt", ".txt", "v1", ThumbnailState::Ready}),
+          "visible discovery fixture failed");
+  check(model, {added, beta});
+  Require(model.Undo(), "visible discovery-preserving Undo failed");
+  check(model, {added, alpha, beta});
+  Require(!model.Reset(std::array{items[0], items[0]}, 2) && !model.Discover(items[0]) &&
+              !model.SetFolder("../Bad") && !model.Rename(alpha, "../bad.txt") &&
+              !model.Delete(std::array{runtime::AssetUuid{402, 99}}),
+          "invalid mutation fixture unexpectedly accepted");
+  check(model, {added, alpha, beta});
+  model.SetFilter("", ".txt");
+  check(model, {added, alpha});
+  model.SelectVisible();
+  Require(model.IsSelected(added) && model.IsSelected(alpha) && !model.IsSelected(beta) &&
+              !model.IsSelected(child),
+          "SelectVisible ignored projected folder/type filtering");
+  Require(model.SelectVisibleRange(alpha, added) && model.Selection().size() == 2,
+          "reverse visible selection range lost its complete interval");
+  std::array<ContentItem, 4> replacement{
+      items[0], items[1], items[2],
+      ContentItem{added, "Archive/Added.txt", ".txt", "v1", ThumbnailState::Ready}};
+  replacement[0].path = "Archive/Alpha.txt";
+  replacement[1].path = "Content/New.txt";
+  replacement[1].type = ".txt";
+  Require(model.Reset(replacement, 1), "same-count/same-generation Reset failed");
+  check(model, {beta});
+  model = copied;
+  check(model, {alpha});
+  copied = ContentBrowserModel{};
+  check(copied, {});
+  check(model, {alpha});
+  auto moved = std::move(model);
+  check(moved, {alpha});
+  check(model, {});
+}
+
 int Run() {
   VerifyChildFolderSnapshots();
+  VerifyVisibleProjection();
   using namespace nexora;
   namespace fs = std::filesystem;
   const auto root = fs::temp_directory_path() /

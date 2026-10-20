@@ -290,6 +290,14 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   revision and pending Undo. Cold folder derivation/sorting remain O(n)/O(n log n); full scale
   and physical acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md).
 
+- ✅ Content asset Count/range/SelectVisible queries now reuse immutable item-index projections
+  until item/path publication, Undo or actual folder/filter changes. Selection, unchanged views and
+  artifact-only updates retain indices while returning fresh model-owned payloads; copies never cache
+  foreign item pointers. Model invalidation/range tests and existing actual UI workflows cover source,
+  ordering, navigation and history preservation. Scoped100k synthetic query measurements retain raw
+  cold/warm costs; complete frame/memory/GPU/production budgets and physical acceptance remain open.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-VisibleProjection-Linux-2026-10-20.md).
+
 - ✅ Content child-folder projections now reuse immutable shared-owned snapshots between path
   publications/folder changes. Reset/Discover/mutations/Undo refresh the projection; view-only state
   and artifact updates retain it. Actual drawing keeps its snapshot across drag/drop model replacement;

@@ -277,6 +277,14 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   sidecar bytes、revision 與 pending Undo。Cold 資料夾推導／排序仍為 O(n)／O(n log n)；完整規模
   與實體驗收仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md)。
 
+- ✅ Content asset Count／range／SelectVisible query 現重用不可變 item-index projection，
+  直到 item／path 發布、Undo 或實際 folder／filter 改變。Selection、未變更 view 與 artifact-only
+  更新保留 indices，但回傳目前模型擁有的最新 payload；模型副本不快取其他模型的 item pointer。
+  Model invalidation／range 測試及既有實際 UI workflow 涵蓋 source、ordering、navigation 與
+  history 保留。Scoped100k synthetic query 量測保留 cold／warm 原始成本；完整 frame／memory／GPU／
+  production budget 與實體驗收仍待完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM1-VisibleProjection-Linux-2026-10-20.md)。
+
 - ✅ Content 子資料夾投影現於 path publication／資料夾變更之間重用不可變共享快照。
   Reset／Discover／mutation／Undo 會刷新投影；檢視狀態與 artifact 更新維持快取。
   真正繪圖保留自己的快照，跨越拖放造成的模型替換；保留版本亦可跨模型複製與銷毀。

@@ -96,6 +96,7 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
         !ids.insert(item.id).second || !paths.insert(PathUtf8(item.path)).second)
       return false;
   child_folders_.reset();
+  visible_indices_.reset();
   items_.assign(items.begin(), items.end());
   std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
   selection_.clear();
@@ -129,6 +130,7 @@ bool ContentBrowserModel::Discover(ContentItem item) {
   }
   std::ranges::sort(next, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
   child_folders_.reset();
+  visible_indices_.reset();
   items_ = std::move(next);
   ++revision_;
   return true;
@@ -137,8 +139,10 @@ bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
   if (!SafeRelative(folder))
     return false;
   const auto normalized = folder.lexically_normal();
-  if (folder_ != normalized)
+  if (folder_ != normalized) {
     child_folders_.reset();
+    visible_indices_.reset();
+  }
   folder_ = normalized;
   breadcrumbs_.clear();
   std::filesystem::path current;
@@ -162,6 +166,8 @@ bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selection{id};
   if (folder_ != folder)
     child_folders_.reset();
+  if (folder_ != folder || !query_.empty() || !type_.empty())
+    visible_indices_.reset();
   folder_.swap(folder);
   breadcrumbs_.swap(breadcrumbs);
   selection_.swap(selection);
@@ -170,8 +176,12 @@ bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
   return true;
 }
 void ContentBrowserModel::SetFilter(std::string query, std::string type) {
-  query_ = Lower(query);
-  type_ = Lower(type);
+  auto next_query = Lower(query), next_type = Lower(type);
+  if (query_ != next_query || type_ != next_type) {
+    visible_indices_.reset();
+    query_.swap(next_query);
+    type_.swap(next_type);
+  }
 }
 bool ContentBrowserModel::MatchesVisible(const ContentItem &item) const {
   return item.path.parent_path() == folder_ &&
@@ -181,9 +191,10 @@ bool ContentBrowserModel::MatchesVisible(const ContentItem &item) const {
 }
 void ContentBrowserModel::SelectVisible() {
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selected;
-  for (const auto &item : items_)
-    if (MatchesVisible(item))
-      selected.insert(item.id);
+  const auto &indices = VisibleIndices();
+  selected.reserve(indices.size());
+  for (const auto index : indices)
+    selected.insert(items_[index].id);
   selection_ = std::move(selected);
 }
 bool ContentBrowserModel::SelectVisibleRange(runtime::AssetUuid first, runtime::AssetUuid last) {
@@ -201,30 +212,29 @@ bool ContentBrowserModel::SelectVisibleRange(runtime::AssetUuid first, runtime::
   selection_ = std::move(selected);
   return true;
 }
+const std::vector<std::size_t> &ContentBrowserModel::VisibleIndices() const {
+  if (!visible_indices_) {
+    std::vector<std::size_t> indices;
+    for (std::size_t index = 0; index < items_.size(); ++index)
+      if (MatchesVisible(items_[index]))
+        indices.push_back(index);
+    visible_indices_ = std::make_shared<const std::vector<std::size_t>>(std::move(indices));
+  }
+  return *visible_indices_;
+}
 std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset,
                                                               std::size_t count) const {
   std::vector<const ContentItem *> matches;
-  for (const auto &item : items_) {
-    if (!MatchesVisible(item))
-      continue;
-    if (offset != 0) {
-      --offset;
-      continue;
-    }
-    if (matches.size() == count)
-      break;
-    matches.push_back(&item);
-  }
+  const auto &indices = VisibleIndices();
+  if (offset >= indices.size())
+    return matches;
+  count = std::min(count, indices.size() - offset);
+  matches.reserve(count);
+  for (std::size_t i = 0; i < count; ++i)
+    matches.push_back(&items_[indices[offset + i]]);
   return matches;
 }
-std::size_t ContentBrowserModel::VisibleCount() const {
-  std::size_t count = 0;
-  for (const auto &item : items_) {
-    if (MatchesVisible(item))
-      ++count;
-  }
-  return count;
-}
+std::size_t ContentBrowserModel::VisibleCount() const { return VisibleIndices().size(); }
 std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const { return *ChildFolderSnapshot(); }
 std::shared_ptr<const std::vector<Breadcrumb>> ContentBrowserModel::ChildFolderSnapshot() const {
   if (child_folders_)
@@ -290,6 +300,7 @@ bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *err
   undo_ = items_;
   undo_selection_ = selection_;
   child_folders_.reset();
+  visible_indices_.reset();
   items_ = std::move(next);
   std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
   if (error)
@@ -366,6 +377,7 @@ bool ContentBrowserModel::Undo() {
     return false;
   ++revision_;
   child_folders_.reset();
+  visible_indices_.reset();
   items_.swap(undo_);
   undo_.clear();
   selection_.swap(undo_selection_);
