@@ -839,7 +839,8 @@ isolated preview suites pass36 updates per barrier mode; the exact crashing nati
 established. Preserve ordinary system-runtime immutable scene construction without ALLOW_UPDATE
 and reject updates before GPU work. Raw DXR support alone does not authorize this bounded recipe.
 The admitted D3D12 ordinary1–8-triangle recipe keeps the
-same triangle count, one triangle geometry, vertex format/stride and one TLAS instance. Empty,
+same triangle count, one triangle geometry, vertex format/stride and the existing TLAS instance
+count. Empty,
 nonfinite/degenerate geometry, changed counts, stale handles and OMM scenes reject before native
 execution or publication. Other backends and builds without pinned ray artifacts explicitly throw
 unsupported. General topology/material/heterogeneous-instance edits and OMM updates/compaction
