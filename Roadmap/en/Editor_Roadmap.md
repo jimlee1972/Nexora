@@ -1231,19 +1231,27 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Imported Chrome X/B/E intervals now expose optional self elapsed time excluding observed
+    selected-thread synchronous children, including nonmatching names. Iterative bounded context
+    reconstruction preserves raw relative durations at large clocks, known B/E coincident nesting,
+    begin retention and evicted-slot identity. Async/crossing/ambiguous components retain inclusive
+    values with unavailable self. Core tick-coverage, deep-context, read-only IO and actual1x/2x
+    rendered-value controls validate the supporting slice; CPU execution, other formats, physical
+    calibration and full ED-M6 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeSelfElapsed-Linux-2026-10-20.md).
   - ✅ External Chrome import now pairs non-nestable legacy S/F intervals by typed ID,
     category/scope and exact name, separately from nestable b/e. Begin process/thread selection,
     local/global namespaces and cross-process global aliases retain existing bounded semantics.
     Duplicate starts, unclosed/malformed scopes and shared 128-open overflow reject; newest600
     begin-order retention protects evicted begins. Core, read-only project IO and actual 1x/2x
     Profiler controls cover mixed formats, precision, Unicode and prior-view/source preservation.
-    T/p steps remain metadata; exclusive/self time, other formats and physical calibration remain
+    T/p steps remain metadata; other formats and physical calibration remain
     open. [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeLegacyAsync-Linux-2026-10-20.md).
   - ✅ External Chrome global async import now aliases legacy id with id2.global and pairs
     cross-process/thread ends. Begin process/thread/name selection, local/global separation,
     global nesting across nonselected processes, typed ID/category/scope isolation, shared
     128-open capacity and evicted-begin safety pass Core, read-only project IO and actual
-    1x/2x mixed-event import controls. Inclusive latency remains externally sourced; exclusive/self time, other formats and physical calibration remain open.
+    1x/2x mixed-event import controls. Inclusive latency remains externally sourced; other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md).
   - ✅ External Chrome import now pairs bounded nestable async b/e with process-local id2.local IDs,
     category/scope identity and cross-thread ends. Selection uses the begin thread/name; shared
@@ -1257,7 +1265,7 @@ creates property widgets; unknown components retain raw data instead of being si
     inclusive external durations, newest600/drop counts and evicted-begin safety. Unclosed,
     mismatched, backward or over-capacity scopes reject without changing prior captures/files/live
     profiles; read-only project IO and actual 1x/2x Profiler import controls are covered.
-    Legacy async S/F is covered above; exclusive/self time, other formats and physical calibration remain open.
+    Legacy async S/F is covered above; other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
   - ✅ External Chrome trace inspection is validated: explicit event/process/thread selection,
     bounded Unicode JSON, external clock/duration units, newest600/drop counts and independent

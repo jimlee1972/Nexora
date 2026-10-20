@@ -46,7 +46,10 @@ by name in a separate domain, rejecting duplicate live starts; T/p steps remain 
 The host retains the same owning static interval view, external clock/unit labels,
 process/begin-thread/event selection,
 read-only admission and scope revocation. Nested intervals are displayed by start order;
-duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+duration is inclusive elapsed time. Rows also show optional self elapsed time excluding observed
+synchronous children, with explicit unavailable for async/ambiguous intervals and available zero
+for measured zero. A label explains the external elapsed scope; CPU execution, GPU and memory
+remain unmeasured. Context sorting and original B/E order define availability in the Core contract.
 Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
 contract documents pairing, chronological and capacity requirements.
 
