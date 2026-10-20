@@ -6433,15 +6433,24 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                     capture.samples.size(),
                     static_cast<unsigned long long>(capture.older_samples_dropped));
         ImGui::TextWrapped("Event: %s", capture.selection.event_name.c_str());
+        ImGui::TextWrapped(
+            "Self elapsed excludes observed synchronous children. "
+            "Async or ambiguous intervals show unavailable; CPU execution is unmeasured.");
         ImGui::BeginChild("External intervals", {0, 150}, ImGuiChildFlags_Borders);
         ImGuiListClipper clipper;
         clipper.Begin(static_cast<int>(capture.samples.size()));
         while (clipper.Step())
           for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
             const auto &sample = capture.samples[static_cast<std::size_t>(i)];
-            ImGui::Text("%llu | external %.6f us | duration %.6f ms",
-                        static_cast<unsigned long long>(sample.sequence), sample.start_microseconds,
-                        sample.duration_milliseconds);
+            if (sample.self_duration_milliseconds)
+              ImGui::Text("%llu | external %.6f us | duration %.6f ms | self %.6f ms",
+                          static_cast<unsigned long long>(sample.sequence),
+                          sample.start_microseconds, sample.duration_milliseconds,
+                          *sample.self_duration_milliseconds);
+            else
+              ImGui::Text("%llu | external %.6f us | duration %.6f ms | self unavailable",
+                          static_cast<unsigned long long>(sample.sequence),
+                          sample.start_microseconds, sample.duration_milliseconds);
           }
         ImGui::EndChild();
       }
@@ -8408,6 +8417,17 @@ EditorImGuiTestAccess::ChromeTraceControlPosition(const EditorImGuiHost &host,
 const ChromeTraceCapture *
 EditorImGuiTestAccess::ImportedChromeTrace(const EditorImGuiHost &host) noexcept {
   return host.state_->imported_chrome_trace ? &*host.state_->imported_chrome_trace : nullptr;
+}
+void EditorImGuiTestAccess::BeginTextCapture(EditorImGuiHost &host) {
+  Activate(host.state_->context);
+  ImGui::LogToBuffer();
+}
+std::string EditorImGuiTestAccess::EndTextCapture(EditorImGuiHost &host) {
+  Activate(host.state_->context);
+  const auto &buffer = ImGui::GetCurrentContext()->LogBuffer;
+  std::string text{buffer.begin(), buffer.end()};
+  ImGui::LogFinish();
+  return text;
 }
 const ProcessMemoryCapture *
 EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {

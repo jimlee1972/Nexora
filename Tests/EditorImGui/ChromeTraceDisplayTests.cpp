@@ -34,10 +34,15 @@ void Run(float scale) {
   focus.value0 = 1;
   host.ProcessEvents(std::array{focus});
   ProductShell shell;
-  const auto draw = [&] {
+  std::string rendered_text;
+  const auto draw = [&](bool capture_text = false) {
     host.BeginFrame();
+    if (capture_text)
+      Access::BeginTextCapture(host);
     host.DrawProductShell(shell, nullptr, workspace, nullptr, nullptr, nullptr, nullptr, nullptr,
                           &profile);
+    if (capture_text)
+      rendered_text = Access::EndTextCapture(host);
     Require(host.EndFrame().vertices > 0, "Chrome trace controls did not render");
   };
   draw();
@@ -75,31 +80,46 @@ void Run(float scale) {
     std::ofstream output(trace_path);
     output
         << R"([{"ph":"B","name":"Frame","pid":0,"tid":0,"ts":100},)"
-           R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":200,"dur":0},)"
+           R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":200,"dur":100},)"
            R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":300,"id2":{"local":"job"}},)"
            R"({"ph":"e","name":"Frame","pid":0,"tid":9,"ts":800,"id2":{"local":"job"}},)"
            R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":400,"id":"global-job"},)"
            R"({"ph":"e","name":"Frame","pid":9,"tid":8,"ts":1150,"id2":{"global":"global-job"}},)"
            R"({"ph":"S","name":"Frame","pid":0,"tid":0,"ts":500,"id":"legacy"},)"
            R"({"ph":"F","name":"Frame","pid":9,"tid":8,"ts":1500,"id2":{"global":"legacy"}},)"
+           R"({"ph":"X","name":"Frame","pid":0,"tid":0,"ts":600,"dur":0},)"
            R"({"ph":"E","pid":0,"tid":0,"ts":1350}])";
   }
   auto loaded = first.ImportChromeTraceJson(request->selection);
   Require(
-      loaded && loaded->samples.size() == 5 && loaded->samples[0].duration_milliseconds == 1.25 &&
-          loaded->samples[1].duration_milliseconds == 0 &&
+      loaded && loaded->samples.size() == 6 && loaded->samples[0].duration_milliseconds == 1.25 &&
+          loaded->samples[1].duration_milliseconds == .1 &&
           loaded->samples[2].duration_milliseconds == .5 &&
           loaded->samples[3].duration_milliseconds == .75 &&
-          loaded->samples[4].duration_milliseconds == 1,
+          loaded->samples[4].duration_milliseconds == 1 &&
+          loaded->samples[0].self_duration_milliseconds == 1.15 &&
+          loaded->samples[1].self_duration_milliseconds == .1 &&
+          !loaded->samples[2].self_duration_milliseconds &&
+          !loaded->samples[3].self_duration_milliseconds &&
+          !loaded->samples[4].self_duration_milliseconds &&
+          loaded->samples[5].self_duration_milliseconds == 0,
       "Actual selected project import did not pair mixed synchronous/async Chrome duration scopes");
   const auto capture = *loaded;
   Require(host.SetImportedChromeTrace(capture), "Valid external static publication failed");
+  draw(true);
+  Require(rendered_text.find("duration 1.250000 ms | self 1.150000 ms") != std::string::npos &&
+              rendered_text.find("duration 0.100000 ms | self 0.100000 ms") != std::string::npos &&
+              rendered_text.find("self 0.000000 ms") != std::string::npos &&
+              rendered_text.find("self unavailable") != std::string::npos,
+          "Actual rendered trace rows lost distinct inclusive/self values or unavailable labels");
   auto copy = capture;
   copy.selection.event_name = "Changed";
   copy.samples[0].duration_milliseconds = 99;
+  copy.samples[0].self_duration_milliseconds = 99;
   const auto imported = [&] { return Access::ImportedChromeTrace(host); };
   Require(imported() && imported()->selection.event_name == "Frame" &&
               imported()->samples.front().duration_milliseconds == 1.25 &&
+              imported()->samples.front().self_duration_milliseconds == 1.15 &&
               profile.Samples().size() == 1,
           "External view borrowed caller or changed live frame measurements");
   {
@@ -108,11 +128,13 @@ void Run(float scale) {
   }
   std::string load_error;
   Require(!first.ImportChromeTraceJson(request->selection, &load_error) && !load_error.empty() &&
-              imported() && imported()->samples.size() == 5 &&
-              imported()->samples.back().duration_milliseconds == 1 &&
+              imported() && imported()->samples.size() == 6 &&
+              imported()->samples[4].duration_milliseconds == 1 &&
+              imported()->samples.back().duration_milliseconds == 0 &&
+              imported()->samples.front().self_duration_milliseconds == 1.15 &&
               profile.Samples().size() == 1,
           "Unclosed legacy import replaced prior static view or live measurements");
-  for (int kind = 0; kind < 5; ++kind) {
+  for (int kind = 0; kind < 8; ++kind) {
     auto bad = capture;
     if (kind == 0)
       bad.samples.clear();
@@ -124,8 +146,15 @@ void Run(float scale) {
       bad.samples[0].duration_milliseconds = std::numeric_limits<double>::infinity();
     if (kind == 4)
       bad.selection.event_name = "bad\n";
+    if (kind == 5)
+      bad.samples[0].self_duration_milliseconds = -1;
+    if (kind == 6)
+      bad.samples[0].self_duration_milliseconds = 2;
+    if (kind == 7)
+      bad.samples[0].self_duration_milliseconds = std::numeric_limits<double>::quiet_NaN();
     Require(!host.SetImportedChromeTrace(std::move(bad)) && imported() &&
-                imported()->samples.front().duration_milliseconds == 1.25,
+                imported()->samples.front().duration_milliseconds == 1.25 &&
+                imported()->samples.front().self_duration_milliseconds == 1.15,
             "Invalid external publication erased the last-good view");
   }
   Require(host.SetImportedProfileCapture({{{1, 1, 0, 0}}, 0}) &&

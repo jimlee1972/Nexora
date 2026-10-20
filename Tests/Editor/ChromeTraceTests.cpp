@@ -2,8 +2,10 @@
 #include "Nexora/Editor/ChromeTrace.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -630,6 +632,172 @@ void LegacyAsyncPairs() {
   reject(depth + ',' + Scope("B", 500, "Other") + ',' + Scope("E", 900) + finishes + "]");
 }
 
+std::string CompleteEvent(std::string_view start, std::string_view duration,
+                          std::string_view name = "Frame", unsigned thread = 7,
+                          unsigned process = 42) {
+  return "{\"ph\":\"X\",\"name\":\"" + std::string(name) + "\",\"pid\":" + std::to_string(process) +
+         ",\"tid\":" + std::to_string(thread) + ",\"ts\":" + std::string(start) +
+         ",\"dur\":" + std::string(duration) + "}";
+}
+void SelfElapsed() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto parse = [&](const std::string &source) {
+    const auto original = source;
+    auto result = ChromeTraceImporter::Import(source, selection);
+    Require(result && ChromeTraceImporter::Validate(*result) && source == original,
+            "Self analysis rejected a valid inclusive trace or violated capture bounds");
+    return *result;
+  };
+  const auto equal = [](const std::optional<double> &value, double expected) {
+    return value && std::abs(*value - expected) < 1e-12;
+  };
+  const auto single =
+      parse("[" + CompleteEvent("100", "1000") + ',' + CompleteEvent("200", "200", "Other") + ',' +
+            CompleteEvent("500", "100", "Other") + "]");
+  Require(single.samples.size() == 1 && single.samples[0].duration_milliseconds == 1 &&
+              equal(single.samples[0].self_duration_milliseconds, .7),
+          "Unselected synchronous children did not reduce parent self elapsed time");
+  const auto mixed = parse("[" + Scope("B", 0, "Frame") + ',' + Scope("B", 100, "Other") + ',' +
+                           CompleteEvent("150", "50", "Other") + ',' + Scope("E", 300) + ',' +
+                           CompleteEvent("400", "100") + ',' + Scope("E", 1000) + "]");
+  Require(mixed.samples.size() == 2 && equal(mixed.samples[0].self_duration_milliseconds, .7) &&
+              equal(mixed.samples[1].self_duration_milliseconds, .1),
+          "Mixed B/E/X self time double-counted grandchildren or lost selected begin order");
+  const auto fractional = parse("[" + CompleteEvent("100.25", "1250.5") + ',' +
+                                CompleteEvent("100.5", "250.25", "Other") + "]");
+  Require(equal(fractional.samples[0].self_duration_milliseconds, 1.00025),
+          "Fractional external microseconds lost self-time precision");
+  const auto large = parse("[" + CompleteEvent("9007199254740000", "0.25") + ',' +
+                           CompleteEvent("9007199254740000", "0.125", "Other") + "]");
+  Require(equal(large.samples[0].self_duration_milliseconds, .000125) &&
+              large.samples[0].duration_milliseconds == .00025,
+          "Large absolute clocks rounded away raw relative durations");
+  const auto crossing_large = parse("[" + CompleteEvent("1000000000000000", "0.2") + ',' +
+                                    CompleteEvent("1000000000000000.125", "0.1", "Other") + "]");
+  Require(!crossing_large.samples[0].self_duration_milliseconds &&
+              crossing_large.samples[0].duration_milliseconds == .0002,
+          "Rounded absolute endpoints fabricated a contained child or changed inclusive latency");
+  const auto unordered =
+      parse("[" + CompleteEvent("200", "100", "Other") + ',' + CompleteEvent("100", "1000") + "]");
+  Require(equal(unordered.samples[0].self_duration_milliseconds, .9),
+          "Out-of-order nonselected context changed selected input acceptance or self time");
+  const auto threads =
+      parse("[" + CompleteEvent("100", "1000") + ',' + CompleteEvent("200", "100", "Other", 8) +
+            ',' + CompleteEvent("300", "100", "Other", 7, 43) + "]");
+  Require(equal(threads.samples[0].self_duration_milliseconds, 1),
+          "Unrelated process/thread intervals reduced selected-thread self time");
+  const auto coincident =
+      parse("[" + CompleteEvent("100", "100") + ',' + CompleteEvent("100", "100", "Other") + "]");
+  Require(!coincident.samples[0].self_duration_milliseconds &&
+              coincident.samples[0].duration_milliseconds == .1,
+          "Ambiguous coincident X intervals fabricated self time or lost inclusive duration");
+  for (bool selected_parent : {false, true}) {
+    const auto paired = parse("[" + Scope("B", 100, selected_parent ? "Frame" : "Other") + ',' +
+                              Scope("B", 100, selected_parent ? "Other" : "Frame") + ',' +
+                              Scope("E", 200) + ',' + Scope("E", 200) + "]");
+    Require(paired.samples.size() == 1 &&
+                equal(paired.samples[0].self_duration_milliseconds, selected_parent ? 0 : .1),
+            "Known coincident B/E hierarchy lost its original begin order");
+  }
+  const auto crossing =
+      parse("[" + CompleteEvent("0", "200") + ',' + CompleteEvent("50", "100", "Other") + ',' +
+            CompleteEvent("100", "100", "Other") + ',' + CompleteEvent("300", "50") + "]");
+  Require(crossing.samples.size() == 2 && !crossing.samples[0].self_duration_milliseconds &&
+              equal(crossing.samples[1].self_duration_milliseconds, .05),
+          "Crossing component fabricated self time or poisoned an independent valid component");
+  const auto async =
+      parse("[" + Scope("B", 0, "Frame") + ',' + Global("b", 100) + ',' +
+            Global("S", 300, 42, true) + ',' + CompleteEvent("400", "100", "Other") + ',' +
+            Global("e", 900, 43) + ',' + Global("F", 950, 43) + ',' + Scope("E", 1000) + "]");
+  Require(async.samples.size() == 3 && equal(async.samples[0].self_duration_milliseconds, .9) &&
+              !async.samples[1].self_duration_milliseconds &&
+              !async.samples[2].self_duration_milliseconds,
+          "Async intervals claimed self time or interfered with synchronous child accounting");
+  const auto zero = parse("[" + CompleteEvent("0", "0") + ',' + CompleteEvent("0", "0") + "]");
+  Require(equal(zero.samples[0].self_duration_milliseconds, 0) &&
+              equal(zero.samples[1].self_duration_milliseconds, 0),
+          "Valid zero-duration intervals lost available zero self time");
+  // Independent tick-coverage oracle: subtract the union of all contained intervals, not a
+  // reconstruction stack or sum of every descendant. All times are integral microseconds.
+  const std::array spans{std::pair{0, 100},   std::pair{10, 80},   std::pair{20, 30},
+                         std::pair{40, 50},   std::pair{60, 70},   std::pair{90, 100},
+                         std::pair{200, 250}, std::pair{210, 230}, std::pair{220, 220},
+                         std::pair{230, 240}};
+  const auto check_coverage = [&](const auto &intervals) {
+    std::string source = "[";
+    for (const auto &[begin, end] : intervals) {
+      if (source.size() > 1)
+        source += ',';
+      source += CompleteEvent(std::to_string(begin), std::to_string(end - begin));
+    }
+    const auto oracle = parse(source + "]");
+    Require(oracle.samples.size() == intervals.size(), "Coverage oracle lost selected intervals");
+    for (std::size_t i = 0; i < intervals.size(); ++i) {
+      const auto [begin, end] = intervals[i];
+      unsigned uncovered{};
+      for (int tick = begin; tick < end; ++tick) {
+        bool covered = false;
+        for (std::size_t j = 0; j < intervals.size(); ++j)
+          if (j != i && intervals[j].first >= begin && intervals[j].second <= end &&
+              tick >= intervals[j].first && tick < intervals[j].second)
+            covered = true;
+        uncovered += !covered;
+      }
+      Require(equal(oracle.samples[i].self_duration_milliseconds, uncovered / 1000.0),
+              "Self elapsed disagrees with independent integer tick-union coverage");
+    }
+  };
+  check_coverage(spans);
+  for (std::uint32_t seed = 1; seed <= 40; ++seed) {
+    std::vector<std::pair<int, int>> generated;
+    auto state = seed;
+    const auto add = [&](auto &&recurse, int begin, int end, unsigned depth) -> void {
+      generated.emplace_back(begin, end);
+      if (!depth || end - begin < 6)
+        return;
+      state = state * 1664525U + 1013904223U;
+      const auto children = (state >> 16) & 3U;
+      const auto middle = begin + (end - begin) / 2;
+      if (children & 1)
+        recurse(recurse, begin + 1, middle - 1, depth - 1);
+      if (children & 2)
+        recurse(recurse, middle + 1, end - 1, depth - 1);
+    };
+    add(add, 0, 128, 5);
+    check_coverage(generated);
+  }
+  std::string deep = "[";
+  for (unsigned i = 0; i < 4096; ++i)
+    deep += (i ? "," : "") + CompleteEvent(std::to_string(i), std::to_string(8192 - 2 * i));
+  const auto deep_capture = parse(deep + "]");
+  Require(deep_capture.older_samples_dropped == 3496 && deep_capture.samples.size() == 600,
+          "Deep synchronous context changed newest600 retention");
+  for (const auto &sample : deep_capture.samples)
+    Require(equal(sample.self_duration_milliseconds, .002),
+            "Iterative deep self-time reconstruction lost nested coverage");
+  // Equal starts reverse context order relative to retention order. The evicted innermost
+  // interval has100us self time; it must not overwrite retained sequence601's3us ring slot.
+  std::string eviction = "[";
+  for (unsigned i = 0; i < 606; ++i)
+    eviction += (i ? "," : "") + CompleteEvent("0", std::to_string(100 + 3 * i));
+  const auto retained = parse(eviction + "]");
+  Require(retained.older_samples_dropped == 6 && retained.samples.front().sequence == 7 &&
+              retained.samples.back().sequence == 606,
+          "Self-time context sorting changed sample sequence/loss order");
+  for (const auto &sample : retained.samples)
+    Require(equal(sample.self_duration_milliseconds, .003),
+            "Evicted sorted context overwrote a newer ring occupant's self time");
+  for (const auto invalid : {-1., 1.01, std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()}) {
+    auto copy = single;
+    copy.samples[0].self_duration_milliseconds = invalid;
+    Require(!ChromeTraceImporter::Validate(copy), "Invalid optional self time admitted");
+  }
+  auto unavailable = single;
+  unavailable.samples[0].self_duration_milliseconds.reset();
+  Require(ChromeTraceImporter::Validate(unavailable), "Unavailable self time rejected");
+}
+
 void ProjectIo() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-chrome-io-" +
@@ -663,13 +831,14 @@ void ProjectIo() {
   auto paired_capture = observer.ImportChromeTraceJson(selection, &error);
   Require(paired_capture && ChromeTraceImporter::Validate(*paired_capture) && error.empty() &&
               paired_capture->samples.front().duration_milliseconds == 1.25 &&
+              paired_capture->samples.front().self_duration_milliseconds == 1.25 &&
               read() == paired_bytes,
           "Read-only project duration import altered bytes or lost external duration");
   const auto async_bytes = "[" + Async("b", 100) + ',' + Async("e", 1350, "1", 8) + "]";
   write(async_bytes);
   auto async_capture = observer.ImportChromeTraceJson(selection, &error);
   Require(async_capture && async_capture->samples.front().duration_milliseconds == 1.25 &&
-              read() == async_bytes,
+              !async_capture->samples.front().self_duration_milliseconds && read() == async_bytes,
           "Read-only cross-thread async import changed source or duration");
   const auto global_bytes = "[" + Global("b", 100, 42, true) + ',' + Global("e", 1350, 43) + "]";
   write(global_bytes);
@@ -747,6 +916,7 @@ int main() {
     AsyncPairs();
     GlobalPairs();
     LegacyAsyncPairs();
+    SelfElapsed();
     ProjectIo();
     return 0;
   } catch (const std::exception &error) {

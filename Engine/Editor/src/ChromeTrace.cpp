@@ -40,6 +40,7 @@ public:
     if (!events || !End() || !open_scopes_.empty() || !async_scopes_.empty() ||
         capture_.samples.empty())
       return {};
+    ComputeSelf();
     if (capture_.samples.size() == ChromeTraceImporter::kMaximumSamples && next_)
       std::rotate(capture_.samples.begin(), capture_.samples.begin() + next_,
                   capture_.samples.end());
@@ -361,8 +362,13 @@ private:
       return false;
     if (process != capture_.selection.process || thread != capture_.selection.thread)
       return true;
-    if (phase == "X")
-      return name != capture_.selection.event_name || Sample(start, duration);
+    if (phase == "X") {
+      const bool selected = name == capture_.selection.event_name;
+      if (selected && !Sample(start, duration))
+        return false;
+      synchronous_.push_back({start, duration, 0, 0, selected ? selected_ : 0, events_, false});
+      return true;
+    }
     if (scope_time_ && start < *scope_time_)
       return false;
     scope_time_ = start;
@@ -372,7 +378,7 @@ private:
       const bool selected = name == capture_.selection.event_name;
       if (selected && !Sample(start, 0))
         return false;
-      open_scopes_.push_back({std::move(name), start, selected ? selected_ : 0});
+      open_scopes_.push_back({std::move(name), start, selected ? selected_ : 0, events_});
       return true;
     }
     if (open_scopes_.empty())
@@ -381,6 +387,8 @@ private:
     if (((seen & 2) && name != begin.name) || start < begin.start)
       return false;
     Complete(begin, start);
+    synchronous_.push_back(
+        {begin.start, start - begin.start, 0, 0, begin.sequence, begin.origin, true});
     open_scopes_.pop_back();
     return true;
   }
@@ -388,6 +396,7 @@ private:
     std::string name;
     double start;
     std::uint64_t sequence;
+    std::size_t origin{};
   };
   struct AsyncIdentity final {
     std::string id, category, scope;
@@ -399,6 +408,97 @@ private:
     OpenScope scope;
     double last_time;
   };
+  struct SynchronousScope final {
+    double start, duration, children, self;
+    std::uint64_t sequence;
+    std::size_t origin;
+    bool paired;
+  };
+  void ComputeSelf() {
+    if (synchronous_.empty())
+      return;
+    std::ranges::sort(synchronous_, [](const auto &a, const auto &b) {
+      if (a.start != b.start)
+        return a.start < b.start;
+      if (a.duration != b.duration)
+        return a.duration > b.duration;
+      return a.origin < b.origin;
+    });
+    std::vector<std::size_t> stack;
+    stack.reserve(synchronous_.size());
+    const auto close = [&] {
+      auto &scope = synchronous_[stack.back()];
+      if (scope.children > scope.duration)
+        return false;
+      scope.self = scope.duration - scope.children;
+      stack.pop_back();
+      if (!stack.empty())
+        synchronous_[stack.back()].children += scope.duration;
+      return true;
+    };
+    std::size_t first{}, farthest{};
+    bool valid = true;
+    const auto finish = [&](std::size_t end) {
+      if (!valid) {
+        stack.clear();
+        return;
+      }
+      while (!stack.empty())
+        if (!close()) {
+          valid = false;
+          stack.clear();
+          return;
+        }
+      for (auto i = first; i < end; ++i) {
+        const auto &scope = synchronous_[i];
+        if (!scope.sequence)
+          continue;
+        auto &sample =
+            capture_.samples[(scope.sequence - 1) % ChromeTraceImporter::kMaximumSamples];
+        // Sorting context can visit evicted begins after a newer occupant; never overwrite it.
+        if (sample.sequence == scope.sequence)
+          sample.self_duration_milliseconds = scope.self / 1000.0;
+      }
+    };
+    for (std::size_t i = 0; i < synchronous_.size(); ++i) {
+      const auto &scope = synchronous_[i];
+      const auto &last = synchronous_[farthest];
+      // Compare relative starts and raw durations: adding a tiny X duration to a large
+      // absolute timestamp could round away the entire interval or invent an overlap.
+      if (i != first && scope.start - last.start >= last.duration) {
+        finish(i);
+        first = farthest = i;
+        valid = true;
+      } else if (scope.duration > last.duration - (scope.start - last.start)) {
+        farthest = i;
+      }
+      if (!valid)
+        continue;
+      while (!stack.empty() &&
+             scope.start - synchronous_[stack.back()].start >= synchronous_[stack.back()].duration)
+        if (!close()) {
+          valid = false;
+          stack.clear();
+          break;
+        }
+      if (!valid)
+        continue;
+      if (!stack.empty()) {
+        const auto &parent = synchronous_[stack.back()];
+        if (scope.duration > parent.duration - (scope.start - parent.start) ||
+            (scope.start == parent.start && scope.duration == parent.duration &&
+             (!scope.paired || !parent.paired))) {
+          // One crossing/coincident scope makes this connected component ambiguous. Inclusive
+          // intervals remain valid; disjoint components can still expose their own self time.
+          valid = false;
+          stack.clear();
+          continue;
+        }
+      }
+      stack.push_back(i);
+    }
+    finish(synchronous_.size());
+  }
   void Complete(const OpenScope &begin, double start) {
     if (begin.sequence) {
       auto &sample = capture_.samples[(begin.sequence - 1) % ChromeTraceImporter::kMaximumSamples];
@@ -428,6 +528,7 @@ private:
   double previous_start_{};
   std::vector<OpenScope> open_scopes_;
   std::vector<AsyncScope> async_scopes_;
+  std::vector<SynchronousScope> synchronous_;
   std::optional<double> scope_time_;
 };
 } // namespace
@@ -461,6 +562,11 @@ bool ChromeTraceImporter::Validate(const ChromeTraceCapture &capture) noexcept {
         sample.start_microseconds < previous || sample.start_microseconds > maximum_exact_integer ||
         !std::isfinite(sample.duration_milliseconds) || sample.duration_milliseconds < 0 ||
         sample.duration_milliseconds > (maximum_exact_integer - sample.start_microseconds) / 1000.0)
+      return false;
+    if (sample.self_duration_milliseconds &&
+        (!std::isfinite(*sample.self_duration_milliseconds) ||
+         *sample.self_duration_milliseconds < 0 ||
+         *sample.self_duration_milliseconds > sample.duration_milliseconds))
       return false;
     previous = sample.start_microseconds;
   }
