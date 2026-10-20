@@ -73,16 +73,13 @@ inline PendingRayScene CompactRayBottomAndRelinkTop(ID3D12Device5 &device, Pendi
                                                     UINT64 bottom_bytes) {
   BeginRaySceneCommands(device, pending);
   pending.scene.bottom = RayCompactionBuffer(device, bottom_bytes);
-  const auto instance = RayInstanceDescriptor(pending.scene);
-  pending.scene.instances =
-      RayBuffer(device, sizeof(instance), true, D3D12_RESOURCE_STATE_GENERIC_READ);
-  UploadRayBytes(*pending.scene.instances.Get(), std::as_bytes(std::span{&instance, 1}));
+  UploadRayInstances(device, pending.scene);
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS inputs{};
   inputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
   inputs.Flags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE |
                  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE |
                  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION;
-  inputs.NumDescs = 1;
+  inputs.NumDescs = pending.scene.instance_count;
   inputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   inputs.InstanceDescs = pending.scene.instances->GetGPUVirtualAddress();
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO size{};

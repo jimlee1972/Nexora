@@ -694,6 +694,36 @@ Minimal／Monolithic LTO 與專項契約／Profile **8/8** 通過。Khronos Obje
 **13/13** 通過（4.06s），確認24次 Layer 插入，無 Validation／VUID／同步錯誤。Windows
 Legacy 與 Enhanced Work Graph 變體仍待驗收；Linux Compute 後備不代表原生節點證據。
 
+## 有界共用 BLAS instance 施工 — 2026-10-20
+
+`nexora-45y.4.9` 為一般場景加入一份共用 BLAS 與1–8個獨立變換的 TLAS instance，限制
+總共最多八個三角形。原生 instance ID 編碼實例優先的攤平 primitive base，由 pipeline／
+inline／SER shader 讀取，與既有 world-space compute 幾何相符，不改16-byte 命中 ABI
+或基線 Shader profile。預設單 instance 與 OMM 編號不變。建立時複製並在配置前驗證每個
+矩陣／範圍；相同數量的 transform set 保留 BLAS／vertices，幾何 refit、compaction 與
+完整重建保留全部矩陣，數量改變後重新計算 primitive base。舊 List 保留先前完整 instance／
+AS 對應，沿用建置 fence 與較晚失敗 quarantine。System 建立／重建保持不可變旗標，私有
+准入 runtime 以外的更新仍預設關閉。C++ 消費端需重編，C ABI 維持穩定。
+
+Fixture 將1／2／8個局部三角形配對8／4／1個 instance，每個 instance 都有可區分命中；
+兩個重疊 worker 測試失敗／取消／重播，更新保留舊／新 List。私有 fixture 各要求704筆
+CPU 比對，每種模式最終計數63次 refit、27次重建、36次 compaction、45次變換發布。
+System fixture 各要求320筆比對，12次重建且更新計數皆0；未支援後端執行相同有界 baked
+幾何，每組320筆 CPU／compute 比對，原生計數0。Fixture 的 AS 拒絕判斷獨立查詢基本 RT
+能力，inline 模式不可用時明確選 compute 後備，並保留一般場景准入。釘選 SDK 與 Windows 條件式語法、一般
+Slang library6.3／query6.5 與預覽 DXC SER6.9 編譯通過；原生執行與固定 head 完整 gate
+仍為必要驗收。Cleanup 僅增加本次自有分支的精確名稱，沿用 owner／儲存庫／即時 head
+保護。一般異質 mesh、instance mask／材質、光照、system refit 隔離、實體與全部完整 gate
+持續開放。
+
+✅ 限縮 API／所有權與 shader 身分實作通過完整原生 Vulkan／Slang／Zig Development
+configure／build 與 Xvfb CTest229/229，零失敗／略過（140.88秒），以及 Shipping
+Minimal／Monolithic LTO。新增 baked instance fixture 比對1,920筆 GPU compute 輸出，
+原生 AS／更新計數保持0。釘選 SDK／Windows 條件式語法、Slang／DXC profile 與釘選
+反射／bytecode 身分檢查通過。文件16/16、cleanup39/39、雙語 Markdown、touched 格式與
+diff 檢查通過。實際私有／system Windows instancing 與固定 head 的兩套完整 CI workflow
+仍為合併門檻；不宣稱實體或完整 V2-GFX-3 驗收完成。
+
 ## 有界 TLAS instance transform 施工 — 2026-10-20
 
 `nexora-45y.4.8` 為一般1–8三角形場景加入明確、絕對值 row-major instance transform，
@@ -708,7 +738,7 @@ pending context 保留資源。新診斷附加於既有欄位之後；穩定 C A
 54次明確 refit、18次完整重建及27次 compaction。Linux／其他未支援配方保持原生計數0，
 以 world-space GPU compute 輸出對照獨立 CPU 幾何。釘選 SDK、Windows 條件式語法與完整
 本機／hosted gate 皆仍為必要驗收。既有 CI 清理只增加本次自有變換分支的精確名稱，保留
-即時 head 的 push／PR 及無關 actor／分支。一般／多 instance 場景、光照、system-runtime
+即時 head 的 push／PR 及無關 actor／分支。一般化異質 instance 場景組裝、光照、system-runtime
 refit 隔離與全部完整 gate 持續開放。
 
 ✅ 限縮 API／所有權實作通過原生 Vulkan／Slang／Zig Development configure／build 與 Xvfb
@@ -735,7 +765,7 @@ enhanced 模式執行九組變換 fixture，每組704筆獨立 CPU 舊／新比�
 
 一般 system-runtime 模式保持 refit／compaction／transform 計數0，各執行六次完整重建。
 Linux world-space compute 驗證1,152筆 affine 輸出，原生變換計數0。這接受有界私有軟體
-runtime 配方；一般／多 instance 場景、光照、完成失敗注入、較廣 system refit
+runtime 配方；一般化異質 instance 場景組裝、光照、完成失敗注入、較廣 system refit
 （`nexora-45y.4.7`）、實體效能／裝置遺失驗收與五個完整 V2-GFX gate 持續開放。
 
 ## 明確 opt-in 的有界射線場景 compaction 施工 — 2026-10-18

@@ -1170,18 +1170,24 @@ public:
   }
   RaySceneHandle CreateRaySceneWithOptions(std::span<const RayTriangle> triangles,
                                            const RaySceneCreationOptions &options) override {
+    const std::array<RayInstanceTransform, 1> identity{};
+    return CreateInstancedRayScene(triangles, identity, options);
+  }
+  RaySceneHandle CreateInstancedRayScene(std::span<const RayTriangle> triangles,
+                                         std::span<const RayInstanceTransform> transforms,
+                                         const RaySceneCreationOptions &options) override {
     RequireGraphicsCapabilities(Capabilities(), EffectiveRayProgramRequirements({}));
     if (options.allow_compaction && !capabilities_.ray_scene_refit_enabled)
       throw std::logic_error("ray compaction requires the admitted private runtime");
-    if (!IsRaySceneValid(triangles))
-      throw std::invalid_argument("invalid bounded ray triangles");
+    if (!IsRaySceneValid(triangles) || !IsRayInstanceSetValid(triangles.size(), transforms))
+      throw std::invalid_argument("invalid bounded ray triangles or instances");
     // Immutable construction is caller-serialized with submit/mutation, like other resource
     // creation.
     std::lock_guard lock{mutex_};
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
     auto completed = CompleteRayBuild(detail::BuildNativeRayScene(
         *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled,
-        options.allow_compaction));
+        options.allow_compaction, transforms));
     const auto handle = ray_scene_pool_.Create();
     try {
       ray_scenes_.emplace(Key(handle), std::move(completed.scene));
@@ -1233,16 +1239,18 @@ public:
     ++diagnostics_.ray_scene_refits;
   }
   void SetRaySceneTransform(RaySceneHandle scene, const RayInstanceTransform &transform) override {
+    SetRaySceneTransforms(scene, std::span{&transform, 1});
+  }
+  void SetRaySceneTransforms(RaySceneHandle scene,
+                             std::span<const RayInstanceTransform> transforms) override {
     if (!capabilities_.ray_scene_refit_enabled)
       throw std::logic_error("ray instance transforms require the admitted private runtime");
-    if (!IsRayInstanceTransformValid(transform))
-      throw std::invalid_argument("invalid bounded ray instance transform");
     std::lock_guard lock{mutex_};
     Require(ray_scene_pool_.Contains(scene) && ray_scenes_.contains(Key(scene)),
             "transforming stale ray scene");
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
-    auto replacement = CompleteRayBuild(
-        detail::RefitNativeRayTransform(*ray_device_.Get(), ray_scenes_.at(Key(scene)), transform));
+    auto replacement = CompleteRayBuild(detail::RefitNativeRayTransforms(
+        *ray_device_.Get(), ray_scenes_.at(Key(scene)), transforms));
     ray_scenes_.at(Key(scene)) = std::move(replacement.scene);
     ++diagnostics_.ray_scene_transform_updates;
   }
@@ -1258,7 +1266,8 @@ public:
     Require(!pending_ray_build_, "a previous accepted ray build failed; recreate the device");
     auto replacement = CompleteRayBuild(detail::BuildNativeRayScene(
         *ray_device_.Get(), triangles, {}, nullptr, capabilities_.ray_scene_refit_enabled,
-        ray_scenes_.at(Key(scene)).allow_compaction, ray_scenes_.at(Key(scene)).transform));
+        ray_scenes_.at(Key(scene)).allow_compaction,
+        detail::RayTransforms(ray_scenes_.at(Key(scene)))));
     ray_scenes_.at(Key(scene)) = std::move(replacement.scene);
     ++diagnostics_.ray_scene_rebuilds;
   }

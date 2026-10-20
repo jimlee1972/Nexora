@@ -44,6 +44,7 @@ const graphicsSessionBranches = Object.freeze([
   'feat/v2-native-ser-programs', 'feat/v2-native-vrs-images', 'feat/v2-portable-modern-compute',
   'feat/v2-explicit-preview-adapter-selection', 'feat/v2-bounded-ray-scene-refits',
   'feat/v2-bounded-ray-scene-compaction', 'feat/v2-bounded-ray-instance-transforms',
+  'feat/v2-bounded-ray-instancing',
 ]);
 
 async function cleanup({github, context, core}) {

@@ -47,7 +47,7 @@ void rayMiss(inout Hit result) {
 
 [shader("closesthit")]
 void rayClosest(inout Hit result, BuiltInTriangleIntersectionAttributes attributes) {
-  result.primitive = PrimitiveIndex();
+  result.primitive = InstanceID() + PrimitiveIndex();
   result.distance = RayTCurrent();
 #if defined(NEXORA_RAY_IDENTITY_NEGATIVE)
   result.distance += 1;
