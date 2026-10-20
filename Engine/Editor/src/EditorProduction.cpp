@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <new>
 #include <sstream>
 #include <unordered_set>
 
@@ -528,12 +529,22 @@ bool ExtensionPolicy::Allows(std::string_view publisher, bool signature_valid) c
 }
 
 bool TelemetryConsent::Record(std::string event) {
-  if (!enabled_ || event.empty() || event.size() > kMaximumEventBytes ||
-      event.find('\0') != std::string::npos || !foundation::IsValidUtf8(event) ||
+  if (event != "frame.presented")
+    return false;
+  return Record(LocalDiagnosticEvent::FramePresented);
+}
+
+bool TelemetryConsent::Record(LocalDiagnosticEvent event) noexcept {
+  if (!enabled_ || event != LocalDiagnosticEvent::FramePresented ||
       events_.size() >= kMaximumEvents)
     return false;
-  events_.push_back(std::move(event));
-  return true;
+  try {
+    // Only this engine-owned literal crosses the retention boundary.
+    events_.emplace_back("frame.presented");
+    return true;
+  } catch (const std::bad_alloc &) {
+    return false;
+  }
 }
 
 std::pair<std::size_t, std::size_t> VirtualHierarchy::Visible(std::size_t first,

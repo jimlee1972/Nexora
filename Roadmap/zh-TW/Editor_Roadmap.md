@@ -1565,7 +1565,7 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md)。
 
 - ✅ Portable telemetry consent 現於 opt-out 釋放所有 retained event，記憶體 queue 上限為
-  1,024 筆、每筆 1,024 UTF-8 bytes。Invalid／oversized／overflow event 保留已接受的紀錄；
+  1,024 筆（原先每筆最多 1,024 UTF-8 bytes）。Invalid／oversized／overflow event 保留已接受的紀錄；
   重複 revoke／enable 不會恢復舊 event。Contract tests 涵蓋精確上限、損壞文字、飽和與
   consent transition。Persistence／transmission、redaction 與完整圖形化 privacy 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md)。
@@ -1577,6 +1577,12 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   未安裝 diagnostic storage 或 network transport；signed-extension verification 與
   persistence／transmission policy 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md)。
+
+- ✅ Local diagnostic admission 只保留 typed 固定 event code；相容文字入口僅接受精確 label，
+  任意 caller text 在保留前拒絕。Core 與實際 1x／2x UI 驗證 private path／command／source
+  snippet、無效 code、飽和及 consent／reset 流程。完整 extension trust、通用 producer redaction
+  與 ED-M7 驗收保持未完成。
+  [Linux 證據](../../Tools/Build/evidence/EditorEDM7-FixedDiagnosticIntake-Linux-2026-10-20.md)。
 
 - ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，
   避免 detached housekeeping 與嚴格 temporary-directory cleanup 競爭；routing semantics、

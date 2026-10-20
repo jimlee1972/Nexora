@@ -224,8 +224,9 @@ Clear retained events. Initial/project UUID/nil-scope changes revoke consent and
 no project disables opt-in. Opt-out releases retained records immediately and re-enable starts empty.
 Clear forgets records while preserving an existing opt-in. The application emits only the fixed
 `frame.presented` label at bounded cadence, after successfully presented frames. No paths, source,
-commands, user/project names or credentials enter that production queue. The generic Core primitive
-still accepts caller-owned event text; this panel displays only exact allowlisted labels and counts
+commands, user/project names or credentials enter that production queue. The owning Editor primitive
+now admits only fixed event codes; the legacy string entry point rejects every nonmatching label
+before retention. This panel additionally displays only exact allowlisted labels and counts
 excluded records without rendering, logging, tooltip or snapshot exposure of their contents. It
 submits at most 128 safe rows while reporting the bounded queue/excluded counts. Consent and the
 panel are not serialized in project/layout data; no persistence or network adapter is installed.

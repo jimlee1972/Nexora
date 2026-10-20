@@ -4773,7 +4773,7 @@ void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
     ImGui::TextWrapped("Turning consent off immediately forgets every retained event. "
                        "Re-enabling starts an empty queue.");
     ImGui::BeginChild("diagnostic-events", {0, 100}, ImGuiChildFlags_Borders);
-    // Display only exact allowlisted labels; generic Core callers can retain arbitrary text.
+    // Keep display allowlisting as defense in depth around the fixed-code intake contract.
     // Unknown records never become text, tooltips, logs or a persisted UI snapshot here.
     for (const auto &event : diagnostics.Events()) {
       if (event == "frame.presented") {

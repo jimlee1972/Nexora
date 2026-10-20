@@ -3029,7 +3029,8 @@ int RunGraphical(std::optional<ProjectState> project,
                                   : std::nullopt));
     if (frames % 60 == 0) {
       const bool was_empty = local_diagnostics.Events().empty();
-      if (local_diagnostics.Record("frame.presented") && was_empty)
+      if (local_diagnostics.Record(nexora::editor::LocalDiagnosticEvent::FramePresented) &&
+          was_empty)
         std::cerr << "diagnostic queue retained=" << local_diagnostics.Events().size() << '\n';
     }
     ++frames;

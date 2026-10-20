@@ -284,6 +284,9 @@ struct NEXORA_EDITOR_API ExtensionPolicy final {
   [[nodiscard]] bool Allows(std::string_view publisher, bool signature_valid) const noexcept;
 };
 
+enum class LocalDiagnosticEvent : std::uint8_t { FramePresented };
+
+// Serialized session owner; no IO, transport, user text or plugin callbacks.
 class NEXORA_EDITOR_API TelemetryConsent final {
 public:
   static constexpr std::size_t kMaximumEvents = 1024;
@@ -295,6 +298,9 @@ public:
       events_.clear();
   }
   [[nodiscard]] bool Enabled() const noexcept { return enabled_; }
+  bool Record(LocalDiagnosticEvent event) noexcept;
+  // Compatibility entry point: admits exact supported labels only. Arbitrary caller text is
+  // rejected before retention; callers should use typed intake to avoid copying it at the call.
   bool Record(std::string event);
   [[nodiscard]] std::span<const std::string> Events() const noexcept { return events_; }
 
