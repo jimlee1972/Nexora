@@ -15,16 +15,43 @@ def run(arguments):
     return subprocess.run(arguments, capture_output=True, text=True, timeout=120)
 
 
+def output_diagnostic(process, stage):
+    # These processes consume this test's generated fixture only. Bound and escape both streams
+    # so a broken child cannot flood CTest or forge additional log lines with control characters.
+    limit = 2048
+
+    def describe(text):
+        if text is None:
+            return "<not captured>"
+        suffix = f" ... ({len(text)} characters total)" if len(text) > limit else ""
+        return repr(text[:limit]) + suffix
+    return (f"{stage}: exit={process.returncode}; "
+            f"stdout={describe(process.stdout)}; stderr={describe(process.stderr)}")
+
+
+def require_success(process, stage):
+    if process.returncode != 0:
+        raise RuntimeError(output_diagnostic(process, stage))
+
+
+def verification_report(process):
+    require_success(process, "verify-package")
+    try:
+        return json.loads(process.stdout)
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f"Invalid verification JSON ({error}): "
+                           + output_diagnostic(process, "verify-package")) from error
+
+
 def main():
     producer, player = sys.argv[1:]
     with tempfile.TemporaryDirectory(prefix="nexora-editor-static-export-") as temporary:
         package = Path(temporary).resolve() / "專案 owning export.nxproject"
         generated = run([producer, "--write-package", str(package)])
-        require(generated.returncode == 0, generated.stderr)
+        require_success(generated, "write-package")
         original = package.read_bytes()
         verified = run([player, "--verify-package", str(package)])
-        require(verified.returncode == 0, verified.stderr)
-        report = json.loads(verified.stdout)
+        report = verification_report(verified)
         require(report["status"] == "VERIFIED_STATIC_VIEW", "wrong consumer status")
         require(report["project"] == "12345678-9abc-def0-0000-00000000004d", "project UUID lost")
         require(report["scene_asset"] == "fedcba98-7654-3210-0000-000000000058", "scene UUID lost")
@@ -42,8 +69,22 @@ def main():
         require(detail["type"] == "5" and bytes.fromhex(detail["type_name_hex"]) == b"legacy\xff",
                 "opaque identity/name bytes changed")
         require(package.read_bytes() == original, "verification changed the generated artifact")
+        # A read-only inherited descriptor/handle is portable and fails actual output writes;
+        # it does not depend on POSIX /dev/full, pipe races or writable-file permission policy.
+        sink = Path(temporary) / "read-only output.txt"
+        sink.write_bytes(b"unchanged output")
+        with sink.open("rb") as output:
+            output_failure = subprocess.run(
+                [player, "--verify-package", str(package)], stdout=output,
+                stderr=subprocess.PIPE, text=True, timeout=120)
+        require(output_failure.returncode == 1 and
+                "Static project verification report output failed" in output_failure.stderr,
+                output_diagnostic(output_failure, "verify-package with read-only stdout"))
+        require(sink.read_bytes() == b"unchanged output" and package.read_bytes() == original,
+                "failed verification output changed the sink or package")
         repeated = run([producer, "--write-package", str(package)])
-        require(repeated.returncode == 0 and package.read_bytes() == original,
+        require_success(repeated, "repeat-write-package")
+        require(package.read_bytes() == original,
                 "independent owning captures/imports do not cook deterministically")
     print("Editor producer artifact verified by standalone StaticView ProjectPlayer")
 

@@ -1400,6 +1400,12 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md)。
 
 ### ED-M7 — Production hardening
+  - ✅ StaticView verification 現 flush／檢查報告輸出，寫入失敗回傳1；一般與 optimized
+    工作流程以真實唯讀 stdout handle 驗證 sink／套件 bytes 不變。fixture→player CLI
+    失敗保留有界、跳脫後的 stdout/stderr、階段與退出碼，
+    不重試或放寬完整 JSON／套件斷言。一般與 optimized Python 回歸驗證准入及診斷界限。
+    hosted Windows「退出零但 JSON 無效」根因仍開啟；此項僅為診斷準備。
+    [證據](../../Tools/Build/evidence/EditorEDM7-StaticExportDiagnostics-Linux-2026-10-20.md)。
 
 - ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
   guard、16 項 documentation-routing、完整 Linux 239/239 與 Minimal Shipping 通過。

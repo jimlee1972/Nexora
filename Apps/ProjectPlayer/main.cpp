@@ -67,6 +67,11 @@ int Run(const std::filesystem::path &path) {
   }
   std::cout << "],\"unreported_inactive_components\":"
             << loaded->InactiveComponentCount() - reported_inactive << "}\n";
+  std::cout.flush();
+  if (!std::cout) {
+    std::cerr << "Static project verification report output failed\n";
+    return 1;
+  }
   return 0;
 }
 
