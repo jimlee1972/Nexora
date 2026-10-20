@@ -712,17 +712,42 @@ System fixture 各要求320筆比對，12次重建且更新計數皆0；未支�
 幾何，每組320筆 CPU／compute 比對，原生計數0。Fixture 的 AS 拒絕判斷獨立查詢基本 RT
 能力，inline 模式不可用時明確選 compute 後備，並保留一般場景准入。釘選 SDK 與 Windows 條件式語法、一般
 Slang library6.3／query6.5 與預覽 DXC SER6.9 編譯通過；原生執行與固定 head 完整 gate
-仍為必要驗收。Cleanup 僅增加本次自有分支的精確名稱，沿用 owner／儲存庫／即時 head
+的驗收證據記於下方。Cleanup 僅增加本次自有分支的精確名稱，沿用 owner／儲存庫／即時 head
 保護。一般異質 mesh、instance mask／材質、光照、system refit 隔離、實體與全部完整 gate
 持續開放。
 
 ✅ 限縮 API／所有權與 shader 身分實作通過完整原生 Vulkan／Slang／Zig Development
-configure／build 與 Xvfb CTest229/229，零失敗／略過（140.88秒），以及 Shipping
+configure／build 與 Xvfb CTest229/229，零失敗／略過（146.04秒），以及 Shipping
 Minimal／Monolithic LTO。新增 baked instance fixture 比對1,920筆 GPU compute 輸出，
 原生 AS／更新計數保持0。釘選 SDK／Windows 條件式語法、Slang／DXC profile 與釘選
 反射／bytecode 身分檢查通過。文件16/16、cleanup39/39、雙語 Markdown、touched 格式與
-diff 檢查通過。實際私有／system Windows instancing 與固定 head 的兩套完整 CI workflow
-仍為合併門檻；不宣稱實體或完整 V2-GFX-3 驗收完成。
+diff 檢查通過。下方 hosted 證據在固定 head 完整 CI 通過後，接受有界私有／system
+Windows instancing；不宣稱實體或完整 V2-GFX-3 驗收完成。
+
+✅ Hosted 有界 instance 驗收：[PR658](https://github.com/jimlee1972/Nexora/pull/658)
+由已驗證 `d6bcfda3` squash 合併為 `2af07d02`，tree `f031e178`。完整 PR39398509898 與
+相同 commit 的驗證 push39398789588 各19個工作成功；一般 push39398500374 通過僅文件
+路由。50個有效檢查為40個成功／10個預期文件略過。原始兩項審閱修正隨實作一起交付，
+獨立 PR660 已關閉且未合併。
+
+私有 Windows 工作118547367737／118548333207 通過8/8（5.64／6.04秒）。兩事件與
+legacy／enhanced 模式共36組新增 instance fixture，比對25,344筆獨立 CPU 結果。
+每模式要求63次 refit／27次重建／36次 compaction／45次變換發布。一般 Windows 模式
+各執行12次不可變完整重建，三種更新計數皆0。兩套完整桌面矩陣皆通過 Windows327/327、
+Linux377/377、macOS314/314，零略過。
+
+兩個 sanitizer 工作118547367766／118548333350 實際通過原有四個原生 Vulkan 案例及
+獨立嚴格17-byte 洩漏控制：205個 ASan 案例中198通過／7個既有 Slang-off 略過，另有
+TSan193/193、零略過。八個已發現 ICD 全數保留；故障控制要求完整場景／截圖、精確注入
+洩漏與原生 exit1，不能取代驗收。兩工作皆使用 Ubuntu image20261012.334.1，不代表已驗證
+先前失敗的 image18，也未修復 Mesa 預設順序卸載清理（`nexora-0ua.1.17`）。
+
+原 PR Windows mimalloc transport 逾時（工作118547367426、30.01秒）持續保留。獨立
+相同來源202/202 證據支持僅一次失敗工作診斷；工作118561427597 通過202/202（345.13秒），
+transport0.74秒，成功工作沿用先前結果。原失敗使用 image20261018／Python3.15，診斷
+使用20261007／Python3.14.8。未更動斷言、deadline 或來源，不宣稱映像／Python 因果或
+原因已修復；`nexora-y5g` 持續開放。一般化異質組裝、光照、較廣 system refit、實體驗收
+與五個完整 V2-GFX gate 仍未完成。
 
 ## 有界 TLAS instance transform 施工 — 2026-10-20
 
