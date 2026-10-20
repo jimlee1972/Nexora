@@ -488,6 +488,148 @@ void GlobalPairs() {
   reject(depth + ',' + Scope("B", 500, "Other") + "]");
 }
 
+void LegacyAsyncPairs() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto begin = Global("S", 100, 42, true);
+  const auto end = Global("F", 1350, 43);
+  const auto bytes = "[" + begin + ',' + Global("S", 200, 42, false, "2") + ',' +
+                     Global("F", 300, 44, true) + ',' + Event(400) + ',' +
+                     Global("F", 500, 45, true, "2") + "]";
+  const auto capture = ChromeTraceImporter::Import(bytes, selection);
+  Require(capture && ChromeTraceImporter::Validate(*capture) && capture->samples.size() == 3 &&
+              capture->samples[0].start_microseconds == 100 &&
+              capture->samples[0].duration_milliseconds == .2 &&
+              capture->samples[1].duration_milliseconds == .3 &&
+              capture->samples[2].duration_milliseconds == 1.2505,
+          "Legacy S/F lost cross-process ID aliases, independent completion or begin order");
+  const auto reject = [&](const std::string &source) {
+    const auto original = source;
+    std::string error = "stale";
+    Require(!ChromeTraceImporter::Import(source, selection, &error) && !error.empty() &&
+                error != "stale" && source == original &&
+                capture->samples[0].duration_milliseconds == .2,
+            "Invalid legacy trace lost input/prior capture preservation or diagnostics");
+  };
+  // Legacy S/F is not nestable; same typed ID can be live under different names.
+  auto names = ChromeTraceImporter::Import(
+      "[" + begin + ',' + Global("S", 200, 44, false, "1", "Other") + ',' + end + ',' +
+          Global("F", 1400, 45, true, "1", "Other") + "]",
+      selection);
+  Require(names && names->samples.size() == 1 && names->samples[0].duration_milliseconds == 1.25,
+          "Independent legacy event names collided or selected an end process/thread");
+  auto other_begin = ChromeTraceImporter::Import(
+      "[" + Global("S", 100, 43) + ',' + Global("F", 200) + ',' + Event(300) + "]", selection);
+  Require(other_begin && other_begin->samples.size() == 1 &&
+              other_begin->samples[0].start_microseconds == 300,
+          "Legacy selection used finish process rather than begin process");
+  auto mixed = ChromeTraceImporter::Import(
+      "[" + begin + ',' + Global("b", 200) + ',' + Async("S", 300) + ',' +
+          Scope("B", 400, "Frame") + ',' + Event(500) + ',' + Scope("E", 600) + ',' +
+          Global("e", 700, 43) + ',' + Async("F", 800, "1", 8) + ',' + end + "]",
+      selection);
+  Require(mixed && ChromeTraceImporter::Validate(*mixed) && mixed->samples.size() == 5 &&
+              mixed->samples[0].duration_milliseconds == 1.25 &&
+              mixed->samples[1].duration_milliseconds == .5 &&
+              mixed->samples[2].duration_milliseconds == .5 &&
+              mixed->samples[3].duration_milliseconds == .2 &&
+              mixed->samples[4].duration_milliseconds == 1.2505,
+          "Legacy, nestable, local and synchronous pairing domains interfered");
+  for (int lane = 0; lane < 3; ++lane) {
+    const auto id = lane == 0 ? "\"1\"" : "1";
+    const auto cat = lane == 1 ? "other" : "work";
+    const auto scope = lane == 2 ? "other" : "session";
+    const auto separated = ChromeTraceImporter::Import(
+        "[" + begin + ',' + Global("S", 200, 42, false, id, "Frame", cat, scope) + ',' + end + ',' +
+            Global("F", 1400, 44, true, id, "Frame", cat, scope) + "]",
+        selection);
+    Require(separated && separated->samples.size() == 2 &&
+                separated->samples[0].duration_milliseconds == 1.25 &&
+                separated->samples[1].duration_milliseconds == 1.2,
+            "Legacy numeric/string ID, category or scope namespaces collided");
+  }
+  const auto unicode =
+      ChromeTraceImporter::Import("[" + Global("S", 100, 42, true, "\"時間\\ud83d\\ude00\"") + ',' +
+                                      Global("F", 100, 43, false, "\"時間😀\"") + "]",
+                                  selection);
+  Require(unicode && unicode->samples[0].duration_milliseconds == 0,
+          "Legacy Unicode ID alias or zero duration rejected");
+  const auto fractional = ChromeTraceImporter::Import(
+      R"([{"ph":"S","name":"Frame","pid":42,"tid":7,"ts":100.25,"id":1},)"
+      R"({"ph":"F","name":"Frame","pid":43,"tid":9,"ts":1350.75,"id2":{"global":1}}])",
+      selection);
+  Require(fractional && fractional->samples[0].duration_milliseconds == 1.2505,
+          "Legacy fractional external timestamps lost precision");
+  const auto metadata = ChromeTraceImporter::Import(
+      "[" + begin + R"(,{"ph":"T","args":{"step":"opaque"}},{"ph":"p"},)" + end + "]", selection);
+  Require(metadata && metadata->samples.size() == 1 &&
+              metadata->samples[0].duration_milliseconds == 1.25,
+          "Legacy steps changed whole-interval duration or fabricated samples");
+  reject("[" + begin + "]");
+  reject("[" + end + ',' + begin + "]");
+  reject("[" + begin + ',' + Global("F", 99, 43) + "]");
+  reject("[" + begin + ',' + Global("S", 200, 43) + ',' + end + "]");
+  reject("[" + begin + ',' + Global("F", 200, 43, false, "2") + "]");
+  reject("[" + begin + ',' + Global("F", 200, 43, false, "1", "Other") + "]");
+  reject("[" + begin + ',' + Global("e", 200, 43) + "]");
+  reject("[" + Global("b", 100) + ',' + end + "]");
+  reject("[" + begin + ',' + Async("F", 200) + "]");
+  reject("[" + Event(1) + ',' + Global("S", 200, 43, true, "2", "Other") + "]");
+  for (const auto id : {"null", "true", "-1", "1.5", "9007199254740992", "\"\""})
+    reject("[" + Global("S", 100, 42, true, id) + ',' + end + "]");
+  const auto mutate = [&](std::string_view from, std::string_view to) {
+    auto source = "[" + begin + ',' + end + "]";
+    const auto at = source.find(from);
+    Require(at != std::string::npos, "Legacy mutation fixture missing");
+    source.replace(at, from.size(), to);
+    reject(source);
+  };
+  mutate("\"id\":1,", "");
+  mutate("\"id\":1", "\"id\":1,\"id2\":{\"global\":1}");
+  mutate("\"id\":1", "\"id2\":{\"global\":1,\"local\":1}");
+  mutate("\"cat\":\"work\"", "\"cat\":null");
+  mutate("\"scope\":\"session\"", "\"scope\":[]");
+  mutate("\"ts\":100", "\"ts\":100,\"dur\":1");
+  mutate("\"tid\":7,", "");
+  mutate("\"name\":\"Frame\",", "");
+  for (std::size_t n = 0; n < bytes.size(); ++n)
+    reject(bytes.substr(0, n));
+  auto local_other = Async("S", 100, "null");
+  local_other.replace(local_other.find("\"pid\":42"), 8, "\"pid\":43");
+  Require(ChromeTraceImporter::Import("[" + local_other + ',' + Event(200) + "]", selection)
+              .has_value(),
+          "Unrelated process-local legacy metadata interfered with selection");
+  auto reused = ChromeTraceImporter::Import(
+      "[" + begin + ',' + end + ',' + Global("S", 1400) + ',' + Global("F", 1500) + "]", selection);
+  Require(reused && reused->samples.size() == 2 && reused->samples[1].duration_milliseconds == .1,
+          "Completed legacy identity could not be reused");
+  std::string pending = "[" + begin;
+  for (std::uint64_t i = 1; i <= 605; ++i)
+    pending += ',' + Event(100 + i);
+  const auto ring =
+      ChromeTraceImporter::Import(pending + ',' + Global("F", 10000) + "]", selection);
+  Require(ring && ChromeTraceImporter::Validate(*ring) && ring->older_samples_dropped == 6 &&
+              ring->samples.front().sequence == 7 && ring->samples.back().sequence == 606,
+          "Legacy pending-begin eviction lost retention or sequence accounting");
+  for (const auto &sample : ring->samples)
+    Require(sample.duration_milliseconds == 1.2505,
+            "Evicted legacy finish overwrote a newer sample slot");
+  std::string depth = "[";
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    depth += (i ? "," : "") + Global("S", i, 42, true, std::to_string(i));
+  auto exact = depth;
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    exact += ',' + Global("F", 1000 + i, 43, false, std::to_string(i));
+  const auto full = ChromeTraceImporter::Import(exact + "]", selection);
+  Require(full && full->samples.size() == 128, "Exact legacy open-scope capacity rejected");
+  // Balance every overflow candidate so rejection cannot be explained by missing ends.
+  const auto finishes = exact.substr(depth.size());
+  reject(depth + ',' + Global("S", 500, 42, true, "999") + ',' +
+         Global("F", 900, 43, false, "999") + finishes + "]");
+  reject(depth + ',' + Global("b", 500, 42, true, "999") + ',' +
+         Global("e", 900, 43, false, "999") + finishes + "]");
+  reject(depth + ',' + Scope("B", 500, "Other") + ',' + Scope("E", 900) + finishes + "]");
+}
+
 void ProjectIo() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-chrome-io-" +
@@ -535,6 +677,16 @@ void ProjectIo() {
   Require(global_capture && global_capture->samples.front().duration_milliseconds == 1.25 &&
               read() == global_bytes,
           "Read-only cross-process global import changed source or duration");
+  const auto legacy_bytes = "[" + Global("S", 100, 42, true) + ',' + Global("F", 1350, 43) + "]";
+  write(legacy_bytes);
+  auto legacy_capture = observer.ImportChromeTraceJson(selection, &error);
+  Require(legacy_capture && legacy_capture->samples.front().duration_milliseconds == 1.25 &&
+              read() == legacy_bytes,
+          "Read-only legacy async import changed source or duration");
+  write("[" + Global("S", 100) + "]");
+  Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
+              legacy_capture->samples.front().duration_milliseconds == 1.25,
+          "Unclosed legacy project import erased prior owning capture");
   write("[" + Scope("B", 100, "Frame") + "]");
   Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
               paired_capture->samples.front().duration_milliseconds == 1.25,
@@ -594,6 +746,7 @@ int main() {
     DurationPairs();
     AsyncPairs();
     GlobalPairs();
+    LegacyAsyncPairs();
     ProjectIo();
     return 0;
   } catch (const std::exception &error) {

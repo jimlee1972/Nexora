@@ -258,12 +258,14 @@ private:
         }) ||
         !(seen & 1))
       return false;
-    if (phase == "b" || phase == "e") {
+    if (phase == "b" || phase == "e" || phase == "S" || phase == "F") {
+      const bool legacy = phase == "S" || phase == "F";
       if ((seen & 31) != 31 || (seen & 32))
         return false;
       // Decode identity only for supported async events. Existing X/B/E metadata remains opaque.
       const auto tail = remaining_;
       AsyncIdentity identity;
+      identity.legacy = legacy;
       const auto value = [&] {
         Space();
         identity.numeric = !remaining_.starts_with('"');
@@ -318,11 +320,15 @@ private:
         return false;
       remaining_ = tail;
       const auto previous =
-          std::find_if(async_scopes_.rbegin(), async_scopes_.rend(),
-                       [&](const auto &scope) { return scope.identity == identity; });
+          std::find_if(async_scopes_.rbegin(), async_scopes_.rend(), [&](const auto &scope) {
+            return scope.identity == identity && (!legacy || scope.scope.name == name);
+          });
       if (previous != async_scopes_.rend() && start < previous->last_time)
         return false;
-      if (phase == "b") {
+      if (phase == "b" || phase == "S") {
+        // Legacy S/F intervals are independent by name and cannot nest within one identity.
+        if (legacy && previous != async_scopes_.rend())
+          return false;
         if (open_scopes_.size() + async_scopes_.size() == ChromeTraceImporter::kMaximumOpenScopes)
           return false;
         const bool selected = process == capture_.selection.process &&
@@ -334,7 +340,8 @@ private:
             {std::move(identity), {std::move(name), start, selected ? selected_ : 0}, start});
         return true;
       }
-      // Nesting is LIFO per identity; independent IDs may finish in any order and on any thread.
+      // Nestable b/e is LIFO per identity; legacy S/F closes its independent named interval.
+      // Independent IDs may finish in any order and on any thread/process.
       const auto begin = previous;
       if (begin == async_scopes_.rend() || begin->scope.name != name || start < begin->scope.start)
         return false;
@@ -343,7 +350,7 @@ private:
       const auto parent =
           std::find_if(async_scopes_.rbegin(), async_scopes_.rend(),
                        [&](const auto &scope) { return scope.identity == identity; });
-      if (parent != async_scopes_.rend())
+      if (!legacy && parent != async_scopes_.rend())
         parent->last_time = start;
       return true;
     }
@@ -384,7 +391,7 @@ private:
   };
   struct AsyncIdentity final {
     std::string id, category, scope;
-    bool numeric{}, process_local{};
+    bool numeric{}, process_local{}, legacy{};
     bool operator==(const AsyncIdentity &) const = default;
   };
   struct AsyncScope final {
