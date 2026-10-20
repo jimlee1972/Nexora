@@ -976,6 +976,12 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ 有界 Git status SDK provider 現透過受管理 process runner 查詢真實本機 repository，
+  保留 owning 原始路徑／狀態／rename 觀察。generation 驗證拒絕過期、取消、損毀與截斷輸出，
+  失敗保留 last-good。臨時 repository／原生 process 測試涵蓋 conflict、Unicode、linked
+  worktree 及 index／來源 bytes 不變；圖形 status／diff／merge 與完整 ED-M4 仍未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-GitStatus-Linux-2026-10-20.md)。
+
 ✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、
 明確 full revert 確認、一次 mixed-property Undo／Redo 及 read-only inspection。
 Targeted field、source apply、structural binding 與 reference rebase 仍待完成。
