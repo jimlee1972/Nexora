@@ -1580,8 +1580,8 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 - ✅ Local diagnostic admission 只保留 typed 固定 event code；相容文字入口僅接受精確 label，
   任意 caller text 在保留前拒絕。Core 與實際 1x／2x UI 驗證 private path／command／source
-  snippet、無效 code、飽和及 consent／reset 流程。完整 extension trust、通用 producer redaction
-  與 ED-M7 驗收保持未完成。
+  snippet、無效 code、飽和及 consent／reset 流程。補充雲端 software Vulkan 的原生鍵盤／滑鼠／
+  關閉／重開測試保留唯讀來源。完整 extension trust、通用 producer redaction 與 ED-M7 保持未完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-FixedDiagnosticIntake-Linux-2026-10-20.md)。
 
 - ✅ Cloud documentation-routing Git fixture 現在 commit 前關閉 local 自動 maintenance／GC，

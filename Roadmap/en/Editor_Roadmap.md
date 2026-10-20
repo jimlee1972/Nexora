@@ -1621,7 +1621,8 @@ creates property widgets; unknown components retain raw data instead of being si
   - ✅ Local diagnostic admission retains only typed fixed event codes; exact-label compatibility
     intake rejects arbitrary caller text before retention. Private paths/commands/source snippets,
     invalid codes, saturation and consent/reset workflows pass Core and actual 1x/2x UI checks.
-    Complete extension trust, generic producer redaction and ED-M7 acceptance remain open.
+    Supplemental cloud native keyboard/pointer/close/restart preserves read-only sources on
+    software Vulkan. Complete extension trust, generic producer redaction and ED-M7 remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-FixedDiagnosticIntake-Linux-2026-10-20.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.

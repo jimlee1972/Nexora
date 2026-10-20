@@ -25,7 +25,8 @@ labels, invalid enum values, private POSIX/Windows paths, a fictitious credentia
 source text, malformed bytes/NUL, case/whitespace variants, capacity without eviction and consent
 transitions. Actual ImGui controls at 1x/2x verify rejected text is absent from the retained queue,
 complete safe row counts, clear, opt-out, project/nil scope and fresh-model restart. Existing native
-keyboard acceptance remains unchanged and must run in applicable hosted CI; it has not run locally.
+keyboard acceptance remains unchanged and must run in applicable hosted CI. Its supplemental
+local software-display execution is recorded below.
 
 Validation:
 
@@ -54,3 +55,26 @@ remains required before squash merge; no local Windows/macOS/native-display pass
 
 The overall Editor roadmap remains 0/8 accepted milestones. Physical display/input/accessibility,
 complete privacy/trust and every unrelated open goal remain open.
+
+## Supplemental native software-display workflow
+
+After the full gate, isolated workspace tooling supplied Debian Xvfb 21.1.16, xdotool 3.20160805.1
+and Mesa lavapipe 25.0.7. Downloaded packages matched the SHA-256 values in the Debian package
+index; no system directories or repository dependencies were changed. The first native invocation
+could not start Xvfb because the default command sandbox disallowed its local socket binding.
+That environment-only attempt failed before the Editor launched and is excluded from acceptance.
+With the required command network permission, the Xvfb startup probe succeeds and the unchanged
+`LinuxDiagnosticPrivacy.py` passes against this exact product build, with actual native
+keyboard/pointer consent/inspection/clear/opt-out/close/restart and read-only source conservation.
+
+```bash
+python3 Tests/EditorImGui/LinuxDiagnosticPrivacy.py \
+  --editor build/linux-development/Apps/Editor/NexoraEditor \
+  --xvfb /path/to/isolated/Xvfb --xdotool /path/to/isolated/xdotool
+```
+
+Runtime observations explicitly report `software=1`; the read-only restart presents all 80 frames
+and retains no consent/events. Six implementation/test hashes still match the full Linux gate.
+This is cloud native-window execution using software Vulkan, not physical display, real GPU,
+DPI/IME or screen-reader acceptance. No explicit validation-layer enablement result is claimed
+for this supplemental privacy invocation.
