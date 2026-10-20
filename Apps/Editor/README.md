@@ -73,6 +73,9 @@ backbuffer. It also round-trips a versioned project layout and supplies a live `
 the Hierarchy panel. The same process binds its deterministic `AssetWorkspace` index to a live
 Content panel with breadcrumbs, folder navigation, search/type filtering, virtualized UUID-keyed
 rows, thumbnail state, selection, typed drag/drop, dependency inspection, and background reimport.
+The [bounded mesh thumbnail worker](../../Engine/Editor/README.md#bounded-asynchronous-mesh-thumbnail-snapshots)
+now supplies revision-checked owning CPU shape previews for future Content image presentation.
+Native image upload/drawing in these rows and other asset thumbnail types remain open.
 The Scene panel can switch from its editable X/Z overview to a native depth-tested 3D preview.
 Vulkan and DX12 draw the ground, resolved OBJ mesh geometry, and proxies for unresolved/unassigned
 nodes inside the docked canvas after UI submission, preserving controls outside it. Selection changes

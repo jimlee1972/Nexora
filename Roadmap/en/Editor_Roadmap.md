@@ -270,6 +270,22 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   mode. Thumbnails and physical workflow gates remain open; bounded per-entry Content diagnostics
   are described below.
 
+- ✅ **M1-01 mesh thumbnail worker prerequisite (2026-10-21).**
+  `BuildMeshThumbnail` generates actual 64×64 RGBA shape previews from imported geometry,
+  with isometric framing, neutral two-sided shading and depth. `MeshThumbnailCache` stages bounded
+  geometry copies through Core jobs, checks cancellation and validates current project generation,
+  UUID, artifact revision and immutable geometry owner before owner-thread publication. Cancelled or
+  superseded results cannot overwrite replacements; ready lookups reject changed/deleted sources.
+  The LRU admits at most 64 entries and four uncollected jobs, including cancelled jobs. Retained
+  immutable images survive eviction and owner shutdown. Failures remain inspectable without retrying
+  each frame. The new `editor.mesh_thumbnails` exercises pixels, lifetime, stale completions and
+  hard input/cache/work limits. [Contract](../../Engine/Editor/README.md#bounded-asynchronous-mesh-thumbnail-snapshots)
+  and [evidence](../../Tools/Build/evidence/EditorEDM1-MeshThumbnailJobs-Linux-2026-10-21.md).
+
+  This closes only `nexora-gu7.1.1`. Native Content image upload/drawing, other asset types and
+  representative UI/performance/DPI acceptance remain in M1-01; ED-M1 and full Editor acceptance
+  counts do not advance.
+
 - ✅ Content asset/folder rows and breadcrumb buttons now display literal UTF-8 marker names
   (`##`, `###`, `%`) with project-root/generation/role-scoped IDs independent of display text.
   Actual 1x/2x pointer and Tab/Enter tests distinguish same-suffix sibling folders, nested marker
