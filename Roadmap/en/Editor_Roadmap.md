@@ -419,6 +419,15 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ Cloud authoring workflow coverage now drives real ImGui Hierarchy multi-selection, mixed
+  Inspector typing/Enter, keyboard Undo/Redo and scoped Save, then verifies a fresh-process
+  reopen at 1x/2x. Cancelled edits, read-only authority and stale file tokens preserve sources;
+  unknown component bytes and untouched transform lanes survive. This is headless widget/process
+  evidence, not native-window or physical-display acceptance. Existing 1,000-cycle transaction
+  coverage is reused. Complete Linux validation passes 291 registered tests with 12 existing skips
+  and zero failures; native/physical acceptance stays open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-AuthoringProcessReopen-Linux-2026-10-20.md).
+
 - ✅ Linux native Scene Preview rotation Save acceptance now retains one physical keyboard
   gesture across rendered release/modifier/key phases. Three cold workflows and the affected
   253-test graphical suite preserve existing preview/commit/Undo/scale/reopen assertions and

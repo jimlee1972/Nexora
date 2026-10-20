@@ -392,6 +392,14 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ 雲端 authoring workflow 測試現在透過真實 ImGui Hierarchy 多選、mixed Inspector
+  輸入／Enter、鍵盤 Undo／Redo 與 scoped Save，再以全新 process 於 1x／2x 驗證重開。
+  取消編輯、唯讀權限及過期 file token 保留來源；未知 component bytes 與未編輯 transform
+  欄位保持不變。這是 headless widget／process 證據，不取代 native window 或實體顯示驗收。
+  沿用既有 1,000-cycle transaction 測試；完整 Linux 291 項登錄測試通過，12 項既有 skip、
+  零失敗；native／實機驗收保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM2-AuthoringProcessReopen-Linux-2026-10-20.md)。
+
 - ✅ Linux 原生 Scene Preview 旋轉後的 Save 驗收，現以明確 release／modifier／key 階段
   保留一次實際鍵盤操作。三次冷啟動及受影響的 253 項圖形套件保留既有
   preview／commit／Undo／scale／reopen 檢查與期限。
