@@ -833,3 +833,17 @@ target_include_directories(NexoraContentDependencyTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraContentDependencyTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraContentDependencyTests)
 add_test(NAME editor.content_dependency_reveal COMMAND NexoraContentDependencyTests)
+
+add_executable(NexoraAuthoringReopenTests AuthoringReopenTests.cpp)
+target_include_directories(NexoraAuthoringReopenTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraAuthoringReopenTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraAuthoringReopenTests)
+if(MINGW)
+  target_link_options(NexoraAuthoringReopenTests PRIVATE -municode)
+endif()
+foreach(nexora_authoring_scale RANGE 1 2)
+  add_test(NAME editor.authoring_reopen_ui_${nexora_authoring_scale}x
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AuthoringReopen.py"
+      "$<TARGET_FILE:NexoraAuthoringReopenTests>" "${nexora_authoring_scale}")
+  set_tests_properties(editor.authoring_reopen_ui_${nexora_authoring_scale}x PROPERTIES TIMEOUT 150)
+endforeach()

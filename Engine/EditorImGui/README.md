@@ -1458,3 +1458,24 @@ between acquired frames. An empty overlay preserves ordinary native ImGui render
 Editor uses this for bounded 2D Game View sprites/HUD; it does not submit a second RenderUi packet
 or claim instancing for arbitrary Editor triangles. Public C++ consumers rebuild; no C/Zig ABI
 or serialized format changes.
+
+## Cloud authoring and process reopen verification
+
+`editor.authoring_reopen_ui_1x` and `editor.authoring_reopen_ui_2x` run the real ImGui product
+shell with synthetic physical-pointer/keyboard events, then launch a separate read process with
+a fresh World, UI context and project writer lease. Hierarchy clicks/Ctrl multi-selection, mixed
+Inspector typing/Enter, keyboard Undo/Redo and Save requests use production widgets and authoring
+services. Fixture setup alone seeds via normal APIs; success interactions do not queue direct
+transform mutations. Keyboard chords include actual modifier key down/up events.
+
+Save goes through the same scoped `SceneFileSession` used by the native owner. Reopen verifies
+both transforms, unchanged nonedited lanes and exact unknown component identities/raw bytes.
+Cancelled text edits, read-only Delete/Save controls and service authority, stale file tokens and
+corrupt-file Open preserve source bytes and the last-good document. Unicode project paths use
+native wide entry on Windows. The existing
+`editor.selection_delete_transaction` independently replays 1,000 batch cycles; its implementation
+is reused rather than duplicated by this integration test.
+
+This is headless actual ImGui/control and process-lifetime coverage. It does not launch the
+NexoraEditor OS-window process or accept physical display/DPI/IME, glyph quality or screen-reader
+behavior. Those native/target-host gates and complete scene-authoring acceptance remain open.
