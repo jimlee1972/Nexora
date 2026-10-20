@@ -206,6 +206,13 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- 冷 Content folder／filter query 現有有界、immutable directory membership／child index，
+  超過預算或配置失敗仍走完整 linear fallback。Source／order publication 明確失效 index；copy
+  與 retained child projection 擁有資料而不保留 item pointer，維持來源、導覽、選取及 Undo 語意。
+  獨立 focused／完整／平台驗證及最終 phase 量測尚待完成；production assets／RSS、其餘索引工作
+  與完整 ED-M1 保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM1-ContentDirectoryIndex-Linux-2026-10-20.md)。
+
 - ✅ Content 資料夾支援實際 Tab 聚焦與 Enter 開啟；focused Alt+Up 返回上一層 breadcrumb，
   並停在 Content 根目錄。唯讀導覽保留 mutation history 與 filter；keyboard ownership gates
   保護 text、panel／focus 與 blocking-modal 狀態。開啟資料夾不會同時觸發 selected-scene

@@ -214,6 +214,13 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- Cold Content folder/filter queries now have a bounded immutable directory membership/child
+  index with complete linear fallback. Explicit source/order publication invalidates it; copies and
+  retained child projections own data without item pointers. Source, navigation, selection and Undo
+  semantics are preserved. Independent focused/full/platform validation and final phase measurements
+  are pending; production assets/RSS, remaining indexing work and complete ED-M1 remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM1-ContentDirectoryIndex-Linux-2026-10-20.md).
+
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the
   preceding breadcrumb and clamps at the Content root. Read-only traversal preserves mutation
   history and filters; keyboard ownership gates protect text, panel/focus and blocking-modal

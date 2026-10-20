@@ -670,12 +670,30 @@ write failure leaves original scene files and dirty baselines unchanged.
   pointers: range results resolve into each model's current item storage, including fresh artifact
   payloads. Returned item pointers keep their existing mutation-bounded borrow contract.
   Queries run serially on the authoring thread, like `ChildFolderSnapshot`; const does not grant
-  concurrent access. The first query scans current items and retains O(matches) index storage;
-  warm Count is O(1), while Visible visits only the bounded requested range. Range arithmetic
+  concurrent access. The first admitted source query builds the directory index; cold projections
+  scan current-folder membership with complete linear fallback and retain O(matches) active indices.
+  Warm Count is O(1), while Visible visits only the bounded requested range. Range arithmetic
   clamps before addition, including zero counts and SIZE_MAX offsets/counts. Selection/history/
-  source semantics stay unchanged. Other lookups, cold folder derivation, indexing, complete frame
-  and production memory/GPU budgets remain separate. Public C++ consumers must rebuild for the
+  source semantics stay unchanged. Other lookups, filesystem indexing, complete frame and
+  production memory/GPU budgets remain separate. Public C++ consumers must rebuild for the
   private layout change; persisted formats, stable C ABI and module dependencies are unchanged.
+- Cold directory queries share a lazy immutable membership/child index for one source publication.
+  The first admitted query reads all item paths and unique ancestor prefixes; later folder/filter
+  changes scan only the current folder's slots and copy only its immediate children. Exact native
+  path/UTF-8 label/byte ordering and original name/type filtering remain intact. Source/order Reset,
+  Discover, Commit and Undo invalidate the index explicitly; selection, folder/filter changes and
+  artifact-only publication retain it. Copies share only immutable paths/indices; results resolve
+  into each model's own items. Public child snapshots copy their children and do not pin the entire
+  project index. No World/item-pointer borrow is retained.
+  Admission limits are 262,144 source items, 65,536 directory nodes (including ancestors), parent
+  depth64 and16 MiB path work (source UTF-8 bytes plus three times new-prefix UTF-8 bytes). These
+  bound acceleration payload/work, not total RSS. Native-root/drive-relative special cases, budget
+  failure and failed candidate allocation take the complete existing linear path; no source or
+  navigation is omitted. The fallback decision is cached until source/order publication. Ordinary
+  output allocation retains its existing behavior. Calls remain serialized on the authoring thread;
+  observation data never grants file-write authority. C++ consumers must rebuild for the private
+  model layout change and release all SDK owners before unloading its library. Formats, stable C
+  ABI and module dependencies are unchanged; no index is persisted.
 - `ContentBrowserModel::RevealAsset` is an inspection-only UUID operation: it stages the target's
   parent folder/breadcrumbs and sole selection before clearing query/type filters. Missing IDs or
   paths without a revealable relative parent preserve the complete view state. It does not touch
