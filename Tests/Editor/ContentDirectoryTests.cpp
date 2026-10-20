@@ -23,7 +23,8 @@ std::string Utf8(const std::filesystem::path &path) {
   return {value.begin(), value.end()};
 }
 std::string Lower(std::string value) {
-  std::ranges::transform(value, value.begin(), [](unsigned char c) { return std::tolower(c); });
+  std::ranges::transform(value, value.begin(),
+                         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return value;
 }
 Item Asset(std::uint64_t id, std::filesystem::path path, std::string type = "Mesh") {

@@ -109,3 +109,27 @@ integrates that committed main before publication and verifies all combined code
 Documentation/links/bilingual/format checks and exact-head hosted CI remain separate publication/
 merge requirements. The source dataset and all results remain complete; production assets/RSS/GPU,
 general timing variance and full ED-M1/physical acceptance remain open.
+
+## Windows strict-build oracle correction in progress
+
+Published head71c68c59 has two real hosted Windows compile failures (jobs118919543392 and
+118918633313). The new directory test oracle's lowercase transform returns std::tolower's int
+into a char output; MSVC reports C4244 under the existing /W4 /WX policy. The oracle now makes the
+same byte conversion explicit with static_cast<char>, retaining unsigned-char input to tolower.
+No production index behavior, expected result, assertion, warning level or timeout is changed.
+Original failures remain evidence; no blind hosted retry is used. A fresh full Linux gate and
+applicable checks precede a normal update of PR675. Windows success remains pending new CI.
+
+## Corrected oracle complete Linux gate
+
+The explicit-char oracle correction passes fresh configure/build (428 integration steps), focused
+directory1/1 in36.24s and full serial Linux CTest:297 registered,285 actual passes,12 existing
+native/environment skips,zero failures,652.84s. All eight corrected source/CMake hashes remain
+unchanged through the gate; the full LastTest is archived externally. Minimal Shipping configure/
+build passes metadata integration; Editor is stripped and no Shipping tests are registered.
+
+The original Windows mimalloc job118919543582 independently reports the same C4244 at the same
+oracle transform; all three original Windows failures remain retained. No product model/index
+behavior, assertion, warning level or timeout changed. Main474 adds authoring documentation/tests
+only, with no runtime delta; normal integration and those affected tests follow before normal
+PR675 push. Fresh Windows hosted success remains required before squash.
