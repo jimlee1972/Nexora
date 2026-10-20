@@ -53,3 +53,27 @@ Documentation routing tests16/16, local Markdown links/bilingual counterparts an
 Actual main has since advanced through the independent Content sort delivery; normal integration
 and a fresh complete gate follow before publication. Structural array widgets remain a separate
 child delivery and cannot be closed by these Core results.
+
+## Complete latest-main integration gate
+
+Normal merge of main319823b92e77803c1b77d565d203e29cf1bf412b preserves all six Core implementation/
+test hashes; the test CMake changes only by adding the independent sort registration/benchmark.
+Fresh Development configure/build and full serial Linux CTest pass297 registered,285 actual passes,
+12 existing native feature/environment skips,zero failures,739.25s. Dynamic arrays0.15s,
+Deep79.69s and100k271.24s retain all original assertions and180/300s deadlines (scale1).
+Full LastTest is archived externally. The initial and latest-main gates are distinct recorded runs.
+
+```sh
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development
+cmake --preset linux-shipping -DNEXORA_ENABLE_SLANG=OFF -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF
+cmake --build --preset linux-shipping
+ctest --preset linux-shipping
+```
+
+The final Minimal Shipping metadata integration and documentation16/links/bilingual/format checks
+are repeated before publication. This profile strips Editor and has no registered tests; Development
+and exact-head hosted checks cover the actual Editor boundary. Hosted checks must all succeed before
+squash merge. Structural widgets remain the separate dependent child; no full M2-03 or ED-M2/
+physical/native-window acceptance is claimed by this Core delivery.
