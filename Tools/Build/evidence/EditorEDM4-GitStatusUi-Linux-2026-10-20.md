@@ -98,3 +98,13 @@ The second original macOS job118912747191 independently reports the same fixture
 (320/322 pass); both original failures remain retained. Documentation/format checks and the new
 main474 authoring test-only integration follow before normal push. New hosted macOS success is
 still required; the Linux result does not substitute for it.
+
+## Current authoring-main integration before corrected-head publication
+
+Main4744c746 differs from319823b9 only by seven documentation/test/CMake files; no runtime code
+changes. It is merged normally into the correction. All seven implementation/test source hashes
+remain unchanged; only test registration adds the two authoring-reopen cases. Rebuilt actual Git
+UI/authoring product targets and all four affected real1x/2x Git/authoring tests pass1.06s.
+The full corrected runtime gate remains the295-test/611.64s result above. Final documentation16,
+links/bilingual/format/diff checks pass before normal push to PR674. Original macOS failures remain
+visible, and all new exact-head hosted checks must succeed before squash.
