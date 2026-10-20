@@ -64,8 +64,8 @@ No deadline, assertion, existing test or platform gate was weakened.
 ## Full local gates and original timing failure
 
 ✅ `cmake --preset linux-development`, `cmake --build --preset linux-development` and
-final unchanged-build `ctest --preset linux-development`: **195 passed, zero failures, 11
-native Vulkan skips** (206 registered, 122.70 s). The new thumbnail test passes in 0.09 s.
+final portability-corrected `ctest --preset linux-development`: **195 passed, zero failures, 11
+native Vulkan skips** (206 registered, 156.27 s). The new thumbnail test passes in 0.10 s.
 The unavailable native display/GPU skips are not acceptance evidence. Formatting, changed
 Markdown links and all 16 documentation-routing tests pass.
 
@@ -80,9 +80,25 @@ The final-source full gate first failed one existing test: `runtime.render_sync`
 unchanged, and its executable does not link EditorCore. Earlier complete gates passed that
 same test in 0.68/0.71 s. One bounded same-binary diagnostic passed all assertions in
 0.680384 s wall / 0.670188 s user / 0.008659 s system. The subsequent unchanged whole-suite gate
-above passes RenderSync in 0.67 s, with the original assertion intact. This is not root-cause
+passed in 122.70 s with RenderSync in 0.67 s, retaining its original assertion. After the fixture
+portability correction below, the final full gate passes RenderSync in 0.90 s. This is not root-cause
 remediation. `nexora-gu7.38.3` stays open for timing/scheduling versus algorithm-work diagnosis.
 [Original failure excerpt and full-log fingerprint plus measured diagnostic](EditorEDM1-MeshThumbnail-RenderSync-2026-10-21.txt).
+
+### Hosted Windows fixture portability correction
+
+The first Windows mimalloc job (`118791061479`, PR head `559ecd3514b27cfe974bcc6eadd49b87fb35792d`)
+failed compilation under MSVC Werror: `std::fill` inferred an `int` from literal zero and the STL
+reported C4244 when assigning into `uint16_t` indices. The corrected fixture supplies
+`std::uint16_t{0}` explicitly, and uses an explicitly float cached-bound fixture value. No dataset,
+expected image, assertion or deadline changes. The [original compiler excerpt](EditorEDM1-MeshThumbnail-WindowsCompile-2026-10-21.txt)
+is retained; the final full Linux gate above validates the corrected source.
+
+The exact thumbnail feature branch now has an independent existing-CI cleanup group. It only
+cancels its own obsolete owner-actor runs after checking repository identity and rechecking the
+branch head before each cancellation. Both live-head push/PR runs remain. All 42 cleanup tests
+pass, including contributor/fork/similarly-named exclusions and advancement races. This avoids
+retaining superseded work without broadening cancellation to another roadmap session.
 
 ### SHA-256 evidence
 
@@ -99,8 +115,15 @@ from the retained failure. Source fingerprints below bind the actual producer an
 - `thumbnail-fixture.log`: `8a8a84776d30498a61e590bea0b120a339b49c7bfdf9404adc4b2b80c5cdbb7d`
 - `Engine/Editor/include/Nexora/Editor/MeshThumbnail.h`: `244bc26542dd2c5d4c34ecded675fce180fada2ed5f6c11dc3ee61e4e079ce8f`
 - `Engine/Editor/src/MeshThumbnail.cpp`: `f9e8a4841aebeb86dcb7a621f6f76759b7fe0f6b73c0ca7b7301304900677a3d`
-- `Tests/Editor/MeshThumbnailTests.cpp`: `a3f679d78d1dec4215b24832e74e88ca7dfd006c2565ebe48aff1e8f853afcfa`
+- `Tests/Editor/MeshThumbnailTests.cpp`: `b92e61fbab1d4cbda5a9559b7d88ed20dde70018c9064c937bb114bcd8879918`
 - `Tools/Build/evidence/EditorEDM1-MeshThumbnail-Linux-2026-10-21.png`: `43db19f4d7f8b2a4981c6113c95bbac7866e856472a8c2eb5255510b5df57a93`
+
+- `thumbnail-configure-portable.log`: `a91b995247c546c2f6d30fd2f40e882094ade0846b2dab20b1cd2ac70225fab8`
+- `thumbnail-build-portable.log`: `560977e9f1ea9297f4e257d1f1bb248e6706e175b4a29d54f97efd688462a837`
+- `thumbnail-ctest-portable.log`: `e62a176256290411ade1c0359c0830d2ee5e7a9e33fc749237c21be2018d1a9c`
+- `thumbnail-ci-cleanup-tests.log`: `7bdbd889974268a02ae09054a9338c37bc81b17c01e3feafbc46ef13d73f99a2`
+- `Tools/Build/editor-ci-cleanup.cjs`: `6714ee7a3999b2d84ef781f892db96ddff589d4b05006e1f503066f30eae5f0f`
+- `Tools/Build/tests/editor-ci-cleanup.test.cjs`: `807f4d7564ba5742c2d179ef38c2e13eb82934cd24a7c267cffd49bda6e65994`
 
 ## Acceptance boundary
 

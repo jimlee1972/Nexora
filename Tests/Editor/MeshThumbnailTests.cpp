@@ -102,7 +102,7 @@ void Raster(const char *output) {
   Require(reversed.pixels && reversed.pixels->rgba == retained,
           "winding changed two-sided preview");
   mesh.minimum.fill(std::numeric_limits<float>::quiet_NaN());
-  mesh.maximum.fill(-1000);
+  mesh.maximum.fill(-1000.0f);
   auto bounds = editor::BuildMeshThumbnail(mesh);
   Require(bounds.pixels && bounds.pixels->rgba == retained, "cached bounds changed actual framing");
   auto square = editor::BuildMeshThumbnail(*Mesh(true));
@@ -155,7 +155,7 @@ void Raster(const char *output) {
   mesh = *Mesh();
   mesh.vertices.resize(editor::kThumbnailMaximumVertices);
   mesh.indices.resize(editor::kThumbnailMaximumIndices);
-  std::fill(mesh.indices.begin(), mesh.indices.end(), 0);
+  std::fill(mesh.indices.begin(), mesh.indices.end(), std::uint16_t{0});
   // Put the visible triangle last: every admitted triangle must be visited.
   mesh.indices[mesh.indices.size() - 2] = 1;
   mesh.indices.back() = 2;
