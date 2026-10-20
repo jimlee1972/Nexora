@@ -16,8 +16,9 @@ struct ExternalTraceInterval final {
   std::uint64_t sequence{};
   double start_microseconds{}, duration_milliseconds{};
 };
-// Owning external Chrome complete, synchronous and nestable async intervals. They are neither frame
-// timings nor GPU/RSS observations. Timestamps retain the external trace clock, not the host clock.
+// Owning external Chrome complete, synchronous, nestable and legacy async intervals. They are
+// neither frame timings nor GPU/RSS observations. Timestamps retain the external trace clock, not
+// the host clock.
 struct ChromeTraceCapture final {
   ChromeTraceSelection selection;
   std::vector<ExternalTraceInterval> samples;
@@ -36,7 +37,9 @@ public:
   // Selected-thread B/E scopes must be balanced, ordered and LIFO; newest retention uses begin
   // order. Nestable async b/e supports id2.local and global id/id2.global, category/scope pairing
   // and cross-thread/process global ends. Selection uses the begin process/thread/name.
-  // Local/global and numeric/string identities stay separate. Legacy S/F is unsupported.
+  // Legacy S/F uses the same bounded identity lanes in a separate non-nestable domain,
+  // keyed additionally by name; duplicate live named identities reject. Local/global and
+  // numeric/string identities stay separate. T/p steps remain metadata, not intervals.
   // Unknown JSON metadata is validated and skipped within bounds. No IO or live capture
   // mutation.
   [[nodiscard]] static std::optional<ChromeTraceCapture>

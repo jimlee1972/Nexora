@@ -37,10 +37,14 @@ and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux
 ## External Chrome duration inspection
 
 The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
-scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+scopes, nestable async `b/e` and non-nestable legacy `S/F` alongside `X` complete events
+through the selected project file.
 Async selection uses the begin process/thread/name. Process-local `id2.local` permits
 cross-thread ends; global `id`/`id2.global` share one namespace and permit cross-process ends.
-Typed IDs, category and scope participate in bounded pairing. Legacy `S/F` remains unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
+Typed IDs, category and scope participate in bounded pairing. Legacy intervals additionally pair
+by name in a separate domain, rejecting duplicate live starts; T/p steps remain metadata.
+The host retains the same owning static interval view, external clock/unit labels,
+process/begin-thread/event selection,
 read-only admission and scope revocation. Nested intervals are displayed by start order;
 duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
 Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core

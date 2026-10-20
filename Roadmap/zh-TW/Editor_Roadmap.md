@@ -1156,26 +1156,34 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 ### ED-M6 — Build、profile 與 extensibility
 
+- ✅ External Chrome import 現以 typed ID、category／scope 與精確 name 配對不可巢狀的
+  legacy S/F interval，與 nestable b/e 分離。Begin process／thread selection、local／global
+  namespace 與跨 process global alias 保留既有有界語意。重複 start、未閉合／malformed scope
+  與共用128-open超限會拒絕；最新600筆依 begin order 保留並保護已淘汰 begin 的槽位。
+  Core、read-only project IO 與實際 1x／2x Profiler control 涵蓋混合格式、精度、Unicode
+  及 prior view／source 保留。T/p step 仍為 metadata；exclusive／self time、其他格式與
+  實體校準仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeLegacyAsync-Linux-2026-10-20.md)。
+
 - ✅ External Chrome global async import 現以 legacy id／id2.global 共用全域 namespace，
   支援跨 process／thread 結束。Core、read-only project IO 與實際 1x／2x mixed-event control
   涵蓋 begin process／thread／name selection、local／global 隔離、非選取 process 的 global
   nesting、typed ID／category／scope 分離、共用128-open容量與 evicted-begin 保護。
-  Inclusive latency 保留外部來源；legacy S/F、exclusive／self time、其他格式與實體校準仍待完成。
+  Inclusive latency 保留外部來源；exclusive／self time、其他格式與實體校準仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md)。
 
 - ✅ External Chrome import 現支援有界 nestable async b/e，以 process-local id2.local ID、
   category／scope identity 配對並允許跨執行緒結束。Selection 採 begin thread／name；Core、
   read-only IO 與實際 1x／2x control 涵蓋共用128-open LIFO pairing、mixed X/B/E/b/e begin
   order、最新600筆／drop count、Unicode identity、evicted-begin 保護及 malformed／未閉合拒絕。
-  Inclusive elapsed latency 不推定 CPU execution 或 GPU／memory。Legacy S/F
-  pairing、其他格式與實體校準仍待完成。
+  Inclusive elapsed latency 不推定 CPU execution 或 GPU／memory。Legacy S/F 已於上方涵蓋；
+  其他格式與實體校準仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeAsyncPairs-Linux-2026-10-12.md)。
 
 - ✅ External Chrome import 現在 X event 之外支援同步 B/E duration scope。有界 selected-thread
   LIFO pairing 保留 nested same-name／mixed-event 的 begin order、inclusive external duration、
   最新600筆／drop count 與 evicted-begin 保護。未閉合、name mismatch、倒退或超容量 scope
   會拒絕，保留 prior capture／file／live profile；涵蓋 read-only project IO 與實際 1x／2x
-  Profiler import control。Legacy async S/F、exclusive／self time、其他格式與實體校準
+  Profiler import control。Legacy async S/F 已於上方涵蓋；exclusive／self time、其他格式與實體校準
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md)。
 
 ✅ External Chrome trace inspection 已驗證：明確 event／process／thread selection、有界 Unicode

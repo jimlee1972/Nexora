@@ -80,14 +80,17 @@ void Run(float scale) {
            R"({"ph":"e","name":"Frame","pid":0,"tid":9,"ts":800,"id2":{"local":"job"}},)"
            R"({"ph":"b","name":"Frame","pid":0,"tid":0,"ts":400,"id":"global-job"},)"
            R"({"ph":"e","name":"Frame","pid":9,"tid":8,"ts":1150,"id2":{"global":"global-job"}},)"
+           R"({"ph":"S","name":"Frame","pid":0,"tid":0,"ts":500,"id":"legacy"},)"
+           R"({"ph":"F","name":"Frame","pid":9,"tid":8,"ts":1500,"id2":{"global":"legacy"}},)"
            R"({"ph":"E","pid":0,"tid":0,"ts":1350}])";
   }
   auto loaded = first.ImportChromeTraceJson(request->selection);
   Require(
-      loaded && loaded->samples.size() == 4 && loaded->samples[0].duration_milliseconds == 1.25 &&
+      loaded && loaded->samples.size() == 5 && loaded->samples[0].duration_milliseconds == 1.25 &&
           loaded->samples[1].duration_milliseconds == 0 &&
           loaded->samples[2].duration_milliseconds == .5 &&
-          loaded->samples[3].duration_milliseconds == .75,
+          loaded->samples[3].duration_milliseconds == .75 &&
+          loaded->samples[4].duration_milliseconds == 1,
       "Actual selected project import did not pair mixed synchronous/async Chrome duration scopes");
   const auto capture = *loaded;
   Require(host.SetImportedChromeTrace(capture), "Valid external static publication failed");
@@ -99,6 +102,16 @@ void Run(float scale) {
               imported()->samples.front().duration_milliseconds == 1.25 &&
               profile.Samples().size() == 1,
           "External view borrowed caller or changed live frame measurements");
+  {
+    std::ofstream output(trace_path);
+    output << R"([{"ph":"S","name":"Frame","pid":0,"tid":0,"ts":100,"id":1}])";
+  }
+  std::string load_error;
+  Require(!first.ImportChromeTraceJson(request->selection, &load_error) && !load_error.empty() &&
+              imported() && imported()->samples.size() == 5 &&
+              imported()->samples.back().duration_milliseconds == 1 &&
+              profile.Samples().size() == 1,
+          "Unclosed legacy import replaced prior static view or live measurements");
   for (int kind = 0; kind < 5; ++kind) {
     auto bad = capture;
     if (kind == 0)

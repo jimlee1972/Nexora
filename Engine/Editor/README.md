@@ -187,9 +187,9 @@ without adding GUI or native resource ownership to this capture API.
 
 ## External Chrome duration import
 
-`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`
-and nestable async `b/e` duration events, selected by exact process/begin-thread/event name. Timestamps keep the external
-microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E` scopes,
+nestable async `b/e` and legacy async `S/F` duration events, selected by exact
+process/begin-thread/event name. Timestamps keep the external microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
 Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
 600-sample, Unicode/JSON and metadata bounds.
 
@@ -197,7 +197,7 @@ On the selected thread, every B requires a name and timestamp; every E requires 
 and closes the most recent B. An optional end name must match. Nonmatching event names still
 participate in pairing so a nested scope cannot close its parent accidentally. At most 128
 synchronous plus async scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
-threads do not share the stack. Valid zero durations remain zero. Legacy async `S/T/F`, instant
+threads do not share the stack. Valid zero durations remain zero. Legacy step `T/p`, instant
 `n` and other phases remain validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
 previously skipped, now reject the whole import if malformed or unbalanced.
 
@@ -220,13 +220,24 @@ while open; independent IDs can finish in any order. All participating scopes mu
 and the shared 128-open budget includes synchronous scopes. Malformed recognized global
 b/e on any process or participating local b/e reject the whole import. Previously skipped
 global events on other processes now participate and must pair; ordinary unrelated local
-metadata remains skipped. Legacy `S/T/F` pairing remains unsupported.
+metadata remains skipped.
+Legacy async `S/F` uses the same bounded ID/category/scope lanes and begin selection, in a
+separate pairing domain from `b/e`. A legacy identity additionally includes the exact event name;
+different names may overlap on one ID, but a second live S with the same complete identity rejects
+rather than nesting. F must close the matching live S with a nondecreasing timestamp. Completed
+identities may be reused. Global S/F may cross processes/threads; process-local S/F only participates
+on the selected process. Unclosed or malformed participating S/F now rejects the whole import;
+these phases were previously skipped. Legacy steps T/p remain opaque metadata and produce no
+intervals. Legacy scopes share the existing 128-open budget with synchronous and nestable scopes.
+The supported subset retains typed IDs and category separation; it does not reconstruct legacy
+step sub-slices or permissively repair broken traces.
+
 This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
 
 Selected begins reserve their sample sequence and position immediately. End events complete
 that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
 overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
-mixed X/B/E/b/e records and nested same-name scopes. Pending intervals never escape a failed import.
+mixed X/B/E/b/e/S/F records and nested same-name scopes. Pending intervals never escape a failed import.
 This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
 
 `ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
