@@ -30,6 +30,7 @@ struct EditorImGuiTestState final {
   bool inspector_transform_visible = false;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
+  std::uint32_t content_rendered_folders = 0;
   std::uint32_t content_selection = 0;
   std::uint32_t content_forward_dependencies = 0;
   std::uint32_t content_reverse_dependencies = 0;

@@ -240,6 +240,16 @@ checking near/far depth-order invariance, lighting, matrix translation, two resi
 inputs, clipped viewport pixels, and idempotent teardown; it executes separately from the Showcase
 room/input gates.
 
+Linux ASan CI orders the complete discovered ICD set with lavapipe first, exercising the
+process-retained Mesa configuration. Default-order driver-unload memory cleanup remains a
+separate follow-up. An opt-in, separate native scene executable must complete the same scene
+assertions and expose its deliberate17-byte leak to LSan. See the
+[sanitizer host contract](../../Tools/Build/README.md#reproducible-linux-vulkan-sanitizer-environment).
+
+Linux ASan CI 保留完整 ICD 集合並固定 lavapipe 優先，驗證 process-retained Mesa 環境；
+一般順序的驅動卸載記憶體清理仍獨立追蹤。另有 opt-in 原生場景正向對照，完成相同場景
+斷言後，必須由 LSan 偵測其故意配置的17-byte 洩漏。
+
 ## Native scene instances
 
 `SceneDrawData::instances` borrows up to 4,096 translation/axis-scale/color/unit-quaternion

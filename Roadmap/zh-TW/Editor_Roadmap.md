@@ -271,6 +271,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   1x／2x 可寫／唯讀資料夾與麵包屑操作，驗證明確的父層導覽及 source／sidecar bytes 保留。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM1-ChildFolderScope-Linux-2026-10-20.md)。
 
+- ✅ Content 資料夾控制項現以固定列高獨立裁切，保留邏輯總數、捲動範圍、原文 scoped ID
+  與導航所需列。真正 1x／2x 可寫／唯讀測試使用 2048 個資料夾，限制提交列數、以 Tab
+  跨越裁切邊界、滑鼠開啟遠端資料夾、定位資料夾清單下方的資產，並保留 filter、source／
+  sidecar bytes、revision 與 pending Undo。資料夾推導／排序仍為 O(n)／O(n log n)；完整規模
+  與實體驗收仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md)。
+
 - ✅ Content 依賴檢視現提供以 UUID 定位的正／反向 Reveal：切換目標資料夾、清除 query／
   type filter、選取並捲動至原先被裁切的列。Portable 與真正 1x／2x ImGui 操作涵蓋唯讀、
   缺失目標、原文名稱、scope／input guard，以及 source／sidecar／revision／pending Undo

@@ -579,9 +579,59 @@ jobs:
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidateModuleGraph.cmake
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidatePluginManifests.cmake
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidateShaderContract.cmake
-      - run: cmake --preset linux-sanitizers
+      - name: Test Vulkan failure diagnostics
+        run: |
+          python3 Tools/Build/tests/test_vulkan_sanitizer_diagnostics.py -v
+          python3 Tools/Build/tests/test_vulkan_icd_order.py -v
+          python3 Tools/Build/tests/test_vulkan_sanitizer_control.py -v
+      - run: cmake --preset linux-sanitizers -DNEXORA_BUILD_VULKAN_SANITIZER_CONTROL=ON
       - run: cmake --build --preset linux-sanitizers
+      - name: Prepare complete Vulkan ICD order and require native sanitizer gates
+        id: vulkan_icds
+        run: |
+          set -euo pipefail
+          python3 Tools/Build/PrepareVulkanICDOrder.py --github-output "$GITHUB_OUTPUT"
+          ctest --preset linux-sanitizers --show-only=json-v1 > build/linux-sanitizers/registered-tests.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          names = {t['name'] for t in json.loads(Path('build/linux-sanitizers/registered-tests.json').read_text())['tests']}
+          required = {'window_presentation.vulkan_' + n for n in ('scene', 'pbr', 'scene_upload_reuse', 'swapchain', 'sanitizer_leak_control')}
+          missing = required - names
+          if missing:
+              raise SystemExit('Missing mandatory native sanitizer gates: ' + ', '.join(sorted(missing)))
+          print('All four native Vulkan gates and the real leak-detection control are registered')
+          PY
       - run: ctest --preset linux-sanitizers
+        id: sanitizers
+        env:
+          VK_DRIVER_FILES: ${{ steps.vulkan_icds.outputs.driver_files }}
+      - name: Report native sanitizer positive control
+        if: success()
+        run: cat build/linux-sanitizers/artifacts/vulkan-sanitizer-positive-control/positive-control.json
+      - name: Retain native sanitizer positive control
+        if: always() && (steps.sanitizers.outcome == 'success' || steps.sanitizers.outcome == 'failure')
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulkan-sanitizer-positive-control-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/linux-sanitizers/artifacts/vulkan-sanitizer-positive-control
+          retention-days: 7
+      - name: Diagnose native Vulkan sanitizer failure
+        if: failure() && steps.sanitizers.outcome == 'failure'
+        timeout-minutes: 2
+        env:
+          VK_DRIVER_FILES: ${{ steps.vulkan_icds.outputs.driver_files }}
+        run: >-
+          python3 Tools/Build/DiagnoseVulkanSanitizers.py
+          --build-dir build/linux-sanitizers
+          --output-dir build/vulkan-sanitizer-diagnostics
+      - name: Retain failed Vulkan sanitizer evidence
+        if: always() && steps.sanitizers.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulkan-sanitizer-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/vulkan-sanitizer-diagnostics
+          retention-days: 7
       # Mesa's uninstrumented driver reports internal mutex races during native teardown.
       # TSan validates portable engine concurrency; native gates remain in Development/ASan.
       - run: cmake --preset linux-thread-sanitizer -DNEXORA_ENABLE_NATIVE_BACKENDS=OFF
