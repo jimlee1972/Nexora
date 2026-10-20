@@ -121,3 +121,34 @@ The feature adds no new public RHI changes beyond main and claims no physical/mi
 | `folder-clip-integrated-shipping-configure.log` | `2fb27900083f6cdef6d2a387238e81358083f173583bd7a654b7f92988363c55` |
 | `folder-clip-integrated-shipping-build.log` | `157892197f0011f6490d6804cf8b7f0b73663bf33df81bff4baa4344f79ed097` |
 | `folder-clip-integrated-last-test.log` | `35b992b0ed34f0e885c1d32c711a286b48883633870feb225d1dec8ffca1a116` |
+## Complete ICD ordering integration — 2026-10-20
+
+The feature's three C++/test source digests remain unchanged from the initial implementation.
+The combined tree integrates main5cb842ac and own diagnostic sourced1c75a42, then stabilizes the
+complete Linux ASan ICD order and adds the separate real native17-byte leak control. The native
+helper, original four acceptance assertions and deadlines remain intact. This mitigates CI
+driver-retention variability; Mesa unload cleanup remains an open follow-up. See the
+[same-process attribution and controls](EditorEDM7-VulkanSanitizerDiagnostics-Linux-2026-10-20.md).
+
+Final combined local gates:
+
+- `cmake --preset linux-development` and
+  `CMAKE_BUILD_PARALLEL_LEVEL=4 cmake --build --preset linux-development`: passed.
+- `cmake --preset linux-shipping` and
+  `CMAKE_BUILD_PARALLEL_LEVEL=4 cmake --build --preset linux-shipping`: passed.
+- `CTEST_PARALLEL_LEVEL=4 ctest --preset linux-development --output-on-failure`:
+  285 registered,273 passed,12 existing native environment skips,0 failures,335.34s.
+  Lifecycle245.24s, deep hierarchy80.35s, Content dependency/clipping5.11s under unchanged
+  deadlines. Actual output again reports55/2048 at both1x/2x.
+- Full native ASan focused acceptance with complete generated eight-ICD order:5/5 passed,
+  zero skips,38.32s. Four original executables pass; the separate positive control passes only
+  after its actual native17-byte leak is detected at the correct injection source symbol.
+- Vulkan ordering/control/diagnostic Python contracts:10/10 passed; GitHub-output preservation,
+  205-test ASan registration including the four originals and positive control, workflow parsing,
+  source digests, touched C++ formatting and clean diff passed. Documentation routing16/16 passed.
+
+The ASan-only control option stays off in ordinary Development and Shipping. No production
+Presentation API, persisted format, dependency or source preset changed. Root README and all
+Editor milestone acceptance counts remain unchanged. Exact published-head CI remains mandatory
+before merge; earlier failed heads and their original logs are retained rather than certified
+by this local gate.
