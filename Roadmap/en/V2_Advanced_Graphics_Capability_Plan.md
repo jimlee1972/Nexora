@@ -759,6 +759,67 @@ The native Khronos object/sync selection passes **13/13** (4.06s), with24 confir
 and zero validation/VUID/sync errors. Windows legacy and enhanced Work Graph variants remain
 pending; successful Linux compute fallback is not native node proof.
 
+## Bounded shared-BLAS instance construction — 2026-10-20
+
+`nexora-45y.4.9` adds explicit ordinary scenes with one shared BLAS and1–8 independently transformed
+TLAS instances, bounded to eight total triangles. Instance-major flattened primitive bases are
+encoded in native instance IDs and consumed by pipeline/inline/SER shaders, matching existing
+world-space compute geometry without changing the16-byte hit ABI or baseline shader profiles.
+Default single-instance and OMM identities stay unchanged. Creation copies and validates every
+matrix/extent before allocation. Same-count transform sets retain BLAS/vertices; geometry refit,
+compaction and full rebuild retain all matrices, with new primitive bases after count changes.
+Earlier lists keep complete prior instance/AS mappings; construction-fence and late-failure
+quarantine rules remain unchanged. System creation/rebuild retain immutable flags, with updates
+still default-closed outside the admitted private runtime. C++ consumers rebuild; C ABI stays stable.
+
+Fixtures pair1/2/8 local triangles with8/4/1 instances. Every instance has a distinguishable hit;
+two overlapping workers test failure/cancellation/replay, and mutations retain old/new lists.
+Private fixtures require704 CPU comparisons each and final per-mode counters63 refits,27 rebuilds,
+36 compactions and45 transform publications. System fixtures require320 comparisons each and12
+rebuilds with all update counters0; unsupported backends execute the same bounded baked geometry
+with320 CPU/compute comparisons per fixture and native counts0. Fixture AS rejection queries
+baseline RT independently from selected-program requirements, preserving ordinary scene admission
+when an unavailable inline mode explicitly selects compute. Actual pinned SDK and Windows
+conditional syntax, ordinary Slang library6.3/query6.5 and preview DXC SER6.9 compilation pass;
+native execution and complete final-head acceptance are recorded below. Cleanup adds
+only this exact owned branch to existing owner/repository/live-head guards. General heterogeneous
+meshes, instance masks/materials, lighting, system-refit isolation, physical and all full gates stay open.
+
+✅ Scoped API/ownership and shader identity implementation passes full native Vulkan/Slang/Zig
+Development configure/build and Xvfb CTest229/229, zero failures/skips (146.04s), plus Shipping
+Minimal/Monolithic LTO. New baked instance fixtures compare1,920 GPU compute outputs while native
+AS/update counts stay0. Actual SDK/Windows-conditional syntax, Slang/DXC profiles and pinned
+reflection/bytecode identities pass. Documentation16/16, cleanup39/39, paired Markdown, touched
+format and diff checks pass. The hosted proof below accepts bounded private/system Windows
+instancing after complete final-head CI; no physical or full V2-GFX-3 acceptance is claimed.
+
+✅ Hosted bounded instance acceptance: [PR658](https://github.com/jimlee1972/Nexora/pull/658)
+merged as `2af07d02` from validated `d6bcfda3`, tree `f031e178`. Full PR39398509898 and
+same-commit verification-push39398789588 both succeed with19 jobs each; ordinary push39398500374
+passes its documentation-only route. All50 effective checks are40 successes/10 expected doc skips.
+Both original review findings ship with the implementation; separate PR660 was closed unmerged.
+
+Private Windows jobs118547367737/118548333207 pass8/8 (5.64/6.04s). Across both events and
+legacy/enhanced modes,36 new instancing fixtures compare25,344 independent CPU results. Each mode
+requires63 refits/27 rebuilds/36 compactions/45 transform publications. Ordinary Windows modes
+each execute12 immutable full rebuilds and keep all three update counters0. Both complete desktop
+matrices pass Windows327/327, Linux377/377 and macOS314/314 with zero skips.
+
+Both sanitizer jobs118547367766/118548333350 actually pass the original four native Vulkan cases
+and the separate strict17-byte leak control:198 ASan passes/7 existing Slang-off skips out of205,
+plus193/193 TSan with zero skips. All eight discovered ICDs remain present; the fault control
+requires completed scene/capture, exact injected leak and native exit1, without replacing acceptance.
+Both jobs use Ubuntu image20261012.334.1; this does not certify the previously failing image18 or
+repair Mesa default-order unload cleanup (`nexora-0ua.1.17`).
+
+The original PR Windows mimalloc transport timeout (job118547367426,30.01s) remains retained.
+Independent same-source202/202 evidence supported exactly one failed-jobs-only diagnostic;
+job118561427597 passes202/202 (345.13s), transport0.74s, while successful jobs are reused. The
+failure used image20261018/Python3.15; the diagnostic used20261007/Python3.14.8. No assertions,
+deadlines or source changed, and no image/Python causation or root fix is claimed; `nexora-y5g`
+stays open. General heterogeneous assembly, lighting, broader system refit, physical acceptance
+and all five full V2-GFX gates remain open.
+
 ## Bounded TLAS instance transform construction — 2026-10-20
 
 `nexora-45y.4.8` adds explicit absolute row-major instance transforms for ordinary1–8-triangle scenes
@@ -777,7 +838,8 @@ Linux/other unsupported recipes retain native count0 and compare world-space GPU
 with independent CPU geometry. Actual pinned SDK and Windows-conditional fixture syntax and full
 local/hosted gates remain required before acceptance. Only this exact owned transform branch joins
 existing guarded CI cleanup; live-head push/PR events and unrelated actors/branches stay protected.
-General/multi-instance scenes, lighting, system-runtime refit isolation and all full gates stay open.
+General heterogeneous instance assembly, lighting, system-runtime refit isolation and all full gates
+stay open.
 
 ✅ Scoped API/ownership implementation passes native Vulkan/Slang/Zig Development configure/build
 and full Xvfb CTest229/229, zero failures/skips (152.10s), plus Shipping Minimal/Monolithic LTO.
@@ -805,7 +867,7 @@ reset, retained old lists and matrix preservation through refit/compaction/rebui
 
 Ordinary system-runtime modes keep refit/compaction/transform counters0 while executing six full
 rebuilds each. Linux world-space compute exercises1,152 affine outputs with native transform
-count0. This accepts the bounded private software-runtime recipe. General/multi-instance scenes,
+count0. This accepts the bounded private software-runtime recipe. General heterogeneous instance assembly,
 lighting, completion-failure injection, broader system refit (`nexora-45y.4.7`), physical
 performance/device-loss acceptance and all five full V2-GFX gates remain open.
 

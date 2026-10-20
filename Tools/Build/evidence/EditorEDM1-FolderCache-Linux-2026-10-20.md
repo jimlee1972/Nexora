@@ -1,6 +1,7 @@
 # Content child-folder snapshot reuse — Linux, 2026-10-20
 
-Scope: supporting WP2/ED-M1 and ED-M7 scale work, based on main `3b9fffcc` (PR656).
+Scope: supporting WP2/ED-M1 and ED-M7 scale work. Initial acceptance used source
+`83cab7bb` based on main `3b9fffcc` (PR656); latest-main integration is recorded below.
 No ED milestone or physical-host acceptance is added; milestones remain 0/8.
 
 ## Contract and implementation
@@ -93,3 +94,29 @@ Retained local log SHA256:
 - `folder-cache-shipping-build.log`: `7102d9e06cc616bc55d3f2fcb1871792611c415687007e5ded631272bf32badc`
 - `folder-cache-focused-ctest.log`: `904843d5b3a7c2eeb15d7db51255b476b1de948686958a49cafa478bb394f7e8`
 - `folder-cache-probe.log`: `f3d8d88c6a857f06cd52c4f4d0920fdaec3cb5051767e453fb245e4998b55e58`
+
+## Latest-main RHI integration
+
+Main advanced to `486362f7` through merged shared-BLAS ray instancing PR658 (`2af07d02`)
+and paired hosted acceptance documentation PR663. The additive public Device virtual methods
+require rebuilding C++ consumers. Latest main was merged without conflicts or rewriting the
+published feature commit. All five implementation/test SHA256 digests remain unchanged:
+ContentBrowser.h/.cpp, EditorImGui.cpp, EditorTests.cpp and ContentDependencyTests.cpp.
+The final PR diff remains limited to the folder snapshot slice and its documentation/tests.
+
+The combined Development and Shipping configure/build gates passed, with all consumers rebuilt.
+`CTEST_PARALLEL_LEVEL=4 ctest --preset linux-development --output-on-failure` passed with
+285 registered tests, 273 actual passes, 12 existing native environment skips, zero failures,
+283.68 seconds. Lifecycle189.92s, deep60.34s, Content shortcuts62.60s and dependency/reveal/drop7.35s
+all met unchanged deadlines. Both DPI clipping lines again report maximum55/2048.
+Documentation tests16/16, CI cleanup tests39/39, Markdown links/full CI routing, source digests
+and clean diff checks passed. The source formatting is unchanged from the earlier validated files. Initial query measurements above remain
+scoped to the original source and are not new whole-frame or platform performance claims.
+Old source83cab workflow history remains retained; no unchanged-head retry was requested.
+
+Integrated retained log SHA256:
+
+- `folder-cache-integrated-build.log`: `7115442581f39f64280c6c3a4a356d23bd231ba3dfbcf32da09f91b128b60d11`
+- `folder-cache-integrated-ctest.log`: `c0b88971ce8c221ff1fe2a265a7f48a1a38de44cf703b7ff325d567743bea448`
+- `folder-cache-integrated-last-test.log`: `90f363a42f757394fdd768a3a278e497379230da9ea21d8f06d8eec7325a9a11`
+- `folder-cache-integrated-shipping-build.log`: `4ae32f6bcf04541d863d73480cb473798d220241ae74121f113dfdeb4447c17f`

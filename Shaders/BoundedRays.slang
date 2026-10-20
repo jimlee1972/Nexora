@@ -22,7 +22,7 @@ void rayGeneration() {
 void rayMiss(inout Hit result) { result.primitive=0xffffffff; }
 [shader("closesthit")]
 void rayClosest(inout Hit result, BuiltInTriangleIntersectionAttributes attributes) {
- result.primitive=PrimitiveIndex();
+ result.primitive=InstanceID()+PrimitiveIndex();
  result.distance=RayTCurrent();
 #if defined(NEXORA_RAY_IDENTITY_NEGATIVE)
  result.distance+=1;
@@ -39,7 +39,7 @@ void inlineQuery(uint3 id:SV_DispatchThreadID) {
  while(query.Proceed()) {}
  Hit result={0xffffffff,input.maximum,float2(0,0)};
  if(query.CommittedStatus()==COMMITTED_TRIANGLE_HIT) {
- result.primitive=query.CommittedPrimitiveIndex();
+ result.primitive=query.CommittedInstanceID()+query.CommittedPrimitiveIndex();
  result.distance=query.CommittedRayT();
  result.barycentrics=query.CommittedTriangleBarycentrics();
  }

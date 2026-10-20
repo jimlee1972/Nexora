@@ -8,6 +8,7 @@ struct RayProgramTag;
 using RaySceneHandle = core::Handle<RaySceneTag>;
 using RayProgramHandle = core::Handle<RayProgramTag>;
 inline constexpr std::uint32_t RayMaximumTriangles = 8;
+inline constexpr std::uint32_t RayMaximumInstances = 8;
 inline constexpr std::uint32_t RayMaximumInputs = 64;
 inline constexpr std::uint32_t RayMaximumDispatchesPerList = 8;
 inline constexpr std::uint32_t RayMissPrimitive = 0xffffffffU;
@@ -65,6 +66,18 @@ struct RaySceneCreationOptions final {
   // Explicit opt-in; native compaction metadata can increase initial AS storage/build cost.
   bool allow_compaction{};
 };
+// All instances share one BLAS. Hit primitives use instance-major flattened triangle indices.
+inline bool IsRayInstanceSetValid(std::size_t triangle_count,
+                                  std::span<const RayInstanceTransform> transforms) noexcept {
+  if (!triangle_count || triangle_count > RayMaximumTriangles || transforms.empty() ||
+      transforms.size() > RayMaximumInstances ||
+      transforms.size() > RayMaximumTriangles / triangle_count)
+    return false;
+  for (const auto &transform : transforms)
+    if (!IsRayInstanceTransformValid(transform))
+      return false;
+  return true;
+}
 struct RayProgramDescriptor final {
   RayTracingMode mode{RayTracingMode::Pipeline};
   GraphicsRequirements graphics_requirements{};
