@@ -1490,7 +1490,7 @@ projects may inspect status without modifying authoring files or the Git index.
 `editor.git_status_ui_1x` and `_2x` drive actual product widgets with pointer/keyboard/text events
 and actual Git in disposable Unicode-path repositories. Negative native process fixtures cover
 malformed results, cancellation, stale scope and shutdown; an allocation fault covers rejected
-capture publication. The tests check clean/changed/renamed/raw filenames, source/index preservation,
+capture publication. The tests check clean/changed/renamed/Unicode filenames, POSIX controls, Linux raw names, source/index preservation,
 read-only inspection, clipped complete data and clearing an active executable draft on project
 replacement. These are headless widget tests, not physical DPI/IME/display acceptance. Nested
 repository discovery, graphical diff/merge and full source-control acceptance remain open.

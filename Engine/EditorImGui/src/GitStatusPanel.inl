@@ -199,6 +199,9 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
 }
 
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::string EditorImGuiTestAccess::GitPathDisplay(std::string_view bytes) {
+  return GitDisplayPath(bytes);
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::GitControlPosition(const EditorImGuiHost &host,
                                           std::size_t control) noexcept {

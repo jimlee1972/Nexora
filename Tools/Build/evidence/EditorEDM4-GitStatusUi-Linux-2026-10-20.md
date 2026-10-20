@@ -66,3 +66,35 @@ Documentation16/16, links/bilingual pairing, touched C++ format and diff checks 
 publication. Applicable hosted exact-head checks must succeed before squash merge; no hosted or
 physical/native-window/display acceptance is substituted by this Linux record. The parent Git
 source-control goal remains open for diff/merge, nested discovery and broader integration.
+
+## macOS fixture portability correction in progress
+
+Original published heada913c142 has a real hosted macOS failure: job118913105500, both new Git UI
+scales report `Fixture write failed` after clean status. Existing product tests otherwise pass320/322.
+The new fixture attempted to create a filename containing invalid UTF-8 under every POSIX host;
+Darwin filesystems require valid Unicode names. That host-specific fixture assumption is corrected
+without removing raw-byte behavior verification: actual Git/raw filenames remain tested on Linux,
+actual newline filenames remain tested on POSIX, and the production byte formatter is checked
+through a private pure-display probe on every host, including invalid bytes, backslash/control
+escaping, literal percent and unchanged valid Unicode. Fixture open failures now include numeric
+errno for precise diagnostics. No production status/display policy or correctness deadline changes.
+
+The original failed job remains evidence; there is no blind retry. The correction normally
+integrates current main319823b9, then repeats complete Linux/Shipping/format/documentation gates
+before a normal push to PR674 and fresh exact-head hosted CI. macOS correction success is not claimed
+until that new hosted run passes. Parent/full ED-M4 acceptance remains open.
+
+## Complete portability-correction Linux gate
+
+The corrected frozen eight source/CMake hashes pass fresh configure/build (424 integration steps),
+real Git/widget focused2/2 in0.84s and full serial Linux CTest:295 registered,283 actual passes,
+12 existing native/environment skips,zero failures,611.64s. Full1x/2x pass0.41/0.48s; unchanged
+100k269.91s retains the original300s deadline at scale1. Actual Linux raw filename coverage stays
+active, and every host runs the production formatter's exact raw/control/valid-Unicode checks.
+Full LastTest is archived externally. Minimal Shipping configure/build also passes its metadata
+integration; it strips Editor and has no registered tests.
+
+The second original macOS job118912747191 independently reports the same fixture-write failure
+(320/322 pass); both original failures remain retained. Documentation/format checks and the new
+main474 authoring test-only integration follow before normal push. New hosted macOS success is
+still required; the Linux result does not substitute for it.

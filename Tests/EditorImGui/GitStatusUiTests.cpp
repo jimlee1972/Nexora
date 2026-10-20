@@ -3,6 +3,7 @@
 #include "EditorImGuiTestAccess.h"
 #include "TemporaryDirectoryCleanup.h"
 
+#include <cerrno>
 #include <chrono>
 #include <fstream>
 #include <iostream>
@@ -27,6 +28,9 @@ std::string Utf8(const std::filesystem::path &path) {
 }
 void Write(const std::filesystem::path &path, std::string_view text) {
   std::ofstream output(path, std::ios::binary);
+  const auto open_error = errno;
+  if (!output)
+    throw std::runtime_error("Fixture open failed (errno=" + std::to_string(open_error) + ")");
   output << text;
   output.close();
   Require(!output.fail(), "Fixture write failed");
@@ -188,6 +192,10 @@ struct Fixture final {
   }
 };
 void Run(float scale, const std::filesystem::path &git, const std::filesystem::path &fault) {
+  Require(Access::GitPathDisplay("raw-" + std::string(1, static_cast<char>(0xff))) == "raw-\\xff" &&
+              Access::GitPathDisplay("%s\\\n\r\t\x01\x7f") == "%s\\\\\\n\\r\\t\\x01\\x7f" &&
+              Access::GitPathDisplay("新增 %s.txt") == "新增 %s.txt",
+          "Cross-platform byte escaping lost raw/Unicode/control data");
   Fixture f(scale, git, fault);
   auto index = Read(f.root / ".git/index");
   f.Tool(git);
@@ -202,6 +210,9 @@ void Run(float scale, const std::filesystem::path &git, const std::filesystem::p
   Write(f.root / std::filesystem::path(u8"Content/新增 %s.txt"), "new asset\n");
 #if !defined(_WIN32)
   Write(f.root / "Content/line\nbreak.txt", "newline asset\n");
+#endif
+#if defined(__linux__)
+  // Darwin filesystems require valid Unicode filenames; Linux also exercises actual raw bytes.
   Write(f.root / ("Content/raw-" + std::string(1, static_cast<char>(0xff))), "raw asset\n");
 #endif
   f.Git({"mv", "--", "Content/before.txt", "Content/after %s.txt"});
@@ -217,9 +228,12 @@ void Run(float scale, const std::filesystem::path &git, const std::filesystem::p
           "Actual changed/Unicode/rename status or source/index conservation failed");
 #if !defined(_WIN32)
   Require(text.find("line\\nbreak.txt") != std::string::npos &&
-              text.find("raw-\\xff") != std::string::npos &&
               text.find("line\nbreak.txt") == std::string::npos,
-          "Raw path bytes were lost or rendered as injected UI lines");
+          "Control path bytes were lost or rendered as injected UI lines");
+#endif
+#if defined(__linux__)
+  Require(text.find("raw-\\xff") != std::string::npos,
+          "Actual Linux raw filename was lost or decoded incorrectly");
 #endif
   f.Tool(f.temporary / "missing-git");
   f.Click(1);
