@@ -66,3 +66,46 @@ The same checksum13050 and unchanged-source/history guards pass. Cold folder/sea
 for this dataset; Reset still uses the original comparator and its timing variance is recorded.
 Both caches' combined/current-main results will be recorded after the independent sort prerequisite.
 These are single observations with other build/CTest load, not production percentiles/assets/GPU.
+
+## Prospective current-main plus sort integration
+
+An unpublished validation branch combines this directory feature, latest main `43d6bb96` and the
+unchanged sort PR673 head `b4da80cd`. Conflict resolution retains both independent helpers,
+invalidation paths, test registrations and exactly one shared benchmark target. Fresh Development
+configure/build passes 326 integration steps. Full combined correctness/Shipping/hosted gates remain
+pending; the directory PR waits for the independent sort prerequisite to reach main.
+
+Actual combined-library 100k metadata benchmark (same schema, checksum/source/history assertions):
+
+```json
+{"schema":1,"dataset":"content-directory-metadata","label":"after","items":100000,"folders":1000,"fixture_ms":478.837823,"reset_ms":1957.883825,"first_root_query_ms":330.132122,"cold_folder_queries":100,"cold_folder_ms":4.292734,"search_queries":200,"search_ms":32.593601,"checksum":13050}
+```
+
+This single observation runs on the same GCC14.2 managed4-CPU Linux environment with an independent
+CTest and Shipping build active. Reset is1957.88ms; 100 cold folders4.29ms; 200 searches32.59ms.
+These phase measurements preserve complete results and illustrate the two independent optimizations;
+they are not production-assets/RSS/GPU percentiles or isolated performance calibration.
+
+## Complete combined delivery gate
+
+The unchanged eight combined source/CMake hashes pass fresh Linux preset configure/build and full
+serial CTest:294 registered,282 actual passes,12 existing native feature/environment skips,zero
+failures,737.74s. Directory regression41.18s, sort37.64s, Deep97.57s and100k286.00s retain all
+original correctness assertions and180/300s hierarchy deadlines (scale1). Complete LastTest is
+archived externally. A separate Minimal Monolithic Shipping configure/build passes the9-step
+integration over its earlier complete102-step build; that profile strips Editor by policy.
+
+```sh
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development
+cmake --preset linux-shipping -DNEXORA_ENABLE_SLANG=OFF -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF
+cmake --build --preset linux-shipping
+```
+
+Independent sort PR673 has now merged as main `319823b92e77803c1b77d565d203e29cf1bf412b`, whose
+exact tree matches the separately fully tested main43d6-plus-sort candidate. The directory branch
+integrates that committed main before publication and verifies all combined code hashes unchanged.
+Documentation/links/bilingual/format checks and exact-head hosted CI remain separate publication/
+merge requirements. The source dataset and all results remain complete; production assets/RSS/GPU,
+general timing variance and full ED-M1/physical acceptance remain open.

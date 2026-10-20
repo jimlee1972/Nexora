@@ -9,6 +9,12 @@ nexora_apply_defaults(NexoraContentDirectoryTests)
 add_test(NAME editor.content_directory_index COMMAND NexoraContentDirectoryTests)
 set_tests_properties(editor.content_directory_index PROPERTIES TIMEOUT 240)
 
+add_executable(NexoraContentPathSortTests ContentPathSortTests.cpp)
+target_link_libraries(NexoraContentPathSortTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentPathSortTests)
+add_test(NAME editor.content_path_sort COMMAND NexoraContentPathSortTests)
+set_tests_properties(editor.content_path_sort PROPERTIES TIMEOUT 240)
+
 add_executable(NexoraContentDirectoryBenchmark ContentDirectoryBenchmark.cpp)
 target_link_libraries(NexoraContentDirectoryBenchmark PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraContentDirectoryBenchmark)
