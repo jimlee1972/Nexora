@@ -72,3 +72,28 @@ Documentation tests 16/16, Markdown/local links/bilingual pairing, touched C++ f
 diff checks pass before publication. Hosted platform outcomes belong to the PR checks, not this
 Linux record. Graphical status/diff/merge, full M4-06, Editor milestones and physical-host
 acceptance remain open.
+
+## Current-main integration
+
+Main `78a0d429fc9317668baad1e623273de2646d463d` adds the independently delivered mesh thumbnail
+provider. The normal integration completed Development configure/build (318 steps), Shipping
+configure/build and the entire Linux gate: 292 registered, 280 actual passes, 12 existing skips,
+zero failures, 623.81 s. Actual Git provider passed 0.43 s, mesh thumbnails 0.14 s and the 100k
+hierarchy lifecycle 235.25 s at the original timeout multiplier 1. No assertion/deadline was relaxed.
+
+Main then advanced to `ecfd42563a3ecdae9674090a23ceb22e870251ea` with validated Chrome self elapsed
+intervals. That baseline is integrated normally before publication; its full Linux gate is in
+progress. No result from the earlier baseline is substituted for that integration gate.
+
+### Final delivery baseline
+
+The final branch also integrates main `8fd501c46d9736ce5295c0ee12991eeca6518e20` (checked StaticView
+report output and bounded diagnostics). Fresh Development configure/build passed 317 steps;
+Minimal Shipping configure/build passed the 9-step metadata integration after the earlier complete
+102-step build. All five provider/parser/fault source hashes remain unchanged.
+
+The final complete Linux gate passed 294 registered tests: 282 actual passes, 12 existing native
+feature/environment skips, zero failures, 714.94 s. Actual Git provider passed 0.45 s and the
+unchanged 100k lifecycle 247.79 s at timeout multiplier 1. The full LastTest log is archived outside
+the repository. Documentation/format/diff checks are repeated before publication; hosted outcomes
+remain separately recorded on the PR. No graphical source-control or full milestone claim is made.
