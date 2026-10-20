@@ -1123,7 +1123,12 @@ Delete continue to act on the resulting owning selection.
 
 Content folder rows contain only immediate children derived from indexed descendants of the
 current folder; unrelated assets do not manufacture parent rows. Breadcrumbs and Alt+Up retain
-explicit parent navigation. Content folder rows participate in Dear ImGui Tab navigation. Enter activates the focused folder,
+explicit parent navigation. Folder rows use a separate fixed-height ImGui clipper before asset
+rows: only visible and navigation-required ranges submit controls and drop targets, while the
+logical folder count and full scroll extent remain intact. IDs still use project root, generation,
+role and raw path bytes; a clipped row retains no path-position observation. Child-folder derivation,
+sorting and activation lookup remain linear/sort work on the owning frame snapshot; this does not
+make the complete Content frame constant-time. Content folder rows participate in Dear ImGui Tab navigation. Enter activates the focused folder,
 while a single pointer click retains the existing inspection behavior and double-click opens it.
 Focused Alt+Up moves to the preceding breadcrumb once per press, stopping at the Content root.
 These operations work read-only, preserve asset selection/filter and mutation history, and reset
