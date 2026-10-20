@@ -690,9 +690,10 @@ add_test(NAME editor.game_input_bindings COMMAND NexoraGameInputBindingsTests)
 
 add_executable(NexoraHierarchyNavigationTests HierarchyNavigationTests.cpp)
 target_include_directories(NexoraHierarchyNavigationTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraHierarchyNavigationTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraHierarchyNavigationTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraHierarchyNavigationTests)
 add_test(NAME editor.hierarchy_keyboard_navigation COMMAND NexoraHierarchyNavigationTests)
+add_test(NAME editor.hierarchy_hidden_requests COMMAND NexoraHierarchyNavigationTests --hidden)
 
 add_executable(NexoraMaterialInspectorTests MaterialInspectorTests.cpp)
 target_include_directories(NexoraMaterialInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

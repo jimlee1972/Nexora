@@ -968,7 +968,7 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
 
 template <typename StateT>
 void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool editable,
-                                   bool retain_rename) {
+                                   bool retain_rename, bool hidden_row_count) {
   state.hierarchy_visible_rows = 0;
   state.hierarchy_rendered_rows = 0;
   state.hierarchy_row_observations.clear();
@@ -996,7 +996,11 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
     if (!retain_rename)
       state.hierarchy_rename_target.reset();
   }
-  const auto nodes = scene->Nodes();
+  // Expansion pruning, queued selection, sibling reorder and hidden counts need this snapshot.
+  // Ordinary rendering takes its own fresh observation after any authoring buttons run.
+  const bool needs_nodes = !state.hierarchy_expanded.empty() || state.hierarchy_selection_request ||
+                           state.hierarchy_reorder_request || hidden_row_count;
+  const auto nodes = needs_nodes ? scene->Nodes() : std::vector<SceneDocument::NodeView>{};
   if (!state.hierarchy_expanded.empty()) {
     std::unordered_map<runtime::Id, SceneDocument::NodeKey> current_keys;
     current_keys.reserve(nodes.size());
@@ -1025,19 +1029,23 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
     }
   }
 
-  const auto rows =
-      BuildHierarchyRows(state, nodes, std::string_view(state.hierarchy_filter.data()));
-  std::vector<SceneDocument::NodeKey> visible;
-  visible.reserve(rows.size());
-  for (const auto &row : rows)
-    visible.push_back(row.node->Key());
-  state.hierarchy_visible_rows = static_cast<std::uint32_t>(
-      std::min<std::size_t>(rows.size(), std::numeric_limits<std::uint32_t>::max()));
+  if (state.hierarchy_selection_request || hidden_row_count) {
+    // Queued range selection and hidden-window statistics require the complete projection.
+    // Visible DrawHierarchy computes its own current UI rows.
+    const auto rows =
+        BuildHierarchyRows(state, nodes, std::string_view(state.hierarchy_filter.data()));
+    std::vector<SceneDocument::NodeKey> visible;
+    visible.reserve(rows.size());
+    for (const auto &row : rows)
+      visible.push_back(row.node->Key());
+    state.hierarchy_visible_rows = static_cast<std::uint32_t>(
+        std::min<std::size_t>(rows.size(), std::numeric_limits<std::uint32_t>::max()));
 
-  if (state.hierarchy_selection_request) {
-    const auto request = std::exchange(state.hierarchy_selection_request, std::nullopt);
-    static_cast<void>(ApplyHierarchySelection(state, *scene, visible, request->entity,
-                                              request->additive, request->range));
+    if (state.hierarchy_selection_request) {
+      const auto request = std::exchange(state.hierarchy_selection_request, std::nullopt);
+      static_cast<void>(ApplyHierarchySelection(state, *scene, visible, request->entity,
+                                                request->additive, request->range));
+    }
   }
   if (state.hierarchy_move_request) {
     const auto request = std::exchange(state.hierarchy_move_request, std::nullopt);
@@ -5229,8 +5237,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable);
-  if (ImGui::Begin(hierarchy_window.c_str()))
+  const bool hierarchy_visible = ImGui::Begin(hierarchy_window.c_str());
+  ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable,
+                                !hierarchy_visible);
+  if (hierarchy_visible)
     DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable, rename_editable);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");

@@ -1458,3 +1458,19 @@ between acquired frames. An empty overlay preserves ordinary native ImGui render
 Editor uses this for bounded 2D Game View sprites/HUD; it does not submit a second RenderUi packet
 or claim instancing for arbitrary Editor triangles. Public C++ consumers rebuild; no C/Zig ABI
 or serialized format changes.
+
+
+## Hierarchy request projection work
+
+Hierarchy request processing stages a full node observation only for expansion pruning, queued
+selection, sibling reordering or hidden-window row statistics. A complete row/key projection is
+built for queued range selection and hidden counts. A visible Hierarchy takes its own fresh
+observation after authoring buttons, so ordinary visible frames avoid the duplicate request pass.
+Expansion pruning still validates every generation against the current World/document. All node,
+name and row borrows remain frame-local; the optimization introduces no retained scene cache.
+
+Hidden windows still apply queued selection/reparent operations and publish complete current row
+counts without emitting row widgets. The hidden-window regression covers 1x/2x, Undo, stale reload
+requests, document removal and visible recovery; existing keyboard, expansion, storage and 100k
+assertions and deadlines stay intact. Production performance and CI timing variance remain separate
+acceptance goals.
