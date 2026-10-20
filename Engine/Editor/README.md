@@ -662,6 +662,21 @@ write failure leaves original scene files and dirty baselines unchanged.
   model destruction; no item/World/document borrow is cached. Call only on the authoring thread.
   `ChildFolders` retains its independent owning-vector API. Consumers must rebuild for the additive
   C++ API/layout change; persisted formats and the stable C ABI are unchanged.
+- Source sorting stages one owning UTF-8 key per item and a source-to-destination permutation,
+  then swaps complete `ContentItem` records with statically checked noexcept moves. Reset,
+  discovery (including retained Undo) and authoring commits preserve the original byte comparator,
+  payload owners, metadata and ordering. The temporary acceleration admits at most 262,144 items
+  and 16 MiB of UTF-8 key bytes; these are payload/admission bounds, not total RSS. Over-budget or
+  failed cache construction releases staging and takes the existing complete projection-sort path.
+  No partial permutation is published. Ordinary fallback allocation behavior is unchanged.
+  Owner-thread calls remain serialized; keys never persist across calls or become World borrows.
+  The public model layout/SDK and persisted formats are unchanged.
+- `NexoraContentDirectoryBenchmark before|after` builds a deterministic 100k-item/1000-folder
+  metadata fixture and emits schema-1 JSONL for fixture/reset, first-root, 100 cold-folder and 200
+  typed-search timings. The 13,050 checksum, complete results, source count, unchanged revision,
+  empty selection and lack of new Undo history are checked. It opens no user project/files or GPU.
+  Future incompatible record changes require a new schema; this producer does not import traces.
+  Record machine/compiler/load with results; one timing pair is not a production percentile budget.
 - `VisibleCount`, `Visible` and `SelectVisible` share one lazy immutable projection of owning item
   indices for the current folder and normalized query/type. Successful Reset/Discover/path edits/
   Undo and actual folder/filter changes revoke it; same-folder navigation, equal normalized filters,

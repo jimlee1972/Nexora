@@ -1,4 +1,5 @@
 #include "Nexora/Editor/ContentBrowser.h"
+#include "ContentPathSortTestAccess.h"
 #include "Nexora/Foundation/Types.h"
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/TwoDAssetImport.h"
@@ -7,12 +8,66 @@
 #include <algorithm>
 #include <cctype>
 #include <functional>
+#include <limits>
+#include <new>
+#include <type_traits>
 
 namespace nexora::editor {
 namespace {
+thread_local std::size_t fail_sort_after = std::numeric_limits<std::size_t>::max();
+thread_local bool last_sort_accelerated{};
 std::string PathUtf8(const std::filesystem::path &path) {
   const auto text = path.generic_u8string();
   return {text.begin(), text.end()};
+}
+void SortItems(std::vector<ContentItem> &items) {
+  static_assert(std::is_nothrow_swappable_v<ContentItem>);
+  const bool accelerated = [&] {
+    if (items.size() < 2)
+      return true;
+    if (items.size() > ContentPathSortTestAccess::kMaximumItems)
+      return false;
+    try {
+      struct Key final {
+        std::string bytes;
+        std::size_t source;
+      };
+      std::vector<Key> keys;
+      keys.reserve(items.size());
+      std::size_t remaining = ContentPathSortTestAccess::kMaximumKeyBytes;
+      for (std::size_t i = 0; i < items.size(); ++i) {
+        if (items[i].path.native().size() > remaining)
+          return false;
+        auto bytes = PathUtf8(items[i].path);
+        if (bytes.size() > remaining)
+          return false;
+        remaining -= bytes.size();
+        if (keys.size() == fail_sort_after) {
+          fail_sort_after = std::numeric_limits<std::size_t>::max();
+          throw std::bad_alloc{};
+        }
+        keys.push_back({std::move(bytes), i});
+      }
+      std::ranges::sort(keys, {}, &Key::bytes);
+      std::vector<std::size_t> destination(items.size());
+      for (std::size_t i = 0; i < keys.size(); ++i)
+        destination[keys[i].source] = i;
+      // All storage/conversion is staged before item mutation. A source-to-destination
+      // permutation then moves complete owning records using only noexcept swaps.
+      for (std::size_t i = 0; i < items.size(); ++i)
+        while (destination[i] != i) {
+          const auto target = destination[i];
+          std::swap(items[i], items[target]);
+          std::swap(destination[i], destination[target]);
+        }
+      return true;
+    } catch (const std::bad_alloc &) {
+      return false;
+    }
+  }();
+  last_sort_accelerated = accelerated;
+  if (!accelerated)
+    std::ranges::sort(items, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
 }
 bool WithinMeshBudget(std::span<const ContentItem> items, runtime::AssetUuid replacement = {},
                       const std::shared_ptr<const MeshGeometry> &mesh = {}) {
@@ -81,6 +136,11 @@ bool ValidDiagnostic(const ContentItem &item) {
 }
 } // namespace
 
+void ContentPathSortTestAccess::FailAfterKeys(std::size_t count) noexcept {
+  fail_sort_after = count;
+}
+bool ContentPathSortTestAccess::LastSortAccelerated() noexcept { return last_sort_accelerated; }
+
 ContentBrowserModel::ContentBrowserModel(std::uint64_t project_generation)
     : generation_(project_generation) {
   SetFolder("Content");
@@ -98,7 +158,7 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
   child_folders_.reset();
   visible_indices_.reset();
   items_.assign(items.begin(), items.end());
-  std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
+  SortItems(items_);
   selection_.clear();
   undo_.clear();
   undo_selection_.clear();
@@ -125,10 +185,10 @@ bool ContentBrowserModel::Discover(ContentItem item) {
     if (!WithinMeshBudget(previous) || !WithinMaterialBudget(previous) ||
         !WithinTwoDBudget(previous))
       return false;
-    std::ranges::sort(previous, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
+    SortItems(previous);
     undo_ = std::move(previous);
   }
-  std::ranges::sort(next, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
+  SortItems(next);
   child_folders_.reset();
   visible_indices_.reset();
   items_ = std::move(next);
@@ -302,7 +362,7 @@ bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *err
   child_folders_.reset();
   visible_indices_.reset();
   items_ = std::move(next);
-  std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
+  SortItems(items_);
   if (error)
     error->clear();
   return true;
