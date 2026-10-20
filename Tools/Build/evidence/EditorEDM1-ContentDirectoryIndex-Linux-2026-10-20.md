@@ -133,3 +133,13 @@ oracle transform; all three original Windows failures remain retained. No produc
 behavior, assertion, warning level or timeout changed. Main474 adds authoring documentation/tests
 only, with no runtime delta; normal integration and those affected tests follow before normal
 PR675 push. Fresh Windows hosted success remains required before squash.
+
+## Authoring-only current-main integration
+
+The corrected directory branch normally integrates main4744c746. Its delta from319823b9 is only
+seven authoring documentation/test/CMake files, with no runtime change. All eight corrected index/
+matching-test hashes remain unchanged. Rebuilt affected directory/authoring product targets and
+all three directory plus actual1x/2x authoring-reopen checks pass39.20s. The corrected full297-test
+runtime gate above remains unchanged. Documentation16, links/bilingual pairing, formatting and
+diff checks are repeated before normal PR675 update. Original Windows failures remain evidence;
+all new exact-head hosted checks must succeed before squash/closure.
