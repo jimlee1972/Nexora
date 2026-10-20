@@ -214,6 +214,15 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Content source sorting now stages bounded owning UTF-8 keys and a complete permutation before
+  noexcept record swaps, preserving the original byte order, payload owners and Undo/discovery.
+  Budget/allocation fallback retains complete legacy sorting. The shared 100k metadata phase
+  benchmark separates Reset from cold folders/search; preliminary Reset drops from 15324.49 ms to
+  1999.80 ms in one observation pair. Complete Linux validation passes293 registered tests with
+  12 existing skips and zero failures; directory indexing, production assets/RSS and full ED-M1
+  acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM1-ContentPathSort-Linux-2026-10-20.md).
+
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the
   preceding breadcrumb and clamps at the Content root. Read-only traversal preserves mutation
   history and filters; keyboard ownership gates protect text, panel/focus and blocking-modal
