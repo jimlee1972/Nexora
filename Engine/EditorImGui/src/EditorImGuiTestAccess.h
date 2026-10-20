@@ -183,6 +183,9 @@ public:
   ChromeTraceControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
   [[nodiscard]] static const ChromeTraceCapture *
   ImportedChromeTrace(const EditorImGuiHost &) noexcept;
+  // Capture actual ImGui text within one BeginFrame/EndFrame without clipboard or file IO.
+  static void BeginTextCapture(EditorImGuiHost &);
+  [[nodiscard]] static std::string EndTextCapture(EditorImGuiHost &);
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;

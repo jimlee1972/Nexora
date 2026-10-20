@@ -232,13 +232,42 @@ intervals. Legacy scopes share the existing 128-open budget with synchronous and
 The supported subset retains typed IDs and category separation; it does not reconstruct legacy
 step sub-slices or permissively repair broken traces.
 
-This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
+Async durations remain inclusive elapsed latency; their self elapsed time is unavailable.
+No CPU execution cost or reconstructed call tree is inferred.
 
 Selected begins reserve their sample sequence and position immediately. End events complete
 that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
 overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
 mixed X/B/E/b/e/S/F records and nested same-name scopes. Pending intervals never escape a failed import.
-This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
+`duration_milliseconds` remains inclusive elapsed duration. The additive optional
+`self_duration_milliseconds` is external elapsed time excluding observed synchronous children.
+
+### Synchronous self elapsed inspection
+
+Successful imports retain bounded selected-thread X/B/E context, including nonmatching names.
+An iterative sorted reconstruction subtracts each immediate child's raw inclusive duration once;
+grandchildren are not double-counted. It compares relative starts and raw durations instead of
+adding tiny durations to large absolute clocks. This preserves sub-clock-ULP durations and rejects
+false containment caused by rounded absolute endpoints. Known B/E begin order resolves coincident
+paired bounds. Crossing or otherwise ambiguous coincident components, including unresolvable
+coverage/precision, keep their inclusive values and leave self unavailable; disjoint valid
+components remain available. Zero duration can have available zero self time. Async b/e/S/F never
+claims self time and does not subtract from synchronous scopes.
+
+Context sorting never reorders selected samples. Completion checks retained sequence identity
+before writing a self value, including equal-start context sorted opposite to begin retention.
+At most one fixed-size context record per selected-thread X/completed E and one iterative stack
+slot per context are retained during parsing; the existing32768-event/4MiB limits bound this extra
+O(events) memory. Reconstruction is O(events log events), without recursive ancestry traversal.
+Temporary context is released with the importer. Capture history retains only the existing newest600
+owning samples. These are logical bounds, not total allocator/RSS/GPU or frame-budget acceptance.
+
+Validate rejects nonfinite/negative self or values above inclusive duration; unavailable remains
+valid. Old supported input acceptance, UTF-8/JSON limits, source/read-only policy and inclusive
+semantics are unchanged. C++ callers using three-field interval initialization retain source
+compatibility with unavailable self; all binary C++ consumers must rebuild for the appended
+optional field. Persisted files, stable C ABI, other capture schemas and linkage dependencies stay
+unchanged. This measures external interval coverage, not CPU execution, scheduling or GPU time.
 
 `ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
 admission and actual byte bounds. Failure does not publish or alter source files, prior captures
