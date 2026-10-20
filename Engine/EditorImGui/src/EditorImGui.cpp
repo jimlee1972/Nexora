@@ -3854,7 +3854,9 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       ImGui::IsKeyPressed(ImGuiKey_Delete, false))
     delete_assets = browser.Selection();
 
-  const auto folders = browser.ChildFolders();
+  // Drag/drop may replace the model during this loop; retain the immutable projection.
+  const auto folder_snapshot = browser.ChildFolderSnapshot();
+  const auto &folders = *folder_snapshot;
   const bool folder_activation =
       keyboard && std::ranges::any_of(folders, [&](const Breadcrumb &entry) {
         return ImGui::GetCurrentContext()->NavActivateId ==

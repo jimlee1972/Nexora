@@ -95,6 +95,7 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
     if (item.id == runtime::AssetUuid{} || !SafeRelative(item.path) || !ValidDiagnostic(item) ||
         !ids.insert(item.id).second || !paths.insert(PathUtf8(item.path)).second)
       return false;
+  child_folders_.reset();
   items_.assign(items.begin(), items.end());
   std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
   selection_.clear();
@@ -127,6 +128,7 @@ bool ContentBrowserModel::Discover(ContentItem item) {
     undo_ = std::move(previous);
   }
   std::ranges::sort(next, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
+  child_folders_.reset();
   items_ = std::move(next);
   ++revision_;
   return true;
@@ -134,7 +136,10 @@ bool ContentBrowserModel::Discover(ContentItem item) {
 bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
   if (!SafeRelative(folder))
     return false;
-  folder_ = folder.lexically_normal();
+  const auto normalized = folder.lexically_normal();
+  if (folder_ != normalized)
+    child_folders_.reset();
+  folder_ = normalized;
   breadcrumbs_.clear();
   std::filesystem::path current;
   for (const auto &part : folder_) {
@@ -155,6 +160,8 @@ bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
     breadcrumbs.push_back({PathUtf8(part), current});
   }
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selection{id};
+  if (folder_ != folder)
+    child_folders_.reset();
   folder_.swap(folder);
   breadcrumbs_.swap(breadcrumbs);
   selection_.swap(selection);
@@ -218,7 +225,10 @@ std::size_t ContentBrowserModel::VisibleCount() const {
   }
   return count;
 }
-std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const {
+std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const { return *ChildFolderSnapshot(); }
+std::shared_ptr<const std::vector<Breadcrumb>> ContentBrowserModel::ChildFolderSnapshot() const {
+  if (child_folders_)
+    return child_folders_;
   std::vector<Breadcrumb> folders;
   std::unordered_set<std::string> seen;
   for (const auto &item : items_) {
@@ -237,7 +247,8 @@ std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const {
       folders.push_back({label, path});
   }
   std::ranges::sort(folders, {}, &Breadcrumb::label);
-  return folders;
+  child_folders_ = std::make_shared<const std::vector<Breadcrumb>>(std::move(folders));
+  return child_folders_;
 }
 const ContentItem *ContentBrowserModel::Find(runtime::AssetUuid id) const {
   const auto found = std::ranges::find(items_, id, &ContentItem::id);
@@ -278,6 +289,7 @@ bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *err
   ++revision_;
   undo_ = items_;
   undo_selection_ = selection_;
+  child_folders_.reset();
   items_ = std::move(next);
   std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
   if (error)
@@ -353,6 +365,7 @@ bool ContentBrowserModel::Undo() {
   if (undo_.empty())
     return false;
   ++revision_;
+  child_folders_.reset();
   items_.swap(undo_);
   undo_.clear();
   selection_.swap(undo_selection_);

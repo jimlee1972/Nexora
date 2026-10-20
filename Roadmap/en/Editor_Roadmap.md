@@ -287,8 +287,15 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   logical counts, scroll extent, literal scoped IDs and navigation-required ranges. Actual 1x/2x
   writable/read-only tests with 2048 folders bound submitted rows, cross the Tab clipping boundary,
   open far folders by pointer, reveal assets below folders and preserve filters, source/sidecar bytes,
-  revision and pending Undo. Folder derivation/sorting remain O(n)/O(n log n); full scale and physical
-  acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md).
+  revision and pending Undo. Cold folder derivation/sorting remain O(n)/O(n log n); full scale
+  and physical acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md).
+
+- ✅ Content child-folder projections now reuse immutable shared-owned snapshots between path
+  publications/folder changes. Reset/Discover/mutations/Undo refresh the projection; view-only state
+  and artifact updates retain it. Actual drawing keeps its snapshot across drag/drop model replacement;
+  retained versions survive copies and destruction. Existing owning queries and 2048-folder 1x/2x
+  navigation/clipping remain covered. Cold derivation, other O(n) work and physical budgets remain open.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-FolderCache-Linux-2026-10-20.md).
 
 - ✅ Content dependency inspection now offers UUID-scoped Reveal for forward and reverse live
   targets, navigating to their folder, clearing query/type filters, selecting and scrolling clipped

@@ -58,6 +58,9 @@ public:
                                                          std::size_t count) const;
   [[nodiscard]] std::size_t VisibleCount() const;
   [[nodiscard]] std::vector<Breadcrumb> ChildFolders() const;
+  // Immutable owning projection, reused until item/path publication or folder change.
+  // Retained snapshots survive model assignment/destruction; call on the authoring thread.
+  [[nodiscard]] std::shared_ptr<const std::vector<Breadcrumb>> ChildFolderSnapshot() const;
   [[nodiscard]] std::span<const Breadcrumb> Breadcrumbs() const noexcept { return breadcrumbs_; }
   [[nodiscard]] std::span<const ContentItem> Items() const noexcept { return items_; }
   [[nodiscard]] std::uint64_t ProjectGeneration() const noexcept { return generation_; }
@@ -99,6 +102,7 @@ private:
   std::filesystem::path folder_;
   std::string query_, type_;
   std::vector<Breadcrumb> breadcrumbs_;
+  mutable std::shared_ptr<const std::vector<Breadcrumb>> child_folders_;
   std::uint64_t generation_{};
   std::uint64_t revision_{};
 };
