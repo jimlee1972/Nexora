@@ -1411,6 +1411,13 @@ creates property widgets; unknown components retain raw data instead of being si
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ StaticView verification now flushes/checks report output and returns1 on write failure; real
+    read-only stdout handles verify unchanged sink/package bytes in normal/optimized workflows.
+    Fixture-to-player CLI failures retain bounded, escaped stdout/stderr, stage
+    and exit code without retries or relaxed complete-JSON/package assertions. Normal/optimized
+    Python regression coverage validates admission and diagnostic bounds. The hosted Windows
+    zero-exit/invalid-JSON root cause remains open; this is diagnostic preparation only.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-StaticExportDiagnostics-Linux-2026-10-20.md).
   - ✅ Current session CI cleanup adds exact published branch and actor checks; 14 ownership/race
     and 16 documentation-routing tests, full Linux 239/239 and Minimal Shipping pass.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md).

@@ -351,6 +351,12 @@ nexora_apply_defaults(NexoraStaticProjectExportJobTests)
 add_test(NAME editor.static_project_export_job COMMAND NexoraStaticProjectExportJobTests)
 set_tests_properties(editor.static_project_export_job PROPERTIES TIMEOUT 60)
 set_tests_properties(editor.static_project_export PROPERTIES TIMEOUT 120)
+add_test(NAME editor.static_project_export_cli_diagnostics
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCliDiagnostics.py")
+add_test(NAME editor.static_project_export_cli_diagnostics_optimized
+  COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCliDiagnostics.py")
+set_tests_properties(editor.static_project_export_cli_diagnostics
+  editor.static_project_export_cli_diagnostics_optimized PROPERTIES TIMEOUT 30)
 if(NEXORA_BUILD_PROJECT_PLAYER)
   add_test(NAME editor.static_project_export_cli
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCli.py"
