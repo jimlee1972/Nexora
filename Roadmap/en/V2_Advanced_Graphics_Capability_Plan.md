@@ -784,9 +784,30 @@ and full Xvfb CTest229/229, zero failures/skips (152.10s), plus Shipping Minimal
 Actual pinned SDK and Windows-conditional fixture syntax pass with warnings-as-errors. A CPU-only
 SDK helper probe rejects near-singular/overflowing transformed bounds without GPU execution.
 Linux world-space compute fixtures verify1,152 outputs while native transform diagnostics stay0.
-Documentation16/16, cleanup37/37 and paired/format/diff checks pass. Actual private Windows
-TLAS-only execution and all final-head CI checks remain required before merge; no physical or
-full V2-GFX-3 acceptance is claimed.
+Documentation16/16, cleanup37/37 and paired/format/diff checks pass. Final hosted TLAS-only and
+complete CI acceptance follows below; no physical or full V2-GFX-3 acceptance is claimed.
+
+### Hosted bounded transform acceptance
+
+✅ [PR655](https://github.com/jimlee1972/Nexora/pull/655) merged as `cd673ffd` after all38 checks
+and both push39356521315/PR39356564493 workflows succeeded at unchanged `31625dcf`. The merged
+tree exactly matches the validated source. Both desktop matrices pass Windows327/327,
+Linux377/377 and macOS314/314; Editor Xvfb, Shipping packages and build-contract checks pass.
+PR sanitizer coverage passes197 ASan tests with seven existing Slang-disabled Vulkan-recording
+skips, and193/193 TSan tests. The local229/229 gate above has zero skips.
+
+Private Windows jobs118412685902/118412886871 pass8/8 (5.77s/5.00s). Each legacy/enhanced mode
+executes nine transform fixtures with704 independent CPU old/new comparisons each and exact
+counters:36 transform publications,54 geometry refits,18 full rebuilds and27 compactions.
+Across both events and barrier modes this totals144 transform publications and25,344
+transform-fixture CPU comparisons. Translation, rotation/nonuniform scale, reflection, identity
+reset, retained old lists and matrix preservation through refit/compaction/rebuild all pass.
+
+Ordinary system-runtime modes keep refit/compaction/transform counters0 while executing six full
+rebuilds each. Linux world-space compute exercises1,152 affine outputs with native transform
+count0. This accepts the bounded private software-runtime recipe. General/multi-instance scenes,
+lighting, completion-failure injection, broader system refit (`nexora-45y.4.7`), physical
+performance/device-loss acceptance and all five full V2-GFX gates remain open.
 
 ## Explicit bounded ray-scene compaction construction — 2026-10-18
 

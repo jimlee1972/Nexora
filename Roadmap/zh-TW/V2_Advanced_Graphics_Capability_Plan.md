@@ -716,8 +716,27 @@ refit 隔離與全部完整 gate 持續開放。
 釘選 SDK 與 Windows 條件式語法皆以 warnings-as-errors 通過；SDK helper 的 CPU-only 探針
 確認近奇異／變換範圍溢位拒絕，不含 GPU 執行。Linux world-space compute fixture 比對
 1,152筆輸出，原生變換診斷維持0。文件16/16、cleanup37/37、雙語／格式／diff 皆通過。
-實際私有 Windows TLAS-only 與固定 head 全部 CI 仍為必要合併門檻；不宣稱實體或完整
-V2-GFX-3 驗收完成。
+最終 hosted TLAS-only 與完整 CI 驗收記錄於下方；不宣稱實體或完整 V2-GFX-3 驗收完成。
+
+### Hosted 有界變換驗收
+
+✅ [PR655](https://github.com/jimlee1972/Nexora/pull/655) 在固定 `31625dcf` 的全部38項檢查與
+push39356521315／PR39356564493 workflow 皆成功後，合併為 `cd673ffd`。合併後程式樹與
+驗證來源完全一致。兩套桌面矩陣皆通過 Windows327/327、Linux377/377、macOS314/314；
+Editor Xvfb、Shipping 套件與 build-contract 檢查通過。PR sanitizer 覆蓋通過197項 ASan
+測試，另有七項既有 Slang-disabled Vulkan-recording 略過；TSan193/193通過。上述本機
+229/229 gate 為零略過。
+
+私有 Windows 工作118412685902／118412886871皆8/8（5.77／5.00秒）。每種 legacy／
+enhanced 模式執行九組變換 fixture，每組704筆獨立 CPU 舊／新比對，且計數恰為36次變換
+發布、54次幾何 refit、18次完整重建及27次 compaction。兩種事件與 barrier 模式合計144次
+變換發布、25,344筆變換 fixture CPU 比對。平移、旋轉／非等比縮放、鏡射、單位矩陣重設、
+保留舊 List，以及 refit／compaction／重建後的矩陣保留皆通過。
+
+一般 system-runtime 模式保持 refit／compaction／transform 計數0，各執行六次完整重建。
+Linux world-space compute 驗證1,152筆 affine 輸出，原生變換計數0。這接受有界私有軟體
+runtime 配方；一般／多 instance 場景、光照、完成失敗注入、較廣 system refit
+（`nexora-45y.4.7`）、實體效能／裝置遺失驗收與五個完整 V2-GFX gate 持續開放。
 
 ## 明確 opt-in 的有界射線場景 compaction 施工 — 2026-10-18
 
