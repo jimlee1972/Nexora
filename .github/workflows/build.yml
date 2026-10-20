@@ -579,9 +579,26 @@ jobs:
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidateModuleGraph.cmake
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidatePluginManifests.cmake
       - run: cmake -DROOT=$PWD -P Tools/Build/ValidateShaderContract.cmake
+      - name: Test Vulkan failure diagnostics
+        run: python3 Tools/Build/tests/test_vulkan_sanitizer_diagnostics.py -v
       - run: cmake --preset linux-sanitizers
       - run: cmake --build --preset linux-sanitizers
       - run: ctest --preset linux-sanitizers
+        id: sanitizers
+      - name: Diagnose native Vulkan sanitizer failure
+        if: failure() && steps.sanitizers.outcome == 'failure'
+        timeout-minutes: 2
+        run: >-
+          python3 Tools/Build/DiagnoseVulkanSanitizers.py
+          --build-dir build/linux-sanitizers
+          --output-dir build/vulkan-sanitizer-diagnostics
+      - name: Retain failed Vulkan sanitizer evidence
+        if: always() && steps.sanitizers.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulkan-sanitizer-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/vulkan-sanitizer-diagnostics
+          retention-days: 7
       # Mesa's uninstrumented driver reports internal mutex races during native teardown.
       # TSan validates portable engine concurrency; native gates remain in Development/ASan.
       - run: cmake --preset linux-thread-sanitizer -DNEXORA_ENABLE_NATIVE_BACKENDS=OFF

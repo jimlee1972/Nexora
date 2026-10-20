@@ -5,6 +5,32 @@ detection` job uses the complete Git diff, validates changed Markdown, and selec
 documentation-only run or all existing build, test, and package jobs. `CI result` always reports a
 final result and fails if change detection or any selected job fails or is cancelled.
 
+## Failed Linux Vulkan sanitizer diagnostics
+
+The mandatory `linux-sanitizers` CTest gate retains its original exit status. Only after that
+gate fails, `DiagnoseVulkanSanitizers.py` retains its `LastTest.log`, public system Vulkan
+ICD/layer identity fields and fixed graphics/runtime package versions. One additional existing
+native scene helper invocation records Vulkan loader diagnostics and glibc `LD_DEBUG=files`
+mapping bases before driver unload. The helper's 30-second native deadline is unchanged; the
+outer diagnostic invocation is bounded to 45 seconds. Its exit code is retained and propagated.
+It is evidence only and cannot turn the original failed job into a pass.
+
+Only the native child receives tracing variables. No ICD/layer selection, sanitizer options,
+suppression, whole environment dump or credential capture is added. An always-run artifact step
+retains available diagnostic files for seven days after the original sanitizer failure. Passing
+gates incur no diagnostic invocation. Public inventory, the bounded native probe output and
+mapping/unload lines also appear in job logs; the full original suite log stays in the artifact.
+This supports allocation attribution; an unexplained
+passing diagnostic does not prove the hosted leak fixed or complete ED-M7 acceptance.
+Run `python3 Tools/Build/tests/test_vulkan_sanitizer_diagnostics.py -v` for process-level
+checks of native-only tracing, existing driver/sanitizer environment preservation, original
+failure-log conservation, successful-probe nonreplacement, and failure/unavailable exit codes.
+
+Linux sanitizer 原始 CTest 失敗狀態持續保留；僅失敗後收集公開 ICD／layer 身分、固定套件
+版本與原始日誌，再透過既有 native helper 記錄一次 loader 診斷與卸載前 mapping base。
+保留 native 30 秒期限及外層 45 秒界限，不變更驅動選擇、sanitizer、抑制規則或驗收條件。
+診斷回傳碼會保留並傳遞，檔案保存七天；不擷取完整環境或憑證，不宣稱洩漏已修復。
+
 ## Native Zig test linking
 
 `nexora_add_zig_test` runs ordinary `zig test` on Linux and Windows. On macOS,
