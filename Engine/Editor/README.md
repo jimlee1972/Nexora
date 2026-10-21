@@ -1378,11 +1378,22 @@ sorts entity/type IDs and hex-encodes binary bytes (empty payload is `-`). Seria
 bounded to 34 MiB. Move transfers ownership/budget counters and leaves a reusable empty source.
 
 Scene format 3 adds `opaque <entity> <type> "name" <hex-or-dash>` metadata before `world`; scenes
-without opaque records still write format 2. Reload accepts formats 1/2/3, bounds the file to 64 MiB,
+without opaque records still write format 2; persistent prefab placements use format 4. Reload
+accepts formats 1/2/3/4, bounds the file to 64 MiB,
 stages all records and world validation, and rejects duplicate/malformed/oversized/orphan records
 before replacing live state. Every opaque owner must be both an authoring node and a staged Runtime
 entity. Successful reload invalidates old keys and clears history; failed reload preserves live data,
-selection, generations, history and the saved baseline. Opaque metadata participates in Dirty and
+selection, generations, history and the saved baseline. All tracked authoring node IDs must exist
+in the staged Runtime snapshot even when there are no hints/opaque/prefab records. The parser
+matches unique Runtime IDs against authoring IDs in one scan before live replacement; Runtime-only
+entities and scenes with no tracked nodes remain supported. No format/API/ownership change is
+introduced. Fixed LF golden sources cover Editor versions 1–4 and Runtime versions 1–3, independent
+legacy world/local pose expectations, Euler turns, unknown bytes, bindings and deterministic upgraded
+save/reopen. Required-field prefixes, corrupt versions/duplicates/orphan nodes and occupied staging
+preserve last-good data, dirty/saved baseline, keys/selection, clipboard, Undo/Redo and unrelated
+scenes. Syntactically valid final whitespace omission stays accepted. These checks do not establish
+interrupted publication recovery or complete migration/physical acceptance.
+Opaque metadata participates in Dirty and
 atomic scene writes. Its exact saved comparison is cached between authoring mutations, avoiding
 full payload serialization on every GUI frame; Undo/Redo invalidate that cache. Both saves and
 chunked reads enforce the 64 MiB scene-file bound. Runtime snapshot and stable gameplay C ABI formats do not change.

@@ -1963,11 +1963,20 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
   };
   const bool migrate = migration().Size() != 0;
   std::string snapshot_to_load = world_data;
-  if (migrate || !hints.empty() || !opaque_entities.empty() || !placements.empty()) {
-    // Validate hints and migration before touching the live World or replacing its authoring state.
+  if (!loaded.empty() || migrate || !hints.empty() || !opaque_entities.empty() ||
+      !placements.empty()) {
+    // Every authoring node must own an entity in the staged snapshot, including files without
+    // optional metadata. Runtime-only entities are allowed. Count through the already validated
+    // unique Runtime IDs once instead of doing one linear FindEntity per authoring node.
     runtime::World rehearsal{world_.Kind()};
     const auto staged_scene = rehearsal.LoadSceneSnapshot(world_data);
     if (!staged_scene || (migrate && !migration().Apply(rehearsal)))
+      return false;
+    std::size_t matched_nodes{};
+    for (const auto &entity : rehearsal.FindScene(*staged_scene)->entities)
+      if (ids.contains(entity.id))
+        ++matched_nodes;
+    if (matched_nodes != ids.size())
       return false;
     for (const auto id : opaque_entities)
       if (!ids.contains(id) || !rehearsal.FindEntity(id))

@@ -1,0 +1,7 @@
+NEXORA_EDITOR_SCENE 1
+node 11 0 Parent µ
+node 12 11 Child 子
+world
+NEXORA_SCENE 3 "Golden" 0 2
+11 0 10 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0
+12 11 1 0 0 0 0 0 1 -1 1 1 0 0 0 60 0.1 1000 1 0 0

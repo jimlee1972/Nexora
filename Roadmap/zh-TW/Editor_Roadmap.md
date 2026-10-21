@@ -1584,6 +1584,15 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   graphical／scene migration 及更完整 crash／cancellation 驗收仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM7-ProjectUpgrade-Linux-2026-10-10.md)。
 
+- ✅ 固定場景 golden 涵蓋 Editor1–4／Runtime1–3 遷移、完整 local／world pose、Euler
+  圈數、未知 bytes、持久 binding 及 deterministic 升級保存重開。一般現代場景現在會在
+  替換 live state 前拒絕 orphan authoring node；合法 Runtime-only entity 仍可保留。
+  1,490 個無效輸入透過 file／memory loader 驗證 dirty／saved baseline、generation／key、
+  選取、clipboard、Undo／Redo、其他場景及 last-good 檔案不變；占用的 staging 保持原樣。
+  最新 main 整合的完整 Linux 305 項登錄測試中 293 項實際通過、12 項環境 skip，零失敗。
+  更廣的 migration、中斷／recovery 及實機驗收仍待完成。
+  [證據](../../Tools/Build/evidence/EditorEDM7-SceneGolden-Linux-2026-10-21.md)。
+
 - ✅ Autosave recovery 現會先限制 schema-1 header，再解析 token；拒絕帶正負號／溢位
   欄位與非 regular／alias file，並在配置 payload 前驗證精確的檔案／payload 長度。
   空值／binary／64 MiB／最大 revision round trip、逐 byte 截斷與拒絕後保留均有測試。
