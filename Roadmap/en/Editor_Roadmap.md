@@ -1258,10 +1258,10 @@ creates property widgets; unknown components retain raw data instead of being si
     Full Linux passes316 registered/304 actual passes/12 environment skips. Atomic source
     publication and complete M4-05 remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalMergeCandidate-Linux-2026-10-21.md).
-  - Explicit graphical file-only merge review/Confirm/Cancel now uses the real scoped publisher,
+  - ✅ Explicit graphical file-only merge review/Confirm/Cancel now uses the real scoped publisher,
     with current writer/reference/draft checks, held-click rejection, preserved live history and
-    backup status. Actual1x/2x and X11 success/cancel/stale-source/reopen checks pass; final full
-    acceptance is pending. Live adoption, deletion and complete project/reference reconciliation
+    backup status. Actual1x/2x and X11 success/cancel/stale-source/reopen checks pass; full Linux
+    passes317 registered/305 actual passes/12 environment skips. Live adoption, deletion and complete project/reference reconciliation
     remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalMergePublication-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,

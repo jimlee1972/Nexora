@@ -42,8 +42,8 @@ control wait and120s process budget. The corrected native run passes all three e
 
 Shipping configure/build passes9 integration steps; the Minimal profile strips Editor/SDK,
 disables testing and registers no tests. It does not certify an Editor-enabled Shipping build.
-Full required Linux/current-main integration and final native rerun after last status/test changes
-remain pending; this supporting UI slice is not yet marked accepted.
+Final native and required Linux implementation acceptance follow; actual latest-main integration
+and prerequisite PR acceptance still gate publication.
 
 
 A later final native run completed Cancel/stale rejection/Confirm and retained correct source,
@@ -53,3 +53,29 @@ scene readiness, focus and project-selector state; the harness waits for ready+f
 sending the reader shortcut. The same original comparison/source assertions and15/120s limits stay
 in place. The readiness-based final native rerun passes every comparison/candidate/publication
 marker, including actual fresh read-only reopen. No production input or file semantics changed.
+
+
+## Required implementation acceptance
+
+Private42fb5c29d6e923de9c7fa397b1c372c56acc0bbf/treec425d8622565f7e2a72cd7cd71d8ac77c49e58a1
+includes the owning-review/candidate/publisher prerequisites, early CTest initialization and safe
+moved-from SDK handling. Every consumer rebuilds (415 steps, then335 parent/metadata steps and330
+final metadata integration steps). Required final `cmake --preset linux-development`,
+`cmake --build --preset linux-development`, `CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development`
+passes: **317 registered,305 actual passes,12 environment skips,zero failures,669.77s**. All524
+frozen production/helper/test/configuration source hashes match before/after; no source mutation
+occurs during the full suite. Deep63.21s,100k209.78s and overview52.27s retain original180/300 limits
+and scale1. A bounded other build may overlap; these are shared-cloud functional results, not
+isolated production performance baselines. Only one heavy full suite runs at a time.
+
+The final real worker/publication/widget focus passes3/3 in0.65s. Final readiness-based native X11
+run passes actual mouse Cancel/stale rejection/Confirm, exact raw archive, fresh read-only reopen,
+blocked publication and corrupt-source preservation. Both touched UI/test CPPs pass strict shadow
+syntax checks; touched C++ formatting, Python compilation and diff checks pass. Final Minimal
+Shipping configure/build passes9 integration steps/no tests with Editor/SDK stripped; this does
+not certify an Editor-enabled Shipping configuration. Documentation routing tests pass separately.
+
+The feature remains private until prerequisite21.4/21.5 PRs are accepted and the final feature-only
+latest-main tree is verified. Root/module-unload/opaque-byte contracts remain enforced. This finite
+file-only graphical slice does not close complete project/reference reconciliation, live adoption,
+whole-scene absence/deletion, M4-05 or physical acceptance.
