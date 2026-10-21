@@ -350,6 +350,12 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_project_asset_workflow
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProjectAssetWorkflow.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_project_asset_workflow PROPERTIES TIMEOUT 180
+    LABELS "editor;assets;vulkan;virtual-display")
   add_test(NAME editor.linux_native_play_soak
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativePlaySoak.py"
       --module "$<TARGET_FILE:NexoraPlaySoakFixture>" --editor "$<TARGET_FILE:NexoraEditor>"
