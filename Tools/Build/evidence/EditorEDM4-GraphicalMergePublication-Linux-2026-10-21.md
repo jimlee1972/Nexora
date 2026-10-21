@@ -79,3 +79,23 @@ The feature remains private until prerequisite21.4/21.5 PRs are accepted and the
 latest-main tree is verified. Root/module-unload/opaque-byte contracts remain enforced. This finite
 file-only graphical slice does not close complete project/reference reconciliation, live adoption,
 whole-scene absence/deletion, M4-05 or physical acceptance.
+
+## Accepted-prerequisite integration
+
+The fresh public branch starts at accepted main `3c11efbb` and carries only this12-file UI
+confirmation delivery. Original implementation `b9f045f3` passed the required full Linux gate:
+317 registered,305 actual passes,12 environment skips,zero failures,669.77s, with524 frozen
+source hashes unchanged. Comparing its Engine/Apps/Tests/Config/CMake source closure to current
+`72f807d5` finds identical production and feature-test code. The sole code difference is the
+independent Renderer ray-diagnostic test already accepted under PR690; its README also differs.
+This source-identical feature proof remains the full gate; no production integration delta is
+hidden behind a focused check.
+
+The current branch rebuilds all399 consumers and passes5 current-version module-graph/ray/
+candidate/publication/UI checks (0.68s). The actual `--publication` X11 workflow passes again:
+Confirm,Cancel,stale disk rejection,archive validation,readonly and process reopen. The initial
+CLI invocation used an unsupported option and exited before any UI action; it is excluded.
+Minimal Shipping passes9 integration steps with Editor/SDK stripped and zero tests. Sixteen
+documentation-routing tests pass1.373s. Final documentation aligns the EN/zh-TW remaining-work
+clauses; it changes no runtime code. Live adoption,absent-scene publication and complete
+project/reference reconciliation remain open,as do physical-host and full milestone acceptance.
