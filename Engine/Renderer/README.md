@@ -613,3 +613,20 @@ the128-byte input/32-byte output ABI. Renderer callers may use existing capabili
 preferred/fallback selection before requesting the chosen descriptor from PipelineCache; the device
 never silently changes a selected variant. Reference and modern variants have distinct cache identity.
 Existing RenderGraph worker failure/cancellation rules retain output/counters until cohort acceptance.
+
+### Native ray oracle failure evidence
+
+The bounded ray test preserves owning CPU fixture provenance per workload: backend/vendor/device,
+opaque driver identifier, software flag, requested mode/barrier policy, creation function/line,
+triangle count plus at most64 captured triangles/rays, and actual ComputeReference/TraceRays
+recording. The immutable copies distinguish retained old geometry from replacement buffers;
+parallel recorders update only their own workload's dispatch tag, and comparison follows draining.
+No production Renderer/RHI API, shader, submission, resource lifetime or tolerance changes.
+
+An actual primitive/distance/barycentric/canary failure emits one report with ray origin/direction/
+range, original triangle coordinates and both decoded float values and exact32-bit words. Existing
+CPU oracle assertions,1e-4 tolerances and deadlines remain unchanged. Normal matching comparisons
+emit no failure report. Synthetic CPU-only corruptions exercise every failure field and NaN while
+retaining rejection; they neither emulate native GPU work nor establish a Windows/WARP root cause.
+Native preflight/full-suite differences remain an open hardening issue; diagnostics alone do not
+close stability or physical-GPU acceptance.
