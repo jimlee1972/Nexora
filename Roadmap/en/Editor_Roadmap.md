@@ -1238,6 +1238,13 @@ creates property widgets; unknown components retain raw data instead of being si
     passes/12 environment skips with unchanged limits. Graphical
     review, project/reference validation and atomic publication remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md).
+  - ✅ The actual asynchronous comparison worker now retains an owning immutable merge review;
+    ready comparison rows alias that review and old copies survive owner teardown as captured
+    data. Current-scope/cancellation/failure checks gate publication, and stopped owners clear
+    their current observations. Focused source/selection/unknown-data/lifecycle checks pass;
+    current-main full Linux passes315 registered/303 actual passes/12 environment skips. Graphical choices
+    and atomic file publication remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-OwningMergeJob-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.

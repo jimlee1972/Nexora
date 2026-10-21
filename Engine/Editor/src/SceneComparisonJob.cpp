@@ -18,6 +18,7 @@ struct SceneComparisonJob::Implementation final {
     std::optional<std::string> base;
     std::optional<SceneDocument::PreparedSave> local;
     std::shared_ptr<const SceneComparison> pending;
+    std::shared_ptr<const SceneMergeReview> pending_review;
     bool consumed{};
     void Set(SceneComparisonPhase phase, std::string message) {
       std::lock_guard lock{mutex};
@@ -66,14 +67,16 @@ struct SceneComparisonJob::Implementation final {
         return;
       Set(SceneComparisonPhase::Comparing, "Comparing bounded captured scene revisions.");
       std::string error;
-      auto compared = CompareSceneRevisions(
+      auto compared = SceneMerge::Prepare(
           base ? std::optional<std::string_view>(*base) : std::nullopt, local->Bytes(),
           remote ? std::optional<std::string_view>(*remote) : std::nullopt, &error);
       if (cancelled())
         return;
       if (!compared)
         throw std::runtime_error(error);
-      pending = std::make_shared<const SceneComparison>(std::move(*compared));
+      pending_review = std::make_shared<const SceneMergeReview>(std::move(*compared));
+      pending =
+          std::shared_ptr<const SceneComparison>(pending_review, &pending_review->Comparison());
       Set(SceneComparisonPhase::AwaitingPublish,
           "Captured comparison awaits current scene checks.");
     }
@@ -168,15 +171,17 @@ bool SceneComparisonJob::Poll(const SceneFileSession &files) {
               "Scene comparison discarded after scene scope/content changed.");
     else {
       std::lock_guard lock{op->mutex};
-      op->snapshot.result = std::move(op->pending);
-      op->snapshot.phase = SceneComparisonPhase::Ready;
       op->snapshot.message =
           "Captured base/local/disk comparison. Disk may change; Save rechecks separately.";
+      op->snapshot.result = std::move(op->pending);
+      op->snapshot.review = std::move(op->pending_review);
+      op->snapshot.phase = SceneComparisonPhase::Ready;
     }
   }
   op->base.reset();
   op->local.reset();
   op->pending.reset();
+  op->pending_review.reset();
   op->consumed = true;
   return true;
 }
@@ -202,19 +207,26 @@ void SceneComparisonJob::Shutdown() noexcept {
   auto &impl = *implementation_;
   impl.stopped = true;
   const auto op = impl.operation;
-  if (!op || op->consumed)
+  if (!op)
     return;
-  op->cancellation.Cancel();
-  try {
-    impl.jobs.Wait(op->job);
-  } catch (...) {
+  if (!op->consumed) {
+    op->cancellation.Cancel();
+    try {
+      impl.jobs.Wait(op->job);
+    } catch (...) {
+    }
   }
   op->base.reset();
   op->local.reset();
   op->pending.reset();
+  op->pending_review.reset();
   op->consumed = true;
   try {
-    op->Set(SceneComparisonPhase::Cancelled, "Scene comparison stopped.");
+    std::lock_guard lock{op->mutex};
+    op->snapshot.result.reset();
+    op->snapshot.review.reset();
+    op->snapshot.phase = SceneComparisonPhase::Cancelled;
+    op->snapshot.message = "Scene comparison stopped.";
   } catch (...) {
   }
 }
