@@ -148,6 +148,10 @@ def main():
         initial = wait(lambda s: s.get("project") == "1" and s.get("mesh") == "1" and
                        s.get("max_x") == "1", "actual asynchronous initial OBJ import")
         identity, initial_stamp = initial["hero"], initial["stamp"]
+        sidecar = source.with_suffix(source.suffix + ".meta")
+        require(sidecar.is_file(), "Initial import did not publish an identity sidecar")
+        identity_bytes = sidecar.read_bytes()
+        require(("uuid=" + identity).encode() in identity_bytes, "Sidecar disagrees with model UUID")
         require((root / "project.nexora").is_file(), "Create did not persist project")
         text("search", "WorkflowHero")
         wait(lambda s: s.get("visible") == "1", "search filters out unrelated root asset")
@@ -170,6 +174,9 @@ def main():
              "actual folder drop")
         moved = content / "Moved/WorkflowHero.obj"
         require(moved.read_bytes() == original and not source.exists(), "Move lost source")
+        moved_sidecar = moved.with_suffix(moved.suffix + ".meta")
+        require(moved_sidecar.read_bytes() == identity_bytes and not sidecar.exists(),
+                "Move lost or rewrote the persistent identity sidecar")
         # Navigate with the same folder widget; no model/test action commands are used.
         tx, ty = position("moved")
         send("mousemove", "--window", window, tx, ty, "click", "--repeat", "2", "--delay", "100", "1")
@@ -199,6 +206,8 @@ def main():
         undone = wait(lambda s: s.get("moved_path") == "0" and s.get("can_undo") == "0",
                       "Content Undo after reimport")
         require(source.read_bytes() == updated and not moved.exists(), "Undo restored stale source")
+        require(sidecar.read_bytes() == identity_bytes and not moved_sidecar.exists(),
+                "Undo lost or rewrote the persistent identity sidecar")
         require(undone["hero"] == identity and undone["stamp"] == new_stamp and undone["max_x"] == "3",
                 "Undo lost current imported asset")
         key("ctrl+s")
