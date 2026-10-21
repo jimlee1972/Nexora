@@ -214,6 +214,13 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Cold Content folder/filter queries now have a bounded immutable directory membership/child
+  index with complete linear fallback. Explicit source/order publication invalidates it; copies and
+  retained child projections own data without item pointers. Source, navigation, selection and Undo
+  semantics are preserved. Combined full Linux validation passes294 registered tests with12 existing
+  skips and zero failures; production assets/RSS, remaining indexing work and complete ED-M1 remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM1-ContentDirectoryIndex-Linux-2026-10-20.md).
+
 - ✅ Content source sorting now stages bounded owning UTF-8 keys and a complete permutation before
   noexcept record swaps, preserving the original byte order, payload owners and Undo/discovery.
   Budget/allocation fallback retains complete legacy sorting. The shared 100k metadata phase

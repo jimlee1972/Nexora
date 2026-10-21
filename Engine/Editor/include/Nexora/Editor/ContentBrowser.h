@@ -44,6 +44,11 @@ struct Breadcrumb final {
 
 class NEXORA_EDITOR_API ContentBrowserModel final {
 public:
+  // Acceleration admission bounds; exceeding them preserves complete linear query semantics.
+  static constexpr std::size_t kMaximumDirectoryIndexItems = 262144;
+  static constexpr std::size_t kMaximumDirectoryIndexFolders = 65536;
+  static constexpr std::size_t kMaximumDirectoryIndexDepth = 64;
+  static constexpr std::size_t kMaximumDirectoryIndexPathWorkBytes = 16 * 1024 * 1024;
   explicit ContentBrowserModel(std::uint64_t project_generation = 1);
   bool Reset(std::span<const ContentItem> items, std::uint64_t project_generation);
   // Publishes one newly discovered owned item without adding an Undo step. Existing selection,
@@ -93,6 +98,13 @@ public:
                        std::shared_ptr<const TwoDAssetPayload> twod = nullptr);
 
 private:
+  friend class ContentDirectoryIndexTestAccess;
+  struct DirectoryIndex;
+  [[nodiscard]] const DirectoryIndex *DirectoryIndexView() const;
+  void InvalidateDirectoryIndex() noexcept {
+    directory_index_.reset();
+    directory_index_attempted_ = false;
+  }
   bool Commit(std::vector<ContentItem> next, std::string *error);
   [[nodiscard]] bool MatchesVisible(const ContentItem &item) const;
   [[nodiscard]] const std::vector<std::size_t> &VisibleIndices() const;
@@ -107,6 +119,8 @@ private:
   std::vector<Breadcrumb> breadcrumbs_;
   mutable std::shared_ptr<const std::vector<Breadcrumb>> child_folders_;
   mutable std::shared_ptr<const std::vector<std::size_t>> visible_indices_;
+  mutable std::shared_ptr<const DirectoryIndex> directory_index_;
+  mutable bool directory_index_attempted_{};
   std::uint64_t generation_{};
   std::uint64_t revision_{};
 };

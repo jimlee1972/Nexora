@@ -206,6 +206,13 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- ✅ 冷 Content folder／filter query 現有有界、immutable directory membership／child index，
+  超過預算或配置失敗仍走完整 linear fallback。Source／order publication 明確失效 index；copy
+  與 retained child projection 擁有資料而不保留 item pointer，維持來源、導覽、選取及 Undo 語意。
+  組合完整 Linux294 項登錄測試通過，12 項既有 skip、零失敗；production assets／RSS、其餘索引
+  工作與完整 ED-M1 保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM1-ContentDirectoryIndex-Linux-2026-10-20.md)。
+
 - ✅ Content 來源排序現於 noexcept record swap 前準備有界 owning UTF-8 key 與完整 permutation，
   保留原有 byte order、payload owner、Undo／discovery；budget／allocation fallback 沿用完整
   legacy sort。共用 100k metadata phase benchmark 分開量測 Reset 與冷資料夾／搜尋；初步單組
