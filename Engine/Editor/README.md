@@ -1889,6 +1889,52 @@ existing owning buffer into the parser, avoiding an extra full source copy.
 
 Actual contract, capacity, legacy and history preservation results are recorded in
 [Linux comparison evidence](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md).
+## Owning semantic merge candidates
+
+`SceneMerge::Prepare` copies exact optional base/local/remote bytes, validates their supported
+scene formats in isolated Worlds and retains an immutable comparison. Raw absent sources differ
+from empty/corrupt present files. `SceneMergeReview` owns raw sources and projected fields; its
+comparison and byte views are borrows valid while that review remains alive. Copies share immutable
+ownership. Moved-from reviews expose identity0/empty observations and cannot resolve requests.
+
+Schema1 `SceneMergeRequest` owns row choices and the exact nonzero process-local review identity.
+Row indices belong only to that immutable comparison; replacing a review invalidates old choices
+even for byte-identical inputs. Unknown schemas/sides, stale identities and duplicate/absent rows
+reject. Shared/local/remote nonconflict hints apply by default; every unresolved row requires an
+explicit Local/Remote choice. No arbitrary manual string value is admitted. Identity saturation
+fails closed. Review identities are ephemeral and must never be persisted or treated as write access.
+
+`Resolve` produces actual owning scene bytes or explicit absent-whole-scene intent. Complete
+rotation/Euler and each prefab instance binding must match one captured source group, avoiding
+hybrid orientation hints or source/version/mapping combinations. Other independently selected
+fields must form a complete valid hierarchy with contiguous sibling positions and valid active
+Camera/Light data. The builder uses iterative canonical preorder, preserves stored dormant values,
+exact unsigned references, names, authored turns and unknown type/name/payload bytes, then loads the
+complete candidate and reprojects it. Every selected semantic field must match exactly; incomplete,
+cyclic, out-of-budget, normalized-away or discarded fields reject rather than partially succeeding.
+
+Candidate serialization uses existing Runtime3 and Editor2/3/4 canonical writers/parsers. Legacy
+inputs use their existing migration; original bytes remain owned for later exact stale-file checks.
+No new persisted format, stable C/Gameplay ABI or module dependency is introduced. The new exported
+C++ API requires consumers to rebuild. The comparison projection/classification implementation is
+shared with the existing read-only API; its source behavior is unchanged.
+
+Inherited logical limits are8 MiB per raw source,4096 entities,64 KiB per value,4 MiB per source
+snapshot and16 MiB/131072 rows per comparison. Three owned raw sources and projected source maps
+can each reach their respective limits; the selected temporary union can approach12 MiB before
+the final4 MiB snapshot check. Final bytes must fit8 MiB. These limits exclude container/allocator
+overhead, temporary Worlds and process RSS. Allocation exceptions propagate, with all inputs and
+caller Worlds/history unchanged; a private failure seam exercises a live staged-World unwind.
+
+Calls are synchronous serialized snapshot work and can run on an owning worker, with no live
+authoring pointer, IO, source publication, native service callback, plugin loading or permission
+grant. Drawing/previewing does not commit. A future publisher must independently validate current
+project/document/file scopes, writer/owned role, Play/modal/recovery policy and asset/reference
+compatibility before staged atomic publication; deletion intent requires its own explicit action.
+Cancel/stale jobs discard the entire owning result. Drain calls and destroy reviews, borrowed views
+and queued requests before unloading Editor Core. Native plugin unload is independent because no
+plugin object/function/table is retained. Full graphical reviewed publication remains open.
+
 ## Graphical additive document host
 
 The native application consumes owning tab requests through `AdditiveSceneSession`, independently

@@ -1231,6 +1231,13 @@ creates property widgets; unknown components retain raw data instead of being si
     registered/299 actual passes/12 environment skips with unchanged resource/deadline limits.
     Reviewed merge choices/publication, structural reconciliation and physical acceptance remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-PrefabBindingComparison-Linux-2026-10-21.md).
+  - ✅ Owning schema1 semantic merge reviews now resolve explicit Local/Remote field choices into
+    actual canonical scene candidates, with full reload/reprojection, coherent rotation/binding
+    groups, unknown-byte conservation and bounded rejection. Focused real Save/reopen, migration,
+    allocation and invalid-hybrid checks pass. Current-main full Linux passes314 registered/302 actual
+    passes/12 environment skips with unchanged limits. Graphical
+    review, project/reference validation and atomic publication remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.
