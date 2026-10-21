@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Nexora/Core/JobSystem.h"
-#include "Nexora/Editor/SceneComparison.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/SceneMerge.h"
 
 namespace nexora::editor {
 enum class SceneComparisonPhase : std::uint8_t {
@@ -23,6 +23,8 @@ struct SceneComparisonSnapshot final {
   std::filesystem::path path;
   std::string message;
   std::shared_ptr<const SceneComparison> result;
+  // Ready-only owning captured sources. Result aliases this review's comparison; neither grants IO.
+  std::shared_ptr<const SceneMergeReview> review{};
 };
 // One retained bounded inspection. Start/Poll/Cancel/Snapshot/Shutdown are serialized owner calls.
 // Start owns base/local sources; the worker borrows no document, workspace or file session.

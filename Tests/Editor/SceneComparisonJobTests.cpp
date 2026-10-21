@@ -44,7 +44,9 @@ void Run() {
     editor::SceneDocument document(world, scene);
     editor::SceneFileSession files(workspace, document);
     const auto entity = document.Create("Base");
-    Require(entity && files.SaveAs(files.Token(), "Content/Primary.scene").Applied(),
+    const editor::OpaqueComponent opaque{501, "Unavailable.Provider", {0x14, 0, 0xff}};
+    Require(entity && document.SetOpaqueComponent(*document.Key(entity), opaque) &&
+                files.SaveAs(files.Token(), "Content/Primary.scene").Applied(),
             "Base save failed");
     const auto path = root / "Content/Primary.scene";
     const auto base = Read(path);
@@ -70,6 +72,27 @@ void Run() {
                 Read(path) == disk && document.Undo() && Bytes(document) == base &&
                 document.Redo() && Bytes(document) == local,
             "Read-only worker changed source/history or lost conflicting revisions");
+    Require(result.review && result.review->Identity() &&
+                result.result.get() == &result.review->Comparison() &&
+                result.review->BaseBytes() == base && result.review->LocalBytes() == local &&
+                result.review->RemoteBytes() == disk,
+            "Ready result did not retain exact owning raw sources with an aliased comparison");
+    const auto resolve = [&](editor::SceneMergeChoice side, std::string_view expected_name) {
+      editor::SceneMergeRequest request;
+      request.review = result.review->Identity();
+      for (std::size_t i = 0; i < result.result->rows.size(); ++i)
+        request.choices.push_back({i, side});
+      const auto candidate = editor::SceneMerge::Resolve(*result.review, request);
+      runtime::World candidate_world;
+      editor::SceneDocument merged(candidate_world, candidate_world.LoadScene("Candidate"));
+      Require(candidate && candidate->bytes && merged.ReloadBytes(*candidate->bytes) &&
+                  merged.Name(entity) == expected_name && merged.Nodes().size() == 1 &&
+                  merged.OpaqueComponents(*merged.Key(entity)) ==
+                      std::optional<std::vector<editor::OpaqueComponent>>({opaque}),
+              "Captured asynchronous review lost an explicitly selected name or opaque bytes");
+    };
+    resolve(editor::SceneMergeChoice::Local, "Local");
+    resolve(editor::SceneMergeChoice::Remote, "Disk");
     // Hold the sole real worker to test cancellation/stale publication without timing races.
     const auto blocked = [&](const auto &action) {
       std::promise<void> entered, release;
@@ -98,7 +121,7 @@ void Run() {
     });
     Drain(job, files);
     Require(job.Snapshot().phase == Phase::Cancelled && !job.Snapshot().result &&
-                result.result->conflicts == 1,
+                !job.Snapshot().review && result.result->conflicts == 1,
             "Cancellation exposed output or invalidated owned prior result");
     blocked([&] {
       Require(job.Start(files) && document.Rename(key, "Changed after capture"),
@@ -107,6 +130,7 @@ void Run() {
     Drain(job, files);
     Require(job.Snapshot().phase == Phase::Stale && !job.Snapshot().result && Read(path) == disk,
             "Changed local content accepted stale publication");
+    Require(!job.Snapshot().review, "Stale local source exposed a retained merge review");
     blocked([&] {
       Require(job.Start(files) && files.New(files.Token(), true).Applied(),
               "Stale generation fixture failed");
@@ -138,7 +162,7 @@ void Run() {
     Require(job.Start(files), "Corrupt disk intake failed");
     Drain(job, files);
     Require(job.Snapshot().phase == Phase::Failed && !job.Snapshot().result &&
-                Read(path) == "corrupt",
+                !job.Snapshot().review && Read(path) == "corrupt",
             "Corrupt disk produced a partial comparison or changed source");
     Write(path, std::string(editor::SceneComparison::kMaximumSourceBytes + 1, 'x'));
     Require(job.Start(files), "Oversized disk intake failed");
@@ -156,7 +180,9 @@ void Run() {
             "Read-only inspection was blocked");
     Drain(job, reader_files);
     Require(job.Snapshot().phase == Phase::Ready && job.Snapshot().result->rows.empty() &&
-                Read(path) == disk,
+                job.Snapshot().review && job.Snapshot().review->BaseBytes() == disk &&
+                job.Snapshot().review->LocalBytes() == disk &&
+                job.Snapshot().review->RemoteBytes() == disk && Read(path) == disk,
             "Read-only inspection changed source");
     {
       runtime::World reference_world;
@@ -187,11 +213,62 @@ void Run() {
     Require(job.Start(reader_files), "Deleted disk inspection was blocked");
     Drain(job, reader_files);
     Require(job.Snapshot().phase == Phase::Ready && !job.Snapshot().result->rows.empty() &&
+                job.Snapshot().review && !job.Snapshot().review->RemoteBytes() &&
                 !std::filesystem::exists(path),
             "Disk deletion was conflated with empty/corrupt source");
+    editor::SceneComparisonSnapshot after_owner;
+    {
+      editor::SceneComparisonJob temporary_owner(jobs);
+      Require(temporary_owner.Start(reader_files), "Temporary owner did not start");
+      Drain(temporary_owner, reader_files);
+      after_owner = temporary_owner.Snapshot();
+    }
+    editor::SceneComparisonJob draining_owner(jobs);
+    std::promise<void> shutdown_entered;
+    std::future<void> shutdown;
+    bool waited_for_worker{};
+    blocked([&] {
+      Require(draining_owner.Start(reader_files), "Queued teardown fixture did not start");
+      shutdown = std::async(std::launch::async, [&] {
+        shutdown_entered.set_value();
+        draining_owner.Shutdown();
+      });
+      shutdown_entered.get_future().wait();
+      waited_for_worker =
+          shutdown.wait_for(std::chrono::milliseconds(20)) == std::future_status::timeout;
+    }); // Only now release the actual sole worker so Shutdown can finish draining.
+    shutdown.get();
+    Require(waited_for_worker && draining_owner.Snapshot().phase == Phase::Cancelled &&
+                !draining_owner.Snapshot().result && !draining_owner.Snapshot().review,
+            "Shutdown abandoned queued work or exposed cancelled review data");
     job.Shutdown();
+    Require(job.Snapshot().phase == Phase::Cancelled && !job.Snapshot().result &&
+                !job.Snapshot().review,
+            "Stopped owner continued to expose a ready comparison/review");
     Require(!job.Start(reader_files), "Stopped owner accepted new work");
     jobs.Stop();
+    // The old immutable review owns all sources independently of newer jobs, disk and local state.
+    resolve(editor::SceneMergeChoice::Local, "Local");
+    resolve(editor::SceneMergeChoice::Remote, "Disk");
+    Require(after_owner.review && after_owner.result && after_owner.review->BaseBytes() == disk &&
+                after_owner.review->LocalBytes() == disk && !after_owner.review->RemoteBytes(),
+            "Destroyed worker owner invalidated retained source snapshots");
+    editor::SceneMergeRequest retained_request;
+    retained_request.review = after_owner.review->Identity();
+    for (std::size_t i = 0; i < after_owner.result->rows.size(); ++i)
+      retained_request.choices.push_back({i, editor::SceneMergeChoice::Local});
+    const auto retained_candidate =
+        editor::SceneMerge::Resolve(*after_owner.review, retained_request);
+    runtime::World retained_world;
+    editor::SceneDocument retained(retained_world, retained_world.LoadScene("Retained candidate"));
+    // Canonical migration can add the existing default Euler record; raw source stays exact above.
+    Require(retained_candidate && retained_candidate->bytes &&
+                retained.ReloadBytes(*retained_candidate->bytes) && retained.Nodes().size() == 1 &&
+                retained.Name(entity) == "Disk" &&
+                retained.OpaqueComponents(*retained.Key(entity)) ==
+                    std::optional<std::vector<editor::OpaqueComponent>>({opaque}),
+            "Destroyed owner review lost selected local name or exact unknown payload");
+    Require(!std::filesystem::exists(path), "Data-only resolution recreated the deleted source");
   } // Release the actual Windows writer lease before deleting fixture data.
   std::filesystem::remove_all(root);
   Require(!std::filesystem::exists(root), "Fixture cleanup retained project data");

@@ -1170,6 +1170,13 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   圖形 review、project／reference 驗證與原子發布保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md)。
 
+- ✅ 實際非同步 comparison worker 現保留 owning immutable merge review；ready 差異列共用
+  該 review，舊副本在 owner 銷毀後仍保有 captured data。目前 scope／取消／失敗檢查
+  保護發布，停止的 owner 清除目前 observation。Focused source／選擇／未知資料與
+  lifecycle 檢查通過；目前 main 整合完整 Linux 315 項登錄中303 項實際通過、12 項環境 skip。
+  圖形選擇與原子檔案發布保持未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-OwningMergeJob-Linux-2026-10-21.md)。
+
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
   drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
   reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle
