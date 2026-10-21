@@ -362,6 +362,12 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabRebaseChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option) noexcept;
   [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
+  // Deterministic byte formatting also covers names a host filesystem cannot represent.
+  [[nodiscard]] static std::string GitPathDisplay(std::string_view bytes);
+  // Source control controls: trusted Git input, explicit Refresh, Cancel.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GitControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static std::size_t GitRenderedRows(const EditorImGuiHost &) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,

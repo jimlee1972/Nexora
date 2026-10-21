@@ -51,6 +51,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <new>
 #include <numbers>
 #include <optional>
 #include <random>
@@ -740,6 +741,11 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::StaticProjectExportJob static_export{import_jobs};
   nexora::editor::SceneComparisonJob scene_comparison{import_jobs};
   nexora::editor::BuildProcess build_process{import_jobs};
+  nexora::editor::GitStatusProvider git_status{import_jobs};
+  std::uint64_t git_scope = 1;
+  bool git_scope_exhausted{};
+  nexora::foundation::Uuid git_project_id{};
+  std::filesystem::path git_project_root, no_git_root;
   std::uint64_t build_scope = 1;
   nexora::foundation::Uuid build_project_id{};
   std::uint64_t build_reported_operation{};
@@ -1374,9 +1380,8 @@ int RunGraphical(std::optional<ProjectState> project,
     if (action != Nexora::Presentation::SurfaceAction::Render || frame.width == 0 ||
         frame.height == 0) {
 #if defined(NEXORA_HAS_2D)
-      gameplay.SetGameViewport(
-          ui.GameTwoDViewport().value_or(
-              ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{})));
+      gameplay.SetGameViewport(ui.GameTwoDViewport().value_or(
+          ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{})));
 #endif
       nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
                                                 created.surface->Events(), ui.GameInputBindings(),
@@ -2177,9 +2182,8 @@ int RunGraphical(std::optional<ProjectState> project,
         break;
       }
 #if defined(NEXORA_HAS_2D)
-      gameplay.SetGameViewport(
-          ui.GameTwoDViewport().value_or(
-              ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{})));
+      gameplay.SetGameViewport(ui.GameTwoDViewport().value_or(
+          ui.NativeGameViewport().value_or(Nexora::Presentation::SceneViewport{})));
 #endif
       nexora::editor::preview::ForwardPlayInput(play, gameplay, ui.GameInputFocused(),
                                                 created.surface->Events(), ui.GameInputBindings(),
@@ -2789,6 +2793,31 @@ int RunGraphical(std::optional<ProjectState> project,
     ui.DrawBuildProcess(build_process, project ? build_scope : 0,
                         project ? project->workspace.Root() : std::filesystem::path{},
                         build_allowed);
+    const auto current_git_project =
+        project ? project->workspace.Project().id : nexora::foundation::Uuid{};
+    const auto &current_git_root = project ? project->workspace.Root() : no_git_root;
+    bool git_context_ready = !git_scope_exhausted;
+    if (git_project_id != current_git_project || git_project_root != current_git_root) {
+      try {
+        auto staged_root = current_git_root;
+        if (git_scope == std::numeric_limits<std::uint64_t>::max()) {
+          git_scope_exhausted = true;
+          git_status.Shutdown();
+        } else
+          ++git_scope;
+        git_project_id = current_git_project;
+        git_project_root = std::move(staged_root);
+        git_context_ready = !git_scope_exhausted;
+      } catch (const std::bad_alloc &) {
+        git_context_ready = false;
+        static_cast<void>(git_status.Poll(0));
+      }
+    }
+    const bool git_refresh_allowed = project && !exit_requested && !composition_restore_blocked &&
+                                     !project->workspace.HasRecoveryJournal() &&
+                                     play.State() == nexora::runtime::PlayState::Stopped;
+    ui.DrawGitStatus(git_status, project && git_context_ready ? git_scope : 0, current_git_root,
+                     git_refresh_allowed);
     const auto build_observation = build_process.Snapshot();
     static_cast<void>(build_console_ingress.Poll(build_observation, project ? build_scope : 0));
     if (build_observation.operation != build_reported_operation ||
@@ -2889,8 +2918,7 @@ int RunGraphical(std::optional<ProjectState> project,
       return recovery == Nexora::Presentation::SurfaceAction::RecreateSurface ||
              recovery == Nexora::Presentation::SurfaceAction::Suspend;
     };
-    if (const auto render_status =
-            ui.Render(*created.surface, frame.width, frame.height);
+    if (const auto render_status = ui.Render(*created.surface, frame.width, frame.height);
         render_status != Nexora::Presentation::SurfaceStatus::Ready) {
       if (surface_recoverable(render_status))
         continue;
@@ -3098,6 +3126,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::cerr << "diagnostic privacy close: enabled=0 retained=0\n";
   static_cast<void>(static_export.Cancel());
   static_cast<void>(build_process.Cancel());
+  git_status.Shutdown();
   imports.Shutdown();
   scene_comparison.Shutdown();
   static_export.Shutdown();

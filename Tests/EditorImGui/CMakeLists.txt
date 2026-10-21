@@ -4,6 +4,28 @@ target_link_libraries(NexoraPluginManagerUiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPluginManagerUiTests)
 add_test(NAME editor.plugin_manager_ui COMMAND NexoraPluginManagerUiTests)
 
+add_executable(NexoraGitStatusUiTests GitStatusUiTests.cpp)
+target_include_directories(NexoraGitStatusUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraGitStatusUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGitStatusUiTests)
+if(MINGW)
+  target_link_options(NexoraGitStatusUiTests PRIVATE -municode)
+endif()
+find_package(Git QUIET)
+foreach(nexora_git_ui_scale RANGE 1 2)
+  if(GIT_FOUND)
+    add_test(NAME editor.git_status_ui_${nexora_git_ui_scale}x
+      COMMAND NexoraGitStatusUiTests "${GIT_EXECUTABLE}" "$<TARGET_FILE:NexoraGitStatusProcessFixture>"
+        "${nexora_git_ui_scale}")
+  else()
+    add_test(NAME editor.git_status_ui_${nexora_git_ui_scale}x
+      COMMAND "${CMAKE_COMMAND}" -E echo "SKIP: actual Git unavailable; status UI acceptance not run")
+    set_tests_properties(editor.git_status_ui_${nexora_git_ui_scale}x PROPERTIES
+      SKIP_REGULAR_EXPRESSION "SKIP: actual Git unavailable")
+  endif()
+  set_tests_properties(editor.git_status_ui_${nexora_git_ui_scale}x PROPERTIES TIMEOUT 180)
+endforeach()
+
 add_executable(NexoraDiagnosticPrivacyTests DiagnosticPrivacyTests.cpp)
 target_include_directories(NexoraDiagnosticPrivacyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraDiagnosticPrivacyTests PRIVATE Nexora::EditorImGui)
