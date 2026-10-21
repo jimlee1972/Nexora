@@ -652,17 +652,17 @@ widgets；未知 component 保留 raw data，不靜默遺失。
   真正 1x／2x 控制項及原生 Vulkan 編輯／保存／重開的驗收見
   [Linux 證據](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md)。
   Native pointer delivery 在慢速 frame 間保留 down／up；連續八次實際執行通過。
-  Dynamic array 結構控制、原生外掛還原及完整 ED-M2 驗收仍待完成。
+  原生外掛還原及完整 ED-M2 驗收仍待完成。
 
 - ✅ 圖形 counted array 控制已驗證：mixed-length Add／Insert／Remove／reorder／Clear 與共同
   element 編輯沿用版本化 Core 單次交易。實際1x／2x pointer／key 控制涵蓋 Undo／Redo、明確
-  scoped Save 與 fresh World／UI reopen，保留 unknown bytes；完整 local／hosted／native
-  驗收另行追蹤。[證據](../../Tools/Build/evidence/EditorEDM2-ReflectedArrayUi-Linux-2026-10-20.md)。
+  scoped Save 與 fresh World／UI reopen，保留 unknown bytes。原生 X11 按鈕／數值編輯／保存／
+  process reopen／唯讀也通過 software Vulkan 驗證；實體 target-host 與完整 ED-M2 保持未完成。[證據](../../Tools/Build/evidence/EditorEDM2-ReflectedArrayUi-Linux-2026-10-20.md)。
 
 - ✅ 版本化 counted array Core authoring 已驗證：version2 metadata 依各來源推導多段可變 tail，
   保留 legacy fixed field、opaque prefix 與其他 component。Mixed 多選、insert／append／remove／
-  reorder／clear 及 value edit 共用精確來源驗證與單次 Undo／Redo；結構 widgets 與完整 M2-03
-  仍待完成。[證據](../../Tools/Build/evidence/EditorEDM2-ReflectedArrays-Linux-2026-10-20.md)。
+  reorder／clear 及 value edit 共用精確來源驗證與單次 Undo／Redo；圖形控制記錄於上項，
+  完整 ED-M2 驗收保持未完成。[證據](../../Tools/Build/evidence/EditorEDM2-ReflectedArrays-Linux-2026-10-20.md)。
 
 - ✅ 原生 picking／放開拖曳的編輯命令現先於 Save、Save-and-exit 及 GPU 提交完成。
   真正的 Xvfb XYZ 拖曳放開後立即 Save，並驗證已完成的姿態；仍按住手勢時的 Save

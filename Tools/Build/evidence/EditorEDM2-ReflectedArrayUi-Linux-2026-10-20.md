@@ -72,3 +72,45 @@ python3 Tests/EditorImGui/LinuxReflectedInspector.py \
 All four UI implementation/test and six Core implementation/test hashes remain unchanged.
 Core PR676 still must merge before UI publication, and applicable exact-head CI must succeed
 before squash. This supplemental focus does not replace the complete private Linux gate above.
+
+## Native structural controls and fresh-process persistence
+
+`LinuxReflectedArrays.py` is registered under the existing Linux graphical Xvfb/xdotool condition
+with a 120-second bound. It seeds a production workspace/scene fixture with schema-two array data
+and one unavailable opaque component, then performs every edit through actual Window/X11 input.
+Hover/held/released pixels prove presented button states; there are no structural-edit retries.
+Actual Add/Insert/Remove/Up/Down/Clear and numeric editing pass, including exact whole-file Add
+Undo/Redo, repeated one-step structural transactions, Ctrl+S, fresh writable/read-only processes,
+read-only refusal and exact unavailable/prefix byte preservation. Schema bytes never change.
+The final source (including setup-failure cleanup) passes the complete native workflow with an
+explicit Khronos validation layer on isolated software Vulkan. A failed fixture setup also leaves
+its isolated temporary directory empty. This is native cloud software-display proof, not physical
+GPU/DPI/IME, screen-reader, native plugin restoration or full ED-M2 acceptance.
+
+```bash
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation \
+python3 Tests/EditorImGui/LinuxReflectedArrays.py \
+  --editor build/linux-development/Apps/Editor/NexoraEditor \
+  --fixture build/linux-development/Tests/Editor/NexoraReflectedInspectorTests \
+  --xvfb /path/to/isolated/Xvfb --xdotool /path/to/isolated/xdotool
+```
+
+A fresh complete local Linux gate follows the new test registration. All four original UI and six
+Core implementation/test sources remain unchanged; new test/helper/CMake hashes are frozen too.
+Final full-gate and actual-main integration results remain pending before publication.
+
+## Complete gate after native workflow registration
+
+Fresh Development configure/build passes all 320 integration steps. Focused legacy reflection,
+array UI and both authoring process-reopen tests pass4/4 in0.79s. Full serial Linux gate passes
+297 registered,285 actual passes,12 existing environment skips,zero failures in512.14s.
+Deep60.83s and original100k215.34s retain scale1 and180/300s deadlines. All14 frozen Core/UI/
+helper/native-test/CMake hashes remain unchanged; full LastTest is archived externally. The
+base local gate does not put the isolated Xvfb tools on PATH, so its optional native test
+registration remains unavailable; the exact new native script passes through the explicit
+software-display command above. Applicable hosted Linux enables that registration.
+
+Core PR676 has independently passed all38 exact-head hosted checks and squash-merged as
+`e5fd644c17060ef7718f727244194ab45c6aa0c2`; fetched tree is exactly the prevalidated Core/main
+candidate `3d159d68c440d96e6c7bde57275097e6df5fbfe5`. Actual-main UI ancestry integration follows
+before publication. No physical goal or full ED-M2 milestone is closed.

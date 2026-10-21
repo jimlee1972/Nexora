@@ -333,6 +333,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_reflected_inspector PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_reflected_arrays
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedArrays.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_reflected_arrays PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
   if(NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(NAME editor.linux_plugin_manager
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPluginManager.py"
