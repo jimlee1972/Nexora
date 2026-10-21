@@ -44,3 +44,12 @@ Shipping configure/build passes9 integration steps; the Minimal profile strips E
 disables testing and registers no tests. It does not certify an Editor-enabled Shipping build.
 Full required Linux/current-main integration and final native rerun after last status/test changes
 remain pending; this supporting UI slice is not yet marked accepted.
+
+
+A later final native run completed Cancel/stale rejection/Confirm and retained correct source,
+archive and startup metadata, but the fresh reader received no comparison shortcut after a fixed
+0.8s startup delay. This run is excluded. Test-only evidence now exposes actual current managed
+scene readiness, focus and project-selector state; the harness waits for ready+focused state before
+sending the reader shortcut. The same original comparison/source assertions and15/120s limits stay
+in place. The readiness-based final native rerun passes every comparison/candidate/publication
+marker, including actual fresh read-only reopen. No production input or file semantics changed.

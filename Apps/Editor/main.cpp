@@ -3116,6 +3116,13 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       std::ostringstream geometry;
       geometry << "scene merge ui review=" << identity;
+      const auto shell_state = Access::Inspect(ui);
+      geometry << " context_ready="
+               << bool(project && active_files() && active_files()->CurrentPath() &&
+                       !scene_load_failed && !active_files()->SaveBlocked())
+               << " focused=" << shell_state.app_focused
+               << " selector=" << shell_state.project_selector_visible;
+
       const auto record = [&](const char *name, std::optional<std::array<float, 2>> point) {
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;

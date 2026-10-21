@@ -76,6 +76,13 @@ def main():
                     return
             raise RuntimeError(f"Native comparison diagnostic missing: {pattern}; {captured!r}")
 
+        def wait_native_ready(require_scene=False):
+            if not args.candidate:
+                time.sleep(.8)
+                return
+            scene_scope = r"context_ready=1 " if require_scene else r"context_ready=[01] "
+            wait_log(r"scene merge ui .*" + scene_scope + r"focused=1 selector=0", 0)
+
         def candidate_geometry(disk_choice=False, validated=False):
             deadline = time.monotonic() + 15
             while time.monotonic() < deadline:
@@ -152,7 +159,7 @@ def main():
         process = launch(args.editor, root, state / "recent", env)
         window = wait_for_window(args.xdotool, env)
         send("windowfocus", "--sync", window)
-        time.sleep(.8)
+        wait_native_ready()
         send("key", "--clearmodifiers", "ctrl+shift+n")
         send("key", "--clearmodifiers", "ctrl+shift+s")
         send("key", "--clearmodifiers", "ctrl+a")
@@ -220,7 +227,7 @@ def main():
         process = launch(args.editor, root, state / "reader-recent", env, read_only=True)
         window = wait_for_window(args.xdotool, env)
         send("windowfocus", "--sync", window)
-        time.sleep(.8)
+        wait_native_ready(require_scene=True)
         send("key", "--clearmodifiers", "ctrl+alt+d")
         wait_log(r"scene comparison ready fields=0 conflicts=0")
         if args.candidate:
