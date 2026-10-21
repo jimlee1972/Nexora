@@ -1255,6 +1255,14 @@ Material/shader graph、animation state/curve、particle/VFX、audio mixer、nav
 
 ### ED-M6 — Build、profile 與 extensibility
 
+- ✅ Public-header counted reflection SDK 可執行範例現展示 version-two portable layout、目前
+  authority／stale 檢查、append／edit／reorder、一次 Undo／Redo 及 scoped Save／全新唯讀
+  reopen，保留精確未知資料。不需要 graphical Shell，明確宣告 Editor 相依且在 Editor
+  unavailable 時移除。Focused 與完整 Linux gate 通過：312 項登錄中300 項實際通過、
+  12 項環境 skip；其他 SDK／plugin 操作保持開啟。
+  [範例](../../Samples/Editor/README.md) ·
+  [證據](../../Tools/Build/evidence/EditorEDM6-ReflectionSdkSample-Linux-2026-10-21.md)。
+
 - ✅ 匯入 Chrome X/B/E interval 現提供 optional self elapsed time，扣除同 selected thread
   已觀察到的同步 child（含非選取 name）。有界 iterative context 重建保留大 clock 的 raw relative
   duration、已知 B/E coincident nesting、begin retention 與 evicted-slot identity。

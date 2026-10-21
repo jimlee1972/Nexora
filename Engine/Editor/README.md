@@ -2155,6 +2155,12 @@ Private thread-local one-shot faults cover pre/partial replacement and history a
 retaining callbacks/allocators. All calls remain serialized on the authoring thread; this synchronous
 foundation introduces no worker, native plugin execution or retained document pointer.
 
+The public-header [counted reflection SDK sample](../../Samples/Editor/README.md) demonstrates real
+append/edit/reorder, stale/authority rejection, one-step Undo/Redo and scoped Save/fresh read-only
+reopen, preserving reserved bytes and an unavailable provider's payload. It creates and cleans
+only its own temporary project; it is available without the graphical Shell when the Editor module
+exists. Its feature/module dependency and Shipping/headless stripping are explicit.
+
 Core tests cover every supported element kind, mixed lengths and following-tail offsets, exact32
 capacity, invalid/outside-common values, malformed metadata/counts, stale source/catalog/selection/
 reload, allocation rejection with preserved Redo, unknown prefix/components and fresh-World file

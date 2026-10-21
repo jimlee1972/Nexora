@@ -1520,6 +1520,14 @@ creates property widgets; unknown components retain raw data instead of being si
     Linux sealed-image admission is supported; persistent trust, crash/power-loss recovery,
     other native backends and third-party graphical contributions remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
+  - ✅ A public-header counted reflection SDK executable now demonstrates version-two portable
+    layout, current authority/stale checks, append/edit/reorder, one-step Undo/Redo and scoped
+    Save/fresh read-only reopen with exact unknown data. It runs without the graphical Shell,
+    declares its Editor dependency and strips when Editor is unavailable. Focused execution
+    and the full Linux gate pass312 registered/300 actual passes/12 environment skips.
+    Broader SDK/plugin operations remain open.
+    [Sample](../../Samples/Editor/README.md) ·
+    [Evidence](../../Tools/Build/evidence/EditorEDM6-ReflectionSdkSample-Linux-2026-10-21.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
   - ✅ The [ED-M0 semantic handoff](Editor_Accessibility_Handoff.md) now lists stable IDs,
