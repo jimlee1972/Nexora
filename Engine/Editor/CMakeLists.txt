@@ -46,6 +46,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/SceneAuthoring.cpp
   src/SceneComparison.cpp
   src/SceneMerge.cpp
+  src/SceneMergeCandidateJob.cpp
   src/SceneMergeBuilder.cpp
   src/SceneMergePublication.cpp
   src/SceneMergeStorage.cpp

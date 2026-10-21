@@ -740,6 +740,9 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::AssetImportQueue imports{import_jobs};
   nexora::editor::StaticProjectExportJob static_export{import_jobs};
   nexora::editor::SceneComparisonJob scene_comparison{import_jobs};
+  nexora::editor::SceneMergeCandidateJob scene_merge_candidate{import_jobs};
+  std::optional<nexora::editor::imgui::SceneMergeUiRequest> scene_merge_binding;
+  nexora::editor::SceneMergeCandidateSnapshot scene_merge_view;
   nexora::editor::BuildProcess build_process{import_jobs};
   nexora::editor::GitStatusProvider git_status{import_jobs};
   nexora::editor::GitDiffProvider git_diff{import_jobs};
@@ -756,6 +759,9 @@ int RunGraphical(std::optional<ProjectState> project,
   std::string extension_test_geometry;
   std::uint64_t extension_test_revision{};
   std::string play_memory_test_geometry, play_memory_test_text;
+  std::string scene_merge_test_geometry;
+  std::uint64_t scene_merge_test_review{};
+  std::optional<std::size_t> scene_merge_test_name;
 #endif
   struct PendingProject final {
     ProjectState candidate;
@@ -1503,6 +1509,40 @@ int RunGraphical(std::optional<ProjectState> project,
           std::cerr << "scene comparison finished: " << compared.message << '\n';
       }
       ui.SetSceneComparisonStatus(scene_comparison.Snapshot(), scene_comparison.Busy());
+      const auto merge_scope_current = [&] {
+        const auto observation = scene_comparison.Snapshot();
+        return scene_merge_binding && active_files() && observation.review &&
+               scene_merge_binding->token == active_files()->Token() &&
+               observation.token == active_files()->Token() &&
+               observation.path == active_files()->CurrentPath() &&
+               scene_merge_binding->comparison_operation == observation.operation &&
+               scene_merge_binding->candidate.review == observation.review->Identity() &&
+               play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+               !exit_requested && !composition_restore_blocked &&
+               !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
+      };
+      const auto merge_local_current = [&] {
+        const auto observation = scene_comparison.Snapshot();
+        const auto local = active_scene().PrepareSave();
+        return observation.review && observation.review->LocalBytes() && local &&
+               local->Bytes() == *observation.review->LocalBytes();
+      };
+      const bool merge_current = merge_scope_current() && ui.SceneMergeInteractionAllowed();
+      if (!merge_current) {
+        static_cast<void>(scene_merge_candidate.Cancel());
+        scene_merge_view = {};
+      }
+      if (scene_merge_candidate.Poll(merge_current ? scene_merge_binding->candidate.review : 0)) {
+        scene_merge_view = scene_merge_candidate.Snapshot();
+        if (scene_merge_view.result && !merge_local_current()) {
+          scene_merge_view.result.reset();
+          scene_merge_view.phase = nexora::editor::SceneMergeCandidatePhase::Stale;
+          scene_merge_view.message = "Local scene changed. Compare revisions again.";
+        }
+        std::cerr << "scene merge candidate finished: " << scene_merge_view.message << '\n';
+      }
+      ui.SetSceneMergeCandidateStatus(scene_merge_view, scene_merge_candidate.Busy(),
+                                      scene_merge_binding ? scene_merge_binding->draft : 0);
       update_scene_tabs();
       const bool source_inspection_allowed =
           play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
@@ -1980,6 +2020,38 @@ int RunGraphical(std::optional<ProjectState> project,
                comparison_error,
                {}},
               scene_comparison.Busy());
+      }
+      if (ui.TakeSceneMergeCandidateCancelRequest())
+        static_cast<void>(scene_merge_candidate.Cancel());
+      if (auto request = ui.TakeSceneMergeCandidateRequest()) {
+        const auto observation = scene_comparison.Snapshot();
+        std::string merge_error;
+        const bool current =
+            active_files() && observation.review &&
+            observation.phase == nexora::editor::SceneComparisonPhase::Ready &&
+            request->token == active_files()->Token() && observation.token == request->token &&
+            observation.path == active_files()->CurrentPath() &&
+            request->comparison_operation == observation.operation &&
+            request->candidate.review == observation.review->Identity() &&
+            ui.SceneMergeInteractionAllowed() &&
+            play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
+            !exit_requested && !composition_restore_blocked &&
+            !project->workspace.HasRecoveryJournal() && !project->workspace.HasExternalChange();
+        if (!current || !merge_local_current())
+          merge_error = "Candidate request is stale or blocked. Compare revisions again.";
+        else if (scene_merge_candidate.Start(*observation.review, request->candidate, &merge_error))
+          std::cerr << "scene merge candidate started choices=" << request->candidate.choices.size()
+                    << '\n';
+        if (!scene_merge_candidate.Busy() || merge_error.empty()) {
+          scene_merge_binding = std::move(request);
+          scene_merge_view = scene_merge_candidate.Snapshot();
+          if (!merge_error.empty())
+            scene_merge_view = {0,
+                                scene_merge_binding->candidate.review,
+                                nexora::editor::SceneMergeCandidatePhase::Failed,
+                                merge_error,
+                                {}};
+        }
       }
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
         load_input_settings(project->workspace);
@@ -2921,6 +2993,40 @@ int RunGraphical(std::optional<ProjectState> project,
 #endif
     static_cast<void>(ui.EndFrame());
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      const auto captured = Access::SceneComparisonStatus(ui);
+      const auto identity = captured.review ? captured.review->Identity() : 0;
+      if (identity != scene_merge_test_review) {
+        scene_merge_test_review = identity;
+        scene_merge_test_name.reset();
+        if (captured.result)
+          for (std::size_t i = 0; i < captured.result->rows.size(); ++i) {
+            const auto &row = captured.result->rows[i];
+            if (row.stable_path.ends_with("/name") && row.base && row.local && row.remote) {
+              scene_merge_test_name = i;
+              break;
+            }
+          }
+      }
+      std::ostringstream geometry;
+      geometry << "scene merge ui review=" << identity;
+      const auto record = [&](const char *name, std::optional<std::array<float, 2>> point) {
+        if (point)
+          geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
+      };
+      if (identity && ui.SceneMergeInteractionAllowed()) {
+        record("validate", Access::SceneMergePosition(ui, 0));
+        if (scene_merge_test_name)
+          record("disk", Access::SceneMergeChoicePosition(ui, *scene_merge_test_name, 2));
+        record("cancel", Access::SceneMergePosition(ui, 1));
+      }
+      geometry << " validated=" << bool(Access::SceneMergeStatus(ui).result);
+      if (geometry.str() != scene_merge_test_geometry) {
+        scene_merge_test_geometry = geometry.str();
+        std::cerr << scene_merge_test_geometry << '\n';
+      }
+    }
 #if defined(NEXORA_HAS_2D)
     if (std::getenv("NEXORA_GAME_TWOD_UI_TEST_EVIDENCE")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
@@ -3189,6 +3295,7 @@ int RunGraphical(std::optional<ProjectState> project,
   git_diff.Shutdown();
   imports.Shutdown();
   scene_comparison.Shutdown();
+  scene_merge_candidate.Shutdown();
   static_export.Shutdown();
   build_process.Shutdown();
   const auto final_build = build_process.Snapshot();

@@ -1251,6 +1251,13 @@ creates property widgets; unknown components retain raw data instead of being si
     passes/12 environment skips with unchanged assertions/deadlines.
     Graphical confirmation, live adoption, absent-scene publication and complete project/reference
     validation remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md).
+  - ✅ Actual clipped Local/Disk field choices now submit bounded owning drafts to an asynchronous
+    candidate validator. Complete candidate diagnostics/presentation, draft/review stale rejection,
+    cancel/drain, unknown data and source/selection/history conservation pass focused SDK and real
+    1x/2x widgets; actual X11 explicit-choice and fresh read-only validation preserve disk bytes.
+    Full Linux passes316 registered/304 actual passes/12 environment skips. Atomic source
+    publication and complete M4-05 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-GraphicalMergeCandidate-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.
