@@ -90,4 +90,31 @@ canonical default before all consumers; explicit OFF remains unchanged. No asser
 production authority or source-publication condition is relaxed. A required configure with the
 cached BUILD_TESTING entry removed and its actual focused publication test pass. A truly fresh
 non-preset Native-disabled SDK directory is building the real publication test without a
-BUILD_TESTING argument. Current-base full Linux and corrected-head hosted acceptance remain pending.
+BUILD_TESTING argument. Corrected current-base Linux results follow; corrected-head hosted acceptance remains pending.
+
+
+## Corrected current-main implementation acceptance
+
+Private5f9840ba889224bcf10978e1c84a5ff1cadd40b9 and the public branch preparationec1fac78 share
+**exact complete tree9ff77b05b41fab725ee4010a3d91b8e63dcaeb2c**, including accepted owning-review
+main content. Required final configure/all-consumer build and full Linux pass: **316 registered,
+304 actual passes,12 environment skips,zero failures,869.74s**; all519 frozen production/helper/
+test/configuration source hashes match. Deep97.36s,100k293.75s and overview73.77s retain original
+180/300 deadlines and scale1. Other bounded builds overlap; these are shared-cloud functional
+checks, not isolated performance baselines. No assertion or timeout is relaxed.
+
+A truly fresh non-preset Native-disabled SDK configure omits BUILD_TESTING entirely: its actual
+136-step build links the publication test, a final rebuild catches all current source updates,
+and the real test passes1/1 in0.06s. A separate fresh explicit-OFF Native-disabled SDK builds the
+actual Core library in135 steps; dynamic symbols include SceneMergePublisher::Publish and exclude
+SceneMergePublicationTestAccess, and CTest registers zero tests. These separate SDK probes do not
+claim a graphical Shell or physical/native GPU acceptance. Corrected minimal Shipping passes9
+integration steps/no tests with Editor/SDK stripped. Both production CPPs pass strict shadow checks.
+
+The SDK also now defines safe moved-from behavior (empty paths/bytes, consumed, rejected publish),
+with a real focused regression passing1/1 in0.09s. EditorCore must remain loaded until all capability
+copies and synchronous calls drain; shared control-block deleters reside in Core. Live sessions are
+not retained. The corrected public branch integrates accepted main PR688 and preserves every source,
+known/unknown payload and archive contract; all applicable new-head hosted gates must still succeed
+before merge. An optional redundant public-worktree consumer rebuild is separate from the complete
+passing private implementation build; it is not needed to infer source identity from matching trees.
