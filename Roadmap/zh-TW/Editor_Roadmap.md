@@ -208,6 +208,14 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- ✅ 大型 indexed Content 資料夾以有界 owning 檔名／類型 key 攤提搜尋條件切換成本，
+  保留完整 legacy fallback，並於來源／資料夾／locale 變更時失效。獨立結果／排序、
+  copy、交易、拖放與配置／預算檢查通過；完整 Linux318 項登錄、311 項實際通過、
+  7 項環境 skip，含 accepted-main 整合與重建後原生專案／資產工作流程；
+  production assets／RSS 保持未完成。100k metadata 比較
+  與剩餘 production 範圍記錄於
+  [證據](../../Tools/Build/evidence/EditorEDM1-ContentSearchKeys-Linux-2026-10-21.md)。
+
 - ✅ 雲端原生工作流程驗收以實際 UI 執行建立專案、背景 OBJ 匯入、具斷言的搜尋、
   authored mesh／native Scene 提交、資料夾拖放、重匯入失敗／重試、Content Undo、
   Save 與唯讀新程序重開，檢查 persistent identity／目前 artifact 及完整專案檔案保留。

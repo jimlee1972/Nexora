@@ -553,3 +553,14 @@ target_include_directories(NexoraSceneMergePublicationTests PRIVATE "${PROJECT_S
 nexora_apply_defaults(NexoraSceneMergePublicationTests)
 add_test(NAME editor.semantic_scene_merge_publication COMMAND NexoraSceneMergePublicationTests)
 set_tests_properties(editor.semantic_scene_merge_publication PROPERTIES TIMEOUT 120)
+
+add_executable(NexoraContentSearchKeysTests ContentSearchKeysTests.cpp)
+target_link_libraries(NexoraContentSearchKeysTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentSearchKeysTests)
+add_test(NAME editor.content_search_keys COMMAND NexoraContentSearchKeysTests)
+set_tests_properties(editor.content_search_keys PROPERTIES TIMEOUT 120)
+
+# Metadata-only manual measurement; no shared-runner speed threshold is an acceptance oracle.
+add_executable(NexoraContentSearchBenchmark ContentSearchBenchmark.cpp)
+target_link_libraries(NexoraContentSearchBenchmark PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentSearchBenchmark)

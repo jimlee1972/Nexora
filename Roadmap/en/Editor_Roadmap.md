@@ -217,6 +217,14 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Bounded owning filename/type keys now amortize changing filters in large indexed Content
+  folders, with complete legacy fallback and source/folder/locale invalidation. Independent
+  result/order, copy, transaction, drag and allocation/budget checks pass; full Linux passes318
+  registered/311 actual passes/7 environment skips, including accepted-main integration and
+  the rebuilt native project/asset workflow. Production assets/RSS remain open.
+  The 100k metadata comparison and remaining production scope are recorded in
+  [evidence](../../Tools/Build/evidence/EditorEDM1-ContentSearchKeys-Linux-2026-10-21.md).
+
 - ✅ Native cloud workflow acceptance now drives actual project creation, background OBJ import,
   verified search, authored mesh/native Scene submission, folder drop, reimport failure/retry,
   Content Undo, Save and read-only process reopen. Persistent identity/current artifact and
