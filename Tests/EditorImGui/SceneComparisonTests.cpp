@@ -32,8 +32,19 @@ struct Fixture final {
   std::unique_ptr<editor::SceneFileSession> current;
   explicit Fixture(float dpi) : scale(dpi) {
     Require(writer.Create(root, "Semantic UI"), "Project creation failed");
-    current = std::make_unique<editor::SceneFileSession>(writer, scene);
     const auto entity = scene.Create("Base");
+    auto bound = scene.PrepareSave()->Bytes();
+    const std::string plain_header = "NEXORA_EDITOR_SCENE 2\n";
+    const std::string bound_header = "NEXORA_EDITOR_SCENE 4\n";
+    Require(bound.starts_with(plain_header), "Initial scene schema changed");
+    bound.replace(0, plain_header.size(), bound_header);
+    bound.insert(bound.find("world\n"), "prefab-placement 10000000-0000-0000-0000-000000000001 "
+                                        "20000000-0000-0000-0000-000000000001 7\n"
+                                        "prefab-node 10000000-0000-0000-0000-000000000001 0 "
+                                        "30000000-0000-0000-0000-000000000001 " +
+                                            std::to_string(entity) + '\n');
+    Require(scene.ReloadBytes(bound), "Persistent binding fixture failed");
+    current = std::make_unique<editor::SceneFileSession>(writer, scene);
     Require(entity && current->SaveAs(current->Token(), "Content/Main.scene").Applied(),
             "Base save failed");
     const auto base = scene.PrepareSave()->Bytes();
@@ -43,10 +54,21 @@ struct Fixture final {
     editor::SceneDocument remote(remote_world, remote_world.LoadScene("Remote"));
     Require(remote.ReloadBytes(base) && remote.Rename(*remote.Key(entity), "Disk"),
             "Remote fixture failed");
-    const auto disk = remote.PrepareSave()->Bytes();
+    auto disk = remote.PrepareSave()->Bytes();
+    const auto binding = disk.find("prefab-placement ");
+    Require(binding != disk.npos, "Remote binding was lost before the independent deletion");
+    disk.erase(binding, disk.find("world\n", binding) - binding);
+    disk.replace(0, bound_header.size(), plain_header);
     std::ofstream(root / "Content/Main.scene", std::ios::binary | std::ios::trunc) << disk;
     const auto comparison = editor::CompareSceneRevisions(base, local, disk);
-    Require(comparison && comparison->conflicts == 1, "Actual comparison fixture failed");
+    Require(comparison && comparison->conflicts == 1 && comparison->rows.size() == 7 &&
+                std::ranges::count_if(comparison->rows,
+                                      [](const auto &row) {
+                                        return row.stable_path.starts_with("prefabs/") &&
+                                               row.base && row.local && !row.remote &&
+                                               row.choice == editor::SceneComparisonChoice::Remote;
+                                      }) == 6,
+            "Actual comparison fixture lost persistent binding deletion rows");
     observation = {1,
                    editor::SceneComparisonPhase::Ready,
                    current->Token(),
@@ -102,7 +124,7 @@ void Run(float dpi) {
               !f.ui.TakeSceneComparisonRequest(),
           "File menu comparison request lost scope/one-shot semantics");
   f.Draw();
-  Require(Access::SceneComparisonRenderedRows(f.ui) > 0 &&
+  Require(Access::SceneComparisonRenderedRows(f.ui) == 7 &&
               Access::SceneComparisonStatus(f.ui).result->conflicts == 1 &&
               f.scene.MatchesPreparedSave(*original),
           "Actual semantic rows were not displayed read-only");

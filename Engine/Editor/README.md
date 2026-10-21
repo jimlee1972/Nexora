@@ -1862,6 +1862,17 @@ authored Euler turns and opaque type names/exact hexadecimal payloads remain ins
 IDs, selection and Undo history are not persistent source fields. Unknown payloads are never loaded
 as plugins or interpreted as a future schema.
 
+Persistent prefab bindings also participate. Additive stable paths `prefabs/<instance>/present`,
+`source`, `revision` and `nodes/<target>/present`, `source_node`, `scope` retain complete instance,
+asset/revision and source-node-to-target observations. Scope is an ordered slash-separated UUID
+sequence; an empty root scope is a present empty string, distinct from an absent mapping. Revisions
+and target IDs use exact unsigned decimal strings. Node/placement record order has no semantic
+effect. Binding removal versus a changed revision remains unresolved; comparison performs no
+source asset resolution, plugin loading, binding rebase or merge publication. Existing parser
+limits and aggregate snapshot/value/row/result budgets apply to these fields too; overflow rejects
+the complete result. All borrows expire within the serialized call and output owns every value.
+This extends the stable-path namespace without changing the C++ layout, ABI or stored scene schema.
+
 Each source is limited to 8 MiB and 4,096 entities; a value to 64 KiB (32 KiB opaque binary), a
 semantic snapshot to 4 MiB, and the final result to 131,072 rows/16 MiB. Limits measure logical
 source/field bytes, not process RSS or the parser's bounded temporary allocations. Invalid, unsafe

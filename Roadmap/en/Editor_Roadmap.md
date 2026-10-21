@@ -1224,6 +1224,13 @@ creates property widgets; unknown components retain raw data instead of being si
     pre-ingestion authoring-node bounds also pass. Per-field choices are inspection hints;
     graphical provider/conflict presentation and valid merge publication remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md).
+  - ✅ Persistent prefab instance/source/revision and target/source-node/ordered-scope bindings now
+    participate in bounded read-only scene comparison. Independent version4 fixtures cover
+    conflicts, deletion, ordering, U64 values, unknown bytes and aggregate snapshot rejection;
+    actual 1x/2x widgets display all binding deletion rows. Standalone full Linux passes311
+    registered/299 actual passes/12 environment skips with unchanged resource/deadline limits.
+    Reviewed merge choices/publication, structural reconciliation and physical acceptance remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-PrefabBindingComparison-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.
