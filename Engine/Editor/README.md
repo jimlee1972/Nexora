@@ -1989,6 +1989,26 @@ replacement until its terminal worker is consumed. Cancellation, changed documen
 changed prepared local content, changed saved baseline or a replacement file-session identity
 reject publication. Ready owns an immutable captured comparison, not continuing disk authority.
 
+The same real worker now prepares a `SceneMergeReview` rather than discarding captured sources
+after deriving hints. `SceneComparisonSnapshot::review` retains exact raw base/local/disk versions
+and their semantic maps. Its `result` aliases that immutable review's comparison through shared
+ownership; there is no second complete comparison projection. Both are published only after the
+existing current owner checks pass. Non-ready, cancelled, stale and failed operations expose neither
+review nor comparison. Shutdown drains before clearing its current observation; copies already
+retained by a caller remain valid captured data. Owners and requests stay on the serialized authoring
+thread, and EditorCore must remain loaded until all retained reviews and resolution calls are gone.
+Stop/join the JobSystem before unloading EditorCore to cover worker descriptor cleanup after completion.
+
+A retained review can resolve explicit choices after the actual source changes or the worker owner
+stops. That result describes captured versions and grants no current file/document authority.
+Consumers must validate the complete candidate and recheck live project/access/reference/document/
+baseline/source scope separately at publication. The worker retains bounded raw sources and maps
+under the existing candidate limits; this intentionally retains more logical data than a hint-only
+snapshot and is not a total RSS guarantee. Cancel requests are checked before and after synchronous
+bounded parsing; Shutdown waits for that work rather than abandoning borrowed callbacks. The
+snapshot's additive C++ layout requires matching consumer rebuilds; persisted formats and the stable
+C ABI are unchanged. Graphical field choices and atomic publication remain separate work.
+
 The application polls on its authoring owner, then transfers only owning observations to ImGui.
 Reference and read-only documents may inspect through their const file session; no writable
 document accessor is required. Stopped Play, live scope and recovery/modal gates revalidate
