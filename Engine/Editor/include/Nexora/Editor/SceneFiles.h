@@ -62,6 +62,7 @@ public:
 
 private:
   friend class SceneComparisonJob;
+  friend class SceneMergePublisher;
   friend class SceneSaveBatch;
   friend class AdditiveSceneSession;
   friend class AdditiveSceneComposition;

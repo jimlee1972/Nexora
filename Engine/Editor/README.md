@@ -2611,3 +2611,60 @@ Minimal Shipping builds nine integration steps and registers no tests. Normal in
 operation plus old/new authoring widgets pass 5/5 in 17.76 s against that combined product. Final
 bilingual evidence is included; applicable exact-head hosted acceptance remains pending; graphical confirmation, nested
 publication, structural rebase and full M4-01/ED-M4 remain open.
+
+### Scoped file-only semantic merge publication
+
+`SceneMergePublisher::Prepare` re-resolves a schema-1 review/request and returns an opaque owning
+one-shot publication capability for an existing named `SceneFileSession`. It captures exact raw
+base/local/disk/candidate bytes, project UUID/root, file-session identity/token, managed path and
+prepared live document. It retains no workspace/document/module callback or pointer. All calls,
+including shared copies of a capability, are serialized by one authoring owner. The caller must
+supply current owned-document, stopped-Play/modal/recovery authority on Prepare and Publish;
+writer lease, workspace recovery/external change, blocked path, baseline, document and disk bytes
+are independently rechecked. Reference-document sessions remain const at the host boundary.
+Only supported present candidates and existing regular nonaliased sources are admitted; scene
+creation/deletion, project-wide reference validation and graphical confirmation are separate work.
+
+Publish consumes every shared copy, even on rejection/cancellation. It reserves an exclusive
+content-addressed directory under `.nexora/scene-merge-history/<SHA256(manifest)>`, writes and flushes
+exact `base.scene` (when present), `local.scene`, `disk.scene`, `candidate.scene` and `manifest.bin`,
+then rereads and revalidates the entire archive before staging source bytes. Existing archives are
+reused only after exact provenance equality; occupied/incomplete/corrupt archive or temporary paths
+reject without overwriting them. No automatic cleanup or blind retry removes crash residue.
+
+Archive schema 1 is a bounded little-endian binary manifest: `NXMERGE1`, uint64 schema/project-high/
+project-low, uint64-length-prefixed UTF-8 relative path, four presence/length/SHA256 records in the
+order above, choice count, stable-path/Local-or-Remote records, then a 64-character SHA256 of the
+preceding manifest bytes. Every number is uint64 little endian; each digest is 64 lowercase ASCII
+hex characters and each source digest record is length-prefixed. The directory name hashes the
+complete manifest including its trailing digest. Limits are 8 MiB per raw source, 16 MiB manifest,
+131072 choices and 48 MiB aggregate logical archive bytes (not total process memory). An unavailable
+cryptography provider explicitly rejects. SHA256 verifies integrity, not author identity or trust.
+`Inspect` is read-only, including in read-only projects: it validates identity/version/lengths/
+checksums/regular files, remaps stable choice paths and resolves the candidate again in isolated
+Worlds. Unsupported versions, corrupt bytes and incomplete archives remain untouched; no automatic
+migration interprets a future version as schema 1. A future writer needs a new version and explicit
+migration policy.
+
+Source staging uses native exclusive create, bounded chunks, flush/close and exact reread, followed
+by current-scope/raw-byte rechecks and cancellation immediately before one native replacement.
+POSIX uses rename plus directory fsync; Windows uses MoveFileExW with WRITE_THROUGH (there is no
+portable Windows directory-fsync guarantee). There are no allocations or callbacks after the
+native commit starts. Rejected/Cancelled mean replacement was not attempted; Published confirms
+replacement, PublishedRecoveryRequired means replacement succeeded but directory durability was
+not confirmed, and PublicationUncertain means native replacement did not confirm success. Inspect
+archive and source before recovery/retry in either latter case. These are cooperative-writer
+operation-time checks, not filesystem compare-and-swap, an adversarial sandbox or a promise that
+blocking OS IO/fsync can be interrupted. Cancellation is observed between bounded IO chunks and
+before commit; successful replacement is never relabeled as cancellation.
+
+Publication deliberately leaves the live World/document, selection, Undo/Redo, dirty state and
+file-session save baseline unchanged. Ordinary Save still detects the resulting external change;
+explicit reload/adoption and integrated graphical publication remain pending. Caller sessions must
+outlive synchronous calls; EditorCore stays loaded until all capability copies are destroyed and
+all calls drain (their shared control-block deleters are compiled in Core). Owning preparations
+retain no session or native-provider borrow; plain archive data owns its values. Moved-from
+capabilities return empty paths/bytes, report consumed and reject publication.
+Allocation/IO validation errors before replacement may leave owned staging residue for inspection,
+but preserve the original source and last-good archive. The private precommit scheduling gate is
+compiled only with BUILD_TESTING and retains no native callback in production.
