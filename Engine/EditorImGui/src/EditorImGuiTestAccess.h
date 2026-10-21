@@ -122,6 +122,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;
   [[nodiscard]] static bool PlayApplyOpen(const EditorImGuiHost &host) noexcept;
+  static std::optional<std::array<float, 2>> ContentWorkflowPosition(const EditorImGuiHost &host,
+                                                                     bool reimport) noexcept;
   static void FocusContent(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::filesystem::path>
   ContentFocusedFolder(const EditorImGuiHost &host);

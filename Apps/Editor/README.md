@@ -1274,3 +1274,22 @@ retirement, action acquisition/revocation and unchanged authoring history across
 Sprite/UI pixels and viewport clipping, and retires textures across those sessions. This is native
 host integration evidence; Windows physical Game View/DPI/audio/controller acceptance remains
 in the [target-host list](../../Tools/TwoD/WindowsAcceptance.md).
+
+
+## Native project and asset workflow acceptance
+
+`editor.linux_project_asset_workflow` drives the real project selector and Content widgets
+with X11 pointer/key events: create, asynchronous initial OBJ import, filtering and selection,
+authored mesh creation/native Scene submission, folder drag/drop, external-source reimport,
+invalid-source rejection and retry, Content Undo, Save, process restart and read-only inspection.
+It checks UUID/last-good geometry/artifact retention and exact project-file hashes after the
+read-only launch. Conditional registration requires Xvfb/xdotool; hosted display CI requires
+that registration explicitly. This software-GPU workflow does not replace physical display,
+Windows DPI/IME, or GPU-quality acceptance.
+
+The opt-in `NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE` observer exists only in test-enabled
+graphical builds. On the authoring thread after EndFrame it formats an owning observation of
+existing workspace/model state and widget rectangles. It retains no model/native pointers,
+executes no action or IO, and has no gameplay/plugin callback. Private UI rectangle inspection
+ends with the host lifetime. Native tests wait for stable rendered coordinates and keep normal
+input routing, access checks, import worker publication and filesystem transactions intact.

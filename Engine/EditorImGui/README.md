@@ -1684,3 +1684,12 @@ remain unchanged. Both replay scales and the unchanged short workflows pass. Thi
 This is headless actual ImGui/control and process-lifetime coverage. It does not launch the
 NexoraEditor OS-window process or accept physical display/DPI/IME, glyph quality or screen-reader
 behavior. Those native/target-host gates and complete scene-authoring acceptance remain open.
+
+
+## Project asset workflow observations
+
+The private test-only `ContentWorkflowPosition` getter returns the last drawn Undo Content or
+Reimport item center by value. Each Content draw clears both; a missing context item has no position.
+The native workflow uses these observations with actual X11 input, including disabled read-only
+Reimport admission. They expose no action request, model mutation, retained ImGui pointer or
+production SDK contract. See the [application workflow](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
