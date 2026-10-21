@@ -49,3 +49,30 @@ cases, focus passes1/1 in0.06s. A first strict compile rejected deprecated `file
 UTF-8 is now validated before constructing a C++20 u8string path. Failed compilation is excluded
 from positive build evidence. Final required full Linux, Shipping and documentation results are
 pending; this file does not yet mark the implementation slice accepted.
+
+
+## Required cloud acceptance
+
+Private246ee88e plus root/project and parent-alias regressionfe82ba8a2577b31cb0b1c13d04e6d4b73cb67676
+(treec5111d7a4a4e365233b6eda13f62d29a651d6698) rebuilds all408 product/consumer steps, then
+reconfigures and completes330 final metadata/consumer integration steps. The exact required commands
+`cmake --preset linux-development`, `cmake --build --preset linux-development`, and
+`CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development` pass: **316 registered,304 actual passes,
+12 environment skips,zero failures,714.71s**. The final focus passes1/1 in0.05s; all314 frozen
+production/helper/test source hashes match before and after the full suite.
+
+Deep Hierarchy87.16s,100k lifecycle235.25s and overview51.68s retain original180/300 deadlines and
+scale1. One bounded single-job build in another own worktree may overlap; these are shared-cloud
+functional results, not isolated production performance baselines. Only one full CTest suite runs
+at a time. Native Vulkan/material/display environment skips are not physical GPU acceptance.
+
+Both new production CPPs pass `-Wshadow -Werror=shadow` syntax checks and compile with the private
+test scheduling macro removed. Touched C++ formatting and diff checks pass. Documentation routing
+passes16 tests in1.386s. A first incorrect `python -m unittest` invocation could not resolve the
+script-local DocumentationCI import; that invocation is excluded, and the actual standalone
+`python3 Tools/Build/TestDocumentationCI.py` passes. `linux-shipping` configure/build succeeds
+with9 integration steps; its Minimal profile strips Editor/SDK, disables BUILD_TESTING and has no
+tests. This does not certify an Editor-enabled Shipping configuration or Windows/macOS execution.
+
+Graphical confirmation, live adoption, whole-scene deletion and complete project/reference
+reconciliation remain subsequent parent work; M4-05 and all physical acceptance remain open.

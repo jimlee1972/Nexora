@@ -1238,9 +1238,10 @@ creates property widgets; unknown components retain raw data instead of being si
     passes/12 environment skips with unchanged limits. Graphical
     review, project/reference validation and atomic publication remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md).
-  - Scoped file-only semantic merge publication now has an owning one-shot capability and
+  - ✅ Scoped file-only semantic merge publication now has an owning one-shot capability and
     version1 integrity-checked raw-source/candidate archives. Focused success/reopen, stale/cancel,
-    read-only, unknown-data and corruption paths are exercised; full gate acceptance is pending.
+    read-only, unknown-data and corruption paths pass; full Linux passes316 registered/304 actual
+    passes/12 environment skips with unchanged assertions/deadlines.
     Graphical confirmation, live adoption, absent-scene publication and complete project/reference
     validation remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
