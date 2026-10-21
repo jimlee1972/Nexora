@@ -355,6 +355,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_reflected_inspector PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_reflected_arrays
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedArrays.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_reflected_arrays PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
   if(NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(NAME editor.linux_plugin_manager
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPluginManager.py"
@@ -779,6 +784,13 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --selected)
   set_tests_properties(editor.linux_prefab_placement_selected_revert PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
 endif()
+add_executable(NexoraReflectedArrayUiTests ReflectedArrayUiTests.cpp)
+target_include_directories(NexoraReflectedArrayUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraReflectedArrayUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraReflectedArrayUiTests)
+add_test(NAME editor.reflected_array_ui COMMAND NexoraReflectedArrayUiTests)
+set_tests_properties(editor.reflected_array_ui PROPERTIES TIMEOUT 120)
+
 add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
 target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)

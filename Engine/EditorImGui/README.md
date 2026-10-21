@@ -1295,8 +1295,40 @@ Flags checkbox clicks submit a bit operation, preserving each selected entity's 
 Reload property metadata emits a one-shot request; the native application performs the bounded read
 after the UI frame and replaces the catalog. Project detachment clears interpretation. GUI code owns
 no native plugin objects and performs no metadata writes or native code loading. Fixed arrays and
-flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
+flattened nested paths are supported; version-two counted arrays use the controls below. Native
+plugin object restoration remains separate work. Test-only control
 observations are private to test builds and expose no ImGui type across the public module boundary.
+
+## Counted reflected-array controls
+
+The Inspector consumes the owning version-two counted-tail contract from Editor Core. Each array
+shows its current length or mixed minimum/maximum, with explicit Add and Clear buttons. Common
+editable element rows expose Insert, Remove, Up and Down on a separate control line, keeping the
+clipper's row extent fixed. Multiple tails retain their own source-dependent offsets. No retained
+index, native vector address, callback or document pointer is added to UI state; private test
+geometry owns only type/path/action labels and frame positions.
+
+Add appends to each selected target's own length. Insert/Remove/reorder apply the same valid common
+index to all targets, with boundary/capacity controls disabled for the whole batch. A capacity
+hover hint explains why Add is unavailable. Defaults are false/zero/empty references and vectors,
+black with alpha1 for color, or the first declared enum value; no invalid enum zero is fabricated.
+Every action rechecks the complete current observation and the existing writer/Play/recovery/modal
+policy through one Core authoring transaction. Failure preserves source/history and displays a
+rejection. Structural actions revoke active property drafts; typing still commits only on Enter.
+
+Actual pointer/key/text-event tests at1x/2x cover all structural buttons, mixed counts/values,
+whole-batch keyboard Undo/Redo, denied capacity/indices, partial candidate allocation, Escape/invalid
+values, metadata replacement and read-only controls. Explicit Ctrl+S goes through the scoped native
+owner's SceneFileSession; a fresh World, file session and UI reopen the exact saved unknown/prefix/
+multiple-tail bytes. Typed Add defaults are exercised through real widgets for every supported
+kind. A separate `editor.linux_reflected_arrays` workflow drives actual native buttons and numeric
+input through X11, observes hovered/held/released button presentations and the numeric caret/draft
+before Return, and verifies exact saved array and
+unavailable-component bytes through Undo/Redo and fresh writable/read-only process reopen. Its
+fixture seeds version-two opaque bytes only before launch; every edit uses Window input. It is
+registered under the existing Linux/Xvfb/xdotool graphical condition with a 120-second test bound.
+Software-display execution does not certify physical GPU/DPI/IME, glyph or screen-reader quality.
+Core remains the authoritative versioned wire/ownership/budget contract.
 
 ## Persistent prefab instance source inspection
 

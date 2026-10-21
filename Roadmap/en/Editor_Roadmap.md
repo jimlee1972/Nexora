@@ -694,10 +694,18 @@ creates property widgets; unknown components retain raw data instead of being si
   entity records reject reload before live mutation. Plugin restoration/execution and full reflected
   editing remain open.
 
+- ✅ Graphical counted-array controls are validated: actual mixed-length Add/Insert/Remove/
+  reorder/Clear and typed common-element editing share the versioned Core transaction contract.
+  Real1x/2x pointer/key controls cover Undo/Redo, explicit scoped Save and fresh World/UI reopen,
+  preserving unknown bytes. Native X11 buttons/edit/save/process-reopen/read-only also pass with
+  software Vulkan; physical target-host and complete ED-M2 acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrayUi-Linux-2026-10-20.md).
+
 - ✅ Versioned counted-array Core authoring is validated: version2 metadata derives multiple
   variable tails per source, retaining legacy fixed fields and opaque prefix/other components.
   Mixed multi-selection, insert/append/remove/reorder/clear and value edits share exact-source
-  validation and one Undo/Redo transaction. Structural widgets and complete M2-03 remain open.
+  validation and one Undo/Redo transaction. The graphical controls are recorded above; complete
+  ED-M2 acceptance remains open.
   [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrays-Linux-2026-10-20.md).
 
 - ✅ The graphical Inspector now interprets bounded, explicit reflection metadata for opaque
@@ -709,7 +717,7 @@ creates property widgets; unknown components retain raw data instead of being si
   1x/2x and native Vulkan edit/save/restart are accepted in
   [the Linux evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md).
   Native pointer delivery retains down/up across slow frames; eight consecutive actual runs pass.
-  Dynamic array structural controls, native plugin restoration and complete ED-M2 acceptance remain open.
+  Native plugin restoration and complete ED-M2 acceptance remain open.
 
 - ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
   Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
