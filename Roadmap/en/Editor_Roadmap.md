@@ -217,6 +217,13 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- Native cloud workflow acceptance now drives actual project creation, background OBJ import,
+  verified search, authored mesh/native Scene submission, folder drop, reimport failure/retry,
+  Content Undo, Save and read-only process reopen. Persistent identity/current artifact and
+  exact read-only project-file retention are checked. The required full gate is pending;
+  physical-display/Windows acceptance and complete ED-M1 remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM1-ProjectAssetWorkflow-Linux-2026-10-21.md).
+
 - ✅ Cold Content folder/filter queries now have a bounded immutable directory membership/child
   index with complete linear fallback. Explicit source/order publication invalidates it; copies and
   retained child projections own data without item pointers. Source, navigation, selection and Undo

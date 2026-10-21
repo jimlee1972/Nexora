@@ -72,7 +72,7 @@ def main():
 
         def send(*arguments):
             subprocess.run([args.xdotool, *map(str, arguments)], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=10)
             time.sleep(.12)
             pump()
 
@@ -87,6 +87,7 @@ def main():
             point, stable = state[name], time.monotonic()
             deadline = stable + 15
             while time.monotonic() < deadline:
+                require(process.poll() is None, f"Editor exited positioning {name}")
                 pump()
                 if latest.get(name) != point:
                     point, stable = latest.get(name), time.monotonic()
@@ -209,7 +210,8 @@ def main():
         start("readonly", direct=True, read_only=True)
         reopened = wait(lambda s: s.get("project") == "1" and s.get("writable") == "0" and
                         s.get("mesh") == "1" and s.get("max_x") == "3", "read-only reopen/import")
-        require(reopened["hero"] == identity and reopened.get("nodes") == undone.get("nodes") and
+        require(reopened["hero"] == identity and reopened["stamp"] == new_stamp and
+                reopened.get("nodes") == undone.get("nodes") and
                 reopened.get("dirty") == "0", "Reopen lost persistent asset/scene identity")
         click("hero_point", 3)
         click("reimport")  # Disabled production item must not enqueue work or mutate source.

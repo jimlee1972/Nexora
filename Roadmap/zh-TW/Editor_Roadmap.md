@@ -208,6 +208,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- 雲端原生工作流程驗收以實際 UI 執行建立專案、背景 OBJ 匯入、具斷言的搜尋、
+  authored mesh／native Scene 提交、資料夾拖放、重匯入失敗／重試、Content Undo、
+  Save 與唯讀新程序重開，檢查 persistent identity／目前 artifact 及完整專案檔案保留。
+  必要完整 gate 尚待通過；實體顯示／Windows 驗收與完整 ED-M1 保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM1-ProjectAssetWorkflow-Linux-2026-10-21.md)。
+
 - ✅ 冷 Content folder／filter query 現有有界、immutable directory membership／child index，
   超過預算或配置失敗仍走完整 linear fallback。Source／order publication 明確失效 index；copy
   與 retained child projection 擁有資料而不保留 item pointer，維持來源、導覽、選取及 Undo 語意。
