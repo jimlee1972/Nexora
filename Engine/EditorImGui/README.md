@@ -1321,7 +1321,8 @@ values, metadata replacement and read-only controls. Explicit Ctrl+S goes throug
 owner's SceneFileSession; a fresh World, file session and UI reopen the exact saved unknown/prefix/
 multiple-tail bytes. Typed Add defaults are exercised through real widgets for every supported
 kind. A separate `editor.linux_reflected_arrays` workflow drives actual native buttons and numeric
-input through X11, observes hovered/held/released presentations, and verifies exact saved array and
+input through X11, observes hovered/held/released button presentations and the numeric caret/draft
+before Return, and verifies exact saved array and
 unavailable-component bytes through Undo/Redo and fresh writable/read-only process reopen. Its
 fixture seeds version-two opaque bytes only before launch; every edit uses Window input. It is
 registered under the existing Linux/Xvfb/xdotool graphical condition with a 120-second test bound.

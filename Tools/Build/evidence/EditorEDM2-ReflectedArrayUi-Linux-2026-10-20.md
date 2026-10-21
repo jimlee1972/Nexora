@@ -85,6 +85,30 @@ The actual accepted Core squash is integrated normally in merge commit
 paragraphs, resolved retaining both Core evidence and the now-validated UI. The complete file tree
 after this merge is EXACTLY the tested pre-merge tree
 `335653c39273d62c4af88620cc4f96da5d2f4fe0`; no runtime/test/document bytes changed. Core's six
-implementation/test files match actual main. Only this evidence is finalized afterward.
+implementation/test files match actual main. Subsequent changes are limited to this evidence
+and the native test-harness refinement below; no product source changes.
 Applicable exact-head hosted UI checks must pass before squash merge. M2-03 parent completion
 requires this UI merge; ED-M2 and physical acceptance remain open.
+
+## Native fixture and numeric-input synchronization refinement
+
+After the complete gate, the native harness was tightened to match literal component names and
+the same opaque owner; wrong-name and wrong-owner adversarial captures reject. A concurrent-build
+rerun then completed every structural action but failed numeric Save (expected3.5, actual1.0).
+That failed attempt is preserved and excluded from acceptance. A follow-up background-color focus
+probe was invalid: the pinned ImGui InputText always draws its fixed FrameBg, as confirmed in its
+source. That probe is also excluded. Neither result is claimed as a product defect or a CI flake.
+
+The final helper holds the one numeric mouse press until the actual caret is presented, then
+observes the typed draft before Return. Buttons retain their hover/held/released presentation
+checks. No structural or numeric edit is retried, expected bytes are unchanged, and all5/10/120-
+second save/phase/test bounds remain. Failure output retains at most8KiB of fixture diagnostics.
+The complete final native workflow passes with explicit Khronos validation and software Vulkan
+while the separate directory/Core build is active. Exact type labels, same-owner unknown bytes,
+all operations, typed value3.5, Undo/Redo and writable/read-only process reopen are verified.
+
+All13 other frozen runtime/Core/UI/helper/CMake files remain byte-identical to the complete gate.
+Only this optional native script changes, so its direct native execution is the applicable
+additional test; the bare full gate does not register it. Final script SHA-256:
+`0b5c8fc7207a77abecc4a7f6a39e278f4b378eb3d0bdbc55a96fe5fd8f6bc848`.
+Applicable exact-head hosted checks remain mandatory before merge.

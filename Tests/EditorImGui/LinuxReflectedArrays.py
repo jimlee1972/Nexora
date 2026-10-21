@@ -27,11 +27,11 @@ def wire(values):
 
 def payload(scene):
     source = scene.read_bytes()
-    found = re.search(rb'^opaque \d+ 301 "Plugin.Arrays" ([0-9a-f]+)$', source, re.M)
+    found = re.search(rb'^opaque (\d+) 301 "Plugin\.Arrays" ([0-9a-f]+)$', source, re.M)
     require(found, 'Saved array payload missing')
-    require(re.search(rb'^opaque \d+ 999 "Missing.Plugin" 00ff7f$', source, re.M),
+    require(b'opaque ' + found[1] + b' 999 "Missing.Plugin" 00ff7f' in source.splitlines(),
             'Native array operation changed unavailable component bytes')
-    return bytes.fromhex(found[1].decode('ascii'))
+    return bytes.fromhex(found[2].decode('ascii'))
 
 
 def main():
@@ -48,7 +48,7 @@ def main():
         subprocess.run([args.fixture, '--write-native-fixture', str(root)], check=True)
         scene = root / '.nexora/scenes/Main.scene'
         source, replacements = re.subn(
-            rb'^opaque (\d+) 91 "Plugin.Properties" [0-9a-f]+$',
+            rb'^opaque (\d+) 91 "Plugin\.Properties" [0-9a-f]+$',
             lambda m: b'opaque ' + m[1] + b' 301 "Plugin.Arrays" ' + wire([1., 2.]).hex().encode() +
                       b'\nopaque ' + m[1] + b' 999 "Missing.Plugin" 00ff7f',
             scene.read_bytes(), flags=re.M)
@@ -99,6 +99,12 @@ def main():
 
         def blue(observed):
             return sum(b >= r + 25 and g >= r + 10 for r, g, b in observed) >= 10
+
+        def caret(observed):
+            # Four columns immediately after the initial single digit; an active caret has
+            # a tall white stroke, unlike the digit's trailing antialiased pixels.
+            return any(sum(min(observed[row * 4 + column]) >= 200 for row in range(17)) >= 9
+                       for column in range(4))
 
         def click(window, x, y, enabled=True):
             patch = (x - 8, y - 6, 16, 12)
@@ -191,11 +197,21 @@ def main():
         key('ctrl+z')
         save([1., 2.])
         # Actual typed element edit, then restart in a fresh native process.
+        # This ImGui InputText version keeps a fixed frame color. Observe its caret rather
+        # than treating a hover/background change as evidence of text-input focus.
         send('mousemove', '--window', window, '1230', '137')
         send('mousedown', '1')
-        send('mouseup', '1')
+        try:
+            wait_pixels(window, (1179, 129, 4, 17), caret, 'numeric input caret focus')
+        finally:
+            send('mouseup', '1')
         key('ctrl+a')
         send('type', '--clearmodifiers', '--delay', '20', '--', '3.5')
+        # The last digit lies beyond the old single digit/caret. Observe actual draft text
+        # before Return; no edit is repeated if input/focus delivery fails on a slow frame.
+        wait_pixels(window, (1188, 130, 7, 14),
+                    lambda p: sum(min(pixel) >= 200 for pixel in p) >= 8,
+                    'typed numeric draft')
         key('Return')
         save([3.5, 2.])
         close_host(window)
@@ -215,9 +231,11 @@ def main():
         close_host(window)
         print('Native array Add/Insert/Remove/Move/Clear/edit/Undo/Redo/save/reopen/readonly passed')
     finally:
-        if process is not None and process.poll() is None:
-            process.kill()
-            process.communicate(timeout=10)
+        if process is not None:
+            if process.poll() is None:
+                process.kill()
+            _, diagnostics = process.communicate(timeout=10)
+            print(diagnostics[-8192:], flush=True)
         if xvfb is not None:
             if xvfb.poll() is None:
                 xvfb.terminate()
