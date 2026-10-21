@@ -1169,6 +1169,11 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   目前 main 整合完整 Linux 314 項登錄測試中302 項實際通過、12 項環境 skip，既有限制不變。
   圖形 review、project／reference 驗證與原子發布保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md)。
+- 限定範圍的僅檔案語意合併發布已有 owning 單次 capability 與版本1完整性驗證原始來源／候選備份。
+  聚焦驗證涵蓋成功／重開、過期／取消、唯讀、未知資料及損毀分支；完整 gate 驗收尚待完成。
+  圖形確認、live 採用、整個場景不存在的發布及完整 project/reference 驗證仍未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md)。
+
 
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
   drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；

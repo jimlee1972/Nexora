@@ -1238,6 +1238,11 @@ creates property widgets; unknown components retain raw data instead of being si
     passes/12 environment skips with unchanged limits. Graphical
     review, project/reference validation and atomic publication remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md).
+  - Scoped file-only semantic merge publication now has an owning one-shot capability and
+    version1 integrity-checked raw-source/candidate archives. Focused success/reopen, stale/cancel,
+    read-only, unknown-data and corruption paths are exercised; full gate acceptance is pending.
+    Graphical confirmation, live adoption, absent-scene publication and complete project/reference
+    validation remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md).
   - ✅ The authoring SDK now owns bounded coexisting scene document/file sessions and releases
     their Editor World records after readers/owners drain. Active switches preserve identity,
     history and opaque data; references stay inspection-only and are excluded from Save All.
