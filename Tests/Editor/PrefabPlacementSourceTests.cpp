@@ -354,6 +354,44 @@ void RemoveOpaque() {
               f.target.PrefabPlacements().front().revision == 1,
           "Opaque field deletion bypassed structural rebase validation");
 }
+void EnableComponents() {
+  Fixture f;
+  const auto key = *f.target.Key(f.live);
+  const runtime::CameraComponent camera{75, .2, 333};
+  const runtime::LightComponent light{3.25};
+  runtime::MeshComponent mesh;
+  mesh.mesh = std::numeric_limits<std::uint64_t>::max() - 1;
+  mesh.material.shader = std::numeric_limits<std::uint64_t>::max() - 2;
+  Require(f.target.SetCamera(key, camera) && f.target.SetLight(key, light) &&
+              f.target.SetMeshRenderer(key, mesh),
+          "Enabled component authoring fixture failed");
+  const auto review = f.Review();
+  const auto expected = *f.target.PrepareSave();
+  const auto published = Overrides::ApplySelectedToSource(
+      f.workspace, f.target, review,
+      std::array{f.Row(review, "camera/enabled"), f.Row(review, "light/enabled"),
+                 f.Row(review, "mesh/enabled")},
+      true);
+  Require(published && published->nodes == f.asset.nodes &&
+              f.target.MatchesPreparedSave(expected) && f.target.Undo() &&
+              !f.world.FindEntity(f.live)->mesh_renderer && f.target.Redo() &&
+              f.target.MatchesPreparedSave(expected),
+          "Component source publication changed identities or local history");
+  runtime::World world;
+  editor::SceneDocument document(world, world.LoadScene("Enabled source reopen"));
+  Require(document.ReloadBytes(published->scene_bytes), "Enabled source reopen failed");
+  const auto *entity = world.FindEntity(f.parent);
+  Require(entity && entity->camera && entity->light && entity->mesh_renderer &&
+              entity->camera_data.vertical_field_of_view == 75 &&
+              entity->camera_data.near_plane == .2 && entity->camera_data.far_plane == 333 &&
+              entity->light_data.intensity == 3.25 && entity->mesh_data.mesh == mesh.mesh &&
+              entity->mesh_data.material.shader == mesh.material.shader &&
+              document.Transform(f.parent) == f.source.Transform(f.parent) &&
+              document.OpaqueComponents(*document.Key(f.parent)) ==
+                  f.source.OpaqueComponents(*f.source.Key(f.parent)) &&
+              Assets::LoadRevision(f.workspace, {f.asset.id, 1}) == f.asset,
+          "Enabled component groups lost presence/data/64-bit references or changed other fields");
+}
 void RejectUnsupported() {
   for (const bool nested : {false, true}) {
     Fixture f(false, nested, nested ? 1 : std::numeric_limits<std::uint64_t>::max());
@@ -380,6 +418,7 @@ int main() {
     Run(false);
     Run(true);
     RemoveOpaque();
+    EnableComponents();
     RejectUnsupported();
     return 0;
   } catch (const std::exception &error) {

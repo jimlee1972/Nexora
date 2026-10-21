@@ -2509,8 +2509,10 @@ The real-project test covers plain/variant selected groups, dormant component st
 edits/removal and exact archives, explicit rebase/Undo, read-only/foreign/stale/structural/nested/max
 revision rejection, invalid/bounded selections, recovery, same-revision replacement, occupied staging,
 allocation failure, source reopen and live/file/history conservation. Final focused product test
-passes in 0.18 s. Complete Linux at main `95d0b3e5` passes 305 registered/293 actual passes/12 environment
-skips with zero failures (546.66 s); all six frozen code/header/test/CMake hashes remain unchanged.
+passes in 0.18 s. The strengthened complete Linux gate at main `8bf8b411` passes 307 registered/295 actual passes/12
+environment skips with zero failures (659.01 s); all ten current code/header/test/CMake/helper hashes
+remain unchanged. Direct positive cases cover component presence, Light values and U64 mesh/shader
+references alongside dormant values. The earlier 305-case gate remains historical.
 Minimal Shipping builds nine integration steps and registers no tests. Normal integration of accepted main `8bf8b411` preserves all six source hashes; the source
 operation plus old/new authoring widgets pass 5/5 in 17.76 s against that combined product. Final
 bilingual evidence is included; applicable exact-head hosted acceptance remains pending; graphical confirmation, nested

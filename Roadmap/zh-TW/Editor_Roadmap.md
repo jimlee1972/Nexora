@@ -1052,8 +1052,8 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   與精確舊 archive 保持完整。Live binding、場景、baseline 及 history 不變；相容的明確
   rebase 另以一次 Undo 執行。Empty／invalid／readonly／foreign／stale／structural／nested／
   revision exhausted、占用 staging 及 candidate 配置失敗皆有測試。Opaque 刪除保留 archive
-  bytes，但欄位 schema 改變後仍需要 structural rebase。完整 Linux 305 項登錄測試中
-  293 項實際通過、12 項環境 skip；Shipping 建置通過且不登錄測試。圖形確認、nested
+  bytes，但欄位 schema 改變後仍需要 structural rebase。直接啟用群組及 U64 參照亦通過；
+  完整 Linux 307 項登錄測試中 295 項實際通過、12 項環境 skip；Shipping 建置通過且不登錄測試。圖形確認、nested
   publication 及完整 M4-01／ED-M4 仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-LiveSourceApply-Linux-2026-10-21.md)。
 

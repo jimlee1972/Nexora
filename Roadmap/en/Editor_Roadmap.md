@@ -1126,7 +1126,8 @@ creates property widgets; unknown components retain raw data instead of being si
     baseline and history stay unchanged; compatible explicit rebase is a separate one-step Undo.
     Empty/invalid/readonly/foreign/stale/structural/nested/exhausted, occupied-stage and candidate
     allocation paths are covered. Opaque removal retains archived bytes but needs structural
-    rebase for the changed field schema. Full Linux passes 305 registered/293 actual passes/12
+    rebase for the changed field schema. Direct enabled groups/U64 references also pass. Full Linux
+    passes 307 registered/295 actual passes/12
     environment skips; Shipping builds without tests. Graphical confirmation, nested publication
     and full M4-01/ED-M4 remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-LiveSourceApply-Linux-2026-10-21.md).

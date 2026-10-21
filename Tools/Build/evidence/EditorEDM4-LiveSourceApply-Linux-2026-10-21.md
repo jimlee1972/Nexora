@@ -53,3 +53,17 @@ No native-window/physical acceptance is inferred.
 
 Final documentation tests pass 16/16 in 1.166 s; changed Markdown/bilingual links, touched C++
 format, diff, unchanged root README and all six source hashes pass.
+
+
+## Strengthened component presence proof
+
+Final review adds a direct positive enabled Camera/Light/Mesh case: complete camera values, Light
+intensity, U64 mesh/shader references, source reopen, unselected pose/opaque/archive conservation and
+local Undo/Redo. Production/API/header/CMake code is unchanged; only the test source is extended.
+The focused case passes0.25s. Fresh required configure/381-step product build/fullCTest at actual
+main8bf passes **307 registered, 295 actual passes, 12 environment skips, zero failures, 659.01s**.
+All ten frozen code/header/test/CMake/helper hashes match before/after. Source case0.23s;
+Deep72.15/100k253.18 retain unchanged180/300s and scale1. This is cloud correctness/deadline evidence,
+not an isolated production-performance baseline. Shipping need not repeat for this test-only change.
+The previous full305 and 5-case integration are historical, superseded for final test coverage.
+A normal follow-up commit and new exact-head hosted checks are required before PR #683 merges.
