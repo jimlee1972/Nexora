@@ -1021,6 +1021,11 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Linux 已驗證有界真實 Git diff SDK：明確查詢 staged／working-tree、literal 檔案／rename
+  路徑、完整 owning 原始輸出、取消及 generation 安全發布；失敗保留原本 last-good request，
+  維持 index／來源 bytes 不變。圖形 diff／merge、nested discovery 與完整 ED-M4 仍待完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-GitDiff-Linux-2026-10-21.md)。
+
 - ✅ 專案 scope 圖形 Git status 視窗已驗證：明確指定可信任工具後 Refresh、取消、clipped
   原始路徑安全列、last-good／錯誤呈現及 native owner teardown；實際 1x／2x widgets
   查詢臨時 repository，維持 index／來源 bytes 不變。圖形 diff／merge、nested repository

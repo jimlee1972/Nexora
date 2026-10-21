@@ -1094,6 +1094,11 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/advanced native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Linux validation covers a bounded real Git diff SDK: explicit staged/working-tree queries,
+    literal file/rename paths, complete owning raw output, cancellation and generation-safe
+    publication. Failures retain the original last-good request without index/source writes.
+    Graphical diff/merge, nested discovery and full ED-M4 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-GitDiff-Linux-2026-10-21.md).
   - ✅ A project-scoped graphical Git status view is validated: explicit trusted-tool Refresh,
     cancellation, clipped raw-path-safe rows, last-good/error display and native-owner teardown.
     Actual 1x/2x widgets query disposable repositories without changing index/source bytes.

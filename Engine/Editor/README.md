@@ -2026,6 +2026,49 @@ project-scoped graphical status view; its UI lifetime contract is documented in 
 README. Graphical diff/merge, nested repository discovery, broader external-change routing and
 production-scale provider acceptance remain open.
 
+## Bounded read-only Git diff observations
+
+`GitDiffProvider` uses the same managed process/JobSystem ownership boundary as the status
+provider. Its serialized owner supplies a trusted absolute Git executable, canonical working-tree
+root (including linked-worktree gitfiles), and nonzero project/provider scope. The caller must use
+a fresh scope when replacing a root; reuse of the current scope for a different canonical root
+rejects. Workers own process inputs only. Shutdown cancels/drains before JobSystem destruction;
+release captures and SDK objects before unloading the Editor/Core libraries.
+
+`Compare` accepts one literal repository-relative UTF-8 file path, or two distinct old/new rename
+paths, each at most 4096 bytes. Empty, absolute, trailing-slash, empty/dot/parent components, NUL,
+invalid UTF-8 and unsupported target values reject before intake. Existing status captures preserve
+raw non-UTF8 names, but this UTF-8 process boundary cannot query those names. Missing/untracked
+paths can legitimately produce empty output: this is the result of that exact Git request, not a
+statement that the repository is clean. The caller separately authorizes any UI selection.
+
+Fixed direct argv selects `.git`/working tree and staged (`--cached`) or working-tree diff, enables
+`--literal-pathspecs`, disables optional index locks, fsmonitor/untracked-cache updates, pager,
+external diff, textconv, color, rename detection and submodule recursion. A rename pair produces
+separate deletion/addition output. No shell, network, index-mutation or patch-application command
+is launched. Repository configuration, inherited environment and other Git helpers such as
+attribute clean filters remain explicitly trusted; this API is not a process/configuration sandbox.
+
+An owning capture carries the exact request, canonical root, scope and nonwrapping operation ID.
+It retains the complete raw merged stdout/stderr (up to 256 KiB), including warnings, binary or
+combined-conflict notices. Bytes need not be UTF-8 and can contain NUL. This is not a parsed or
+validated patch, a redacted log, an atomic filesystem snapshot or a semantic-merge candidate.
+External changes during Git execution are subject to Git's own observation semantics. Consumers
+must escape/redact before display or persistence; the service does neither IO publication nor
+automatic storage. No diff UI or apply permission is introduced by this SDK slice.
+
+Rejected intake preserves state. Busy/stopped/unavailable/exhausted IDs, nonzero/failed processes,
+overflow, cancellation, stale scopes and internal allocation failures are distinct typed outcomes.
+Any dropped output rejects the whole capture; an exact 256 KiB result is allowed. Same-scope
+failure/cancellation retains last-good with its original request identity, so callers must not label
+it as the failed request. A scope mismatch permanently invalidates the running operation even if
+the owner switches back before completion. Retained captures own their bytes after later queries
+and teardown. New C++ exports require consumer rebuilds; stable C/Gameplay ABI, module dependencies
+and persisted formats remain unchanged. The real temporary-repository executable
+`editor.git_diff_provider` exercises these contracts; missing Git is explicitly unavailable/skipped.
+Linux validation and limits are recorded in the
+[Git diff evidence](../../Tools/Build/evidence/EditorEDM4-GitDiff-Linux-2026-10-21.md).
+
 ## Reflected opaque-property authoring
 
 `ReflectedInspector` owns a validated catalog and Runtime reflection descriptors. It interprets

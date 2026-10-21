@@ -5,6 +5,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/AssetImport.cpp
   src/BuildProcess.cpp
   src/GitStatusProvider.cpp
+  src/GitDiffProvider.cpp
   src/ChromeTrace.cpp
   src/ProjectChromeTrace.cpp
   src/ContentBrowser.cpp
