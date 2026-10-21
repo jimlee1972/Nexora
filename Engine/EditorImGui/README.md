@@ -1560,6 +1560,22 @@ native wide entry on Windows. The existing
 `editor.selection_delete_transaction` independently replays 1,000 batch cycles; its implementation
 is reused rather than duplicated by this integration test.
 
+`editor.authoring_mixed_replay_1000_1x`/`_2x` add a distinct mixed authoring history regression.
+The first command uses actual multi-selection/Inspector typing; the remaining 999 use normal
+serialized `SceneDocument` authoring APIs to record a deterministic command log. There are 667
+Runtime transform and 333 opaque-metadata batch transactions, each covering both selected nodes.
+An independent value oracle checks every recorded state, all 1000 actual keyboard Undo operations
+and all 1000 Redo operations, including original negative scales and exact unknown component bytes.
+No-op history edges, the saved/unsaved distinction after Save, and fresh-process data/empty history
+are checked through actual controls and production `SceneFileSession` publication.
+
+These cases retain the existing generic counter/delete replay tests and the shorter authoring
+workflow without changing their budgets or deadlines. Dedicated replay processes are bounded to
+120 seconds each, and each new CTest case has a 300-second bound and runs serially to avoid CPU
+contention with performance gates. The full product gate passes 305 registered cases with 293
+actual passes, 12 environment skips and zero failures; all four frozen test/CMake source hashes
+remain unchanged. Both replay scales and the unchanged short workflows pass. This is headless widget/process coverage, not OS-window or physical-device acceptance.
+
 This is headless actual ImGui/control and process-lifetime coverage. It does not launch the
 NexoraEditor OS-window process or accept physical display/DPI/IME, glyph quality or screen-reader
 behavior. Those native/target-host gates and complete scene-authoring acceptance remain open.
