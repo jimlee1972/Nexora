@@ -169,6 +169,19 @@ struct EditorImGuiHost::State final {
   bool scene_comparison_cancel_requested{};
   std::array<std::optional<std::array<float, 2>>, 4> scene_comparison_positions{};
   std::uint32_t scene_comparison_rendered_rows{};
+  std::vector<std::optional<SceneMergeChoice>> scene_merge_choices;
+  std::uint64_t scene_merge_review{}, scene_merge_draft{};
+  std::size_t scene_merge_unresolved{};
+  std::optional<SceneMergeUiRequest> scene_merge_request;
+  SceneMergeCandidateSnapshot scene_merge_status;
+  bool scene_merge_busy{}, scene_merge_cancel{};
+  bool scene_merge_interaction_allowed{};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  bool scene_merge_fail_choice_allocation{};
+#endif
+  std::array<std::optional<std::array<float, 2>>, 2> scene_merge_positions{};
+  std::unordered_map<std::size_t, std::array<std::optional<std::array<float, 2>>, 3>>
+      scene_merge_choice_positions;
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
   bool git_status_open{};
@@ -2612,6 +2625,10 @@ template <typename StateT> void BeginSceneComparison(StateT &state, bool overwri
   CancelSceneGestures(state);
   CancelInspectorDrafts(state);
   state.scene_comparison = {};
+  state.scene_merge_request.reset();
+  state.scene_merge_status = {};
+  state.scene_merge_review = 0;
+  state.scene_merge_choices.clear();
   state.scene_comparison_request = state.scene_file_token;
   state.scene_comparison_in_overwrite = overwrite;
   state.scene_comparison_open = !overwrite;
@@ -2653,25 +2670,110 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
     return;
   ImGui::Text("Changed fields: %zu   Unresolved conflicts: %zu", snapshot.result->rows.size(),
               snapshot.result->conflicts);
-  ImGui::TextWrapped("Read-only captured revisions. Choices are hints; replacing a scene still "
-                     "requires the original save confirmation.");
-  if (!ImGui::BeginTable("Semantic fields", 5,
+  const bool editable = snapshot.review &&
+                        state.scene_merge_review == snapshot.review->Identity() &&
+                        state.scene_merge_draft != std::numeric_limits<std::uint64_t>::max() &&
+                        state.scene_merge_choices.size() == snapshot.result->rows.size();
+  const auto unresolved = state.scene_merge_unresolved;
+  ImGui::TextWrapped("Captured revisions. Validate complete choices to inspect a candidate; "
+                     "source publication requires a separate workflow.");
+  const auto frame_scope =
+      std::to_string(state.scene_merge_review) + '/' + std::to_string(state.scene_merge_draft);
+  ImGui::PushID(frame_scope.c_str());
+  ImGui::BeginDisabled(!editable || !state.scene_merge_interaction_allowed ||
+                       state.scene_comparison_busy || state.scene_merge_busy || unresolved);
+  if (ImGui::Button("Validate candidate")) {
+    SceneMergeUiRequest request{state.scene_file_token,
+                                snapshot.operation,
+                                state.scene_merge_draft,
+                                {SceneMerge::kSchemaVersion, state.scene_merge_review, {}}};
+    for (std::size_t i = 0; i < state.scene_merge_choices.size(); ++i)
+      if (state.scene_merge_choices[i])
+        request.candidate.choices.push_back({i, *state.scene_merge_choices[i]});
+    state.scene_merge_request = std::move(request);
+    state.scene_merge_status = {};
+  }
+  const auto position = [] {
+    const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+    return std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+  };
+  state.scene_merge_positions[0] = position();
+  ImGui::EndDisabled();
+  if (state.scene_merge_busy) {
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel candidate"))
+      state.scene_merge_cancel = true;
+    state.scene_merge_positions[1] = position();
+  }
+  ImGui::PopID();
+  if (editable)
+    ImGui::Text("Unresolved choices: %zu", unresolved);
+  if (!state.scene_merge_status.message.empty())
+    ImGui::TextWrapped("%s", state.scene_merge_status.message.c_str());
+  if (state.scene_merge_status.result) {
+    if (state.scene_merge_status.result->bytes)
+      ImGui::Text("Validated captured bytes: %zu", state.scene_merge_status.result->bytes->size());
+    else
+      ImGui::TextUnformatted("Validated captured candidate: absent whole scene.");
+  }
+  if (!ImGui::BeginTable("Semantic fields", editable ? 6 : 5,
                          ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollX |
                              ImGuiTableFlags_ScrollY | ImGuiTableFlags_Resizable,
                          {0, 240}))
     return;
+  if (editable)
+    ImGui::TableSetupColumn("Candidate choice", ImGuiTableColumnFlags_WidthFixed, 225);
   for (const auto *label : {"Stable field", "Base", "Local", "Disk", "Hint"})
     ImGui::TableSetupColumn(label, ImGuiTableColumnFlags_WidthFixed, 180);
-  ImGui::TableSetupScrollFreeze(0, 1);
+  ImGui::TableSetupScrollFreeze(editable ? 1 : 0, 1);
   ImGui::TableHeadersRow();
   ImGuiListClipper clipper;
   clipper.Begin(static_cast<int>(snapshot.result->rows.size()),
-                ImGui::GetTextLineHeightWithSpacing());
+                editable ? ImGui::GetFrameHeightWithSpacing()
+                         : ImGui::GetTextLineHeightWithSpacing());
+  state.scene_merge_choice_positions.clear();
   constexpr const char *choices[] = {"Shared", "Local", "Disk", "Unresolved"};
   while (clipper.Step())
     for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
       const auto &row = snapshot.result->rows[static_cast<std::size_t>(i)];
       ImGui::TableNextRow();
+      if (editable) {
+        ImGui::TableNextColumn();
+        ImGui::PushID(frame_scope.c_str());
+        ImGui::PushID(i);
+        ImGui::BeginDisabled(!state.scene_merge_interaction_allowed ||
+                             state.scene_comparison_busy || state.scene_merge_busy);
+        auto &choice = state.scene_merge_choices[static_cast<std::size_t>(i)];
+        for (std::size_t option = 0; option < 3; ++option) {
+          if (option)
+            ImGui::SameLine();
+          const std::optional<SceneMergeChoice> selected =
+              option == 0
+                  ? std::nullopt
+                  : std::optional(option == 1 ? SceneMergeChoice::Local : SceneMergeChoice::Remote);
+          if (ImGui::RadioButton(option == 0   ? "Hint"
+                                 : option == 1 ? "Local"
+                                               : "Disk",
+                                 choice == selected) &&
+              choice != selected) {
+            if (row.choice == SceneComparisonChoice::Unresolved) {
+              if (!choice && selected)
+                --state.scene_merge_unresolved;
+              else if (choice && !selected)
+                ++state.scene_merge_unresolved;
+            }
+            choice = selected;
+            if (state.scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
+              ++state.scene_merge_draft;
+            state.scene_merge_request.reset();
+            state.scene_merge_status = {};
+          }
+          state.scene_merge_choice_positions[static_cast<std::size_t>(i)][option] = position();
+        }
+        ImGui::EndDisabled();
+        ImGui::PopID();
+        ImGui::PopID();
+      }
       ImGui::TableNextColumn();
       ImGui::TextUnformatted(row.stable_path.c_str());
       ImGui::TableNextColumn();
@@ -2682,6 +2784,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
       ComparisonCell(row.remote);
       ImGui::TableNextColumn();
       ImGui::TextUnformatted(choices[static_cast<unsigned>(row.choice)]);
+
       ++state.scene_comparison_rendered_rows;
     }
   ImGui::EndTable();
@@ -5054,6 +5157,19 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                  active_tab->token == state_->scene_file_token;
   const bool reference_scene = tab_context_valid && (!active_tab->owned || active_tab->read_only);
   const bool tab_modal = state_->scene_tab_dialog || state_->scene_tab_output;
+  const bool merge_allowed = file_context_valid && !file_external_block && !tab_modal &&
+                             !game_running && !state_->static_export_busy &&
+                             (state_->scene_file_dialog == State::FileDialog::None ||
+                              (state_->scene_file_dialog == State::FileDialog::Overwrite &&
+                               state_->scene_comparison_in_overwrite));
+  if (!merge_allowed) {
+    state_->scene_merge_request.reset();
+    state_->scene_merge_status = {};
+    if (state_->scene_merge_interaction_allowed &&
+        state_->scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
+      ++state_->scene_merge_draft;
+  }
+  state_->scene_merge_interaction_allowed = merge_allowed;
   state_->build_console_interaction_blocked = file_external_block || tab_modal;
   state_->extension_input_blocked = file_external_block || tab_modal || !workspace;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
@@ -6791,9 +6907,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                          state_->scene_file_output || state_->game_input_binding_open);
   if (state_->scene_comparison_open && file_context_valid && !file_external_block) {
     const auto size = ImGui::GetMainViewport()->WorkSize;
-    ImGui::SetNextWindowSize({std::min(960.0F, std::max(1.0F, size.x - 24)),
-                              std::min(440.0F, std::max(1.0F, size.y - 24))},
-                             ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(
+        {std::min(state_->scene_comparison.review ? 1280.0F : 960.0F, std::max(1.0F, size.x - 24)),
+         std::min(440.0F, std::max(1.0F, size.y - 24))},
+        ImGuiCond_FirstUseEver);
     if (ImGui::Begin("Scene comparison###editor.scene-comparison", &state_->scene_comparison_open))
       DrawSceneComparisonPanel(*state_);
     ImGui::End();
@@ -6882,6 +6999,10 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
   if (state_->scene_file_context &&
       (state_->scene_file_token != token || state_->scene_file_path != path)) {
     state_->scene_comparison = {};
+    state_->scene_merge_request.reset();
+    state_->scene_merge_status = {};
+    state_->scene_merge_choices.clear();
+    state_->scene_merge_review = 0;
     state_->scene_comparison_request.reset();
     state_->scene_comparison_open = false;
     state_->scene_comparison_in_overwrite = false;
@@ -7208,8 +7329,71 @@ void EditorImGuiHost::SetSceneComparisonStatus(SceneComparisonSnapshot snapshot,
       snapshot.message = "Scene comparison observation exceeds safe display limits.";
     }
   }
+  if (!snapshot.result || !snapshot.review || !snapshot.review->Identity() ||
+      snapshot.result.get() != &snapshot.review->Comparison())
+    snapshot.review.reset();
+  const auto identity = snapshot.review ? snapshot.review->Identity() : 0;
+  if (identity != state_->scene_merge_review ||
+      snapshot.operation != state_->scene_comparison.operation) {
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+    if (identity && !snapshot.result->rows.empty() &&
+        std::exchange(state_->scene_merge_fail_choice_allocation, false))
+      throw std::bad_alloc{};
+#endif
+    std::vector<std::optional<SceneMergeChoice>> choices(identity ? snapshot.result->rows.size()
+                                                                  : 0);
+    state_->scene_merge_request.reset();
+    state_->scene_merge_status = {};
+    state_->scene_merge_review = identity;
+    if (state_->scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
+      ++state_->scene_merge_draft;
+    state_->scene_merge_choices = std::move(choices);
+    state_->scene_merge_unresolved = identity ? snapshot.result->conflicts : 0;
+  }
   state_->scene_comparison = std::move(snapshot);
   state_->scene_comparison_busy = busy;
+}
+std::optional<SceneMergeUiRequest> EditorImGuiHost::TakeSceneMergeCandidateRequest() {
+  auto request = std::exchange(state_->scene_merge_request, std::nullopt);
+  if (!request || !SceneMergeInteractionAllowed() || request->token != state_->scene_file_token ||
+      request->comparison_operation != state_->scene_comparison.operation ||
+      request->draft != state_->scene_merge_draft ||
+      request->candidate.review != state_->scene_merge_review)
+    return {};
+  return request;
+}
+bool EditorImGuiHost::TakeSceneMergeCandidateCancelRequest() noexcept {
+  return std::exchange(state_->scene_merge_cancel, false);
+}
+bool EditorImGuiHost::SceneMergeInteractionAllowed() const noexcept {
+  return state_->scene_merge_interaction_allowed &&
+         (state_->scene_comparison_open || state_->scene_comparison_in_overwrite);
+}
+void EditorImGuiHost::SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot snapshot, bool busy,
+                                                   std::uint64_t draft) {
+  state_->scene_merge_busy = busy;
+  if (!state_->scene_merge_review || draft != state_->scene_merge_draft ||
+      snapshot.review != state_->scene_merge_review) {
+    state_->scene_merge_status = {};
+    return;
+  }
+  const auto safe = [](std::string_view value) {
+    return value.size() <= 1024 && foundation::IsValidUtf8(value) &&
+           std::ranges::none_of(value, [](unsigned char c) { return c < 32 || c == 127; });
+  };
+  if (!safe(snapshot.message) ||
+      static_cast<unsigned>(snapshot.phase) >
+          static_cast<unsigned>(SceneMergeCandidatePhase::Failed) ||
+      (snapshot.result &&
+       (!snapshot.operation || snapshot.phase != SceneMergeCandidatePhase::Ready ||
+        (snapshot.result->bytes &&
+         (snapshot.result->bytes->empty() ||
+          snapshot.result->bytes->size() > SceneComparison::kMaximumSourceBytes))))) {
+    snapshot.result.reset();
+    snapshot.phase = SceneMergeCandidatePhase::Failed;
+    snapshot.message = "Candidate observation exceeds safe display limits.";
+  }
+  state_->scene_merge_status = std::move(snapshot);
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneComparisonPosition(const EditorImGuiHost &host, std::size_t index) {
@@ -7231,6 +7415,28 @@ SceneComparisonSnapshot EditorImGuiTestAccess::SceneComparisonStatus(const Edito
 std::uint32_t EditorImGuiTestAccess::SceneComparisonRenderedRows(const EditorImGuiHost &host) {
   return host.state_->scene_comparison_rendered_rows;
 }
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneMergePosition(const EditorImGuiHost &host, std::size_t control) {
+  return control < host.state_->scene_merge_positions.size()
+             ? host.state_->scene_merge_positions[control]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneMergeChoicePosition(const EditorImGuiHost &host, std::size_t row,
+                                                std::size_t option) {
+  const auto found = host.state_->scene_merge_choice_positions.find(row);
+  return found != host.state_->scene_merge_choice_positions.end() && option < found->second.size()
+             ? found->second[option]
+             : std::nullopt;
+}
+SceneMergeCandidateSnapshot EditorImGuiTestAccess::SceneMergeStatus(const EditorImGuiHost &host) {
+  return host.state_->scene_merge_status;
+}
+void EditorImGuiTestAccess::FailNextSceneMergeChoiceAllocation(EditorImGuiHost &host) {
+  host.state_->scene_merge_fail_choice_allocation = true;
+}
+#endif
 void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
                                          std::optional<std::filesystem::path> suggested_path) {
   Activate(state_->context);

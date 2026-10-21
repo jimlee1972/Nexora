@@ -82,6 +82,12 @@ public:
   [[nodiscard]] static SceneComparisonSnapshot SceneComparisonStatus(const EditorImGuiHost &);
   [[nodiscard]] static std::uint32_t SceneComparisonRenderedRows(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneMergePosition(const EditorImGuiHost &, std::size_t control);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneMergeChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option);
+  [[nodiscard]] static SceneMergeCandidateSnapshot SceneMergeStatus(const EditorImGuiHost &);
+  static void FailNextSceneMergeChoiceAllocation(EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
   StaticExportPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static StaticExportSnapshot StaticExportStatus(const EditorImGuiHost &);
   [[nodiscard]] static EditorImGuiTestState Inspect(const EditorImGuiHost &host) noexcept;

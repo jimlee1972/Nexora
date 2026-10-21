@@ -2019,6 +2019,36 @@ covers actual controls and source isolation. Reviewed merge publication and prov
 remain open. These additive C++ APIs require rebuild and change no stable C/Gameplay ABI or module
 dependency.
 
+## Asynchronous captured merge candidates
+
+`SceneMergeCandidateJob` owns one bounded copied schema1 request and a shared immutable
+`SceneMergeReview` on the existing JobSystem. Start/Poll/Cancel/Busy/Snapshot/Shutdown are serialized
+owner calls. Workers borrow no document, workspace, file session, module callback or plugin object;
+they perform no IO. Review/request capacity is checked before submission, and complete semantic
+validation still runs in isolated Worlds. Start allocation failures may propagate; malformed or
+failed work never exposes a candidate. A failed idle Start replaces its current observation with
+Failed, while an active operation cannot be replaced. Earlier copied completed results stay valid.
+
+The worker checks cancellation before and after bounded synchronous parsing. Poll accepts the
+embedding owner's current immutable review identity; mismatch produces Stale and no result. Ready
+owns canonical candidate bytes, or an explicit absent whole-scene candidate, and grants no write or
+delete authority. A mutex protects copied observations; no UI/authoring callback runs on the worker.
+Shutdown cancels/drains before clearing current output, including consumed work. The JobSystem and
+EditorCore must outlive the drain and all retained reviews/results; in-process unload is not a
+sandbox. Stop/join the JobSystem before unloading EditorCore, since worker descriptor cleanup can
+follow its completion notification. Public C++ consumers rebuild for these additive classes; stable C/Gameplay ABI and all
+stored formats remain unchanged.
+
+The graphical application binds requests to file token/path, comparison operation, immutable review
+and monotonically advancing UI draft. It checks current local bytes at Start and successful
+completion, and current stopped Play/project/recovery/export/modal scope independently. Read-only
+and reference inspection can validate captured data without obtaining authoring permission. A
+captured candidate may later become stale relative to disk; publication must separately recheck
+exact raw source observations, writer/reference permissions and current project/document/file scope.
+This API provides no publisher, source overwrite, baseline acknowledgement or live document edit.
+Existing source/snapshot/output limits measure logical data, not total RSS. Copied choice count
+cannot exceed retained row count; Resolve separately enforces uniqueness, index and side validity.
+
 ## Bounded scoped build processes
 
 The native Editor forwards copied current-scope process output into owning Runtime Console

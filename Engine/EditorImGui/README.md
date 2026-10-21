@@ -1283,6 +1283,33 @@ request resurrection. Keyboard and 1x/2x real controls are covered by
 Automatic semantic merge, source-control authentication and physical screen-reader acceptance
 remain open.
 
+## Graphical captured merge candidate review
+
+An owning ready comparison review enables explicit Hint/Local/Disk choices in the actual clipped
+table. The fixed left choice column stays reachable when high DPI or narrow windows require
+horizontal scrolling. Unresolved conflict counts update incrementally; per-frame control geometry
+retains visible rows only. Full choice copying occurs on explicit Validate, not every frame. Each
+row and button ID includes the complete immutable review and draft generation, so a held release
+cannot retarget a replacement review. An exhausted draft generation disables further validation.
+
+Validate emits one owning file-token/comparison-operation/review/schema1/draft request. It performs
+no IO, background parsing or authoring mutation. The application repeats current scope/policy/local
+source checks before submitting to SceneMergeCandidateJob and before presenting successful output.
+Changing a choice or scope revokes earlier requests/results; an old same-review response with a
+different draft cannot resurrect. Play, recovery, close/file/tab/input modals and export work block
+interaction independently of writer permission. Read-only/reference captured-data validation stays
+available. Cancel stops the actual pending job; errors and an explicit absent candidate remain
+distinct from successful present bytes. No source Replace/Delete/Save action is added here.
+
+Published observations validate review/result aliasing, enum/message/byte limits and immutable
+draft identity. Unknown opaque bytes remain owning source data and are never loaded as a plugin.
+New-review choice storage is staged before publishing identity/draft changes, so allocation failure
+cannot combine an old selection vector with a new review.
+Native test geometry exists only in test-enabled builds behind an explicit fixture environment
+flag; it reports control locations and scalar state without scene payloads or write bypasses.
+Matching C++ consumers rebuild; module dependencies, stable C ABI and stored schemas are unchanged.
+Atomic reviewed file/document publication, complete M4-05 and physical accessibility remain open.
+
 ## Reflected component Inspector
 
 `SetReflectedInspector` copies a validated owning Editor catalog. The Inspector renders compatible
