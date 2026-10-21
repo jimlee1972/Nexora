@@ -27,15 +27,17 @@ struct SceneMergePublication::State final {
         manifest(std::move(encoded)), digest(std::move(hash)) {}
 };
 const std::filesystem::path &SceneMergePublication::Source() const noexcept {
-  return state_->data.source;
+  static const std::filesystem::path empty;
+  return state_ ? state_->data.source : empty;
 }
 const std::filesystem::path &SceneMergePublication::Archive() const noexcept {
-  return state_->archive;
+  static const std::filesystem::path empty;
+  return state_ ? state_->archive : empty;
 }
 std::string_view SceneMergePublication::CandidateBytes() const noexcept {
-  return state_->data.candidate;
+  return state_ ? std::string_view(state_->data.candidate) : std::string_view{};
 }
-bool SceneMergePublication::Consumed() const noexcept { return state_->consumed; }
+bool SceneMergePublication::Consumed() const noexcept { return !state_ || state_->consumed; }
 bool SceneMergePublisher::Matches(const SceneFileSession &files,
                                   const SceneMergePublication::State &s, bool authorized) {
   if (!authorized || !files.Live(s.token) || files.session_id_ != s.session ||
@@ -104,6 +106,8 @@ SceneMergePublishResult SceneMergePublisher::Publish(SceneFileSession &files,
                                                      SceneMergePublication &publication,
                                                      bool authorized,
                                                      const core::CancellationToken &cancel) {
+  if (!publication.state_)
+    return {SceneMergePublishStatus::Rejected, {}, "Publication capability was moved from"};
   auto &s = *publication.state_;
   const bool was_consumed = std::exchange(s.consumed, true);
   // All allocations and potentially throwing validation finish before native replacement.

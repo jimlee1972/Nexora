@@ -52,6 +52,8 @@ struct SceneMergePublishResult final {
 // of a preparation) are serialized by one authoring owner. Authorizing caller rechecks owned-role,
 // stopped Play/modal/recovery policy; core independently repeats writer/session/raw-source checks.
 // Source-only publication leaves live document, baselines, selection and history unchanged.
+// Keep EditorCore loaded until every capability copy is destroyed and synchronous call drains.
+// Moved-from capabilities expose empty data, are consumed and reject publication.
 class NEXORA_EDITOR_API SceneMergePublisher final {
 public:
   static constexpr std::size_t kMaximumManifestBytes = SceneComparison::kMaximumResultBytes;

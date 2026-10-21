@@ -2660,8 +2660,11 @@ before commit; successful replacement is never relabeled as cancellation.
 
 Publication deliberately leaves the live World/document, selection, Undo/Redo, dirty state and
 file-session save baseline unchanged. Ordinary Save still detects the resulting external change;
-explicit reload/adoption and integrated graphical publication remain pending. Caller sessions and
-modules must outlive synchronous calls; owning preparations/archives retain only ordinary data.
+explicit reload/adoption and integrated graphical publication remain pending. Caller sessions must
+outlive synchronous calls; EditorCore stays loaded until all capability copies are destroyed and
+all calls drain (their shared control-block deleters are compiled in Core). Owning preparations
+retain no session or native-provider borrow; plain archive data owns its values. Moved-from
+capabilities return empty paths/bytes, report consumed and reject publication.
 Allocation/IO validation errors before replacement may leave owned staging residue for inspection,
 but preserve the original source and last-good archive. The private precommit scheduling gate is
 compiled only with BUILD_TESTING and retains no native callback in production.

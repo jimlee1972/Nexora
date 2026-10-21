@@ -132,6 +132,12 @@ void Run() {
   Require(p && !p->Consumed() && p->Source() == f.relative &&
               Read(f.scratch.root / f.relative) == f.disk,
           "Preparation mutated source");
+  auto moved = std::move(*p);
+  Require(p->Consumed() && p->Source().empty() && p->Archive().empty() &&
+              p->CandidateBytes().empty() &&
+              Publisher::Publish(files, *p, true).status == Status::Rejected && !moved.Consumed(),
+          "Moved-from capability retained authority or exposed invalid state");
+  p = std::move(moved);
   auto copied = *p;
   core::CancellationSource cancelled;
   cancelled.Cancel();
