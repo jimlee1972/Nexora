@@ -1063,9 +1063,16 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   rebase 另以一次 Undo 執行。Empty／invalid／readonly／foreign／stale／structural／nested／
   revision exhausted、占用 staging 及 candidate 配置失敗皆有測試。Opaque 刪除保留 archive
   bytes，但欄位 schema 改變後仍需要 structural rebase。直接啟用群組及 U64 參照亦通過；
-  完整 Linux 307 項登錄測試中 295 項實際通過、12 項環境 skip；Shipping 建置通過且不登錄測試。圖形確認、nested
+  完整 Linux 307 項登錄測試中 295 項實際通過、12 項環境 skip；Shipping 建置通過且不登錄測試。Nested
   publication 及完整 M4-01／ED-M4 仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-LiveSourceApply-Linux-2026-10-21.md)。
+
+- ✅ Live prefab 選定欄位回寫來源已接上明確圖形確認，呈現 source、retained revision 及獨立
+  source history。實際 1x／2x widgets 涵蓋 owning selection、取消／權限／過期來源拒絕、
+  舊 archive 保留，以及另行 rebase／Undo／Redo／Save／全新 reopen。完整 Linux 312 項登錄測試
+  中300 項實際通過、12 項環境 skip；三項已登錄 native workflow 亦通過。
+  Nested、structural 與實機驗收保持未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-LiveSourceApplyUi-Linux-2026-10-21.md)。
 
 ✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、
 明確 full revert 確認、一次 mixed-property Undo／Redo 及 read-only inspection。

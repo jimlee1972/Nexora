@@ -484,7 +484,7 @@ struct EditorImGuiHost::State final {
   std::map<std::size_t, std::array<float, 2>> prefab_override_row_positions;
   std::optional<PrefabPlacementOverrideReport> prefab_override_report;
   std::string prefab_override_error;
-  std::array<std::optional<std::array<float, 2>>, 5> prefab_override_positions{};
+  std::array<std::optional<std::array<float, 2>>, 6> prefab_override_positions{};
   bool prefab_rebase_confirm{}, prefab_rebase_popup{};
   std::optional<PrefabPlacementRebaseRequest> prefab_rebase_request, prefab_rebase_consent;
   std::optional<PrefabPlacementRebaseReport> prefab_rebase_report;
@@ -6945,6 +6945,17 @@ bool EditorImGuiHost::SetPrefabPlacementSourceReport(PrefabPlacementSourceReport
        (report.scoped_source->asset.IsNil() || !report.scoped_source->revision)))
     return false;
   state_->prefab_source_report = std::move(report);
+  // A new explicit source observation revokes decisions captured against an older observation.
+  state_->prefab_override_report.reset();
+  state_->prefab_override_request.reset();
+  state_->prefab_override_consent.reset();
+  state_->prefab_override_selected.clear();
+  state_->prefab_override_confirm = state_->prefab_override_popup = false;
+  state_->prefab_rebase_report.reset();
+  state_->prefab_rebase_choices.clear();
+  state_->prefab_rebase_consent.reset();
+  state_->prefab_rebase_request.reset();
+  state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;
   return true;
 }
 void EditorImGuiHost::SetPrefabPlacementOverrideContext(bool authoring_allowed) {
@@ -6978,11 +6989,21 @@ EditorImGuiHost::TakePrefabPlacementOverrideRequest() {
     return {};
   }
   if (state_->prefab_override_request &&
-      (state_->prefab_override_request->scope != *state_->prefab_source_scope ||
+      ((state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review &&
+        state_->prefab_override_request->action != PrefabPlacementOverrideAction::Revert &&
+        state_->prefab_override_request->action != PrefabPlacementOverrideAction::RevertSelected &&
+        state_->prefab_override_request->action !=
+            PrefabPlacementOverrideAction::ApplySelectedToSource) ||
+       state_->prefab_override_request->scope != *state_->prefab_source_scope ||
        state_->prefab_override_request->scope.source != state_->scene_file_token ||
        (state_->prefab_override_request->action != PrefabPlacementOverrideAction::Review &&
         (!state_->prefab_override_authoring || !state_->prefab_override_report ||
-         state_->prefab_override_request->review != state_->prefab_override_report->review)))) {
+         state_->prefab_override_request->review != state_->prefab_override_report->review)) ||
+       (state_->prefab_override_request->action ==
+            PrefabPlacementOverrideAction::ApplySelectedToSource &&
+        (!state_->prefab_override_report ||
+         !PrefabSourceSelectionAllowed(*state_->prefab_override_report,
+                                       state_->prefab_override_request->rows))))) {
     state_->prefab_override_request.reset();
     state_->prefab_override_confirm = state_->prefab_override_popup = false;
     state_->prefab_rebase_confirm = state_->prefab_rebase_popup = false;

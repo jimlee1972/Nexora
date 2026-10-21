@@ -1,4 +1,6 @@
+#include "../../Engine/Editor/src/PrefabPlacementSourceTestAccess.h"
 #include "EditorImGuiTestAccess.h"
+#include "Nexora/Editor/PrefabPlacementRebase.h"
 #include "Nexora/Editor/ProjectPrefabPlacement.h"
 #include "TemporaryDirectoryCleanup.h"
 #include <chrono>
@@ -26,7 +28,7 @@ std::map<std::filesystem::path, std::string> Files(const std::filesystem::path &
     }
   return result;
 }
-std::string WriteFixture(const std::filesystem::path &root) {
+std::string WriteFixture(const std::filesystem::path &root, bool advance = true) {
   editor::ProjectWorkspace workspace;
   Require(workspace.Create(root, "Prefab instance overrides"), "Project fixture failed");
   runtime::World source_world, target_world;
@@ -55,18 +57,20 @@ std::string WriteFixture(const std::filesystem::path &root) {
   editor::SceneFileSession files(workspace, scene);
   std::filesystem::create_directories(root / ".nexora/scenes");
   Require(files.SaveAs(files.Token(), ".nexora/scenes/Main.scene").Applied(), "Scene save failed");
+  if (!advance)
+    return retained;
   Require(source.Rename(*source.Key(node), "Published newer"), "Source advance failed");
   const auto advanced = editor::PrefabAssets::Capture(asset->id, source, factory, &*asset);
   Require(advanced && editor::PrefabAssets::Publish(workspace, *advanced, &*asset),
           "Source archive publication failed");
   return retained;
 }
-void Run(float scale) {
+void Run(float scale, bool apply_source = false) {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-placement-override-ui-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   editor::test::TemporaryDirectoryCleanup cleanup{root};
-  const auto retained = WriteFixture(root);
+  const auto retained = WriteFixture(root, !apply_source);
   editor::ProjectWorkspace writer, reader;
   Require(writer.Open(root) && reader.Open(root, editor::ProjectAccess::ReadOnly),
           "Workspaces failed");
@@ -88,13 +92,17 @@ void Run(float scale) {
   ui.ProcessEvents(std::array{focus});
   auto *workspace = &writer;
   bool read_allowed = true, authoring = true;
-  const auto draw = [&] {
+  const auto draw = [&](bool capture = false) {
     ui.SetSceneFileContext(files.Token(), ".nexora/scenes/Main.scene");
     ui.SetPrefabPlacementSourceContext(root, read_allowed);
     ui.SetPrefabPlacementOverrideContext(authoring);
     ui.BeginFrame();
+    if (capture)
+      Access::BeginTextCapture(ui);
     ui.DrawProductShell(shell, &scene, workspace);
+    auto text = capture ? Access::EndTextCapture(ui) : std::string{};
     static_cast<void>(ui.EndFrame());
+    return text;
   };
   for (int i = 0; i < 4; ++i)
     draw();
@@ -132,7 +140,8 @@ void Run(float scale) {
       request->scope,
       1,
       review->PublishedRevision(),
-      {review->Rows().begin(), review->Rows().end()}};
+      {review->Rows().begin(), review->Rows().end()},
+      apply_source};
   Require(ui.SetPrefabPlacementOverrideReport(report), "Valid copied report rejected");
   auto invalid = report;
   invalid.review = 0;
@@ -143,6 +152,10 @@ void Run(float scale) {
                                        &editor::PrefabPlacementOverrideRow::field);
   Require(named != review->Rows().end(), "Selected Name fixture absent");
   const auto name_index = static_cast<std::size_t>(named - review->Rows().begin());
+  if (apply_source) {
+#include "PrefabPlacementSourceApply.inl"
+    return;
+  }
   click(4);
   Require(!ui.TakePrefabPlacementOverrideRequest(), "Empty selection emitted targeted consent");
   click_point(Access::PrefabOverrideRowPosition(ui, name_index));
@@ -396,6 +409,9 @@ int main(int argc, char **argv) {
       std::ofstream output(argv[3], std::ios::binary);
       output.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
       Require(static_cast<bool>(output), "Expected retained scene write failed");
+    } else if (argc == 3 && std::string_view(argv[1]) == "--apply-source" &&
+               (std::string_view(argv[2]) == "1" || std::string_view(argv[2]) == "2")) {
+      Run(std::string_view(argv[2]) == "2" ? 2.F : 1.F, true);
     } else {
       Run(1);
       Run(2);

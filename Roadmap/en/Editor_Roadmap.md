@@ -1139,9 +1139,16 @@ creates property widgets; unknown components retain raw data instead of being si
     allocation paths are covered. Opaque removal retains archived bytes but needs structural
     rebase for the changed field schema. Direct enabled groups/U64 references also pass. Full Linux
     passes 307 registered/295 actual passes/12
-    environment skips; Shipping builds without tests. Graphical confirmation, nested publication
+    environment skips; Shipping builds without tests. Nested publication
     and full M4-01/ED-M4 remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-LiveSourceApply-Linux-2026-10-21.md).
+  - ✅ Selected live-prefab source publication now has explicit graphical confirmation naming the
+    source, retained revision and separate source history. Actual 1x/2x widgets exercise owning
+    selection, cancellation/permission/stale-source rejection, old archive conservation and a
+    separate rebase/Undo/Redo/Save/fresh reopen. Complete Linux passes312 registered/300 actual
+    passes/12 environment skips; three registered native workflows also pass. Nested, structural
+    and physical acceptance remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-LiveSourceApplyUi-Linux-2026-10-21.md).
   - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
     sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
     Targeted fields, source apply, structural bindings and reference rebase remain open.
