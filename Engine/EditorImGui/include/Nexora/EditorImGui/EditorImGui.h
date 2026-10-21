@@ -19,6 +19,7 @@
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/SceneMergeCandidateJob.h"
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/Api.h"
@@ -153,6 +154,11 @@ struct PrefabPlacementRebaseReport final {
   std::vector<PrefabPlacementRebaseRow> rows;
 };
 
+struct SceneMergeUiRequest final {
+  SceneFileToken token;
+  std::uint64_t comparison_operation{}, draft{};
+  SceneMergeRequest candidate;
+};
 struct SceneFileRequest final {
   SceneFileAction action{SceneFileAction::New};
   SceneFileToken token;
@@ -431,6 +437,11 @@ public:
   [[nodiscard]] std::optional<SceneFileToken> TakeSceneComparisonRequest();
   [[nodiscard]] bool TakeSceneComparisonCancelRequest() noexcept;
   void SetSceneComparisonStatus(SceneComparisonSnapshot snapshot, bool busy);
+  [[nodiscard]] std::optional<SceneMergeUiRequest> TakeSceneMergeCandidateRequest();
+  [[nodiscard]] bool TakeSceneMergeCandidateCancelRequest() noexcept;
+  [[nodiscard]] bool SceneMergeInteractionAllowed() const noexcept;
+  // Data-only current-draft observation. Stale responses cannot resurrect changed choices.
+  void SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot, bool busy, std::uint64_t draft);
   void RequestSceneSaveAs(bool close_after_save = false,
                           std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);

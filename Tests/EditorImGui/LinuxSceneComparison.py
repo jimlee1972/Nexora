@@ -25,6 +25,7 @@ def main():
     parser.add_argument("--editor", required=True)
     parser.add_argument("--xvfb", required=True)
     parser.add_argument("--xdotool", required=True)
+    parser.add_argument("--candidate", action="store_true")
     args = parser.parse_args()
     root = Path(tempfile.mkdtemp(prefix="nexora-native-comparison-"))
     state = Path(tempfile.mkdtemp(prefix="nexora-native-comparison-state-"))
@@ -40,6 +41,8 @@ def main():
         env = os.environ.copy()
         env["DISPLAY"] = display
         env["XDG_STATE_HOME"] = str(state)
+        if args.candidate:
+            env["NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY"] = "1"
 
         def send(*arguments):
             if arguments[0] == "key":
@@ -57,9 +60,10 @@ def main():
 
         captured = bytearray()
 
-        def wait_log(pattern):
+        def wait_log(pattern, start=None):
             deadline = time.monotonic() + 15
-            start = len(captured)
+            if start is None:
+                start = len(captured)
             while time.monotonic() < deadline:
                 require(process.poll() is None, "Editor exited during comparison")
                 if select.select([process.stderr], [], [], .1)[0]:
@@ -67,6 +71,38 @@ def main():
                 if re.search(pattern, captured[start:].decode("utf-8", errors="replace")):
                     return
             raise RuntimeError(f"Native comparison diagnostic missing: {pattern}; {captured!r}")
+
+        def candidate_geometry(disk_choice=False, validated=False):
+            deadline = time.monotonic() + 15
+            while time.monotonic() < deadline:
+                if select.select([process.stderr], [], [], .1)[0]:
+                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                lines = re.findall(r"scene merge ui [^\n]*", captured.decode("utf-8", errors="replace"))
+                for line in reversed(lines):
+                    controls = dict((key, (float(x), float(y))) for key, x, y in re.findall(
+                        r"(validate|disk|cancel)=([0-9.]+),([0-9.]+)", line))
+                    if ("validate" in controls and (not disk_choice or "disk" in controls)
+                            and (not validated or "validated=1" in line)):
+                        return controls
+                require(process.poll() is None, "Editor exited before actual candidate controls")
+            raise RuntimeError(f"Candidate controls unavailable: {captured!r}")
+
+        def validate_candidate(disk_choice=False):
+            controls = candidate_geometry(disk_choice)
+            start = len(captured)
+            def click(point):
+                send("mousemove", "--window", window, str(round(point[0])), str(round(point[1])))
+                send("mousedown", "1")
+                time.sleep(.25)
+                send("mouseup", "1")
+            if disk_choice:
+                click(controls["disk"])
+            click(controls["validate"])
+            wait_log(r"scene merge candidate finished: Complete captured candidate validated", start)
+            require(re.search(r"scene merge candidate started choices=" + ("1" if disk_choice else "0"),
+                              captured[start:].decode("utf-8", errors="replace")),
+                    "Actual native candidate request lost explicit choices")
+            candidate_geometry(validated=True)
 
         def finish():
             request_window_close(window, env)
@@ -103,6 +139,8 @@ def main():
         send("key", "--clearmodifiers", "ctrl+shift+n")
         send("key", "--clearmodifiers", "ctrl+alt+d")
         wait_log(r"scene comparison ready fields=[1-9][0-9]* conflicts=")
+        if args.candidate:
+            validate_candidate(disk_choice=True)
         require(scene.read_bytes() == disk, "Comparison saved unsaved authoring or replaced disk")
         send("mousemove", "--window", window, "100", "130", "click", "1")
         send("key", "--clearmodifiers", "ctrl+z")
@@ -116,6 +154,8 @@ def main():
         time.sleep(.8)
         send("key", "--clearmodifiers", "ctrl+alt+d")
         wait_log(r"scene comparison ready fields=0 conflicts=0")
+        if args.candidate:
+            validate_candidate()
         scene.write_bytes(b"corrupt external scene")
         send("key", "--clearmodifiers", "ctrl+alt+d")
         wait_log(r"scene comparison finished: .*corrupt")
@@ -126,6 +166,8 @@ def main():
         require(scene.read_bytes() == disk, "Read-only inspection changed source")
         passed = True
         print("NATIVE_EDITOR_SEMANTIC_COMPARISON_PASSED source_preserved read_only corrupt_rejected")
+        if args.candidate:
+            print("NATIVE_EDITOR_MERGE_CANDIDATE_PASSED explicit_choice validated read_only source_preserved")
     finally:
         if process is not None and process.poll() is None:
             process.kill()
