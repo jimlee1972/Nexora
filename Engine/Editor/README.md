@@ -2458,3 +2458,60 @@ lifetimes. Opt-out clears all logical records; re-enable starts empty. Clear/pro
 retain existing UI lifecycle rules. This is data minimization, not pattern-based secret detection
 or secure erasure of allocator memory. Complete extension trust and physical privacy acceptance
 remain separate goals.
+
+
+## Selected live prefab source publication
+
+`PrefabPlacementOverrides::ApplySelectedToSource` synchronously publishes selected property groups
+from an owning immutable live-instance review to its exact retained/current root source. Calls run
+on the serialized authoring thread. The project writer, target generations/content, complete source
+closure and selected stable node/field identities are rechecked before publication. The host repeats
+owned-document/selection, Play/modal/recovery and explicit confirmation policy through `authorized`.
+Read-only or foreign/stale requests convey no write authority.
+
+This operation supports one non-nested source, including a variant whose retained base remains
+unchanged. Selected semantic lanes coalesce to complete name, position, rotation plus authored Euler,
+scale, Camera/Light/Mesh presence and dormant values, or existing opaque-type name/bytes groups.
+Source scene/entity/node/field identity, parent/sibling order, references and unselected values remain
+source-owned. New opaque fields requiring new stable identities, nested/multiple source scopes,
+structural parent differences, exhausted revisions, empty/invalid/duplicate selections and no-change
+candidates reject. Selected opaque removal deliberately removes that field from the new source;
+its exact old bytes remain archived. Such field-schema deletion still requires future structural
+reconciliation before existing property-only rebase can advance an old instance; it is not silently
+accepted by rebase.
+
+Complete candidate/result storage precedes source IO. Capture and official validation cover the
+whole candidate; publication reuses `PrefabAssets::Publish` with the exact expected source and its
+old committed revision archive. Admission/staging failures preserve current source and live state;
+an already committed old revision may remain archived after a failed current-file replacement.
+Candidate allocation exceptions (including the private one-shot seam) precede source IO. The shared
+publisher verifies the installed file after replacement: failed readback or an allocation exception
+during that confirmation can leave the new current revision installed without a confirmed result.
+The old committed archive remains the recovery source. Callers must inspect current/archive state
+before retrying; an empty result is not proof that replacement never happened. Other IO failures
+follow the existing prefab publication contract.
+No callback/provider/native pointer is retained. Returned assets and reviews own their data and must
+be released before Editor/Core library unload; they grant no lifetime lease or future authority.
+
+The live scene, binding revision, generation keys, selection, clipboard, dirty/saved baseline and
+Undo/Redo are untouched. Source publication has its own revision history, not a local document Undo
+entry. A subsequent explicit existing property-compatible rebase advances the binding as a separate
+one-step Undo transaction. Scene files change only through ordinary explicit Scene Save. This is
+one-source publication, not a multi-source/document atomic transaction or hostile-filesystem lease.
+
+Existing logical limits apply: at most 32768 selected/report rows, 16 MiB report data, 8 MiB/4096-node
+source and target scenes, 64 KiB individual semantic values and bounded prefab codec output. Temporary
+Worlds, old/new captures, containers and allocator overhead coexist; these are not total process
+memory quotas. New C++ exports require consumer rebuilds; stable C/Gameplay ABI, module dependencies
+and persisted formats are unchanged.
+
+The real-project test covers plain/variant selected groups, dormant component storage, unknown-byte
+edits/removal and exact archives, explicit rebase/Undo, read-only/foreign/stale/structural/nested/max
+revision rejection, invalid/bounded selections, recovery, same-revision replacement, occupied staging,
+allocation failure, source reopen and live/file/history conservation. Final focused product test
+passes in 0.18 s. Complete Linux at main `95d0b3e5` passes 305 registered/293 actual passes/12 environment
+skips with zero failures (546.66 s); all six frozen code/header/test/CMake hashes remain unchanged.
+Minimal Shipping builds nine integration steps and registers no tests. Normal integration of accepted main `8bf8b411` preserves all six source hashes; the source
+operation plus old/new authoring widgets pass 5/5 in 17.76 s against that combined product. Final
+bilingual evidence is included; applicable exact-head hosted acceptance remains pending; graphical confirmation, nested
+publication, structural rebase and full M4-01/ED-M4 remain open.

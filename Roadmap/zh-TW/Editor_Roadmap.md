@@ -1047,6 +1047,16 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
   worktree 及 index／來源 bytes 不變；圖形 diff／merge 與完整 ED-M4 仍未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-GitStatus-Linux-2026-10-20.md)。
 
+- ✅ Linux SDK 已驗證非 nested plain／variant live prefab 的選定欄位回寫來源。
+  Stable selected lane 會展開為完整 canonical group；source identity、參照、未選未知資料
+  與精確舊 archive 保持完整。Live binding、場景、baseline 及 history 不變；相容的明確
+  rebase 另以一次 Undo 執行。Empty／invalid／readonly／foreign／stale／structural／nested／
+  revision exhausted、占用 staging 及 candidate 配置失敗皆有測試。Opaque 刪除保留 archive
+  bytes，但欄位 schema 改變後仍需要 structural rebase。完整 Linux 305 項登錄測試中
+  293 項實際通過、12 項環境 skip；Shipping 建置通過且不登錄測試。圖形確認、nested
+  publication 及完整 M4-01／ED-M4 仍待完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-LiveSourceApply-Linux-2026-10-21.md)。
+
 ✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、
 明確 full revert 確認、一次 mixed-property Undo／Redo 及 read-only inspection。
 Targeted field、source apply、structural binding 與 reference rebase 仍待完成。
