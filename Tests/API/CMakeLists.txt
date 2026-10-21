@@ -25,6 +25,10 @@ add_test(NAME api.m6_manifest_compatibility
 if(TARGET NexoraApiFoundationSample)
   add_test(NAME samples.api_foundation COMMAND NexoraApiFoundationSample)
 endif()
+if(TARGET NexoraEditorReflectedArraySample)
+  add_test(NAME samples.editor_reflected_arrays COMMAND NexoraEditorReflectedArraySample)
+  set_tests_properties(samples.editor_reflected_arrays PROPERTIES TIMEOUT 30)
+endif()
 
 if(NEXORA_ZIG_EXECUTABLE)
   nexora_add_zig_test(api.gameplay_input_zig_abi

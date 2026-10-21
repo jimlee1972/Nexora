@@ -1,0 +1,4 @@
+include(NexoraTarget)
+add_executable(NexoraEditorReflectedArraySample ReflectedArraySample.cpp)
+target_link_libraries(NexoraEditorReflectedArraySample PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraEditorReflectedArraySample)
