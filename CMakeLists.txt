@@ -189,6 +189,9 @@ if(NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND AND
       CACHE INTERNAL "Vulkan header include directory")
 endif()
 
+# Resolve CTest's default BUILD_TESTING before modules compile test-only interfaces.
+include(CTest)
+
 add_subdirectory(Engine/Foundation)
 if(NEXORA_ENABLE_CRYPTOGRAPHY)
   add_subdirectory(Engine/Cryptography)
@@ -245,8 +248,6 @@ if(NEXORA_ENABLE_DEDICATED_SERVER)
   endif()
   add_subdirectory(Apps/DedicatedServer)
 endif()
-
-include(CTest)
 
 if(NEXORA_ENABLE_ZIG_GAMEPLAY)
   add_subdirectory(Gameplay/Zig)
