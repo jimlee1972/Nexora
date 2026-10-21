@@ -139,6 +139,28 @@ std::optional<Fields> Read(std::optional<std::string_view> source, std::string *
     if (!valid)
       break;
   }
+  for (const auto &placement : document.PrefabPlacements()) {
+    if (!valid)
+      break;
+    const auto prefix = "prefabs/" + placement.instance.ToString() + '/';
+    valid = snapshot.Put(prefix + "present", "true") &&
+            snapshot.Put(prefix + "source", placement.source.ToString()) &&
+            snapshot.Put(prefix + "revision", std::to_string(placement.revision));
+    for (const auto &node : placement.nodes) {
+      if (!valid)
+        break;
+      const auto path = prefix + "nodes/" + std::to_string(node.target) + '/';
+      std::string scope;
+      for (const auto id : node.scope) {
+        if (!scope.empty())
+          scope += '/';
+        scope += id.ToString();
+      }
+      valid = snapshot.Put(path + "present", "true") &&
+              snapshot.Put(path + "source_node", node.source_node.ToString()) &&
+              snapshot.Put(path + "scope", std::move(scope));
+    }
+  }
   if (!valid) {
     Fail(error, "Scene comparison has unsafe fields or exceeds the bounded snapshot/value budget.");
     return std::nullopt;

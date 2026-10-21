@@ -30,6 +30,8 @@ struct SceneComparison final {
 // Synchronous, owning read-only comparison. nullopt denotes an absent whole source, distinct from
 // an empty/corrupt present source. Production parsing/migration runs in isolated temporary Worlds.
 // Includes only changed stable fields; choices are inspection hints, not a validated merged tree.
+// Persistent prefab instance/source/revision and target/source-node/ordered-scope bindings are
+// projected under prefabs/<instance>/... within the same aggregate budgets; no asset resolution.
 // No IO, callback, plugin load, source publication or live-document/history/baseline mutation.
 // Limits describe logical source/snapshot/result bytes, not total process memory. Callers provide
 // project/revision provenance and serialize access to borrowed input views for this call.

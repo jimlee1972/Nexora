@@ -25,6 +25,154 @@ const editor::SceneComparisonRow &Row(const editor::SceneComparison &comparison,
   Require(found != comparison.rows.end(), "Expected stable semantic field is missing");
   return *found;
 }
+void PrefabBindings() {
+  const std::string prefix = "NEXORA_EDITOR_SCENE 4\nnode 11 0 Bound\nnode 12 0 Unbound\n"
+                             "opaque 11 781 \"Unknown.Provider\" 00ff11\n"
+                             "prefab-placement 10000000-0000-0000-0000-000000000001 "
+                             "20000000-0000-0000-0000-000000000001 ";
+  const std::string suffix = "\nprefab-node 10000000-0000-0000-0000-000000000001 0 "
+                             "30000000-0000-0000-0000-000000000001 11\nworld\n"
+                             "NEXORA_SCENE 3 \"Bindings\" 0 2\n"
+                             "11 0 0 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n"
+                             "12 0 0 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n";
+  const auto base = prefix + "7" + suffix;
+  const auto local = prefix + "8" + suffix;
+  const auto remote = prefix + "9" + suffix;
+  const auto comparison = editor::CompareSceneRevisions(base, local, remote);
+  Require(comparison && comparison->rows.size() == 1 && comparison->conflicts == 1,
+          "Different retained prefab revisions compared equal");
+  const auto revision = Row(*comparison, "prefabs/10000000-0000-0000-0000-000000000001/revision");
+  Require(revision.base == "7" && revision.local == "8" && revision.remote == "9" &&
+              revision.choice == Choice::Unresolved,
+          "Prefab revision comparison lost exact source values");
+  const std::string path = "prefabs/10000000-0000-0000-0000-000000000001/";
+  const std::string instance = "10000000-0000-0000-0000-000000000001";
+  const std::string source = "20000000-0000-0000-0000-000000000001";
+  const std::string source_node = "30000000-0000-0000-0000-000000000001";
+  const auto replace = [](std::string text, const std::string &old, const std::string &next) {
+    const auto position = text.find(old);
+    Require(position != std::string::npos && text.find(old, position + old.size()) == text.npos,
+            "Independent binding fixture replacement is not unique");
+    text.replace(position, old.size(), next);
+    return text;
+  };
+  const auto maximum = prefix + "18446744073709551615" + suffix;
+  const auto exact = editor::CompareSceneRevisions(base, maximum, base);
+  Require(exact && exact->rows.size() == 1 &&
+              Row(*exact, path + "revision").local == "18446744073709551615" &&
+              Row(*exact, path + "revision").choice == Choice::Local,
+          "U64 prefab revision was rounded or misclassified");
+  const auto changed_source = replace(base, source, "20000000-0000-0000-0000-000000000002");
+  const auto asset = editor::CompareSceneRevisions(base, base, changed_source);
+  Require(asset && asset->rows.size() == 1 && Row(*asset, path + "source").choice == Choice::Remote,
+          "Source asset replacement compared equal");
+  const auto mapped = replace(base, source_node, "30000000-0000-0000-0000-000000000002");
+  const auto mapping = editor::CompareSceneRevisions(base, mapped, base);
+  Require(mapping && mapping->rows.size() == 1 &&
+              Row(*mapping, path + "nodes/11/source_node").choice == Choice::Local,
+          "Scoped source node replacement compared equal");
+  const auto scoped =
+      replace(base, " 0 " + source_node, " 2 " + source + ' ' + instance + ' ' + source_node);
+  const auto reversed =
+      replace(base, " 0 " + source_node, " 2 " + instance + ' ' + source + ' ' + source_node);
+  const auto scopes = editor::CompareSceneRevisions(base, scoped, reversed);
+  Require(scopes && scopes->rows.size() == 1 && scopes->conflicts == 1 &&
+              Row(*scopes, path + "nodes/11/scope").base == "" &&
+              Row(*scopes, path + "nodes/11/scope").local == source + '/' + instance &&
+              Row(*scopes, path + "nodes/11/scope").remote == instance + '/' + source,
+          "Ordered nested scope identity was flattened or discarded");
+  const auto remapped = replace(base, source_node + " 11", source_node + " 12");
+  const auto targets = editor::CompareSceneRevisions(base, remapped, base);
+  Require(targets && targets->rows.size() == 6 && !Row(*targets, path + "nodes/11/present").local &&
+              Row(*targets, path + "nodes/12/present").local == "true",
+          "Target mapping replacement did not retain removed and added identities");
+  auto removed = base;
+  const auto begin = removed.find("prefab-placement ");
+  removed.erase(begin, removed.find("world\n", begin) - begin);
+  // Version4 requires a placement; the writer uses version3 for remaining opaque data without one.
+  removed = replace(removed, "NEXORA_EDITOR_SCENE 4", "NEXORA_EDITOR_SCENE 3");
+  const auto deletion = editor::CompareSceneRevisions(base, removed, local);
+  Require(deletion && deletion->rows.size() == 6 && deletion->conflicts == 1 &&
+              !Row(*deletion, path + "present").local &&
+              Row(*deletion, path + "revision").choice == Choice::Unresolved,
+          "Binding deletion versus revision edit was not an explicit conflict");
+  const auto added = editor::CompareSceneRevisions(removed, base, base);
+  Require(added && added->rows.size() == 6 && !added->conflicts &&
+              std::ranges::all_of(added->rows,
+                                  [](const auto &row) {
+                                    return !row.base && row.local && row.local == row.remote &&
+                                           row.choice == Choice::Shared;
+                                  }),
+          "Shared new binding lost absence versus empty scope distinctions");
+  const auto whole = editor::CompareSceneRevisions(std::nullopt, base, std::nullopt);
+  Require(whole && Row(*whole, "entities/11/opaque/781/payload_hex").local == "00ff11" &&
+              Row(*whole, path + "nodes/11/scope").local == "",
+          "Owning binding projection lost unrelated exact unknown bytes");
+  const auto extra_node = "prefab-node " + instance + " 1 " + source + ' ' + source_node + " 12\n";
+  const auto two_nodes = replace(base, "world\n", extra_node + "world\n");
+  const auto first_node = "prefab-node " + instance + " 0 " + source_node + " 11\n";
+  const auto reordered = replace(two_nodes, first_node + extra_node, extra_node + first_node);
+  const auto equal = editor::CompareSceneRevisions(two_nodes, reordered, two_nodes);
+  Require(equal && equal->rows.empty(), "Node record order fabricated binding changes");
+  const std::string second_instance = "10000000-0000-0000-0000-000000000002";
+  const auto changed_instance =
+      replace(replace(base, "prefab-placement " + instance, "prefab-placement " + second_instance),
+              "prefab-node " + instance, "prefab-node " + second_instance);
+  const auto instances = editor::CompareSceneRevisions(base, changed_instance, base);
+  Require(instances && instances->rows.size() == 12 && !Row(*instances, path + "present").local &&
+              Row(*instances, "prefabs/" + second_instance + "/present").local == "true",
+          "Persistent instance identity replacement compared equal");
+  const auto second_records = "prefab-placement " + second_instance + ' ' + source + " 8\n" +
+                              "prefab-node " + second_instance + " 0 " + source_node + " 12\n";
+  const auto first_records = "prefab-placement " + instance + ' ' + source + " 7\n" + first_node;
+  const auto two_instances = replace(base, "world\n", second_records + "world\n");
+  const auto reverse_instances =
+      replace(two_instances, first_records + second_records, second_records + first_records);
+  const auto same_instances =
+      editor::CompareSceneRevisions(two_instances, reverse_instances, two_instances);
+  Require(same_instances && same_instances->rows.empty(),
+          "Placement record order fabricated binding changes");
+  for (const auto &invalid :
+       {prefix + "0" + suffix, replace(base, source_node + " 11", source_node + " 99"),
+        replace(base, source, "00000000-0000-0000-0000-000000000000"),
+        replace(base, "world\n", first_node + "world\n")})
+    Require(!editor::CompareSceneRevisions(base, invalid, remote),
+            "Invalid binding revision/target/identity/duplicate produced a partial comparison");
+}
+void PrefabBindingBudgets() {
+  const auto literal = [](std::size_t count, std::size_t depth) {
+    std::string scene = "NEXORA_EDITOR_SCENE 4\n";
+    for (std::size_t i = 1; i <= count; ++i)
+      scene += "node " + std::to_string(i) + " 0 Bound\n";
+    scene += "prefab-placement 10000000-0000-0000-0000-000000000001 "
+             "20000000-0000-0000-0000-000000000001 1\n";
+    std::string scope;
+    for (std::size_t i = 1; i <= depth; ++i)
+      scope += ' ' + foundation::Uuid{5, i}.ToString();
+    for (std::size_t i = 1; i <= count; ++i)
+      scene += "prefab-node 10000000-0000-0000-0000-000000000001 " + std::to_string(depth) + scope +
+               ' ' + foundation::Uuid{3, i}.ToString() + ' ' + std::to_string(i) + '\n';
+    scene += "world\nNEXORA_SCENE 3 \"Budget\" 0 " + std::to_string(count) + '\n';
+    for (std::size_t i = 1; i <= count; ++i)
+      scene += std::to_string(i) + " 0 0 0 0 0 0 0 1 1 1 1 0 0 0 60 0.1 1000 1 0 0\n";
+    return scene;
+  };
+  const auto shallow = literal(2048, 0);
+  const auto deep = literal(1024, 32);
+  const auto oversized = literal(2048, 32);
+  runtime::World world;
+  editor::SceneDocument document(world, world.LoadScene("Independent budget validation"));
+  Require(document.ReloadBytes(oversized) &&
+              document.PrefabPlacements().front().nodes.size() == 2048,
+          "Snapshot overflow fixture was not a valid supported scene");
+  Require(editor::CompareSceneRevisions(shallow, shallow, shallow).has_value() &&
+              editor::CompareSceneRevisions(deep, deep, deep).has_value(),
+          "Valid shallow or max-depth binding snapshot rejected");
+  std::string error;
+  Require(!editor::CompareSceneRevisions(oversized, oversized, oversized, &error) &&
+              error.find("bounded snapshot/value budget") != std::string::npos,
+          "Binding metadata escaped the existing aggregate semantic snapshot budget");
+}
 void Run() {
   runtime::World world;
   const auto scene = world.LoadScene("Semantic scene", true);
@@ -263,6 +411,8 @@ void Run() {
 } // namespace
 int main() {
   try {
+    PrefabBindings();
+    PrefabBindingBudgets();
     Run();
     std::cout << "Bounded owning semantic scene comparison passed\n";
     return 0;

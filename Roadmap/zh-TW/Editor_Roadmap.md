@@ -1149,6 +1149,13 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   merge publication 仍待完成。
   [Linux 證據](../../Tools/Build/evidence/EditorEDM4-SemanticSceneComparison-Linux-2026-10-09.md)。
 
+- ✅ 持久化 prefab instance／source／revision 與 target／source-node／有序 scope binding
+  現已納入有界唯讀場景比較。獨立 version4 fixture 涵蓋 conflict、刪除、順序、U64、未知 bytes
+  及 aggregate snapshot 容量拒絕；實際 1x／2x widgets 顯示全部 binding 刪除列。
+  獨立完整 Linux 311 項登錄測試中299 項實際通過、12 項環境 skip，容量與限時條件不變。
+  逐欄位 merge 選擇／發布、structural reconciliation 與實機驗收保持未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-PrefabBindingComparison-Linux-2026-10-21.md)。
+
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
   drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
   reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle
