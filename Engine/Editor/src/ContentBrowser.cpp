@@ -1,4 +1,7 @@
 #include "Nexora/Editor/ContentBrowser.h"
+#include "ContentDirectoryIndexTestAccess.h"
+
+#include "ContentPathSortTestAccess.h"
 #include "Nexora/Foundation/Types.h"
 #if defined(NEXORA_HAS_2D)
 #include "Nexora/Editor/TwoDAssetImport.h"
@@ -7,12 +10,68 @@
 #include <algorithm>
 #include <cctype>
 #include <functional>
+#include <limits>
+#include <new>
+
+#include <type_traits>
 
 namespace nexora::editor {
 namespace {
+thread_local std::size_t fail_directory_after = std::numeric_limits<std::size_t>::max();
+thread_local std::size_t fail_sort_after = std::numeric_limits<std::size_t>::max();
+thread_local bool last_sort_accelerated{};
 std::string PathUtf8(const std::filesystem::path &path) {
   const auto text = path.generic_u8string();
   return {text.begin(), text.end()};
+}
+void SortItems(std::vector<ContentItem> &items) {
+  static_assert(std::is_nothrow_swappable_v<ContentItem>);
+  const bool accelerated = [&] {
+    if (items.size() < 2)
+      return true;
+    if (items.size() > ContentPathSortTestAccess::kMaximumItems)
+      return false;
+    try {
+      struct Key final {
+        std::string bytes;
+        std::size_t source;
+      };
+      std::vector<Key> keys;
+      keys.reserve(items.size());
+      std::size_t remaining = ContentPathSortTestAccess::kMaximumKeyBytes;
+      for (std::size_t i = 0; i < items.size(); ++i) {
+        if (items[i].path.native().size() > remaining)
+          return false;
+        auto bytes = PathUtf8(items[i].path);
+        if (bytes.size() > remaining)
+          return false;
+        remaining -= bytes.size();
+        if (keys.size() == fail_sort_after) {
+          fail_sort_after = std::numeric_limits<std::size_t>::max();
+          throw std::bad_alloc{};
+        }
+        keys.push_back({std::move(bytes), i});
+      }
+      std::ranges::sort(keys, {}, &Key::bytes);
+      std::vector<std::size_t> destination(items.size());
+      for (std::size_t i = 0; i < keys.size(); ++i)
+        destination[keys[i].source] = i;
+      // All storage/conversion is staged before item mutation. A source-to-destination
+      // permutation then moves complete owning records using only noexcept swaps.
+      for (std::size_t i = 0; i < items.size(); ++i)
+        while (destination[i] != i) {
+          const auto target = destination[i];
+          std::swap(items[i], items[target]);
+          std::swap(destination[i], destination[target]);
+        }
+      return true;
+    } catch (const std::bad_alloc &) {
+      return false;
+    }
+  }();
+  last_sort_accelerated = accelerated;
+  if (!accelerated)
+    std::ranges::sort(items, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
 }
 bool WithinMeshBudget(std::span<const ContentItem> items, runtime::AssetUuid replacement = {},
                       const std::shared_ptr<const MeshGeometry> &mesh = {}) {
@@ -81,6 +140,88 @@ bool ValidDiagnostic(const ContentItem &item) {
 }
 } // namespace
 
+struct ContentBrowserModel::DirectoryIndex final {
+  struct Folder final {
+    std::vector<std::size_t> items;
+    std::vector<Breadcrumb> children;
+  };
+  std::unordered_map<std::filesystem::path, Folder> folders;
+};
+void ContentDirectoryIndexTestAccess::FailAfterFolders(std::size_t count) noexcept {
+  fail_directory_after = count;
+}
+bool ContentDirectoryIndexTestAccess::IsIndexed(const ContentBrowserModel &model) noexcept {
+  return static_cast<bool>(model.directory_index_);
+}
+const ContentBrowserModel::DirectoryIndex *ContentBrowserModel::DirectoryIndexView() const {
+  if (directory_index_attempted_)
+    return directory_index_.get();
+  directory_index_attempted_ = true;
+  if (items_.size() > kMaximumDirectoryIndexItems)
+    return nullptr;
+  try {
+    auto candidate = std::make_shared<DirectoryIndex>();
+    std::size_t remaining = kMaximumDirectoryIndexPathWorkBytes;
+    for (std::size_t slot = 0; slot < items_.size(); ++slot) {
+      const auto &path = items_[slot].path;
+      // Drive-relative/native-root peculiarities retain the existing filesystem semantics.
+      if (path.has_root_path() || path.native().size() > remaining)
+        return nullptr;
+      const auto source_bytes = PathUtf8(path).size();
+      if (source_bytes > remaining)
+        return nullptr;
+      remaining -= source_bytes;
+      const auto parent = path.parent_path();
+      if (parent.empty())
+        continue; // No accepted nonempty folder can directly contain a root-level filename.
+      std::size_t depth{};
+      for (const auto &component : parent) {
+        static_cast<void>(component);
+        if (++depth > kMaximumDirectoryIndexDepth)
+          return nullptr;
+      }
+      std::vector<std::filesystem::path> missing;
+      for (auto current = parent; !current.empty() && !candidate->folders.contains(current);
+           current = current.parent_path()) {
+        if (missing.size() == kMaximumDirectoryIndexDepth ||
+            missing.size() >= kMaximumDirectoryIndexFolders - candidate->folders.size())
+          return nullptr;
+        const auto bytes = PathUtf8(current).size();
+        // Account source traversal plus key/child-path/label UTF-8 work. This is not total RSS.
+        if (bytes > remaining / 3)
+          return nullptr;
+        remaining -= bytes * 3;
+        missing.push_back(current);
+      }
+      // Parents first: every directory is linked exactly once, without per-item child
+      // deduplication.
+      for (auto it = missing.rbegin(); it != missing.rend(); ++it) {
+        if (candidate->folders.size() == fail_directory_after) {
+          fail_directory_after = std::numeric_limits<std::size_t>::max();
+          throw std::bad_alloc{};
+        }
+        candidate->folders.try_emplace(*it);
+        const auto ancestor = candidate->folders.find(it->parent_path());
+        if (ancestor != candidate->folders.end())
+          ancestor->second.children.push_back({PathUtf8(it->filename()), it->lexically_normal()});
+      }
+      candidate->folders.at(parent).items.push_back(slot);
+    }
+    for (auto &[path, folder] : candidate->folders)
+      std::ranges::sort(folder.children, {}, &Breadcrumb::label);
+    directory_index_ = std::move(candidate);
+    return directory_index_.get();
+  } catch (const std::bad_alloc &) {
+    // Never publish a partial index. Cache the fallback decision until source/order publication.
+    return nullptr;
+  }
+}
+
+void ContentPathSortTestAccess::FailAfterKeys(std::size_t count) noexcept {
+  fail_sort_after = count;
+}
+bool ContentPathSortTestAccess::LastSortAccelerated() noexcept { return last_sort_accelerated; }
+
 ContentBrowserModel::ContentBrowserModel(std::uint64_t project_generation)
     : generation_(project_generation) {
   SetFolder("Content");
@@ -96,8 +237,10 @@ bool ContentBrowserModel::Reset(std::span<const ContentItem> items,
         !ids.insert(item.id).second || !paths.insert(PathUtf8(item.path)).second)
       return false;
   child_folders_.reset();
+  visible_indices_.reset();
+  InvalidateDirectoryIndex();
   items_.assign(items.begin(), items.end());
-  std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
+  SortItems(items_);
   selection_.clear();
   undo_.clear();
   undo_selection_.clear();
@@ -124,11 +267,13 @@ bool ContentBrowserModel::Discover(ContentItem item) {
     if (!WithinMeshBudget(previous) || !WithinMaterialBudget(previous) ||
         !WithinTwoDBudget(previous))
       return false;
-    std::ranges::sort(previous, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
+    SortItems(previous);
     undo_ = std::move(previous);
   }
-  std::ranges::sort(next, {}, [](const ContentItem &value) { return PathUtf8(value.path); });
+  SortItems(next);
   child_folders_.reset();
+  visible_indices_.reset();
+  InvalidateDirectoryIndex();
   items_ = std::move(next);
   ++revision_;
   return true;
@@ -137,8 +282,10 @@ bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
   if (!SafeRelative(folder))
     return false;
   const auto normalized = folder.lexically_normal();
-  if (folder_ != normalized)
+  if (folder_ != normalized) {
     child_folders_.reset();
+    visible_indices_.reset();
+  }
   folder_ = normalized;
   breadcrumbs_.clear();
   std::filesystem::path current;
@@ -162,6 +309,8 @@ bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selection{id};
   if (folder_ != folder)
     child_folders_.reset();
+  if (folder_ != folder || !query_.empty() || !type_.empty())
+    visible_indices_.reset();
   folder_.swap(folder);
   breadcrumbs_.swap(breadcrumbs);
   selection_.swap(selection);
@@ -170,8 +319,12 @@ bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
   return true;
 }
 void ContentBrowserModel::SetFilter(std::string query, std::string type) {
-  query_ = Lower(query);
-  type_ = Lower(type);
+  auto next_query = Lower(query), next_type = Lower(type);
+  if (query_ != next_query || type_ != next_type) {
+    visible_indices_.reset();
+    query_.swap(next_query);
+    type_.swap(next_type);
+  }
 }
 bool ContentBrowserModel::MatchesVisible(const ContentItem &item) const {
   return item.path.parent_path() == folder_ &&
@@ -181,9 +334,10 @@ bool ContentBrowserModel::MatchesVisible(const ContentItem &item) const {
 }
 void ContentBrowserModel::SelectVisible() {
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selected;
-  for (const auto &item : items_)
-    if (MatchesVisible(item))
-      selected.insert(item.id);
+  const auto &indices = VisibleIndices();
+  selected.reserve(indices.size());
+  for (const auto index : indices)
+    selected.insert(items_[index].id);
   selection_ = std::move(selected);
 }
 bool ContentBrowserModel::SelectVisibleRange(runtime::AssetUuid first, runtime::AssetUuid last) {
@@ -201,34 +355,49 @@ bool ContentBrowserModel::SelectVisibleRange(runtime::AssetUuid first, runtime::
   selection_ = std::move(selected);
   return true;
 }
+const std::vector<std::size_t> &ContentBrowserModel::VisibleIndices() const {
+  if (!visible_indices_) {
+    std::vector<std::size_t> indices;
+    if (const auto *directory = DirectoryIndexView()) {
+      const auto folder = directory->folders.find(folder_);
+      if (folder != directory->folders.end())
+        for (const auto slot : folder->second.items)
+          if (MatchesVisible(items_[slot]))
+            indices.push_back(slot);
+    } else {
+      for (std::size_t index = 0; index < items_.size(); ++index)
+        if (MatchesVisible(items_[index]))
+          indices.push_back(index);
+    }
+    visible_indices_ = std::make_shared<const std::vector<std::size_t>>(std::move(indices));
+  }
+  return *visible_indices_;
+}
 std::vector<const ContentItem *> ContentBrowserModel::Visible(std::size_t offset,
                                                               std::size_t count) const {
   std::vector<const ContentItem *> matches;
-  for (const auto &item : items_) {
-    if (!MatchesVisible(item))
-      continue;
-    if (offset != 0) {
-      --offset;
-      continue;
-    }
-    if (matches.size() == count)
-      break;
-    matches.push_back(&item);
-  }
+  const auto &indices = VisibleIndices();
+  if (offset >= indices.size())
+    return matches;
+  count = std::min(count, indices.size() - offset);
+  matches.reserve(count);
+  for (std::size_t i = 0; i < count; ++i)
+    matches.push_back(&items_[indices[offset + i]]);
   return matches;
 }
-std::size_t ContentBrowserModel::VisibleCount() const {
-  std::size_t count = 0;
-  for (const auto &item : items_) {
-    if (MatchesVisible(item))
-      ++count;
-  }
-  return count;
-}
+std::size_t ContentBrowserModel::VisibleCount() const { return VisibleIndices().size(); }
 std::vector<Breadcrumb> ContentBrowserModel::ChildFolders() const { return *ChildFolderSnapshot(); }
 std::shared_ptr<const std::vector<Breadcrumb>> ContentBrowserModel::ChildFolderSnapshot() const {
   if (child_folders_)
     return child_folders_;
+  if (const auto *directory = DirectoryIndexView()) {
+    const auto folder = directory->folders.find(folder_);
+    // Retained public snapshots own just these children, not the whole project index.
+    child_folders_ = folder == directory->folders.end()
+                         ? std::make_shared<const std::vector<Breadcrumb>>()
+                         : std::make_shared<const std::vector<Breadcrumb>>(folder->second.children);
+    return child_folders_;
+  }
   std::vector<Breadcrumb> folders;
   std::unordered_set<std::string> seen;
   for (const auto &item : items_) {
@@ -290,8 +459,10 @@ bool ContentBrowserModel::Commit(std::vector<ContentItem> next, std::string *err
   undo_ = items_;
   undo_selection_ = selection_;
   child_folders_.reset();
+  visible_indices_.reset();
+  InvalidateDirectoryIndex();
   items_ = std::move(next);
-  std::ranges::sort(items_, {}, [](const ContentItem &item) { return PathUtf8(item.path); });
+  SortItems(items_);
   if (error)
     error->clear();
   return true;
@@ -366,6 +537,8 @@ bool ContentBrowserModel::Undo() {
     return false;
   ++revision_;
   child_folders_.reset();
+  visible_indices_.reset();
+  InvalidateDirectoryIndex();
   items_.swap(undo_);
   undo_.clear();
   selection_.swap(undo_selection_);

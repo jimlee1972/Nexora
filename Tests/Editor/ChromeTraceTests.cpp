@@ -2,8 +2,10 @@
 #include "Nexora/Editor/ChromeTrace.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 
@@ -488,6 +490,314 @@ void GlobalPairs() {
   reject(depth + ',' + Scope("B", 500, "Other") + "]");
 }
 
+void LegacyAsyncPairs() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto begin = Global("S", 100, 42, true);
+  const auto end = Global("F", 1350, 43);
+  const auto bytes = "[" + begin + ',' + Global("S", 200, 42, false, "2") + ',' +
+                     Global("F", 300, 44, true) + ',' + Event(400) + ',' +
+                     Global("F", 500, 45, true, "2") + "]";
+  const auto capture = ChromeTraceImporter::Import(bytes, selection);
+  Require(capture && ChromeTraceImporter::Validate(*capture) && capture->samples.size() == 3 &&
+              capture->samples[0].start_microseconds == 100 &&
+              capture->samples[0].duration_milliseconds == .2 &&
+              capture->samples[1].duration_milliseconds == .3 &&
+              capture->samples[2].duration_milliseconds == 1.2505,
+          "Legacy S/F lost cross-process ID aliases, independent completion or begin order");
+  const auto reject = [&](const std::string &source) {
+    const auto original = source;
+    std::string error = "stale";
+    Require(!ChromeTraceImporter::Import(source, selection, &error) && !error.empty() &&
+                error != "stale" && source == original &&
+                capture->samples[0].duration_milliseconds == .2,
+            "Invalid legacy trace lost input/prior capture preservation or diagnostics");
+  };
+  // Legacy S/F is not nestable; same typed ID can be live under different names.
+  auto names = ChromeTraceImporter::Import(
+      "[" + begin + ',' + Global("S", 200, 44, false, "1", "Other") + ',' + end + ',' +
+          Global("F", 1400, 45, true, "1", "Other") + "]",
+      selection);
+  Require(names && names->samples.size() == 1 && names->samples[0].duration_milliseconds == 1.25,
+          "Independent legacy event names collided or selected an end process/thread");
+  auto other_begin = ChromeTraceImporter::Import(
+      "[" + Global("S", 100, 43) + ',' + Global("F", 200) + ',' + Event(300) + "]", selection);
+  Require(other_begin && other_begin->samples.size() == 1 &&
+              other_begin->samples[0].start_microseconds == 300,
+          "Legacy selection used finish process rather than begin process");
+  auto mixed = ChromeTraceImporter::Import(
+      "[" + begin + ',' + Global("b", 200) + ',' + Async("S", 300) + ',' +
+          Scope("B", 400, "Frame") + ',' + Event(500) + ',' + Scope("E", 600) + ',' +
+          Global("e", 700, 43) + ',' + Async("F", 800, "1", 8) + ',' + end + "]",
+      selection);
+  Require(mixed && ChromeTraceImporter::Validate(*mixed) && mixed->samples.size() == 5 &&
+              mixed->samples[0].duration_milliseconds == 1.25 &&
+              mixed->samples[1].duration_milliseconds == .5 &&
+              mixed->samples[2].duration_milliseconds == .5 &&
+              mixed->samples[3].duration_milliseconds == .2 &&
+              mixed->samples[4].duration_milliseconds == 1.2505,
+          "Legacy, nestable, local and synchronous pairing domains interfered");
+  for (int lane = 0; lane < 3; ++lane) {
+    const auto id = lane == 0 ? "\"1\"" : "1";
+    const auto cat = lane == 1 ? "other" : "work";
+    const auto scope = lane == 2 ? "other" : "session";
+    const auto separated = ChromeTraceImporter::Import(
+        "[" + begin + ',' + Global("S", 200, 42, false, id, "Frame", cat, scope) + ',' + end + ',' +
+            Global("F", 1400, 44, true, id, "Frame", cat, scope) + "]",
+        selection);
+    Require(separated && separated->samples.size() == 2 &&
+                separated->samples[0].duration_milliseconds == 1.25 &&
+                separated->samples[1].duration_milliseconds == 1.2,
+            "Legacy numeric/string ID, category or scope namespaces collided");
+  }
+  const auto unicode =
+      ChromeTraceImporter::Import("[" + Global("S", 100, 42, true, "\"時間\\ud83d\\ude00\"") + ',' +
+                                      Global("F", 100, 43, false, "\"時間😀\"") + "]",
+                                  selection);
+  Require(unicode && unicode->samples[0].duration_milliseconds == 0,
+          "Legacy Unicode ID alias or zero duration rejected");
+  const auto fractional = ChromeTraceImporter::Import(
+      R"([{"ph":"S","name":"Frame","pid":42,"tid":7,"ts":100.25,"id":1},)"
+      R"({"ph":"F","name":"Frame","pid":43,"tid":9,"ts":1350.75,"id2":{"global":1}}])",
+      selection);
+  Require(fractional && fractional->samples[0].duration_milliseconds == 1.2505,
+          "Legacy fractional external timestamps lost precision");
+  const auto metadata = ChromeTraceImporter::Import(
+      "[" + begin + R"(,{"ph":"T","args":{"step":"opaque"}},{"ph":"p"},)" + end + "]", selection);
+  Require(metadata && metadata->samples.size() == 1 &&
+              metadata->samples[0].duration_milliseconds == 1.25,
+          "Legacy steps changed whole-interval duration or fabricated samples");
+  reject("[" + begin + "]");
+  reject("[" + end + ',' + begin + "]");
+  reject("[" + begin + ',' + Global("F", 99, 43) + "]");
+  reject("[" + begin + ',' + Global("S", 200, 43) + ',' + end + "]");
+  reject("[" + begin + ',' + Global("F", 200, 43, false, "2") + "]");
+  reject("[" + begin + ',' + Global("F", 200, 43, false, "1", "Other") + "]");
+  reject("[" + begin + ',' + Global("e", 200, 43) + "]");
+  reject("[" + Global("b", 100) + ',' + end + "]");
+  reject("[" + begin + ',' + Async("F", 200) + "]");
+  reject("[" + Event(1) + ',' + Global("S", 200, 43, true, "2", "Other") + "]");
+  for (const auto id : {"null", "true", "-1", "1.5", "9007199254740992", "\"\""})
+    reject("[" + Global("S", 100, 42, true, id) + ',' + end + "]");
+  const auto mutate = [&](std::string_view from, std::string_view to) {
+    auto source = "[" + begin + ',' + end + "]";
+    const auto at = source.find(from);
+    Require(at != std::string::npos, "Legacy mutation fixture missing");
+    source.replace(at, from.size(), to);
+    reject(source);
+  };
+  mutate("\"id\":1,", "");
+  mutate("\"id\":1", "\"id\":1,\"id2\":{\"global\":1}");
+  mutate("\"id\":1", "\"id2\":{\"global\":1,\"local\":1}");
+  mutate("\"cat\":\"work\"", "\"cat\":null");
+  mutate("\"scope\":\"session\"", "\"scope\":[]");
+  mutate("\"ts\":100", "\"ts\":100,\"dur\":1");
+  mutate("\"tid\":7,", "");
+  mutate("\"name\":\"Frame\",", "");
+  for (std::size_t n = 0; n < bytes.size(); ++n)
+    reject(bytes.substr(0, n));
+  auto local_other = Async("S", 100, "null");
+  local_other.replace(local_other.find("\"pid\":42"), 8, "\"pid\":43");
+  Require(ChromeTraceImporter::Import("[" + local_other + ',' + Event(200) + "]", selection)
+              .has_value(),
+          "Unrelated process-local legacy metadata interfered with selection");
+  auto reused = ChromeTraceImporter::Import(
+      "[" + begin + ',' + end + ',' + Global("S", 1400) + ',' + Global("F", 1500) + "]", selection);
+  Require(reused && reused->samples.size() == 2 && reused->samples[1].duration_milliseconds == .1,
+          "Completed legacy identity could not be reused");
+  std::string pending = "[" + begin;
+  for (std::uint64_t i = 1; i <= 605; ++i)
+    pending += ',' + Event(100 + i);
+  const auto ring =
+      ChromeTraceImporter::Import(pending + ',' + Global("F", 10000) + "]", selection);
+  Require(ring && ChromeTraceImporter::Validate(*ring) && ring->older_samples_dropped == 6 &&
+              ring->samples.front().sequence == 7 && ring->samples.back().sequence == 606,
+          "Legacy pending-begin eviction lost retention or sequence accounting");
+  for (const auto &sample : ring->samples)
+    Require(sample.duration_milliseconds == 1.2505,
+            "Evicted legacy finish overwrote a newer sample slot");
+  std::string depth = "[";
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    depth += (i ? "," : "") + Global("S", i, 42, true, std::to_string(i));
+  auto exact = depth;
+  for (std::size_t i = 0; i < ChromeTraceImporter::kMaximumOpenScopes; ++i)
+    exact += ',' + Global("F", 1000 + i, 43, false, std::to_string(i));
+  const auto full = ChromeTraceImporter::Import(exact + "]", selection);
+  Require(full && full->samples.size() == 128, "Exact legacy open-scope capacity rejected");
+  // Balance every overflow candidate so rejection cannot be explained by missing ends.
+  const auto finishes = exact.substr(depth.size());
+  reject(depth + ',' + Global("S", 500, 42, true, "999") + ',' +
+         Global("F", 900, 43, false, "999") + finishes + "]");
+  reject(depth + ',' + Global("b", 500, 42, true, "999") + ',' +
+         Global("e", 900, 43, false, "999") + finishes + "]");
+  reject(depth + ',' + Scope("B", 500, "Other") + ',' + Scope("E", 900) + finishes + "]");
+}
+
+std::string CompleteEvent(std::string_view start, std::string_view duration,
+                          std::string_view name = "Frame", unsigned thread = 7,
+                          unsigned process = 42) {
+  return "{\"ph\":\"X\",\"name\":\"" + std::string(name) + "\",\"pid\":" + std::to_string(process) +
+         ",\"tid\":" + std::to_string(thread) + ",\"ts\":" + std::string(start) +
+         ",\"dur\":" + std::string(duration) + "}";
+}
+void SelfElapsed() {
+  const ChromeTraceSelection selection{42, 7, "Frame"};
+  const auto parse = [&](const std::string &source) {
+    const auto original = source;
+    auto result = ChromeTraceImporter::Import(source, selection);
+    Require(result && ChromeTraceImporter::Validate(*result) && source == original,
+            "Self analysis rejected a valid inclusive trace or violated capture bounds");
+    return *result;
+  };
+  const auto equal = [](const std::optional<double> &value, double expected) {
+    return value && std::abs(*value - expected) < 1e-12;
+  };
+  const auto single =
+      parse("[" + CompleteEvent("100", "1000") + ',' + CompleteEvent("200", "200", "Other") + ',' +
+            CompleteEvent("500", "100", "Other") + "]");
+  Require(single.samples.size() == 1 && single.samples[0].duration_milliseconds == 1 &&
+              equal(single.samples[0].self_duration_milliseconds, .7),
+          "Unselected synchronous children did not reduce parent self elapsed time");
+  const auto mixed = parse("[" + Scope("B", 0, "Frame") + ',' + Scope("B", 100, "Other") + ',' +
+                           CompleteEvent("150", "50", "Other") + ',' + Scope("E", 300) + ',' +
+                           CompleteEvent("400", "100") + ',' + Scope("E", 1000) + "]");
+  Require(mixed.samples.size() == 2 && equal(mixed.samples[0].self_duration_milliseconds, .7) &&
+              equal(mixed.samples[1].self_duration_milliseconds, .1),
+          "Mixed B/E/X self time double-counted grandchildren or lost selected begin order");
+  const auto fractional = parse("[" + CompleteEvent("100.25", "1250.5") + ',' +
+                                CompleteEvent("100.5", "250.25", "Other") + "]");
+  Require(equal(fractional.samples[0].self_duration_milliseconds, 1.00025),
+          "Fractional external microseconds lost self-time precision");
+  const auto large = parse("[" + CompleteEvent("9007199254740000", "0.25") + ',' +
+                           CompleteEvent("9007199254740000", "0.125", "Other") + "]");
+  Require(equal(large.samples[0].self_duration_milliseconds, .000125) &&
+              large.samples[0].duration_milliseconds == .00025,
+          "Large absolute clocks rounded away raw relative durations");
+  const auto crossing_large = parse("[" + CompleteEvent("1000000000000000", "0.2") + ',' +
+                                    CompleteEvent("1000000000000000.125", "0.1", "Other") + "]");
+  Require(!crossing_large.samples[0].self_duration_milliseconds &&
+              crossing_large.samples[0].duration_milliseconds == .0002,
+          "Rounded absolute endpoints fabricated a contained child or changed inclusive latency");
+  const auto unordered =
+      parse("[" + CompleteEvent("200", "100", "Other") + ',' + CompleteEvent("100", "1000") + "]");
+  Require(equal(unordered.samples[0].self_duration_milliseconds, .9),
+          "Out-of-order nonselected context changed selected input acceptance or self time");
+  const auto threads =
+      parse("[" + CompleteEvent("100", "1000") + ',' + CompleteEvent("200", "100", "Other", 8) +
+            ',' + CompleteEvent("300", "100", "Other", 7, 43) + "]");
+  Require(equal(threads.samples[0].self_duration_milliseconds, 1),
+          "Unrelated process/thread intervals reduced selected-thread self time");
+  const auto coincident =
+      parse("[" + CompleteEvent("100", "100") + ',' + CompleteEvent("100", "100", "Other") + "]");
+  Require(!coincident.samples[0].self_duration_milliseconds &&
+              coincident.samples[0].duration_milliseconds == .1,
+          "Ambiguous coincident X intervals fabricated self time or lost inclusive duration");
+  for (bool selected_parent : {false, true}) {
+    const auto paired = parse("[" + Scope("B", 100, selected_parent ? "Frame" : "Other") + ',' +
+                              Scope("B", 100, selected_parent ? "Other" : "Frame") + ',' +
+                              Scope("E", 200) + ',' + Scope("E", 200) + "]");
+    Require(paired.samples.size() == 1 &&
+                equal(paired.samples[0].self_duration_milliseconds, selected_parent ? 0 : .1),
+            "Known coincident B/E hierarchy lost its original begin order");
+  }
+  const auto crossing =
+      parse("[" + CompleteEvent("0", "200") + ',' + CompleteEvent("50", "100", "Other") + ',' +
+            CompleteEvent("100", "100", "Other") + ',' + CompleteEvent("300", "50") + "]");
+  Require(crossing.samples.size() == 2 && !crossing.samples[0].self_duration_milliseconds &&
+              equal(crossing.samples[1].self_duration_milliseconds, .05),
+          "Crossing component fabricated self time or poisoned an independent valid component");
+  const auto async =
+      parse("[" + Scope("B", 0, "Frame") + ',' + Global("b", 100) + ',' +
+            Global("S", 300, 42, true) + ',' + CompleteEvent("400", "100", "Other") + ',' +
+            Global("e", 900, 43) + ',' + Global("F", 950, 43) + ',' + Scope("E", 1000) + "]");
+  Require(async.samples.size() == 3 && equal(async.samples[0].self_duration_milliseconds, .9) &&
+              !async.samples[1].self_duration_milliseconds &&
+              !async.samples[2].self_duration_milliseconds,
+          "Async intervals claimed self time or interfered with synchronous child accounting");
+  const auto zero = parse("[" + CompleteEvent("0", "0") + ',' + CompleteEvent("0", "0") + "]");
+  Require(equal(zero.samples[0].self_duration_milliseconds, 0) &&
+              equal(zero.samples[1].self_duration_milliseconds, 0),
+          "Valid zero-duration intervals lost available zero self time");
+  // Independent tick-coverage oracle: subtract the union of all contained intervals, not a
+  // reconstruction stack or sum of every descendant. All times are integral microseconds.
+  const std::array spans{std::pair{0, 100},   std::pair{10, 80},   std::pair{20, 30},
+                         std::pair{40, 50},   std::pair{60, 70},   std::pair{90, 100},
+                         std::pair{200, 250}, std::pair{210, 230}, std::pair{220, 220},
+                         std::pair{230, 240}};
+  const auto check_coverage = [&](const auto &intervals) {
+    std::string source = "[";
+    for (const auto &[begin, end] : intervals) {
+      if (source.size() > 1)
+        source += ',';
+      source += CompleteEvent(std::to_string(begin), std::to_string(end - begin));
+    }
+    const auto oracle = parse(source + "]");
+    Require(oracle.samples.size() == intervals.size(), "Coverage oracle lost selected intervals");
+    for (std::size_t i = 0; i < intervals.size(); ++i) {
+      const auto [begin, end] = intervals[i];
+      unsigned uncovered{};
+      for (int tick = begin; tick < end; ++tick) {
+        bool covered = false;
+        for (std::size_t j = 0; j < intervals.size(); ++j)
+          if (j != i && intervals[j].first >= begin && intervals[j].second <= end &&
+              tick >= intervals[j].first && tick < intervals[j].second)
+            covered = true;
+        uncovered += !covered;
+      }
+      Require(equal(oracle.samples[i].self_duration_milliseconds, uncovered / 1000.0),
+              "Self elapsed disagrees with independent integer tick-union coverage");
+    }
+  };
+  check_coverage(spans);
+  for (std::uint32_t seed = 1; seed <= 40; ++seed) {
+    std::vector<std::pair<int, int>> generated;
+    auto state = seed;
+    const auto add = [&](auto &&recurse, int begin, int end, unsigned depth) -> void {
+      generated.emplace_back(begin, end);
+      if (!depth || end - begin < 6)
+        return;
+      state = state * 1664525U + 1013904223U;
+      const auto children = (state >> 16) & 3U;
+      const auto middle = begin + (end - begin) / 2;
+      if (children & 1)
+        recurse(recurse, begin + 1, middle - 1, depth - 1);
+      if (children & 2)
+        recurse(recurse, middle + 1, end - 1, depth - 1);
+    };
+    add(add, 0, 128, 5);
+    check_coverage(generated);
+  }
+  std::string deep = "[";
+  for (unsigned i = 0; i < 4096; ++i)
+    deep += (i ? "," : "") + CompleteEvent(std::to_string(i), std::to_string(8192 - 2 * i));
+  const auto deep_capture = parse(deep + "]");
+  Require(deep_capture.older_samples_dropped == 3496 && deep_capture.samples.size() == 600,
+          "Deep synchronous context changed newest600 retention");
+  for (const auto &sample : deep_capture.samples)
+    Require(equal(sample.self_duration_milliseconds, .002),
+            "Iterative deep self-time reconstruction lost nested coverage");
+  // Equal starts reverse context order relative to retention order. The evicted innermost
+  // interval has100us self time; it must not overwrite retained sequence601's3us ring slot.
+  std::string eviction = "[";
+  for (unsigned i = 0; i < 606; ++i)
+    eviction += (i ? "," : "") + CompleteEvent("0", std::to_string(100 + 3 * i));
+  const auto retained = parse(eviction + "]");
+  Require(retained.older_samples_dropped == 6 && retained.samples.front().sequence == 7 &&
+              retained.samples.back().sequence == 606,
+          "Self-time context sorting changed sample sequence/loss order");
+  for (const auto &sample : retained.samples)
+    Require(equal(sample.self_duration_milliseconds, .003),
+            "Evicted sorted context overwrote a newer ring occupant's self time");
+  for (const auto invalid : {-1., 1.01, std::numeric_limits<double>::infinity(),
+                             std::numeric_limits<double>::quiet_NaN()}) {
+    auto copy = single;
+    copy.samples[0].self_duration_milliseconds = invalid;
+    Require(!ChromeTraceImporter::Validate(copy), "Invalid optional self time admitted");
+  }
+  auto unavailable = single;
+  unavailable.samples[0].self_duration_milliseconds.reset();
+  Require(ChromeTraceImporter::Validate(unavailable), "Unavailable self time rejected");
+}
+
 void ProjectIo() {
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-chrome-io-" +
@@ -521,13 +831,14 @@ void ProjectIo() {
   auto paired_capture = observer.ImportChromeTraceJson(selection, &error);
   Require(paired_capture && ChromeTraceImporter::Validate(*paired_capture) && error.empty() &&
               paired_capture->samples.front().duration_milliseconds == 1.25 &&
+              paired_capture->samples.front().self_duration_milliseconds == 1.25 &&
               read() == paired_bytes,
           "Read-only project duration import altered bytes or lost external duration");
   const auto async_bytes = "[" + Async("b", 100) + ',' + Async("e", 1350, "1", 8) + "]";
   write(async_bytes);
   auto async_capture = observer.ImportChromeTraceJson(selection, &error);
   Require(async_capture && async_capture->samples.front().duration_milliseconds == 1.25 &&
-              read() == async_bytes,
+              !async_capture->samples.front().self_duration_milliseconds && read() == async_bytes,
           "Read-only cross-thread async import changed source or duration");
   const auto global_bytes = "[" + Global("b", 100, 42, true) + ',' + Global("e", 1350, 43) + "]";
   write(global_bytes);
@@ -535,6 +846,16 @@ void ProjectIo() {
   Require(global_capture && global_capture->samples.front().duration_milliseconds == 1.25 &&
               read() == global_bytes,
           "Read-only cross-process global import changed source or duration");
+  const auto legacy_bytes = "[" + Global("S", 100, 42, true) + ',' + Global("F", 1350, 43) + "]";
+  write(legacy_bytes);
+  auto legacy_capture = observer.ImportChromeTraceJson(selection, &error);
+  Require(legacy_capture && legacy_capture->samples.front().duration_milliseconds == 1.25 &&
+              read() == legacy_bytes,
+          "Read-only legacy async import changed source or duration");
+  write("[" + Global("S", 100) + "]");
+  Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
+              legacy_capture->samples.front().duration_milliseconds == 1.25,
+          "Unclosed legacy project import erased prior owning capture");
   write("[" + Scope("B", 100, "Frame") + "]");
   Require(!observer.ImportChromeTraceJson(selection, &error) && !error.empty() &&
               paired_capture->samples.front().duration_milliseconds == 1.25,
@@ -594,6 +915,8 @@ int main() {
     DurationPairs();
     AsyncPairs();
     GlobalPairs();
+    LegacyAsyncPairs();
+    SelfElapsed();
     ProjectIo();
     return 0;
   } catch (const std::exception &error) {

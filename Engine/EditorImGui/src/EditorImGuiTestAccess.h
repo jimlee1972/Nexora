@@ -103,6 +103,10 @@ public:
   InspectorOpaqueInfo(const EditorImGuiHost &host);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ReflectedPropertyPosition(const EditorImGuiHost &host, std::string_view path);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ReflectedArrayControlPosition(const EditorImGuiHost &, runtime::TypeId, std::string_view path,
+                                std::string_view action,
+                                std::optional<std::size_t> element = {}) noexcept;
   [[nodiscard]] static std::optional<bool> ReflectedPropertyMixed(const EditorImGuiHost &host,
                                                                   std::string_view path);
   [[nodiscard]] static std::optional<std::array<float, 2>>
@@ -183,6 +187,9 @@ public:
   ChromeTraceControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
   [[nodiscard]] static const ChromeTraceCapture *
   ImportedChromeTrace(const EditorImGuiHost &) noexcept;
+  // Capture actual ImGui text within one BeginFrame/EndFrame without clipboard or file IO.
+  static void BeginTextCapture(EditorImGuiHost &);
+  [[nodiscard]] static std::string EndTextCapture(EditorImGuiHost &);
   static void FocusConsole(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ConsoleControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
@@ -359,6 +366,19 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabRebaseChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option) noexcept;
   [[nodiscard]] static std::string BuildOutput(const EditorImGuiHost &host);
+  // Deterministic byte formatting also covers names a host filesystem cannot represent.
+  [[nodiscard]] static std::string GitPathDisplay(std::string_view bytes);
+  // Source control controls: trusted Git input, explicit Refresh, Cancel.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GitControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static std::size_t GitRenderedRows(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GitDiffControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>> GitRowPosition(const EditorImGuiHost &,
+                                                                          std::size_t) noexcept;
+  [[nodiscard]] static std::size_t GitDiffRenderedLines(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::size_t GitDiffLineCount(const EditorImGuiHost &) noexcept;
+  static void FailNextGitDiffDisplay(EditorImGuiHost &) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,

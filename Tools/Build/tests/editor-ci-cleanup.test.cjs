@@ -179,3 +179,34 @@ test('graphics branch advancement prevents obsolete-head cancellation', async ()
   await cleanup(f);
   assert.deepEqual(f.cancelled, []);
 });
+
+test('thumbnail cleanup owns only obsolete runs of its exact branch for push and PR', async () => {
+  const thumbnail = 'feat/async-mesh-thumbnail-jobs';
+  for (const isPull of [false, true]) {
+    const f = fixture({current: isPull ? 'pull/667/merge' : thumbnail, target: thumbnail,
+      actorRuns: true, pull: isPull ? {head: {ref: thumbnail,
+        repo: {full_name: 'owner/Nexora'}}} : undefined});
+    await cleanup(f);
+    assert.deepEqual(f.cancelled, [1, 2]);
+    assert(f.calls.every(([, args]) => !args.ref || args.ref === `heads/${thumbnail}`));
+    assert(f.calls.every(([, args]) => !args.branch || args.branch === thumbnail));
+  }
+});
+test('thumbnail cleanup excludes foreign actors, forks and similar branch names', async () => {
+  const thumbnail = 'feat/async-mesh-thumbnail-jobs';
+  for (const f of [fixture({current: thumbnail, actor: 'contributor'}),
+    fixture({current: thumbnail, actor: null}),
+    fixture({pull: {head: {ref: thumbnail, repo: {full_name: 'foreign/Nexora'}}}}),
+    fixture({current: `${thumbnail}-other`})]) {
+    await cleanup(f);
+    assert.deepEqual(f.calls, []);
+  }
+});
+test('thumbnail cleanup rechecks advancement before each cancellation', async () => {
+  const thumbnail = 'feat/async-mesh-thumbnail-jobs';
+  for (const advanceAfter of [1, 2]) {
+    const f = fixture({current: thumbnail, target: thumbnail, advanceAfter});
+    await cleanup(f);
+    assert.deepEqual(f.cancelled, advanceAfter === 1 ? [] : [1]);
+  }
+});

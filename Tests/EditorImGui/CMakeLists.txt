@@ -4,6 +4,39 @@ target_link_libraries(NexoraPluginManagerUiTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPluginManagerUiTests)
 add_test(NAME editor.plugin_manager_ui COMMAND NexoraPluginManagerUiTests)
 
+add_executable(NexoraGitStatusUiTests GitStatusUiTests.cpp)
+target_include_directories(NexoraGitStatusUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraGitStatusUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraGitStatusUiTests)
+if(MINGW)
+  target_link_options(NexoraGitStatusUiTests PRIVATE -municode)
+endif()
+find_package(Git QUIET)
+foreach(nexora_git_ui_scale RANGE 1 2)
+  if(GIT_FOUND)
+    add_test(NAME editor.git_status_ui_${nexora_git_ui_scale}x
+      COMMAND NexoraGitStatusUiTests "${GIT_EXECUTABLE}" "$<TARGET_FILE:NexoraGitStatusProcessFixture>"
+        "${nexora_git_ui_scale}")
+  else()
+    add_test(NAME editor.git_status_ui_${nexora_git_ui_scale}x
+      COMMAND "${CMAKE_COMMAND}" -E echo "SKIP: actual Git unavailable; status UI acceptance not run")
+    set_tests_properties(editor.git_status_ui_${nexora_git_ui_scale}x PROPERTIES
+      SKIP_REGULAR_EXPRESSION "SKIP: actual Git unavailable")
+  endif()
+  set_tests_properties(editor.git_status_ui_${nexora_git_ui_scale}x PROPERTIES TIMEOUT 180)
+  if(GIT_FOUND)
+    add_test(NAME editor.git_diff_ui_${nexora_git_ui_scale}x
+      COMMAND NexoraGitStatusUiTests "${GIT_EXECUTABLE}" "$<TARGET_FILE:NexoraGitStatusProcessFixture>"
+        "${nexora_git_ui_scale}" --diff)
+  else()
+    add_test(NAME editor.git_diff_ui_${nexora_git_ui_scale}x
+      COMMAND "${CMAKE_COMMAND}" -E echo "SKIP: actual Git unavailable; diff UI acceptance not run")
+    set_tests_properties(editor.git_diff_ui_${nexora_git_ui_scale}x PROPERTIES
+      SKIP_REGULAR_EXPRESSION "SKIP: actual Git unavailable")
+  endif()
+  set_tests_properties(editor.git_diff_ui_${nexora_git_ui_scale}x PROPERTIES TIMEOUT 180)
+endforeach()
+
 add_executable(NexoraDiagnosticPrivacyTests DiagnosticPrivacyTests.cpp)
 target_include_directories(NexoraDiagnosticPrivacyTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraDiagnosticPrivacyTests PRIVATE Nexora::EditorImGui)
@@ -333,6 +366,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
   set_tests_properties(editor.linux_reflected_inspector PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_reflected_arrays
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxReflectedArrays.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraReflectedInspectorTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_reflected_arrays PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
   if(NEXORA_CRYPTOGRAPHY_OPENSSL_AVAILABLE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_test(NAME editor.linux_plugin_manager
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPluginManager.py"
@@ -690,9 +728,10 @@ add_test(NAME editor.game_input_bindings COMMAND NexoraGameInputBindingsTests)
 
 add_executable(NexoraHierarchyNavigationTests HierarchyNavigationTests.cpp)
 target_include_directories(NexoraHierarchyNavigationTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraHierarchyNavigationTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraHierarchyNavigationTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraHierarchyNavigationTests)
 add_test(NAME editor.hierarchy_keyboard_navigation COMMAND NexoraHierarchyNavigationTests)
+add_test(NAME editor.hierarchy_hidden_requests COMMAND NexoraHierarchyNavigationTests --hidden)
 
 add_executable(NexoraMaterialInspectorTests MaterialInspectorTests.cpp)
 target_include_directories(NexoraMaterialInspectorTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
@@ -756,6 +795,13 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --selected)
   set_tests_properties(editor.linux_prefab_placement_selected_revert PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
 endif()
+add_executable(NexoraReflectedArrayUiTests ReflectedArrayUiTests.cpp)
+target_include_directories(NexoraReflectedArrayUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraReflectedArrayUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraReflectedArrayUiTests)
+add_test(NAME editor.reflected_array_ui COMMAND NexoraReflectedArrayUiTests)
+set_tests_properties(editor.reflected_array_ui PROPERTIES TIMEOUT 120)
+
 add_executable(NexoraReflectedInspectorUiTests ReflectedInspectorTests.cpp)
 target_include_directories(NexoraReflectedInspectorUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraReflectedInspectorUiTests PRIVATE Nexora::EditorImGui)
@@ -833,3 +879,22 @@ target_include_directories(NexoraContentDependencyTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraContentDependencyTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraContentDependencyTests)
 add_test(NAME editor.content_dependency_reveal COMMAND NexoraContentDependencyTests)
+
+add_executable(NexoraAuthoringReopenTests AuthoringReopenTests.cpp)
+target_include_directories(NexoraAuthoringReopenTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraAuthoringReopenTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraAuthoringReopenTests)
+if(MINGW)
+  target_link_options(NexoraAuthoringReopenTests PRIVATE -municode)
+endif()
+foreach(nexora_authoring_scale RANGE 1 2)
+  add_test(NAME editor.authoring_reopen_ui_${nexora_authoring_scale}x
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AuthoringReopen.py"
+      "$<TARGET_FILE:NexoraAuthoringReopenTests>" "${nexora_authoring_scale}")
+  set_tests_properties(editor.authoring_reopen_ui_${nexora_authoring_scale}x PROPERTIES TIMEOUT 150)
+  add_test(NAME editor.authoring_mixed_replay_1000_${nexora_authoring_scale}x
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AuthoringReplay.py"
+      "$<TARGET_FILE:NexoraAuthoringReopenTests>" "${nexora_authoring_scale}")
+  set_tests_properties(editor.authoring_mixed_replay_1000_${nexora_authoring_scale}x PROPERTIES
+    TIMEOUT 300 RUN_SERIAL TRUE)
+endforeach()

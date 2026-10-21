@@ -37,12 +37,19 @@ and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux
 ## External Chrome duration inspection
 
 The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
-scopes and nestable async `b/e` alongside `X` complete events through the selected project file.
+scopes, nestable async `b/e` and non-nestable legacy `S/F` alongside `X` complete events
+through the selected project file.
 Async selection uses the begin process/thread/name. Process-local `id2.local` permits
 cross-thread ends; global `id`/`id2.global` share one namespace and permit cross-process ends.
-Typed IDs, category and scope participate in bounded pairing. Legacy `S/F` remains unsupported. The host retains the same owning static interval view, external clock/unit labels, process/begin-thread/event selection,
+Typed IDs, category and scope participate in bounded pairing. Legacy intervals additionally pair
+by name in a separate domain, rejecting duplicate live starts; T/p steps remain metadata.
+The host retains the same owning static interval view, external clock/unit labels,
+process/begin-thread/event selection,
 read-only admission and scope revocation. Nested intervals are displayed by start order;
-duration is inclusive elapsed time. No CPU/GPU/memory source or exclusive/self time is inferred.
+duration is inclusive elapsed time. Rows also show optional self elapsed time excluding observed
+synchronous children, with explicit unavailable for async/ambiguous intervals and available zero
+for measured zero. A label explains the external elapsed scope; CPU execution, GPU and memory
+remain unmeasured. Context sorting and original B/E order define availability in the Core contract.
 Malformed/unbalanced scopes leave the prior static view and live profile intact. The Core
 contract documents pairing, chronological and capacity requirements.
 
@@ -217,8 +224,9 @@ Clear retained events. Initial/project UUID/nil-scope changes revoke consent and
 no project disables opt-in. Opt-out releases retained records immediately and re-enable starts empty.
 Clear forgets records while preserving an existing opt-in. The application emits only the fixed
 `frame.presented` label at bounded cadence, after successfully presented frames. No paths, source,
-commands, user/project names or credentials enter that production queue. The generic Core primitive
-still accepts caller-owned event text; this panel displays only exact allowlisted labels and counts
+commands, user/project names or credentials enter that production queue. The owning Editor primitive
+now admits only fixed event codes; the legacy string entry point rejects every nonmatching label
+before retention. This panel additionally displays only exact allowlisted labels and counts
 excluded records without rendering, logging, tooltip or snapshot exposure of their contents. It
 submits at most 128 safe rows while reporting the bounded queue/excluded counts. Consent and the
 panel are not serialized in project/layout data; no persistence or network adapter is installed.
@@ -1124,6 +1132,15 @@ state. Every use rechecks visible membership, including externally changed filte
 State retains owning UUIDs and scope values; no ContentItem borrow crosses frames. Rename and
 Delete continue to act on the resulting owning selection.
 
+The existing asset clipper's Count and range queries now share the model's lazy immutable
+visibility indices. An unchanged folder/query/type and asset path set avoids repeated full scans
+and filename/type folding on each frame/range. Queries still resolve current model-owned items,
+so artifact updates remain visible and copied models retain no foreign item pointers. Path/item
+publication, Undo and actual view changes invalidate the projection; view selection and artifact-only
+publication do not. Keyboard ranges, counts, ordering, drag payloads, selection and source/history
+rules are unchanged. Cold projection, activation/other lookups and complete frame/memory/GPU budgets
+remain separate; this is not constant-time acceptance for the entire Content panel.
+
 Content folder rows contain only immediate children derived from indexed descendants of the
 current folder; unrelated assets do not manufacture parent rows. Breadcrumbs and Alt+Up retain
 explicit parent navigation. Folder rows use a separate fixed-height ImGui clipper before asset
@@ -1281,8 +1298,40 @@ Flags checkbox clicks submit a bit operation, preserving each selected entity's 
 Reload property metadata emits a one-shot request; the native application performs the bounded read
 after the UI frame and replaces the catalog. Project detachment clears interpretation. GUI code owns
 no native plugin objects and performs no metadata writes or native code loading. Fixed arrays and
-flattened nested paths are supported; dynamic arrays/native restoration remain open. Test-only control
+flattened nested paths are supported; version-two counted arrays use the controls below. Native
+plugin object restoration remains separate work. Test-only control
 observations are private to test builds and expose no ImGui type across the public module boundary.
+
+## Counted reflected-array controls
+
+The Inspector consumes the owning version-two counted-tail contract from Editor Core. Each array
+shows its current length or mixed minimum/maximum, with explicit Add and Clear buttons. Common
+editable element rows expose Insert, Remove, Up and Down on a separate control line, keeping the
+clipper's row extent fixed. Multiple tails retain their own source-dependent offsets. No retained
+index, native vector address, callback or document pointer is added to UI state; private test
+geometry owns only type/path/action labels and frame positions.
+
+Add appends to each selected target's own length. Insert/Remove/reorder apply the same valid common
+index to all targets, with boundary/capacity controls disabled for the whole batch. A capacity
+hover hint explains why Add is unavailable. Defaults are false/zero/empty references and vectors,
+black with alpha1 for color, or the first declared enum value; no invalid enum zero is fabricated.
+Every action rechecks the complete current observation and the existing writer/Play/recovery/modal
+policy through one Core authoring transaction. Failure preserves source/history and displays a
+rejection. Structural actions revoke active property drafts; typing still commits only on Enter.
+
+Actual pointer/key/text-event tests at1x/2x cover all structural buttons, mixed counts/values,
+whole-batch keyboard Undo/Redo, denied capacity/indices, partial candidate allocation, Escape/invalid
+values, metadata replacement and read-only controls. Explicit Ctrl+S goes through the scoped native
+owner's SceneFileSession; a fresh World, file session and UI reopen the exact saved unknown/prefix/
+multiple-tail bytes. Typed Add defaults are exercised through real widgets for every supported
+kind. A separate `editor.linux_reflected_arrays` workflow drives actual native buttons and numeric
+input through X11, observes hovered/held/released button presentations and the numeric caret/draft
+before Return, and verifies exact saved array and
+unavailable-component bytes through Undo/Redo and fresh writable/read-only process reopen. Its
+fixture seeds version-two opaque bytes only before launch; every edit uses Window input. It is
+registered under the existing Linux/Xvfb/xdotool graphical condition with a 120-second test bound.
+Software-display execution does not certify physical GPU/DPI/IME, glyph or screen-reader quality.
+Core remains the authoritative versioned wire/ownership/budget contract.
 
 ## Persistent prefab instance source inspection
 
@@ -1445,3 +1494,134 @@ between acquired frames. An empty overlay preserves ordinary native ImGui render
 Editor uses this for bounded 2D Game View sprites/HUD; it does not submit a second RenderUi packet
 or claim instancing for arbitrary Editor triangles. Public C++ consumers rebuild; no C/Zig ABI
 or serialized format changes.
+
+
+## Explicit project-scoped Git status view
+
+Settings → Source control (`Ctrl+Alt+G`) opens a local status observation. The user supplies an
+absolute trusted Git executable and explicitly presses Refresh; project/window opening never
+executes Git. This uses the selected Git installation, inherited environment and repository
+configuration under the cooperating-local-process contract of `GitStatusProvider`. No executable
+choice or credentials are persisted. The view does not fetch, stage, commit, checkout or merge.
+
+`DrawGitStatus` borrows its provider and canonical project root only during the serialized UI
+frame. The caller gives every project lifetime a fresh nonzero scope. Polling continues while
+hidden; loss of permission/focus, Play/modal transitions and scope replacement cancel pending
+work. Scope/root changes clear old executable text, active/deactivated text buffers and local
+errors before another project can use them. The native owner tracks project UUID/root transitions,
+handles identity exhaustion explicitly and shuts down the provider before draining shared jobs.
+The JobSystem and Editor/Core libraries outlive all providers and retained SDK objects. This is
+an additive C++ UI entry point; consumers rebuild. No document format, C ABI or module dependency
+changes.
+
+The view retains no cross-frame capture borrow. A complete immutable capture is obtained for the
+current scope/root each frame, with clipped rows and both index/working-tree status lanes. Valid
+UTF-8 stays readable; control characters, backslashes and invalid filename bytes are escaped for
+single-line display without changing owning path identities. Failed/malformed/cancelled refreshes
+retain and label the last complete snapshot, while absent tools/repositories never appear clean.
+Only validated empty output reports “Clean at last successful refresh.” Raw process diagnostics
+are not copied into UI/log output. Display-allocation failure leaves the capture intact. Read-only
+projects may inspect status without modifying authoring files or the Git index.
+
+`editor.git_status_ui_1x` and `_2x` drive actual product widgets with pointer/keyboard/text events
+and actual Git in disposable Unicode-path repositories. Negative native process fixtures cover
+malformed results, cancellation, stale scope and shutdown; an allocation fault covers rejected
+capture publication. The tests check clean/changed/renamed/Unicode filenames, POSIX controls, Linux raw names, source/index preservation,
+read-only inspection, clipped complete data and clearing an active executable draft on project
+replacement. These are headless widget tests, not physical DPI/IME/display acceptance. Nested
+repository discovery, graphical merge and full source-control acceptance remain open.
+
+### Selected-path Git output
+
+The `DrawGitStatus(status, diff, scope, root, allowed)` overload adds explicit working-tree/staged
+queries for a selected tracked UTF-8 path or rename pair. The original status-only overload remains
+available. Opening the window, entering a tool path or selecting a row performs no diff query.
+Read-only projects can inspect; the caller authorizes execution independently of authoring access.
+Repository configuration/environment and other configured helpers (such as attribute clean filters)
+remain trusted under the SDK contract. The view provides inspection and no patch-application action.
+
+Both provider references are frame-only. Selection owns its exact immutable status capture and
+ordinal; interactive row IDs include the capture's full operation generation, so releasing a held
+press after status replacement cannot select the replacement row. Pending publication requires the
+same capture, exact selected paths, project scope/root, target and diff operation. Selection,
+status-generation, tool or root changes revoke old output. Focus/Play/modal/recovery permission
+loss cancels and revokes pending UI publication; hidden views still poll/drain. The native owner
+shuts down both providers before draining shared jobs. Retained SDK objects must be released before
+Editor/Core library unload; snapshots grant no lifetime lease or authoring authority.
+
+The UI owns one last-good raw capture, escaped text and line offsets. It stages a complete new
+display before moving all owning storage into place. Logical storage is bounded by the SDK's
+256 KiB raw output, at most four times that many escaped text bytes and at most 262145 u32 line
+starts; vector/string capacity and allocator overhead are additional. Old and candidate storage
+can coexist during staging. Escape controls, NUL, backslashes and invalid UTF-8 before rendering;
+preserve newlines as explicit line boundaries. Cache construction runs once per accepted result;
+vertical clipping renders visible complete lines, and horizontal scrolling supports long lines.
+
+Failures/overflow/cancellation retain the previous complete result only within the same selection
+context. Its original paths and staged/working-tree target remain labeled, including when a newer
+different target failed. A separate display-allocation failure also preserves the old view. A
+successful empty query is labeled as that exact request's result, not repository cleanliness.
+Captured Git output includes possible warnings and binary/conflict notices; it is not a parsed
+patch, atomic filesystem snapshot or semantic-merge candidate. No raw output/tool choice is saved
+or forwarded to Console/telemetry. New C++ exports require consumer rebuilds; formats, module
+dependencies and stable C ABI remain unchanged.
+
+Actual `editor.git_diff_ui_1x`/`_2x` controls cover staged/working output, rename labels containing
+format/ID characters, raw/NUL and maximum output, complete clipped 1000-line data, backend/display
+allocation failure, cancellation, focus/permission/scope changes, read-only inspection and teardown
+with unchanged index/source bytes. A held-press regression fails against the actual prior GUI
+library and passes with generation-qualified IDs. The corrected complete Linux gate passes
+306 registered/294 actual passes/12 environment skips with zero failures; exact-head hosted gates still apply before merge. These widget results do not
+establish physical DPI/IME/display or complete source-control acceptance.
+
+## Hierarchy request projection work
+
+Hierarchy request processing stages a full node observation only for expansion pruning, queued
+selection, sibling reordering or hidden-window row statistics. A complete row/key projection is
+built for queued range selection and hidden counts. A visible Hierarchy takes its own fresh
+observation after authoring buttons, so ordinary visible frames avoid the duplicate request pass.
+Expansion pruning still validates every generation against the current World/document. All node,
+name and row borrows remain frame-local; the optimization introduces no retained scene cache.
+
+Hidden windows still apply queued selection/reparent operations and publish complete current row
+counts without emitting row widgets. The hidden-window regression covers 1x/2x, Undo, stale reload
+requests, document removal and visible recovery; existing keyboard, expansion, storage and 100k
+assertions and deadlines stay intact. Production performance and CI timing variance remain separate
+acceptance goals.
+
+## Cloud authoring and process reopen verification
+
+`editor.authoring_reopen_ui_1x` and `editor.authoring_reopen_ui_2x` run the real ImGui product
+shell with synthetic physical-pointer/keyboard events, then launch a separate read process with
+a fresh World, UI context and project writer lease. Hierarchy clicks/Ctrl multi-selection, mixed
+Inspector typing/Enter, keyboard Undo/Redo and Save requests use production widgets and authoring
+services. Fixture setup alone seeds via normal APIs; success interactions do not queue direct
+transform mutations. Keyboard chords include actual modifier key down/up events.
+
+Save goes through the same scoped `SceneFileSession` used by the native owner. Reopen verifies
+both transforms, unchanged nonedited lanes and exact unknown component identities/raw bytes.
+Cancelled text edits, read-only Delete/Save controls and service authority, stale file tokens and
+corrupt-file Open preserve source bytes and the last-good document. Unicode project paths use
+native wide entry on Windows. The existing
+`editor.selection_delete_transaction` independently replays 1,000 batch cycles; its implementation
+is reused rather than duplicated by this integration test.
+
+`editor.authoring_mixed_replay_1000_1x`/`_2x` add a distinct mixed authoring history regression.
+The first command uses actual multi-selection/Inspector typing; the remaining 999 use normal
+serialized `SceneDocument` authoring APIs to record a deterministic command log. There are 667
+Runtime transform and 333 opaque-metadata batch transactions, each covering both selected nodes.
+An independent value oracle checks every recorded state, all 1000 actual keyboard Undo operations
+and all 1000 Redo operations, including original negative scales and exact unknown component bytes.
+No-op history edges, the saved/unsaved distinction after Save, and fresh-process data/empty history
+are checked through actual controls and production `SceneFileSession` publication.
+
+These cases retain the existing generic counter/delete replay tests and the shorter authoring
+workflow without changing their budgets or deadlines. Dedicated replay processes are bounded to
+120 seconds each, and each new CTest case has a 300-second bound and runs serially to avoid CPU
+contention with performance gates. The full product gate passes 305 registered cases with 293
+actual passes, 12 environment skips and zero failures; all four frozen test/CMake source hashes
+remain unchanged. Both replay scales and the unchanged short workflows pass. This is headless widget/process coverage, not OS-window or physical-device acceptance.
+
+This is headless actual ImGui/control and process-lifetime coverage. It does not launch the
+NexoraEditor OS-window process or accept physical display/DPI/IME, glyph quality or screen-reader
+behavior. Those native/target-host gates and complete scene-authoring acceptance remain open.

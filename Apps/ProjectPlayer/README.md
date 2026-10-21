@@ -15,7 +15,9 @@ bit. Up to 64 inactive-component summaries identify entity/type/name and payload
 lossless hexadecimal so preserved non-UTF8 names cannot invalidate JSON. Unreported counts are
 explicit. These are diagnostic caps, not loading/validation limits: all bounded scene entities,
 bindings and opaque records are validated. Invalid arguments exit 2; invalid data/input exits 1.
-Failures do not print a success report.
+Failures do not print a complete success report. Verification explicitly flushes stdout and checks
+its stream state before returning 0; a failed report write returns 1 with a stderr diagnostic.
+Consumers must require both a successful exit and a complete valid report.
 The Windows console entry uses CRT `wmain` and native UTF-16 filesystem paths; POSIX `main`
 interprets path arguments as UTF-8. The test fixture writer uses the same platform path rules.
 MSVC/clang-cl support the wide console entry directly; MinGW uses its `-municode` link option,
@@ -33,6 +35,20 @@ See [the Runtime package contract](../../Engine/Runtime/ProjectPackage.md) for t
 resource collision policy and ownership. Linux cloud CLI acceptance covers real cooked artifacts,
 corruption/truncation/missing-file and alias failures; physical display and other platform runtime
 acceptance are separate.
+
+## Editor export CLI output and failure diagnostics
+
+The Editor fixture-to-player acceptance test retains escaped, bounded stdout and stderr alongside
+its stage and exit code when fixture generation/verification fails or a zero-exit verification
+returns malformed JSON. Each stream is limited to 2,048 characters plus its original length;
+control characters cannot create additional log lines. Only this test's generated package is
+consumed. Reports are still parsed as complete JSON, all package/schema/Unicode/determinism
+assertions remain mandatory, and no child is automatically retried. Normal and optimized Python
+regressions exercise successful reports, empty/non-JSON zero exits, nonzero valid-JSON exits and
+bounded control-character output. Both complete fixture workflows require failed writes through
+a real read-only stdout handle to return 1 with unchanged sink/package bytes. This supplies failure evidence, not a repair of the intermittent
+hosted Windows failure. Successful JSON and package ownership stay unchanged; output write
+failure now returns 1 explicitly instead of allowing a zero exit with no report.
 
 ## Optional native StaticView
 

@@ -4,6 +4,8 @@
 #include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/GitDiffProvider.h"
+#include "Nexora/Editor/GitStatusProvider.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
 #include "Nexora/Editor/PlayApply.h"
@@ -337,6 +339,15 @@ public:
   // Scope changes revoke pending work. Run requires explicit user action and caller permission.
   void DrawBuildProcess(BuildProcess &process, std::uint64_t scope,
                         const std::filesystem::path &root, bool allow_start);
+  // Serialized frame-only provider borrow. A fresh nonzero scope identifies each project lifetime;
+  // root is its canonical project/repository root. Explicit Refresh alone executes the trusted Git.
+  // Poll/cancellation still drain when hidden. No provider/capture borrow survives the call.
+  void DrawGitStatus(GitStatusProvider &provider, std::uint64_t scope,
+                     const std::filesystem::path &root, bool allow_refresh);
+  // Adds explicit selected-path diff queries. Retains owning snapshots/display bytes only;
+  // provider references remain call-scoped. Both providers drain while the window is hidden.
+  void DrawGitStatus(GitStatusProvider &, GitDiffProvider &, std::uint64_t scope,
+                     const std::filesystem::path &root, bool allow_refresh);
   void DrawProductShell(
       ProductShell &shell, SceneDocument *scene = nullptr, ProjectWorkspace *workspace = nullptr,
       ProjectContentSession *content = nullptr, RecentProjectStore *recent_projects = nullptr,
@@ -500,6 +511,8 @@ public:
   [[nodiscard]] std::string_view RecoveryError() const noexcept;
 
 private:
+  void DrawGitStatusInternal(GitStatusProvider &, GitDiffProvider *, std::uint64_t,
+                             const std::filesystem::path &, bool);
   friend class EditorImGuiTestAccess;
   struct State;
   std::unique_ptr<State> state_;

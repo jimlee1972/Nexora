@@ -187,9 +187,9 @@ without adding GUI or native resource ownership to this capture API.
 
 ## External Chrome duration import
 
-`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E`
-and nestable async `b/e` duration events, selected by exact process/begin-thread/event name. Timestamps keep the external
-microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
+`ChromeTraceImporter` owns intervals from Chrome `X` complete events, synchronous `B/E` scopes,
+nestable async `b/e` and legacy async `S/F` duration events, selected by exact
+process/begin-thread/event name. Timestamps keep the external microsecond clock; durations are milliseconds. The importer infers no CPU/GPU/memory metric.
 Wrapped `traceEvents` objects and bare arrays retain the existing 4 MiB input, 32,768-event,
 600-sample, Unicode/JSON and metadata bounds.
 
@@ -197,7 +197,7 @@ On the selected thread, every B requires a name and timestamp; every E requires 
 and closes the most recent B. An optional end name must match. Nonmatching event names still
 participate in pairing so a nested scope cannot close its parent accidentally. At most 128
 synchronous plus async scopes can be open; B/E timestamps must be nondecreasing and all scopes must close. Unrelated
-threads do not share the stack. Valid zero durations remain zero. Legacy async `S/T/F`, instant
+threads do not share the stack. Valid zero durations remain zero. Legacy step `T/p`, instant
 `n` and other phases remain validated/skipped metadata and are not paired. Recognized B/E records on the selected thread,
 previously skipped, now reject the whole import if malformed or unbalanced.
 
@@ -220,14 +220,54 @@ while open; independent IDs can finish in any order. All participating scopes mu
 and the shared 128-open budget includes synchronous scopes. Malformed recognized global
 b/e on any process or participating local b/e reject the whole import. Previously skipped
 global events on other processes now participate and must pair; ordinary unrelated local
-metadata remains skipped. Legacy `S/T/F` pairing remains unsupported.
-This yields elapsed inclusive latency, without a call tree, exclusive time or CPU execution cost.
+metadata remains skipped.
+Legacy async `S/F` uses the same bounded ID/category/scope lanes and begin selection, in a
+separate pairing domain from `b/e`. A legacy identity additionally includes the exact event name;
+different names may overlap on one ID, but a second live S with the same complete identity rejects
+rather than nesting. F must close the matching live S with a nondecreasing timestamp. Completed
+identities may be reused. Global S/F may cross processes/threads; process-local S/F only participates
+on the selected process. Unclosed or malformed participating S/F now rejects the whole import;
+these phases were previously skipped. Legacy steps T/p remain opaque metadata and produce no
+intervals. Legacy scopes share the existing 128-open budget with synchronous and nestable scopes.
+The supported subset retains typed IDs and category separation; it does not reconstruct legacy
+step sub-slices or permissively repair broken traces.
+
+Async durations remain inclusive elapsed latency; their self elapsed time is unavailable.
+No CPU execution cost or reconstructed call tree is inferred.
 
 Selected begins reserve their sample sequence and position immediately. End events complete
 that owning interval only if the ring slot still holds that sequence; an evicted begin cannot
 overwrite a newer sample. Newest retention and loss counts follow begin/start order, including
-mixed X/B/E/b/e records and nested same-name scopes. Pending intervals never escape a failed import.
-This is inclusive elapsed duration, not exclusive/self time or a reconstructed call tree.
+mixed X/B/E/b/e/S/F records and nested same-name scopes. Pending intervals never escape a failed import.
+`duration_milliseconds` remains inclusive elapsed duration. The additive optional
+`self_duration_milliseconds` is external elapsed time excluding observed synchronous children.
+
+### Synchronous self elapsed inspection
+
+Successful imports retain bounded selected-thread X/B/E context, including nonmatching names.
+An iterative sorted reconstruction subtracts each immediate child's raw inclusive duration once;
+grandchildren are not double-counted. It compares relative starts and raw durations instead of
+adding tiny durations to large absolute clocks. This preserves sub-clock-ULP durations and rejects
+false containment caused by rounded absolute endpoints. Known B/E begin order resolves coincident
+paired bounds. Crossing or otherwise ambiguous coincident components, including unresolvable
+coverage/precision, keep their inclusive values and leave self unavailable; disjoint valid
+components remain available. Zero duration can have available zero self time. Async b/e/S/F never
+claims self time and does not subtract from synchronous scopes.
+
+Context sorting never reorders selected samples. Completion checks retained sequence identity
+before writing a self value, including equal-start context sorted opposite to begin retention.
+At most one fixed-size context record per selected-thread X/completed E and one iterative stack
+slot per context are retained during parsing; the existing32768-event/4MiB limits bound this extra
+O(events) memory. Reconstruction is O(events log events), without recursive ancestry traversal.
+Temporary context is released with the importer. Capture history retains only the existing newest600
+owning samples. These are logical bounds, not total allocator/RSS/GPU or frame-budget acceptance.
+
+Validate rejects nonfinite/negative self or values above inclusive duration; unavailable remains
+valid. Old supported input acceptance, UTF-8/JSON limits, source/read-only policy and inclusive
+semantics are unchanged. C++ callers using three-field interval initialization retain source
+compatibility with unavailable self; all binary C++ consumers must rebuild for the appended
+optional field. Persisted files, stable C ABI, other capture schemas and linkage dependencies stay
+unchanged. This measures external interval coverage, not CPU execution, scheduling or GPU time.
 
 `ProjectWorkspace::ImportChromeTraceJson` supplies the same project-scoped read-only-safe file
 admission and actual byte bounds. Failure does not publish or alter source files, prior captures
@@ -622,6 +662,53 @@ write failure leaves original scene files and dirty baselines unchanged.
   model destruction; no item/World/document borrow is cached. Call only on the authoring thread.
   `ChildFolders` retains its independent owning-vector API. Consumers must rebuild for the additive
   C++ API/layout change; persisted formats and the stable C ABI are unchanged.
+- Source sorting stages one owning UTF-8 key per item and a source-to-destination permutation,
+  then swaps complete `ContentItem` records with statically checked noexcept moves. Reset,
+  discovery (including retained Undo) and authoring commits preserve the original byte comparator,
+  payload owners, metadata and ordering. The temporary acceleration admits at most 262,144 items
+  and 16 MiB of UTF-8 key bytes; these are payload/admission bounds, not total RSS. Over-budget or
+  failed cache construction releases staging and takes the existing complete projection-sort path.
+  No partial permutation is published. Ordinary fallback allocation behavior is unchanged.
+  Owner-thread calls remain serialized; keys never persist across calls or become World borrows.
+  The public model layout/SDK and persisted formats are unchanged.
+- `NexoraContentDirectoryBenchmark before|after` builds a deterministic 100k-item/1000-folder
+  metadata fixture and emits schema-1 JSONL for fixture/reset, first-root, 100 cold-folder and 200
+  typed-search timings. The 13,050 checksum, complete results, source count, unchanged revision,
+  empty selection and lack of new Undo history are checked. It opens no user project/files or GPU.
+  Future incompatible record changes require a new schema; this producer does not import traces.
+  Record machine/compiler/load with results; one timing pair is not a production percentile budget.
+- `VisibleCount`, `Visible` and `SelectVisible` share one lazy immutable projection of owning item
+  indices for the current folder and normalized query/type. Successful Reset/Discover/path edits/
+  Undo and actual folder/filter changes revoke it; same-folder navigation, equal normalized filters,
+  selection, artifact-only publication and rejected operations retain it. Reveal also revokes it when
+  clearing active filters, even within the same folder. Model copies may share indices, never item
+  pointers: range results resolve into each model's current item storage, including fresh artifact
+  payloads. Returned item pointers keep their existing mutation-bounded borrow contract.
+  Queries run serially on the authoring thread, like `ChildFolderSnapshot`; const does not grant
+  concurrent access. The first admitted source query builds the directory index; cold projections
+  scan current-folder membership with complete linear fallback and retain O(matches) active indices.
+  Warm Count is O(1), while Visible visits only the bounded requested range. Range arithmetic
+  clamps before addition, including zero counts and SIZE_MAX offsets/counts. Selection/history/
+  source semantics stay unchanged. Other lookups, filesystem indexing, complete frame and
+  production memory/GPU budgets remain separate. Public C++ consumers must rebuild for the
+  private layout change; persisted formats, stable C ABI and module dependencies are unchanged.
+- Cold directory queries share a lazy immutable membership/child index for one source publication.
+  The first admitted query reads all item paths and unique ancestor prefixes; later folder/filter
+  changes scan only the current folder's slots and copy only its immediate children. Exact native
+  path/UTF-8 label/byte ordering and original name/type filtering remain intact. Source/order Reset,
+  Discover, Commit and Undo invalidate the index explicitly; selection, folder/filter changes and
+  artifact-only publication retain it. Copies share only immutable paths/indices; results resolve
+  into each model's own items. Public child snapshots copy their children and do not pin the entire
+  project index. No World/item-pointer borrow is retained.
+  Admission limits are 262,144 source items, 65,536 directory nodes (including ancestors), parent
+  depth64 and16 MiB path work (source UTF-8 bytes plus three times new-prefix UTF-8 bytes). These
+  bound acceleration payload/work, not total RSS. Native-root/drive-relative special cases, budget
+  failure and failed candidate allocation take the complete existing linear path; no source or
+  navigation is omitted. The fallback decision is cached until source/order publication. Ordinary
+  output allocation retains its existing behavior. Calls remain serialized on the authoring thread;
+  observation data never grants file-write authority. C++ consumers must rebuild for the private
+  model layout change and release all SDK owners before unloading its library. Formats, stable C
+  ABI and module dependencies are unchanged; no index is persisted.
 - `ContentBrowserModel::RevealAsset` is an inspection-only UUID operation: it stages the target's
   parent folder/breadcrumbs and sole selection before clearing query/type filters. Missing IDs or
   paths without a revealable relative parent preserve the complete view state. It does not touch
@@ -629,7 +716,7 @@ write failure leaves original scene files and dirty baselines unchanged.
   sessions may use it. The additive C++ method requires rebuilding consumers; persisted formats
   and stable C/Zig contracts are unchanged.
 - `ContentBrowserModel::SelectVisible` atomically replaces selection with the complete matching
-  current-folder query/type row set, including clipped rows. It uses one item scan and preserves
+  current-folder query/type row set, including clipped rows. It consumes the cached matching indices and preserves
   revision, assets and mutation Undo. No matches clear selection. Batch Delete uses a UUID set to
   reject duplicates/missing IDs before publication and compacts surviving items in one scan;
   ProjectContentSession resolves the complete source/sidecar move list through a frame-local UUID
@@ -1147,6 +1234,59 @@ a real schema-1 journal and writable owner, checking failed recovery preserves c
 current documents and the journal. Autosave mutations also check source and caller-revision
 preservation. It is a robustness check, not a proof that no malformed input can fail.
 
+### Bounded asynchronous mesh thumbnail snapshots
+
+✅ `BuildMeshThumbnail` rasterizes actual imported geometry into an owning 64×64 opaque
+RGBA8 image. A fixed isometric camera derives framing from referenced positions; two-sided
+flat neutral shading and a depth buffer preserve geometry/occlusion. Cached bounds, materials,
+textures and imported normals do not determine this shape preview. Every position must be finite,
+every index must address the payload, and indices must form triangles. At most 16,384 vertices
+and 24,576 indices (8,192 triangles) are admitted; there is no truncation. Zero projected extent
+or no covered samples returns an explicit failure. Cancellation is checked throughout validation
+and at every triangle/scanline. Allocation/callback exceptions propagate from this pure function.
+
+`MeshThumbnailCache` uses the existing Core JobSystem at Low priority. Each request copies the
+bounded geometry before submission; workers retain no Content/document/UI/owner pointers and
+perform no IO, GPU access or authoring mutation. Requests capture nonzero project generation,
+nonzero asset UUID, an artifact revision of 1..128 bytes and the immutable geometry owner.
+The revision identifies the imported artifact, not a path or global Content revision. `Poll`
+rechecks current generation, asset existence, exact revision and geometry ownership before
+publishing. Even completed work exposes no pixels until that owner-thread check. A superseded
+operation can never publish into the replacement's entry. Ready lookups perform the same checks;
+changed/deleted sources report Stale without exposing old pixels.
+
+All cache calls/destruction run on one serialized non-worker owner thread. The Content model and
+running JobSystem outlive the cache. One cache belongs to one project session. Call `Clear` on
+project replacement/reopen even if its generation is reused; generation changes also clear
+on Request/Poll, while Get already rejects their old images. Operation IDs do not reset on Clear, preventing same-generation reopen ABA.
+Cancel immediately reports Cancelled; collection still waits for job completion and cancellation
+wins over unpublished success. `Shutdown` stops intake, cancels and drains only owned jobs before
+releasing their captured inputs. It is idempotent. A host must call Poll regularly to collect work.
+
+The LRU holds 1..64 entries (default 16), including failed/cancelled observations. The pending-work
+limit is 1..4 (default 4), including cancelled/superseded jobs awaiting collection. A full pending
+budget rejects new work without evicting a current hit. Successful intake evicts the least recently
+requested/read entry as needed; in-flight victims are cancelled. Same-key requests deduplicate
+both successful and failed/cancelled entries; `Invalidate` explicitly enables retry. A Stale
+observation reschedules when Undo restores its source. Validation
+or submission failure returns a diagnostic; worker failure is retained as a Failed observation.
+No automatic retry, placeholder success or reuse of another revision occurs.
+
+At the maximum there are 64 published 16-KiB images (1 MiB), plus at most four pending results,
+bounded input copies and per-worker raster scratch. Ready entries release input geometry after
+collection. These are logical payload/work bounds, not allocator-capacity, RSS or VRAM claims.
+Returned snapshots share immutable pixels and may outlive replacement, eviction and cache
+shutdown; external retained images fall outside the cache's bound.
+
+`editor.mesh_thumbnails` checks actual coverage/shading/depth, extreme finite positions, malformed
+input, exact input/cache/work bounds, scanline cancellation, deferred publication, late cancellation,
+source replacement/deletion, project generation changes, explicit same-generation reopen, LRU,
+visible failure/deduplication, failed submission and retained pixel lifetime. The CPU cache is an
+M1-01 prerequisite. The additive C++ API changes no stable C/Zig ABI, asset format or module
+dependency. Content image upload/drawing, other asset types, representative project/UI
+performance, physical DPI and full ED-M1 acceptance remain open. See the
+[retained evidence](../../Tools/Build/evidence/EditorEDM1-MeshThumbnailJobs-Linux-2026-10-21.md).
+
 ### Mesh reimport publication
 
 ContentItem and ReimportResult own immutable shared mesh payloads. Synchronous and background OBJ
@@ -1238,11 +1378,22 @@ sorts entity/type IDs and hex-encodes binary bytes (empty payload is `-`). Seria
 bounded to 34 MiB. Move transfers ownership/budget counters and leaves a reusable empty source.
 
 Scene format 3 adds `opaque <entity> <type> "name" <hex-or-dash>` metadata before `world`; scenes
-without opaque records still write format 2. Reload accepts formats 1/2/3, bounds the file to 64 MiB,
+without opaque records still write format 2; persistent prefab placements use format 4. Reload
+accepts formats 1/2/3/4, bounds the file to 64 MiB,
 stages all records and world validation, and rejects duplicate/malformed/oversized/orphan records
 before replacing live state. Every opaque owner must be both an authoring node and a staged Runtime
 entity. Successful reload invalidates old keys and clears history; failed reload preserves live data,
-selection, generations, history and the saved baseline. Opaque metadata participates in Dirty and
+selection, generations, history and the saved baseline. All tracked authoring node IDs must exist
+in the staged Runtime snapshot even when there are no hints/opaque/prefab records. The parser
+matches unique Runtime IDs against authoring IDs in one scan before live replacement; Runtime-only
+entities and scenes with no tracked nodes remain supported. No format/API/ownership change is
+introduced. Fixed LF golden sources cover Editor versions 1–4 and Runtime versions 1–3, independent
+legacy world/local pose expectations, Euler turns, unknown bytes, bindings and deterministic upgraded
+save/reopen. Required-field prefixes, corrupt versions/duplicates/orphan nodes and occupied staging
+preserve last-good data, dirty/saved baseline, keys/selection, clipboard, Undo/Redo and unrelated
+scenes. Syntactically valid final whitespace omission stays accepted. These checks do not establish
+interrupted publication recovery or complete migration/physical acceptance.
+Opaque metadata participates in Dirty and
 atomic scene writes. Its exact saved comparison is cached between authoring mutations, avoiding
 full payload serialization on every GUI frame; Undo/Redo invalidate that cache. Both saves and
 chunked reads enforce the 64 MiB scene-file bound. Runtime snapshot and stable gameplay C ABI formats do not change.
@@ -1832,6 +1983,103 @@ fabricated exit code; native nonzero exits, signals, incomplete output, cancella
 owner scope cannot publish success. Exited means only actual code zero; independently verified
 artifacts, target manifest, checksums and reproducible build publication remain host obligations.
 The API changes no stable C/Gameplay ABI or module graph; public C++ consumers must rebuild.
+## Bounded Git status observations
+
+`GitStatusProvider` uses the existing managed `BuildProcess` and Core JobSystem to query a
+canonical working-tree root with a `.git` directory or gitfile. The owner supplies an absolute
+trusted Git executable and authorizes repository configuration and the inherited environment;
+this is a cooperating local query, not a configuration/process sandbox. Calls are serialized on
+one owner thread. Workers retain process inputs only, never project/document/provider borrows.
+The JobSystem outlives the provider and every call; Shutdown cancels/drains before destruction.
+Release retained captures and all C++ SDK objects before unloading Editor/Core libraries;
+Shutdown is not a library lifetime lease.
+
+Refresh launches direct fixed argv without shell expansion. It explicitly selects `.git` and the
+current working tree, disables optional index locks, fsmonitor and untracked-cache updates, and
+requests porcelain-v1 `-z`, rename detection, normal untracked entries and no submodule recursion.
+It performs no fetch/push/checkout/merge/index mutation command. Normal untracked directories may
+be collapsed; ignored paths and recursive submodule status are outside this query projection.
+Git 2.15 or newer is required by the command flags. Missing tools/repositories reject explicitly;
+there is no automatic tool discovery, query on project open or fabricated clean-tree fallback.
+
+`DecodePorcelainV1` follows [Git's version-one format](https://git-scm.com/docs/git-status#_porcelain_format_version_1).
+It preserves both status lanes, conflict states, rename/copy destination-then-source order and
+owning unquoted filename bytes, including spaces, newlines and non-UTF8 names. UI consumers must
+escape names for display and key identities with scope plus original path bytes. These observations
+are not filesystem authority, file locks or source-version admission for a later write operation.
+
+Complete output is capped at 256 KiB, 4,096 entries and 4,096 bytes per path. Any dropped output,
+malformed/truncated record, duplicate destination, invalid relative Git path, budget or allocation
+failure rejects the entire candidate. Empty complete output is an available clean result.
+Same-scope last-good captures survive refresh failure/cancellation; accepted results replace one
+immutable owning snapshot. Query describes the latest attempt; retained last-good captures keep
+their older operation IDs and do not represent a successful new refresh. `Capture(current_scope)` cannot return another scope's data, and
+retained snapshots survive refresh, provider shutdown and source-directory removal.
+
+Project/provider replacement requires a fresh nonzero scope; reusing one scope for another root
+rejects. Provider-local operation IDs never wrap. Polling a different scope cancels/drains work
+and permanently invalidates that operation, even if the caller switches back before completion.
+Cancel follows the runner's queued/running admission rule; every accepted query still needs Poll
+or Shutdown to drain. Query exposes bounded typed phase/error/exit/loss metadata, not raw merged
+stderr for direct UI logging. Rejected intake preserves state. Accepted process intake is followed
+only by nonallocating identity publication; later decode/snapshot allocation failures retain
+last-good and report failure. New exports are additive C++ APIs; consumers rebuild. Stable
+C/Gameplay ABI, module dependencies and persisted project/scene formats are unchanged.
+
+The executable `editor.git_porcelain_parser` and `editor.git_status_provider` tests cover actual
+Git in disposable repositories, renamed/Unicode/modified/unmerged files, linked worktrees,
+unchanged index/source bytes, failed intake/commands, malformed/flooding native fault fixtures,
+queued/running cancellation, stale scope, teardown and retained snapshots. Private one-shot
+allocation faults cover intake, outcome copy, partial decode and capture construction with
+unchanged last-good, drained jobs and successful retry; they retain no callback/allocator pointer. Missing Git leaves the
+native integration test explicitly skipped/unavailable. The native Editor now owns an explicit
+project-scoped graphical status view; its UI lifetime contract is documented in the EditorImGui
+README. Graphical diff/merge, nested repository discovery, broader external-change routing and
+production-scale provider acceptance remain open.
+
+## Bounded read-only Git diff observations
+
+`GitDiffProvider` uses the same managed process/JobSystem ownership boundary as the status
+provider. Its serialized owner supplies a trusted absolute Git executable, canonical working-tree
+root (including linked-worktree gitfiles), and nonzero project/provider scope. The caller must use
+a fresh scope when replacing a root; reuse of the current scope for a different canonical root
+rejects. Workers own process inputs only. Shutdown cancels/drains before JobSystem destruction;
+release captures and SDK objects before unloading the Editor/Core libraries.
+
+`Compare` accepts one literal repository-relative UTF-8 file path, or two distinct old/new rename
+paths, each at most 4096 bytes. Empty, absolute, trailing-slash, empty/dot/parent components, NUL,
+invalid UTF-8 and unsupported target values reject before intake. Existing status captures preserve
+raw non-UTF8 names, but this UTF-8 process boundary cannot query those names. Missing/untracked
+paths can legitimately produce empty output: this is the result of that exact Git request, not a
+statement that the repository is clean. The caller separately authorizes any UI selection.
+
+Fixed direct argv selects `.git`/working tree and staged (`--cached`) or working-tree diff, enables
+`--literal-pathspecs`, disables optional index locks, fsmonitor/untracked-cache updates, pager,
+external diff, textconv, color, rename detection and submodule recursion. A rename pair produces
+separate deletion/addition output. No shell, network, index-mutation or patch-application command
+is launched. Repository configuration, inherited environment and other Git helpers such as
+attribute clean filters remain explicitly trusted; this API is not a process/configuration sandbox.
+
+An owning capture carries the exact request, canonical root, scope and nonwrapping operation ID.
+It retains the complete raw merged stdout/stderr (up to 256 KiB), including warnings, binary or
+combined-conflict notices. Bytes need not be UTF-8 and can contain NUL. This is not a parsed or
+validated patch, a redacted log, an atomic filesystem snapshot or a semantic-merge candidate.
+External changes during Git execution are subject to Git's own observation semantics. Consumers
+must escape/redact before display or persistence; the service does neither IO publication nor
+automatic storage. No diff UI or apply permission is introduced by this SDK slice.
+
+Rejected intake preserves state. Busy/stopped/unavailable/exhausted IDs, nonzero/failed processes,
+overflow, cancellation, stale scopes and internal allocation failures are distinct typed outcomes.
+Any dropped output rejects the whole capture; an exact 256 KiB result is allowed. Same-scope
+failure/cancellation retains last-good with its original request identity, so callers must not label
+it as the failed request. A scope mismatch permanently invalidates the running operation even if
+the owner switches back before completion. Retained captures own their bytes after later queries
+and teardown. New C++ exports require consumer rebuilds; stable C/Gameplay ABI, module dependencies
+and persisted formats remain unchanged. The real temporary-repository executable
+`editor.git_diff_provider` exercises these contracts; missing Git is explicitly unavailable/skipped.
+Linux validation and limits are recorded in the
+[Git diff evidence](../../Tools/Build/evidence/EditorEDM4-GitDiff-Linux-2026-10-21.md).
+
 ## Reflected opaque-property authoring
 
 `ReflectedInspector` owns a validated catalog and Runtime reflection descriptors. It interprets
@@ -1841,7 +2089,7 @@ Names/paths/labels are bounded UTF-8, ranges cannot overlap, expanded property p
 and schema text is capped at 256 KiB. Boolean uses one byte; integers, enums, flags, entity IDs
 and finite binary64 lanes use little-endian eight-byte values. Asset UUIDs use two little-endian
 64-bit words; colors have four finite lanes in [0,1]. Unknown padding and other components remain
-unchanged. Nested structs use flattened paths; arrays have fixed declared lengths.
+unchanged. Nested structs use flattened paths; version-one arrays have fixed declared lengths.
 
 `Inspect` returns an owning observation of metadata, generation keys, exact source component
 bytes and mixed values for at most 256 targets/1 MiB. `Apply` checks current catalog revision,
@@ -1864,9 +2112,53 @@ tokens/overflow; malformed versions, trailing records and invalid layouts reject
 This is cooperating-project metadata validation, not hostile filesystem race isolation.
 
 Project activation and explicit metadata reload replace interpretation; failures clear the active
-catalog and preserve scene bytes. The host never rewrites metadata. Dynamic arrays, arbitrary
-native plugin object restoration and runtime execution are outside this slice. Public C++
+catalog and preserve scene bytes. The host never rewrites metadata. Dynamic structural controls,
+arbitrary native plugin object restoration and runtime execution remain separate work. Public C++
 consumers rebuild; stable C/Gameplay ABI and module dependencies remain unchanged.
+
+### Version-two counted reflected arrays
+
+`NXEDITORREFLECTION 2` keeps version-one fixed-field records and reads
+`type <id> "name" <prefix-bytes> <fixed-field-count> <array-count>`. After the fixed fields,
+`array "path" <kind> <count-offset> <maximum-elements> <choice-count>` and its declared choices
+specify each dynamic tail. Counts are little-endian unsigned64 in nonoverlapping eight-byte
+prefix slots. Prefix padding stays opaque. Tail elements use the existing explicit primitive/
+vector/color/reference encodings and follow the fixed prefix in schema order, with no native
+container header, implicit alignment or trailing padding. Multiple tails may have different
+lengths in each selected component; all following offsets are derived per source. Malformed,
+extra/truncated, oversized or invalid-valued tails remain entirely opaque and cannot be edited.
+
+Version1 remains readable unchanged, with no dynamic declarations or guessed conversion.
+Version2 is an explicit opt-in schema/wire contract; the host never migrates unknown component
+payloads by guessing an old layout or writes a metadata file. A provider/user supplies matching
+version2 data and schema. Existing Scene opaque serialization persists all bytes through its
+existing atomic save path; no Scene format, native object ABI or module dependency changes.
+Unsupported metadata versions fail closed without altering scene payloads. New C++ record members
+and APIs require rebuilding consumers; release owning catalogs/observations before SDK unload.
+
+The combined fixed-field/array count is64 per type, each array admits at most32 typed elements,
+and existing64-type/256KiB schema limits apply. Each complete observation and each replacement
+batch admit at most256 targets/1MiB source payload; individual components remain within the
+existing1MiB unknown-component limit. These logical data bounds are not total process/RSS quotas.
+`Inspect` owns complete exact sources and count/mixed observations, validates even elements outside
+multi-selection's common index intersection, and exposes only common editable element properties.
+Value/flags edits calculate each target's actual offset and retain all other masks/data.
+
+`ApplyArray` supports explicit valued Append/Insert, Remove, Move and Clear. Indices must be valid
+in every target; Append/Clear use each target's own length. The current catalog, complete source,
+selection, generation and explicit authoring authority are rechecked before staging every complete
+replacement and one `ApplyOpaqueComponents` publication. Invalid values/indices, stale observations,
+read-only authorization, corrupt data, budgets or allocation failure preserve bytes/history.
+No-op operations preserve pending Redo. Opaque history admission now owns the new Undo entry before
+clearing Redo or swapping live nodes, so an allocation failure cannot erase the previous Redo.
+Private thread-local one-shot faults cover pre/partial replacement and history admission without
+retaining callbacks/allocators. All calls remain serialized on the authoring thread; this synchronous
+foundation introduces no worker, native plugin execution or retained document pointer.
+
+Core tests cover every supported element kind, mixed lengths and following-tail offsets, exact32
+capacity, invalid/outside-common values, malformed metadata/counts, stale source/catalog/selection/
+reload, allocation rejection with preserved Redo, unknown prefix/components and fresh-World file
+reopen. Structural Add/Remove/reorder widgets, native UI workflow and full M2-03 remain open.
 
 ## Cryptographic extension verification
 
@@ -2155,3 +2447,25 @@ repeated hash-node allocation, not total process memory or a constant-work produ
 The private SceneDocument C++ layout grows and consumers must rebuild. Stable C/Zig/scene formats
 and module dependencies are unchanged. Scoped CPU/100k ImGui evidence does not certify native GPU,
 production asset scale, total memory or physical/long-duration soak budgets.
+
+### Fixed local diagnostic admission
+
+`TelemetryConsent` is a serialized, session-owned local queue with no IO, persistence, network
+transport or plugin callback. `Record(LocalDiagnosticEvent::FramePresented)` retains only the
+engine-owned `frame.presented` label. Unknown enum values reject. The existing `Record(std::string)`
+signature remains available but now accepts only that exact label: arbitrary UTF-8 text, paths,
+commands, names, source snippets, case/whitespace variants and embedded NUL reject before retention.
+Existing callers that recorded arbitrary strings must migrate to supported typed events; this is
+an intentional admission-policy restriction. The compatibility call still constructs its by-value
+argument at the caller; typed intake carries no caller text. Existing C++ symbols and class layout
+are preserved; the overload adds a C++ export and matching consumers rebuild. Stable C/Zig ABI,
+data formats and module dependencies are unchanged.
+
+Default-off consent, 1,024-record capacity and no-eviction behavior remain. The former 1,024-byte
+constant remains source-compatible, but no arbitrary payload size is admissible. Accepted labels
+are copied into owning strings; allocation failure in typed intake returns false with the prior
+queue intact. `Events()` borrows until mutation/destruction, so callers must copy for longer
+lifetimes. Opt-out clears all logical records; re-enable starts empty. Clear/project/close/restart
+retain existing UI lifecycle rules. This is data minimization, not pattern-based secret detection
+or secure erasure of allocator memory. Complete extension trust and physical privacy acceptance
+remain separate goals.

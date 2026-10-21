@@ -2,6 +2,7 @@
 #include "AtomicFile.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "PrefabPlacementInternal.h"
+#include "ReflectedArrayTestAccess.h"
 #include "ReimportSource.h"
 
 #include <algorithm>
@@ -14,14 +15,18 @@
 #include <iomanip>
 #include <limits>
 #include <locale>
+#include <new>
 #include <ranges>
 #include <set>
 #include <sstream>
+#include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 
 namespace nexora::editor {
 namespace {
+thread_local bool fail_history_admission{};
 constexpr std::size_t kMaximumSceneFileBytes = 64 * 1024 * 1024;
 constexpr std::array kPanels{PanelDescriptor{"nexora.project", "Project"},
                              PanelDescriptor{"nexora.hierarchy", "Hierarchy"},
@@ -522,11 +527,16 @@ SceneDocument::SceneDocument(runtime::World &world, runtime::Id scene)
     : world_(world), scene_(scene), editor_(world), document_generation_(NextDocumentGeneration()) {
   saved_signature_ = StateSignature().value_or(std::string{});
 }
+void ReflectedArrayTestAccess::FailHistoryAdmission() noexcept { fail_history_admission = true; }
 void SceneDocument::PushUndo(UndoEntry entry) {
+  static_assert(std::is_nothrow_move_constructible_v<UndoEntry>);
   entry.previous_placements = prefab_placements_;
+  if (std::exchange(fail_history_admission, false))
+    throw std::bad_alloc{};
+  // History admission may allocate. Preserve pending Redo until the new entry is owned.
+  undo_.push_back(std::move(entry));
   opaque_dirty_.reset();
   redo_.clear();
-  undo_.push_back(std::move(entry));
 }
 runtime::Id SceneDocument::Create(std::string name, runtime::Id parent) {
   return CreateBuiltin(std::move(name), parent, BuiltinEntity::Empty);
@@ -1953,11 +1963,20 @@ bool SceneDocument::ReloadOwnedBytes(std::string bytes, std::optional<std::size_
   };
   const bool migrate = migration().Size() != 0;
   std::string snapshot_to_load = world_data;
-  if (migrate || !hints.empty() || !opaque_entities.empty() || !placements.empty()) {
-    // Validate hints and migration before touching the live World or replacing its authoring state.
+  if (!loaded.empty() || migrate || !hints.empty() || !opaque_entities.empty() ||
+      !placements.empty()) {
+    // Every authoring node must own an entity in the staged snapshot, including files without
+    // optional metadata. Runtime-only entities are allowed. Count through the already validated
+    // unique Runtime IDs once instead of doing one linear FindEntity per authoring node.
     runtime::World rehearsal{world_.Kind()};
     const auto staged_scene = rehearsal.LoadSceneSnapshot(world_data);
     if (!staged_scene || (migrate && !migration().Apply(rehearsal)))
+      return false;
+    std::size_t matched_nodes{};
+    for (const auto &entity : rehearsal.FindScene(*staged_scene)->entities)
+      if (ids.contains(entity.id))
+        ++matched_nodes;
+    if (matched_nodes != ids.size())
       return false;
     for (const auto id : opaque_entities)
       if (!ids.contains(id) || !rehearsal.FindEntity(id))

@@ -25,6 +25,7 @@
 #include <limits>
 #include <locale>
 #include <map>
+#include <new>
 #include <optional>
 #include <ranges>
 #include <set>
@@ -170,6 +171,26 @@ struct EditorImGuiHost::State final {
   std::uint32_t scene_comparison_rendered_rows{};
   std::array<std::optional<std::array<float, 2>>, 3> static_export_positions{};
   bool build_console_open{};
+  bool git_status_open{};
+  std::uint64_t git_status_scope{};
+  std::filesystem::path git_status_root;
+  std::array<char, 4096> git_executable{};
+  ImGuiID git_executable_id{};
+  GitStatusError git_intake_error{GitStatusError::None};
+  std::array<std::optional<std::array<float, 2>>, 3> git_control_positions{};
+  std::size_t git_rendered_rows{};
+  std::shared_ptr<const GitStatusCapture> git_diff_selection;
+  std::size_t git_diff_selected_row{};
+  std::uint64_t git_diff_pending_operation{};
+  GitDiffTarget git_diff_pending_target{};
+  GitDiffError git_diff_intake_error{GitDiffError::None};
+  std::shared_ptr<const GitDiffCapture> git_diff_capture;
+  std::string git_diff_text;
+  std::vector<std::uint32_t> git_diff_lines;
+  std::array<std::optional<std::array<float, 2>>, 3> git_diff_control_positions{};
+  std::array<std::optional<std::pair<std::size_t, std::array<float, 2>>>, 64> git_row_positions{};
+  std::size_t git_diff_rendered_lines{};
+  bool git_diff_fail_display{};
   bool prefab_isolation_open{};
   std::optional<PrefabIsolationObservation> prefab_isolation;
   std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;
@@ -426,6 +447,13 @@ struct EditorImGuiHost::State final {
   std::vector<std::pair<std::string, std::array<float, 2>>> reflected_positions;
   std::vector<std::pair<std::string, std::array<float, 2>>> reflected_choice_positions;
   std::vector<std::pair<std::string, bool>> reflected_mixed;
+  struct ReflectedArrayControl final {
+    runtime::TypeId type{};
+    std::string path, action;
+    std::optional<std::size_t> element;
+    std::array<float, 2> position{};
+  };
+  std::vector<ReflectedArrayControl> reflected_array_controls;
   std::vector<runtime::TypeId> reflected_rendered_types;
   std::uint64_t reflected_draft_generation{1};
   std::optional<ReflectedObservation> reflected_pending;
@@ -959,7 +987,7 @@ bool AcceptAssetDrop(ProjectContentSession &content, const std::filesystem::path
 
 template <typename StateT>
 void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool editable,
-                                   bool retain_rename) {
+                                   bool retain_rename, bool hidden_row_count) {
   state.hierarchy_visible_rows = 0;
   state.hierarchy_rendered_rows = 0;
   state.hierarchy_row_observations.clear();
@@ -987,7 +1015,11 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
     if (!retain_rename)
       state.hierarchy_rename_target.reset();
   }
-  const auto nodes = scene->Nodes();
+  // Expansion pruning, queued selection, sibling reorder and hidden counts need this snapshot.
+  // Ordinary rendering takes its own fresh observation after any authoring buttons run.
+  const bool needs_nodes = !state.hierarchy_expanded.empty() || state.hierarchy_selection_request ||
+                           state.hierarchy_reorder_request || hidden_row_count;
+  const auto nodes = needs_nodes ? scene->Nodes() : std::vector<SceneDocument::NodeView>{};
   if (!state.hierarchy_expanded.empty()) {
     std::unordered_map<runtime::Id, SceneDocument::NodeKey> current_keys;
     current_keys.reserve(nodes.size());
@@ -1016,19 +1048,23 @@ void ApplyPendingHierarchyRequests(StateT &state, SceneDocument *scene, bool edi
     }
   }
 
-  const auto rows =
-      BuildHierarchyRows(state, nodes, std::string_view(state.hierarchy_filter.data()));
-  std::vector<SceneDocument::NodeKey> visible;
-  visible.reserve(rows.size());
-  for (const auto &row : rows)
-    visible.push_back(row.node->Key());
-  state.hierarchy_visible_rows = static_cast<std::uint32_t>(
-      std::min<std::size_t>(rows.size(), std::numeric_limits<std::uint32_t>::max()));
+  if (state.hierarchy_selection_request || hidden_row_count) {
+    // Queued range selection and hidden-window statistics require the complete projection.
+    // Visible DrawHierarchy computes its own current UI rows.
+    const auto rows =
+        BuildHierarchyRows(state, nodes, std::string_view(state.hierarchy_filter.data()));
+    std::vector<SceneDocument::NodeKey> visible;
+    visible.reserve(rows.size());
+    for (const auto &row : rows)
+      visible.push_back(row.node->Key());
+    state.hierarchy_visible_rows = static_cast<std::uint32_t>(
+        std::min<std::size_t>(rows.size(), std::numeric_limits<std::uint32_t>::max()));
 
-  if (state.hierarchy_selection_request) {
-    const auto request = std::exchange(state.hierarchy_selection_request, std::nullopt);
-    static_cast<void>(ApplyHierarchySelection(state, *scene, visible, request->entity,
-                                              request->additive, request->range));
+    if (state.hierarchy_selection_request) {
+      const auto request = std::exchange(state.hierarchy_selection_request, std::nullopt);
+      static_cast<void>(ApplyHierarchySelection(state, *scene, visible, request->entity,
+                                                request->additive, request->range));
+    }
   }
   if (state.hierarchy_move_request) {
     const auto request = std::exchange(state.hierarchy_move_request, std::nullopt);
@@ -2923,6 +2959,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.reflected_choice_positions.clear();
   state.reflected_positions.clear();
   state.reflected_mixed.clear();
+  state.reflected_array_controls.clear();
   state.reflected_rendered_types.clear();
   std::unordered_set<runtime::Id> selected_entities;
   if (scene != nullptr)
@@ -4765,7 +4802,7 @@ void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
     ImGui::TextWrapped("Turning consent off immediately forgets every retained event. "
                        "Re-enabling starts an empty queue.");
     ImGui::BeginChild("diagnostic-events", {0, 100}, ImGuiChildFlags_Borders);
-    // Display only exact allowlisted labels; generic Core callers can retain arbitrary text.
+    // Keep display allowlisting as defense in depth around the fixed-code intake contract.
     // Unknown records never become text, tooltips, logs or a persisted UI snapshot here.
     for (const auto &event : diagnostics.Events()) {
       if (event == "frame.presented") {
@@ -5071,6 +5108,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
       ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
+      ImGui::MenuItem("Source control", "Ctrl+Alt+G", &state_->git_status_open);
       ImGui::EndMenu();
     }
     if (file_context_valid)
@@ -5219,8 +5257,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->focus_initial_scene = true;
   }
   const auto hierarchy_window = PanelWindowName("nexora.hierarchy");
-  ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable);
-  if (ImGui::Begin(hierarchy_window.c_str()))
+  const bool hierarchy_visible = ImGui::Begin(hierarchy_window.c_str());
+  ApplyPendingHierarchyRequests(*state_, scene, scene_editable, rename_open && rename_editable,
+                                !hierarchy_visible);
+  if (hierarchy_visible)
     DrawHierarchy(*state_, scene, shell, interaction_blocked, scene_editable, rename_editable);
   ImGui::End();
   const auto inspector_window = PanelWindowName("nexora.inspector");
@@ -6433,15 +6473,24 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                     capture.samples.size(),
                     static_cast<unsigned long long>(capture.older_samples_dropped));
         ImGui::TextWrapped("Event: %s", capture.selection.event_name.c_str());
+        ImGui::TextWrapped(
+            "Self elapsed excludes observed synchronous children. "
+            "Async or ambiguous intervals show unavailable; CPU execution is unmeasured.");
         ImGui::BeginChild("External intervals", {0, 150}, ImGuiChildFlags_Borders);
         ImGuiListClipper clipper;
         clipper.Begin(static_cast<int>(capture.samples.size()));
         while (clipper.Step())
           for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
             const auto &sample = capture.samples[static_cast<std::size_t>(i)];
-            ImGui::Text("%llu | external %.6f us | duration %.6f ms",
-                        static_cast<unsigned long long>(sample.sequence), sample.start_microseconds,
-                        sample.duration_milliseconds);
+            if (sample.self_duration_milliseconds)
+              ImGui::Text("%llu | external %.6f us | duration %.6f ms | self %.6f ms",
+                          static_cast<unsigned long long>(sample.sequence),
+                          sample.start_microseconds, sample.duration_milliseconds,
+                          *sample.self_duration_milliseconds);
+            else
+              ImGui::Text("%llu | external %.6f us | duration %.6f ms | self unavailable",
+                          static_cast<unsigned long long>(sample.sequence),
+                          sample.start_microseconds, sample.duration_milliseconds);
           }
         ImGui::EndChild();
       }
@@ -8021,6 +8070,7 @@ void EditorImGuiHost::UpdateImeCandidate(Nexora::Presentation::RenderSurface &su
 }
 
 #include "BuildProcessPanel.inl"
+#include "GitStatusPanel.inl"
 #include "PrefabIsolationPanel.inl"
 
 FrameMetrics EditorImGuiHost::EndFrame() {
@@ -8169,6 +8219,15 @@ EditorImGuiTestAccess::ReflectedPropertyPosition(const EditorImGuiHost &host,
   for (const auto &[name, point] : host.state_->reflected_positions)
     if (name == path)
       return point;
+  return {};
+}
+std::optional<std::array<float, 2>> EditorImGuiTestAccess::ReflectedArrayControlPosition(
+    const EditorImGuiHost &host, runtime::TypeId type, std::string_view path,
+    std::string_view action, std::optional<std::size_t> element) noexcept {
+  for (const auto &control : host.state_->reflected_array_controls)
+    if (control.type == type && control.path == path && control.action == action &&
+        control.element == element)
+      return control.position;
   return {};
 }
 std::optional<bool> EditorImGuiTestAccess::ReflectedPropertyMixed(const EditorImGuiHost &host,
@@ -8408,6 +8467,17 @@ EditorImGuiTestAccess::ChromeTraceControlPosition(const EditorImGuiHost &host,
 const ChromeTraceCapture *
 EditorImGuiTestAccess::ImportedChromeTrace(const EditorImGuiHost &host) noexcept {
   return host.state_->imported_chrome_trace ? &*host.state_->imported_chrome_trace : nullptr;
+}
+void EditorImGuiTestAccess::BeginTextCapture(EditorImGuiHost &host) {
+  Activate(host.state_->context);
+  ImGui::LogToBuffer();
+}
+std::string EditorImGuiTestAccess::EndTextCapture(EditorImGuiHost &host) {
+  Activate(host.state_->context);
+  const auto &buffer = ImGui::GetCurrentContext()->LogBuffer;
+  std::string text{buffer.begin(), buffer.end()};
+  ImGui::LogFinish();
+  return text;
 }
 const ProcessMemoryCapture *
 EditorImGuiTestAccess::ImportedMemoryCapture(const EditorImGuiHost &host) noexcept {

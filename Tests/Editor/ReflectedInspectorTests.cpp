@@ -196,7 +196,7 @@ void Run() {
           "aliased reflection metadata accepted");
   std::filesystem::remove(root / "schema-alias");
   for (const auto &invalid :
-       {std::string("NXEDITORREFLECTION 2\n"), valid + "junk\n",
+       {std::string("NXEDITORREFLECTION 3\n"), valid + "junk\n",
         std::string("NXEDITORREFLECTION 1\ntype -1 \"Bad\" 160 1\nfield \"x\" bool 0 1 0\n"),
         std::string(editor::ReflectedInspector::kMaximumSchemaBytes + 1, 'x')}) {
     std::ofstream(schema_path, std::ios::binary) << invalid;

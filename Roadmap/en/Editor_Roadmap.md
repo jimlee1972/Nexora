@@ -217,6 +217,22 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- ✅ Cold Content folder/filter queries now have a bounded immutable directory membership/child
+  index with complete linear fallback. Explicit source/order publication invalidates it; copies and
+  retained child projections own data without item pointers. Source, navigation, selection and Undo
+  semantics are preserved. Combined full Linux validation passes294 registered tests with12 existing
+  skips and zero failures; production assets/RSS, remaining indexing work and complete ED-M1 remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM1-ContentDirectoryIndex-Linux-2026-10-20.md).
+
+- ✅ Content source sorting now stages bounded owning UTF-8 keys and a complete permutation before
+  noexcept record swaps, preserving the original byte order, payload owners and Undo/discovery.
+  Budget/allocation fallback retains complete legacy sorting. The shared 100k metadata phase
+  benchmark separates Reset from cold folders/search; preliminary Reset drops from 15324.49 ms to
+  1999.80 ms in one observation pair. Complete Linux validation passes293 registered tests with
+  12 existing skips and zero failures; directory indexing, production assets/RSS and full ED-M1
+  acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM1-ContentPathSort-Linux-2026-10-20.md).
+
 - ✅ Content folders support real Tab focus and Enter activation; focused Alt+Up returns to the
   preceding breadcrumb and clamps at the Content root. Read-only traversal preserves mutation
   history and filters; keyboard ownership gates protect text, panel/focus and blocking-modal
@@ -273,6 +289,22 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   mode. Thumbnails and physical workflow gates remain open; bounded per-entry Content diagnostics
   are described below.
 
+- ✅ **M1-01 mesh thumbnail worker prerequisite (2026-10-21).**
+  `BuildMeshThumbnail` generates actual 64×64 RGBA shape previews from imported geometry,
+  with isometric framing, neutral two-sided shading and depth. `MeshThumbnailCache` stages bounded
+  geometry copies through Core jobs, checks cancellation and validates current project generation,
+  UUID, artifact revision and immutable geometry owner before owner-thread publication. Cancelled or
+  superseded results cannot overwrite replacements; ready lookups reject changed/deleted sources.
+  The LRU admits at most 64 entries and four uncollected jobs, including cancelled jobs. Retained
+  immutable images survive eviction and owner shutdown. Failures remain inspectable without retrying
+  each frame. The new `editor.mesh_thumbnails` exercises pixels, lifetime, stale completions and
+  hard input/cache/work limits. [Contract](../../Engine/Editor/README.md#bounded-asynchronous-mesh-thumbnail-snapshots)
+  and [evidence](../../Tools/Build/evidence/EditorEDM1-MeshThumbnailJobs-Linux-2026-10-21.md).
+
+  This closes only `nexora-gu7.1.1`. Native Content image upload/drawing, other asset types and
+  representative UI/performance/DPI acceptance remain in M1-01; ED-M1 and full Editor acceptance
+  counts do not advance.
+
 - ✅ Content asset/folder rows and breadcrumb buttons now display literal UTF-8 marker names
   (`##`, `###`, `%`) with project-root/generation/role-scoped IDs independent of display text.
   Actual 1x/2x pointer and Tab/Enter tests distinguish same-suffix sibling folders, nested marker
@@ -292,6 +324,14 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   open far folders by pointer, reveal assets below folders and preserve filters, source/sidecar bytes,
   revision and pending Undo. Cold folder derivation/sorting remain O(n)/O(n log n); full scale
   and physical acceptance remain open. [Linux evidence](../../Tools/Build/evidence/EditorEDM1-FolderClipping-Linux-2026-10-20.md).
+
+- ✅ Content asset Count/range/SelectVisible queries now reuse immutable item-index projections
+  until item/path publication, Undo or actual folder/filter changes. Selection, unchanged views and
+  artifact-only updates retain indices while returning fresh model-owned payloads; copies never cache
+  foreign item pointers. Model invalidation/range tests and existing actual UI workflows cover source,
+  ordering, navigation and history preservation. Scoped100k synthetic query measurements retain raw
+  cold/warm costs; complete frame/memory/GPU/production budgets and physical acceptance remain open.
+  [Linux evidence](../../Tools/Build/evidence/EditorEDM1-VisibleProjection-Linux-2026-10-20.md).
 
 - ✅ Content child-folder projections now reuse immutable shared-owned snapshots between path
   publications/folder changes. Reset/Discover/mutations/Undo refresh the projection; view-only state
@@ -381,6 +421,25 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 - Open: physical-display/Windows fresh-project workflow acceptance.
 
 ### ED-M2 — Scene authoring core
+
+- ✅ A distinct cloud mixed-history regression records 1,000 two-node transactions (667 Runtime
+  transforms, 333 opaque metadata), then drives 1,000 actual keyboard Undo and Redo operations
+  each at 1x/2x. An independent value oracle checks every state, negative scales, exact unknown
+  bytes, selection and saved/dirty distinctions; production Save and a fresh process verify the
+  final values and empty history. The first edit uses Inspector typing; the remaining recording
+  uses normal authoring APIs. Existing generic/delete replay and shorter workflows are retained.
+  Full Linux passes 305 registered/293 actual passes/12 environment skips with zero failures.
+  Native/physical and complete ED-M2 acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-MixedAuthoringReplay-Linux-2026-10-21.md).
+
+- ✅ Cloud authoring workflow coverage now drives real ImGui Hierarchy multi-selection, mixed
+  Inspector typing/Enter, keyboard Undo/Redo and scoped Save, then verifies a fresh-process
+  reopen at 1x/2x. Cancelled edits, read-only authority and stale file tokens preserve sources;
+  unknown component bytes and untouched transform lanes survive. This is headless widget/process
+  evidence, not native-window or physical-display acceptance. Existing 1,000-cycle transaction
+  coverage is reused. Complete Linux validation passes 291 registered tests with 12 existing skips
+  and zero failures; native/physical acceptance stays open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-AuthoringProcessReopen-Linux-2026-10-20.md).
 
 - ✅ Linux native Scene Preview rotation Save acceptance now retains one physical keyboard
   gesture across rendered release/modifier/key phases. Three cold workflows and the affected
@@ -648,6 +707,20 @@ creates property widgets; unknown components retain raw data instead of being si
   entity records reject reload before live mutation. Plugin restoration/execution and full reflected
   editing remain open.
 
+- ✅ Graphical counted-array controls are validated: actual mixed-length Add/Insert/Remove/
+  reorder/Clear and typed common-element editing share the versioned Core transaction contract.
+  Real1x/2x pointer/key controls cover Undo/Redo, explicit scoped Save and fresh World/UI reopen,
+  preserving unknown bytes. Native X11 buttons/edit/save/process-reopen/read-only also pass with
+  software Vulkan; physical target-host and complete ED-M2 acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrayUi-Linux-2026-10-20.md).
+
+- ✅ Versioned counted-array Core authoring is validated: version2 metadata derives multiple
+  variable tails per source, retaining legacy fixed fields and opaque prefix/other components.
+  Mixed multi-selection, insert/append/remove/reorder/clear and value edits share exact-source
+  validation and one Undo/Redo transaction. The graphical controls are recorded above; complete
+  ED-M2 acceptance remains open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedArrays-Linux-2026-10-20.md).
+
 - ✅ The graphical Inspector now interprets bounded, explicit reflection metadata for opaque
   components: Boolean, signed/unsigned scalars, enum/flags, vectors/colors, full-width entity/asset
   references, fixed arrays and flattened nested paths. Mixed selection commits one exact-source,
@@ -657,7 +730,7 @@ creates property widgets; unknown components retain raw data instead of being si
   1x/2x and native Vulkan edit/save/restart are accepted in
   [the Linux evidence](../../Tools/Build/evidence/EditorEDM2-ReflectedInspector-Linux-2026-10-10.md).
   Native pointer delivery retains down/up across slow frames; eight consecutive actual runs pass.
-  Dynamic arrays, native plugin restoration and complete ED-M2 acceptance remain open.
+  Native plugin restoration and complete ED-M2 acceptance remain open.
 
 - ✅ Native pick/release authoring commands commit before Save, Save-and-exit, and GPU submission.
   Real Xvfb XYZ drags save immediately after release and verify the completed pose; saves while
@@ -1034,6 +1107,30 @@ creates property widgets; unknown components retain raw data instead of being si
   - Open: complete Game View materials/advanced native canvases, complete gameplay services and expanded input routing, complete
     runtime/build log routing, and native debugger/IDE integration.
 - **ED-M4 — Prefabs/scenes/collaboration safety:** variants, override diff/revert/apply, nested rebase, additive scenes, migrations, autosave/recovery, external-change detection, and readable diff/merge. Safe source control precedes live collaboration.
+  - ✅ Linux graphical selected-path Git output is validated at 1x/2x: explicit staged/working
+    queries, complete escaped/clipped output and original last-good path/target labels. Exact
+    status-generation selection and pending identity checks reject stale publication; cancellation,
+    allocation/overflow, read-only, focus/scope and teardown preserve source/index bytes. Native
+    owner wiring drains both providers. Full Linux passes 306 registered/294 actual passes/12
+    environment skips with zero failures; Shipping builds without tests. These are headless widgets
+    and real Git processes, not OS-window or physical acceptance. Merge/nested discovery and full
+    ED-M4 remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-GitDiffUi-Linux-2026-10-21.md).
+  - ✅ Linux validation covers a bounded real Git diff SDK: explicit staged/working-tree queries,
+    literal file/rename paths, complete owning raw output, cancellation and generation-safe
+    publication. Failures retain the original last-good request without index/source writes.
+    Graphical merge, nested discovery and full ED-M4 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-GitDiff-Linux-2026-10-21.md).
+  - ✅ A project-scoped graphical Git status view is validated: explicit trusted-tool Refresh,
+    cancellation, clipped raw-path-safe rows, last-good/error display and native-owner teardown.
+    Actual 1x/2x widgets query disposable repositories without changing index/source bytes.
+    Graphical merge, nested repository discovery and complete ED-M4 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-GitStatusUi-Linux-2026-10-20.md).
+  - ✅ A bounded Git status SDK provider now queries actual local repositories through the managed
+    process runner and preserves owning raw-path/status/rename observations. Generation-qualified
+    publication rejects stale, cancelled, malformed and truncated output; failures retain last-good.
+    Disposable-repository/native-process tests cover conflicts, Unicode, linked worktrees and
+    unchanged index/source bytes. Graphical merge and full ED-M4 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-GitStatus-Linux-2026-10-20.md).
   - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
     sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
     Targeted fields, source apply, structural bindings and reference rebase remain open.
@@ -1204,26 +1301,41 @@ creates property widgets; unknown components retain raw data instead of being si
     unavailable states with fallback reasons.
   - Open: graphical specialized tools and capability plugins backed by each production subsystem.
 - **ED-M6 — Build/profile/extensibility:** profiles, cook/package, target/device matrix, remote logs, CPU/GPU/memory/frame tools, plugin manager, and API docs. Build success includes a target manifest and reproducible command.
+  - ✅ Imported Chrome X/B/E intervals now expose optional self elapsed time excluding observed
+    selected-thread synchronous children, including nonmatching names. Iterative bounded context
+    reconstruction preserves raw relative durations at large clocks, known B/E coincident nesting,
+    begin retention and evicted-slot identity. Async/crossing/ambiguous components retain inclusive
+    values with unavailable self. Core tick-coverage, deep-context, read-only IO and actual1x/2x
+    rendered-value controls validate the supporting slice; CPU execution, other formats, physical
+    calibration and full ED-M6 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeSelfElapsed-Linux-2026-10-20.md).
+  - ✅ External Chrome import now pairs non-nestable legacy S/F intervals by typed ID,
+    category/scope and exact name, separately from nestable b/e. Begin process/thread selection,
+    local/global namespaces and cross-process global aliases retain existing bounded semantics.
+    Duplicate starts, unclosed/malformed scopes and shared 128-open overflow reject; newest600
+    begin-order retention protects evicted begins. Core, read-only project IO and actual 1x/2x
+    Profiler controls cover mixed formats, precision, Unicode and prior-view/source preservation.
+    T/p steps remain metadata; other formats and physical calibration remain
+    open. [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeLegacyAsync-Linux-2026-10-20.md).
   - ✅ External Chrome global async import now aliases legacy id with id2.global and pairs
     cross-process/thread ends. Begin process/thread/name selection, local/global separation,
     global nesting across nonselected processes, typed ID/category/scope isolation, shared
     128-open capacity and evicted-begin safety pass Core, read-only project IO and actual
-    1x/2x mixed-event import controls. Inclusive latency remains externally sourced; legacy S/F,
-    exclusive/self time, other formats and physical calibration remain open.
+    1x/2x mixed-event import controls. Inclusive latency remains externally sourced; other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeGlobalAsync-Linux-2026-10-12.md).
   - ✅ External Chrome import now pairs bounded nestable async b/e with process-local id2.local IDs,
     category/scope identity and cross-thread ends. Selection uses the begin thread/name; shared
     128-open LIFO pairing, mixed X/B/E/b/e begin order, newest600/drop counts, Unicode identity,
     evicted-begin safety and malformed/unbalanced rejection are covered by Core, read-only IO
     and actual 1x/2x controls. Elapsed inclusive latency does not infer CPU execution or GPU/memory.
-    Legacy S/F pairing, other formats and physical calibration remain open.
+    Legacy S/F is covered above; other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeAsyncPairs-Linux-2026-10-12.md).
   - ✅ External Chrome import now supports synchronous B/E duration scopes alongside X events.
     Bounded selected-thread LIFO pairing preserves nested same-name and mixed-event begin order,
     inclusive external durations, newest600/drop counts and evicted-begin safety. Unclosed,
     mismatched, backward or over-capacity scopes reject without changing prior captures/files/live
     profiles; read-only project IO and actual 1x/2x Profiler import controls are covered.
-    Legacy async S/F, exclusive/self time, other formats and physical calibration remain open.
+    Legacy async S/F is covered above; other formats and physical calibration remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-ChromeDurationPairs-Linux-2026-10-12.md).
   - ✅ External Chrome trace inspection is validated: explicit event/process/thread selection,
     bounded Unicode JSON, external clock/duration units, newest600/drop counts and independent
@@ -1527,6 +1639,15 @@ creates property widgets; unknown components retain raw data instead of being si
     actual bytes before line parsing, including post-stat growth. Graphical/scene migration and
     broader crash/cancellation acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ProjectUpgrade-Linux-2026-10-10.md).
+  - ✅ Fixed scene goldens cover Editor 1–4/Runtime 1–3 migration, complete local/world poses,
+    Euler turns, unknown bytes, persistent bindings and deterministic upgraded save/reopen.
+    Plain modern scenes now reject orphan authoring nodes before live replacement; Runtime-only
+    entities remain valid. All 1,490 invalid input variants through file/memory loaders preserve
+    dirty/saved baseline, generations/keys, selection, clipboard, Undo/Redo, unrelated scenes and
+    last-good files; occupied staging is conserved. Complete current-main Linux passes 305
+    registered/293 actual passes/12 environment skips with zero failures. Broader migration,
+    interruption/recovery and physical acceptance remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-SceneGolden-Linux-2026-10-21.md).
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
     fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
     Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation
@@ -1535,8 +1656,8 @@ creates property widgets; unknown components retain raw data instead of being si
     live documents and source data. Full migration/crash/target-host acceptance remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md).
   - ✅ Portable telemetry consent now releases all retained events on opt-out and bounds the
-    in-memory queue to 1,024 events of 1,024 UTF-8 bytes each. Invalid/oversized/overflow events
-    preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
+    in-memory queue to 1,024 events (historically up to 1,024 UTF-8 bytes each).
+    Invalid/oversized/overflow events preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
     cover exact limits, malformed text, saturation and consent transitions. Persistence/transmission,
     redaction and broader graphical privacy acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md).
@@ -1547,6 +1668,12 @@ creates property widgets; unknown components retain raw data instead of being si
     preserve read-only source bytes. No diagnostic storage or network transport is installed;
     graphical signed-package management and persistence/transmission policy remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md).
+  - ✅ Local diagnostic admission retains only typed fixed event codes; exact-label compatibility
+    intake rejects arbitrary caller text before retention. Private paths/commands/source snippets,
+    invalid codes, saturation and consent/reset workflows pass Core and actual 1x/2x UI checks.
+    Supplemental cloud native keyboard/pointer/close/restart preserves read-only sources on
+    software Vulkan. Complete extension trust, generic producer redaction and ED-M7 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-FixedDiagnosticIntake-Linux-2026-10-20.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.
     Routing semantics and product/global Git settings remain unchanged.

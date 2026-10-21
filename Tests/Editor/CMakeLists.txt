@@ -3,6 +3,29 @@ target_link_libraries(NexoraContentDiagnosticTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraContentDiagnosticTests)
 add_test(NAME editor.content_diagnostics COMMAND NexoraContentDiagnosticTests)
 
+add_executable(NexoraContentDirectoryTests ContentDirectoryTests.cpp)
+target_link_libraries(NexoraContentDirectoryTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentDirectoryTests)
+add_test(NAME editor.content_directory_index COMMAND NexoraContentDirectoryTests)
+set_tests_properties(editor.content_directory_index PROPERTIES TIMEOUT 240)
+
+add_executable(NexoraSceneGoldenTests SceneGoldenTests.cpp)
+target_link_libraries(NexoraSceneGoldenTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraSceneGoldenTests)
+add_test(NAME editor.scene_golden_migrations
+  COMMAND NexoraSceneGoldenTests "${CMAKE_CURRENT_SOURCE_DIR}/SceneGolden")
+set_tests_properties(editor.scene_golden_migrations PROPERTIES TIMEOUT 120)
+
+add_executable(NexoraContentPathSortTests ContentPathSortTests.cpp)
+target_link_libraries(NexoraContentPathSortTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentPathSortTests)
+add_test(NAME editor.content_path_sort COMMAND NexoraContentPathSortTests)
+set_tests_properties(editor.content_path_sort PROPERTIES TIMEOUT 240)
+
+add_executable(NexoraContentDirectoryBenchmark ContentDirectoryBenchmark.cpp)
+target_link_libraries(NexoraContentDirectoryBenchmark PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraContentDirectoryBenchmark)
+
 add_executable(NexoraExtensionTrustTests ExtensionTrustTests.cpp)
 add_executable(NexoraChromeTraceTests ChromeTraceTests.cpp)
 target_link_libraries(NexoraChromeTraceTests PRIVATE Nexora::Editor)
@@ -275,6 +298,11 @@ add_executable(NexoraMeshAssetCatalogTests MeshAssetCatalogTests.cpp)
 target_link_libraries(NexoraMeshAssetCatalogTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraMeshAssetCatalogTests)
 add_test(NAME editor.mesh_asset_catalog COMMAND NexoraMeshAssetCatalogTests)
+add_executable(NexoraMeshThumbnailTests MeshThumbnailTests.cpp)
+target_link_libraries(NexoraMeshThumbnailTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraMeshThumbnailTests)
+add_test(NAME editor.mesh_thumbnails COMMAND NexoraMeshThumbnailTests)
+set_tests_properties(editor.mesh_thumbnails PROPERTIES TIMEOUT 30)
 
 add_executable(NexoraMeshReimportTests MeshReimportTests.cpp)
 target_link_libraries(NexoraMeshReimportTests PRIVATE Nexora::Editor)
@@ -351,6 +379,12 @@ nexora_apply_defaults(NexoraStaticProjectExportJobTests)
 add_test(NAME editor.static_project_export_job COMMAND NexoraStaticProjectExportJobTests)
 set_tests_properties(editor.static_project_export_job PROPERTIES TIMEOUT 60)
 set_tests_properties(editor.static_project_export PROPERTIES TIMEOUT 120)
+add_test(NAME editor.static_project_export_cli_diagnostics
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCliDiagnostics.py")
+add_test(NAME editor.static_project_export_cli_diagnostics_optimized
+  COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCliDiagnostics.py")
+set_tests_properties(editor.static_project_export_cli_diagnostics
+  editor.static_project_export_cli_diagnostics_optimized PROPERTIES TIMEOUT 30)
 if(NEXORA_BUILD_PROJECT_PLAYER)
   add_test(NAME editor.static_project_export_cli
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/StaticProjectExportCli.py"
@@ -418,6 +452,12 @@ add_test(NAME editor.gpu_timing_json
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/GpuTimingJsonTests.py" "$<TARGET_FILE:NexoraGpuTimingCaptureTests>")
 add_test(NAME editor.gpu_timing_json_optimized
   COMMAND "${Python3_EXECUTABLE}" -O "${CMAKE_CURRENT_SOURCE_DIR}/GpuTimingJsonTests.py" "$<TARGET_FILE:NexoraGpuTimingCaptureTests>")
+add_executable(NexoraReflectedArrayTests ReflectedArrayTests.cpp)
+target_link_libraries(NexoraReflectedArrayTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraReflectedArrayTests)
+add_test(NAME editor.reflected_dynamic_arrays COMMAND NexoraReflectedArrayTests)
+set_tests_properties(editor.reflected_dynamic_arrays PROPERTIES TIMEOUT 120)
+
 add_executable(NexoraReflectedInspectorTests ReflectedInspectorTests.cpp)
 target_link_libraries(NexoraReflectedInspectorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraReflectedInspectorTests)
@@ -459,3 +499,30 @@ add_executable(NexoraHierarchySnapshotIndexTests HierarchySnapshotIndexTests.cpp
 target_link_libraries(NexoraHierarchySnapshotIndexTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraHierarchySnapshotIndexTests)
 add_test(NAME editor.hierarchy_snapshot_index COMMAND NexoraHierarchySnapshotIndexTests)
+
+add_executable(NexoraGitStatusProcessFixture GitStatusProcessFixture.cpp)
+nexora_apply_defaults(NexoraGitStatusProcessFixture)
+add_executable(NexoraGitStatusProviderTests GitStatusProviderTests.cpp)
+target_link_libraries(NexoraGitStatusProviderTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraGitStatusProviderTests)
+add_test(NAME editor.git_porcelain_parser COMMAND NexoraGitStatusProviderTests --parser)
+find_package(Git QUIET)
+if(Git_FOUND OR GIT_FOUND)
+  add_test(NAME editor.git_status_provider COMMAND NexoraGitStatusProviderTests
+    "${GIT_EXECUTABLE}" "$<TARGET_FILE:NexoraGitStatusProcessFixture>")
+else()
+  add_test(NAME editor.git_status_provider COMMAND NexoraGitStatusProviderTests --unavailable)
+endif()
+set_tests_properties(editor.git_porcelain_parser PROPERTIES TIMEOUT 30)
+set_tests_properties(editor.git_status_provider PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+
+add_executable(NexoraGitDiffProviderTests GitDiffProviderTests.cpp)
+target_link_libraries(NexoraGitDiffProviderTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraGitDiffProviderTests)
+if(Git_FOUND OR GIT_FOUND)
+  add_test(NAME editor.git_diff_provider COMMAND NexoraGitDiffProviderTests
+    "${GIT_EXECUTABLE}" "$<TARGET_FILE:NexoraGitStatusProcessFixture>")
+else()
+  add_test(NAME editor.git_diff_provider COMMAND NexoraGitDiffProviderTests --unavailable)
+endif()
+set_tests_properties(editor.git_diff_provider PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)

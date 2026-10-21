@@ -275,8 +275,107 @@ void VerifyChildFolderSnapshots() {
   Require(destroyed->at(1).path == "Content/B", "folder snapshot borrowed destroyed model");
 }
 
+void VerifyVisibleProjection() {
+  using namespace nexora;
+  using editor::ContentBrowserModel;
+  using editor::ContentItem;
+  using editor::ThumbnailState;
+  const runtime::AssetUuid alpha{402, 1}, beta{402, 2}, child{402, 3}, added{402, 4};
+  const std::array items{
+      ContentItem{alpha, "Content/Alpha.txt", ".TXT", "v1", ThumbnailState::Ready},
+      ContentItem{beta, "Content/Beta.mesh", ".mesh", "v1", ThumbnailState::Ready},
+      ContentItem{child, "Content/Child/Alpha.txt", ".txt", "v1", ThumbnailState::Ready}};
+  ContentBrowserModel model;
+  Require(model.Reset(items, 1), "visible projection fixture failed");
+  const auto check = [&](const ContentBrowserModel &view,
+                         std::initializer_list<runtime::AssetUuid> expected) {
+    // Count warms the projection; ranges must resolve into this model's current item storage.
+    Require(view.VisibleCount() == expected.size(), "visible count retained stale view inputs");
+    const auto rows = view.Visible(0, std::numeric_limits<std::size_t>::max());
+    Require(rows.size() == expected.size(), "visible slice/count disagree");
+    std::size_t index{};
+    for (const auto id : expected) {
+      Require(rows[index]->id == id && rows[index] == view.Find(id),
+              "visible order or model-owned item pointers changed");
+      const auto single = view.Visible(index++, 1);
+      Require(single.size() == 1 && single[0] == view.Find(id), "visible offset lost its row");
+    }
+    Require(view.Visible(0, 0).empty() && view.Visible(expected.size(), 1).empty() &&
+                view.Visible(std::numeric_limits<std::size_t>::max(),
+                             std::numeric_limits<std::size_t>::max())
+                    .empty(),
+            "empty/end/overflow visible range changed");
+  };
+  check(model, {alpha, beta});
+  model.SetFilter("ALPHA", ".txt");
+  check(model, {alpha});
+  model.SetFilter("alpha", ".TXT");
+  Require(model.SetFolder("Content") && model.Select(alpha) &&
+              model.PublishArtifact(alpha, "v2", ThumbnailState::Failed),
+          "view-only/artifact fixture failed");
+  check(model, {alpha});
+  Require(model.Visible(0, 1)[0]->artifact_hash == "v2" &&
+              model.Visible(0, 1)[0]->thumbnail == ThumbnailState::Failed,
+          "visible query cached obsolete item payloads");
+  auto copied = model;
+  Require(model.Rename(alpha, "Renamed.txt"), "filtered rename fixture failed");
+  check(model, {});
+  check(copied, {alpha});
+  Require(model.Undo(), "filtered rename Undo failed");
+  check(model, {alpha});
+  Require(model.SetFolder("Content/Child"), "nested folder fixture failed");
+  check(model, {child});
+  model.SetFilter("missing");
+  check(model, {});
+  Require(model.RevealAsset(child), "same-folder reveal fixture failed");
+  check(model, {child});
+  Require(model.RevealAsset(beta), "cross-folder reveal fixture failed");
+  check(model, {alpha, beta});
+  Require(model.Move(std::array{beta}, "Content/Child"), "visible move fixture failed");
+  check(model, {alpha});
+  Require(model.Undo(), "visible move Undo failed");
+  check(model, {alpha, beta});
+  Require(model.Delete(std::array{alpha}), "visible delete fixture failed");
+  check(model, {beta});
+  Require(model.Discover({added, "Content/Aardvark.txt", ".txt", "v1", ThumbnailState::Ready}),
+          "visible discovery fixture failed");
+  check(model, {added, beta});
+  Require(model.Undo(), "visible discovery-preserving Undo failed");
+  check(model, {added, alpha, beta});
+  Require(!model.Reset(std::array{items[0], items[0]}, 2) && !model.Discover(items[0]) &&
+              !model.SetFolder("../Bad") && !model.Rename(alpha, "../bad.txt") &&
+              !model.Delete(std::array{runtime::AssetUuid{402, 99}}),
+          "invalid mutation fixture unexpectedly accepted");
+  check(model, {added, alpha, beta});
+  model.SetFilter("", ".txt");
+  check(model, {added, alpha});
+  model.SelectVisible();
+  Require(model.IsSelected(added) && model.IsSelected(alpha) && !model.IsSelected(beta) &&
+              !model.IsSelected(child),
+          "SelectVisible ignored projected folder/type filtering");
+  Require(model.SelectVisibleRange(alpha, added) && model.Selection().size() == 2,
+          "reverse visible selection range lost its complete interval");
+  std::array<ContentItem, 4> replacement{
+      items[0], items[1], items[2],
+      ContentItem{added, "Archive/Added.txt", ".txt", "v1", ThumbnailState::Ready}};
+  replacement[0].path = "Archive/Alpha.txt";
+  replacement[1].path = "Content/New.txt";
+  replacement[1].type = ".txt";
+  Require(model.Reset(replacement, 1), "same-count/same-generation Reset failed");
+  check(model, {beta});
+  model = copied;
+  check(model, {alpha});
+  copied = ContentBrowserModel{};
+  check(copied, {});
+  check(model, {alpha});
+  auto moved = std::move(model);
+  check(moved, {alpha});
+  check(model, {});
+}
+
 int Run() {
   VerifyChildFolderSnapshots();
+  VerifyVisibleProjection();
   using namespace nexora;
   namespace fs = std::filesystem;
   const auto root = fs::temp_directory_path() /
@@ -1904,9 +2003,13 @@ int Run() {
               !policy.Allows("Unknown", true),
           "extension signature policy failed");
   editor::TelemetryConsent telemetry;
-  Require(!telemetry.Record("startup") && telemetry.Events().empty(), "telemetry was not opt-in");
+  using Diagnostic = editor::LocalDiagnosticEvent;
+  Require(!telemetry.Record(Diagnostic::FramePresented) && !telemetry.Record("frame.presented") &&
+              telemetry.Events().empty(),
+          "telemetry was not opt-in");
   telemetry.Set(true);
-  Require(telemetry.Record("startup") && telemetry.Events().size() == 1, "opt-in telemetry failed");
+  Require(telemetry.Record(Diagnostic::FramePresented) && telemetry.Events().size() == 1,
+          "opt-in typed telemetry failed");
   const auto original_event = telemetry.Events().front();
   Require(
       !telemetry.Record("") &&
@@ -1915,14 +2018,25 @@ int Run() {
           !telemetry.Record(std::string("\xC0\xAF", 2)) && telemetry.Events().size() == 1 &&
           telemetry.Events().front() == original_event,
       "invalid telemetry changed the accepted queue");
-  Require(telemetry.Record(std::string(editor::TelemetryConsent::kMaximumEventBytes, 'a')) &&
-              telemetry.Record("editor.場景.😀"),
-          "bounded UTF-8 telemetry was rejected");
+  for (const auto &private_text :
+       {std::string("/home/user/private/project.scene"), std::string("C:\\Users\\private\\key"),
+        std::string("git -c http.extraheader=private-token fetch"),
+        std::string("source code\npassword=private"), std::string("editor.場景.😀"),
+        std::string("frame.presented "), std::string("FRAME.PRESENTED"),
+        std::string("frame.presented\0private", 23),
+        std::string(editor::TelemetryConsent::kMaximumEventBytes, 'a')})
+    Require(!telemetry.Record(private_text) && telemetry.Events().size() == 1 &&
+                telemetry.Events().front() == original_event,
+            "unknown or sensitive text crossed the retention boundary");
+  Require(!telemetry.Record(static_cast<Diagnostic>(255)) && telemetry.Events().size() == 1 &&
+              telemetry.Record("frame.presented"),
+          "invalid enum accepted or exact compatibility label rejected");
   while (telemetry.Events().size() < editor::TelemetryConsent::kMaximumEvents)
-    Require(telemetry.Record("frame"), "telemetry capacity filled early");
-  Require(!telemetry.Record("overflow") &&
+    Require(telemetry.Record(Diagnostic::FramePresented), "telemetry capacity filled early");
+  Require(!telemetry.Record(Diagnostic::FramePresented) && !telemetry.Record("frame.presented") &&
               telemetry.Events().size() == editor::TelemetryConsent::kMaximumEvents &&
-              telemetry.Events().front() == original_event && telemetry.Events().back() == "frame",
+              telemetry.Events().front() == original_event &&
+              telemetry.Events().back() == "frame.presented",
           "telemetry overflow evicted accepted events or grew the queue");
   telemetry.Set(true);
   Require(telemetry.Events().size() == editor::TelemetryConsent::kMaximumEvents,
@@ -1932,8 +2046,8 @@ int Run() {
           "revoking consent retained events or accepted new telemetry");
   telemetry.Set(false);
   telemetry.Set(true);
-  Require(telemetry.Events().empty() && telemetry.Record("new-session") &&
-              telemetry.Events().size() == 1 && telemetry.Events().front() == "new-session",
+  Require(telemetry.Events().empty() && telemetry.Record(Diagnostic::FramePresented) &&
+              telemetry.Events().size() == 1 && telemetry.Events().front() == "frame.presented",
           "re-enabling consent resurrected previously retained events");
   telemetry.Set(false);
   editor::AdditiveSceneGraph scene_graph;
