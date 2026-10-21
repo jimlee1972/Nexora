@@ -554,6 +554,7 @@ struct EditorImGuiHost::State final {
   std::filesystem::path content_rename_root, content_rename_path;
   bool content_rename_focus{};
   std::array<std::optional<std::array<float, 2>>, 3> content_rename_positions;
+  std::optional<std::array<float, 2>> content_undo_position, content_reimport_position;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
   std::uint32_t content_rendered_folders = 0;
@@ -3808,6 +3809,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   const auto window = PanelWindowName("nexora.content");
   state.content_rename_positions = {};
+  state.content_undo_position.reset();
+  state.content_reimport_position.reset();
   state.content_search_position.reset();
   state.content_focused_folder.reset();
   state.content_focused_asset.reset();
@@ -3874,6 +3877,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   ImGui::BeginDisabled(!commands_allowed || !content.CanUndo());
   if (ImGui::Button("Undo content"))
     static_cast<void>(content.Undo());
+  {
+    const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+    state.content_undo_position = std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+  }
   ImGui::EndDisabled();
 
   const bool keyboard =
@@ -4175,6 +4182,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                             commands_allowed && content.Writable() && imports != nullptr &&
                                 !content.ReimportBusy()))
           reimport_asset = item->id;
+        {
+          const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+          state.content_reimport_position = std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+        }
         if (ImGui::MenuItem("Delete", "Delete", false, commands_allowed && content.Writable()))
           delete_assets = {item->id};
         ImGui::EndPopup();
@@ -8486,6 +8497,12 @@ EditorImGuiTestAccess::PlayApplyPosition(const EditorImGuiHost &host, bool confi
 }
 bool EditorImGuiTestAccess::PlayApplyOpen(const EditorImGuiHost &host) noexcept {
   return host.state_->play_apply_open;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentWorkflowPosition(const EditorImGuiHost &host,
+                                               bool reimport) noexcept {
+  return reimport ? host.state_->content_reimport_position : host.state_->content_undo_position;
 }
 
 void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {

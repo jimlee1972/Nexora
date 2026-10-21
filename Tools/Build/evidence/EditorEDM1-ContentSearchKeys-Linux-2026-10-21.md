@@ -74,3 +74,20 @@ zero tests are registered. Minimal Shipping configure/build passes9 integration 
 Editor/SDK stripped and zero tests. Final acceptance changes documentation only and receives
 current-version metadata/key checks and documentation routing before publication.
 Production assets/RSS, remaining indexing work, physical acceptance and complete M1 stay open.
+
+## Accepted-main workflow integration
+
+The final candidate integrates accepted main `8e404390` (including PR692's real native asset
+workflow). All consumers rebuild (383 steps); current-version/key tests pass2/2 and documentation
+routing passes16/16. The exact integration source is frozen across5522 tracked/new files.
+The complete gate replay passes318 registered tests,311 actual passes,7 explicit recording skips,
+zero failures in834.03s. Persistent pre-hash, CTest, log-copy and post-hash exit statuses are all0.
+An earlier complete invocation reported all tests passing in787.36s but its wrapper returned1
+without a diagnosed failing component; that invocation is excluded from accepted gate evidence.
+The replay records independent exit statuses and JUnit (318 tests,0 failures,7 skipped).
+
+The rebuilt native application additionally passes the actual project-create/import/search/inspect/
+move/reimport-failure/retry/Undo/save/read-only-reopen workflow against this integrated source,
+including exact identity/sidecar retention, current mesh geometry and unrelated binary source bytes.
+This is a software-Vulkan/Xvfb cloud check; physical display, production assets/RSS and full M1
+acceptance remain open. Final evidence updates change documentation only.
