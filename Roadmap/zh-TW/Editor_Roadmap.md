@@ -208,9 +208,10 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
-- 大型 indexed Content 資料夾以有界 owning 檔名／類型 key 攤提搜尋條件切換成本，
+- ✅ 大型 indexed Content 資料夾以有界 owning 檔名／類型 key 攤提搜尋條件切換成本，
   保留完整 legacy fallback，並於來源／資料夾／locale 變更時失效。獨立結果／排序、
-  copy、交易、拖放與配置／預算檢查通過；完整 gate 尚待通過。100k metadata 比較
+  copy、交易、拖放與配置／預算檢查通過；完整 Linux318 項登錄、311 項實際通過、
+  7 項環境 skip；production assets／RSS 保持未完成。100k metadata 比較
   與剩餘 production 範圍記錄於
   [證據](../../Tools/Build/evidence/EditorEDM1-ContentSearchKeys-Linux-2026-10-21.md)。
 

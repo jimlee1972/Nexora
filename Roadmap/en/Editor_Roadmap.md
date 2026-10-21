@@ -217,9 +217,10 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
-- Bounded owning filename/type keys now amortize changing filters in large indexed Content
+- ✅ Bounded owning filename/type keys now amortize changing filters in large indexed Content
   folders, with complete legacy fallback and source/folder/locale invalidation. Independent
-  result/order, copy, transaction, drag and allocation/budget checks pass; full gate is pending.
+  result/order, copy, transaction, drag and allocation/budget checks pass; full Linux passes318
+  registered/311 actual passes/7 environment skips. Production assets/RSS remain open.
   The 100k metadata comparison and remaining production scope are recorded in
   [evidence](../../Tools/Build/evidence/EditorEDM1-ContentSearchKeys-Linux-2026-10-21.md).
 
