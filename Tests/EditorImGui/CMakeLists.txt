@@ -772,6 +772,11 @@ target_link_libraries(NexoraPrefabPlacementOverrideUiTests PRIVATE Nexora::Edito
 target_include_directories(NexoraPrefabPlacementOverrideUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 nexora_apply_defaults(NexoraPrefabPlacementOverrideUiTests)
 add_test(NAME editor.prefab_placement_override_ui COMMAND NexoraPrefabPlacementOverrideUiTests)
+foreach(nexora_source_ui_scale RANGE 1 2)
+  add_test(NAME editor.prefab_instance_source_apply_ui_${nexora_source_ui_scale}x
+    COMMAND NexoraPrefabPlacementOverrideUiTests --apply-source "${nexora_source_ui_scale}")
+  set_tests_properties(editor.prefab_instance_source_apply_ui_${nexora_source_ui_scale}x PROPERTIES TIMEOUT 120)
+endforeach()
 set_tests_properties(editor.prefab_placement_source_ui PROPERTIES TIMEOUT 60)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
   add_test(NAME editor.linux_prefab_placement_source_rebase
@@ -794,6 +799,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementOverrideUiTests>"
       --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --selected)
   set_tests_properties(editor.linux_prefab_placement_selected_revert PROPERTIES TIMEOUT 90 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_prefab_instance_source_apply
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPrefabInstanceSourceApply.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --fixture "$<TARGET_FILE:NexoraPrefabPlacementOverrideUiTests>"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_prefab_instance_source_apply PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
 endif()
 add_executable(NexoraReflectedArrayUiTests ReflectedArrayUiTests.cpp)
 target_include_directories(NexoraReflectedArrayUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")

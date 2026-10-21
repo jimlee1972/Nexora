@@ -1587,6 +1587,16 @@ int RunGraphical(std::optional<ProjectState> project,
               std::ranges::equal(node->scope, scope.scope);
         }
         std::string error;
+        const auto source_compatible =
+            [&](const nexora::editor::PrefabPlacementOverrideReview &review) {
+              return placement != placements.end() &&
+                     review.PublishedRevision() == scope.retained.revision &&
+                     scope.retained.revision != std::numeric_limits<std::uint64_t>::max() &&
+                     std::ranges::all_of(placement->nodes,
+                                         [](const auto &node) { return node.scope.empty(); }) &&
+                     std::ranges::none_of(review.Rows(),
+                                          &nexora::editor::PrefabPlacementOverrideRow::structural);
+            };
         if (request->action == Action::Review) {
           prefab_instance_review.reset();
           prefab_instance_scope.reset();
@@ -1599,7 +1609,8 @@ int RunGraphical(std::optional<ProjectState> project,
                 scope,
                 ++prefab_instance_review_serial,
                 reviewed->PublishedRevision(),
-                {reviewed->Rows().begin(), reviewed->Rows().end()}};
+                {reviewed->Rows().begin(), reviewed->Rows().end()},
+                source_compatible(*reviewed)};
             if (ui.SetPrefabPlacementOverrideReport(std::move(report))) {
               std::cerr << "prefab instance reviewed rows=" << reviewed->Rows().size()
                         << " retained=" << reviewed->Source().revision
@@ -1616,18 +1627,62 @@ int RunGraphical(std::optional<ProjectState> project,
                                   *prefab_instance_scope == scope && prefab_instance_review &&
                                   request->review == prefab_instance_review_serial;
           const bool targeted = request->action == Action::RevertSelected;
-          const bool applied =
-              authorized &&
-              (targeted
-                   ? Overrides::RevertSelected(project->workspace, active_scene(),
-                                               *prefab_instance_review, request->rows, true, &error)
-                   : Overrides::Revert(project->workspace, active_scene(), *prefab_instance_review,
-                                       true, &error));
+          bool applied{};
+          if (request->action == Action::ApplySelectedToSource) {
+            bool supported =
+                authorized && source_compatible(*prefab_instance_review) && !request->rows.empty();
+            if (supported)
+              for (const auto index : request->rows) {
+                if (index >= prefab_instance_review->Rows().size()) {
+                  supported = false;
+                  break;
+                }
+                const auto &row = prefab_instance_review->Rows()[index];
+                if (!row.property || !row.scope.empty() || row.source != scope.retained ||
+                    (row.field.starts_with("opaque/") && (!row.retained || !row.local))) {
+                  supported = false;
+                  break;
+                }
+              }
+            std::optional<nexora::editor::PrefabAsset> published;
+            try {
+              if (supported)
+                published = Overrides::ApplySelectedToSource(project->workspace, active_scene(),
+                                                             *prefab_instance_review, request->rows,
+                                                             true, &error);
+            } catch (const std::bad_alloc &) {
+              error = "Source publication could not be confirmed. Inspect the current source and "
+                      "archive before retrying.";
+            }
+            applied = published.has_value();
+            if (current && placement != placements.end())
+              static_cast<void>(ui.SetPrefabPlacementSourceReport(
+                  {scope, applied, published ? std::optional(published->revision) : std::nullopt,
+                   applied ? std::optional(scope.retained) : std::nullopt,
+                   placement->nodes.size()}));
+            prefab_rebase_review.reset();
+            prefab_rebase_scope.reset();
+            if (applied)
+              std::cerr << "prefab instance source applied retained=" << scope.retained.revision
+                        << " published=" << published->revision << " rows=" << request->rows.size()
+                        << '\n';
+            else if (error.empty())
+              error = "Source application is unavailable for this captured selection. Inspect the "
+                      "source before retrying.";
+          } else if (request->action == Action::Revert || targeted) {
+            applied = authorized &&
+                      (targeted ? Overrides::RevertSelected(project->workspace, active_scene(),
+                                                            *prefab_instance_review, request->rows,
+                                                            true, &error)
+                                : Overrides::Revert(project->workspace, active_scene(),
+                                                    *prefab_instance_review, true, &error));
+          } else
+            error = "Unsupported prefab instance action.";
           if (applied) {
             if (targeted)
               std::cerr << "prefab instance selected revert retained=" << scope.retained.revision
                         << " rows=" << request->rows.size() << '\n';
-            else
+            else if (request->action == Action::Revert)
               std::cerr << "prefab instance reverted retained=" << scope.retained.revision << '\n';
             ui.SetPrefabPlacementOverrideError({});
           } else if (error.empty())

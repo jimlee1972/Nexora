@@ -1349,6 +1349,38 @@ old click. Scope-invalid, over-budget or inconsistent reports reject without rep
 display. Local ordinary property changes do not fabricate source values or imply live source
 validity. Instance override/revert/apply/rebase remain separate authoring operations.
 
+## Live prefab selected source publication
+
+The instance review exposes Apply selected to source only for a current, non-nested source
+with supported existing property groups. `can_apply_to_source` is a default-false observation,
+never authority. The UI independently checks row/source/document generations, retained/current
+revision equality, revision exhaustion, structural rows and unsupported opaque field additions
+or removals. Checkbox identities include review and node generations, so a held release cannot
+select a replacement review. Public C++ UI consumers must rebuild; stable C ABI/formats are unchanged.
+
+The explicit confirmation names the destination source and explains new-revision publication,
+the instance's retained binding and independent source history versus Scene Undo. Cancel, focus
+or authoring/read permission loss, scope replacement and fresh source inspection revoke consent.
+An owning one-shot request copies the exact scope, review serial and selected row indices. Drawing
+does no IO. The native authoring thread repeats project writer, Scene ownership, stopped Play,
+modal/recovery, immutable review and compatible selection checks before calling Core publication.
+No module callback, source/document borrow or pending IO survives in the widget state.
+
+Success refreshes the observed source revision and clears old override/rebase decisions; it leaves
+the live Scene, retained binding, saved baseline and Undo history unchanged. Rebase and Scene Save
+remain explicit separate operations. Any failed or unconfirmed attempt clears captured consent
+and requires fresh inspection. A post-replacement publisher/readback failure may leave the new
+source installed; inspect the current source and retained archive before retrying. This interface
+does not promise rollback of an unconfirmed filesystem publication. Nested/structural source
+application and power-loss recovery remain separate work.
+
+Actual 1x/2x widget tests verify consent, owning requests and successful/failed production asset
+operations, including explicit separate rebase/Undo/Redo/Save/fresh World reopen. The conditional
+`editor.linux_prefab_instance_source_apply` workflow additionally drives real X11 controls, compares
+the complete selected source container against an independent byte oracle, preserves archive/Scene
+bytes and reopens a separate read-only process. It uses the existing Xvfb/xdotool graphical gate;
+software-display results remain separate from physical acceptance.
+
 ## Build process interaction guards
 
 Build-process Run also independently checks current focus, queued Play/close decisions and

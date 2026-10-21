@@ -120,7 +120,12 @@ struct PrefabPlacementSourceReport final {
   std::optional<PrefabRevisionReference> scoped_source{};
   std::size_t mapped_nodes{};
 };
-enum class PrefabPlacementOverrideAction : std::uint8_t { Review, Revert, RevertSelected };
+enum class PrefabPlacementOverrideAction : std::uint8_t {
+  Review,
+  Revert,
+  RevertSelected,
+  ApplySelectedToSource
+};
 struct PrefabPlacementOverrideRequest final {
   PrefabPlacementSourceRequest scope;
   PrefabPlacementOverrideAction action{PrefabPlacementOverrideAction::Review};
@@ -132,6 +137,8 @@ struct PrefabPlacementOverrideReport final {
   std::uint64_t review{};
   std::optional<std::uint64_t> published_revision;
   std::vector<PrefabPlacementOverrideRow> rows;
+  // Owning compatibility observation only; default-off and never a write capability.
+  bool can_apply_to_source{};
 };
 enum class PrefabPlacementRebaseAction : std::uint8_t { Review, Apply };
 struct PrefabPlacementRebaseRequest final {
