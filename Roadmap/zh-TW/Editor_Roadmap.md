@@ -392,6 +392,15 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
 
 ### ED-M2 — Scene authoring core
 
+- ✅ 獨立的雲端混合 history 回歸測試記錄 1,000 次雙物件交易（667 次 Runtime transform、
+  333 次 opaque metadata），於 1x／2x 各透過真實鍵盤執行 1,000 次 Undo 與 Redo。
+  獨立 value oracle 逐步檢查完整狀態、負縮放、未知 bytes、選取與 saved／dirty 區別；
+  production Save 與全新 process 驗證最終值及空 history。第一筆編輯使用 Inspector 輸入，
+  其餘記錄使用正常 authoring API；保留既有 generic／delete replay 與較短 workflow。
+  完整 Linux 305 項登錄測試中 293 項實際通過、12 項環境 skip，零失敗。
+  Native／實機及完整 ED-M2 驗收保持 open。
+  [證據](../../Tools/Build/evidence/EditorEDM2-MixedAuthoringReplay-Linux-2026-10-21.md)。
+
 - ✅ 雲端 authoring workflow 測試現在透過真實 ImGui Hierarchy 多選、mixed Inspector
   輸入／Enter、鍵盤 Undo／Redo 與 scoped Save，再以全新 process 於 1x／2x 驗證重開。
   取消編輯、唯讀權限及過期 file token 保留來源；未知 component bytes 與未編輯 transform

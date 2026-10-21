@@ -881,4 +881,9 @@ foreach(nexora_authoring_scale RANGE 1 2)
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AuthoringReopen.py"
       "$<TARGET_FILE:NexoraAuthoringReopenTests>" "${nexora_authoring_scale}")
   set_tests_properties(editor.authoring_reopen_ui_${nexora_authoring_scale}x PROPERTIES TIMEOUT 150)
+  add_test(NAME editor.authoring_mixed_replay_1000_${nexora_authoring_scale}x
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/AuthoringReplay.py"
+      "$<TARGET_FILE:NexoraAuthoringReopenTests>" "${nexora_authoring_scale}")
+  set_tests_properties(editor.authoring_mixed_replay_1000_${nexora_authoring_scale}x PROPERTIES
+    TIMEOUT 300 RUN_SERIAL TRUE)
 endforeach()

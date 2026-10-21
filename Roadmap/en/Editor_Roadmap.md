@@ -419,6 +419,16 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
 
 ### ED-M2 — Scene authoring core
 
+- ✅ A distinct cloud mixed-history regression records 1,000 two-node transactions (667 Runtime
+  transforms, 333 opaque metadata), then drives 1,000 actual keyboard Undo and Redo operations
+  each at 1x/2x. An independent value oracle checks every state, negative scales, exact unknown
+  bytes, selection and saved/dirty distinctions; production Save and a fresh process verify the
+  final values and empty history. The first edit uses Inspector typing; the remaining recording
+  uses normal authoring APIs. Existing generic/delete replay and shorter workflows are retained.
+  Full Linux passes 305 registered/293 actual passes/12 environment skips with zero failures.
+  Native/physical and complete ED-M2 acceptance remain open.
+  [Evidence](../../Tools/Build/evidence/EditorEDM2-MixedAuthoringReplay-Linux-2026-10-21.md).
+
 - ✅ Cloud authoring workflow coverage now drives real ImGui Hierarchy multi-selection, mixed
   Inspector typing/Enter, keyboard Undo/Redo and scoped Save, then verifies a fresh-process
   reopen at 1x/2x. Cancelled edits, read-only authority and stale file tokens preserve sources;
