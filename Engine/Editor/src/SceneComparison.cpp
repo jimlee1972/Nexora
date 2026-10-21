@@ -151,10 +151,10 @@ std::optional<Fields> Read(std::optional<std::string_view> source, std::string *
         break;
       const auto path = prefix + "nodes/" + std::to_string(node.target) + '/';
       std::string scope;
-      for (const auto id : node.scope) {
+      for (const auto scope_id : node.scope) {
         if (!scope.empty())
           scope += '/';
-        scope += id.ToString();
+        scope += scope_id.ToString();
       }
       valid = snapshot.Put(path + "present", "true") &&
               snapshot.Put(path + "source_node", node.source_node.ToString()) &&

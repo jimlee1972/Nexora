@@ -62,3 +62,15 @@ its two additional tests are absent from this independent tree.
 Initial documentation CI passes16/16 in30.235 s. Final documentation and exact-head hosted checks
 remain pending. Internal projection changes add no exported layout/linkage and require no new
 Shipping gate. No real GPU, physical DPI/IME or screen-reader acceptance is inferred.
+
+## Hosted Windows portability follow-up
+
+The initial public headbd921b56 fails Windows desktop and mimalloc compilation: MSVC /W4 /WX
+reports C4456 at the scope UUID loop because its local `id` shadows the scene identity. Rename
+only that loop variable to `scope_id`; emitted values, paths, limits, ABI and behavior are unchanged.
+No diagnostic suppression or compiler/deadline relaxation is added. An additional Linux compiler
+syntax pass with `-Wshadow -Werror=shadow` succeeds. The complete required configure/build/Linux
+gate passes again: **311 registered,299 actual passes,12 environment skips,zero failures,689.26 s**,
+with all61 updated source hashes unchanged. Deep/100k pass95.81/208.12 s at the original180/300-second
+limits and scale1. The superseded public head must never be merged. New exact-head hosted
+Windows/other checks remain required; Linux does not substitute for MSVC validation.
