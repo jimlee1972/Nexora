@@ -1169,6 +1169,12 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   目前 main 整合完整 Linux 314 項登錄測試中302 項實際通過、12 項環境 skip，既有限制不變。
   圖形 review、project／reference 驗證與原子發布保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md)。
+- ✅ 限定範圍的僅檔案語意合併發布已有 owning 單次 capability 與版本1完整性驗證原始來源／候選備份。
+  成功／重開、過期／取消、唯讀、未知資料及損毀分支通過；完整 Linux 共316註冊、304實際通過、
+  12環境跳過，原斷言及逾時維持不變。
+  圖形確認、live 採用、整個場景不存在的發布及完整 project/reference 驗證仍未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md)。
+
 
 - ✅ 實際非同步 comparison worker 現保留 owning immutable merge review；ready 差異列共用
   該 review，舊副本在 owner 銷毀後仍保有 captured data。目前 scope／取消／失敗檢查
@@ -1520,6 +1526,12 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
   仍待完成。[Linux 證據](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md)。
 
 ### ED-M7 — Production hardening
+
+- ✅ Native ray oracle 失敗現保留有上限的 owning workload/input、expected/actual 數值與位元診斷，
+  不變更斷言、誤差或逾時。CPU 人為損毀驗證拒絕及記錄；完整 Linux 共315註冊、303實際通過、
+  12環境跳過。
+  Windows 間歇性問題根因修復仍未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM7-RayOracleDiagnostics-Linux-2026-10-21.md)。
 
 - ✅ [ED-M0 語意交接](Editor_Accessibility_Handoff.md) 已列出 stable ID、缺少的 role／action／
   value、focus／failure／live-region 與 platform bridge 候選。此項只交付盤點；semantic adapter

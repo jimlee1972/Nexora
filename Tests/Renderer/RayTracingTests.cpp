@@ -7,8 +7,11 @@
 #include <bit>
 #include <cmath>
 #include <cstdlib>
+#include <iomanip>
 #include <iostream>
 #include <limits>
+#include <source_location>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -130,13 +133,32 @@ rhi::RayHit Reference(std::span<const rhi::RayTriangle> triangles, const rhi::Ra
 std::vector<std::uint32_t> Empty(std::uint32_t count) {
   return std::vector<std::uint32_t>((count + 1) * 4, Sentinel);
 }
+// Test-owned immutable workload provenance; no production backend state or oracle is altered.
+int CurrentOracleMode = -1;
+bool CurrentEnhancedBarriers = false;
+struct OracleProvenance final {
+  rhi::Backend backend{};
+  std::uint32_t vendor{}, device{};
+  std::uint64_t driver{};
+  bool software{}, enhanced{};
+  int mode{-1};
+  std::string site;
+  std::uint_least32_t line{};
+  std::size_t triangle_count{};
+  std::vector<rhi::RayTriangle> triangles;
+  std::vector<rhi::RayInput> rays;
+};
 struct Workload final {
   std::array<rhi::BufferHandle, 5> buffers;
   std::uint32_t count;
   std::vector<rhi::RayHit> expected;
+  OracleProvenance provenance{};
+  // Each parallel recorder owns a different Workload; comparisons run only after draining.
+  mutable const char *dispatch{"not-recorded"};
 };
 Workload Make(rhi::Device &device, std::span<const rhi::RayTriangle> triangles, std::uint32_t count,
-              std::span<const rhi::RayInput> supplied = {}) {
+              std::span<const rhi::RayInput> supplied = {},
+              const std::source_location where = std::source_location::current()) {
   const auto rays =
       supplied.empty() ? Rays(count) : std::vector<rhi::RayInput>{supplied.begin(), supplied.end()};
   Require(rays.size() == count, "fixture ray count mismatch");
@@ -159,6 +181,21 @@ Workload Make(rhi::Device &device, std::span<const rhi::RayTriangle> triangles, 
                    device.CreateBuffer({rays.size() * sizeof(rhi::RayInput), "native ray inputs"})},
                   count,
                   {}};
+  const auto caps = device.Capabilities();
+  auto &provenance = result.provenance;
+  provenance.backend = device.GetBackend();
+  provenance.vendor = caps.vendor_id;
+  provenance.device = caps.device_id;
+  provenance.driver = caps.driver_version;
+  provenance.software = caps.software_device;
+  provenance.mode = CurrentOracleMode;
+  provenance.enhanced = CurrentEnhancedBarriers;
+  provenance.site = std::string(where.function_name()).substr(0, 192);
+  provenance.line = where.line();
+  provenance.triangle_count = triangles.size();
+  provenance.triangles.assign(triangles.begin(),
+                              triangles.begin() + std::min<std::size_t>(64, triangles.size()));
+  provenance.rays.assign(rays.begin(), rays.begin() + std::min<std::size_t>(64, rays.size()));
   device.WriteBuffer(result.buffers[0], 0, std::as_bytes(std::span{packed}));
   device.WriteBuffer(result.buffers[4], 0, std::as_bytes(std::span{rays}));
   const auto empty = Empty(count);
@@ -176,24 +213,134 @@ std::vector<std::uint32_t> Read(rhi::Device &device, const Workload &work) {
   device.ReadBufferForTesting(work.buffers[1], 0, std::as_writable_bytes(std::span{words}));
   return words;
 }
-void Compare(rhi::Device &device, const Workload &work) {
-  const auto words = Read(device, work);
+void DescribeFailure(std::ostream &output, const Workload &work,
+                     std::span<const std::uint32_t> words, std::size_t index, const char *field) {
+  // One bounded report, built independently from the CPU expected values and actual GPU words.
+  std::ostringstream report;
+  report << std::setprecision(std::numeric_limits<float>::max_digits10);
+  const auto &p = work.provenance;
+  report << "RayOracleMismatch field=" << field << " backend=" << static_cast<unsigned>(p.backend)
+         << " mode=" << p.mode << " dispatch=" << work.dispatch << " vendor=" << p.vendor
+         << " device=" << p.device << " driver=" << p.driver << " software=" << p.software
+         << " enhanced=" << p.enhanced << " site=" << p.site << ':' << p.line
+         << " triangles=" << p.triangle_count << " captured_triangles=" << p.triangles.size()
+         << " rays=" << work.count << " index=" << index << '\n';
+  const auto values = [&](std::string_view name, auto numbers) {
+    report << name << '=';
+    for (const float number : numbers)
+      report << number << "[0x" << std::hex << std::bit_cast<std::uint32_t>(number) << std::dec
+             << "] ";
+    report << '\n';
+  };
+  if (index < p.rays.size()) {
+    const auto &ray = p.rays[index];
+    values("origin", ray.origin);
+    values("direction", ray.direction);
+    values("range", std::array{ray.minimum, ray.maximum});
+  }
+  if (index < work.expected.size()) {
+    const auto &expected = work.expected[index];
+    report << "expected_primitive=" << expected.primitive << '\n';
+    values("expected_distance_barycentrics",
+           std::array{expected.distance, expected.barycentrics[0], expected.barycentrics[1]});
+  }
+  const auto offset = index * 4;
+  if (offset + 4 <= words.size()) {
+    report << "actual_words=";
+    for (std::size_t j = 0; j < 4; ++j)
+      report << "0x" << std::hex << words[offset + j] << ' ';
+    report << std::dec << "\nactual_primitive=" << words[offset] << '\n';
+    values("actual_distance_barycentrics", std::array{std::bit_cast<float>(words[offset + 1]),
+                                                      std::bit_cast<float>(words[offset + 2]),
+                                                      std::bit_cast<float>(words[offset + 3])});
+  }
+  for (std::size_t i = 0; i < p.triangles.size(); ++i) {
+    report << "triangle=" << i << ' ';
+    values("vertices", p.triangles[i].vertices);
+  }
+  output << report.str();
+}
+void CompareWords(std::span<const std::uint32_t> words, const Workload &work,
+                  std::ostream &output) {
+  Require(words.size() == (work.count + 1) * 4 && work.expected.size() == work.count,
+          "ray diagnostic fixture shape mismatch");
+  const auto check = [&](bool value, const char *message, std::size_t index, const char *field) {
+    if (!value)
+      DescribeFailure(output, work, words, index, field);
+    Require(value, message);
+  };
   for (std::uint32_t i = 0; i < work.count; ++i) {
     const auto &expected = work.expected[i];
-    Require(words[i * 4] == expected.primitive,
-            "ray primitive differs from double-precision CPU traversal");
-    Require(std::abs(std::bit_cast<float>(words[i * 4 + 1]) - expected.distance) <= 1e-4F,
-            "ray distance differs from CPU traversal");
+    check(words[i * 4] == expected.primitive,
+          "ray primitive differs from double-precision CPU traversal", i, "primitive");
+    check(std::abs(std::bit_cast<float>(words[i * 4 + 1]) - expected.distance) <= 1e-4F,
+          "ray distance differs from CPU traversal", i, "distance");
     for (std::size_t j = 0; j < 2; ++j)
-      Require(std::abs(std::bit_cast<float>(words[i * 4 + 2 + j]) - expected.barycentrics[j]) <=
-                  1e-4F,
-              "ray barycentrics differ from CPU traversal");
+      check(std::abs(std::bit_cast<float>(words[i * 4 + 2 + j]) - expected.barycentrics[j]) <=
+                1e-4F,
+            "ray barycentrics differ from CPU traversal", i,
+            j == 0 ? "barycentric_u" : "barycentric_v");
   }
   for (std::size_t i = work.count * 4; i < words.size(); ++i)
-    Require(words[i] == Sentinel, "ray dispatch overwrote the output canary");
+    check(words[i] == Sentinel, "ray dispatch overwrote the output canary", i / 4, "canary");
 }
+void Compare(rhi::Device &device, const Workload &work) {
+  const auto words = Read(device, work);
+  CompareWords(words, work, std::cerr);
+}
+void DiagnosticSelfCheck() {
+  Workload work{{}, 1, {{0, 2.F, {.25F, .5F}}}};
+  work.provenance.site = "synthetic_cpu_oracle";
+  work.provenance.line = 17;
+  work.provenance.triangle_count = 1;
+  work.provenance.triangles = Triangles(1);
+  work.provenance.rays = Rays(1);
+  work.dispatch = "synthetic-no-GPU";
+  auto good = Empty(1);
+  good[0] = 0;
+  good[1] = std::bit_cast<std::uint32_t>(2.F);
+  good[2] = std::bit_cast<std::uint32_t>(.25F);
+  good[3] = std::bit_cast<std::uint32_t>(.5F);
+  std::ostringstream quiet;
+  CompareWords(good, work, quiet);
+  Require(quiet.str().empty(), "matching oracle emitted failure diagnostics");
+  constexpr std::array<const char *, 5> fields{"primitive", "distance", "barycentric_u",
+                                               "barycentric_v", "canary"};
+  for (std::size_t i = 0; i < fields.size(); ++i) {
+    auto wrong = good;
+    wrong[i] = i == 0 ? 7U : i == 4 ? 0U : std::bit_cast<std::uint32_t>(9.F);
+    std::ostringstream captured;
+    bool rejected{};
+    try {
+      CompareWords(wrong, work, captured);
+    } catch (const std::runtime_error &) {
+      rejected = true;
+    }
+    const auto text = captured.str();
+    Require(rejected && text.starts_with(std::string("RayOracleMismatch field=") + fields[i]) &&
+                text.find("synthetic_cpu_oracle:17") != std::string::npos &&
+                text.find("actual_words=0x") != std::string::npos && text.size() < 8192,
+            "synthetic oracle lost exact mismatch context or accepted corrupt output");
+    if (i < 4)
+      Require(text.find("expected_primitive=0") != std::string::npos &&
+                  text.find("origin=") != std::string::npos &&
+                  text.find("triangle=0") != std::string::npos,
+              "synthetic oracle lost owning input or expected geometry");
+  }
+  auto invalid = good;
+  invalid[1] = std::bit_cast<std::uint32_t>(std::numeric_limits<float>::quiet_NaN());
+  std::ostringstream captured;
+  Reject([&] { CompareWords(invalid, work, captured); },
+         "NaN distance passed the unchanged oracle");
+  Require(captured.str().find("field=distance") != std::string::npos,
+          "NaN failure lost bit-level diagnostics");
+  std::cout
+      << "Synthetic CPU oracle diagnostic failures verified; no native GPU reproduction claimed\n";
+}
+
 void Record(rhi::CommandList &commands, rhi::PipelineHandle compute, rhi::RayProgramHandle program,
             rhi::RaySceneHandle scene, const Workload &work) {
+  work.dispatch = program.IsValid() ? "TraceRays" : "ComputeReference";
   if (program.IsValid())
     commands.TraceRays(program, scene, work.buffers[4], work.buffers[1], work.count);
   else {
@@ -869,6 +1016,7 @@ rhi::RayHit OpacityReference(std::span<const rhi::RayTriangle> triangles,
   return result;
 }
 void OpacityMicromaps(rhi::Device &device, rhi::PipelineHandle compute) {
+  CurrentOracleMode = static_cast<int>(rhi::RayTracingMode::Pipeline);
   rhi::RayProgramDescriptor descriptor;
   descriptor.mode = rhi::RayTracingMode::ReorderedOpacityPipeline;
   const bool enabled = rhi::CheckGraphicsRequirements(
@@ -1221,6 +1369,8 @@ void Native(bool enhanced) {
     modes.push_back(rhi::RayTracingMode::ReorderedPipeline);
 #endif
     for (auto mode : modes) {
+      CurrentOracleMode = static_cast<int>(mode);
+      CurrentEnhancedBarriers = enhanced;
       rhi::RayProgramDescriptor descriptor{mode, {}, "bounded ray oracle"};
       const bool enabled =
           rhi::CheckGraphicsRequirements(caps, rhi::EffectiveRayProgramRequirements(descriptor))
@@ -1373,6 +1523,7 @@ int main(int argc, char **argv) {
   try {
     const bool enhanced = argc == 2 && std::string_view{argv[1]} == "--enhanced-barriers";
     Require(argc == 1 || enhanced, "usage: [--enhanced-barriers]");
+    DiagnosticSelfCheck();
     Portable();
     Native(enhanced);
   } catch (const std::exception &error) {

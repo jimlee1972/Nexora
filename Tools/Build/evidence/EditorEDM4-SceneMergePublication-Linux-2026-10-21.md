@@ -1,0 +1,120 @@
+# Scoped file-only semantic merge publication — Linux, 2026-10-21
+
+Beads `nexora-gu7.21.5`, after accepted owning candidate `.21.2`. This independent slice adds
+one-shot scoped source publication and immutable provenance inspection. Graphical confirmation,
+live authoring adoption, scene creation/deletion and full project/reference reconciliation remain
+open under M4-05; overall graphical milestones remain 0/8. No physical-host acceptance is claimed.
+
+The exported C++ API owns exact raw base/local/disk/candidate snapshots and file-session/root/
+project/document observations. It retains no live borrow or native/plugin callback. Serialized
+Prepare/Publish re-resolve the complete semantic candidate and repeat ownership/writer/recovery,
+exact baseline/local/disk and strict managed-path checks. A capability's copies share one consumed
+state. Raw data never substitutes for current caller authority.
+
+Version1 SHA256 archives reserve exclusive content-addressed directories and preserve all source
+bytes, stable-path field choices and the actual candidate. Strict read-only inspection verifies
+manifest/version/project/integrity and re-resolves the candidate in isolated Worlds. Unknown future,
+corrupt, occupied or incomplete archives remain untouched. Missing cryptography is an explicit
+unavailable/rejection branch. The existing Editor -> Cryptography dependency is reused.
+
+Native exclusive-create staging, chunked writes, flush/close and exact reread precede one native
+atomic source replacement. All potentially throwing allocations and checks precede replacement.
+POSIX directory fsync and Windows MoveFileExW WRITE_THROUGH have different durability contracts;
+this is not an OS compare-and-swap, sandbox or universal power-loss guarantee. Native uncertainty
+and post-replacement directory failure have distinct statuses and require inspection before retry.
+Cancellation applies before commit and cannot interrupt blocking OS IO/fsync. Failed precommit
+work may retain owned staging residue for explicit inspection; it never silently deletes a foreign
+path. File-only publication leaves the live document/history/selection/baseline unchanged, so
+ordinary Save still detects the published external version.
+
+## Focused verification
+
+The real isolated-project test uses an owned writer session, production World/documents and raw
+sources with unknown bytes `{0,255,42}`. Local Name plus remote Z=7 survive actual publication and
+fresh reopen; exact base/local/disk/candidate snapshots survive archive inspection. The live
+World/generation/selection and preexisting Undo/Redo remain unchanged, and ordinary Save returns
+NeedsOverwrite. A second read-only project inspects the owning archive but cannot prepare writes.
+
+Negative cases cover unresolved/stale choices, caller revocation, same-timestamp external disk
+changes, same-generation local changes, one-shot copied authority, replacement file sessions,
+recovery gating, missing/oversized disk, occupied archive/temporary paths, unavailable SHA256,
+actual isolated-World allocation failure, unsupported checksummed future manifests, truncation,
+corrupt source payloads and supported-platform hard-link/symlink rejection. A private test-build-only
+precommit gate lets another real thread change disk bytes or request cancellation after archive
+and staged-candidate verification; neither operation reaches replacement. Source bytes and unknown
+payloads remain intact after rejection. No deadlines/assertions are relaxed.
+
+Initial smoke before the scheduling gate passes 1/1 in0.04s; after the real late-cancel/late-change
+cases, focus passes1/1 in0.06s. A first strict compile rejected deprecated `filesystem::u8path`;
+UTF-8 is now validated before constructing a C++20 u8string path. Failed compilation is excluded
+from positive build evidence. Final required full Linux, Shipping and documentation results are
+pending; this file does not yet mark the implementation slice accepted.
+
+
+## Required cloud acceptance
+
+Private246ee88e plus root/project and parent-alias regressionfe82ba8a2577b31cb0b1c13d04e6d4b73cb67676
+(treec5111d7a4a4e365233b6eda13f62d29a651d6698) rebuilds all408 product/consumer steps, then
+reconfigures and completes330 final metadata/consumer integration steps. The exact required commands
+`cmake --preset linux-development`, `cmake --build --preset linux-development`, and
+`CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development` pass: **316 registered,304 actual passes,
+12 environment skips,zero failures,714.71s**. The final focus passes1/1 in0.05s; all314 frozen
+production/helper/test source hashes match before and after the full suite.
+
+Deep Hierarchy87.16s,100k lifecycle235.25s and overview51.68s retain original180/300 deadlines and
+scale1. One bounded single-job build in another own worktree may overlap; these are shared-cloud
+functional results, not isolated production performance baselines. Only one full CTest suite runs
+at a time. Native Vulkan/material/display environment skips are not physical GPU acceptance.
+
+Both new production CPPs pass `-Wshadow -Werror=shadow` syntax checks and compile with the private
+test scheduling macro removed. Touched C++ formatting and diff checks pass. Documentation routing
+passes16 tests in1.386s. A first incorrect `python -m unittest` invocation could not resolve the
+script-local DocumentationCI import; that invocation is excluded, and the actual standalone
+`python3 Tools/Build/TestDocumentationCI.py` passes. `linux-shipping` configure/build succeeds
+with9 integration steps; its Minimal profile strips Editor/SDK, disables BUILD_TESTING and has no
+tests. This does not certify an Editor-enabled Shipping configuration or Windows/macOS execution.
+
+Graphical confirmation, live adoption, whole-scene deletion and complete project/reference
+reconciliation remain subsequent parent work; M4-05 and all physical acceptance remain open.
+
+## Clean configure repair discovered by hosted CI
+
+PR689 initial56b6f49e build-contract jobs119153312073 and119154074751 failed linking the private
+SceneMergePublicationTestAccess::Gate. In a fresh non-preset build BUILD_TESTING was undefined while
+Engine modules configured; the root's later include(CTest) then defaulted it ON and registered
+callers without compiling the private endpoint. Cached/preset ON local gates had not exposed this.
+Those failed hosted jobs are excluded from acceptance and the old published head must not merge.
+
+Private7f845f2a moves the existing include(CTest) before Engine/App module setup, establishing the
+canonical default before all consumers; explicit OFF remains unchanged. No assertion, timeout,
+production authority or source-publication condition is relaxed. A required configure with the
+cached BUILD_TESTING entry removed and its actual focused publication test pass. A truly fresh
+non-preset Native-disabled SDK directory is building the real publication test without a
+BUILD_TESTING argument. Corrected current-base Linux results follow; corrected-head hosted acceptance remains pending.
+
+
+## Corrected current-main implementation acceptance
+
+Private5f9840ba889224bcf10978e1c84a5ff1cadd40b9 and the public branch preparationec1fac78 share
+**exact complete tree9ff77b05b41fab725ee4010a3d91b8e63dcaeb2c**, including accepted owning-review
+main content. Required final configure/all-consumer build and full Linux pass: **316 registered,
+304 actual passes,12 environment skips,zero failures,869.74s**; all519 frozen production/helper/
+test/configuration source hashes match. Deep97.36s,100k293.75s and overview73.77s retain original
+180/300 deadlines and scale1. Other bounded builds overlap; these are shared-cloud functional
+checks, not isolated performance baselines. No assertion or timeout is relaxed.
+
+A truly fresh non-preset Native-disabled SDK configure omits BUILD_TESTING entirely: its actual
+136-step build links the publication test, a final rebuild catches all current source updates,
+and the real test passes1/1 in0.06s. A separate fresh explicit-OFF Native-disabled SDK builds the
+actual Core library in135 steps; dynamic symbols include SceneMergePublisher::Publish and exclude
+SceneMergePublicationTestAccess, and CTest registers zero tests. These separate SDK probes do not
+claim a graphical Shell or physical/native GPU acceptance. Corrected minimal Shipping passes9
+integration steps/no tests with Editor/SDK stripped. Both production CPPs pass strict shadow checks.
+
+The SDK also now defines safe moved-from behavior (empty paths/bytes, consumed, rejected publish),
+with a real focused regression passing1/1 in0.09s. EditorCore must remain loaded until all capability
+copies and synchronous calls drain; shared control-block deleters reside in Core. Live sessions are
+not retained. The corrected public branch integrates accepted main PR688 and preserves every source,
+known/unknown payload and archive contract; all applicable new-head hosted gates must still succeed
+before merge. An optional redundant public-worktree consumer rebuild is separate from the complete
+passing private implementation build; it is not needed to infer source identity from matching trees.

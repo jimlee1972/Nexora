@@ -243,3 +243,13 @@ The exact session-owned `feat/twod-cooked-services` branch uses the existing sta
 with a separate one-branch allowlist. Only repository-owner runs at superseded SHAs are eligible;
 current-head push/PR runs, contributor actors, forks, other branches and a branch that advances
 during inspection are retained. This does not change required checks or general branch policies.
+
+## Testing option initialization
+
+The root configures CTest before Engine/App subdirectories. This establishes CTest's canonical
+BUILD_TESTING default (ON) before any module decides whether to compile its private test interfaces.
+A fresh non-preset configure must not compile a module with an undefined testing option and then
+register/link tests after CTest later enables it. Explicit `-DBUILD_TESTING=OFF` remains authoritative;
+private test seams stay excluded and no tests are registered. Preset/cached ON is not a substitute
+for testing this clean default configuration. This changes initialization order, not assertions,
+timeouts, build feature dependencies or Shipping acceptance requirements.

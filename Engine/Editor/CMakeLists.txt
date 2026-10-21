@@ -48,6 +48,8 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/SceneMerge.cpp
   src/SceneMergeCandidateJob.cpp
   src/SceneMergeBuilder.cpp
+  src/SceneMergePublication.cpp
+  src/SceneMergeStorage.cpp
   src/SceneComparisonJob.cpp
   src/SceneFiles.cpp
   src/SceneSaveBatch.cpp
@@ -67,4 +69,8 @@ if(NEXORA_ENABLE_2D)
   target_sources(NexoraEditorCore PRIVATE src/TwoDDocument.cpp src/TwoDPlayContext.cpp src/TwoDPlayAssets.cpp src/TwoDAssetImport.cpp src/ProjectTwoDPlayAssets.cpp)
   target_link_libraries(NexoraEditorCore PUBLIC Nexora::TwoD)
   target_compile_definitions(NexoraEditorCore PUBLIC NEXORA_HAS_2D=1)
+endif()
+
+if(BUILD_TESTING)
+  target_compile_definitions(NexoraEditorCore PRIVATE NEXORA_EDITOR_MERGE_TEST_ACCESS=1)
 endif()

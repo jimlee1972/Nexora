@@ -1245,6 +1245,12 @@ creates property widgets; unknown components retain raw data instead of being si
     current-main full Linux passes315 registered/303 actual passes/12 environment skips. Graphical choices
     and atomic file publication remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-OwningMergeJob-Linux-2026-10-21.md).
+  - ✅ Scoped file-only semantic merge publication now has an owning one-shot capability and
+    version1 integrity-checked raw-source/candidate archives. Focused success/reopen, stale/cancel,
+    read-only, unknown-data and corruption paths pass; full Linux passes316 registered/304 actual
+    passes/12 environment skips with unchanged assertions/deadlines.
+    Graphical confirmation, live adoption, absent-scene publication and complete project/reference
+    validation remain open. [Evidence](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md).
   - ✅ Actual clipped Local/Disk field choices now submit bounded owning drafts to an asynchronous
     candidate validator. Complete candidate diagnostics/presentation, draft/review stale rejection,
     cancel/drain, unknown data and source/selection/history conservation pass focused SDK and real
@@ -1565,6 +1571,12 @@ creates property widgets; unknown components retain raw data instead of being si
     [Evidence](../../Tools/Build/evidence/EditorEDM6-ReflectionSdkSample-Linux-2026-10-21.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
+  - ✅ Native ray oracle failures now retain bounded owning workload/input and decoded/bit-level
+    expected/actual diagnostics, without changing assertions, tolerances or deadlines. Synthetic
+    CPU corruptions verify rejection/reporting; full Linux passes315 registered/303 actual passes/
+    12 environment skips. Intermittent
+    Windows root-cause repair remains open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-RayOracleDiagnostics-Linux-2026-10-21.md).
   - ✅ The [ED-M0 semantic handoff](Editor_Accessibility_Handoff.md) now lists stable IDs,
     missing role/action/value data, focus/failure/live regions and platform bridge candidates.
     This delivers the inventory only; semantic adapters and screen-reader acceptance remain open.
