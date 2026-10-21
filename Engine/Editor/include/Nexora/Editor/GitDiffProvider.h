@@ -58,7 +58,8 @@ struct GitDiffCapture final {
 // No project/document/native-module borrows are retained.
 class NEXORA_EDITOR_API GitDiffProvider final {
 public:
-  static constexpr std::size_t kMaximumPaths = 2, kMaximumPathBytes = 4096;
+  static constexpr std::size_t kMaximumPaths = 2;
+  static constexpr std::size_t kMaximumPathBytes = 4096;
   static constexpr std::size_t kMaximumOutputBytes = BuildProcess::kMaximumOutputBytes;
   explicit GitDiffProvider(core::JobSystem &);
   ~GitDiffProvider();

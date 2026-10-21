@@ -47,15 +47,15 @@ CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development
 ```
 
 GCC 14.2, CMake 4.4.4, Linux cloud, graphical shell enabled; existing pinned ImGui/Vulkan-header
-sources are reused. Final build: 327 integration steps over the initial 791-step complete product
+sources are reused. Corrected build: 326 integration steps over the earlier complete product
 build. Full gate: **304 registered, 292 passed, 12 existing environment skips, zero failures,
-696.16 seconds**. The skips are unavailable native Vulkan/renderer/material-device cases; they
-are not physical-device acceptance. Original Deep/100k cases pass at scale 1 in 66.02/250.44 s
+641.12 seconds**. The skips are unavailable native Vulkan/renderer/material-device cases; they
+are not physical-device acceptance. Original Deep/100k cases pass at scale 1 in 68.01/224.86 s
 with unchanged 180/300-second limits. These are functional gates on a shared cloud host, not
 isolated production performance percentiles or budgets.
 
-Focused parser/status/new diff/status-UI tests pass 5/5 in 2.29 s; new `editor.git_diff_provider`
-passes in 0.71 s. Actual temporary-repository coverage includes:
+Focused parser/status/new diff/status-UI tests pass 5/5 in 2.31 s; new `editor.git_diff_provider`
+passes in 0.61 s. Actual temporary-repository coverage includes:
 
 - staged versus external working changes, literal bracket/pathspec-magic/dash/Unicode/POSIX
   newline names, binary notices, rename deletion/addition, conflict and linked gitfile worktrees;
@@ -71,10 +71,21 @@ passed 301/289 actual passes/12 skips in 797.81 s; the final gate above enables 
 ProjectPlayer CLI cases and is the acceptance result for the corrected final source.
 
 `cmake --preset linux-shipping` and `cmake --build --preset linux-shipping` pass all 102 fresh
-Minimal Monolithic build steps. Shipping strips Editor and registers no tests; the absence of
+Minimal Monolithic build steps and nine corrected-head integration steps. Shipping strips Editor and registers no tests; the absence of
 tests is not reported as a test pass. Local Slang/Zig are disabled there as well. Documentation
 tests pass 16/16; changed/new local Markdown links, EN/zh-TW pairing, touched C++ formatting and
 diff checks pass. The root README remains unchanged.
 
-Exact-head hosted CI must succeed before squash merge. No graphical diff/merge, complete
+## Hosted MSVC declaration correction
+
+Initial PR #679 head `e19fe6dcc461b9cef1bd7025229a96e7e8820c3d` fails hosted Windows desktop and
+mimalloc compilation with MSVC 14.51 C2487 at `GitDiffProvider.h:61`: the second comma-declared
+static constexpr member of the exported class is rejected as a DLL-interface declaration.
+The two constants are now declared separately, matching existing SDK declarations. Their values
+remain 2 and 4096; interfaces, layout, budgets and `/W4 /WX` policy are unchanged. Original failed
+jobs 119001338842/119001338878 are retained; the corrected complete Linux result above and all
+37 frozen source hashes apply to the corrected header. Earlier 304/696.16 s and 301/default-player-
+OFF results are historical and do not substitute for this corrected source proof.
+
+Fresh exact-head hosted CI, including Windows execution, must succeed before squash merge. No graphical diff/merge, complete
 source-control or milestone acceptance is claimed; ED-M4 and physical targets remain open.
