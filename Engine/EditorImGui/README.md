@@ -1526,7 +1526,50 @@ malformed results, cancellation, stale scope and shutdown; an allocation fault c
 capture publication. The tests check clean/changed/renamed/Unicode filenames, POSIX controls, Linux raw names, source/index preservation,
 read-only inspection, clipped complete data and clearing an active executable draft on project
 replacement. These are headless widget tests, not physical DPI/IME/display acceptance. Nested
-repository discovery, graphical diff/merge and full source-control acceptance remain open.
+repository discovery, graphical merge and full source-control acceptance remain open.
+
+### Selected-path Git output
+
+The `DrawGitStatus(status, diff, scope, root, allowed)` overload adds explicit working-tree/staged
+queries for a selected tracked UTF-8 path or rename pair. The original status-only overload remains
+available. Opening the window, entering a tool path or selecting a row performs no diff query.
+Read-only projects can inspect; the caller authorizes execution independently of authoring access.
+Repository configuration/environment and other configured helpers (such as attribute clean filters)
+remain trusted under the SDK contract. The view provides inspection and no patch-application action.
+
+Both provider references are frame-only. Selection owns its exact immutable status capture and
+ordinal; interactive row IDs include the capture's full operation generation, so releasing a held
+press after status replacement cannot select the replacement row. Pending publication requires the
+same capture, exact selected paths, project scope/root, target and diff operation. Selection,
+status-generation, tool or root changes revoke old output. Focus/Play/modal/recovery permission
+loss cancels and revokes pending UI publication; hidden views still poll/drain. The native owner
+shuts down both providers before draining shared jobs. Retained SDK objects must be released before
+Editor/Core library unload; snapshots grant no lifetime lease or authoring authority.
+
+The UI owns one last-good raw capture, escaped text and line offsets. It stages a complete new
+display before moving all owning storage into place. Logical storage is bounded by the SDK's
+256 KiB raw output, at most four times that many escaped text bytes and at most 262145 u32 line
+starts; vector/string capacity and allocator overhead are additional. Old and candidate storage
+can coexist during staging. Escape controls, NUL, backslashes and invalid UTF-8 before rendering;
+preserve newlines as explicit line boundaries. Cache construction runs once per accepted result;
+vertical clipping renders visible complete lines, and horizontal scrolling supports long lines.
+
+Failures/overflow/cancellation retain the previous complete result only within the same selection
+context. Its original paths and staged/working-tree target remain labeled, including when a newer
+different target failed. A separate display-allocation failure also preserves the old view. A
+successful empty query is labeled as that exact request's result, not repository cleanliness.
+Captured Git output includes possible warnings and binary/conflict notices; it is not a parsed
+patch, atomic filesystem snapshot or semantic-merge candidate. No raw output/tool choice is saved
+or forwarded to Console/telemetry. New C++ exports require consumer rebuilds; formats, module
+dependencies and stable C ABI remain unchanged.
+
+Actual `editor.git_diff_ui_1x`/`_2x` controls cover staged/working output, rename labels containing
+format/ID characters, raw/NUL and maximum output, complete clipped 1000-line data, backend/display
+allocation failure, cancellation, focus/permission/scope changes, read-only inspection and teardown
+with unchanged index/source bytes. A held-press regression fails against the actual prior GUI
+library and passes with generation-qualified IDs. The corrected complete Linux gate passes
+306 registered/294 actual passes/12 environment skips with zero failures; exact-head hosted gates still apply before merge. These widget results do not
+establish physical DPI/IME/display or complete source-control acceptance.
 
 ## Hierarchy request projection work
 

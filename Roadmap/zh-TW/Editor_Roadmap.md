@@ -1030,21 +1030,29 @@ Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔�
 
 ### ED-M4 — Prefab、場景與 collaboration safety
 
+- ✅ Linux 圖形選取路徑 Git 輸出已於 1x／2x 驗證：明確 staged／working 查詢、完整
+  escaped／clipped 輸出，以及 last-good 原始路徑／target 標籤。精確 status generation 選取
+  與 pending identity 檢查拒絕過期發布；取消、配置／overflow、唯讀、focus／scope 及 teardown
+  保留來源／index bytes。Native owner 排空兩個 provider。完整 Linux 306 項登錄測試中
+  294 項實際通過、12 項環境 skip，零失敗；Shipping 建置通過且不登錄測試。這是 headless
+  widget／真實 Git process 證據，不取代 OS window／實機。Merge／nested discovery 與完整
+  ED-M4 仍待完成。[證據](../../Tools/Build/evidence/EditorEDM4-GitDiffUi-Linux-2026-10-21.md)。
+
 - ✅ Linux 已驗證有界真實 Git diff SDK：明確查詢 staged／working-tree、literal 檔案／rename
   路徑、完整 owning 原始輸出、取消及 generation 安全發布；失敗保留原本 last-good request，
-  維持 index／來源 bytes 不變。圖形 diff／merge、nested discovery 與完整 ED-M4 仍待完成。
+  維持 index／來源 bytes 不變。圖形 merge、nested discovery 與完整 ED-M4 仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-GitDiff-Linux-2026-10-21.md)。
 
 - ✅ 專案 scope 圖形 Git status 視窗已驗證：明確指定可信任工具後 Refresh、取消、clipped
   原始路徑安全列、last-good／錯誤呈現及 native owner teardown；實際 1x／2x widgets
-  查詢臨時 repository，維持 index／來源 bytes 不變。圖形 diff／merge、nested repository
+  查詢臨時 repository，維持 index／來源 bytes 不變。圖形 merge、nested repository
   discovery 與完整 ED-M4 仍待完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-GitStatusUi-Linux-2026-10-20.md)。
 
 - ✅ 有界 Git status SDK provider 現透過受管理 process runner 查詢真實本機 repository，
   保留 owning 原始路徑／狀態／rename 觀察。generation 驗證拒絕過期、取消、損毀與截斷輸出，
   失敗保留 last-good。臨時 repository／原生 process 測試涵蓋 conflict、Unicode、linked
-  worktree 及 index／來源 bytes 不變；圖形 diff／merge 與完整 ED-M4 仍未完成。
+  worktree 及 index／來源 bytes 不變；圖形 merge 與完整 ED-M4 仍未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-GitStatus-Linux-2026-10-20.md)。
 
 ✅ Scoped graphical prefab property review／revert 已驗證：精確 retained variant source、

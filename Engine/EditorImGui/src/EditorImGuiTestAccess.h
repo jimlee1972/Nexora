@@ -372,6 +372,13 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   GitControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
   [[nodiscard]] static std::size_t GitRenderedRows(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  GitDiffControlPosition(const EditorImGuiHost &, std::size_t) noexcept;
+  [[nodiscard]] static std::optional<std::array<float, 2>> GitRowPosition(const EditorImGuiHost &,
+                                                                          std::size_t) noexcept;
+  [[nodiscard]] static std::size_t GitDiffRenderedLines(const EditorImGuiHost &) noexcept;
+  [[nodiscard]] static std::size_t GitDiffLineCount(const EditorImGuiHost &) noexcept;
+  static void FailNextGitDiffDisplay(EditorImGuiHost &) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,
