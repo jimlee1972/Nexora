@@ -57,13 +57,31 @@ const char *GitErrorLabel(GitStatusError error) noexcept {
 }
 } // namespace
 
+#include "GitDiffPanel.inl"
+
 void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t scope,
                                     const std::filesystem::path &root, bool allow_refresh) {
+  DrawGitStatusInternal(provider, nullptr, scope, root, allow_refresh);
+}
+void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, GitDiffProvider &diff,
+                                    std::uint64_t scope, const std::filesystem::path &root,
+                                    bool allow_refresh) {
+  DrawGitStatusInternal(provider, &diff, scope, root, allow_refresh);
+}
+void EditorImGuiHost::DrawGitStatusInternal(GitStatusProvider &provider, GitDiffProvider *diff,
+                                            std::uint64_t scope, const std::filesystem::path &root,
+                                            bool allow_refresh) {
   ImGui::SetCurrentContext(state_->context);
   auto &state = *state_;
   state.git_control_positions = {};
   state.git_rendered_rows = 0;
+  state.git_diff_control_positions = {};
+  state.git_row_positions = {};
+  state.git_diff_rendered_lines = 0;
   if (state.git_status_scope != scope || state.git_status_root != root) {
+    ResetGitDiff(state, diff);
+    if (diff)
+      static_cast<void>(diff->Poll(0));
     auto &context = *ImGui::GetCurrentContext();
     const auto *window = ImGui::FindWindowByName("Source control###editor.git-status");
     if (window && context.ActiveIdWindow == window)
@@ -101,12 +119,16 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
     static_cast<void>(provider.Cancel());
   static_cast<void>(provider.Poll(scope));
   allow_refresh = allow_refresh && provider.Query().phase != GitStatusPhase::Stopped;
+  const auto capture = provider.Capture(scope);
+  if (provider.Busy() && state.git_diff_selection)
+    ResetGitDiff(state, diff);
+  PollGitDiff(state, diff, capture, scope, root, allow_refresh);
   if (state.app_focused && !state.game_input_focused && !ImGui::GetIO().WantTextInput &&
       ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_G))
     state.git_status_open = !state.git_status_open;
   if (!state.git_status_open)
     return;
-  ImGui::SetNextWindowSize({760, 480}, ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowSize({760, diff ? 600.F : 480.F}, ImGuiCond_FirstUseEver);
   if (!ImGui::Begin("Source control###editor.git-status", &state.git_status_open,
                     ImGuiWindowFlags_NoSavedSettings)) {
     ImGui::End();
@@ -119,10 +141,12 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
   ImGui::TextWrapped("Inspect the repository at the project root using your selected Git "
                      "installation and repository configuration.");
   ImGui::TextUnformatted("Git executable (absolute path)");
-  const bool busy = provider.Busy();
+  const bool busy = provider.Busy() || (diff && diff->Busy());
   ImGui::BeginDisabled(!allow_refresh || busy);
   ImGui::SetNextItemWidth(-1);
-  ImGui::InputText("##git-executable", state.git_executable.data(), state.git_executable.size());
+  if (ImGui::InputText("##git-executable", state.git_executable.data(),
+                       state.git_executable.size()))
+    ResetGitDiff(state, diff);
   state.git_executable_id = ImGui::GetItemID();
   position(0);
   ImGui::SetItemDefaultFocus();
@@ -131,10 +155,9 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
       const std::string_view text(state.git_executable.data());
       if (!foundation::IsValidUtf8(text))
         state.git_intake_error = GitStatusError::InvalidRequest;
-      else
-        static_cast<void>(
-            provider.Refresh(std::filesystem::path(std::u8string(text.begin(), text.end())), root,
-                             scope, &state.git_intake_error));
+      else if (provider.Refresh(std::filesystem::path(std::u8string(text.begin(), text.end())),
+                                root, scope, &state.git_intake_error))
+        ResetGitDiff(state, diff);
     } catch (const std::bad_alloc &) {
       state.git_intake_error = GitStatusError::AllocationFailed;
     } catch (const std::filesystem::filesystem_error &) {
@@ -150,7 +173,6 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
   position(2);
   ImGui::EndDisabled();
   const auto query = provider.Query();
-  const auto capture = provider.Capture(scope);
   const bool captured = scope && capture && capture->repository_root == root;
   const auto error = state.git_intake_error != GitStatusError::None ? state.git_intake_error
                      : query.phase == GitStatusPhase::Stopped       ? GitStatusError::Stopped
@@ -174,7 +196,12 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
     else
       ImGui::Text("%zu changed paths at last successful refresh.", capture->entries.size());
     ImGui::TextDisabled("Index / working tree");
-    ImGui::BeginChild("git-status-rows", {0, 0}, ImGuiChildFlags_Borders);
+    const auto height = diff ? std::max(80.F, ImGui::GetContentRegionAvail().y * .35F) : 0.F;
+    ImGui::BeginChild("git-status-rows", {0, height}, ImGuiChildFlags_Borders);
+    if (diff) {
+      ImGui::PushID(static_cast<int>(capture->operation));
+      ImGui::PushID(static_cast<int>(capture->operation >> 32U));
+    }
     ImGuiListClipper clipper;
     clipper.Begin(static_cast<int>(capture->entries.size()), ImGui::GetTextLineHeightWithSpacing());
     while (clipper.Step())
@@ -188,13 +215,41 @@ void EditorImGuiHost::DrawGitStatus(GitStatusProvider &provider, std::uint64_t s
           auto path = GitDisplayPath(entry.path);
           if (!entry.original_path.empty())
             path += " <- " + GitDisplayPath(entry.original_path);
-          ImGui::TextUnformatted(path.data(), path.data() + path.size());
+          if (diff) {
+            ImGui::PushID(row);
+            const auto cursor = ImGui::GetCursorPos();
+            if (ImGui::Selectable("##git-path", state.git_diff_selection == capture &&
+                                                    state.git_diff_selected_row ==
+                                                        static_cast<std::size_t>(row))) {
+              if (state.git_diff_selection != capture ||
+                  state.git_diff_selected_row != static_cast<std::size_t>(row)) {
+                ResetGitDiff(state, diff);
+                state.git_diff_selection = capture;
+                state.git_diff_selected_row = static_cast<std::size_t>(row);
+              }
+            }
+            const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+            if (state.git_rendered_rows <= state.git_row_positions.size())
+              state.git_row_positions[state.git_rendered_rows - 1] =
+                  std::pair{static_cast<std::size_t>(row),
+                            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F}};
+            ImGui::SetCursorPos(cursor);
+            ImGui::TextUnformatted(path.data(), path.data() + path.size());
+            ImGui::PopID();
+          } else
+            ImGui::TextUnformatted(path.data(), path.data() + path.size());
         } catch (const std::bad_alloc &) {
           ImGui::TextUnformatted("Path display unavailable; status snapshot retained.");
         }
       }
+    if (diff) {
+      ImGui::PopID();
+      ImGui::PopID();
+    }
     ImGui::EndChild();
   }
+  if (diff)
+    DrawGitDiff(state, *diff, scope, root, allow_refresh, provider.Busy());
   ImGui::End();
 }
 
@@ -211,5 +266,28 @@ EditorImGuiTestAccess::GitControlPosition(const EditorImGuiHost &host,
 }
 std::size_t EditorImGuiTestAccess::GitRenderedRows(const EditorImGuiHost &host) noexcept {
   return host.state_->git_rendered_rows;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GitDiffControlPosition(const EditorImGuiHost &host,
+                                              std::size_t index) noexcept {
+  return index < host.state_->git_diff_control_positions.size()
+             ? host.state_->git_diff_control_positions[index]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::GitRowPosition(const EditorImGuiHost &host, std::size_t index) noexcept {
+  for (const auto &row : host.state_->git_row_positions)
+    if (row && row->first == index)
+      return row->second;
+  return std::nullopt;
+}
+std::size_t EditorImGuiTestAccess::GitDiffRenderedLines(const EditorImGuiHost &host) noexcept {
+  return host.state_->git_diff_rendered_lines;
+}
+std::size_t EditorImGuiTestAccess::GitDiffLineCount(const EditorImGuiHost &host) noexcept {
+  return host.state_->git_diff_lines.size();
+}
+void EditorImGuiTestAccess::FailNextGitDiffDisplay(EditorImGuiHost &host) noexcept {
+  host.state_->git_diff_fail_display = true;
 }
 #endif

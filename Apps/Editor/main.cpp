@@ -742,6 +742,7 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::SceneComparisonJob scene_comparison{import_jobs};
   nexora::editor::BuildProcess build_process{import_jobs};
   nexora::editor::GitStatusProvider git_status{import_jobs};
+  nexora::editor::GitDiffProvider git_diff{import_jobs};
   std::uint64_t git_scope = 1;
   bool git_scope_exhausted{};
   nexora::foundation::Uuid git_project_id{};
@@ -2803,6 +2804,7 @@ int RunGraphical(std::optional<ProjectState> project,
         if (git_scope == std::numeric_limits<std::uint64_t>::max()) {
           git_scope_exhausted = true;
           git_status.Shutdown();
+          git_diff.Shutdown();
         } else
           ++git_scope;
         git_project_id = current_git_project;
@@ -2811,13 +2813,14 @@ int RunGraphical(std::optional<ProjectState> project,
       } catch (const std::bad_alloc &) {
         git_context_ready = false;
         static_cast<void>(git_status.Poll(0));
+        static_cast<void>(git_diff.Poll(0));
       }
     }
     const bool git_refresh_allowed = project && !exit_requested && !composition_restore_blocked &&
                                      !project->workspace.HasRecoveryJournal() &&
                                      play.State() == nexora::runtime::PlayState::Stopped;
-    ui.DrawGitStatus(git_status, project && git_context_ready ? git_scope : 0, current_git_root,
-                     git_refresh_allowed);
+    ui.DrawGitStatus(git_status, git_diff, project && git_context_ready ? git_scope : 0,
+                     current_git_root, git_refresh_allowed);
     const auto build_observation = build_process.Snapshot();
     static_cast<void>(build_console_ingress.Poll(build_observation, project ? build_scope : 0));
     if (build_observation.operation != build_reported_operation ||
@@ -3128,6 +3131,7 @@ int RunGraphical(std::optional<ProjectState> project,
   static_cast<void>(static_export.Cancel());
   static_cast<void>(build_process.Cancel());
   git_status.Shutdown();
+  git_diff.Shutdown();
   imports.Shutdown();
   scene_comparison.Shutdown();
   static_export.Shutdown();

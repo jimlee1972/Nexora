@@ -179,6 +179,18 @@ struct EditorImGuiHost::State final {
   GitStatusError git_intake_error{GitStatusError::None};
   std::array<std::optional<std::array<float, 2>>, 3> git_control_positions{};
   std::size_t git_rendered_rows{};
+  std::shared_ptr<const GitStatusCapture> git_diff_selection;
+  std::size_t git_diff_selected_row{};
+  std::uint64_t git_diff_pending_operation{};
+  GitDiffTarget git_diff_pending_target{};
+  GitDiffError git_diff_intake_error{GitDiffError::None};
+  std::shared_ptr<const GitDiffCapture> git_diff_capture;
+  std::string git_diff_text;
+  std::vector<std::uint32_t> git_diff_lines;
+  std::array<std::optional<std::array<float, 2>>, 3> git_diff_control_positions{};
+  std::array<std::optional<std::pair<std::size_t, std::array<float, 2>>>, 64> git_row_positions{};
+  std::size_t git_diff_rendered_lines{};
+  bool git_diff_fail_display{};
   bool prefab_isolation_open{};
   std::optional<PrefabIsolationObservation> prefab_isolation;
   std::optional<PrefabIsolationRequest> prefab_request, prefab_confirmation;

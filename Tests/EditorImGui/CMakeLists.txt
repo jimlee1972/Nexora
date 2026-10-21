@@ -24,6 +24,17 @@ foreach(nexora_git_ui_scale RANGE 1 2)
       SKIP_REGULAR_EXPRESSION "SKIP: actual Git unavailable")
   endif()
   set_tests_properties(editor.git_status_ui_${nexora_git_ui_scale}x PROPERTIES TIMEOUT 180)
+  if(GIT_FOUND)
+    add_test(NAME editor.git_diff_ui_${nexora_git_ui_scale}x
+      COMMAND NexoraGitStatusUiTests "${GIT_EXECUTABLE}" "$<TARGET_FILE:NexoraGitStatusProcessFixture>"
+        "${nexora_git_ui_scale}" --diff)
+  else()
+    add_test(NAME editor.git_diff_ui_${nexora_git_ui_scale}x
+      COMMAND "${CMAKE_COMMAND}" -E echo "SKIP: actual Git unavailable; diff UI acceptance not run")
+    set_tests_properties(editor.git_diff_ui_${nexora_git_ui_scale}x PROPERTIES
+      SKIP_REGULAR_EXPRESSION "SKIP: actual Git unavailable")
+  endif()
+  set_tests_properties(editor.git_diff_ui_${nexora_git_ui_scale}x PROPERTIES TIMEOUT 180)
 endforeach()
 
 add_executable(NexoraDiagnosticPrivacyTests DiagnosticPrivacyTests.cpp)

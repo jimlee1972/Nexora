@@ -1,3 +1,4 @@
+#include "../../Engine/Editor/src/GitDiffProviderTestAccess.h"
 #include "../../Engine/Editor/src/GitStatusProviderTestAccess.h"
 #include "../Editor/GitTestSupport.h"
 #include "EditorImGuiTestAccess.h"
@@ -49,15 +50,17 @@ struct Fixture final {
   editor::ProjectWorkspace workspace, reader, other;
   core::JobSystem jobs{1};
   editor::GitStatusProvider provider{jobs};
+  editor::GitDiffProvider diff{jobs};
   editor::ProductShell shell;
   editor::imgui::EditorImGuiHost ui;
   editor::ProjectWorkspace *active = &workspace;
   std::uint64_t scope{11};
   bool allowed{true};
   float scale;
+  bool diff_mode{};
   std::filesystem::path git, fault, root;
-  Fixture(float dpi, std::filesystem::path tool, std::filesystem::path binary)
-      : scale(dpi), git(std::move(tool)), fault(std::move(binary)) {
+  Fixture(float dpi, std::filesystem::path tool, std::filesystem::path binary, bool diffs = false)
+      : scale(dpi), diff_mode(diffs), git(std::move(tool)), fault(std::move(binary)) {
     Require(workspace.Create(temporary / std::filesystem::path(u8"專案 µ"), "Git status UI"),
             "Project creation failed");
     root = workspace.Root();
@@ -98,7 +101,11 @@ struct Fixture final {
     if (capture)
       Access::BeginTextCapture(ui);
     ui.DrawProductShell(shell, nullptr, active);
-    ui.DrawGitStatus(provider, scope, active ? active->Root() : std::filesystem::path{}, allowed);
+    if (diff_mode)
+      ui.DrawGitStatus(provider, diff, scope, active ? active->Root() : std::filesystem::path{},
+                       allowed);
+    else
+      ui.DrawGitStatus(provider, scope, active ? active->Root() : std::filesystem::path{}, allowed);
     std::string text;
     if (capture)
       text = Access::EndTextCapture(ui);
@@ -114,8 +121,19 @@ struct Fixture final {
     ui.ProcessEvents(std::array{event});
     Draw();
   }
-  void Click(std::size_t control) {
-    const auto point = Access::GitControlPosition(ui, control);
+  void Click(std::size_t control) { ClickPoint(Access::GitControlPosition(ui, control)); }
+  void ClickDiff(std::size_t control) { ClickPoint(Access::GitDiffControlPosition(ui, control)); }
+  void Select(std::string_view path) { ClickPoint(Row(path)); }
+  std::optional<std::array<float, 2>> Row(std::string_view path) {
+    const auto capture = provider.Capture(scope);
+    Require(static_cast<bool>(capture), "No status selection source");
+    for (std::size_t index = 0; index < capture->entries.size(); ++index)
+      if (capture->entries[index].path == path) {
+        return Access::GitRowPosition(ui, index);
+      }
+    throw std::runtime_error("Selected status path missing");
+  }
+  void ClickPoint(const std::optional<std::array<float, 2>> &point) {
     Require(point.has_value(), "Actual Git control not visible");
     Nexora::Window::WindowEvent move, button;
     move.type = Nexora::Window::WindowEventType::Pointer;
@@ -172,7 +190,7 @@ struct Fixture final {
       Draw();
       Require(std::chrono::steady_clock::now() < deadline, "Status did not drain");
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    } while (provider.Busy());
+    } while (provider.Busy() || diff.Busy());
   }
   std::filesystem::path CopyFault(const char *name) {
     const auto directory = temporary / "faults";
@@ -349,6 +367,255 @@ void Run(float scale, const std::filesystem::path &git, const std::filesystem::p
               good->entries.size() >= 3 && Read(f.root / ".git/index") == index,
           "Teardown retained a child/borrow or lost owning snapshots/source");
 }
+void RunDiff(float scale, const std::filesystem::path &git, const std::filesystem::path &fault) {
+  using DiffPhase = editor::GitDiffPhase;
+  Fixture f(scale, git, fault, true);
+  f.Tool(git);
+  Require(f.diff.Query().phase == DiffPhase::Idle, "Opening/selecting Git executed a diff");
+#if defined(__linux__)
+  const auto raw_name = "Content/raw-" + std::string(1, static_cast<char>(0xff)) + ".txt";
+  Write(f.root / raw_name, "raw tracked source\n");
+  f.Git({"add", "--", "."});
+#endif
+  f.Git({"mv", "--", "Content/before.txt", "Content/after %s##.txt"});
+  Write(f.root / "Content/authoring.txt", "staged value\n");
+  f.Git({"add", "--", "Content/authoring.txt"});
+  Write(f.root / "Content/authoring.txt", "working value\n");
+  const auto index = Read(f.root / ".git/index");
+  f.Click(1);
+  f.Finish();
+  f.Select("Content/authoring.txt");
+  Require(f.diff.Query().phase == DiffPhase::Idle, "Selecting a path automatically executed Git");
+  f.ClickDiff(0);
+  f.Finish();
+  auto text = f.Draw(true);
+  const auto working = f.diff.Capture(f.scope);
+  Require(working && working->output.find("+working value") != std::string::npos &&
+              text.find("Working-tree Git output at last successful query.") != std::string::npos &&
+              text.find("+working value") != std::string::npos &&
+              Read(f.root / ".git/index") == index,
+          "Actual working-tree diff widgets lost output/labels or wrote index");
+  // A held press belongs to the old status generation. Its release must not select a row
+  // in a replacement capture, even when the same path happens to occupy that ordinal.
+  const auto point = f.Row("Content/authoring.txt");
+  Require(point.has_value(), "Held status row unavailable");
+  Nexora::Window::WindowEvent move, button;
+  move.type = Nexora::Window::WindowEventType::Pointer;
+  move.value0 = static_cast<int>((*point)[0] * scale);
+  move.value1 = static_cast<int>((*point)[1] * scale);
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{move, button});
+  f.Draw();
+  Require(f.provider.Refresh(git, f.root, f.scope), "Replacement real status not admitted");
+  f.Finish();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  const auto old_operation = f.diff.Query().operation;
+  f.ClickDiff(0);
+  Require(f.diff.Query().operation == old_operation && !Access::GitDiffLineCount(f.ui) &&
+              f.Draw(true).find("Select a tracked path") != std::string::npos,
+          "Held row release retargeted a replacement status generation");
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(1);
+  f.Finish();
+  text = f.Draw(true);
+  const auto staged = f.diff.Capture(f.scope);
+  Require(staged && staged->request.target == editor::GitDiffTarget::Index &&
+              text.find("Staged Git output at last successful query.") != std::string::npos &&
+              text.find("+staged value") != std::string::npos &&
+              text.find("+working value") == std::string::npos,
+          "Actual staged widgets displayed working-tree data");
+  editor::GitDiffProviderTestAccess::FailNext(f.diff, editor::GitDiffAllocationPoint::Capture);
+  f.ClickDiff(0);
+  f.Finish();
+  text = f.Draw(true);
+  Require(f.diff.Query().error == editor::GitDiffError::AllocationFailed &&
+              f.diff.Capture(f.scope) == staged &&
+              text.find("could not allocate") != std::string::npos &&
+              text.find("Staged Git output at last successful query.") != std::string::npos &&
+              text.find("Working-tree Git output at last successful query.") == std::string::npos,
+          "Backend allocation failure mislabeled/replaced last-good UI output");
+  Access::FailNextGitDiffDisplay(f.ui);
+  f.ClickDiff(0);
+  f.Finish();
+  text = f.Draw(true);
+  Require(f.diff.Query().phase == DiffPhase::Ready && f.diff.Capture(f.scope) != staged &&
+              text.find("could not allocate") != std::string::npos &&
+              text.find("Staged Git output at last successful query.") != std::string::npos &&
+              text.find("+working value") == std::string::npos,
+          "Display-stage allocation published partial/newly mislabeled data");
+  f.ClickDiff(0);
+  f.Finish();
+  Require(f.Draw(true).find("+working value") != std::string::npos,
+          "Display staging failure did not recover on explicit retry");
+  const auto head = Read(f.root / ".git/HEAD");
+  Write(f.root / ".git/HEAD", "broken HEAD\n");
+  f.ClickDiff(1);
+  f.Finish();
+  text = f.Draw(true);
+  Require(f.diff.Query().phase == DiffPhase::Failed &&
+              text.find("could not complete") != std::string::npos &&
+              text.find("Working-tree Git output at last successful query.") != std::string::npos &&
+              text.find("Staged Git output at last successful query.") == std::string::npos,
+          "Native failure replaced/mislabeled last-good diff");
+  Write(f.root / ".git/HEAD", head);
+  f.Select("Content/after %s##.txt");
+  Require(Access::GitDiffLineCount(f.ui) == 0, "Selection change kept another path's output");
+  f.ClickDiff(1);
+  f.Finish();
+  text = f.Draw(true);
+  const auto renamed = f.diff.Capture(f.scope);
+  Require(renamed &&
+              renamed->request.paths ==
+                  std::vector<std::string>{"Content/after %s##.txt", "Content/before.txt"} &&
+              text.find("Content/after %s##.txt") != std::string::npos &&
+              text.find("Content/before.txt") != std::string::npos &&
+              renamed->output.find("+rename payload") != std::string::npos,
+          "Actual rename selection lost paths or interpreted UI format/ID characters");
+  f.Select("Content/authoring.txt");
+  std::string large;
+  for (int i = 0; i < 1000; ++i)
+    large += "large row " + std::to_string(i) + "\n";
+  Write(f.root / "Content/authoring.txt", large);
+  f.ClickDiff(0);
+  f.Finish();
+  f.Draw();
+  Require(f.diff.Capture(f.scope)->output.find("+large row 999") != std::string::npos &&
+              Access::GitDiffLineCount(f.ui) > 1000 && Access::GitDiffRenderedLines(f.ui) > 0 &&
+              Access::GitDiffRenderedLines(f.ui) < 100 && Read(f.root / ".git/index") == index &&
+              Read(f.root / "Content/authoring.txt") == large,
+          "Large diff omitted retained data, rendered every row or wrote sources");
+  f.Click(1);
+  f.Finish();
+  Require(Access::GitDiffLineCount(f.ui) == 0 &&
+              f.Draw(true).find("Select a tracked path") != std::string::npos,
+          "New status generation retained old selection/output");
+  Write(f.root / "Content/untracked.txt", "untracked\n");
+  f.Click(1);
+  f.Finish();
+  f.Select("Content/untracked.txt");
+  const auto before_denied = f.diff.Query().operation;
+  f.ClickDiff(0);
+  Require(f.diff.Query().operation == before_denied &&
+              f.Draw(true).find("require tracked UTF-8") != std::string::npos,
+          "Untracked selection fabricated a normal diff");
+#if defined(__linux__)
+  f.Select(raw_name);
+  f.ClickDiff(1);
+  Require(f.diff.Query().operation == before_denied &&
+              f.Draw(true).find("require tracked UTF-8") != std::string::npos &&
+              Read(f.root / raw_name) == "raw tracked source\n",
+          "Non-UTF8 tracked path crossed the process argv boundary or lost source bytes");
+#endif
+  f.Select("Content/authoring.txt");
+  const auto raw = f.CopyFault("raw");
+  const auto overflow = f.CopyFault("overflow");
+  const auto maximum = f.CopyFault("maximum");
+  const auto sleeper = f.CopyFault("sleep");
+  f.Tool(raw);
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(0);
+  f.Finish();
+  text = f.Draw(true);
+  Require(text.find("raw\\x00bytes") != std::string::npos && text.find('\0') == std::string::npos,
+          "Raw diagnostic NUL bytes escaped into native text rendering");
+  f.Tool(maximum);
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(0);
+  f.Finish();
+  f.Draw();
+  Require(f.diff.Capture(f.scope)->output.size() == editor::GitDiffProvider::kMaximumOutputBytes &&
+              Access::GitDiffLineCount(f.ui) == 1,
+          "Complete maximum-sized single-line diff output was lost");
+  f.Tool(overflow);
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(0);
+  f.Finish();
+  Require(f.diff.Query().error == editor::GitDiffError::OutputBudgetExceeded &&
+              Access::GitDiffLineCount(f.ui) == 0 &&
+              f.Draw(true).find("exceeds the supported diff budget") != std::string::npos,
+          "Overflow displayed a partial patch or an old tool's result");
+  f.Tool(sleeper);
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(0);
+  f.Marker();
+  f.ClickDiff(2);
+  f.Finish();
+  Require(f.diff.Query().phase == DiffPhase::Cancelled && !f.diff.Busy(),
+          "Actual diff Cancel failed to drain");
+  std::filesystem::remove(f.root / ".fixture-ready");
+  f.ClickDiff(0);
+  f.Marker();
+  f.allowed = false;
+  f.Draw();
+  f.Finish();
+  Require(f.diff.Query().phase == DiffPhase::Cancelled && !Access::GitDiffLineCount(f.ui),
+          "Revoked interaction published an in-flight diff");
+  f.allowed = true;
+  std::filesystem::remove(f.root / ".fixture-ready");
+  f.ClickDiff(0);
+  f.Marker();
+  Nexora::Window::WindowEvent focus;
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  focus.value0 = 0;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Draw();
+  f.Finish();
+  Require(f.diff.Query().phase == DiffPhase::Cancelled, "Focus loss failed to cancel diff");
+  focus.value0 = 1;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Draw();
+  std::filesystem::remove(f.root / ".fixture-ready");
+  f.ClickDiff(0);
+  f.Marker();
+  f.scope = 12;
+  f.Draw();
+  f.Finish();
+  f.scope = 11;
+  f.Draw();
+  Require(!f.diff.Capture(11) && !f.diff.Capture(12) && !Access::GitDiffLineCount(f.ui),
+          "Scope switch-back revived old diff output");
+  std::filesystem::remove(f.root / ".fixture-ready");
+  Require(f.reader.Open(f.root, editor::ProjectAccess::ReadOnly), "Read-only diff observer failed");
+  f.active = &f.reader;
+  f.scope = 13;
+  f.Draw();
+  f.Tool(git);
+  f.Click(1);
+  f.Finish();
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(0);
+  f.Finish();
+  Require(f.diff.Query().phase == DiffPhase::Ready && Read(f.root / ".git/index") == index &&
+              Read(f.root / "Content/authoring.txt") == large,
+          "Read-only diff inspection failed or changed index/source");
+  f.active = nullptr;
+  f.scope = 0;
+  f.Draw();
+  Require(!f.diff.Capture(13) && !Access::GitDiffLineCount(f.ui),
+          "Project close retained old diff display");
+  f.active = &f.workspace;
+  f.scope = 14;
+  f.Draw();
+  f.Tool(git);
+  f.Click(1);
+  f.Finish();
+  f.Tool(sleeper);
+  f.Select("Content/authoring.txt");
+  f.ClickDiff(0);
+  f.Marker();
+  f.diff.Shutdown();
+  f.Draw();
+  f.ClickDiff(0);
+  Require(!f.diff.Busy() && f.diff.Query().phase == DiffPhase::Stopped &&
+              f.Draw(true).find("Diff queries are unavailable") != std::string::npos &&
+              Read(f.root / ".git/index") == index &&
+              Read(f.root / "Content/authoring.txt") == large,
+          "Stopped provider accepted work or teardown changed source data");
+}
 } // namespace
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) {
@@ -356,10 +623,14 @@ int wmain(int argc, wchar_t **argv) {
 int main(int argc, char **argv) {
 #endif
   try {
-    Require(argc == 4 && argv[3][1] == 0 && (argv[3][0] == '1' || argv[3][0] == '2'),
+    Require((argc == 4 || argc == 5) && argv[3][1] == 0 && (argv[3][0] == '1' || argv[3][0] == '2'),
             "Expected actual Git executable, native negative fixture and1/2 scale");
-    Run(argv[3][0] == '2' ? 2.F : 1.F, std::filesystem::absolute(argv[1]),
-        std::filesystem::absolute(argv[2]));
+    if (argc == 5)
+      RunDiff(argv[3][0] == '2' ? 2.F : 1.F, std::filesystem::absolute(argv[1]),
+              std::filesystem::absolute(argv[2]));
+    else
+      Run(argv[3][0] == '2' ? 2.F : 1.F, std::filesystem::absolute(argv[1]),
+          std::filesystem::absolute(argv[2]));
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';
