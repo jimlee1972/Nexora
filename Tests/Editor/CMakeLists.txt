@@ -17,6 +17,12 @@ add_test(NAME editor.scene_golden_migrations
 set_tests_properties(editor.scene_golden_migrations PROPERTIES TIMEOUT 120)
 
 add_executable(NexoraContentPathSortTests ContentPathSortTests.cpp)
+add_executable(NexoraPrefabPlacementSourceTests PrefabPlacementSourceTests.cpp)
+target_link_libraries(NexoraPrefabPlacementSourceTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraPrefabPlacementSourceTests)
+add_test(NAME editor.prefab_instance_source_apply COMMAND NexoraPrefabPlacementSourceTests)
+set_tests_properties(editor.prefab_instance_source_apply PROPERTIES TIMEOUT 120)
+
 target_link_libraries(NexoraContentPathSortTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraContentPathSortTests)
 add_test(NAME editor.content_path_sort COMMAND NexoraContentPathSortTests)

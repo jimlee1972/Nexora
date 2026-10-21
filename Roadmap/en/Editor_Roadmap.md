@@ -1131,6 +1131,17 @@ creates property widgets; unknown components retain raw data instead of being si
     Disposable-repository/native-process tests cover conflicts, Unicode, linked worktrees and
     unchanged index/source bytes. Graphical merge and full ED-M4 remain open.
     [Evidence](../../Tools/Build/evidence/EditorEDM4-GitStatus-Linux-2026-10-20.md).
+  - ✅ Linux SDK selected live-prefab source publication is validated for non-nested plain and
+    variant roots. Stable selected lanes expand to complete canonical groups; source identity,
+    references, unselected unknown data and exact old archives survive. The live binding, scene,
+    baseline and history stay unchanged; compatible explicit rebase is a separate one-step Undo.
+    Empty/invalid/readonly/foreign/stale/structural/nested/exhausted, occupied-stage and candidate
+    allocation paths are covered. Opaque removal retains archived bytes but needs structural
+    rebase for the changed field schema. Direct enabled groups/U64 references also pass. Full Linux
+    passes 307 registered/295 actual passes/12
+    environment skips; Shipping builds without tests. Graphical confirmation, nested publication
+    and full M4-01/ED-M4 remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM4-LiveSourceApply-Linux-2026-10-21.md).
   - ✅ Scoped graphical prefab property review/revert is validated: exact retained variant
     sources, explicit full revert confirmation, one mixed-property Undo/Redo and read-only inspection.
     Targeted fields, source apply, structural bindings and reference rebase remain open.

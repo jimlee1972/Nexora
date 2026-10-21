@@ -55,6 +55,14 @@ public:
                              const PrefabPlacementOverrideReview &,
                              std::span<const std::size_t> rows, bool authorized,
                              std::string *error = nullptr);
+  // Explicit serialized source publication for one non-nested placement. Selected lanes expand
+  // to existing canonical field groups. Rechecks the exact retained/current source and target;
+  // returns owning published data. Does not mutate the live document/binding/history/baseline.
+  // New field identities, structural/nested/stale/no-change requests reject. Rebase is separate.
+  [[nodiscard]] static std::optional<PrefabAsset>
+  ApplySelectedToSource(const ProjectWorkspace &, const SceneDocument &,
+                        const PrefabPlacementOverrideReview &, std::span<const std::size_t> rows,
+                        bool authorized, std::string *error = nullptr);
 
 private:
   static bool RevertProperties(const ProjectWorkspace &, SceneDocument &,
