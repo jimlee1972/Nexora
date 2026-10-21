@@ -143,6 +143,8 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 - ✅ WP0 可重現性盤點：graphical OFF 71/71、ON 加 Slang 115/115 通過且無 skipped，
   Shipping engine build 通過。[Linux 證據](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)
   與 focused plan 現已提供剩餘 target-host checklist；ED-M0 維持 open。
+- ✅ 完整 target-host 證據記錄與 artifact 驗證已由[操作者工具](../../Tools/Editor/README.md)
+  提供，涵蓋 Windows 四種 DPI。此功能只檢查證據完整性；實機驗收維持 open。
 - 待驗收：具真實 display 的 Linux visual／input／recovery 證據，以及 Windows DPI／IME 證據；
   已記錄 bounded Windows/DX12 開發機 shell smoke，但完整 target-host gate 通過之前 ED-M0
   仍維持 open。
@@ -1467,19 +1469,9 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
-- ✅ Hierarchy request processing 現在於一般可見 frame 省去重複完整投影。Expansion pruning、
-  queued／range selection、reorder 及隱藏視窗完整 row 統計仍保留目前 generation／來源檢查；
-  可見 controls 仍在 authoring buttons 之後取得 fresh observation。真實 1x／2x 隱藏視窗的
-  selection／reparent／Undo／stale reload／recovery 與既有鍵盤導覽測試已通過。
-  完整 Linux 驗證通過 293 項登錄測試，12 項既有 skip、零失敗；生產預算與 timing variance
-  保持 open。
-  [證據](../../Tools/Build/evidence/EditorEDM7-HierarchyRequestWork-Linux-2026-10-20.md)。
-  - ✅ StaticView verification 現 flush／檢查報告輸出，寫入失敗回傳1；一般與 optimized
-    工作流程以真實唯讀 stdout handle 驗證 sink／套件 bytes 不變。fixture→player CLI
-    失敗保留有界、跳脫後的 stdout/stderr、階段與退出碼，
-    不重試或放寬完整 JSON／套件斷言。一般與 optimized Python 回歸驗證准入及診斷界限。
-    hosted Windows「退出零但 JSON 無效」根因仍開啟；此項僅為診斷準備。
-    [證據](../../Tools/Build/evidence/EditorEDM7-StaticExportDiagnostics-Linux-2026-10-20.md)。
+- ✅ [ED-M0 語意交接](Editor_Accessibility_Handoff.md) 已列出 stable ID、缺少的 role／action／
+  value、focus／failure／live-region 與 platform bridge 候選。此項只交付盤點；semantic adapter
+  與 screen-reader 驗收維持 open。
 
 - ✅ 本次 session CI cleanup 加入精確已發布 branch 與 actor 檢查；14 項 ownership／race
   guard、16 項 documentation-routing、完整 Linux 239/239 與 Minimal Shipping 通過。

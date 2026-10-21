@@ -149,6 +149,9 @@ satisfy this milestone.
 - ✅ WP0 reproducibility audit: graphical OFF 71/71 and ON with Slang 115/115 passed, no skips;
   Shipping engine built. [Linux evidence](../../Tools/Build/evidence/EditorEDM0-Linux-2026-10-05.md)
   and the focused plan now provide the remaining target-host checklist. ED-M0 remains open.
+- ✅ Complete target-host evidence recording and artifact validation are available through
+  [the operator recorder](../../Tools/Editor/README.md), including all four Windows DPI scales.
+  This checks evidence completeness only; physical-host acceptance remains open.
 - Open acceptance: real-display Linux visual/input/recovery evidence and Windows DPI/IME evidence.
   A bounded Windows/DX12 developer-host shell smoke is recorded, but ED-M0 remains open until the
   complete target-host gates pass.
@@ -1508,20 +1511,9 @@ creates property widgets; unknown components retain raw data instead of being si
     [Linux evidence](../../Tools/Build/evidence/EditorEDM6-SignedPluginManager-Linux-2026-10-10.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
-  - ✅ Hierarchy request processing now avoids duplicate full projections during ordinary visible
-    frames. Expansion pruning, queued/range selection, reorder and hidden full-row statistics retain
-    current generation/source checks; visible controls still observe after authoring buttons.
-    Actual 1x/2x hidden selection/reparent/Undo/stale-reload/recovery tests and existing keyboard
-    navigation pass. Complete Linux validation passes 293 registered tests with 12 existing skips
-    and zero failures; production budgets and timing variance remain open.
-    [Evidence](../../Tools/Build/evidence/EditorEDM7-HierarchyRequestWork-Linux-2026-10-20.md).
-  - ✅ StaticView verification now flushes/checks report output and returns1 on write failure; real
-    read-only stdout handles verify unchanged sink/package bytes in normal/optimized workflows.
-    Fixture-to-player CLI failures retain bounded, escaped stdout/stderr, stage
-    and exit code without retries or relaxed complete-JSON/package assertions. Normal/optimized
-    Python regression coverage validates admission and diagnostic bounds. The hosted Windows
-    zero-exit/invalid-JSON root cause remains open; this is diagnostic preparation only.
-    [Evidence](../../Tools/Build/evidence/EditorEDM7-StaticExportDiagnostics-Linux-2026-10-20.md).
+  - ✅ The [ED-M0 semantic handoff](Editor_Accessibility_Handoff.md) now lists stable IDs,
+    missing role/action/value data, focus/failure/live regions and platform bridge candidates.
+    This delivers the inventory only; semantic adapters and screen-reader acceptance remain open.
   - ✅ Current session CI cleanup adds exact published branch and actor checks; 14 ownership/race
     and 16 documentation-routing tests, full Linux 239/239 and Minimal Shipping pass.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-CurrentCIQueueCleanup-Linux-2026-10-10.md).

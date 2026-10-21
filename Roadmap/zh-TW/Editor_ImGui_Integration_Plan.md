@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.5｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-10-06｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 版本：v1.6｜狀態：施工中；target-host 證據待完成｜
+> 更新：2026-10-20｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
 > **Repository 稽核（2026-10-05）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
@@ -354,6 +354,16 @@ resize generation 與最終 lifecycle counter 仍需通過。
 Editor display shortcut 採用與 selector 相同的 100 ms native key transition，
 讓 ImGui trickling 與 GPU frame 觀測原始 press／release sequence。
 
+✅ Target-host 證據工具現透過 `Tools/Editor/EditorTargetEvidence.py` 提供完整 Linux／Windows
+操作者 checklist（[使用方式](../../Tools/Editor/README.md)）。紀錄包含確切 argv、binary hash、
+source／configuration／host／backend metadata 與附雜湊的 artifact 副本；validator 重新檢查所有
+必要 row 與 bounded native smoke log。Windows 必須分別記錄 100／125／150／200% 與 installed-IME、
+caret／candidate 操作。缺項或僅虛擬顯示器的紀錄維持 incomplete。`COMPLETE_OPERATOR_RECORD`
+代表完整的操作者佐證，不是自動核准 ED-M0。舊 PowerShell 訪談僅屬初步紀錄，不滿足此完整矩陣。
+Portable `build.editor_target_evidence` 只驗證證據收件規則；physical Linux 與 Windows DPI／IME
+gate 在收集並審閱實機 artifact 前仍維持 open。
+詳見 [Linux 工具驗證](../../Tools/Build/evidence/EditorEDM0-EvidenceAdmission-Linux-2026-10-20.md)。
+
 1. Clean tree 執行 §6 完整 Linux gate。WP1/WP3 更動 linkage/API boundary，因此也跑 `linux-shipping`。
 2. Real X11 display 執行 launch、font/text 可見、Hierarchy selection、docking、各類 input、resize/
    minimize/restore、recovery checklist；記錄 command、commit、backend/device、result、artifact location。
@@ -367,7 +377,7 @@ Editor display shortcut 採用與 selector 相同的 100 ms native key transitio
 5. 移除 production CPU compositor/dead scaffold、更新 contract README、同步雙語 roadmap、review final
    diff，最後才更新 ED-M0 狀態。只有 panel 存在不構成驗收。
 
-Windows 項目的證據用 `Tools/Editor/RecordEditorWindowsEvidence.ps1` 記錄（smoke 自動執行；DPI/IME 項目由操作者回報，預設為 `blocked`）。**狀態備註（2026-10-10）：** 腳本已在單螢幕 100% 的 Windows 主機上執行一次。操作者回報英文輸入正常，
+Windows 初步觀察曾用 `Tools/Editor/RecordEditorWindowsEvidence.ps1` 記錄（smoke 自動執行；DPI/IME 項目由操作者回報，預設為 `blocked`）。**狀態備註（2026-10-10）：** 腳本已在單螢幕 100% 的 Windows 主機上執行一次。操作者回報英文輸入正常，
 但中文／注音的組字與送出的中文都看不到。之後修正了兩個原因：`WM_IME_COMPOSITION` 被攔截而沒有交給
 `DefWindowProc`，系統的組字／候選窗因此從未顯示；Editor 的字型貼圖只含預設的拉丁字型，送出的中文沒有字形
 （Windows 上現在會合併系統中文字型）。該次執行記錄的 IME 項目早於此修正；組字本身不顯示時，
@@ -487,6 +497,10 @@ text、吻合的 pointer hit target、反覆跨螢幕、resize/minimize/restore�
 ED-M0 不交付 Content Browser/thumbnail、Scene View、gizmo、Game View/PIE、inspector widget、specialized
 tool、build/profile UI、detached OS-level ImGui viewport、user-authored theme 或 screen-reader accessibility
 tree。WP2 texture registry 只是未來 panel 可使用的 backend contract，不代表可以提早施工。
+
+✅ 具體的 [ED-M0 至 ED-M7 交接](Editor_Accessibility_Handoff.md) 已盤點既有 panel／command ID、
+缺少的 role／action／value、focus／failure／live-region 需求與 platform bridge 候選方案。
+此項只完成文件交接；未實作 semantic tree 或 reader support，實體鍵盤／無障礙驗收維持 open。
 
 ED-M7 handoff 必須列出 stable semantic ID、label、role/action/value gap、focus order、keyboard-only failure、
 live-region 需求與候選 platform bridge。該文件可建議 secondary accessibility library，但採用 dependency
