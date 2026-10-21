@@ -76,3 +76,18 @@ tests. This does not certify an Editor-enabled Shipping configuration or Windows
 
 Graphical confirmation, live adoption, whole-scene deletion and complete project/reference
 reconciliation remain subsequent parent work; M4-05 and all physical acceptance remain open.
+
+## Clean configure repair discovered by hosted CI
+
+PR689 initial56b6f49e build-contract jobs119153312073 and119154074751 failed linking the private
+SceneMergePublicationTestAccess::Gate. In a fresh non-preset build BUILD_TESTING was undefined while
+Engine modules configured; the root's later include(CTest) then defaulted it ON and registered
+callers without compiling the private endpoint. Cached/preset ON local gates had not exposed this.
+Those failed hosted jobs are excluded from acceptance and the old published head must not merge.
+
+Private7f845f2a moves the existing include(CTest) before Engine/App module setup, establishing the
+canonical default before all consumers; explicit OFF remains unchanged. No assertion, timeout,
+production authority or source-publication condition is relaxed. A required configure with the
+cached BUILD_TESTING entry removed and its actual focused publication test pass. A truly fresh
+non-preset Native-disabled SDK directory is building the real publication test without a
+BUILD_TESTING argument. Current-base full Linux and corrected-head hosted acceptance remain pending.
