@@ -1551,9 +1551,10 @@ creates property widgets; unknown components retain raw data instead of being si
     [Evidence](../../Tools/Build/evidence/EditorEDM6-ReflectionSdkSample-Linux-2026-10-21.md).
 
 - **ED-M7 — Production hardening:** incremental indexing, virtualized UI, 100k-entity hierarchy, soak, workspace migration, corrupt recovery, signed-extension policy, opt-in telemetry/privacy, keyboard and screen-reader audit.
-  - Native ray oracle failures now retain bounded owning workload/input and decoded/bit-level
+  - ✅ Native ray oracle failures now retain bounded owning workload/input and decoded/bit-level
     expected/actual diagnostics, without changing assertions, tolerances or deadlines. Synthetic
-    CPU corruptions verify rejection/reporting; full gate acceptance is pending. Intermittent
+    CPU corruptions verify rejection/reporting; full Linux passes315 registered/303 actual passes/
+    12 environment skips. Intermittent
     Windows root-cause repair remains open.
     [Evidence](../../Tools/Build/evidence/EditorEDM7-RayOracleDiagnostics-Linux-2026-10-21.md).
   - ✅ The [ED-M0 semantic handoff](Editor_Accessibility_Handoff.md) now lists stable IDs,

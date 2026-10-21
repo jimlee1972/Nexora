@@ -23,5 +23,26 @@ canary and NaN. Every existing assertion must still reject, expected/actual/inpu
 remain present, and matching output must remain quiet. This validates actual comparison/reporting
 code without claiming native Windows execution. Initial registered focus1/1 passes0.01s; native
 ray/reference artifacts are unavailable in the local Slang-disabled profile and reported honestly.
-Full required Linux and documentation results are pending. No production ABI/dependency/linkage
+Final required Linux and documentation results follow. No production ABI/dependency/linkage
 boundary changes; this child does not change the underlying oracle or shader code.
+
+
+## Required Linux acceptance
+
+Private786b15a00e347b36e8ee4b186cef6d5ecd68b1dc/treea799195dd9152cf24efccfa6da8ccc9a54d71fe4
+runs the required `cmake --preset linux-development`, `cmake --build --preset linux-development`,
+`CTEST_PARALLEL_LEVEL=1 ctest --preset linux-development` after all329 consumers rebuild. Final
+configure/build is current (no work remaining); **315 registered,303 actual passes,12 environment
+skips,zero failures,708.46s**. All495 frozen production/test/shader/helper source hashes match before
+and after the full suite, including pinned shared ImGui source paths. An initial hash-manifest
+script rejected an external dependency path outside this worktree; no test/source was changed,
+and the corrected manifest includes that absolute source path explicitly.
+
+Deep Hierarchy69.73s,100k lifecycle227.75s and overview61.69s preserve original180/300 limits and
+scale1. One bounded build may overlap in another own worktree; these shared-cloud functional results
+are not isolated performance baselines. Only one full CTest suite runs at a time. The final focused
+ray executable passes1/1 in0.02s and its actual output explicitly reports synthetic CPU diagnostic
+verification and native ray/reference unavailable. The touched test CPP passes strict shadow syntax
+checks and formatting/diff checks; documentation routing passes16 tests in1.418s. No linkage boundary
+changed, so no new Editor-enabled Shipping claim is made. Hosted native Windows/macOS gates remain
+separate; diagnostic delivery does not close `.38.1`, M7-03 or physical GPU acceptance.

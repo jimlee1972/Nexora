@@ -1508,8 +1508,9 @@ Build profiles、cook/package frontend、target/device matrix、remote deploy/lo
 
 ### ED-M7 — Production hardening
 
-- Native ray oracle 失敗現保留有上限的 owning workload/input、expected/actual 數值與位元診斷，
-  不變更斷言、誤差或逾時。CPU 人為損毀驗證拒絕及記錄；完整 gate 驗收尚待完成。
+- ✅ Native ray oracle 失敗現保留有上限的 owning workload/input、expected/actual 數值與位元診斷，
+  不變更斷言、誤差或逾時。CPU 人為損毀驗證拒絕及記錄；完整 Linux 共315註冊、303實際通過、
+  12環境跳過。
   Windows 間歇性問題根因修復仍未完成。
   [證據](../../Tools/Build/evidence/EditorEDM7-RayOracleDiagnostics-Linux-2026-10-21.md)。
 
