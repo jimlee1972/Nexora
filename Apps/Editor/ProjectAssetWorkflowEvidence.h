@@ -2,6 +2,8 @@
 // Test-only, owning observation of actual UI/model state. Never performs an action or IO.
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/MeshImport.h"
+#include "Nexora/Editor/ProjectContent.h"
+#include "Nexora/Editor/ProjectWorkspace.h"
 #include <sstream>
 namespace nexora::editor::test {
 inline std::string ProjectAssetWorkflowEvidence(const imgui::EditorImGuiHost &ui,
