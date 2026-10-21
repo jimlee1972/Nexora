@@ -1189,6 +1189,12 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   圖形選擇與原子檔案發布保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-OwningMergeJob-Linux-2026-10-21.md)。
 
+- ✅ 實際 clipped Local／Disk 欄位選擇現將有界 owning draft 送往非同步候選驗證器。
+  完整候選診斷／呈現、draft／review 過期拒絕、取消／drain、未知資料與來源／選取／歷史
+  保留通過 focused SDK 及實際 1x／2x widgets；原生 X11 明確選擇與全新唯讀驗證保留磁碟 bytes。
+  完整 Linux 316 項登錄中304 項實際通過、12 項環境 skip；原子來源發布與完整 M4-05 保持未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-GraphicalMergeCandidate-Linux-2026-10-21.md)。
+
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
   drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
   reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle
