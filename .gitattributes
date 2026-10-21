@@ -18,3 +18,6 @@ LICENSE text eol=lf
 # Authored image cooking provenance must survive Windows checkout unchanged.
 Tools/Build/CourtyardImageCook.py text eol=lf
 Content/Showcase/Courtyard/Hero/Source/*.png binary
+
+# Scene migration goldens retain exact parser bytes on every hosted platform.
+Tests/Editor/SceneGolden/*.scene text eol=lf

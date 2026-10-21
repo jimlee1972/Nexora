@@ -9,6 +9,13 @@ nexora_apply_defaults(NexoraContentDirectoryTests)
 add_test(NAME editor.content_directory_index COMMAND NexoraContentDirectoryTests)
 set_tests_properties(editor.content_directory_index PROPERTIES TIMEOUT 240)
 
+add_executable(NexoraSceneGoldenTests SceneGoldenTests.cpp)
+target_link_libraries(NexoraSceneGoldenTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraSceneGoldenTests)
+add_test(NAME editor.scene_golden_migrations
+  COMMAND NexoraSceneGoldenTests "${CMAKE_CURRENT_SOURCE_DIR}/SceneGolden")
+set_tests_properties(editor.scene_golden_migrations PROPERTIES TIMEOUT 120)
+
 add_executable(NexoraContentPathSortTests ContentPathSortTests.cpp)
 target_link_libraries(NexoraContentPathSortTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraContentPathSortTests)

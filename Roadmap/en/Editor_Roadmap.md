@@ -1647,6 +1647,15 @@ creates property widgets; unknown components retain raw data instead of being si
     actual bytes before line parsing, including post-stat growth. Graphical/scene migration and
     broader crash/cancellation acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-ProjectUpgrade-Linux-2026-10-10.md).
+  - ✅ Fixed scene goldens cover Editor 1–4/Runtime 1–3 migration, complete local/world poses,
+    Euler turns, unknown bytes, persistent bindings and deterministic upgraded save/reopen.
+    Plain modern scenes now reject orphan authoring nodes before live replacement; Runtime-only
+    entities remain valid. All 1,490 invalid input variants through file/memory loaders preserve
+    dirty/saved baseline, generations/keys, selection, clipboard, Undo/Redo, unrelated scenes and
+    last-good files; occupied staging is conserved. Complete current-main Linux passes 305
+    registered/293 actual passes/12 environment skips with zero failures. Broader migration,
+    interruption/recovery and physical acceptance remain open.
+    [Evidence](../../Tools/Build/evidence/EditorEDM7-SceneGolden-Linux-2026-10-21.md).
   - ✅ Autosave recovery now bounds schema-1 headers before token parsing, rejects signed/overflow
     fields and non-regular/aliased files, and checks the exact file/payload length before allocation.
     Empty/binary/64 MiB/max-revision round trips, every-byte truncation and rejection preservation
