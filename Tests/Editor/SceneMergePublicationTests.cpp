@@ -305,6 +305,19 @@ void Run() {
     Require(!Publisher::Prepare(files, *f.review, f.request, true), "Hard-linked source accepted");
     std::filesystem::remove(alias);
   }
+  p = prepare();
+  Require(p.has_value(), "Parent alias preparation failed");
+  const auto moved_parent = f.scratch.root / "MovedContent";
+  std::filesystem::rename(f.scratch.root / "Content", moved_parent);
+  error.clear();
+  std::filesystem::create_directory_symlink(moved_parent, f.scratch.root / "Content", error);
+  if (!error) {
+    Require(Publisher::Publish(files, *p, true).status == Status::Rejected &&
+                Read(moved_parent / "Authoring.scene") == f.disk,
+            "Aliased parent accepted or redirected publication");
+    std::filesystem::remove(f.scratch.root / "Content");
+  }
+  std::filesystem::rename(moved_parent, f.scratch.root / "Content");
   Write(f.scratch.root / f.relative, candidate);
   std::filesystem::create_symlink(archive_path / "disk.scene", archive_path / "link.scene", error);
   if (!error) {
@@ -315,6 +328,19 @@ void Run() {
   Require(Read(f.scratch.root / f.relative) == candidate &&
               f.document.MatchesPreparedSave(prepared),
           "Archive rejection changed last-good or local document");
+  Write(f.scratch.root / f.relative, f.disk);
+  p = prepare();
+  Require(p.has_value(), "Root replacement preparation failed");
+  Scratch other_project;
+  {
+    editor::ProjectWorkspace creator;
+    Require(creator.Create(other_project.root, "Other project"), "Other project create failed");
+  }
+  Require(f.workspace.Open(other_project.root) &&
+              Publisher::Publish(files, *p, true).status == Status::Rejected &&
+              Read(f.scratch.root / f.relative) == f.disk &&
+              f.document.MatchesPreparedSave(prepared),
+          "Replaced root/project accepted old publication authority");
 }
 } // namespace
 int main() {
