@@ -1,5 +1,8 @@
 #include "Nexora/Editor/ContentBrowser.h"
 #include "ContentDirectoryIndexTestAccess.h"
+#if defined(NEXORA_EDITOR_CONTENT_SEARCH_TEST_ACCESS)
+#include "ContentSearchKeysTestAccess.h"
+#endif
 
 #include "ContentPathSortTestAccess.h"
 #include "Nexora/Foundation/Types.h"
@@ -8,6 +11,7 @@
 #endif
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <functional>
 #include <limits>
@@ -20,6 +24,11 @@ namespace {
 thread_local std::size_t fail_directory_after = std::numeric_limits<std::size_t>::max();
 thread_local std::size_t fail_sort_after = std::numeric_limits<std::size_t>::max();
 thread_local bool last_sort_accelerated{};
+constexpr std::size_t kMinimumSearchRows = 1024;
+constexpr std::size_t kMaximumSearchKeyBytes = 16 * 1024 * 1024;
+#if defined(NEXORA_EDITOR_CONTENT_SEARCH_TEST_ACCESS)
+thread_local std::size_t fail_search_after = std::numeric_limits<std::size_t>::max();
+#endif
 std::string PathUtf8(const std::filesystem::path &path) {
   const auto text = path.generic_u8string();
   return {text.begin(), text.end()};
@@ -147,6 +156,87 @@ struct ContentBrowserModel::DirectoryIndex final {
   };
   std::unordered_map<std::filesystem::path, Folder> folders;
 };
+struct ContentBrowserModel::SearchKeys final {
+  struct Row final {
+    std::size_t slot;
+    std::string filename, type;
+  };
+  std::array<unsigned char, 256> fold{};
+  std::vector<Row> rows;
+  std::size_t logical_bytes{};
+};
+const ContentBrowserModel::SearchKeys *
+ContentBrowserModel::SearchKeysView(std::span<const std::size_t> slots) const {
+  if (slots.size() < kMinimumSearchRows || (search_keys_attempted_ && !search_keys_))
+    return nullptr;
+  std::array<unsigned char, 256> fold;
+  for (std::size_t i = 0; i < fold.size(); ++i)
+    fold[i] = static_cast<unsigned char>(std::tolower(static_cast<unsigned char>(i)));
+  if (search_keys_ && search_keys_->fold == fold)
+    return search_keys_.get();
+  // A folder/source transition revokes the cache. A changed C byte-fold mapping revokes
+  // interpretation too; no locale pointer or caller storage is retained.
+  search_keys_.reset();
+  search_keys_attempted_ = true;
+  if (slots.size() > (kMaximumSearchKeyBytes - sizeof(SearchKeys)) / sizeof(SearchKeys::Row))
+    return nullptr;
+  try {
+    auto candidate = std::make_shared<SearchKeys>();
+    candidate->fold = fold;
+    candidate->rows.reserve(slots.size());
+    auto remaining = kMaximumSearchKeyBytes - sizeof(SearchKeys);
+    if (candidate->rows.capacity() > remaining / sizeof(SearchKeys::Row))
+      return nullptr;
+    remaining -= candidate->rows.capacity() * sizeof(SearchKeys::Row);
+    for (const auto slot : slots) {
+      const auto &item = items_[slot];
+      if (item.type.size() > remaining)
+        return nullptr;
+      auto name = PathUtf8(item.path.filename());
+      if (name.size() > remaining - item.type.size())
+        return nullptr;
+#if defined(NEXORA_EDITOR_CONTENT_SEARCH_TEST_ACCESS)
+      if (candidate->rows.size() == fail_search_after) {
+        fail_search_after = std::numeric_limits<std::size_t>::max();
+        throw std::bad_alloc{};
+      }
+#endif
+      SearchKeys::Row row{slot, std::move(name), item.type};
+      for (auto *text : {&row.filename, &row.type})
+        for (auto &byte : *text)
+          byte = static_cast<char>(fold[static_cast<unsigned char>(byte)]);
+      if (row.filename.capacity() > remaining ||
+          row.type.capacity() > remaining - row.filename.capacity())
+        return nullptr;
+      remaining -= row.filename.capacity() + row.type.capacity();
+      candidate->rows.push_back(std::move(row));
+    }
+    candidate->logical_bytes = kMaximumSearchKeyBytes - remaining;
+    search_keys_ = std::move(candidate);
+    return search_keys_.get();
+  } catch (const std::bad_alloc &) {
+    return nullptr;
+  } catch (const std::exception &) {
+    // A type-only query must still work when optional filename transcoding is unavailable.
+    return nullptr;
+  }
+}
+#if defined(NEXORA_EDITOR_CONTENT_SEARCH_TEST_ACCESS)
+void ContentSearchKeysTestAccess::FailAfterKeys(std::size_t count) noexcept {
+  fail_search_after = count;
+}
+bool ContentSearchKeysTestAccess::IsCached(const ContentBrowserModel &model) noexcept {
+  return static_cast<bool>(model.search_keys_);
+}
+std::size_t ContentSearchKeysTestAccess::Rows(const ContentBrowserModel &model) noexcept {
+  return model.search_keys_ ? model.search_keys_->rows.size() : 0;
+}
+std::size_t ContentSearchKeysTestAccess::LogicalBytes(const ContentBrowserModel &model) noexcept {
+  return model.search_keys_ ? model.search_keys_->logical_bytes : 0;
+}
+std::size_t ContentSearchKeysTestAccess::MaximumBytes() noexcept { return kMaximumSearchKeyBytes; }
+std::size_t ContentSearchKeysTestAccess::MinimumRows() noexcept { return kMinimumSearchRows; }
+#endif
 void ContentDirectoryIndexTestAccess::FailAfterFolders(std::size_t count) noexcept {
   fail_directory_after = count;
 }
@@ -283,6 +373,7 @@ bool ContentBrowserModel::SetFolder(const std::filesystem::path &folder) {
     return false;
   const auto normalized = folder.lexically_normal();
   if (folder_ != normalized) {
+    InvalidateSearchKeys();
     child_folders_.reset();
     visible_indices_.reset();
   }
@@ -307,8 +398,10 @@ bool ContentBrowserModel::RevealAsset(runtime::AssetUuid id) {
     breadcrumbs.push_back({PathUtf8(part), current});
   }
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> selection{id};
-  if (folder_ != folder)
+  if (folder_ != folder) {
+    InvalidateSearchKeys();
     child_folders_.reset();
+  }
   if (folder_ != folder || !query_.empty() || !type_.empty())
     visible_indices_.reset();
   folder_.swap(folder);
@@ -327,8 +420,10 @@ void ContentBrowserModel::SetFilter(std::string query, std::string type) {
   }
 }
 bool ContentBrowserModel::MatchesVisible(const ContentItem &item) const {
-  return item.path.parent_path() == folder_ &&
-         (query_.empty() ||
+  return item.path.parent_path() == folder_ && MatchesFilter(item);
+}
+bool ContentBrowserModel::MatchesFilter(const ContentItem &item) const {
+  return (query_.empty() ||
           Lower(PathUtf8(item.path.filename())).find(query_) != std::string::npos) &&
          (type_.empty() || Lower(item.type) == type_);
 }
@@ -360,10 +455,21 @@ const std::vector<std::size_t> &ContentBrowserModel::VisibleIndices() const {
     std::vector<std::size_t> indices;
     if (const auto *directory = DirectoryIndexView()) {
       const auto folder = directory->folders.find(folder_);
-      if (folder != directory->folders.end())
-        for (const auto slot : folder->second.items)
-          if (MatchesVisible(items_[slot]))
-            indices.push_back(slot);
+      if (folder != directory->folders.end()) {
+        const auto *keys =
+            (!query_.empty() || !type_.empty()) ? SearchKeysView(folder->second.items) : nullptr;
+        if (keys) {
+          for (const auto &row : keys->rows)
+            if ((query_.empty() || row.filename.find(query_) != std::string::npos) &&
+                (type_.empty() || row.type == type_))
+              indices.push_back(row.slot);
+        } else {
+          // Indexed membership already proves the folder; avoid recreating parent paths.
+          for (const auto slot : folder->second.items)
+            if (MatchesFilter(items_[slot]))
+              indices.push_back(slot);
+        }
+      }
     } else {
       for (std::size_t index = 0; index < items_.size(); ++index)
         if (MatchesVisible(items_[index]))

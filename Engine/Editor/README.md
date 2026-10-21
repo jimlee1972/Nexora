@@ -2668,3 +2668,33 @@ capabilities return empty paths/bytes, report consumed and reject publication.
 Allocation/IO validation errors before replacement may leave owned staging residue for inspection,
 but preserve the original source and last-good archive. The private precommit scheduling gate is
 compiled only with BUILD_TESTING and retains no native callback in production.
+
+
+### Bounded cold Content filter keys
+
+For an indexed current folder with at least 1024 source rows, the first nonempty filename/type
+filter stages an owning immutable table of source slots plus folded UTF-8 filenames/types.
+Changing the query reuses those keys; empty filters and small folders avoid admission work.
+The existing directory index proves membership, so its rows do not reconstruct parent paths.
+Unavailable directory membership keeps the complete original linear folder/filter path.
+
+Admission accounts for the cache object, reserved row storage and both string capacities within
+a 16 MiB logical budget. This bounds retained logical storage, not process RSS or allocator
+bookkeeping. A rejected conversion, allocation or budget admission discards every staged row
+and retains complete legacy results; failed admissions are not retried on every keystroke.
+Source/folder/reveal/Undo transitions revoke keys and retry eligibility. Artifact-only reimport
+retains source keys while visible pointers resolve the current owning records.
+
+Matching retains the existing locale-dependent byte folding. On each cold filtered query an
+admitted cache compares the current 256-byte mapping with its captured map; changes rebuild
+interpretation. Failed caches use the current legacy matcher. The owner serializes queries and
+mutations on the authoring thread, including locale changes between queries. Hot visible-index
+caching keeps its existing semantics. No cache writes files or changes source records, ordering,
+selection, mutation history or project generation. Model copies may share ordinary owning key
+storage; no plugin/native/World pointer is retained. Release all model copies before unloading
+EditorCore. C++ SDK consumers rebuild; stable C SDK/capability contracts are unchanged.
+
+`NexoraContentSearchBenchmark` emits schema 1 CSV wall milliseconds for Reset, directory/unfiltered,
+first filtered and changing-filter phases over 100k deterministic metadata records. It is a
+manual measurement target; correctness uses full independent legacy result/ordering oracles,
+not a shared-runner speed threshold. Production assets/RSS and complete M1 remain separate.

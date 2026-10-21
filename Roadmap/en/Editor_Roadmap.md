@@ -217,6 +217,12 @@ coverage remain open; ED-M0 through ED-M7 remain unchecked.
 
 ### ED-M1 — Project and asset workspace
 
+- Bounded owning filename/type keys now amortize changing filters in large indexed Content
+  folders, with complete legacy fallback and source/folder/locale invalidation. Independent
+  result/order, copy, transaction, drag and allocation/budget checks pass; full gate is pending.
+  The 100k metadata comparison and remaining production scope are recorded in
+  [evidence](../../Tools/Build/evidence/EditorEDM1-ContentSearchKeys-Linux-2026-10-21.md).
+
 - ✅ Cold Content folder/filter queries now have a bounded immutable directory membership/child
   index with complete linear fallback. Explicit source/order publication invalidates it; copies and
   retained child projections own data without item pointers. Source, navigation, selection and Undo

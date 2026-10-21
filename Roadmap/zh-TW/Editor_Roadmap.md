@@ -208,6 +208,12 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
 
 ### ED-M1 — Project 與 Asset workspace
 
+- 大型 indexed Content 資料夾以有界 owning 檔名／類型 key 攤提搜尋條件切換成本，
+  保留完整 legacy fallback，並於來源／資料夾／locale 變更時失效。獨立結果／排序、
+  copy、交易、拖放與配置／預算檢查通過；完整 gate 尚待通過。100k metadata 比較
+  與剩餘 production 範圍記錄於
+  [證據](../../Tools/Build/evidence/EditorEDM1-ContentSearchKeys-Linux-2026-10-21.md)。
+
 - ✅ 冷 Content folder／filter query 現有有界、immutable directory membership／child index，
   超過預算或配置失敗仍走完整 linear fallback。Source／order publication 明確失效 index；copy
   與 retained child projection 擁有資料而不保留 item pointer，維持來源、導覽、選取及 Undo 語意。
