@@ -1,5 +1,6 @@
 #include "Nexora/Editor/SceneComparison.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "SceneSemanticSnapshot.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,7 +12,7 @@
 
 namespace nexora::editor {
 namespace {
-using Fields = std::map<std::string, std::string, std::less<>>;
+using Fields = detail::SceneSemanticFields;
 bool Fail(std::string *error, const char *message) {
   if (error)
     *error = message;
@@ -172,21 +173,17 @@ std::optional<std::string> Value(const Fields &fields, const std::string &path) 
   return found == fields.end() ? std::nullopt : std::optional(found->second);
 }
 } // namespace
-std::optional<SceneComparison> CompareSceneRevisions(std::optional<std::string_view> base_source,
-                                                     std::optional<std::string_view> local_source,
-                                                     std::optional<std::string_view> remote_source,
-                                                     std::string *error) {
-  const auto base = Read(base_source, error);
-  if (!base)
-    return std::nullopt;
-  const auto local = Read(local_source, error);
-  if (!local)
-    return std::nullopt;
-  const auto remote = Read(remote_source, error);
-  if (!remote)
-    return std::nullopt;
+namespace detail {
+std::optional<SceneSemanticFields> ReadSceneSemanticFields(std::optional<std::string_view> source,
+                                                           std::string *error) {
+  return Read(source, error);
+}
+std::optional<SceneComparison> CompareSceneSemanticFields(const SceneSemanticFields &base,
+                                                          const SceneSemanticFields &local,
+                                                          const SceneSemanticFields &remote,
+                                                          std::string *error) {
   std::set<std::string, std::less<>> paths;
-  for (const auto *fields : {&*base, &*local, &*remote})
+  for (const auto *fields : {&base, &local, &remote})
     for (const auto &[path, value] : *fields) {
       static_cast<void>(value);
       paths.insert(path);
@@ -194,7 +191,7 @@ std::optional<SceneComparison> CompareSceneRevisions(std::optional<std::string_v
   SceneComparison result;
   std::size_t bytes = 0;
   for (const auto &path : paths) {
-    SceneComparisonRow row{path, Value(*base, path), Value(*local, path), Value(*remote, path)};
+    SceneComparisonRow row{path, Value(base, path), Value(local, path), Value(remote, path)};
     if (row.local == row.base && row.remote == row.base)
       continue;
     row.choice = row.local == row.remote  ? SceneComparisonChoice::Shared
@@ -216,5 +213,21 @@ std::optional<SceneComparison> CompareSceneRevisions(std::optional<std::string_v
   if (error)
     error->clear();
   return result;
+}
+} // namespace detail
+std::optional<SceneComparison> CompareSceneRevisions(std::optional<std::string_view> base_source,
+                                                     std::optional<std::string_view> local_source,
+                                                     std::optional<std::string_view> remote_source,
+                                                     std::string *error) {
+  const auto base = Read(base_source, error);
+  if (!base)
+    return std::nullopt;
+  const auto local = Read(local_source, error);
+  if (!local)
+    return std::nullopt;
+  const auto remote = Read(remote_source, error);
+  if (!remote)
+    return std::nullopt;
+  return detail::CompareSceneSemanticFields(*base, *local, *remote, error);
 }
 } // namespace nexora::editor

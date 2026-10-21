@@ -1163,6 +1163,13 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   逐欄位 merge 選擇／發布、structural reconciliation 與實機驗收保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-PrefabBindingComparison-Linux-2026-10-21.md)。
 
+- ✅ Owning schema1 語意合併 review 現將明確 Local／Remote 欄位選擇轉成實際 canonical
+  場景候選，完整 reload／reprojection、rotation／binding 群組一致性、未知 bytes 保留與
+  容量拒絕皆有檢查。Focused 真實 Save／reopen、migration、配置失敗與無效 hybrid 測試通過；
+  目前 main 整合完整 Linux 314 項登錄測試中302 項實際通過、12 項環境 skip，既有限制不變。
+  圖形 review、project／reference 驗證與原子發布保持未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md)。
+
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner
   drain 後釋放其 Editor World record。Active switch 保留 identity、history 與 opaque data；
   reference 僅供檢視並排除於 Save All。Duplicate destination、stale scope、dependency cycle
