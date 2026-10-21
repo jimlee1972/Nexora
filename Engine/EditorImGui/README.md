@@ -1684,3 +1684,37 @@ remain unchanged. Both replay scales and the unchanged short workflows pass. Thi
 This is headless actual ImGui/control and process-lifetime coverage. It does not launch the
 NexoraEditor OS-window process or accept physical display/DPI/IME, glyph quality or screen-reader
 behavior. Those native/target-host gates and complete scene-authoring acceptance remain open.
+
+### Explicit file-only semantic merge publication
+
+The comparison panel's Review file publication action is separate from candidate validation.
+An owning schema1 preview binds a nonzero monotonic confirmation identity, full file token,
+comparison operation, immutable review/draft identities, managed source path and bounded candidate
+size. The host prepares the real SceneMergePublisher capability and requires its resolved bytes to
+match the validated candidate before showing a separate Publish file / Cancel modal. Review from
+an overwrite comparison explicitly discards the original overwrite intent and returns to the
+standalone comparison workflow; it cannot emit an ordinary Save behind the new confirmation.
+
+The UI checks its last drawn writable/owned/reference policy as well as current host permission.
+Read-only/reference scenes retain candidate inspection but cannot request/accept publication.
+Scope/draft/file/review changes, Play/export/recovery/close blocks and permission revocation drop
+pending previews and decisions. Full confirmation IDs scope the actual buttons; a held mouse press
+cannot retarget a replacement confirmation. Inputs and decisions own ordinary values, expire on
+scope changes and retain no project/session/plugin borrow. All calls remain serialized on the
+UI/authoring owner; returned requests do not grant filesystem authority.
+
+The application independently rechecks the active owned writable document, stopped Play, current
+file/comparison/draft, recovery/export/close and exact source observations. Confirm invokes the
+synchronous SDK publisher, which repeats baseline/local/disk/root/session checks before its single
+native replacement. The UI tells users that both versions are backed up and that their open
+document/local edits remain unchanged. Publication or native uncertainty requires a fresh
+comparison; result messages retain the relative backup location. There is no automatic live reload,
+Undo replacement, whole-scene deletion or bypass of project/reference reconciliation.
+
+Preview validation finishes before state publication. UI allocation failure grants no write
+permission. The application catches SDK preparation/precommit exceptions separately from later
+result rendering so a display allocation cannot relabel a committed file as retained original data.
+Owning pending capabilities are dropped on scope change/teardown and retain no native callback;
+existing candidate/comparison jobs still drain before JobSystem/Core unload. These are new C++
+interfaces requiring client rebuilds, with no stable C/Gameplay ABI or scene format change. Unknown
+preview versions reject; ephemeral confirmation tokens are never persisted or migrated as authority.

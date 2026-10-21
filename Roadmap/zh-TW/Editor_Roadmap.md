@@ -1174,6 +1174,12 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   12環境跳過，原斷言及逾時維持不變。
   圖形確認、live 採用、整個場景不存在的發布及完整 project/reference 驗證仍未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md)。
+- 圖形僅檔案合併發布已有獨立檢閱／確認／取消，使用真正 scoped publisher；檢查目前 writer／
+  reference／draft、拒絕跨確認的 held click、保留 live history 並顯示備份狀態。
+  實際1x／2x及 X11成功／取消／過期來源／重開通過；最終完整驗收尚待完成。
+  Live採用、刪除與完整 project/reference reconciliation 仍未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-GraphicalMergePublication-Linux-2026-10-21.md)。
+
 
 
 - ✅ 實際非同步 comparison worker 現保留 owning immutable merge review；ready 差異列共用

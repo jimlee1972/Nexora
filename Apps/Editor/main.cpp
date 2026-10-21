@@ -19,6 +19,7 @@
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/SceneMergePublication.h"
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
@@ -743,6 +744,13 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::SceneMergeCandidateJob scene_merge_candidate{import_jobs};
   std::optional<nexora::editor::imgui::SceneMergeUiRequest> scene_merge_binding;
   nexora::editor::SceneMergeCandidateSnapshot scene_merge_view;
+  struct PendingSceneMergePublication final {
+    nexora::editor::SceneMergePublication capability;
+    nexora::editor::imgui::SceneMergePublicationPreview preview;
+  };
+  std::optional<PendingSceneMergePublication> scene_merge_publication;
+  std::uint64_t scene_merge_publication_identity{}, scene_merge_published_review{};
+
   nexora::editor::BuildProcess build_process{import_jobs};
   nexora::editor::GitStatusProvider git_status{import_jobs};
   nexora::editor::GitDiffProvider git_diff{import_jobs};
@@ -1543,6 +1551,22 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       ui.SetSceneMergeCandidateStatus(scene_merge_view, scene_merge_candidate.Busy(),
                                       scene_merge_binding ? scene_merge_binding->draft : 0);
+      const auto publication_current = [&] {
+        const auto observation = scene_comparison.Snapshot();
+        return merge_scope_current() && ui.SceneMergeInteractionAllowed() &&
+               scene_authoring_allowed() && !scene_load_failed && !active_files()->SaveBlocked() &&
+               observation.review &&
+               observation.review->Identity() != scene_merge_published_review &&
+               scene_merge_view.result && scene_merge_view.result->bytes &&
+               !scene_merge_candidate.Busy();
+      };
+      ui.SetSceneMergePublicationAllowed(publication_current());
+      if (scene_merge_publication &&
+          (!publication_current() ||
+           !ui.SceneMergePublicationPreviewCurrent(scene_merge_publication->preview))) {
+        scene_merge_publication.reset();
+        static_cast<void>(ui.SetSceneMergePublicationPreview(std::nullopt));
+      }
       update_scene_tabs();
       const bool source_inspection_allowed =
           play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
@@ -2051,6 +2075,87 @@ int RunGraphical(std::optional<ProjectState> project,
                                 nexora::editor::SceneMergeCandidatePhase::Failed,
                                 merge_error,
                                 {}};
+        }
+      }
+      if (auto request = ui.TakeSceneMergePublicationRequest()) {
+        scene_merge_publication.reset();
+        const auto observation = scene_comparison.Snapshot();
+        std::string publication_error;
+        const bool same_draft =
+            scene_merge_binding && request->token == scene_merge_binding->token &&
+            request->comparison_operation == scene_merge_binding->comparison_operation &&
+            request->draft == scene_merge_binding->draft &&
+            request->candidate.review == scene_merge_binding->candidate.review;
+        if (!publication_current() || !same_draft || !observation.review ||
+            scene_merge_publication_identity == std::numeric_limits<std::uint64_t>::max()) {
+          publication_error =
+              "Publication review is stale or unavailable. Compare revisions again.";
+        } else {
+          try {
+            auto prepared = nexora::editor::SceneMergePublisher::Prepare(
+                *active_files(), *observation.review, request->candidate, scene_authoring_allowed(),
+                &publication_error);
+            if (prepared && prepared->CandidateBytes() == *scene_merge_view.result->bytes) {
+              nexora::editor::imgui::SceneMergePublicationPreview preview{
+                  1,
+                  ++scene_merge_publication_identity,
+                  request->token,
+                  request->comparison_operation,
+                  request->candidate.review,
+                  request->draft,
+                  prepared->Source(),
+                  prepared->CandidateBytes().size()};
+              if (ui.SetSceneMergePublicationPreview(preview))
+                scene_merge_publication.emplace(
+                    PendingSceneMergePublication{std::move(*prepared), std::move(preview)});
+              else
+                publication_error = "Publication confirmation scope changed. Review again.";
+            } else if (publication_error.empty())
+              publication_error = "Validated candidate changed. Compare revisions again.";
+          } catch (const std::exception &) {
+            publication_error =
+                "Publication could not be prepared. The source file was not replaced.";
+          }
+        }
+        if (!publication_error.empty())
+          ui.SetSceneMergePublicationStatus(std::move(publication_error));
+      }
+      if (auto decision = ui.TakeSceneMergePublicationDecision()) {
+        const bool confirmed = decision->confirmed && scene_merge_publication &&
+                               publication_current() &&
+                               decision->scope == scene_merge_publication->preview;
+        std::optional<nexora::editor::SceneMergePublishResult> outcome;
+        if (confirmed) {
+          try {
+            outcome.emplace(nexora::editor::SceneMergePublisher::Publish(
+                *active_files(), scene_merge_publication->capability, scene_authoring_allowed()));
+          } catch (const std::exception &) {
+            // The publisher allocates/validates only before native replacement. Display work is
+            // outside this catch so a later UI allocation cannot relabel a committed publication.
+            ui.SetSceneMergePublicationStatus(
+                "Publication failed before replacement. The source file was kept.");
+          }
+        } else {
+          ui.SetSceneMergePublicationStatus(
+              decision->confirmed ? "Publication confirmation is stale. Compare revisions again."
+                                  : "Publication cancelled. The source file was kept.");
+        }
+        scene_merge_publication.reset();
+        if (outcome) {
+          using PublishStatus = nexora::editor::SceneMergePublishStatus;
+          if (outcome->Published() || outcome->status == PublishStatus::PublicationUncertain) {
+            scene_merge_published_review = decision->scope.review;
+            ui.SetSceneMergePublicationAllowed(false);
+          }
+          std::cerr << "scene merge publication outcome=" << static_cast<unsigned>(outcome->status)
+                    << '\n';
+          auto publication_message = std::move(outcome->message);
+          if (outcome->Published() || outcome->status == PublishStatus::PublicationUncertain) {
+            const auto archive_text = outcome->archive.generic_u8string();
+            publication_message +=
+                " Backup: " + std::string(archive_text.begin(), archive_text.end());
+          }
+          ui.SetSceneMergePublicationStatus(std::move(publication_message));
         }
       }
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
@@ -3021,6 +3126,10 @@ int RunGraphical(std::optional<ProjectState> project,
           record("disk", Access::SceneMergeChoicePosition(ui, *scene_merge_test_name, 2));
         record("cancel", Access::SceneMergePosition(ui, 1));
       }
+      record("publication_review", Access::SceneMergePublicationPosition(ui, 0));
+      record("publication_confirm", Access::SceneMergePublicationPosition(ui, 1));
+      record("publication_cancel", Access::SceneMergePublicationPosition(ui, 2));
+      geometry << " publication_preview=" << bool(scene_merge_publication);
       geometry << " validated=" << bool(Access::SceneMergeStatus(ui).result);
       if (geometry.str() != scene_merge_test_geometry) {
         scene_merge_test_geometry = geometry.str();

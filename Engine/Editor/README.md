@@ -2698,3 +2698,10 @@ capabilities return empty paths/bytes, report consumed and reject publication.
 Allocation/IO validation errors before replacement may leave owned staging residue for inspection,
 but preserve the original source and last-good archive. The private precommit scheduling gate is
 compiled only with BUILD_TESTING and retains no native callback in production.
+
+The graphical host now supplies a separate file-publication review and explicit Confirm/Cancel
+flow using the publisher contract above. It checks current owned-document and stopped-Play policy,
+compares the prepared capability with the validated candidate and repeats SDK source checks at
+confirmation. Live documents/history/save baselines stay unchanged; complete project/reference
+reconciliation, whole-scene deletion and live adoption remain open. Graphical UI contract and
+acceptance are tracked independently in EditorImGui and the graphical publication evidence.
