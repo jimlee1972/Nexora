@@ -2393,3 +2393,25 @@ repeated hash-node allocation, not total process memory or a constant-work produ
 The private SceneDocument C++ layout grows and consumers must rebuild. Stable C/Zig/scene formats
 and module dependencies are unchanged. Scoped CPU/100k ImGui evidence does not certify native GPU,
 production asset scale, total memory or physical/long-duration soak budgets.
+
+### Fixed local diagnostic admission
+
+`TelemetryConsent` is a serialized, session-owned local queue with no IO, persistence, network
+transport or plugin callback. `Record(LocalDiagnosticEvent::FramePresented)` retains only the
+engine-owned `frame.presented` label. Unknown enum values reject. The existing `Record(std::string)`
+signature remains available but now accepts only that exact label: arbitrary UTF-8 text, paths,
+commands, names, source snippets, case/whitespace variants and embedded NUL reject before retention.
+Existing callers that recorded arbitrary strings must migrate to supported typed events; this is
+an intentional admission-policy restriction. The compatibility call still constructs its by-value
+argument at the caller; typed intake carries no caller text. Existing C++ symbols and class layout
+are preserved; the overload adds a C++ export and matching consumers rebuild. Stable C/Zig ABI,
+data formats and module dependencies are unchanged.
+
+Default-off consent, 1,024-record capacity and no-eviction behavior remain. The former 1,024-byte
+constant remains source-compatible, but no arbitrary payload size is admissible. Accepted labels
+are copied into owning strings; allocation failure in typed intake returns false with the prior
+queue intact. `Events()` borrows until mutation/destruction, so callers must copy for longer
+lifetimes. Opt-out clears all logical records; re-enable starts empty. Clear/project/close/restart
+retain existing UI lifecycle rules. This is data minimization, not pattern-based secret detection
+or secure erasure of allocator memory. Complete extension trust and physical privacy acceptance
+remain separate goals.

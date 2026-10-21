@@ -63,17 +63,20 @@ void Run(float scale) {
     draw();
   };
   click(0);
-  Require(diagnostics.Enabled() && diagnostics.Record("frame.presented") &&
-              diagnostics.Record("unrecognized source text\nnot for display"),
+  Require(diagnostics.Enabled() &&
+              diagnostics.Record(editor::LocalDiagnosticEvent::FramePresented) &&
+              !diagnostics.Record("unrecognized source text\nnot for display") &&
+              !diagnostics.Record("/private/project/secret.scene") &&
+              diagnostics.Events().size() == 1 && diagnostics.Events()[0] == "frame.presented",
           "Explicit opt-in did not operate on the real queue");
   draw();
-  Require(Access::DiagnosticRows(ui) == std::array<std::size_t, 2>{1, 1},
-          "Unknown text bypassed display allowlisting");
+  Require(Access::DiagnosticRows(ui) == std::array<std::size_t, 2>{1, 0},
+          "Rejected text entered the inspected queue");
   while (diagnostics.Events().size() < editor::TelemetryConsent::kMaximumEvents)
     Require(diagnostics.Record("frame.presented"), "Bounded queue rejected valid capacity");
   Require(!diagnostics.Record("frame.presented"), "Queue capacity was not bounded");
   draw();
-  Require(Access::DiagnosticRows(ui)[0] == 1023 && Access::DiagnosticRows(ui)[1] == 1,
+  Require(Access::DiagnosticRows(ui)[0] == 1024 && Access::DiagnosticRows(ui)[1] == 0,
           "Bounded inspection lost safe/excluded counts");
   click(1);
   Require(diagnostics.Enabled() && diagnostics.Events().empty(),

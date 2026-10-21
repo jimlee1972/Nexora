@@ -1624,8 +1624,8 @@ creates property widgets; unknown components retain raw data instead of being si
     live documents and source data. Full migration/crash/target-host acceptance remains open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-AutosaveRecovery-Linux-2026-10-09.md).
   - ✅ Portable telemetry consent now releases all retained events on opt-out and bounds the
-    in-memory queue to 1,024 events of 1,024 UTF-8 bytes each. Invalid/oversized/overflow events
-    preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
+    in-memory queue to 1,024 events (historically up to 1,024 UTF-8 bytes each).
+    Invalid/oversized/overflow events preserve accepted records; repeated revoke/enable cannot resurrect old events. Contract tests
     cover exact limits, malformed text, saturation and consent transitions. Persistence/transmission,
     redaction and broader graphical privacy acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-TelemetryConsent-Linux-2026-10-08.md).
@@ -1636,6 +1636,12 @@ creates property widgets; unknown components retain raw data instead of being si
     preserve read-only source bytes. No diagnostic storage or network transport is installed;
     graphical signed-package management and persistence/transmission policy remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM7-DiagnosticPrivacy-Linux-2026-10-10.md).
+  - ✅ Local diagnostic admission retains only typed fixed event codes; exact-label compatibility
+    intake rejects arbitrary caller text before retention. Private paths/commands/source snippets,
+    invalid codes, saturation and consent/reset workflows pass Core and actual 1x/2x UI checks.
+    Supplemental cloud native keyboard/pointer/close/restart preserves read-only sources on
+    software Vulkan. Complete extension trust, generic producer redaction and ED-M7 remain open.
+    [Linux evidence](../../Tools/Build/evidence/EditorEDM7-FixedDiagnosticIntake-Linux-2026-10-20.md).
   - ✅ Cloud documentation-routing Git fixtures now disable local automatic maintenance/GC before
     commits, preventing detached housekeeping from racing strict temporary-directory cleanup.
     Routing semantics and product/global Git settings remain unchanged.

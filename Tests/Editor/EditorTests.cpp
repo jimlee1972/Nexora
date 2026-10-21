@@ -2003,9 +2003,13 @@ int Run() {
               !policy.Allows("Unknown", true),
           "extension signature policy failed");
   editor::TelemetryConsent telemetry;
-  Require(!telemetry.Record("startup") && telemetry.Events().empty(), "telemetry was not opt-in");
+  using Diagnostic = editor::LocalDiagnosticEvent;
+  Require(!telemetry.Record(Diagnostic::FramePresented) && !telemetry.Record("frame.presented") &&
+              telemetry.Events().empty(),
+          "telemetry was not opt-in");
   telemetry.Set(true);
-  Require(telemetry.Record("startup") && telemetry.Events().size() == 1, "opt-in telemetry failed");
+  Require(telemetry.Record(Diagnostic::FramePresented) && telemetry.Events().size() == 1,
+          "opt-in typed telemetry failed");
   const auto original_event = telemetry.Events().front();
   Require(
       !telemetry.Record("") &&
@@ -2014,14 +2018,25 @@ int Run() {
           !telemetry.Record(std::string("\xC0\xAF", 2)) && telemetry.Events().size() == 1 &&
           telemetry.Events().front() == original_event,
       "invalid telemetry changed the accepted queue");
-  Require(telemetry.Record(std::string(editor::TelemetryConsent::kMaximumEventBytes, 'a')) &&
-              telemetry.Record("editor.場景.😀"),
-          "bounded UTF-8 telemetry was rejected");
+  for (const auto &private_text :
+       {std::string("/home/user/private/project.scene"), std::string("C:\\Users\\private\\key"),
+        std::string("git -c http.extraheader=private-token fetch"),
+        std::string("source code\npassword=private"), std::string("editor.場景.😀"),
+        std::string("frame.presented "), std::string("FRAME.PRESENTED"),
+        std::string("frame.presented\0private", 23),
+        std::string(editor::TelemetryConsent::kMaximumEventBytes, 'a')})
+    Require(!telemetry.Record(private_text) && telemetry.Events().size() == 1 &&
+                telemetry.Events().front() == original_event,
+            "unknown or sensitive text crossed the retention boundary");
+  Require(!telemetry.Record(static_cast<Diagnostic>(255)) && telemetry.Events().size() == 1 &&
+              telemetry.Record("frame.presented"),
+          "invalid enum accepted or exact compatibility label rejected");
   while (telemetry.Events().size() < editor::TelemetryConsent::kMaximumEvents)
-    Require(telemetry.Record("frame"), "telemetry capacity filled early");
-  Require(!telemetry.Record("overflow") &&
+    Require(telemetry.Record(Diagnostic::FramePresented), "telemetry capacity filled early");
+  Require(!telemetry.Record(Diagnostic::FramePresented) && !telemetry.Record("frame.presented") &&
               telemetry.Events().size() == editor::TelemetryConsent::kMaximumEvents &&
-              telemetry.Events().front() == original_event && telemetry.Events().back() == "frame",
+              telemetry.Events().front() == original_event &&
+              telemetry.Events().back() == "frame.presented",
           "telemetry overflow evicted accepted events or grew the queue");
   telemetry.Set(true);
   Require(telemetry.Events().size() == editor::TelemetryConsent::kMaximumEvents,
@@ -2031,8 +2046,8 @@ int Run() {
           "revoking consent retained events or accepted new telemetry");
   telemetry.Set(false);
   telemetry.Set(true);
-  Require(telemetry.Events().empty() && telemetry.Record("new-session") &&
-              telemetry.Events().size() == 1 && telemetry.Events().front() == "new-session",
+  Require(telemetry.Events().empty() && telemetry.Record(Diagnostic::FramePresented) &&
+              telemetry.Events().size() == 1 && telemetry.Events().front() == "frame.presented",
           "re-enabling consent resurrected previously retained events");
   telemetry.Set(false);
   editor::AdditiveSceneGraph scene_graph;
