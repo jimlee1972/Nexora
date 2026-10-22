@@ -1299,7 +1299,7 @@ graphical builds. It copies actual drawn prefab control centers/admission, proce
 focus/key/pointer state, history attempt/success counters, and the first root's committed name
 (hex UTF-8) and X position. It runs after EndFrame on the owner thread, retains no pointers,
 and cannot perform an authoring action. Only changed observations are printed.
-`editor.linux_prefab_isolation` acknowledges each pointer/key phase and resolves actual history
+`editor.linux_prefab_isolation` acknowledges prefab control pointer/key-chord phases and resolves actual history
 control positions before a single Undo/Redo gesture; both expected edits must be committed
 before the full-property revert. The original exact asset/identity/opaque-byte and read-only
 checks and 180-second whole-test deadline remain required. Both output pipes are drained during

@@ -36,9 +36,10 @@ committed name/X value after EndFrame. It retains no pointers and performs no ac
 Frame numbers accompany changed observations. Detaching/replacing a prefab clears drawn control
 admission. Normal graphical and Shipping builds do not emit this opt-in output.
 
-The fixture sends each key/pointer phase once and waits for the processed GUI state, resolves
+The fixture sends each prefab control key-chord/pointer phase once and waits for the processed GUI state, resolves
 actual enabled Undo/Redo positions, checks both expected committed edits before full Revert,
-and requires each history gesture to invoke and apply history exactly once. Original exact
+and requires each history gesture to invoke and apply history exactly once. Later scene-placement
+shortcuts retain their existing phase waits and exact saved-byte result checks. Original exact
 source/identity/opaque-byte, selected-property, source-apply, rebase, save/reopen, scene-placement
 and read-only assertions remain. Result/input waits retain an 8-second bound, shutdown bounds
 remain 15/10 seconds, and the registered whole-case deadline remains 180 seconds.
