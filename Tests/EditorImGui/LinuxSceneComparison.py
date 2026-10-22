@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Inspect actual external scene revisions through the native Editor without publication."""
+"""Exercise native scene comparison, candidate validation and explicit file publication."""
 import argparse
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -26,7 +27,10 @@ def main():
     parser.add_argument("--xvfb", required=True)
     parser.add_argument("--xdotool", required=True)
     parser.add_argument("--candidate", action="store_true")
+    parser.add_argument("--publication", action="store_true")
     args = parser.parse_args()
+    if args.publication:
+        args.candidate = True
     root = Path(tempfile.mkdtemp(prefix="nexora-native-comparison-"))
     state = Path(tempfile.mkdtemp(prefix="nexora-native-comparison-state-"))
     (root / "Content").mkdir()
@@ -72,6 +76,13 @@ def main():
                     return
             raise RuntimeError(f"Native comparison diagnostic missing: {pattern}; {captured!r}")
 
+        def wait_native_ready(require_scene=False):
+            if not args.candidate:
+                time.sleep(.8)
+                return
+            scene_scope = r"context_ready=1 " if require_scene else r"context_ready=[01] "
+            wait_log(r"scene merge ui .*" + scene_scope + r"focused=1 selector=0", 0)
+
         def candidate_geometry(disk_choice=False, validated=False):
             deadline = time.monotonic() + 15
             while time.monotonic() < deadline:
@@ -104,6 +115,38 @@ def main():
                     "Actual native candidate request lost explicit choices")
             candidate_geometry(validated=True)
 
+        def publication_geometry(key, start=0):
+            deadline = time.monotonic() + 15
+            previous = None
+            stable_since = time.monotonic()
+            while time.monotonic() < deadline:
+                if select.select([process.stderr], [], [], .1)[0]:
+                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                lines = re.findall(r"scene merge ui [^\n]*", captured[start:].decode("utf-8", errors="replace"))
+                line = lines[-1] if lines else ""
+                if line != previous:
+                    previous = line
+                    stable_since = time.monotonic()
+                controls = dict((name, (float(x), float(y))) for name, x, y in re.findall(
+                    r"(publication_review|publication_confirm|publication_cancel)=([0-9.]+),([0-9.]+)", line))
+                expected_preview = "publication_preview=" + ("0" if key == "publication_review" else "1")
+                if key in controls and expected_preview in line and time.monotonic() - stable_since >= .4:
+                    return controls
+                require(process.poll() is None, "Editor exited before publication confirmation")
+            raise RuntimeError(f"Publication controls unavailable: {captured!r}")
+
+        def publication_click(point):
+            send("mousemove", "--window", window, str(round(point[0])), str(round(point[1])))
+            send("mousedown", "1")
+            time.sleep(.25)
+            send("mouseup", "1")
+
+        def review_publication():
+            controls = publication_geometry("publication_review")
+            start = len(captured)
+            publication_click(controls["publication_review"])
+            return publication_geometry("publication_confirm", start)
+
         def finish():
             request_window_close(window, env)
             _, error = collect_output(process, 15)
@@ -116,7 +159,7 @@ def main():
         process = launch(args.editor, root, state / "recent", env)
         window = wait_for_window(args.xdotool, env)
         send("windowfocus", "--sync", window)
-        time.sleep(.8)
+        wait_native_ready()
         send("key", "--clearmodifiers", "ctrl+shift+n")
         send("key", "--clearmodifiers", "ctrl+shift+s")
         send("key", "--clearmodifiers", "ctrl+a")
@@ -142,6 +185,39 @@ def main():
         if args.candidate:
             validate_candidate(disk_choice=True)
         require(scene.read_bytes() == disk, "Comparison saved unsaved authoring or replaced disk")
+        if args.publication:
+            controls = review_publication()
+            publication_click(controls["publication_cancel"])
+            require(scene.read_bytes() == disk and not (root / ".nexora/scene-merge-history").exists(),
+                    "Native Cancel changed source or wrote an archive")
+            controls = review_publication()
+            changed_again = disk.replace(b"Disk authored name", b"Changed again by another writer")
+            require(changed_again != disk, "Stale confirmation source fixture did not differ")
+            scene.write_bytes(changed_again)
+            start = len(captured)
+            publication_click(controls["publication_confirm"])
+            wait_log(r"scene merge publication outcome=0", start)
+            require(scene.read_bytes() == changed_again, "Stale native confirmation replaced newer source")
+            scene.write_bytes(disk)
+            controls = review_publication()
+            start = len(captured)
+            publication_click(controls["publication_confirm"])
+            wait_log(r"scene merge publication outcome=2", start)
+            published = scene.read_bytes()
+            require(published != disk and b"Disk authored name" in published and
+                    len(re.findall(br"^node ", published, re.MULTILINE)) ==
+                    len(re.findall(br"^node ", base, re.MULTILINE)) + 1,
+                    "Native publication lost disk choice or local added entity")
+            archives = list((root / ".nexora/scene-merge-history").iterdir())
+            require(len(archives) == 1, "Native publication did not retain one exact provenance archive")
+            archive = archives[0]
+            require((archive / "base.scene").read_bytes() == base and
+                    (archive / "disk.scene").read_bytes() == disk and
+                    (archive / "candidate.scene").read_bytes() == published and
+                    hashlib.sha256((archive / "manifest.bin").read_bytes()).hexdigest() == archive.name,
+                    "Native archive lost raw source/candidate integrity")
+            disk = published
+
         send("mousemove", "--window", window, "100", "130", "click", "1")
         send("key", "--clearmodifiers", "ctrl+z")
         finish()
@@ -151,11 +227,18 @@ def main():
         process = launch(args.editor, root, state / "reader-recent", env, read_only=True)
         window = wait_for_window(args.xdotool, env)
         send("windowfocus", "--sync", window)
-        time.sleep(.8)
+        wait_native_ready(require_scene=True)
         send("key", "--clearmodifiers", "ctrl+alt+d")
         wait_log(r"scene comparison ready fields=0 conflicts=0")
         if args.candidate:
             validate_candidate()
+        if args.publication:
+            before = {p: p.read_bytes() for p in (root / ".nexora/scene-merge-history").rglob("*") if p.is_file()}
+            publication_click(publication_geometry("publication_review")["publication_review"])
+            time.sleep(.3)
+            require(scene.read_bytes() == disk and
+                    all(p.read_bytes() == data for p, data in before.items()),
+                    "Read-only publication control changed source or archive")
         scene.write_bytes(b"corrupt external scene")
         send("key", "--clearmodifiers", "ctrl+alt+d")
         wait_log(r"scene comparison finished: .*corrupt")
@@ -168,6 +251,8 @@ def main():
         print("NATIVE_EDITOR_SEMANTIC_COMPARISON_PASSED source_preserved read_only corrupt_rejected")
         if args.candidate:
             print("NATIVE_EDITOR_MERGE_CANDIDATE_PASSED explicit_choice validated read_only source_preserved")
+        if args.publication:
+            print("NATIVE_EDITOR_MERGE_PUBLICATION_PASSED confirm cancel stale_disk archive read_only reopen")
     finally:
         if process is not None and process.poll() is None:
             process.kill()

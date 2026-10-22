@@ -59,7 +59,7 @@ CMake／CTest／CI 行為。
 | ED-M1 project/assets | Portable create/open、schema upgrade、single-writer／read-only access、recent-project state、deterministic indexing/search、persistent sidecar UUID、virtualized Content Browser state、breadcrumb／selection、transactional mutation、typed generation-safe drag payload、dependency／cycle inspection、transactional reimport、watcher debounce 與 dirty-conflict decision 已存在。Native shell 已顯示 project 狀態、提供圖形化 create/open/recent selector、將真實 index 綁到圖形化 Content panel 與可回復的 project-local mutation，執行具 bounded progress 與 structured diagnostic 的 cancellable background import/reimport、顯示 dependency cycle，並提供阻塞式 reload／keep／compare conflict UX；實體顯示／Windows workflow 驗收仍待完成。 | [ ] |
 | ED-M2 scene authoring | Portable hierarchy/selection、reparent、兄弟重新排序（可復原的 Hierarchy 拖曳模型）、multi-selection、clipboard、transform transaction、undo、atomic save/reload 已存在，另有與 UI 無關的 pick ray、AABB picking、軸向拖曳、snapping 與 viewport resize hysteresis 數學，以及 Unity 式的移動／旋轉／縮放 gizmo 數學（含 Global／Local 軸、Pivot／Center、父物件、負縮放規則與多選最上層判定）。圖形化 Hierarchy 現已有 parent-aware expandable tree、filter、以 generation 為 key 的 expansion／selection、可見列裁切提交、可復原 rename、兄弟排序與 cycle-safe reparent，且會拒絕 stale entity／document generation。Docked Inspector 已提供 generation-safe 的 position、Euler 度數（quaternion storage）與 scale 單選／mixed-value 多選編輯，並具 atomic Runtime validation 與單步 undo。Scalar opaque PBR 材質資產現已支援 import／reimport、單／多物件 atomic Inspector 指派／移除、persistent UUID 參照、Undo／save／reopen 與真實原生 Scene View palette。完整的 authored-mesh Scene View、reflected Inspector、完整 material／shader workflow、camera authoring 與 missing-plugin 還原仍待完成；有界唯讀 opaque component Inspector 與 persistence 已實作；原生代理預覽已提供 Move／Rotate／Scale 把手。 | [ ] |
 | ED-M3 PIE/debugging | Portable `PlaySession`、structured bounded Console records、owning inspection snapshots、debugger adapter/pause reasons、failure recovery 與 deterministic transform conflict rejection 已存在。圖形化 Console 會顯示有界紀錄與 Editor 診斷；docked Game panel 可控制隔離 clone 並顯示複製的檢視資料。有界原生 camera／OBJ Game View 與凍結 scalar PBR 材質已實作；完整材質／進階 canvas、完整 gameplay 服務／擴充 input、完整 log 路由與 native debugger integration 仍待完成。 | [ ] |
-| ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Native additive tab、owned／reference document、coordinated Save All 與 named composition reopen 已通過 Linux Xvfb。Graphical prefab、migration/recovery、semantic／provider conflict 與完整 target-host 驗收仍待完成。 | [ ] |
+| ED-M4 prefab/scenes | Portable override diff/revert/apply、variant 與 nested rebase 已存在。Native additive tab、owned／reference document、coordinated Save All 與 named composition reopen 已通過 Linux Xvfb。圖形欄位選擇、captured candidate 驗證與限定範圍的僅檔案發布已提供。完整 prefab、migration/recovery、project/reference reconciliation、provider conflict 與 target-host 驗收仍待完成。 | [ ] |
 | ED-M5 specialized tools | Stable capability ID 與誠實的 implemented/read-only/unavailable state 已存在。尚無 production graphical reference tool 通過 edit-preview-save 驗收。 | [ ] |
 | ED-M6 build/profile/extensions | Portable build manifest/checksum 與有界的 monotonic profile capture 已存在。Docked Profiler 可繪出即時 Editor frame processing 時間，具暫停／清除與丟棄數，並顯示真實目前 process resident bytes 與 observed peak。CSV 與 schema-1 wall-time JSON export／import 已提供，另有獨立且有界的 process-memory JSON trace。Retained native mesh allocation 與 CPU-key bytes 另有具明確 scope 的 live history 及獨立 core schema-1 JSON 交換；圖形化 scoped mesh 匯出／匯入與獨立 static view 已提供。另有獨立且有界的 native Vulkan／DX12／Metal command-buffer GPU interval live history 與 schema-1 JSON capture，明示 unavailable／software 狀態。Linux 支援 project-scoped signed package 安裝及明確 session enable／revoke。Build/deploy/log、實體 GPU 計時校準、任意 capture import 與 plugin manager persistent trust／recovery 仍待完成。 | [ ] |
 | ED-M7 hardening | Portable virtual hierarchy、trust/signature policy 與 telemetry opt-in test 已存在。Graphical scale/soak、migration/corruption、keyboard 與 screen-reader audit 仍待完成。 | [ ] |
@@ -1213,26 +1213,32 @@ Prefab create/open/variant、override diff/revert/apply、nested rebase；additi
   場景候選，完整 reload／reprojection、rotation／binding 群組一致性、未知 bytes 保留與
   容量拒絕皆有檢查。Focused 真實 Save／reopen、migration、配置失敗與無效 hybrid 測試通過；
   目前 main 整合完整 Linux 314 項登錄測試中302 項實際通過、12 項環境 skip，既有限制不變。
-  圖形 review、project／reference 驗證與原子發布保持未完成。
+  完整 project／reference 驗證、live 採用與整個場景不存在的發布保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergeCandidate-Linux-2026-10-21.md)。
 - ✅ 限定範圍的僅檔案語意合併發布已有 owning 單次 capability 與版本1完整性驗證原始來源／候選備份。
   成功／重開、過期／取消、唯讀、未知資料及損毀分支通過；完整 Linux 共316註冊、304實際通過、
   12環境跳過，原斷言及逾時維持不變。
-  圖形確認、live 採用、整個場景不存在的發布及完整 project/reference 驗證仍未完成。
+  Live 採用、整個場景不存在的發布及完整 project/reference 驗證仍未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-SceneMergePublication-Linux-2026-10-21.md)。
+- ✅ 圖形僅檔案合併發布已有獨立檢閱／確認／取消，使用真正 scoped publisher；檢查目前 writer／
+  reference／draft、拒絕跨確認的 held click、保留 live history 並顯示備份狀態。
+  實際1x／2x及 X11成功／取消／過期來源／重開通過；完整 Linux 共317註冊、305實際通過、12環境跳過。
+  Live採用、刪除與完整 project/reference reconciliation 仍未完成。
+  [證據](../../Tools/Build/evidence/EditorEDM4-GraphicalMergePublication-Linux-2026-10-21.md)。
+
 
 
 - ✅ 實際非同步 comparison worker 現保留 owning immutable merge review；ready 差異列共用
   該 review，舊副本在 owner 銷毀後仍保有 captured data。目前 scope／取消／失敗檢查
   保護發布，停止的 owner 清除目前 observation。Focused source／選擇／未知資料與
   lifecycle 檢查通過；目前 main 整合完整 Linux 315 項登錄中303 項實際通過、12 項環境 skip。
-  圖形選擇與原子檔案發布保持未完成。
+  完整 project／reference 驗證與 live 採用保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-OwningMergeJob-Linux-2026-10-21.md)。
 
 - ✅ 實際 clipped Local／Disk 欄位選擇現將有界 owning draft 送往非同步候選驗證器。
   完整候選診斷／呈現、draft／review 過期拒絕、取消／drain、未知資料與來源／選取／歷史
   保留通過 focused SDK 及實際 1x／2x widgets；原生 X11 明確選擇與全新唯讀驗證保留磁碟 bytes。
-  完整 Linux 316 項登錄中304 項實際通過、12 項環境 skip；原子來源發布與完整 M4-05 保持未完成。
+  完整 Linux 316 項登錄中304 項實際通過、12 項環境 skip；live 採用、完整 project／reference reconciliation 與 M4-05 驗收保持未完成。
   [證據](../../Tools/Build/evidence/EditorEDM4-GraphicalMergeCandidate-Linux-2026-10-21.md)。
 
 - ✅ Authoring SDK 現擁有有界且可同時存在的 scene document／file session；在 reader／owner

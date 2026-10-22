@@ -427,6 +427,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
       --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --candidate)
   set_tests_properties(editor.linux_scene_merge_candidate PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_scene_merge_publication
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneComparison.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --publication)
+  set_tests_properties(editor.linux_scene_merge_publication PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
   if(NEXORA_BUILD_PROJECT_PLAYER)
     add_test(NAME editor.linux_static_project_export
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxStaticProjectExport.py"

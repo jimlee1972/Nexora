@@ -179,6 +179,13 @@ struct EditorImGuiHost::State final {
   SceneMergeCandidateSnapshot scene_merge_status;
   bool scene_merge_busy{}, scene_merge_cancel{};
   bool scene_merge_interaction_allowed{};
+  bool scene_merge_publication_allowed{}, scene_merge_publication_writable{},
+      scene_merge_publication_popup_pending{};
+  std::optional<SceneMergeUiRequest> scene_merge_publication_request;
+  std::optional<SceneMergePublicationPreview> scene_merge_publication_preview;
+  std::optional<SceneMergePublicationDecision> scene_merge_publication_decision;
+  std::string scene_merge_publication_message;
+  std::array<std::optional<std::array<float, 2>>, 3> scene_merge_publication_positions{};
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   bool scene_merge_fail_choice_allocation{};
 #endif
@@ -2688,12 +2695,29 @@ template <typename StateT> void CaptureComparisonControl(StateT &state, std::siz
   state.scene_comparison_positions[index] =
       std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
 }
+template <typename StateT> void ClearSceneMergePublication(StateT &state) {
+  state.scene_merge_publication_request.reset();
+  state.scene_merge_publication_preview.reset();
+  state.scene_merge_publication_decision.reset();
+  state.scene_merge_publication_popup_pending = false;
+}
+template <typename StateT> SceneMergeUiRequest CaptureSceneMergeDraft(const StateT &state) {
+  SceneMergeUiRequest request{state.scene_file_token,
+                              state.scene_comparison.operation,
+                              state.scene_merge_draft,
+                              {SceneMerge::kSchemaVersion, state.scene_merge_review, {}}};
+  for (std::size_t i = 0; i < state.scene_merge_choices.size(); ++i)
+    if (state.scene_merge_choices[i])
+      request.candidate.choices.push_back({i, *state.scene_merge_choices[i]});
+  return request;
+}
 template <typename StateT> void BeginSceneComparison(StateT &state, bool overwrite = false) {
   CancelSceneGestures(state);
   CancelInspectorDrafts(state);
   state.scene_comparison = {};
   state.scene_merge_request.reset();
   state.scene_merge_status = {};
+  ClearSceneMergePublication(state);
   state.scene_merge_review = 0;
   state.scene_merge_choices.clear();
   state.scene_comparison_request = state.scene_file_token;
@@ -2742,23 +2766,18 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
                         state.scene_merge_draft != std::numeric_limits<std::uint64_t>::max() &&
                         state.scene_merge_choices.size() == snapshot.result->rows.size();
   const auto unresolved = state.scene_merge_unresolved;
-  ImGui::TextWrapped("Captured revisions. Validate complete choices to inspect a candidate; "
-                     "source publication requires a separate workflow.");
+  ImGui::TextWrapped(
+      "Captured revisions. Validate complete choices before reviewing file publication."
+      "");
   const auto frame_scope =
       std::to_string(state.scene_merge_review) + '/' + std::to_string(state.scene_merge_draft);
   ImGui::PushID(frame_scope.c_str());
   ImGui::BeginDisabled(!editable || !state.scene_merge_interaction_allowed ||
                        state.scene_comparison_busy || state.scene_merge_busy || unresolved);
   if (ImGui::Button("Validate candidate")) {
-    SceneMergeUiRequest request{state.scene_file_token,
-                                snapshot.operation,
-                                state.scene_merge_draft,
-                                {SceneMerge::kSchemaVersion, state.scene_merge_review, {}}};
-    for (std::size_t i = 0; i < state.scene_merge_choices.size(); ++i)
-      if (state.scene_merge_choices[i])
-        request.candidate.choices.push_back({i, *state.scene_merge_choices[i]});
-    state.scene_merge_request = std::move(request);
+    state.scene_merge_request = CaptureSceneMergeDraft(state);
     state.scene_merge_status = {};
+    ClearSceneMergePublication(state);
   }
   const auto position = [] {
     const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
@@ -2773,6 +2792,19 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
     state.scene_merge_positions[1] = position();
   }
   ImGui::PopID();
+  ImGui::BeginDisabled(
+      !editable || !state.scene_merge_publication_allowed ||
+      !state.scene_merge_publication_writable || !state.scene_merge_interaction_allowed ||
+      state.scene_merge_busy || state.scene_comparison_busy || !state.scene_merge_status.result ||
+      !state.scene_merge_status.result->bytes || state.scene_merge_publication_preview);
+  if (ImGui::Button("Review file publication")) {
+    state.scene_merge_publication_request = CaptureSceneMergeDraft(state);
+    state.scene_merge_publication_message.clear();
+  }
+  state.scene_merge_publication_positions[0] = position();
+  ImGui::EndDisabled();
+  if (!state.scene_merge_publication_message.empty())
+    ImGui::TextWrapped("%s", state.scene_merge_publication_message.c_str());
   if (editable)
     ImGui::Text("Unresolved choices: %zu", unresolved);
   if (!state.scene_merge_status.message.empty())
@@ -2834,6 +2866,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
               ++state.scene_merge_draft;
             state.scene_merge_request.reset();
             state.scene_merge_status = {};
+            ClearSceneMergePublication(state);
           }
           state.scene_merge_choice_positions[static_cast<std::size_t>(i)][option] = position();
         }
@@ -5247,11 +5280,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (!merge_allowed) {
     state_->scene_merge_request.reset();
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     if (state_->scene_merge_interaction_allowed &&
         state_->scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
       ++state_->scene_merge_draft;
   }
   state_->scene_merge_interaction_allowed = merge_allowed;
+  state_->scene_merge_publication_positions.fill(std::nullopt);
+  state_->scene_merge_publication_writable = merge_allowed && workspace && workspace->Writable() &&
+                                             !reference_scene && !state_->scene_file_save_blocked;
+  if (!state_->scene_merge_publication_writable)
+    ClearSceneMergePublication(*state_);
   state_->build_console_interaction_blocked = file_external_block || tab_modal;
   state_->extension_input_blocked = file_external_block || tab_modal || !workspace;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
@@ -7005,6 +7044,45 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       DrawSceneComparisonPanel(*state_);
     ImGui::End();
   }
+  if (state_->scene_merge_publication_popup_pending && state_->scene_merge_publication_preview) {
+    ImGui::OpenPopup("Publish merged scene file?###editor.scene-merge-publish");
+    state_->scene_merge_publication_popup_pending = false;
+  }
+  const auto publish_size = ImGui::GetMainViewport()->WorkSize;
+  ImGui::SetNextWindowSize({std::max(1.0F, std::min(600.0F, publish_size.x - 24)), 0},
+                           ImGuiCond_Always);
+  if (ImGui::BeginPopupModal("Publish merged scene file?###editor.scene-merge-publish", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!state_->scene_merge_publication_preview || !state_->scene_merge_publication_allowed ||
+        !state_->scene_merge_publication_writable || !SceneMergeInteractionAllowed()) {
+      ImGui::CloseCurrentPopup();
+    } else {
+      const auto preview = *state_->scene_merge_publication_preview;
+      const auto identity = std::to_string(preview.identity) + '/' +
+                            std::to_string(preview.review) + '/' + std::to_string(preview.draft);
+      ImGui::PushID(identity.c_str());
+      ImGui::TextWrapped("Publish the merged scene file: %s", PathLabel(preview.source).c_str());
+      ImGui::TextWrapped("A backup of both versions is kept. Your open document and local edits "
+                         "stay unchanged. Reopen the scene to use the merged version.");
+      const auto position = [] {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        return std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      if (ImGui::Button("Publish file")) {
+        state_->scene_merge_publication_decision = SceneMergePublicationDecision{preview, true};
+        ImGui::CloseCurrentPopup();
+      }
+      state_->scene_merge_publication_positions[1] = position();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        state_->scene_merge_publication_decision = SceneMergePublicationDecision{preview, false};
+        ImGui::CloseCurrentPopup();
+      }
+      state_->scene_merge_publication_positions[2] = position();
+      ImGui::PopID();
+    }
+    ImGui::EndPopup();
+  }
 }
 
 bool EditorImGuiHost::SetSceneTabs(std::span<const SceneTabItem> items, std::uint64_t active,
@@ -7091,6 +7169,7 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
     state_->scene_comparison = {};
     state_->scene_merge_request.reset();
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     state_->scene_merge_choices.clear();
     state_->scene_merge_review = 0;
     state_->scene_comparison_request.reset();
@@ -7434,6 +7513,7 @@ void EditorImGuiHost::SetSceneComparisonStatus(SceneComparisonSnapshot snapshot,
                                                                   : 0);
     state_->scene_merge_request.reset();
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     state_->scene_merge_review = identity;
     if (state_->scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
       ++state_->scene_merge_draft;
@@ -7465,6 +7545,7 @@ void EditorImGuiHost::SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot s
   if (!state_->scene_merge_review || draft != state_->scene_merge_draft ||
       snapshot.review != state_->scene_merge_review) {
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     return;
   }
   const auto safe = [](std::string_view value) {
@@ -7523,10 +7604,98 @@ EditorImGuiTestAccess::SceneMergeChoicePosition(const EditorImGuiHost &host, std
 SceneMergeCandidateSnapshot EditorImGuiTestAccess::SceneMergeStatus(const EditorImGuiHost &host) {
   return host.state_->scene_merge_status;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneMergePublicationPosition(const EditorImGuiHost &host,
+                                                     std::size_t control) {
+  return control < host.state_->scene_merge_publication_positions.size()
+             ? host.state_->scene_merge_publication_positions[control]
+             : std::nullopt;
+}
 void EditorImGuiTestAccess::FailNextSceneMergeChoiceAllocation(EditorImGuiHost &host) {
   host.state_->scene_merge_fail_choice_allocation = true;
 }
 #endif
+void EditorImGuiHost::SetSceneMergePublicationAllowed(bool allowed) noexcept {
+  state_->scene_merge_publication_allowed = allowed;
+  if (!allowed)
+    ClearSceneMergePublication(*state_);
+}
+std::optional<SceneMergeUiRequest> EditorImGuiHost::TakeSceneMergePublicationRequest() {
+  auto request = std::exchange(state_->scene_merge_publication_request, std::nullopt);
+  if (!request || !state_->scene_merge_publication_allowed ||
+      !state_->scene_merge_publication_writable || !SceneMergeInteractionAllowed() ||
+      request->token != state_->scene_file_token || request->draft != state_->scene_merge_draft ||
+      request->comparison_operation != state_->scene_comparison.operation ||
+      request->candidate.review != state_->scene_merge_review ||
+      !state_->scene_merge_status.result || !state_->scene_merge_status.result->bytes)
+    return {};
+  return request;
+}
+bool EditorImGuiHost::SetSceneMergePublicationPreview(
+    std::optional<SceneMergePublicationPreview> preview) {
+  if (!preview) {
+    ClearSceneMergePublication(*state_);
+    return true;
+  }
+  const auto encoded = preview->source.generic_u8string();
+  const std::string path(encoded.begin(), encoded.end());
+  if (preview->schema != 1 || !preview->identity || !state_->scene_merge_publication_allowed ||
+      !state_->scene_merge_publication_writable || !SceneMergeInteractionAllowed() ||
+      preview->token != state_->scene_file_token || preview->review != state_->scene_merge_review ||
+      preview->draft != state_->scene_merge_draft ||
+      preview->comparison_operation != state_->scene_comparison.operation ||
+      preview->source != state_->scene_file_path || !preview->candidate_bytes ||
+      preview->candidate_bytes > SceneComparison::kMaximumSourceBytes ||
+      !state_->scene_merge_status.result || !state_->scene_merge_status.result->bytes ||
+      state_->scene_merge_status.result->bytes->size() != preview->candidate_bytes ||
+      path.empty() || path.size() >= 1024 || !foundation::IsValidUtf8(path) ||
+      std::ranges::any_of(path, [](unsigned char c) { return c < 32 || c == 127; }))
+    return false;
+  state_->scene_merge_publication_preview = std::move(preview);
+  state_->scene_merge_publication_decision.reset();
+  state_->scene_merge_publication_popup_pending = true;
+  if (state_->scene_comparison_in_overwrite) {
+    // Explicit review enters a separate publication flow; discard the original overwrite intent.
+    state_->scene_file_dialog = State::FileDialog::None;
+    state_->scene_file_intent.reset();
+    state_->scene_file_output.reset();
+    state_->scene_file_popup_pending = false;
+    state_->scene_file_close_popup = false;
+    state_->scene_comparison_in_overwrite = false;
+    state_->scene_comparison_open = true;
+  }
+  return true;
+}
+bool EditorImGuiHost::SceneMergePublicationPreviewCurrent(
+    const SceneMergePublicationPreview &preview) const noexcept {
+  return state_->scene_merge_publication_allowed && state_->scene_merge_publication_writable &&
+         SceneMergeInteractionAllowed() && state_->scene_merge_publication_preview &&
+         preview.schema == 1 &&
+         preview.identity == state_->scene_merge_publication_preview->identity &&
+         preview.token == state_->scene_file_token &&
+         preview.review == state_->scene_merge_review &&
+         preview.comparison_operation == state_->scene_comparison.operation &&
+         preview.draft == state_->scene_merge_draft;
+}
+std::optional<SceneMergePublicationDecision> EditorImGuiHost::TakeSceneMergePublicationDecision() {
+  auto decision = std::exchange(state_->scene_merge_publication_decision, std::nullopt);
+  if (!decision || !state_->scene_merge_publication_preview ||
+      decision->scope != *state_->scene_merge_publication_preview ||
+      !state_->scene_merge_publication_allowed || !state_->scene_merge_publication_writable ||
+      !SceneMergeInteractionAllowed() || decision->scope.token != state_->scene_file_token ||
+      decision->scope.review != state_->scene_merge_review ||
+      decision->scope.draft != state_->scene_merge_draft ||
+      decision->scope.comparison_operation != state_->scene_comparison.operation)
+    return {};
+  ClearSceneMergePublication(*state_);
+  return decision;
+}
+void EditorImGuiHost::SetSceneMergePublicationStatus(std::string message) {
+  if (message.size() > 1024 || !foundation::IsValidUtf8(message) ||
+      std::ranges::any_of(message, [](unsigned char c) { return c < 32 || c == 127; }))
+    message = "Scene publication status is unavailable.";
+  state_->scene_merge_publication_message = std::move(message);
+}
 void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
                                          std::optional<std::filesystem::path> suggested_path) {
   Activate(state_->context);
