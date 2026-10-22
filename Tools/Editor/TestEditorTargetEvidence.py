@@ -91,6 +91,31 @@ class EvidenceTests(unittest.TestCase):
             record["rows"][1]["artifacts"] = [{"path": "link", "sha256": evidence.digest(external)}]
             self.assertEqual(self.status(record), "INCOMPLETE")
 
+    def test_cyclic_artifacts_are_incomplete_without_rewriting_input(self):
+        try:
+            (self.directory / "self-loop").symlink_to("self-loop")
+            (self.directory / "cycle-a").symlink_to("cycle-b")
+            (self.directory / "cycle-b").symlink_to("cycle-a")
+        except OSError:
+            self.skipTest("Host does not permit symbolic links")
+        for artifact in ("self-loop", "cycle-a"):
+            with self.subTest(retain=artifact), self.assertRaises((OSError, ValueError)):
+                evidence.retain(self.directory / artifact, self.directory)
+            for row_index in (0, 1):
+                with self.subTest(artifact=artifact, row=row_index):
+                    record = self.record()
+                    record["rows"][row_index]["artifacts"] = [{"path": artifact, "sha256": "a" * 64}]
+                    self.assertEqual(self.status(record), "INCOMPLETE")
+                    path = self.directory / "evidence.json"
+                    original = (json.dumps(record) + "\n").encode("utf-8")
+                    path.write_bytes(original)
+                    result = subprocess.run([sys.executable, str(Path(evidence.__file__)), "validate", str(path)],
+                                            capture_output=True, text=True, check=False)
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn("INCOMPLETE", result.stdout)
+                    self.assertEqual(result.stderr, "")
+                    self.assertEqual(path.read_bytes(), original)
+
     def test_virtual_unattested_or_unidentified_records_stay_open(self):
         for key, value in (("display_kind", "virtual"), ("operator_attested", False), ("commit", "unknown"),
                            ("configuration", "Shipping"), ("gpu_driver", ""), ("monitors", "unknown"),

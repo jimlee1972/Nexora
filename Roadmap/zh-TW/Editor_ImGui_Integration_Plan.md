@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.6｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-10-20｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 版本：v1.7｜狀態：施工中；target-host 證據待完成｜
+> 更新：2026-10-22｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
 > **Repository 稽核（2026-10-05）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
@@ -226,6 +226,13 @@ Linux／Vulkan 140/140、Windows／DX12 123/123、macOS／Metal 122/122，三個
 均完成 4290 次 upload。全部 18 個 selected CI job 通過，包括 sanitizer 與 Shipping package。
 實體顯示器、已安裝 IME 及 visual-legibility／glyph coverage 驗收仍待完成。
 
+✅ Renderer draw-command contract 現宣告 base-vertex 能力，支援超過 65,535 vertices 的
+draw list。Reset-state callback 會還原 public-RHI binding；native packet 自行擁有 state。
+不支援的 application callback 會在 submit 前拒絕整個 packet，不再靜默略過。
+Portable 回歸使用真正分段的 draw list 與 callback rejection；實體顯示器／backend 視覺驗收仍保持 open。
+[Linux 驗證紀錄](../../Tools/Build/evidence/EditorEDM0-DrawContracts-Linux-2026-10-22.md)
+分別記錄完整套件的失敗與未改 source 的重跑結果。
+
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
    stable resource；禁止每 frame create/destroy pipeline 與 font texture。
@@ -360,6 +367,8 @@ source／configuration／host／backend metadata 與附雜湊的 artifact 副本
 必要 row 與 bounded native smoke log。Windows 必須分別記錄 100／125／150／200% 與 installed-IME、
 caret／candidate 操作。缺項或僅虛擬顯示器的紀錄維持 incomplete。`COMPLETE_OPERATOR_RECORD`
 代表完整的操作者佐證，不是自動核准 ED-M0。舊 PowerShell 訪談僅屬初步紀錄，不滿足此完整矩陣。
+Artifact（包含 smoke log）的循環 symlink 也會回報 incomplete；對以 `RuntimeError`
+回報循環的 Python 版本，不再出現 traceback，亦不改寫送交的 evidence。
 Portable `build.editor_target_evidence` 只驗證證據收件規則；physical Linux 與 Windows DPI／IME
 gate 在收集並審閱實機 artifact 前仍維持 open。
 詳見 [Linux 工具驗證](../../Tools/Build/evidence/EditorEDM0-EvidenceAdmission-Linux-2026-10-20.md)。

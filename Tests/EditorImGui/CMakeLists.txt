@@ -58,7 +58,7 @@ set_tests_properties(editor.build_process_console PROPERTIES TIMEOUT 60)
 add_executable(NexoraEditorImGuiTests EditorImGuiTests.cpp)
 target_include_directories(NexoraEditorImGuiTests
   PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
 add_executable(NexoraSceneComparisonUiTests SceneComparisonTests.cpp)

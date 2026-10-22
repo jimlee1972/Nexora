@@ -516,6 +516,15 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   reuse, resize, and teardown. Linux runs it on Xvfb with strict validation; Windows/DX12 and
   macOS/Metal use the native host when available. An unsupported Metal runner is explicitly skipped
   and cannot supply native/physical acceptance evidence.
+- Both renderers advertise and preserve base-vertex offsets, allowing a 16-bit-index draw list
+  to exceed 65,535 vertices through ImGui's command-local index ranges. The public-RHI renderer
+  restores pipeline and current-list buffer bindings on reset-render-state callbacks; subsequent
+  draws restore their texture and scissor. Reset callbacks are no-ops in the native flattened
+  packet because RenderUi owns all encoder state and no external callback can modify it.
+  Application draw callbacks have no backend-neutral encoder contract and are unsupported.
+  Both paths preflight every list, including lists containing only callbacks, and reject the
+  complete packet before resource/metric/encoder changes or callback invocation. Public-RHI
+  Render returns zero; native Render returns InvalidDescriptor. Callback payloads are never run.
 - Public-RHI user texture registrations borrow the caller's texture/device. Unregister prevents
   future bindings; wait for the last GPU use before destroying that texture. Release the renderer
   before destroying its device. IDs are scoped to

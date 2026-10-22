@@ -451,6 +451,9 @@ public:
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.
+  // Reset-render-state callbacks restore renderer bindings. Application draw callbacks are
+  // unsupported: reject the entire packet with zero, without invoking callbacks or touching the
+  // device/resources/metrics. The native overload instead returns InvalidDescriptor.
   [[nodiscard]] std::uint32_t Render(nexora::rhi::Device &device, nexora::rhi::TextureHandle target,
                                      std::uint32_t width, std::uint32_t height,
                                      nexora::rhi::ResourceState before, bool prepare_for_present);

@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.6 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-10-20 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Version: v1.7 | Status: implementation in progress; target-host evidence pending |
+> Updated: 2026-10-22 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
 > **Repository audit (2026-10-05):** implementation is **in progress**. The checked foundations
@@ -245,6 +245,14 @@ Linux/Vulkan 140/140, Windows/DX12 123/123 and macOS/Metal 122/122; each native 
 4290 uploads. All 18 selected CI jobs passed, including sanitizers and Shipping packages.
 Physical-display, installed-IME and visual-legibility/glyph coverage remain open.
 
+✅ Renderer draw-command contracts now advertise base-vertex support for draw lists larger than
+65,535 vertices. Reset-state callbacks restore public-RHI bindings; native packets own their state.
+Unsupported application callbacks reject the complete packet before submission rather than being
+silently dropped. Portable regressions exercise real split draw lists and callback rejection;
+physical-display/backend visual acceptance remains open.
+[Linux validation record](../../Tools/Build/evidence/EditorEDM0-DrawContracts-Linux-2026-10-22.md)
+records the complete suite failure and unchanged-source rerun separately.
+
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
    Create stable resources lazily after device/format is known; do not create/destroy pipeline and
@@ -393,6 +401,8 @@ rechecks every required row and bounded native smoke logs. Separate Windows 100/
 rows and installed-IME/caret/candidate observations are required. Missing or virtual-only records
 remain incomplete. `COMPLETE_OPERATOR_RECORD` means a complete operator attestation, not automatic
 ED-M0 approval. The older PowerShell interview is preliminary and cannot satisfy this new matrix.
+Cyclic artifact symlinks are also rejected as incomplete, including smoke logs, without a traceback
+or rewriting the submitted evidence on Python versions that report loops as `RuntimeError`.
 Portable `build.editor_target_evidence` verifies evidence admission only; physical Linux and
 Windows DPI/IME gates remain open until the artifacts are collected and reviewed.
 See [Linux tooling validation](../../Tools/Build/evidence/EditorEDM0-EvidenceAdmission-Linux-2026-10-20.md).
