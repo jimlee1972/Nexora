@@ -8,9 +8,10 @@ import shutil
 import subprocess
 import tempfile
 import time
-from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
+from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
 from LinuxReflectedInspector import rendered_pixels
 from LinuxExtensionControls import ExtensionControls
+from NativeSceneInput import NativeSceneInput
 
 
 def require(value, message):
@@ -33,17 +34,19 @@ def main():
     xvfb, display = start_xvfb(args.xvfb, "1600x1200x24")
     process = None
     controls = None
+    driver = None
+    launch_number = 0
+    passed = False
     try:
         require(display is not None, "Xvfb unavailable")
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / "state"),
-                   NEXORA_SIGNED_FIXTURE_EVENTS=str(events), NEXORA_EXTENSION_UI_TEST_GEOMETRY="1")
+                   NEXORA_SIGNED_FIXTURE_EVENTS=str(events), NEXORA_EXTENSION_UI_TEST_GEOMETRY="1",
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY="1", NEXORA_SOURCE_MARKER_TEST_GEOMETRY="1")
         window = None
 
         def send(*arguments):
-            subprocess.run([args.xdotool, *arguments], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+            driver.send(*arguments)
 
         def click(x, y):
             send("mousemove", "--window", window, str(x), str(y))
@@ -51,49 +54,71 @@ def main():
             send("mouseup", "1")
 
         def key(chord):
-            # Modifier down/key/down/up transitions must span software-rendered frames.
+            # Known chords acknowledge processed GUI phases. Ctrl+Alt+E keeps the original
+            # 100 ms native gesture; the shared observer does not claim an E acknowledgement.
             send("key", "--clearmodifiers", "--delay", "100", chord)
 
         def event_text():
             return events.read_text() if events.exists() else ""
 
+        def source_observation():
+            records = re.findall(rb'^source marker ([^\n]*)\n', driver.stderr, re.M)
+            return dict(part.split('=', 1) for part in records[-1].decode().split()) if records else {}
+
         def wait(predicate, label):
             deadline = time.monotonic() + 12
             while time.monotonic() < deadline:
                 require(process.poll() is None, "Editor exited during " + label)
+                driver.drain(.05)
+                if time.monotonic() >= deadline:
+                    break
                 if predicate():
                     return
-                time.sleep(.05)
-            raise RuntimeError("Actual native operation missing: " + label + "; events=" + event_text())
+            raise RuntimeError("Actual native operation missing: " + label + "; events=" + event_text() +
+                               "; source=" + str(source_observation()))
 
         def start(readonly=False):
-            nonlocal process, window, controls
-            process = launch(args.editor, root, scratch / "recent", env, read_only=readonly)
+            nonlocal process, window, controls, driver, launch_number
+            process = launch(args.editor, root, scratch / "recent", env, read_only=readonly, binary=True)
+            launch_number += 1
+            driver = NativeSceneInput(process, args.xdotool, env, "0", scratch, launch_number)
             window = wait_for_window(args.xdotool, env)
+            driver.window = str(window)
             # Initial dock splits belong to the native host's 1280x720 startup layout.
             # Select the actual rendered source before resizing to the Extensions fixture size.
             send("windowsize", window, "1280", "720")
             send("windowfocus", "--sync", window)
             time.sleep(1.5)
-            y = 199 if readonly else 182
-            wait(lambda: any(b >= r + 25 and g >= r + 10
-                             for r, g, b in rendered_pixels(display, window, (518, y - 4, 10, 10))),
-                 "rendered source control")
-            click(523, y)
+            marker = {}
+
+            def rendered_source():
+                current = source_observation()
+                if current.get('ready') != '1' or driver.observation().get('focused') != '1':
+                    return False
+                x, y = map(round, map(float, current['point'].split(',')))
+                if not any(b >= r + 25 and g >= r + 10
+                           for r, g, b in rendered_pixels(display, window, (x - 5, y - 4, 10, 10))):
+                    return False
+                marker.update(current)
+                marker['position'] = (x, y)
+                return True
+
+            wait(rendered_source, "rendered source control")
+            driver.click(marker['position'])
+            wait(lambda: source_observation().get('id') == marker['id'] and
+                 source_observation().get('selected') == '1' and
+                 source_observation().get('selection_count') == '1', "selected source control")
             time.sleep(.8)
             send("windowsize", window, "1600", "1200")
             click(397, 29)
             key("ctrl+alt+e")
-            controls = ExtensionControls(process, send, window)
+            controls = ExtensionControls(process, send, window, captured=driver.stderr, pump=driver.drain)
 
         def finish(readonly=False):
             nonlocal process
             request_window_close(window, env)
-            output, error = collect_output(process, 15)
-            captured = controls.captured.decode("utf-8", errors="replace")
-            if captured:
-                print(captured, end="" if captured.endswith("\n") else "\n", flush=True)
-            output += error + captured
+            output, error = driver.finish(15)
+            output += error
             require(process.returncode == 0, "Native close failed")
             require(("access=read-only" if readonly else "access=read-write") in output,
                     "Native launch did not activate requested project access")
@@ -143,15 +168,23 @@ def main():
         finish(True)
         require(event_text() == prior_events and installed.read_bytes() == retained,
                 "Read-only controls loaded or removed native package")
+        passed = True
         print("Native signed install, enable, disable, revoke and read-only restart passed")
     finally:
-        if process is not None and process.poll() is None:
-            process.kill()
-            process.communicate(timeout=10)
+        if process is not None:
+            if driver is not None and driver.process is process:
+                driver.abort()
+            else:
+                if process.poll() is None:
+                    process.kill()
+                process.communicate(timeout=10)
         if xvfb.poll() is None:
             xvfb.terminate()
         xvfb.communicate(timeout=10)
-        shutil.rmtree(scratch)
+        if passed:
+            shutil.rmtree(scratch)
+        else:
+            print(f"Native plugin manager fixtures retained: {scratch}", flush=True)
 
 
 if __name__ == "__main__":

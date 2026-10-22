@@ -24,9 +24,106 @@ WindowEvent Mouse(int button, bool down) {
   event.value1 = down;
   return event;
 }
+void ObservePlayShortcuts(float dpi) {
+  using namespace nexora;
+  using namespace editor;
+  using Access = imgui::EditorImGuiTestAccess;
+  using Command = imgui::PlayCommand;
+  runtime::World world;
+  const auto scene = world.LoadScene("Play shortcut observation");
+  Require(world.Activate(scene), "Play shortcut scene activation failed");
+  SceneDocument document(world, scene);
+  const auto entity = document.Create("Keyboard target");
+  Require(entity && document.Select(std::array{entity}), "Play shortcut entity setup failed");
+  runtime::PlaySession play(world);
+  ProductShell shell;
+  imgui::EditorImGuiHost host;
+  host.SetDisplay(1280, 720, dpi);
+  Access::ConfigureSyntheticInput(host);
+  bool attached = true;
+  const auto draw = [&] {
+    host.BeginFrame();
+    host.DrawProductShell(shell, &document, nullptr, nullptr, nullptr, nullptr, nullptr,
+                          attached ? &play : nullptr);
+    static_cast<void>(host.EndFrame());
+  };
+  WindowEvent focus;
+  focus.type = WindowEventType::FocusChanged;
+  focus.value0 = 1;
+  host.ProcessEvents(std::array{focus});
+  for (int frame = 0; frame < 4; ++frame)
+    draw();
+  Access::FocusHierarchy(host);
+  draw();
+  Require(Access::SceneShortcutInput(host).play_allowed,
+          "Initial Play shortcut admission was not observed");
+  const auto press = [&](Key key, std::size_t index, Command expected) {
+    const auto before = Access::SceneShortcutInput(host);
+    const auto actual_state = play.State();
+    host.ProcessEvents(std::array{KeyEvent(key, true)});
+    draw();
+    const auto down = Access::SceneShortcutInput(host);
+    const auto increment = expected == Command::None ? 0U : 1U;
+    Require(down.play_keys[index] && down.frame > before.frame &&
+                down.play_shortcut_requests == before.play_shortcut_requests + increment &&
+                down.play_command == (increment ? expected : before.play_command) &&
+                host.TakePlayCommand() == expected && play.State() == actual_state,
+            "Actual Play key down lost its phase, single request or Runtime ownership");
+    host.ProcessEvents(std::array{KeyEvent(key, false)});
+    draw();
+    const auto up = Access::SceneShortcutInput(host);
+    Require(!up.play_keys[0] && !up.play_keys[1] && !up.play_keys[2] && up.frame > down.frame &&
+                up.play_shortcut_requests == down.play_shortcut_requests &&
+                up.play_command == down.play_command && host.TakePlayCommand() == Command::None,
+            "Play key release repeated a request or cleared its last-command observation");
+  };
+  press(Key::F6, 1, Command::None);
+  press(Key::F10, 2, Command::None);
+  press(Key::F5, 0, Command::Start);
+  Require(play.Start(1.0 / 60.0, [](runtime::World &, double) { return true; }),
+          "Observed Play Start could not be applied by its owner");
+  draw();
+  press(Key::F6, 1, Command::Pause);
+  Require(play.Pause(), "Observed Pause could not be applied by its owner");
+  draw();
+  press(Key::F10, 2, Command::Step);
+  press(Key::F6, 1, Command::Resume);
+  Require(play.Resume(), "Observed Resume could not be applied by its owner");
+  draw();
+  press(Key::F5, 0, Command::Stop);
+  Require(play.Stop(), "Observed Stop could not be applied by its owner");
+  attached = false;
+  draw();
+  Require(!Access::SceneShortcutInput(host).play_allowed,
+          "Missing Play owner retained shortcut admission");
+  press(Key::F5, 0, Command::None);
+  attached = true;
+  draw();
+  Access::FocusHierarchy(host);
+  draw();
+  host.ProcessEvents(std::array{KeyEvent(Key::F2, true)});
+  draw();
+  host.ProcessEvents(std::array{KeyEvent(Key::F2, false)});
+  draw();
+  draw();
+  const auto modal = Access::SceneShortcutInput(host);
+  Require(modal.want_text && !modal.play_allowed && Access::HierarchyRenameOpen(host),
+          "Real Rename text input retained Play shortcut admission");
+  press(Key::F5, 0, Command::None);
+  host.ProcessEvents(std::array{KeyEvent(Key::Escape, true)});
+  draw();
+  host.ProcessEvents(std::array{KeyEvent(Key::Escape, false)});
+  draw();
+  draw();
+  Require(Access::SceneShortcutInput(host).play_allowed,
+          "Closed Rename did not restore Play shortcut admission");
+  press(Key::F5, 0, Command::Start);
+}
 } // namespace
 int main() {
   try {
+    ObservePlayShortcuts(1);
+    ObservePlayShortcuts(2);
     using namespace nexora;
     using namespace editor;
     preview::PlayInputState input;
@@ -242,14 +339,23 @@ int main() {
     pointer.type = WindowEventType::Pointer;
     pointer.value0 = viewport->x + viewport->width / 2;
     pointer.value1 = viewport->y + viewport->height / 2;
+    const auto before_capture = Access::SceneShortcutInput(host);
     host.ProcessEvents(std::array{pointer, Mouse(0, true)});
     draw();
-    Require(host.GameInputFocused(), "canvas click did not capture Game input");
+    const auto captured_input = Access::SceneShortcutInput(host);
+    Require(host.GameInputFocused() && captured_input.game_focused && captured_input.game_hovered &&
+                captured_input.game_clicked && captured_input.game_capture_allowed &&
+                captured_input.game_capture_requests == before_capture.game_capture_requests + 1,
+            "Actual canvas click, admission or capture count was not observed");
     Require(host.SetGameInputUser(3) && host.GameInputFocused(), "Unchanged user revoked capture");
     Require(host.SetGameInputUser(2) && !host.GameInputFocused(),
             "Changing user retained UI capture");
     host.ProcessEvents(std::array{Mouse(0, false)});
     draw();
+    const auto released_capture = Access::SceneShortcutInput(host);
+    Require(!released_capture.game_clicked && !released_capture.game_focused &&
+                released_capture.game_capture_requests == captured_input.game_capture_requests,
+            "Canvas release repeated capture or lost the changed user's focus observation");
     host.ProcessEvents(std::array{pointer, Mouse(0, true)});
     draw();
     Require(host.GameInputFocused(), "User switch could not reacquire canvas");

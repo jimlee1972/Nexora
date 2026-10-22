@@ -6,13 +6,17 @@ import time
 
 
 class ExtensionControls:
-    def __init__(self, process, send, window, captured=None):
+    def __init__(self, process, send, window, captured=None, pump=None):
         self.process = process
         self.send = send
         self.window = window
         self.captured = captured if captured is not None else bytearray()
+        self._pump = pump
 
     def pump(self):
+        if self._pump is not None:
+            self._pump(.1)
+            return
         if select.select([self.process.stderr], [], [], .1)[0]:
             self.captured.extend(os.read(self.process.stderr.fileno(), 65536))
 

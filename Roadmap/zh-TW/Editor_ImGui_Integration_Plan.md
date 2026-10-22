@@ -384,6 +384,39 @@ stream 與附時間的 input record。這補足診斷與輸入同步缺口；先
 失敗、在只回報 visible／enabled item 的新版 observer 通過。Native 32-cycle 與完整 gate
 結果記錄於上述調查證據；尚未釐清的 Scene Meshes shortcut 失敗仍由既有 native X11 調查追蹤。
 
+
+✅ Scene comparison／publication 與 center／mesh native fixture 亦複製實際 GUI shortcut
+phase／admission 與真正的 scene Undo 次數。共用 driver 確認每個 physical phase，保留原有
+result／whole-case deadline、確切 serialized data、archive 與 pixel 檢查。送出 gesture 前
+先記錄 output offset，避免輸入確認期間已讀到的結果被漏掉。失敗 project 與兩個 output
+stream 均保留；缺少 processed input record 的歷史 request／Undo 原因仍未證實。
+整合證據記錄於上述調查文件。
+
+✅ Signed-package fixture 亦先觀測實際 source marker，再執行原有 pixel 檢查與單次選取，
+保留 signature／lifecycle／read-only／source-integrity assertion，不再假設 marker 位於
+固定的 startup pixel rectangle。
+
+✅ 場景檔案 fixture 亦觀察實際可見的 Content 控制項與已輸入的改名文字，
+搬移前先確認預期的 dirty 節點編輯，失敗時分別保留各項檔案狀態。
+原生預覽測試觀察實際縮放軸命中與拖曳預覽階段，再驗證原有精確 transform、Undo 與像素條件。
+
+✅ Game fixture 分別觀察保留的 F5／F6／F10 階段與實際 UI 請求次數，移動按鍵仍走 runtime 路徑。
+每次重開共用單一 binary reader，失敗保留 project／input／output；Start 與 Game viewport
+檢查共用原有十二秒期限。Runtime 執行及原有 pixel／source assertion 仍須獨立通過。
+
+✅ 32 循環 Play soak 亦在 Start 前，於既有啟動期限內建立同次、精確且穩定的 Scene 取樣，
+失敗保留 reference／actual 取樣及差異範圍；原有像素相等、生命週期／輸入／RSS 與輸出上限皆保留。
+
+✅ 原生流程另觀察單次 Ctrl+O 請求與真正的 Path 對話框焦點／文字、Game canvas 擷取，
+以及單次 Run 前的確切 Build argv。Soak 的擷取／seed／motion 共用原有三秒結果期限。
+來源檢視使用真正的 Scene marker／控制項，要求恰好一筆 scoped report；滑鼠按鈕放開
+先觀察 gameplay neutral 與已接受的 draw pose，再執行原有精確像素比對。
+Queue admission 不代表實體畫面已完成顯示。既有期限、source／history／read-only 與
+RSS／生命週期斷言皆保留；失敗保留 input／stream／RGB。
+Marker 觀測排除 hidden／sizing frame，原生點擊前重新核對處理後的位置，只點一次。
+Rebase 保留原本 consent、Escape、Ctrl+Y 與 history 路徑。
+整合後 Linux 完整 gate 為 365/365 通過且無跳過；確切結果與先前失敗嘗試記錄於上述證據。Fresh-head CI 與 PR 合併仍是獨立必要關卡。
+
 ✅ Target-host 證據工具現透過 `Tools/Editor/EditorTargetEvidence.py` 提供完整 Linux／Windows
 操作者 checklist（[使用方式](../../Tools/Editor/README.md)）。紀錄包含確切 argv、binary hash、
 source／configuration／host／backend metadata 與附雜湊的 artifact 副本；validator 重新檢查所有

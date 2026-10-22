@@ -1755,3 +1755,40 @@ the document operation; a disabled control cannot acknowledge a successful gestu
 fixture uses those observations to distinguish input admission from serialized-data checks and
 retains failed project bytes and both output streams. The opt-in application observer and its
 privacy/lifetime boundary are documented in the application workflow linked above.
+
+Scene shortcut observations copy processed modifier/key, focus/text-input and pointer/button
+state across the same private test boundary. Comparison and history admission values share
+the actual handler predicates; they are neither execution acknowledgements nor extra permission
+gates. Scene Undo counters advance around the actual existing core call, once per invocation,
+including Scene toolbar Undo, and accumulate for this host lifetime. The owning values retain
+no ImGui/document borrow, and observations never invoke history or comparison. Portable 1x/2x
+regressions cover processed phases, busy/text-input admission and one actual Undo application.
+
+The source-marker test observer reuses `SceneMarkerPosition` copied geometry and selection,
+without a new SDK action or retained model reference. Native signed-package coverage still
+requires actual marker pixels and one native selection; copied geometry alone is not rendering
+acceptance or permission to load native code.
+
+Private Content context-menu and rename-modal coordinates follow the visible/enabled-only
+contract, including exclusion of hidden sizing frames. The existing Project Asset workflow
+stream copies these owning values and rename text without issuing any command. Portable
+1x/2x tests exercise hidden and visible frames and retain a real rename/UUID assertion.
+
+Play shortcut observations separately copy F5/F6/F10 and the exact existing Play admission
+predicate. A host-lifetime sequence/last-command value advances only where the keyboard handler
+actually assigns a Play request; toolbar actions are outside this counter. Neither observing
+nor issuing that request executes Runtime Play. Portable 1x/2x coverage checks actual phases,
+one request, key-release stability, stopped/missing-owner/text-modal blocking and recovery.
+
+The opt-in native workflow test stream also copies the actual Open Scene key/request, modal Path
+visibility/focus/text, Game canvas hover/click/admission/focus and admitted acquisition count.
+Observers never open a dialog, focus a field, capture input or execute Runtime commands. Path text
+is copied by value and actionable Path geometry excludes hidden, clipped and disabled widgets.
+Build command getters borrow null-terminated session buffers only for serialized, immediate test
+observation; the application consumes them synchronously after DrawBuildProcess. No borrowed view
+survives a frame. Hex command/path output exists only when the explicit test geometry flag is set.
+Native source-inspection selection uses the actual Scene marker, preserving its original UI path.
+Scene marker test getters additionally require a currently submitted, active, visible and
+non-skipped Scene window, so hidden sizing or previous-frame markers are not actionable points.
+The source-rebase test keys are copied separately; they do not alter the existing scene/file/
+Play key formats, routing, or command ownership.

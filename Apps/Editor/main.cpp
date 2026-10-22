@@ -769,7 +769,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::string extension_test_geometry;
   std::uint64_t extension_test_revision{};
   std::string play_memory_test_geometry, play_memory_test_text;
-  std::string scene_merge_test_geometry;
+  std::string scene_merge_test_geometry, build_console_test_geometry;
   std::uint64_t scene_merge_test_review{};
   std::optional<std::size_t> scene_merge_test_name;
 #endif
@@ -3028,6 +3028,32 @@ int RunGraphical(std::optional<ProjectState> project,
     ui.DrawBuildProcess(build_process, project ? build_scope : 0,
                         project ? project->workspace.Root() : std::filesystem::path{},
                         build_allowed);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      std::ostringstream geometry;
+      geometry << "build console ui";
+      const auto hex = [&](std::string_view bytes) {
+        constexpr char digits[] = "0123456789abcdef";
+        for (const unsigned char byte : bytes)
+          geometry << digits[byte >> 4] << digits[byte & 15];
+      };
+      constexpr std::array names{"executable_hex", "cwd_hex", "argv0_hex"};
+      for (std::size_t field = 0; field < names.size(); ++field) {
+        geometry << ' ' << names[field] << '=';
+        hex(Access::BuildCommandText(ui, field));
+      }
+      geometry << " argv_count=" << Access::BuildArgumentCount(ui);
+      for (std::size_t control = 0; control < 7; ++control)
+        if (const auto point = Access::BuildControlPosition(ui, control))
+          geometry << " control" << control << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
+      auto value = geometry.str();
+      if (value != build_console_test_geometry) {
+        build_console_test_geometry = std::move(value);
+        std::cerr << build_console_test_geometry << '\n';
+      }
+    }
+#endif
     const auto current_git_project =
         project ? project->workspace.Project().id : nexora::foundation::Uuid{};
     const auto &current_git_root = project ? project->workspace.Root() : no_git_root;
@@ -3100,6 +3126,36 @@ int RunGraphical(std::optional<ProjectState> project,
 #endif
     static_cast<void>(ui.EndFrame());
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_SOURCE_MARKER_TEST_GEOMETRY")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      static std::string previous_source_marker;
+      std::ostringstream marker;
+      marker << "source marker ready=";
+      bool recorded = false;
+      if (project && ui.SceneCanvasViewport()) {
+        const auto &scene = active_scene();
+        for (const auto &node : scene.Nodes()) {
+          const auto key = scene.Key(node.id);
+          const auto point = key ? Access::SceneMarkerPosition(ui, *key) : std::nullopt;
+          if (!point)
+            continue;
+          const auto selection = scene.Selection();
+          marker << "1 id=" << node.id << " point=" << (*point)[0] * dpi << ',' << (*point)[1] * dpi
+                 << " selected="
+                 << (std::find(selection.begin(), selection.end(), node.id) != selection.end())
+                 << " selection_count=" << selection.size();
+          recorded = true;
+          break;
+        }
+      }
+      if (!recorded)
+        marker << '0';
+      if (marker.str() != previous_source_marker) {
+        previous_source_marker = marker.str();
+        std::cerr << previous_source_marker << " frame=" << Access::SceneShortcutInput(ui).frame
+                  << '\n';
+      }
+    }
     if (std::getenv("NEXORA_PREFAB_WORKFLOW_EVIDENCE")) {
       static std::string previous_prefab;
       const auto observation = nexora::editor::test::PrefabWorkflowEvidence(
@@ -3134,11 +3190,88 @@ int RunGraphical(std::optional<ProjectState> project,
                        !scene_load_failed && !active_files()->SaveBlocked())
                << " focused=" << shell_state.app_focused
                << " selector=" << shell_state.project_selector_visible;
+      const auto shortcut = Access::SceneShortcutInput(ui);
+      geometry << " comparison_admitted=" << shortcut.comparison_allowed
+               << " history_admitted=" << shortcut.history_allowed
+               << " text_input=" << shortcut.want_text << " keys=";
+      for (const bool key : shortcut.keys)
+        geometry << key;
+      geometry << " play_keys=";
+      for (const bool key : shortcut.play_keys)
+        geometry << key;
+      geometry << " play_admitted=" << shortcut.play_allowed
+               << " play_requests=" << shortcut.play_shortcut_requests
+               << " play_command=" << static_cast<int>(shortcut.play_command)
+               << " play_state=" << static_cast<int>(play.State());
+      geometry << " file_keys=";
+      for (const bool key : shortcut.file_keys)
+        geometry << key;
+      geometry << " file_open_admitted=" << shortcut.file_open_allowed
+               << " file_open_requests=" << shortcut.file_open_requests
+               << " file_dialog=" << shortcut.file_dialog
+               << " file_path_ready=" << shortcut.file_path_ready
+               << " file_path_active=" << shortcut.file_path_active << " file_path_hex=";
+      constexpr char file_hex[] = "0123456789abcdef";
+      for (const char value : shortcut.file_path_text) {
+        if (value == '\0')
+          break;
+        const auto byte = static_cast<unsigned char>(value);
+        geometry << file_hex[byte >> 4] << file_hex[byte & 15];
+      }
+      if (shortcut.file_path_ready) {
+        if (const auto point = Access::SceneFilePosition(ui, 4))
+          geometry << " file_path_point=" << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
+      }
+      geometry << " pointer=" << shortcut.pointer[0] * dpi << ',' << shortcut.pointer[1] * dpi
+               << " down=" << shortcut.down << " undo=" << shortcut.undo_attempts << ","
+               << shortcut.undo_applied;
+      geometry << " buttons=";
+      for (const bool button : shortcut.buttons)
+        geometry << button;
+      geometry << " native_tool=" << static_cast<int>(ui.GetNativeSceneTool())
+               << " native_scale_axis="
+               << (native_scene_drag_scale_axis ? static_cast<int>(*native_scene_drag_scale_axis)
+                                                : -1)
+               << " native_drag_preview=" << bool(ui.NativeSceneDragPreview());
+      geometry << " game_hovered=" << shortcut.game_hovered
+               << " game_clicked=" << shortcut.game_clicked
+               << " game_capture_admitted=" << shortcut.game_capture_allowed
+               << " game_focused=" << shortcut.game_focused
+               << " game_capture_requests=" << shortcut.game_capture_requests;
 
       const auto record = [&](const char *name, std::optional<std::array<float, 2>> point) {
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      geometry << " rebase_keys=";
+      for (const bool key : Access::PrefabRebaseKeys(ui))
+        geometry << key;
+      record("rebase_review", Access::PrefabRebasePosition(ui, 0));
+      record("rebase_apply", Access::PrefabRebasePosition(ui, 1));
+      record("rebase_confirm", Access::PrefabRebasePosition(ui, 2));
+      record("rebase_cancel", Access::PrefabRebasePosition(ui, 3));
+      if (const auto *report = Access::PrefabRebaseReport(ui))
+        for (std::size_t row = 0; row < report->rows.size(); ++row)
+          if (report->rows[row].conflict) {
+            record("rebase_keep_local",
+                   Access::PrefabPlacementRebaseChoicePosition(ui, row, false));
+            break;
+          }
+      record("source_inspect", Access::PrefabSourceInspectionPosition(ui));
+      if (project) {
+        const auto &scene = active_scene();
+        for (const auto &node : scene.Nodes()) {
+          if (node.parent)
+            continue;
+          if (const auto key = scene.Key(node.id))
+            record("source_node", Access::SceneMarkerPosition(ui, *key));
+          const auto selection = scene.Selection();
+          geometry << " source_selected="
+                   << (std::find(selection.begin(), selection.end(), node.id) != selection.end())
+                   << " source_selection_count=" << selection.size();
+          break;
+        }
+      }
       if (identity && ui.SceneMergeInteractionAllowed()) {
         record("validate", Access::SceneMergePosition(ui, 0));
         if (scene_merge_test_name)
@@ -3152,7 +3285,7 @@ int RunGraphical(std::optional<ProjectState> project,
       geometry << " validated=" << bool(Access::SceneMergeStatus(ui).result);
       if (geometry.str() != scene_merge_test_geometry) {
         scene_merge_test_geometry = geometry.str();
-        std::cerr << scene_merge_test_geometry << '\n';
+        std::cerr << scene_merge_test_geometry << " frame=" << shortcut.frame << '\n';
       }
     }
     if (std::getenv("NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE")) {
@@ -3162,7 +3295,9 @@ int RunGraphical(std::optional<ProjectState> project,
           project ? &active_scene() : nullptr, dpi);
       if (observation != previous_workflow) {
         previous_workflow = observation;
-        std::cerr << observation << '\n';
+        std::cerr << observation << " frame="
+                  << nexora::editor::imgui::EditorImGuiTestAccess::SceneShortcutInput(ui).frame
+                  << '\n';
       }
     }
 
@@ -3286,6 +3421,9 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    std::optional<float> game_draw_admitted_test_x;
+#endif
     if (const auto viewport = ui.NativeGameViewport();
         viewport && play.PlayWorld() && play_meshes && play_materials &&
         (!ui.NativeScenePreviewViewport() || created.surface->SupportsBoundedSceneViews())) {
@@ -3305,6 +3443,14 @@ int RunGraphical(std::optional<ProjectState> project,
         draw.retainMeshGeometry =
             !game.debug_lines && created.surface->SupportsSceneGeometryResidency();
         const auto status = created.surface->DrawScene(draw);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
+            std::getenv("NEXORA_NATIVE_GAME_PRESENT_TEST_GEOMETRY") && game.instances.size() == 1) {
+          const auto &instance = game.instances.front();
+          game_draw_admitted_test_x =
+              instance.model_transform ? (*instance.model_transform)[3] : instance.translation[0];
+        }
+#endif
         ui.SetNativeGameStatus(
             (game.unavailable_debug_lines ? std::to_string(game.unavailable_debug_lines) +
                                                 " debug lines could not be displayed. "
@@ -3343,6 +3489,16 @@ int RunGraphical(std::optional<ProjectState> project,
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (game_draw_admitted_test_x) {
+      // EndFrame admitted this draw to the presentation queue; this does not prove scanout.
+      std::ostringstream observation;
+      observation.precision(std::numeric_limits<float>::max_digits10);
+      observation << "native game draw admitted frame=" << static_cast<std::uint64_t>(frames) + 1
+                  << " x=" << *game_draw_admitted_test_x;
+      std::cerr << observation.str() << '\n';
+    }
+#endif
     static_cast<void>(profile.Add(
         {static_cast<std::uint64_t>(frames) + 1,
          std::chrono::duration<double, std::milli>(frame_processed - frame_started).count(), 0.0,

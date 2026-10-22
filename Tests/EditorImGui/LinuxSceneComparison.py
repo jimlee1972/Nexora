@@ -5,14 +5,14 @@ import hashlib
 import os
 from pathlib import Path
 import re
-import select
 import shutil
-import subprocess
 import tempfile
 import time
 
+from NativeSceneInput import NativeSceneInput
+
 from LinuxDisplayAcceptance import (
-    collect_output, launch, request_window_close, start_xvfb, wait_for_window,
+    launch, request_window_close, start_xvfb, wait_for_window,
 )
 
 
@@ -39,21 +39,17 @@ def main():
     (root / ".nexora/workspace").write_text("schema=1\n")
     xvfb, display = start_xvfb(args.xvfb, "1280x900x24")
     process = None
+    driver = None
     passed = False
     try:
         require(display is not None, "Xvfb did not become ready")
         env = os.environ.copy()
         env["DISPLAY"] = display
         env["XDG_STATE_HOME"] = str(state)
-        if args.candidate:
-            env["NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY"] = "1"
+        env["NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY"] = "1"
 
         def send(*arguments):
-            if arguments[0] == "key":
-                arguments = ("key", "--delay", "100", *arguments[1:])
-            subprocess.run([args.xdotool, *arguments], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+            driver.send(*arguments)
 
         def wait_file(path):
             deadline = time.monotonic() + 10
@@ -70,26 +66,21 @@ def main():
                 start = len(captured)
             while time.monotonic() < deadline:
                 require(process.poll() is None, "Editor exited during comparison")
-                if select.select([process.stderr], [], [], .1)[0]:
-                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                driver.drain(.1)
                 if re.search(pattern, captured[start:].decode("utf-8", errors="replace")):
                     return
             raise RuntimeError(f"Native comparison diagnostic missing: {pattern}; {captured!r}")
 
         def wait_native_ready(require_scene=False):
-            if not args.candidate:
-                time.sleep(.8)
-                return
             scene_scope = r"context_ready=1 " if require_scene else r"context_ready=[01] "
             wait_log(r"scene merge ui .*" + scene_scope + r"focused=1 selector=0", 0)
 
         def candidate_geometry(disk_choice=False, validated=False):
             deadline = time.monotonic() + 15
             while time.monotonic() < deadline:
-                if select.select([process.stderr], [], [], .1)[0]:
-                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                driver.drain(.1)
                 lines = re.findall(r"scene merge ui [^\n]*", captured.decode("utf-8", errors="replace"))
-                for line in reversed(lines):
+                for line in lines[-1:]:
                     controls = dict((key, (float(x), float(y))) for key, x, y in re.findall(
                         r"(validate|disk|cancel)=([0-9.]+),([0-9.]+)", line))
                     if ("validate" in controls and (not disk_choice or "disk" in controls)
@@ -102,10 +93,7 @@ def main():
             controls = candidate_geometry(disk_choice)
             start = len(captured)
             def click(point):
-                send("mousemove", "--window", window, str(round(point[0])), str(round(point[1])))
-                send("mousedown", "1")
-                time.sleep(.25)
-                send("mouseup", "1")
+                driver.click(point)
             if disk_choice:
                 click(controls["disk"])
             click(controls["validate"])
@@ -120,8 +108,7 @@ def main():
             previous = None
             stable_since = time.monotonic()
             while time.monotonic() < deadline:
-                if select.select([process.stderr], [], [], .1)[0]:
-                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                driver.drain(.1)
                 lines = re.findall(r"scene merge ui [^\n]*", captured[start:].decode("utf-8", errors="replace"))
                 line = lines[-1] if lines else ""
                 if line != previous:
@@ -136,10 +123,7 @@ def main():
             raise RuntimeError(f"Publication controls unavailable: {captured!r}")
 
         def publication_click(point):
-            send("mousemove", "--window", window, str(round(point[0])), str(round(point[1])))
-            send("mousedown", "1")
-            time.sleep(.25)
-            send("mouseup", "1")
+            driver.click(point)
 
         def review_publication():
             controls = publication_geometry("publication_review")
@@ -149,15 +133,13 @@ def main():
 
         def finish():
             request_window_close(window, env)
-            _, error = collect_output(process, 15)
-            prefix = captured.decode("utf-8", errors="replace")
-            print(prefix, end="", flush=True)
+            _, error = driver.finish(15)
             require(process.returncode == 0, f"Editor shutdown failed: {error}")
-            require(not re.search(r"Validation Error\b|(?:VUID-|SYNC-HAZARD-)[A-Za-z0-9_-]+", prefix),
-                    "Native comparison reported Vulkan validation errors")
 
-        process = launch(args.editor, root, state / "recent", env)
+        process = launch(args.editor, root, state / "recent", env, binary=True)
         window = wait_for_window(args.xdotool, env)
+        driver = NativeSceneInput(process, args.xdotool, env, window, state, 1)
+        captured = driver.stderr
         send("windowfocus", "--sync", window)
         wait_native_ready()
         send("key", "--clearmodifiers", "ctrl+shift+n")
@@ -180,8 +162,9 @@ def main():
         require(disk != base, "Actual external revision did not change")
         scene.write_bytes(disk)
         send("key", "--clearmodifiers", "ctrl+shift+n")
+        start = len(captured)
         send("key", "--clearmodifiers", "ctrl+alt+d")
-        wait_log(r"scene comparison ready fields=[1-9][0-9]* conflicts=")
+        wait_log(r"scene comparison ready fields=[1-9][0-9]* conflicts=", start)
         if args.candidate:
             validate_candidate(disk_choice=True)
         require(scene.read_bytes() == disk, "Comparison saved unsaved authoring or replaced disk")
@@ -218,18 +201,21 @@ def main():
                     "Native archive lost raw source/candidate integrity")
             disk = published
 
-        send("mousemove", "--window", window, "100", "130", "click", "1")
+        driver.click((100, 130))
         send("key", "--clearmodifiers", "ctrl+z")
         finish()
         require(scene.read_bytes() == disk, "Shutdown changed the external revision")
         process = None
         captured.clear()
-        process = launch(args.editor, root, state / "reader-recent", env, read_only=True)
+        process = launch(args.editor, root, state / "reader-recent", env, read_only=True, binary=True)
         window = wait_for_window(args.xdotool, env)
+        driver = NativeSceneInput(process, args.xdotool, env, window, state, 2)
+        captured = driver.stderr
         send("windowfocus", "--sync", window)
         wait_native_ready(require_scene=True)
+        start = len(captured)
         send("key", "--clearmodifiers", "ctrl+alt+d")
-        wait_log(r"scene comparison ready fields=0 conflicts=0")
+        wait_log(r"scene comparison ready fields=0 conflicts=0", start)
         if args.candidate:
             validate_candidate()
         if args.publication:
@@ -240,8 +226,9 @@ def main():
                     all(p.read_bytes() == data for p, data in before.items()),
                     "Read-only publication control changed source or archive")
         scene.write_bytes(b"corrupt external scene")
+        start = len(captured)
         send("key", "--clearmodifiers", "ctrl+alt+d")
-        wait_log(r"scene comparison finished: .*corrupt")
+        wait_log(r"scene comparison finished: .*corrupt", start)
         require(scene.read_bytes() == b"corrupt external scene", "Failed comparison changed corrupt source")
         scene.write_bytes(disk)
         finish()
@@ -254,9 +241,12 @@ def main():
         if args.publication:
             print("NATIVE_EDITOR_MERGE_PUBLICATION_PASSED confirm cancel stale_disk archive read_only reopen")
     finally:
-        if process is not None and process.poll() is None:
-            process.kill()
-            process.communicate(timeout=5)
+        if process is not None:
+            if driver is not None and driver.process is process:
+                driver.abort()
+            else:
+                process.kill()
+                process.communicate(timeout=5)
         xvfb.terminate()
         xvfb.communicate(timeout=5)
         if passed:

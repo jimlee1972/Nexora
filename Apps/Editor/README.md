@@ -1307,3 +1307,98 @@ input/result waits. Failures retain the temporary project, per-launch output, an
 input records at the path printed by CTest; successful runs clean their owned temporary tree.
 The older aggregate Undo failure did not retain its assets, so this instrumentation must not
 be presented as proof of that historical failure's root cause.
+
+The opt-in `NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY` stream also copies processed scene shortcut
+keys, pointer/button state, text-input state, the actual comparison/history admission predicates
+and scene Undo attempt/success counts. Input observations and control geometry are published
+after EndFrame; frame numbers are appended outside change deduplication. The observer grants
+no input, authoring or filesystem authority. Counters describe real history calls during this
+host lifetime, including the existing Scene toolbar Undo.
+Native comparison/publication and center/mesh fixtures acknowledge one physical key phase at a
+time using `NativeSceneInput.py`, and retain input/output records on failure. Comparison waits
+start before the gesture so an acknowledged phase cannot consume and hide an already-finished
+result. Center tests retain their original pointer waits and 80 ms key-phase minimum; no blanket
+wait is added to pointer operations. The original 45/90/120-second whole-case and five-second
+saved-result deadlines remain required, as do exact source, provenance/archive, read-only,
+corrupt-source, geometry and pixel assertions. This narrows input uncertainty; it does not
+retroactively identify the cause of historical failures lacking processed input records.
+
+`NEXORA_SOURCE_MARKER_TEST_GEOMETRY` is another opt-in test observer: it copies the first
+actually drawn source marker's identity/physical center and document selection, after EndFrame,
+without selecting or activating anything. The signed-package native fixture checks the original
+10x10 pixel/color predicate at this actual center, clicks once and observes that same source
+selected before opening Extensions. It retains both launches' output/input/project on failure.
+The existing Ctrl+Alt+E gesture still uses 100 ms native transitions; E has no new GUI-phase
+acknowledgement. `ExtensionControls` accepts an optional shared pump so a binary stream has one
+reader; existing clients keep their original pump. Package signatures, permissions, lifecycle,
+read-only and source-integrity checks remain mandatory.
+
+The Project Asset workflow observer copies the actual scene row, visible/enabled Content
+Rename/Delete menu controls and rename field/Apply/Cancel controls, including the current
+rename text as UTF-8 hex. Hidden popup sizing frames publish no actionable menu/modal points.
+The native scene-file fixture preserves its F2+Enter and context-menu+Apply paths, verifies the
+actual typed text and dirty node-count precondition, and retains failed fixtures and output.
+The same scene input stream copies the active native tool, actual scale-axis hit and preview
+state. Native preview coverage waits for the original physical press/move/release to reach
+those states before checking the unchanged scale, saved bytes, Undo and pixel assertions.
+
+Native button observations cover left/right/middle; wheel gestures retain their original
+native event path. `click()` and combined move/click gestures share one eight-second input deadline.
+A retained final input observation may acknowledge a normal exit; a successful Save and Exit
+Enter gesture is instead checked by its original saved-file and zero-exit assertions because
+the application exits on Enter-down. No GUI Enter-up acknowledgement is claimed after exit.
+
+The same opt-in scene stream has separate F5/F6/F10 processed bits, the exact original Play
+shortcut admission predicate, a keyboard-request sequence/last command and the actual owner
+Runtime Play state. It preserves the nine scene-key bits and scene Undo contract. A request
+only proves that the UI issued that command: snapshot, Start and module loading remain owner
+operations, and native Game viewport/pixel/runtime/source assertions still verify their results.
+The native Game fixture acknowledges only those reserved Play keys; movement/input-routing
+keys retain their original runtime path because game capture intentionally bypasses ImGui.
+Each start gesture and its Game viewport result share the original twelve-second deadline.
+Both binary streams have one reader across every reopen, failures retain project/input/output,
+and short four-frame checks validate complete output with their original shutdown bounds.
+
+The 32-cycle native Play soak now establishes its authoring Scene baseline before any Start,
+using one readback for its existing blue predicate and exact baseline, stable with the same
+viewport for 0.3 seconds within the original three-second readiness bound. Focus, neutral
+pointer and released buttons are observed by the existing opt-in stream and sole pump. The
+original center-region/stride-3 equality remains exact, including an additional check after
+Start before motion. First Game readiness also uses one readback. Failed runs retain RGB
+reference/actual samples, viewport/difference bounds, source bytes and both streams/input;
+32 cycles, RSS/lifecycle/input assertions and output/whole-case budgets remain required.
+
+The same opt-in scene stream copies a separate O key, the exact Open shortcut gate and request
+count, the actual scene-file dialog, rendered Path control/focus and current UTF-8 path bytes as
+hex. Native Open uses one phased Ctrl+O gesture; Open/Save As waits for the actual modal, field
+focus and exact typed destination before a single Return. These phases share ten seconds;
+file adoption, source identity, history and read-only checks remain independent result oracles.
+
+Game capture observations copy the actual canvas hover/click, original admission gate, focused
+state and admitted-click count. The soak sends one down/up and a separately observed seed before
+its measured motion. Acquisition, seed, motion delivery and the original applied/pixel result
+share three seconds; the original 32-cycle lifecycle/RSS/source assertions remain required.
+These UI copies do not prove provider delivery. Pointer impulses remain per native batch; modules
+must consume them in Update as well as Fixed when some batches have no fixed tick.
+
+The Build console fixture uses actual rendered control positions and copied executable/cwd/first
+argument text before its single Run request, retaining separate argv and exact operation/exit
+checks. Configuration bytes are emitted only in the explicit test-build geometry stream; normal
+console behavior and diagnostics remain unchanged. Source inspection likewise selects the actual
+Scene marker and clicks the current Inspect source control once, retaining exact retained/current
+revision, archive availability and read-only/source-byte assertions. Both fixtures keep one binary
+collector and failed inputs/output/projects.
+
+The pointer-button fixture continuously drains output during its original held/release intervals.
+An opt-in observer copies the actual single-instance native draw pose after successful DrawScene
+and EndFrame queue admission. Fresh gameplay-neutral input and consecutive equal admitted poses
+precede the exact released-pixel baseline. Queue admission does not establish physical scanout;
+the original two 150 ms intervals and pixel equality remain required, with failed RGB retained.
+
+Scene marker test positions exclude inactive, hidden/sizing, skipped and unsubmitted windows;
+the getter leaves marker rendering and selection routing unchanged. Native source selection and
+inspection recheck the current named position after pointer processing, with at most three
+position-only moves before a single click. Source rebase uses the same bounded positioning and
+actual Review/conflict/Apply/consent controls, plus separate Escape/Y phases preserving its
+original cancel and Ctrl+Y paths. Exact event identities, consent, source files, read-only and
+single history operations remain the result checks. All original result/case limits remain.

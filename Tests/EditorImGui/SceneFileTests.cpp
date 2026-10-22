@@ -124,6 +124,50 @@ struct Fixture final {
     return std::move(*request);
   }
 };
+void RunOpenObservation(float dpi) {
+  Fixture f(dpi);
+  const auto original = f.world.SaveScene(f.id);
+  const auto before = Access::SceneShortcutInput(f.ui);
+  Require(before.file_open_allowed && !before.file_keys[0] && !before.file_path_ready,
+          "Clean file context did not admit an independent Open Scene shortcut");
+  Nexora::Window::WindowEvent event;
+  event.type = Nexora::Window::WindowEventType::Key;
+  event.value0 = static_cast<int>(Key::LeftControl);
+  event.value1 = 1;
+  event.modifiers = Mods::Control;
+  f.ui.ProcessEvents(std::array{event});
+  f.Draw();
+  Require(Access::SceneShortcutInput(f.ui).keys[0], "Ctrl down was not observed");
+  event.value0 = static_cast<int>(Key::O);
+  f.ui.ProcessEvents(std::array{event});
+  f.Draw();
+  const auto pressed = Access::SceneShortcutInput(f.ui);
+  Require(pressed.file_keys[0] && pressed.file_open_requests == before.file_open_requests + 1,
+          "O down did not issue exactly one real keyboard Open request");
+  event.value1 = 0;
+  f.ui.ProcessEvents(std::array{event});
+  f.Draw();
+  Require(!Access::SceneShortcutInput(f.ui).file_keys[0], "O up was not observed");
+  event.value0 = static_cast<int>(Key::LeftControl);
+  event.modifiers = {};
+  f.ui.ProcessEvents(std::array{event});
+  for (int frame = 0; frame < 4; ++frame)
+    f.Draw();
+  const auto released = Access::SceneShortcutInput(f.ui);
+  Require(!released.keys[0] && released.file_open_requests == before.file_open_requests + 1 &&
+              released.file_dialog == 1 && released.file_path_ready &&
+              Access::SceneFilePosition(f.ui, 4),
+          "Open request did not retain its actual rendered path dialog");
+  f.Click(4);
+  Require(Access::SceneShortcutInput(f.ui).file_path_active,
+          "Actual path widget focus was not copied");
+  f.Tap(Key::Escape);
+  const auto canceled = Access::SceneShortcutInput(f.ui);
+  Require(canceled.file_dialog == 0 && !canceled.file_path_ready &&
+              canceled.file_open_requests == before.file_open_requests + 1 &&
+              !f.ui.TakeSceneFileRequest() && f.world.SaveScene(f.id) == original,
+          "Canceled observed Open changed the document or retained a modal");
+}
 void Run(float dpi) {
   Fixture f(dpi);
   const auto original = f.world.SaveScene(f.id);
@@ -612,6 +656,79 @@ void RunFolderSceneConflict(float dpi) {
               f.world.SaveScene(f.id) == original,
           "Folder traversal broke subsequent scene Enter");
 }
+void RunContentPopupObservation(float dpi) {
+  Fixture f(dpi);
+  editor::AssetWorkspace assets;
+  editor::ProjectContentSession content;
+  Require(assets.ImportTree(f.root / "Content", {}, {},
+                            editor::AssetIdentityMode::PersistentReadWrite) &&
+              content.Open(f.writer, assets, 1),
+          "Content popup observation fixture failed");
+  const auto asset = content.Browser().Items().front().id;
+  f.content = &content;
+  Access::FocusContent(f.ui);
+  f.Draw();
+  f.Draw();
+  const auto row = Access::ContentAssetPosition(f.ui, asset);
+  Require(row.has_value(), "Content popup asset row absent");
+  Nexora::Window::WindowEvent pointer{}, button{};
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>((*row)[0] * dpi);
+  pointer.value1 = static_cast<int>((*row)[1] * dpi);
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 1;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  Require(!Access::ContentContextPosition(f.ui, 0) && !Access::ContentContextPosition(f.ui, 1),
+          "Hidden Content context sizing frame published clickable controls");
+  f.Draw();
+  const auto rename = Access::ContentContextPosition(f.ui, 0);
+  Require(rename && Access::ContentContextPosition(f.ui, 1),
+          "Visible Content context omitted Rename or Delete");
+  pointer.value0 = static_cast<int>((*rename)[0] * dpi);
+  pointer.value1 = static_cast<int>((*rename)[1] * dpi);
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  Require(!Access::ContentRenamePosition(f.ui, 0) && !Access::ContentRenamePosition(f.ui, 1) &&
+              !Access::ContentRenamePosition(f.ui, 2),
+          "Hidden Content rename sizing frame published clickable controls");
+  f.Draw();
+  Require(Access::ContentRenamePosition(f.ui, 0) && Access::ContentRenamePosition(f.ui, 1) &&
+              Access::ContentRenamePosition(f.ui, 2) &&
+              Access::ContentRenameText(f.ui) == "Original.scene",
+          "Visible Content rename controls or owned filename absent");
+  f.Shortcut(Key::A);
+  for (const unsigned char c : std::string_view("Observed.scene")) {
+    Nexora::Window::WindowEvent text{};
+    text.type = Nexora::Window::WindowEventType::Text;
+    text.value0 = c;
+    f.ui.ProcessEvents(std::array{text});
+    f.Draw();
+  }
+  Require(Access::ContentRenameText(f.ui) == "Observed.scene",
+          "Actual Content rename field did not acknowledge typed filename");
+  f.ClickAt(*Access::ContentRenamePosition(f.ui, 1));
+  Require(content.Browser().Find(asset)->path == "Content/Observed.scene" &&
+              std::filesystem::exists(f.root / "Content/Observed.scene") &&
+              !std::filesystem::exists(f.root / "Content/Original.scene"),
+          "Observed Content Apply did not rename the same asset UUID");
+  f.Draw();
+  Require(!Access::ContentContextPosition(f.ui, 0) && !Access::ContentRenamePosition(f.ui, 0),
+          "Closed Content popups retained obsolete coordinates");
+}
 void RunContentRename(float dpi) {
   Fixture f(dpi);
   std::filesystem::copy_file(f.root / "Content/Original.scene", f.root / "Content/Second.scene");
@@ -801,6 +918,7 @@ void RunUnicodeContent(float dpi) {
 int main() {
   try {
     for (const float dpi : {1.0F, 2.0F}) {
+      RunOpenObservation(dpi);
       Run(dpi);
       RunGates(dpi);
       RunExternalSave(dpi);
@@ -808,6 +926,7 @@ int main() {
       RunUnicodeContent(dpi);
       RunContentScene(dpi);
       RunFolderSceneConflict(dpi);
+      RunContentPopupObservation(dpi);
       RunContentRename(dpi);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
