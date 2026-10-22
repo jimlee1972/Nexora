@@ -1,6 +1,6 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.7｜狀態：施工中；target-host 證據待完成｜
+> 版本：v1.8｜狀態：施工中；target-host 證據待完成｜
 > 更新：2026-10-22｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
@@ -293,6 +293,9 @@ drag docking、wheel axis、focus loss、close。
 **狀態：live extent/DPI forwarding、bucketed font rebuild 與 production GPU atlas upload 已有；
 Windows 證據仍待完成。**
 
+✅ 非有限 display dimension 與 frame delta 現使用既有安全下限；多幀 portable 回歸
+確認 NaN／infinity 不會污染 frame state，且保留有限輸入的行為。
+
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。
 2. 依 bucket pixel density 重建 atlas，同時維持 logical widget size；在 frame boundary 原子切換 font
@@ -324,6 +327,14 @@ Windows 證據仍待完成。**
 
 **狀態：modal/data-layer call 與 automated X11 kill/relaunch 的 recover／destructive discard
 coverage 已有；physical-display 證據仍待完成。**
+
+✅ Recovery UI 現保存 project UUID／root 的 owning scope。切換或卸載會取消舊 popup
+操作、錯誤與 pending result；持續按住或排隊的 activation 必須釋放並經過 neutral frame，
+新提示才接受操作。Journal 消失時關閉 stale prompt，保留成功的同 scope 結果供恰好消費一次。
+Portable 真正 pointer／keyboard 測試涵蓋 1x／2x、root／UUID 切換、卸載、延遲輸入、
+failure 與新操作；實機 keyboard／recovery 驗收仍保持 open。
+[Linux 驗證紀錄](../../Tools/Build/evidence/EditorEDM0-RecoveryScope-Linux-2026-10-22.md)
+分列新 contract 與原有 native fixture 的失敗／重跑結果。
 
 1. 正常編輯可互動前偵測 journal。Recovery modal 取得 focus、限制 keyboard navigation，明確提供 Recover
    與 Discard；Discard 要有清楚破壞性文字，不能因 default button 取得 focus 就執行。
