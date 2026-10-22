@@ -97,7 +97,7 @@ the corrected library passes the same test, including the original atlas/data/St
 
 The native Game2D 32-cycle case and portable preview passed 2/2 in 68.24 seconds (native 68.18).
 
-## Final combined standard gate
+## Final standard gate before recovery-scope integration
 
 | Command/check | Result |
 | --- | --- |
@@ -115,6 +115,16 @@ remains open in the shared investigation. Its input path was not changed here. T
 The final standard gate uses the normal interpreter and registered test commands; diagnostic
 supervisors, forced Editor pauses and the old-library override are absent. This candidate changes
 no production input routing, authoring transaction, dependency, or acceptance deadline.
+
+## Integration with recovery-scope delivery
+
+PR #698 subsequently incorporates main `49ee3d6c` (PR #696), including the recovery-scope
+regressions and finite-input normalization. The 363-case table above describes the earlier
+`557d0800` candidate on documentation-only base `b0b3f697`; it does not certify this integration.
+The integrated candidate adds the registered `editor.recovery_scope` case for 364 total tests.
+Its exact full-gate outcome and final-head hosted checks are tracked in
+[PR #698](https://github.com/jimlee1972/Nexora/pull/698) and the shared investigation tasks.
+Neither a prior-head pass nor an unfinished integrated run authorizes the final merge.
 
 ## Acceptance boundary
 
