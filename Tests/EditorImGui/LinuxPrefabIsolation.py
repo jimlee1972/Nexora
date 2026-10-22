@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise actual native prefab create/edit/save/variant/reopen and source isolation."""
 import argparse
+import json
 import os
 from pathlib import Path
 import re
@@ -62,25 +63,93 @@ def main():
     xvfb, display = start_xvfb(args.xvfb, '1600x1200x24')
     process = None
     captured = bytearray()
+    standard_output = bytearray()
+    succeeded = False
+    launch_number = 0
+    actions = (scratch / 'input.jsonl').open('w', encoding='utf-8')
     try:
         require(display is not None, 'Xvfb failed')
         env = os.environ.copy()
         env['DISPLAY'] = display
         env['XDG_STATE_HOME'] = str(scratch / 'state')
         env['MESA_SHADER_CACHE_DIR'] = str(scratch / 'shader-cache')
+        env['NEXORA_PREFAB_WORKFLOW_EVIDENCE'] = '1'
+
+        def drain(timeout=0):
+            if process is None:
+                return
+            ready, _, _ = select.select([process.stdout, process.stderr], [], [], timeout)
+            for pipe in ready:
+                data = os.read(pipe.fileno(), 65536)
+                (captured if pipe is process.stderr else standard_output).extend(data)
+
+        def retain_output():
+            (scratch / f'editor-{launch_number}.stderr.log').write_bytes(captured)
+            (scratch / f'editor-{launch_number}.stdout.log').write_bytes(standard_output)
 
         def send(*arguments):
+            actions.write(json.dumps({'time': time.monotonic(), 'input': arguments}) + '\n')
+            actions.flush()
             subprocess.run([args.xdotool, *arguments], env=env, check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+            deadline = time.monotonic() + .2
+            while time.monotonic() < deadline:
+                drain(max(0, deadline - time.monotonic()))
+
+        def observation():
+            # Ignore an incomplete final pipe read; a future drain completes the same record.
+            records = re.findall(rb'^prefab ui ([^\n]*)\n', captured, re.M)
+            return dict(part.split('=', 1) for part in records[-1].decode().split()) if records else {}
+
+        def wait_ui(predicate, message, deadline=None):
+            deadline = deadline if deadline is not None else time.monotonic() + 8
+            while time.monotonic() < deadline:
+                require(process.poll() is None, 'Editor exited awaiting prefab GUI input')
+                drain(.05)
+                value = observation()
+                if value and predicate(value):
+                    return value
+            raise RuntimeError(f'{message}; actual GUI: {observation()}')
 
         def key(*keys):
-            send('key', '--clearmodifiers', '--delay', '80', *keys)
+            physical = {'ctrl': ('Control_L', 0), 'alt': ('Alt_L', 1), 'p': ('p', 2),
+                        'a': ('a', 3), 'Return': ('Return', 4), 'Escape': ('Escape', 5)}
+            for chord in keys:
+                deadline = time.monotonic() + 8
+                parts = [physical[part] for part in chord.split('+')]
+                for name, index in parts:
+                    send('keydown', name)
+                    wait_ui(lambda value: value['keys'][index] == '1',
+                            f'GUI did not observe {name} down', deadline)
+                for name, index in reversed(parts):
+                    send('keyup', name)
+                    wait_ui(lambda value: value['keys'][index] == '0',
+                            f'GUI did not observe {name} up', deadline)
 
         def click(window, x, y):
+            deadline = time.monotonic() + 8
+            # History controls move while a confirmation row is present. Resolve their actual
+            # drawn location and require admission before sending exactly one gesture.
+            history = 8 if (x, y) == (88, 200) else 9 if (x, y) == (140, 200) else None
+            before = None
+            if history is not None:
+                value = wait_ui(lambda value: value.get(f'c{history}', '').endswith(',1'),
+                                'History control is not enabled', deadline)
+                x, y, _ = map(float, value[f'c{history}'].split(','))
+                before = tuple(map(int, value['undo' if history == 8 else 'redo'].split(',')))
+            x, y = round(x), round(y)
             send('mousemove', '--window', window, str(x), str(y))
+            wait_ui(lambda value: value['pointer'] == f'{x},{y}' and value['down'] == '0',
+                    'GUI did not observe pointer at click target', deadline)
             send('mousedown', '1')
+            wait_ui(lambda value: value['down'] == '1', 'GUI did not observe mouse down', deadline)
             send('mouseup', '1')
+            value = wait_ui(lambda value: value['down'] == '0',
+                            'GUI did not observe mouse up', deadline)
+            if history is not None:
+                after = tuple(map(int, value['undo' if history == 8 else 'redo'].split(',')))
+                require(after == (before[0] + 1, before[1] + 1),
+                        f'One history gesture was not applied exactly once: {before} -> {after}')
 
         def text(window, x, y, value):
             click(window, x, y)
@@ -91,8 +160,7 @@ def main():
             deadline = time.monotonic() + 8
             while time.monotonic() < deadline:
                 require(process.poll() is None, 'Editor exited during prefab controls')
-                if select.select([process.stderr], [], [], .1)[0]:
-                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                drain(.1)
                 if re.search(pattern, captured[start:].decode('utf-8', errors='replace')):
                     return
             raise RuntimeError(f'Missing prefab action {pattern}: {captured!r}')
@@ -111,25 +179,33 @@ def main():
                 value = source.read_bytes()
                 if predicate(value):
                     return value
-                time.sleep(.1)
+                drain(.1)
             raise RuntimeError(message)
 
         def open_host(read_only=False):
-            nonlocal process, captured
+            nonlocal process, captured, standard_output, launch_number
             captured = bytearray()
-            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
+            standard_output = bytearray()
+            launch_number += 1
+            process = launch(args.editor, root, scratch / 'recent', env,
+                             read_only=read_only, binary=True)
             window = wait_for_window(args.xdotool, env)
             send('windowsize', '--sync', window, '1600', '1200')
             send('windowfocus', '--sync', window)
-            time.sleep(.8)
+            wait_ui(lambda value: value['focused'] == '1', 'GUI did not acknowledge focus')
             key('ctrl+alt+p')
+            wait_ui(lambda value: 'c0' in value, 'Prefab panel did not open')
             return window
 
         def close_host(window):
             nonlocal process
             request_window_close(window, env)
-            _, diagnostics = collect_output(process, 15)
-            diagnostics = captured.decode('utf-8', errors='replace') + diagnostics
+            output, diagnostics = collect_output(
+                process, 15, stdout_prefix=bytes(standard_output), stderr_prefix=bytes(captured))
+            standard_output[:] = output.encode('utf-8')
+            captured[:] = diagnostics.encode('utf-8')
+            retain_output()
+            diagnostics = (captured + standard_output).decode('utf-8', errors='replace')
             require(process.returncode == 0, 'Native prefab host close failed')
             require(not re.search(r'\b(?:VUID-|SYNC-)[A-Za-z0-9_-]*', diagnostics),
                     'Native prefab host emitted Vulkan validation errors')
@@ -183,6 +259,7 @@ def main():
         click(window, 110, 177)
         wait_log(r'prefab action=3 applied=1 .*revision=1 dirty=0', start)
         child_asset = asset(variant)
+        (scratch / 'variant-before-revert.nxprefab').write_bytes(child_asset[0])
         require(child_asset[3] == restored[3] and child_asset[2] == restored[2] and
                 child_asset[0][32:48] == restored[0][8:24] and
                 struct.unpack_from('<Q', child_asset[0], 48)[0] == 4,
@@ -195,6 +272,9 @@ def main():
         key('Return')
         text(window, 180, 451, '9')
         key('Return')
+        wait_ui(lambda value: value.get('node') == node.decode() and
+                value.get('name_hex') == b'Variant override'.hex() and
+                value.get('x') == '9', 'Both variant edits were not committed before Review')
         start = len(captured)
         click(window, 310, 177)
         wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
@@ -210,6 +290,7 @@ def main():
         click(window, 110, 177)
         wait_log(r'prefab action=3 applied=1 .*revision=2 dirty=0', start)
         undo_revert = asset(variant)
+        (scratch / 'variant-after-undo.nxprefab').write_bytes(undo_revert[0])
         require(b'node ' + node + b' 0 Variant override\n' in undo_revert[3] and
                 re.search(rb'^' + node + rb' 0 9 ', undo_revert[3], re.M) and
                 undo_revert[2] == child_asset[2] and opaque in undo_revert[3],
@@ -505,15 +586,23 @@ def main():
         close_host(window)
         require(before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Read-only reopened prefab controls changed project files')
+        succeeded = True
     finally:
         if process is not None:
             if process.poll() is None:
                 process.kill()
-            process.communicate(timeout=10)
+            output, diagnostics = process.communicate(timeout=10)
+            standard_output.extend(output)
+            captured.extend(diagnostics)
+            retain_output()
         if xvfb.poll() is None:
             xvfb.terminate()
         xvfb.communicate(timeout=10)
-        shutil.rmtree(scratch)
+        actions.close()
+        if succeeded:
+            shutil.rmtree(scratch)
+        else:
+            print(f'Prefab failure evidence retained: {scratch}', flush=True)
 
 
 if __name__ == '__main__':

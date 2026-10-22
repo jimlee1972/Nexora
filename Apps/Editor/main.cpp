@@ -19,11 +19,13 @@
 #include "Nexora/Editor/SceneAuthoring.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
+#include "Nexora/Editor/SceneMergePublication.h"
 #include "Nexora/Editor/StaticProjectExportJob.h"
 #include "Nexora/Editor/ViewportMath.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
+#include "PrefabWorkflowEvidence.h"
 #include "ProjectAssetWorkflowEvidence.h"
 #endif
 #include "Nexora/Math/Math.h"
@@ -744,6 +746,13 @@ int RunGraphical(std::optional<ProjectState> project,
   nexora::editor::SceneMergeCandidateJob scene_merge_candidate{import_jobs};
   std::optional<nexora::editor::imgui::SceneMergeUiRequest> scene_merge_binding;
   nexora::editor::SceneMergeCandidateSnapshot scene_merge_view;
+  struct PendingSceneMergePublication final {
+    nexora::editor::SceneMergePublication capability;
+    nexora::editor::imgui::SceneMergePublicationPreview preview;
+  };
+  std::optional<PendingSceneMergePublication> scene_merge_publication;
+  std::uint64_t scene_merge_publication_identity{}, scene_merge_published_review{};
+
   nexora::editor::BuildProcess build_process{import_jobs};
   nexora::editor::GitStatusProvider git_status{import_jobs};
   nexora::editor::GitDiffProvider git_diff{import_jobs};
@@ -760,7 +769,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::string extension_test_geometry;
   std::uint64_t extension_test_revision{};
   std::string play_memory_test_geometry, play_memory_test_text;
-  std::string scene_merge_test_geometry;
+  std::string scene_merge_test_geometry, build_console_test_geometry;
   std::uint64_t scene_merge_test_review{};
   std::optional<std::size_t> scene_merge_test_name;
 #endif
@@ -1544,6 +1553,22 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       ui.SetSceneMergeCandidateStatus(scene_merge_view, scene_merge_candidate.Busy(),
                                       scene_merge_binding ? scene_merge_binding->draft : 0);
+      const auto publication_current = [&] {
+        const auto observation = scene_comparison.Snapshot();
+        return merge_scope_current() && ui.SceneMergeInteractionAllowed() &&
+               scene_authoring_allowed() && !scene_load_failed && !active_files()->SaveBlocked() &&
+               observation.review &&
+               observation.review->Identity() != scene_merge_published_review &&
+               scene_merge_view.result && scene_merge_view.result->bytes &&
+               !scene_merge_candidate.Busy();
+      };
+      ui.SetSceneMergePublicationAllowed(publication_current());
+      if (scene_merge_publication &&
+          (!publication_current() ||
+           !ui.SceneMergePublicationPreviewCurrent(scene_merge_publication->preview))) {
+        scene_merge_publication.reset();
+        static_cast<void>(ui.SetSceneMergePublicationPreview(std::nullopt));
+      }
       update_scene_tabs();
       const bool source_inspection_allowed =
           play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy() &&
@@ -2052,6 +2077,87 @@ int RunGraphical(std::optional<ProjectState> project,
                                 nexora::editor::SceneMergeCandidatePhase::Failed,
                                 merge_error,
                                 {}};
+        }
+      }
+      if (auto request = ui.TakeSceneMergePublicationRequest()) {
+        scene_merge_publication.reset();
+        const auto observation = scene_comparison.Snapshot();
+        std::string publication_error;
+        const bool same_draft =
+            scene_merge_binding && request->token == scene_merge_binding->token &&
+            request->comparison_operation == scene_merge_binding->comparison_operation &&
+            request->draft == scene_merge_binding->draft &&
+            request->candidate.review == scene_merge_binding->candidate.review;
+        if (!publication_current() || !same_draft || !observation.review ||
+            scene_merge_publication_identity == std::numeric_limits<std::uint64_t>::max()) {
+          publication_error =
+              "Publication review is stale or unavailable. Compare revisions again.";
+        } else {
+          try {
+            auto prepared = nexora::editor::SceneMergePublisher::Prepare(
+                *active_files(), *observation.review, request->candidate, scene_authoring_allowed(),
+                &publication_error);
+            if (prepared && prepared->CandidateBytes() == *scene_merge_view.result->bytes) {
+              nexora::editor::imgui::SceneMergePublicationPreview preview{
+                  1,
+                  ++scene_merge_publication_identity,
+                  request->token,
+                  request->comparison_operation,
+                  request->candidate.review,
+                  request->draft,
+                  prepared->Source(),
+                  prepared->CandidateBytes().size()};
+              if (ui.SetSceneMergePublicationPreview(preview))
+                scene_merge_publication.emplace(
+                    PendingSceneMergePublication{std::move(*prepared), std::move(preview)});
+              else
+                publication_error = "Publication confirmation scope changed. Review again.";
+            } else if (publication_error.empty())
+              publication_error = "Validated candidate changed. Compare revisions again.";
+          } catch (const std::exception &) {
+            publication_error =
+                "Publication could not be prepared. The source file was not replaced.";
+          }
+        }
+        if (!publication_error.empty())
+          ui.SetSceneMergePublicationStatus(std::move(publication_error));
+      }
+      if (auto decision = ui.TakeSceneMergePublicationDecision()) {
+        const bool confirmed = decision->confirmed && scene_merge_publication &&
+                               publication_current() &&
+                               decision->scope == scene_merge_publication->preview;
+        std::optional<nexora::editor::SceneMergePublishResult> outcome;
+        if (confirmed) {
+          try {
+            outcome.emplace(nexora::editor::SceneMergePublisher::Publish(
+                *active_files(), scene_merge_publication->capability, scene_authoring_allowed()));
+          } catch (const std::exception &) {
+            // The publisher allocates/validates only before native replacement. Display work is
+            // outside this catch so a later UI allocation cannot relabel a committed publication.
+            ui.SetSceneMergePublicationStatus(
+                "Publication failed before replacement. The source file was kept.");
+          }
+        } else {
+          ui.SetSceneMergePublicationStatus(
+              decision->confirmed ? "Publication confirmation is stale. Compare revisions again."
+                                  : "Publication cancelled. The source file was kept.");
+        }
+        scene_merge_publication.reset();
+        if (outcome) {
+          using PublishStatus = nexora::editor::SceneMergePublishStatus;
+          if (outcome->Published() || outcome->status == PublishStatus::PublicationUncertain) {
+            scene_merge_published_review = decision->scope.review;
+            ui.SetSceneMergePublicationAllowed(false);
+          }
+          std::cerr << "scene merge publication outcome=" << static_cast<unsigned>(outcome->status)
+                    << '\n';
+          auto publication_message = std::move(outcome->message);
+          if (outcome->Published() || outcome->status == PublishStatus::PublicationUncertain) {
+            const auto archive_text = outcome->archive.generic_u8string();
+            publication_message +=
+                " Backup: " + std::string(archive_text.begin(), archive_text.end());
+          }
+          ui.SetSceneMergePublicationStatus(std::move(publication_message));
         }
       }
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
@@ -2922,6 +3028,32 @@ int RunGraphical(std::optional<ProjectState> project,
     ui.DrawBuildProcess(build_process, project ? build_scope : 0,
                         project ? project->workspace.Root() : std::filesystem::path{},
                         build_allowed);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      std::ostringstream geometry;
+      geometry << "build console ui";
+      const auto hex = [&](std::string_view bytes) {
+        constexpr char digits[] = "0123456789abcdef";
+        for (const unsigned char byte : bytes)
+          geometry << digits[byte >> 4] << digits[byte & 15];
+      };
+      constexpr std::array names{"executable_hex", "cwd_hex", "argv0_hex"};
+      for (std::size_t field = 0; field < names.size(); ++field) {
+        geometry << ' ' << names[field] << '=';
+        hex(Access::BuildCommandText(ui, field));
+      }
+      geometry << " argv_count=" << Access::BuildArgumentCount(ui);
+      for (std::size_t control = 0; control < 7; ++control)
+        if (const auto point = Access::BuildControlPosition(ui, control))
+          geometry << " control" << control << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
+      auto value = geometry.str();
+      if (value != build_console_test_geometry) {
+        build_console_test_geometry = std::move(value);
+        std::cerr << build_console_test_geometry << '\n';
+      }
+    }
+#endif
     const auto current_git_project =
         project ? project->workspace.Project().id : nexora::foundation::Uuid{};
     const auto &current_git_root = project ? project->workspace.Root() : no_git_root;
@@ -2994,6 +3126,46 @@ int RunGraphical(std::optional<ProjectState> project,
 #endif
     static_cast<void>(ui.EndFrame());
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_SOURCE_MARKER_TEST_GEOMETRY")) {
+      using Access = nexora::editor::imgui::EditorImGuiTestAccess;
+      static std::string previous_source_marker;
+      std::ostringstream marker;
+      marker << "source marker ready=";
+      bool recorded = false;
+      if (project && ui.SceneCanvasViewport()) {
+        const auto &scene = active_scene();
+        for (const auto &node : scene.Nodes()) {
+          const auto key = scene.Key(node.id);
+          const auto point = key ? Access::SceneMarkerPosition(ui, *key) : std::nullopt;
+          if (!point)
+            continue;
+          const auto selection = scene.Selection();
+          marker << "1 id=" << node.id << " point=" << (*point)[0] * dpi << ',' << (*point)[1] * dpi
+                 << " selected="
+                 << (std::find(selection.begin(), selection.end(), node.id) != selection.end())
+                 << " selection_count=" << selection.size();
+          recorded = true;
+          break;
+        }
+      }
+      if (!recorded)
+        marker << '0';
+      if (marker.str() != previous_source_marker) {
+        previous_source_marker = marker.str();
+        std::cerr << previous_source_marker << " frame=" << Access::SceneShortcutInput(ui).frame
+                  << '\n';
+      }
+    }
+    if (std::getenv("NEXORA_PREFAB_WORKFLOW_EVIDENCE")) {
+      static std::string previous_prefab;
+      const auto observation = nexora::editor::test::PrefabWorkflowEvidence(
+          ui, prefab_documents ? prefab_documents->Document() : nullptr, dpi);
+      if (observation != previous_prefab) {
+        previous_prefab = observation;
+        std::cerr << observation << " frame="
+                  << nexora::editor::imgui::EditorImGuiTestAccess::PrefabInput(ui).frame << '\n';
+      }
+    }
     if (std::getenv("NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       const auto captured = Access::SceneComparisonStatus(ui);
@@ -3012,20 +3184,108 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       std::ostringstream geometry;
       geometry << "scene merge ui review=" << identity;
+      const auto shell_state = Access::Inspect(ui);
+      geometry << " context_ready="
+               << bool(project && active_files() && active_files()->CurrentPath() &&
+                       !scene_load_failed && !active_files()->SaveBlocked())
+               << " focused=" << shell_state.app_focused
+               << " selector=" << shell_state.project_selector_visible;
+      const auto shortcut = Access::SceneShortcutInput(ui);
+      geometry << " comparison_admitted=" << shortcut.comparison_allowed
+               << " history_admitted=" << shortcut.history_allowed
+               << " text_input=" << shortcut.want_text << " keys=";
+      for (const bool key : shortcut.keys)
+        geometry << key;
+      geometry << " play_keys=";
+      for (const bool key : shortcut.play_keys)
+        geometry << key;
+      geometry << " play_admitted=" << shortcut.play_allowed
+               << " play_requests=" << shortcut.play_shortcut_requests
+               << " play_command=" << static_cast<int>(shortcut.play_command)
+               << " play_state=" << static_cast<int>(play.State());
+      geometry << " file_keys=";
+      for (const bool key : shortcut.file_keys)
+        geometry << key;
+      geometry << " file_open_admitted=" << shortcut.file_open_allowed
+               << " file_open_requests=" << shortcut.file_open_requests
+               << " file_dialog=" << shortcut.file_dialog
+               << " file_path_ready=" << shortcut.file_path_ready
+               << " file_path_active=" << shortcut.file_path_active << " file_path_hex=";
+      constexpr char file_hex[] = "0123456789abcdef";
+      for (const char value : shortcut.file_path_text) {
+        if (value == '\0')
+          break;
+        const auto byte = static_cast<unsigned char>(value);
+        geometry << file_hex[byte >> 4] << file_hex[byte & 15];
+      }
+      if (shortcut.file_path_ready) {
+        if (const auto point = Access::SceneFilePosition(ui, 4))
+          geometry << " file_path_point=" << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
+      }
+      geometry << " pointer=" << shortcut.pointer[0] * dpi << ',' << shortcut.pointer[1] * dpi
+               << " down=" << shortcut.down << " undo=" << shortcut.undo_attempts << ","
+               << shortcut.undo_applied;
+      geometry << " buttons=";
+      for (const bool button : shortcut.buttons)
+        geometry << button;
+      geometry << " native_tool=" << static_cast<int>(ui.GetNativeSceneTool())
+               << " native_scale_axis="
+               << (native_scene_drag_scale_axis ? static_cast<int>(*native_scene_drag_scale_axis)
+                                                : -1)
+               << " native_drag_preview=" << bool(ui.NativeSceneDragPreview());
+      geometry << " game_hovered=" << shortcut.game_hovered
+               << " game_clicked=" << shortcut.game_clicked
+               << " game_capture_admitted=" << shortcut.game_capture_allowed
+               << " game_focused=" << shortcut.game_focused
+               << " game_capture_requests=" << shortcut.game_capture_requests;
+
       const auto record = [&](const char *name, std::optional<std::array<float, 2>> point) {
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      geometry << " rebase_keys=";
+      for (const bool key : Access::PrefabRebaseKeys(ui))
+        geometry << key;
+      record("rebase_review", Access::PrefabRebasePosition(ui, 0));
+      record("rebase_apply", Access::PrefabRebasePosition(ui, 1));
+      record("rebase_confirm", Access::PrefabRebasePosition(ui, 2));
+      record("rebase_cancel", Access::PrefabRebasePosition(ui, 3));
+      if (const auto *report = Access::PrefabRebaseReport(ui))
+        for (std::size_t row = 0; row < report->rows.size(); ++row)
+          if (report->rows[row].conflict) {
+            record("rebase_keep_local",
+                   Access::PrefabPlacementRebaseChoicePosition(ui, row, false));
+            break;
+          }
+      record("source_inspect", Access::PrefabSourceInspectionPosition(ui));
+      if (project) {
+        const auto &scene = active_scene();
+        for (const auto &node : scene.Nodes()) {
+          if (node.parent)
+            continue;
+          if (const auto key = scene.Key(node.id))
+            record("source_node", Access::SceneMarkerPosition(ui, *key));
+          const auto selection = scene.Selection();
+          geometry << " source_selected="
+                   << (std::find(selection.begin(), selection.end(), node.id) != selection.end())
+                   << " source_selection_count=" << selection.size();
+          break;
+        }
+      }
       if (identity && ui.SceneMergeInteractionAllowed()) {
         record("validate", Access::SceneMergePosition(ui, 0));
         if (scene_merge_test_name)
           record("disk", Access::SceneMergeChoicePosition(ui, *scene_merge_test_name, 2));
         record("cancel", Access::SceneMergePosition(ui, 1));
       }
+      record("publication_review", Access::SceneMergePublicationPosition(ui, 0));
+      record("publication_confirm", Access::SceneMergePublicationPosition(ui, 1));
+      record("publication_cancel", Access::SceneMergePublicationPosition(ui, 2));
+      geometry << " publication_preview=" << bool(scene_merge_publication);
       geometry << " validated=" << bool(Access::SceneMergeStatus(ui).result);
       if (geometry.str() != scene_merge_test_geometry) {
         scene_merge_test_geometry = geometry.str();
-        std::cerr << scene_merge_test_geometry << '\n';
+        std::cerr << scene_merge_test_geometry << " frame=" << shortcut.frame << '\n';
       }
     }
     if (std::getenv("NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE")) {
@@ -3035,7 +3295,9 @@ int RunGraphical(std::optional<ProjectState> project,
           project ? &active_scene() : nullptr, dpi);
       if (observation != previous_workflow) {
         previous_workflow = observation;
-        std::cerr << observation << '\n';
+        std::cerr << observation << " frame="
+                  << nexora::editor::imgui::EditorImGuiTestAccess::SceneShortcutInput(ui).frame
+                  << '\n';
       }
     }
 
@@ -3159,6 +3421,9 @@ int RunGraphical(std::optional<ProjectState> project,
         }
       }
     }
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    std::optional<float> game_draw_admitted_test_x;
+#endif
     if (const auto viewport = ui.NativeGameViewport();
         viewport && play.PlayWorld() && play_meshes && play_materials &&
         (!ui.NativeScenePreviewViewport() || created.surface->SupportsBoundedSceneViews())) {
@@ -3178,6 +3443,14 @@ int RunGraphical(std::optional<ProjectState> project,
         draw.retainMeshGeometry =
             !game.debug_lines && created.surface->SupportsSceneGeometryResidency();
         const auto status = created.surface->DrawScene(draw);
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+        if (status == Nexora::Presentation::SurfaceStatus::Ready &&
+            std::getenv("NEXORA_NATIVE_GAME_PRESENT_TEST_GEOMETRY") && game.instances.size() == 1) {
+          const auto &instance = game.instances.front();
+          game_draw_admitted_test_x =
+              instance.model_transform ? (*instance.model_transform)[3] : instance.translation[0];
+        }
+#endif
         ui.SetNativeGameStatus(
             (game.unavailable_debug_lines ? std::to_string(game.unavailable_debug_lines) +
                                                 " debug lines could not be displayed. "
@@ -3216,6 +3489,16 @@ int RunGraphical(std::optional<ProjectState> project,
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
+#if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (game_draw_admitted_test_x) {
+      // EndFrame admitted this draw to the presentation queue; this does not prove scanout.
+      std::ostringstream observation;
+      observation.precision(std::numeric_limits<float>::max_digits10);
+      observation << "native game draw admitted frame=" << static_cast<std::uint64_t>(frames) + 1
+                  << " x=" << *game_draw_admitted_test_x;
+      std::cerr << observation.str() << '\n';
+    }
+#endif
     static_cast<void>(profile.Add(
         {static_cast<std::uint64_t>(frames) + 1,
          std::chrono::duration<double, std::milli>(frame_processed - frame_started).count(), 0.0,

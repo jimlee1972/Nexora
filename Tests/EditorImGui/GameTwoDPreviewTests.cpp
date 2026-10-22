@@ -118,7 +118,7 @@ struct Fixture final {
     }
     static_cast<void>(ui.EndFrame());
   }
-  void Click(std::array<float, 2> point) {
+  void Click(std::array<float, 2> point, bool opening_view = false) {
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
     pointer.value0 = static_cast<int>(point[0]);
@@ -131,12 +131,17 @@ struct Fixture final {
     button.value1 = 0;
     ui.ProcessEvents(std::array{button});
     Draw();
+    if (opening_view)
+      Check(!Access::GameViewPosition(ui, false) && !Access::GameViewPosition(ui, true),
+            "hidden popup sizing frame published interactive View option coordinates");
     Draw();
   }
   void View(bool two_d) {
     const auto combo = Access::GameViewPosition(ui, std::nullopt);
     Check(bool(combo), "view selector missing");
-    Click(*combo);
+    Click(*combo, true);
+    Check(Access::GameViewPosition(ui, false) && Access::GameViewPosition(ui, true),
+          "visible View popup did not publish both interactive options");
     const auto option = Access::GameViewPosition(ui, two_d);
     Check(bool(option), "view option missing");
     Click(*option);

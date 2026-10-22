@@ -37,6 +37,27 @@ inline std::string ProjectAssetWorkflowEvidence(const imgui::EditorImGuiHost &ui
     point("addmesh", Access::ContentAddMeshPosition(ui));
     point("undo", Access::ContentWorkflowPosition(ui, false));
     point("reimport", Access::ContentWorkflowPosition(ui, true));
+    const auto hex = [&](std::string_view value) {
+      constexpr char digits[] = "0123456789abcdef";
+      for (const unsigned char byte : value)
+        out << digits[byte >> 4] << digits[byte & 15];
+    };
+    for (const auto &item : browser.Items()) {
+      if (item.path.extension() != ".scene")
+        continue;
+      const auto path = item.path.generic_u8string();
+      out << " scene_asset=" << item.id.ToString() << " scene_path_hex=";
+      hex(std::string(path.begin(), path.end()));
+      point("scene_point", Access::ContentAssetPosition(ui, item.id));
+      break;
+    }
+    point("context_rename", Access::ContentContextPosition(ui, 0));
+    point("context_delete", Access::ContentContextPosition(ui, 1));
+    point("rename_field", Access::ContentRenamePosition(ui, 0));
+    point("rename_apply", Access::ContentRenamePosition(ui, 1));
+    point("rename_cancel", Access::ContentRenamePosition(ui, 2));
+    out << " rename_text_hex=";
+    hex(Access::ContentRenameText(ui));
     for (const auto &item : browser.Items()) {
       if (item.path.filename() != "WorkflowHero.obj")
         continue;

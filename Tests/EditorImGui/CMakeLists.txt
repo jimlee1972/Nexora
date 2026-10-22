@@ -61,6 +61,13 @@ target_include_directories(NexoraEditorImGuiTests
 target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
+add_executable(NexoraRecoveryScopeTests RecoveryScopeTests.cpp)
+target_include_directories(NexoraRecoveryScopeTests
+  PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraRecoveryScopeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraRecoveryScopeTests)
+add_test(NAME editor.recovery_scope COMMAND NexoraRecoveryScopeTests)
+set_tests_properties(editor.recovery_scope PROPERTIES TIMEOUT 60)
 add_executable(NexoraSceneComparisonUiTests SceneComparisonTests.cpp)
 target_include_directories(NexoraSceneComparisonUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraSceneComparisonUiTests PRIVATE Nexora::EditorImGui)
@@ -420,6 +427,11 @@ if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
       --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
       --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --candidate)
   set_tests_properties(editor.linux_scene_merge_candidate PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
+  add_test(NAME editor.linux_scene_merge_publication
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxSceneComparison.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}" --publication)
+  set_tests_properties(editor.linux_scene_merge_publication PROPERTIES TIMEOUT 120 LABELS "vulkan;virtual-display")
   if(NEXORA_BUILD_PROJECT_PLAYER)
     add_test(NAME editor.linux_static_project_export
       COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxStaticProjectExport.py"

@@ -14,14 +14,27 @@ import tempfile
 import time
 
 
-def collect_output(editor: subprocess.Popen[str], timeout: float) -> tuple[str, str]:
+def collect_output(editor: subprocess.Popen[str] | subprocess.Popen[bytes], timeout: float, *,
+                   stdout_prefix: str | bytes = '',
+                   stderr_prefix: str | bytes = '') -> tuple[str, str]:
     """Retain both streams in CTest evidence and reject Vulkan errors even after exit zero.
 
     Validation layers may write to either stream without changing the application's exit code.
     This applies to every completed launch, including the intentionally SIGKILLed recovery drill.
     Cleanup-only waits remain outside this check so they cannot mask an earlier failure.
+    Binary clients pass already drained bytes as prefixes; join before decoding so a pipe-read
+    boundary cannot split a Unicode scalar or hide an early validation error.
     """
     stdout, stderr = editor.communicate(timeout=timeout)
+
+    def complete(prefix, tail):
+        if isinstance(tail, bytes):
+            prefix = prefix.encode('utf-8') if isinstance(prefix, str) else prefix
+            return (prefix + tail).decode('utf-8', errors='replace')
+        return prefix + tail
+
+    stdout = complete(stdout_prefix, stdout)
+    stderr = complete(stderr_prefix, stderr)
     if stdout:
         print(stdout, end="" if stdout.endswith("\n") else "\n", flush=True)
     if stderr:
@@ -137,6 +150,7 @@ def launch(
     environment: dict[str, str],
     frames: int = 0,
     read_only: bool = False,
+    binary: bool = False,
 ):
     command = [
         editor,
@@ -154,7 +168,7 @@ def launch(
         env=environment,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
+        text=not binary,
     )
 
 

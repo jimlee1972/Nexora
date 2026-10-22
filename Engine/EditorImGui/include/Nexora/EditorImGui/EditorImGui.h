@@ -159,6 +159,19 @@ struct SceneMergeUiRequest final {
   std::uint64_t comparison_operation{}, draft{};
   SceneMergeRequest candidate;
 };
+struct SceneMergePublicationPreview final {
+  std::uint32_t schema{1};
+  std::uint64_t identity{};
+  SceneFileToken token;
+  std::uint64_t comparison_operation{}, review{}, draft{};
+  std::filesystem::path source;
+  std::size_t candidate_bytes{};
+  bool operator==(const SceneMergePublicationPreview &) const = default;
+};
+struct SceneMergePublicationDecision final {
+  SceneMergePublicationPreview scope;
+  bool confirmed{};
+};
 struct SceneFileRequest final {
   SceneFileAction action{SceneFileAction::New};
   SceneFileToken token;
@@ -442,6 +455,13 @@ public:
   [[nodiscard]] bool SceneMergeInteractionAllowed() const noexcept;
   // Data-only current-draft observation. Stale responses cannot resurrect changed choices.
   void SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot, bool busy, std::uint64_t draft);
+  void SetSceneMergePublicationAllowed(bool allowed) noexcept;
+  [[nodiscard]] std::optional<SceneMergeUiRequest> TakeSceneMergePublicationRequest();
+  [[nodiscard]] bool SetSceneMergePublicationPreview(std::optional<SceneMergePublicationPreview>);
+  [[nodiscard]] std::optional<SceneMergePublicationDecision> TakeSceneMergePublicationDecision();
+  [[nodiscard]] bool
+  SceneMergePublicationPreviewCurrent(const SceneMergePublicationPreview &) const noexcept;
+  void SetSceneMergePublicationStatus(std::string message);
   void RequestSceneSaveAs(bool close_after_save = false,
                           std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);
@@ -527,6 +547,9 @@ public:
   Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height,
          const Nexora::Presentation::UiDrawData &overlay = {});
   void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
+  // Recovery UI/results own the current project UUID/root scope. Draw or a direct Apply against
+  // another scope revokes the previous prompt, active gesture, result and error. Journal removal
+  // closes the prompt but preserves a successful same-scope result until it is consumed once.
   [[nodiscard]] bool ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;
   [[nodiscard]] std::string_view RecoveryError() const noexcept;

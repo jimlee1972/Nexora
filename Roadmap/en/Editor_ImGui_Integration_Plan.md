@@ -1,6 +1,6 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.7 | Status: implementation in progress; target-host evidence pending |
+> Version: v1.8 | Status: implementation in progress; target-host evidence pending |
 > Updated: 2026-10-22 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
@@ -320,6 +320,9 @@ proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavi
 **Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
 Windows proof remains.**
 
+✅ Nonfinite display dimensions and frame deltas now use the existing safe lower bounds.
+Multi-frame portable regressions reject NaN/infinity state poisoning while preserving finite inputs.
+
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly
    scale the already-scaled style.
@@ -353,6 +356,15 @@ once and correctly positioned candidates at more than one DPI.
 
 **Status: modal/data-layer calls and automated X11 kill/relaunch coverage for both recover and
 destructive discard exist; physical-display evidence remains.**
+
+✅ Recovery UI now owns a copied project UUID/root scope. Replacement or detach cancels old
+popup activation, errors and pending results; held or queued activation must drain through a neutral
+frame before a new prompt accepts an action. Journal disappearance closes stale prompts while
+preserving successful same-scope results exactly once. Portable actual pointer/keyboard tests cover
+1x/2x, root/UUID replacement, detach, deferred input, failures and fresh actions. Physical-host
+keyboard/recovery acceptance remains open.
+[Linux validation](../../Tools/Build/evidence/EditorEDM0-RecoveryScope-Linux-2026-10-22.md)
+records the new contracts and the separate native-fixture failure/rerun.
 
 1. Detect a journal before normal editing becomes interactive. Recovery modal takes focus, traps
    keyboard navigation, and offers explicit Recover and Discard actions. Discard requires clear
@@ -393,6 +405,58 @@ The close gate also waits for changed, stable resized native pixels instead of a
 resize generation and final lifecycle counters remain mandatory.
 Editor display shortcuts use 100 ms native key transitions, matching selector input, so ImGui
 trickling and GPU frames can observe the original press/release sequence.
+
+✅ The native prefab workflow now observes actual GUI focus/key/pointer phases and copied history
+control positions/admission, checks both committed edits before full-property revert, and verifies
+that one Undo/Redo gesture invokes history exactly once. Failed projects, baseline/Undo assets,
+both process streams and timestamped input records are retained. This closes diagnostic and input
+synchronization gaps; the earlier aggregate Undo failure lacked its original assets and its exact
+root cause remains unproven. Existing data assertions and the 180-second whole-case deadline stay
+required. See [prefab investigation evidence](../../Tools/Build/evidence/EditorEDM0-PrefabInput-Linux-2026-10-22.md).
+
+✅ The Game View option observer also excludes ImGui's hidden popup sizing frame: temporary item
+rectangles are not input readiness. A portable regression fails against the old library and passes
+with the visible/enabled-only observer, using the same opening and selection gestures. Native
+32-cycle and full-gate results are tracked in the investigation evidence above; unresolved Scene
+Meshes shortcut failures remain in the shared native X11 investigation.
+
+
+✅ Scene comparison/publication and center/mesh native fixtures also copy actual GUI shortcut
+phases/admission and real scene Undo counts. A shared driver acknowledges each physical phase
+and preserves the original result/whole-case deadlines, exact serialized data, archive and
+pixel checks. Early-read results remain visible by capturing the output offset before the
+gesture. Failed projects and both output streams are retained; historical request/Undo causes
+remain unproven without their processed input records. Integration evidence is tracked above.
+
+✅ The signed-package fixture also observes the actual source marker before its original pixel
+check and single selection, retaining signature/lifecycle/read-only/source-integrity assertions.
+It no longer assumes that the marker occupies a fixed startup pixel rectangle.
+
+✅ The scene-file fixture also observes visible Content controls and committed rename text,
+requires the intended dirty node edit before relocation, and retains separate filesystem
+facts on failure. Native preview coverage observes the actual scale-axis hit and drag-preview
+phases before applying the original exact transform, Undo and pixel assertions.
+
+✅ The Game fixture separately observes reserved F5/F6/F10 phases and actual UI request counts,
+keeping movement keys on their runtime path. Every reopen shares one binary reader and retains
+failed project/input/output; Start and Game viewport checks share the original twelve-second
+deadline. Runtime execution and existing pixel/source assertions remain separate requirements.
+
+✅ The 32-cycle Play soak also establishes one exact stable Scene readback before Start,
+within its existing startup bound, and retains reference/actual samples and difference
+geometry on failure. Original pixel equality, lifecycle/input/RSS and output budgets remain.
+
+✅ Additional native workflow observations cover one Ctrl+O request and the actual modal Path
+focus/text, real Game canvas acquisition and the exact Build argv before a single Run. Soak
+acquisition/seed/motion share the original three-second result deadline. Source inspection uses
+the actual Scene marker/control and requires exactly one scoped report; pointer-button release
+checks actual consumer neutral state and admitted draw poses before its original exact pixel
+comparison. Queue admission does not prove physical scanout. Existing deadlines, source/history/
+read-only and RSS/lifecycle assertions remain required, and failed inputs/streams/RGB are retained.
+Marker observations exclude hidden/sizing frames, and named positions are rechecked after pointer
+processing before one click. Rebase preserves original consent, Escape and Ctrl+Y/history paths.
+The integrated complete Linux gate passes 365/365 with zero skips; exact results and retained
+failed attempts are recorded in the evidence above. Fresh-head CI and PR merge remain separate gates.
 
 ✅ Target-host evidence tooling now provides a complete Linux/Windows operator checklist through
 `Tools/Editor/EditorTargetEvidence.py` ([usage](../../Tools/Editor/README.md)). It retains exact

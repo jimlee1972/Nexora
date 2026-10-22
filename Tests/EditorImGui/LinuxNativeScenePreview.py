@@ -14,6 +14,7 @@ import tempfile
 import time
 
 from LinuxDisplayAcceptance import start_xvfb, wait_for_window
+from NativeSceneInput import NativeSceneInput
 
 
 class XImage(ctypes.Structure):
@@ -119,26 +120,37 @@ def scene_region_pixels(display_name: str, window: int,
         x11.XCloseDisplay(display)
 
 
-def save_after_pointer_release(xdotool, environment):
+def save_after_pointer_release(xdotool, environment, sender=None):
     # Keep one physical Save gesture across rendered modifier/key phases. The
     # rotation release must reach authoring before its saved quaternion is read.
     # Do not retry Save or the rotation drag and retain the existing deadlines.
     for action, key in (("keydown", "ctrl"), ("keydown", "s"),
                         ("keyup", "s"), ("keyup", "ctrl")):
-        subprocess.run([xdotool, action, key], env=environment, check=True)
+        if sender is None:
+            subprocess.run([xdotool, action, key], env=environment, check=True)
+        else:
+            sender(action, key)
         time.sleep(.2)
 
 
-def undo_and_save(xdotool, environment, scene_file, expected, failure, render=None):
-    # Issue Undo exactly once. On a busy host a Save can precede the queued Undo;
-    # repeat only Save while waiting for the committed baseline, never Undo.
-    subprocess.run([xdotool, "key", "--delay", "80", "ctrl+z"],
-                   env=environment, check=True)
+def undo_and_save(xdotool, environment, scene_file, expected, failure, render=None, shortcut=None):
+    # Issue Undo exactly once. An optional native observer acknowledges its GUI phases;
+    # repeat only Save within the existing result bound, never Undo.
+    if shortcut is not None:
+        shortcut("ctrl+z")
+    else:
+        subprocess.run([xdotool, "key", "--delay", "80", "ctrl+z"],
+                       env=environment, check=True)
     time.sleep(0.15)
     deadline = time.monotonic() + 5
     while time.monotonic() < deadline:
-        subprocess.run([xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        if shortcut is not None:
+            shortcut("ctrl+s", deadline=deadline)
+        else:
+            subprocess.run([xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
         time.sleep(0.1)
+        if time.monotonic() >= deadline:
+            break
         if scene_file.read_text() == expected:
             if render is not None:
                 display, window, viewport, baseline = render
@@ -395,25 +407,29 @@ def main() -> int:
     (root / ".nexora/workspace").write_text("schema=1\n")
     xvfb, display = start_xvfb(args.xvfb, "1280x720x24")
     editor = None
+    driver = None
+    passed = False
     try:
         if display is None:
             raise RuntimeError("Xvfb did not become ready")
         environment = os.environ.copy()
         environment["DISPLAY"] = display
         environment["XDG_STATE_HOME"] = str(user_state)
+        environment["NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY"] = "1"
         editor = subprocess.Popen(
             [args.editor, f"--project={root}", "--graphical", "--native-scene-preview",
              "--frames=10000", f"--recent-projects={user_state / 'recent-projects'}"],
             env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
+        driver = NativeSceneInput(editor, args.xdotool, environment, "0", user_state, 1,
+                                  minimum_wait=0, phase_wait=.08, ack_pointer=True)
         window = int(wait_for_window(args.xdotool, environment))
+        driver.window = str(window)
         deadline = time.monotonic() + 12
-        captured = b""
+        captured = driver.stderr
         viewport = None
         while time.monotonic() < deadline and viewport is None:
-            if not select.select([editor.stderr], [], [], 0.5)[0]:
-                continue
-            captured += os.read(editor.stderr.fileno(), 4096)
+            driver.drain(.5)
             match = re.search(rb"native scene viewport: (\d+) (\d+) (\d+) (\d+)", captured)
             if match:
                 viewport = tuple(map(int, match.groups()))
@@ -429,25 +445,25 @@ def main() -> int:
         if not pixels_visible:
             raise RuntimeError(f"native Scene pixels were hidden inside viewport {viewport}; "
                                f"samples={samples}")
-        subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
+        driver.send("windowfocus", str(window))
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "click", "1"], env=environment, check=True)
+        driver.send("click", "1")
         time.sleep(0.15)
         scene_file = root / ".nexora/scenes/Main.scene"
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
-            subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+            driver.chord("ctrl+s", deadline=deadline)
             time.sleep(0.1)
         if not scene_file.is_file():
             raise RuntimeError("native Scene could not save before proxy drag")
         initial_scene = scene_file.read_text()
         # Selection changes the docked panel layout. Wait for the new physical-pixel
         # viewport before sampling handle pixels or sending mouse input.
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
         handles = [None, None, None]
@@ -462,21 +478,21 @@ def main() -> int:
         baseline_move_pixels = scene_region_pixels(display, window, viewport)
         before = first_entity_position(initial_scene)
         for axis, (dx, dy) in enumerate(((40, 0), (0, -40), (-30, 25))):
-            viewport = settled_viewport(editor.stderr, viewport)
+            viewport = driver.settled_viewport(viewport)
             handles = wait_axis_handles(display, window, viewport, baseline_move_handles)
             if handles[axis] is None:
                 raise RuntimeError(f"axis handle {axis} disappeared after layout update")
             handle_x, handle_y = handles[axis]
-            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                            str(handle_x), str(handle_y)], env=environment, check=True)
+            driver.send("mousemove", "--window", str(window),
+                        str(handle_x), str(handle_y))
             time.sleep(0.2)
-            subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+            driver.send("mousedown", "1")
             time.sleep(0.1)
-            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                            str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
+            driver.send("mousemove", "--window", str(window),
+                        str(handle_x + dx), str(handle_y + dy))
             time.sleep(0.15)
-            subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-            subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+            driver.send("mouseup", "1")
+            driver.send("key", "--delay", "80", "ctrl+s")
             after = before
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline and abs(after[axis] - before[axis]) < 0.1:
@@ -489,22 +505,22 @@ def main() -> int:
                                    f"{before} -> {after}; handle={handles[axis]}, "
                                    f"viewport={viewport}; "
                                    f"visible={axis_handle_pixels(display, window, viewport)}; "
-                                   f"latest={latest_viewport(editor.stderr, viewport)}")
+                                   f"latest_input={driver.observation()}")
             undo_and_save(args.xdotool, environment, scene_file, initial_scene,
                           f"axis handle {axis} drag did not undo atomically",
-                          (display, window, viewport, baseline_move_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, baseline_move_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         point = selected_proxy_pixel(display, window, viewport)
         if point is None:
             raise RuntimeError("selected proxy surface missing before free Move")
         center_x, center_y = point
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         _, before_drag_pixels = scene_pixels(display, window, viewport)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x + 48), str(center_y + 24)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x + 48), str(center_y + 24))
         deadline = time.monotonic() + 3
         pixels_changed = False
         while time.monotonic() < deadline and not pixels_changed:
@@ -516,42 +532,42 @@ def main() -> int:
                 time.sleep(0.05)
         if not pixels_changed:
             raise RuntimeError("native proxy did not visibly move before mouse release")
-        subprocess.run([args.xdotool, "key", "Escape"], env=environment, check=True)
+        driver.send("key", "Escape")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("mouseup", "1")
+        driver.send("key", "--delay", "80", "ctrl+s")
         time.sleep(0.2)
         if scene_file.read_text() != initial_scene:
             raise RuntimeError("Escape did not cancel the native proxy drag")
         # A real FocusOut while the mouse is held must cancel, including the input
         # releases synthesized by Dear ImGui on the next frame.
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x + 48), str(center_y + 24)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x + 48), str(center_y + 24))
         time.sleep(0.2)
         focus_root_window(display)
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "windowfocus", str(window)], env=environment, check=True)
+        driver.send("mouseup", "1")
+        driver.send("windowfocus", str(window))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("key", "--delay", "80", "ctrl+s")
         time.sleep(0.2)
         if scene_file.read_text() != initial_scene:
             raise RuntimeError("focus loss committed the prospective native proxy move")
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x + 48), str(center_y + 24)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x + 48), str(center_y + 24))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
+        driver.send("mouseup", "1")
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == initial_scene:
             time.sleep(0.05)
@@ -559,23 +575,23 @@ def main() -> int:
             raise RuntimeError("native proxy drag did not change the saved scene")
         undo_and_save(args.xdotool, environment, scene_file, initial_scene,
                       "native proxy drag did not undo before vertical movement",
-                          (display, window, viewport, baseline_move_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, baseline_move_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         point = selected_proxy_pixel(display, window, viewport)
         if point is None:
             raise RuntimeError("selected proxy surface missing before Shift free Move")
         center_x, center_y = point
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
-        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
+        driver.send("keydown", "Shift_L")
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y - 48)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y - 48))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("mouseup", "1")
+        driver.send("keyup", "Shift_L")
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         before = first_entity_position(initial_scene)
         after = before
@@ -586,26 +602,26 @@ def main() -> int:
                 abs(after[2] - before[2]) > 1e-6):
             raise RuntimeError(f"Shift-drag did not move only world Y: {before} -> {after}")
         before_rotation = scene_file.read_text()
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "e"], env=environment, check=True)
+        driver.send("key", "e")
         time.sleep(0.2)
         rotation_handle = axis_handle_pixels(display, window, viewport)[1]
         if rotation_handle is None:
             raise RuntimeError("Rotate tool did not show a visible Y ring")
         handle_x, handle_y = rotation_handle
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x), str(handle_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(handle_x), str(handle_y))
         time.sleep(0.2)
         before_rotation_pixels = scene_region_pixels(display, window, viewport)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x + 28), str(handle_y + 20)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(handle_x + 28), str(handle_y + 20))
         deadline = time.monotonic() + 3
         rotation_visible = False
         while time.monotonic() < deadline and not rotation_visible:
@@ -618,8 +634,8 @@ def main() -> int:
             raise RuntimeError("rotation ring did not visibly preview before mouse release")
         if scene_file.read_text() != before_rotation:
             raise RuntimeError("rotation preview committed before mouse release")
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        save_after_pointer_release(args.xdotool, environment)
+        driver.send("mouseup", "1")
+        save_after_pointer_release(args.xdotool, environment, sender=driver.send)
         deadline = time.monotonic() + 5
         rotated = before_rotation
         while time.monotonic() < deadline and rotated == before_rotation:
@@ -630,23 +646,23 @@ def main() -> int:
             raise RuntimeError(f"Y rotation ring did not commit an in-place turn: {quaternion}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
                       "Y rotation ring did not undo atomically",
-                          (display, window, viewport, before_rotation_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, before_rotation_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         snapped_ring = axis_handle_pixels(display, window, viewport)[1]
         if snapped_ring is None:
             raise RuntimeError("Y rotation ring disappeared before snapped drag")
         handle_x, handle_y = snapped_ring
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x), str(handle_y)], env=environment, check=True)
-        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(handle_x), str(handle_y))
+        driver.send("keydown", "Shift_L")
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x + 28), str(handle_y + 20)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(handle_x + 28), str(handle_y + 20))
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("mouseup", "1")
+        driver.send("keyup", "Shift_L")
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -659,33 +675,40 @@ def main() -> int:
                                f"{snapped_rotation}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
                       "snapped Y rotation did not undo atomically",
-                          (display, window, viewport, before_rotation_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, before_rotation_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "r"], env=environment, check=True)
+        driver.send("key", "r")
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline and uniform_handle_pixel(display, window, viewport) is None:
             time.sleep(0.05)
         baseline_scale_handles = axis_handle_pixels(display, window, viewport, 130)
         for axis, (dx, dy) in enumerate(((30, 0), (0, -30), (-25, 15))):
-            viewport = settled_viewport(editor.stderr, viewport)
+            viewport = driver.settled_viewport(viewport)
             scale_handle = wait_axis_handles(display, window, viewport,
                                              baseline_scale_handles, 130)[axis]
             if scale_handle is None:
                 raise RuntimeError(f"Scale tool lacks visible axis {axis} cube")
             handle_x, handle_y = scale_handle
-            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                            str(handle_x), str(handle_y)], env=environment, check=True)
+            driver.send("mousemove", "--window", str(window),
+                        str(handle_x), str(handle_y))
             time.sleep(0.2)
             before_scale_pixels = scene_region_pixels(display, window, viewport)
-            subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+            driver.send("mousedown", "1")
+            picked = driver.observation()
+            if picked.get('native_tool') != '2' or picked.get('native_scale_axis') != str(axis):
+                raise RuntimeError(f"axis {axis} scale pixel did not admit the actual handle: "
+                                   f"point={scale_handle}; input={picked}")
             time.sleep(0.1)
-            subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                            str(handle_x + dx), str(handle_y + dy)], env=environment, check=True)
+            driver.send("mousemove", "--window", str(window),
+                        str(handle_x + dx), str(handle_y + dy))
+            if driver.observation().get('native_drag_preview') != '1':
+                raise RuntimeError(f"axis {axis} scale gesture did not produce a native preview: "
+                                   f"input={driver.observation()}")
             deadline = time.monotonic() + 3
             scale_visible = False
             while time.monotonic() < deadline and not scale_visible:
@@ -698,8 +721,12 @@ def main() -> int:
                 raise RuntimeError(f"axis {axis} scale drag did not redraw before release")
             if scene_file.read_text() != before_rotation:
                 raise RuntimeError("Scale preview changed saved scene before release")
-            subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-            subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+            driver.send("mouseup", "1")
+            released = driver.observation()
+            if released.get('native_drag_preview') != '0' or released.get('native_scale_axis') != '-1':
+                raise RuntimeError(f"axis {axis} scale release did not finish native authoring: "
+                                   f"input={released}")
+            driver.send("key", "--delay", "80", "ctrl+s")
             deadline = time.monotonic() + 5
             scaled = before_rotation
             while time.monotonic() < deadline and scaled == before_rotation:
@@ -712,20 +739,20 @@ def main() -> int:
                 raise RuntimeError(f"axis {axis} scale cube did not constrain scale: {factors}")
             undo_and_save(args.xdotool, environment, scene_file, before_rotation,
                           f"axis {axis} scale cube did not undo atomically",
-                          (display, window, viewport, before_scale_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, before_scale_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         uniform_handle = uniform_handle_pixel(display, window, viewport)
         if uniform_handle is None:
             raise RuntimeError("Scale tool lacks a visible uniform cube")
         center_x, center_y = uniform_handle
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         time.sleep(0.2)
         before_uniform_pixels = scene_region_pixels(display, window, viewport)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y - 40)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y - 40))
         deadline = time.monotonic() + 3
         uniform_visible = False
         while time.monotonic() < deadline and not uniform_visible:
@@ -742,8 +769,8 @@ def main() -> int:
         # render the same geometry on release, including the proxy's fixed Y offset.
         time.sleep(0.15)
         final_uniform_preview = scene_region_pixels(display, window, viewport)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("mouseup", "1")
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -764,23 +791,23 @@ def main() -> int:
                                f"axis_handles={axis_handle_pixels(display, window, viewport, 130)}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
                       "uniform scale cube did not undo atomically",
-                          (display, window, viewport, before_uniform_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, before_uniform_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         snapped_handle = uniform_handle_pixel(display, window, viewport)
         if snapped_handle is None:
             raise RuntimeError("uniform cube disappeared before snapped drag")
         handle_x, handle_y = snapped_handle
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x), str(handle_y)], env=environment, check=True)
-        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "1"], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(handle_x), str(handle_y))
+        driver.send("keydown", "Shift_L")
+        driver.send("mousedown", "1")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(handle_x), str(handle_y - 40)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(handle_x), str(handle_y - 40))
         time.sleep(0.2)
-        subprocess.run([args.xdotool, "mouseup", "1"], env=environment, check=True)
-        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("mouseup", "1")
+        driver.send("keyup", "Shift_L")
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -789,15 +816,15 @@ def main() -> int:
             raise RuntimeError(f"Shift uniform scale did not snap to 0.25 increments: {snapped}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
                       "snapped uniform scale did not undo atomically",
-                          (display, window, viewport, before_uniform_pixels))
-        viewport = settled_viewport(editor.stderr, viewport)
+                          (display, window, viewport, before_uniform_pixels), shortcut=driver.chord)
+        viewport = driver.settled_viewport(viewport)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "key", "Delete"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("key", "Delete")
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and scene_file.read_text() == before_rotation:
             time.sleep(0.05)
@@ -808,37 +835,37 @@ def main() -> int:
             raise RuntimeError(f"Delete over native canvas did not remove selection: "
                                f"{runtime_header!r}")
         undo_and_save(args.xdotool, environment, scene_file, before_rotation,
-                      "native canvas Delete did not restore scene with Undo")
+                      "native canvas Delete did not restore scene with Undo", shortcut=driver.chord)
         center_x = viewport[0] + viewport[2] // 2
         center_y = viewport[1] + viewport[3] // 2
-        subprocess.run([args.xdotool, "key", "f"], env=environment, check=True)
+        driver.send("key", "f")
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "click", "4"], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "3"], env=environment, check=True)
+        driver.send("click", "4")
+        driver.send("mousedown", "3")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x + 40), str(center_y + 30)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x + 40), str(center_y + 30))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "mouseup", "3"], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y)], env=environment, check=True)
-        subprocess.run([args.xdotool, "keydown", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "mousedown", "2"], env=environment, check=True)
+        driver.send("mouseup", "3")
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y))
+        driver.send("keydown", "Shift_L")
+        driver.send("mousedown", "2")
         time.sleep(0.1)
-        subprocess.run([args.xdotool, "mousemove", "--window", str(window),
-                        str(center_x), str(center_y + 48)], env=environment, check=True)
+        driver.send("mousemove", "--window", str(window),
+                    str(center_x), str(center_y + 48))
         time.sleep(0.15)
-        subprocess.run([args.xdotool, "mouseup", "2"], env=environment, check=True)
-        subprocess.run([args.xdotool, "keyup", "Shift_L"], env=environment, check=True)
-        subprocess.run([args.xdotool, "key", "--delay", "80", "ctrl+s"], env=environment, check=True)
+        driver.send("mouseup", "2")
+        driver.send("keyup", "Shift_L")
+        driver.send("key", "--delay", "80", "ctrl+s")
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline and not scene_file.is_file():
             time.sleep(0.05)
         if not scene_file.is_file():
             raise RuntimeError("native Scene smoke could not save the starter scene")
-        subprocess.run([args.xdotool, "windowclose", str(window)], env=environment, check=True)
-        _, remaining = editor.communicate(timeout=15)
-        evidence = captured + remaining
+        driver.send("windowclose", str(window))
+        _, completed_error = driver.finish(15)
+        evidence = completed_error.encode('utf-8')
         match = re.search(rb"scene_draws=(\d+)", evidence)
         if (editor.returncode != 0 or not match or int(match[1]) == 0 or
                 b"ui_draws=" not in evidence or b"scene_selected=1" not in evidence):
@@ -859,22 +886,32 @@ def main() -> int:
              "--frames=8", f"--recent-projects={user_state / 'recent-projects'}"],
             env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
-        _, reopened_stderr = editor.communicate(timeout=30)
-        if editor.returncode != 0 or b"scene_draws=" not in reopened_stderr:
-            raise RuntimeError(f"native preview reopen failed: {reopened_stderr.decode(errors='replace')}")
+        driver = NativeSceneInput(editor, args.xdotool, environment, "0", user_state, 2,
+                                  minimum_wait=0, phase_wait=.08, ack_pointer=True)
+        _, reopened_stderr = driver.finish(30)
+        if editor.returncode != 0 or "scene_draws=" not in reopened_stderr:
+            raise RuntimeError(f"native preview reopen failed: {reopened_stderr}")
         editor = None
         reopened_values = [float(value) for value in camera_path.read_text().splitlines()[1].split()]
         if reopened_values != camera_values:
             raise RuntimeError("native preview orbit did not survive project reopen")
+        passed = True
         return 0
     finally:
-        if editor is not None and editor.poll() is None:
-            editor.kill()
-            editor.wait(timeout=5)
+        if editor is not None:
+            if driver is not None and driver.process is editor:
+                driver.abort()
+            else:
+                if editor.poll() is None:
+                    editor.kill()
+                editor.communicate(timeout=5)
         xvfb.terminate()
         xvfb.wait(timeout=5)
-        shutil.rmtree(root, ignore_errors=True)
-        shutil.rmtree(user_state, ignore_errors=True)
+        if passed:
+            shutil.rmtree(root, ignore_errors=True)
+            shutil.rmtree(user_state, ignore_errors=True)
+        else:
+            print(f"Native preview fixtures retained: {root} {user_state}", flush=True)
 
 
 if __name__ == "__main__":

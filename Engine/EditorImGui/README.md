@@ -34,6 +34,11 @@ support; overlap suppresses native Scene submission to preserve GUI stacking. Th
 GUI preview, not the separate instanced Sprite path. See the [application contract](../../Apps/Editor/README.md#bounded-2d-game-view)
 and [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameTwoDPreview-Linux-2026-10-16.md).
 
+The private View-option position observer publishes only visible, enabled items in a nonhidden
+popup. ImGui's first size-measurement frame is excluded because its coordinates are not interactive
+and can change before display. The portable preview test checks exclusion on every actual opening,
+then clicks the visible option; this does not establish physical-host input acceptance.
+
 ## External Chrome duration inspection
 
 The existing Profiler > Inspect Chrome trace controls now admit synchronous `B/E` duration
@@ -562,14 +567,21 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   next save; malformed or unsupported payloads are rejected and replaced only by a normal save.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
+  The host owns a copied project UUID/root identity for this UI. Drawing or directly applying a
+  choice against another scope cancels the old popup, activation, error and unconsumed result.
+  Held mouse/keyboard activation and queued activation events must drain through a neutral frame
+  before the new prompt accepts an action. Missing journals close stale prompts; a successful
+  same-scope result remains available exactly once through `TakeRecoveryChoice`.
 
 ## Threading and errors
 
 All methods are serialized and run on the Window owner thread. Project access/upgrade state is a
 snapshot borrowed from Editor Core; read-only state disables project-owned writes in the data layer,
 not merely in widgets. Content mutation errors remain on the session and are shown in the panel; the
-UI does not optimistically update around a failed filesystem transaction. Invalid display
-dimensions and delta times are clamped to safe values. The Window abstraction owns native IME
+UI does not optimistically update around a failed filesystem transaction. Display dimensions are
+clamped to at least one logical unit and frame deltas to at least 0.0001 seconds; nonfinite inputs
+use those same lower bounds, keeping NaN/infinity out of ImGui frame state. The Window abstraction
+owns native IME
 candidate-window positioning; unsupported hosts report that result explicitly. Target-host visual
 acceptance remains a release-runner responsibility. The Xvfb acceptance launches without a project,
 drives create and read-only open through keyboard navigation, and verifies the resulting descriptor
@@ -1694,11 +1706,89 @@ This is headless actual ImGui/control and process-lifetime coverage. It does not
 NexoraEditor OS-window process or accept physical display/DPI/IME, glyph quality or screen-reader
 behavior. Those native/target-host gates and complete scene-authoring acceptance remain open.
 
+### Explicit file-only semantic merge publication
 
-## Project asset workflow observations
+The comparison panel's Review file publication action is separate from candidate validation.
+An owning schema1 preview binds a nonzero monotonic confirmation identity, full file token,
+comparison operation, immutable review/draft identities, managed source path and bounded candidate
+size. The host prepares the real SceneMergePublisher capability and requires its resolved bytes to
+match the validated candidate before showing a separate Publish file / Cancel modal. Review from
+an overwrite comparison explicitly discards the original overwrite intent and returns to the
+standalone comparison workflow; it cannot emit an ordinary Save behind the new confirmation.
+
+The UI checks its last drawn writable/owned/reference policy as well as current host permission.
+Read-only/reference scenes retain candidate inspection but cannot request/accept publication.
+Scope/draft/file/review changes, Play/export/recovery/close blocks and permission revocation drop
+pending previews and decisions. Full confirmation IDs scope the actual buttons; a held mouse press
+cannot retarget a replacement confirmation. Inputs and decisions own ordinary values, expire on
+scope changes and retain no project/session/plugin borrow. All calls remain serialized on the
+UI/authoring owner; returned requests do not grant filesystem authority.
+
+The application independently rechecks the active owned writable document, stopped Play, current
+file/comparison/draft, recovery/export/close and exact source observations. Confirm invokes the
+synchronous SDK publisher, which repeats baseline/local/disk/root/session checks before its single
+native replacement. The UI tells users that both versions are backed up and that their open
+document/local edits remain unchanged. Publication or native uncertainty requires a fresh
+comparison; result messages retain the relative backup location. There is no automatic live reload,
+Undo replacement, whole-scene deletion or bypass of project/reference reconciliation.
+
+Preview validation finishes before state publication. UI allocation failure grants no write
+permission. The application catches SDK preparation/precommit exceptions separately from later
+result rendering so a display allocation cannot relabel a committed file as retained original data.
+Owning pending capabilities are dropped on scope change/teardown and retain no native callback;
+existing candidate/comparison jobs still drain before JobSystem/Core unload. These are new C++
+interfaces requiring client rebuilds, with no stable C/Gameplay ABI or scene format change. Unknown
+preview versions reject; ephemeral confirmation tokens are never persisted or migrated as authority.
+
+### Private native workflow observations
 
 The private test-only `ContentWorkflowPosition` getter returns the last drawn Undo Content or
 Reimport item center by value. Each Content draw clears both; a missing context item has no position.
 The native workflow uses these observations with actual X11 input, including disabled read-only
 Reimport admission. They expose no action request, model mutation, retained ImGui pointer or
 production SDK contract. See the [application workflow](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
+
+Prefab test observations likewise copy control positions/admission, processed GUI focus/key/
+pointer state and actual Undo/Redo attempt/success counters. They retain no document or ImGui
+pointer and do not invoke history. Test-only counters advance only when the real button invokes
+the document operation; a disabled control cannot acknowledge a successful gesture. The native
+fixture uses those observations to distinguish input admission from serialized-data checks and
+retains failed project bytes and both output streams. The opt-in application observer and its
+privacy/lifetime boundary are documented in the application workflow linked above.
+
+Scene shortcut observations copy processed modifier/key, focus/text-input and pointer/button
+state across the same private test boundary. Comparison and history admission values share
+the actual handler predicates; they are neither execution acknowledgements nor extra permission
+gates. Scene Undo counters advance around the actual existing core call, once per invocation,
+including Scene toolbar Undo, and accumulate for this host lifetime. The owning values retain
+no ImGui/document borrow, and observations never invoke history or comparison. Portable 1x/2x
+regressions cover processed phases, busy/text-input admission and one actual Undo application.
+
+The source-marker test observer reuses `SceneMarkerPosition` copied geometry and selection,
+without a new SDK action or retained model reference. Native signed-package coverage still
+requires actual marker pixels and one native selection; copied geometry alone is not rendering
+acceptance or permission to load native code.
+
+Private Content context-menu and rename-modal coordinates follow the visible/enabled-only
+contract, including exclusion of hidden sizing frames. The existing Project Asset workflow
+stream copies these owning values and rename text without issuing any command. Portable
+1x/2x tests exercise hidden and visible frames and retain a real rename/UUID assertion.
+
+Play shortcut observations separately copy F5/F6/F10 and the exact existing Play admission
+predicate. A host-lifetime sequence/last-command value advances only where the keyboard handler
+actually assigns a Play request; toolbar actions are outside this counter. Neither observing
+nor issuing that request executes Runtime Play. Portable 1x/2x coverage checks actual phases,
+one request, key-release stability, stopped/missing-owner/text-modal blocking and recovery.
+
+The opt-in native workflow test stream also copies the actual Open Scene key/request, modal Path
+visibility/focus/text, Game canvas hover/click/admission/focus and admitted acquisition count.
+Observers never open a dialog, focus a field, capture input or execute Runtime commands. Path text
+is copied by value and actionable Path geometry excludes hidden, clipped and disabled widgets.
+Build command getters borrow null-terminated session buffers only for serialized, immediate test
+observation; the application consumes them synchronously after DrawBuildProcess. No borrowed view
+survives a frame. Hex command/path output exists only when the explicit test geometry flag is set.
+Native source-inspection selection uses the actual Scene marker, preserving its original UI path.
+Scene marker test getters additionally require a currently submitted, active, visible and
+non-skipped Scene window, so hidden sizing or previous-frame markers are not actionable points.
+The source-rebase test keys are copied separately; they do not alter the existing scene/file/
+Play key formats, routing, or command ownership.

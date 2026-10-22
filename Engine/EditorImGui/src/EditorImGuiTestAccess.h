@@ -11,6 +11,45 @@
 
 namespace nexora::editor::imgui {
 
+// Processed GUI values only. comparison_allowed is the exact file/comparison shortcut gate;
+// it does not assert that routing selected the shortcut or that the owner started a job.
+struct SceneShortcutObservation final {
+  // Ctrl, Alt, Shift, N, S, D, A, Enter, Z.
+  std::array<bool, 9> keys{};
+  // Reserved Play shortcuts: F5, F6, F10. Requests prove UI admission, not Runtime execution.
+  std::array<bool, 3> play_keys{};
+  // Independent file-key wire: O. The existing nine-key order is unchanged.
+  std::array<bool, 1> file_keys{};
+  std::array<float, 2> pointer{};
+  // Dear ImGui mouse-button order: left, right, middle.
+  std::array<bool, 3> buttons{};
+  bool down{}, focused{}, want_text{}, comparison_allowed{}, history_allowed{};
+  bool play_allowed{};
+  PlayCommand play_command = PlayCommand::None;
+  std::uint64_t play_shortcut_requests{};
+  bool game_hovered{}, game_clicked{}, game_capture_allowed{}, game_focused{};
+  // Counts actual admitted canvas clicks, not Runtime input-provider acknowledgement.
+  std::uint64_t game_capture_requests{};
+  bool file_open_allowed{}, file_path_ready{}, file_path_active{};
+  // None=0, OpenPath=1, SavePath=2, Unsaved=3, Overwrite=4; this observes actual dialog state.
+  unsigned file_dialog{};
+  std::uint64_t file_open_requests{};
+  std::array<char, 1024> file_path_text{};
+  std::uint64_t frame{}, undo_attempts{}, undo_applied{};
+};
+
+struct PrefabInputObservation final {
+  std::array<bool, 29> enabled{};
+  std::array<float, 2> pointer{};
+  bool down{};
+  bool focused{};
+  // Control, Alt, P, A, Enter, Escape: actual processed GUI state, not X server state.
+  std::array<bool, 6> keys{};
+  std::uint32_t active{}, hovered{};
+  std::uint64_t frame{};
+  std::uint64_t undo_attempts{}, undo_applied{}, redo_attempts{}, redo_applied{};
+};
+
 // Test-only inspection surface for validating the optional module across a shared-library
 // boundary. It intentionally exposes no Dear ImGui types so tests cannot bind a second copy of
 // Dear ImGui's process-global context state.
@@ -80,12 +119,16 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneComparisonPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static SceneComparisonSnapshot SceneComparisonStatus(const EditorImGuiHost &);
+  [[nodiscard]] static SceneShortcutObservation
+  SceneShortcutInput(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::uint32_t SceneComparisonRenderedRows(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMergePosition(const EditorImGuiHost &, std::size_t control);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMergeChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option);
   [[nodiscard]] static SceneMergeCandidateSnapshot SceneMergeStatus(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneMergePublicationPosition(const EditorImGuiHost &, std::size_t);
   static void FailNextSceneMergeChoiceAllocation(EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   StaticExportPosition(const EditorImGuiHost &, std::size_t);
@@ -157,6 +200,9 @@ public:
   ContentOpenScenePosition(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentRenamePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  // Visible enabled context actions only: Rename, Delete.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  ContentContextPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   [[nodiscard]] static std::string_view ContentRenameText(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ContentAssetPosition(const EditorImGuiHost &host, runtime::AssetUuid asset) noexcept;
@@ -245,6 +291,8 @@ public:
   PrefabOverrideReport(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabRebasePosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  // Actual Escape/Y phases for the native confirmation and Ctrl+Y workflow.
+  [[nodiscard]] static std::array<bool, 2> PrefabRebaseKeys(const EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabPlacementRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
                                       bool take_source) noexcept;
@@ -364,11 +412,15 @@ public:
   // Actual build panel controls: executable, cwd, add/remove argument, run, cancel, first argv.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   BuildControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::string_view BuildCommandText(const EditorImGuiHost &host,
+                                                         std::size_t field) noexcept;
+  [[nodiscard]] static std::size_t BuildArgumentCount(const EditorImGuiHost &host) noexcept;
   static void SetBuildCommand(EditorImGuiHost &host, std::string_view executable,
                               std::string_view cwd, std::span<const std::string> arguments);
   [[nodiscard]] static BuildProcessSnapshot BuildStatus(const EditorImGuiHost &host);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static PrefabInputObservation PrefabInput(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabPropertyPosition(const EditorImGuiHost &, std::size_t row) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>

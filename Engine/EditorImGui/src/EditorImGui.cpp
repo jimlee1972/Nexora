@@ -137,6 +137,9 @@ struct EditorImGuiHost::State final {
   std::size_t native_texture_bytes = 0;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
+  foundation::Uuid recovery_project;
+  std::filesystem::path recovery_root;
+  bool recovery_activation_quarantined = false;
   CloseChoice close_choice = CloseChoice::None;
   PlayCommand play_command = PlayCommand::None;
   bool play_apply_open = false;
@@ -166,6 +169,17 @@ struct EditorImGuiHost::State final {
   SceneComparisonSnapshot scene_comparison;
   std::optional<SceneFileToken> scene_comparison_request;
   bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  bool scene_comparison_shortcut_allowed{}, scene_history_shortcut_allowed{};
+  std::uint64_t scene_undo_attempts{}, scene_undo_applied{};
+  bool play_shortcut_allowed{};
+  std::uint64_t play_shortcut_requests{};
+  PlayCommand last_play_shortcut_command = PlayCommand::None;
+  bool game_canvas_hovered{}, game_canvas_clicked{}, game_capture_allowed{};
+  std::uint64_t game_capture_requests{};
+  bool scene_file_open_shortcut_allowed{}, scene_file_path_ready{}, scene_file_path_active{};
+  std::uint64_t scene_file_open_shortcut_requests{};
+#endif
   bool scene_comparison_cancel_requested{};
   std::array<std::optional<std::array<float, 2>>, 4> scene_comparison_positions{};
   std::uint32_t scene_comparison_rendered_rows{};
@@ -176,6 +190,13 @@ struct EditorImGuiHost::State final {
   SceneMergeCandidateSnapshot scene_merge_status;
   bool scene_merge_busy{}, scene_merge_cancel{};
   bool scene_merge_interaction_allowed{};
+  bool scene_merge_publication_allowed{}, scene_merge_publication_writable{},
+      scene_merge_publication_popup_pending{};
+  std::optional<SceneMergeUiRequest> scene_merge_publication_request;
+  std::optional<SceneMergePublicationPreview> scene_merge_publication_preview;
+  std::optional<SceneMergePublicationDecision> scene_merge_publication_decision;
+  std::string scene_merge_publication_message;
+  std::array<std::optional<std::array<float, 2>>, 3> scene_merge_publication_positions{};
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
   bool scene_merge_fail_choice_allocation{};
 #endif
@@ -228,6 +249,9 @@ struct EditorImGuiHost::State final {
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
   std::array<std::optional<std::array<float, 2>>, 29> prefab_positions{};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  PrefabInputObservation prefab_input;
+#endif
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -554,6 +578,7 @@ struct EditorImGuiHost::State final {
   std::filesystem::path content_rename_root, content_rename_path;
   bool content_rename_focus{};
   std::array<std::optional<std::array<float, 2>>, 3> content_rename_positions;
+  std::array<std::optional<std::array<float, 2>>, 2> content_context_positions;
   std::optional<std::array<float, 2>> content_undo_position, content_reimport_position;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
@@ -604,6 +629,83 @@ struct EditorImGuiHost::State final {
 
 namespace {
 void Activate(ImGuiContext *context) { ImGui::SetCurrentContext(context); }
+
+template <typename StateT> bool ApplySceneUndo(StateT &state, SceneDocument *scene) {
+  if (!scene)
+    return false;
+  const bool applied = scene->Undo();
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  ++state.scene_undo_attempts;
+  state.scene_undo_applied += applied;
+#else
+  static_cast<void>(state);
+#endif
+  return applied;
+}
+
+template <typename StateT> void CancelRecoveryPopup(StateT &state) {
+  auto &context = *ImGui::GetCurrentContext();
+  auto *window = ImGui::FindWindowByName("Recover workspace###editor.recovery");
+  if (window) {
+    if (context.ActiveIdWindow &&
+        ImGui::IsWindowChildOf(context.ActiveIdWindow, window, true, false))
+      ImGui::ClearActiveID();
+    const auto recover = window->GetID("Recover");
+    const auto discard = window->GetID("Discard recovery data");
+    const auto old_action = [&](ImGuiID id) { return id == recover || id == discard; };
+    if (old_action(context.NavActivateId) || old_action(context.NavActivateDownId) ||
+        old_action(context.NavActivatePressedId)) {
+      context.NavActivateId = context.NavActivateDownId = context.NavActivatePressedId = 0;
+      context.NavActivateFlags = ImGuiActivateFlags_None;
+    }
+    if (old_action(context.NavNextActivateId)) {
+      context.NavNextActivateId = 0;
+      context.NavNextActivateFlags = ImGuiActivateFlags_None;
+    }
+    for (int index = 0; index < context.OpenPopupStack.Size; ++index) {
+      if (context.OpenPopupStack[index].Window == window) {
+        ImGui::ClosePopupToLevel(index, true);
+        break;
+      }
+    }
+  }
+  state.recovery_prompt_opened = false;
+  state.recovery_activation_quarantined = true;
+}
+
+bool RecoveryActivationPending() {
+  const auto &context = *ImGui::GetCurrentContext();
+  for (bool down : context.IO.MouseDown)
+    if (down)
+      return true;
+  const auto activation_key = [](ImGuiKey key) {
+    return key == ImGuiKey_Enter || key == ImGuiKey_Space || key == ImGuiKey_GamepadFaceDown;
+  };
+  for (const auto key : {ImGuiKey_Enter, ImGuiKey_Space, ImGuiKey_GamepadFaceDown})
+    if (ImGui::GetKeyData(key)->Down)
+      return true;
+  // Trickling can defer a press/release from the old scope to a later GUI frame. Drain those
+  // events normally, but require one neutral frame before recovery buttons accept new actions.
+  for (const auto &event : context.InputEventsQueue)
+    if (event.Type == ImGuiInputEventType_MouseButton ||
+        (event.Type == ImGuiInputEventType_Key && activation_key(event.Key.Key)))
+      return true;
+  return false;
+}
+
+template <typename StateT>
+void SynchronizeRecoveryScope(StateT &state, const std::filesystem::path &root,
+                              foundation::Uuid project) {
+  if (state.recovery_root == root && state.recovery_project == project)
+    return;
+  // Stage the owning path before cancelling UI. No workspace/model borrow survives this call.
+  auto owned_root = root;
+  CancelRecoveryPopup(state);
+  state.recovery_root = std::move(owned_root);
+  state.recovery_project = project;
+  state.recovery_choice = RecoveryChoice::None;
+  state.recovery_error.clear();
+}
 
 template <typename StateT> void CancelNativeSceneGesture(StateT &state) {
   state.native_scene_drag_origin.reset();
@@ -2621,12 +2723,29 @@ template <typename StateT> void CaptureComparisonControl(StateT &state, std::siz
   state.scene_comparison_positions[index] =
       std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
 }
+template <typename StateT> void ClearSceneMergePublication(StateT &state) {
+  state.scene_merge_publication_request.reset();
+  state.scene_merge_publication_preview.reset();
+  state.scene_merge_publication_decision.reset();
+  state.scene_merge_publication_popup_pending = false;
+}
+template <typename StateT> SceneMergeUiRequest CaptureSceneMergeDraft(const StateT &state) {
+  SceneMergeUiRequest request{state.scene_file_token,
+                              state.scene_comparison.operation,
+                              state.scene_merge_draft,
+                              {SceneMerge::kSchemaVersion, state.scene_merge_review, {}}};
+  for (std::size_t i = 0; i < state.scene_merge_choices.size(); ++i)
+    if (state.scene_merge_choices[i])
+      request.candidate.choices.push_back({i, *state.scene_merge_choices[i]});
+  return request;
+}
 template <typename StateT> void BeginSceneComparison(StateT &state, bool overwrite = false) {
   CancelSceneGestures(state);
   CancelInspectorDrafts(state);
   state.scene_comparison = {};
   state.scene_merge_request.reset();
   state.scene_merge_status = {};
+  ClearSceneMergePublication(state);
   state.scene_merge_review = 0;
   state.scene_merge_choices.clear();
   state.scene_comparison_request = state.scene_file_token;
@@ -2675,23 +2794,18 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
                         state.scene_merge_draft != std::numeric_limits<std::uint64_t>::max() &&
                         state.scene_merge_choices.size() == snapshot.result->rows.size();
   const auto unresolved = state.scene_merge_unresolved;
-  ImGui::TextWrapped("Captured revisions. Validate complete choices to inspect a candidate; "
-                     "source publication requires a separate workflow.");
+  ImGui::TextWrapped(
+      "Captured revisions. Validate complete choices before reviewing file publication."
+      "");
   const auto frame_scope =
       std::to_string(state.scene_merge_review) + '/' + std::to_string(state.scene_merge_draft);
   ImGui::PushID(frame_scope.c_str());
   ImGui::BeginDisabled(!editable || !state.scene_merge_interaction_allowed ||
                        state.scene_comparison_busy || state.scene_merge_busy || unresolved);
   if (ImGui::Button("Validate candidate")) {
-    SceneMergeUiRequest request{state.scene_file_token,
-                                snapshot.operation,
-                                state.scene_merge_draft,
-                                {SceneMerge::kSchemaVersion, state.scene_merge_review, {}}};
-    for (std::size_t i = 0; i < state.scene_merge_choices.size(); ++i)
-      if (state.scene_merge_choices[i])
-        request.candidate.choices.push_back({i, *state.scene_merge_choices[i]});
-    state.scene_merge_request = std::move(request);
+    state.scene_merge_request = CaptureSceneMergeDraft(state);
     state.scene_merge_status = {};
+    ClearSceneMergePublication(state);
   }
   const auto position = [] {
     const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
@@ -2706,6 +2820,19 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
     state.scene_merge_positions[1] = position();
   }
   ImGui::PopID();
+  ImGui::BeginDisabled(
+      !editable || !state.scene_merge_publication_allowed ||
+      !state.scene_merge_publication_writable || !state.scene_merge_interaction_allowed ||
+      state.scene_merge_busy || state.scene_comparison_busy || !state.scene_merge_status.result ||
+      !state.scene_merge_status.result->bytes || state.scene_merge_publication_preview);
+  if (ImGui::Button("Review file publication")) {
+    state.scene_merge_publication_request = CaptureSceneMergeDraft(state);
+    state.scene_merge_publication_message.clear();
+  }
+  state.scene_merge_publication_positions[0] = position();
+  ImGui::EndDisabled();
+  if (!state.scene_merge_publication_message.empty())
+    ImGui::TextWrapped("%s", state.scene_merge_publication_message.c_str());
   if (editable)
     ImGui::Text("Unresolved choices: %zu", unresolved);
   if (!state.scene_merge_status.message.empty())
@@ -2767,6 +2894,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
               ++state.scene_merge_draft;
             state.scene_merge_request.reset();
             state.scene_merge_status = {};
+            ClearSceneMergePublication(state);
           }
           state.scene_merge_choice_positions[static_cast<std::size_t>(i)][option] = position();
         }
@@ -2791,6 +2919,9 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
 }
 template <typename StateT>
 void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, bool cancel) {
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state.scene_file_path_ready = state.scene_file_path_active = false;
+#endif
   if (cancel || !scene || !state.scene_file_context ||
       state.scene_file_token.document_generation != scene->Generation() ||
       (state.scene_file_intent && state.scene_file_intent->token != state.scene_file_token)) {
@@ -2884,6 +3015,11 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
         ImGui::InputText("Scene path", state.scene_file_text.data(), state.scene_file_text.size(),
                          ImGuiInputTextFlags_EnterReturnsTrue);
     CaptureSceneFileControl(state, 4);
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+    state.scene_file_path_ready = !ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+                                  !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled);
+    state.scene_file_path_active = state.scene_file_path_ready && ImGui::IsItemActive();
+#endif
     ImGui::BeginDisabled(!opening && !writable);
     const bool apply = ImGui::Button(opening ? "Open" : "Save As");
     CaptureSceneFileControl(state, 5);
@@ -3809,6 +3945,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   const auto window = PanelWindowName("nexora.content");
   state.content_rename_positions = {};
+  state.content_context_positions = {};
   state.content_undo_position.reset();
   state.content_reimport_position.reset();
   state.content_search_position.reset();
@@ -4169,6 +4306,14 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         ImGui::EndDragDropSource();
       }
       if (ImGui::BeginPopupContextItem()) {
+        const auto capture_context = [&](std::size_t control) {
+          if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+              !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)) {
+            const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+            state.content_context_positions[control] =
+                std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+          }
+        };
         if (ImGui::MenuItem("Open scene", nullptr, false,
                             scene_openable && item->type == ".scene" &&
                                 item->path.extension() == ".scene")) {
@@ -4178,6 +4323,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         if (ImGui::MenuItem("Rename", "F2", false,
                             commands_allowed && content.Writable() && !state.content_rename_target))
           begin_rename(*item);
+        capture_context(0);
         if (ImGui::MenuItem("Reimport", nullptr, false,
                             commands_allowed && content.Writable() && imports != nullptr &&
                                 !content.ReimportBusy()))
@@ -4188,6 +4334,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         }
         if (ImGui::MenuItem("Delete", "Delete", false, commands_allowed && content.Writable()))
           delete_assets = {item->id};
+        capture_context(1);
         ImGui::EndPopup();
       }
       ImGui::PopID();
@@ -4212,9 +4359,12 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                        state.content_rename_root == content.Root() &&
                        state.content_rename_path == item->path;
     const auto capture = [&](std::size_t control) {
-      const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
-      state.content_rename_positions[control] =
-          std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+      if (valid && !ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+          !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)) {
+        const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+        state.content_rename_positions[control] =
+            std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+      }
     };
     if (std::exchange(state.content_rename_focus, false))
       ImGui::SetKeyboardFocusHere();
@@ -4522,7 +4672,8 @@ EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = defau
 
 void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   Activate(state_->context);
-  ImGui::GetIO().DisplaySize = {std::max(width, 1.0F), std::max(height, 1.0F)};
+  ImGui::GetIO().DisplaySize = {std::isfinite(width) ? std::max(width, 1.0F) : 1.0F,
+                                std::isfinite(height) ? std::max(height, 1.0F) : 1.0F};
   dpi_scale = std::isfinite(dpi_scale) ? std::max(dpi_scale, 0.25F) : 1.0F;
   if (dpi_scale != state_->dpi_scale)
     CancelSceneGestures(*state_);
@@ -4683,7 +4834,8 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
   state_->native_scene_drag_preview.reset();
-  ImGui::GetIO().DeltaTime = std::max(delta_seconds, 0.0001F);
+  ImGui::GetIO().DeltaTime =
+      std::isfinite(delta_seconds) ? std::max(delta_seconds, 0.0001F) : 0.0001F;
   ImGui::NewFrame();
 }
 
@@ -4996,6 +5148,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        const MeshAssetCatalog *meshes,
                                        const MaterialAssetCatalog *materials) {
   Activate(state_->context);
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
+#endif
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
   state_->game_camera_combo_position.reset();
@@ -5057,6 +5212,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   };
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
+  SynchronizeRecoveryScope(*state_, profile_root,
+                           workspace ? workspace->Project().id : foundation::Uuid{});
   const auto memory_generation = content ? content->Browser().ProjectGeneration() : 0;
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id ||
       memory_generation != state_->play_memory_scope_generation) {
@@ -5176,11 +5333,17 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (!merge_allowed) {
     state_->scene_merge_request.reset();
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     if (state_->scene_merge_interaction_allowed &&
         state_->scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
       ++state_->scene_merge_draft;
   }
   state_->scene_merge_interaction_allowed = merge_allowed;
+  state_->scene_merge_publication_positions.fill(std::nullopt);
+  state_->scene_merge_publication_writable = merge_allowed && workspace && workspace->Writable() &&
+                                             !reference_scene && !state_->scene_file_save_blocked;
+  if (!state_->scene_merge_publication_writable)
+    ClearSceneMergePublication(*state_);
   state_->build_console_interaction_blocked = file_external_block || tab_modal;
   state_->extension_input_blocked = file_external_block || tab_modal || !workspace;
   const bool writable = workspace && workspace->Writable() && !reference_scene;
@@ -5257,19 +5420,31 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                           scene->Dirty() ? " *" : "");
     ImGui::EndMainMenuBar();
   }
-  if (file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
+  const bool file_shortcuts_allowed =
+      file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
       !state_->prefab_override_confirm && !state_->prefab_rebase_confirm &&
       state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
-      !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
+      !state_->content_rename_target && !ImGui::GetIO().WantTextInput;
+  const bool comparison_shortcut_allowed = file_shortcuts_allowed && !game_running &&
+                                           state_->scene_file_path &&
+                                           !state_->scene_comparison_busy;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->scene_comparison_shortcut_allowed = comparison_shortcut_allowed;
+  state_->scene_file_open_shortcut_allowed = file_shortcuts_allowed && !game_running;
+#endif
+  if (file_shortcuts_allowed) {
     if (writable && !game_running &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::New);
     else if (!game_running &&
-             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal))
+             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal)) {
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+      ++state_->scene_file_open_shortcut_requests;
+#endif
       BeginSceneFile(*state_, *scene, SceneFileAction::Open);
-    else if (!game_running && state_->scene_file_path && !state_->scene_comparison_busy &&
-             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D,
-                             ImGuiInputFlags_RouteGlobal))
+    } else if (comparison_shortcut_allowed &&
+               ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D,
+                               ImGuiInputFlags_RouteGlobal))
       BeginSceneComparison(*state_);
     else if (writable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
                                          ImGuiInputFlags_RouteGlobal))
@@ -5326,17 +5501,29 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
   }
-  if (play != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput) {
+  const bool play_shortcuts_allowed =
+      play != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->play_shortcut_allowed = play_shortcuts_allowed;
+#endif
+  if (play_shortcuts_allowed) {
+    const auto request_shortcut = [&](PlayCommand command) {
+      state_->play_command = command;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+      ++state_->play_shortcut_requests;
+      state_->last_play_shortcut_command = command;
+#endif
+    };
     if (ImGui::Shortcut(ImGuiKey_F5, ImGuiInputFlags_RouteGlobal))
-      state_->play_command =
-          play->State() == runtime::PlayState::Stopped ? PlayCommand::Start : PlayCommand::Stop;
+      request_shortcut(play->State() == runtime::PlayState::Stopped ? PlayCommand::Start
+                                                                    : PlayCommand::Stop);
     else if (play->State() != runtime::PlayState::Stopped &&
              ImGui::Shortcut(ImGuiKey_F6, ImGuiInputFlags_RouteGlobal))
-      state_->play_command =
-          play->State() == runtime::PlayState::Playing ? PlayCommand::Pause : PlayCommand::Resume;
+      request_shortcut(play->State() == runtime::PlayState::Playing ? PlayCommand::Pause
+                                                                    : PlayCommand::Resume);
     else if (ImGui::Shortcut(ImGuiKey_F10, ImGuiInputFlags_RouteGlobal) &&
              play->State() == runtime::PlayState::Paused)
-      state_->play_command = PlayCommand::Step;
+      request_shortcut(PlayCommand::Step);
   }
   if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
@@ -5346,7 +5533,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         std::string(state_->hierarchy_create_name.data()), std::nullopt,
         state_->hierarchy_create_kind, scene->Generation()};
   }
-  if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput) {
+  const bool history_shortcuts_allowed =
+      scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->scene_history_shortcut_allowed = history_shortcuts_allowed;
+#endif
+  if (history_shortcuts_allowed) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
@@ -5357,7 +5549,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
-      state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
+      state_->scene_save_message =
+          ApplySceneUndo(*state_, scene) ? "Undo complete." : "Nothing to undo.";
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
@@ -5446,7 +5639,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
       state_->scene_save_message =
-          scene != nullptr && scene->Undo() ? "Undo complete." : "Nothing to undo.";
+          ApplySceneUndo(*state_, scene) ? "Undo complete." : "Nothing to undo.";
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
@@ -5860,7 +6053,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
               state_->game_input_focused = false;
             }
             const auto a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
-            state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
+            // A newly opened combo submits items during its hidden size-measurement frame.
+            // Those temporary coordinates are not interactive and may move before first render.
+            if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+                !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+              state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
           }
           ImGui::EndCombo();
         }
@@ -5956,12 +6153,24 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         DrawPlayOverview(snapshot);
       }
       game_canvas_visible = game_running;
-      if (play->State() == runtime::PlayState::Playing && state_->app_focused &&
-          !interaction_blocked && !state_->close_prompt_requested) {
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      const bool capture_allowed = play->State() == runtime::PlayState::Playing &&
+                                   state_->app_focused && !interaction_blocked &&
+                                   !state_->close_prompt_requested;
+      const bool canvas_clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+      const bool canvas_hovered = ImGui::IsItemHovered();
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+      state_->game_canvas_hovered = canvas_hovered;
+      state_->game_canvas_clicked = canvas_clicked;
+      state_->game_capture_allowed = capture_allowed;
+#endif
+      if (capture_allowed) {
+        if (canvas_clicked) {
           state_->game_input_focused = true;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+          ++state_->game_capture_requests;
+#endif
           ImGui::GetIO().ClearInputKeys();
-        } else if (!ImGui::IsItemHovered()) {
+        } else if (!canvas_hovered) {
           state_->game_input_focused = false;
         }
       }
@@ -6855,27 +7064,35 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
 
   if (recovery_available && !state_->recovery_prompt_opened) {
+    state_->recovery_activation_quarantined = true;
     ImGui::OpenPopup("Recover workspace###editor.recovery");
     state_->recovery_prompt_opened = true;
   }
-  if (!recovery_available)
-    state_->recovery_prompt_opened = false;
+  if (!recovery_available) {
+    CancelRecoveryPopup(*state_);
+    state_->recovery_error.clear();
+    // A successful same-scope operation removes the journal; its result remains consumable.
+  }
   if (ImGui::BeginPopupModal("Recover workspace###editor.recovery", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::TextUnformatted("A recovery journal is available.");
     if (!state_->recovery_error.empty())
       ImGui::TextWrapped("%s", state_->recovery_error.c_str());
-    if (ImGui::Button("Recover")) {
+    if (ImGui::Button("Recover") && workspace && recovery_available &&
+        !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Recover))
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Discard recovery data")) {
+    if (ImGui::Button("Discard recovery data") && workspace && recovery_available &&
+        !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Discard))
         ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
   }
+  if (state_->recovery_activation_quarantined && !RecoveryActivationPending())
+    state_->recovery_activation_quarantined = false;
   if (state_->close_prompt_requested) {
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
@@ -6925,6 +7142,45 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (ImGui::Begin("Scene comparison###editor.scene-comparison", &state_->scene_comparison_open))
       DrawSceneComparisonPanel(*state_);
     ImGui::End();
+  }
+  if (state_->scene_merge_publication_popup_pending && state_->scene_merge_publication_preview) {
+    ImGui::OpenPopup("Publish merged scene file?###editor.scene-merge-publish");
+    state_->scene_merge_publication_popup_pending = false;
+  }
+  const auto publish_size = ImGui::GetMainViewport()->WorkSize;
+  ImGui::SetNextWindowSize({std::max(1.0F, std::min(600.0F, publish_size.x - 24)), 0},
+                           ImGuiCond_Always);
+  if (ImGui::BeginPopupModal("Publish merged scene file?###editor.scene-merge-publish", nullptr,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (!state_->scene_merge_publication_preview || !state_->scene_merge_publication_allowed ||
+        !state_->scene_merge_publication_writable || !SceneMergeInteractionAllowed()) {
+      ImGui::CloseCurrentPopup();
+    } else {
+      const auto preview = *state_->scene_merge_publication_preview;
+      const auto identity = std::to_string(preview.identity) + '/' +
+                            std::to_string(preview.review) + '/' + std::to_string(preview.draft);
+      ImGui::PushID(identity.c_str());
+      ImGui::TextWrapped("Publish the merged scene file: %s", PathLabel(preview.source).c_str());
+      ImGui::TextWrapped("A backup of both versions is kept. Your open document and local edits "
+                         "stay unchanged. Reopen the scene to use the merged version.");
+      const auto position = [] {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        return std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      };
+      if (ImGui::Button("Publish file")) {
+        state_->scene_merge_publication_decision = SceneMergePublicationDecision{preview, true};
+        ImGui::CloseCurrentPopup();
+      }
+      state_->scene_merge_publication_positions[1] = position();
+      ImGui::SameLine();
+      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+        state_->scene_merge_publication_decision = SceneMergePublicationDecision{preview, false};
+        ImGui::CloseCurrentPopup();
+      }
+      state_->scene_merge_publication_positions[2] = position();
+      ImGui::PopID();
+    }
+    ImGui::EndPopup();
   }
 }
 
@@ -7012,6 +7268,7 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
     state_->scene_comparison = {};
     state_->scene_merge_request.reset();
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     state_->scene_merge_choices.clear();
     state_->scene_merge_review = 0;
     state_->scene_comparison_request.reset();
@@ -7355,6 +7612,7 @@ void EditorImGuiHost::SetSceneComparisonStatus(SceneComparisonSnapshot snapshot,
                                                                   : 0);
     state_->scene_merge_request.reset();
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     state_->scene_merge_review = identity;
     if (state_->scene_merge_draft != std::numeric_limits<std::uint64_t>::max())
       ++state_->scene_merge_draft;
@@ -7386,6 +7644,7 @@ void EditorImGuiHost::SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot s
   if (!state_->scene_merge_review || draft != state_->scene_merge_draft ||
       snapshot.review != state_->scene_merge_review) {
     state_->scene_merge_status = {};
+    ClearSceneMergePublication(*state_);
     return;
   }
   const auto safe = [](std::string_view value) {
@@ -7444,10 +7703,98 @@ EditorImGuiTestAccess::SceneMergeChoicePosition(const EditorImGuiHost &host, std
 SceneMergeCandidateSnapshot EditorImGuiTestAccess::SceneMergeStatus(const EditorImGuiHost &host) {
   return host.state_->scene_merge_status;
 }
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SceneMergePublicationPosition(const EditorImGuiHost &host,
+                                                     std::size_t control) {
+  return control < host.state_->scene_merge_publication_positions.size()
+             ? host.state_->scene_merge_publication_positions[control]
+             : std::nullopt;
+}
 void EditorImGuiTestAccess::FailNextSceneMergeChoiceAllocation(EditorImGuiHost &host) {
   host.state_->scene_merge_fail_choice_allocation = true;
 }
 #endif
+void EditorImGuiHost::SetSceneMergePublicationAllowed(bool allowed) noexcept {
+  state_->scene_merge_publication_allowed = allowed;
+  if (!allowed)
+    ClearSceneMergePublication(*state_);
+}
+std::optional<SceneMergeUiRequest> EditorImGuiHost::TakeSceneMergePublicationRequest() {
+  auto request = std::exchange(state_->scene_merge_publication_request, std::nullopt);
+  if (!request || !state_->scene_merge_publication_allowed ||
+      !state_->scene_merge_publication_writable || !SceneMergeInteractionAllowed() ||
+      request->token != state_->scene_file_token || request->draft != state_->scene_merge_draft ||
+      request->comparison_operation != state_->scene_comparison.operation ||
+      request->candidate.review != state_->scene_merge_review ||
+      !state_->scene_merge_status.result || !state_->scene_merge_status.result->bytes)
+    return {};
+  return request;
+}
+bool EditorImGuiHost::SetSceneMergePublicationPreview(
+    std::optional<SceneMergePublicationPreview> preview) {
+  if (!preview) {
+    ClearSceneMergePublication(*state_);
+    return true;
+  }
+  const auto encoded = preview->source.generic_u8string();
+  const std::string path(encoded.begin(), encoded.end());
+  if (preview->schema != 1 || !preview->identity || !state_->scene_merge_publication_allowed ||
+      !state_->scene_merge_publication_writable || !SceneMergeInteractionAllowed() ||
+      preview->token != state_->scene_file_token || preview->review != state_->scene_merge_review ||
+      preview->draft != state_->scene_merge_draft ||
+      preview->comparison_operation != state_->scene_comparison.operation ||
+      preview->source != state_->scene_file_path || !preview->candidate_bytes ||
+      preview->candidate_bytes > SceneComparison::kMaximumSourceBytes ||
+      !state_->scene_merge_status.result || !state_->scene_merge_status.result->bytes ||
+      state_->scene_merge_status.result->bytes->size() != preview->candidate_bytes ||
+      path.empty() || path.size() >= 1024 || !foundation::IsValidUtf8(path) ||
+      std::ranges::any_of(path, [](unsigned char c) { return c < 32 || c == 127; }))
+    return false;
+  state_->scene_merge_publication_preview = std::move(preview);
+  state_->scene_merge_publication_decision.reset();
+  state_->scene_merge_publication_popup_pending = true;
+  if (state_->scene_comparison_in_overwrite) {
+    // Explicit review enters a separate publication flow; discard the original overwrite intent.
+    state_->scene_file_dialog = State::FileDialog::None;
+    state_->scene_file_intent.reset();
+    state_->scene_file_output.reset();
+    state_->scene_file_popup_pending = false;
+    state_->scene_file_close_popup = false;
+    state_->scene_comparison_in_overwrite = false;
+    state_->scene_comparison_open = true;
+  }
+  return true;
+}
+bool EditorImGuiHost::SceneMergePublicationPreviewCurrent(
+    const SceneMergePublicationPreview &preview) const noexcept {
+  return state_->scene_merge_publication_allowed && state_->scene_merge_publication_writable &&
+         SceneMergeInteractionAllowed() && state_->scene_merge_publication_preview &&
+         preview.schema == 1 &&
+         preview.identity == state_->scene_merge_publication_preview->identity &&
+         preview.token == state_->scene_file_token &&
+         preview.review == state_->scene_merge_review &&
+         preview.comparison_operation == state_->scene_comparison.operation &&
+         preview.draft == state_->scene_merge_draft;
+}
+std::optional<SceneMergePublicationDecision> EditorImGuiHost::TakeSceneMergePublicationDecision() {
+  auto decision = std::exchange(state_->scene_merge_publication_decision, std::nullopt);
+  if (!decision || !state_->scene_merge_publication_preview ||
+      decision->scope != *state_->scene_merge_publication_preview ||
+      !state_->scene_merge_publication_allowed || !state_->scene_merge_publication_writable ||
+      !SceneMergeInteractionAllowed() || decision->scope.token != state_->scene_file_token ||
+      decision->scope.review != state_->scene_merge_review ||
+      decision->scope.draft != state_->scene_merge_draft ||
+      decision->scope.comparison_operation != state_->scene_comparison.operation)
+    return {};
+  ClearSceneMergePublication(*state_);
+  return decision;
+}
+void EditorImGuiHost::SetSceneMergePublicationStatus(std::string message) {
+  if (message.size() > 1024 || !foundation::IsValidUtf8(message) ||
+      std::ranges::any_of(message, [](unsigned char c) { return c < 32 || c == 127; }))
+    message = "Scene publication status is unavailable.";
+  state_->scene_merge_publication_message = std::move(message);
+}
 void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
                                          std::optional<std::filesystem::path> suggested_path) {
   Activate(state_->context);
@@ -8356,7 +8703,11 @@ RecoveryChoice EditorImGuiHost::TakeRecoveryChoice() noexcept {
 }
 
 bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice) {
-  if (choice == RecoveryChoice::None || state_->recovery_choice != RecoveryChoice::None)
+  if (choice == RecoveryChoice::None)
+    return false;
+  Activate(state_->context);
+  SynchronizeRecoveryScope(*state_, workspace.Root(), workspace.Project().id);
+  if (state_->recovery_choice != RecoveryChoice::None)
     return false;
   std::string error;
   const bool succeeded = choice == RecoveryChoice::Recover ? workspace.RecoverWorkspace(&error)
@@ -8381,6 +8732,47 @@ EditorImGuiTestAccess::DiagnosticPosition(const EditorImGuiHost &host, std::size
 }
 std::array<std::size_t, 2> EditorImGuiTestAccess::DiagnosticRows(const EditorImGuiHost &host) {
   return {host.state_->diagnostic_visible_events, host.state_->diagnostic_excluded_events};
+}
+
+SceneShortcutObservation
+EditorImGuiTestAccess::SceneShortcutInput(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto &io = ImGui::GetIO();
+  SceneShortcutObservation result;
+  // Read processed IO directly: key ownership must not hide a delivered phase from the observer.
+  result.keys = {ImGui::GetKeyData(ImGuiMod_Ctrl)->Down,  ImGui::GetKeyData(ImGuiMod_Alt)->Down,
+                 ImGui::GetKeyData(ImGuiMod_Shift)->Down, ImGui::GetKeyData(ImGuiKey_N)->Down,
+                 ImGui::GetKeyData(ImGuiKey_S)->Down,     ImGui::GetKeyData(ImGuiKey_D)->Down,
+                 ImGui::GetKeyData(ImGuiKey_A)->Down,     ImGui::GetKeyData(ImGuiKey_Enter)->Down,
+                 ImGui::GetKeyData(ImGuiKey_Z)->Down};
+  result.pointer = {io.MousePos.x, io.MousePos.y};
+  result.play_keys = {ImGui::GetKeyData(ImGuiKey_F5)->Down, ImGui::GetKeyData(ImGuiKey_F6)->Down,
+                      ImGui::GetKeyData(ImGuiKey_F10)->Down};
+  result.play_allowed = host.state_->play_shortcut_allowed;
+  result.play_shortcut_requests = host.state_->play_shortcut_requests;
+  result.play_command = host.state_->last_play_shortcut_command;
+  result.game_hovered = host.state_->game_canvas_hovered;
+  result.game_clicked = host.state_->game_canvas_clicked;
+  result.game_capture_allowed = host.state_->game_capture_allowed;
+  result.game_focused = host.state_->game_input_focused;
+  result.game_capture_requests = host.state_->game_capture_requests;
+  result.file_keys = {ImGui::GetKeyData(ImGuiKey_O)->Down};
+  result.file_open_allowed = host.state_->scene_file_open_shortcut_allowed;
+  result.file_open_requests = host.state_->scene_file_open_shortcut_requests;
+  result.file_dialog = static_cast<unsigned>(host.state_->scene_file_dialog);
+  result.file_path_ready = host.state_->scene_file_path_ready;
+  result.file_path_active = host.state_->scene_file_path_active;
+  result.file_path_text = host.state_->scene_file_text;
+  result.down = io.MouseDown[0];
+  result.buttons = {io.MouseDown[0], io.MouseDown[1], io.MouseDown[2]};
+  result.focused = host.state_->app_focused;
+  result.want_text = io.WantTextInput;
+  result.comparison_allowed = host.state_->scene_comparison_shortcut_allowed;
+  result.history_allowed = host.state_->scene_history_shortcut_allowed;
+  result.undo_attempts = host.state_->scene_undo_attempts;
+  result.undo_applied = host.state_->scene_undo_applied;
+  result.frame = static_cast<std::uint64_t>(ImGui::GetFrameCount());
+  return result;
 }
 
 EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
@@ -8633,6 +9025,13 @@ EditorImGuiTestAccess::ContentRenamePosition(const EditorImGuiHost &host,
 }
 std::string_view EditorImGuiTestAccess::ContentRenameText(const EditorImGuiHost &host) noexcept {
   return host.state_->content_rename.data();
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentContextPosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->content_context_positions.size()
+             ? host.state_->content_context_positions[control]
+             : std::nullopt;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAssetPosition(const EditorImGuiHost &host,
@@ -8921,6 +9320,10 @@ const PrefabPlacementOverrideReport *
 EditorImGuiTestAccess::PrefabOverrideReport(const EditorImGuiHost &host) noexcept {
   return host.state_->prefab_override_report ? &*host.state_->prefab_override_report : nullptr;
 }
+std::array<bool, 2> EditorImGuiTestAccess::PrefabRebaseKeys(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  return {ImGui::GetKeyData(ImGuiKey_Escape)->Down, ImGui::GetKeyData(ImGuiKey_Y)->Down};
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::PrefabRebasePosition(const EditorImGuiHost &host,
                                             std::size_t control) noexcept {
@@ -8964,6 +9367,12 @@ EditorImGuiTestAccess::NativeSceneToolPosition(const EditorImGuiHost &host,
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneMarkerPosition(const EditorImGuiHost &host,
                                            SceneDocument::NodeKey entity) noexcept {
+  Activate(host.state_->context);
+  const auto *window = ImGui::FindWindowByName("Scene###nexora.scene");
+  // Hidden sizing passes still submit overview markers, but cannot receive clicks.
+  if (!window || !window->Active || window->Hidden || window->SkipItems ||
+      window->LastFrameActive != ImGui::GetFrameCount())
+    return std::nullopt;
   const auto found = std::ranges::find(host.state_->scene_markers, entity,
                                        &EditorImGuiHost::State::SceneMarker::entity);
   if (found == host.state_->scene_markers.end())

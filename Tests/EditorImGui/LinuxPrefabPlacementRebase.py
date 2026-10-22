@@ -4,16 +4,14 @@ import argparse
 import difflib
 import os
 from pathlib import Path
-import queue
 import re
 import shutil
 import subprocess
 import tempfile
-import threading
 import time
 
-from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
-from LinuxNativeScenePreview import scene_pixels, scene_region_pixels
+from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
+from NativeSceneInput import NativeSceneInput
 
 
 def require(value, message):
@@ -39,38 +37,28 @@ def main():
             'Fixture did not persist actual property overrides and instance bindings')
     sources = {p: data for p, data in files(root).items() if 'prefabs' in p.parts}
     xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
-    process = None
+    process = driver = None
+    passed = False
+    case_deadline = time.monotonic() + 90
     try:
         require(display is not None, 'Xvfb failed')
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / 'state'),
-                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'))
+                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'),
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1')
 
-        def send(*arguments):
-            subprocess.run([args.xdotool, *arguments], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+        def deadline(seconds=10):
+            until = min(case_deadline, time.monotonic() + seconds)
+            require(until > time.monotonic(), 'Native rebase exceeded its whole-case deadline')
+            return until
 
-        def click(window, x, y):
-            send('mousemove', '--window', window, str(x), str(y))
-            send('mousedown', '1')
-            send('mouseup', '1')
-
-        def key(chord):
-            parts = chord.split('+')
-            for part in parts:
-                send('keydown', part)
-            for part in reversed(parts):
-                send('keyup', part)
-
-        def wait(predicate, message, expected=None):
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
+        def wait(predicate, message, expected=None, until=None):
+            until = deadline() if until is None else until
+            while time.monotonic() < until:
                 require(process.poll() is None, 'Native host exited before ' + message)
-                if predicate():
+                if predicate() and time.monotonic() < until:
                     return
-                time.sleep(.05)
-            print(''.join(diagnostics), flush=True)
+                driver.drain(min(.05, max(0, until - time.monotonic())))
             if expected is not None:
                 print(''.join(difflib.unified_diff(expected.decode().splitlines(keepends=True),
                       scene.read_text().splitlines(keepends=True), fromfile='expected fixture',
@@ -79,116 +67,98 @@ def main():
             if capture and shutil.which('import'):
                 subprocess.run(['import', '-display', display, '-window', window, capture],
                                env=env, check=False)
-            raise RuntimeError(message)
+            raise RuntimeError(message + '; actual GUI=' + repr(driver.observation()))
 
-        def inspector_button(window, index):
-            # Observe presented controls at the initial dock size, including report wrapping.
-            # Sampling left padding avoids glyph holes; every gesture occurs exactly once.
-            position = []
+        def click_named(name, until=None):
+            until = deadline() if until is None else until
+            value = driver.wait(lambda v: v.get('focused') == '1' and
+                                          v.get('buttons') == '000' and name in v,
+                                'Actual native control unavailable: ' + name, until)
+            # Refresh coordinates only; emit one down/up after the copied control settles.
+            for _ in range(3):
+                point = tuple(map(round, map(float, value[name].split(','))))
+                driver.pointer_move(*point, until)
+                value = driver.observation()
+                if name in value and tuple(map(round, map(float, value[name].split(',')))) == point:
+                    break
+                value = driver.wait(lambda v: name in v,
+                                    'Native control disappeared while positioning: ' + name, until)
+            else:
+                raise RuntimeError('Native control did not settle before one click: ' + name)
+            driver.pointer_button(1, True, until)
+            driver.pointer_button(1, False, until)
 
-            def presented():
-                groups, run = [], []
-                for top in range(80, 380, 100):
-                    pixels = scene_region_pixels(display, int(window), (1010, top, 1, 100))
-                    for offset, (red, green, blue) in enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3])):
-                        if blue >= 105 and blue >= red + 35 and blue >= green + 10:
-                            run.append(top + offset * 3)
-                        elif run:
-                            if len(run) >= 3:
-                                groups.append(run[len(run) // 2])
-                            run = []
-                if run and len(run) >= 3:
-                    groups.append(run[len(run) // 2])
-                if len(groups) > index:
-                    position[:] = [groups[index]]
-                    return True
-                return False
-            wait(presented, 'Requested Inspector control was not presented')
-            print(f'Inspector control{index} presented at y{position[0]}', flush=True)
-            return position[0]
+        def key(chord, until=None):
+            until = deadline() if until is None else until
+            if chord not in ('Escape', 'ctrl+y'):
+                driver.chord(chord, deadline=until)
+                return
+            auxiliary = 0 if chord == 'Escape' else 1
+            driver.wait(lambda v: v.get('focused') == '1' and v.get('keys') == '000000000'
+                                  and v.get('rebase_keys') == '00',
+                        'Rebase key was not focused/released', until)
+            if chord == 'ctrl+y':
+                driver.raw('keydown', 'Control_L', deadline=until, minimum_wait=.2)
+                driver.wait(lambda v: v['keys'][0] == '1', 'GUI did not observe Ctrl down', until)
+            physical = 'Escape' if chord == 'Escape' else 'y'
+            driver.raw('keydown', physical, deadline=until, minimum_wait=.2)
+            driver.wait(lambda v: v['rebase_keys'][auxiliary] == '1',
+                        'GUI did not observe rebase key down', until)
+            driver.raw('keyup', physical, deadline=until, minimum_wait=.2)
+            driver.wait(lambda v: v['rebase_keys'][auxiliary] == '0',
+                        'GUI did not observe rebase key up', until)
+            if chord == 'ctrl+y':
+                driver.raw('keyup', 'Control_L', deadline=until, minimum_wait=.2)
+                driver.wait(lambda v: v['keys'][0] == '0', 'GUI did not observe Ctrl up', until)
 
-        def modal_confirm(window):
-            # The fixed-size confirmation is centered in the initial1280x720 viewport.
-            # Observe Confirm's left padding below the title bar; title blue must not count
-            # as button geometry, and underlying Scene gizmos must not count as consent.
-            points = []
+        def events(start):
+            return re.findall(rb'^prefab source rebase ([^\n]*)\n', driver.stderr[start:], re.M)
 
-            def presented():
-                pixels = scene_region_pixels(display, int(window), (412, 310, 1, 120))
-                ys = [310 + index * 3 for index, (red, green, blue) in
-                      enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3]))
-                      if blue >= 105 and blue >= red + 35 and blue >= green + 10]
-                if len(ys) >= 3:
-                    points[:] = [412, (min(ys) + max(ys)) // 2]
-                    return True
-                return False
-            wait(presented, 'Explicit rebase confirmation was not presented')
-            return points
+        def event(expected, start, until):
+            wait(lambda: events(start), 'Native source rebase event unavailable', until=until)
+            actual = events(start)
+            require(actual == [expected.encode()], 'Source rebase lost exact event identity: ' + repr(actual))
+            return len(driver.stderr)
 
-        def conflict_row(window, review_y):
-            points = []
-            def presented():
-                groups, run = [], []
-                for top in range(240, 640, 100):
-                    pixels = scene_region_pixels(display, int(window), (1018, top, 1, 100))
-                    for offset, (red, green, blue) in enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3])):
-                        y = top + offset * 3
-                        if y > review_y + 80 and blue >= 45 and blue >= red + 20 and blue >= green + 10:
-                            run.append(y)
-                        elif run:
-                            if len(run) >= 2:
-                                groups.append(run[len(run) // 2])
-                            run = []
-                if run and len(run) >= 2:
-                    groups.append(run[len(run) // 2])
-                if groups:
-                    points[:] = [groups[0]]
-                    return True
-                return False
-            wait(presented, 'Actual Keep Local conflict control was not presented')
-            return points[0]
-
-        apply_offset = None
-        for read_only in (False, True):
+        for launch_number, read_only in enumerate((False, True), 1):
             before_launch = files(root)
-            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
-            diagnostics, events = [], queue.Queue()
-            def drain():
-                for line in process.stderr:
-                    diagnostics.append(line)
-                    if line.startswith('prefab source rebase '):
-                        events.put(line.strip())
-            reader = threading.Thread(target=drain, daemon=True)
-            reader.start()
+            process = launch(args.editor, root, scratch / 'recent', env,
+                             read_only=read_only, binary=True)
+            driver = NativeSceneInput(process, args.xdotool, env, '', scratch, launch_number,
+                                      minimum_wait=.2, phase_wait=.2)
             window = wait_for_window(args.xdotool, env)
-            send('windowfocus', '--sync', window)
-            selection_y = 199 if read_only else 182
-            wait(lambda: scene_pixels(display, int(window), (518, selection_y, 4, 4))[0],
-                 'Scene selection control was not ready')
-            click(window, 523, selection_y)
+            driver.window = str(window)
+            until = deadline()
+            driver.raw('windowfocus', '--sync', window, deadline=until)
+            click_named('source_node', until)
+            driver.wait(lambda v: v.get('source_selected') == '1' and
+                                  v.get('source_selection_count') == '1' and 'rebase_review' in v,
+                        'Single bound-node selection did not expose actual source rebase', until)
             before_review = files(root)
-            review_y = inspector_button(window, 2)
-            click(window, 1065, review_y)
-            event = events.get(timeout=10)
-            require(event == 'prefab source rebase reviewed retained=1 published=2 conflicts=1',
-                    'Review lost exact source conflict: ' + event)
+            until = deadline()
+            start = len(driver.stderr)
+            click_named('rebase_review', until)
+            cursor = event('reviewed retained=1 published=2 conflicts=1', start, until)
             require(files(root) == before_review, 'Source review wrote project files')
-            click(window, 1018, conflict_row(window, review_y))
+            click_named('rebase_keep_local')
             if read_only:
-                click(window, 1080, review_y + apply_offset)
-                require(events.empty() and files(root) == before_review,
+                click_named('rebase_apply')
+                require(not events(cursor) and files(root) == before_review,
                         'Readonly conflict choice acquired write authority')
             else:
-                apply_y = inspector_button(window, 3)
-                apply_offset = apply_y - review_y
-                click(window, 1080, apply_y)
-                key('Escape')
-                require(events.empty() and files(root) == before_review, 'Canceled rebase changed files')
-                click(window, 1080, inspector_button(window, 3))
-                click(window, *modal_confirm(window))
-                event = events.get(timeout=10)
-                require(event == 'prefab source rebase applied retained=1 published=2 choices=1' and
-                        files(root) == before_review, 'Confirmed rebase wrote files before Scene Save')
+                until = deadline()
+                click_named('rebase_apply', until)
+                driver.wait(lambda v: 'rebase_confirm' in v,
+                            'Explicit rebase confirmation was not presented', until)
+                key('Escape', until)
+                driver.wait(lambda v: 'rebase_confirm' not in v,
+                            'Canceled rebase retained its modal', until)
+                require(not events(cursor) and files(root) == before_review, 'Canceled rebase changed files')
+                until = deadline()
+                click_named('rebase_apply', until)
+                click_named('rebase_confirm', until)
+                cursor = event('applied retained=1 published=2 choices=1', cursor, until)
+                require(files(root) == before_review, 'Confirmed rebase wrote files before Scene Save')
                 key('ctrl+s')
                 wait(lambda: scene.read_bytes() == retained, 'Source rebase lost exact group/revision bytes', retained)
                 key('ctrl+z'); key('ctrl+s')
@@ -198,11 +168,13 @@ def main():
                 key('ctrl+z'); key('ctrl+s')
                 wait(lambda: scene.read_bytes() == original, 'Final Undo lost readonly original fixture', original)
             request_window_close(window, env)
-            process.wait(timeout=15)
-            reader.join(timeout=5)
-            require(not reader.is_alive(), 'Diagnostic drain did not finish')
-            collect_output(process, 5)
-            captured = ''.join(diagnostics)
+            until = deadline(15)
+            while process.poll() is None and time.monotonic() < until:
+                driver.drain(min(.05, max(0, until - time.monotonic())))
+            require(process.poll() is not None, 'Native source rebase did not close within 15 seconds')
+            remaining = case_deadline - time.monotonic()
+            require(remaining > 0, 'Native rebase exceeded its whole-case deadline')
+            _, captured = driver.finish(min(5, remaining))
             print(captured, end='', flush=True)
             require(process.returncode == 0 and 'scene_selected=1' in captured and
                     not re.search(r'Validation Error\b|VUID-|SYNC-HAZARD-', captured),
@@ -212,15 +184,23 @@ def main():
                     'Rebase changed source archives or final scene')
             if read_only:
                 require(files(root) == before_launch, 'Readonly reopen wrote project files')
-            process = None
+            process = driver = None
         print('Native source conflict review, consent, atomic revision history, Save and readonly passed')
+        passed = True
     finally:
-        if process is not None and process.poll() is None:
-            process.kill(); process.wait(timeout=10)
+        if driver is not None:
+            driver.abort()
+        elif process is not None:
+            if process.poll() is None:
+                process.kill()
+            process.communicate(timeout=10)
         if xvfb.poll() is None:
             xvfb.terminate()
         xvfb.wait(timeout=10)
-        shutil.rmtree(scratch, ignore_errors=True)
+        if passed:
+            shutil.rmtree(scratch, ignore_errors=True)
+        else:
+            print(f'Native source rebase fixtures retained: {scratch}', flush=True)
 
 
 if __name__ == '__main__':

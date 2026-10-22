@@ -2,6 +2,7 @@
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <array>
 #include <atomic>
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <string_view>
 #include <thread>
@@ -343,6 +345,58 @@ void TestHierarchyDuplicateShortcut() {
   assert(shell.LastCommand() == "editor.scene.duplicate" && scene.Nodes().size() == 2 &&
          scene.Selection().size() == 1 && scene.Name(scene.Selection().front()) == "Source Copy");
   assert(scene.Undo() && scene.Nodes().size() == 1);
+}
+
+void TestSceneMarkerVisibility() {
+  using namespace nexora;
+  using Access = editor::imgui::EditorImGuiTestAccess;
+  for (const float dpi : {1.0F, 2.0F}) {
+    runtime::World world;
+    const auto id = world.LoadScene("Marker observation");
+    assert(world.Activate(id));
+    editor::SceneDocument scene(world, id);
+    const auto node = scene.Create("Origin");
+    const auto key = *scene.Key(node);
+    const auto original = world.SaveScene(id);
+    const bool dirty = scene.Dirty();
+    editor::ProductShell shell;
+    editor::imgui::EditorImGuiHost host;
+    Access::ConfigureSyntheticInput(host);
+    host.SetDisplay(1280.0F * dpi, 720.0F * dpi, dpi);
+    const auto draw = [&] {
+      host.BeginFrame();
+      host.DrawProductShell(shell, &scene);
+      static_cast<void>(host.EndFrame());
+    };
+    draw();
+    auto *window = ImGui::FindWindowByName("Scene###nexora.scene");
+    assert(window);
+    std::cerr << "marker initial dpi=" << dpi << " hidden=" << window->Hidden
+              << " published=" << bool(Access::SceneMarkerPosition(host, key)) << '\n';
+    assert(window->Hidden && !Access::SceneMarkerPosition(host, key));
+    for (int frame = 0; frame < 4; ++frame)
+      draw();
+    Access::FocusScene(host);
+    draw();
+    draw();
+    assert(Access::SceneMarkerPosition(host, key));
+    // A sizing pass runs widgets while its window remains non-interactive.
+    window->HiddenFramesCanSkipItems = 0;
+    window->HiddenFramesCannotSkipItems = 2;
+    draw();
+    assert(window->Hidden && !Access::SceneMarkerPosition(host, key));
+    // A skipped hidden window must not expose the previous visible marker either.
+    window->HiddenFramesCannotSkipItems = 0;
+    window->HiddenFramesCanSkipItems = 2;
+    draw();
+    assert(window->Hidden && !Access::SceneMarkerPosition(host, key));
+    window->HiddenFramesCanSkipItems = 0;
+    Access::FocusScene(host);
+    draw();
+    draw();
+    assert(Access::SceneMarkerPosition(host, key) && scene.Selection().empty() &&
+           scene.Dirty() == dirty && world.SaveScene(id) == original);
+  }
 }
 
 void TestSceneOverviewSelection() {
@@ -921,11 +975,53 @@ void TestNativeSceneCameraControls() {
   draw();
   assert(host.GetSceneOverviewCamera().x == 10.0 && host.GetNativeSceneOrbit().distance > 25.0);
 }
+void TestFiniteFrameInputs() {
+  using nexora::editor::imgui::EditorImGuiHost;
+  using nexora::editor::imgui::EditorImGuiTestAccess;
+  struct InputCase {
+    float input, expected;
+  };
+  const auto nan = std::numeric_limits<float>::quiet_NaN();
+  const auto infinity = std::numeric_limits<float>::infinity();
+  const std::array display_cases{InputCase{nan, 1}, InputCase{infinity, 1}, InputCase{-infinity, 1},
+                                 InputCase{0, 1},   InputCase{-3, 1},       InputCase{0.5F, 1},
+                                 InputCase{1, 1},   InputCase{640, 640}};
+  EditorImGuiHost host;
+  for (const auto &test : display_cases) {
+    for (const bool width : {true, false}) {
+      host.SetDisplay(width ? test.input : 640, width ? 480 : test.input, 1);
+      const auto state = EditorImGuiTestAccess::Inspect(host);
+      assert(state.display_width == (width ? test.expected : 640));
+      assert(state.display_height == (width ? 480 : test.expected));
+      for (unsigned frame = 0; frame < 2; ++frame) {
+        host.BeginFrame();
+        assert(std::isfinite(ImGui::GetTime()));
+        static_cast<void>(host.EndFrame());
+      }
+    }
+  }
+  host.SetDisplay(640, 480, 1);
+  const std::array delta_cases{InputCase{nan, 0.0001F},       InputCase{infinity, 0.0001F},
+                               InputCase{-infinity, 0.0001F}, InputCase{0, 0.0001F},
+                               InputCase{-1, 0.0001F},        InputCase{0.00001F, 0.0001F},
+                               InputCase{0.0001F, 0.0001F},   InputCase{0.25F, 0.25F}};
+  for (const auto &test : delta_cases) {
+    for (unsigned frame = 0; frame < 2; ++frame) {
+      host.BeginFrame(test.input);
+      assert(ImGui::GetIO().DeltaTime == test.expected && std::isfinite(ImGui::GetTime()));
+      static_cast<void>(host.EndFrame());
+    }
+    host.BeginFrame(1.0F / 60.0F);
+    assert(ImGui::GetIO().DeltaTime == 1.0F / 60.0F && std::isfinite(ImGui::GetTime()));
+    static_cast<void>(host.EndFrame());
+  }
+}
 } // namespace
 
 #include "RenderDrawContract.inl"
 
 int main() {
+  TestFiniteFrameInputs();
   TestRenderDrawContract();
   TestEulerRotation();
   TestSceneUndoShortcut(false);
@@ -934,6 +1030,7 @@ int main() {
   TestHierarchyDeleteShortcut();
   TestHierarchyCreateShortcut();
   TestHierarchyDuplicateShortcut();
+  TestSceneMarkerVisibility();
   TestSceneOverviewSelection();
   TestSceneOverviewDrag();
   TestSceneOverviewCameraState();

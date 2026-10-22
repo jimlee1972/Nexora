@@ -1,16 +1,17 @@
 """Native Play camera/mesh pixels, pause/step/stop, and unchanged Editor scene."""
 import argparse
+import json
 from functools import partial
 import os
 from pathlib import Path
 import re
-import select
 import shutil
 import subprocess
 import tempfile
 import time
 from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
 from LinuxNativeScenePreview import scene_region_pixels
+from NativeSceneInput import NativeSceneInput
 
 
 def main():
@@ -118,37 +119,68 @@ def main():
     baseline = scene.read_bytes()
     xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
     editor = None
-    captured = b''
+    driver = None
+    captured = bytearray()
+    launch_number = 0
+    passed = False
     try:
         if display is None:
             raise RuntimeError('Xvfb startup failed')
         env = os.environ.copy()
         env['DISPLAY'] = display
         env['XDG_STATE_HOME'] = str(state)
-        editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
-            '--native-scene-preview', '--frames=10000', f'--recent-projects={state / "recent"}', *library_argument],
-            env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        window = int(wait_for_window(args.xdotool, env))
+        env['NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY'] = '1'
+        if args.pointer_buttons:
+            env['NEXORA_NATIVE_GAME_PRESENT_TEST_GEOMETRY'] = '1'
+
+        def attach_process(arguments, windowed=True):
+            nonlocal editor, driver, captured, launch_number, window
+            editor = subprocess.Popen(arguments, env=env,
+                                      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            launch_number += 1
+            driver = NativeSceneInput(editor, args.xdotool, env, "0", state, launch_number,
+                                      minimum_wait=0, phase_wait=.08)
+            captured = driver.stderr
+            if windowed:
+                window = int(wait_for_window(args.xdotool, env))
+                driver.window = str(window)
 
         def send(*arguments):
-            subprocess.run([args.xdotool, *map(str, arguments)], env=env, check=True)
+            # Only Play control keys belong to GUI acknowledgement. Captured movement keys
+            # intentionally bypass GUI IO, so their original native gestures remain raw.
+            key_arguments = list(arguments[1:]) if arguments and arguments[0] == 'key' else []
+            if len(key_arguments) >= 2 and key_arguments[0] == '--delay':
+                key_arguments = key_arguments[2:]
+            if len(key_arguments) == 1 and key_arguments[0] in ('F5', 'F6', 'F10'):
+                driver.play_key(key_arguments[0])
+            else:
+                driver.raw(*arguments)
 
-        def wait_view(label):
-            nonlocal captured
-            deadline = time.monotonic() + 12
-            expression = label + rb': (\d+) (\d+) (\d+) (\d+)'
+        def wait_view(label, deadline=None):
+            deadline = time.monotonic() + 12 if deadline is None else deadline
+            expression = label + rb': (\d+) (\d+) (\d+) (\d+)\r?\n'
             while time.monotonic() < deadline:
-                if select.select([editor.stderr], [], [], 0.1)[0]:
-                    captured += os.read(editor.stderr.fileno(), 4096)
+                if editor.poll() is not None:
+                    raise RuntimeError(f'Editor exited before {label!r}: {captured!r}')
+                # Input acknowledgement may already have drained the complete result.
                 matches = list(re.finditer(expression, captured))
-                if matches:
+                if matches and time.monotonic() < deadline:
                     return tuple(map(int, matches[-1].groups()))
+                driver.drain(min(.1, max(0, deadline - time.monotonic())))
             raise RuntimeError(f'No {label!r}: {captured!r}')
 
+        def start_play():
+            # Key admission, processed phases and actual viewport share the original bound.
+            deadline = time.monotonic() + 12
+            driver.play_key('F5', deadline=deadline)
+            return wait_view(b'native game viewport', deadline)
+
+        window = None
+        attach_process([args.editor, f'--project={root}', '--graphical',
+            '--native-scene-preview', '--frames=10000', f'--recent-projects={state / "recent"}', *library_argument])
         wait_view(b'native scene viewport')
         send('windowfocus', window)
-        send('key', '--delay', '80', 'F5')
-        viewport = wait_view(b'native game viewport')
+        viewport = start_play()
         scene_viewport = None
         if args.concurrent_views:
             scene_viewport = wait_view(b'native scene viewport')
@@ -238,15 +270,47 @@ def main():
             time.sleep(0.2)
             for button in (2, 8, 9):
                 before = capture_pixels(display, window, viewport)
+                down_offset = len(captured)
                 send('mousedown', button)
-                time.sleep(0.25)
+                held_until = time.monotonic() + .25
+                while time.monotonic() < held_until:
+                    driver.drain(min(.005, max(0, held_until - time.monotonic())))
+                expected_mask = {2: 2, 8: 4, 9: 8}[button]
+                if f'pointer input buttons={expected_mask}\n'.encode() not in captured[down_offset:]:
+                    raise RuntimeError(f'Pointer button {button} did not reach the actual consumer')
                 if capture_pixels(display, window, viewport) == before:
                     raise RuntimeError(f'Captured pointer button {button} did not drive gameplay')
+                # Preserve both original .15 second release intervals. Observe the
+                # real neutral consumer and admitted draw poses without treating queue
+                # admission as physical display completion or retrying mouseup.
+                release_offset = len(captured)
                 send('mouseup', button)
-                time.sleep(0.15)
+                baseline_deadline = time.monotonic() + .15
+                while time.monotonic() < baseline_deadline:
+                    driver.drain(min(.005, max(0, baseline_deadline - time.monotonic())))
+                records = bytes(captured[release_offset:])
+                neutral = records.rfind(b'pointer input buttons=0\n')
+                draws = re.findall(rb'^native game draw admitted frame=(\d+) x=([^\n]+)\n',
+                                   records[neutral:] if neutral >= 0 else b'', re.M)
+                if (len(draws) < 3 or len({pose for _, pose in draws[-3:]}) != 1 or
+                        int(draws[-1][0]) - int(draws[-3][0]) != 2):
+                    raise RuntimeError(f'Pointer button {button} release/pose was not admitted '
+                                       f'inside the original 0.15 second baseline interval: '
+                                       f'{records!r}')
+                release_pose = draws[-1][1]
                 released = capture_pixels(display, window, viewport)
-                time.sleep(0.15)
-                if capture_pixels(display, window, viewport) != released:
+                release_deadline = time.monotonic() + .15
+                while time.monotonic() < release_deadline:
+                    driver.drain(min(.005, max(0, release_deadline - time.monotonic())))
+                actual = capture_pixels(display, window, viewport)
+                if actual != released:
+                    (state / 'pointer-release-reference.rgb').write_bytes(bytes(released))
+                    (state / 'pointer-release-actual.rgb').write_bytes(bytes(actual))
+                    (state / 'pointer-release-failure.json').write_text(json.dumps(
+                        dict(button=button, viewport=viewport, pose=release_pose.decode(),
+                             pixel_format='RGB, center region, stride=3',
+                             different_channels=sum(a != b for a, b in zip(released, actual))),
+                        indent=2) + '\n')
                     raise RuntimeError(f'Pointer button {button} release retained movement')
             send('mousedown', 8)
             time.sleep(0.2)
@@ -336,8 +400,7 @@ def main():
         if scene.read_bytes() != baseline:
             raise RuntimeError('Play commands modified the authored scene')
         request_window_close(str(window), env)
-        _, stderr = editor.communicate(timeout=15)
-        captured += stderr
+        _, stderr = driver.finish(15)
         if args.pointer_motion:
             records = [tuple(map(int, match)) for match in re.findall(
                 rb'pointer motion evidence: dx=(-?\d+) dy=(-?\d+) wx=(-?\d+) wy=(-?\d+)', captured)]
@@ -386,16 +449,12 @@ def main():
         editor = None
         if args.materials:
             retained_source = material_path.read_bytes()
-            captured = b''
-            editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
+            attach_process([args.editor, f'--project={root}', '--graphical',
                 '--read-only', '--native-scene-preview', '--frames=10000',
-                f'--recent-projects={state / "recent"}'], env=env,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            window = int(wait_for_window(args.xdotool, env))
+                f'--recent-projects={state / "recent"}'])
             wait_view(b'native scene viewport')
             send('windowfocus', window)
-            send('key', '--delay', '80', 'F5')
-            viewport = wait_view(b'native game viewport')
+            viewport = start_play()
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
                 pixels = capture_pixels(display, window, viewport)
@@ -408,7 +467,7 @@ def main():
                 raise RuntimeError('Fresh read-only Play did not render current green material')
             send('key', '--delay', '80', 'F5')
             request_window_close(str(window), env)
-            _, stderr = editor.communicate(timeout=15)
+            _, stderr = driver.finish(15)
             if editor.returncode != 0 or scene.read_bytes() != baseline or \
                     material_path.read_bytes() != retained_source:
                 raise RuntimeError('Read-only material Play changed authored bytes or failed')
@@ -416,16 +475,12 @@ def main():
         if args.project_bindings:
             bindings_file = root / '.nexora/play-input.ini'
             retained = bindings_file.read_bytes()
-            captured = b''
-            editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
+            attach_process([args.editor, f'--project={root}', '--graphical',
                 '--read-only', '--native-scene-preview', '--frames=10000',
-                f'--recent-projects={state / "recent"}'], env=env,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            window = int(wait_for_window(args.xdotool, env))
+                f'--recent-projects={state / "recent"}'])
             wait_view(b'native scene viewport')
             send('windowfocus', window)
-            send('key', '--delay', '80', 'F5')
-            viewport = wait_view(b'native game viewport')
+            viewport = start_play()
             time.sleep(0.25)
             first = capture_pixels(display, window, viewport)
             x, y, width, height = viewport
@@ -445,8 +500,8 @@ def main():
             send('key', '--delay', '80', 'Escape')
             send('key', '--delay', '80', 'F5')
             request_window_close(str(window), env)
-            _, stderr = editor.communicate(timeout=15)
-            if editor.returncode != 0 or b'ignored input settings' in captured + stderr:
+            _, stderr = driver.finish(15)
+            if editor.returncode != 0 or b'ignored input settings' in captured:
                 raise RuntimeError(f'Reopened input project failed: {stderr!r}')
             editor = None
             if bindings_file.read_bytes() != retained or scene.read_bytes() != baseline:
@@ -455,16 +510,12 @@ def main():
             expected = f'schema=1\nlibrary=Content/{filename}\n'
             if (root / '.nexora/gameplay-library.ini').read_text() != expected:
                 raise RuntimeError('Gameplay library path was not persisted')
-            captured = b''
-            editor = subprocess.Popen([args.editor, f'--project={root}', '--graphical',
+            attach_process([args.editor, f'--project={root}', '--graphical',
                 '--native-scene-preview', '--frames=10000',
-                f'--recent-projects={state / "recent"}'], env=env,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            window = int(wait_for_window(args.xdotool, env))
+                f'--recent-projects={state / "recent"}'])
             time.sleep(0.3)
             send('windowfocus', window)
-            send('key', '--delay', '80', 'F5')
-            viewport = wait_view(b'native game viewport')
+            viewport = start_play()
             time.sleep(0.2)
             first = capture_pixels(display, window, viewport)
             time.sleep(0.6)
@@ -473,34 +524,44 @@ def main():
             send('key', '--delay', '80', 'F5')
             time.sleep(0.2)
             request_window_close(str(window), env)
-            _, stderr = editor.communicate(timeout=15)
+            _, stderr = driver.finish(15)
             if editor.returncode != 0 or scene.read_bytes() != baseline:
                 raise RuntimeError(f'Reopened gameplay project failed: {stderr!r}')
             editor = None
             settings = root / '.nexora/gameplay-library.ini'
             corrupt = 'schema=999\nlibrary=Content/old.so\n'
             settings.write_text(corrupt)
-            checked = subprocess.run([args.editor, f'--project={root}', '--graphical',
-                '--frames=4', f'--recent-projects={state / "recent"}'], env=env,
-                capture_output=True, timeout=15)
-            if checked.returncode != 0 or settings.read_text() != corrupt:
+            attach_process([args.editor, f'--project={root}', '--graphical',
+                '--frames=4', f'--recent-projects={state / "recent"}'], windowed=False)
+            driver.finish(15)
+            if editor.returncode != 0 or settings.read_text() != corrupt:
                 raise RuntimeError('Opening corrupt settings overwrote the saved file')
+            editor = None
             settings.write_text(expected)
-            checked = subprocess.run([args.editor, f'--project={root}', '--graphical',
+            attach_process([args.editor, f'--project={root}', '--graphical',
                 '--read-only', '--gameplay-library=', '--frames=4',
-                f'--recent-projects={state / "recent"}'], env=env,
-                capture_output=True, timeout=15)
-            if checked.returncode != 0 or settings.read_text() != expected:
+                f'--recent-projects={state / "recent"}'], windowed=False)
+            driver.finish(15)
+            if editor.returncode != 0 or settings.read_text() != expected:
                 raise RuntimeError('Read-only CLI override wrote project settings')
+            editor = None
+        passed = True
         return 0
     finally:
-        if editor is not None and editor.poll() is None:
-            editor.kill()
-            editor.wait(timeout=5)
+        if editor is not None:
+            if driver is not None and driver.process is editor:
+                driver.abort()
+            else:
+                if editor.poll() is None:
+                    editor.kill()
+                editor.communicate(timeout=5)
         xvfb.terminate()
         xvfb.wait(timeout=5)
-        shutil.rmtree(root, ignore_errors=True)
-        shutil.rmtree(state, ignore_errors=True)
+        if passed:
+            shutil.rmtree(root, ignore_errors=True)
+            shutil.rmtree(state, ignore_errors=True)
+        else:
+            print(f'Native Game View fixtures retained: {root} {state}', flush=True)
 
 
 if __name__ == '__main__':
