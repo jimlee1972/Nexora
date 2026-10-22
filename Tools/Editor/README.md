@@ -59,7 +59,8 @@ python3 Tools/Editor/EditorTargetEvidence.py validate /path/to/bundle/evidence.j
 
 Validation recomputes status, scenario coverage, artifact hashes and smoke results; it does not
 trust a saved `status`. Failed observations return `FAIL`. Missing/duplicate/unknown rows, missing
-metadata/artifacts, changed files, virtual-display records and absent attestation remain `INCOMPLETE`.
+metadata/artifacts, changed files, cyclic artifact symlinks, virtual-display records and absent
+attestation remain `INCOMPLETE`.
 Both return exit 1. A complete operator record returns `COMPLETE_OPERATOR_RECORD` and exit 0.
 This is evidence completeness, not independent verification of visual claims or milestone approval.
 A reviewer must inspect the actual observations/artifacts against the plan before accepting ED-M0.

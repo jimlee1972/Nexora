@@ -58,9 +58,16 @@ set_tests_properties(editor.build_process_console PROPERTIES TIMEOUT 60)
 add_executable(NexoraEditorImGuiTests EditorImGuiTests.cpp)
 target_include_directories(NexoraEditorImGuiTests
   PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
-target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui)
+target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
+add_executable(NexoraRecoveryScopeTests RecoveryScopeTests.cpp)
+target_include_directories(NexoraRecoveryScopeTests
+  PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraRecoveryScopeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraRecoveryScopeTests)
+add_test(NAME editor.recovery_scope COMMAND NexoraRecoveryScopeTests)
+set_tests_properties(editor.recovery_scope PROPERTIES TIMEOUT 60)
 add_executable(NexoraSceneComparisonUiTests SceneComparisonTests.cpp)
 target_include_directories(NexoraSceneComparisonUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraSceneComparisonUiTests PRIVATE Nexora::EditorImGui)
@@ -350,6 +357,12 @@ endif()
 find_program(NEXORA_XVFB_EXECUTABLE Xvfb)
 find_program(NEXORA_XDOTOOL_EXECUTABLE xdotool)
 if(NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_test(NAME editor.linux_project_asset_workflow
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxProjectAssetWorkflow.py"
+      --editor "$<TARGET_FILE:NexoraEditor>" --xvfb "${NEXORA_XVFB_EXECUTABLE}"
+      --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}")
+  set_tests_properties(editor.linux_project_asset_workflow PROPERTIES TIMEOUT 180
+    LABELS "editor;assets;vulkan;virtual-display")
   add_test(NAME editor.linux_native_play_soak
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxNativePlaySoak.py"
       --module "$<TARGET_FILE:NexoraPlaySoakFixture>" --editor "$<TARGET_FILE:NexoraEditor>"

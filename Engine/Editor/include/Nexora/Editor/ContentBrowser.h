@@ -99,14 +99,23 @@ public:
 
 private:
   friend class ContentDirectoryIndexTestAccess;
+  friend class ContentSearchKeysTestAccess;
+  struct SearchKeys;
+  [[nodiscard]] const SearchKeys *SearchKeysView(std::span<const std::size_t> slots) const;
+  void InvalidateSearchKeys() noexcept {
+    search_keys_.reset();
+    search_keys_attempted_ = false;
+  }
   struct DirectoryIndex;
   [[nodiscard]] const DirectoryIndex *DirectoryIndexView() const;
   void InvalidateDirectoryIndex() noexcept {
     directory_index_.reset();
     directory_index_attempted_ = false;
+    InvalidateSearchKeys();
   }
   bool Commit(std::vector<ContentItem> next, std::string *error);
   [[nodiscard]] bool MatchesVisible(const ContentItem &item) const;
+  [[nodiscard]] bool MatchesFilter(const ContentItem &item) const;
   [[nodiscard]] const std::vector<std::size_t> &VisibleIndices() const;
   [[nodiscard]] bool ValidDestination(const std::filesystem::path &path,
                                       runtime::AssetUuid except = {}) const;
@@ -121,6 +130,8 @@ private:
   mutable std::shared_ptr<const std::vector<std::size_t>> visible_indices_;
   mutable std::shared_ptr<const DirectoryIndex> directory_index_;
   mutable bool directory_index_attempted_{};
+  mutable std::shared_ptr<const SearchKeys> search_keys_;
+  mutable bool search_keys_attempted_{};
   std::uint64_t generation_{};
   std::uint64_t revision_{};
 };

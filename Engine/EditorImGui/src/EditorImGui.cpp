@@ -137,6 +137,9 @@ struct EditorImGuiHost::State final {
   std::size_t native_texture_bytes = 0;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
+  foundation::Uuid recovery_project;
+  std::filesystem::path recovery_root;
+  bool recovery_activation_quarantined = false;
   CloseChoice close_choice = CloseChoice::None;
   PlayCommand play_command = PlayCommand::None;
   bool play_apply_open = false;
@@ -561,6 +564,7 @@ struct EditorImGuiHost::State final {
   std::filesystem::path content_rename_root, content_rename_path;
   bool content_rename_focus{};
   std::array<std::optional<std::array<float, 2>>, 3> content_rename_positions;
+  std::optional<std::array<float, 2>> content_undo_position, content_reimport_position;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
   std::uint32_t content_rendered_folders = 0;
@@ -610,6 +614,70 @@ struct EditorImGuiHost::State final {
 
 namespace {
 void Activate(ImGuiContext *context) { ImGui::SetCurrentContext(context); }
+
+template <typename StateT> void CancelRecoveryPopup(StateT &state) {
+  auto &context = *ImGui::GetCurrentContext();
+  auto *window = ImGui::FindWindowByName("Recover workspace###editor.recovery");
+  if (window) {
+    if (context.ActiveIdWindow &&
+        ImGui::IsWindowChildOf(context.ActiveIdWindow, window, true, false))
+      ImGui::ClearActiveID();
+    const auto recover = window->GetID("Recover");
+    const auto discard = window->GetID("Discard recovery data");
+    const auto old_action = [&](ImGuiID id) { return id == recover || id == discard; };
+    if (old_action(context.NavActivateId) || old_action(context.NavActivateDownId) ||
+        old_action(context.NavActivatePressedId)) {
+      context.NavActivateId = context.NavActivateDownId = context.NavActivatePressedId = 0;
+      context.NavActivateFlags = ImGuiActivateFlags_None;
+    }
+    if (old_action(context.NavNextActivateId)) {
+      context.NavNextActivateId = 0;
+      context.NavNextActivateFlags = ImGuiActivateFlags_None;
+    }
+    for (int index = 0; index < context.OpenPopupStack.Size; ++index) {
+      if (context.OpenPopupStack[index].Window == window) {
+        ImGui::ClosePopupToLevel(index, true);
+        break;
+      }
+    }
+  }
+  state.recovery_prompt_opened = false;
+  state.recovery_activation_quarantined = true;
+}
+
+bool RecoveryActivationPending() {
+  const auto &context = *ImGui::GetCurrentContext();
+  for (bool down : context.IO.MouseDown)
+    if (down)
+      return true;
+  const auto activation_key = [](ImGuiKey key) {
+    return key == ImGuiKey_Enter || key == ImGuiKey_Space || key == ImGuiKey_GamepadFaceDown;
+  };
+  for (const auto key : {ImGuiKey_Enter, ImGuiKey_Space, ImGuiKey_GamepadFaceDown})
+    if (ImGui::GetKeyData(key)->Down)
+      return true;
+  // Trickling can defer a press/release from the old scope to a later GUI frame. Drain those
+  // events normally, but require one neutral frame before recovery buttons accept new actions.
+  for (const auto &event : context.InputEventsQueue)
+    if (event.Type == ImGuiInputEventType_MouseButton ||
+        (event.Type == ImGuiInputEventType_Key && activation_key(event.Key.Key)))
+      return true;
+  return false;
+}
+
+template <typename StateT>
+void SynchronizeRecoveryScope(StateT &state, const std::filesystem::path &root,
+                              foundation::Uuid project) {
+  if (state.recovery_root == root && state.recovery_project == project)
+    return;
+  // Stage the owning path before cancelling UI. No workspace/model borrow survives this call.
+  auto owned_root = root;
+  CancelRecoveryPopup(state);
+  state.recovery_root = std::move(owned_root);
+  state.recovery_project = project;
+  state.recovery_choice = RecoveryChoice::None;
+  state.recovery_error.clear();
+}
 
 template <typename StateT> void CancelNativeSceneGesture(StateT &state) {
   state.native_scene_drag_origin.reset();
@@ -3841,6 +3909,8 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   const auto window = PanelWindowName("nexora.content");
   state.content_rename_positions = {};
+  state.content_undo_position.reset();
+  state.content_reimport_position.reset();
   state.content_search_position.reset();
   state.content_focused_folder.reset();
   state.content_focused_asset.reset();
@@ -3907,6 +3977,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   ImGui::BeginDisabled(!commands_allowed || !content.CanUndo());
   if (ImGui::Button("Undo content"))
     static_cast<void>(content.Undo());
+  {
+    const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+    state.content_undo_position = std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+  }
   ImGui::EndDisabled();
 
   const bool keyboard =
@@ -4208,6 +4282,10 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                             commands_allowed && content.Writable() && imports != nullptr &&
                                 !content.ReimportBusy()))
           reimport_asset = item->id;
+        {
+          const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+          state.content_reimport_position = std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+        }
         if (ImGui::MenuItem("Delete", "Delete", false, commands_allowed && content.Writable()))
           delete_assets = {item->id};
         ImGui::EndPopup();
@@ -4511,6 +4589,16 @@ ImGuiKey ToImGuiKey(Nexora::Window::Key key) {
   }
 #undef NEXORA_KEY
 }
+// Arbitrary callbacks have no backend-neutral encoder contract. Reject the complete packet
+// before allocating/uploading or recording anything; inspect callback-only draw lists as well.
+bool HasUnsupportedDrawCallbacks(const ImDrawData &draw) {
+  for (const auto *list : draw.CmdLists)
+    for (const auto &command : list->CmdBuffer)
+      if (command.UserCallback != nullptr &&
+          command.UserCallback != ImDrawCallback_ResetRenderState)
+        return true;
+  return false;
+}
 } // namespace
 
 EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
@@ -4518,6 +4606,7 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   Activate(state_->context);
   auto &io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
   io.IniFilename = nullptr;
   io.BackendPlatformUserData = state_.get();
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
@@ -4533,7 +4622,8 @@ EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = defau
 
 void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   Activate(state_->context);
-  ImGui::GetIO().DisplaySize = {std::max(width, 1.0F), std::max(height, 1.0F)};
+  ImGui::GetIO().DisplaySize = {std::isfinite(width) ? std::max(width, 1.0F) : 1.0F,
+                                std::isfinite(height) ? std::max(height, 1.0F) : 1.0F};
   dpi_scale = std::isfinite(dpi_scale) ? std::max(dpi_scale, 0.25F) : 1.0F;
   if (dpi_scale != state_->dpi_scale)
     CancelSceneGestures(*state_);
@@ -4694,7 +4784,8 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
   state_->native_scene_drag_preview.reset();
-  ImGui::GetIO().DeltaTime = std::max(delta_seconds, 0.0001F);
+  ImGui::GetIO().DeltaTime =
+      std::isfinite(delta_seconds) ? std::max(delta_seconds, 0.0001F) : 0.0001F;
   ImGui::NewFrame();
 }
 
@@ -5068,6 +5159,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   };
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
+  SynchronizeRecoveryScope(*state_, profile_root,
+                           workspace ? workspace->Project().id : foundation::Uuid{});
   const auto memory_generation = content ? content->Browser().ProjectGeneration() : 0;
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id ||
       memory_generation != state_->play_memory_scope_generation) {
@@ -6872,27 +6965,35 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
 
   if (recovery_available && !state_->recovery_prompt_opened) {
+    state_->recovery_activation_quarantined = true;
     ImGui::OpenPopup("Recover workspace###editor.recovery");
     state_->recovery_prompt_opened = true;
   }
-  if (!recovery_available)
-    state_->recovery_prompt_opened = false;
+  if (!recovery_available) {
+    CancelRecoveryPopup(*state_);
+    state_->recovery_error.clear();
+    // A successful same-scope operation removes the journal; its result remains consumable.
+  }
   if (ImGui::BeginPopupModal("Recover workspace###editor.recovery", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::TextUnformatted("A recovery journal is available.");
     if (!state_->recovery_error.empty())
       ImGui::TextWrapped("%s", state_->recovery_error.c_str());
-    if (ImGui::Button("Recover")) {
+    if (ImGui::Button("Recover") && workspace && recovery_available &&
+        !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Recover))
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Discard recovery data")) {
+    if (ImGui::Button("Discard recovery data") && workspace && recovery_available &&
+        !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Discard))
         ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
   }
+  if (state_->recovery_activation_quarantined && !RecoveryActivationPending())
+    state_->recovery_activation_quarantined = false;
   if (state_->close_prompt_requested) {
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
@@ -7855,7 +7956,8 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
                                       bool prepare_for_present) {
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
-  if (draw == nullptr || draw->CmdListsCount == 0 || width == 0 || height == 0)
+  if (draw == nullptr || draw->CmdListsCount == 0 || width == 0 || height == 0 ||
+      HasUnsupportedDrawCallbacks(*draw))
     return 0;
   auto &renderer = state_->renderer;
   if (renderer.device != nullptr && renderer.device != &device)
@@ -7945,7 +8047,17 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
                                                      : nexora::rhi::IndexFormat::Uint32,
                               index_offset_bytes);
     for (const auto &draw_command : list->CmdBuffer) {
-      if (draw_command.UserCallback == nullptr && draw_command.ElemCount > 0) {
+      if (draw_command.UserCallback == ImDrawCallback_ResetRenderState) {
+        commands->BindPipeline(renderer.pipeline);
+        commands->BindVertexBuffer(upload.vertices, vertex_offset_bytes);
+        commands->BindIndexBuffer(upload.indices,
+                                  sizeof(ImDrawIdx) == 2 ? nexora::rhi::IndexFormat::Uint16
+                                                         : nexora::rhi::IndexFormat::Uint32,
+                                  index_offset_bytes);
+        // Each following draw independently restores its texture and scissor.
+        continue;
+      }
+      if (draw_command.ElemCount > 0) {
         const auto texture_id = static_cast<std::uint64_t>(draw_command.GetTexID());
         const auto texture_index = static_cast<std::uint32_t>(texture_id);
         const auto texture_generation = static_cast<std::uint32_t>(texture_id >> 32U);
@@ -8366,7 +8478,8 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
   const auto domain = surface.UiResourceDomain();
-  if (draw == nullptr || width == 0 || height == 0 || domain == 0)
+  if (draw == nullptr || width == 0 || height == 0 || domain == 0 ||
+      HasUnsupportedDrawCallbacks(*draw))
     return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
   if (state_->surface_font_domain != domain) {
     state_->surface_font_domain = domain;
@@ -8392,7 +8505,9 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
         std::span{list.IdxBuffer.Data, static_cast<std::size_t>(list.IdxBuffer.Size)});
     indices.insert(indices.end(), index_bytes.begin(), index_bytes.end());
     for (const auto &command : list.CmdBuffer) {
-      if (command.UserCallback != nullptr || command.ElemCount == 0)
+      // Reset is a no-op in the flattened packet: no external callback executes, and
+      // RenderUi owns/restores all encoder state before recording these commands.
+      if (command.UserCallback == ImDrawCallback_ResetRenderState || command.ElemCount == 0)
         continue;
       const auto left =
           std::max(0.0F, (command.ClipRect.x - draw->DisplayPos.x) * draw->FramebufferScale.x);
@@ -8489,7 +8604,11 @@ RecoveryChoice EditorImGuiHost::TakeRecoveryChoice() noexcept {
 }
 
 bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice) {
-  if (choice == RecoveryChoice::None || state_->recovery_choice != RecoveryChoice::None)
+  if (choice == RecoveryChoice::None)
+    return false;
+  Activate(state_->context);
+  SynchronizeRecoveryScope(*state_, workspace.Root(), workspace.Project().id);
+  if (state_->recovery_choice != RecoveryChoice::None)
     return false;
   std::string error;
   const bool succeeded = choice == RecoveryChoice::Recover ? workspace.RecoverWorkspace(&error)
@@ -8655,6 +8774,12 @@ EditorImGuiTestAccess::PlayApplyPosition(const EditorImGuiHost &host, bool confi
 }
 bool EditorImGuiTestAccess::PlayApplyOpen(const EditorImGuiHost &host) noexcept {
   return host.state_->play_apply_open;
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentWorkflowPosition(const EditorImGuiHost &host,
+                                               bool reimport) noexcept {
+  return reimport ? host.state_->content_reimport_position : host.state_->content_undo_position;
 }
 
 void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {

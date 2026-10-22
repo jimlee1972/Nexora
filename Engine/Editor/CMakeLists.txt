@@ -72,5 +72,5 @@ if(NEXORA_ENABLE_2D)
 endif()
 
 if(BUILD_TESTING)
-  target_compile_definitions(NexoraEditorCore PRIVATE NEXORA_EDITOR_MERGE_TEST_ACCESS=1)
+  target_compile_definitions(NexoraEditorCore PRIVATE NEXORA_EDITOR_MERGE_TEST_ACCESS=1 NEXORA_EDITOR_CONTENT_SEARCH_TEST_ACCESS=1)
 endif()

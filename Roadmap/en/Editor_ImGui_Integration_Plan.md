@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.6 | Status: implementation in progress; target-host evidence pending |
-> Updated: 2026-10-20 | Relates to: `Editor_Roadmap.md` (ED-M0),
+> Version: v1.8 | Status: implementation in progress; target-host evidence pending |
+> Updated: 2026-10-22 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
 > **Repository audit (2026-10-05):** implementation is **in progress**. The checked foundations
@@ -245,6 +245,14 @@ Linux/Vulkan 140/140, Windows/DX12 123/123 and macOS/Metal 122/122; each native 
 4290 uploads. All 18 selected CI jobs passed, including sanitizers and Shipping packages.
 Physical-display, installed-IME and visual-legibility/glyph coverage remain open.
 
+✅ Renderer draw-command contracts now advertise base-vertex support for draw lists larger than
+65,535 vertices. Reset-state callbacks restore public-RHI bindings; native packets own their state.
+Unsupported application callbacks reject the complete packet before submission rather than being
+silently dropped. Portable regressions exercise real split draw lists and callback rejection;
+physical-display/backend visual acceptance remains open.
+[Linux validation record](../../Tools/Build/evidence/EditorEDM0-DrawContracts-Linux-2026-10-22.md)
+records the complete suite failure and unchanged-source rerun separately.
+
 1. Introduce a renderer-owned state object beneath `EditorImGuiHost`: pipeline, sampler, font
    texture/view, descriptor bindings, and a bounded ring of per-frame vertex/index upload buffers.
    Create stable resources lazily after device/format is known; do not create/destroy pipeline and
@@ -312,6 +320,9 @@ proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavi
 **Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
 Windows proof remains.**
 
+✅ Nonfinite display dimensions and frame deltas now use the existing safe lower bounds.
+Multi-frame portable regressions reject NaN/infinity state poisoning while preserving finite inputs.
+
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly
    scale the already-scaled style.
@@ -345,6 +356,15 @@ once and correctly positioned candidates at more than one DPI.
 
 **Status: modal/data-layer calls and automated X11 kill/relaunch coverage for both recover and
 destructive discard exist; physical-display evidence remains.**
+
+✅ Recovery UI now owns a copied project UUID/root scope. Replacement or detach cancels old
+popup activation, errors and pending results; held or queued activation must drain through a neutral
+frame before a new prompt accepts an action. Journal disappearance closes stale prompts while
+preserving successful same-scope results exactly once. Portable actual pointer/keyboard tests cover
+1x/2x, root/UUID replacement, detach, deferred input, failures and fresh actions. Physical-host
+keyboard/recovery acceptance remains open.
+[Linux validation](../../Tools/Build/evidence/EditorEDM0-RecoveryScope-Linux-2026-10-22.md)
+records the new contracts and the separate native-fixture failure/rerun.
 
 1. Detect a journal before normal editing becomes interactive. Recovery modal takes focus, traps
    keyboard navigation, and offers explicit Recover and Discard actions. Discard requires clear
@@ -393,6 +413,8 @@ rechecks every required row and bounded native smoke logs. Separate Windows 100/
 rows and installed-IME/caret/candidate observations are required. Missing or virtual-only records
 remain incomplete. `COMPLETE_OPERATOR_RECORD` means a complete operator attestation, not automatic
 ED-M0 approval. The older PowerShell interview is preliminary and cannot satisfy this new matrix.
+Cyclic artifact symlinks are also rejected as incomplete, including smoke logs, without a traceback
+or rewriting the submitted evidence on Python versions that report loops as `RuntimeError`.
 Portable `build.editor_target_evidence` verifies evidence admission only; physical Linux and
 Windows DPI/IME gates remain open until the artifacts are collected and reviewed.
 See [Linux tooling validation](../../Tools/Build/evidence/EditorEDM0-EvidenceAdmission-Linux-2026-10-20.md).
@@ -483,6 +505,39 @@ event/key tables, dock/layout IDs, recovery outcomes, draw-list conversion, text
 clip/offset/index-width goldens, resize/recreate, resource retirement, and repeated frames with
 bounded allocation. Required human evidence includes legible output, actual interaction, docking,
 focus, DPI, IME, and crash recovery; screenshots alone cannot prove input or lifetime behavior.
+
+### Local Windows baseline and separate 100k stress tier (2026-10-22)
+
+✅ The scoped local Windows baseline completed: 303 passed, 6 skipped, zero failures
+(309 selected), plus a passing fresh 240-frame hardware smoke. The original full-suite
+303/3-timeout/6-skip result and blocked `nexora-wo1` remain unchanged.
+
+The current developer PC is not required to complete the 100,000-node CPU/ImGui fixtures as
+its basic ED-M0 host gate. These are a separate scale/stress tier, not a minimum hardware
+specification or native GPU benchmark. The observed timeouts alone do not establish whether
+hardware, configuration or implementation cost is responsible. No replacement node-count or
+performance guarantee is accepted without measurement.
+
+- **Local Windows baseline:** configure/build the graphical Development Editor, run every
+  registered test except the exact stress set below, require `editor.imgui_contract` and
+  `editor.windows_dpi_ime_contract` to register and pass, then run the 240-frame native smoke.
+  Account for every skip. This snapshot registers 312 tests; the scoped baseline selects 309.
+- **Separate 100k stress tier:** `editor.deep_hierarchy`, `editor.hierarchy_scale_lifecycle`,
+  and `editor.overview_pose_snapshot`, tracked separately as blocked `nexora-wo1`.
+  Retain these unchanged in the full suite/CI and verify
+  them on a separately recorded capable host. On this PC their acceptance remains blocked.
+  Do not increase deadlines, weaken assertions, or reduce fixture sizes to claim a pass.
+- **Full-suite and product acceptance:** a scoped baseline pass is not a full CTest pass and
+  can close `nexora-nqn.4.1` only against its explicitly revised local-baseline criteria,
+  after the selected tests and smoke actually pass. It does not accept `nexora-wo1`. Keep the original
+  303 passed / 3 timeouts / 6 skipped result and its raw evidence; ED-M0 and 0/8 milestone
+  acceptance, physical DPI/IME, keyboard/docking/recovery and other platforms remain open.
+  New baseline evidence is recorded separately in the [host report](../../Tools/Build/evidence/EditorEDM0-Windows-LocalBaseline-2026-10-22.md).
+
+The explicit local-only selection is `ctest --preset windows-development -V -E '^(editor\.(deep_hierarchy|hierarchy_scale_lifecycle|overview_pose_snapshot))$'`.
+Always archive the full/selected test lists, exact exclusion expression, commands, exit codes,
+source/binary hashes and host metadata. The unfiltered `ctest --preset windows-development`
+remains the repository full gate; this documentation does not change CMake/CTest/CI behavior.
 
 ### Acceptance map and target-host handoff
 

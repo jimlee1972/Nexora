@@ -1,7 +1,7 @@
 # Editor ED-M0 Dear ImGui 整合計畫
 
-> 版本：v1.6｜狀態：施工中；target-host 證據待完成｜
-> 更新：2026-10-20｜對應：`Editor_Roadmap.md`（ED-M0）、
+> 版本：v1.8｜狀態：施工中；target-host 證據待完成｜
+> 更新：2026-10-22｜對應：`Editor_Roadmap.md`（ED-M0）、
 > `ADR-0001-Editor-UI-Framework.md`、`Window_Presentation_Roadmap.md`
 
 > **Repository 稽核（2026-10-05）：**施工狀態為**進行中**。下方打勾的 foundation 已存在於
@@ -226,6 +226,13 @@ Linux／Vulkan 140/140、Windows／DX12 123/123、macOS／Metal 122/122，三個
 均完成 4290 次 upload。全部 18 個 selected CI job 通過，包括 sanitizer 與 Shipping package。
 實體顯示器、已安裝 IME 及 visual-legibility／glyph coverage 驗收仍待完成。
 
+✅ Renderer draw-command contract 現宣告 base-vertex 能力，支援超過 65,535 vertices 的
+draw list。Reset-state callback 會還原 public-RHI binding；native packet 自行擁有 state。
+不支援的 application callback 會在 submit 前拒絕整個 packet，不再靜默略過。
+Portable 回歸使用真正分段的 draw list 與 callback rejection；實體顯示器／backend 視覺驗收仍保持 open。
+[Linux 驗證紀錄](../../Tools/Build/evidence/EditorEDM0-DrawContracts-Linux-2026-10-22.md)
+分別記錄完整套件的失敗與未改 source 的重跑結果。
+
 1. 在 `EditorImGuiHost` 下建立 renderer-owned state：pipeline、sampler、font texture/view、descriptor
    binding、有限大小的 per-frame vertex/index upload buffer ring。知道 device/format 後才 lazy-create
    stable resource；禁止每 frame create/destroy pipeline 與 font texture。
@@ -286,6 +293,9 @@ drag docking、wheel axis、focus loss、close。
 **狀態：live extent/DPI forwarding、bucketed font rebuild 與 production GPU atlas upload 已有；
 Windows 證據仍待完成。**
 
+✅ 非有限 display dimension 與 frame delta 現使用既有安全下限；多幀 portable 回歸
+確認 NaN／infinity 不會污染 frame state，且保留有限輸入的行為。
+
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。
 2. 依 bucket pixel density 重建 atlas，同時維持 logical widget size；在 frame boundary 原子切換 font
@@ -317,6 +327,14 @@ Windows 證據仍待完成。**
 
 **狀態：modal/data-layer call 與 automated X11 kill/relaunch 的 recover／destructive discard
 coverage 已有；physical-display 證據仍待完成。**
+
+✅ Recovery UI 現保存 project UUID／root 的 owning scope。切換或卸載會取消舊 popup
+操作、錯誤與 pending result；持續按住或排隊的 activation 必須釋放並經過 neutral frame，
+新提示才接受操作。Journal 消失時關閉 stale prompt，保留成功的同 scope 結果供恰好消費一次。
+Portable 真正 pointer／keyboard 測試涵蓋 1x／2x、root／UUID 切換、卸載、延遲輸入、
+failure 與新操作；實機 keyboard／recovery 驗收仍保持 open。
+[Linux 驗證紀錄](../../Tools/Build/evidence/EditorEDM0-RecoveryScope-Linux-2026-10-22.md)
+分列新 contract 與原有 native fixture 的失敗／重跑結果。
 
 1. 正常編輯可互動前偵測 journal。Recovery modal 取得 focus、限制 keyboard navigation，明確提供 Recover
    與 Discard；Discard 要有清楚破壞性文字，不能因 default button 取得 focus 就執行。
@@ -360,6 +378,8 @@ source／configuration／host／backend metadata 與附雜湊的 artifact 副本
 必要 row 與 bounded native smoke log。Windows 必須分別記錄 100／125／150／200% 與 installed-IME、
 caret／candidate 操作。缺項或僅虛擬顯示器的紀錄維持 incomplete。`COMPLETE_OPERATOR_RECORD`
 代表完整的操作者佐證，不是自動核准 ED-M0。舊 PowerShell 訪談僅屬初步紀錄，不滿足此完整矩陣。
+Artifact（包含 smoke log）的循環 symlink 也會回報 incomplete；對以 `RuntimeError`
+回報循環的 Python 版本，不再出現 traceback，亦不改寫送交的 evidence。
 Portable `build.editor_target_evidence` 只驗證證據收件規則；physical Linux 與 Windows DPI／IME
 gate 在收集並審閱實機 artifact 前仍維持 open。
 詳見 [Linux 工具驗證](../../Tools/Build/evidence/EditorEDM0-EvidenceAdmission-Linux-2026-10-20.md)。
@@ -442,6 +462,37 @@ notes: <validation messages or limitation>
 dock/layout ID、各 recovery outcome、draw-list conversion、texture generation、clip/offset/index-width golden、
 resize/recreate、resource retirement、重複 frame 且 allocation 有界。必要 human evidence 包括 output 可讀、
 真實互動、docking、focus、DPI、IME、crash recovery；screenshot 本身無法證明 input/lifetime 行為。
+
+### 本機 Windows 基本驗收與獨立 100k 壓力層級（2026-10-22）
+
+✅ 本機分層基本驗收已完成：309 項中 303 passed、6 skipped、零失敗，
+另有重新執行的 240-frame 硬體 smoke 通過。原完整 suite 的 303／3 timeout／6 skip 與
+`nexora-wo1` blocked 狀態維持不變。
+
+目前開發機的 ED-M0 基本主機驗收不要求完成 100,000-node CPU／ImGui fixture。
+這些 fixture 屬於獨立規模／壓力層級，不是最低硬體規格，也不是 native GPU benchmark。
+僅憑目前 timeout 不能判定原因一定是硬體、組態或實作成本；未量測前，不宣稱新的節點數
+或效能保證已驗收。
+
+- **本機 Windows 基本驗收：**configure／build 圖形版 Development Editor，執行全部已註冊
+  測試，但排除下列明確的壓力集合；`editor.imgui_contract` 與
+  `editor.windows_dpi_ime_contract` 必須註冊且通過，再執行 240-frame native smoke。
+  每個 skip 都要交代。本次 snapshot 共 312 項，分層後本機基本集合為 309 項。
+- **獨立 100k 壓力層級：**`editor.deep_hierarchy`、`editor.hierarchy_scale_lifecycle`、
+  `editor.overview_pose_snapshot`，另以 `nexora-wo1` 保留 blocked 追蹤。
+  原測試完整保留於 full suite／CI，交由另行記錄且具足夠
+  處理能力的主機驗證；目前這台電腦的壓力驗收仍為 blocked。不得提高期限、放寬 assertion
+  或縮小 fixture，藉此宣稱通過。
+- **完整 suite 與產品驗收：**本機基本集合通過不等於完整 CTest 通過。只有選取的測試與
+  smoke 實際通過，才能依明確修訂的本機基本條件關閉 `nexora-nqn.4.1`，不得因此驗收
+  `nexora-wo1`。保留原本 303 passed／3 timeout／6 skipped 與
+  原始證據；ED-M0、0/8 milestone、實體 DPI／IME、鍵盤／Docking／Recovery 及其他平台
+  驗收維持 open。新的本機基本證據另存於[主機報告](../../Tools/Build/evidence/EditorEDM0-Windows-LocalBaseline-2026-10-22.md)。
+
+本機限定的明確選取指令為 `ctest --preset windows-development -V -E '^(editor\.(deep_hierarchy|hierarchy_scale_lifecycle|overview_pose_snapshot))$'`。
+必須保存完整／選取測試清單、精確排除式、指令、exit code、來源／二進位雜湊及主機資訊。
+未篩選的 `ctest --preset windows-development` 仍是 repo 完整 gate；本文件不修改
+CMake／CTest／CI 行為。
 
 ### 驗收對照與 target-host 交接
 

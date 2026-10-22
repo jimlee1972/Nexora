@@ -25,6 +25,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
+#include "ProjectAssetWorkflowEvidence.h"
 #endif
 #include "Nexora/Math/Math.h"
 #include "Nexora/Presentation/RenderSurface.h"
@@ -3143,6 +3144,17 @@ int RunGraphical(std::optional<ProjectState> project,
         std::cerr << scene_merge_test_geometry << '\n';
       }
     }
+    if (std::getenv("NEXORA_PROJECT_ASSET_WORKFLOW_EVIDENCE")) {
+      static std::string previous_workflow;
+      const auto observation = nexora::editor::test::ProjectAssetWorkflowEvidence(
+          ui, project ? &project->workspace : nullptr, project ? &content : nullptr,
+          project ? &active_scene() : nullptr, dpi);
+      if (observation != previous_workflow) {
+        previous_workflow = observation;
+        std::cerr << observation << '\n';
+      }
+    }
+
 #if defined(NEXORA_HAS_2D)
     if (std::getenv("NEXORA_GAME_TWOD_UI_TEST_EVIDENCE")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;

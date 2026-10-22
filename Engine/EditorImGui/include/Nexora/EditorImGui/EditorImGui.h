@@ -471,6 +471,9 @@ public:
   [[nodiscard]] FrameMetrics EndFrame();
   // The validation/offscreen renderer retains its pipeline, font texture, and geometrically sized
   // upload buffers. ReleaseRenderer must be called before the supplied Device is destroyed.
+  // Reset-render-state callbacks restore renderer bindings. Application draw callbacks are
+  // unsupported: reject the entire packet with zero, without invoking callbacks or touching the
+  // device/resources/metrics. The native overload instead returns InvalidDescriptor.
   [[nodiscard]] std::uint32_t Render(nexora::rhi::Device &device, nexora::rhi::TextureHandle target,
                                      std::uint32_t width, std::uint32_t height,
                                      nexora::rhi::ResourceState before, bool prepare_for_present);
@@ -544,6 +547,9 @@ public:
   Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height,
          const Nexora::Presentation::UiDrawData &overlay = {});
   void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
+  // Recovery UI/results own the current project UUID/root scope. Draw or a direct Apply against
+  // another scope revokes the previous prompt, active gesture, result and error. Journal removal
+  // closes the prompt but preserves a successful same-scope result until it is consumed once.
   [[nodiscard]] bool ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;
   [[nodiscard]] std::string_view RecoveryError() const noexcept;
