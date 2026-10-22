@@ -159,6 +159,19 @@ struct SceneMergeUiRequest final {
   std::uint64_t comparison_operation{}, draft{};
   SceneMergeRequest candidate;
 };
+struct SceneMergePublicationPreview final {
+  std::uint32_t schema{1};
+  std::uint64_t identity{};
+  SceneFileToken token;
+  std::uint64_t comparison_operation{}, review{}, draft{};
+  std::filesystem::path source;
+  std::size_t candidate_bytes{};
+  bool operator==(const SceneMergePublicationPreview &) const = default;
+};
+struct SceneMergePublicationDecision final {
+  SceneMergePublicationPreview scope;
+  bool confirmed{};
+};
 struct SceneFileRequest final {
   SceneFileAction action{SceneFileAction::New};
   SceneFileToken token;
@@ -442,6 +455,13 @@ public:
   [[nodiscard]] bool SceneMergeInteractionAllowed() const noexcept;
   // Data-only current-draft observation. Stale responses cannot resurrect changed choices.
   void SetSceneMergeCandidateStatus(SceneMergeCandidateSnapshot, bool busy, std::uint64_t draft);
+  void SetSceneMergePublicationAllowed(bool allowed) noexcept;
+  [[nodiscard]] std::optional<SceneMergeUiRequest> TakeSceneMergePublicationRequest();
+  [[nodiscard]] bool SetSceneMergePublicationPreview(std::optional<SceneMergePublicationPreview>);
+  [[nodiscard]] std::optional<SceneMergePublicationDecision> TakeSceneMergePublicationDecision();
+  [[nodiscard]] bool
+  SceneMergePublicationPreviewCurrent(const SceneMergePublicationPreview &) const noexcept;
+  void SetSceneMergePublicationStatus(std::string message);
   void RequestSceneSaveAs(bool close_after_save = false,
                           std::optional<std::filesystem::path> suggested_path = std::nullopt);
   void RequestSceneOverwrite(SceneFileRequest request);

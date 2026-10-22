@@ -1,4 +1,6 @@
 #include "EditorImGuiTestAccess.h"
+#include "Nexora/Cryptography/Signature.h"
+#include "Nexora/Editor/SceneMergePublication.h"
 
 #include <chrono>
 #include <fstream>
@@ -31,7 +33,7 @@ struct Fixture final {
   editor::SceneComparisonSnapshot observation;
   std::shared_ptr<const editor::SceneMergeReview> merge_review;
   editor::SceneMergeCandidateSnapshot candidate;
-  bool candidate_busy{};
+  bool candidate_busy{}, publication_allowed{};
   std::uint64_t candidate_draft{};
   float scale;
   bool busy{};
@@ -109,6 +111,7 @@ struct Fixture final {
     ui.SetSceneFileContext(current->Token(), "Content/Main.scene");
     ui.SetSceneComparisonStatus(observation, busy);
     ui.SetSceneMergeCandidateStatus(candidate, candidate_busy, candidate_draft);
+    ui.SetSceneMergePublicationAllowed(publication_allowed);
     ui.BeginFrame();
     ui.DrawProductShell(shell, &scene, active, nullptr, nullptr, nullptr, nullptr, &play);
     static_cast<void>(ui.EndFrame());
@@ -380,6 +383,214 @@ void RunMerge(float dpi) {
               disk_bytes() == original_disk,
           "Graphical candidate validation changed generation, selection or real Undo/Redo history");
 }
+void RunPublication(float dpi) {
+  Fixture f(dpi, true);
+  f.publication_allowed = true;
+  f.observation.review = f.merge_review;
+  f.observation.result =
+      std::shared_ptr<const editor::SceneComparison>(f.merge_review, &f.merge_review->Comparison());
+  const auto original = *f.scene.PrepareSave();
+  const auto disk = std::string(*f.merge_review->RemoteBytes());
+  const auto source = f.root / "Content/Main.scene";
+  const auto read = [&] {
+    std::ifstream input(source, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(input), {});
+  };
+  if (dpi == 2) {
+    const auto conflict = f.current->Save(f.current->Token());
+    Require(conflict.status == editor::SceneFileStatus::NeedsOverwrite && conflict.overwrite_token,
+            "Overwrite-to-publication fixture did not require confirmation");
+    editor::imgui::SceneFileRequest intent{editor::imgui::SceneFileAction::SaveAs,
+                                           f.current->Token(), "Content/Main.scene"};
+    intent.overwrite_token = conflict.overwrite_token;
+    f.ui.RequestSceneOverwrite(intent);
+    f.Draw();
+    f.Draw();
+    f.Click(Access::SceneComparisonPosition(f.ui, 1));
+  } else {
+    f.Click(Access::SceneFilePosition(f.ui, 0));
+    f.Click(Access::SceneComparisonPosition(f.ui, 0));
+  }
+  Require(f.ui.TakeSceneComparisonRequest().has_value(), "Publication comparison did not open");
+  f.Draw();
+  const auto &rows = f.merge_review->Comparison().rows;
+  const auto found = std::ranges::find(rows, editor::SceneComparisonChoice::Unresolved,
+                                       &editor::SceneComparisonRow::choice);
+  Require(found != rows.end(), "Publication name conflict missing");
+  f.Click(
+      Access::SceneMergeChoicePosition(f.ui, static_cast<std::size_t>(found - rows.begin()), 1));
+  f.Click(Access::SceneMergePosition(f.ui, 0));
+  auto draft = f.ui.TakeSceneMergeCandidateRequest();
+  Require(draft.has_value(), "Publication candidate request missing");
+  core::JobSystem jobs(1);
+  jobs.Start();
+  editor::SceneMergeCandidateJob job(jobs);
+  Require(job.Start(*f.merge_review, draft->candidate), "Publication candidate worker failed");
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+  while (!job.Poll(f.merge_review->Identity())) {
+    Require(std::chrono::steady_clock::now() < deadline, "Publication candidate did not drain");
+    std::this_thread::yield();
+  }
+  f.candidate = job.Snapshot();
+  f.candidate_draft = draft->draft;
+  f.Draw();
+  Require(f.candidate.result && f.candidate.result->bytes, "Publication candidate unavailable");
+  std::uint64_t identity{};
+  const auto preview = [&] {
+    return editor::imgui::SceneMergePublicationPreview{1,
+                                                       ++identity,
+                                                       f.current->Token(),
+                                                       f.observation.operation,
+                                                       f.merge_review->Identity(),
+                                                       f.candidate_draft,
+                                                       "Content/Main.scene",
+                                                       f.candidate.result->bytes->size()};
+  };
+  const auto review = [&] {
+    f.Click(Access::SceneMergePublicationPosition(f.ui, 0));
+    auto request = f.ui.TakeSceneMergePublicationRequest();
+    Require(request && request->draft == draft->draft && !f.ui.TakeSceneMergePublicationRequest() &&
+                !f.ui.TakeSceneFileRequest(),
+            "Publication request lost one-shot scope or emitted an ordinary Save");
+    return request->candidate;
+  };
+  auto request = review();
+  auto capability =
+      editor::SceneMergePublisher::Prepare(*f.current, *f.merge_review, request, true);
+  if (cryptography::ActiveProvider() == cryptography::Provider::Unavailable) {
+    Require(!capability && read() == disk, "Unavailable backend changed source");
+    job.Shutdown();
+    jobs.Stop();
+    return;
+  }
+  Require(capability.has_value(), "Actual publication prepare failed");
+  auto scope = preview();
+  auto invalid = scope;
+  invalid.schema = 9;
+  Require(!f.ui.SetSceneMergePublicationPreview(invalid), "Unknown confirmation schema accepted");
+  Require(f.ui.SetSceneMergePublicationPreview(scope), "Current publication preview rejected");
+  f.Draw();
+  f.Draw();
+  Require(f.ui.SceneMergePublicationPreviewCurrent(scope) && read() == disk,
+          "Preview changed source before confirmation");
+  f.Click(Access::SceneMergePublicationPosition(f.ui, 2));
+  auto cancelled = f.ui.TakeSceneMergePublicationDecision();
+  Require(cancelled && !cancelled->confirmed && cancelled->scope == scope &&
+              !f.ui.TakeSceneMergePublicationDecision() && read() == disk &&
+              f.scene.MatchesPreparedSave(original) && !f.ui.TakeSceneFileRequest(),
+          "Real Cancel lost scope or changed source/history");
+  f.Draw();
+  // A held press belongs to one full confirmation identity and cannot retarget a replacement.
+  request = review();
+  scope = preview();
+  Require(f.ui.SetSceneMergePublicationPreview(scope), "Held-confirm preview failed");
+  f.Draw();
+  f.Draw();
+  const auto held = Access::SceneMergePublicationPosition(f.ui, 1);
+  Require(held.has_value(), "Held-confirm control missing");
+  Nexora::Window::WindowEvent pointer, button;
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = static_cast<int>((*held)[0] * dpi);
+  pointer.value1 = static_cast<int>((*held)[1] * dpi);
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{pointer, button});
+  f.Draw();
+  scope = preview();
+  Require(f.ui.SetSceneMergePublicationPreview(scope), "Replacement confirmation rejected");
+  f.Draw();
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  f.Draw();
+  Require(!f.ui.TakeSceneMergePublicationDecision() &&
+              f.ui.SceneMergePublicationPreviewCurrent(scope) && read() == disk,
+          "Held release retargeted a new confirmation identity");
+  f.Click(Access::SceneMergePublicationPosition(f.ui, 2));
+  Require(f.ui.TakeSceneMergePublicationDecision().has_value(),
+          "Held-confirm cleanup did not cancel");
+  f.Draw();
+  request = review();
+  scope = preview();
+  Require(f.ui.SetSceneMergePublicationPreview(scope), "Revocation preview failed");
+  f.Draw();
+  f.Draw();
+  f.publication_allowed = false;
+  f.Draw();
+  Require(!f.ui.SceneMergePublicationPreviewCurrent(scope) &&
+              !f.ui.TakeSceneMergePublicationDecision() &&
+              !Access::SceneMergePublicationPosition(f.ui, 1) && read() == disk,
+          "Revoked publication retained confirmation authority");
+  f.publication_allowed = true;
+  f.Draw();
+  // A changed disk while the confirmation is open must be rejected by the real publisher.
+  request = review();
+  capability = editor::SceneMergePublisher::Prepare(*f.current, *f.merge_review, request, true);
+  Require(capability.has_value(), "Stale-disk preparation failed");
+  scope = preview();
+  Require(f.ui.SetSceneMergePublicationPreview(scope), "Stale-disk preview rejected too early");
+  f.Draw();
+  f.Draw();
+  std::ofstream(source, std::ios::binary | std::ios::trunc) << *f.merge_review->BaseBytes();
+  f.Click(Access::SceneMergePublicationPosition(f.ui, 1));
+  auto stale = f.ui.TakeSceneMergePublicationDecision();
+  Require(stale && stale->confirmed &&
+              editor::SceneMergePublisher::Publish(*f.current, *capability, true).status ==
+                  editor::SceneMergePublishStatus::Rejected &&
+              read() == *f.merge_review->BaseBytes(),
+          "Stale disk crossed actual graphical confirmation");
+  std::ofstream(source, std::ios::binary | std::ios::trunc) << disk;
+  f.Draw();
+  request = review();
+  capability = editor::SceneMergePublisher::Prepare(*f.current, *f.merge_review, request, true);
+  Require(capability.has_value(), "Successful publication preparation failed");
+  scope = preview();
+  Require(f.ui.SetSceneMergePublicationPreview(scope), "Successful publication preview failed");
+  f.Draw();
+  f.Draw();
+  f.Click(Access::SceneMergePublicationPosition(f.ui, 1));
+  auto confirmed = f.ui.TakeSceneMergePublicationDecision();
+  Require(confirmed && confirmed->confirmed && confirmed->scope == scope &&
+              !f.ui.TakeSceneMergePublicationDecision(),
+          "Real Confirm lost scope or duplicated");
+  const auto published = editor::SceneMergePublisher::Publish(*f.current, *capability, true);
+  Require(published.Published() && read() == *f.candidate.result->bytes &&
+              f.scene.MatchesPreparedSave(original) &&
+              editor::SceneMergePublisher::Inspect(f.writer, published.archive).has_value(),
+          "Graphical confirmation did not publish exact candidate with retained provenance");
+  runtime::World reopened_world;
+  editor::SceneDocument reopened(reopened_world, reopened_world.LoadScene("Published UI"));
+  const auto entity = f.scene.Nodes().front().id;
+  Require(reopened.ReloadBytes(read()) && reopened.Name(entity) == "Local" &&
+              reopened.PrefabPlacements().empty() &&
+              reopened.OpaqueComponents(*reopened.Key(entity))->front().data ==
+                  std::vector<std::uint8_t>({0, 255, 17}) &&
+              f.scene.Undo() && f.scene.Name(entity) == "Base" && f.scene.Redo() &&
+              f.scene.Name(entity) == "Local" && f.scene.MatchesPreparedSave(original) &&
+              f.current->Save(f.current->Token()).status == editor::SceneFileStatus::NeedsOverwrite,
+          "Published UI file lost unknown bytes/reopen or changed live history/baseline");
+  Require(f.reader.Open(f.root, editor::ProjectAccess::ReadOnly),
+          "Publication read-only fixture failed");
+  f.active = &f.reader;
+  f.Draw();
+  f.Click(Access::SceneMergePublicationPosition(f.ui, 0));
+  Require(!f.ui.TakeSceneMergePublicationRequest() &&
+              !f.ui.SetSceneMergePublicationPreview(preview()),
+          "Read-only graphical publication accepted");
+  f.active = &f.writer;
+  const std::array tabs{editor::imgui::SceneTabItem{
+      7, f.current->Token(), "Reference", "Content/Main.scene", false, false, false, true}};
+  Require(f.ui.SetSceneTabs(tabs, 7), "Reference publication tab fixture failed");
+  f.Draw();
+  f.Click(Access::SceneMergePublicationPosition(f.ui, 0));
+  Require(!f.ui.TakeSceneMergePublicationRequest() &&
+              !f.ui.SetSceneMergePublicationPreview(preview()),
+          "Reference graphical publication accepted");
+  job.Shutdown();
+  jobs.Stop();
+}
+
 } // namespace
 int main() {
   try {
@@ -387,6 +598,8 @@ int main() {
     Run(2);
     RunMerge(1);
     RunMerge(2);
+    RunPublication(1);
+    RunPublication(2);
     std::cout << "Graphical semantic scene comparison passed\n";
     return 0;
   } catch (const std::exception &error) {

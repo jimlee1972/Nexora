@@ -98,6 +98,8 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SceneMergeChoicePosition(const EditorImGuiHost &, std::size_t row, std::size_t option);
   [[nodiscard]] static SceneMergeCandidateSnapshot SceneMergeStatus(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SceneMergePublicationPosition(const EditorImGuiHost &, std::size_t);
   static void FailNextSceneMergeChoiceAllocation(EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   StaticExportPosition(const EditorImGuiHost &, std::size_t);
