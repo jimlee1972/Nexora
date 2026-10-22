@@ -921,11 +921,53 @@ void TestNativeSceneCameraControls() {
   draw();
   assert(host.GetSceneOverviewCamera().x == 10.0 && host.GetNativeSceneOrbit().distance > 25.0);
 }
+void TestFiniteFrameInputs() {
+  using nexora::editor::imgui::EditorImGuiHost;
+  using nexora::editor::imgui::EditorImGuiTestAccess;
+  struct InputCase {
+    float input, expected;
+  };
+  const auto nan = std::numeric_limits<float>::quiet_NaN();
+  const auto infinity = std::numeric_limits<float>::infinity();
+  const std::array display_cases{InputCase{nan, 1}, InputCase{infinity, 1}, InputCase{-infinity, 1},
+                                 InputCase{0, 1},   InputCase{-3, 1},       InputCase{0.5F, 1},
+                                 InputCase{1, 1},   InputCase{640, 640}};
+  EditorImGuiHost host;
+  for (const auto &test : display_cases) {
+    for (const bool width : {true, false}) {
+      host.SetDisplay(width ? test.input : 640, width ? 480 : test.input, 1);
+      const auto state = EditorImGuiTestAccess::Inspect(host);
+      assert(state.display_width == (width ? test.expected : 640));
+      assert(state.display_height == (width ? 480 : test.expected));
+      for (unsigned frame = 0; frame < 2; ++frame) {
+        host.BeginFrame();
+        assert(std::isfinite(ImGui::GetTime()));
+        static_cast<void>(host.EndFrame());
+      }
+    }
+  }
+  host.SetDisplay(640, 480, 1);
+  const std::array delta_cases{InputCase{nan, 0.0001F},       InputCase{infinity, 0.0001F},
+                               InputCase{-infinity, 0.0001F}, InputCase{0, 0.0001F},
+                               InputCase{-1, 0.0001F},        InputCase{0.00001F, 0.0001F},
+                               InputCase{0.0001F, 0.0001F},   InputCase{0.25F, 0.25F}};
+  for (const auto &test : delta_cases) {
+    for (unsigned frame = 0; frame < 2; ++frame) {
+      host.BeginFrame(test.input);
+      assert(ImGui::GetIO().DeltaTime == test.expected && std::isfinite(ImGui::GetTime()));
+      static_cast<void>(host.EndFrame());
+    }
+    host.BeginFrame(1.0F / 60.0F);
+    assert(ImGui::GetIO().DeltaTime == 1.0F / 60.0F && std::isfinite(ImGui::GetTime()));
+    static_cast<void>(host.EndFrame());
+  }
+}
 } // namespace
 
 #include "RenderDrawContract.inl"
 
 int main() {
+  TestFiniteFrameInputs();
   TestRenderDrawContract();
   TestEulerRotation();
   TestSceneUndoShortcut(false);

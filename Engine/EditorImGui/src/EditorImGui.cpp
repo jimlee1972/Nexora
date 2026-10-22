@@ -137,6 +137,9 @@ struct EditorImGuiHost::State final {
   std::size_t native_texture_bytes = 0;
   RendererMetrics renderer_metrics;
   RecoveryChoice recovery_choice = RecoveryChoice::None;
+  foundation::Uuid recovery_project;
+  std::filesystem::path recovery_root;
+  bool recovery_activation_quarantined = false;
   CloseChoice close_choice = CloseChoice::None;
   PlayCommand play_command = PlayCommand::None;
   bool play_apply_open = false;
@@ -604,6 +607,70 @@ struct EditorImGuiHost::State final {
 
 namespace {
 void Activate(ImGuiContext *context) { ImGui::SetCurrentContext(context); }
+
+template <typename StateT> void CancelRecoveryPopup(StateT &state) {
+  auto &context = *ImGui::GetCurrentContext();
+  auto *window = ImGui::FindWindowByName("Recover workspace###editor.recovery");
+  if (window) {
+    if (context.ActiveIdWindow &&
+        ImGui::IsWindowChildOf(context.ActiveIdWindow, window, true, false))
+      ImGui::ClearActiveID();
+    const auto recover = window->GetID("Recover");
+    const auto discard = window->GetID("Discard recovery data");
+    const auto old_action = [&](ImGuiID id) { return id == recover || id == discard; };
+    if (old_action(context.NavActivateId) || old_action(context.NavActivateDownId) ||
+        old_action(context.NavActivatePressedId)) {
+      context.NavActivateId = context.NavActivateDownId = context.NavActivatePressedId = 0;
+      context.NavActivateFlags = ImGuiActivateFlags_None;
+    }
+    if (old_action(context.NavNextActivateId)) {
+      context.NavNextActivateId = 0;
+      context.NavNextActivateFlags = ImGuiActivateFlags_None;
+    }
+    for (int index = 0; index < context.OpenPopupStack.Size; ++index) {
+      if (context.OpenPopupStack[index].Window == window) {
+        ImGui::ClosePopupToLevel(index, true);
+        break;
+      }
+    }
+  }
+  state.recovery_prompt_opened = false;
+  state.recovery_activation_quarantined = true;
+}
+
+bool RecoveryActivationPending() {
+  const auto &context = *ImGui::GetCurrentContext();
+  for (bool down : context.IO.MouseDown)
+    if (down)
+      return true;
+  const auto activation_key = [](ImGuiKey key) {
+    return key == ImGuiKey_Enter || key == ImGuiKey_Space || key == ImGuiKey_GamepadFaceDown;
+  };
+  for (const auto key : {ImGuiKey_Enter, ImGuiKey_Space, ImGuiKey_GamepadFaceDown})
+    if (ImGui::GetKeyData(key)->Down)
+      return true;
+  // Trickling can defer a press/release from the old scope to a later GUI frame. Drain those
+  // events normally, but require one neutral frame before recovery buttons accept new actions.
+  for (const auto &event : context.InputEventsQueue)
+    if (event.Type == ImGuiInputEventType_MouseButton ||
+        (event.Type == ImGuiInputEventType_Key && activation_key(event.Key.Key)))
+      return true;
+  return false;
+}
+
+template <typename StateT>
+void SynchronizeRecoveryScope(StateT &state, const std::filesystem::path &root,
+                              foundation::Uuid project) {
+  if (state.recovery_root == root && state.recovery_project == project)
+    return;
+  // Stage the owning path before cancelling UI. No workspace/model borrow survives this call.
+  auto owned_root = root;
+  CancelRecoveryPopup(state);
+  state.recovery_root = std::move(owned_root);
+  state.recovery_project = project;
+  state.recovery_choice = RecoveryChoice::None;
+  state.recovery_error.clear();
+}
 
 template <typename StateT> void CancelNativeSceneGesture(StateT &state) {
   state.native_scene_drag_origin.reset();
@@ -4522,7 +4589,8 @@ EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = defau
 
 void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   Activate(state_->context);
-  ImGui::GetIO().DisplaySize = {std::max(width, 1.0F), std::max(height, 1.0F)};
+  ImGui::GetIO().DisplaySize = {std::isfinite(width) ? std::max(width, 1.0F) : 1.0F,
+                                std::isfinite(height) ? std::max(height, 1.0F) : 1.0F};
   dpi_scale = std::isfinite(dpi_scale) ? std::max(dpi_scale, 0.25F) : 1.0F;
   if (dpi_scale != state_->dpi_scale)
     CancelSceneGestures(*state_);
@@ -4683,7 +4751,8 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->native_scene_pick.reset();
   state_->native_scene_drag.reset();
   state_->native_scene_drag_preview.reset();
-  ImGui::GetIO().DeltaTime = std::max(delta_seconds, 0.0001F);
+  ImGui::GetIO().DeltaTime =
+      std::isfinite(delta_seconds) ? std::max(delta_seconds, 0.0001F) : 0.0001F;
   ImGui::NewFrame();
 }
 
@@ -5057,6 +5126,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   };
   const auto profile_root = workspace ? workspace->Root() : std::filesystem::path{};
   const auto profile_id = workspace ? workspace->Project().id.ToString() : std::string{};
+  SynchronizeRecoveryScope(*state_, profile_root,
+                           workspace ? workspace->Project().id : foundation::Uuid{});
   const auto memory_generation = content ? content->Browser().ProjectGeneration() : 0;
   if (profile_root != state_->profile_project_root || profile_id != state_->profile_project_id ||
       memory_generation != state_->play_memory_scope_generation) {
@@ -6855,27 +6926,35 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   }
 
   if (recovery_available && !state_->recovery_prompt_opened) {
+    state_->recovery_activation_quarantined = true;
     ImGui::OpenPopup("Recover workspace###editor.recovery");
     state_->recovery_prompt_opened = true;
   }
-  if (!recovery_available)
-    state_->recovery_prompt_opened = false;
+  if (!recovery_available) {
+    CancelRecoveryPopup(*state_);
+    state_->recovery_error.clear();
+    // A successful same-scope operation removes the journal; its result remains consumable.
+  }
   if (ImGui::BeginPopupModal("Recover workspace###editor.recovery", nullptr,
                              ImGuiWindowFlags_AlwaysAutoResize)) {
     ImGui::TextUnformatted("A recovery journal is available.");
     if (!state_->recovery_error.empty())
       ImGui::TextWrapped("%s", state_->recovery_error.c_str());
-    if (ImGui::Button("Recover")) {
+    if (ImGui::Button("Recover") && workspace && recovery_available &&
+        !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Recover))
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Discard recovery data")) {
+    if (ImGui::Button("Discard recovery data") && workspace && recovery_available &&
+        !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Discard))
         ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
   }
+  if (state_->recovery_activation_quarantined && !RecoveryActivationPending())
+    state_->recovery_activation_quarantined = false;
   if (state_->close_prompt_requested) {
     ImGui::OpenPopup("Unsaved scene###editor.close");
     state_->close_prompt_requested = false;
@@ -8356,7 +8435,11 @@ RecoveryChoice EditorImGuiHost::TakeRecoveryChoice() noexcept {
 }
 
 bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice) {
-  if (choice == RecoveryChoice::None || state_->recovery_choice != RecoveryChoice::None)
+  if (choice == RecoveryChoice::None)
+    return false;
+  Activate(state_->context);
+  SynchronizeRecoveryScope(*state_, workspace.Root(), workspace.Project().id);
+  if (state_->recovery_choice != RecoveryChoice::None)
     return false;
   std::string error;
   const bool succeeded = choice == RecoveryChoice::Recover ? workspace.RecoverWorkspace(&error)

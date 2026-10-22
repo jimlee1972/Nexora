@@ -1,6 +1,6 @@
 # Editor ED-M0 Dear ImGui Integration Plan
 
-> Version: v1.7 | Status: implementation in progress; target-host evidence pending |
+> Version: v1.8 | Status: implementation in progress; target-host evidence pending |
 > Updated: 2026-10-22 | Relates to: `Editor_Roadmap.md` (ED-M0),
 > `ADR-0001-Editor-UI-Framework.md`, `Window_Presentation_Roadmap.md`
 
@@ -320,6 +320,9 @@ proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavi
 **Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
 Windows proof remains.**
 
+✅ Nonfinite display dimensions and frame deltas now use the existing safe lower bounds.
+Multi-frame portable regressions reject NaN/infinity state poisoning while preserving finite inputs.
+
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly
    scale the already-scaled style.
@@ -353,6 +356,15 @@ once and correctly positioned candidates at more than one DPI.
 
 **Status: modal/data-layer calls and automated X11 kill/relaunch coverage for both recover and
 destructive discard exist; physical-display evidence remains.**
+
+✅ Recovery UI now owns a copied project UUID/root scope. Replacement or detach cancels old
+popup activation, errors and pending results; held or queued activation must drain through a neutral
+frame before a new prompt accepts an action. Journal disappearance closes stale prompts while
+preserving successful same-scope results exactly once. Portable actual pointer/keyboard tests cover
+1x/2x, root/UUID replacement, detach, deferred input, failures and fresh actions. Physical-host
+keyboard/recovery acceptance remains open.
+[Linux validation](../../Tools/Build/evidence/EditorEDM0-RecoveryScope-Linux-2026-10-22.md)
+records the new contracts and the separate native-fixture failure/rerun.
 
 1. Detect a journal before normal editing becomes interactive. Recovery modal takes focus, traps
    keyboard navigation, and offers explicit Recover and Discard actions. Discard requires clear

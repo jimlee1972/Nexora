@@ -61,6 +61,13 @@ target_include_directories(NexoraEditorImGuiTests
 target_link_libraries(NexoraEditorImGuiTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
 nexora_apply_defaults(NexoraEditorImGuiTests)
 add_test(NAME editor.imgui_contract COMMAND NexoraEditorImGuiTests)
+add_executable(NexoraRecoveryScopeTests RecoveryScopeTests.cpp)
+target_include_directories(NexoraRecoveryScopeTests
+  PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraRecoveryScopeTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraRecoveryScopeTests)
+add_test(NAME editor.recovery_scope COMMAND NexoraRecoveryScopeTests)
+set_tests_properties(editor.recovery_scope PROPERTIES TIMEOUT 60)
 add_executable(NexoraSceneComparisonUiTests SceneComparisonTests.cpp)
 target_include_directories(NexoraSceneComparisonUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraSceneComparisonUiTests PRIVATE Nexora::EditorImGui)

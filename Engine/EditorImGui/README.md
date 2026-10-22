@@ -562,14 +562,21 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   next save; malformed or unsupported payloads are rejected and replaced only by a normal save.
 - Recovery is prompted once per discovered journal. Failed recover/discard operations keep the
   modal open and expose the data-layer error instead of silently dismissing it.
+  The host owns a copied project UUID/root identity for this UI. Drawing or directly applying a
+  choice against another scope cancels the old popup, activation, error and unconsumed result.
+  Held mouse/keyboard activation and queued activation events must drain through a neutral frame
+  before the new prompt accepts an action. Missing journals close stale prompts; a successful
+  same-scope result remains available exactly once through `TakeRecoveryChoice`.
 
 ## Threading and errors
 
 All methods are serialized and run on the Window owner thread. Project access/upgrade state is a
 snapshot borrowed from Editor Core; read-only state disables project-owned writes in the data layer,
 not merely in widgets. Content mutation errors remain on the session and are shown in the panel; the
-UI does not optimistically update around a failed filesystem transaction. Invalid display
-dimensions and delta times are clamped to safe values. The Window abstraction owns native IME
+UI does not optimistically update around a failed filesystem transaction. Display dimensions are
+clamped to at least one logical unit and frame deltas to at least 0.0001 seconds; nonfinite inputs
+use those same lower bounds, keeping NaN/infinity out of ImGui frame state. The Window abstraction
+owns native IME
 candidate-window positioning; unsupported hosts report that result explicitly. Target-host visual
 acceptance remains a release-runner responsibility. The Xvfb acceptance launches without a project,
 drives create and read-only open through keyboard navigation, and verifies the resulting descriptor
