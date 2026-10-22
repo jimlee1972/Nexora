@@ -931,3 +931,10 @@ foreach(nexora_authoring_scale RANGE 1 2)
   set_tests_properties(editor.authoring_mixed_replay_1000_${nexora_authoring_scale}x PROPERTIES
     TIMEOUT 300 RUN_SERIAL TRUE)
 endforeach()
+
+add_executable(NexoraFontGlyphTests FontGlyphTests.cpp)
+target_include_directories(NexoraFontGlyphTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraFontGlyphTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraFontGlyphTests)
+add_test(NAME editor.font_glyphs COMMAND NexoraFontGlyphTests "${CMAKE_CURRENT_SOURCE_DIR}/Fixtures")
+set_tests_properties(editor.font_glyphs PROPERTIES TIMEOUT 60)

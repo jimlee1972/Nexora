@@ -296,6 +296,27 @@ Windows 證據仍待完成。**
 ✅ 非有限 display dimension 與 frame delta 現使用既有安全下限；多幀 portable 回歸
 確認 NaN／infinity 不會污染 frame state，且保留有限輸入的行為。
 
+✅ 有界宿主字型載入與 atlas coverage 已實作，並通過 Linux 完整 gate。
+Physical-host 驗收分開追蹤。Host 現擁有有界 scalable-font plan，固定
+profile 共 7182 個 scalar：5401 個繁中常用字、pinned SimplifiedCommon、注音／標點與
+U+1F600／U+1F642，硬上限為 8192。來源使用 native Unicode path、有限 Linux／macOS 預設、
+TC family／outline 選擇與明確 missing／fallback 診斷。Windows 可選 `seguiemj.ttf` 排在
+Symbol 前，仍走同一 outline policy，不推論 Windows runtime 或彩色字型已驗收。TTC 的
+10 個 face 與最多 4 個 admitted face 不同；每檔 32 MiB／source 64 MiB、4096²／RGBA atlas
+64 MiB 是各自限制，不是總峰值記憶體保證。Trusted-source preflight 不是一般惡意字型 sanitizer；
+bitmap-only emoji 不代表 scalable coverage。
+
+已實作的 portable `editor.font_glyphs` 為 0.21 秒通過。真實 Linux 預設來源量測選到
+Noto Sans CJK TC face 3 與 DejaVu Sans，7182 個 profile member 中有 54 個 missing；
+A、中、U+1F600 有 ink，U+1F642 仍缺。這是已觀察到的限制，不是完整 profile／可讀性驗收。
+初次明確配置官方 monochrome Noto Emoji 時，U+1F642 出現 ink，仍有 53 個 raw missing。
+baseline 修正後來源重跑已確認相同 sample／missing 結果；Linux 完整 suite 為 366/366 通過，
+無失敗或跳過，耗時 1570.09 秒；native preview 亦通過原有 45 秒期限。Windows CP950 條件對照
+與 Windows／macOS runtime 仍未驗證。[Glyph 證據](../../Tools/Build/evidence/EditorEDM0-GlyphCoverage-Linux-2026-10-22.md)
+將完整／針對性結果與 target-host 未完成項目分開保留。Shipping 排除 Editor；另跑的 Monolithic
+Development font build/test 也已通過，驗證 static ownership，不變更 Shipping policy 或 CI。實體 Linux、Windows DPI／已安裝 IME
+與 ED-M0 驗收維持 open，Editor 整體 milestone 仍為 0/8。
+
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。
 2. 依 bucket pixel density 重建 atlas，同時維持 logical widget size；在 frame boundary 原子切換 font
@@ -310,6 +331,9 @@ Windows 證據仍待完成。**
 ### WP6 — IME 與 Unicode
 
 **狀態：event forwarding 與 candidate callback 已有；target-host 證據未完成。**
+
+Unicode scalar 保存、真正 atlas glyph coverage 與已安裝 IME 行為是不同 oracle。已通過的 cloud
+glyph pipeline 測試不觀察 native composition／candidate window；target-host 各列仍須獨立完成。
 
 1. 驗證 Unicode scalar（含 supplementary-plane）；無效 scalar 不可送進 `AddInputCharacter`。Key event
    不得重複產生 text event。

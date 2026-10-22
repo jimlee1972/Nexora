@@ -16,9 +16,11 @@
 #include <array>
 #include <cctype>
 #include <charconv>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <exception>
 #include <iomanip>
@@ -115,11 +117,14 @@ struct EditorImGuiHost::State final {
   // default of 1.0F here would make that common case a no-op and leave the atlas unbuilt, which
   // ImGui::NewFrame() asserts on.
   float dpi_bucket = 0.0F;
-  // The system CJK font and its glyph ranges outlive every atlas build: ImGui keeps the range
-  // pointer until the atlas is cleared.
-  Nexora::EditorImGuiDetail::SystemCjkFont cjk_font;
-  std::vector<ImWchar> cjk_ranges;
-  bool cjk_probed = false;
+  // Plans own bounded source bytes and the ranges borrowed by an atlas. Pinned ImGui also
+  // copies FontData per atlas even with FontDataOwnedByAtlas=false. This is not a total-peak
+  // memory budget. Default plans share one cache; explicit owner/test plans remain host-local.
+  std::shared_ptr<const Nexora::EditorImGuiDetail::FontPlan> font_plan;
+  std::vector<std::uint32_t> font_profile, missing_font_scalars;
+  std::optional<std::vector<Nexora::EditorImGuiDetail::FontSource>> font_sources;
+  std::uint64_t font_build_microseconds{};
+  bool font_atlas_fallback{};
   std::uint32_t font_generation = 1;
   std::uint32_t surface_font_generation = 0;
   std::uint64_t surface_font_domain = 0;
@@ -4689,27 +4694,72 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     ImFontConfig config;
     config.SizePixels = 13.0F * bucket;
     fonts.AddFontDefault(&config);
-    if (!state_->cjk_probed) {
-      state_->cjk_probed = true;
-      if (Nexora::EditorImGuiDetail::FindSystemCjkFont(state_->cjk_font)) {
-        for (const auto point : state_->cjk_font.glyph_pairs)
-          state_->cjk_ranges.push_back(static_cast<ImWchar>(point));
-        state_->cjk_ranges.push_back(0);
+    if (!state_->font_plan) {
+      const auto *simplified = fonts.GetGlyphRangesChineseSimplifiedCommon();
+      std::size_t length = 0;
+      while (simplified[length] != 0)
+        ++length;
+      state_->font_profile = Nexora::EditorImGuiDetail::BuildFontProfile(
+          std::span<const std::uint32_t>{simplified, length});
+      // Planning subtracts the built-in atlas's actual configured glyphs, never an assumed
+      // Latin range. Keep the complete profile for truthful final-atlas missing diagnostics.
+      state_->font_plan = state_->font_sources
+                              ? Nexora::EditorImGuiDetail::PrepareFontPlan(state_->font_profile,
+                                                                           *state_->font_sources)
+                              : Nexora::EditorImGuiDetail::InstalledFontPlan(state_->font_profile);
+    }
+    const auto started = std::chrono::steady_clock::now();
+    state_->font_atlas_fallback = state_->font_plan->faces.empty();
+    fonts.TexDesiredWidth = 4096;
+    for (const auto &face : state_->font_plan->faces) {
+      ImFontConfig merged;
+      merged.FontDataOwnedByAtlas = false;
+      merged.MergeMode = true;
+      merged.FontNo = face.index;
+      merged.SizePixels = 13.0F * bucket;
+      merged.OversampleH = merged.OversampleV = 1;
+      merged.PixelSnapH = true;
+      if (!fonts.AddFontFromMemoryTTF(const_cast<std::byte *>(face.bytes->data()),
+                                      static_cast<int>(face.bytes->size()), merged.SizePixels,
+                                      &merged, face.ranges.data())) {
+        state_->font_atlas_fallback = true;
+        break;
       }
     }
-    // Merge a system CJK font so IME-committed Chinese text has glyphs; without it InputText
-    // receives the characters but draws nothing for them.
-    if (!state_->cjk_ranges.empty()) {
-      ImFontConfig cjk_config;
-      cjk_config.MergeMode = true;
-      cjk_config.SizePixels = 13.0F * bucket;
-      cjk_config.OversampleH = 1;
-      cjk_config.OversampleV = 1;
-      cjk_config.PixelSnapH = true;
-      fonts.AddFontFromFileTTF(state_->cjk_font.path.c_str(), cjk_config.SizePixels, &cjk_config,
-                               state_->cjk_ranges.data());
+    const bool built = !state_->font_atlas_fallback && fonts.Build();
+    if (!built || fonts.TexWidth <= 0 || fonts.TexHeight <= 0 || fonts.TexWidth > 4096 ||
+        fonts.TexHeight > 4096 ||
+        std::uint64_t(fonts.TexWidth) * fonts.TexHeight * 4 >
+            Nexora::EditorImGuiDetail::FontAtlasMaximumBytes) {
+      // Admission and post-build checks are separate. Never send an oversized atlas to RenderUi.
+      // Clear the borrowed configs before replacing them with the bounded Latin-only fallback.
+      fonts.Clear();
+      fonts.TexDesiredWidth = 0;
+      fonts.AddFontDefault(&config);
+      if (!fonts.Build())
+        throw std::runtime_error("Default Editor font atlas could not be built");
+      state_->font_atlas_fallback = true;
     }
-    fonts.Build();
+    state_->missing_font_scalars.clear();
+    for (const auto scalar : state_->font_profile)
+      if (!fonts.Fonts[0]->FindGlyphNoFallback(scalar))
+        state_->missing_font_scalars.push_back(scalar);
+    state_->font_build_microseconds =
+        static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                                       std::chrono::steady_clock::now() - started)
+                                       .count());
+    if (std::getenv("NEXORA_EDITOR_FONT_DIAGNOSTICS"))
+      std::fprintf(stderr,
+                   "editor font coverage: profile=%zu missing=%zu fallback=%d sources=%zu "
+                   "source_bytes=%zu atlas=%dx%d sample_1f600=%d sample_1f642=%d "
+                   "probe_us=%llu build_us=%llu\n",
+                   state_->font_profile.size(), state_->missing_font_scalars.size(),
+                   state_->font_atlas_fallback, state_->font_plan->faces.size(),
+                   state_->font_plan->bytes, fonts.TexWidth, fonts.TexHeight,
+                   fonts.Fonts[0]->FindGlyphNoFallback(0x1F600) != nullptr,
+                   fonts.Fonts[0]->FindGlyphNoFallback(0x1F642) != nullptr,
+                   static_cast<unsigned long long>(state_->font_plan->probe_microseconds),
+                   static_cast<unsigned long long>(state_->font_build_microseconds));
     fonts.SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
     ImGui::GetIO().FontGlobalScale = 1.0F / bucket;
     ++state_->font_generation;
@@ -8775,6 +8825,80 @@ EditorImGuiTestAccess::SceneShortcutInput(const EditorImGuiHost &host) noexcept 
   return result;
 }
 
+void EditorImGuiTestAccess::FontSources(EditorImGuiHost &host, std::span<const std::string> paths,
+                                        bool require_traditional_face) {
+  Activate(host.state_->context);
+  auto &state = *host.state_;
+  ImGui::GetIO().Fonts->Clear(); // Retire atlas input copies and borrowed ranges first.
+  state.font_plan.reset();
+  state.font_sources.emplace();
+  for (const auto &path : paths)
+    state.font_sources->push_back({path, require_traditional_face});
+  state.dpi_bucket = 0;
+}
+EditorFontTestState EditorImGuiTestAccess::FontState(const EditorImGuiHost &host) {
+  Activate(host.state_->context);
+  const auto &state = *host.state_;
+  EditorFontTestState result;
+  result.profile = state.font_profile;
+  result.missing = state.missing_font_scalars;
+  result.generation = state.font_generation;
+  result.width = ImGui::GetIO().Fonts->TexWidth;
+  result.height = ImGui::GetIO().Fonts->TexHeight;
+  result.fallback = state.font_atlas_fallback;
+  result.build_microseconds = state.font_build_microseconds;
+  if (state.font_plan) {
+    const auto &plan = *state.font_plan;
+    result.candidates = plan.candidates;
+    result.rejected = plan.rejected;
+    result.bitmap_only = plan.bitmap_only;
+    result.owned_bytes = plan.bytes;
+    result.conservative_area = plan.conservative_area;
+    result.probe_microseconds = plan.probe_microseconds;
+    result.admission_rejected = plan.atlas_admission_rejected;
+    result.profile_rejected = plan.profile_rejected;
+    for (const auto &face : plan.faces) {
+      result.paths.push_back(face.path);
+      result.families.push_back(face.family);
+      result.faces.push_back(face.index);
+    }
+  }
+  return result;
+}
+EditorFontGlyphTestState EditorImGuiTestAccess::FontGlyph(const EditorImGuiHost &host,
+                                                          std::uint32_t scalar) {
+  Activate(host.state_->context);
+  EditorFontGlyphTestState result;
+  auto &atlas = *ImGui::GetIO().Fonts;
+  if (!atlas.IsBuilt() || atlas.Fonts.empty())
+    return result;
+  const auto *glyph = atlas.Fonts[0]->FindGlyphNoFallback(scalar);
+  if (!glyph)
+    return result;
+  result.present = true;
+  result.uv = {glyph->U0, glyph->V0, glyph->U1, glyph->V1};
+  unsigned char *pixels = nullptr;
+  int width{}, height{};
+  atlas.GetTexDataAsAlpha8(&pixels, &width, &height);
+  const auto x0 = static_cast<int>(std::lround(glyph->U0 * width));
+  const auto y0 = static_cast<int>(std::lround(glyph->V0 * height));
+  const auto x1 = static_cast<int>(std::lround(glyph->U1 * width));
+  const auto y1 = static_cast<int>(std::lround(glyph->V1 * height));
+  result.raster_hash = 1469598103934665603ULL;
+  for (int y = y0; y < y1; ++y)
+    for (int x = x0; x < x1; ++x) {
+      if (x < 0 || x >= width || y < 0 || y >= height)
+        continue;
+      const auto value = pixels[static_cast<std::size_t>(y) * width + x];
+      result.ink_pixels += value != 0;
+      result.raster_hash = (result.raster_hash ^ value) * 1099511628211ULL;
+    }
+  return result;
+}
+std::vector<std::uint16_t> EditorImGuiTestAccess::TraditionalFontScalars() {
+  const auto scalars = Nexora::EditorImGuiDetail::TraditionalCommonScalars();
+  return {scalars.begin(), scalars.end()};
+}
 EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto &io = ImGui::GetIO();
