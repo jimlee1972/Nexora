@@ -18,6 +18,39 @@ corresponding milestone accepted until its host gate passes.
 synchronization and native RHI shader features ([evidence](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)).
 ED-M0 remains open pending the target-host and workflow gates.
 
+### Local Windows baseline and separate 100k stress tier (2026-10-22)
+
+✅ The scoped local Windows baseline completed: 303 passed, 6 skipped, zero failures
+(309 selected), plus a passing fresh 240-frame hardware smoke. The original full-suite
+303/3-timeout/6-skip result and blocked `nexora-wo1` remain unchanged.
+
+The current developer PC is not required to complete the 100,000-node CPU/ImGui fixtures as
+its basic ED-M0 host gate. These are a separate scale/stress tier, not a minimum hardware
+specification or native GPU benchmark. The observed timeouts alone do not establish whether
+hardware, configuration or implementation cost is responsible. No replacement node-count or
+performance guarantee is accepted without measurement.
+
+- **Local Windows baseline:** configure/build the graphical Development Editor, run every
+  registered test except the exact stress set below, require `editor.imgui_contract` and
+  `editor.windows_dpi_ime_contract` to register and pass, then run the 240-frame native smoke.
+  Account for every skip. This snapshot registers 312 tests; the scoped baseline selects 309.
+- **Separate 100k stress tier:** `editor.deep_hierarchy`, `editor.hierarchy_scale_lifecycle`,
+  and `editor.overview_pose_snapshot`, tracked separately as blocked `nexora-wo1`.
+  Retain these unchanged in the full suite/CI and verify
+  them on a separately recorded capable host. On this PC their acceptance remains blocked.
+  Do not increase deadlines, weaken assertions, or reduce fixture sizes to claim a pass.
+- **Full-suite and product acceptance:** a scoped baseline pass is not a full CTest pass and
+  can close `nexora-nqn.4.1` only against its explicitly revised local-baseline criteria,
+  after the selected tests and smoke actually pass. It does not accept `nexora-wo1`. Keep the original
+  303 passed / 3 timeouts / 6 skipped result and its raw evidence; ED-M0 and 0/8 milestone
+  acceptance, physical DPI/IME, keyboard/docking/recovery and other platforms remain open.
+  New baseline evidence is recorded separately in the [host report](../../Tools/Build/evidence/EditorEDM0-Windows-LocalBaseline-2026-10-22.md).
+
+The explicit local-only selection is `ctest --preset windows-development -V -E '^(editor\.(deep_hierarchy|hierarchy_scale_lifecycle|overview_pose_snapshot))$'`.
+Always archive the full/selected test lists, exact exclusion expression, commands, exit codes,
+source/binary hashes and host metadata. The unfiltered `ctest --preset windows-development`
+remains the repository full gate; this documentation does not change CMake/CTest/CI behavior.
+
 ### Repository completion audit (2026-10-02)
 
 The audit distinguishes a checked implementation foundation from an accepted graphical milestone.

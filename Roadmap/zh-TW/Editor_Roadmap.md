@@ -16,6 +16,37 @@ workspace/document core。**待辦：** 其餘 graphical view、authoring workfl
 ✅ Linux 自動化 Vulkan 驗證現會拒絕 exit-zero error，已涵蓋 attachment 同步與 native RHI
 shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)）。ED-M0 仍待 target-host 與 workflow gate。
 
+### 本機 Windows 基本驗收與獨立 100k 壓力層級（2026-10-22）
+
+✅ 本機分層基本驗收已完成：309 項中 303 passed、6 skipped、零失敗，
+另有重新執行的 240-frame 硬體 smoke 通過。原完整 suite 的 303／3 timeout／6 skip 與
+`nexora-wo1` blocked 狀態維持不變。
+
+目前開發機的 ED-M0 基本主機驗收不要求完成 100,000-node CPU／ImGui fixture。
+這些 fixture 屬於獨立規模／壓力層級，不是最低硬體規格，也不是 native GPU benchmark。
+僅憑目前 timeout 不能判定原因一定是硬體、組態或實作成本；未量測前，不宣稱新的節點數
+或效能保證已驗收。
+
+- **本機 Windows 基本驗收：**configure／build 圖形版 Development Editor，執行全部已註冊
+  測試，但排除下列明確的壓力集合；`editor.imgui_contract` 與
+  `editor.windows_dpi_ime_contract` 必須註冊且通過，再執行 240-frame native smoke。
+  每個 skip 都要交代。本次 snapshot 共 312 項，分層後本機基本集合為 309 項。
+- **獨立 100k 壓力層級：**`editor.deep_hierarchy`、`editor.hierarchy_scale_lifecycle`、
+  `editor.overview_pose_snapshot`，另以 `nexora-wo1` 保留 blocked 追蹤。
+  原測試完整保留於 full suite／CI，交由另行記錄且具足夠
+  處理能力的主機驗證；目前這台電腦的壓力驗收仍為 blocked。不得提高期限、放寬 assertion
+  或縮小 fixture，藉此宣稱通過。
+- **完整 suite 與產品驗收：**本機基本集合通過不等於完整 CTest 通過。只有選取的測試與
+  smoke 實際通過，才能依明確修訂的本機基本條件關閉 `nexora-nqn.4.1`，不得因此驗收
+  `nexora-wo1`。保留原本 303 passed／3 timeout／6 skipped 與
+  原始證據；ED-M0、0/8 milestone、實體 DPI／IME、鍵盤／Docking／Recovery 及其他平台
+  驗收維持 open。新的本機基本證據另存於[主機報告](../../Tools/Build/evidence/EditorEDM0-Windows-LocalBaseline-2026-10-22.md)。
+
+本機限定的明確選取指令為 `ctest --preset windows-development -V -E '^(editor\.(deep_hierarchy|hierarchy_scale_lifecycle|overview_pose_snapshot))$'`。
+必須保存完整／選取測試清單、精確排除式、指令、exit code、來源／二進位雜湊及主機資訊。
+未篩選的 `ctest --preset windows-development` 仍是 repo 完整 gate；本文件不修改
+CMake／CTest／CI 行為。
+
 ### Repository 完成度稽核（2026-10-02）
 
 本稽核明確區分「已打勾的 implementation foundation」與「已驗收的 graphical milestone」。Source
