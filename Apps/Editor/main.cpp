@@ -24,6 +24,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
 #include "EditorImGuiTestAccess.h"
+#include "PrefabWorkflowEvidence.h"
 #include "ProjectAssetWorkflowEvidence.h"
 #endif
 #include "Nexora/Math/Math.h"
@@ -2994,6 +2995,16 @@ int RunGraphical(std::optional<ProjectState> project,
 #endif
     static_cast<void>(ui.EndFrame());
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (std::getenv("NEXORA_PREFAB_WORKFLOW_EVIDENCE")) {
+      static std::string previous_prefab;
+      const auto observation = nexora::editor::test::PrefabWorkflowEvidence(
+          ui, prefab_documents ? prefab_documents->Document() : nullptr, dpi);
+      if (observation != previous_prefab) {
+        previous_prefab = observation;
+        std::cerr << observation << " frame="
+                  << nexora::editor::imgui::EditorImGuiTestAccess::PrefabInput(ui).frame << '\n';
+      }
+    }
     if (std::getenv("NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       const auto captured = Access::SceneComparisonStatus(ui);

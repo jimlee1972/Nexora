@@ -394,6 +394,20 @@ resize generation and final lifecycle counters remain mandatory.
 Editor display shortcuts use 100 ms native key transitions, matching selector input, so ImGui
 trickling and GPU frames can observe the original press/release sequence.
 
+✅ The native prefab workflow now observes actual GUI focus/key/pointer phases and copied history
+control positions/admission, checks both committed edits before full-property revert, and verifies
+that one Undo/Redo gesture invokes history exactly once. Failed projects, baseline/Undo assets,
+both process streams and timestamped input records are retained. This closes diagnostic and input
+synchronization gaps; the earlier aggregate Undo failure lacked its original assets and its exact
+root cause remains unproven. Existing data assertions and the 180-second whole-case deadline stay
+required. See [prefab investigation evidence](../../Tools/Build/evidence/EditorEDM0-PrefabInput-Linux-2026-10-22.md).
+
+✅ The Game View option observer also excludes ImGui's hidden popup sizing frame: temporary item
+rectangles are not input readiness. A portable regression fails against the old library and passes
+with the visible/enabled-only observer, using the same opening and selection gestures. Native
+32-cycle and full-gate results are tracked in the investigation evidence above; unresolved Scene
+Meshes shortcut failures remain in the shared native X11 investigation.
+
 ✅ Target-host evidence tooling now provides a complete Linux/Windows operator checklist through
 `Tools/Editor/EditorTargetEvidence.py` ([usage](../../Tools/Editor/README.md)). It retains exact
 argv, binary hash, source/configuration/host/backend metadata and hashed artifact copies; validation

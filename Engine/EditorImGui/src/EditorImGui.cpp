@@ -228,6 +228,9 @@ struct EditorImGuiHost::State final {
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
   std::array<std::optional<std::array<float, 2>>, 29> prefab_positions{};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  PrefabInputObservation prefab_input;
+#endif
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -5860,7 +5863,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
               state_->game_input_focused = false;
             }
             const auto a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
-            state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
+            // A newly opened combo submits items during its hidden size-measurement frame.
+            // Those temporary coordinates are not interactive and may move before first render.
+            if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+                !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+              state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
           }
           ImGui::EndCombo();
         }

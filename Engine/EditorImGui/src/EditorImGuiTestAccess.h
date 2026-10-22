@@ -11,6 +11,18 @@
 
 namespace nexora::editor::imgui {
 
+struct PrefabInputObservation final {
+  std::array<bool, 29> enabled{};
+  std::array<float, 2> pointer{};
+  bool down{};
+  bool focused{};
+  // Control, Alt, P, A, Enter, Escape: actual processed GUI state, not X server state.
+  std::array<bool, 6> keys{};
+  std::uint32_t active{}, hovered{};
+  std::uint64_t frame{};
+  std::uint64_t undo_attempts{}, undo_applied{}, redo_attempts{}, redo_applied{};
+};
+
 // Test-only inspection surface for validating the optional module across a shared-library
 // boundary. It intentionally exposes no Dear ImGui types so tests cannot bind a second copy of
 // Dear ImGui's process-global context state.
@@ -369,6 +381,7 @@ public:
   [[nodiscard]] static BuildProcessSnapshot BuildStatus(const EditorImGuiHost &host);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabControlPosition(const EditorImGuiHost &, std::size_t control) noexcept;
+  [[nodiscard]] static PrefabInputObservation PrefabInput(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PrefabPropertyPosition(const EditorImGuiHost &, std::size_t row) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>

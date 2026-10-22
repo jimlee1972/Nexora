@@ -1293,3 +1293,17 @@ existing workspace/model state and widget rectangles. It retains no model/native
 executes no action or IO, and has no gameplay/plugin callback. Private UI rectangle inspection
 ends with the host lifetime. Native tests wait for stable rendered coordinates and keep normal
 input routing, access checks, import worker publication and filesystem transactions intact.
+
+The opt-in `NEXORA_PREFAB_WORKFLOW_EVIDENCE` observer is also restricted to test-enabled
+graphical builds. It copies actual drawn prefab control centers/admission, processed GUI
+focus/key/pointer state, history attempt/success counters, and the first root's committed name
+(hex UTF-8) and X position. It runs after EndFrame on the owner thread, retains no pointers,
+and cannot perform an authoring action. Only changed observations are printed.
+`editor.linux_prefab_isolation` acknowledges each pointer/key phase and resolves actual history
+control positions before a single Undo/Redo gesture; both expected edits must be committed
+before the full-property revert. The original exact asset/identity/opaque-byte and read-only
+checks and 180-second whole-test deadline remain required. Both output pipes are drained during
+input/result waits. Failures retain the temporary project, per-launch output, and timestamped
+input records at the path printed by CTest; successful runs clean their owned temporary tree.
+The older aggregate Undo failure did not retain its assets, so this instrumentation must not
+be presented as proof of that historical failure's root cause.

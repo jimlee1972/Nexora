@@ -361,6 +361,18 @@ resize generation 與最終 lifecycle counter 仍需通過。
 Editor display shortcut 採用與 selector 相同的 100 ms native key transition，
 讓 ImGui trickling 與 GPU frame 觀測原始 press／release sequence。
 
+✅ Native prefab workflow 現觀測實際 GUI focus／key／pointer phase 與複製的 history control
+位置／admission，在完整 property revert 前檢查兩項 edit 均已提交，並確認單次 Undo／Redo
+gesture 恰好呼叫 history 一次。失敗時保留 project、baseline／Undo asset、兩個 process
+stream 與附時間的 input record。這補足診斷與輸入同步缺口；先前整體 Undo 失敗未保留
+原始 asset，因此確切根因仍未證實。既有 data assertion 與 180 秒 whole-case deadline
+維持必要。詳見 [prefab 調查證據](../../Tools/Build/evidence/EditorEDM0-PrefabInput-Linux-2026-10-22.md)。
+
+✅ Game View option observer 亦排除 ImGui 隱藏的 popup sizing frame：暫時的 item rectangle
+不代表輸入已可用。Portable regression 使用相同的開啟與選取 gesture，在舊 library
+失敗、在只回報 visible／enabled item 的新版 observer 通過。Native 32-cycle 與完整 gate
+結果記錄於上述調查證據；尚未釐清的 Scene Meshes shortcut 失敗仍由既有 native X11 調查追蹤。
+
 ✅ Target-host 證據工具現透過 `Tools/Editor/EditorTargetEvidence.py` 提供完整 Linux／Windows
 操作者 checklist（[使用方式](../../Tools/Editor/README.md)）。紀錄包含確切 argv、binary hash、
 source／configuration／host／backend metadata 與附雜湊的 artifact 副本；validator 重新檢查所有
