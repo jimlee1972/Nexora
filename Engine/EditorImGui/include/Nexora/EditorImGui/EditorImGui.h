@@ -527,6 +527,9 @@ public:
   Render(Nexora::Presentation::RenderSurface &surface, std::uint32_t width, std::uint32_t height,
          const Nexora::Presentation::UiDrawData &overlay = {});
   void UpdateImeCandidate(Nexora::Presentation::RenderSurface &surface);
+  // Recovery UI/results own the current project UUID/root scope. Draw or a direct Apply against
+  // another scope revokes the previous prompt, active gesture, result and error. Journal removal
+  // closes the prompt but preserves a successful same-scope result until it is consumed once.
   [[nodiscard]] bool ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryChoice choice);
   [[nodiscard]] RecoveryChoice TakeRecoveryChoice() noexcept;
   [[nodiscard]] std::string_view RecoveryError() const noexcept;
