@@ -52,7 +52,11 @@ def digest(path):
 
 
 def retain(source, directory):
-    source = source.expanduser().resolve(strict=True)
+    try:
+        source = source.expanduser().resolve(strict=True)
+    except RuntimeError as error:
+        # Python 3.10-3.12 report symlink loops as RuntimeError rather than OSError.
+        raise ValueError("Artifact contains a symbolic-link loop") from error
     if not source.is_file() or source.stat().st_size == 0:
         raise ValueError("Artifact must be a nonempty regular file")
     sha = digest(source)
@@ -146,7 +150,7 @@ def evaluate(record, directory):
                 path.relative_to(directory.resolve())
                 if not path.is_file() or not path.stat().st_size or digest(path) != item["sha256"]:
                     raise ValueError("Missing, empty or changed artifact")
-            except (OSError, ValueError, KeyError, TypeError):
+            except (OSError, RuntimeError, ValueError, KeyError, TypeError):
                 errors.append(f"{scenario}: invalid artifact")
     if host == "windows" and len(set(candidate_scales)) != 2:
         errors.append("IME candidate observations require two different DPI percentages")
@@ -162,7 +166,7 @@ def evaluate(record, directory):
                                and (directory / item["path"]).resolve().is_relative_to(directory.resolve()))
             if smoke_result(code, output, frames) != "pass":
                 errors.append("Smoke logs do not prove successful native frames")
-        except (OSError, KeyError, TypeError, ValueError):
+        except (OSError, RuntimeError, KeyError, TypeError, ValueError):
             errors.append("Missing or invalid smoke metadata/logs")
     errors.extend(f"Missing scenario: {name}" for name in sorted(expected - seen))
     return ("FAIL" if failed else "INCOMPLETE" if errors else "COMPLETE_OPERATOR_RECORD"), errors

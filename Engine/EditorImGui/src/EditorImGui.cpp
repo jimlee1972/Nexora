@@ -4489,6 +4489,16 @@ ImGuiKey ToImGuiKey(Nexora::Window::Key key) {
   }
 #undef NEXORA_KEY
 }
+// Arbitrary callbacks have no backend-neutral encoder contract. Reject the complete packet
+// before allocating/uploading or recording anything; inspect callback-only draw lists as well.
+bool HasUnsupportedDrawCallbacks(const ImDrawData &draw) {
+  for (const auto *list : draw.CmdLists)
+    for (const auto &command : list->CmdBuffer)
+      if (command.UserCallback != nullptr &&
+          command.UserCallback != ImDrawCallback_ResetRenderState)
+        return true;
+  return false;
+}
 } // namespace
 
 EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
@@ -4496,6 +4506,7 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   Activate(state_->context);
   auto &io = ImGui::GetIO();
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_NavEnableKeyboard;
+  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
   io.IniFilename = nullptr;
   io.BackendPlatformUserData = state_.get();
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
@@ -7697,7 +7708,8 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
                                       bool prepare_for_present) {
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
-  if (draw == nullptr || draw->CmdListsCount == 0 || width == 0 || height == 0)
+  if (draw == nullptr || draw->CmdListsCount == 0 || width == 0 || height == 0 ||
+      HasUnsupportedDrawCallbacks(*draw))
     return 0;
   auto &renderer = state_->renderer;
   if (renderer.device != nullptr && renderer.device != &device)
@@ -7787,7 +7799,17 @@ std::uint32_t EditorImGuiHost::Render(nexora::rhi::Device &device,
                                                      : nexora::rhi::IndexFormat::Uint32,
                               index_offset_bytes);
     for (const auto &draw_command : list->CmdBuffer) {
-      if (draw_command.UserCallback == nullptr && draw_command.ElemCount > 0) {
+      if (draw_command.UserCallback == ImDrawCallback_ResetRenderState) {
+        commands->BindPipeline(renderer.pipeline);
+        commands->BindVertexBuffer(upload.vertices, vertex_offset_bytes);
+        commands->BindIndexBuffer(upload.indices,
+                                  sizeof(ImDrawIdx) == 2 ? nexora::rhi::IndexFormat::Uint16
+                                                         : nexora::rhi::IndexFormat::Uint32,
+                                  index_offset_bytes);
+        // Each following draw independently restores its texture and scissor.
+        continue;
+      }
+      if (draw_command.ElemCount > 0) {
         const auto texture_id = static_cast<std::uint64_t>(draw_command.GetTexID());
         const auto texture_index = static_cast<std::uint32_t>(texture_id);
         const auto texture_generation = static_cast<std::uint32_t>(texture_id >> 32U);
@@ -8208,7 +8230,8 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
   Activate(state_->context);
   const auto *draw = ImGui::GetDrawData();
   const auto domain = surface.UiResourceDomain();
-  if (draw == nullptr || width == 0 || height == 0 || domain == 0)
+  if (draw == nullptr || width == 0 || height == 0 || domain == 0 ||
+      HasUnsupportedDrawCallbacks(*draw))
     return Nexora::Presentation::SurfaceStatus::InvalidDescriptor;
   if (state_->surface_font_domain != domain) {
     state_->surface_font_domain = domain;
@@ -8234,7 +8257,9 @@ EditorImGuiHost::Render(Nexora::Presentation::RenderSurface &surface, std::uint3
         std::span{list.IdxBuffer.Data, static_cast<std::size_t>(list.IdxBuffer.Size)});
     indices.insert(indices.end(), index_bytes.begin(), index_bytes.end());
     for (const auto &command : list.CmdBuffer) {
-      if (command.UserCallback != nullptr || command.ElemCount == 0)
+      // Reset is a no-op in the flattened packet: no external callback executes, and
+      // RenderUi owns/restores all encoder state before recording these commands.
+      if (command.UserCallback == ImDrawCallback_ResetRenderState || command.ElemCount == 0)
         continue;
       const auto left =
           std::max(0.0F, (command.ClipRect.x - draw->DisplayPos.x) * draw->FramebufferScale.x);

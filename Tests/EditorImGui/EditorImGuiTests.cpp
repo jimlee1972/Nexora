@@ -1,6 +1,7 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
+#include <imgui.h>
 
 #include <array>
 #include <atomic>
@@ -922,7 +923,10 @@ void TestNativeSceneCameraControls() {
 }
 } // namespace
 
+#include "RenderDrawContract.inl"
+
 int main() {
+  TestRenderDrawContract();
   TestEulerRotation();
   TestSceneUndoShortcut(false);
   TestSceneUndoShortcut(true);
