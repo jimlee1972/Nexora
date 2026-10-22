@@ -6,15 +6,16 @@ import math
 import os
 from pathlib import Path
 import re
-import select
 import shutil
 import subprocess
 import tempfile
 import time
 
+from NativeSceneInput import NativeSceneInput
+
 from LinuxNativeScenePreview import (XImage, axis_handle_pixels, channel,
                                     plane_handle_pixels,
-                                    scene_region_pixels, settled_viewport, settled_scene_preview,
+                                    scene_region_pixels, settled_scene_preview,
                                     uniform_handle_pixel, undo_and_save)
 from LinuxDisplayAcceptance import request_window_close, start_xvfb, wait_for_window
 
@@ -100,31 +101,34 @@ def main():
         f'20 0 2 1 0 0 0 0 1 1 1 1 0 0 {int(args.authored_meshes)} 60 0.1 1000 1 {mesh_ids[1]} 0\n')
     xvfb, display = start_xvfb(args.xvfb, "1280x720x24")
     editor = None
+    driver = None
+    passed = False
     try:
         if display is None:
             raise RuntimeError("Xvfb did not become ready")
         environment = os.environ.copy()
         environment["DISPLAY"] = display
         environment["XDG_STATE_HOME"] = str(user_state)
+        environment["NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY"] = "1"
         editor = subprocess.Popen(
             [args.editor, f"--project={root}", "--graphical", "--native-scene-preview",
              "--frames=10000", f"--recent-projects={user_state / 'recent-projects'}"],
             env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         window = int(wait_for_window(args.xdotool, environment))
-        captured = b""
+        driver = NativeSceneInput(editor, args.xdotool, environment, window, user_state, 1, minimum_wait=0, phase_wait=.08)
+        captured = driver.stderr
         viewport = None
         deadline = time.monotonic() + 12
         while time.monotonic() < deadline and viewport is None:
-            if select.select([editor.stderr], [], [], 0.5)[0]:
-                captured += os.read(editor.stderr.fileno(), 4096)
-                match = re.search(rb"native scene viewport: (\d+) (\d+) (\d+) (\d+)", captured)
-                if match:
-                    viewport = tuple(map(int, match.groups()))
+            driver.drain(.5)
+            match = re.search(rb"native scene viewport: (\d+) (\d+) (\d+) (\d+)", captured)
+            if match:
+                viewport = tuple(map(int, match.groups()))
         if viewport is None:
             raise RuntimeError(f"center preview did not start: {captured.decode(errors='replace')}")
 
         def send(*arguments):
-            subprocess.run([args.xdotool, *map(str, arguments)], env=environment, check=True)
+            driver.send(*arguments)
 
         def move(point):
             send("mousemove", "--window", window, *point)
@@ -136,21 +140,21 @@ def main():
             # Observe the owner's committed bytes within the original deadline. Repeat only
             # Save, as undo_and_save does; never replay the gesture or issue another Undo.
             while time.monotonic() < deadline and scene_file.read_text() == previous:
-                send("key", "--delay", "80", "ctrl+s")
+                driver.chord("ctrl+s", deadline=deadline)
                 time.sleep(0.05)
             result = scene_file.read_text()
-            if result == previous:
-                raise RuntimeError("center gesture did not change the saved scene")
+            if result == previous or time.monotonic() >= deadline:
+                raise RuntimeError("center gesture did not change the saved scene within its deadline")
             return result
 
         def undo_to(previous):
             undo_and_save(args.xdotool, environment, scene_file, previous,
-                          "center gesture did not undo in one step")
+                          "center gesture did not undo in one step", shortcut=driver.chord)
 
         if args.authored_meshes and b"native mesh geometry: meshes=2 vertices=31 indices=45" not in captured:
             raise RuntimeError(f"distinct OBJ geometry was not submitted: {captured!r}")
         send("windowfocus", window)
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         # Focus the Scene panel and clear selection by clicking empty canvas, not either root.
         move((viewport[0] + 10, viewport[1] + 10))
         send("click", 1)
@@ -177,7 +181,7 @@ def main():
         time.sleep(0.2)
         send("key", "--delay", "100", "ctrl+a")
         time.sleep(0.2)
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         if blue_proxy_pixel(display, window, viewport) is not None:
             raise RuntimeError("native Scene Ctrl+A did not select both submitted roots")
         # A Select click on empty canvas clears selection without authoring a transform.
@@ -191,7 +195,7 @@ def main():
         send("click", 1)
         time.sleep(0.2)
         # Select preserves picking while removing every transform handle and drag preview.
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         if any(axis_handle_pixels(display, window, viewport)):
             raise RuntimeError("Select tool still displays colored transform handles")
         # Normalize the hand-authored fixture through a completed Save before comparing bytes.
@@ -204,7 +208,7 @@ def main():
         time.sleep(0.3)
         if scene_file.read_text() != baseline:
             raise RuntimeError("Select drag authored a native Scene transform")
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         point = blue_proxy_pixel(display, window, viewport)
         if point is None:
             raise RuntimeError("second root proxy is not visible")
@@ -216,7 +220,7 @@ def main():
         # Home leaves ImGui navigation focus on the canvas. P must still resolve from real hover.
         send("key", "Home", "p", "r", "f")
         time.sleep(0.2)
-        viewport = settled_viewport(editor.stderr, viewport)
+        viewport = driver.settled_viewport(viewport)
         send("key", "--delay", "80", "ctrl+s")
         time.sleep(0.15)
         baseline = scene_file.read_text()
@@ -319,19 +323,26 @@ def main():
         if scene_file.read_text() != baseline:
             raise RuntimeError("Escape committed a plane Move")
         request_window_close(str(window), environment)
-        _, stderr = editor.communicate(timeout=15)
-        if editor.returncode != 0 or b"scene_draws=" not in stderr:
-            raise RuntimeError(f"center acceptance exit failed: {stderr.decode(errors='replace')}")
+        _, stderr = driver.finish(15)
+        if editor.returncode != 0 or "scene_draws=" not in stderr:
+            raise RuntimeError(f"center acceptance exit failed: {stderr}")
         editor = None
+        passed = True
         return 0
     finally:
-        if editor is not None and editor.poll() is None:
-            editor.kill()
-            editor.wait(timeout=5)
+        if editor is not None:
+            if driver is not None:
+                driver.abort()
+            else:
+                editor.kill()
+                editor.communicate(timeout=5)
         xvfb.terminate()
         xvfb.wait(timeout=5)
-        shutil.rmtree(root, ignore_errors=True)
-        shutil.rmtree(user_state, ignore_errors=True)
+        if passed:
+            shutil.rmtree(root, ignore_errors=True)
+            shutil.rmtree(user_state, ignore_errors=True)
+        else:
+            print(f"Native center fixtures retained: {root} {user_state}", flush=True)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #include <array>
 #include <atomic>
@@ -10,6 +11,7 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <string_view>
 #include <thread>
@@ -343,6 +345,58 @@ void TestHierarchyDuplicateShortcut() {
   assert(shell.LastCommand() == "editor.scene.duplicate" && scene.Nodes().size() == 2 &&
          scene.Selection().size() == 1 && scene.Name(scene.Selection().front()) == "Source Copy");
   assert(scene.Undo() && scene.Nodes().size() == 1);
+}
+
+void TestSceneMarkerVisibility() {
+  using namespace nexora;
+  using Access = editor::imgui::EditorImGuiTestAccess;
+  for (const float dpi : {1.0F, 2.0F}) {
+    runtime::World world;
+    const auto id = world.LoadScene("Marker observation");
+    assert(world.Activate(id));
+    editor::SceneDocument scene(world, id);
+    const auto node = scene.Create("Origin");
+    const auto key = *scene.Key(node);
+    const auto original = world.SaveScene(id);
+    const bool dirty = scene.Dirty();
+    editor::ProductShell shell;
+    editor::imgui::EditorImGuiHost host;
+    Access::ConfigureSyntheticInput(host);
+    host.SetDisplay(1280.0F * dpi, 720.0F * dpi, dpi);
+    const auto draw = [&] {
+      host.BeginFrame();
+      host.DrawProductShell(shell, &scene);
+      static_cast<void>(host.EndFrame());
+    };
+    draw();
+    auto *window = ImGui::FindWindowByName("Scene###nexora.scene");
+    assert(window);
+    std::cerr << "marker initial dpi=" << dpi << " hidden=" << window->Hidden
+              << " published=" << bool(Access::SceneMarkerPosition(host, key)) << '\n';
+    assert(window->Hidden && !Access::SceneMarkerPosition(host, key));
+    for (int frame = 0; frame < 4; ++frame)
+      draw();
+    Access::FocusScene(host);
+    draw();
+    draw();
+    assert(Access::SceneMarkerPosition(host, key));
+    // A sizing pass runs widgets while its window remains non-interactive.
+    window->HiddenFramesCanSkipItems = 0;
+    window->HiddenFramesCannotSkipItems = 2;
+    draw();
+    assert(window->Hidden && !Access::SceneMarkerPosition(host, key));
+    // A skipped hidden window must not expose the previous visible marker either.
+    window->HiddenFramesCannotSkipItems = 0;
+    window->HiddenFramesCanSkipItems = 2;
+    draw();
+    assert(window->Hidden && !Access::SceneMarkerPosition(host, key));
+    window->HiddenFramesCanSkipItems = 0;
+    Access::FocusScene(host);
+    draw();
+    draw();
+    assert(Access::SceneMarkerPosition(host, key) && scene.Selection().empty() &&
+           scene.Dirty() == dirty && world.SaveScene(id) == original);
+  }
 }
 
 void TestSceneOverviewSelection() {
@@ -976,6 +1030,7 @@ int main() {
   TestHierarchyDeleteShortcut();
   TestHierarchyCreateShortcut();
   TestHierarchyDuplicateShortcut();
+  TestSceneMarkerVisibility();
   TestSceneOverviewSelection();
   TestSceneOverviewDrag();
   TestSceneOverviewCameraState();

@@ -218,6 +218,19 @@ EditorImGuiTestAccess::BuildControlPosition(const EditorImGuiHost &host,
              ? host.state_->build_console_positions[control]
              : std::nullopt;
 }
+std::string_view EditorImGuiTestAccess::BuildCommandText(const EditorImGuiHost &host,
+                                                         std::size_t field) noexcept {
+  if (field == 0)
+    return host.state_->build_executable.data();
+  if (field == 1)
+    return host.state_->build_cwd.data();
+  if (field == 2 && !host.state_->build_arguments.empty())
+    return host.state_->build_arguments.front().data();
+  return {};
+}
+std::size_t EditorImGuiTestAccess::BuildArgumentCount(const EditorImGuiHost &host) noexcept {
+  return host.state_->build_arguments.size();
+}
 void EditorImGuiTestAccess::SetBuildCommand(EditorImGuiHost &host, std::string_view executable,
                                             std::string_view cwd,
                                             std::span<const std::string> arguments) {

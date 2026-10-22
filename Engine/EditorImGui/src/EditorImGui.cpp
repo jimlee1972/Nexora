@@ -169,6 +169,17 @@ struct EditorImGuiHost::State final {
   SceneComparisonSnapshot scene_comparison;
   std::optional<SceneFileToken> scene_comparison_request;
   bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  bool scene_comparison_shortcut_allowed{}, scene_history_shortcut_allowed{};
+  std::uint64_t scene_undo_attempts{}, scene_undo_applied{};
+  bool play_shortcut_allowed{};
+  std::uint64_t play_shortcut_requests{};
+  PlayCommand last_play_shortcut_command = PlayCommand::None;
+  bool game_canvas_hovered{}, game_canvas_clicked{}, game_capture_allowed{};
+  std::uint64_t game_capture_requests{};
+  bool scene_file_open_shortcut_allowed{}, scene_file_path_ready{}, scene_file_path_active{};
+  std::uint64_t scene_file_open_shortcut_requests{};
+#endif
   bool scene_comparison_cancel_requested{};
   std::array<std::optional<std::array<float, 2>>, 4> scene_comparison_positions{};
   std::uint32_t scene_comparison_rendered_rows{};
@@ -238,6 +249,9 @@ struct EditorImGuiHost::State final {
   std::array<bool, 3> prefab_position_active{};
   bool prefab_name_active{};
   std::array<std::optional<std::array<float, 2>>, 29> prefab_positions{};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  PrefabInputObservation prefab_input;
+#endif
   std::uint64_t build_console_scope{};
   bool build_console_interaction_blocked{};
   std::array<char, 4096> build_executable{}, build_cwd{};
@@ -564,6 +578,7 @@ struct EditorImGuiHost::State final {
   std::filesystem::path content_rename_root, content_rename_path;
   bool content_rename_focus{};
   std::array<std::optional<std::array<float, 2>>, 3> content_rename_positions;
+  std::array<std::optional<std::array<float, 2>>, 2> content_context_positions;
   std::optional<std::array<float, 2>> content_undo_position, content_reimport_position;
   std::uint32_t content_visible_items = 0;
   std::uint32_t content_visible_folders = 0;
@@ -614,6 +629,19 @@ struct EditorImGuiHost::State final {
 
 namespace {
 void Activate(ImGuiContext *context) { ImGui::SetCurrentContext(context); }
+
+template <typename StateT> bool ApplySceneUndo(StateT &state, SceneDocument *scene) {
+  if (!scene)
+    return false;
+  const bool applied = scene->Undo();
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  ++state.scene_undo_attempts;
+  state.scene_undo_applied += applied;
+#else
+  static_cast<void>(state);
+#endif
+  return applied;
+}
 
 template <typename StateT> void CancelRecoveryPopup(StateT &state) {
   auto &context = *ImGui::GetCurrentContext();
@@ -2891,6 +2919,9 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
 }
 template <typename StateT>
 void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, bool cancel) {
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state.scene_file_path_ready = state.scene_file_path_active = false;
+#endif
   if (cancel || !scene || !state.scene_file_context ||
       state.scene_file_token.document_generation != scene->Generation() ||
       (state.scene_file_intent && state.scene_file_intent->token != state.scene_file_token)) {
@@ -2984,6 +3015,11 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
         ImGui::InputText("Scene path", state.scene_file_text.data(), state.scene_file_text.size(),
                          ImGuiInputTextFlags_EnterReturnsTrue);
     CaptureSceneFileControl(state, 4);
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+    state.scene_file_path_ready = !ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+                                  !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled);
+    state.scene_file_path_active = state.scene_file_path_ready && ImGui::IsItemActive();
+#endif
     ImGui::BeginDisabled(!opening && !writable);
     const bool apply = ImGui::Button(opening ? "Open" : "Save As");
     CaptureSceneFileControl(state, 5);
@@ -3909,6 +3945,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
 
   const auto window = PanelWindowName("nexora.content");
   state.content_rename_positions = {};
+  state.content_context_positions = {};
   state.content_undo_position.reset();
   state.content_reimport_position.reset();
   state.content_search_position.reset();
@@ -4269,6 +4306,14 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         ImGui::EndDragDropSource();
       }
       if (ImGui::BeginPopupContextItem()) {
+        const auto capture_context = [&](std::size_t control) {
+          if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+              !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)) {
+            const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
+            state.content_context_positions[control] =
+                std::array{(lo.x + hi.x) * 0.5F, (lo.y + hi.y) * 0.5F};
+          }
+        };
         if (ImGui::MenuItem("Open scene", nullptr, false,
                             scene_openable && item->type == ".scene" &&
                                 item->path.extension() == ".scene")) {
@@ -4278,6 +4323,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         if (ImGui::MenuItem("Rename", "F2", false,
                             commands_allowed && content.Writable() && !state.content_rename_target))
           begin_rename(*item);
+        capture_context(0);
         if (ImGui::MenuItem("Reimport", nullptr, false,
                             commands_allowed && content.Writable() && imports != nullptr &&
                                 !content.ReimportBusy()))
@@ -4288,6 +4334,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         }
         if (ImGui::MenuItem("Delete", "Delete", false, commands_allowed && content.Writable()))
           delete_assets = {item->id};
+        capture_context(1);
         ImGui::EndPopup();
       }
       ImGui::PopID();
@@ -4312,9 +4359,12 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                        state.content_rename_root == content.Root() &&
                        state.content_rename_path == item->path;
     const auto capture = [&](std::size_t control) {
-      const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
-      state.content_rename_positions[control] =
-          std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+      if (valid && !ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+          !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)) {
+        const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+        state.content_rename_positions[control] =
+            std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
+      }
     };
     if (std::exchange(state.content_rename_focus, false))
       ImGui::SetKeyboardFocusHere();
@@ -5098,6 +5148,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                                        const MeshAssetCatalog *meshes,
                                        const MaterialAssetCatalog *materials) {
   Activate(state_->context);
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->game_canvas_hovered = state_->game_canvas_clicked = state_->game_capture_allowed = false;
+#endif
   const bool game_running = play && play->State() != runtime::PlayState::Stopped;
   const auto play_snapshot = play ? play->Inspect() : runtime::RuntimeInspectionSnapshot{};
   state_->game_camera_combo_position.reset();
@@ -5367,19 +5420,31 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                           scene->Dirty() ? " *" : "");
     ImGui::EndMainMenuBar();
   }
-  if (file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
+  const bool file_shortcuts_allowed =
+      file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
       !state_->prefab_override_confirm && !state_->prefab_rebase_confirm &&
       state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
-      !state_->content_rename_target && !ImGui::GetIO().WantTextInput) {
+      !state_->content_rename_target && !ImGui::GetIO().WantTextInput;
+  const bool comparison_shortcut_allowed = file_shortcuts_allowed && !game_running &&
+                                           state_->scene_file_path &&
+                                           !state_->scene_comparison_busy;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->scene_comparison_shortcut_allowed = comparison_shortcut_allowed;
+  state_->scene_file_open_shortcut_allowed = file_shortcuts_allowed && !game_running;
+#endif
+  if (file_shortcuts_allowed) {
     if (writable && !game_running &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_N, ImGuiInputFlags_RouteGlobal))
       BeginSceneFile(*state_, *scene, SceneFileAction::New);
     else if (!game_running &&
-             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal))
+             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_O, ImGuiInputFlags_RouteGlobal)) {
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+      ++state_->scene_file_open_shortcut_requests;
+#endif
       BeginSceneFile(*state_, *scene, SceneFileAction::Open);
-    else if (!game_running && state_->scene_file_path && !state_->scene_comparison_busy &&
-             ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D,
-                             ImGuiInputFlags_RouteGlobal))
+    } else if (comparison_shortcut_allowed &&
+               ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D,
+                               ImGuiInputFlags_RouteGlobal))
       BeginSceneComparison(*state_);
     else if (writable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_S,
                                          ImGuiInputFlags_RouteGlobal))
@@ -5436,17 +5501,29 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
   }
-  if (play != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput) {
+  const bool play_shortcuts_allowed =
+      play != nullptr && !interaction_blocked && !ImGui::GetIO().WantTextInput;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->play_shortcut_allowed = play_shortcuts_allowed;
+#endif
+  if (play_shortcuts_allowed) {
+    const auto request_shortcut = [&](PlayCommand command) {
+      state_->play_command = command;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+      ++state_->play_shortcut_requests;
+      state_->last_play_shortcut_command = command;
+#endif
+    };
     if (ImGui::Shortcut(ImGuiKey_F5, ImGuiInputFlags_RouteGlobal))
-      state_->play_command =
-          play->State() == runtime::PlayState::Stopped ? PlayCommand::Start : PlayCommand::Stop;
+      request_shortcut(play->State() == runtime::PlayState::Stopped ? PlayCommand::Start
+                                                                    : PlayCommand::Stop);
     else if (play->State() != runtime::PlayState::Stopped &&
              ImGui::Shortcut(ImGuiKey_F6, ImGuiInputFlags_RouteGlobal))
-      state_->play_command =
-          play->State() == runtime::PlayState::Playing ? PlayCommand::Pause : PlayCommand::Resume;
+      request_shortcut(play->State() == runtime::PlayState::Playing ? PlayCommand::Pause
+                                                                    : PlayCommand::Resume);
     else if (ImGui::Shortcut(ImGuiKey_F10, ImGuiInputFlags_RouteGlobal) &&
              play->State() == runtime::PlayState::Paused)
-      state_->play_command = PlayCommand::Step;
+      request_shortcut(PlayCommand::Step);
   }
   if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput &&
       ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_N, ImGuiInputFlags_RouteGlobal)) {
@@ -5456,7 +5533,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         std::string(state_->hierarchy_create_name.data()), std::nullopt,
         state_->hierarchy_create_kind, scene->Generation()};
   }
-  if (scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput) {
+  const bool history_shortcuts_allowed =
+      scene != nullptr && scene_editable && !ImGui::GetIO().WantTextInput;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state_->scene_history_shortcut_allowed = history_shortcuts_allowed;
+#endif
+  if (history_shortcuts_allowed) {
     if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal) ||
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
@@ -5467,7 +5549,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     } else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal)) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
-      state_->scene_save_message = scene->Undo() ? "Undo complete." : "Nothing to undo.";
+      state_->scene_save_message =
+          ApplySceneUndo(*state_, scene) ? "Undo complete." : "Nothing to undo.";
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
@@ -5556,7 +5639,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
       state_->scene_save_message =
-          scene != nullptr && scene->Undo() ? "Undo complete." : "Nothing to undo.";
+          ApplySceneUndo(*state_, scene) ? "Undo complete." : "Nothing to undo.";
       state_->scene_save_success = true;
       state_->hierarchy_selection_anchor.reset();
     }
@@ -5970,7 +6053,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
               state_->game_input_focused = false;
             }
             const auto a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
-            state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
+            // A newly opened combo submits items during its hidden size-measurement frame.
+            // Those temporary coordinates are not interactive and may move before first render.
+            if (!ImGui::GetCurrentWindow()->Hidden && ImGui::IsItemVisible() &&
+                !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+              state_->game_view_options[choice] = std::array{(a.x + b.x) * .5F, (a.y + b.y) * .5F};
           }
           ImGui::EndCombo();
         }
@@ -6066,12 +6153,24 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         DrawPlayOverview(snapshot);
       }
       game_canvas_visible = game_running;
-      if (play->State() == runtime::PlayState::Playing && state_->app_focused &&
-          !interaction_blocked && !state_->close_prompt_requested) {
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+      const bool capture_allowed = play->State() == runtime::PlayState::Playing &&
+                                   state_->app_focused && !interaction_blocked &&
+                                   !state_->close_prompt_requested;
+      const bool canvas_clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+      const bool canvas_hovered = ImGui::IsItemHovered();
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+      state_->game_canvas_hovered = canvas_hovered;
+      state_->game_canvas_clicked = canvas_clicked;
+      state_->game_capture_allowed = capture_allowed;
+#endif
+      if (capture_allowed) {
+        if (canvas_clicked) {
           state_->game_input_focused = true;
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+          ++state_->game_capture_requests;
+#endif
           ImGui::GetIO().ClearInputKeys();
-        } else if (!ImGui::IsItemHovered()) {
+        } else if (!canvas_hovered) {
           state_->game_input_focused = false;
         }
       }
@@ -8635,6 +8734,47 @@ std::array<std::size_t, 2> EditorImGuiTestAccess::DiagnosticRows(const EditorImG
   return {host.state_->diagnostic_visible_events, host.state_->diagnostic_excluded_events};
 }
 
+SceneShortcutObservation
+EditorImGuiTestAccess::SceneShortcutInput(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  const auto &io = ImGui::GetIO();
+  SceneShortcutObservation result;
+  // Read processed IO directly: key ownership must not hide a delivered phase from the observer.
+  result.keys = {ImGui::GetKeyData(ImGuiMod_Ctrl)->Down,  ImGui::GetKeyData(ImGuiMod_Alt)->Down,
+                 ImGui::GetKeyData(ImGuiMod_Shift)->Down, ImGui::GetKeyData(ImGuiKey_N)->Down,
+                 ImGui::GetKeyData(ImGuiKey_S)->Down,     ImGui::GetKeyData(ImGuiKey_D)->Down,
+                 ImGui::GetKeyData(ImGuiKey_A)->Down,     ImGui::GetKeyData(ImGuiKey_Enter)->Down,
+                 ImGui::GetKeyData(ImGuiKey_Z)->Down};
+  result.pointer = {io.MousePos.x, io.MousePos.y};
+  result.play_keys = {ImGui::GetKeyData(ImGuiKey_F5)->Down, ImGui::GetKeyData(ImGuiKey_F6)->Down,
+                      ImGui::GetKeyData(ImGuiKey_F10)->Down};
+  result.play_allowed = host.state_->play_shortcut_allowed;
+  result.play_shortcut_requests = host.state_->play_shortcut_requests;
+  result.play_command = host.state_->last_play_shortcut_command;
+  result.game_hovered = host.state_->game_canvas_hovered;
+  result.game_clicked = host.state_->game_canvas_clicked;
+  result.game_capture_allowed = host.state_->game_capture_allowed;
+  result.game_focused = host.state_->game_input_focused;
+  result.game_capture_requests = host.state_->game_capture_requests;
+  result.file_keys = {ImGui::GetKeyData(ImGuiKey_O)->Down};
+  result.file_open_allowed = host.state_->scene_file_open_shortcut_allowed;
+  result.file_open_requests = host.state_->scene_file_open_shortcut_requests;
+  result.file_dialog = static_cast<unsigned>(host.state_->scene_file_dialog);
+  result.file_path_ready = host.state_->scene_file_path_ready;
+  result.file_path_active = host.state_->scene_file_path_active;
+  result.file_path_text = host.state_->scene_file_text;
+  result.down = io.MouseDown[0];
+  result.buttons = {io.MouseDown[0], io.MouseDown[1], io.MouseDown[2]};
+  result.focused = host.state_->app_focused;
+  result.want_text = io.WantTextInput;
+  result.comparison_allowed = host.state_->scene_comparison_shortcut_allowed;
+  result.history_allowed = host.state_->scene_history_shortcut_allowed;
+  result.undo_attempts = host.state_->scene_undo_attempts;
+  result.undo_applied = host.state_->scene_undo_applied;
+  result.frame = static_cast<std::uint64_t>(ImGui::GetFrameCount());
+  return result;
+}
+
 EditorImGuiTestState EditorImGuiTestAccess::Inspect(const EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto &io = ImGui::GetIO();
@@ -8885,6 +9025,13 @@ EditorImGuiTestAccess::ContentRenamePosition(const EditorImGuiHost &host,
 }
 std::string_view EditorImGuiTestAccess::ContentRenameText(const EditorImGuiHost &host) noexcept {
   return host.state_->content_rename.data();
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ContentContextPosition(const EditorImGuiHost &host,
+                                              std::size_t control) noexcept {
+  return control < host.state_->content_context_positions.size()
+             ? host.state_->content_context_positions[control]
+             : std::nullopt;
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ContentAssetPosition(const EditorImGuiHost &host,
@@ -9173,6 +9320,10 @@ const PrefabPlacementOverrideReport *
 EditorImGuiTestAccess::PrefabOverrideReport(const EditorImGuiHost &host) noexcept {
   return host.state_->prefab_override_report ? &*host.state_->prefab_override_report : nullptr;
 }
+std::array<bool, 2> EditorImGuiTestAccess::PrefabRebaseKeys(const EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  return {ImGui::GetKeyData(ImGuiKey_Escape)->Down, ImGui::GetKeyData(ImGuiKey_Y)->Down};
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::PrefabRebasePosition(const EditorImGuiHost &host,
                                             std::size_t control) noexcept {
@@ -9216,6 +9367,12 @@ EditorImGuiTestAccess::NativeSceneToolPosition(const EditorImGuiHost &host,
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::SceneMarkerPosition(const EditorImGuiHost &host,
                                            SceneDocument::NodeKey entity) noexcept {
+  Activate(host.state_->context);
+  const auto *window = ImGui::FindWindowByName("Scene###nexora.scene");
+  // Hidden sizing passes still submit overview markers, but cannot receive clicks.
+  if (!window || !window->Active || window->Hidden || window->SkipItems ||
+      window->LastFrameActive != ImGui::GetFrameCount())
+    return std::nullopt;
   const auto found = std::ranges::find(host.state_->scene_markers, entity,
                                        &EditorImGuiHost::State::SceneMarker::entity);
   if (found == host.state_->scene_markers.end())

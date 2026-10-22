@@ -133,6 +133,135 @@ struct Fixture final {
     Draw();
   }
 };
+void RunShortcutObservation(float dpi) {
+  Fixture f(dpi);
+  const auto original = f.scene.PrepareSave();
+  const auto initial = Access::SceneShortcutInput(f.ui);
+  Require(initial.focused && initial.comparison_allowed && !initial.want_text,
+          "Current scene comparison shortcut admission was not observed");
+  using Key = Nexora::Window::Key;
+  using Modifiers = Nexora::Window::KeyModifiers;
+  const std::array keys{Key::LeftControl, Key::LeftAlt, Key::LeftShift, Key::N, Key::S,
+                        Key::D,           Key::A,       Key::Enter,     Key::Z};
+  const auto key = [&](Key physical, bool down, Modifiers modifiers = {}) {
+    Nexora::Window::WindowEvent event{};
+    event.type = Nexora::Window::WindowEventType::Key;
+    event.value0 = static_cast<int>(physical);
+    event.value1 = down;
+    event.modifiers = modifiers;
+    f.ui.ProcessEvents(std::array{event});
+    f.Draw();
+  };
+  for (std::size_t index = 0; index < keys.size(); ++index) {
+    const auto modifier = index == 0   ? Modifiers::Control
+                          : index == 1 ? Modifiers::Alt
+                          : index == 2 ? Modifiers::Shift
+                                       : Modifiers{};
+    const auto before = Access::SceneShortcutInput(f.ui).frame;
+    key(keys[index], true, modifier);
+    const auto pressed = Access::SceneShortcutInput(f.ui);
+    Require(pressed.keys[index] && pressed.frame > before,
+            "Actual scene GUI key-down phase was not observed");
+    key(keys[index], false);
+    const auto released = Access::SceneShortcutInput(f.ui);
+    Require(!released.keys[index] && released.frame > pressed.frame &&
+                std::ranges::none_of(released.keys, [](bool down) { return down; }),
+            "Actual scene GUI key-up phase was not observed");
+  }
+  Nexora::Window::WindowEvent pointer{};
+  pointer.type = Nexora::Window::WindowEventType::Pointer;
+  pointer.value0 = -24;
+  pointer.value1 = -40;
+  f.ui.ProcessEvents(std::array{pointer});
+  f.Draw();
+  auto observed = Access::SceneShortcutInput(f.ui);
+  Require(observed.pointer == std::array{-24.0F / dpi, -40.0F / dpi},
+          "Scene GUI observer lost processed pointer coordinates");
+  Nexora::Window::WindowEvent button{};
+  button.type = Nexora::Window::WindowEventType::PointerButton;
+  button.value0 = 0;
+  button.value1 = 1;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  observed = Access::SceneShortcutInput(f.ui);
+  Require(observed.down && observed.buttons[0] == observed.down,
+          "Scene GUI pointer-down phase was not observed");
+  button.value1 = 0;
+  f.ui.ProcessEvents(std::array{button});
+  f.Draw();
+  observed = Access::SceneShortcutInput(f.ui);
+  Require(!observed.down && observed.buttons[0] == observed.down,
+          "Scene GUI pointer-up phase was not observed");
+
+  f.busy = true;
+  f.Draw();
+  Require(!Access::SceneShortcutInput(f.ui).comparison_allowed,
+          "Busy comparison was reported ready for a new shortcut");
+  f.busy = false;
+  Nexora::Window::WindowEvent focus{};
+  focus.type = Nexora::Window::WindowEventType::FocusChanged;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Draw();
+  observed = Access::SceneShortcutInput(f.ui);
+  Require(!observed.focused && !observed.comparison_allowed,
+          "Unfocused comparison shortcut was reported admitted");
+  focus.value0 = 1;
+  f.ui.ProcessEvents(std::array{focus});
+  f.Draw();
+  Require(Access::SceneShortcutInput(f.ui).comparison_allowed,
+          "Focused comparison shortcut did not regain admission");
+  key(Key::LeftControl, true, Modifiers::Control);
+  key(Key::LeftAlt, true,
+      static_cast<Modifiers>(static_cast<unsigned>(Modifiers::Control) |
+                             static_cast<unsigned>(Modifiers::Alt)));
+  key(Key::D, true,
+      static_cast<Modifiers>(static_cast<unsigned>(Modifiers::Control) |
+                             static_cast<unsigned>(Modifiers::Alt)));
+  Require(f.ui.TakeSceneComparisonRequest() == f.current->Token(),
+          "One actual Ctrl-Alt-D chord did not emit a current comparison request");
+  key(Key::D, false,
+      static_cast<Modifiers>(static_cast<unsigned>(Modifiers::Control) |
+                             static_cast<unsigned>(Modifiers::Alt)));
+  key(Key::LeftAlt, false, Modifiers::Control);
+  key(Key::LeftControl, false);
+  Require(!f.ui.TakeSceneComparisonRequest() && f.scene.MatchesPreparedSave(*original),
+          "Observed key phases repeated comparison or mutated scene authoring");
+
+  Require(f.reader.Open(f.root, editor::ProjectAccess::ReadOnly),
+          "Shortcut observer read-only fixture failed");
+  f.active = &f.reader;
+  f.Draw();
+  observed = Access::SceneShortcutInput(f.ui);
+  Require(observed.comparison_allowed && !observed.history_allowed,
+          "Read-only comparison/history admission observation was incorrect");
+  f.active = &f.writer;
+  f.Draw();
+  const auto before_undo = Access::SceneShortcutInput(f.ui);
+  Require(before_undo.history_allowed, "Writable scene history was not admitted");
+  const auto entity = f.scene.Nodes().front().id;
+  Require(f.scene.Name(entity) == "Local", "Actual shortcut Undo fixture changed");
+  key(Key::LeftControl, true, Modifiers::Control);
+  key(Key::Z, true, Modifiers::Control);
+  observed = Access::SceneShortcutInput(f.ui);
+  Require(observed.undo_attempts == before_undo.undo_attempts + 1 &&
+              observed.undo_applied == before_undo.undo_applied + 1 &&
+              f.scene.Name(entity) == "Base",
+          "One actual Ctrl-Z did not apply and report exactly one scene Undo");
+  key(Key::Z, false, Modifiers::Control);
+  key(Key::LeftControl, false);
+  const auto released_undo = Access::SceneShortcutInput(f.ui);
+  Require(released_undo.undo_attempts == observed.undo_attempts &&
+              released_undo.undo_applied == observed.undo_applied,
+          "Scene Undo repeated during key release");
+
+  f.ui.RequestSceneSaveAs();
+  for (unsigned frame = 0; frame < 4; ++frame)
+    f.Draw();
+  observed = Access::SceneShortcutInput(f.ui);
+  Require(observed.want_text && !observed.comparison_allowed,
+          "Active scene path input was reported admitted for global comparison");
+}
+
 void Run(float dpi) {
   Fixture f(dpi);
   const auto original = f.scene.PrepareSave();
@@ -594,6 +723,8 @@ void RunPublication(float dpi) {
 } // namespace
 int main() {
   try {
+    RunShortcutObservation(1);
+    RunShortcutObservation(2);
     Run(1);
     Run(2);
     RunMerge(1);

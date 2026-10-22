@@ -139,8 +139,14 @@ void Run(float scale) {
   Require(session.Document()->Name(node) == "Isolated edit" &&
               source.PrepareSave()->Bytes() == source_bytes,
           "Actual isolated rename failed or changed primary source");
+  const auto history_before = Access::PrefabInput(ui);
   click(8);
-  Require(session.Document()->Name(node) == "Original", "Actual prefab Undo failed");
+  const auto history_after = Access::PrefabInput(ui);
+  Require(session.Document()->Name(node) == "Original" &&
+              history_after.undo_attempts == history_before.undo_attempts + 1 &&
+              history_after.undo_applied == history_before.undo_applied + 1 &&
+              !history_after.down && history_after.focused,
+          "Actual prefab Undo or processed-input observation failed");
   click(9);
   Require(session.Document()->Name(node) == "Isolated edit", "Actual prefab Redo failed");
   click(12);
@@ -264,6 +270,11 @@ void Run(float scale) {
           "Scope change revived discard confirmation");
   allowed = false;
   draw();
+  const auto blocked_history = Access::PrefabInput(ui);
+  Require(!blocked_history.enabled[8], "Blocked history observer reported enabled Undo");
+  click(8);
+  Require(Access::PrefabInput(ui).undo_attempts == blocked_history.undo_attempts,
+          "Disabled history gesture was reported as an admitted Undo");
   click(4);
   Require(!ui.TakePrefabIsolationRequest() && session.Dirty(), "Blocked caller emitted Save");
   allowed = true;
@@ -341,6 +352,9 @@ void Run(float scale) {
                 editor::PrefabAssets::Load(observer, id) == saved,
             "Read-only real controls emitted publication or changed source");
   }
+  Require(ui.SetPrefabIsolation(std::nullopt) && !Access::PrefabControlPosition(ui, 8) &&
+              !Access::PrefabInput(ui).enabled[8],
+          "Detached prefab retained an old drawn history admission");
 }
 
 void RunSourceApply(float scale) {

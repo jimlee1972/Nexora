@@ -3,16 +3,14 @@
 import argparse
 import os
 from pathlib import Path
-import queue
 import re
 import shutil
 import subprocess
 import tempfile
-import threading
 import time
 
-from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
-from LinuxNativeScenePreview import scene_pixels, scene_region_pixels
+from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
+from NativeSceneInput import NativeSceneInput
 
 
 def require(value, message):
@@ -40,85 +38,75 @@ def main():
     require(len(archives) == 1, 'Retained source archive fixture missing or ambiguous')
     archive = archives[0]
     original_archive = archive.read_bytes()
-    # Keep the native initial size: resizing after docking retains split pixel widths.
     xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
-    process = None
+    process = driver = None
+    passed = False
+    case_deadline = time.monotonic() + 90
     try:
         require(display is not None, 'Xvfb failed')
         env = os.environ.copy()
-        env['DISPLAY'] = display
-        env['XDG_STATE_HOME'] = str(scratch / 'state')
-        env['MESA_SHADER_CACHE_DIR'] = str(scratch / 'shader-cache')
+        env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / 'state'),
+                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'),
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1')
 
-        def send(*arguments):
-            subprocess.run([args.xdotool, *arguments], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+        def deadline(seconds=10):
+            return min(case_deadline, time.monotonic() + seconds)
 
-        def click(window, x, y):
-            send('mousemove', '--window', window, str(x), str(y))
-            send('mousedown', '1')
-            send('mouseup', '1')
+        def click(name, until):
+            # Layout can settle after the first record and before pointer processing.
+            # Refresh only positioning; send exactly one native down/up at the named item.
+            value = driver.wait(lambda v: v.get('focused') == '1' and
+                                          v.get('buttons') == '000' and name in v,
+                                'Named source control was not focused/rendered/released', until)
+            for _ in range(3):
+                point = tuple(map(round, map(float, value[name].split(','))))
+                driver.pointer_move(*point, until)
+                value = driver.wait(lambda v: v.get('focused') == '1' and
+                                              v.get('buttons') == '000' and name in v,
+                                    'Named source control disappeared before its one click', until)
+                current = tuple(map(round, map(float, value[name].split(','))))
+                if current == point:
+                    break
+            else:
+                raise RuntimeError('Named source geometry did not settle before one click: ' + name)
+            driver.pointer_button(1, True, until)
+            driver.pointer_button(1, False, until)
 
-        def wait_control(window, x, y):
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
-                require(process.poll() is None, 'Host exited before rendered source control')
-                ready, colors = scene_pixels(display, int(window), (x - 2, y - 2, 4, 4))
-                if ready:
-                    return
-                time.sleep(.05)
-            raise RuntimeError('Native control did not become ready: ' + repr(sorted(set(colors))))
-
-        def source_button(window):
-            # The first blue control in this bound Inspector is Inspect source. A report can
-            # add a vertical scrollbar, wrap the UUID onto another line and move the button.
-            # Observe its presented position for each gesture; never retry an inspection.
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
-                require(process.poll() is None, 'Host exited before source inspection control')
-                pixels = scene_region_pixels(display, int(window), (1010, 80, 1, 110))
-                colors = list(zip(pixels[::3], pixels[1::3], pixels[2::3]))
-                run = []
-                for index, (red, green, blue) in enumerate(colors):
-                    if blue >= 105 and blue >= red + 35 and blue >= green + 10:
-                        run.append(80 + index * 3)
-                        if len(run) == 3:
-                            return run[1]
-                    else:
-                        run.clear()
-                time.sleep(.05)
-            raise RuntimeError('Source button not presented: ' + repr(colors))
-
-        for read_only in (False, True):
+        for launch_number, read_only in enumerate((False, True), 1):
             before_launch = files(root)
-            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
-            diagnostics = []
-            events = queue.Queue()
-
-            def drain():
-                for line in process.stderr:
-                    diagnostics.append(line)
-                    if line.startswith('prefab source inspected '):
-                        events.put(line)
-
-            reader = threading.Thread(target=drain, daemon=True)
-            reader.start()
+            process = launch(args.editor, root, scratch / 'recent', env,
+                             read_only=read_only, binary=True)
+            driver = NativeSceneInput(process, args.xdotool, env, '', scratch, launch_number,
+                                      minimum_wait=.2, phase_wait=.2)
             window = wait_for_window(args.xdotool, env)
-            send('windowfocus', '--sync', window)
-            selection_y = 199 if read_only else 182
-            wait_control(window, 520, selection_y + 5)
-            click(window, 523, selection_y)
+            driver.window = str(window)
+            until = deadline()
+            driver.raw('windowfocus', '--sync', window, deadline=until)
+            value = driver.wait(lambda v: v.get('focused') == '1' and 'source_node' in v,
+                                'Bound Scene marker was not rendered', until)
+            click('source_node', until)
+            driver.wait(lambda v: v.get('source_selected') == '1' and
+                                  v.get('source_selection_count') == '1' and 'source_inspect' in v,
+                        'Single native bound-node selection did not expose source inspection', until)
 
             def inspect(resolved):
                 before = files(root)
-                click(window, 1058, source_button(window))
-                try:
-                    event = events.get(timeout=10)
-                except queue.Empty as error:
-                    raise RuntimeError('Actual source button did not produce a scoped inspection') from error
-                require(event.strip() == f'prefab source inspected resolved={resolved} retained=1 published=2',
-                        'Native source inspection lost retained/current identity: ' + event)
+                until = deadline()
+                value = driver.wait(lambda v: v.get('focused') == '1' and
+                                              v.get('source_selected') == '1' and
+                                              v.get('source_selection_count') == '1' and
+                                              'source_inspect' in v,
+                                    'Actual source inspection control was not rendered', until)
+                start = len(driver.stderr)
+                click('source_inspect', until)
+                expected = f'prefab source inspected resolved={resolved} retained=1 published=2'.encode()
+                driver.wait(lambda _: re.search(rb'^prefab source inspected [^\n]*\n',
+                                               driver.stderr[start:], re.M) is not None,
+                            'Actual source button did not produce a scoped inspection', until)
+                events = re.findall(rb'^prefab source inspected ([^\n]*)\n',
+                                    driver.stderr[start:], re.M)
+                require(events == [expected.removeprefix(b'prefab source inspected ')],
+                        'Native source inspection lost retained/current identity or repeated: ' + repr(events))
                 require(files(root) == before and scene.read_bytes() == original_scene,
                         'Inspect source changed scene, bindings, archives or project metadata')
 
@@ -129,31 +117,36 @@ def main():
             archive.write_bytes(original_archive)
             inspect(1)
             request_window_close(window, env)
-            process.wait(timeout=15)
-            reader.join(timeout=5)
-            require(not reader.is_alive(), 'Native diagnostic drain did not finish')
-            collect_output(process, 5)
-            captured = ''.join(diagnostics)
-            print(captured, end='', flush=True)
+            until = deadline(15)
+            while process.poll() is None and time.monotonic() < until:
+                driver.drain(min(.05, max(0, until - time.monotonic())))
+            require(process.poll() is not None, 'Native source inspection did not close within 15 seconds')
+            _, captured = driver.finish(5)
             require(process.returncode == 0 and 'scene_selected=1' in captured,
                     'Bound native scene inspection/close failed')
             require(not re.search(r'Validation Error\b|VUID-|SYNC-HAZARD-', captured),
                     'Native source inspection reported a Vulkan validation error')
-            process = None
+            process = driver = None
             require(scene.read_bytes() == original_scene and archive.read_bytes() == original_archive,
                     'Native close changed bound scene or retained source')
             if read_only:
                 require(files(root) == before_launch, 'Read-only inspection wrote project files')
         print('Native bound-source inspection, retained/current revisions, missing/restored source, '
               'read-only reopen and source conservation passed')
+        passed = True
     finally:
-        if process is not None and process.poll() is None:
+        if driver is not None:
+            driver.abort()
+        elif process is not None and process.poll() is None:
             process.kill()
-            process.wait(timeout=10)
+            process.communicate(timeout=10)
         if xvfb.poll() is None:
             xvfb.terminate()
         xvfb.communicate(timeout=10)
-        shutil.rmtree(scratch)
+        if passed:
+            shutil.rmtree(scratch)
+        else:
+            print(f'Native prefab source fixtures retained: {scratch}', flush=True)
 
 
 if __name__ == '__main__':

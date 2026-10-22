@@ -20,6 +20,10 @@ bool EditorImGuiHost::SetPrefabIsolation(std::optional<PrefabIsolationObservatio
            value->base != old.base || value->scene_writable != old.scene_writable;
   };
   if (changed()) {
+    state.prefab_positions = {};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+    state.prefab_input.enabled = {};
+#endif
     ImGui::SetCurrentContext(state.context);
     const auto *window = ImGui::FindWindowByName("Prefab Isolation###editor.prefab-isolation");
     if (window && ImGui::GetCurrentContext()->ActiveIdWindow == window)
@@ -169,6 +173,9 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   ImGui::SetCurrentContext(state_->context);
   auto &state = *state_;
   state.prefab_positions = {};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+  state.prefab_input.enabled = {};
+#endif
   state.prefab_property_positions.clear();
   state.prefab_choice_positions.clear();
   if (!state.prefab_isolation_open) {
@@ -209,6 +216,9 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   const auto capture = [&](std::size_t index) {
     const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
     state.prefab_positions[index] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+    state.prefab_input.enabled[index] = !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled);
+#endif
   };
   const auto request = [&](PrefabIsolationAction action, foundation::Uuid target = {}) {
     PrefabIsolationRequest next{action, observation, target, false};
@@ -389,14 +399,26 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     }
     if (document && current) {
       ImGui::BeginDisabled(!edit || confirming);
-      if (ImGui::Button("Undo"))
-        if (editable->Undo())
+      if (ImGui::Button("Undo")) {
+        const bool applied = editable->Undo();
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+        ++state.prefab_input.undo_attempts;
+        state.prefab_input.undo_applied += applied;
+#endif
+        if (applied)
           SetPrefabReview(std::nullopt);
+      }
       capture(8);
       ImGui::SameLine();
-      if (ImGui::Button("Redo"))
-        if (editable->Redo())
+      if (ImGui::Button("Redo")) {
+        const bool applied = editable->Redo();
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+        ++state.prefab_input.redo_attempts;
+        state.prefab_input.redo_applied += applied;
+#endif
+        if (applied)
           SetPrefabReview(std::nullopt);
+      }
       capture(9);
       ImGui::EndDisabled();
       ImGui::SameLine();
@@ -689,6 +711,22 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
   ImGui::End();
 }
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+PrefabInputObservation EditorImGuiTestAccess::PrefabInput(const EditorImGuiHost &host) noexcept {
+  ImGui::SetCurrentContext(host.state_->context);
+  auto result = host.state_->prefab_input;
+  const auto &io = ImGui::GetIO();
+  result.pointer = {io.MousePos.x, io.MousePos.y};
+  result.down = io.MouseDown[0];
+  result.focused = host.state_->app_focused;
+  result.keys = {ImGui::IsKeyDown(ImGuiMod_Ctrl),  ImGui::IsKeyDown(ImGuiMod_Alt),
+                 ImGui::IsKeyDown(ImGuiKey_P),     ImGui::IsKeyDown(ImGuiKey_A),
+                 ImGui::IsKeyDown(ImGuiKey_Enter), ImGui::IsKeyDown(ImGuiKey_Escape)};
+  result.active = ImGui::GetCurrentContext()->ActiveId;
+  result.hovered = ImGui::GetCurrentContext()->HoveredId;
+  result.frame = static_cast<std::uint64_t>(ImGui::GetFrameCount());
+  return result;
+}
+
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::PrefabRebaseChoicePosition(const EditorImGuiHost &host, std::size_t row,
                                                   std::size_t option) noexcept {
