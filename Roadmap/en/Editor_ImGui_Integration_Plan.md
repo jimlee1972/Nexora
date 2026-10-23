@@ -31,6 +31,11 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 
 ### Verified implementation checklist
 
+- ✅ Horizontal wheel input converts Window's right-positive axis to ImGui's left-positive
+  convention; a scrollable-child regression and physical Windows 10 Home Inspector round trips
+  cover both axes. Starter scene storage is prepared on demand, allowing first Save All and
+  Save and Exit without relaxing batch safety. Other DPI/monitor, redocking and held-input gates
+  remain open ([evidence](../../Tools/Build/evidence/EditorEDM0-WindowsWheelSaveAll-2026-10-23.md)).
 - ✅ Win32 system keys retain default handling after input forwarding: Alt+F4 reaches the
   application-vetoable close path. Visible-window regression and physical Windows 10 Home
   observations cover the close prompt, cancellation, and clean exit. Additional 100% IME
