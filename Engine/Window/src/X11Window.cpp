@@ -17,7 +17,10 @@
 #include <chrono>
 #include <clocale>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -108,25 +111,57 @@ KeyModifiers TranslateModifiers(unsigned state) noexcept {
 }
 
 using XErrorHandler = int (*)(Display *, XErrorEvent *);
+std::mutex g_error_mutex;
 XErrorHandler g_previous_error_handler = nullptr;
+Display *g_error_display{};
+::Window g_error_window{};
+bool g_bad_window{};
 
-// Only BadWindow is tolerated, and only while DestroyWindowIfPresent installs this handler;
-// every other protocol error still reaches the previously installed handler.
-int IgnoreBadWindow(Display *display, XErrorEvent *error) {
-  if (error->error_code == BadWindow)
+// Only this operation's missing window is tolerated; unrelated X errors retain their handler.
+int IgnoreExpectedBadWindow(Display *display, XErrorEvent *error) {
+  if (display == g_error_display && error->resourceid == g_error_window &&
+      error->error_code == BadWindow) {
+    g_bad_window = true;
     return 0;
-  return g_previous_error_handler != nullptr ? g_previous_error_handler(display, error) : 0;
+  }
+  if (g_previous_error_handler)
+    return g_previous_error_handler(display, error);
+  // Xlib may represent its default fatal handler with nullptr. Do not turn an unrelated
+  // protocol error into success merely because there was no custom handler installed.
+  std::fprintf(stderr, "X11 protocol error %u (request %u, resource 0x%lx)\n",
+               unsigned(error->error_code), unsigned(error->request_code), error->resourceid);
+  std::exit(EXIT_FAILURE);
 }
+class WindowErrorScope final {
+public:
+  WindowErrorScope(Display *display, ::Window window) : lock_(g_error_mutex), display_(display) {
+    // Flush earlier operations before installing a narrowly scoped handler.
+    XSync(display, False);
+    g_error_display = display;
+    g_error_window = window;
+    g_bad_window = false;
+    g_previous_error_handler = XSetErrorHandler(IgnoreExpectedBadWindow);
+  }
+  bool Missing() {
+    XSync(display_, False);
+    return g_bad_window;
+  }
+  ~WindowErrorScope() {
+    XSync(display_, False);
+    XSetErrorHandler(g_previous_error_handler);
+    g_error_display = nullptr;
+    g_error_window = 0;
+  }
 
-// The server (or another client such as xdotool) may already have destroyed the window by the time
-// we do, and Vulkan can report the lost surface before the DestroyNotify has been pumped. A second
-// XDestroyWindow would otherwise raise BadWindow, whose default handler aborts the process.
+private:
+  std::unique_lock<std::mutex> lock_;
+  Display *display_;
+};
+
+// Destruction may arrive from another client before its DestroyNotify is pumped.
 void DestroyWindowIfPresent(Display *display, ::Window window) {
-  g_previous_error_handler = XSetErrorHandler(IgnoreBadWindow);
+  WindowErrorScope errors(display, window);
   XDestroyWindow(display, window);
-  XSync(display, False);
-  XSetErrorHandler(g_previous_error_handler);
-  g_previous_error_handler = nullptr;
 }
 
 std::uint64_t Now() noexcept {
@@ -295,12 +330,13 @@ public:
     if (!OnOwner())
       return WindowError::WrongThread;
     const auto window = Find(handle);
-    if (!window)
+    if (!window || gone_.contains(window))
       return WindowError::InvalidHandle;
+    WindowErrorScope errors(display_, window);
     XWindowAttributes info{};
     if (!XGetWindowAttributes(display_, window, &info))
-      return WindowError::PlatformFailure;
-    out = {uint32_t(info.width), uint32_t(info.height), 1.F, false};
+      return errors.Missing() ? WindowError::InvalidHandle : WindowError::PlatformFailure;
+    WindowMetrics candidate{uint32_t(info.width), uint32_t(info.height), 1.F, false};
     Atom actual{};
     int format{};
     unsigned long count{}, remaining{};
@@ -311,10 +347,13 @@ public:
         actual == XA_ATOM && format == 32 && bytes) {
       const auto values = reinterpret_cast<const Atom *>(bytes);
       const auto fullscreen = XInternAtom(display_, "_NET_WM_STATE_FULLSCREEN", False);
-      out.borderless = std::find(values, values + count, fullscreen) != values + count;
+      candidate.borderless = std::find(values, values + count, fullscreen) != values + count;
     }
     if (bytes)
       XFree(bytes);
+    if (errors.Missing())
+      return WindowError::InvalidHandle;
+    out = candidate;
     return WindowError::None;
   }
   WindowError SetResizable(WindowHandle handle, bool enabled) override {

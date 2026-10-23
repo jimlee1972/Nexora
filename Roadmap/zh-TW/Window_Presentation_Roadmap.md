@@ -226,7 +226,7 @@ Benchmark／runner 現提供明確的 `--objects 5000`，並保留預設 10,000 
 
 ## SP-01 獨立 Player 顯示整合（2026-10-23）
 
-✅ 可攜實作與回歸檢查：251 項通過、16 項原生前提不足而跳過、0 失敗；Monolithic Shipping consumer 通過。
+✅ 可攜實作與回歸檢查：252 項通過、16 項原生前提不足而跳過、0 失敗；Monolithic Shipping consumer 通過。
 
 獨立 2D Player 已加入可選專案視窗設定、尾端擴充且獨立協商的 C／Zig 顯示 table、
 每幀一致的像素／logical／DPI 快照、原生視窗模式請求、遊戲指定畫框比例、安全畫框
@@ -238,3 +238,5 @@ Benchmark／runner 現提供明確的 `--objects 5000`，並保留預設 10,000 
 [Windows 操作程序](../../Tools/TwoD/WindowsDisplayAcceptance.md)。
 Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6／M7 與既有里程碑
 完成數不變，可攜實作檢查不等同於通過上述驗收。
+
+✅ X11 原生關閉回歸：Xvfb 驗證事件處理前已銷毀視窗的查詢與清理；修正前 DSO 在同一探針失敗。

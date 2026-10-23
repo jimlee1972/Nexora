@@ -74,15 +74,21 @@ SurfaceStatus RenderSurface::BeginFrame() {
       break;
     }
   }
+  if (state_->closeRequested)
+    return SurfaceStatus::SurfaceLost;
   Window::WindowMetrics metrics;
-  if (state_->windows->Metrics(state_->window, metrics) == Window::WindowError::None) {
+  const auto metricsStatus = state_->windows->Metrics(state_->window, metrics);
+  if (metricsStatus == Window::WindowError::InvalidHandle) {
+    // The server may have destroyed the window after the event pump completed.
+    state_->closeRequested = state_->windowDestroyed = true;
+    return SurfaceStatus::SurfaceLost;
+  }
+  if (metricsStatus == Window::WindowError::None) {
     if (state_->frame.width != metrics.width || state_->frame.height != metrics.height)
       state_->surface->NotifyWindowExtent(metrics.width, metrics.height);
     state_->frame = {metrics.width, metrics.height, metrics.dpiScale};
     state_->borderless = metrics.borderless;
   }
-  if (state_->closeRequested)
-    return SurfaceStatus::SurfaceLost;
   return state_->surface->Acquire();
 }
 
@@ -196,7 +202,7 @@ bool RenderSurface::Borderless() const noexcept { return state_ && state_->borde
 Window::WindowError RenderSurface::ConfigureWindow(std::uint32_t width, std::uint32_t height,
                                                    bool borderless, bool resizable) {
   using Window::WindowError;
-  if (!state_ || state_->destroyed)
+  if (!state_ || state_->destroyed || state_->windowDestroyed || state_->closeRequested)
     return WindowError::InvalidHandle;
   if (!width || !height || width > 16384 || height > 16384)
     return WindowError::InvalidDescriptor;
@@ -265,7 +271,12 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
     state->borderless = true;
   }
   Window::WindowMetrics metrics;
-  if (state->windows->Metrics(created.handle, metrics) == Window::WindowError::None) {
+  const auto metricsStatus = state->windows->Metrics(created.handle, metrics);
+  if (metricsStatus == Window::WindowError::InvalidHandle) {
+    (void)state->windows->Destroy(created.handle);
+    return {{}, SurfaceStatus::SurfaceLost, "native window destroyed before presentation"};
+  }
+  if (metricsStatus == Window::WindowError::None) {
     state->frame = {metrics.width, metrics.height, metrics.dpiScale};
     state->borderless = metrics.borderless;
   }

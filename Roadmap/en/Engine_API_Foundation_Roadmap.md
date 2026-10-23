@@ -143,7 +143,7 @@ physical Windows devices/DPI/clean-host remain separate. [Evidence](../../Tools/
 
 ## SP-01 standalone display integration (2026-10-23)
 
-✅ Portable implementation and regression checks: 251 passed, 16 native-prerequisite skips, 0 failed; Monolithic Shipping consumer passed.
+✅ Portable implementation and regression checks: 252 passed, 16 native-prerequisite skips, 0 failed; Monolithic Shipping consumer passed.
 
 The standalone 2D Player now has optional project window settings, an append-only independently
 negotiated C/Zig display table, frame-stable pixel/logical/DPI snapshots, native window mode
@@ -156,3 +156,5 @@ See [the display contract](../../Engine/TwoD/GameplayDisplay.md),
 [Windows procedure](../../Tools/TwoD/WindowsDisplayAcceptance.md).
 Windows physical DPI/click/mode acceptance is NOT RUN / NOT ACCEPTED; 2D M6/M7 and existing
 milestone counts remain unchanged. Portable implementation checks do not close those gates.
+
+✅ Native X11 close-race regression: destroyed-before-pump metrics and cleanup pass on Xvfb; the preserved pre-fix DSO fails the same probe.

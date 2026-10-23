@@ -209,3 +209,20 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set_tests_properties(window.x11_held_key_native PROPERTIES
     LABELS "native-input;x11;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45 RUN_SERIAL TRUE)
 endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_executable(NexoraX11MetricsTests X11MetricsTests.cpp)
+  target_link_libraries(NexoraX11MetricsTests PRIVATE Nexora::Window X11::X11)
+  nexora_apply_defaults(NexoraX11MetricsTests)
+  set(NEXORA_XVFB_EXECUTABLE "" CACHE FILEPATH "Optional Xvfb path for native Window metrics tests")
+  set(x11_metrics_args)
+  if(NEXORA_XVFB_EXECUTABLE)
+    list(APPEND x11_metrics_args --xvfb "${NEXORA_XVFB_EXECUTABLE}")
+  endif()
+  add_test(NAME window.x11_display_metrics_native
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxX11Metrics.py"
+      --probe "$<TARGET_FILE:NexoraX11MetricsTests>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/x11-display-metrics" ${x11_metrics_args})
+  set_tests_properties(window.x11_display_metrics_native PROPERTIES
+    LABELS "x11;display;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 30 RUN_SERIAL TRUE)
+endif()

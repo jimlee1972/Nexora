@@ -8,7 +8,7 @@ report, based on Nexora main `7087e832`. No existing M6/M7 milestone count is ad
 
 | Check | Result and boundary |
 | --- | --- |
-| Full linux-development configure/build/CTest | 267 registered; **251 passed, 16 skipped, 0 failed** |
+| Full linux-development configure/build/CTest | 268 registered; **252 passed, 16 skipped, 0 failed** |
 | New display cases | C++ snapshot/service-prefix/geometry/UI hit tests, all-field C/Zig layout, Zig coordinate wrapper and actual independent Zig Player consumer executed and passed |
 | Existing service ABI consumer | New Zig consumer retains historical service hosts; absent display suffix returns unsupported without losing older services |
 | linux-shipping | Full Monolithic build passed with 2D and Zig enabled |
@@ -55,3 +55,24 @@ windowed/borderless restoration, UI clicks, manual resize and minimize/restore e
 `nexora-4i1.1` tracks this gate; parent `nexora-4i1` remains open for full acceptance. Editor Play
 integration and Cocoa borderless support are not delivered by this change. This does not complete
 full-game art/UI, loading, color, audio, lifecycle/save or performance acceptance.
+
+## X11 close-race repair
+
+Hosted CI on f83021c3 exposed two Editor close-path regressions: `editor.linux_display_acceptance`
+and `editor.linux_native_scene_preview` queried native attributes after external destruction.
+RenderSurface now stops before metrics on close, treats a missing native handle as a lost window,
+and rejects window requests after closing. Native X11 metrics scopes only expected BadWindow
+errors for its own window, preserves failed outputs and restores the previous error handler;
+unrelated protocol errors retain their handler or fatal behavior.
+
+The new `window.x11_display_metrics_native` runs an actual isolated Xvfb server without a GPU.
+Eight external-destruction cycles exercise query-before-pump and cleanup-before/after-pump;
+live metrics, unchanged failed output and handler restoration pass. The same probe against the
+preserved f83021c3 Window DSO fails with the same opcode-3 BadWindow as hosted CI. See the
+[negative control](SP01-GameplayDisplay-Linux-2026-10-23/x11-before.log) and
+[repaired probe](SP01-GameplayDisplay-Linux-2026-10-23/x11-after.log).
+
+The recorded full gate is now **252 passed, 16 unavailable native GPU/input prerequisites skipped,
+zero failures, 268 registered**; the new native Window case executed. Xvfb is supplied only to this
+CPU-only test through NEXORA_XVFB_EXECUTABLE, without changing unrelated GPU gates' prerequisites.
+Shipping consumer/export verification passed again. Remote graphics CI must pass before merging.
