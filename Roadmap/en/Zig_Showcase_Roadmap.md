@@ -188,3 +188,21 @@ compilation. See [the contract](../../Engine/TwoD/GameplayAssets.md) and
 
 Final game art/content, complete pickup/combat transitions and physical target-PC RAM/VRAM/frame
 budgets remain unaccepted. Audio streaming/compression, color and existing M6/M7 gates are unchanged.
+
+## SP-04 explicit authoring color and 2D fallback (2026-10-23)
+
+✅ Opt-in sRGB PNG import now decodes RGB once into the existing linear RGBA8 Atlas contract,
+preserving straight alpha, historical defaults, Atlas wire format and services ABI. Conflicting
+profiles/ICC reject before publication. Zig raw-image/tint helpers share the transfer contract.
+✅ The native 2D Player requires hardware sRGB UI/Sprite output on Vulkan/DX12/Metal; legacy
+mixed 3D surface defaults remain unchanged. Native pixel tests require encoded gray, not UNORM.
+✅ A separately exported Zig diagnostic composes top-down layers, Y crossing, foreground fading,
+baked glow/shadow removal and an always-retained danger outline. These are procedural fixtures
+and ordinary alpha layers, not dynamic local lighting, occlusion shadows or selective bloom.
+
+See [color/fallback contract](../../Engine/TwoD/ColorAndFallback.md) and
+[cloud evidence](../../Tools/Build/evidence/SP04-ColorFallback-Cloud-2026-10-23.md).
+Final first-level art, dark-gradient quantization, transparent filtering/white edges, readability
+and physical Windows target output/performance remain open (`nexora-ofe.1`). A native test must
+actually run before pixel acceptance is claimed; local compilation does not suffice. Existing
+M6/M7 gates and unrelated SP gaps are unchanged.

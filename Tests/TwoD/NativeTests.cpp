@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
     descriptor.height = 240;
     descriptor.backend = SurfaceBackend::Vulkan;
     descriptor.enableGpuTiming = true;
+    descriptor.srgbUiOutput = true;
     auto surface = CreateSurface(descriptor, *windows);
     Check(bool(surface), "native Vulkan surface");
     auto red = Solid({1, 1}, {255, 0, 0, 255}, true),
@@ -456,6 +457,78 @@ int main(int argc, char **argv) {
             "native content returns to baseline");
     }
     std::cout << "SP-03 native 2048 texture generation unload/re-entry/retained pixels passed\n";
+    // Explicit sRGB import yields gray linear byte 55; straight alpha is independent coverage.
+    // Require a single consistent attachment encoding across swatches and their composite.
+    const auto gray = Solid({44, 40}, {55, 55, 55, 255}, true);
+    const auto translucent = Solid({44, 41}, {255, 0, 0, 128}, true);
+    runtime::World colorWorld;
+    const auto colorSceneId = colorWorld.LoadScene("SP-04 transfer and occlusion");
+    twod::SpriteScene colorScene(colorWorld, colorSceneId);
+    const auto groundId = colorWorld.CreateEntity(colorSceneId).id;
+    const auto actorId = colorWorld.CreateEntity(colorSceneId).id;
+    const auto roofId = colorWorld.CreateEntity(colorSceneId).id;
+    twod::Sprite graySprite;
+    graySprite.atlas = gray->id;
+    graySprite.region = 1;
+    graySprite.size = {12, 10};
+    graySprite.layer = -10;
+    Check(colorScene.Set(groundId, graySprite), "color ground");
+    graySprite.layer = 0;
+    graySprite.sortY = true;
+    graySprite.size = {6, 6};
+    Check(colorScene.Set(roofId, graySprite), "color roof");
+    twod::Sprite actorSprite = graySprite;
+    actorSprite.atlas = translucent->id;
+    Check(colorScene.Set(actorId, actorSprite), "color actor");
+    for (bool faded : {false, true, false}) {
+      runtime::WorldCommandBuffer positions;
+      positions.SetTransform(actorId, {0, faded ? 2.0 : 0.0, 0});
+      positions.SetTransform(roofId, {0, 1, 0});
+      Check(positions.Apply(colorWorld), "color Y crossing");
+      graySprite.color[3] = faded ? 0.25F : 1.0F;
+      Check(colorScene.Set(roofId, graySprite), "color roof fade");
+      auto colors = colorScene.Extract(camera, [&](auto id) -> std::optional<twod::AtlasBinding> {
+        return id == gray->id ? twod::AtlasBinding{gray, 4400}
+                              : twod::AtlasBinding{translucent, 4401};
+      });
+      Check(bool(colors), "color extraction");
+      const auto colorUploads = colors->Uploads();
+      const auto colorPacket =
+          PrepareSpriteDraws({colors->vertices, std::as_bytes(std::span(colors->indices)),
+                              colors->batches, colorUploads, true},
+                             {}, 320, 240, true);
+      Check(bool(colorPacket), "color packet");
+      for (unsigned repeat = 0; repeat < 3; ++repeat) {
+        static_cast<void>(windows->PumpEvents());
+        Check(surface->Acquire() == SurfaceStatus::Ready &&
+                  surface->RenderUi(colorPacket->View()) == SurfaceStatus::Ready &&
+                  surface->Present() == SurfaceStatus::Ready,
+              "color render");
+      }
+      WaitPixels(
+          display, native,
+          [&](XImage *image) {
+            const auto swatch = XGetPixel(image, 20, 120);
+            const auto sample = XGetPixel(image, 160, 120);
+            const auto mid = Channel(swatch, image->red_mask);
+            const bool encoded = std::abs(int(mid) - 128) <= 2;
+            if (!encoded)
+              return false;
+            // Blend in linear space: red*128/255 over gray55/255, then optional quarter-gray roof.
+            const std::array<int, 3> expected =
+                faded ? std::array<int, 3>{189, 103, 103} : std::array<int, 3>{205, 92, 92};
+            const std::array<unsigned, 3> actual{Channel(sample, image->red_mask),
+                                                 Channel(sample, image->green_mask),
+                                                 Channel(sample, image->blue_mask)};
+            for (unsigned channel = 0; channel < 3; ++channel)
+              if (std::abs(int(actual[channel]) - expected[channel]) > 2)
+                return false;
+            return true;
+          },
+          "SP-04 linear swatch/straight-alpha/Y-order/foreground-fade pixels");
+    }
+    std::cout << "SP-04 native linear swatch, straight-alpha composite, Y crossing and roof fade "
+                 "passed\n";
     Check(surface->DrainAndDestroy() == SurfaceStatus::Ready, "shutdown");
     Check(windows->Destroy(created.handle) == Nexora::Window::WindowError::None, "window shutdown");
     XCloseDisplay(display);

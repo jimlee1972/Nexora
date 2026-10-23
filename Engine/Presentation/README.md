@@ -1049,3 +1049,20 @@ external package is introduced.
 ## Gameplay display integration
 
 RenderSurface exposes window configuration and initialized real framebuffer/DPI observations on supported Window hosts. Its published frame remains stable through rendering; subsequent BeginFrame consumes native changes. The Sprite compositor accepts an optional background color without changing previous callers, allowing black safe-frame bars. The Player performs world viewport offsets and converts owning UI geometry/clips from logical coordinates once before native submission. See [GameplayDisplay](../TwoD/GameplayDisplay.md) for lifetime, errors and platform limits.
+
+## Explicit sRGB UI/Sprite output
+
+`SurfaceDescriptor::srgbUiOutput` and `RenderSurfaceDescriptor::srgbUiOutput` default false,
+preserving existing mixed scene consumers. The native 2D Player opts in: linear UI/Sprite RGB
+and straight alpha blend in an sRGB attachment, with one hardware output encode. DX12 uses
+an sRGB RTV/PSO over the UNORM swapchain resource; Metal uses an sRGB drawable/UI pipeline;
+Vulkan selects an sRGB format with SRGB_NONLINEAR color space and fails creation if unavailable.
+The requested mode survives resize/recreation. It requires `ColorSpace::Srgb`. No silent UNORM
+fallback, software gamma in the blend shader or double decode is introduced.
+
+This mode admits only UI/Sprites: `DrawScene` returns `Unsupported`, and scene geometry residency
+and bounded scene-view queries return false. `CompositeRgba8` remains a byte copy of already
+output-encoded input, not a linear draw. Render-thread, acquire/present, destruction, ownership
+and borrowed span rules are unchanged. Native C++ consumers must rebuild for descriptor layout;
+C/Zig gameplay services and Atlas schema remain unchanged. See the
+[2D authoring contract](../TwoD/ColorAndFallback.md) for source conversion and precision limits.

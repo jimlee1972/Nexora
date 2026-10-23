@@ -54,7 +54,9 @@ snapshot, skipping a re-sort when the complete order already holds. Returned geo
 owners remain independent of input storage; no persistent per-frame input cache is introduced.
 Covered AABB pixels are an overlap diagnostic, not measured GPU overdraw or fragment invocations.
 RGBA8 pixels/tints follow the shared UI linear-color contract; an sRGB swapchain encodes the final
-linear blend. PNG preparation preserves byte values and does not perform color-profile conversion.
+linear blend. PNG preparation preserves byte values by default; explicit sRGB authoring can
+opt into import-time RGB decode into linear RGBA8. Alpha remains straight coverage. See
+[the color contract and diagnostic fallback](ColorAndFallback.md), including quantization limits.
 
 ## Assets, animation and queries
 

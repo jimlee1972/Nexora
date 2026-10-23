@@ -82,14 +82,16 @@ bool Initialized(VkResult result, const char *operation) {
 }
 class VulkanSurface final : public ISurface {
 public:
-  bool SupportsSceneGeometryResidency() const noexcept override { return true; }
-  bool SupportsBoundedSceneViews() const noexcept override { return true; }
+  bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
+  bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
   VulkanSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
         requestedColorSpace_(descriptor.colorSpace), requestedPresentMode_(descriptor.presentMode),
-        gpuTimingEnabled_(descriptor.enableGpuTiming), requestedFrames_(descriptor.framesInFlight),
-        pendingWidth_(descriptor.width), pendingHeight_(descriptor.height) {
-    if (!descriptor.window.IsValid() || descriptor.framesInFlight < 2 ||
+        gpuTimingEnabled_(descriptor.enableGpuTiming), srgbUiOutput_(descriptor.srgbUiOutput),
+        requestedFrames_(descriptor.framesInFlight), pendingWidth_(descriptor.width),
+        pendingHeight_(descriptor.height) {
+    if ((srgbUiOutput_ && descriptor.colorSpace != ColorSpace::Srgb) ||
+        !descriptor.window.IsValid() || descriptor.framesInFlight < 2 ||
         descriptor.framesInFlight > kMaxFrames)
       return;
 #if defined(__linux__)
@@ -376,6 +378,8 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &data) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
+    if (srgbUiOutput_)
+      return SurfaceStatus::Unsupported;
     if (!acquired_ || !scenePipeline_ || transferTarget_ || data.vertices.empty() ||
         data.indices.empty() || data.vertices.size() > 65535 || data.indices.size() > 1048576 ||
         data.indices.size() % 3 != 0)
@@ -2796,6 +2800,18 @@ private:
                                        });
         rgba != formats.end())
       selected = *rgba;
+    if (srgbUiOutput_) {
+      const auto srgb = std::find_if(formats.begin(), formats.end(), [](const auto &format) {
+        return (format.format == VK_FORMAT_R8G8B8A8_SRGB ||
+                format.format == VK_FORMAT_B8G8R8A8_SRGB) &&
+               format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+      });
+      if (srgb == formats.end()) {
+        std::fprintf(stderr, "Vulkan 2D output requires an sRGB surface format\n");
+        return false;
+      }
+      selected = *srgb;
+    }
     if (requestedColorSpace_ == ColorSpace::Hdr10) {
       const auto hdr = std::find_if(formats.begin(), formats.end(), [](const auto &format) {
         return format.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT;
@@ -2911,6 +2927,7 @@ private:
   ColorSpace requestedColorSpace_{};
   PresentMode requestedPresentMode_{};
   bool gpuTimingEnabled_{};
+  bool srgbUiOutput_{};
   std::uint32_t requestedFrames_{};
   bool valid_{}, destroyed_{}, acquired_{};
   std::atomic<std::uint32_t> pendingWidth_{}, pendingHeight_{};

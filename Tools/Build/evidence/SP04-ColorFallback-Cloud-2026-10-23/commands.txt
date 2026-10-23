@@ -1,0 +1,17 @@
+SP-04 cloud, 2026-10-23 UTC; base main f75469c5120d890f4edfe6411d1bfece666cd252
+Task SDK/cache/Beads paths are outside the repository. GCC14.2, CMake3.31.10, Ninja1.13.2, Zig0.14.0.
+
+cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src -DNEXORA_WINDOW_METRICS_XVFB_EXECUTABLE=/workspace/scratch/nexora-sp01/x11-tools/usr/bin/Xvfb
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp04/development-junit.xml --output-log /workspace/scratch/nexora-sp04/development-tests.log
+
+cmake --preset linux-shipping -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+cmake --build --preset linux-shipping
+/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig build-lib --dep nexora -O ReleaseSafe -mcpu=baseline -Mroot=/workspace/worktrees/nexora-sp04/Gameplay/Zig/src/color_slice.zig -Mnexora=/workspace/worktrees/nexora-sp04/Bindings/Zig/nexora.zig -dynamic -femit-bin=/workspace/scratch/nexora-sp04/libNexoraZigColorShipping.so
+python Tests/TwoD/ColorSliceAcceptance.py --shipping --app /workspace/worktrees/nexora-sp04/build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --module /workspace/scratch/nexora-sp04/libNexoraZigColorShipping.so --compiler /workspace/worktrees/nexora-sp04/build/linux-shipping/Tools/TwoD/NexoraTwoDAssetCompiler
+
+NativeTests.cpp separately compiled using the compile_commands.json flags for TwoDTests.cpp,
+substituting its source/output and adding the external X11 include path. No local native execution claimed.
+python Tools/Build/ValidateApiM6.py .
+clang-format19 on touched C++/C headers; zig fmt on touched/new Zig; Markdown links/fences and git diff --check.

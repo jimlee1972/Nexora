@@ -19,7 +19,18 @@ Atlas manifests declare `type: "atlas"`, `id: [high, low]`, width, optional maxi
 and images. Each image uses a workspace-contained `path` plus either `grid: [width, height]`
 with optional first_id, or `regions: [{id, rect: [x, y, width, height]}]`. Coordinates are PNG
 pixels from the upper-left. Only bounded noninterlaced RGBA8 PNG is supported; byte values are
-preserved as the renderer's linear RGBA8 contract, without ICC/gamma conversion. IDs, layout,
+preserved as the renderer's linear RGBA8 contract by default (legacy behavior).
+For authored sRGB PNGs, explicitly set atlas `"color_space": "sRGB", "alpha_mode": "straight"`.
+RGB uses the IEC 61966-2-1 transfer before slicing, packing and gutter extrusion; alpha is unchanged.
+`"linear"` is the only other accepted color space. Unknown values and premultiplied alpha reject
+before publication. Untagged PNGs use the explicit manifest interpretation. In sRGB mode, standard
+sRGB intent/gAMA/cHRM metadata is checked; conflicting gamma/chromaticities, duplicate profile
+chunks and all ICC profiles reject. Normalize ICC/Display-P3 assets externally first. The legacy
+linear mode continues to ignore ancillary metadata. No automatic profile guessing occurs.
+Cooked Atlases remain linear RGBA8, with unchanged wire/ABI and no second decode at sampling.
+This quantizes dark gradients: it is a bounded compatibility path, not lossless sRGB storage or
+HDR. Inspect final dark art; a future tagged sRGB texture/high-precision path requires separate work.
+See [color/fallback contracts](../../Engine/TwoD/ColorAndFallback.md). IDs, layout,
 gutters and bytes are independent of manifest input order. The C++ compiler rejects duplicate
 IDs, capacity failures and invalid frames with a diagnostic and leaves the previous output intact.
 

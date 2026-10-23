@@ -33,11 +33,11 @@ struct MetalMeshAllocation final {
 };
 class MetalSurface final : public ISurface {
 public:
-  bool SupportsSceneGeometryResidency() const noexcept override { return true; }
-  bool SupportsBoundedSceneViews() const noexcept override { return true; }
+  bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
+  bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
   MetalSurface(const SurfaceDescriptor &descriptor, Window::IWindowSystem &windows)
       : thread_(std::this_thread::get_id()), width_(descriptor.width), height_(descriptor.height),
-        gpuTimingEnabled_(descriptor.enableGpuTiming) {
+        gpuTimingEnabled_(descriptor.enableGpuTiming), srgbUiOutput_(descriptor.srgbUiOutput) {
     @autoreleasepool {
       if (descriptor.framesInFlight < 2 || descriptor.framesInFlight > kFrames ||
           descriptor.colorSpace != ColorSpace::Srgb || !width_ || !height_)
@@ -53,7 +53,7 @@ public:
         diagnostics_.device.name.fill(0);
       layer_ = [CAMetalLayer layer];
       layer_.device = device_;
-      layer_.pixelFormat = MTLPixelFormatBGRA8Unorm;
+      layer_.pixelFormat = srgbUiOutput_ ? MTLPixelFormatBGRA8Unorm_sRGB : MTLPixelFormatBGRA8Unorm;
       // CompositeScene blits into the drawable, so framebuffer-only storage is insufficient.
       layer_.framebufferOnly = NO;
       layer_.maximumDrawableCount = frames_;
@@ -272,6 +272,8 @@ public:
     @autoreleasepool {
       if (thread_ != std::this_thread::get_id())
         return SurfaceStatus::WrongThread;
+      if (srgbUiOutput_)
+        return SurfaceStatus::Unsupported;
       if (!drawable_ || !commands_ || !scenePipeline_)
         return SurfaceStatus::InvalidDescriptor;
       const auto viewport = ResolveSceneViewport(drawData.viewport, width_, height_);
@@ -1278,7 +1280,7 @@ private:
     MTLRenderPipelineDescriptor *pipeline = [MTLRenderPipelineDescriptor new];
     pipeline.vertexFunction = [library newFunctionWithName:@"uiVertex"];
     pipeline.fragmentFunction = [library newFunctionWithName:@"uiFragment"];
-    pipeline.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
+    pipeline.colorAttachments[0].pixelFormat = layer_.pixelFormat;
     pipeline.colorAttachments[0].blendingEnabled = YES;
     pipeline.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactorSourceAlpha;
     pipeline.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
@@ -1366,6 +1368,7 @@ private:
   std::thread::id thread_;
   std::uint32_t width_{}, height_{};
   bool gpuTimingEnabled_{};
+  bool srgbUiOutput_{};
   std::mutex extentMutex_;
   std::uint32_t pendingWidth_{}, pendingHeight_{};
   bool dirty_{};

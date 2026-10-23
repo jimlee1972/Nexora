@@ -8,6 +8,7 @@ pub const storage = @import("storage.zig");
 pub const content = @import("content.zig");
 pub const assets = @import("assets.zig");
 pub const display = @import("display.zig");
+pub const color = @import("color.zig");
 pub const ui_draw = @import("ui_draw.zig");
 pub const services_api_capability: u64 = 1 << 6;
 pub const GameplayServicesApiV1 = extern struct {

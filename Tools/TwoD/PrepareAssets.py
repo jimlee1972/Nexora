@@ -15,7 +15,10 @@ def bounded(path):
         raise ValueError('input exceeds 64 MiB')
     return path.read_bytes()
 
-def png(data):
+def png(data, color_space="linear"):
+    if color_space not in ("linear", "sRGB"):
+        raise ValueError("color_space must be linear or sRGB")
+    profiles = set()
     if data[:8] != b'\x89PNG\r\n\x1a\n':
         raise ValueError('invalid PNG signature')
     cursor, compressed, dimensions, ended = 8, bytearray(), None, False
@@ -36,6 +39,19 @@ def png(data):
             w, h = dimensions[:2]
             if not (1 <= w <= 4096 and 1 <= h <= 4096 and w*h <= 4*1024*1024) or dimensions[2:] != (8, 6, 0, 0, 0):
                 raise ValueError('requires bounded noninterlaced RGBA8 PNG')
+        elif kind in (b'sRGB', b'gAMA', b'iCCP', b'cHRM'):
+            if color_space == 'sRGB':
+                if kind in profiles:
+                    raise ValueError('duplicate PNG color metadata')
+                profiles.add(kind)
+                if kind == b'iCCP':
+                    raise ValueError('ICC profiles require external normalization to sRGB')
+                if kind == b'sRGB' and (size != 1 or payload[0] > 3):
+                    raise ValueError('invalid sRGB intent')
+                if kind == b'gAMA' and payload != struct.pack('>I', 45455):
+                    raise ValueError('PNG gamma conflicts with sRGB')
+                if kind == b'cHRM' and payload != struct.pack('>8I', 31270,32900,64000,33000,30000,60000,15000,6000):
+                    raise ValueError('PNG chromaticity conflicts with sRGB')
         elif kind == b'IDAT':
             compressed.extend(payload)
         elif kind == b'IEND':
@@ -72,7 +88,21 @@ def png(data):
             row[i] = (row[i]+predictor) & 255
         pixels.extend(row)
         previous = row
+    if color_space == 'sRGB':
+        pixels = srgb_to_linear_rgba8(pixels)
     return w, h, pixels
+
+def srgb_to_linear_rgba8(pixels):
+    """IEC 61966-2-1 RGB decode, round to nearest linear UNORM8; never transform alpha."""
+    if len(pixels) % 4:
+        raise ValueError('RGBA length must be divisible by four')
+    table = bytes(int(255 * (c/255/12.92 if c/255 <= 0.04045 else ((c/255+0.055)/1.055)**2.4) + 0.5)
+                  for c in range(256))
+    out = bytearray(pixels)
+    for offset in range(0, len(out), 4):
+        for channel in range(3):
+            out[offset+channel] = table[out[offset+channel]]
+    return out
 
 def integer(v, minimum, maximum):
     if type(v) is not int or not minimum <= v <= maximum:
@@ -94,10 +124,15 @@ def source_path(root, value):
 
 def images(manifest, root):
     output = []
+    color_space = manifest.get('color_space', 'linear')
+    if color_space not in ('linear', 'sRGB'):
+        raise ValueError('color_space must be linear or sRGB')
+    if manifest.get('alpha_mode', 'straight') != 'straight':
+        raise ValueError('only straight alpha is supported')
     if not isinstance(manifest['images'], list) or not 1 <= len(manifest['images']) <= 1024:
         raise ValueError('image count budget')
     for source in manifest['images']:
-        width, height, rgba = png(bounded(source_path(root, source['path'])))
+        width, height, rgba = png(bounded(source_path(root, source['path'])), color_space)
         regions = source.get('regions')
         if 'grid' in source:
             if regions is not None: raise ValueError('choose rectangles or grid')
