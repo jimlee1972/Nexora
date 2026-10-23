@@ -139,12 +139,13 @@ int main() {
   std::thread thread([&] { result = stats.get_usage(stats.context, &invalid); });
   thread.join();
   assert(result == -3 && invalid.active_bytes == 123);
-  // Warm process RSS across actual large PCM generations and unload/re-entry.
+  // Include enough churn to fill ASan's default 256 MiB quarantine before comparing
+  // equal RSS windows. Keep the growth bound; every round still requires zero live PCM.
   runtime::GameplayAudio large(48000, 4, {4, 32ULL << 20, 48ULL << 20});
   large.SetOutput(Sink::Write, &sink);
   std::vector<float> samples(4 * 1024 * 1024, .125F);
   std::uint64_t warm{}, tail{};
-  for (unsigned round = 0; round < 24; ++round) {
+  for (unsigned round = 0; round < 48; ++round) {
     assert(large.RegisterPcm(99, 48000, 1, samples));
     auto play = large.Api();
     NexoraAudioPlayDesc desc{99, 2, 1, 1};
@@ -154,15 +155,15 @@ int main() {
     auto usage = Usage(large);
     assert(!usage.active_bytes && !usage.retired_bytes);
     if (auto rss = core::CurrentProcessResidentBytes()) {
-      if (round < 12)
+      if (round < 24)
         warm = std::max(warm, *rss);
       else
         tail = std::max(tail, *rss);
     }
   }
   if (warm && tail) {
+    std::cerr << "PCM RSS warm=" << warm << " tail=" << tail << '\n';
     assert(tail <= warm + 32ULL * 1024 * 1024);
-    std::cout << "PCM RSS warm=" << warm << " tail=" << tail << '\n';
   } else
     std::cout << "PCM RSS unavailable\n";
   std::cout << "SP-05 PCM budgets, retained generations, sample/gain/failure recovery, services "

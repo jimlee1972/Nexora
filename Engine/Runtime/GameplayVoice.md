@@ -99,7 +99,7 @@ available in the game repository, so no final corpus size or optimal compression
 
 `runtime.gameplay_audio_residency` checks budgets before publication, retained generations,
 independent Music/SFX/Voice samples, unavailable output/reconfiguration, legacy service canaries
-and 24 rounds of 16 MiB PCM with observed process RSS. `gameplay.zig_voice_dialogue` drives the
+and 48 rounds of 16 MiB PCM with observed process RSS. `gameplay.zig_voice_dialogue` drives the
 actual Zig controller through captured PCM, pause position, mute, skip/replay, missing/corrupt
 reads, sink failure/reopen, cancellation, old-host rejection and cleanup. C/Zig all-field layouts
 are checked with the services/asset wire suite.
