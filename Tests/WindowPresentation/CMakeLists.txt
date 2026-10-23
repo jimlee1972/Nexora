@@ -182,3 +182,30 @@ target_include_directories(NexoraGpuTimingTests PRIVATE "${CMAKE_SOURCE_DIR}/Eng
 target_link_libraries(NexoraGpuTimingTests PRIVATE Nexora::Presentation)
 nexora_apply_defaults(NexoraGpuTimingTests)
 add_test(NAME window_presentation.gpu_timing COMMAND NexoraGpuTimingTests)
+
+# X11 physical held-key transitions and committed text are independent contracts.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  find_package(X11 REQUIRED)
+  add_executable(NexoraX11KeyRepeatMatcherTests X11KeyRepeatMatcherTests.cpp)
+  target_include_directories(NexoraX11KeyRepeatMatcherTests PRIVATE
+    "${CMAKE_SOURCE_DIR}/Engine/Window/src")
+  target_link_libraries(NexoraX11KeyRepeatMatcherTests PRIVATE X11::X11)
+  nexora_apply_defaults(NexoraX11KeyRepeatMatcherTests)
+  add_test(NAME window.x11_key_repeat_matcher COMMAND NexoraX11KeyRepeatMatcherTests)
+
+  add_executable(NexoraX11HeldKeyProbe X11HeldKeyProbe.cpp)
+  target_link_libraries(NexoraX11HeldKeyProbe PRIVATE Nexora::Window)
+  nexora_apply_defaults(NexoraX11HeldKeyProbe)
+
+  # Loaded only into the test child; this is not linked into Window or the Editor.
+  add_library(NexoraX11RepeatCapabilityControl SHARED X11RepeatCapabilityControl.cpp)
+  target_link_libraries(NexoraX11RepeatCapabilityControl PRIVATE X11::X11 ${CMAKE_DL_LIBS})
+  nexora_apply_defaults(NexoraX11RepeatCapabilityControl)
+  add_test(NAME window.x11_held_key_native
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxX11HeldKeyTests.py"
+      --probe "$<TARGET_FILE:NexoraX11HeldKeyProbe>"
+      --control "$<TARGET_FILE:NexoraX11RepeatCapabilityControl>"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/x11-held-key")
+  set_tests_properties(window.x11_held_key_native PROPERTIES
+    LABELS "native-input;x11;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 45 RUN_SERIAL TRUE)
+endif()

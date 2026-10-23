@@ -290,27 +290,46 @@ def main():
                     driver.drain(min(.005, max(0, baseline_deadline - time.monotonic())))
                 records = bytes(captured[release_offset:])
                 neutral = records.rfind(b'pointer input buttons=0\n')
-                draws = re.findall(rb'^native game draw admitted frame=(\d+) x=([^\n]+)\n',
-                                   records[neutral:] if neutral >= 0 else b'', re.M)
-                if (len(draws) < 3 or len({pose for _, pose in draws[-3:]}) != 1 or
-                        int(draws[-1][0]) - int(draws[-3][0]) != 2):
+                # The final held draw can already contain the exact neutral pose.
+                # Keep three consecutive equal draws across the release window, while
+                # independently requiring neutral input and two later matching draws.
+                draw_pattern = rb'^native game draw admitted frame=(\d+) x=([^\n]+)\n'
+                draws = list(re.finditer(draw_pattern, records, re.M))
+                neutral_draws = [draw for draw in draws if draw.start() > neutral]
+                if (neutral < 0 or len(draws) < 3 or len(neutral_draws) < 2 or
+                        len({draw.group(2) for draw in draws[-3:]}) != 1 or
+                        any(draw.group(2) != draws[-1].group(2) for draw in neutral_draws) or
+                        int(draws[-2].group(1)) != int(draws[-3].group(1)) + 1 or
+                        int(draws[-1].group(1)) != int(draws[-2].group(1)) + 1):
                     raise RuntimeError(f'Pointer button {button} release/pose was not admitted '
                                        f'inside the original 0.15 second baseline interval: '
                                        f'{records!r}')
-                release_pose = draws[-1][1]
+                release_pose = draws[-1].group(2)
+                release_frame = int(draws[-1].group(1))
                 released = capture_pixels(display, window, viewport)
                 release_deadline = time.monotonic() + .15
                 while time.monotonic() < release_deadline:
                     driver.drain(min(.005, max(0, release_deadline - time.monotonic())))
                 actual = capture_pixels(display, window, viewport)
-                if actual != released:
+                continued_draws = [(int(frame), pose) for frame, pose in re.findall(
+                    draw_pattern, bytes(captured[release_offset:]), re.M)
+                    if int(frame) > release_frame]
+                pose_stable = bool(continued_draws) and all(
+                    pose == release_pose for _, pose in continued_draws)
+                if actual != released or not pose_stable:
                     (state / 'pointer-release-reference.rgb').write_bytes(bytes(released))
                     (state / 'pointer-release-actual.rgb').write_bytes(bytes(actual))
                     (state / 'pointer-release-failure.json').write_text(json.dumps(
                         dict(button=button, viewport=viewport, pose=release_pose.decode(),
+                             release_frame=release_frame, pose_stable=pose_stable,
+                             subsequent_draws=[(frame, pose.decode())
+                                               for frame, pose in continued_draws],
                              pixel_format='RGB, center region, stride=3',
                              different_channels=sum(a != b for a, b in zip(released, actual))),
                         indent=2) + '\n')
+                    if not pose_stable:
+                        raise RuntimeError(f'Pointer button {button} release pose changed or '
+                                           'was not admitted during the original second 0.15 seconds')
                     raise RuntimeError(f'Pointer button {button} release retained movement')
             send('mousedown', 8)
             time.sleep(0.2)

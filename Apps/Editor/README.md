@@ -67,6 +67,18 @@ create, read-write open, read-only open, and recent-project shortcuts, and keeps
 activation errors visible. Its one-shot request is executed by the application on the authoring
 thread; a candidate workspace/index/content session replaces the empty state only after every step
 succeeds.
+The shell loads bounded scalable host fonts, optionally configured by
+`NEXORA_EDITOR_FONT_PATHS`, and reports coverage/timings to stderr when
+`NEXORA_EDITOR_FONT_DIAGNOSTICS=1`. Missing glyphs remain explicit: the measured Linux defaults
+rendered 中 and U+1F600, but U+1F642 remains absent; a bitmap-only emoji font does not establish
+scalable coverage. An explicitly configured official monochrome Noto Emoji source supplied
+U+1F642 in the baseline-corrected diagnostic repeat; no font is bundled.
+The [font contract](../../Engine/EditorImGui/README.md#bounded-host-font-coverage)
+and [validation record](../../Tools/Build/evidence/EditorEDM0-GlyphCoverage-Linux-2026-10-22.md)
+record the passing portable pipeline test, complete Linux suite (366/366, zero skips, 1570.09 s),
+static-linkage font test and native preview within its unchanged 45 s bound. Windows/macOS behavior,
+physical readability, multi-monitor DPI and installed IME remain separate acceptance gates.
+
 The shell tracks the surface's live client extent and DPI scale, rebuilds its bucketed font atlas,
 and submits backend-neutral textured/indexed UI draws directly into the acquired native GPU
 backbuffer. It also round-trips a versioned project layout and supplies a live `SceneDocument` to

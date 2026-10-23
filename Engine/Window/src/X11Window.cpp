@@ -4,6 +4,9 @@
 
 #include "Nexora/Window/Window.h"
 
+#include "X11KeyRepeat.h"
+
+#include <X11/XKBlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -188,6 +191,10 @@ public:
     static_cast<void>(std::setlocale(LC_CTYPE, ""));
     display_ = XOpenDisplay(nullptr);
     if (display_) {
+      // Detectable repeat belongs to this client, never the server's global repeat policy.
+      // Unsupported servers retain the bounded legacy-pair fallback in PumpEvents.
+      Bool supported = False;
+      detectableRepeat_ = XkbSetDetectableAutoRepeat(display_, True, &supported) && supported;
       closeAtom_ = XInternAtom(display_, "WM_DELETE_WINDOW", False);
       static_cast<void>(XSetLocaleModifiers(""));
       inputMethod_ = XOpenIM(display_, nullptr, nullptr, nullptr);
@@ -252,6 +259,7 @@ public:
     reverse_.erase(found->second);
     DestroyInputContext(found->second);
     heldModifiers_.erase(found->second);
+    heldKeys_.erase(found->second);
     // A window the server already destroyed (see DestroyNotify below) must not be destroyed again:
     // XDestroyWindow on it raises a BadWindow protocol error that aborts the process.
     if (!gone_.erase(found->second))
@@ -329,6 +337,7 @@ public:
           gone_.insert(native.xdestroywindow.window);
           DestroyInputContext(native.xdestroywindow.window);
           heldModifiers_.erase(native.xdestroywindow.window);
+          heldKeys_.erase(native.xdestroywindow.window);
         }
         break;
       case ConfigureNotify:
@@ -338,8 +347,10 @@ public:
         break;
       case FocusIn:
       case FocusOut:
-        if (native.type == FocusOut)
+        if (native.type == FocusOut) {
           heldModifiers_.erase(native.xfocus.window);
+          heldKeys_.erase(native.xfocus.window);
+        }
         event.type = WindowEventType::FocusChanged;
         event.value0 = native.type == FocusIn;
         if (const auto input = inputContexts_.find(native.xfocus.window);
@@ -351,7 +362,25 @@ public:
         }
         break;
       case KeyPress:
-      case KeyRelease:
+      case KeyRelease: {
+        if (!detectableRepeat_ && native.type == KeyRelease &&
+            XEventsQueued(display_, QueuedAlready) > 0) {
+          // Inspect only the already-buffered immediate successor; never wait for a matching
+          // press, defer a real release across pumps, or consume the press before XFilterEvent.
+          XEvent next{};
+          XPeekEvent(display_, &next);
+          if (Detail::IsLegacyX11KeyRepeatPair(native, next)) {
+            emit = false;
+            break;
+          }
+        }
+        bool repeated_down = false;
+        const auto keycode = static_cast<std::size_t>(native.xkey.keycode);
+        if (keycode < 256) {
+          auto &held = heldKeys_[native.xkey.window];
+          repeated_down = native.type == KeyPress && held[keycode];
+          held[keycode] = native.type == KeyPress;
+        }
         event.type = WindowEventType::Key;
         event.value0 = static_cast<std::int32_t>(TranslateKey(XLookupKeysym(&native.xkey, 0)));
         event.value1 = native.type == KeyPress;
@@ -379,12 +408,16 @@ public:
           }
         }
         if (native.type == KeyPress) {
-          pending_.push_back(event);
+          // Repeated KeyPress still commits text through XIM/UTF-8 lookup. Only the physical
+          // down edge is deduplicated, so one held shortcut cannot become multiple presses.
+          if (!repeated_down)
+            pending_.push_back(event);
           AppendUtf8Text(pending_, found->second, event.timestampNanoseconds,
                          LookupUtf8(native.xkey));
           emit = false;
         }
         break;
+      }
       case MotionNotify:
         event.type = WindowEventType::Pointer;
         event.value0 = native.xmotion.x;
@@ -473,6 +506,7 @@ private:
   }
   std::thread::id owner_;
   Display *display_{};
+  bool detectableRepeat_{};
   XIM inputMethod_{};
   Atom closeAtom_{};
   std::uint64_t next_ = 1;
@@ -480,6 +514,7 @@ private:
   std::unordered_map<::Window, WindowHandle> reverse_;
   std::unordered_map<::Window, XIC> inputContexts_;
   std::unordered_map<::Window, std::array<bool, 8>> heldModifiers_;
+  std::unordered_map<::Window, std::array<bool, 256>> heldKeys_;
   std::unordered_set<::Window> gone_; // destroyed by the server before our own Destroy
   std::vector<WindowEvent> pending_;
   std::vector<WindowEvent> pumped_;

@@ -296,6 +296,32 @@ full-screen CPU RGBA buffer 或 readback/upload round trip。
 **Exit gate：**synthetic-event automated test 通過、layout round-trip；real X11 session 證明 typing、shortcut、
 drag docking、wheel axis、focus loss、close。
 
+本輪獨立 X11 held-key repair 已採每 client detectable repeat、legacy client 僅正規化
+已在 Xlib queue 的相鄰 genuine release／press pair，並於 focus loss／destruction 清除 held-key
+狀態。Split arrival 正常轉送而不等待；相同 server timestamp 只是 legacy heuristic，不是萬用
+硬體分類器。相同 probe／shim 的公開舊 backend 負控制與修正後正控制，均保留 25 次文字
+commit，實體轉換由 25 組 press／release 降為一組。獨立 focus-clear mutant 被 M-key oracle
+判失敗，還原來源則通過。精修 matcher／native 測試 2/2 通過、耗時 1.92 秒；Shipping 實際
+編譯變更的 X11 object，fresh GUI-off server build 亦通過。舊 X11-only 368-test attempt 在
+282 項通過後主動中斷（test 283 期間 SIGINT），5,535 個 frozen hash 均未變；不是完整通過。
+歷史 bc4 來源結果（早於 detectable-repeat 邊界修正）：
+<!-- combined-font-input-plan:start -->
+✅ 獨立 X11 長按鍵修正與字型／輸入整合 Linux 驗證 **368/368 通過、無失敗／跳過，1639.24 秒**，source hash 均未變。
+歷史 366 與中斷的舊 368 紀錄分開保留；最終 head CI 另為合併 gate；目標主機 runtime／實體驗收仍 open（Editor 0/8）。
+<!-- combined-font-input-plan:end -->
+
+<!-- detectable-input-plan:start -->
+✅ Detectable-repeat 邊界修正與最新來源整合 Linux gate **368/368 通過、無失敗／跳過，1646.65 秒**，
+5,535 個 frozen hash 均未變。同一新 probe 對照區分舊 library 1/1 與修正後 20/20 實體按鍵，
+保留全部 20 次文字 commit 及既有 legacy／focus／lifecycle oracle。歷史 bc4 結果分開保留；
+最終 head CI、目標主機／實體驗收另列 gate，Editor milestone 維持 0/8。
+<!-- detectable-input-plan:end -->
+
+這是獨立工作，不代表已 review／完成無法取得的歷史 05a5 候選，也未將所有歷史 native stall
+歸因。[X11 scoped 證據](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md)
+保留 injected legacy capability 限制；實體 target-host、Windows／已安裝 IME 與完整 WP4
+驗收維持 open，Editor 整體 milestone 仍為 0/8。
+
 ### WP5 — DPI、font 與 theme
 
 **狀態：live extent/DPI forwarding、bucketed font rebuild 與 production GPU atlas upload 已有；
@@ -303,6 +329,27 @@ Windows 證據仍待完成。**
 
 ✅ 非有限 display dimension 與 frame delta 現使用既有安全下限；多幀 portable 回歸
 確認 NaN／infinity 不會污染 frame state，且保留有限輸入的行為。
+
+✅ 有界宿主字型載入與 atlas coverage 已實作，並通過 Linux 完整 gate。
+Physical-host 驗收分開追蹤。Host 現擁有有界 scalable-font plan，固定
+profile 共 7182 個 scalar：5401 個繁中常用字、pinned SimplifiedCommon、注音／標點與
+U+1F600／U+1F642，硬上限為 8192。來源使用 native Unicode path、有限 Linux／macOS 預設、
+TC family／outline 選擇與明確 missing／fallback 診斷。Windows 可選 `seguiemj.ttf` 排在
+Symbol 前，仍走同一 outline policy，不推論 Windows runtime 或彩色字型已驗收。TTC 的
+10 個 face 與最多 4 個 admitted face 不同；每檔 32 MiB／source 64 MiB、4096²／RGBA atlas
+64 MiB 是各自限制，不是總峰值記憶體保證。Trusted-source preflight 不是一般惡意字型 sanitizer；
+bitmap-only emoji 不代表 scalable coverage。
+
+已實作的 portable `editor.font_glyphs` 為 0.21 秒通過。真實 Linux 預設來源量測選到
+Noto Sans CJK TC face 3 與 DejaVu Sans，7182 個 profile member 中有 54 個 missing；
+A、中、U+1F600 有 ink，U+1F642 仍缺。這是已觀察到的限制，不是完整 profile／可讀性驗收。
+初次明確配置官方 monochrome Noto Emoji 時，U+1F642 出現 ink，仍有 53 個 raw missing。
+baseline 修正後來源重跑已確認相同 sample／missing 結果；Linux 完整 suite 為 366/366 通過，
+無失敗或跳過，耗時 1570.09 秒；native preview 亦通過原有 45 秒期限。Windows CP950 條件對照
+與 Windows／macOS runtime 仍未驗證。[Glyph 證據](../../Tools/Build/evidence/EditorEDM0-GlyphCoverage-Linux-2026-10-22.md)
+將完整／針對性結果與 target-host 未完成項目分開保留。Shipping 排除 Editor；另跑的 Monolithic
+Development font build/test 也已通過，驗證 static ownership，不變更 Shipping policy 或 CI。實體 Linux、Windows DPI／已安裝 IME
+與 ED-M0 驗收維持 open，Editor 整體 milestone 仍為 0/8。
 
 1. 定義小型 DPI bucket policy（例如 nearest supported scale 加 hysteresis）與 immutable base style；bucket
    改變時由 base 重算，禁止再縮放已縮放的 style。
@@ -315,9 +362,17 @@ Windows 證據仍待完成。**
 **Exit gate：**Windows 100%、125%、150%、200% screenshot/checklist 證明 text 清晰、hit target 正確、
 無 cumulative scaling、無 stale extent frame。
 
+歷史 PR699 的 Linux 366/366 證據與待完成 combined run 分開保留。舊 `7c294` revision
+在 MSVC 遇到 C4459 shadowing 與 C4996 CRT environment 編譯失敗；已套用的修正重新命名
+參數，並持有／釋放 secure CRT environment copy。Windows compilation CI 與 target-host
+runtime／IME 證據仍是獨立必要關卡。
+
 ### WP6 — IME 與 Unicode
 
 **狀態：event forwarding 與 candidate callback 已有；target-host 證據未完成。**
+
+Unicode scalar 保存、真正 atlas glyph coverage 與已安裝 IME 行為是不同 oracle。已通過的 cloud
+glyph pipeline 測試不觀察 native composition／candidate window；target-host 各列仍須獨立完成。
 
 1. 驗證 Unicode scalar（含 supplementary-plane）；無效 scalar 不可送進 `AddInputCharacter`。Key event
    不得重複產生 text event。

@@ -576,6 +576,68 @@ privacy, not an extension signature verifier or a telemetry transport implementa
   before the new prompt accepts an action. Missing journals close stale prompts; a successful
   same-scope result remains available exactly once through `TakeRecoveryChoice`.
 
+## Bounded host-font coverage
+
+The host merges supported scalable outlines from bounded installed or configured sources into
+its DPI atlas. The pinned Dear ImGui draw implementation is compiled once; no Fontconfig,
+subprocess font lookup, FreeType, OTS, new OS font framework or third-party bundled font is used.
+The fixed profile unions pinned SimplifiedCommon, 5401 generated Traditional common scalars,
+Bopomofo/punctuation and U+1F600/U+1F642: 7182 unique scalars, below a hard 8192 limit. Profile
+inclusion requests coverage; actual missing members are retained from `FindGlyphNoFallback`.
+The generated Traditional set still requires its conditional Windows CP950 exact-set comparison.
+
+`NEXORA_EDITOR_FONT_PATHS` precedes bounded host defaults (colon-separated on POSIX;
+semicolon-separated on Windows). Native Unicode filesystem reads own the source data. The
+ordinary process plan is cached on first use; restart to change configuration. Linux/macOS use
+finite installed-font locations. Noto CJK TTC selection checks the TC family name and actual
+outline coverage, instead of assuming face 0 or treating an index as evidence. A TTC's 10 faces
+are distinct from the cap of 4 admitted faces. Windows optionally tries `seguiemj.ttf` before
+`seguisym.ttf` through the same outline policy; Windows runtime and sample availability remain
+unverified. Color tables alone do not add color-glyph support.
+
+Supported source paths use TrueType `glyf` or CFF1/Type2. Bitmap/color/SVG-only sources without
+usable scalable outlines are rejected. Container/table/cmap, simple and compound glyph payloads,
+compound depth, CFF index/dictionary/private subroutines and selected charstring bounds are
+checked before the pinned rasterizer. This compatibility preflight assumes trusted host or
+configured sources; it is not a general hostile-font sanitizer or universal OpenType support.
+Mapped blanks may have positive advance without ink. Visible emoji samples require actual
+outline/raster coverage, and their absence is reported rather than inferred from stored Unicode.
+
+Limits are independent: 16 candidate paths, 4 admitted faces, 32 MiB per file, 64 MiB admitted
+source bytes and 8192 requested scalars. Conservative packing admission precedes Build; the
+completed atlas must fit 4096×4096 and one RGBA upload at most 64 MiB. A failed or oversized atlas
+is replaced with the ordinary Latin-only fallback before native upload. The source cache,
+per-atlas ImGui font-data copies, temporary work, Alpha8/RGBA pixels, GPU and retired resources
+can coexist: **64 MiB is not a total peak-memory guarantee**. Plans retain owned data/ranges
+across DPI builds, and the existing generation, upload-domain and completion-retirement paths
+remain in use.
+
+`NEXORA_EDITOR_FONT_DIAGNOSTICS=1` enables ordinary-host stderr profile/missing counts,
+U+1F600/U+1F642 availability, fallback, source bytes, atlas extent and separate probe/build
+microseconds. Private getters add copied family/face identities and actual raster observations;
+there is no new GUI font-selection/status flow.
+
+Coverage subtraction uses actual `FindGlyphNoFallback` results from a process-once independent
+default atlas; it does not assume every scalar in U+0020–U+00FF exists. Reported probe timing
+includes the first baseline-atlas build.
+
+`editor.font_glyphs` passed in 0.21 s after baseline correction. Its original geometric
+TrueType/CFF fixtures exercise real non-fallback lookup, ink/UV, missing glyphs, DPI round trips,
+owned memory and Unicode paths, TC face selection, recognized-invalid/bitmap rejection and
+bounds. A synthetic U+0080 alias checks a baseline coverage hole, and actual cropped ASCII raster
+hashes remain unchanged at every tested DPI; this control-code fixture promises no general
+control-font support. This is pipeline evidence, not readable Chinese/emoji typography. A fresh Linux default
+source run selected Noto Sans CJK TC face 3 and DejaVu Sans: profile 7182, missing 54, with actual
+ink for A, 中 and U+1F600; U+1F642 remains missing. Bitmap-only Noto Color Emoji does not close
+that gap. An initial diagnostic with explicitly configured official OFL Noto Emoji observed
+U+1F642 ink and 53 remaining profile misses; this adds neither a bundled font nor color-glyph
+support. Baseline-corrected diagnostics repeated these sample/missing results; the complete Linux gate passes 366/366 with zero skips in 1570.09 s.
+The complete missing categories, provenance, timings, source hashes and native results are recorded in [glyph evidence](../../Tools/Build/evidence/EditorEDM0-GlyphCoverage-Linux-2026-10-22.md).
+Windows/macOS runtime, real readability and installed-IME/physical-display acceptance remain open.
+Shipping excludes Editor and cannot verify font linkage; the additional Monolithic Development
+font build/test passes and verifies static Dear ImGui ownership. Native preview passes in 43.14 s
+under its unchanged 45 s deadline; physical display and installed IME acceptance remain open.
+
 ## Threading and errors
 
 All methods are serialized and run on the Window owner thread. Project access/upgrade state is a

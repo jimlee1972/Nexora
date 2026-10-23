@@ -325,6 +325,36 @@ remains.**
 **Exit gate:** automated synthetic-event tests pass, layout round-trips, and a real X11 session
 proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavior.
 
+The independent X11 held-key repair now requests detectable repeat per client, normalizes only
+strict genuine adjacent release/press pairs already queued in Xlib for legacy clients, and clears
+held-key state on focus loss/destruction. Split arrivals are forwarded without waiting; equal
+server timestamps are a legacy heuristic, not a universal hardware classifier. A same-probe/shim
+old-backend negative control and repaired-backend positive control preserve all 25 repeated text
+commits while reducing physical transitions from 25 press/release pairs to one. A separate
+focus-clear mutant fails the M-key oracle; restored source passes. The refined matcher/native
+pair passes 2/2 in 1.92 s; Shipping compiles the changed X11 object and the fresh GUI-off server
+build passes. The old X11-only 368-test attempt was intentionally interrupted after 282 passed
+(SIGINT during test 283), with all 5,535 frozen hashes unchanged; it is not a complete pass.
+Historical bc4 source result (before the detectable-repeat boundary correction):
+<!-- combined-font-input-plan:start -->
+✅ Independent X11 held-key repair and combined font/input validation pass **368/368, zero failures/skips, 1639.24 s**;
+source hashes remain unchanged. Historical 366 and interrupted old 368 records stay separate;
+Exact-head CI is a separate merge gate; target-host runtime/physical acceptance stays open (Editor milestone 0/8).
+<!-- combined-font-input-plan:end -->
+
+<!-- detectable-input-plan:start -->
+✅ Detectable-repeat boundary repair and corrected-source integrated Linux gate pass **368/368, zero failures/skips, 1646.65 s**;
+all 5,535 frozen hashes remain unchanged. Same-new-probe controls distinguish old-library 1/1
+from repaired 20/20 physical tap pairs while retaining all 20 text commits and previous legacy/focus/lifecycle oracles.
+Historical bc4 results stay separate; exact-head CI and target-host/physical acceptance remain
+separate gates. Editor milestone remains 0/8.
+<!-- detectable-input-plan:end -->
+This is independent work,
+not review/completion of the unavailable historical 05a5 candidate or attribution of all earlier
+native stalls. [Scoped X11 evidence](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md)
+records the injected legacy capability limitation. Physical target-host, Windows/installed-IME
+and broader WP4 acceptance remain open; the overall Editor milestone remains 0/8.
+
 ### WP5 — DPI, fonts, and theme
 
 **Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
@@ -332,6 +362,30 @@ Windows proof remains.**
 
 ✅ Nonfinite display dimensions and frame deltas now use the existing safe lower bounds.
 Multi-frame portable regressions reject NaN/infinity state poisoning while preserving finite inputs.
+
+✅ Bounded host-font loading and atlas coverage are implemented and pass the full Linux gate.
+Physical-host acceptance remains separate. The host now owns a
+bounded scalable-font plan with a 7182-scalar fixed profile: 5401 Traditional common scalars,
+pinned SimplifiedCommon, Bopomofo/punctuation and U+1F600/U+1F642, under a hard 8192 limit. Sources
+use native Unicode reads, bounded Linux/macOS defaults, TC family/outline selection and explicit
+missing/fallback diagnostics. Windows optionally probes `seguiemj.ttf` before Symbol through the
+same outline policy; no Windows runtime or color-font acceptance is inferred. A 10-face TTC is
+separate from the 4-admitted-face cap. Per-file 32 MiB/source 64 MiB and 4096²/RGBA 64 MiB atlas
+limits are independent, not a total peak-memory guarantee. Trusted-source preflight is not a
+general hostile-font sanitizer, and bitmap-only emoji data do not establish scalable coverage.
+
+The implemented portable `editor.font_glyphs` passed in 0.21 s. A real Linux default-source
+measurement selected Noto Sans CJK TC face 3 plus DejaVu Sans, with 54 of 7182 profile members
+missing; A, 中 and U+1F600 had ink, while U+1F642 did not. This is an observed limitation, not full
+profile/readability acceptance. An initial explicitly configured official monochrome Noto Emoji
+run supplied U+1F642 ink with 53 raw misses remaining. Baseline-adjusted source repeats confirmed the same sample/missing results;
+the complete Linux suite passes 366/366 with zero skips in 1570.09 s, and native preview
+passes within its unchanged 45 s deadline. Windows CP950 parity and Windows/macOS runtime remain unverified.
+[Glyph evidence](../../Tools/Build/evidence/EditorEDM0-GlyphCoverage-Linux-2026-10-22.md) retains
+complete and focused results separately from open target-host checks. Shipping excludes Editor;
+the additional Monolithic Development font build/test also passes, covering static ownership
+without changing Shipping policy or CI. Physical Linux, Windows DPI/installed-IME and ED-M0 acceptance remain open;
+the overall Editor milestone remains 0/8.
 
 1. Define a small DPI bucket policy (for example, nearest supported scale with hysteresis) and an
    immutable base style. Recompute style from base whenever the bucket changes; never repeatedly
@@ -345,9 +399,18 @@ Multi-frame portable regressions reject NaN/infinity state poisoning while prese
 **Exit gate:** screenshot/checklist evidence at 100%, 125%, 150%, and 200% on Windows shows crisp
 text, correct hit targets, no cumulative scaling, and no one-frame stale extent.
 
+The historical PR699 366/366 Linux evidence remains distinct from the pending combined run.
+Old revision `7c294` failed MSVC C4459 shadowing and C4996 CRT-environment compilation; the
+applied repair renames the parameter and owns/frees secure CRT environment copies. Windows
+compilation CI and target-host runtime/IME proof remain independent requirements.
+
 ### WP6 — IME and Unicode
 
 **Status: event forwarding and candidate callback exist; target-host proof remains.**
+
+Unicode scalar retention, actual atlas glyph coverage and installed-IME behavior are separate
+oracles. The passing cloud glyph pipeline test does not observe native composition or candidate
+windows; those target-host rows remain required independently of source/atlas validation.
 
 1. Validate Unicode scalar handling, including supplementary-plane characters; reject invalid
    scalar values before `AddInputCharacter`. Key events must never duplicate text events.
