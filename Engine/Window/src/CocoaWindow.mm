@@ -426,7 +426,7 @@ private:
     }
     case NSEventTypeScrollWheel:
       event.type = WindowEventType::Wheel;
-      event.value0 = static_cast<std::int32_t>(std::round(native.scrollingDeltaX * 120.0));
+      event.value0 = static_cast<std::int32_t>(std::round(-native.scrollingDeltaX * 120.0));
       event.value1 = static_cast<std::int32_t>(std::round(native.scrollingDeltaY * 120.0));
       events_.push_back(event);
       return;

@@ -4729,7 +4729,8 @@ void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent>
                           static_cast<float>(event.value1) / state_->dpi_scale);
       break;
     case Nexora::Window::WindowEventType::Wheel:
-      io.AddMouseWheelEvent(static_cast<float>(event.value0) / 120.0F,
+      // Window uses right-positive horizontal deltas; ImGui uses left-positive deltas.
+      io.AddMouseWheelEvent(-static_cast<float>(event.value0) / 120.0F,
                             static_cast<float>(event.value1) / 120.0F);
       break;
     case Nexora::Window::WindowEventType::PointerButton:

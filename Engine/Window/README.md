@@ -16,6 +16,9 @@ For `PointerButton`, `value0` identifies left/right/middle/back/forward as 0/1/2
 `value1` is 1 for press, 0 for release. Win32 XBUTTON1/2 and X11 buttons8/9 map to back/forward;
 Cocoa uses the matching native button numbers. Wheel events remain separate from held buttons.
 Wheel `value0` is horizontal and `value1` vertical, in signed 120-unit steps (or finer deltas).
+Positive horizontal deltas scroll right; positive vertical deltas scroll up. Cocoa negates its
+native horizontal delta to match Win32 and X11. Consumers with a left-positive horizontal
+convention, including Dear ImGui, convert that axis at their input boundary.
 
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
 native IME candidate positioning. Win32 forwards system-key press/release events and then preserves

@@ -67,6 +67,9 @@ deterministically after their dock nodes settle, so adding a sibling tab cannot 
 authoring views on first launch.
 
 Synthetic contract fixtures explicitly choose Ctrl shortcut semantics and disable event trickling.
+The input adapter converts Window's right-positive horizontal wheel axis to ImGui's left-positive
+axis and preserves vertical deltas. A real scrollable-child contract checks right/left and down/up
+movement through public Window events; physical desktop wheel acceptance remains a separate gate.
 The shared undo/redo contract also runs with macOS behaviors and physical Cmd/Super events;
 production retains ImGui's native platform defaults.
 

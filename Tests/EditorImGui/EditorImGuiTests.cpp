@@ -18,6 +18,48 @@
 #include <vector>
 
 namespace {
+void TestWheelScrollDirection() {
+  nexora::editor::imgui::EditorImGuiHost host;
+  nexora::editor::imgui::EditorImGuiTestAccess::ConfigureSyntheticInput(host);
+  host.SetDisplay(800.0F, 600.0F, 1.0F);
+  ImVec2 scroll;
+  const auto draw = [&] {
+    host.BeginFrame();
+    ImGui::SetNextWindowPos({20.0F, 20.0F});
+    ImGui::SetNextWindowSize({400.0F, 300.0F});
+    ImGui::Begin("Wheel direction", nullptr, ImGuiWindowFlags_NoSavedSettings);
+    ImGui::BeginChild("Scrollable content", {250.0F, 150.0F}, 0,
+                      ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::Dummy({1500.0F, 1500.0F});
+    scroll = {ImGui::GetScrollX(), ImGui::GetScrollY()};
+    ImGui::EndChild();
+    ImGui::End();
+    static_cast<void>(host.EndFrame());
+  };
+  const std::array hover{Nexora::Window::WindowEvent{
+      {}, Nexora::Window::WindowEventType::Pointer, 0, 0, 0, 1.0F, 100, 100}};
+  host.ProcessEvents(hover);
+  // Settle the child's content size and hover before sending native wheel events.
+  for (unsigned frame = 0; frame < 6; ++frame)
+    draw();
+  assert(scroll.x == 0.0F && scroll.y == 0.0F);
+  const auto wheel = [&](std::int32_t x, std::int32_t y) {
+    const std::array events{Nexora::Window::WindowEvent{
+        {}, Nexora::Window::WindowEventType::Wheel, 0, 0, 0, 1.0F, x, y}};
+    host.ProcessEvents(events);
+    draw();
+    draw();
+  };
+  wheel(120, 0); // Right from the left edge must reveal content to the right.
+  assert(scroll.x > 0.0F && scroll.y == 0.0F);
+  wheel(-120, 0);
+  assert(scroll.x == 0.0F && scroll.y == 0.0F);
+  wheel(0, -120); // Down, then up, leaves the horizontal origin unchanged.
+  assert(scroll.x == 0.0F && scroll.y > 0.0F);
+  wheel(0, 120);
+  assert(scroll.x == 0.0F && scroll.y == 0.0F);
+}
+
 void TestEulerRotation() {
   using namespace nexora::editor;
   nexora::runtime::Transform original{3.0, 4.0, 5.0};
@@ -1021,6 +1063,7 @@ void TestFiniteFrameInputs() {
 #include "RenderDrawContract.inl"
 
 int main() {
+  TestWheelScrollDirection();
   TestFiniteFrameInputs();
   TestRenderDrawContract();
   TestEulerRotation();
