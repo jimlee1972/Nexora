@@ -408,6 +408,38 @@ int main() {
   assert(resizeEvents[0].type == Window::WindowEventType::Resized);
   assert(resizeEvents[0].width == 320 && resizeEvents[0].height == 180);
 
+  // F4 alone is input; Alt+F4 must retain the native, application-vetoable close path.
+  assert(nativeWindows->Show(eventWindow.handle, true) == Window::WindowError::None);
+  static_cast<void>(nativeWindows->PumpEvents());
+  const LPARAM f4Scan = 1 | (0x3EL << 16);
+  const LPARAM released = (1LL << 30) | (1LL << 31);
+  SendMessageW(hwnd, WM_KEYDOWN, VK_F4, f4Scan);
+  SendMessageW(hwnd, WM_KEYUP, VK_F4, f4Scan | released);
+  const auto ordinaryF4 = nativeWindows->PumpEvents();
+  assert(ordinaryF4.size() == 2);
+  for (std::size_t edge = 0; edge < ordinaryF4.size(); ++edge) {
+    assert(ordinaryF4[edge].type == Window::WindowEventType::Key);
+    assert(ordinaryF4[edge].value0 == static_cast<int>(Window::Key::F4));
+    assert(ordinaryF4[edge].value1 == (edge == 0 ? 1 : 0));
+  }
+  const LPARAM altContext = 1LL << 29;
+  SendMessageW(hwnd, WM_SYSKEYDOWN, VK_F4, f4Scan | altContext);
+  const auto altF4 = nativeWindows->PumpEvents();
+  assert(altF4.size() == 2);
+  assert(altF4[0].type == Window::WindowEventType::Key);
+  assert(altF4[0].value0 == static_cast<int>(Window::Key::F4));
+  assert(altF4[0].value1 == 1);
+  assert(altF4[1].type == Window::WindowEventType::CloseRequested);
+  assert(altF4[1].window == eventWindow.handle);
+  assert(IsWindow(hwnd)); // The application still owns confirmation and destruction.
+  SendMessageW(hwnd, WM_SYSKEYUP, VK_F4, f4Scan | altContext | released);
+  const auto altF4Release = nativeWindows->PumpEvents();
+  assert(altF4Release.size() == 1);
+  assert(altF4Release[0].type == Window::WindowEventType::Key);
+  assert(altF4Release[0].value0 == static_cast<int>(Window::Key::F4));
+  assert(altF4Release[0].value1 == 0);
+  assert(IsWindow(hwnd));
+
   PostMessageW(hwnd, WM_CLOSE, 0, 0);
   assert(nativeWindows->Destroy(eventWindow.handle) == Window::WindowError::None);
   assert(nativeWindows->PumpEvents().empty());
