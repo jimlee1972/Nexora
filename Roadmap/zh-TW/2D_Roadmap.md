@@ -636,3 +636,14 @@ Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6�
 完成數不變，可攜實作檢查不等同於通過上述驗收。
 
 ✅ X11 原生關閉回歸：Xvfb 驗證事件處理前已銷毀視窗的查詢與清理；修正前 DSO 在同一探針失敗。
+
+## SP-02 圖像 UI 與 Zig 組合（2026-10-23）
+
+✅ 已實作圖像／9-slice UI、獨立互動判定、字形 metrics、可回收字型 handle 及快照生命週期
+貼圖回收，透過獨立協商的 C／Zig table 提供。原版與 SP-01 services 前綴維持相容。Zig
+診斷畫面涵蓋 HUD 槽位、選卡、整備、換行字幕與設定，宿主不承載遊戲規則。
+
+可攜式 NXFONT1 工具嚴格盤點輸入全文字元、來源／字型 hash 與圖集預算。企劃文件覆蓋
+不等於最終台詞驗收，診斷圖示不算正式美術。見 [UI 契約](../../Engine/TwoD/GameplayUiDraw.md)
+與[雲端證據](../../Tools/Build/evidence/SP02-ImageUi-Cloud-2026-10-23.md)。正式美術、Windows
+字型／輸入、實體手把及既有里程碑驗收仍保持未完成。

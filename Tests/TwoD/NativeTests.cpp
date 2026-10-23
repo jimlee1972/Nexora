@@ -1,3 +1,4 @@
+#include "Nexora/TwoD/GameplayUi.h"
 #include "Nexora/TwoD/Scene.h"
 #include "Nexora/TwoD/Tilemap.h"
 #include <X11/Xlib.h>
@@ -322,10 +323,75 @@ int main(int argc, char **argv) {
       query.radius = 0.1F;
       Check(index.Query(query).size() == (loaded ? 1U : 0U), "tile chunk boundary query");
     }
+    // Exercise the public image service through the real native UI texture pipeline.
+    twod::GameplayUi imageUi;
+    NexoraGameplayUiApiV1 uiApi{};
+    uiApi.struct_size = sizeof(uiApi);
+    NexoraGameplayUiDrawApiV1 drawApi{};
+    drawApi.struct_size = sizeof(drawApi);
+    drawApi.abi_version = 1;
+    Check(imageUi.GetApi(&uiApi) == 0 && imageUi.GetDrawApi(&drawApi) == 0, "image UI tables");
+    std::array<std::uint8_t, 8 * 8 * 4> imagePixels{};
+    for (unsigned y = 0; y < 8; ++y)
+      for (unsigned x = 0; x < 8; ++x) {
+        const bool border = x < 2 || y < 2 || x >= 6 || y >= 6;
+        const auto offset = (y * 8 + x) * 4;
+        imagePixels[offset] = border ? 0 : 255;
+        imagePixels[offset + 2] = border ? 255 : 0;
+        imagePixels[offset + 3] = 255;
+      }
+    NexoraUiImageV1 imageDescriptor{sizeof(imageDescriptor), 8, 8, 0, 500, imagePixels.data(),
+                                    imagePixels.size()};
+    std::uint64_t imageHandle{};
+    Check(drawApi.register_image(drawApi.context, &imageDescriptor, &imageHandle) == 0,
+          "native image register");
+    imageUi.BeginInput({});
+    Check(uiApi.begin_frame(uiApi.context, 320, 240) == 0, "native image begin");
+    NexoraUiImageDrawV1 imageDraw{sizeof(imageDraw), UINT32_MAX,         imageHandle,
+                                  {0, 0, 8, 8},      {20, 20, 120, 100}, {24, 24, 100, 80}};
+    Check(drawApi.nine_slice(drawApi.context, &imageDraw, {2, 2, 2, 2}, {8, 8, 8, 8}) == 0,
+          "native nine-slice");
+    Check(uiApi.end_frame(uiApi.context) == 0, "native image end");
+    auto imageFrame = imageUi.Frame();
+    for (unsigned i = 0; i < 3; ++i) {
+      Check(surface->Acquire() == SurfaceStatus::Ready, "native image acquire");
+      Check(surface->RenderUi(imageFrame.DrawData()) == SurfaceStatus::Ready, "native image draw");
+      Check(surface->Present() == SurfaceStatus::Ready, "native image present");
+    }
+    WaitPixels(
+        display, native,
+        [](XImage *image) {
+          const auto corner = XGetPixel(image, 25, 25), center = XGetPixel(image, 70, 60),
+                     outside = XGetPixel(image, 21, 21);
+          const std::array<unsigned, 3> background{Channel(outside, image->red_mask),
+                                                   Channel(outside, image->green_mask),
+                                                   Channel(outside, image->blue_mask)};
+          const auto matches = [&](std::array<unsigned, 3> expected) {
+            for (unsigned c = 0; c < 3; ++c)
+              if (std::abs(int(background[c]) - int(expected[c])) > 2)
+                return false;
+            return true;
+          };
+          // RenderUi clears to linear (0.04, 0.08, 0.16); native attachments may encode sRGB.
+          return Channel(corner, image->blue_mask) > 240 && Channel(corner, image->red_mask) < 3 &&
+                 Channel(corner, image->green_mask) < 3 && Channel(center, image->red_mask) > 250 &&
+                 Channel(center, image->green_mask) < 3 && Channel(center, image->blue_mask) < 3 &&
+                 (matches({10, 20, 41}) || matches({56, 80, 111}));
+        },
+        "native image nine-slice UV or clip mismatch");
+    Check(drawApi.remove_image(drawApi.context, imageHandle) == 0, "native image remove");
+    imageUi.BeginInput({});
+    Check(imageUi.CollectRetiredTextures().empty(), "retained frame blocks native retirement");
+    imageFrame = {};
+    const auto imageRetired = imageUi.CollectRetiredTextures();
+    Check(imageRetired.size() == 1 &&
+              surface->ReleaseSpriteTextures(imageRetired) == SurfaceStatus::Ready,
+          "native image GPU retirement");
     Check(surface->DrainAndDestroy() == SurfaceStatus::Ready, "shutdown");
     Check(windows->Destroy(created.handle) == Nexora::Window::WindowError::None, "window shutdown");
     XCloseDisplay(display);
-    std::cout << "Native 2D alpha/order/HUD, sampler and atlas lifecycle passed\n";
+    std::cout
+        << "Native 2D alpha/order/HUD, sampler, atlas and image nine-slice retirement passed\n";
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';

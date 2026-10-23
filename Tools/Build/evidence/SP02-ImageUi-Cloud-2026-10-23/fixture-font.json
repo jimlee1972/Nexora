@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "font": {
+    "path": "NotoSansCJKtc-Regular.otf",
+    "sha256": "dce08bd4fd91aa8aa76ed8fea4b694c2dfb8550f67871e326843212ddbeb88b4",
+    "family": "Noto Sans CJK TC"
+  },
+  "inputs": [
+    {
+      "path": "ui_corpus.txt",
+      "sha256": "99b03900a1ecadf40343bfe28985039cb2a28c487514d14af298d84cd2c57383",
+      "utf8_bytes": 337
+    }
+  ],
+  "unique_scalars": 140,
+  "missing": [],
+  "pixel_size": 32,
+  "pillow": "12.3.0",
+  "limits": {
+    "fonts": 32,
+    "bytes_per_font": 16777216,
+    "glyphs_per_font": 65536
+  },
+  "final_game_acceptance": false,
+  "atlas": {
+    "width": 512,
+    "height": 512,
+    "rgba_bytes": 1048576,
+    "glyph_count": 140,
+    "line_height": 48,
+    "remaining_font_slots": 31,
+    "sha256": "43984c02fe90c4992a17b5d1c42d9ab9da7ea555103860eec84bd2ebf710d7ca"
+  },
+  "status": "BAKED"
+}

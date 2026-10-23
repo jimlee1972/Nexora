@@ -164,3 +164,11 @@ checks. Linux software Vulkan and hosted Windows CI do not establish physical PC
 ## Display, DPI and safe viewport
 
 Projects may provide optional schema-1 `display` settings for a 1920x1080 window or borderless desktop mode. Omitted settings preserve 640x480. The Player exposes the optional display service before module start, publishes real framebuffer/logical extent and DPI, and uses a game-selected safe viewport consistently for extraction and picking. UI geometry and pointer input convert DPI once. See the [display contract](../../Engine/TwoD/GameplayDisplay.md) and [Windows acceptance procedure](../../Tools/TwoD/WindowsDisplayAcceptance.md).
+
+## Image UI service
+
+The Player exposes the optional [image UI table](../../Engine/TwoD/GameplayUiDraw.md) alongside
+unchanged UI V1 and Display. Zig composes images/nine-slice and custom buttons. Removed
+image/font handles retire only after owning snapshots expire; the Player releases their immutable
+native textures before the next acquire. Native release failures propagate as errors. Upper
+65,536 texture IDs are reserved for automatic UI generations.

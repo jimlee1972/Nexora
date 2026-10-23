@@ -407,6 +407,9 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     services.ui.struct_size = sizeof(services.ui);
     services.ui.abi_version = 1;
     Check(ui.GetApi(&services.ui) == 0, "UI service negotiation");
+    services.ui_draw.struct_size = sizeof(services.ui_draw);
+    services.ui_draw.abi_version = 1;
+    Check(ui.GetDrawApi(&services.ui_draw) == 0, "UI draw service negotiation");
     std::unique_ptr<runtime::GameplayStorage> storage;
     if (!saveDirectory.empty() || project) {
       const auto directory = saveDirectory.empty() ? runtime::UserGameplaySaveDirectory(project->id)
@@ -521,6 +524,11 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     double audioFrames{};
     twod::GameplayUiInput uiInput;
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
+      const auto retiredUi = ui.CollectRetiredTextures();
+      if (native && !retiredUi.empty())
+        Check(surface.surface->ReleaseSpriteTextures(retiredUi) ==
+                  Nexora::Presentation::SurfaceStatus::Ready,
+              "UI texture retirement");
       Check(input.BeginFrame(), "input frame");
       if (native)
         (void)gamepads.Poll(input);

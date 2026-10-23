@@ -266,3 +266,11 @@ Standalone project manifests can instead preload that font and use `get_font(ind
 ## Display service
 
 `nexora.display` provides independently negotiated display snapshots, native mode requests and pixel/logical/world conversion with orthographic rotation. `getDisplay` safely returns null on historical service hosts while `getServices` preserves their earlier services. The independent `src/display_module.zig` consumer exports through the generic Player; see the [contract and examples](../../Engine/TwoD/GameplayDisplay.md).
+
+## Image UI diagnostic screens (SP-02)
+
+`src/ui_showcase.zig` is an independent Zig-only consumer of Display/UI/image UI. It renders a
+nine-slot HUD, choices, loadout, subtitles and settings, with visible focus and 100/150% UI scale.
+The baked Noto glyphs are real; colored icon/panel pixels are diagnostic fixtures. Host tests drive
+pointer/navigation/cancel at four DPI scales. `NexoraZigUiShowcaseBuild` builds its module; export
+it with the general Player just like any separate module. See [the image UI contract](../../Engine/TwoD/GameplayUiDraw.md).

@@ -296,3 +296,24 @@ The close case waits for two known ProjectModule panel pixels before requesting 
 window creation or a fixed delay alone does not prove that DX12 presented a frame.
 Cleanup failure reports an unknown final state and its last observed state; a prior cycle's
 poweroff must never stand in for the current failed boot/shutdown.
+
+## Portable corpus font baking
+
+Install `python3 -m pip install -r Tools/TwoD/font-requirements.txt`, then run:
+
+```sh
+python3 Tools/TwoD/BakeFont.py --font /path/to/licensed-font.otf \
+  --text /path/to/ui.txt /path/to/subtitles.txt /path/to/japanese-names.txt \
+  --pixels 32 --width 2048 --output /path/to/new-ui.nxfont --report /path/to/new-coverage.json
+```
+
+Outputs must be new files. `--audit-only` emits coverage/packing evidence without a font.
+All UTF-8 scalars (excluding LF/CR/tab) must exist in the font's cmap; malformed UTF-8, missing
+glyphs, unsupported controls, atlas overflow and budget excess fail explicitly. No fallback
+fonts or synthetic glyphs are substituted. The source font license remains the application's
+responsibility; distribute it with baked fonts. This tool emits one bounded atlas and reports
+whether the corpus fits 16 MiB/65,536 glyphs, using one of 32 active host font slots. Larger
+corpora require explicit partitioning/font selection; the tool does not silently omit text.
+Registration/removal and Zig composition are described in [GameplayUiDraw](../../Engine/TwoD/GameplayUiDraw.md).
+The existing Windows GDI baker remains available; cloud FreeType raster output is not a claim
+of identical GDI output or accepted Windows typography.

@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "font": {
+    "path": "NotoSansCJKtc-Regular.otf",
+    "sha256": "dce08bd4fd91aa8aa76ed8fea4b694c2dfb8550f67871e326843212ddbeb88b4",
+    "family": "Noto Sans CJK TC"
+  },
+  "inputs": [
+    {
+      "path": "OnmyojiSurvivors企劃書.md",
+      "sha256": "c7500bb274d35536daadd8854eeac4262db9397f131c1a149e1b52d5430a1e7d",
+      "utf8_bytes": 505682
+    },
+    {
+      "path": "OnmyojiSurvivors系統規劃書.md",
+      "sha256": "c04fcae99d5739bf273dd81c5415f0770f5989fbb9cfbb5fae2557aeb6063856",
+      "utf8_bytes": 19282
+    },
+    {
+      "path": "OnmyojiSurvivors美術需求.md",
+      "sha256": "ab2f9b9e3c0174a1c61a3ff7182c742d493a9d649cea63c1a404a9e28decb7d6",
+      "utf8_bytes": 20136
+    }
+  ],
+  "unique_scalars": 1605,
+  "missing": [],
+  "pixel_size": 32,
+  "pillow": "12.3.0",
+  "limits": {
+    "fonts": 32,
+    "bytes_per_font": 16777216,
+    "glyphs_per_font": 65536
+  },
+  "final_game_acceptance": false,
+  "atlas": {
+    "width": 2048,
+    "height": 1024,
+    "rgba_bytes": 8388608,
+    "glyph_count": 1605,
+    "line_height": 48,
+    "remaining_font_slots": 31,
+    "sha256": "fdaba251d879bb70b9f8a4c95cf9b5bd7758cb6bc4c46ca5b30e174f91993abe"
+  },
+  "status": "BAKED"
+}

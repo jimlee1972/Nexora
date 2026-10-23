@@ -200,3 +200,19 @@ if(NEXORA_ZIG_EXECUTABLE)
     "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayDisplayLayout.zig"
     "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
 endif()
+
+add_executable(NexoraGameplayUiDrawTests GameplayUiDrawTests.cpp)
+target_link_libraries(NexoraGameplayUiDrawTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraGameplayUiDrawTests)
+add_test(NAME twod.gameplay_ui_draw COMMAND NexoraGameplayUiDrawTests)
+if(NEXORA_ENABLE_ZIG_GAMEPLAY)
+  nexora_add_zig_test(gameplay.zig_ui_draw_wire_layout
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-ui-draw-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-ui-draw-global-cache"
+    "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep nx
+    "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayUiDrawLayout.zig"
+    "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
+endif()
+add_test(NAME twod.portable_font_bake COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/PortableFontBakeTests.py")
+set_tests_properties(twod.portable_font_bake PROPERTIES TIMEOUT 45 SKIP_RETURN_CODE 77 LABELS "twod;font;tools")

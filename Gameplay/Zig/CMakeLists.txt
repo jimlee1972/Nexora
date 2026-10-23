@@ -236,7 +236,7 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
   endif()
   nexora_apply_defaults(NexoraZigServicesTests)
   add_test(NAME gameplay.zig_services_consumer COMMAND NexoraZigServicesTests)
-  foreach(wire input ui audio storage content display)
+  foreach(wire input ui audio storage content display ui_draw)
     nexora_add_zig_test(gameplay.zig_${wire}_wrapper
         "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
         --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-test-${wire}"
@@ -258,4 +258,43 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D AND NOT APPLE)
     "${PROJECT_SOURCE_DIR}/Tests/TwoD/DisplayAcceptance.py"
     --app "$<TARGET_FILE:NexoraTwoDPlayer>" --module "${display_library}")
   set_tests_properties(gameplay.zig_display_player PROPERTIES TIMEOUT 90 LABELS "twod;zig;display;project")
+endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D)
+  set(ui_showcase_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigUiShowcase${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(ui_showcase_object "${CMAKE_CURRENT_BINARY_DIR}/zig_ui_showcase${twod_object_extension}")
+  foreach(kind IN ITEMS library object)
+    if(APPLE AND kind STREQUAL "library")
+      # Match the existing Zig dylib path: Apple Clang resolves the platform SDK/libSystem.
+      add_custom_command(OUTPUT "${ui_showcase_library}"
+        COMMAND "${CMAKE_CXX_COMPILER}" -dynamiclib "${ui_showcase_object}" -o "${ui_showcase_library}"
+        DEPENDS "${ui_showcase_object}" VERBATIM)
+      continue()
+    endif()
+    if(kind STREQUAL "library")
+      set(ui_showcase_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
+    else()
+      set(ui_showcase_args ${NEXORA_ZIG_BUILD_OBJ_ARGS})
+    endif()
+    list(TRANSFORM ui_showcase_args REPLACE "src/game_module.zig" "src/ui_showcase.zig")
+    list(TRANSFORM ui_showcase_args REPLACE "-femit-bin=.*" "-femit-bin=${ui_showcase_${kind}}")
+    add_custom_command(OUTPUT "${ui_showcase_${kind}}"
+      COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${ui_showcase_args}
+      DEPENDS src/ui_showcase.zig src/fixtures/ui_fixture.nxfont ${gameplay_wire_dependencies} VERBATIM)
+  endforeach()
+  add_custom_target(NexoraZigUiShowcaseBuild ALL DEPENDS "${ui_showcase_library}")
+  set_source_files_properties("${ui_showcase_object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
+  add_executable(NexoraZigUiShowcaseTests UiShowcaseTests.cpp "${ui_showcase_object}")
+  target_link_libraries(NexoraZigUiShowcaseTests PRIVATE Nexora::TwoD)
+  if(WIN32)
+    target_link_libraries(NexoraZigUiShowcaseTests PRIVATE ntdll)
+  endif()
+  nexora_apply_defaults(NexoraZigUiShowcaseTests)
+  add_test(NAME gameplay.zig_ui_showcase COMMAND NexoraZigUiShowcaseTests)
+  if(NOT APPLE)
+    add_test(NAME gameplay.zig_image_ui_player COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/Tests/TwoD/UiShowcaseAcceptance.py"
+      --app "$<TARGET_FILE:NexoraTwoDPlayer>" --module "${ui_showcase_library}")
+    set_tests_properties(gameplay.zig_image_ui_player PROPERTIES TIMEOUT 90 LABELS "twod;zig;ui;project")
+  endif()
 endif()

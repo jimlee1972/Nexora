@@ -4,6 +4,8 @@
 #include <cmath>
 #include <stdexcept>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace nexora::twod {
 namespace {
@@ -93,6 +95,245 @@ struct GameplayUi::State final {
   std::vector<std::shared_ptr<const GameplayUiFont>> fonts;
   std::shared_ptr<const GameplayUiFont> white;
   GameplayUiFrame frame;
+  std::unordered_map<std::uint64_t, std::shared_ptr<const GameplayUiImage>> images;
+  std::unordered_set<std::uint64_t> used_image_ids, used_font_ids;
+  std::uint64_t next_texture{UINT64_MAX - 3};
+  struct Retired {
+    std::uint64_t texture;
+    std::weak_ptr<const void> owner;
+  };
+  std::vector<Retired> retired;
+  std::uint64_t next_image{1};
+  std::size_t image_bytes{};
+  std::uint64_t AllocateTexture() {
+    while (next_texture >= UINT64_MAX - 65535) {
+      const auto id = next_texture--;
+      if (id != white->texture_id && !used_image_ids.contains(id) && !used_font_ids.contains(id))
+        return id;
+    }
+    return 0;
+  }
+  std::size_t FontCount() const {
+    return std::count_if(fonts.begin(), fonts.end(), [](const auto &p) { return bool(p); });
+  }
+  static int RegisterAutoFont(void *ctx, const NexoraUiFontV1 *in, std::uint64_t *out) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (s.open)
+        return Lifecycle;
+      if (!in || !out || in->struct_size < sizeof(*in))
+        return Invalid;
+      const auto previousTexture = s.next_texture;
+      auto descriptor = *in;
+      if (!descriptor.texture_id) {
+        descriptor.texture_id = s.AllocateTexture();
+        if (!descriptor.texture_id)
+          return Missing;
+      }
+      const auto result = Register(ctx, &descriptor, out);
+      if (result != Ok)
+        s.next_texture = previousTexture;
+      return result;
+    });
+  }
+  static int RemoveFont(void *ctx, std::uint64_t handle) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (s.open)
+        return Lifecycle;
+      if (!handle || handle > s.fonts.size() || !s.fonts[static_cast<std::size_t>(handle - 1)])
+        return Missing;
+      auto &font = s.fonts[static_cast<std::size_t>(handle - 1)];
+      s.retired.push_back({font->texture_id, font});
+      font.reset();
+      return Ok;
+    });
+  }
+  static int RegisterImage(void *ctx, const NexoraUiImageV1 *in, std::uint64_t *out) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (s.open)
+        return Lifecycle;
+      if (!in || !out || in->struct_size < sizeof(*in) || in->reserved ||
+          in->texture_id >= UINT64_MAX - 1 || in->texture_id == s.white->texture_id || !in->width ||
+          !in->height || in->width > 4096 || in->height > 4096 || !in->rgba ||
+          in->rgba_length != std::uint64_t(in->width) * in->height * 4 ||
+          in->rgba_length > 16 * 1024 * 1024 || s.used_image_ids.contains(in->texture_id))
+        return Invalid;
+      if (s.used_font_ids.contains(in->texture_id))
+        return Invalid;
+      if (s.images.size() >= 128 || s.next_image > 65536 ||
+          in->rgba_length > 64 * 1024 * 1024 - s.image_bytes)
+        return Missing;
+      auto image = std::make_shared<GameplayUiImage>();
+      image->texture_id = in->texture_id ? in->texture_id : s.AllocateTexture();
+      if (!image->texture_id)
+        return Missing;
+      image->width = in->width;
+      image->height = in->height;
+      const auto *bytes = reinterpret_cast<const std::byte *>(in->rgba);
+      image->rgba.assign(bytes, bytes + static_cast<std::size_t>(in->rgba_length));
+      // Reserve ID first. Allocation failure can consume the ID but cannot publish a partial
+      // handle.
+      s.used_image_ids.insert(image->texture_id);
+      const auto handle = s.next_image;
+      s.images.emplace(handle, std::move(image));
+      ++s.next_image;
+      s.image_bytes += static_cast<std::size_t>(in->rgba_length);
+      *out = handle;
+      return Ok;
+    });
+  }
+  static int RemoveImage(void *ctx, std::uint64_t handle) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (s.open)
+        return Lifecycle;
+      const auto it = s.images.find(handle);
+      if (it == s.images.end())
+        return Missing;
+      s.retired.push_back({it->second->texture_id, it->second});
+      s.image_bytes -= it->second->rgba.size();
+      s.images.erase(it);
+      return Ok;
+    });
+  }
+  int ImageDescriptor(const NexoraUiImageDrawV1 *in) const {
+    if (!in || in->struct_size < sizeof(*in) || !Rect(in->source) || !Rect(in->destination) ||
+        !Rect(in->clip))
+      return Invalid;
+    const auto it = images.find(in->image);
+    if (it == images.end())
+      return Missing;
+    const auto &source = in->source;
+    if (source.x < 0 || source.y < 0 || source.x + source.width > it->second->width ||
+        source.y + source.height > it->second->height)
+      return Invalid;
+    return Ok;
+  }
+  void ImageQuad(const NexoraUiImageDrawV1 &in) {
+    const auto &image = images.at(in.image);
+    // Keep only resources actually referenced by this frame alive.
+    if (std::find(frame.image_owners.begin(), frame.image_owners.end(), image) ==
+        frame.image_owners.end())
+      frame.image_owners.push_back(image);
+    Quad(in.destination, in.clip, image->texture_id, in.rgba, in.source.x / image->width,
+         in.source.y / image->height, (in.source.x + in.source.width) / image->width,
+         (in.source.y + in.source.height) / image->height);
+  }
+  static int Image(void *ctx, const NexoraUiImageDrawV1 *in) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (!s.open)
+        return Lifecycle;
+      const auto result = s.ImageDescriptor(in);
+      if (result)
+        return result;
+      if (!s.Budget(1))
+        return Missing;
+      if (in->source.width > 0 && in->source.height > 0)
+        s.ImageQuad(*in);
+      return Ok;
+    });
+  }
+  static bool Insets(NexoraUiInsets in) {
+    return Finite(in.left) && Finite(in.top) && Finite(in.right) && Finite(in.bottom) &&
+           in.left >= 0 && in.top >= 0 && in.right >= 0 && in.bottom >= 0;
+  }
+  static int NineSlice(void *ctx, const NexoraUiImageDrawV1 *in, NexoraUiInsets src,
+                       NexoraUiInsets dst) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (!s.open)
+        return Lifecycle;
+      const auto result = s.ImageDescriptor(in);
+      if (result)
+        return result;
+      if (!Insets(src) || !Insets(dst) || src.left + src.right > in->source.width ||
+          src.top + src.bottom > in->source.height)
+        return Invalid;
+      if (!s.Budget(9))
+        return Missing;
+      if (!in->source.width || !in->source.height)
+        return Ok;
+      const auto fit = [](float &a, float &b, float extent) {
+        if (a + b > extent) {
+          const auto scale = extent / (a + b);
+          a *= scale;
+          b *= scale;
+        }
+      };
+      fit(dst.left, dst.right, in->destination.width);
+      fit(dst.top, dst.bottom, in->destination.height);
+      const float sx[]{in->source.x, in->source.x + src.left,
+                       in->source.x + in->source.width - src.right,
+                       in->source.x + in->source.width};
+      const float sy[]{in->source.y, in->source.y + src.top,
+                       in->source.y + in->source.height - src.bottom,
+                       in->source.y + in->source.height};
+      const float dx[]{in->destination.x, in->destination.x + dst.left,
+                       in->destination.x + in->destination.width - dst.right,
+                       in->destination.x + in->destination.width};
+      const float dy[]{in->destination.y, in->destination.y + dst.top,
+                       in->destination.y + in->destination.height - dst.bottom,
+                       in->destination.y + in->destination.height};
+      for (unsigned y = 0; y < 3; ++y)
+        for (unsigned x = 0; x < 3; ++x) {
+          auto piece = *in;
+          piece.source = {sx[x], sy[y], sx[x + 1] - sx[x], sy[y + 1] - sy[y]};
+          piece.destination = {dx[x], dy[y], dx[x + 1] - dx[x], dy[y + 1] - dy[y]};
+          if (piece.source.width && piece.source.height)
+            s.ImageQuad(piece);
+        }
+      return Ok;
+    });
+  }
+  static int InteractState(State &s, std::uint64_t id, NexoraUiRect rect, std::uint32_t enabled,
+                           std::uint32_t *out) {
+    if (!s.open)
+      return Lifecycle;
+    if (!Rect(rect) || !id || !out || enabled > 1 || s.current.size() >= 4096 ||
+        std::find(s.current.begin(), s.current.end(), id) != s.current.end())
+      return Invalid;
+    s.current.push_back(id);
+    if (enabled)
+      s.focusable.push_back(id);
+    std::uint32_t flags = 0;
+    if (enabled && s.input.focused) {
+      const bool hovered = Inside(rect, s.input.pointer_x, s.input.pointer_y);
+      if (hovered)
+        flags |= NEXORA_UI_HOVERED;
+      if (hovered && s.input.pointer_pressed) {
+        s.focus = id;
+        s.pressed = id;
+      }
+      if (!s.focus)
+        s.focus = id;
+      if (s.focus == id)
+        flags |= NEXORA_UI_FOCUSED;
+      if ((s.input.pointer_released && s.pressed == id && hovered) ||
+          (s.input.activate && s.focus == id))
+        flags |= NEXORA_UI_ACTIVATED;
+      if (s.input.cancel && s.focus == id)
+        flags |= NEXORA_UI_CANCELLED;
+    }
+    *out = flags;
+    return Ok;
+  }
+  static int Interact(void *ctx, std::uint64_t id, NexoraUiRect rect, std::uint32_t enabled,
+                      std::uint32_t *out) noexcept {
+    return Call(ctx, [&](State &s) { return InteractState(s, id, rect, enabled, out); });
+  }
+  static int GetGlyph(void *ctx, std::uint64_t handle, std::uint32_t cp,
+                      NexoraUiGlyph *out) noexcept {
+    return Call(ctx, [&](State &s) {
+      if (!out || !cp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
+        return Invalid;
+      if (!handle || handle > s.fonts.size() || !s.fonts[static_cast<std::size_t>(handle - 1)])
+        return Missing;
+      const auto *g = Glyph(*s.fonts[static_cast<std::size_t>(handle - 1)], cp);
+      if (!g)
+        return Missing;
+      *out = {g->codepoint, g->advance, g->x,  g->y,  g->width,
+              g->height,    g->u0,      g->v0, g->u1, g->v1};
+      return Ok;
+    });
+  }
+
   template <class Fn> static int Call(void *context, Fn &&fn) noexcept {
     if (!context)
       return Invalid;
@@ -133,7 +374,7 @@ struct GameplayUi::State final {
                    std::uint32_t length, std::vector<std::uint32_t> &cp) const {
     if (!Rect(rect) || !Finite(size) || size <= 0 || size > 1024 || !Decode(text, length, cp))
       return Invalid;
-    if (!handle || handle > fonts.size())
+    if (!handle || handle > fonts.size() || !fonts[static_cast<std::size_t>(handle - 1)])
       return Missing;
     if (!Budget(cp.size() + 1))
       return Missing;
@@ -221,28 +462,10 @@ struct GameplayUi::State final {
       const int result = s.ValidateText(font, size, rect, text, length, cp);
       if (result)
         return result;
-      s.current.push_back(id);
-      if (enabled)
-        s.focusable.push_back(id);
       std::uint32_t flags = 0;
-      if (enabled && s.input.focused) {
-        const bool hovered = Inside(rect, s.input.pointer_x, s.input.pointer_y);
-        if (hovered)
-          flags |= NEXORA_UI_HOVERED;
-        if (hovered && s.input.pointer_pressed) {
-          s.focus = id;
-          s.pressed = id;
-        }
-        if (!s.focus)
-          s.focus = id;
-        if (s.focus == id)
-          flags |= NEXORA_UI_FOCUSED;
-        if ((s.input.pointer_released && s.pressed == id && hovered) ||
-            (s.input.activate && s.focus == id))
-          flags |= NEXORA_UI_ACTIVATED;
-        if (s.input.cancel && s.focus == id)
-          flags |= NEXORA_UI_CANCELLED;
-      }
+      const auto interaction = InteractState(s, id, rect, enabled, &flags);
+      if (interaction)
+        return interaction;
       s.Quad(rect, rect, s.white->texture_id,
              enabled ? (flags & NEXORA_UI_FOCUSED ? 0xff806040u : 0xff302820u) : 0xff202020u);
       s.Text(font, size, rect, cp, enabled ? 0xffffffffu : 0xff808080u);
@@ -254,8 +477,13 @@ struct GameplayUi::State final {
     return Call(ctx, [](State &s) {
       if (!s.open)
         return Lifecycle;
-      s.frame.font_owners = s.fonts;
+      for (const auto &font : s.fonts)
+        if (font)
+          s.frame.font_owners.push_back(font);
       s.frame.font_owners.push_back(s.white);
+      for (const auto &image : s.frame.image_owners)
+        s.frame.uploads.push_back({image->texture_id, image->width, image->height, image->width * 4,
+                                   image->rgba, false, true});
       for (const auto &font : s.frame.font_owners)
         s.frame.uploads.push_back({font->texture_id, font->width, font->height, font->width * 4,
                                    font->rgba, false, true});
@@ -277,10 +505,13 @@ struct GameplayUi::State final {
     return Call(ctx, [&](State &s) {
       if (!out)
         return Invalid;
-      if (index >= s.fonts.size())
-        return Missing;
-      *out = index + 1;
-      return Ok;
+      for (std::size_t i = 0; i < s.fonts.size(); ++i) {
+        if (s.fonts[i] && index-- == 0) {
+          *out = i + 1;
+          return Ok;
+        }
+      }
+      return Missing;
     });
   }
   static int HasGlyph(void *ctx, std::uint64_t font, std::uint32_t cp,
@@ -288,23 +519,25 @@ struct GameplayUi::State final {
     return Call(ctx, [&](State &s) {
       if (!out || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))
         return Invalid;
-      if (!font || font > s.fonts.size())
+      if (!font || font > s.fonts.size() || !s.fonts[static_cast<std::size_t>(font - 1)])
         return Missing;
       *out = Glyph(*s.fonts[static_cast<std::size_t>(font - 1)], cp) ? 1u : 0u;
       return Ok;
     });
   }
   bool AddFont(GameplayUiFont font) {
-    if (thread != std::this_thread::get_id() || open || fonts.size() >= 32 || !font.texture_id ||
-        font.texture_id >= UINT64_MAX - 1 || font.texture_id == white->texture_id ||
-        font.width == 0 || font.height == 0 || font.width > 4096 || font.height > 4096 ||
+    if (thread != std::this_thread::get_id() || open || FontCount() >= 32 ||
+        fonts.size() >= 65536 || !font.texture_id || font.texture_id >= UINT64_MAX - 1 ||
+        font.texture_id == white->texture_id || font.width == 0 || font.height == 0 ||
+        font.width > 4096 || font.height > 4096 ||
         font.rgba.size() != std::size_t(font.width) * font.height * 4 ||
         font.rgba.size() > 16 * 1024 * 1024 || !Finite(font.pixel_size) || font.pixel_size < 1 ||
         !Finite(font.line_height) || font.line_height <= 0 || font.glyphs.size() > 65536)
       return false;
-    for (const auto &existing : fonts)
-      if (existing->texture_id == font.texture_id)
-        return false;
+    if (used_image_ids.contains(font.texture_id))
+      return false;
+    if (used_font_ids.contains(font.texture_id))
+      return false;
     std::sort(font.glyphs.begin(), font.glyphs.end(),
               [](const auto &a, const auto &b) { return a.codepoint < b.codepoint; });
     std::uint32_t previousCodepoint = UINT32_MAX;
@@ -318,7 +551,9 @@ struct GameplayUi::State final {
         return false;
       previousCodepoint = g.codepoint;
     }
-    fonts.push_back(std::make_shared<const GameplayUiFont>(std::move(font)));
+    auto owner = std::make_shared<const GameplayUiFont>(std::move(font));
+    used_font_ids.insert(owner->texture_id);
+    fonts.push_back(std::move(owner));
     return true;
   }
   static int Register(void *ctx, const NexoraUiFontV1 *in, std::uint64_t *out) noexcept {
@@ -331,7 +566,7 @@ struct GameplayUi::State final {
         return Invalid;
       if (s.open)
         return Lifecycle;
-      if (s.fonts.size() >= 32)
+      if (s.FontCount() >= 32 || s.fonts.size() >= 65536)
         return Missing;
       GameplayUiFont font;
       font.texture_id = in->texture_id;
@@ -375,6 +610,31 @@ int32_t GameplayUi::GetApi(NexoraGameplayUiApiV1 *out) noexcept {
     return Ok;
   });
 }
+int32_t GameplayUi::GetDrawApi(NexoraGameplayUiDrawApiV1 *out) noexcept {
+  return State::Call(state_.get(), [&](State &) {
+    if (!out)
+      return Invalid;
+    if (out->struct_size < sizeof(*out) || out->abi_version != 1)
+      return Missing;
+    *out = {sizeof(*out),       1,
+            state_.get(),       State::RegisterImage,
+            State::RemoveImage, State::Image,
+            State::NineSlice,   State::Interact,
+            State::GetGlyph,    State::RegisterAutoFont,
+            State::RemoveFont};
+    return Ok;
+  });
+}
+std::vector<std::uint64_t> GameplayUi::CollectRetiredTextures() {
+  if (state_->thread != std::this_thread::get_id() || state_->open)
+    throw std::logic_error("UI retirement lifecycle");
+  std::vector<std::uint64_t> out;
+  for (const auto &entry : state_->retired)
+    if (entry.owner.expired())
+      out.push_back(entry.texture);
+  std::erase_if(state_->retired, [](const auto &entry) { return entry.owner.expired(); });
+  return out;
+}
 bool GameplayUi::RegisterFont(GameplayUiFont font) { return state_->AddFont(std::move(font)); }
 void GameplayUi::BeginInput(GameplayUiInput input) {
   auto &s = *state_;
@@ -385,6 +645,7 @@ void GameplayUi::BeginInput(GameplayUiInput input) {
     throw std::invalid_argument("UI input");
   s.input = input;
   s.ready = false;
+  s.frame = {};
   if (!input.focused) {
     s.focus = 0;
     s.pressed = 0;

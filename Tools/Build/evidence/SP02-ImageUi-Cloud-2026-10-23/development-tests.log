@@ -1,0 +1,594 @@
+Test project /workspace/worktrees/nexora-sp02/build/linux-development
+        Start  26: showcase.courtyard_hero_generation
+        Start 189: editor.content_directory_index
+  1/274 Test #189: editor.content_directory_index ...........................   Passed   31.16 sec
+        Start 192: editor.content_path_sort
+  2/274 Test  #26: showcase.courtyard_hero_generation .......................   Passed   36.68 sec
+        Start 224: editor.semantic_scene_comparison
+  3/274 Test #224: editor.semantic_scene_comparison .........................   Passed   15.97 sec
+        Start 226: editor.scene_save_batch
+  4/274 Test #192: editor.content_path_sort .................................   Passed   32.79 sec
+        Start 208: editor.prefab_nested_materialization
+  5/274 Test #226: editor.scene_save_batch ..................................   Passed   14.96 sec
+        Start  27: showcase.courtyard_environment_generation
+  6/274 Test #208: editor.prefab_nested_materialization .....................   Passed   10.77 sec
+        Start 248: editor.static_project_export
+  7/274 Test  #27: showcase.courtyard_environment_generation ................   Passed    8.88 sec
+        Start 172: twod.integrated_stress
+  8/274 Test #248: editor.static_project_export .............................   Passed   10.88 sec
+        Start 219: editor.additive_scene_composition
+  9/274 Test #172: twod.integrated_stress ...................................   Passed    9.89 sec
+        Start  28: showcase.courtyard_environment_contracts
+ 10/274 Test  #28: showcase.courtyard_environment_contracts .................   Passed    5.76 sec
+        Start  16: gameplay.zig_ui_wrapper
+ 11/274 Test #219: editor.additive_scene_composition ........................   Passed    8.68 sec
+        Start  15: gameplay.zig_input_wrapper
+ 12/274 Test  #16: gameplay.zig_ui_wrapper ..................................   Passed    2.58 sec
+        Start 247: editor.scene_runtime_capture
+ 13/274 Test  #15: gameplay.zig_input_wrapper ...............................   Passed    3.03 sec
+        Start  19: gameplay.zig_content_wrapper
+ 14/274 Test  #19: gameplay.zig_content_wrapper .............................   Passed    2.73 sec
+        Start  18: gameplay.zig_storage_wrapper
+ 15/274 Test #247: editor.scene_runtime_capture .............................   Passed    7.11 sec
+        Start  17: gameplay.zig_audio_wrapper
+ 16/274 Test  #18: gameplay.zig_storage_wrapper .............................   Passed    2.80 sec
+        Start 239: editor.parser_robustness
+ 17/274 Test  #17: gameplay.zig_audio_wrapper ...............................   Passed    2.77 sec
+        Start  20: gameplay.zig_display_wrapper
+ 18/274 Test  #20: gameplay.zig_display_wrapper .............................   Passed    2.98 sec
+        Start  25: showcase.courtyard_asset_generation
+ 19/274 Test #239: editor.parser_robustness .................................   Passed    6.07 sec
+        Start 174: gameplay.zig_ui_wire_layout
+ 20/274 Test  #25: showcase.courtyard_asset_generation ......................   Passed    3.49 sec
+        Start  92: api.gameplay_input_zig_abi
+ 21/274 Test #174: gameplay.zig_ui_wire_layout ..............................   Passed    3.01 sec
+        Start 176: gameplay.zig_content_wire_layout
+ 22/274 Test  #92: api.gameplay_input_zig_abi ...............................   Passed    3.18 sec
+        Start  34: showcase.runtime_rooms
+ 23/274 Test #176: gameplay.zig_content_wire_layout .........................   Passed    2.92 sec
+        Start  29: showcase.courtyard_asset_conversion
+ 24/274 Test  #34: showcase.runtime_rooms ...................................   Passed    3.03 sec
+        Start  59: build.animation_profiles
+ 25/274 Test  #29: showcase.courtyard_asset_conversion ......................   Passed    3.35 sec
+        Start  57: build.pose_search_profiles
+ 26/274 Test  #59: build.animation_profiles .................................   Passed    3.46 sec
+        Start 186: gameplay.zig_ui_draw_wire_layout
+ 27/274 Test  #57: build.pose_search_profiles ...............................   Passed    3.42 sec
+        Start 184: gameplay.zig_display_wire_layout
+ 28/274 Test #186: gameplay.zig_ui_draw_wire_layout .........................   Passed    3.12 sec
+        Start  21: gameplay.zig_ui_draw_wrapper
+ 29/274 Test #184: gameplay.zig_display_wire_layout .........................   Passed    2.96 sec
+        Start 171: twod.benchmark_trace
+ 30/274 Test  #21: gameplay.zig_ui_draw_wrapper .............................   Passed    2.58 sec
+        Start 128: runtime.scene_world_pose_snapshot
+ 31/274 Test #171: twod.benchmark_trace .....................................   Passed    2.29 sec
+        Start 222: editor.semantic_scene_merge_candidate
+ 32/274 Test #128: runtime.scene_world_pose_snapshot ........................   Passed    1.95 sec
+        Start  35: showcase.visual_tour_cli
+ 33/274 Test #222: editor.semantic_scene_merge_candidate ....................   Passed    1.63 sec
+        Start 212: editor.prefab_asset_graph
+ 34/274 Test  #35: showcase.visual_tour_cli .................................   Passed    1.44 sec
+        Start 232: editor.workspace_budget
+ 35/274 Test #212: editor.prefab_asset_graph ................................   Passed    1.57 sec
+        Start 170: twod.cpu_stress
+ 36/274 Test #232: editor.workspace_budget ..................................   Passed    1.41 sec
+        Start 168: twod.play_context
+ 37/274 Test #170: twod.cpu_stress ..........................................   Passed    1.31 sec
+        Start 274: editor.content_search_keys
+ 38/274 Test #168: twod.play_context ........................................   Passed    1.18 sec
+        Start 165: twod.content_import
+ 39/274 Test #274: editor.content_search_keys ...............................   Passed    1.13 sec
+        Start 181: twod.backend_options
+ 40/274 Test #165: twod.content_import ......................................   Passed    0.98 sec
+        Start 154: runtime.static_project_package
+ 41/274 Test #181: twod.backend_options .....................................   Passed    0.95 sec
+        Start  32: showcase.benchmark_evidence_policy_optimized
+ 42/274 Test  #32: showcase.benchmark_evidence_policy_optimized .............   Passed    0.48 sec
+        Start   6: build.showcase_package_launch_safety
+ 43/274 Test #154: runtime.static_project_package ...........................   Passed    0.82 sec
+        Start 127: runtime.entity_parenting
+ 44/274 Test   #6: build.showcase_package_launch_safety .....................   Passed    0.65 sec
+        Start 129: runtime.render_sync
+ 45/274 Test #127: runtime.entity_parenting .................................   Passed    0.76 sec
+        Start   2: build.editor_target_evidence
+ 46/274 Test #129: runtime.render_sync ......................................   Passed    0.77 sec
+        Start 133: runtime.bounded_scene_save
+ 47/274 Test   #2: build.editor_target_evidence .............................   Passed    0.56 sec
+        Start 190: editor.scene_golden_migrations
+ 48/274 Test #133: runtime.bounded_scene_save ...............................   Passed    0.60 sec
+        Start   8: build.v2_production_toolchain
+ 49/274 Test #190: editor.scene_golden_migrations ...........................   Passed    0.66 sec
+        Start 272: editor.git_diff_provider
+ 50/274 Test   #8: build.v2_production_toolchain ............................   Passed    0.48 sec
+        Start 153: runtime.cooked_scene_assets
+ 51/274 Test #272: editor.git_diff_provider .................................   Passed    0.60 sec
+        Start 217: editor.bounded_build_process
+ 52/274 Test #153: runtime.cooked_scene_assets ..............................   Passed    0.46 sec
+        Start 162: twod.windows_vm_transport
+ 53/274 Test #217: editor.bounded_build_process .............................   Passed    0.53 sec
+        Start  44: showcase.linux_animation_handshake_optimized
+ 54/274 Test #162: twod.windows_vm_transport ................................   Passed    0.51 sec
+        Start 145: runtime.dynamic_gameplay_module
+ 55/274 Test #145: runtime.dynamic_gameplay_module ..........................   Passed    0.44 sec
+        Start 271: editor.git_status_provider
+ 56/274 Test  #44: showcase.linux_animation_handshake_optimized .............   Passed    0.52 sec
+        Start  51: cryptography.ed25519_sha256
+ 57/274 Test  #51: cryptography.ed25519_sha256 ..............................   Passed    0.39 sec
+        Start 251: editor.static_project_export_cli_diagnostics_optimized
+ 58/274 Test #271: editor.git_status_provider ...............................   Passed    0.42 sec
+        Start 252: editor.material_import
+ 59/274 Test #251: editor.static_project_export_cli_diagnostics_optimized ...   Passed    0.40 sec
+        Start 193: editor.chrome_cpu_trace
+ 60/274 Test #252: editor.material_import ...................................   Passed    0.38 sec
+        Start  37: showcase.probe_export
+ 61/274 Test #193: editor.chrome_cpu_trace ..................................   Passed    0.37 sec
+        Start  40: showcase.zig_dynamic
+ 62/274 Test  #37: showcase.probe_export ....................................   Passed    0.39 sec
+        Start 178: twod.cooked_product_services
+ 63/274 Test  #40: showcase.zig_dynamic .....................................   Passed    0.32 sec
+        Start  41: showcase.capability_fallbacks
+ 64/274 Test #178: twod.cooked_product_services .............................   Passed    0.37 sec
+        Start 259: editor.mesh_memory_json_schema_optimized
+ 65/274 Test  #41: showcase.capability_fallbacks ............................   Passed    0.32 sec
+        Start  38: showcase.zig_headless
+ 66/274 Test #259: editor.mesh_memory_json_schema_optimized .................   Passed    0.35 sec
+        Start   5: build.showcase_package
+ 67/274 Test  #38: showcase.zig_headless ....................................   Passed    0.34 sec
+        Start  39: showcase.feature_gallery
+ 68/274 Test   #5: build.showcase_package ...................................   Passed    0.25 sec
+        Start  36: showcase.guided_tour_cli
+ 69/274 Test  #39: showcase.feature_gallery .................................   Passed    0.29 sec
+        Start 263: editor.gpu_timing_json_optimized
+ 70/274 Test  #36: showcase.guided_tour_cli .................................   Passed    0.32 sec
+        Start 256: editor.process_memory_json_schema_optimized
+ 71/274 Test #263: editor.gpu_timing_json_optimized .........................   Passed    0.30 sec
+        Start  22: gameplay.zig_display_player
+ 72/274 Test #256: editor.process_memory_json_schema_optimized ..............   Passed    0.31 sec
+        Start 235: editor.asset_source
+ 73/274 Test  #22: gameplay.zig_display_player ..............................   Passed    0.19 sec
+        Start  58: animation.v2_m8_pose_search
+ 74/274 Test #235: editor.asset_source ......................................   Passed    0.26 sec
+        Start 157: runtime.gameplay_alsa_lifetime
+ 75/274 Test  #58: animation.v2_m8_pose_search ..............................   Passed    0.28 sec
+        Start 191: editor.prefab_instance_source_apply
+ 76/274 Test #157: runtime.gameplay_alsa_lifetime ...........................   Passed    0.27 sec
+        Start 180: twod.project_export
+ 77/274 Test #191: editor.prefab_instance_source_apply ......................   Passed    0.23 sec
+        Start 231: editor.autosave_journal
+ 78/274 Test #180: twod.project_export ......................................   Passed    0.26 sec
+        Start  24: gameplay.zig_image_ui_player
+ 79/274 Test #231: editor.autosave_journal ..................................   Passed    0.23 sec
+        Start 179: twod.host_fixture
+ 80/274 Test  #24: gameplay.zig_image_ui_player .............................   Passed    0.22 sec
+        Start  31: showcase.benchmark_evidence_policy
+ 81/274 Test #179: twod.host_fixture ........................................   Passed    0.21 sec
+        Start 258: editor.mesh_memory_json_schema
+ 82/274 Test  #31: showcase.benchmark_evidence_policy .......................   Passed    0.18 sec
+        Start  45: showcase.linux_vulkan_evidence_policy
+ 83/274 Test #258: editor.mesh_memory_json_schema ...........................   Passed    0.21 sec
+        Start 161: twod.runtime_contracts
+ 84/274 Test  #45: showcase.linux_vulkan_evidence_policy ....................   Passed    0.19 sec
+        Start 166: twod.play_assets
+ 85/274 Test #161: twod.runtime_contracts ...................................   Passed    0.21 sec
+        Start 250: editor.static_project_export_cli_diagnostics
+ 86/274 Test #166: twod.play_assets .........................................   Passed    0.19 sec
+        Start  53: core.async_log_stream
+ 87/274 Test #250: editor.static_project_export_cli_diagnostics .............   Passed    0.15 sec
+        Start 255: editor.process_memory_json_schema
+ 88/274 Test  #53: core.async_log_stream ....................................   Passed    0.15 sec
+        Start 264: editor.reflected_dynamic_arrays
+ 89/274 Test #255: editor.process_memory_json_schema ........................   Passed    0.17 sec
+        Start 187: twod.portable_font_bake
+ 90/274 Test #264: editor.reflected_dynamic_arrays ..........................   Passed    0.16 sec
+        Start 262: editor.gpu_timing_json
+ 91/274 Test #187: twod.portable_font_bake ..................................   Passed    0.13 sec
+        Start  43: showcase.linux_animation_handshake
+ 92/274 Test #262: editor.gpu_timing_json ...................................   Passed    0.17 sec
+        Start 257: editor.mesh_memory_capture
+ 93/274 Test  #43: showcase.linux_animation_handshake .......................   Passed    0.12 sec
+        Start  68: network.v2_m6_prediction_replay
+ 94/274 Test #257: editor.mesh_memory_capture ...............................   Passed    0.11 sec
+        Start  67: network.v2_m6_dormancy
+ 95/274 Test  #68: network.v2_m6_prediction_replay ..........................   Passed    0.11 sec
+        Start  64: network.v2_m5_transport
+ 96/274 Test  #67: network.v2_m6_dormancy ...................................   Passed    0.12 sec
+        Start  65: network.v2_m6_entity_mapping
+ 97/274 Test  #64: network.v2_m5_transport ..................................   Passed    0.12 sec
+        Start  66: network.v2_m6_replication_interest
+ 98/274 Test  #65: network.v2_m6_entity_mapping .............................   Passed    0.11 sec
+        Start 234: editor.mesh_import
+ 99/274 Test  #66: network.v2_m6_replication_interest .......................   Passed    0.10 sec
+        Start 148: runtime.console_record_admission
+100/274 Test #234: editor.mesh_import .......................................   Passed    0.09 sec
+        Start  69: network.server_runtime_contract
+101/274 Test #148: runtime.console_record_admission .........................   Passed    0.11 sec
+        Start 146: runtime.v1_m5_asset_pipeline
+102/274 Test  #69: network.server_runtime_contract ..........................   Passed    0.11 sec
+        Start 200: editor.prefab_placement_revision_snapshot
+103/274 Test #146: runtime.v1_m5_asset_pipeline .............................   Passed    0.08 sec
+        Start 131: runtime.v1_m12_shipping
+104/274 Test #200: editor.prefab_placement_revision_snapshot ................   Passed    0.09 sec
+        Start 195: editor.signed_extension_admission
+105/274 Test #131: runtime.v1_m12_shipping ..................................   Passed    0.09 sec
+        Start 201: editor.prefab_placement_source_rebase
+106/274 Test #195: editor.signed_extension_admission ........................   Passed    0.11 sec
+        Start 254: editor.process_memory_capture
+107/274 Test #201: editor.prefab_placement_source_rebase ....................   Passed    0.11 sec
+        Start  81: window_presentation.hlsl_embedding
+108/274 Test #254: editor.process_memory_capture ............................   Passed    0.08 sec
+        Start 261: editor.gpu_timing_capture
+109/274 Test  #81: window_presentation.hlsl_embedding .......................   Passed    0.10 sec
+        Start 198: editor.build_artifact_verification
+110/274 Test #261: editor.gpu_timing_capture ................................   Passed    0.09 sec
+        Start 267: editor.material_tool_source_session
+111/274 Test #198: editor.build_artifact_verification .......................   Passed    0.09 sec
+        Start  86: api.foundation_math_types
+112/274 Test #267: editor.material_tool_source_session ......................   Passed    0.08 sec
+        Start 169: twod.asset_tool
+113/274 Test  #86: api.foundation_math_types ................................   Passed    0.08 sec
+        Start 143: runtime.v1_m4_vertical_slice
+114/274 Test #169: twod.asset_tool ..........................................   Passed    0.07 sec
+        Start 204: editor.property_snapshot_hint_preservation
+115/274 Test #143: runtime.v1_m4_vertical_slice .............................   Passed    0.06 sec
+        Start 237: editor.mesh_thumbnails
+116/274 Test #204: editor.property_snapshot_hint_preservation ...............   Passed    0.06 sec
+        Start  87: api.core_services_handle_and_vfs_contract
+117/274 Test #237: editor.mesh_thumbnails ...................................   Passed    0.07 sec
+        Start 132: runtime.v2_m12_hardening_reference_projects
+118/274 Test  #87: api.core_services_handle_and_vfs_contract ................   Passed    0.06 sec
+        Start 245: editor.external_scene_save_contract
+119/274 Test #132: runtime.v2_m12_hardening_reference_projects ..............   Passed    0.07 sec
+        Start  12: gameplay.zig_twod_dynamic
+120/274 Test #245: editor.external_scene_save_contract ......................   Passed    0.08 sec
+        Start 249: editor.static_project_export_job
+121/274 Test  #12: gameplay.zig_twod_dynamic ................................   Passed    0.05 sec
+        Start 177: twod.audio_device_lifecycle
+122/274 Test #249: editor.static_project_export_job .........................   Passed    0.05 sec
+        Start   7: build.v2_migration_scanner
+123/274 Test #177: twod.audio_device_lifecycle ..............................   Passed    0.05 sec
+        Start 213: editor.atomic_forest_import
+124/274 Test   #7: build.v2_migration_scanner ...............................   Passed    0.04 sec
+        Start 268: editor.managed_tool_invocation
+125/274 Test #213: editor.atomic_forest_import ..............................   Passed    0.05 sec
+        Start 225: editor.semantic_scene_comparison_job
+126/274 Test #268: editor.managed_tool_invocation ...........................   Passed    0.05 sec
+        Start  89: api.m6_manifest_compatibility
+127/274 Test #225: editor.semantic_scene_comparison_job .....................   Passed    0.05 sec
+        Start  61: animation.v2_m8_synchronized_trs_graph
+128/274 Test  #89: api.m6_manifest_compatibility ............................   Passed    0.07 sec
+        Start 273: editor.semantic_scene_merge_publication
+129/274 Test  #61: animation.v2_m8_synchronized_trs_graph ...................   Passed    0.04 sec
+        Start 210: editor.prefab_revision_history
+130/274 Test #273: editor.semantic_scene_merge_publication ..................   Passed    0.04 sec
+        Start  63: animation.v2_m8_pose_storage_retarget
+131/274 Test #210: editor.prefab_revision_history ...........................   Passed    0.03 sec
+        Start 230: editor.inspector_atomic_batch
+132/274 Test  #63: animation.v2_m8_pose_storage_retarget ....................   Passed    0.04 sec
+        Start 218: editor.tool_capability_metadata
+133/274 Test #230: editor.inspector_atomic_batch ............................   Passed    0.03 sec
+        Start 216: editor.preview_contract
+134/274 Test #218: editor.tool_capability_metadata ..........................   Passed    0.04 sec
+        Start 207: editor.prefab_stable_comparison
+135/274 Test #216: editor.preview_contract ..................................   Passed    0.04 sec
+        Start 209: editor.project_prefab_placement
+136/274 Test #207: editor.prefab_stable_comparison ..........................   Passed    0.04 sec
+137/274 Test #209: editor.project_prefab_placement ..........................   Passed    0.03 sec
+        Start  85: window.x11_display_metrics_native
+138/274 Test  #85: window.x11_display_metrics_native ........................   Passed    0.12 sec
+        Start  30: showcase.performance_statistics
+        Start 220: editor.additive_scene_session
+139/274 Test  #30: showcase.performance_statistics ..........................   Passed    0.03 sec
+        Start  70: network.v2_m5_headless_dependency
+140/274 Test #220: editor.additive_scene_session ............................   Passed    0.04 sec
+        Start 223: editor.semantic_scene_merge_candidate_job
+141/274 Test  #70: network.v2_m5_headless_dependency ........................   Passed    0.03 sec
+        Start 211: editor.prefab_property_revert_plan
+142/274 Test #223: editor.semantic_scene_merge_candidate_job ................   Passed    0.04 sec
+        Start 241: editor.component_reset_contract
+143/274 Test #211: editor.prefab_property_revert_plan .......................   Passed    0.04 sec
+        Start  96: renderer.indirect_range_source_contract
+144/274 Test #241: editor.component_reset_contract ..........................   Passed    0.03 sec
+        Start 266: editor.material_tool_document
+145/274 Test #266: editor.material_tool_document ............................   Passed    0.03 sec
+        Start 243: editor.builtin_creation_contract
+146/274 Test  #96: renderer.indirect_range_source_contract ..................   Passed    0.03 sec
+        Start 199: editor.plugin_manager
+147/274 Test #243: editor.builtin_creation_contract .........................   Passed    0.03 sec
+        Start  95: renderer.metal_source_contract
+148/274 Test #199: editor.plugin_manager ....................................   Passed    0.03 sec
+        Start   1: build.module_graph
+149/274 Test   #1: build.module_graph .......................................   Passed    0.02 sec
+        Start 214: editor.shader_authoring_contracts
+150/274 Test  #95: renderer.metal_source_contract ...........................   Passed    0.02 sec
+        Start 253: editor.material_catalog
+151/274 Test #253: editor.material_catalog ..................................   Passed    0.02 sec
+        Start 238: editor.mesh_reimport
+152/274 Test #214: editor.shader_authoring_contracts ........................   Passed    0.03 sec
+        Start 167: twod.authoring_contracts
+153/274 Test #238: editor.mesh_reimport .....................................   Passed    0.03 sec
+        Start 244: editor.scene_file_contract
+154/274 Test #167: twod.authoring_contracts .................................   Passed    0.03 sec
+        Start  11: gameplay.zig_twod_static
+155/274 Test #244: editor.scene_file_contract ...............................   Passed    0.02 sec
+        Start 270: editor.git_porcelain_parser
+156/274 Test  #11: gameplay.zig_twod_static .................................   Passed    0.03 sec
+        Start 206: editor.prefab_document_isolation
+157/274 Test #270: editor.git_porcelain_parser ..............................   Passed    0.02 sec
+        Start 150: runtime.plugin_lifecycle
+158/274 Test #206: editor.prefab_document_isolation .........................   Passed    0.02 sec
+        Start 164: twod.project_play_assets
+159/274 Test #150: runtime.plugin_lifecycle .................................   Passed    0.02 sec
+        Start 135: runtime.v1_m7_input_ui_localization
+160/274 Test #164: twod.project_play_assets .................................   Passed    0.02 sec
+        Start  23: gameplay.zig_ui_showcase
+161/274 Test #135: runtime.v1_m7_input_ui_localization ......................   Passed    0.02 sec
+        Start 100: renderer.parallel_graph_recording
+162/274 Test  #23: gameplay.zig_ui_showcase .................................   Passed    0.01 sec
+        Start 242: editor.transform_value_contract
+163/274 Test #100: renderer.parallel_graph_recording ........................   Passed    0.02 sec
+        Start 205: editor.atomic_property_snapshot
+164/274 Test #242: editor.transform_value_contract ..........................   Passed    0.02 sec
+        Start   3: build.shader_contract
+165/274 Test #205: editor.atomic_property_snapshot ..........................   Passed    0.01 sec
+        Start 138: runtime.v1_m10_large_world
+166/274 Test   #3: build.shader_contract ....................................   Passed    0.01 sec
+        Start  56: ai.v2_m7_navigation_crowd_policy
+167/274 Test #138: runtime.v1_m10_large_world ...............................   Passed    0.01 sec
+        Start  33: showcase.v1_probe
+168/274 Test  #33: showcase.v1_probe ........................................   Passed    0.00 sec
+        Start 202: editor.signed_tool_invocation
+169/274 Test  #56: ai.v2_m7_navigation_crowd_policy .........................   Passed    0.01 sec
+        Start 265: editor.reflected_inspector
+170/274 Test #202: editor.signed_tool_invocation ............................   Passed    0.01 sec
+        Start 221: editor.prepared_scene_save
+171/274 Test #265: editor.reflected_inspector ...............................   Passed    0.01 sec
+        Start  75: window_presentation.scene_instance_contract
+172/274 Test #221: editor.prepared_scene_save ...............................   Passed    0.01 sec
+        Start 240: editor.affine_gizmo_contract
+173/274 Test  #75: window_presentation.scene_instance_contract ..............   Passed    0.01 sec
+        Start  54: core.process_memory
+174/274 Test  #54: core.process_memory ......................................   Passed    0.01 sec
+        Start 194: editor.extension_signature_trust
+175/274 Test #240: editor.affine_gizmo_contract .............................   Passed    0.01 sec
+        Start 159: runtime.gameplay_gamepad_routing
+176/274 Test #194: editor.extension_signature_trust .........................   Passed    0.01 sec
+        Start  91: samples.editor_reflected_arrays
+177/274 Test #159: runtime.gameplay_gamepad_routing .........................   Passed    0.01 sec
+        Start 246: editor.play_input_settings
+178/274 Test  #91: samples.editor_reflected_arrays ..........................   Passed    0.01 sec
+        Start 136: runtime.v1_m8_gameplay_simulation
+179/274 Test #246: editor.play_input_settings ...............................   Passed    0.01 sec
+        Start 197: editor.native_tool_callbacks
+180/274 Test #197: editor.native_tool_callbacks .............................   Passed    0.01 sec
+        Start 175: twod.gameplay_content
+181/274 Test #136: runtime.v1_m8_gameplay_simulation ........................   Passed    0.01 sec
+        Start 215: editor.project_upgrade_evidence
+182/274 Test #215: editor.project_upgrade_evidence ..........................   Passed    0.01 sec
+        Start 203: editor.scalar_material_native_tool
+183/274 Test #175: twod.gameplay_content ....................................   Passed    0.01 sec
+        Start 269: editor.hierarchy_snapshot_index
+184/274 Test #203: editor.scalar_material_native_tool .......................   Passed    0.01 sec
+        Start 188: editor.content_diagnostics
+185/274 Test #269: editor.hierarchy_snapshot_index ..........................   Passed    0.01 sec
+        Start  62: animation.v2_m8_marker_sync
+186/274 Test #188: editor.content_diagnostics ...............................   Passed    0.00 sec
+        Start 233: editor.viewport_math
+187/274 Test  #62: animation.v2_m8_marker_sync ..............................   Passed    0.00 sec
+        Start  52: core.runtime
+188/274 Test #233: editor.viewport_math .....................................   Passed    0.00 sec
+        Start 227: editor.additive_scene_contract
+189/274 Test  #52: core.runtime .............................................   Passed    0.00 sec
+        Start 236: editor.mesh_asset_catalog
+190/274 Test #227: editor.additive_scene_contract ...........................   Passed    0.00 sec
+        Start 229: editor.mesh_memory_profile
+191/274 Test #236: editor.mesh_asset_catalog ................................   Passed    0.01 sec
+        Start 152: runtime.plugin_service_ownership
+192/274 Test #229: editor.mesh_memory_profile ...............................   Passed    0.00 sec
+        Start 228: editor.process_memory_profile
+193/274 Test #152: runtime.plugin_service_ownership .........................   Passed    0.01 sec
+        Start 260: editor.gpu_profile
+194/274 Test #228: editor.process_memory_profile ............................   Passed    0.01 sec
+        Start 163: twod.gameplay_bridge
+195/274 Test #260: editor.gpu_profile .......................................   Passed    0.00 sec
+        Start 141: runtime.v1_m9_presentation
+196/274 Test #163: twod.gameplay_bridge .....................................   Passed    0.00 sec
+        Start 182: twod.project_manifest
+197/274 Test #141: runtime.v1_m9_presentation ...............................   Passed    0.00 sec
+        Start  14: gameplay.zig_services_consumer
+198/274 Test #182: twod.project_manifest ....................................   Passed    0.00 sec
+        Start 105: renderer.v2_gpu_scene
+199/274 Test  #14: gameplay.zig_services_consumer ...........................   Passed    0.00 sec
+        Start 185: twod.gameplay_ui_draw
+200/274 Test #105: renderer.v2_gpu_scene ....................................   Passed    0.00 sec
+        Start 183: twod.gameplay_display
+201/274 Test #185: twod.gameplay_ui_draw ....................................   Passed    0.00 sec
+        Start  60: animation.v2_m8_inertial_pose_blend
+202/274 Test #183: twod.gameplay_display ....................................   Passed    0.00 sec
+        Start  99: renderer.graph_buffer_dependencies
+203/274 Test  #60: animation.v2_m8_inertial_pose_blend ......................   Passed    0.00 sec
+        Start  98: renderer.contracts
+204/274 Test  #99: renderer.graph_buffer_dependencies .......................   Passed    0.00 sec
+        Start 101: renderer.graphics_capabilities
+205/274 Test  #98: renderer.contracts .......................................   Passed    0.00 sec
+        Start 139: runtime.v1_m11_platform
+206/274 Test #101: renderer.graphics_capabilities ...........................   Passed    0.00 sec
+        Start 155: runtime.gameplay_action_input
+207/274 Test #139: runtime.v1_m11_platform ..................................   Passed    0.00 sec
+        Start   4: build.plugin_manifests
+208/274 Test #155: runtime.gameplay_action_input ............................   Passed    0.00 sec
+        Start 173: twod.gameplay_ui
+209/274 Test   #4: build.plugin_manifests ...................................   Passed    0.00 sec
+        Start  13: gameplay.zig_twod_wire_layout
+210/274 Test #173: twod.gameplay_ui .........................................   Passed    0.00 sec
+        Start 119: renderer.ray_tracing
+211/274 Test  #13: gameplay.zig_twod_wire_layout ............................   Passed    0.00 sec
+        Start 102: renderer.scene_frame_contracts
+212/274 Test #119: renderer.ray_tracing .....................................   Passed    0.00 sec
+        Start 130: api.gameplay_host_bridge
+213/274 Test #102: renderer.scene_frame_contracts ...........................   Passed    0.00 sec
+        Start  74: window_presentation.scene_geometry_residency
+214/274 Test #130: api.gameplay_host_bridge .................................   Passed    0.00 sec
+        Start 147: api.bundle_mount
+215/274 Test  #74: window_presentation.scene_geometry_residency .............   Passed    0.00 sec
+        Start 149: runtime.v1_m6_editor_sdk
+216/274 Test #147: api.bundle_mount .........................................   Passed    0.00 sec
+        Start 116: renderer.shading_rate
+217/274 Test #149: runtime.v1_m6_editor_sdk .................................   Passed    0.00 sec
+        Start 106: renderer.v2_gpu_driven
+218/274 Test #116: renderer.shading_rate ....................................   Passed    0.00 sec
+        Start 158: runtime.gameplay_persistent_storage
+219/274 Test #106: renderer.v2_gpu_driven ...................................   Passed    0.00 sec
+        Start 134: runtime.world_identity_exhaustion
+220/274 Test #158: runtime.gameplay_persistent_storage ......................   Passed    0.00 sec
+        Start  71: window_presentation.contracts
+221/274 Test #134: runtime.world_identity_exhaustion ........................   Passed    0.00 sec
+        Start 123: runtime.shader_artifact_contracts
+222/274 Test  #71: window_presentation.contracts ............................   Passed    0.00 sec
+        Start  49: foundation.build_info
+223/274 Test #123: runtime.shader_artifact_contracts ........................   Passed    0.00 sec
+        Start 142: runtime.v2_m9_timeline_ui_audio_media
+224/274 Test  #49: foundation.build_info ....................................   Passed    0.00 sec
+        Start 124: runtime.v1_m4_m11_contracts
+225/274 Test #142: runtime.v2_m9_timeline_ui_audio_media ....................   Passed    0.00 sec
+        Start 140: animation.v2_m8_sync_group_graph
+226/274 Test #124: runtime.v1_m4_m11_contracts ..............................   Passed    0.00 sec
+        Start 126: runtime.transform_rotation_scale
+227/274 Test #140: animation.v2_m8_sync_group_graph .........................   Passed    0.00 sec
+        Start 144: runtime.gameplay_module_host
+228/274 Test #126: runtime.transform_rotation_scale .........................   Passed    0.00 sec
+        Start 137: runtime.v2_m7_ai_character_intent_bridge
+229/274 Test #144: runtime.gameplay_module_host .............................   Passed    0.00 sec
+        Start  90: samples.api_foundation
+230/274 Test #137: runtime.v2_m7_ai_character_intent_bridge .................   Passed    0.00 sec
+        Start 125: api.game_world_facade
+231/274 Test  #90: samples.api_foundation ...................................   Passed    0.00 sec
+        Start  94: renderer.submission_gpu_timing
+232/274 Test #125: api.game_world_facade ....................................   Passed    0.00 sec
+        Start 121: renderer.shading_rate_image
+233/274 Test  #94: renderer.submission_gpu_timing ...........................   Passed    0.00 sec
+        Start  97: renderer.dxil_artifact_readiness
+234/274 Test #121: renderer.shading_rate_image ..............................   Passed    0.00 sec
+        Start 120: renderer.sampler_feedback
+235/274 Test  #97: renderer.dxil_artifact_readiness .........................   Passed    0.00 sec
+        Start   9: gameplay.zig_abi_smoke
+236/274 Test #120: renderer.sampler_feedback ................................   Passed    0.00 sec
+        Start 103: renderer.material_contracts
+237/274 Test   #9: gameplay.zig_abi_smoke ...................................   Passed    0.00 sec
+        Start 118: renderer.work_graph
+238/274 Test #103: renderer.material_contracts ..............................   Passed    0.00 sec
+        Start 115: renderer.tessellation
+239/274 Test #118: renderer.work_graph ......................................   Passed    0.00 sec
+        Start  55: core.v2_m11_remote_diagnostics
+240/274 Test #115: renderer.tessellation ....................................   Passed    0.00 sec
+        Start 117: renderer.mesh_shader
+241/274 Test  #55: core.v2_m11_remote_diagnostics ...........................   Passed    0.00 sec
+        Start 114: renderer.enhanced_barrier_projection
+242/274 Test #117: renderer.mesh_shader .....................................   Passed    0.00 sec
+        Start 156: runtime.gameplay_audio
+243/274 Test #114: renderer.enhanced_barrier_projection .....................   Passed    0.00 sec
+        Start 122: renderer.modern_compute_fallback
+244/274 Test #156: runtime.gameplay_audio ...................................   Passed    0.00 sec
+        Start  93: renderer.d3d12_adapter_policy
+245/274 Test  #93: renderer.d3d12_adapter_policy ............................   Passed    0.00 sec
+        Start 104: renderer.golden_image_acceptance
+246/274 Test #122: renderer.modern_compute_fallback .........................   Passed    0.01 sec
+247/274 Test #104: renderer.golden_image_acceptance .........................   Passed    0.00 sec
+        Start  76: window_presentation.scene_view_admission
+        Start  72: window_presentation.staged_upload_allocation
+248/274 Test  #76: window_presentation.scene_view_admission .................   Passed    0.00 sec
+        Start  82: window_presentation.gpu_timing
+249/274 Test  #72: window_presentation.staged_upload_allocation .............   Passed    0.00 sec
+        Start  73: window_presentation.scene_geometry_upload_key
+250/274 Test  #82: window_presentation.gpu_timing ...........................   Passed    0.00 sec
+        Start 160: runtime.gameplay_audio_queue
+251/274 Test  #73: window_presentation.scene_geometry_upload_key ............   Passed    0.00 sec
+        Start  50: foundation.gameplay_abi
+252/274 Test  #50: foundation.gameplay_abi ..................................   Passed    0.00 sec
+        Start  83: window.x11_key_repeat_matcher
+253/274 Test #160: runtime.gameplay_audio_queue .............................   Passed    0.00 sec
+        Start 196: editor.native_tool_c_abi
+254/274 Test  #83: window.x11_key_repeat_matcher ............................   Passed    0.00 sec
+        Start 151: runtime.plugin_lifecycle_c_abi
+255/274 Test #196: editor.native_tool_c_abi .................................   Passed    0.00 sec
+        Start  88: api.m6_c_consumer
+256/274 Test #151: runtime.plugin_lifecycle_c_abi ...........................   Passed    0.00 sec
+        Start  10: gameplay.zig_pointer_wire_layout
+257/274 Test  #88: api.m6_c_consumer ........................................   Passed    0.00 sec
+        Start  42: showcase.linux_vulkan_interaction
+258/274 Test  #10: gameplay.zig_pointer_wire_layout .........................   Passed    0.00 sec
+        Start  46: showcase.linux_vulkan_virtual_display
+259/274 Test  #42: showcase.linux_vulkan_interaction ........................***Skipped   0.04 sec
+        Start  47: showcase.linux_vulkan_rendering_room
+260/274 Test  #46: showcase.linux_vulkan_virtual_display ....................***Skipped   0.04 sec
+        Start  48: showcase.linux_vulkan_camera_input
+261/274 Test  #47: showcase.linux_vulkan_rendering_room .....................***Skipped   0.06 sec
+262/274 Test  #48: showcase.linux_vulkan_camera_input .......................***Skipped   0.05 sec
+        Start  77: window_presentation.vulkan_scene
+        Start  78: window_presentation.vulkan_pbr
+263/274 Test  #78: window_presentation.vulkan_pbr ...........................***Skipped   0.04 sec
+        Start  79: window_presentation.vulkan_scene_upload_reuse
+264/274 Test  #77: window_presentation.vulkan_scene .........................***Skipped   0.04 sec
+        Start  80: window_presentation.vulkan_swapchain
+265/274 Test  #79: window_presentation.vulkan_scene_upload_reuse ............***Skipped   0.05 sec
+        Start 107: renderer.vulkan_texture_recording
+266/274 Test  #80: window_presentation.vulkan_swapchain .....................***Skipped   0.05 sec
+        Start 108: renderer.vulkan_graphics_resource_reuse
+267/274 Test #107: renderer.vulkan_texture_recording ........................***Skipped   0.00 sec
+        Start 109: renderer.vulkan_descriptor_isolation
+268/274 Test #108: renderer.vulkan_graphics_resource_reuse ..................***Skipped   0.00 sec
+        Start 110: renderer.vulkan_recording_gpu_timing
+269/274 Test #109: renderer.vulkan_descriptor_isolation .....................***Skipped   0.00 sec
+        Start 111: renderer.vulkan_recording_resource_reuse
+270/274 Test #110: renderer.vulkan_recording_gpu_timing .....................***Skipped   0.00 sec
+        Start 112: renderer.vulkan_recording_benchmark
+271/274 Test #111: renderer.vulkan_recording_resource_reuse .................***Skipped   0.00 sec
+        Start 113: renderer.vulkan_recording_benchmark_reuse
+272/274 Test #112: renderer.vulkan_recording_benchmark ......................***Skipped   0.03 sec
+273/274 Test #113: renderer.vulkan_recording_benchmark_reuse ................***Skipped   0.03 sec
+        Start  84: window.x11_held_key_native
+274/274 Test  #84: window.x11_held_key_native ...............................***Skipped   0.05 sec
+
+100% tests passed, 0 tests failed out of 274
+
+Label Time Summary:
+audio                =   0.32 sec*proc (2 tests)
+cli                  =   0.95 sec*proc (1 test)
+display              =   0.31 sec*proc (2 tests)
+export               =   0.26 sec*proc (1 test)
+font                 =   0.13 sec*proc (1 test)
+host                 =   0.21 sec*proc (1 test)
+native-acceptance    =   0.07 sec*proc (7 tests)
+native-input         =   0.05 sec*proc (1 test)
+presentation         =   0.95 sec*proc (1 test)
+project              =   0.67 sec*proc (3 tests)
+runtime              =   0.27 sec*proc (1 test)
+showcase             =   0.28 sec*proc (6 tests)
+storage              =   0.21 sec*proc (1 test)
+tools                =  12.82 sec*proc (4 tests)
+twod                 =  15.08 sec*proc (11 tests)
+ui                   =   0.43 sec*proc (2 tests)
+virtual-display      =   0.56 sec*proc (10 tests)
+vm                   =   0.51 sec*proc (1 test)
+vulkan               =   0.47 sec*proc (15 tests)
+x11                  =   0.17 sec*proc (2 tests)
+zig                  =   0.78 sec*proc (3 tests)
+
+Total Test time (real) = 145.27 sec
+
+The following tests did not run:
+	 42 - showcase.linux_vulkan_interaction (Skipped)
+	 46 - showcase.linux_vulkan_virtual_display (Skipped)
+	 47 - showcase.linux_vulkan_rendering_room (Skipped)
+	 48 - showcase.linux_vulkan_camera_input (Skipped)
+	 77 - window_presentation.vulkan_scene (Skipped)
+	 78 - window_presentation.vulkan_pbr (Skipped)
+	 79 - window_presentation.vulkan_scene_upload_reuse (Skipped)
+	 80 - window_presentation.vulkan_swapchain (Skipped)
+	 84 - window.x11_held_key_native (Skipped)
+	107 - renderer.vulkan_texture_recording (Skipped)
+	108 - renderer.vulkan_graphics_resource_reuse (Skipped)
+	109 - renderer.vulkan_descriptor_isolation (Skipped)
+	110 - renderer.vulkan_recording_gpu_timing (Skipped)
+	111 - renderer.vulkan_recording_resource_reuse (Skipped)
+	112 - renderer.vulkan_recording_benchmark (Skipped)
+	113 - renderer.vulkan_recording_benchmark_reuse (Skipped)
