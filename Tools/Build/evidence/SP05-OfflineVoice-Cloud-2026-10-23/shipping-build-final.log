@@ -1,0 +1,25 @@
+[0/2] Re-checking globbed directories...
+[1/25] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayModuleHost.cpp.o
+[2/25] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayAudio.cpp.o
+[3/25] Building CXX object Engine/Runtime/CMakeFiles/NexoraRuntime.dir/src/GameplayHostBridge.cpp.o
+[4/25] Linking CXX static library Engine/Runtime/libNexoraRuntime.a
+[5/25] Building CXX object Engine/TwoD/CMakeFiles/NexoraTwoD.dir/src/GameplayUi.cpp.o
+[6/25] Building CXX object Engine/TwoD/CMakeFiles/NexoraTwoD.dir/src/GameplayBridge.cpp.o
+[7/25] Building CXX object Engine/TwoD/CMakeFiles/NexoraTwoD.dir/src/GameplayContent.cpp.o
+[8/25] Building CXX object Engine/TwoD/CMakeFiles/NexoraTwoD.dir/src/GameplayAssets.cpp.o
+[9/25] Linking CXX static library Engine/TwoD/libNexoraTwoD.a
+[10/25] Building CXX object Apps/TwoDPlayer/CMakeFiles/NexoraTwoDPlayerHost.dir/TwoDPlayer.cpp.o
+[11/25] Linking CXX static library Apps/TwoDPlayer/libNexoraTwoDPlayerHost.a
+[12/25] Building the Zig gameplay ABI sample
+[13/25] Building CXX object Tools/TwoD/CMakeFiles/NexoraTwoDAudioProbe.dir/AudioProbe.cpp.o
+[14/25] Building CXX object Apps/TwoDPlayer/CMakeFiles/NexoraTwoDPlayer.dir/main.cpp.o
+[15/25] Building CXX object Apps/Showcase/CMakeFiles/NexoraShowcase.dir/main.cpp.o
+[16/25] Linking CXX executable Tools/TwoD/NexoraTwoDAssetCompiler
+[17/25] Building Zig 2D gameplay module
+[18/25] Building CXX object Gameplay/Zig/CMakeFiles/NexoraZigTwoD.dir/TwoDHost.cpp.o
+[19/25] Linking CXX executable Tools/TwoD/NexoraTwoDAudioProbe
+[20/25] Linking CXX executable Tools/TwoD/NexoraTwoDBenchmark
+[21/25] Linking CXX executable Apps/Host/NexoraHost
+[22/25] Linking CXX executable Apps/TwoDPlayer/NexoraTwoDPlayer
+[23/25] Linking CXX executable Gameplay/Zig/NexoraZigTwoD
+[24/25] Linking CXX executable Apps/Showcase/NexoraShowcase

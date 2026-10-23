@@ -1,6 +1,7 @@
 #pragma once
 #include "Nexora/Runtime/Api.h"
 #include "nexora/gameplay_audio.h"
+#include "nexora/gameplay_audio_state.h"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -12,8 +13,14 @@ namespace nexora::runtime {
 // Sink callbacks must consume/copy the borrowed stereo samples synchronously.
 class NEXORA_RUNTIME_API GameplayAudio final {
 public:
+  struct Limits final {
+    std::uint32_t assets{256};
+    std::uint64_t active_bytes{64ULL * 1024 * 1024};
+    std::uint64_t live_bytes{128ULL * 1024 * 1024};
+  };
   using Sink = bool (*)(void *, const float *, std::uint32_t frames, std::uint32_t sample_rate);
   explicit GameplayAudio(std::uint32_t sample_rate = 48000, std::uint32_t maximum_voices = 64);
+  GameplayAudio(std::uint32_t sample_rate, std::uint32_t maximum_voices, Limits limits);
   ~GameplayAudio();
   GameplayAudio(const GameplayAudio &) = delete;
   GameplayAudio &operator=(const GameplayAudio &) = delete;
@@ -35,6 +42,7 @@ public:
   // Failure disables output; play then returns unsupported until reconfigured.
   bool Pump(std::uint32_t frames);
   [[nodiscard]] NexoraGameplayAudioApiV1 Api() noexcept;
+  [[nodiscard]] NexoraGameplayAudioStateApiV1 StateApi() noexcept;
 
 private:
   struct Impl;

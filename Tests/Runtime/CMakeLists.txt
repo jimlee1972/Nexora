@@ -317,3 +317,9 @@ add_test(NAME runtime.gameplay_gamepad_routing COMMAND NexoraGameplayGamepadTest
 add_executable(NexoraGameplayAudioQueueTests GameplayAudioQueueTests.cpp)
 nexora_apply_defaults(NexoraGameplayAudioQueueTests)
 add_test(NAME runtime.gameplay_audio_queue COMMAND NexoraGameplayAudioQueueTests)
+
+add_executable(NexoraGameplayAudioResidencyTests GameplayAudioResidencyTests.cpp)
+target_link_libraries(NexoraGameplayAudioResidencyTests PRIVATE Nexora::Runtime Nexora::Core)
+nexora_apply_defaults(NexoraGameplayAudioResidencyTests)
+add_test(NAME runtime.gameplay_audio_residency COMMAND NexoraGameplayAudioResidencyTests)
+set_tests_properties(runtime.gameplay_audio_residency PROPERTIES TIMEOUT 180 LABELS "audio;stress")

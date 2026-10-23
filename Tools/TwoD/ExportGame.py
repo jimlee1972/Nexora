@@ -126,7 +126,7 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     config = json.loads(descriptor.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
     if not isinstance(config, dict):
         raise ValueError('game descriptor must be an object')
-    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display', 'capacity'}:
+    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display', 'capacity', 'audio_capacity'}:
         raise ValueError('unknown game descriptor field')
     if type(config.get('schema')) is not int or config['schema'] != 1 or not re.fullmatch(r'[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?', config.get('id', '')):
         raise ValueError('invalid game schema or ID')
@@ -154,6 +154,14 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
                        for k, (low, high) in zip(capacity_keys, bounds))
                 or capacity['live_bytes'] < capacity['active_bytes']):
             raise ValueError('invalid asset capacity')
+    audio_capacity = config.get('audio_capacity')
+    if 'audio_capacity' in config:
+        keys = ('assets', 'active_bytes', 'live_bytes')
+        if (not isinstance(audio_capacity,dict) or set(audio_capacity) != set(keys)
+                or any(type(audio_capacity[k]) is not int or not 1 <= audio_capacity[k] <= limit
+                       for k,limit in zip(keys,(4096,1024**3,2*1024**3)))
+                or audio_capacity['live_bytes'] < audio_capacity['active_bytes']):
+            raise ValueError('invalid audio capacity')
     assets = config.get('assets', [])
     if not isinstance(assets, list) or len(assets) > 4096:
         raise ValueError('asset count exceeds 4096')
@@ -174,6 +182,8 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
         for key in ('id', 'title', 'scene'):
             lines.append(f'{key} {quote(config[key])}')
         lines.extend([f'module {quote("gameplay" + module.suffix)}', f'audio {quote(audio)}'])
+        if audio_capacity is not None:
+            lines.append('audio_capacity ' + ' '.join(str(audio_capacity[k]) for k in ('assets','active_bytes','live_bytes')))
         if 'tile_atlas' in config:
             identity = config['tile_atlas']
             if (not isinstance(identity, list) or len(identity) != 2

@@ -1,0 +1,12 @@
+Preset CMake variables:
+
+  BUILD_TESTING="ON"
+  CMAKE_BUILD_TYPE="Development"
+  CMAKE_CXX_STANDARD="20"
+  CMAKE_EXPORT_COMPILE_COMMANDS="ON"
+  NEXORA_LINK_MODE="Modular"
+
+-- Nexora Cryptography: OpenSSL 3.5.7
+-- Configuring done (1.3s)
+-- Generating done (0.3s)
+-- Build files have been written to: /workspace/worktrees/nexora-sp05/build/linux-development

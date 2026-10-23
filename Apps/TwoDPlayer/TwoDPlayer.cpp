@@ -364,7 +364,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         hasTiles ? &tiles : nullptr, &pool);
     runtime::GameplayInput input;
     runtime::NativeGameplayGamepad gamepads;
-    runtime::GameplayAudio audio;
+    runtime::GameplayAudio audio(
+        48000, 64, project ? project->audio_limits : runtime::GameplayAudio::Limits{});
     twod::GameplayUi ui;
     if (project)
       for (const auto &asset : project->assets) {
@@ -410,6 +411,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     services.content = contentApi;
     services.input = input.Api();
     services.audio = audio.Api();
+    services.audio_state = audio.StateApi();
     const auto bind = [&](uint32_t action, uint32_t device, uint32_t control, float scale = 1.F,
                           float deadzone = 0.F) {
       NexoraGameplayInputBindingV1 binding{};
@@ -828,6 +830,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     Check(services.assets.get_usage(services.assets.context, &assetUsage) == 0, "asset usage");
     assets.Shutdown();
     Check(context.allocated == context.freed, "Zig state allocation leak");
+    NexoraAudioUsageV1 audioUsage{};
+    audioUsage.struct_size = sizeof(audioUsage);
+    Check(services.audio_state.get_usage(services.audio_state.context, &audioUsage) == 0,
+          "audio residency");
     Check(services.audio.stop_all(services.audio.context) == 0, "audio voice shutdown");
     audio.CloseOutput();
     bool saveReopened{};
@@ -889,6 +895,9 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         ",\"asset_retired_bytes\":" + std::to_string(assetUsage.retired_bytes) +
         ",\"asset_staging_bytes\":" + std::to_string(assetUsage.staging_bytes) +
         ",\"asset_peak_content_bytes\":" + std::to_string(assetUsage.peak_content_bytes) +
+        ",\"audio_active_bytes\":" + std::to_string(audioUsage.active_bytes) +
+        ",\"audio_retired_bytes\":" + std::to_string(audioUsage.retired_bytes) +
+        ",\"audio_peak_live_bytes\":" + std::to_string(audioUsage.peak_live_bytes) +
         ",\"pool_capacity\":" + std::to_string(project ? project->pool_instances : 1024) +
         ",\"visible\":" + std::to_string(visible) +
         ",\"reloaded\":" + (reloaded ? "true" : "false") +

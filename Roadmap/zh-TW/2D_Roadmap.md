@@ -678,3 +678,24 @@ RSS／working-set 觀測。獨立 Zig 模組從超過 80 MiB 的封裝啟動，�
 正式第一關美術、暗部漸層量化、透明過濾／白邊、可讀性、Windows 目標實機輸出與效能仍待驗收
 （`nexora-ofe.1`）。原生測試須實際執行後才能宣稱像素通過，本機編譯不算。既有 M6／M7 gate
 與其他 SP 缺口維持原判定。
+
+## SP-05 有界本機語音播放（2026-10-23）
+
+✅ 解碼 PCM 已有 active／live／數量預算，移除或替換後仍被聲音持有的樣本也正確計量。
+可選 AudioState 服務提供用量快照與獨立 Voice bus；保留 Audio V1 及原版／SP-01／02／03
+services 前綴。
+✅ caller-owned Zig 對話控制器沿用 deferred 本機 blob，註冊 WAV 後播放／暫停／跳過／重播，
+提供獨立語音音量／靜音與字幕 fallback。Player 的 audio capacity 與素材預算分開，完整語音包
+不必啟動預載。
+✅ 標準函式庫盤點工具可計算已宣告 WAV 的檔案量／時長、字幕 ID 缺漏與併發 PCM 集合；
+metadata／工程語音報告不算正式配音全集完成。
+
+可攜驗證涵蓋真實 PCM 樣本、故障／重新配置、取消與舊前綴 canary；獨立 Zig 模組／Player
+測試超過 96 MiB 離線安裝包、十二句各 87 秒工程語音、16 MiB peak PCM 及最終常駐歸零。
+捕捉／null sink 與 RSS 採樣是診斷證據，不等於喇叭可聽或正式 RAM／幀時間驗收。見
+[語音契約](../../Engine/Runtime/GameplayVoice.md)及
+[雲端證據](../../Tools/Build/evidence/SP05-OfflineVoice-Cloud-2026-10-23.md)。
+
+正式配音／字幕全集、完整離線安裝、最壞併發及 Windows 實機播放／拔除／恢復／長測仍由
+`nexora-6d6.1` 追蹤。按句 PCM 路徑沒有實作壓縮解碼、音訊磁碟串流或 realtime mixing。
+其他 SP 評估與 M6／M7 驗收維持原狀。

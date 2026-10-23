@@ -102,3 +102,13 @@ and device recovery still require target-host acceptance.
 four independent submissions without waits, borrowed-input copy lifetime, PCM16 endpoints/clipping,
 backpressure, timeout without overwriting pending storage, failed submit/retry, reset and invalid
 input. The fake device validates queue ownership/ordering, not Windows driver playback or FPS.
+
+## Bounded PCM and independent voice playback
+
+New registrations use explicit active/live decoded PCM limits, including generations retained by
+removed/replaced voices. The original Audio V1 table and accepted buses are unchanged; a separately
+negotiated AudioState table adds copied usage, one-shot Voice-bus playback and independent Voice
+bus gain. Default PCM residency is now bounded rather than unbounded; projects requiring more
+than 64 MiB active/128 MiB live must choose measured limits. WAV decode publishes one moved float
+vector rather than making an additional full PCM copy. See [the voice/residency contract](GameplayVoice.md)
+for settings, C/Zig compatibility, offline blob loading, subtitle fallback and remaining physical gates.

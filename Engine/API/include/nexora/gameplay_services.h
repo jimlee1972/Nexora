@@ -2,6 +2,7 @@
 #define NEXORA_GAMEPLAY_SERVICES_H
 #include "gameplay_assets.h"
 #include "gameplay_audio.h"
+#include "gameplay_audio_state.h"
 #include "gameplay_content.h"
 #include "gameplay_display.h"
 #include "gameplay_input.h"
@@ -29,6 +30,7 @@ typedef struct NexoraGameplayServicesApiV1 {
   int32_t (*get_display_api)(void *context, NexoraGameplayDisplayApiV1 *api);
   int32_t (*get_ui_draw_api)(void *context, NexoraGameplayUiDrawApiV1 *api);
   int32_t (*get_assets_api)(void *context, NexoraGameplayAssetsApiV1 *api);
+  int32_t (*get_audio_state_api)(void *context, NexoraGameplayAudioStateApiV1 *api);
 } NexoraGameplayServicesApiV1;
 #define NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE offsetof(NexoraGameplayServicesApiV1, get_display_api)
 #ifdef __cplusplus

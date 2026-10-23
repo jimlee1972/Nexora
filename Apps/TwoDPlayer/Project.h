@@ -1,4 +1,5 @@
 #pragma once
+#include "Nexora/Runtime/GameplayAudio.h"
 #include "Nexora/Runtime/GameplayStorage.h"
 #include "Nexora/TwoD/Assets.h"
 #include "Nexora/TwoD/GameplayContent.h"
@@ -33,6 +34,7 @@ struct GameProject final {
   std::vector<ProjectAsset> assets;
   twod::AssetId tile_atlas{};
   twod::GameplayContent::Limits content_limits{};
+  runtime::GameplayAudio::Limits audio_limits{};
   uint64_t staging_bytes{64 * 1024 * 1024};
   uint32_t pool_instances{1024};
   uint32_t width{640}, height{480};
@@ -75,7 +77,18 @@ struct GameProject final {
       std::istringstream row(line);
       std::string key, value, trailing;
       row >> key;
-      if (key == "capacity") {
+      if (key == "audio_capacity") {
+        RequireProject(
+            fields.insert(key).second &&
+                bool(row >> result.audio_limits.assets >> result.audio_limits.active_bytes >>
+                     result.audio_limits.live_bytes) &&
+                !(row >> trailing) && result.audio_limits.assets > 0 &&
+                result.audio_limits.assets <= 4096 && result.audio_limits.active_bytes > 0 &&
+                result.audio_limits.active_bytes <= 1024ULL * 1024 * 1024 &&
+                result.audio_limits.live_bytes >= result.audio_limits.active_bytes &&
+                result.audio_limits.live_bytes <= 2ULL * 1024 * 1024 * 1024,
+            "invalid audio capacity");
+      } else if (key == "capacity") {
         RequireProject(
             fields.insert(key).second &&
                 bool(row >> result.content_limits.assets >> result.content_limits.active_bytes >>

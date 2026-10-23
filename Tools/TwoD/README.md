@@ -336,3 +336,11 @@ It checks each source/cooked file against 64 MiB, but applies the aggregate 64 M
 preloaded files. It stages/copies/hashes every packaged file without holding all payloads resident.
 See [the Player descriptor](../../Apps/TwoDPlayer/README.md#deferred-chapter-assets-sp-03) and
 [the asset lifecycle contract](../../Engine/TwoD/GameplayAssets.md).
+
+Offline voice projects may specify `audio_capacity` (registered assets, active/live decoded PCM
+bytes) separately from asset residency. Full installed WAV packs can use deferred `blob` entries;
+Zig registers and releases only the needed lines. See [voice integration](../../Engine/Runtime/GameplayVoice.md).
+
+`InspectVoices.py manifest.json --output report.json` measures declared PCM16/float32 recordings,
+subtitle-ID coverage and named concurrent PCM sets. It reports missing entries explicitly and
+validates container metadata only; it does not invent final recordings or concurrency.

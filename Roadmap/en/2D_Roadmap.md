@@ -770,3 +770,26 @@ Final first-level art, dark-gradient quantization, transparent filtering/white e
 and physical Windows target output/performance remain open (`nexora-ofe.1`). A native test must
 actually run before pixel acceptance is claimed; local compilation does not suffice. Existing
 M6/M7 gates and unrelated SP gaps are unchanged.
+
+## SP-05 bounded offline voice playback (2026-10-23)
+
+✅ Decoded PCM now has explicit active/live/count budgets with exact accounting for samples
+retained by removed/replaced voices. An optional AudioState service adds copied usage and an
+independent Voice bus, preserving Audio V1 and every original/SP-01/SP-02/SP-03 services prefix.
+✅ A caller-owned Zig dialogue controller reuses deferred local blobs for WAV registration,
+play/pause/skip/replay, independent voice gain/mute and subtitle fallback. The Player exports
+explicit audio capacity separately from asset budgets. No complete voice pack is startup-preloaded.
+✅ A standard-library inventory tool reports declared WAV bytes/duration, subtitle-ID gaps and
+concurrent PCM sets; metadata/fixture results do not establish the final recording corpus.
+
+Portable verification uses real PCM samples, failure/reopen, cancellation and legacy canaries;
+an independent Zig module/Player exercises twelve 87-second procedural lines in a >96 MiB offline
+package with 16 MiB peak PCM and zero final residency. Captured/null sinks and sampled RSS are
+diagnostic observations, not physical audibility or production RAM/frame-time acceptance. See
+[voice contracts](../../Engine/Runtime/GameplayVoice.md) and
+[cloud evidence](../../Tools/Build/evidence/SP05-OfflineVoice-Cloud-2026-10-23.md).
+
+Final recordings/subtitle corpus, full offline installation, worst-case concurrency and physical
+Windows playback/unplug/reopen/long-soak gates remain open in `nexora-6d6.1`. Compressed decoding,
+audio disk streaming and realtime mixing are not implemented by this per-line PCM path.
+Other SP assessments and M6/M7 acceptance remain unchanged.

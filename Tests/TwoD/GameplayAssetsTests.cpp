@@ -59,6 +59,7 @@ void Prefixes(NexoraGameplayAssetsApiV1 assets) {
       std::array<std::byte, sizeof(NexoraGameplayServicesApiV1) + 16>
           storage;
   for (auto prefix : {std::size_t(NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE), sp01, sp02,
+                      offsetof(NexoraGameplayServicesApiV1, get_audio_state_api),
                       sizeof(NexoraGameplayServicesApiV1)}) {
     storage.fill(std::byte{0x5a});
     const std::uint32_t header[]{static_cast<std::uint32_t>(prefix), 1};
