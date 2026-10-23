@@ -41,3 +41,36 @@ reports them.
 `NEXORA_ENABLE_WINDOW_PRESENTATION=OFF` removes Window and Presentation, preserving a headless build
 without desktop SDK dependencies. Runtime validation for each native implementation belongs to that
 target host; compiling or testing portable contracts on another host is not acceptance evidence.
+
+On X11 clients using detectable repeat, physical `Key` events represent transitions: a held key
+emits one press and one release, while repeated native presses continue through XIM/UTF-8 text
+translation. Detectable repeat is requested per client. Legacy clients normalize only strictly
+adjacent genuine release/press pairs already buffered in Xlib, matching window, keycode and server
+timestamp. No release waits for a future event; split arrivals are forwarded normally. Equal native
+timestamps are the legacy repeat heuristic, not a universal physical-device classifier. Explicit
+SendEvent input and mismatched pairs retain their release. Focus loss and destruction clear
+per-window held state. This never disables global repeat or changes the user's repeat rate.
+
+`window.x11_held_key_native` uses its own Xvfb server and a real xdotool/XTEST held `n` gesture.
+It checks one press/release pair, repeated text, focus/close lifetime, and unchanged enabled global
+repeat. A separate held M is released in a second window after focus loss; refocusing the first
+window and pressing M again must yield two M presses and only its final M release there, proving
+that focus loss cleared held-key deduplication state. A test-only preload interposer observes the
+same client Display's detectable-repeat state;
+its second run injects capability-request rejection to exercise the legacy path. This is injected
+unavailability, not evidence from a physically unsupported X server. The test interposer and its
+mode variable do not form part of the production Window API. Pure matcher regressions reject
+synthetic or mismatched release/press pairs. Raw native events, input commands, capability observations,
+and summary facts are retained under the build artifacts directory for successful and failed attempts.
+
+The test-only native observer also counts the exact KeyPress/KeyRelease stream consumed by the
+backend. Every genuine N press must yield one committed N text event, while Window emits only
+one physical press/release. Normal mode must receive one genuine native release; injected legacy
+mode must actually receive repeated releases. These checks distinguish physical normalization
+from lost text or an unexercised fallback. The probe/shim are identical for old and repaired
+libraries, and `/proc` library-path/hash diagnostics supplement the functional input oracles.
+
+The independent held-key repair/control evidence is recorded in
+[the scoped Linux report](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md).
+Its focused Xvfb results do not replace physical-display acceptance or establish the cause of
+all earlier Editor workflow stalls. The complete integrated suite remains pending in that report.

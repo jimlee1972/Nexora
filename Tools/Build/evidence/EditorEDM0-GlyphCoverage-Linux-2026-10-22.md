@@ -184,7 +184,7 @@ The old-filter negative and restored positive logs and status are retained as
 and `glyph-baseline-negative-status.json`. The negative experiment was completed and
 all source restored before the complete-suite source freeze.
 
-## Final complete Linux gate
+## Historical complete Linux gate (PR699)
 
 `cmake --preset linux-development`, `cmake --build --preset linux-development` and
 `ctest --preset linux-development` all pass: **366/366, zero failures/skips, 1570.09 s**.
@@ -269,3 +269,100 @@ Selected unchanged-deadline workflows from the complete suite:
 | `editor.linux_prefab_placement_source_rebase` | Passed / 15.92 |
 | `editor.linux_prefab_placement_source` | Passed / 7.64 |
 | `editor.linux_native_game_twod` | Passed / 67.12 |
+
+## Follow-up MSVC compilation and combined validation
+
+The historical PR699 Linux 366/366 result above belongs to its frozen source and remains valid
+for that source. It does not establish Windows compilation or acceptance of subsequent changes.
+The old `7c294` revision failed MSVC compilation with C4459 (the `traditional` lambda parameter
+shadowed the generated scalar table) and C4996 (insecure CRT environment access). The follow-up
+renames the parameter and uses owned `_dupenv_s` / `_wdupenv_s` CRT copies, released with
+`std::free`, while retaining the diagnostics presence policy and UTF-8/native-path conversion.
+This is an applied compiler compatibility repair, not a Windows runtime/IME acceptance claim.
+Fresh Windows CI compilation remains a separate required result.
+
+The earlier X11 integration 368-test attempt was intentionally interrupted for this repair after
+282 tests passed, with SIGINT during test 283: CTest status -2, 709.026 s. All 5,535 archived
+source/asset/configuration hashes remained unchanged. This is **INTERRUPTED**, not a complete
+pass or an attributed product failure. Its archive prefix is `x11-current/complete-standard`.
+
+The applied combined source passed the focused matcher/native/font group 3/3 in 2.32 s
+(native 1.92 s; font 0.38 s). The refreshed Monolithic font build passed in 10 build steps,
+and its actual font test passed 1/1 in 0.21 s (`combined-monolithic-*.log`). These focused
+results do not override the subsequent observed complete-run failures.
+
+<!-- combined-font-input-first-attempt:start -->
+The first combined run (`combined-font-input-standard-*`) completed with configure exit 0
+(1.695 s), build exit 0 (2.834 s), and CTest exit 8: **366/368 PASS, 2 FAIL, 0 skips**.
+CTest reported 1657.99 s (wrapper 1658.007 s). The failures were test 298
+`editor.linux_native_scene_preview` (45.14 s timeout after the transform/12-Undo sequence) and test 311
+`editor.linux_native_play_pointer_buttons` (5.12 s). All 5,535 frozen source/asset/configuration hashes
+remained unchanged after the run. These failures remain recorded; they are not relabeled as
+passes or attributed to the X11/font production changes. Retained source/binary identities are
+in `combined-font-input-failures/source-binary-manifest.json`.
+
+The applied Preview fixture candidate removes its additional fixed 80 ms wait per key phase
+while retaining actual GUI edge acknowledgements, every assertion, and the original 45 s bound.
+The PointerButtons fixture candidate retains three equal-pose frames in the original first
+150 ms window, requires at least two after the observed neutral input, requires every
+post-neutral pose to remain equal, and retains the actual second 150 ms pixel/draw checks.
+These fixture-observation changes retain the production backend/font binaries. The repaired
+focused native tests passed **2/2, zero skips, 37.76 s**: Preview 30.52 s under its unchanged 45 s
+bound, and PointerButtons 7.23 s. The Editor executable SHA256 remained
+`a584bc2be484e009f231b43316358d67598f8abf59b9def5eaba61ba8526a095`.
+Preview source SHA256: `a82d18d2ecff01fe3ad2e09dbe184f991c7a1f037ba12274732896d982d0fe01`;
+GameView source SHA256: `575c8fe70866145a3ea9a140c2bf1fe13bf2b8e969f92b70eba18089627a4a8f`.
+Raw focused log: `combined-repaired-focused-ctest.log`. The retained Pointer release trace
+and eight mutation/continuation cases passed 9/9 offline checks; these do not replace native
+acceptance. The complete final-prefix run remains separately pending.
+<!-- combined-font-input-first-attempt:end -->
+
+## Subsequent integrated review failure
+
+The next run (`combined-font-input-final-standard-*`) completed **367/368 PASS, 1 FAIL,
+0 skips, 1684.33 s** (CTest exit 8; wrapper 1684.34 s). Preview passed in 32.20 s under
+its unchanged 45 s limit; PointerButtons passed in 7.59 s. Only
+`editor.linux_prefab_placement_overrides` failed (25.09 s), awaiting the actual Review owning
+result after reopening read-only. The old fixture deleted its scratch directory on failure;
+no retained native click trace establishes the exact missed-control cause.
+
+The console process handle disconnected after CTest status persistence. Before any source
+changes, the maintained source freeze allowed recovery of LastTest/LastTestsFailed and an
+explicit comparison of every archived source hash: **5,535 files, zero changes** (recovery
+2026-10-23T00:14:01.824570+00:00). This is a failed suite, never a pass. The new bounded Review
+fixture repair and complete rerun require separate acceptance; see
+[owning-review follow-up](EditorEDM0-PrefabInput-Linux-2026-10-22.md#owning-review-follow-up).
+
+<!-- combined-font-input-result:start -->
+Recorded UTC: `2026-10-23T00:49:39.327601+00:00`.
+Final combined configure/build/CTest: **PASS 368/368, zero failures/skips, 1639.24 s**.
+Source: `combined font/MSVC/X11/native-review source based on 7c294bf3cea7e3478a1619590def273974fbea4f; frozen source-manifest SHA256 below`. All 5,535 frozen source/asset/configuration
+hashes match both the completed gate comparison and this finalizer check. Source-manifest
+SHA256: `e6076b5db815d8922fc7a5d55b5ef3e9f7c207c4c4b288bbafbdf10393a391c8`. Archive prefix: `/workspace/.task-state/imgui/combined-font-input-review-standard`.
+This Linux result does not establish Windows compilation/runtime or physical-display/DPI/installed-IME
+or overall Editor 0/8 acceptance. The interrupted old 368 attempt and historical PR699
+366 results remain separate records.
+<!-- combined-font-input-result:end -->
+
+Physical Linux/Windows DPI/readability/installed-IME and target-host acceptance remain open;
+the Editor milestone remains 0/8. Do not replace the historical 366 result with this pending run.
+
+## Final integrated binary identities
+
+The final Linux configuration is Modular Development with testing, graphical shell, native
+backends, Vulkan and Window Presentation enabled. Exact cache/binary records are retained in
+`/workspace/.task-state/imgui/combined-font-input-review-final-identities.json`.
+
+| Binary | SHA256 |
+| --- | --- |
+| `NexoraEditor` | `809aed95f99f3bf159a2058309616977dddc43f23d387d7b7c5f3c31999c5a20` |
+| `libNexoraEditorImGui.so` | `d792a0e46b7846416026b73dca7291d6d5d5236abf6f40c48c315e7862cc68d7` |
+| `libNexoraWindow.so` | `868bef269e139c23bd043a8c5b52db1a4ae949fe84aea2de29ffe71a691ea62c` |
+| `NexoraFontGlyphTests` | `44fa5cf4f09a60ad85ecb6429248402e4b7d76b073473fb51253849de3c3f11a` |
+| `NexoraX11HeldKeyProbe` | `fd7a878f74dca35aa2396a020af56f9ee744c9c02f3d60f91134148755211ca5` |
+| `libNexoraX11RepeatCapabilityControl.so` | `d2310c507d1aad6055bd4d5f567846efa1f8d9561688dcf3a1b8ad92ab04d183` |
+
+Final complete-suite Preview/PointerButtons/Overrides/SelectedRevert passed in
+28.73 / 7.58 / 14.36 / 25.60 s respectively, with the existing time limits and assertions.
+These identities refer to the completed 368-test source; earlier controls retain their original
+recorded binaries and are not relabeled.

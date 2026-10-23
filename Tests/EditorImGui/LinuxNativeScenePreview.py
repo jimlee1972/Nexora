@@ -421,8 +421,10 @@ def main() -> int:
              "--frames=10000", f"--recent-projects={user_state / 'recent-projects'}"],
             env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
+        # Every key phase waits for its actual GUI down/up observation. Avoid an
+        # additional fixed delay per phase across this long gesture sequence.
         driver = NativeSceneInput(editor, args.xdotool, environment, "0", user_state, 1,
-                                  minimum_wait=0, phase_wait=.08, ack_pointer=True)
+                                  minimum_wait=0, phase_wait=0, ack_pointer=True)
         window = int(wait_for_window(args.xdotool, environment))
         driver.window = str(window)
         deadline = time.monotonic() + 12
@@ -887,7 +889,7 @@ def main() -> int:
             env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         )
         driver = NativeSceneInput(editor, args.xdotool, environment, "0", user_state, 2,
-                                  minimum_wait=0, phase_wait=.08, ack_pointer=True)
+                                  minimum_wait=0, phase_wait=0, ack_pointer=True)
         _, reopened_stderr = driver.finish(30)
         if editor.returncode != 0 or "scene_draws=" not in reopened_stderr:
             raise RuntimeError(f"native preview reopen failed: {reopened_stderr}")

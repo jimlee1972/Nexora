@@ -315,6 +315,26 @@ remains.**
 **Exit gate:** automated synthetic-event tests pass, layout round-trips, and a real X11 session
 proves typing, shortcuts, drag docking, wheel axes, focus loss, and close behavior.
 
+The independent X11 held-key repair now requests detectable repeat per client, normalizes only
+strict genuine adjacent release/press pairs already queued in Xlib for legacy clients, and clears
+held-key state on focus loss/destruction. Split arrivals are forwarded without waiting; equal
+server timestamps are a legacy heuristic, not a universal hardware classifier. A same-probe/shim
+old-backend negative control and repaired-backend positive control preserve all 25 repeated text
+commits while reducing physical transitions from 25 press/release pairs to one. A separate
+focus-clear mutant fails the M-key oracle; restored source passes. The refined matcher/native
+pair passes 2/2 in 1.92 s; Shipping compiles the changed X11 object and the fresh GUI-off server
+build passes. The old X11-only 368-test attempt was intentionally interrupted after 282 passed
+(SIGINT during test 283), with all 5,535 frozen hashes unchanged; it is not a complete pass.
+<!-- combined-font-input-plan:start -->
+✅ Independent X11 held-key repair and combined font/input validation pass **368/368, zero failures/skips, 1639.24 s**;
+source hashes remain unchanged. Historical 366 and interrupted old 368 records stay separate;
+Exact-head CI is a separate merge gate; target-host runtime/physical acceptance stays open (Editor milestone 0/8).
+<!-- combined-font-input-plan:end --> This is independent work,
+not review/completion of the unavailable historical 05a5 candidate or attribution of all earlier
+native stalls. [Scoped X11 evidence](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md)
+records the injected legacy capability limitation. Physical target-host, Windows/installed-IME
+and broader WP4 acceptance remain open; the overall Editor milestone remains 0/8.
+
 ### WP5 — DPI, fonts, and theme
 
 **Status: live extent/DPI forwarding, bucketed font rebuild, and production GPU atlas upload exist;
@@ -358,6 +378,11 @@ the overall Editor milestone remains 0/8.
 
 **Exit gate:** screenshot/checklist evidence at 100%, 125%, 150%, and 200% on Windows shows crisp
 text, correct hit targets, no cumulative scaling, and no one-frame stale extent.
+
+The historical PR699 366/366 Linux evidence remains distinct from the pending combined run.
+Old revision `7c294` failed MSVC C4459 shadowing and C4996 CRT-environment compilation; the
+applied repair renames the parameter and owns/frees secure CRT environment copies. Windows
+compilation CI and target-host runtime/IME proof remain independent requirements.
 
 ### WP6 — IME and Unicode
 

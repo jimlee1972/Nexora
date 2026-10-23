@@ -4748,7 +4748,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
         static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
                                        std::chrono::steady_clock::now() - started)
                                        .count());
-    if (std::getenv("NEXORA_EDITOR_FONT_DIAGNOSTICS"))
+    if (Nexora::EditorImGuiDetail::FontDiagnosticsEnabled())
       std::fprintf(stderr,
                    "editor font coverage: profile=%zu missing=%zu fallback=%d sources=%zu "
                    "source_bytes=%zu atlas=%dx%d sample_1f600=%d sample_1f642=%d "

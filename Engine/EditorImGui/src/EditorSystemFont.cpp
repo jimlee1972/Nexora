@@ -75,6 +75,17 @@ std::vector<std::uint32_t> Ranges(std::span<const std::uint32_t> scalars) {
 }
 } // namespace
 std::span<const std::uint16_t> TraditionalCommonScalars() { return traditional; }
+bool FontDiagnosticsEnabled() noexcept {
+#if defined(_MSC_VER)
+  char *value = nullptr;
+  std::size_t length = 0;
+  const auto status = _dupenv_s(&value, &length, "NEXORA_EDITOR_FONT_DIAGNOSTICS");
+  const std::unique_ptr<char, decltype(&std::free)> owned(value, &std::free);
+  return status == 0 && owned != nullptr;
+#else
+  return std::getenv("NEXORA_EDITOR_FONT_DIAGNOSTICS") != nullptr;
+#endif
+}
 std::vector<std::uint32_t> BuildFontProfile(std::span<const std::uint32_t> simplified_ranges) {
   std::set<std::uint32_t> points;
   const auto append = [&](std::uint32_t first, std::uint32_t last) {
@@ -105,14 +116,25 @@ std::vector<std::uint32_t> BuildFontProfile(std::span<const std::uint32_t> simpl
 }
 std::vector<FontSource> InstalledFontSources() {
   std::vector<FontSource> result;
-  const auto add = [&](const std::filesystem::path &path, bool traditional = false) {
+  const auto add = [&](const std::filesystem::path &path, bool require_traditional = false) {
     if (result.size() < 16)
-      result.push_back({Utf8(path), traditional});
+      result.push_back({Utf8(path), require_traditional});
   };
   std::string configured;
 #if defined(_WIN32)
+#if defined(_MSC_VER)
+  wchar_t *font_paths_value = nullptr;
+  std::size_t font_paths_length = 0;
+  const auto font_paths_status =
+      _wdupenv_s(&font_paths_value, &font_paths_length, L"NEXORA_EDITOR_FONT_PATHS");
+  const std::unique_ptr<wchar_t, decltype(&std::free)> font_paths_owned(font_paths_value,
+                                                                        &std::free);
+  if (font_paths_status == 0 && font_paths_owned)
+    configured = Utf8(std::filesystem::path(font_paths_owned.get()));
+#else
   if (const auto *value = _wgetenv(L"NEXORA_EDITOR_FONT_PATHS"))
     configured = Utf8(value);
+#endif
   constexpr char delimiter = ';';
 #else
   if (const auto *value = std::getenv("NEXORA_EDITOR_FONT_PATHS"))

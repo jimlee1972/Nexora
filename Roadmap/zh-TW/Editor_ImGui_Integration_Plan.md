@@ -288,6 +288,23 @@ full-screen CPU RGBA buffer 或 readback/upload round trip。
 **Exit gate：**synthetic-event automated test 通過、layout round-trip；real X11 session 證明 typing、shortcut、
 drag docking、wheel axis、focus loss、close。
 
+本輪獨立 X11 held-key repair 已採每 client detectable repeat、legacy client 僅正規化
+已在 Xlib queue 的相鄰 genuine release／press pair，並於 focus loss／destruction 清除 held-key
+狀態。Split arrival 正常轉送而不等待；相同 server timestamp 只是 legacy heuristic，不是萬用
+硬體分類器。相同 probe／shim 的公開舊 backend 負控制與修正後正控制，均保留 25 次文字
+commit，實體轉換由 25 組 press／release 降為一組。獨立 focus-clear mutant 被 M-key oracle
+判失敗，還原來源則通過。精修 matcher／native 測試 2/2 通過、耗時 1.92 秒；Shipping 實際
+編譯變更的 X11 object，fresh GUI-off server build 亦通過。舊 X11-only 368-test attempt 在
+282 項通過後主動中斷（test 283 期間 SIGINT），5,535 個 frozen hash 均未變；不是完整通過。
+<!-- combined-font-input-plan:start -->
+✅ 獨立 X11 長按鍵修正與字型／輸入整合 Linux 驗證 **368/368 通過、無失敗／跳過，1639.24 秒**，source hash 均未變。
+歷史 366 與中斷的舊 368 紀錄分開保留；最終 head CI 另為合併 gate；目標主機 runtime／實體驗收仍 open（Editor 0/8）。
+<!-- combined-font-input-plan:end -->
+這是獨立工作，不代表已 review／完成無法取得的歷史 05a5 候選，也未將所有歷史 native stall
+歸因。[X11 scoped 證據](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md)
+保留 injected legacy capability 限制；實體 target-host、Windows／已安裝 IME 與完整 WP4
+驗收維持 open，Editor 整體 milestone 仍為 0/8。
+
 ### WP5 — DPI、font 與 theme
 
 **狀態：live extent/DPI forwarding、bucketed font rebuild 與 production GPU atlas upload 已有；
@@ -327,6 +344,11 @@ Development font build/test 也已通過，驗證 static ownership，不變更 S
 
 **Exit gate：**Windows 100%、125%、150%、200% screenshot/checklist 證明 text 清晰、hit target 正確、
 無 cumulative scaling、無 stale extent frame。
+
+歷史 PR699 的 Linux 366/366 證據與待完成 combined run 分開保留。舊 `7c294` revision
+在 MSVC 遇到 C4459 shadowing 與 C4996 CRT environment 編譯失敗；已套用的修正重新命名
+參數，並持有／釋放 secure CRT environment copy。Windows compilation CI 與 target-host
+runtime／IME 證據仍是獨立必要關卡。
 
 ### WP6 — IME 與 Unicode
 

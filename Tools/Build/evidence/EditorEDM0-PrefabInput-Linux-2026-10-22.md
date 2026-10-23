@@ -401,3 +401,51 @@ this Linux run. It does not reconstruct historical causes lacking the required a
 accept physical scanout/DPI/IME, or close the broader X11 investigation. Glyph goal 23 is
 excluded and remains a separate candidate. Fresh exact-head CI and verified own-PR merge
 remain required before delivery; ED-M0 target-host acceptance stays 0/8.
+
+## Owning-review follow-up
+
+The later combined font/input run completed 367/368 passes, one failure and zero skips in
+1684.33 s. `editor.linux_prefab_placement_overrides` timed out its original 10 s owning-Review
+wait on read-only reopen (test duration 25.09 s). Its writable session had reviewed four rows
+and explicitly reverted the retained source. The legacy fixture unconditionally deleted
+scratch data on failure; this prevents attribution of an exact missed physical click from
+retained input evidence. Its fixed sleeps, color-ordinal control selection and split output
+collection are being replaced with actual named geometry, GUI input acknowledgement and one
+binary collector, retaining the original data, pixel, consent, history and read-only oracles.
+
+The failed full log and recovered source comparison are under
+`/workspace/.task-state/imgui/combined-font-input-final-standard-*`; all 5,535 source hashes
+matched before any repair. Original fixture/observer source is retained in
+`/workspace/.task-state/imgui/overrides-review-failure/`. This follow-up does not invalidate the
+historical PR698 baseline; it records a subsequently observed fixture failure separately.
+
+The applied scoped repair adds copied named override positions to the existing opt-in native
+geometry observer and uses `NativeSceneInput` as the sole binary collector. Named source,
+Review, revert, checkbox and confirmation clicks require actual GUI pointer phases, with at
+most three geometry refreshes before one down/up. Original blue selection/modal and checkbox
+visibility oracles, exact owning report, retained/source identities, Cancel, one Undo/Redo,
+Scene Save bytes and read-only/source-file checks remain. Success and failure both retain
+synthetic scratch/input/raw logs.
+
+The focused native variants passed **2/2, zero skips, 41.40 s**: whole overrides 14.79 s and
+selected revert 26.60 s, retaining the original 10 s waits and 90 s CTest bounds. Logs use
+`overrides-review-focused-{build,ctest,LastTest}.log` and status JSON. Applied observer SHA256:
+`a09e9cac6d597afd6790c8e701559474fafa159c6b5e50aeaa36f80e82636dcc`; fixture SHA256:
+`deec567723528b63e72506fcc7bd7fbf542ba159cd82e8f1a002a56f14b1720c`; Editor ELF SHA256:
+`809aed95f99f3bf159a2058309616977dddc43f23d387d7b7c5f3c31999c5a20`.
+These results improve observable input admission; they do not prove the exact cause of the
+original unretained missed Review. The complete gate remains separately required.
+
+<!-- combined-font-input-result:start -->
+Recorded UTC: `2026-10-23T00:49:39.327601+00:00`.
+Final combined configure/build/CTest: **PASS 368/368, zero failures/skips, 1639.24 s**.
+Source: `combined font/MSVC/X11/native-review source based on 7c294bf3cea7e3478a1619590def273974fbea4f; frozen source-manifest SHA256 below`. All 5,535 frozen source/asset/configuration
+hashes match both the completed gate comparison and this finalizer check. Source-manifest
+SHA256: `e6076b5db815d8922fc7a5d55b5ef3e9f7c207c4c4b288bbafbdf10393a391c8`. Archive prefix: `/workspace/.task-state/imgui/combined-font-input-review-standard`.
+This Linux result does not establish Windows compilation/runtime or physical-display/DPI/installed-IME
+or overall Editor 0/8 acceptance. The interrupted old 368 attempt and historical PR699
+366 results remain separate records.
+<!-- combined-font-input-result:end -->
+
+Final configured features and six binary hashes are recorded in the
+[final integrated identity table](EditorEDM0-GlyphCoverage-Linux-2026-10-22.md#final-integrated-binary-identities).

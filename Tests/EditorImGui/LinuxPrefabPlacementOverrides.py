@@ -4,15 +4,14 @@ import argparse
 import difflib
 import os
 from pathlib import Path
-import queue
 import re
 import shutil
 import subprocess
 import tempfile
-import threading
 import time
 
-from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
+from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
+from NativeSceneInput import NativeSceneInput
 from LinuxNativeScenePreview import scene_pixels, scene_region_pixels
 
 
@@ -46,40 +45,31 @@ def main():
     original, retained = scene.read_bytes(), expected_file.read_bytes()
     require(original != retained and b'prefab-placement ' in original,
             'Fixture did not persist actual property overrides and instance bindings')
+    runtime_header = next(line for line in original.splitlines() if line.startswith(b'NEXORA_SCENE 3 '))
+    require(runtime_header.split()[-1] == b'1', 'Named Scene marker fixture must have exactly one entity')
     sources = {p: data for p, data in files(root).items() if 'prefabs' in p.parts}
     xvfb, display = start_xvfb(args.xvfb, '1280x720x24')
-    process = None
+    process = driver = None
+    passed = False
+    case_deadline = time.monotonic() + 90
     try:
         require(display is not None, 'Xvfb failed')
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / 'state'),
-                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'))
+                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'),
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1')
 
-        def send(*arguments):
-            subprocess.run([args.xdotool, *arguments], env=env, check=True,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
-
-        def click(window, x, y):
-            send('mousemove', '--window', window, str(x), str(y))
-            send('mousedown', '1')
-            send('mouseup', '1')
-
-        def key(chord):
-            parts = chord.split('+')
-            for part in parts:
-                send('keydown', part)
-            for part in reversed(parts):
-                send('keyup', part)
+        def deadline(seconds=10):
+            return min(case_deadline, time.monotonic() + seconds)
 
         def wait(predicate, message, expected=None):
-            deadline = time.monotonic() + 10
-            while time.monotonic() < deadline:
+            until = deadline()
+            while time.monotonic() < until:
                 require(process.poll() is None, 'Native host exited before ' + message)
                 if predicate():
                     return
-                time.sleep(.05)
-            print(''.join(diagnostics), flush=True)
+                driver.drain(min(.05, max(0, until - time.monotonic())))
+            print(bytes(driver.stderr).decode(errors='replace'), flush=True)
             if expected is not None:
                 print(''.join(difflib.unified_diff(expected.decode().splitlines(keepends=True),
                       scene.read_text().splitlines(keepends=True), fromfile='expected fixture',
@@ -90,31 +80,62 @@ def main():
                                env=env, check=False)
             raise RuntimeError(message)
 
-        def inspector_button(window, index):
-            # Observe presented controls at the initial dock size, including report wrapping.
-            # Sampling left padding avoids glyph holes; every gesture occurs exactly once.
-            position = []
+        def click(name):
+            # Refresh positioning only; send one physical down/up at the actual item.
+            until = deadline()
+            value = driver.wait(lambda v: v.get('focused') == '1' and
+                                          v.get('buttons') == '000' and name in v,
+                                'Named override control was not focused/rendered/released: ' + name, until)
+            for _ in range(3):
+                point = tuple(map(round, map(float, value[name].split(','))))
+                driver.pointer_move(*point, until)
+                value = driver.wait(lambda v: v.get('focused') == '1' and
+                                              v.get('buttons') == '000' and name in v,
+                                    'Named override control disappeared before one click: ' + name, until)
+                if tuple(map(round, map(float, value[name].split(',')))) == point:
+                    break
+            else:
+                raise RuntimeError('Named override geometry did not settle before one click: ' + name)
+            driver.pointer_button(1, True, until)
+            driver.pointer_button(1, False, until)
 
-            def presented():
-                groups, run = [], []
-                for top in range(80, 380, 100):
-                    pixels = scene_region_pixels(display, int(window), (1010, top, 1, 100))
-                    for offset, (red, green, blue) in enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3])):
-                        if blue >= 105 and blue >= red + 35 and blue >= green + 10:
-                            run.append(top + offset * 3)
-                        elif run:
-                            if len(run) >= 3:
-                                groups.append(run[len(run) // 2])
-                            run = []
-                if run and len(run) >= 3:
-                    groups.append(run[len(run) // 2])
-                if len(groups) > index:
-                    position[:] = [groups[index]]
-                    return True
-                return False
-            wait(presented, 'Requested Inspector control was not presented')
-            print(f'Inspector control{index} presented at y{position[0]}', flush=True)
-            return position[0]
+        def key(chord):
+            until = deadline()
+            if chord in ('ctrl+s', 'ctrl+z'):
+                driver.chord(chord, until)
+                return
+            # Redo and modal Escape already have copied physical key observations.
+            parts = chord.split('+')
+            driver.wait(lambda v: v.get('focused') == '1' and v.get('keys') == '000000000'
+                                  and v.get('rebase_keys') == '00',
+                        'Override shortcut was not focused/released', until)
+            for down, sequence in ((True, parts), (False, reversed(parts))):
+                for part in sequence:
+                    action = 'keydown' if down else 'keyup'
+                    if part == 'ctrl':
+                        driver.raw(action, 'Control_L', deadline=until, minimum_wait=.2)
+                        driver.wait(lambda v: v.get('keys', '')[:1] == str(int(down)),
+                                    'GUI did not observe override Control phase', until)
+                    else:
+                        index = {'Escape': 0, 'y': 1}[part]
+                        driver.raw(action, part, deadline=until, minimum_wait=.2)
+                        driver.wait(lambda v: v.get('rebase_keys', '')[index:index + 1] == str(int(down)),
+                                    'GUI did not observe override key phase: ' + part, until)
+
+        event_offset = 0
+
+        def pending_events():
+            return list(re.finditer(rb'^prefab instance [^\n]*\n', driver.stderr[event_offset:], re.M))
+
+        def take_event(message):
+            nonlocal event_offset
+            until = deadline()
+            driver.wait(lambda _: bool(pending_events()), message, until)
+            events = pending_events()
+            require(len(events) == 1, 'One native control emitted multiple instance results')
+            event = events[0]
+            event_offset += event.end()
+            return event.group().decode().strip()
 
         def modal_confirm(window):
             # The fixed-size confirmation is centered in the initial1280x720 viewport.
@@ -133,6 +154,8 @@ def main():
                 return False
             wait(presented, 'Explicit revert confirmation was not presented')
             return points
+
+        whole_y = None
 
         def selected_row_y(window, ordinal):
             # Observe the first checkbox's dark-blue frame below the action buttons.
@@ -161,56 +184,55 @@ def main():
             print(f'Property checkbox{ordinal} presented at y{points[0]}', flush=True)
             return points[0]
 
-        revert_y = whole_y = None
-        for read_only in (False, True):
-            before_launch = files(root)
-            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
-            diagnostics, events = [], queue.Queue()
+        def select_row(ordinal):
+            nonlocal whole_y
+            value = driver.wait(lambda v: 'override_revert' in v,
+                                'Whole-revert control was not rendered above property rows', deadline())
+            whole_y = float(value['override_revert'].split(',')[1])
+            selected_row_y(window, ordinal)
+            click('override_row_' + str(ordinal))
 
-            def drain():
-                for line in process.stderr:
-                    diagnostics.append(line)
-                    if line.startswith('prefab instance '):
-                        events.put(line.strip())
-            reader = threading.Thread(target=drain, daemon=True)
-            reader.start()
+        for launch_number, read_only in enumerate((False, True), 1):
+            before_launch = files(root)
+            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only, binary=True)
+            driver = NativeSceneInput(process, args.xdotool, env, '', scratch, launch_number,
+                                      minimum_wait=.2, phase_wait=.2)
+            event_offset = 0
             window = wait_for_window(args.xdotool, env)
-            send('windowfocus', '--sync', window)
+            driver.window = str(window)
+            driver.raw('windowfocus', '--sync', window, deadline=deadline())
             selection_y = 199 if read_only else 182
             wait(lambda: scene_pixels(display, int(window), (518, selection_y, 4, 4))[0],
                  'Scene selection control was not ready')
-            click(window, 523, selection_y)
+            # The saved fixture has one entity; source_node names its actual visible marker.
+            click('source_node')
+            driver.wait(lambda v: v.get('source_selected') == '1' and
+                                  v.get('source_selection_count') == '1' and 'override_review' in v,
+                        'Single fixture entity was not selected for override review', deadline())
             before_review = files(root)
-            click(window, 1065, inspector_button(window, 1))
-            try:
-                event = events.get(timeout=10)
-            except queue.Empty as error:
-                raise RuntimeError('Actual review did not emit an owning result') from error
+            click('override_review')
+            event = take_event('Actual review did not emit an owning result')
             require(re.fullmatch(r'prefab instance reviewed rows=[1-9][0-9]* retained=1 published=2', event),
                     'Review lost retained/current source identity: ' + event)
             require(files(root) == before_review, 'Read-only review wrote project/source files')
             if read_only:
                 if args.selected:
-                    click(window, 1018, selected_row_y(window, selected_fields[0]))
-                click(window, 1080, revert_y)
-                require(events.empty() and scene.read_bytes() == original,
+                    select_row(selected_fields[0])
+                click('override_selected' if args.selected else 'override_revert')
+                require(not pending_events() and scene.read_bytes() == original,
                         'Read-only control authorized a revert')
             else:
                 if args.selected:
-                    whole_y = inspector_button(window, 2)
                     # The fixture owns a public Core row oracle; the checkbox is observed in the native image.
-                    click(window, 1018, selected_row_y(window, selected_fields[0]))
-                revert_y = inspector_button(window, 3 if args.selected else 2)
-                click(window, 1080, revert_y)
+                    select_row(selected_fields[0])
+                click('override_selected' if args.selected else 'override_revert')
                 key('Escape')
-                require(events.empty() and files(root) == before_review,
+                require(not pending_events() and files(root) == before_review,
                         'Cancel mutated files or authorized revert')
-                click(window, 1080, inspector_button(window, 3 if args.selected else 2))
-                click(window, *modal_confirm(window))
-                try:
-                    event = events.get(timeout=10)
-                except queue.Empty as error:
-                    raise RuntimeError('Confirmed actual control did not revert') from error
+                click('override_selected' if args.selected else 'override_revert')
+                modal_confirm(window)
+                click('override_confirm')
+                event = take_event('Confirmed actual control did not revert')
                 expected_event = ('prefab instance selected revert retained=1 rows=1' if args.selected
                                   else 'prefab instance reverted retained=1')
                 require(event == expected_event and files(root) == before_review,
@@ -228,23 +250,17 @@ def main():
                 wait(lambda: scene.read_bytes() == original, 'Final Undo did not restore readonly fixture')
                 if args.selected:
                     before_properties = files(root)
-                    click(window, 1065, inspector_button(window, 1))
-                    try:
-                        event = events.get(timeout=10)
-                    except queue.Empty as error:
-                        raise RuntimeError('Second actual property review did not complete') from error
+                    click('override_review')
+                    event = take_event('Second actual property review did not complete')
                     require(re.fullmatch(r'prefab instance reviewed rows=[1-9][0-9]* retained=1 published=2', event)
                             and files(root) == before_properties,
                             'Refresh changed files or retained/current identity')
-                    whole_y = inspector_button(window, 2)
                     for ordinal in sorted(selected_fields[1:]):
-                        click(window, 1018, selected_row_y(window, ordinal))
-                    click(window, 1080, inspector_button(window, 3))
-                    click(window, *modal_confirm(window))
-                    try:
-                        event = events.get(timeout=10)
-                    except queue.Empty as error:
-                        raise RuntimeError('Selected rotation/opaque consent did not complete') from error
+                        select_row(ordinal)
+                    click('override_selected')
+                    modal_confirm(window)
+                    click('override_confirm')
+                    event = take_event('Selected rotation/opaque consent did not complete')
                     require(event == 'prefab instance selected revert retained=1 rows=2' and
                             files(root) == before_properties,
                             'Selected property groups changed files before explicit Save')
@@ -266,12 +282,11 @@ def main():
                          'Selected property final Undo did not restore readonly original')
 
             request_window_close(window, env)
-            process.wait(timeout=15)
-            reader.join(timeout=5)
-            require(not reader.is_alive(), 'Diagnostic drain did not finish')
-            collect_output(process, 5)
-            captured = ''.join(diagnostics)
-            print(captured, end='', flush=True)
+            until = deadline(15)
+            while process.poll() is None and time.monotonic() < until:
+                driver.drain(min(.05, max(0, until - time.monotonic())))
+            require(process.poll() is not None, 'Native instance did not close within 15 seconds')
+            _, captured = driver.finish(5)
             require(process.returncode == 0 and 'scene_selected=1' in captured and
                     not re.search(r'Validation Error\b|VUID-|SYNC-HAZARD-', captured),
                     'Native instance workflow failed or reported Vulkan errors')
@@ -280,16 +295,20 @@ def main():
                     'Instance workflow changed source archives or original scene')
             if read_only:
                 require(files(root) == before_launch, 'Read-only reopen wrote project files')
-            process = None
+            process = driver = None
+        passed = True
         print('Native scoped override review, explicit revert, atomic Undo/Redo, Save and readonly passed')
     finally:
-        if process is not None and process.poll() is None:
-            process.kill()
-            process.wait(timeout=10)
+        if process is not None:
+            if driver is not None:
+                driver.abort()
+            elif process.poll() is None:
+                process.kill()
+                process.communicate(timeout=10)
         if xvfb.poll() is None:
             xvfb.terminate()
         xvfb.communicate(timeout=10)
-        shutil.rmtree(scratch)
+        print(f'Native override fixtures retained (passed={passed}): {scratch}', flush=True)
 
 
 if __name__ == '__main__':
