@@ -44,3 +44,6 @@ g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthr
 
 Windows fixture narrowing check:
 zig c++ -target x86_64-windows-gnu -std=c++20 -Wshorten-64-to-32 -Werror -c -IEngine/Runtime/include -IEngine/API/include -IEngine/TwoD/include -IEngine/Presentation/include -IEngine/Window/include -IEngine/RHI/include -IEngine/Renderer/include -IEngine/Foundation/include -IEngine/Core/include Gameplay/Zig/LifecycleSliceTests.cpp -o /workspace/scratch/nexora-sp06/windows-lifecycle-test.obj
+
+Windows native event test object compilation:
+zig c++ -target x86_64-windows-gnu -std=c++20 -c -IEngine/Runtime/include -IEngine/API/include -IEngine/TwoD/include -IEngine/Presentation/include -IEngine/Window/include -IEngine/RHI/include -IEngine/Renderer/include -IEngine/Foundation/include -IEngine/Core/include Tests/WindowPresentation/WindowPresentationTests.cpp -o /workspace/scratch/nexora-sp06/windows-window-tests.obj

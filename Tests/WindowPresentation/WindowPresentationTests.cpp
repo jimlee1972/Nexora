@@ -404,8 +404,21 @@ int main() {
   PostMessageW(hwnd, WM_SIZE, SIZE_MINIMIZED, MAKELPARAM(0, 0));
   PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(320, 180));
   auto resizeEvents = nativeWindows->PumpEvents();
-  assert(resizeEvents.size() == 1);
+  // Lifecycle barriers must survive even when all native messages arrive in one pump.
+  assert(resizeEvents.size() == 5);
   assert(resizeEvents[0].type == Window::WindowEventType::Resized);
+  assert(resizeEvents[0].width == 200 && resizeEvents[0].height == 100);
+  assert(resizeEvents[1].type == Window::WindowEventType::Minimized);
+  assert(resizeEvents[2].type == Window::WindowEventType::Resized);
+  assert(resizeEvents[2].width == 0 && resizeEvents[2].height == 0);
+  assert(resizeEvents[3].type == Window::WindowEventType::Restored);
+  assert(resizeEvents[4].type == Window::WindowEventType::Resized);
+  assert(resizeEvents[4].width == 320 && resizeEvents[4].height == 180);
+  // Ordinary consecutive resizes still coalesce to the last extent.
+  PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(200, 100));
+  PostMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(320, 180));
+  resizeEvents = nativeWindows->PumpEvents();
+  assert(resizeEvents.size() == 1 && resizeEvents[0].type == Window::WindowEventType::Resized);
   assert(resizeEvents[0].width == 320 && resizeEvents[0].height == 180);
 
   // F4 alone is input; Alt+F4 must retain the native, application-vetoable close path.

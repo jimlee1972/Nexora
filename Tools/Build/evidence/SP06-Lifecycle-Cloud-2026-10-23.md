@@ -39,10 +39,14 @@ passes Windows GNU cross-compilation with `-Wshorten-64-to-32 -Werror`. No warni
 or production behavior change was introduced. The full local Development gate was rerun after the correction; Shipping production sources
 were unchanged from their preceding successful gate.
 
+The Windows resize gate now checks the complete resized/minimized/zero-extent/restored/final-extent
+sequence instead of its pre-lifecycle assumption of a single coalesced event. A separate ordinary
+resize-only batch must still coalesce to exactly one final extent; no native assertion is disabled.
+
 ## Local validation
 
 Full `linux-development` configure/build/CTest passed: **292 registered, 276 passed,
-16 native-prerequisite skips, 0 failures; 153.13 seconds**. The skips are the existing Vulkan/
+16 native-prerequisite skips, 0 failures; 156.25 seconds**. The skips are the existing Vulkan/
 Slang/XTEST native prerequisites; none of the new SP-06 tests skipped.
 Full Monolithic Shipping build and independent baseline-CPU ReleaseSafe Zig/Player export passed.
 The independent Player observed 240 completed UI frames with balanced module allocations and
