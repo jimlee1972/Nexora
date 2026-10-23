@@ -17,16 +17,17 @@ registration. Null pointers, zero bytes, more than 64 MiB, malformed/truncated/t
 cross-type UUID collisions return `INVALID_ARGUMENT` without changing outputs or the registry.
 A clip's Atlas must already be registered; unavailable dependencies return `UNSUPPORTED`.
 Every animation region must exist in that Atlas. Atlas replacement checks every resident dependent
-clip and rejects removal of a referenced region. Registered identities remain active for the session;
-there is no implicit unload on module stop/reload and no removal API.
+clip and rejects removal of a referenced region. Registered identities remain active until explicit removal or owner destruction; there is no
+implicit unload on module stop/reload. The optional [asset service](GameplayAssets.md) adds removal,
+bounded catalog IO and usage without changing this V1 wire.
 
 Publication is atomic per call. Replacing an Atlas with identical decoded data reuses its immutable
 owner and native texture ID. Changed bytes receive a fresh generation with a different texture ID.
 Clip replacement copies an immutable owner. Existing extracted frames, clip resolver results and
-Atlas bindings retain their prior owners after replacement or registry destruction. Active entries
-are bounded to 256 identities and 64 MiB of decoded pixels/region/frame/event storage; a budget failure
-returns `UNSUPPORTED`. Externally retained old generations are intentionally outside that active
-registry budget; the host bounds its in-flight frame retention and retires old native texture IDs.
+Atlas bindings retain their prior owners after replacement or registry destruction. Active entries default to 256 identities and 64 MiB of decoded pixels/region/frame/event storage;
+a budget failure returns `UNSUPPORTED`. Configurable limits additionally reserve active-plus-retired
+generations (default 128 MiB), so retained snapshots apply backpressure rather than unbounded growth.
+Hosts collect expired generations and retire native texture IDs; see the asset service contract.
 
 Texture IDs are process-unique generation IDs in the reserved range `[1 << 62, 1 << 63)`.
 The host must reserve that range for GameplayContent and keep explicit UI/Sprite resource IDs outside
@@ -51,8 +52,8 @@ Sprite, pool and Tilemap APIs can reference the returned UUIDs directly. Hosts m
 another resolver for separately provisioned content; UUID ownership must remain unambiguous.
 
 All operations serialize on the construction thread. C callbacks return `LIFECYCLE` for wrong-thread
-calls and contain host exceptions; direct resolver methods throw on wrong-thread access. There are
-no deferred workers or callbacks and no reentry into module code. The table/context borrow the
+calls and contain host exceptions; direct resolver methods throw on wrong-thread access. These registration callbacks have no deferred workers or reentry into module code.
+The separate optional asset service performs bounded background IO before owner-thread publication. The table/context borrow the
 registry owner until every module callback has stopped. Input bytes may expire after registration;
 returned metadata is copied and resolver results own immutable data. Caller pointers must refer
 to valid aligned, nonaliasing buffers of their declared lengths. The API does not validate arbitrary

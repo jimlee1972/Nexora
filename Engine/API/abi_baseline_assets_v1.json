@@ -1,0 +1,52 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "services_suffix": [
+    "get_assets_api"
+  ],
+  "structures": {
+    "NexoraAssetCatalogEntryV1": [
+      "struct_size",
+      "kind",
+      "file_bytes"
+    ],
+    "NexoraAssetLoadStateV1": [
+      "struct_size",
+      "phase",
+      "result",
+      "catalog_index",
+      "high",
+      "low",
+      "byte_length"
+    ],
+    "NexoraAssetUsageV1": [
+      "struct_size",
+      "active_assets",
+      "retired_generations",
+      "requests",
+      "active_bytes",
+      "retired_bytes",
+      "texture_bytes",
+      "staging_bytes",
+      "peak_content_bytes"
+    ],
+    "NexoraGameplayAssetsApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "describe_catalog",
+      "request",
+      "poll",
+      "release_request",
+      "remove_asset",
+      "get_usage",
+      "copy_bytes"
+    ]
+  },
+  "zig_names": {
+    "NexoraAssetCatalogEntryV1": "assets.CatalogEntry",
+    "NexoraAssetLoadStateV1": "assets.LoadState",
+    "NexoraAssetUsageV1": "assets.Usage",
+    "NexoraGameplayAssetsApiV1": "assets.Api"
+  }
+}

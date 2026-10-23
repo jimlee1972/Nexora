@@ -11,3 +11,5 @@ endif()
 nexora_apply_defaults(NexoraTwoD)
 target_sources(NexoraTwoD PRIVATE src/GameplayUi.cpp)
 target_sources(NexoraTwoD PRIVATE src/GameplayContent.cpp)
+
+target_sources(NexoraTwoD PRIVATE src/GameplayAssets.cpp)

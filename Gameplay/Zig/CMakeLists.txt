@@ -236,7 +236,7 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
   endif()
   nexora_apply_defaults(NexoraZigServicesTests)
   add_test(NAME gameplay.zig_services_consumer COMMAND NexoraZigServicesTests)
-  foreach(wire input ui audio storage content display ui_draw)
+  foreach(wire input ui audio storage content display ui_draw assets)
     nexora_add_zig_test(gameplay.zig_${wire}_wrapper
         "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
         --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-test-${wire}"
@@ -296,5 +296,36 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
       "${PROJECT_SOURCE_DIR}/Tests/TwoD/UiShowcaseAcceptance.py"
       --app "$<TARGET_FILE:NexoraTwoDPlayer>" --module "${ui_showcase_library}")
     set_tests_properties(gameplay.zig_image_ui_player PROPERTIES TIMEOUT 90 LABELS "twod;zig;ui;project")
+  endif()
+endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D)
+  set(asset_transitions_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigAssetTransitions${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  if(APPLE)
+    set(asset_transitions_object "${CMAKE_CURRENT_BINARY_DIR}/zig_asset_transitions${twod_object_extension}")
+    set(asset_transitions_args ${NEXORA_ZIG_BUILD_OBJ_ARGS})
+    list(TRANSFORM asset_transitions_args REPLACE "src/game_module.zig" "src/asset_transitions.zig")
+    list(TRANSFORM asset_transitions_args REPLACE "-femit-bin=.*" "-femit-bin=${asset_transitions_object}")
+    add_custom_command(OUTPUT "${asset_transitions_object}"
+      COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${asset_transitions_args}
+      DEPENDS src/asset_transitions.zig ${gameplay_wire_dependencies} VERBATIM)
+    add_custom_command(OUTPUT "${asset_transitions_library}"
+      COMMAND "${CMAKE_CXX_COMPILER}" -dynamiclib "${asset_transitions_object}" -o "${asset_transitions_library}"
+      DEPENDS "${asset_transitions_object}" VERBATIM)
+  else()
+    set(asset_transitions_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
+    list(TRANSFORM asset_transitions_args REPLACE "src/game_module.zig" "src/asset_transitions.zig")
+    list(TRANSFORM asset_transitions_args REPLACE "-femit-bin=.*" "-femit-bin=${asset_transitions_library}")
+    add_custom_command(OUTPUT "${asset_transitions_library}"
+      COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${asset_transitions_args}
+      DEPENDS src/asset_transitions.zig ${gameplay_wire_dependencies} VERBATIM)
+  endif()
+  add_custom_target(NexoraZigAssetTransitionsBuild ALL DEPENDS "${asset_transitions_library}")
+  if(NOT APPLE)
+    add_test(NAME gameplay.zig_asset_transitions COMMAND "${Python3_EXECUTABLE}"
+      "${PROJECT_SOURCE_DIR}/Tests/TwoD/AssetTransitionsAcceptance.py"
+      --app "$<TARGET_FILE:NexoraTwoDPlayer>" --module "${asset_transitions_library}"
+      --fixture "$<TARGET_FILE:NexoraGameplayAssetsTests>")
+    set_tests_properties(gameplay.zig_asset_transitions PROPERTIES TIMEOUT 180 LABELS "twod;zig;assets;project")
   endif()
 endif()

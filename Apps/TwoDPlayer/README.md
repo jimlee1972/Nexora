@@ -172,3 +172,45 @@ unchanged UI V1 and Display. Zig composes images/nine-slice and custom buttons. 
 image/font handles retire only after owning snapshots expire; the Player releases their immutable
 native textures before the next acquire. Native release failures propagate as errors. Upper
 65,536 texture IDs are reserved for automatic UI generations.
+
+## Deferred chapter assets (SP-03)
+
+Atlas/Clip entries may specify `"preload": false`. Deferred entries alone form the asset-service
+catalog in descriptor order. A `"kind": "blob"` entry is always deferred and supplies opaque bytes
+for Zig-owned parsers and existing font/image/audio registration APIs; deferred `wave`/`font`
+entries are rejected rather than silently installing those services. Legacy omitted-preload
+entries are still admitted at startup within the aggregate 64 MiB preload budget.
+
+```json
+{
+  "capacity": {
+    "active_assets": 256,
+    "active_bytes": 100663296,
+    "live_bytes": 134217728,
+    "staging_bytes": 20971520,
+    "pool_instances": 2400
+  },
+  "assets": [
+    {"kind": "atlas", "path": "Content/Chapter.nx2atlas", "preload": false},
+    {"kind": "clip", "path": "Content/Walk.nx2clip", "preload": false},
+    {"kind": "blob", "path": "Content/UI.nxfont"}
+  ]
+}
+```
+
+This is a fragment of `game.json`; retain its normal required fields. The optional `capacity`
+object requires exactly these five integer fields. Limits are 1..4096 identities, 1 byte..1 GiB
+active, active..2 GiB live, 1 byte..128 MiB staging and 1..100000 pool instances. Defaults are
+256/64 MiB/128 MiB/64 MiB/1024. Each file remains at most 64 MiB; only preloaded files count
+toward the aggregate startup budget. Packages may therefore exceed 64 MiB without being loaded
+all at once. Cooked identity/hash/dependency and contained-path checks remain in place.
+
+The exported schema-1 descriptor appends `capacity A B C D E` and uses `deferred_atlas`,
+`deferred_clip` and `deferred_blob` lines. A configured `tile_atlas` may be initially unavailable
+when a deferred Atlas is present; Zig must load the matching UUID before painting/rendering its
+cells. No implicit map/dependency load occurs. Old Players reject these new optional directives
+explicitly; export and run with matching versions.
+
+The [asset contract](../../Engine/TwoD/GameplayAssets.md) defines request transfer, cancellation,
+clip-before-atlas removal, logical RAM/texture budgets and mandatory reader shutdown before VFS
+teardown. It does not promise a fixed frame-time streamer or physical RAM/VRAM acceptance.

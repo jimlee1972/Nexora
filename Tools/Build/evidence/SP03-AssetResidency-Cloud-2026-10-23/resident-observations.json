@@ -1,0 +1,16 @@
+{
+  "source": "CTest system-out; CurrentProcessResidentBytes after each unload round",
+  "rss_bytes": [
+    222580736,
+    222638080,
+    222638080,
+    222638080,
+    222638080,
+    222638080,
+    222638080,
+    222638080
+  ],
+  "warmup_rounds": 4,
+  "maximum_growth_tolerance_bytes": 33554432,
+  "physical_vram_measured": false
+}

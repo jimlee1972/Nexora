@@ -171,3 +171,21 @@ and atlas budgets. Actual planning-document coverage is not final-script accepta
 icons are not final art. See [the UI contract](../../Engine/TwoD/GameplayUiDraw.md) and
 [cloud evidence](../../Tools/Build/evidence/SP02-ImageUi-Cloud-2026-10-23.md). Final artwork,
 Windows typography/input, physical gamepad and the existing milestone gates remain open.
+
+## SP-03 deferred asset residency (2026-10-23)
+
+✅ Bounded catalog IO, copied C/Zig request states, explicit asset removal, dependency-ordered
+unloading and snapshot-aware native texture retirement are implemented. Original/SP-01/SP-02
+services prefixes and legacy preload defaults remain compatible. Capacity is explicit rather
+than an unconditional 64 MiB increase; Zig retains transition and gameplay/event policy.
+
+Portable verification covers five simultaneous 2048² Atlases (>80 MiB) across eight unload/reload
+rounds, retained-generation backpressure and real process RSS/working-set observations. A separate
+Zig module is exported from a >80 MiB package and exercises 15 transitions, 1800 pooled instances
+and 30 Animator events, with corrupt-file rejection. Native pixel coverage checks fresh 2048² GPU
+generations and held-frame retirement; executed platform evidence must be distinguished from
+compilation. See [the contract](../../Engine/TwoD/GameplayAssets.md) and
+[cloud evidence](../../Tools/Build/evidence/SP03-AssetResidency-Cloud-2026-10-23.md).
+
+Final game art/content, complete pickup/combat transitions and physical target-PC RAM/VRAM/frame
+budgets remain unaccepted. Audio streaming/compression, color and existing M6/M7 gates are unchanged.

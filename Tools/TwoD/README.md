@@ -317,3 +317,11 @@ corpora require explicit partitioning/font selection; the tool does not silently
 Registration/removal and Zig composition are described in [GameplayUiDraw](../../Engine/TwoD/GameplayUiDraw.md).
 The existing Windows GDI baker remains available; cloud FreeType raster output is not a claim
 of identical GDI output or accepted Windows typography.
+
+### SP-03 deferred export
+
+`ExportGame.py` preserves optional capacity settings and deferred Atlas/Clip/opaque-byte entries.
+It checks each source/cooked file against 64 MiB, but applies the aggregate 64 MiB limit only to
+preloaded files. It stages/copies/hashes every packaged file without holding all payloads resident.
+See [the Player descriptor](../../Apps/TwoDPlayer/README.md#deferred-chapter-assets-sp-03) and
+[the asset lifecycle contract](../../Engine/TwoD/GameplayAssets.md).

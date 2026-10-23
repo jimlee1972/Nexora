@@ -1,3 +1,4 @@
+#include "Nexora/TwoD/GameplayContent.h"
 #include "Nexora/TwoD/GameplayUi.h"
 #include "Nexora/TwoD/Scene.h"
 #include "Nexora/TwoD/Tilemap.h"
@@ -387,6 +388,74 @@ int main(int argc, char **argv) {
     Check(imageRetired.size() == 1 &&
               surface->ReleaseSpriteTextures(imageRetired) == SurfaceStatus::Ready,
           "native image GPU retirement");
+    // SP-03: actual 2048-square GPU generations survive a retained extracted frame,
+    // retire after it expires, and upload again under a fresh ID on chapter re-entry.
+    twod::GameplayContent streamed;
+    NexoraGameplayContentApiV1 contentApi{};
+    contentApi.struct_size = sizeof(contentApi);
+    Check(streamed.GetApi(&contentApi) == 0, "native content negotiation");
+    runtime::World streamedWorld(runtime::WorldKind::Play);
+    const auto streamedSceneId = streamedWorld.LoadScene("streamed atlas pixels");
+    twod::SpriteScene streamedScene(streamedWorld, streamedSceneId);
+    const auto streamedEntity = streamedWorld.CreateEntity(streamedSceneId).id;
+    twod::Sprite streamedSprite;
+    streamedSprite.atlas = {77, 88};
+    streamedSprite.region = 1;
+    streamedSprite.size = {4, 4};
+    Check(streamedScene.Set(streamedEntity, streamedSprite), "streamed sprite");
+    std::uint64_t previousGeneration{};
+    for (unsigned round = 0; round < 4; ++round) {
+      twod::Atlas large{{77, 88}, 2048, 2048, 1, true, {{1, 1, 1, 2046, 2046}}, {}};
+      large.rgba.resize(2048 * 2048 * 4);
+      for (std::size_t pixel = 0; pixel < large.rgba.size(); pixel += 4) {
+        large.rgba[pixel + (round % 2 ? 2 : 0)] = std::byte{255};
+        large.rgba[pixel + 3] = std::byte{255};
+      }
+      const auto cooked = twod::EncodeAtlas(large);
+      std::uint64_t high{}, low{};
+      Check(contentApi.register_atlas(contentApi.context, cooked.data(), cooked.size(), &high,
+                                      &low) == 0,
+            "native 2048 atlas registration");
+      auto held = streamedScene.Extract(camera, [&](auto id) { return streamed.ResolveAtlas(id); });
+      Check(held && held->batches.size() == 1, "streamed extraction");
+      const auto generation = held->batches[0].textureId;
+      Check(generation != previousGeneration, "re-entry must not alias old GPU generation");
+      previousGeneration = generation;
+      auto heldUploads = held->Uploads();
+      const UiDrawData data{held->vertices, std::as_bytes(std::span(held->indices)), held->batches,
+                            heldUploads, true};
+      const auto uploadsBefore = surface->Diagnostics().nativeUiTextureUploads;
+      Check(surface->Acquire() == SurfaceStatus::Ready &&
+                surface->RenderUi(data) == SurfaceStatus::Ready &&
+                surface->Present() == SurfaceStatus::Ready,
+            "native streamed present");
+      Check(surface->Diagnostics().nativeUiTextureUploads > uploadsBefore,
+            "fresh native texture upload");
+      WaitPixels(
+          display, native,
+          [round](XImage *image) {
+            const auto pixel = XGetPixel(image, 160, 120);
+            return Channel(pixel, round % 2 ? image->blue_mask : image->red_mask) > 250 &&
+                   Channel(pixel, image->green_mask) < 3 &&
+                   Channel(pixel, round % 2 ? image->red_mask : image->blue_mask) < 3;
+          },
+          "streamed 2048 texture pixels differ");
+      Check(streamed.Remove({77, 88}) == 0 && streamed.CollectRetiredTextures().empty(),
+            "retained native frame blocks content retirement");
+      Check(surface->Acquire() == SurfaceStatus::Ready &&
+                surface->RenderUi(data) == SurfaceStatus::Ready &&
+                surface->Present() == SurfaceStatus::Ready,
+            "retired content snapshot remains drawable");
+      held = {};
+      heldUploads.clear();
+      const auto retired = streamed.CollectRetiredTextures();
+      Check(retired.size() == 1 && retired[0] == generation &&
+                surface->ReleaseSpriteTextures(retired) == SurfaceStatus::Ready,
+            "native content generation release");
+      Check(streamed.Statistics().active_bytes == 0 && streamed.Statistics().retired_bytes == 0,
+            "native content returns to baseline");
+    }
+    std::cout << "SP-03 native 2048 texture generation unload/re-entry/retained pixels passed\n";
     Check(surface->DrainAndDestroy() == SurfaceStatus::Ready, "shutdown");
     Check(windows->Destroy(created.handle) == Nexora::Window::WindowError::None, "window shutdown");
     XCloseDisplay(display);

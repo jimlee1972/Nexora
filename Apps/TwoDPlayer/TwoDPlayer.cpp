@@ -7,6 +7,7 @@
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "Nexora/Runtime/GameplayServices.h"
 #include "Nexora/Runtime/GameplayStorage.h"
+#include "Nexora/TwoD/GameplayAssets.h"
 #include "Nexora/TwoD/GameplayBridge.h"
 #include "Nexora/TwoD/GameplayContent.h"
 #include "Nexora/TwoD/GameplayDisplay.h"
@@ -269,7 +270,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     twod::Tilemap tiles;
     tiles.atlas = project ? project->tile_atlas : twod::AssetId{1, 2};
     const bool hasTiles = !project || tiles.atlas.high || tiles.atlas.low;
-    twod::InstancePool pool(1024);
+    twod::InstancePool pool(project ? project->pool_instances : 1024);
     std::shared_ptr<const twod::Atlas> atlas;
     std::shared_ptr<const twod::Clip> clip;
     if (!project) {
@@ -302,7 +303,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         clip = std::make_shared<const twod::Clip>(std::move(*decodedClip));
       }
     }
-    twod::GameplayContent content;
+    twod::GameplayContent content(project ? project->content_limits
+                                          : twod::GameplayContent::Limits{});
     NexoraGameplayContentApiV1 contentApi{};
     contentApi.struct_size = sizeof(contentApi);
     contentApi.abi_version = 1;
@@ -319,7 +321,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       std::set<std::pair<uint64_t, uint64_t>> identities;
       for (const auto kind : {std::string_view("atlas"), std::string_view("clip")})
         for (const auto &asset : project->assets) {
-          if (asset.kind != kind)
+          if (asset.deferred || asset.kind != kind)
             continue;
           const auto cooked = runtime::AssetCooker::Deserialize(readProjectAsset(asset));
           Check(cooked && cooked->type == (kind == "atlas" ? "sprite_atlas" : "sprite_clip") &&
@@ -353,7 +355,9 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
                                      &assetHigh, &assetLow) == 0,
             "sample cooked Clip registration");
     }
-    Check(!hasTiles || !project || bool(content.ResolveAtlas(tiles.atlas)),
+    Check(!hasTiles || !project || bool(content.ResolveAtlas(tiles.atlas)) ||
+              std::any_of(project->assets.begin(), project->assets.end(),
+                          [](const auto &a) { return a.deferred && a.kind == "atlas"; }),
           "project tile atlas is unavailable");
     twod::GameplayBridge bridge(
         world, scene, [&content](auto id) { return content.ResolveClip(id); },
@@ -364,13 +368,45 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     twod::GameplayUi ui;
     if (project)
       for (const auto &asset : project->assets) {
+        if (asset.deferred)
+          continue;
         if (asset.kind == "wave")
           Check(audio.RegisterWave(asset.id, readProjectAsset(asset)), "project WAV admission");
         else if (asset.kind == "font")
           Check(ui.RegisterFont(nexora::player::ReadGameFont(readProjectAsset(asset), asset.id)),
                 "project font admission");
       }
+    std::vector<twod::GameplayAssetFile> catalog;
+    if (project)
+      for (const auto &asset : project->assets)
+        if (asset.deferred) {
+          const auto size = std::filesystem::file_size(project->File(asset.path));
+          Check(size && size <= 64ULL * 1024 * 1024, "deferred asset file budget");
+          catalog.push_back({asset.kind == "atlas"  ? 1U
+                             : asset.kind == "clip" ? 2U
+                                                    : 3U,
+                             size, asset.path});
+        }
+    twod::GameplayAssets assets(
+        content, std::move(catalog),
+        [&](const auto &file) {
+          // Revalidate containment and size at request time; no game-selected native path crosses
+          // ABI.
+          Check(project.has_value() &&
+                    std::filesystem::file_size(project->File(file.path)) == file.bytes,
+                "deferred file changed size");
+          auto result = engine.Services().vfs->ReadRange("content://" + file.path, 0, file.bytes);
+          Check(result.status == core::ReadResult::Status::Completed &&
+                    result.bytes.size() == file.bytes &&
+                    std::filesystem::file_size(project->File(file.path)) == file.bytes,
+                "deferred bounded local read");
+          return std::move(result.bytes);
+        },
+        project ? project->staging_bytes : 64ULL * 1024 * 1024);
     runtime::GameplayServices services;
+    services.assets.struct_size = sizeof(services.assets);
+    services.assets.abi_version = 1;
+    Check(assets.GetApi(&services.assets) == 0, "asset service negotiation");
     services.content = contentApi;
     services.input = input.Api();
     services.audio = audio.Api();
@@ -524,6 +560,12 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     double audioFrames{};
     twod::GameplayUiInput uiInput;
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
+      assets.Tick();
+      const auto retiredContent = content.CollectRetiredTextures();
+      if (native && !retiredContent.empty())
+        Check(surface.surface->ReleaseSpriteTextures(retiredContent) ==
+                  Nexora::Presentation::SurfaceStatus::Ready,
+              "content texture retirement");
       const auto retiredUi = ui.CollectRetiredTextures();
       if (native && !retiredUi.empty())
         Check(surface.surface->ReleaseSpriteTextures(retiredUi) ==
@@ -780,6 +822,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       Check(std::abs(transform->x - initialX - double(frames) / 60) < 1e-8,
             "Zig Transform control");
     module.Unload();
+    NexoraAssetUsageV1 assetUsage{};
+    assetUsage.struct_size = sizeof(assetUsage);
+    Check(services.assets.get_usage(services.assets.context, &assetUsage) == 0, "asset usage");
+    assets.Shutdown();
     Check(context.allocated == context.freed, "Zig state allocation leak");
     Check(services.audio.stop_all(services.audio.context) == 0, "audio voice shutdown");
     audio.CloseOutput();
@@ -838,6 +884,11 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         ",\"sprite_instanced_draws\":" + std::to_string(gpu.spriteInstancedDrawCalls) +
         ",\"sprite_gpu_instances\":" + std::to_string(gpu.spriteGpuInstances) +
         ",\"sprite_instance_upload_bytes\":" + std::to_string(gpu.spriteInstanceUploadBytes) +
+        ",\"asset_active_bytes\":" + std::to_string(assetUsage.active_bytes) +
+        ",\"asset_retired_bytes\":" + std::to_string(assetUsage.retired_bytes) +
+        ",\"asset_staging_bytes\":" + std::to_string(assetUsage.staging_bytes) +
+        ",\"asset_peak_content_bytes\":" + std::to_string(assetUsage.peak_content_bytes) +
+        ",\"pool_capacity\":" + std::to_string(project ? project->pool_instances : 1024) +
         ",\"visible\":" + std::to_string(visible) +
         ",\"reloaded\":" + (reloaded ? "true" : "false") +
         ",\"validation_package\":" + (validation ? "true" : "false") +

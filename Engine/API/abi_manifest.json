@@ -968,6 +968,78 @@
       "threading": "serialized_owner_thread",
       "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
       "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_assets_api",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.describe_catalog",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.request",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.poll",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.release_request",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.remove_asset",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.get_usage",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayAssetsApiV1.copy_bytes",
+      "since": 3,
+      "ownership": "host_owned_context; copied_metadata; request_bytes_until_release; see GameplayAssets.md",
+      "nullability": "required outputs; copy_bytes null/zero probes",
+      "threading": "serialized_owner_thread; host IO reader never calls game code",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
+      "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
     }
   ]
 }
