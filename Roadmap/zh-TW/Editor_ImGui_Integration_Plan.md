@@ -28,6 +28,10 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 
 ### 已確認實作 checklist
 
+- ✅ Win32 system key 在轉送 input 後保留預設處理，Alt+F4 會進入應用程式可取消的關閉流程。
+  可見視窗 regression 與 Windows 10 家用版實機觀察涵蓋關閉提示、取消及乾淨退出，另補上
+  100% IME caret-follow 證據；其他 target-host gate 仍待完成
+  （[證據](../../Tools/Build/evidence/EditorEDM0-WindowsAltF4-2026-10-23.md)）。
 - ✅ Dear ImGui 與 direct consumer 共用 32-bit Unicode text storage。真正 Rename input 經
   UTF-8 metadata replay 與持久化保留 supplementary scalar value；default font 涵蓋與
   target-host DPI／IME 驗收仍待完成。

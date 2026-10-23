@@ -31,6 +31,11 @@ DPI/IME evidence are still absent. Therefore ED-M0 remains open.
 
 ### Verified implementation checklist
 
+- ✅ Win32 system keys retain default handling after input forwarding: Alt+F4 reaches the
+  application-vetoable close path. Visible-window regression and physical Windows 10 Home
+  observations cover the close prompt, cancellation, and clean exit. Additional 100% IME
+  caret-follow evidence is recorded; other target-host gates remain open
+  ([evidence](../../Tools/Build/evidence/EditorEDM0-WindowsAltF4-2026-10-23.md)).
 - ✅ Dear ImGui and direct consumers share 32-bit Unicode text storage. Real Rename input retains
   supplementary scalar values through UTF-8 metadata replay and persistence; default font coverage
   and target-host DPI/IME acceptance remain open.
