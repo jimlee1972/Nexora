@@ -126,7 +126,8 @@ int main() {
   assert(command(5) == 1 && command(6) == 1 && command(7) == 17);
   std::array<unsigned char, 16> previous{};
   NexoraStorageInfoV1 info{sizeof(info), 1, 0, 0};
-  assert(files.load(files.context, "sp06", 4, previous.data(), previous.size(), &info) == 0);
+  assert(files.load(files.context, "sp06", 4, previous.data(),
+                    static_cast<uint32_t>(previous.size()), &info) == 0);
   assert(previous[0] == 1 && previous[8] == 17);
   for (unsigned i = 0; i < 120; ++i)
     tick();
@@ -146,7 +147,8 @@ int main() {
   assert(command(9) == 1 && command(6) == before && !lifecycle.ExitRequested());
   assert(command(4) == -3 && !lifecycle.ExitRequested());
   std::array<unsigned char, 16> retained{};
-  assert(files.load(files.context, "sp06", 4, retained.data(), retained.size(), &info) == 0 &&
+  assert(files.load(files.context, "sp06", 4, retained.data(),
+                    static_cast<uint32_t>(retained.size()), &info) == 0 &&
          retained == previous);
   assert(command(3) == 0);
   tick();

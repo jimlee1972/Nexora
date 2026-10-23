@@ -41,3 +41,6 @@ Post-review targeted checks:
 ctest --preset linux-development -R 'gameplay.zig_lifecycle_slice|gameplay.zig_minimized_modules|runtime.gameplay_gamepad_routing' --output-on-failure
 g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include Engine/Runtime/src/GameplayGamepad.cpp Engine/Runtime/src/GameplayInput.cpp Tests/Runtime/GameplayGamepadTests.cpp -o /workspace/scratch/nexora-sp06/gamepad-asan
 /workspace/scratch/nexora-sp06/gamepad-asan
+
+Windows fixture narrowing check:
+zig c++ -target x86_64-windows-gnu -std=c++20 -Wshorten-64-to-32 -Werror -c -IEngine/Runtime/include -IEngine/API/include -IEngine/TwoD/include -IEngine/Presentation/include -IEngine/Window/include -IEngine/RHI/include -IEngine/Renderer/include -IEngine/Foundation/include -IEngine/Core/include Gameplay/Zig/LifecycleSliceTests.cpp -o /workspace/scratch/nexora-sp06/windows-lifecycle-test.obj

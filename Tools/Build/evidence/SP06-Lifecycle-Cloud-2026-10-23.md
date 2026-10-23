@@ -33,10 +33,16 @@ holds confirmation across the interruption and several recovery frames, then rel
 Reconnects rearm through the same neutral gate. Finally, actual SP-01 and SP-04 modules tolerate
 zero dimensions, and a dynamic-module regression repeats minimize/restore and checks restored UI.
 
+The Windows MSVC `/W4 /WX` build additionally caught two test-only size_t-to-uint32_t
+arguments. Explicit casts now match the fixed 16-byte payload API; the corrected fixture also
+passes Windows GNU cross-compilation with `-Wshorten-64-to-32 -Werror`. No warning suppression
+or production behavior change was introduced. The full local Development gate was rerun after the correction; Shipping production sources
+were unchanged from their preceding successful gate.
+
 ## Local validation
 
 Full `linux-development` configure/build/CTest passed: **292 registered, 276 passed,
-16 native-prerequisite skips, 0 failures; 156.93 seconds**. The skips are the existing Vulkan/
+16 native-prerequisite skips, 0 failures; 153.13 seconds**. The skips are the existing Vulkan/
 Slang/XTEST native prerequisites; none of the new SP-06 tests skipped.
 Full Monolithic Shipping build and independent baseline-CPU ReleaseSafe Zig/Player export passed.
 The independent Player observed 240 completed UI frames with balanced module allocations and
