@@ -1040,6 +1040,42 @@
       "threading": "serialized_owner_thread; host IO reader never calls game code",
       "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; short copy publishes only length",
       "determinism": "catalog_order_and_monotonic_tickets; asynchronous_completion_not_deterministic"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_audio_state_api",
+      "since": 3,
+      "ownership": "borrowed_audio_owner_context_and_table_until_owner_destruction; copied_table",
+      "nullability": "nonnull_context_and_output",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; output_preserved_on_rejection",
+      "determinism": "negotiated_services_prefix; no_device_operation"
+    },
+    {
+      "name": "NexoraGameplayAudioStateApiV1.get_usage",
+      "since": 3,
+      "ownership": "borrowed_audio_owner_context; copied_usage; no_PCM_pointers",
+      "nullability": "nonnull_context_and_sized_output",
+      "threading": "serialized_owner_thread",
+      "errors": "-1_invalid_argument|-2_short_output|-3_wrong_owner_thread; output_preserved_on_rejection",
+      "determinism": "owner_thread_observation; includes_paused_voices_and_retired_generations"
+    },
+    {
+      "name": "NexoraGameplayAudioStateApiV1.play_voice",
+      "since": 3,
+      "ownership": "host_owns_PCM; opaque_Audio_V1_voice_until_stop_or_completion",
+      "nullability": "nonnull_context_and_voice_output; nonzero_registered_asset",
+      "threading": "serialized_owner_thread",
+      "errors": "-1_invalid_argument|-2_output_unavailable|-3_missing_asset_or_voice_capacity_or_wrong_thread; output_preserved_on_rejection",
+      "determinism": "monotonic_voice_ids; one_shot_Voice_bus; external_device_availability"
+    },
+    {
+      "name": "NexoraGameplayAudioStateApiV1.set_voice_bus_gain",
+      "since": 3,
+      "ownership": "borrowed_audio_owner_context; copies_finite_gain_0_to_16",
+      "nullability": "nonnull_context",
+      "threading": "serialized_owner_thread",
+      "errors": "-1_invalid_gain_or_context|-3_wrong_owner_thread",
+      "determinism": "scales_future_Voice_blocks; independent_Music_SFX; master_still_applies"
     }
   ]
 }

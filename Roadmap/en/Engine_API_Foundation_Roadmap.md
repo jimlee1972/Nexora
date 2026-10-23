@@ -219,6 +219,10 @@ explicit audio capacity separately from asset budgets. No complete voice pack is
 ✅ A standard-library inventory tool reports declared WAV bytes/duration, subtitle-ID gaps and
 concurrent PCM sets; metadata/fixture results do not establish the final recording corpus.
 
+✅ API-M6 pins AudioState C/Zig field order and all four callback metadata contracts; mutation
+guards reject their removal/reorder. Zig remembers pause requested during loading and applies it
+before mixing, including replay until explicit resume.
+
 Portable verification uses real PCM samples, failure/reopen, cancellation and legacy canaries;
 an independent Zig module/Player exercises twelve 87-second procedural lines in a >96 MiB offline
 package with 16 MiB peak PCM and zero final residency. Captured/null sinks and sampled RSS are

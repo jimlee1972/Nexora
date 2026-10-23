@@ -1,6 +1,0 @@
-Fixture inventory: {"encoded_bytes": 100663824, "decoded_pcm_bytes": 201326592, "seconds": 1048.576, "largest_declared_resident_pcm_bytes": 16777216}
-observed_process_peak_rss=38031360
-PASS: off output, 12 x 87-second WAV lines, >96 MiB offline package, 16 MiB peak PCM, zero final residency
-observed_process_peak_rss=38481920
-PASS: required output, 12 x 87-second WAV lines, >96 MiB offline package, 16 MiB peak PCM, zero final residency
-SP-05 independent Zig/Player voice lifecycle and capacity rejection passed; physical audibility NOT VERIFIED

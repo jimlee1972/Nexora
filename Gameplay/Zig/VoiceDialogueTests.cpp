@@ -104,8 +104,17 @@ int main() {
   std::uint64_t bgm{};
   const NexoraAudioPlayDesc desc{1, 1, 1, 1};
   assert(api.play(api.context, &desc, &bgm) == 0);
+  // Pause before the asynchronous line has been published. No voice sample may escape,
+  // even across an explicit replay while paused; resume must begin at sample zero.
+  assert(command(5) == 1 && command(3, 1) == 0);
+  wait(2);
+  assert(audio.Pump(2));
+  Near(sink.samples[0], .125F);
+  assert(command(1) == 0);
   wait(2);
   assert(audio.Pump(1));
+  Near(sink.samples[0], .125F);
+  assert(command(3) == 0 && audio.Pump(1));
   Near(sink.samples[0], .375F);
   assert(command(2, 0, .5F) == 0 && command(3, 1) == 0 && audio.Pump(2));
   Near(sink.samples[0], .125F);
@@ -172,6 +181,7 @@ int main() {
   assert(module.create(&state, &old) == -2 && state == nullptr &&
          context.allocated == context.freed);
   std::cout
-      << "SP-05 Zig actual PCM: independent voice gain/mute, paused cursor, skip/replay, "
+      << "SP-05 Zig actual PCM: independent voice gain/mute, loading pause, paused cursor, "
+         "skip/replay, "
          "missing/corrupt lines, sink failure/reopen, cancellation and old-host rejection passed\n";
 }

@@ -16,6 +16,7 @@ pub const Line = struct {
     registered: bool = false,
     gain: f32 = 1,
     muted: bool = false,
+    paused: bool = false,
     phase: Phase = .idle,
     /// Explicit replay starts from the beginning. Null/missing/corrupt/oversized lines use subtitles.
     pub fn start(self: *Line, index: ?u32) void {
@@ -45,6 +46,7 @@ pub const Line = struct {
     }
     pub fn pause(self: *Line, paused: bool) !void {
         if (self.voice != 0 and self.sound.pauseVoice(self.voice, paused) != 0) return error.Audio;
+        self.paused = paused;
     }
     pub fn tick(self: *Line) void {
         if (self.phase == .loading) {
@@ -62,6 +64,11 @@ pub const Line = struct {
             _ = self.files.releaseRequest(self.ticket);
             self.ticket = 0;
             if (!self.registered or self.control.playVoice(self.asset, if (self.muted) 0 else self.gain, &self.voice) != 0) {
+                self.cancel();
+                self.phase = .fallback;
+                return;
+            }
+            if (self.paused and self.sound.pauseVoice(self.voice, true) != 0) {
                 self.cancel();
                 self.phase = .fallback;
                 return;

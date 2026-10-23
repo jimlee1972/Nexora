@@ -1,0 +1,34 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "services_suffix": [
+    "get_audio_state_api"
+  ],
+  "structures": {
+    "NexoraAudioUsageV1": [
+      "struct_size",
+      "active_assets",
+      "active_voices",
+      "retired_generations",
+      "active_bytes",
+      "retired_bytes",
+      "peak_live_bytes",
+      "active_limit",
+      "live_limit",
+      "asset_limit",
+      "reserved"
+    ],
+    "NexoraGameplayAudioStateApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "get_usage",
+      "play_voice",
+      "set_voice_bus_gain"
+    ]
+  },
+  "zig_names": {
+    "NexoraAudioUsageV1": "audio_state.Usage",
+    "NexoraGameplayAudioStateApiV1": "audio_state.Api"
+  }
+}

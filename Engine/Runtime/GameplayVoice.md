@@ -6,6 +6,11 @@ SP-02/SP-03 services prefixes remain intact. The original Audio V1 table and its
 values (master 0, music 1, SFX 2) are unchanged. New modules check returned services size before
 reading the suffix: `nx.getAudioState(services)` returns null on old/absent hosts.
 
+The [AudioState baseline](../API/abi_baseline_audio_state_v1.json) pins C/Zig field order and
+the services suffix. API-M6 requires ownership/nullability/threading/error/determinism metadata
+for each baseline callback, including this getter and its three operations; mutation guards
+exercise removed metadata and reordered fields. ABI 3 now documents 118 exports.
+
 ## PCM residency
 
 `GameplayAudio::Limits` defaults to 256 registered assets, 64 MiB active float PCM and 128 MiB
@@ -61,7 +66,8 @@ startup preload set, while each file stays bounded. `nx.dialogue.Line` borrows t
 AudioState and asset services plus a caller-owned buffer and exclusive nonzero audio asset ID.
 It owns at most one request/registered line/voice; `start(index)` cancels only those resources,
 then asynchronously reads/copies/registers/plays the new line. Explicit replay starts at sample
-zero; pause retains the mixer cursor. Per-line gain/mute and global Voice-bus gain are independent
+zero; pause retains the mixer cursor. Pause requested during loading is remembered and applied
+before the new voice can mix; the setting persists across cancel/replay until explicit resume. Per-line gain/mute and global Voice-bus gain are independent
 from music/SFX settings. `cancel` is required before freeing the caller's buffer or host services.
 No gameplay callback or file read runs in the mixer/device thread.
 

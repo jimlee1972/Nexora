@@ -32,3 +32,6 @@ cmake --build --preset linux-sanitizers --target NexoraGameplayAudioResidencyTes
 build/linux-sanitizers/Tests/Runtime/NexoraGameplayAudioResidencyTests
 The final command ran outside the ptrace sandbox so LeakSanitizer can inspect threads.
 Default quarantine and leak detection remain enabled. No ASAN_OPTIONS override in acceptance.
+
+AudioState contract mutation guard:
+python3 Tools/Build/tests/test_api_audio_state_contract.py -v
