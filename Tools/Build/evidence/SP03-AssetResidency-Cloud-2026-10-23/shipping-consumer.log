@@ -1,0 +1,1 @@
+PASS: >80 MiB package, asynchronous local IO, 15 Zig transitions, 1800 instances, event/byte baseline

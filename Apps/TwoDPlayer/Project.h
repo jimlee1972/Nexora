@@ -1,6 +1,7 @@
 #pragma once
 #include "Nexora/Runtime/GameplayStorage.h"
 #include "Nexora/TwoD/Assets.h"
+#include "Nexora/TwoD/GameplayContent.h"
 #include "Nexora/TwoD/GameplayUi.h"
 #include <algorithm>
 #include <bit>
@@ -24,12 +25,16 @@ inline void RequireProject(bool value, const char *message) {
 struct ProjectAsset final {
   std::string kind, path;
   std::uint64_t id{};
+  bool deferred{};
 };
 struct GameProject final {
   std::filesystem::path root, module;
   std::string id, title, scene, audio{"optional"};
   std::vector<ProjectAsset> assets;
   twod::AssetId tile_atlas{};
+  twod::GameplayContent::Limits content_limits{};
+  uint64_t staging_bytes{64 * 1024 * 1024};
+  uint32_t pool_instances{1024};
   uint32_t width{640}, height{480};
   bool borderless{}, resizable{true};
   std::filesystem::path File(std::string_view value) const {
@@ -70,7 +75,21 @@ struct GameProject final {
       std::istringstream row(line);
       std::string key, value, trailing;
       row >> key;
-      if (key == "display") {
+      if (key == "capacity") {
+        RequireProject(
+            fields.insert(key).second &&
+                bool(row >> result.content_limits.assets >> result.content_limits.active_bytes >>
+                     result.content_limits.live_bytes >> result.staging_bytes >>
+                     result.pool_instances) &&
+                !(row >> trailing) && result.content_limits.assets > 0 &&
+                result.content_limits.assets <= 4096 && result.content_limits.active_bytes > 0 &&
+                result.content_limits.active_bytes <= 1024ULL * 1024 * 1024 &&
+                result.content_limits.live_bytes >= result.content_limits.active_bytes &&
+                result.content_limits.live_bytes <= 2ULL * 1024 * 1024 * 1024 &&
+                result.staging_bytes > 0 && result.staging_bytes <= 128ULL * 1024 * 1024 &&
+                result.pool_instances > 0 && result.pool_instances <= 100000,
+            "invalid asset capacity");
+      } else if (key == "display") {
         std::string mode;
         uint32_t resizable{};
         RequireProject(fields.insert(key).second &&
@@ -86,9 +105,11 @@ struct GameProject final {
                            bool(row >> result.tile_atlas.high >> result.tile_atlas.low) &&
                            (result.tile_atlas.high || result.tile_atlas.low) && !(row >> trailing),
                        "invalid tile atlas identity");
-      } else if (key == "atlas" || key == "clip" || key == "wave" || key == "font") {
+      } else if (key == "atlas" || key == "clip" || key == "wave" || key == "font" ||
+                 key == "deferred_atlas" || key == "deferred_clip" || key == "deferred_blob") {
         ProjectAsset asset;
-        asset.kind = key;
+        asset.deferred = key.starts_with("deferred_");
+        asset.kind = asset.deferred ? key.substr(9) : key;
         if (key == "wave" || key == "font") {
           RequireProject(bool(row >> asset.id) && asset.id && (key != "font" || asset.id <= 32) &&
                              ids.emplace(key, asset.id).second,

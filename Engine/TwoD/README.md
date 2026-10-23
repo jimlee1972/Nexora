@@ -240,3 +240,10 @@ The standalone Player supports independently negotiated display state, project w
 ## Image UI and reusable fonts
 
 The optional [image UI service](GameplayUiDraw.md) supplies copied RGBA images, clipped images/nine-slice, style-free interaction, glyph metrics and reusable font slots. The general Player handles snapshot-aware native texture retirement. Zig owns screen composition; final-art and physical acceptance remain open.
+
+## Deferred assets and residency
+
+The optional [asset lifecycle service](GameplayAssets.md) provides bounded catalog requests,
+explicit content removal, retained-generation budgets and snapshot-aware native retirement.
+The Player retains legacy preload defaults and adds deferred Atlas/Clip/opaque files plus
+configurable content/pool capacities. Games own transition and event policy in Zig.

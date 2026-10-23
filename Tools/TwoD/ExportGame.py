@@ -126,7 +126,7 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     config = json.loads(descriptor.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
     if not isinstance(config, dict):
         raise ValueError('game descriptor must be an object')
-    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display'}:
+    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display', 'capacity'}:
         raise ValueError('unknown game descriptor field')
     if type(config.get('schema')) is not int or config['schema'] != 1 or not re.fullmatch(r'[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?', config.get('id', '')):
         raise ValueError('invalid game schema or ID')
@@ -145,6 +145,15 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
                 or display['mode'] not in ('windowed', 'borderless')
                 or type(display['resizable']) is not bool):
             raise ValueError('invalid display settings')
+    capacity = config.get('capacity')
+    capacity_keys = ('active_assets', 'active_bytes', 'live_bytes', 'staging_bytes', 'pool_instances')
+    if 'capacity' in config:
+        bounds = ((1, 4096), (1, 1024**3), (1, 2*1024**3), (1, 128*1024**2), (1, 100000))
+        if (not isinstance(capacity, dict) or set(capacity) != set(capacity_keys)
+                or any(type(capacity[k]) is not int or not low <= capacity[k] <= high
+                       for k, (low, high) in zip(capacity_keys, bounds))
+                or capacity['live_bytes'] < capacity['active_bytes']):
+            raise ValueError('invalid asset capacity')
     assets = config.get('assets', [])
     if not isinstance(assets, list) or len(assets) > 4096:
         raise ValueError('asset count exceeds 4096')
@@ -173,20 +182,27 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
                 raise ValueError('invalid tile atlas identity')
             lines.append(f'tile_atlas {identity[0]} {identity[1]}')
         ids, paths, total = set(), set(), 0
+        preload_targets = []
         for index, entry in enumerate(assets):
             if not isinstance(entry, dict):
                 raise ValueError('asset descriptor must be an object')
-            if set(entry) - {'kind', 'path', 'id'}:
+            if set(entry) - {'kind', 'path', 'id', 'preload'}:
                 raise ValueError('unknown asset field')
             kind = entry['kind']
-            if kind not in ('atlas', 'clip', 'wave', 'font') or entry['path'] in paths:
+            if kind not in ('atlas', 'clip', 'wave', 'font', 'blob') or entry['path'] in paths:
                 raise ValueError('invalid or duplicate asset')
             paths.add(entry['path'])
             source = local(descriptor.parent, entry['path'])
-            total += source.stat().st_size
+            preload = entry.get('preload', kind != 'blob')
+            if type(preload) is not bool or (not preload and kind in ('wave', 'font')) or (preload and kind == 'blob'):
+                raise ValueError('invalid asset preload policy; use a deferred blob for game-owned bytes')
+            size = source.stat().st_size
+            if not 0 < size <= 64 * 1024 * 1024:
+                raise ValueError('asset exceeds per-file 64 MiB limit')
+            total += size if preload else 0
             if total > 64 * 1024 * 1024:
-                raise ValueError('source assets exceed 64 MiB')
-            suffix = '.nxcook' if kind in ('atlas', 'clip') else '.wav' if kind == 'wave' else '.nxfont'
+                raise ValueError('preloaded source assets exceed 64 MiB')
+            suffix = '.nxcook' if kind in ('atlas', 'clip') else '.wav' if kind == 'wave' else '.nxfont' if kind == 'font' else '.bin'
             target = staging / 'assets' / (f'{index:04d}' + suffix)
             if kind in ('atlas', 'clip') and source.suffix.lower() != '.nxcook':
                 if not compiler or source.suffix.lower() != '.nx2' + kind:
@@ -205,9 +221,16 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
                     raise ValueError('invalid or duplicate service asset ID')
                 ids.add((kind, value))
                 prefix = f'{value} '
-            lines.append(f'{kind} {prefix}{quote("assets/" + target.name)}')
-        if sum(path.stat().st_size for path in (staging / 'assets').iterdir()) > 64 * 1024 * 1024:
+            if not 0 < target.stat().st_size <= 64 * 1024 * 1024:
+                raise ValueError('cooked asset exceeds per-file 64 MiB limit')
+            if preload:
+                preload_targets.append(target)
+            manifest_kind = kind if preload else 'deferred_' + kind
+            lines.append(f'{manifest_kind} {prefix}{quote("assets/" + target.name)}')
+        if sum(path.stat().st_size for path in preload_targets) > 64 * 1024 * 1024:
             raise ValueError('cooked assets exceed 64 MiB')
+        if capacity is not None:
+            lines.append('capacity ' + ' '.join(str(capacity[k]) for k in capacity_keys))
         if display is not None:
             lines.append(f"display {display['width']} {display['height']} {display['mode']} {int(display['resizable'])}")
         (staging / 'game.nx2game').write_text('\n'.join(lines) + '\n', encoding='utf-8')

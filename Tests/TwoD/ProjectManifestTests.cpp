@@ -33,6 +33,13 @@ void Run(const std::filesystem::path &root) {
   Check(load(base).module == std::filesystem::canonical(module) && load(base).audio == "off",
         "valid descriptor");
   Check(load(base).width == 640 && load(base).height == 480, "legacy display default");
+  Check(load(base).pool_instances == 1024 && load(base).content_limits.assets == 256,
+        "legacy asset capacities");
+  const auto configured = load(base + "capacity 512 100663296 134217728 67108864 4096\n"
+                                      "deferred_atlas \"gameplay.dll\"\n");
+  Check(configured.pool_instances == 4096 && configured.assets.size() == 1 &&
+            configured.assets[0].deferred && configured.assets[0].kind == "atlas",
+        "deferred asset catalog");
   const auto display = load(base + "display 1920 1080 windowed 1\n");
   Check(display.width == 1920 && display.height == 1080 && !display.borderless && display.resizable,
         "configured display");
@@ -46,7 +53,12 @@ void Run(const std::filesystem::path &root) {
         "project directory alias normalization");
 #endif
   for (const auto &bad :
-       {base + "unknown \"value\"\n", base + "id \"duplicate\"\n", base + "tile_atlas 0 0\n",
+       {base + "capacity 0 67108864 134217728 67108864 1024\n",
+        base + "capacity 256 67108864 1 67108864 1024\n",
+        base + "capacity 256 67108864 134217728 67108864 100001\n",
+        base + "capacity 256 67108864 134217728 67108864 1024 trailing\n",
+        base + "deferred_wave 1 \"gameplay.dll\"\n", base + "unknown \"value\"\n",
+        base + "id \"duplicate\"\n", base + "tile_atlas 0 0\n",
         base + "display 0 1080 windowed 1\n", base + "display 16385 1080 windowed 1\n",
         base + "display -1 1080 windowed 1\n", base + "display 1920 1080 exclusive 1\n",
         base + "display 1920.5 1080 windowed 1\n", base + "display 1920 1080 windowed 2\n",

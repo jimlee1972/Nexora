@@ -6,6 +6,7 @@ pub const ui = @import("ui.zig");
 pub const audio = @import("audio.zig");
 pub const storage = @import("storage.zig");
 pub const content = @import("content.zig");
+pub const assets = @import("assets.zig");
 pub const display = @import("display.zig");
 pub const ui_draw = @import("ui_draw.zig");
 pub const services_api_capability: u64 = 1 << 6;
@@ -20,6 +21,7 @@ pub const GameplayServicesApiV1 = extern struct {
     get_content_api: ?*const fn (?*anyopaque, *content.Api) callconv(.c) i32 = null,
     get_display_api: ?*const fn (?*anyopaque, *display.Api) callconv(.c) i32 = null,
     get_ui_draw_api: ?*const fn (?*anyopaque, *ui_draw.Api) callconv(.c) i32 = null,
+    get_assets_api: ?*const fn (?*anyopaque, *assets.Api) callconv(.c) i32 = null,
 };
 pub const services_v1_base_size: u32 = @offsetOf(GameplayServicesApiV1, "get_display_api");
 pub fn getDisplay(services: GameplayServicesApiV1) ?display.Api {
@@ -33,6 +35,13 @@ pub fn getUiDraw(services: GameplayServicesApiV1) ?ui_draw.Api {
     if (services.struct_size < @offsetOf(GameplayServicesApiV1, "get_ui_draw_api") + @sizeOf(@FieldType(GameplayServicesApiV1, "get_ui_draw_api"))) return null;
     const get = services.get_ui_draw_api orelse return null;
     var api = ui_draw.Api{};
+    if (get(services.context, &api) != 0 or !api.valid()) return null;
+    return api;
+}
+pub fn getAssets(services: GameplayServicesApiV1) ?assets.Api {
+    if (services.struct_size < @offsetOf(GameplayServicesApiV1, "get_assets_api") + @sizeOf(@FieldType(GameplayServicesApiV1, "get_assets_api"))) return null;
+    const get = services.get_assets_api orelse return null;
+    var api = assets.Api{};
     if (get(services.context, &api) != 0 or !api.valid()) return null;
     return api;
 }

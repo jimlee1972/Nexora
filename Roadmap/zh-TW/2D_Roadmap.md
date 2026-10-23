@@ -647,3 +647,18 @@ Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6�
 不等於最終台詞驗收，診斷圖示不算正式美術。見 [UI 契約](../../Engine/TwoD/GameplayUiDraw.md)
 與[雲端證據](../../Tools/Build/evidence/SP02-ImageUi-Cloud-2026-10-23.md)。正式美術、Windows
 字型／輸入、實體手把及既有里程碑驗收仍保持未完成。
+
+## SP-03 延後素材載入與常駐生命週期（2026-10-23）
+
+✅ 已實作有界目錄 IO、C／Zig 複製請求狀態、明確資產移除、依相依順序卸載及快照感知的原生貼圖回收。
+原版／SP-01／SP-02 services 前綴與舊專案預載預設維持相容。容量可明確設定，不是無條件提高 64 MiB；
+轉場、遊戲規則與事件政策仍由 Zig 控制。
+
+可攜驗證涵蓋五張同時常駐的 2048² 圖集（超過 80 MiB）、八輪卸載／重載、舊版本預算背壓及實際程序
+RSS／working-set 觀測。獨立 Zig 模組從超過 80 MiB 的封裝啟動，驗證 15 次轉場、1,800 個 pooled instances、
+30 個 Animator 事件及毀損檔案拒絕。原生像素測試檢查 2048² GPU 新版本與保留畫面的回收；平台實際執行
+證據須與僅編譯區分。見[契約](../../Engine/TwoD/GameplayAssets.md)及
+[雲端證據](../../Tools/Build/evidence/SP03-AssetResidency-Cloud-2026-10-23.md)。
+
+正式遊戲素材／全內容、完整拾取／戰鬥轉場及目標實機 RAM／VRAM／幀時間預算尚未驗收。
+音訊串流／壓縮、色彩及既有 M6／M7 門檻保持原判定。

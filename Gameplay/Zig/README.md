@@ -274,3 +274,12 @@ nine-slot HUD, choices, loadout, subtitles and settings, with visible focus and 
 The baked Noto glyphs are real; colored icon/panel pixels are diagnostic fixtures. Host tests drive
 pointer/navigation/cancel at four DPI scales. `NexoraZigUiShowcaseBuild` builds its module; export
 it with the general Player just like any separate module. See [the image UI contract](../../Engine/TwoD/GameplayUiDraw.md).
+
+## SP-03 diagnostic transitions
+
+`src/asset_transitions.zig` is a separate V3 module using the optional asset service. It loads
+five cooked 2048-square Atlas/Clip pairs sequentially from a >80 MiB exported package, exercises
+1800 pooled instances and real animation events, then removes resources in dependency order and
+waits for native/snapshot retirement before re-entry. Layout, transition choices and cleanup are
+Zig. This is diagnostic data, not production art/combat/pickup acceptance. See
+[the service contract](../../Engine/TwoD/GameplayAssets.md).
