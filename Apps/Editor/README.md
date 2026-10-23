@@ -409,6 +409,12 @@ The graphical File menu supports New Scene, Open Scene, Save and Save As with Ct
 Ctrl+S/Ctrl+Shift+S. Scene panel Save uses the same managed current path; Untitled Save opens Save As.
 Project startup restores the last successfully opened/saved scene and its per-file view state.
 Without valid startup state it opens `.nexora/scenes/Main.scene`, creating a starter root only when missing.
+On Save All or Save and Exit, the writer prepares the ordinary `.nexora/scenes` directory when
+an owned scene uses that default path, without saving scene bytes. Startup does not create this directory.
+Read-only, recovery-blocked and externally changed workspaces cannot
+prepare storage; occupied files or aliased directories are preserved and rejected. This allows
+the first Save All or Save and Exit to use the unchanged batch requirement for existing ordinary
+parents, exact baselines and unoccupied sibling staging paths.
 New starts empty/dirty, Open adopts a validated project-relative `.scene`, and Save As adopts its
 successfully written destination without changing the original file. Dirty New/Open requires
 Save/Discard/Cancel; existing different destinations require Replace. Missing/corrupt Open preserves
