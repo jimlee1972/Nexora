@@ -117,3 +117,39 @@ Additional DPI/cross-monitor, successful redocking, held-input focus loss and co
 records remain unaccepted. Prior keyboard recovery and layout evidence stays scoped to its prior
 frozen runtime. Original WGC capture remains open as `nexora-nqn.4.6`; GDI does not repair it.
 No clean-host, Linux physical-display, screen-reader or ED-M0 milestone acceptance is claimed.
+
+## Integrated main revalidation
+
+Main advanced to `8169c012dc570eb5ce0e6819ec41ef5ce12a0902` (font coverage and native input
+reliability). The existing feature branch merged it at `13534509d9748f32734653b94a614c9fb49d2738`;
+all upstream changes are preserved. The earlier results above retain their original source scope.
+New evidence is in `build/3mj-zey-integration-20261023`, using a separately frozen runtime:
+
+- `NexoraEditor.exe`: `dbf0247ea895e2e02d3d1e2afd03abe960c57e6077bffbb0e614156575591683`.
+- `NexoraEditorImGui.dll`: `74ede5d04b4e1a7675631e547f695f3ba1dabf65872b46cca2e803bc6b0b9956`.
+- `NexoraWindow.dll`: `15fb2b6a3829c986a509bc86f2e96e3f40af70de352bb90413ba1112ac8518f3`.
+
+Integrated configure/build exit 0. The six focused cases listed above plus `editor.font_glyphs`
+pass (7/7, 163.10 seconds). Native Inspector right/left and down/up round trips pass;
+settled frames 004/006/008 are byte-identical and the fixture scene remains unchanged.
+Fresh first Save All and a separate fresh first Save and Exit succeed without a pre-existing
+scenes directory. Native IME commits `你` once, cancellation preserves the saved scene SHA-256
+`26375e1286299b804efa6610e01a0df6241d1a6aa6db7330600b4a2f16329a11`, and reopening
+shows that saved name. Every interactive session exits normally with code 0. The 240-frame
+DX12 smoke exits 0 with acquired=presented=240, ui_draws=1914, ui_uploads=1, ui_rejected=0,
+GPU timing source=2, software=0.
+
+The initial Escape-guard stop remains recorded in `interaction-stopped.json`; renewed user
+authorization in a subsequent turn allowed the supported native interface to resume. The old
+stop does not describe the completed sessions. GDI remains the user-approved capture alternative.
+Integrated full local baseline passes: 314 registered, 311 selected, **305 passed / 6 skipped /
+0 failed**, exit 0, 1865.39 seconds. The command is the unchanged local-baseline command above.
+The inventory check proves that only the same three separately blocked stress cases are excluded;
+the six skips are exactly the same native recording cases listed above. The integrated documentation
+unit suite passes 16/16, and changed-document/bilingual-link checks pass. Verification preserves
+all 1,231 previously manifested files, validates all 20 frozen binaries and source hashes, and
+indexes 31 integrated capture frames with metadata. No Editor or test process remains after the gate.
+Final exact-head Linux/Windows/macOS and other applicable CI must pass before PR #701 can merge;
+the final CI receipts and expected-head merge record are retained with the packet and PR.
+Prior recovery/layout evidence is not promoted to this runtime; `nexora-6xr`, redocking,
+held-input focus loss and additional DPI/monitor/operator gates remain open.
