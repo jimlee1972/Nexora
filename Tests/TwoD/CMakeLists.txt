@@ -187,3 +187,16 @@ if(TARGET NexoraTwoDProjectFixture AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND
   set_tests_properties(twod.project_export_native PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77
     LABELS "twod;project;export;vulkan;virtual-display")
 endif()
+
+add_executable(NexoraGameplayDisplayTests GameplayDisplayTests.cpp)
+target_link_libraries(NexoraGameplayDisplayTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraGameplayDisplayTests)
+add_test(NAME twod.gameplay_display COMMAND NexoraGameplayDisplayTests)
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(gameplay.zig_display_wire_layout
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-display-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-display-global-cache"
+    "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep nx
+    "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayDisplayLayout.zig"
+    "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
+endif()

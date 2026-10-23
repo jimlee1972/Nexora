@@ -529,7 +529,8 @@ struct PreparedSpriteDraws final {
 };
 [[nodiscard]] NEXORA_PRESENTATION_API std::optional<PreparedSpriteDraws>
 PrepareSpriteDraws(const UiDrawData &sprites, const UiDrawData &overlay, std::uint32_t width,
-                   std::uint32_t height, bool instanceQuads = false);
+                   std::uint32_t height, bool instanceQuads = false,
+                   std::uint32_t background = 0xFF29140A);
 
 enum class SurfaceStatus : std::uint8_t {
   Ready,

@@ -6,6 +6,7 @@ pub const ui = @import("ui.zig");
 pub const audio = @import("audio.zig");
 pub const storage = @import("storage.zig");
 pub const content = @import("content.zig");
+pub const display = @import("display.zig");
 pub const services_api_capability: u64 = 1 << 6;
 pub const GameplayServicesApiV1 = extern struct {
     struct_size: u32 = @sizeOf(GameplayServicesApiV1),
@@ -16,14 +17,23 @@ pub const GameplayServicesApiV1 = extern struct {
     get_audio_api: ?*const fn (?*anyopaque, *audio.Api) callconv(.c) i32 = null,
     get_storage_api: ?*const fn (?*anyopaque, *storage.Api) callconv(.c) i32 = null,
     get_content_api: ?*const fn (?*anyopaque, *content.Api) callconv(.c) i32 = null,
+    get_display_api: ?*const fn (?*anyopaque, *display.Api) callconv(.c) i32 = null,
 };
+pub const services_v1_base_size: u32 = @offsetOf(GameplayServicesApiV1, "get_display_api");
+pub fn getDisplay(services: GameplayServicesApiV1) ?display.Api {
+    if (services.struct_size < @sizeOf(GameplayServicesApiV1)) return null;
+    const get = services.get_display_api orelse return null;
+    var api = display.Api{};
+    if (get(services.context, &api) != 0 or api.struct_size < @sizeOf(display.Api) or api.abi_version != 1) return null;
+    return api;
+}
 pub const host_v3_services_size: u32 = @offsetOf(GameplayHostV3, "get_services_api") + @sizeOf(@FieldType(GameplayHostV3, "get_services_api"));
 pub fn getServices(host: *const GameplayHostV3) ?GameplayServicesApiV1 {
     if (host.struct_size < host_v3_services_size or host.abi_version != abi_version or
         (host.capabilities & services_api_capability) == 0) return null;
     const get = host.get_services_api orelse return null;
     var api = GameplayServicesApiV1{};
-    if (get(host.context, &api) != 0 or api.struct_size < @sizeOf(GameplayServicesApiV1) or api.abi_version != 1) return null;
+    if (get(host.context, &api) != 0 or api.struct_size < services_v1_base_size or api.abi_version != 1) return null;
     return api;
 }
 

@@ -160,3 +160,7 @@ with a combined 64 MiB payload budget; unknown/missing/corrupt/type/dependency f
 
 See [the Windows acceptance list](../../Tools/TwoD/WindowsAcceptance.md) for the remaining physical
 checks. Linux software Vulkan and hosted Windows CI do not establish physical PC acceptance.
+
+## Display, DPI and safe viewport
+
+Projects may provide optional schema-1 `display` settings for a 1920x1080 window or borderless desktop mode. Omitted settings preserve 640x480. The Player exposes the optional display service before module start, publishes real framebuffer/logical extent and DPI, and uses a game-selected safe viewport consistently for extraction and picking. UI geometry and pointer input convert DPI once. See the [display contract](../../Engine/TwoD/GameplayDisplay.md) and [Windows acceptance procedure](../../Tools/TwoD/WindowsDisplayAcceptance.md).

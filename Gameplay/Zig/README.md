@@ -262,3 +262,7 @@ entries for the corpus (maximum 65536); the helper allocates nothing and retains
 Errors preserve the output handle; scratch is work storage. The existing real Zig services
 consumer verifies successful CJK-codepoint decoding plus truncated bytes/undersized scratch.
 Standalone project manifests can instead preload that font and use `get_font(index)` directly.
+
+## Display service
+
+`nexora.display` provides independently negotiated display snapshots, native mode requests and pixel/logical/world conversion with orthographic rotation. `getDisplay` safely returns null on historical service hosts while `getServices` preserves their earlier services. The independent `src/display_module.zig` consumer exports through the generic Player; see the [contract and examples](../../Engine/TwoD/GameplayDisplay.md).

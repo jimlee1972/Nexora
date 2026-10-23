@@ -1131,3 +1131,7 @@ reflected root/record/mode checks and exact compiled recipe identity. It adds no
 format, application-texture binding, automatic streaming/residency or stable C ABI change. Its fixed
 metadata footprint and GPU decoded-map output are RHI contracts; general authored/cooked feedback
 programs and runtime material integration remain separate work.
+
+## Optional display service suffix
+
+The services V1 aggregate accepts its frozen historical prefix and optionally appends `get_display_api`. It copies only the supported complete prefix; absent display services leave caller outputs unchanged and report unsupported. The host owns the registered display context through module unload. Runtime contains no native display policy or Presentation dependency. See [the display contract](../TwoD/GameplayDisplay.md).

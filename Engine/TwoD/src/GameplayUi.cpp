@@ -63,6 +63,26 @@ const GameplayUiGlyph *Glyph(const GameplayUiFont &font, std::uint32_t cp) {
 Nexora::Presentation::UiDrawData GameplayUiFrame::DrawData() const noexcept {
   return {vertices, std::as_bytes(std::span(indices)), commands, uploads, true, {}};
 }
+void GameplayUiFrame::ToPixels(float dpi, uint32_t width, uint32_t height) {
+  if (!std::isfinite(dpi) || dpi <= 0 || !width || !height)
+    throw std::invalid_argument("invalid UI pixel extent");
+  for (auto &v : vertices) {
+    v.position[0] *= dpi;
+    v.position[1] *= dpi;
+  }
+  for (auto &v : commands) {
+    const auto left = std::clamp(std::floor(double(v.clipX) * dpi), 0., double(width));
+    const auto top = std::clamp(std::floor(double(v.clipY) * dpi), 0., double(height));
+    const auto right =
+        std::clamp(std::ceil((double(v.clipX) + v.clipWidth) * dpi), left, double(width));
+    const auto bottom =
+        std::clamp(std::ceil((double(v.clipY) + v.clipHeight) * dpi), top, double(height));
+    v.clipX = int32_t(left);
+    v.clipY = int32_t(top);
+    v.clipWidth = uint32_t(right - left);
+    v.clipHeight = uint32_t(bottom - top);
+  }
+}
 struct GameplayUi::State final {
   std::thread::id thread{std::this_thread::get_id()};
   GameplayUiInput input{};

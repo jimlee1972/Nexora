@@ -291,12 +291,70 @@ public:
     XFlush(display_);
     return WindowError::None;
   }
+  WindowError Metrics(WindowHandle handle, WindowMetrics &out) const override {
+    if (!OnOwner())
+      return WindowError::WrongThread;
+    const auto window = Find(handle);
+    if (!window)
+      return WindowError::InvalidHandle;
+    XWindowAttributes info{};
+    if (!XGetWindowAttributes(display_, window, &info))
+      return WindowError::PlatformFailure;
+    out = {uint32_t(info.width), uint32_t(info.height), 1.F, false};
+    Atom actual{};
+    int format{};
+    unsigned long count{}, remaining{};
+    unsigned char *bytes{};
+    if (XGetWindowProperty(display_, window, XInternAtom(display_, "_NET_WM_STATE", False), 0, 1024,
+                           False, XA_ATOM, &actual, &format, &count, &remaining,
+                           &bytes) == Success &&
+        actual == XA_ATOM && format == 32 && bytes) {
+      const auto values = reinterpret_cast<const Atom *>(bytes);
+      const auto fullscreen = XInternAtom(display_, "_NET_WM_STATE_FULLSCREEN", False);
+      out.borderless = std::find(values, values + count, fullscreen) != values + count;
+    }
+    if (bytes)
+      XFree(bytes);
+    return WindowError::None;
+  }
+  WindowError SetResizable(WindowHandle handle, bool enabled) override {
+    if (!OnOwner())
+      return WindowError::WrongThread;
+    const auto window = Find(handle);
+    if (!window)
+      return WindowError::InvalidHandle;
+    XSizeHints hints{};
+    if (!enabled) {
+      XWindowAttributes info{};
+      if (!XGetWindowAttributes(display_, window, &info))
+        return WindowError::PlatformFailure;
+      hints.flags = PMinSize | PMaxSize;
+      hints.min_width = hints.max_width = info.width;
+      hints.min_height = hints.max_height = info.height;
+    }
+    XSetWMNormalHints(display_, window, &hints);
+    XFlush(display_);
+    return WindowError::None;
+  }
   WindowError SetFullscreen(WindowHandle handle, bool fullscreen) override {
     const auto window = Find(handle);
     if (!OnOwner())
       return WindowError::WrongThread;
     if (!window)
       return WindowError::InvalidHandle;
+    Atom actual{};
+    int format{};
+    unsigned long count{}, remaining{};
+    unsigned char *bytes{};
+    const auto check =
+        XGetWindowProperty(display_, DefaultRootWindow(display_),
+                           XInternAtom(display_, "_NET_SUPPORTING_WM_CHECK", False), 0, 1, False,
+                           XA_WINDOW, &actual, &format, &count, &remaining, &bytes);
+    const bool managed = check == Success && actual == XA_WINDOW && format == 32 && count == 1;
+    if (bytes)
+      XFree(bytes);
+    if (!managed)
+      return WindowError::Unsupported;
     XEvent event{};
     event.type = ClientMessage;
     event.xclient.window = window;

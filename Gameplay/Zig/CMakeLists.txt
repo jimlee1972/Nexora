@@ -236,10 +236,26 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
   endif()
   nexora_apply_defaults(NexoraZigServicesTests)
   add_test(NAME gameplay.zig_services_consumer COMMAND NexoraZigServicesTests)
-  foreach(wire input ui audio storage content)
+  foreach(wire input ui audio storage content display)
     nexora_add_zig_test(gameplay.zig_${wire}_wrapper
         "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
         --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-test-${wire}"
         --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-${wire}")
   endforeach()
+endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D AND NOT APPLE)
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(display_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigDisplay${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(display_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
+  list(TRANSFORM display_args REPLACE "src/game_module.zig" "src/display_module.zig")
+  list(TRANSFORM display_args REPLACE "-femit-bin=.*" "-femit-bin=${display_library}")
+  add_custom_command(OUTPUT "${display_library}"
+    COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${display_args}
+    DEPENDS src/display_module.zig ${gameplay_wire_dependencies} VERBATIM)
+  add_custom_target(NexoraZigDisplayBuild ALL DEPENDS "${display_library}")
+  add_test(NAME gameplay.zig_display_player COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/TwoD/DisplayAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --module "${display_library}")
+  set_tests_properties(gameplay.zig_display_player PROPERTIES TIMEOUT 90 LABELS "twod;zig;display;project")
 endif()

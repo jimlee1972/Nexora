@@ -39,9 +39,11 @@ struct NEXORA_2D_API SpriteFrame final {
   std::vector<AtlasBinding> retainedAtlases;
   FrameStatistics statistics;
   [[nodiscard]] std::vector<Nexora::Presentation::UiTextureUpload> Uploads() const;
+  void OffsetViewport(std::uint32_t x, std::uint32_t y);
   [[nodiscard]] Nexora::Presentation::SurfaceStatus
   Draw(Nexora::Presentation::RenderSurface &surface,
-       const Nexora::Presentation::UiDrawData &overlay = {}) const;
+       const Nexora::Presentation::UiDrawData &overlay = {},
+       std::uint32_t background = 0xFF29140A) const;
 };
 struct Collider final {
   ShapeKind kind{ShapeKind::Circle};

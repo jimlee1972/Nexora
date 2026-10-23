@@ -374,6 +374,16 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
   frame.statistics.indices = frame.indices.size();
   return frame;
 }
+void SpriteFrame::OffsetViewport(std::uint32_t x, std::uint32_t y) {
+  for (auto &v : vertices) {
+    v.position[0] += float(x);
+    v.position[1] += float(y);
+  }
+  for (auto &v : batches) {
+    v.clipX += int32_t(x);
+    v.clipY += int32_t(y);
+  }
+}
 std::vector<Nexora::Presentation::UiTextureUpload> SpriteFrame::Uploads() const {
   std::vector<Nexora::Presentation::UiTextureUpload> uploads;
   uploads.reserve(retainedAtlases.size());
@@ -385,10 +395,10 @@ std::vector<Nexora::Presentation::UiTextureUpload> SpriteFrame::Uploads() const 
 }
 Nexora::Presentation::SurfaceStatus
 SpriteFrame::Draw(Nexora::Presentation::RenderSurface &surface,
-                  const Nexora::Presentation::UiDrawData &overlay) const {
+                  const Nexora::Presentation::UiDrawData &overlay, std::uint32_t background) const {
   auto uploads = Uploads();
   return surface.DrawSprites({vertices, std::as_bytes(std::span(indices)), batches, uploads, true},
-                             overlay, true);
+                             overlay, true, background);
 }
 std::optional<Bytes> SpriteScene::Snapshot() const {
   auto world = world_->SaveScene(scene_, 16 * 1024 * 1024);

@@ -232,3 +232,7 @@ dependencies; the host supplies immutable rasterized fonts and frame input, and 
 [GameplayContent.md](GameplayContent.md) documents cooked Atlas/Clip registration through Zig,
 UUID discovery, dependency validation and owning native resolver generations. It reuses the existing
 2D codecs and Sprite pipeline, with no additional module dependency or game-specific C++ loading.
+
+## Display service and safe viewport
+
+The standalone Player supports independently negotiated display state, project window settings, game-selected aspect bounds and DPI-correct logical UI. Camera gameplay policy stays in Zig. See [GameplayDisplay](GameplayDisplay.md); native Windows acceptance remains separate from portable implementation tests.

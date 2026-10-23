@@ -3,6 +3,7 @@
 #endif
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
+#include "Nexora/Window/Geometry.h"
 #include "Nexora/Window/Window.h"
 #include <algorithm>
 #include <chrono>
@@ -183,7 +184,7 @@ public:
   WindowResult Create(const WindowDescriptor &d) override {
     if (!OnOwner())
       return {{}, WindowError::WrongThread};
-    if (!available_ || d.width == 0 || d.height == 0)
+    if (!available_ || d.width == 0 || d.height == 0 || d.width > 16384 || d.height > 16384)
       return {{}, WindowError::InvalidDescriptor};
     const auto id = next_++;
     std::wstring title = Utf8ToWide(d.title);
@@ -198,6 +199,12 @@ public:
       return {{}, WindowError::PlatformFailure};
     windows_[id] = hwnd;
     SetPropW(hwnd, L"Nexora.Handle", reinterpret_cast<HANDLE>(static_cast<uintptr_t>(id)));
+    const auto fit = Resize({id}, d.width, d.height);
+    if (fit != WindowError::None) {
+      DestroyWindow(hwnd);
+      windows_.erase(id);
+      return {{}, fit};
+    }
     if (d.initiallyVisible)
       ShowWindow(hwnd, SW_SHOW);
     return {{id}, WindowError::None};
@@ -210,6 +217,9 @@ public:
       return WindowError::InvalidHandle;
     DestroyWindow(it->second);
     windows_.erase(it);
+    fullscreen_.erase(h.value);
+    windowedRects_.erase(h.value);
+    windowedStyles_.erase(h.value);
     EraseQueued(h);
     return WindowError::None;
   }
@@ -228,38 +238,110 @@ public:
     auto hwnd = Find(h);
     if (!hwnd || !w || !he)
       return hwnd ? WindowError::InvalidDescriptor : WindowError::InvalidHandle;
-    RECT r{0, 0, (LONG)w, (LONG)he};
-    auto style = (DWORD)GetWindowLongPtrW(hwnd, GWL_STYLE);
-    AdjustWindowRectExForDpi(&r, style, FALSE, 0, GetDpiForWindow(hwnd));
-    return SetWindowPos(hwnd, nullptr, 0, 0, r.right - r.left, r.bottom - r.top,
-                        SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+    if (w > 16384 || he > 16384)
+      return WindowError::InvalidDescriptor;
+    MONITORINFO info{sizeof(info)};
+    if (!GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &info))
+      return WindowError::PlatformFailure;
+    RECT frame{0, 0, 0, 0};
+    const auto style = DWORD(GetWindowLongPtrW(hwnd, GWL_STYLE));
+    const auto ex = DWORD(GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
+    if (!AdjustWindowRectExForDpi(&frame, style, FALSE, ex, GetDpiForWindow(hwnd)))
+      return WindowError::PlatformFailure;
+    const LONG availableW = info.rcWork.right - info.rcWork.left;
+    const LONG availableH = info.rcWork.bottom - info.rcWork.top;
+    const auto borderW = frame.right - frame.left, borderH = frame.bottom - frame.top;
+    if (availableW <= borderW || availableH <= borderH)
+      return WindowError::PlatformFailure;
+    const auto fitted = FitClientExtent(w, he, uint32_t(availableW), uint32_t(availableH),
+                                        uint32_t(borderW), uint32_t(borderH));
+    if (!fitted)
+      return WindowError::PlatformFailure;
+    const auto outerW = LONG(fitted->first) + borderW;
+    const auto outerH = LONG(fitted->second) + borderH;
+    return SetWindowPos(hwnd, nullptr, info.rcWork.left + (availableW - outerW) / 2,
+                        info.rcWork.top + (availableH - outerH) / 2, outerW, outerH,
+                        SWP_NOZORDER | SWP_NOACTIVATE)
+               ? WindowError::None
+               : WindowError::PlatformFailure;
+  }
+  WindowError Metrics(WindowHandle h, WindowMetrics &out) const override {
+    if (!OnOwner())
+      return WindowError::WrongThread;
+    const auto hwnd = Find(h);
+    if (!hwnd)
+      return WindowError::InvalidHandle;
+    RECT client{};
+    if (!GetClientRect(hwnd, &client))
+      return WindowError::PlatformFailure;
+    out = {IsIconic(hwnd) ? 0U : uint32_t(client.right - client.left),
+           IsIconic(hwnd) ? 0U : uint32_t(client.bottom - client.top),
+           float(GetDpiForWindow(hwnd)) / 96.F,
+           (GetWindowLongPtrW(hwnd, GWL_STYLE) & WS_POPUP) != 0};
+    return WindowError::None;
+  }
+  WindowError SetResizable(WindowHandle h, bool enabled) override {
+    if (!OnOwner())
+      return WindowError::WrongThread;
+    const auto hwnd = Find(h);
+    if (!hwnd)
+      return WindowError::InvalidHandle;
+    auto style =
+        fullscreen_[h.value] ? windowedStyles_[h.value] : GetWindowLongPtrW(hwnd, GWL_STYLE);
+    style = enabled ? style | WS_THICKFRAME | WS_MAXIMIZEBOX
+                    : style & ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
+    if (fullscreen_[h.value]) {
+      windowedStyles_[h.value] = style;
+      return WindowError::None;
+    }
+    SetLastError(0);
+    if (!SetWindowLongPtrW(hwnd, GWL_STYLE, style) && GetLastError())
+      return WindowError::PlatformFailure;
+    return SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)
                ? WindowError::None
                : WindowError::PlatformFailure;
   }
   WindowError SetFullscreen(WindowHandle h, bool fullscreen) override {
     if (!OnOwner())
       return WindowError::WrongThread;
-    auto hwnd = Find(h);
+    const auto hwnd = Find(h);
     if (!hwnd)
       return WindowError::InvalidHandle;
     auto &state = fullscreen_[h.value];
     if (state == fullscreen)
       return WindowError::None;
+    const auto previousStyle = GetWindowLongPtrW(hwnd, GWL_STYLE);
+    RECT previousRect{};
+    if (!GetWindowRect(hwnd, &previousRect))
+      return WindowError::PlatformFailure;
+    RECT target{};
+    LONG_PTR style{};
     if (fullscreen) {
-      GetWindowRect(hwnd, &windowedRects_[h.value]);
-      SetWindowLongPtrW(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
-      const auto monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
       MONITORINFO info{sizeof(info)};
-      if (!GetMonitorInfoW(monitor, &info))
+      if (!GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &info))
         return WindowError::PlatformFailure;
-      SetWindowPos(hwnd, HWND_TOP, info.rcMonitor.left, info.rcMonitor.top,
-                   info.rcMonitor.right - info.rcMonitor.left,
-                   info.rcMonitor.bottom - info.rcMonitor.top, SWP_FRAMECHANGED);
+      target = info.rcMonitor;
+      style = WS_POPUP | (previousStyle & WS_VISIBLE);
     } else {
-      SetWindowLongPtrW(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-      const auto r = windowedRects_[h.value];
-      SetWindowPos(hwnd, nullptr, r.left, r.top, r.right - r.left, r.bottom - r.top,
-                   SWP_NOZORDER | SWP_FRAMECHANGED);
+      target = windowedRects_[h.value];
+      style = windowedStyles_[h.value];
+    }
+    SetLastError(0);
+    if (!SetWindowLongPtrW(hwnd, GWL_STYLE, style) && GetLastError())
+      return WindowError::PlatformFailure;
+    if (!SetWindowPos(hwnd, nullptr, target.left, target.top, target.right - target.left,
+                      target.bottom - target.top,
+                      SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+      SetWindowLongPtrW(hwnd, GWL_STYLE, previousStyle);
+      SetWindowPos(hwnd, nullptr, previousRect.left, previousRect.top,
+                   previousRect.right - previousRect.left, previousRect.bottom - previousRect.top,
+                   SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+      return WindowError::PlatformFailure;
+    }
+    if (fullscreen) {
+      windowedRects_[h.value] = previousRect;
+      windowedStyles_[h.value] = previousStyle;
     }
     state = fullscreen;
     return WindowError::None;
@@ -475,6 +557,7 @@ private:
   std::unordered_map<uint64_t, HWND> windows_;
   std::unordered_map<uint64_t, bool> fullscreen_;
   std::unordered_map<uint64_t, RECT> windowedRects_;
+  std::unordered_map<uint64_t, LONG_PTR> windowedStyles_;
   std::unordered_map<uint64_t, wchar_t> pendingHighSurrogates_;
   std::vector<WindowEvent> pending_, pumped_;
 };

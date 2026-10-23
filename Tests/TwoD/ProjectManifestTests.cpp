@@ -32,7 +32,13 @@ void Run(const std::filesystem::path &root) {
   };
   Check(load(base).module == std::filesystem::canonical(module) && load(base).audio == "off",
         "valid descriptor");
+  Check(load(base).width == 640 && load(base).height == 480, "legacy display default");
+  const auto display = load(base + "display 1920 1080 windowed 1\n");
+  Check(display.width == 1920 && display.height == 1080 && !display.borderless && display.resizable,
+        "configured display");
+  Check(load(base + "display 1920 1080 borderless 0\n").borderless, "borderless display");
 #if !defined(_WIN32)
+  (void)load(base);
   std::filesystem::create_directory_symlink(root, root / "alias");
   const auto aliased = player::GameProject::Load(root / "alias/game.nx2game");
   Check(aliased.module == std::filesystem::canonical(module) &&
@@ -41,6 +47,10 @@ void Run(const std::filesystem::path &root) {
 #endif
   for (const auto &bad :
        {base + "unknown \"value\"\n", base + "id \"duplicate\"\n", base + "tile_atlas 0 0\n",
+        base + "display 0 1080 windowed 1\n", base + "display 16385 1080 windowed 1\n",
+        base + "display -1 1080 windowed 1\n", base + "display 1920 1080 exclusive 1\n",
+        base + "display 1920.5 1080 windowed 1\n", base + "display 1920 1080 windowed 2\n",
+        base + "display 1920 1080 windowed 1\ndisplay 640 480 windowed 1\n",
         base + "font 33 \"gameplay.dll\"\n", base + "wave 1 \"../gameplay.dll\"\n",
         base + "wave 1 \"gameplay.dll:stream\"\n",
         base + "wave 1 \"gameplay.dll\"\nwave 1 \"gameplay.dll\"\n"}) {

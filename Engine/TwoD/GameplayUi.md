@@ -77,3 +77,7 @@ malformed UTF-8, unavailable glyphs, duplicate IDs, native draw geometry/clips, 
 navigation, pointer capture/click, focus loss and wrong-thread rejection. Its small deterministic
 raster fixture tests ownership/lookup and does not establish Chinese typography or native GPU pixel
 acceptance. Physical gamepad, DPI/font appearance and cross-platform product acceptance remain open.
+
+## Player DPI conversion
+
+The generic Player supplies logical input coordinates by dividing native pointer pixels by the published display DPI. Module UI dimensions use display logical extents. Before drawing, it calls `GameplayUiFrame::ToPixels` once on its owning frame copy, scaling vertices and clamping outward-rounded scissors to framebuffer bounds. User UI scale remains game-owned. The input service continues to expose native pixels. See [GameplayDisplay](GameplayDisplay.md).

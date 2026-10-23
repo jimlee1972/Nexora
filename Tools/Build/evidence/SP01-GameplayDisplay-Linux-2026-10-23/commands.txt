@@ -1,0 +1,24 @@
+SP-01 display implementation verification, 2026-10-23 Asia/Taipei
+Base: 7087e832 (origin/main at worktree creation)
+Linux x86_64; GCC 14.2; Clang 19.1.7 for existing reflection-tool tests;
+Zig 0.14.0; CMake 3.31.10; Ninja 1.13.2.
+PATH includes task-local CMake/Ninja/Clang; ZIG_GLOBAL_CACHE_DIR is outside the repository.
+
+cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp01/development-delivery-junit.xml
+Result: 267 registered, 251 passed, 16 skipped native display/GPU prerequisites, 0 failed.
+Native backends/Vulkan enabled; Slang and graphical Editor shell disabled by defaults. Editor core enabled.
+
+cmake --preset linux-shipping -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+cmake --preset linux-shipping
+cmake --build --preset linux-shipping
+zig build-lib --dep nexora -O ReleaseSafe -mcpu=baseline -Mroot=/workspace/worktrees/nexora-sp01/Gameplay/Zig/src/display_module.zig -Mnexora=/workspace/worktrees/nexora-sp01/Bindings/Zig/nexora.zig -dynamic -femit-bin=/workspace/scratch/nexora-sp01/libNexoraZigDisplayShipping.so
+python Tests/TwoD/DisplayAcceptance.py --shipping --app /workspace/worktrees/nexora-sp01/build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --module /workspace/scratch/nexora-sp01/libNexoraZigDisplayShipping.so
+Result: Monolithic Shipping build and relocated independent Zig consumer/export/descriptor/viewport verification PASS. inventory development_test_copy=false.
+
+zig c++ -target x86_64-windows-gnu -std=c++20 -c -DNEXORA_WINDOW_EXPORTS=1 -I/workspace/worktrees/nexora-sp01/Engine/Window/include /workspace/worktrees/nexora-sp01/Engine/Window/src/Win32Window.cpp -o /workspace/scratch/nexora-sp01/Win32Window.obj
+Result: Windows GNU-target COFF object compilation PASS; this is NOT an MSVC build or native Windows execution.
+
+No binary/build artifacts committed. No Windows DPI, hardware, physical click or mode acceptance claimed.

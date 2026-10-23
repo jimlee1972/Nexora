@@ -9,6 +9,7 @@
 #include "Nexora/Runtime/GameplayStorage.h"
 #include "Nexora/TwoD/GameplayBridge.h"
 #include "Nexora/TwoD/GameplayContent.h"
+#include "Nexora/TwoD/GameplayDisplay.h"
 #include "Nexora/TwoD/GameplayUi.h"
 #include "Project.h"
 #include "TwoDValidation.h"
@@ -58,6 +59,10 @@ NexoraGameplayHostV3 Host(Context &c) {
                    NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API |
                    NEXORA_GAMEPLAY_CAPABILITY_POINTER_INPUT;
   h.context = &c;
+  h.log = [](void *, uint32_t, const char *text, uint32_t length) {
+    if (text && length <= 65536)
+      std::cerr.write(text, length) << '\n';
+  };
   h.capture_pointer_input = [](void *p, uint32_t user, NexoraPointerInputSnapshotV1 *out) {
     return Call(p, [&](auto &s) -> int32_t {
       if (!out)
@@ -438,6 +443,40 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
               "validation device audio play");
       }
     }
+    Nexora::Presentation::RenderSurfaceResult surface;
+    if (native) {
+      Nexora::Presentation::RenderSurfaceDescriptor d;
+      d.title = project ? std::string_view(project->title) : std::string_view("Nexora Zig 2D");
+      d.width = project ? project->width : 640;
+      d.height = project ? project->height : 480;
+      d.resizable = project ? project->resizable : true;
+      d.borderless = project && project->borderless;
+      d.backend = backend;
+      surface = Nexora::Presentation::CreateRenderSurface(d);
+      if (!surface)
+        throw std::runtime_error("native 2D surface: " + surface.reason);
+    }
+    twod::GameplayDisplay display([&](const NexoraDisplayWindowV1 &request) -> int32_t {
+      if (!native)
+        return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+      const auto result = surface.surface->ConfigureWindow(
+          request.width, request.height, request.mode == 1, request.resizable != 0);
+      if (result == Nexora::Window::WindowError::None)
+        return NEXORA_GAMEPLAY_OK;
+      if (result == Nexora::Window::WindowError::Unsupported)
+        return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
+      return NEXORA_GAMEPLAY_ERROR_LIFECYCLE;
+    });
+    const auto updateDisplay = [&] {
+      const auto info =
+          native ? surface.surface->FrameInfo()
+                 : Nexora::Presentation::SurfaceFrameInfo{project ? project->width : 640U,
+                                                          project ? project->height : 480U, 1.F};
+      display.BeginFrame(info.width, info.height, info.dpiScale,
+                         native && surface.surface->Borderless() ? 1U : 0U);
+    };
+    updateDisplay();
+    services.display = display.Api();
     Context context{world, bridge, sceneId, services};
     if (project)
       context.scene_name = project->scene;
@@ -466,17 +505,6 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       }
     }
     const twod::AtlasResolver resolver = [&content](auto id) { return content.ResolveAtlas(id); };
-    Nexora::Presentation::RenderSurfaceResult surface;
-    if (native) {
-      Nexora::Presentation::RenderSurfaceDescriptor d;
-      d.title = project ? std::string_view(project->title) : std::string_view("Nexora Zig 2D");
-      d.width = 640;
-      d.height = 480;
-      d.backend = backend;
-      surface = Nexora::Presentation::CreateRenderSurface(d);
-      if (!surface)
-        throw std::runtime_error("native 2D surface: " + surface.reason);
-    }
     std::array<bool, static_cast<std::size_t>(Nexora::Window::Key::F12) + 1> keys{};
     unsigned rendered{}, movementFrames{}, uiFrames{}, assetReloads{};
     std::uint64_t submittedAudioFrames{};
@@ -557,6 +585,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
                     "key input");
             }
         }
+        updateDisplay();
         if (status == Nexora::Presentation::SurfaceStatus::ZeroExtent ||
             status == Nexora::Presentation::SurfaceStatus::Occluded ||
             status == Nexora::Presentation::SurfaceStatus::OutOfDate) {
@@ -567,6 +596,9 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         }
         Check(status == Nexora::Presentation::SurfaceStatus::Ready, "surface acquire");
       }
+      if (!native)
+        updateDisplay();
+      const auto &displayState = display.State();
       const auto actionState = [&](uint32_t action) {
         NexoraGameplayActionStateV1 state{};
         state.struct_size = sizeof(state);
@@ -579,7 +611,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       uiInput.navigate = pressed(253) ? 1 : pressed(254) ? -1 : 0;
       uiInput.activate = pressed(255);
       uiInput.cancel = pressed(256);
-      ui.BeginInput(uiInput);
+      auto logicalInput = uiInput;
+      logicalInput.pointer_x /= displayState.dpi_scale;
+      logicalInput.pointer_y /= displayState.dpi_scale;
+      ui.BeginInput(logicalInput);
       ++context.input.sequence;
       const auto held = [&](Nexora::Window::Key key) {
         return keys[static_cast<std::size_t>(key)] ? 1.0 : 0.0;
@@ -624,11 +659,12 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
           ++assetReloads;
         }
       }
-      const auto width = native ? surface.surface->FrameInfo().width : 640U;
-      const auto height = native ? surface.surface->FrameInfo().height : 480U;
+      const auto width = displayState.pixel_width;
+      const auto height = displayState.pixel_height;
+      const auto &viewport = displayState.viewport_pixels;
       if (validation) {
         const auto buttons =
-            twod_validation::Draw(ui, static_cast<float>(width), static_cast<float>(height));
+            twod_validation::Draw(ui, displayState.logical_width, displayState.logical_height);
         ++uiFrames;
         if (buttons.save) {
           const auto value = world.WorldTransform(entity);
@@ -643,7 +679,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
           }
         }
       }
-      const auto camera = bridge.RenderCamera(width, height);
+      const auto camera = bridge.RenderCamera(uint32_t(viewport.width), uint32_t(viewport.height));
       // One extraction preserves transparent sorting across entities, transient instances and
       // tiles.
       std::vector<twod::SpriteInstance> instances;
@@ -671,16 +707,27 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       visible = extracted->statistics.visible;
       if (!project)
         Check(visible > 0 && extracted->statistics.unavailable == 0, "Zig Sprite asset resolution");
-      const auto overlay = ui.Frame();
+      extracted->OffsetViewport(uint32_t(viewport.x), uint32_t(viewport.y));
+      auto overlay = ui.Frame();
+      overlay.ToPixels(displayState.dpi_scale, width, height);
       if (project && !overlay.commands.empty())
         ++uiFrames;
       if (native) {
-        Check(extracted->Draw(*surface.surface, overlay.DrawData()) ==
-                  Nexora::Presentation::SurfaceStatus::Ready,
+        Check(extracted->Draw(*surface.surface, overlay.DrawData(),
+                              viewport.width != width || viewport.height != height
+                                  ? 0xFF000000
+                                  : 0xFF29140A) == Nexora::Presentation::SurfaceStatus::Ready,
               "native Sprite draw");
-        Check(surface.surface->EndFrame() == Nexora::Presentation::SurfaceStatus::Ready,
+        const auto presented = surface.surface->EndFrame();
+        // A window request during module update can invalidate the acquired image. The next
+        // BeginFrame consumes its new extent; never count an unpresented frame as delivered.
+        Check(presented == Nexora::Presentation::SurfaceStatus::Ready ||
+                  presented == Nexora::Presentation::SurfaceStatus::OutOfDate ||
+                  presented == Nexora::Presentation::SurfaceStatus::ZeroExtent ||
+                  presented == Nexora::Presentation::SurfaceStatus::Occluded,
               "native present");
-        ++rendered;
+        if (presented == Nexora::Presentation::SurfaceStatus::Ready)
+          ++rendered;
       }
       if (project && wantsAudio && !audioOutput && now >= nextAudioAttempt) {
         std::string reason;
@@ -739,8 +786,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
             "validation save/reopen after owner destruction");
       saveReopened = true;
     }
-    const auto finalWidth = native ? surface.surface->FrameInfo().width : 640U;
-    const auto finalHeight = native ? surface.surface->FrameInfo().height : 480U;
+    const auto finalWidth = display.State().pixel_width;
+    const auto finalHeight = display.State().pixel_height;
     const auto gpu =
         native ? surface.surface->Diagnostics() : Nexora::Presentation::SurfaceDiagnostics{};
     if (native && !project)
@@ -758,6 +805,10 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         ",\"entity_x\":" + std::to_string(transform->x) +
         ",\"final_width\":" + std::to_string(finalWidth) +
         ",\"final_height\":" + std::to_string(finalHeight) +
+        ",\"viewport_x\":" + std::to_string(display.State().viewport_pixels.x) +
+        ",\"viewport_y\":" + std::to_string(display.State().viewport_pixels.y) +
+        ",\"viewport_width\":" + std::to_string(display.State().viewport_pixels.width) +
+        ",\"viewport_height\":" + std::to_string(display.State().viewport_pixels.height) +
         ",\"native_ui_draws\":" + std::to_string(gpu.nativeUiDrawCalls) +
         ",\"native_ui_texture_uploads\":" + std::to_string(gpu.nativeUiTextureUploads) +
         ",\"resize_generations\":" + std::to_string(gpu.resizeGenerations) +

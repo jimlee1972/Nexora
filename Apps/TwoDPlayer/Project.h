@@ -30,6 +30,8 @@ struct GameProject final {
   std::string id, title, scene, audio{"optional"};
   std::vector<ProjectAsset> assets;
   twod::AssetId tile_atlas{};
+  uint32_t width{640}, height{480};
+  bool borderless{}, resizable{true};
   std::filesystem::path File(std::string_view value) const {
     RequireProject(
         std::all_of(value.begin(), value.end(), [](unsigned char c) { return c >= 32 && c < 127; }),
@@ -68,7 +70,18 @@ struct GameProject final {
       std::istringstream row(line);
       std::string key, value, trailing;
       row >> key;
-      if (key == "tile_atlas") {
+      if (key == "display") {
+        std::string mode;
+        uint32_t resizable{};
+        RequireProject(fields.insert(key).second &&
+                           bool(row >> result.width >> result.height >> mode >> resizable) &&
+                           !(row >> trailing) && result.width > 0 && result.width <= 16384 &&
+                           result.height > 0 && result.height <= 16384 && resizable <= 1 &&
+                           (mode == "windowed" || mode == "borderless"),
+                       "invalid display settings");
+        result.borderless = mode == "borderless";
+        result.resizable = resizable != 0;
+      } else if (key == "tile_atlas") {
         RequireProject(fields.insert(key).second &&
                            bool(row >> result.tile_atlas.high >> result.tile_atlas.low) &&
                            (result.tile_atlas.high || result.tile_atlas.low) && !(row >> trailing),

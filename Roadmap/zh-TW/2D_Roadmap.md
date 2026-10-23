@@ -619,3 +619,18 @@ P0 6/8 不變。** 產品最低規格與完整 allocator／正式負載／裝置
 [保留證據](../../Engine/Runtime/evidence/ALSA-Lifetime-Linux-2026-10-20/acceptance.md)。
 Hosted sanitizer CI 保留同一矩陣的 stdout／stderr。靜音／Null 輸出不增加實體可聽音訊或
 裝置復原驗收。M6／M7 與 9/11（82%）維持不變。
+
+## SP-01 獨立 Player 顯示整合（2026-10-23）
+
+✅ 可攜實作與回歸檢查：251 項通過、16 項原生前提不足而跳過、0 失敗；Monolithic Shipping consumer 通過。
+
+獨立 2D Player 已加入可選專案視窗設定、尾端擴充且獨立協商的 C／Zig 顯示 table、
+每幀一致的像素／logical／DPI 快照、原生視窗模式請求、遊戲指定畫框比例、安全畫框
+投影／裁切，以及正確 DPI 的 UI／輸入。舊 services consumer 與專案描述檔保留原有
+前綴／預設值。世界鏡頭跨度、HUD 排版與 UI 縮放仍由遊戲決定；本次未接入 Editor Play。
+
+參見[顯示契約](../../Engine/TwoD/GameplayDisplay.md)、
+[Linux 證據](../../Tools/Build/evidence/SP01-GameplayDisplay-Linux-2026-10-23.md)與
+[Windows 操作程序](../../Tools/TwoD/WindowsDisplayAcceptance.md)。
+Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6／M7 與既有里程碑
+完成數不變，可攜實作檢查不等同於通過上述驗收。

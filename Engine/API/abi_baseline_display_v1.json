@@ -1,0 +1,50 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "services_suffix": [
+    "get_display_api"
+  ],
+  "structures": {
+    "NexoraDisplayRectV1": [
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "NexoraDisplayStateV1": [
+      "struct_size",
+      "abi_version",
+      "revision",
+      "pixel_width",
+      "pixel_height",
+      "logical_width",
+      "logical_height",
+      "dpi_scale",
+      "mode",
+      "viewport_pixels",
+      "viewport_logical"
+    ],
+    "NexoraDisplayWindowV1": [
+      "struct_size",
+      "abi_version",
+      "width",
+      "height",
+      "mode",
+      "resizable"
+    ],
+    "NexoraGameplayDisplayApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "get_state",
+      "request_window",
+      "set_aspect"
+    ]
+  },
+  "zig_names": {
+    "NexoraDisplayRectV1": "display.Rect",
+    "NexoraDisplayStateV1": "display.State",
+    "NexoraDisplayWindowV1": "display.Window",
+    "NexoraGameplayDisplayApiV1": "display.Api"
+  }
+}

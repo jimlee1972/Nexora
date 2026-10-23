@@ -238,3 +238,19 @@ The benchmark/runner now offers explicit `--objects 5000`, retaining default 10,
 cases at or below the selected load gate performance. Fresh 5,000-object integrated acceptance is NOT RUN, so M6 remains open.
 Historical 10k failures and native submit/present follow-ups remain retained; target reduction
 does not prove a stall fixed. Close M6 only after the revised required checks have passing evidence.
+
+## SP-01 standalone display integration (2026-10-23)
+
+✅ Portable implementation and regression checks: 251 passed, 16 native-prerequisite skips, 0 failed; Monolithic Shipping consumer passed.
+
+The standalone 2D Player now has optional project window settings, an append-only independently
+negotiated C/Zig display table, frame-stable pixel/logical/DPI snapshots, native window mode
+requests, game-selected aspect bounds, safe-frame extraction/scissors and DPI-correct UI/input.
+Historical service consumers and descriptors retain their prefixes/defaults. World camera span,
+HUD layout and UI scale remain game-owned. This does not add Editor Play display wiring.
+
+See [the display contract](../../Engine/TwoD/GameplayDisplay.md),
+[Linux evidence](../../Tools/Build/evidence/SP01-GameplayDisplay-Linux-2026-10-23.md) and
+[Windows procedure](../../Tools/TwoD/WindowsDisplayAcceptance.md).
+Windows physical DPI/click/mode acceptance is NOT RUN / NOT ACCEPTED; 2D M6/M7 and existing
+milestone counts remain unchanged. Portable implementation checks do not close those gates.

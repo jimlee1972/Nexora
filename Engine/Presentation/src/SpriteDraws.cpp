@@ -4,20 +4,19 @@
 #include <cstring>
 #include <map>
 namespace Nexora::Presentation {
-std::optional<PreparedSpriteDraws> PrepareSpriteDraws(const UiDrawData &sprites,
-                                                      const UiDrawData &overlay,
-                                                      std::uint32_t width, std::uint32_t height,
-                                                      bool instanceQuads) {
+std::optional<PreparedSpriteDraws>
+PrepareSpriteDraws(const UiDrawData &sprites, const UiDrawData &overlay, std::uint32_t width,
+                   std::uint32_t height, bool instanceQuads, std::uint32_t background) {
   if (!width || !height || width > 16384 || height > 16384)
     return std::nullopt;
   PreparedSpriteDraws result;
   constexpr std::uint64_t whiteId = UINT64_MAX - 1;
   static constexpr std::byte white[]{std::byte{255}, std::byte{255}, std::byte{255},
                                      std::byte{255}};
-  result.vertices = {{{0, 0}, {0, 0}, 0xFF29140A},
-                     {{float(width), 0}, {1, 0}, 0xFF29140A},
-                     {{float(width), float(height)}, {1, 1}, 0xFF29140A},
-                     {{0, float(height)}, {0, 1}, 0xFF29140A}};
+  result.vertices = {{{0, 0}, {0, 0}, background},
+                     {{float(width), 0}, {1, 0}, background},
+                     {{float(width), float(height)}, {1, 1}, background},
+                     {{0, float(height)}, {0, 1}, background}};
   result.indices = {0, 1, 2, 0, 2, 3};
   result.commands.push_back({0, 0, width, height, whiteId, 6, 0, 0});
   result.textureUploads.push_back({whiteId, 1, 1, 4, white, true, true});

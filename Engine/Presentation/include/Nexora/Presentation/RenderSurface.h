@@ -20,6 +20,7 @@ struct RenderSurfaceDescriptor final {
   PresentMode presentMode = PresentMode::VSync;
   ColorSpace colorSpace = ColorSpace::Srgb;
   bool enableGpuTiming = false;
+  bool borderless = false;
 };
 
 struct SurfaceInputSnapshot final {
@@ -57,7 +58,8 @@ public:
   // Shares the native unlit triangle pipeline, with one upload/render pass per acquired frame.
   [[nodiscard]] SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids);
   [[nodiscard]] SurfaceStatus DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay = {},
-                                          bool instanceQuads = false);
+                                          bool instanceQuads = false,
+                                          std::uint32_t background = 0xFF29140A);
   [[nodiscard]] SurfaceStatus DrawScene(const SceneDrawData &draw_data);
   [[nodiscard]] bool SupportsSceneGeometryResidency() const noexcept;
   [[nodiscard]] bool SupportsBoundedSceneViews() const noexcept;
@@ -71,6 +73,9 @@ public:
   [[nodiscard]] const SurfaceFrameInfo &FrameInfo() const noexcept;
   [[nodiscard]] std::span<const Window::WindowEvent> Events() const noexcept;
   [[nodiscard]] Window::WindowError Resize(std::uint32_t width, std::uint32_t height);
+  [[nodiscard]] Window::WindowError ConfigureWindow(std::uint32_t width, std::uint32_t height,
+                                                    bool borderless, bool resizable);
+  [[nodiscard]] bool Borderless() const noexcept;
   [[nodiscard]] Window::WindowError SetImeCandidatePosition(std::int32_t x, std::int32_t y);
   [[nodiscard]] SurfaceDiagnostics Diagnostics() const noexcept;
   // Process-local identity of this owner's native UI texture cache. Stable across resize/move;

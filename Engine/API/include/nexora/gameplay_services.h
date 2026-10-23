@@ -1,10 +1,12 @@
 #ifndef NEXORA_GAMEPLAY_SERVICES_H
 #define NEXORA_GAMEPLAY_SERVICES_H
-#include "gameplay_input.h"
-#include "gameplay_ui.h"
 #include "gameplay_audio.h"
-#include "gameplay_storage.h"
 #include "gameplay_content.h"
+#include "gameplay_display.h"
+#include "gameplay_input.h"
+#include "gameplay_storage.h"
+#include "gameplay_ui.h"
+#include <stddef.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,7 +23,10 @@ typedef struct NexoraGameplayServicesApiV1 {
   int32_t (*get_audio_api)(void *context, NexoraGameplayAudioApiV1 *api);
   int32_t (*get_storage_api)(void *context, NexoraStorageApiV1 *api);
   int32_t (*get_content_api)(void *context, NexoraGameplayContentApiV1 *api);
+  /* Optional suffix; check struct_size before reading. */
+  int32_t (*get_display_api)(void *context, NexoraGameplayDisplayApiV1 *api);
 } NexoraGameplayServicesApiV1;
+#define NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE offsetof(NexoraGameplayServicesApiV1, get_display_api)
 #ifdef __cplusplus
 }
 #endif

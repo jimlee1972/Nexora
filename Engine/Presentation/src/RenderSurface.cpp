@@ -28,6 +28,7 @@ struct RenderSurface::State final {
   bool closeRequested = false;
   bool windowDestroyed = false;
   bool destroyed = false;
+  bool borderless = false;
 };
 
 RenderSurface::RenderSurface(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
@@ -73,6 +74,13 @@ SurfaceStatus RenderSurface::BeginFrame() {
       break;
     }
   }
+  Window::WindowMetrics metrics;
+  if (state_->windows->Metrics(state_->window, metrics) == Window::WindowError::None) {
+    if (state_->frame.width != metrics.width || state_->frame.height != metrics.height)
+      state_->surface->NotifyWindowExtent(metrics.width, metrics.height);
+    state_->frame = {metrics.width, metrics.height, metrics.dpiScale};
+    state_->borderless = metrics.borderless;
+  }
   if (state_->closeRequested)
     return SurfaceStatus::SurfaceLost;
   return state_->surface->Acquire();
@@ -104,11 +112,11 @@ SurfaceStatus RenderSurface::ReleaseSpriteTextures(std::span<const std::uint64_t
 }
 
 SurfaceStatus RenderSurface::DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay,
-                                         bool instanceQuads) {
+                                         bool instanceQuads, std::uint32_t background) {
   if (!state_ || state_->destroyed)
     return SurfaceStatus::SurfaceLost;
   auto prepared = PrepareSpriteDraws(sprites, overlay, state_->frame.width, state_->frame.height,
-                                     instanceQuads);
+                                     instanceQuads, background);
   return prepared ? RenderUi(prepared->View()) : SurfaceStatus::InvalidDescriptor;
 }
 
@@ -184,6 +192,34 @@ SurfaceStatus RenderSurface::DrainAndDestroy() {
   return SurfaceStatus::Ready;
 }
 
+bool RenderSurface::Borderless() const noexcept { return state_ && state_->borderless; }
+Window::WindowError RenderSurface::ConfigureWindow(std::uint32_t width, std::uint32_t height,
+                                                   bool borderless, bool resizable) {
+  using Window::WindowError;
+  if (!state_ || state_->destroyed)
+    return WindowError::InvalidHandle;
+  if (!width || !height || width > 16384 || height > 16384)
+    return WindowError::InvalidDescriptor;
+#if defined(__APPLE__)
+  // Spaces fullscreen is not the borderless desktop mode promised by this service.
+  return WindowError::Unsupported;
+#else
+  const auto error = state_->windows->SetResizable(state_->window, resizable);
+  if (error != WindowError::None)
+    return error;
+  if (borderless != state_->borderless) {
+    const auto changed = state_->windows->SetFullscreen(state_->window, borderless);
+    if (changed != WindowError::None)
+      return changed;
+    state_->borderless = borderless;
+    // Restoring the saved window rectangle takes precedence over the request extent.
+    if (!borderless)
+      return WindowError::None;
+  }
+  return borderless ? WindowError::None : Resize(width, height);
+#endif
+}
+
 RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descriptor) {
   if (descriptor.width == 0 || descriptor.height == 0)
     return {{}, SurfaceStatus::InvalidDescriptor, "render surface extent must be non-zero"};
@@ -213,10 +249,27 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
                                                               : SurfaceStatus::SurfaceLost,
             "native window creation failed"};
   state->window = created.handle;
-  state->surface =
-      CreateSurface({created.handle, descriptor.width, descriptor.height, 2, descriptor.presentMode,
-                     descriptor.colorSpace, descriptor.backend, descriptor.enableGpuTiming},
-                    *state->windows);
+  if (descriptor.borderless) {
+#if defined(__APPLE__)
+    const auto modeError = Window::WindowError::Unsupported;
+#else
+    const auto modeError = state->windows->SetFullscreen(created.handle, true);
+#endif
+    if (modeError != Window::WindowError::None) {
+      (void)state->windows->Destroy(created.handle);
+      return {{}, SurfaceStatus::Unsupported, "borderless window request failed"};
+    }
+    state->borderless = true;
+  }
+  Window::WindowMetrics metrics;
+  if (state->windows->Metrics(created.handle, metrics) == Window::WindowError::None) {
+    state->frame = {metrics.width, metrics.height, metrics.dpiScale};
+    state->borderless = metrics.borderless;
+  }
+  state->surface = CreateSurface({created.handle, state->frame.width, state->frame.height, 2,
+                                  descriptor.presentMode, descriptor.colorSpace, descriptor.backend,
+                                  descriptor.enableGpuTiming},
+                                 *state->windows);
   if (!state->surface) {
     static_cast<void>(state->windows->Destroy(created.handle));
     return {{}, SurfaceStatus::Unsupported, "requested swapchain creation is unavailable"};
