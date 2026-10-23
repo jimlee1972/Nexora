@@ -74,5 +74,12 @@ preserved f83021c3 Window DSO fails with the same opcode-3 BadWindow as hosted C
 
 The recorded full gate is now **252 passed, 16 unavailable native GPU/input prerequisites skipped,
 zero failures, 268 registered**; the new native Window case executed. Xvfb is supplied only to this
-CPU-only test through NEXORA_XVFB_EXECUTABLE, without changing unrelated GPU gates' prerequisites.
+CPU-only test through NEXORA_WINDOW_METRICS_XVFB_EXECUTABLE, without changing unrelated GPU gates' prerequisites.
 Shipping consumer/export verification passed again. Remote graphics CI must pass before merging.
+
+Hosted CI on 49e19614 caught a CMake discovery collision before the Editor graphical tests ran:
+the new test's empty optional cache entry reused the Editor's existing Xvfb lookup variable,
+preventing find_program from searching. The optional override now uses its own Window-metrics
+name. A fresh CMake script verifies that this declaration leaves the Editor lookup undefined
+and that find_program still discovers Xvfb. The full local gate was rerun with the isolated
+override and the historical shared cache entry removed; no graphical prerequisite is forced.

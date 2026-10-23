@@ -31,3 +31,9 @@ cmake --build --preset linux-development
 CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp01/x11-gate-junit.xml
 Local X server IPC was allowed for this execution. Xvfb is not placed on PATH for GPU gates.
 Native negative control: run LinuxX11Metrics.py with --xvfb and the same probe, setting LD_LIBRARY_PATH to the preserved f83021c3 Window DSO directory. Expected exit 1 / opcode-3 BadWindow. Repaired library: exit 0 / all native metrics lifecycle checks passed.
+
+# Independent Xvfb discovery repair (supersedes the former shared override)
+cmake --preset linux-development -UNEXORA_XVFB_EXECUTABLE -DNEXORA_WINDOW_METRICS_XVFB_EXECUTABLE=/workspace/scratch/nexora-sp01/x11-tools/usr/bin/Xvfb
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp01/xvfb-discovery-junit.xml
+# 268 registered, 252 passed, 16 skipped, zero failures; native X11 metrics executed
