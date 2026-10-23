@@ -1,0 +1,37 @@
+Linux cloud, GCC 14.2, CMake 3.31.10, Ninja 1.13.2, Zig 0.14.0.
+External toolchains/SDK caches and machine-specific CMakeUserPresets are not committed.
+
+source /workspace/scratch/nexora-sp05/build.env
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp05/development-junit.xml --output-log /workspace/scratch/nexora-sp05/development-tests.log
+
+Initial preset configuration additions:
+-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+-DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig
+-DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include
+-DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6
+-DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1
+-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+-DNEXORA_WINDOW_METRICS_XVFB_EXECUTABLE=/workspace/scratch/nexora-sp01/x11-tools/usr/bin/Xvfb
+
+cmake --preset linux-shipping -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+cmake --build --preset linux-shipping --parallel 2
+zig build-lib --dep nexora -O ReleaseSafe -mcpu=baseline -Mroot=Gameplay/Zig/src/voice_dialogue.zig -Mnexora=Bindings/Zig/nexora.zig -dynamic -femit-bin=/workspace/scratch/nexora-sp05/libNexoraZigVoiceShipping.so
+python3 Tests/TwoD/VoiceDialogueAcceptance.py --shipping --app build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --module /workspace/scratch/nexora-sp05/libNexoraZigVoiceShipping.so
+
+python3 Tools/Build/ValidateApiM6.py .
+clang-format --dry-run --Werror [touched C++ files]
+zig fmt --check [touched Zig files]
+python3 -m py_compile Tools/TwoD/ExportGame.py Tools/TwoD/InspectVoices.py Tests/TwoD/VoiceDialogueAcceptance.py Tests/TwoD/VoiceInventoryTests.py
+git diff --check
+
+Sanitizer regression (targeted Runtime; native graphics disabled, not the full hosted gate):
+cmake --preset linux-sanitizers -DNEXORA_ENABLE_NATIVE_BACKENDS=OFF -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+cmake --build --preset linux-sanitizers --target NexoraGameplayAudioResidencyTests --parallel 2
+build/linux-sanitizers/Tests/Runtime/NexoraGameplayAudioResidencyTests
+The final command ran outside the ptrace sandbox so LeakSanitizer can inspect threads.
+Default quarantine and leak detection remain enabled. No ASAN_OPTIONS override in acceptance.
+
+AudioState contract mutation guard:
+python3 Tools/Build/tests/test_api_audio_state_contract.py -v

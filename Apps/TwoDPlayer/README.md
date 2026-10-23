@@ -214,3 +214,15 @@ explicitly; export and run with matching versions.
 The [asset contract](../../Engine/TwoD/GameplayAssets.md) defines request transfer, cancellation,
 clip-before-atlas removal, logical RAM/texture budgets and mandatory reader shutdown before VFS
 teardown. It does not promise a fixed frame-time streamer or physical RAM/VRAM acceptance.
+
+## Offline voice and decoded PCM capacity
+
+Optional `audio_capacity` requires exactly `assets`, `active_bytes`, `live_bytes` integer fields;
+defaults are 256/64 MiB/128 MiB. Live includes old samples held by playing/paused voices. These
+are separate from asset staging/content budgets. Use deferred `blob` entries for local WAVs and
+`nx.dialogue.Line` to request/register/play/release one line; do not preload a complete voice pack.
+The optional AudioState service reports PCM residency and exposes an independent Voice bus.
+Audio V1 and original/SP-01/SP-02/SP-03 services prefixes remain supported. See
+[voice integration and limits](../../Engine/Runtime/GameplayVoice.md). This is per-line/chapter
+PCM admission, not compressed streaming or verified speaker output. Missing declared install
+files still fail startup validation; unmapped dialogue and runtime IO/output failures can use subtitles.

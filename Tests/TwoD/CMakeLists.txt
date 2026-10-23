@@ -231,3 +231,6 @@ if(NEXORA_ENABLE_ZIG_GAMEPLAY)
     "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayAssetsLayout.zig"
     "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
 endif()
+
+add_test(NAME twod.voice_inventory COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/VoiceInventoryTests.py")

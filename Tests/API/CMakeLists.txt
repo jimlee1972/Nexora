@@ -19,6 +19,9 @@ add_test(NAME api.m6_manifest_compatibility
   COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/ValidateApiM6.py"
           "${PROJECT_SOURCE_DIR}")
 
+add_test(NAME api.audio_state_baseline_guard
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/tests/test_api_audio_state_contract.py")
+
 # NexoraApiFoundationSample (Samples/Api) is optional (NEXORA_FEATURE_API_SAMPLES),
 # so only wire its smoke test in when the target actually exists -- same
 # pattern Tests/Runtime/CMakeLists.txt uses for the optional example plugin.

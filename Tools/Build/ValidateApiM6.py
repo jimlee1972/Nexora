@@ -52,11 +52,18 @@ assets = json.loads((root / "Engine/API/abi_baseline_assets_v1.json").read_text(
 structures.update(assets["structures"])
 structures["NexoraGameplayServicesApiV1"] += assets["services_suffix"]
 services["zig_names"].update(assets["zig_names"])
+audio_state = json.loads((root / "Engine/API/abi_baseline_audio_state_v1.json").read_text(encoding="utf-8"))
+structures.update(audio_state["structures"])
+structures["NexoraGameplayServicesApiV1"] += audio_state["services_suffix"]
+services["zig_names"].update(audio_state["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:
         raise SystemExit(f"baseline structure is absent: {structure}")
     body = match.group(1)
+    for callback in re.findall(r"\(\*(\w+)\)", body):
+        if f"{structure}.{callback}" not in names:
+            raise SystemExit(f"baseline callback lacks API-M6 metadata: {structure}.{callback}")
     positions = [(m.start() if (m := re.search(rf"\b{re.escape(field)}\b", body)) else -1) for field in expected_fields]
     if any(position < 0 for position in positions) or positions != sorted(positions):
         raise SystemExit(f"breaking field removal/reorder in {structure}; increment ABI major")

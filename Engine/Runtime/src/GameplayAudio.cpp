@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
+#include <stdexcept>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 #if defined(__linux__)
@@ -40,9 +42,25 @@ std::uint32_t U32(const std::byte *p) {
 bool Tag(const std::byte *p, const char *s) { return std::memcmp(p, s, 4) == 0; }
 } // namespace
 struct GameplayAudio::Impl {
+  struct Residency {
+    std::uint64_t live{}, peak{};
+    std::uint32_t generations{};
+  };
   struct Sample {
     std::uint32_t rate{}, channels{};
     std::vector<float> pcm;
+    std::shared_ptr<Residency> residency;
+    Sample(std::uint32_t r, std::uint32_t c, std::vector<float> samples,
+           std::shared_ptr<Residency> owner)
+        : rate(r), channels(c), pcm(std::move(samples)), residency(std::move(owner)) {
+      residency->live += pcm.size() * sizeof(float);
+      residency->peak = std::max(residency->peak, residency->live);
+      ++residency->generations;
+    }
+    ~Sample() {
+      residency->live -= pcm.size() * sizeof(float);
+      --residency->generations;
+    }
   };
   struct Voice {
     std::uint64_t id{};
@@ -52,12 +70,70 @@ struct GameplayAudio::Impl {
     bool loop{}, paused{};
     float gain{};
   };
+  Limits limits;
+  const std::thread::id thread{std::this_thread::get_id()};
+  std::shared_ptr<Residency> residency{std::make_shared<Residency>()};
+  std::uint64_t active_bytes{};
+  int registration_result{-1};
+  bool Admit(std::uint64_t asset, std::uint64_t bytes) {
+    const auto old = assets.find(asset);
+    const auto previous = old == assets.end() ? 0 : old->second->pcm.size() * sizeof(float);
+    if ((old == assets.end() && assets.size() >= limits.assets) ||
+        bytes > limits.active_bytes - (active_bytes - previous) ||
+        bytes > limits.live_bytes - residency->live) {
+      registration_result = -3;
+      return false;
+    }
+    return true;
+  }
+  bool Publish(std::uint64_t asset, std::uint32_t sample_rate, std::uint32_t channels,
+               std::vector<float> samples) {
+    const auto old = assets.find(asset);
+    const auto previous = old == assets.end() ? 0 : old->second->pcm.size() * sizeof(float);
+    const auto bytes = samples.size() * sizeof(float);
+    auto sample = std::make_shared<Sample>(sample_rate, channels, std::move(samples), residency);
+    assets.insert_or_assign(asset, std::move(sample));
+    active_bytes = active_bytes - previous + bytes;
+    registration_result = 0;
+    return true;
+  }
+  bool RemoveAsset(std::uint64_t asset) {
+    const auto old = assets.find(asset);
+    if (old == assets.end())
+      return false;
+    active_bytes -= old->second->pcm.size() * sizeof(float);
+    assets.erase(old);
+    return true;
+  }
+  static std::int32_t Usage(void *context, NexoraAudioUsageV1 *out) {
+    if (!context || !out)
+      return -1;
+    auto &self = *static_cast<Impl *>(context);
+    if (std::this_thread::get_id() != self.thread)
+      return -3;
+    if (out->struct_size < sizeof(*out))
+      return -2;
+    const auto voices = std::count_if(self.voices.begin(), self.voices.end(),
+                                      [](const auto &v) { return v.id != 0; });
+    *out = {sizeof(*out),
+            static_cast<std::uint32_t>(self.assets.size()),
+            static_cast<std::uint32_t>(voices),
+            self.residency->generations - static_cast<std::uint32_t>(self.assets.size()),
+            self.active_bytes,
+            self.residency->live - self.active_bytes,
+            self.residency->peak,
+            self.limits.active_bytes,
+            self.limits.live_bytes,
+            self.limits.assets,
+            0};
+    return 0;
+  }
   GameplayAudio *owner;
   std::uint32_t rate;
   std::vector<Voice> voices;
   std::uint64_t next_id{1};
   std::unordered_map<std::uint64_t, std::shared_ptr<const Sample>> assets;
-  std::array<float, 3> gains{1, 1, 1};
+  std::array<float, 4> gains{1, 1, 1, 1};
   std::array<float, 8192> mix{};
   Sink sink{};
   void *sink_context{};
@@ -89,8 +165,13 @@ struct GameplayAudio::Impl {
   decltype(&waveOutUnprepareHeader) unprepare{};
   decltype(&waveOutClose) close{};
 #endif
-  Impl(GameplayAudio *host, std::uint32_t output_rate, std::uint32_t maximum)
-      : owner(host), rate(output_rate), voices(maximum) {}
+  Impl(GameplayAudio *host, std::uint32_t output_rate, std::uint32_t maximum, Limits budget)
+      : limits(budget), owner(host), rate(output_rate), voices(maximum) {
+    if (!limits.assets || limits.assets > 4096 || !limits.active_bytes ||
+        limits.active_bytes > 1024ULL * 1024 * 1024 || limits.live_bytes < limits.active_bytes ||
+        limits.live_bytes > 2ULL * 1024 * 1024 * 1024)
+      throw std::invalid_argument("invalid PCM residency limits");
+  }
   Voice *Find(std::uint64_t id) {
     if (!id)
       return nullptr;
@@ -103,7 +184,25 @@ struct GameplayAudio::Impl {
     if (!ctx || !d || !out || !d->asset || d->bus < 1 || d->bus > 2 || d->loop > 1 ||
         !ValidGain(d->gain))
       return -1;
-    auto &self = *static_cast<Impl *>(ctx);
+    return PlayInternal(*static_cast<Impl *>(ctx), d, out);
+  }
+  static std::int32_t PlayVoice(void *ctx, std::uint64_t asset, float gain, std::uint64_t *out) {
+    if (!ctx || !asset || !out || !ValidGain(gain))
+      return -1;
+    if (std::this_thread::get_id() != static_cast<Impl *>(ctx)->thread)
+      return -3;
+    const NexoraAudioPlayDesc desc{asset, 3, 0, gain};
+    return PlayInternal(*static_cast<Impl *>(ctx), &desc, out);
+  }
+  static std::int32_t VoiceBus(void *ctx, float gain) {
+    if (!ctx || !ValidGain(gain))
+      return -1;
+    if (std::this_thread::get_id() != static_cast<Impl *>(ctx)->thread)
+      return -3;
+    static_cast<Impl *>(ctx)->gains[3] = gain;
+    return 0;
+  }
+  static std::int32_t PlayInternal(Impl &self, const NexoraAudioPlayDesc *d, std::uint64_t *out) {
     if (!self.sink)
       return -2;
     auto sample = self.assets.find(d->asset);
@@ -170,7 +269,7 @@ struct GameplayAudio::Impl {
       return static_cast<Impl *>(ctx)->owner->RegisterWave(
                  asset, {static_cast<const std::byte *>(bytes), size})
                  ? 0
-                 : -1;
+                 : static_cast<Impl *>(ctx)->registration_result;
     } catch (...) {
       return -3;
     }
@@ -178,7 +277,7 @@ struct GameplayAudio::Impl {
   static std::int32_t Remove(void *ctx, std::uint64_t asset) {
     if (!ctx || !asset)
       return -1;
-    return static_cast<Impl *>(ctx)->assets.erase(asset) ? 0 : -3;
+    return static_cast<Impl *>(ctx)->RemoveAsset(asset) ? 0 : -3;
   }
   static std::int32_t StopAll(void *ctx) {
     if (!ctx)
@@ -189,26 +288,28 @@ struct GameplayAudio::Impl {
   }
 };
 GameplayAudio::GameplayAudio(std::uint32_t rate, std::uint32_t maximum)
+    : GameplayAudio(rate, maximum, Limits{}) {}
+GameplayAudio::GameplayAudio(std::uint32_t rate, std::uint32_t maximum, Limits limits)
     : impl_(std::make_unique<Impl>(this, rate >= 8000 && rate <= 192000 ? rate : 48000,
-                                   std::min(maximum, 4096u))) {}
+                                   std::min(maximum, 4096u), limits)) {}
 GameplayAudio::~GameplayAudio() { CloseOutput(); }
 bool GameplayAudio::RegisterPcm(std::uint64_t asset, std::uint32_t rate, std::uint32_t channels,
                                 std::span<const float> samples) {
+  impl_->registration_result = -1;
   if (!asset || rate < 8000 || rate > 192000 || (channels != 1 && channels != 2) ||
       samples.empty() || samples.size() % channels)
     return false;
   if (!std::all_of(samples.begin(), samples.end(),
                    [](float f) { return std::isfinite(f) && f >= -1 && f <= 1; }))
     return false;
-  auto sample = std::make_shared<Impl::Sample>();
-  sample->rate = rate;
-  sample->channels = channels;
-  sample->pcm.assign(samples.begin(), samples.end());
-  impl_->assets[asset] = std::move(sample);
-  return true;
+  if (!impl_->Admit(asset, samples.size_bytes()))
+    return false;
+  return impl_->Publish(asset, rate, channels, std::vector<float>(samples.begin(), samples.end()));
 }
 bool GameplayAudio::RegisterWave(std::uint64_t asset, std::span<const std::byte> bytes) {
-  if (bytes.size() < 12 || !Tag(bytes.data(), "RIFF") || !Tag(bytes.data() + 8, "WAVE") ||
+  impl_->registration_result = -1;
+  if (!asset || bytes.size() > 64ULL * 1024 * 1024 || bytes.size() < 12 ||
+      !Tag(bytes.data(), "RIFF") || !Tag(bytes.data() + 8, "WAVE") ||
       U32(bytes.data() + 4) != bytes.size() - 8)
     return false;
   std::span<const std::byte> fmt, data;
@@ -249,6 +350,9 @@ bool GameplayAudio::RegisterWave(std::uint64_t asset, std::span<const std::byte>
       static_cast<std::uint64_t>(rate) * alignment != U32(fmt.data() + 8) ||
       data.size() % alignment)
     return false;
+  if (rate < 8000 || rate > 192000 ||
+      !impl_->Admit(asset, data.size() / (bits / 8) * sizeof(float)))
+    return false;
   std::vector<float> samples(data.size() / (bits / 8));
   for (std::size_t i = 0; i < samples.size(); ++i) {
     if (bits == 16) {
@@ -259,9 +363,12 @@ bool GameplayAudio::RegisterWave(std::uint64_t asset, std::span<const std::byte>
       std::memcpy(&samples[i], &n, 4);
     }
   }
-  return RegisterPcm(asset, rate, channels, samples);
+  if (!std::all_of(samples.begin(), samples.end(),
+                   [](float f) { return std::isfinite(f) && f >= -1 && f <= 1; }))
+    return false;
+  return impl_->Publish(asset, rate, channels, std::move(samples));
 }
-bool GameplayAudio::RemoveAsset(std::uint64_t asset) { return impl_->assets.erase(asset) != 0; }
+bool GameplayAudio::RemoveAsset(std::uint64_t asset) { return impl_->RemoveAsset(asset); }
 void GameplayAudio::SetOutput(Sink sink, void *context) {
   CloseOutput();
   impl_->sink = sink;
@@ -475,6 +582,14 @@ bool GameplayAudio::Pump(std::uint32_t frames) {
     return false;
   }
   return true;
+}
+NexoraGameplayAudioStateApiV1 GameplayAudio::StateApi() noexcept {
+  return {sizeof(NexoraGameplayAudioStateApiV1),
+          1,
+          impl_.get(),
+          Impl::Usage,
+          Impl::PlayVoice,
+          Impl::VoiceBus};
 }
 NexoraGameplayAudioApiV1 GameplayAudio::Api() noexcept {
   return {sizeof(NexoraGameplayAudioApiV1),

@@ -292,3 +292,13 @@ and must not be decoded twice. See [color/fallback contract](../../Engine/TwoD/C
 `src/color_slice.zig` is an independent procedural diagnostic using existing 2D services for
 Y-ordered layers, roof fading and baked glow/shadow removal while retaining danger outlines.
 It is neither final game art nor dynamic lighting/bloom acceptance.
+
+## SP-05 offline dialogue
+
+`nx.getAudioState(services)` negotiates PCM usage and a dedicated Voice bus without changing
+Audio V1. `nx.dialogue.Line` borrows a caller buffer and existing local blob/audio services;
+`start`, `tick`, `pause`, `volume` and `cancel` implement per-line load/play/replay/cleanup.
+Missing/corrupt/unavailable lines enter subtitle fallback. Stop the controller before freeing its
+buffer/services. Global Voice gain is separate from Music/SFX. See
+[the contract](../../Engine/Runtime/GameplayVoice.md) and the independent `src/voice_dialogue.zig`
+diagnostic; procedural recordings and captured/null sinks are not final content or audible acceptance.
