@@ -48,9 +48,12 @@ target host; compiling or testing portable contracts on another host is not acce
 
 On X11 clients using detectable repeat, physical `Key` events represent transitions: a held key
 emits one press and one release, while repeated native presses continue through XIM/UTF-8 text
-translation. Detectable repeat is requested per client. Legacy clients normalize only strictly
-adjacent genuine release/press pairs already buffered in Xlib, matching window, keycode and server
-timestamp. No release waits for a future event; split arrivals are forwarded normally. Equal native
+translation. Detectable repeat is requested per client, and its request result and support flag
+select the path. Only clients without active detectable repeat normalize strictly adjacent genuine
+release/press pairs already buffered in Xlib, matching window, keycode and server timestamp.
+Clients with active detectable repeat preserve genuine physical taps even when adjacent events
+share the same server millisecond.
+No release waits for a future event; split arrivals are forwarded normally. Equal native
 timestamps are the legacy repeat heuristic, not a universal physical-device classifier. Explicit
 SendEvent input and mismatched pairs retain their release. Focus loss and destruction clear
 per-window held state. This never disables global repeat or changes the user's repeat rate.
@@ -74,7 +77,14 @@ mode must actually receive repeated releases. These checks distinguish physical 
 from lost text or an unexercised fallback. The probe/shim are identical for old and repaired
 libraries, and `/proc` library-path/hash diagnostics supplement the functional input oracles.
 
+Normal mode also exercises 20 genuine XTEST B tap pairs after confirming the consumer is stopped;
+XSync processes the complete burst before resuming it in a finally block. The test requires all
+20 physical press/release pairs and text commits, zero synthetic events, and at least one adjacent
+release/press pair sharing a server timestamp. The legacy mode retains its held-key/focus/lifecycle
+checks; the ambiguous rapid-tap gesture is not a legacy acceptance claim or a CTest skip.
+
 The independent held-key repair/control evidence is recorded in
 [the scoped Linux report](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md).
 Its focused Xvfb results do not replace physical-display acceptance or establish the cause of
-all earlier Editor workflow stalls. The complete integrated suite remains pending in that report.
+all earlier Editor workflow stalls. The report separates the historical bc4 integrated pass from
+the latest detectable-repeat boundary repair and its own complete-suite gate.

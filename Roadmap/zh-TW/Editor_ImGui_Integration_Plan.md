@@ -300,10 +300,19 @@ commit，實體轉換由 25 組 press／release 降為一組。獨立 focus-clea
 判失敗，還原來源則通過。精修 matcher／native 測試 2/2 通過、耗時 1.92 秒；Shipping 實際
 編譯變更的 X11 object，fresh GUI-off server build 亦通過。舊 X11-only 368-test attempt 在
 282 項通過後主動中斷（test 283 期間 SIGINT），5,535 個 frozen hash 均未變；不是完整通過。
+歷史 bc4 來源結果（早於 detectable-repeat 邊界修正）：
 <!-- combined-font-input-plan:start -->
 ✅ 獨立 X11 長按鍵修正與字型／輸入整合 Linux 驗證 **368/368 通過、無失敗／跳過，1639.24 秒**，source hash 均未變。
 歷史 366 與中斷的舊 368 紀錄分開保留；最終 head CI 另為合併 gate；目標主機 runtime／實體驗收仍 open（Editor 0/8）。
 <!-- combined-font-input-plan:end -->
+
+<!-- detectable-input-plan:start -->
+✅ Detectable-repeat 邊界修正與最新來源整合 Linux gate **368/368 通過、無失敗／跳過，1646.65 秒**，
+5,535 個 frozen hash 均未變。同一新 probe 對照區分舊 library 1/1 與修正後 20/20 實體按鍵，
+保留全部 20 次文字 commit 及既有 legacy／focus／lifecycle oracle。歷史 bc4 結果分開保留；
+最終 head CI、目標主機／實體驗收另列 gate，Editor milestone 維持 0/8。
+<!-- detectable-input-plan:end -->
+
 這是獨立工作，不代表已 review／完成無法取得的歷史 05a5 候選，也未將所有歷史 native stall
 歸因。[X11 scoped 證據](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md)
 保留 injected legacy capability 限制；實體 target-host、Windows／已安裝 IME 與完整 WP4

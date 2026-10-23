@@ -449,3 +449,11 @@ or overall Editor 0/8 acceptance. The interrupted old 368 attempt and historical
 
 Final configured features and six binary hashes are recorded in the
 [final integrated identity table](EditorEDM0-GlyphCoverage-Linux-2026-10-22.md#final-integrated-binary-identities).
+
+## Detectable-repeat follow-up
+
+The combined 368-test result and binary identities above belong to the historical bc4 source.
+A subsequent X11 capability-boundary repair adds genuine rapid-tap preservation and its own
+source-frozen complete gate. See the [latest X11 correction and validation](EditorEDM0-X11HeldKey-Linux-2026-10-22.md#detectable-repeat-boundary-correction)
+for the changed Window/probe identities and final-source result; the historical records here
+remain unchanged. Physical target-host acceptance remains open (Editor milestone 0/8).

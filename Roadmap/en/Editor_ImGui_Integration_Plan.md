@@ -330,11 +330,21 @@ focus-clear mutant fails the M-key oracle; restored source passes. The refined m
 pair passes 2/2 in 1.92 s; Shipping compiles the changed X11 object and the fresh GUI-off server
 build passes. The old X11-only 368-test attempt was intentionally interrupted after 282 passed
 (SIGINT during test 283), with all 5,535 frozen hashes unchanged; it is not a complete pass.
+Historical bc4 source result (before the detectable-repeat boundary correction):
 <!-- combined-font-input-plan:start -->
 ✅ Independent X11 held-key repair and combined font/input validation pass **368/368, zero failures/skips, 1639.24 s**;
 source hashes remain unchanged. Historical 366 and interrupted old 368 records stay separate;
 Exact-head CI is a separate merge gate; target-host runtime/physical acceptance stays open (Editor milestone 0/8).
-<!-- combined-font-input-plan:end --> This is independent work,
+<!-- combined-font-input-plan:end -->
+
+<!-- detectable-input-plan:start -->
+✅ Detectable-repeat boundary repair and corrected-source integrated Linux gate pass **368/368, zero failures/skips, 1646.65 s**;
+all 5,535 frozen hashes remain unchanged. Same-new-probe controls distinguish old-library 1/1
+from repaired 20/20 physical tap pairs while retaining all 20 text commits and previous legacy/focus/lifecycle oracles.
+Historical bc4 results stay separate; exact-head CI and target-host/physical acceptance remain
+separate gates. Editor milestone remains 0/8.
+<!-- detectable-input-plan:end -->
+This is independent work,
 not review/completion of the unavailable historical 05a5 candidate or attribution of all earlier
 native stalls. [Scoped X11 evidence](../../Tools/Build/evidence/EditorEDM0-X11HeldKey-Linux-2026-10-22.md)
 records the injected legacy capability limitation. Physical target-host, Windows/installed-IME

@@ -194,7 +194,7 @@ public:
       // Detectable repeat belongs to this client, never the server's global repeat policy.
       // Unsupported servers retain the bounded legacy-pair fallback in PumpEvents.
       Bool supported = False;
-      static_cast<void>(XkbSetDetectableAutoRepeat(display_, True, &supported));
+      detectableRepeat_ = XkbSetDetectableAutoRepeat(display_, True, &supported) && supported;
       closeAtom_ = XInternAtom(display_, "WM_DELETE_WINDOW", False);
       static_cast<void>(XSetLocaleModifiers(""));
       inputMethod_ = XOpenIM(display_, nullptr, nullptr, nullptr);
@@ -363,7 +363,8 @@ public:
         break;
       case KeyPress:
       case KeyRelease: {
-        if (native.type == KeyRelease && XEventsQueued(display_, QueuedAlready) > 0) {
+        if (!detectableRepeat_ && native.type == KeyRelease &&
+            XEventsQueued(display_, QueuedAlready) > 0) {
           // Inspect only the already-buffered immediate successor; never wait for a matching
           // press, defer a real release across pumps, or consume the press before XFilterEvent.
           XEvent next{};
@@ -505,6 +506,7 @@ private:
   }
   std::thread::id owner_;
   Display *display_{};
+  bool detectableRepeat_{};
   XIM inputMethod_{};
   Atom closeAtom_{};
   std::uint64_t next_ = 1;

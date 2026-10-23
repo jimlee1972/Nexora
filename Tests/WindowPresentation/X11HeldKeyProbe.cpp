@@ -16,14 +16,15 @@ int main() {
   const auto xid = reinterpret_cast<std::uintptr_t>(windows->NativeHandle(main.handle));
   const auto other_xid = reinterpret_cast<std::uintptr_t>(windows->NativeHandle(other.handle));
   std::printf("{\"kind\":\"ready\",\"window\":%llu,\"other\":%llu,\"handle\":%llu,\"other_handle\":"
-              "%llu,\"key_n\":%d,\"key_m\":%d}\n",
+              "%llu,\"key_n\":%d,\"key_m\":%d,\"key_b\":%d}\n",
               static_cast<unsigned long long>(xid), static_cast<unsigned long long>(other_xid),
               static_cast<unsigned long long>(main.handle.value),
               static_cast<unsigned long long>(other.handle.value), static_cast<int>(Key::N),
-              static_cast<int>(Key::M));
+              static_cast<int>(Key::M), static_cast<int>(Key::B));
   std::fflush(stdout);
   unsigned down = 0, up = 0, text = 0, focused = 0, unfocused = 0;
   unsigned m_down = 0, m_up = 0;
+  unsigned b_down = 0, b_up = 0, b_text = 0;
   bool close = false, destroyed = false;
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(12);
   while (!close && std::chrono::steady_clock::now() < deadline) {
@@ -45,6 +46,13 @@ int main() {
           ++m_down;
         else
           ++m_up;
+      } else if (event.type == WindowEventType::Key && event.value0 == static_cast<int>(Key::B)) {
+        if (event.value1)
+          ++b_down;
+        else
+          ++b_up;
+      } else if (event.type == WindowEventType::Text && event.value0 == 'b') {
+        ++b_text;
       } else if (event.type == WindowEventType::Text && event.value0 == 'n') {
         ++text;
       } else if (event.type == WindowEventType::FocusChanged) {
@@ -65,13 +73,14 @@ int main() {
   const bool native_alive_at_close = windows->NativeHandle(main.handle) != nullptr;
   const auto other_result = windows->Destroy(other.handle);
   const auto main_result = windows->Destroy(main.handle);
-  std::printf("{\"kind\":\"summary\",\"down\":%u,\"up\":%u,\"text\":%u,\"focus\":%u,"
-              "\"blur\":%u,\"close\":%u,\"destroyed_event\":%u,\"alive_at_close\":%u,"
-              "\"destroy_ok\":%u,\"m_down\":%u,\"m_up\":%u}\n",
-              down, up, text, focused, unfocused, unsigned(close), unsigned(destroyed),
-              unsigned(native_alive_at_close),
-              unsigned(other_result == WindowError::None && main_result == WindowError::None),
-              m_down, m_up);
+  std::printf(
+      "{\"kind\":\"summary\",\"down\":%u,\"up\":%u,\"text\":%u,\"focus\":%u,"
+      "\"blur\":%u,\"close\":%u,\"destroyed_event\":%u,\"alive_at_close\":%u,"
+      "\"destroy_ok\":%u,\"m_down\":%u,\"m_up\":%u,\"b_down\":%u,\"b_up\":%u,\"b_text\":%u}\n",
+      down, up, text, focused, unfocused, unsigned(close), unsigned(destroyed),
+      unsigned(native_alive_at_close),
+      unsigned(other_result == WindowError::None && main_result == WindowError::None), m_down, m_up,
+      b_down, b_up, b_text);
   std::fflush(stdout);
   return close && !destroyed && native_alive_at_close && other_result == WindowError::None &&
                  main_result == WindowError::None

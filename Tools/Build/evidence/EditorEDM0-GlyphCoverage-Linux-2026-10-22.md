@@ -366,3 +366,11 @@ Final complete-suite Preview/PointerButtons/Overrides/SelectedRevert passed in
 28.73 / 7.58 / 14.36 / 25.60 s respectively, with the existing time limits and assertions.
 These identities refer to the completed 368-test source; earlier controls retain their original
 recorded binaries and are not relabeled.
+
+## Detectable-repeat follow-up
+
+The combined 368-test result and binary identities above belong to the historical bc4 source.
+A subsequent X11 capability-boundary repair adds genuine rapid-tap preservation and its own
+source-frozen complete gate. See the [latest X11 correction and validation](EditorEDM0-X11HeldKey-Linux-2026-10-22.md#detectable-repeat-boundary-correction)
+for the changed Window/probe identities and final-source result; the historical records here
+remain unchanged. Physical target-host acceptance remains open (Editor milestone 0/8).

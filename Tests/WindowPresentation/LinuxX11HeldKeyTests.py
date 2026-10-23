@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import select
+import signal
 import shutil
 import subprocess
 import tempfile
@@ -100,6 +101,10 @@ def run_mode(args, evidence, mode):
         native_n_keycode = x11.XKeysymToKeycode(connection, ord('n'))
         if not native_n_keycode:
             raise RuntimeError('The owned server has no native keycode for n')
+        native_b_keycode = x11.XKeysymToKeycode(connection, ord('b'))
+        if not native_b_keycode:
+            raise RuntimeError('The owned server has no native keycode for b')
+        report['native_b_keycode'] = native_b_keycode
         report['native_n_keycode'] = native_n_keycode
         report['global_before'] = global_repeat()
         if report['global_before'] != 1:
@@ -202,6 +207,44 @@ def run_mode(args, evidence, mode):
         offset = len(records)
         tool('keyup', 'n')
         wait(lambda: key_event(main_handle, ready['key_n'], False, offset), 'physical N release')
+        if mode == 'normal':
+            # Detectable repeat has no legacy fake release. Queue genuine physical taps
+            # while the consumer is stopped, so equal server timestamps cannot erase edges.
+            xtest = ctypes.CDLL('libXtst.so.6')
+            xtest.XTestFakeKeyEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint,
+                                               ctypes.c_int, ctypes.c_ulong]
+            offset = len(records)
+            child.send_signal(signal.SIGSTOP)
+            stop_confirmed = False
+            try:
+                stop_deadline = time.monotonic() + 2
+                while time.monotonic() < stop_deadline:
+                    stopped_pid, status = os.waitpid(child.pid, os.WNOHANG | os.WUNTRACED)
+                    if stopped_pid:
+                        if not os.WIFSTOPPED(status) or os.WSTOPSIG(status) != signal.SIGSTOP:
+                            raise RuntimeError('Native tap consumer exited instead of stopping')
+                        stop_confirmed = True
+                        break
+                    drain(min(.005, max(0, stop_deadline - time.monotonic())))
+                if not stop_confirmed:
+                    raise RuntimeError('Native tap consumer did not stop within two seconds')
+                with (state / 'input.jsonl').open('a') as log:
+                    log.write(json.dumps(dict(time=time.monotonic(), native='XTestFakeKeyEvent',
+                                              keycode=native_b_keycode, delay_ms=0,
+                                              transitions=[1, 0] * 20,
+                                              consumer_stop_confirmed=True)) + '\n')
+                for _ in range(20):
+                    for down in (1, 0):
+                        if not xtest.XTestFakeKeyEvent(connection, native_b_keycode, down, 0):
+                            raise RuntimeError('Could not queue one genuine native B phase')
+                # Finish server processing before allowing the consumer to drain its queue.
+                x11.XSync(connection, 0)
+                report['rapid_burst_stop_confirmed'] = stop_confirmed
+            finally:
+                # A failed assertion or injection must never leave the owned child stopped.
+                if child.poll() is None:
+                    child.send_signal(signal.SIGCONT)
+            wait(lambda: count(6, ord('b'), offset) == 20, 'all genuine B tap text')
         # A still-held M must be forgotten on A's focus loss. Its physical release goes to B;
         # after focus returns, A must admit the next M press rather than deduplicate it.
         offset = len(records)
@@ -262,6 +305,34 @@ def run_mode(args, evidence, mode):
                              for event in native_n)
         report['native_n'] = dict(press=native_press, release=native_release,
                                   synthetic=sum(event.get('send_event') != 0 for event in native_n))
+        if mode == 'normal':
+            native_b = [event for event in native_keys
+                        if event.get('window') == ready['window'] and
+                        event.get('keycode') == native_b_keycode]
+            burst_press = sum(event.get('type') == 2 for event in native_b)
+            burst_release = sum(event.get('type') == 3 for event in native_b)
+            burst_synthetic = sum(event.get('send_event') != 0 for event in native_b)
+            equal_pairs = sum(
+                before.get('type') == 3 and after.get('type') == 2 and
+                before.get('time') == after.get('time') and
+                before.get('window') == after.get('window') and
+                before.get('keycode') == after.get('keycode') and
+                before.get('send_event') == after.get('send_event') == 0
+                for before, after in zip(native_b, native_b[1:]))
+            report['rapid_burst'] = dict(applicable=True, press=burst_press,
+                                         release=burst_release, synthetic=burst_synthetic,
+                                         equal_release_press_pairs=equal_pairs,
+                                         down=summary['b_down'], up=summary['b_up'],
+                                         text=summary['b_text'])
+            report['rapid_burst_ok'] = (
+                report.get('rapid_burst_stop_confirmed') is True and
+                burst_press == burst_release == 20 and burst_synthetic == 0 and
+                equal_pairs >= 1 and
+                summary['b_down'] == summary['b_up'] == summary['b_text'] == 20)
+        else:
+            # Without detectable repeat, equal-time physical taps remain ambiguous.
+            report['rapid_burst'] = dict(applicable=False, reason='Legacy heuristic limitation')
+            report['rapid_burst_ok'] = summary['b_down'] == summary['b_up'] == summary['b_text'] == 0
         report['text_preserved_ok'] = native_press == summary['text'] and native_press >= 2
         report['native_repeat_ok'] = (bool(native_n) and
                                       all(event.get('send_event') == 0 for event in native_n) and
@@ -280,10 +351,10 @@ def run_mode(args, evidence, mode):
             observation.get('global_before') == observation.get('global_after') == 1
             for observation in capabilities)
         report['passed'] = (report['counts_ok'] and report['text_preserved_ok'] and report['native_repeat_ok'] and
-                            report['focus_reset_ok'] and report['lifecycle_ok'] and
+                            report['focus_reset_ok'] and report['lifecycle_ok'] and report['rapid_burst_ok'] and
                             report['capability_ok'] and report['global_before'] == report['global_after'] == 1)
         if not report['passed']:
-            report['failure'] = 'Physical/text counts, native repeat/text preservation, held-focus reset, lifecycle, same-client capability or global repeat invariant failed'
+            report['failure'] = 'Physical/text counts, native repeat/text preservation, held-focus reset, lifecycle, detectable tap edges, same-client capability or global repeat invariant failed'
     except Exception as error:
         report.update(passed=False, failure=str(error))
     finally:

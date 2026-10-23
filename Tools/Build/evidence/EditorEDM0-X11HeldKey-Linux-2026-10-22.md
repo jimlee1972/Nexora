@@ -10,7 +10,9 @@ physical target-host acceptance remain separate. Editor milestone remains 0/8.
 `Engine/Window/src/X11Window.cpp` requests detectable auto-repeat on its own client Display.
 Per-window held-key tracking emits physical transitions once while every repeated native press
 continues through the existing XIM/UTF-8 text path. Focus loss and destruction erase held state.
-The legacy fallback recognizes only a strict genuine adjacent release/press pair already queued
+The request result and returned support flag must both succeed before detectable repeat is
+considered active. Only clients without active detectable repeat use the legacy fallback, which
+recognizes a strict genuine adjacent release/press pair already queued
 in Xlib: matching type, window, keycode and timestamp, with explicit SendEvent input rejected.
 It never retains a release awaiting a future arrival. Split arrivals are forwarded normally;
 equal timestamps are a legacy repeat heuristic, not a universal physical-device classifier.
@@ -135,6 +137,11 @@ explicit comparison of every archived source hash: **5,535 files, zero changes**
 fixture repair and complete rerun require separate acceptance; see
 [owning-review follow-up](EditorEDM0-PrefabInput-Linux-2026-10-22.md#owning-review-follow-up).
 
+## Historical bc4 integrated pass
+
+The following frozen-source result belongs to published `bc4e8cecc7273dcf4615e8881e95239ac4f9cd1b`;
+it predates the detectable-repeat boundary correction below.
+
 <!-- combined-font-input-result:start -->
 Recorded UTC: `2026-10-23T00:49:39.327601+00:00`.
 Final combined configure/build/CTest: **PASS 368/368, zero failures/skips, 1639.24 s**.
@@ -178,5 +185,102 @@ the shadowing parameter and uses owned secure CRT environment copies. See the
 [font follow-up](EditorEDM0-GlyphCoverage-Linux-2026-10-22.md#follow-up-msvc-compilation-and-combined-validation).
 This does not turn Linux results into Windows compilation/runtime acceptance.
 
-Final configured features and six binary hashes are recorded in the
+Historical bc4 configured features and six binary hashes are recorded in the
 [final integrated identity table](EditorEDM0-GlyphCoverage-Linux-2026-10-22.md#final-integrated-binary-identities).
+
+
+## Detectable-repeat boundary correction
+
+The historical bc4 implementation requested detectable repeat but discarded its result/support,
+then applied the legacy equal-timestamp release/press heuristic unconditionally. A client with
+active detectable repeat has no legacy fake releases to remove. Genuine rapid physical taps can
+share the same server millisecond, so this incorrectly collapsed 20 real B taps to one physical
+press/release while preserving all 20 text commits. The correction records request success AND
+support and gates the legacy heuristic on detectable repeat being inactive. Public interfaces,
+repeat rates, text translation, focus reset, close lifetime and frame contracts are unchanged.
+
+The same newly built probe and observer run against the preserved bc4 Window library and the
+corrected Window library on owned Xvfb servers. The normal-mode burst confirms consumer SIGSTOP
+with bounded waitpid/WUNTRACED, queues 20 genuine XTEST press/release pairs, XSyncs before resume,
+and always SIGCONTs in finally. No SendEvent or timestamp rewriting is used. Both runs recorded
+zero synthetic B events and confirmed the stop. Normal mode must observe at least one genuine
+adjacent release/press pair with equal server timestamps, all 20 physical pairs and 20 text commits.
+The legacy control retains every previous N-hold, M-focus, capability, close and global-repeat
+oracle. Its ambiguous rapid-tap burst is not applicable; the legacy test still passes without
+CTest skipping. Limits remain 45 s CTest, 12 s probe and 1 MiB per collected stream.
+
+| Library / mode | Raw B press / release | Equal-time adjacent B pairs | Physical B down / up / text | Result |
+| --- | --- | --- | --- | --- |
+| negative-old-library / normal | 20 / 20 | 19 | 1 / 1 / 20 | FAIL: rapid_burst_ok only |
+| negative-old-library / legacy | not applicable | not applicable | 0 / 0 / 0 | PASS |
+| positive-fixed-library / normal | 20 / 20 | 19 | 20 / 20 / 20 | PASS |
+| positive-fixed-library / legacy | not applicable | not applicable | 0 / 0 / 0 | PASS |
+
+Old-library wrapper exits **1**, with only normal `rapid_burst_ok` false; corrected-library wrapper
+exits **0**. All four attempts retain N physical **1/1**, text **25**, M **2/1**, global repeat
+**1/1**, and passing text, native-repeat, focus, lifecycle and capability oracles. Normal raw N is
+25/1; injected legacy raw N is 25/25. The new focused matcher/native CTest gate passed **2/2,
+zero skips, 1.92 s**. This detects the boundary regression using the same new probe ELF on both
+libraries; the earlier standalone proof is retained as discovery evidence, not substituted for
+this confirmed-stop control.
+
+| Artifact | SHA256 |
+| --- | --- |
+| Preserved bc4 Window library | `868bef269e139c23bd043a8c5b52db1a4ae949fe84aea2de29ffe71a691ea62c` |
+| Corrected Window library | `d4d9394a62f937fd2ea56fe6aa0e91ced01f15db82ea2aa0644bdd1ed84a6427` |
+| Same new probe on both libraries | `846e869e0fc9e341411cde60280fe7ee677e216b9cf6a2321f8dc276ddf4ee62` |
+| Same unchanged observer on both libraries | `d2310c507d1aad6055bd4d5f567846efa1f8d9561688dcf3a1b8ad92ab04d183` |
+
+Artifact root: `/workspace/.task-state/imgui/x11-detectable-boundary`. `candidate-native-status.json` records wrapper status and binary hashes.
+The actual reports retained for this table are:
+
+- `negative-old-library/attempt-2jgxd8_e/normal/report.json` SHA256 `1ca7bbb7b0223a115a46dd5d8fd9f1e24f9f8121463493eac0c211a4dea3ec01`.
+- `negative-old-library/attempt-2jgxd8_e/legacy/report.json` SHA256 `ed3a549f5e02e563831435afb8d76e5476f606da959debccb026d34a2d97c95e`.
+- `positive-fixed-library/attempt-q71fq1to/normal/report.json` SHA256 `0195a3f683cad545fa00b503133d167cfc921d14f67097f780ade1945fc212e0`.
+- `positive-fixed-library/attempt-q71fq1to/legacy/report.json` SHA256 `6a877d84876caba9597cf3357946fc5bb519999f291e2a686316e0eea80660bb`.
+
+Discovery report `attempt2/report.json` SHA256:
+`7cc3677daf38066e07abb953906a78f3cc18a2b4bf5d0c4e89fcc2131cebdb66`.
+Its standalone stop request did not separately acknowledge the stopped state; the same-new-probe
+controls above supply that stronger stop acknowledgment and retain all previous oracles.
+
+<!-- detectable-input-build:start -->
+Latest-source Shipping build: **PASS**, status 0; changed `X11Window.cpp.o` compiled.
+Wall duration was not separately recorded and is not inferred. Actual status:
+`/workspace/.task-state/imgui/x11-detectable-boundary/shipping-status.json`; retained log:
+`/workspace/.task-state/imgui/x11-detectable-boundary/shipping-build.log`.
+<!-- detectable-input-build:end -->
+
+<!-- detectable-input-result:start -->
+Recorded UTC: `2026-10-23T01:58:13.772803+00:00`.
+Corrected detectable-repeat configure/build/CTest: **PASS 368/368, zero failures/skips, 1646.65 s**.
+Source: `be8f20a1e65f344f73809bdf3e30b6f3d4b085a7 plus three-file detectable-repeat correction; source manifest f8245e0f90c68d0fa6319bd3c072d51dcdc3ea1e6402b1b02d5344cef072e7ec`. All 5,535 frozen source/asset/configuration
+hashes match both the completed gate comparison and this finalizer check. Source-manifest
+SHA256: `f8245e0f90c68d0fa6319bd3c072d51dcdc3ea1e6402b1b02d5344cef072e7ec`. Archive prefix: `/workspace/.task-state/imgui/combined-detectable-input-main-standard`.
+The historical bc4 pass and earlier incomplete/failed attempts remain separate records.
+Exact-head CI is a separate merge gate; target-host runtime, physical display/DPI/installed-IME
+and overall Editor 0/8 acceptance remain open.
+<!-- detectable-input-result:end -->
+
+## Final integrated binary identity check
+
+After integrating upstream main and rebuilding, all six executable/library hashes were re-read
+from the actual build. The corrected Window library and new probe still match the two hashes
+in the table above. Editor ELF `809aed95f99f3bf159a2058309616977dddc43f23d387d7b7c5f3c31999c5a20`,
+EditorImGui library `d792a0e46b7846416026b73dca7291d6d5d5236abf6f40c48c315e7862cc68d7`,
+FontGlyph ELF `44fa5cf4f09a60ad85ecb6429248402e4b7d76b073473fb51253849de3c3f11a` and
+observer `d2310c507d1aad6055bd4d5f567846efa1f8d9561688dcf3a1b8ad92ab04d183` remain unchanged.
+The retained identity record is `/workspace/.task-state/imgui/combined-detectable-input-main-final-identities.json`.
+Configuration remains Modular Development with testing, Editor, 2D, graphical shell, native/Vulkan
+backends and Window/Presentation enabled; hierarchy timeout scale is 1. This identity comparison
+is distinct from the complete-suite outcome recorded above.
+
+## Latest main integration
+
+Upstream `50c723888b9aff8246047a9bd0f881cdac9c93e0` independently fixes native Windows Alt+F4
+handling (PR700). It was merged into this branch before final validation; its code and acceptance
+record remain attributed to that change. The earlier corrected-source complete attempt
+`combined-detectable-input-standard` was intentionally interrupted during test 283 after 282
+passed, to include this newer main. CTest status -2, wrapper 667.615 s; all 5,535 frozen hashes
+remained unchanged. That archive is retained and is not a complete pass. The final integrated
+source uses the distinct `combined-detectable-input-main-standard` archive above.
