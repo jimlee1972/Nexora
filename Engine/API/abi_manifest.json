@@ -887,6 +887,87 @@
       "threading": "serialized_owner_thread",
       "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; rejected_output_unchanged",
       "determinism": "snapshot_frozen_per_frame; window_IO_host_dependent"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_ui_draw_api",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.register_image",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.remove_image",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.image",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.nine_slice",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.interact",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.get_glyph",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.register_font",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
+    },
+    {
+      "name": "NexoraGameplayUiDrawApiV1.remove_font",
+      "since": 3,
+      "ownership": "host_owned_context; copied_descriptors_and_pixels; snapshot_retained_images",
+      "nullability": "nonnull_context_descriptors_outputs; buffers_borrow_call",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; outputs_preserved_on_rejection",
+      "determinism": "submission_order; immutable_image_generations"
     }
   ]
 }

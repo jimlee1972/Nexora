@@ -44,6 +44,10 @@ display = json.loads((root / "Engine/API/abi_baseline_display_v1.json").read_tex
 structures.update(display["structures"])
 structures["NexoraGameplayServicesApiV1"] = structures["NexoraGameplayServicesApiV1"] + display["services_suffix"]
 services["zig_names"].update(display["zig_names"])
+ui_draw = json.loads((root / "Engine/API/abi_baseline_ui_draw_v1.json").read_text(encoding="utf-8"))
+structures.update(ui_draw["structures"])
+structures["NexoraGameplayServicesApiV1"] += ui_draw["services_suffix"]
+services["zig_names"].update(ui_draw["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:

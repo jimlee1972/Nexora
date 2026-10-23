@@ -1134,4 +1134,6 @@ programs and runtime material integration remain separate work.
 
 ## Optional display service suffix
 
-The services V1 aggregate accepts its frozen historical prefix and optionally appends `get_display_api`. It copies only the supported complete prefix; absent display services leave caller outputs unchanged and report unsupported. The host owns the registered display context through module unload. Runtime contains no native display policy or Presentation dependency. See [the display contract](../TwoD/GameplayDisplay.md).
+The services V1 aggregate accepts its frozen historical prefix and optionally appends `get_display_api` and `get_ui_draw_api`. It copies only the supported complete prefix; absent display/image-UI services leave caller outputs unchanged and report unsupported. The host owns the registered display context through module unload. Runtime contains no native display policy or Presentation dependency. See [the display contract](../TwoD/GameplayDisplay.md).
+
+The image UI getter is independently negotiated; original and SP-01-sized callers retain their complete historical prefixes. Runtime does not own UI images/fonts or retirement. See [the image UI contract](../TwoD/GameplayUiDraw.md).

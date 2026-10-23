@@ -1,0 +1,26 @@
+SP-02 cloud, 2026-10-23 Asia/Taipei; base main 3a8b6be364dec258abebe8cf5cbd4ae205acaa82
+GCC 14.2, CMake 3.31.10, Ninja 1.13.2, Zig 0.14.0; Clang 19 for the existing reflection tests.
+Task-specific toolchain/cache paths are outside the repository. Xvfb is supplied only to the
+native Window metrics test, not placed on PATH to activate unavailable GPU prerequisites.
+
+cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src -DNEXORA_WINDOW_METRICS_XVFB_EXECUTABLE=/workspace/scratch/nexora-sp01/x11-tools/usr/bin/Xvfb
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp02/development-junit.xml
+Native backends/Vulkan enabled, Slang and Editor graphical shell disabled by defaults; Editor core enabled.
+Result: 274 registered, 258 passed, 16 native GPU/input prerequisite skips, 0 failed.
+
+cmake --preset linux-shipping -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1 -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+cmake --build --preset linux-shipping
+zig build-lib --dep nexora -O ReleaseSafe -mcpu=baseline -Mroot=/workspace/worktrees/nexora-sp02/Gameplay/Zig/src/ui_showcase.zig -Mnexora=/workspace/worktrees/nexora-sp02/Bindings/Zig/nexora.zig -dynamic -femit-bin=/workspace/scratch/nexora-sp02/libNexoraZigUiShipping.so
+python3 Tests/TwoD/UiShowcaseAcceptance.py --shipping --app /workspace/worktrees/nexora-sp02/build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --module /workspace/scratch/nexora-sp02/libNexoraZigUiShipping.so
+Result: full Shipping build and three separate-module package/Player cases passed.
+
+python3 Tests/TwoD/PortableFontBakeTests.py
+python3 Tools/TwoD/BakeFont.py --font /workspace/scratch/nexora-sp02/fonts/NotoSansCJKtc-Regular.otf --text /workspace/worktrees/onmyoji-offline-single-player/design/OnmyojiSurvivors企劃書.md /workspace/worktrees/onmyoji-offline-single-player/design/OnmyojiSurvivors系統規劃書.md /workspace/worktrees/onmyoji-offline-single-player/design/OnmyojiSurvivors美術需求.md --pixels 32 --width 2048 --output /workspace/scratch/nexora-sp02/onmyoji-document-corpus.nxfont --report /workspace/scratch/nexora-sp02/onmyoji-font-report.json
+Result: strict real raster/cmap tests pass; 1,605 document scalars covered, zero missing, 8 MiB pixels.
+
+NativeTests.cpp separately compiled with the compile_commands.json flags for GameplayUiDrawTests.cpp,
+substituting its source/output and adding the external X11 include path. No native execution claimed.
+clang-format 19 on touched C++ files; zig fmt on new/touched UI files; git diff --check.
+No Windows physical UI, final art, final script or full-game performance acceptance claimed.

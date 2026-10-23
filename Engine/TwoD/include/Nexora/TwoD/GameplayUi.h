@@ -2,6 +2,7 @@
 #include "Nexora/Presentation/Surface.h"
 #include "Nexora/TwoD/Api.h"
 #include "nexora/gameplay_ui.h"
+#include "nexora/gameplay_ui_draw.h"
 #include <memory>
 #include <vector>
 namespace nexora::twod {
@@ -17,6 +18,11 @@ struct GameplayUiFont final {
   std::vector<std::byte> rgba;
   std::vector<GameplayUiGlyph> glyphs;
 };
+struct GameplayUiImage final {
+  std::uint64_t texture_id{};
+  std::uint32_t width{}, height{};
+  std::vector<std::byte> rgba;
+};
 struct GameplayUiInput final {
   float pointer_x{}, pointer_y{};
   bool pointer_down{}, pointer_pressed{}, pointer_released{};
@@ -29,6 +35,7 @@ struct NEXORA_2D_API GameplayUiFrame final {
   std::vector<Nexora::Presentation::UiDrawCommand> commands;
   std::vector<Nexora::Presentation::UiTextureUpload> uploads;
   std::vector<std::shared_ptr<const GameplayUiFont>> font_owners;
+  std::vector<std::shared_ptr<const GameplayUiImage>> image_owners;
   [[nodiscard]] Nexora::Presentation::UiDrawData DrawData() const noexcept;
   void ToPixels(float dpi, uint32_t width, uint32_t height);
 };
@@ -40,7 +47,12 @@ public:
   GameplayUi(const GameplayUi &) = delete;
   GameplayUi &operator=(const GameplayUi &) = delete;
   [[nodiscard]] int32_t GetApi(NexoraGameplayUiApiV1 *) noexcept;
-  [[nodiscard]] bool RegisterFont(GameplayUiFont); // copies input ownership, append-only handles
+  [[nodiscard]] int32_t GetDrawApi(NexoraGameplayUiDrawApiV1 *) noexcept;
+  // Retired IDs become releasable only after all owning snapshots have expired. Call before
+  // acquire.
+  [[nodiscard]] std::vector<std::uint64_t> CollectRetiredTextures();
+  [[nodiscard]] bool RegisterFont(
+      GameplayUiFont); // copies input ownership; optional Draw API can explicitly remove
   void BeginInput(GameplayUiInput); // once before module UI commands; clears focus on loss
   void CancelFrame();               // host recovery after a failed/stopped module callback
   [[nodiscard]] GameplayUiFrame Frame() const; // owning snapshot; empty before end_frame

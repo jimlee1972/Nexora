@@ -236,3 +236,7 @@ UUID discovery, dependency validation and owning native resolver generations. It
 ## Display service and safe viewport
 
 The standalone Player supports independently negotiated display state, project window settings, game-selected aspect bounds and DPI-correct logical UI. Camera gameplay policy stays in Zig. See [GameplayDisplay](GameplayDisplay.md); native Windows acceptance remains separate from portable implementation tests.
+
+## Image UI and reusable fonts
+
+The optional [image UI service](GameplayUiDraw.md) supplies copied RGBA images, clipped images/nine-slice, style-free interaction, glyph metrics and reusable font slots. The general Player handles snapshot-aware native texture retirement. Zig owns screen composition; final-art and physical acceptance remain open.

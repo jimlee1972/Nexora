@@ -11,7 +11,7 @@ register them through `api.register_font` / `api.registerFont`. A supplied
 `GameplayUiFont` contains tightly packed RGBA8 pixels, a unique nonzero surface texture ID,
 pixel-size and line-height metrics, and Unicode scalar glyph metrics/UV rectangles. Registration
 moves/copies those bytes into the owner and validates dimensions, glyph uniqueness, UVs, metrics,
-and IDs before publication. At most 32 fonts, 4096x4096 pixels and 65,536 glyphs per font are
+and IDs before publication. At most 32 active fonts, 4096x4096 pixels and 65,536 glyphs per font are
 accepted, with at most 16 MiB RGBA bytes per font to fit the native Sprite overlay budget. Texture
 IDs must differ from Sprite atlas generations and the two Presentation-reserved largest IDs. The
 application handles atlas generation, font licensing and asset packaging; the host handles GPU
@@ -28,7 +28,7 @@ must supply actual CJK glyphs to draw Chinese. Missing fonts/glyphs return `UNSU
 embedded NUL, surrogate sequences, overlong encodings and invalid scalars return `INVALID_ARGUMENT`.
 Text drawing supports Unicode scalar lookup, LF line breaks, supplied advances, size scaling and
 rectangle clipping. Complex-script shaping, automatic wrapping, rich text and editable IME widgets
-are separate capabilities. Registration is append-only: handles remain valid until owner destruction.
+are separate capabilities. Historical registration is append-only by default. The independently negotiated [image UI extension](GameplayUiDraw.md) can explicitly remove fonts; removed opaque handles become unsupported, while owning frame copies remain valid.
 
 ## Frame and input ownership
 
@@ -48,7 +48,7 @@ clears pointer capture and selection. The input API/host decides physical mappin
 The module calls `begin_frame(width,height)`, submits panels/text/buttons, then `end_frame`.
 Frame nesting and draw calls outside a frame return `LIFECYCLE`. The host must end a started frame
 before replacing input, or call the host-only `CancelFrame()` to discard partial commands
-after a failed/stopped module callback. Cancellation clears selection and capture but preserves fonts.
+after a failed/stopped module callback. Cancellation clears selection and capture but preserves registered fonts/images.
 A frame is bounded to 65,536 quads, 4,096 button IDs and 65,536 UTF-8 bytes
 per label. Coordinates are top-left logical pixels, dimensions at most 16,384, colors pack red in
 the least significant byte using Presentation's existing linear RGBA8 blending contract.
@@ -61,7 +61,7 @@ focused, activated and cancelled. Activation/cancel and pointer edges are consum
 Use nonoverlapping buttons; disabled buttons do not receive focus or activation.
 
 After successful `end_frame`, `Frame()` returns an owning snapshot of vertices, 32-bit indices,
-commands, uploads and shared immutable font owners. `GameplayUiFrame::DrawData()` borrows that
+commands, uploads and shared immutable font/image owners. `GameplayUiFrame::DrawData()` borrows that
 snapshot until it is mutated/destroyed; pass it to the existing Sprite overlay/native UI path.
 The snapshot may outlive the UI owner and module reload. Native surfaces copy upload records under
 the existing Presentation contract; keep the snapshot alive until Draw returns. Surface teardown
@@ -81,3 +81,7 @@ acceptance. Physical gamepad, DPI/font appearance and cross-platform product acc
 ## Player DPI conversion
 
 The generic Player supplies logical input coordinates by dividing native pointer pixels by the published display DPI. Module UI dimensions use display logical extents. Before drawing, it calls `GameplayUiFrame::ToPixels` once on its owning frame copy, scaling vertices and clamping outward-rounded scissors to framebuffer bounds. User UI scale remains game-owned. The input service continues to expose native pixels. See [GameplayDisplay](GameplayDisplay.md).
+
+## Image UI extension
+
+See [GameplayUiDraw](GameplayUiDraw.md) for optional image/nine-slice primitives, style-free interaction, automatic texture generations, reusable font slots and snapshot-aware native retirement. UI V1 wire layout is unchanged.

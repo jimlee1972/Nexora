@@ -1,0 +1,51 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "services_suffix": [
+    "get_ui_draw_api"
+  ],
+  "structures": {
+    "NexoraUiImageV1": [
+      "struct_size",
+      "width",
+      "height",
+      "reserved",
+      "texture_id",
+      "rgba",
+      "rgba_length"
+    ],
+    "NexoraUiImageDrawV1": [
+      "struct_size",
+      "rgba",
+      "image",
+      "source",
+      "destination",
+      "clip"
+    ],
+    "NexoraUiInsets": [
+      "left",
+      "top",
+      "right",
+      "bottom"
+    ],
+    "NexoraGameplayUiDrawApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "register_image",
+      "remove_image",
+      "image",
+      "nine_slice",
+      "interact",
+      "get_glyph",
+      "register_font",
+      "remove_font"
+    ]
+  },
+  "zig_names": {
+    "NexoraUiImageV1": "ui_draw.Image",
+    "NexoraUiImageDrawV1": "ui_draw.Draw",
+    "NexoraUiInsets": "ui_draw.Insets",
+    "NexoraGameplayUiDrawApiV1": "ui_draw.Api"
+  }
+}

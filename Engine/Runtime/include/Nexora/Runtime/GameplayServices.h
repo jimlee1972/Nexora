@@ -14,6 +14,7 @@ public:
   NexoraStorageApiV1 storage{};
   NexoraGameplayContentApiV1 content{};
   NexoraGameplayDisplayApiV1 display{};
+  NexoraGameplayUiDrawApiV1 ui_draw{};
 
   [[nodiscard]] int32_t GetApi(NexoraGameplayServicesApiV1 *output) noexcept {
     if (std::this_thread::get_id() != owner_)
@@ -22,9 +23,11 @@ public:
       return NEXORA_GAMEPLAY_ERROR_INVALID_ARGUMENT;
     if (output->struct_size < NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE || output->abi_version != 1)
       return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-    const auto bytes = output->struct_size >= sizeof(*output)
-                           ? sizeof(*output)
-                           : NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE;
+    const auto bytes =
+        output->struct_size >= sizeof(*output) ? sizeof(*output)
+        : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_ui_draw_api)
+            ? offsetof(NexoraGameplayServicesApiV1, get_ui_draw_api)
+            : NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE;
     const NexoraGameplayServicesApiV1 negotiated_table{
         static_cast<uint32_t>(bytes),
         1,
@@ -38,6 +41,9 @@ public:
         },
         [](void *p, NexoraGameplayDisplayApiV1 *v) {
           return Copy(p, v, &GameplayServices::display);
+        },
+        [](void *p, NexoraGameplayUiDrawApiV1 *v) {
+          return Copy(p, v, &GameplayServices::ui_draw);
         }};
     std::memcpy(output, &negotiated_table, bytes);
     return NEXORA_GAMEPLAY_OK;

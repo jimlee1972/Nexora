@@ -158,3 +158,16 @@ Windows physical DPI/click/mode acceptance is NOT RUN / NOT ACCEPTED; 2D M6/M7 a
 milestone counts remain unchanged. Portable implementation checks do not close those gates.
 
 ✅ Native X11 close-race regression: destroyed-before-pump metrics and cleanup pass on Xvfb; the preserved pre-fix DSO fails the same probe.
+
+## SP-02 image UI and Zig composition (2026-10-23)
+
+✅ Portable image/nine-slice UI, style-free interaction, glyph metrics, reusable font handles and
+snapshot-aware texture retirement are implemented with independently negotiated C/Zig wires.
+Original and SP-01 services prefixes remain compatible. Zig diagnostic screens cover HUD slots,
+choices, loadout, wrapped subtitles and settings without game rules in the host.
+
+A strict portable NXFONT1 baker reports complete supplied-corpus coverage, input/font hashes
+and atlas budgets. Actual planning-document coverage is not final-script acceptance; diagnostic
+icons are not final art. See [the UI contract](../../Engine/TwoD/GameplayUiDraw.md) and
+[cloud evidence](../../Tools/Build/evidence/SP02-ImageUi-Cloud-2026-10-23.md). Final artwork,
+Windows typography/input, physical gamepad and the existing milestone gates remain open.
