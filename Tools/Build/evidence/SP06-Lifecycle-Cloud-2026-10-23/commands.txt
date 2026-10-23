@@ -1,0 +1,38 @@
+Manual reproduction record (generated output stays in external scratch/CI artifacts).
+Toolchain: CMake 3.31.10, Ninja 1.13.2, GCC 14.2, Zig 0.14.0.
+
+source /workspace/scratch/nexora-sp05/build.env
+cmake --preset linux-development
+cmake --build --preset linux-development
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp06/development-junit.xml --output-log /workspace/scratch/nexora-sp06/ctest-final.log
+
+Initial preset additions:
+-DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+-DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig
+-DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include
+-DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6
+-DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1
+-DFETCHCONTENT_SOURCE_DIR_NEXORA_VULKAN_HEADERS=/workspace/worktrees/nexora-sp01/build/linux-development/_deps/nexora_vulkan_headers-src
+-DNEXORA_WINDOW_METRICS_XVFB_EXECUTABLE=/workspace/scratch/nexora-sp01/x11-tools/usr/bin/Xvfb
+
+cmake --preset linux-shipping -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+cmake --build --preset linux-shipping --parallel 2
+zig build-lib --dep nexora -O ReleaseSafe -mcpu=baseline -Mroot=Gameplay/Zig/src/lifecycle_slice.zig -Mnexora=Bindings/Zig/nexora.zig -dynamic -femit-bin=/workspace/scratch/nexora-sp06/libNexoraZigLifecycleShipping.so
+python Tests/TwoD/LifecycleSliceAcceptance.py --shipping --app build/linux-shipping/Apps/TwoDPlayer/NexoraTwoDPlayer --module /workspace/scratch/nexora-sp06/libNexoraZigLifecycleShipping.so
+
+python Tools/Build/ValidateApiM6.py .
+python Tools/Build/tests/test_api_lifecycle_contract.py
+clang-format --dry-run --Werror [15 touched C++ files]
+zig fmt --check Bindings/Zig/lifecycle.zig Bindings/Zig/nexora.zig Gameplay/Zig/src/lifecycle_slice.zig Tests/API/GameplayLifecycleAbi.zig Tests/TwoD/GameplayAssetsLayout.zig
+python -m py_compile Tests/TwoD/LifecycleSliceAcceptance.py Tools/Build/tests/test_api_lifecycle_contract.py Tools/Build/ValidateApiM6.py
+git diff --check
+
+Targeted sanitizers (outside ptrace sandbox; no ASAN_OPTIONS override):
+g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include Engine/Runtime/src/GameplayLifecycle.cpp Tests/Runtime/GameplayLifecycleTests.cpp -o /workspace/scratch/nexora-sp06/lifecycle-asan
+/workspace/scratch/nexora-sp06/lifecycle-asan
+g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include -IEngine/TwoD/include -IEngine/Presentation/include -IEngine/Window/include -IEngine/RHI/include Engine/Runtime/src/GameplayLifecycle.cpp Engine/Runtime/src/GameplayStorage.cpp Gameplay/Zig/LifecycleSliceTests.cpp build/linux-development/Gameplay/Zig/zig_lifecycle_slice.o -o /workspace/scratch/nexora-sp06/zig-lifecycle-asan
+/workspace/scratch/nexora-sp06/zig-lifecycle-asan
+
+Windows object cross-compilation only:
+zig c++ -target x86_64-windows-gnu -std=c++20 -c -DNEXORA_WINDOW_EXPORTS -IEngine/Window/include Engine/Window/src/Win32Window.cpp -o /workspace/scratch/nexora-sp06/windows-window.obj
+zig c++ -target x86_64-windows-gnu -std=c++20 -c -DNEXORA_RUNTIME_EXPORTS -IEngine/Runtime/include -IEngine/API/include Engine/Runtime/src/GameplayGamepad.cpp -o /workspace/scratch/nexora-sp06/windows-gamepad.obj

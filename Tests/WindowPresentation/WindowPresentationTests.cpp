@@ -440,6 +440,20 @@ int main() {
   assert(altF4Release[0].value1 == 0);
   assert(IsWindow(hwnd));
 
+  SendMessageW(hwnd, WM_SIZE, SIZE_MINIMIZED, 0);
+  SendMessageW(hwnd, WM_SIZE, SIZE_RESTORED, MAKELPARAM(640, 480));
+  SendMessageW(hwnd, WM_POWERBROADCAST, PBT_APMSUSPEND, 0);
+  SendMessageW(hwnd, WM_POWERBROADCAST, PBT_APMRESUMEAUTOMATIC, 0);
+  auto powerEvents = nativeWindows->PumpEvents();
+  assert(std::ranges::any_of(
+      powerEvents, [](const auto &e) { return e.type == Window::WindowEventType::Minimized; }));
+  assert(std::ranges::any_of(
+      powerEvents, [](const auto &e) { return e.type == Window::WindowEventType::Restored; }));
+  assert(std::ranges::any_of(powerEvents, [](const auto &e) {
+    return e.type == Window::WindowEventType::SuspendRequested;
+  }));
+  assert(std::ranges::any_of(
+      powerEvents, [](const auto &e) { return e.type == Window::WindowEventType::Resumed; }));
   PostMessageW(hwnd, WM_CLOSE, 0, 0);
   assert(nativeWindows->Destroy(eventWindow.handle) == Window::WindowError::None);
   assert(nativeWindows->PumpEvents().empty());

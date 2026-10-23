@@ -38,6 +38,10 @@ enum class WindowEventType : std::uint8_t {
   PointerButton,
   Wheel,
   DisplayChanged,
+  SuspendRequested,
+  Resumed,
+  Minimized,
+  Restored,
 };
 
 // Platform-independent physical keys used by UI and gameplay input consumers. Native window

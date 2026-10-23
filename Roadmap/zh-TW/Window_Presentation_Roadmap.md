@@ -240,3 +240,22 @@ Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6�
 完成數不變，可攜實作檢查不等同於通過上述驗收。
 
 ✅ X11 原生關閉回歸：Xvfb 驗證事件處理前已銷毀視窗的查詢與清理；修正前 DSO 在同一探針失敗。
+
+## SP-06 遊戲生命週期、關閉確認與震動（2026-10-23）
+
+✅ 可選 Lifecycle V1 保留所有既有 services 前綴（含 SP-05 的 88 bytes），並檢查 C／Zig
+欄位順序與每個 callback 的 API metadata。焦點／最小化／電源／斷線序號保留同批中斷，
+固定更新前即可讀取；明確啟用 guard 後，Zig 可取消關閉 token，或實際保存成功後接受。
+未啟用的舊模組維持原關閉行為。
+✅ Windows 轉譯休眠／恢復及不被 resize 合併掉的最小化／恢復事件。XInput 有時限震動
+回報能力與原生錯誤，在 owner tick 到期及失焦／最小化／休眠／關閉／Stop 時要求歸零。
+DirectInput／DS4／Linux 震動仍明確不支援。
+✅ 實際 Zig V3 診斷保留待選標記，在固定模擬前暫停，處理原子保存失敗重試及重新開啟暫停，
+明確確認後三秒準備。可攜測試涵蓋原生輸出失敗重試、token／前綴／執行緒與實際 Storage
+舊檔保留；獨立匯出 Player 驗證協商、UI 與資源所有權。
+
+見[生命週期契約](../../Engine/Runtime/GameplayLifecycle.md)及
+[雲端證據](../../Tools/Build/evidence/SP06-Lifecycle-Cloud-2026-10-23.md)。
+正式遊戲卡片／交易接入及 Windows 實機焦點、最小化、拔插、休眠、震動仍待驗收
+（`nexora-4j7.1`）；訊息注入不等於真實休眠或馬達感受。
+本輪不代表 SP-06 正式產品驗收、M6／M7 或其餘 SP 缺口已完成。

@@ -121,6 +121,7 @@ int main() {
                     offsetof(NexoraGameplayServicesApiV1, get_ui_draw_api),
                     offsetof(NexoraGameplayServicesApiV1, get_assets_api),
                     offsetof(NexoraGameplayServicesApiV1, get_audio_state_api),
+                    offsetof(NexoraGameplayServicesApiV1, get_lifecycle_api),
                     sizeof(NexoraGameplayServicesApiV1)}) {
     bytes.fill(std::byte{0x5a});
     const std::uint32_t header[]{std::uint32_t(size), 1};

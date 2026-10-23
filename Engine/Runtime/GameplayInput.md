@@ -148,3 +148,13 @@ native controller. Windows DLL polling and physical input still require target-h
 The same test also covers copied DirectInput DS4 face/system/POV and six-axis routing, raw generic
 controls, full-snapshot clearing on slot reuse, focus recovery, disconnect, bounds and wrong-thread
 rejection. Those decoder tests do not establish physical-device acceptance.
+
+## Optional motor output and lifecycle
+
+The additive [Lifecycle V1 service](GameplayLifecycle.md) provides connected/rumble masks, per-slot
+disconnect sequences and bounded motor requests. Windows XInput has native motor output; current
+DirectInput/DS4 and Linux joystick adapters explicitly report unsupported. This supersedes the
+rumble-outside-this-slice statement above only for XInput; physical/model acceptance is still open.
+C++ consumers of `NativeGameplayGamepad` must rebuild for the added private observation state.
+No Input V1 field or pixel-coordinate convention changed. Player interruption batches clear UI and
+action edges before Zig receives its next fixed/variable update.

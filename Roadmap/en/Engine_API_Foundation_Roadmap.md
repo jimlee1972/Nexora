@@ -234,3 +234,23 @@ Final recordings/subtitle corpus, full offline installation, worst-case concurre
 Windows playback/unplug/reopen/long-soak gates remain open in `nexora-6d6.1`. Compressed decoding,
 audio disk streaming and realtime mixing are not implemented by this per-line PCM path.
 Other SP assessments and M6/M7 acceptance remain unchanged.
+
+## SP-06 gameplay lifecycle, close handshake and rumble (2026-10-23)
+
+✅ Optional Lifecycle V1 preserves every previous services prefix (including SP-05's 88 bytes),
+with enforced C/Zig field order and callback metadata. Retained focus/minimize/power/disconnect
+sequences are visible before fixed updates; an explicit guard routes native close through a token
+that Zig can cancel or accept after a real successful save. Legacy close behavior is preserved.
+✅ Windows translates suspend/resume and noncoalesced minimize/restore notifications. Bounded
+XInput rumble reports support/native errors, expires on owner ticks, and requests zero on blur,
+minimize, suspend, close and Stop. DirectInput/DS4/Linux rumble remains unsupported.
+✅ A real Zig V3 diagnostic retains a pending marker, pauses before fixed simulation, retries failed
+atomic snapshots, reopens paused, and requires explicit confirmation plus a three-second preparation.
+Portable tests cover native-output failure retry, token/prefix/thread guards and actual Storage
+failure preservation; the independent exported Player exercises negotiation/UI/ownership.
+
+See [lifecycle contract](../../Engine/Runtime/GameplayLifecycle.md) and
+[cloud evidence](../../Tools/Build/evidence/SP06-Lifecycle-Cloud-2026-10-23.md).
+Final game card/transaction integration and physical Windows focus/minimize/controller/sleep/rumble
+acceptance remain open (`nexora-4j7.1`). Message injection is not actual OS sleep or motor sensation.
+This does not complete SP-06 product acceptance, M6/M7, or unrelated SP gaps.

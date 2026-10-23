@@ -1141,3 +1141,10 @@ The image UI getter is independently negotiated; original and SP-01-sized caller
 The optional [asset service](../TwoD/GameplayAssets.md) is supplied by the 2D embedding; Runtime
 only negotiates its copied wire table. IO, publication, snapshot retirement and shutdown ordering
 stay with that owner. Historical services prefixes remain supported independently.
+
+## Optional gameplay lifecycle
+
+The generic Player now offers an independently negotiated lifecycle/close/rumble table.
+See [GameplayLifecycle.md](GameplayLifecycle.md) for owner-thread ownership, retained interruption
+sequences, explicit close opt-in/tokens, bounded XInput output, errors and Zig pause/save policy.
+Native physical Windows acceptance remains separate from the portable contract.

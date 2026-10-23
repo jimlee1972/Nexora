@@ -41,3 +41,14 @@ if(NEXORA_ZIG_EXECUTABLE)
       --dep input "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayInputAbi.zig"
       "-Minput=${PROJECT_SOURCE_DIR}/Bindings/Zig/input.zig" -lc)
 endif()
+
+add_test(NAME api.lifecycle_baseline_guard
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/tests/test_api_lifecycle_contract.py")
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(api.gameplay_lifecycle_zig_abi
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-cache"
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-local-cache"
+    -I "${PROJECT_SOURCE_DIR}/Engine/API/include"
+    --dep lifecycle "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayLifecycleAbi.zig"
+    "-Mlifecycle=${PROJECT_SOURCE_DIR}/Bindings/Zig/lifecycle.zig" -lc)
+endif()

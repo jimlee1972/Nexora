@@ -93,7 +93,7 @@ if(NEXORA_LINK_MODE STREQUAL "Monolithic")
 endif()
 nexora_apply_defaults(NexoraRuntime)
 
-target_sources(NexoraRuntime PRIVATE src/GameplayInput.cpp)
+target_sources(NexoraRuntime PRIVATE src/GameplayInput.cpp src/GameplayLifecycle.cpp)
 
 target_sources(NexoraRuntime PRIVATE src/GameplayStorage.cpp)
 target_sources(NexoraRuntime PRIVATE src/GameplayGamepad.cpp)

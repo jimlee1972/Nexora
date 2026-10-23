@@ -97,3 +97,12 @@ the latest detectable-repeat boundary repair and its own complete-suite gate.
 `Metrics` returns current client pixels and DPI on supported hosts; `SetResizable` is a serialized optional native operation. Windows queries initial DPI without waiting for WM_DPICHANGED and restores saved style/rectangle after borderless desktop mode. `WindowDescriptor::fitToWorkArea` opts into fitting/centering decorated client windows on creation/resize; its default false preserves existing Editor and other host sizing. The standalone 2D Player opts in through RenderSurface. X11 supplies actual client pixels/scale 1 and EWMH mode requests. Unsupported implementations return Unsupported. Native physical acceptance is documented separately from portable geometry tests.
 
 Native X11 metrics return InvalidHandle for an externally destroyed window even before DestroyNotify is pumped, without modifying output. Expected BadWindow handling is scoped to that window and restores the prior handler; unrelated errors are not silently suppressed. RenderSurface stops native queries/acquisition once close or destruction is known. The isolated Xvfb metrics regression covers both event/cleanup orderings.
+
+## Windows power and minimize notifications
+
+Win32 now translates WM_POWERBROADCAST suspend and resume notifications into `SuspendRequested`
+and `Resumed`. `Minimized`/`Restored` are dedicated events, preserving a minimize/restore batch even
+when adjacent resize extents coalesce. Events retain the existing owner-thread, borrowed-span lifetime.
+Other backends do not yet advertise power notifications. The event does not veto sleep or guarantee
+that the host can finish a snapshot; forced shutdown can bypass ordinary close confirmation.
+The generic gameplay close handshake is documented in [Runtime](../Runtime/GameplayLifecycle.md).

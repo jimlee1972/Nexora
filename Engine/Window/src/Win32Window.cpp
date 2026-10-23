@@ -467,12 +467,25 @@ private:
     if (!self)
       return DefWindowProcW(h, m, w, l);
     switch (m) {
+    case WM_POWERBROADCAST:
+      if (w == PBT_APMSUSPEND)
+        self->Push(h, WindowEventType::SuspendRequested);
+      else if (w == PBT_APMRESUMEAUTOMATIC || w == PBT_APMRESUMESUSPEND)
+        self->Push(h, WindowEventType::Resumed);
+      return TRUE;
     case WM_CLOSE:
       self->Push(h, WindowEventType::CloseRequested);
       return 0;
-    case WM_SIZE:
+    case WM_SIZE: {
+      const auto id = self->HandleId(h);
+      const bool minimized = w == SIZE_MINIMIZED;
+      if (id && self->minimized_[id] != minimized) {
+        self->minimized_[id] = minimized;
+        self->Push(h, minimized ? WindowEventType::Minimized : WindowEventType::Restored);
+      }
       self->Push(h, WindowEventType::Resized, 0, 0, LOWORD(l), HIWORD(l));
       return 0;
+    }
     case WM_DPICHANGED: {
       auto *r = reinterpret_cast<RECT *>(l);
       SetWindowPos(h, nullptr, r->left, r->top, r->right - r->left, r->bottom - r->top,
@@ -558,6 +571,7 @@ private:
       return 0;
     case WM_NCDESTROY:
       self->ClearPendingText(h);
+      self->minimized_.erase(self->HandleId(h));
       SetWindowLongPtrW(h, GWLP_USERDATA, 0);
       RemovePropW(h, L"Nexora.Handle");
       break;
@@ -571,6 +585,7 @@ private:
   uint64_t next_ = 1;
   std::unordered_map<uint64_t, HWND> windows_;
   std::unordered_map<uint64_t, bool> fullscreen_;
+  std::unordered_map<uint64_t, bool> minimized_;
   std::unordered_map<uint64_t, bool> fitted_;
   std::unordered_map<uint64_t, RECT> windowedRects_;
   std::unordered_map<uint64_t, LONG_PTR> windowedStyles_;

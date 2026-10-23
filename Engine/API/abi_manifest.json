@@ -1076,6 +1076,51 @@
       "threading": "serialized_owner_thread",
       "errors": "-1_invalid_gain_or_context|-3_wrong_owner_thread",
       "determinism": "scales_future_Voice_blocks; independent_Music_SFX; master_still_applies"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_lifecycle_api",
+      "since": "ABI 3 optional Lifecycle V1",
+      "ownership": "Borrowed host table/context until module unload; copied state owned by caller; no deferred save.",
+      "nullability": "Context and required outputs non-null; optional getter guarded by services struct_size.",
+      "threading": "Serialized host owner thread only, including Stop/Destroy.",
+      "errors": "0 success; -1 invalid argument or stale close token; -2 unsupported; -3 wrong thread, unsafe lifecycle state or native failure. Failed queries preserve outputs.",
+      "determinism": "State copies do not consume events. Native motor results and wall-clock expiry depend on host; simulation remains Zig policy."
+    },
+    {
+      "name": "NexoraGameplayLifecycleApiV1.get_state",
+      "since": "ABI 3 optional Lifecycle V1",
+      "ownership": "Borrowed host table/context until module unload; copied state owned by caller; no deferred save.",
+      "nullability": "Context and required outputs non-null; optional getter guarded by services struct_size.",
+      "threading": "Serialized host owner thread only, including Stop/Destroy.",
+      "errors": "0 success; -1 invalid argument or stale close token; -2 unsupported; -3 wrong thread, unsafe lifecycle state or native failure. Failed queries preserve outputs.",
+      "determinism": "State copies do not consume events. Native motor results and wall-clock expiry depend on host; simulation remains Zig policy."
+    },
+    {
+      "name": "NexoraGameplayLifecycleApiV1.set_close_guard",
+      "since": "ABI 3 optional Lifecycle V1",
+      "ownership": "Borrowed host table/context until module unload; copied state owned by caller; no deferred save.",
+      "nullability": "Context and required outputs non-null; optional getter guarded by services struct_size.",
+      "threading": "Serialized host owner thread only, including Stop/Destroy.",
+      "errors": "0 success; -1 invalid argument or stale close token; -2 unsupported; -3 wrong thread, unsafe lifecycle state or native failure. Failed queries preserve outputs.",
+      "determinism": "State copies do not consume events. Native motor results and wall-clock expiry depend on host; simulation remains Zig policy."
+    },
+    {
+      "name": "NexoraGameplayLifecycleApiV1.resolve_close",
+      "since": "ABI 3 optional Lifecycle V1",
+      "ownership": "Borrowed host table/context until module unload; copied state owned by caller; no deferred save.",
+      "nullability": "Context and required outputs non-null; optional getter guarded by services struct_size.",
+      "threading": "Serialized host owner thread only, including Stop/Destroy.",
+      "errors": "0 success; -1 invalid argument or stale close token; -2 unsupported; -3 wrong thread, unsafe lifecycle state or native failure. Failed queries preserve outputs.",
+      "determinism": "State copies do not consume events. Native motor results and wall-clock expiry depend on host; simulation remains Zig policy."
+    },
+    {
+      "name": "NexoraGameplayLifecycleApiV1.rumble",
+      "since": "ABI 3 optional Lifecycle V1",
+      "ownership": "Borrowed host table/context until module unload; copied state owned by caller; no deferred save.",
+      "nullability": "Context and required outputs non-null; optional getter guarded by services struct_size.",
+      "threading": "Serialized host owner thread only, including Stop/Destroy.",
+      "errors": "0 success; -1 invalid argument or stale close token; -2 unsupported; -3 wrong thread, unsafe lifecycle state or native failure. Failed queries preserve outputs.",
+      "determinism": "State copies do not consume events. Native motor results and wall-clock expiry depend on host; simulation remains Zig policy."
     }
   ]
 }

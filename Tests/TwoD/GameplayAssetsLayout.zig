@@ -11,6 +11,8 @@ test "asset IO and every services prefix C/Zig layout" {
         .{ c.NexoraGameplayAssetsApiV1, nx.assets.Api },
         .{ c.NexoraAudioUsageV1, nx.audio_state.Usage },
         .{ c.NexoraGameplayAudioStateApiV1, nx.audio_state.Api },
+        .{ c.NexoraLifecycleStateV1, nx.lifecycle.State },
+        .{ c.NexoraGameplayLifecycleApiV1, nx.lifecycle.Api },
         .{ c.NexoraGameplayServicesApiV1, nx.GameplayServicesApiV1 },
     }) |pair| {
         try std.testing.expectEqual(@sizeOf(pair[0]), @sizeOf(pair[1]));
@@ -21,6 +23,8 @@ test "asset IO and every services prefix C/Zig layout" {
     }
     const sp03 = nx.GameplayServicesApiV1{ .struct_size = @offsetOf(nx.GameplayServicesApiV1, "get_audio_state_api") };
     try std.testing.expect(nx.getAudioState(sp03) == null);
+    const sp05 = nx.GameplayServicesApiV1{ .struct_size = @offsetOf(nx.GameplayServicesApiV1, "get_lifecycle_api") };
+    try std.testing.expect(nx.getLifecycle(sp05) == null);
     const original = nx.GameplayServicesApiV1{ .struct_size = nx.services_v1_base_size };
     try std.testing.expect(nx.getAssets(original) == null);
     const sp01 = nx.GameplayServicesApiV1{ .struct_size = @offsetOf(nx.GameplayServicesApiV1, "get_ui_draw_api") };
