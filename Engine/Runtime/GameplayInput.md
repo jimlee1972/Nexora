@@ -156,5 +156,6 @@ disconnect sequences and bounded motor requests. Windows XInput has native motor
 DirectInput/DS4 and Linux joystick adapters explicitly report unsupported. This supersedes the
 rumble-outside-this-slice statement above only for XInput; physical/model acceptance is still open.
 C++ consumers of `NativeGameplayGamepad` must rebuild for the added private observation state.
-No Input V1 field or pixel-coordinate convention changed. Player interruption batches clear UI and
-action edges before Zig receives its next fixed/variable update.
+No Input V1 field or pixel-coordinate convention changed. Player losses clear unsafe held controls
+immediately; UI activation is gated across the whole interruption batch, while fresh movement after
+foreground restoration is preserved.

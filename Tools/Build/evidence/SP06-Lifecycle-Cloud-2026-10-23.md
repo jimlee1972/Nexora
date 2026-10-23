@@ -18,7 +18,8 @@ hosted success or physical Windows acceptance. Beads `nexora-4j7` tracks the del
   devices, expiry and zero on blur/minimize/suspend/close/Stop. Failed zeros retry on owner ticks;
   disconnected commands never replay. Native adapter teardown attempts zero before DLL release.
 - Player updates gameplay even while it cannot present, exposes events before fixed ticks, clears
-  interruption-batch controls and gates built-in UI until a focused neutral frame.
+  unsafe controls at loss and gates built-in UI until a focused neutral frame, preserving fresh
+  post-focus movement.
 - Zig `PauseGate` and an actual V3 diagnostic own pause, consistent snapshot serialization/error,
   pending marker retention, explicit three-second preparation and close/save UI. Supplied diagnostic
   font is explicitly registered/removed; no synthetic missing-glyph fallback is claimed.
@@ -43,10 +44,16 @@ The Windows resize gate now checks the complete resized/minimized/zero-extent/re
 sequence instead of its pre-lifecycle assumption of a single coalesced event. A separate ordinary
 resize-only batch must still coalesce to exactly one final extent; no native assertion is disabled.
 
+The existing real Xvfb/Player movement gate exposed an overbroad end-of-batch raw-input clear.
+The final Player separates UI rearming from gameplay actions: actual losses clear controls at their
+event boundary, restored foreground routing accepts fresh keys, and UI-only suppression preserves
+new D movement while still requiring a physically released/new gamepad confirmation. The shared
+Player helper regression checks both outcomes together. Native keyboard acceptance remains strict.
+
 ## Local validation
 
 Full `linux-development` configure/build/CTest passed: **292 registered, 276 passed,
-16 native-prerequisite skips, 0 failures; 156.25 seconds**. The skips are the existing Vulkan/
+16 native-prerequisite skips, 0 failures; 151.56 seconds**. The skips are the existing Vulkan/
 Slang/XTEST native prerequisites; none of the new SP-06 tests skipped.
 Full Monolithic Shipping build and independent baseline-CPU ReleaseSafe Zig/Player export passed.
 The independent Player observed 240 completed UI frames with balanced module allocations and

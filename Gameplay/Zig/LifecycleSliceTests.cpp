@@ -44,28 +44,45 @@ int main() {
     NexoraGameplayInputBindingV1 binding{
         sizeof(binding), 1, NEXORA_INPUT_DEVICE_GAMEPAD, 0, 0, 1, 0, 0};
     assert(api.bind(api.context, 0, 255, &binding) == 0);
+    binding.device = NEXORA_INPUT_DEVICE_KEYBOARD;
+    binding.control = NEXORA_INPUT_KEY_D;
+    assert(api.bind(api.context, 0, 250, &binding) == 0);
     nexora::player::UiInputGate routed;
     auto frame = [&](bool interrupted, float held) {
       assert(input.BeginFrame());
+      if (interrupted) {
+        assert(input.SetFocused(false)); // Loss clears old controls at the event boundary.
+        assert(input.SetFocused(true));
+        assert(input.Submit(0, NEXORA_INPUT_DEVICE_KEYBOARD, 0, NEXORA_INPUT_KEY_D, 1));
+      }
       assert(nexora::player::UiInputGate::PollGamepads(
           input, true, [&] { return input.Submit(0, NEXORA_INPUT_DEVICE_GAMEPAD, 0, 0, held); }));
-      if (interrupted)
-        assert(input.SetFocused(false));
       NexoraGameplayActionStateV1 action{};
       action.struct_size = sizeof(action);
       action.abi_version = 1;
       assert(api.read_action(api.context, 0, 255, &action) == 0);
       nexora::twod::GameplayUiInput in;
-      in.focused = !interrupted;
+      assert(nexora::player::UiInputGate::FinishInput(input, in, true, interrupted));
       in.activate = action.pressed != 0;
       routed.Apply(in, interrupted, !action.held);
+      NexoraGameplayActionStateV1 movement{};
+      movement.struct_size = sizeof(movement);
+      movement.abi_version = 1;
+      assert(api.read_action(api.context, 0, 250, &movement) == 0 && movement.value == 1);
       return in.activate;
     };
-    assert(!frame(true, 1)); // Blur/close batch clears the submitted sample.
+    assert(!frame(true, 1)); // UI suppression retains fresh D movement after recovery.
     for (unsigned i = 0; i < 4; ++i)
       assert(!frame(false, 1)); // Still physically held across recovery.
     assert(!frame(false, 0));   // Actual complete neutral sample rearms only the next frame.
     assert(frame(false, 1));    // New physical confirmation is allowed.
+    nexora::twod::GameplayUiInput background;
+    assert(nexora::player::UiInputGate::FinishInput(input, background, false, true));
+    NexoraGameplayActionStateV1 stopped{};
+    stopped.struct_size = sizeof(stopped);
+    stopped.abi_version = 1;
+    assert(api.read_action(api.context, 0, 250, &stopped) == 0 && !stopped.held &&
+           !background.focused);
   }
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-sp06-" +

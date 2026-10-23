@@ -13,6 +13,14 @@ public:
       return false;
     return poll();
   }
+  // UI suppression must not erase genuine movement received after foreground recovery.
+  static bool FinishInput(runtime::GameplayInput &input, twod::GameplayUiInput &ui, bool foreground,
+                          bool interrupted) {
+    if (!input.SetFocused(foreground))
+      return false;
+    ui.focused = foreground && !interrupted;
+    return true;
+  }
   void Apply(twod::GameplayUiInput &input, bool interrupted, bool neutral) noexcept {
     needs_neutral_ |= interrupted || !input.focused;
     const bool suppress = needs_neutral_;

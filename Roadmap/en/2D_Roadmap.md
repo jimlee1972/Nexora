@@ -817,3 +817,5 @@ See [lifecycle contract](../../Engine/Runtime/GameplayLifecycle.md) and
 Final game card/transaction integration and physical Windows focus/minimize/controller/sleep/rumble
 acceptance remain open (`nexora-4j7.1`). Message injection is not actual OS sleep or motor sensation.
 This does not complete SP-06 product acceptance, M6/M7, or unrelated SP gaps.
+
+Fresh post-foreground movement is retained; UI confirmation still waits for neutral rearming.

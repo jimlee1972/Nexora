@@ -24,8 +24,12 @@ adapter disconnect observations additionally retain same-slot backend replacemen
 reads. A game chooses the controlled slot in Zig; a disconnected unused pad need not pause combat.
 
 The 2D Player feeds native events and device observations before module fixed/variable updates.
-It clears action/pointer/UI edges for an interruption batch, including loss followed by recovery;
-a held confirmation cannot commit a pending choice in that batch. Built-in UI navigation/confirmation
+It clears unsafe controls at each actual focus/minimize/suspend loss and disconnects only the
+removed gamepad's controls. UI activation is suppressed for the whole interruption batch, including
+loss followed by recovery; a held confirmation cannot commit a pending choice in that batch.
+Fresh gameplay keys arriving after foreground restoration are preserved, including within that
+same event batch. UI neutral rearming must never clear those new movement actions.
+Built-in UI navigation/confirmation
 and pointer activation additionally wait for a focused neutral frame before rearming. The Player
 restores input routing before each complete gamepad sample, so cleared or ignored input is never
 mistaken for physical release; a newly connected controller also requires neutral rearming. Games using
@@ -99,7 +103,8 @@ checking that the old payload survives, retry succeeds, and a fresh module reope
 modules, repeats zero-extent updates, and verifies restored UI and clean module teardown. Both
 older modules now skip only invalid display mapping/drawing while their host can process lifecycle.
 The held-confirmation regression uses actual GameplayInput and the Player's shared polling/gating
-helper, including the cleared first frame, multiple held samples, physical release and a fresh press.
+helper, including loss/recovery in one batch, retained fresh movement, multiple held samples,
+physical release and a fresh press.
 A standalone exported Player run gates service negotiation/UI/ownership. Win32 message injection tests
 translation, not actual sleep or a physical controller. See [cloud evidence](../../Tools/Build/evidence/SP06-Lifecycle-Cloud-2026-10-23.md).
 Physical Windows lifecycle, final game transactions, actual motor sensation and shutdown remain open

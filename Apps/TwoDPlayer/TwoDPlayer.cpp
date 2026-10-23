@@ -646,6 +646,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
               uiInput.pointer_pressed = uiInput.pointer_released = false;
             }
           }
+          // Restore routing at the state transition, before any later key in this batch.
+          Check(input.SetFocused(focused && !minimized && !suspended), "event input routing");
           if (event.type == Nexora::Window::WindowEventType::Pointer) {
             uiInput.pointer_x = static_cast<float>(event.value0);
             uiInput.pointer_y = static_cast<float>(event.value1);
@@ -704,13 +706,13 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
             disconnectSequences[id] = sequence;
           }
         }
-        if (interruptedBatch)
-          Check(input.SetFocused(false), "interrupted sample reset");
-        uiInput.focused = focused && !minimized && !suspended && !interruptedBatch;
-        if (!uiInput.focused) {
+        const bool foreground = focused && !minimized && !suspended;
+        Check(
+            nexora::player::UiInputGate::FinishInput(input, uiInput, foreground, interruptedBatch),
+            "lifecycle input routing");
+        if (!foreground)
           keys.fill(false);
-          uiInput.pointer_down = uiInput.pointer_pressed = uiInput.pointer_released = false;
-        }
+        // Apply() suppresses UI for this batch; keep fresh post-focus gameplay controls intact.
       }
       if (!native)
         updateDisplay();
