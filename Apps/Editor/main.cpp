@@ -3258,6 +3258,16 @@ int RunGraphical(std::optional<ProjectState> project,
             break;
           }
       record("source_inspect", Access::PrefabSourceInspectionPosition(ui));
+      record("override_review", Access::PrefabOverridePosition(ui, 0));
+      record("override_revert", Access::PrefabOverridePosition(ui, 1));
+      record("override_confirm", Access::PrefabOverridePosition(ui, 2));
+      record("override_cancel", Access::PrefabOverridePosition(ui, 3));
+      record("override_selected", Access::PrefabOverridePosition(ui, 4));
+      if (const auto *report = Access::PrefabOverrideReport(ui))
+        for (std::size_t row = 0; row < report->rows.size(); ++row) {
+          const auto name = "override_row_" + std::to_string(row);
+          record(name.c_str(), Access::PrefabOverrideRowPosition(ui, row));
+        }
       if (project) {
         const auto &scene = active_scene();
         for (const auto &node : scene.Nodes()) {

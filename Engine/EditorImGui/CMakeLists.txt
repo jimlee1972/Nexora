@@ -9,9 +9,10 @@ endif()
 add_library(NexoraDearImGui ${NEXORA_DEAR_IMGUI_LIBRARY_TYPE}
   "${nexora_imgui_SOURCE_DIR}/imgui.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_demo.cpp"
-  "${nexora_imgui_SOURCE_DIR}/imgui_draw.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/src/DearImGuiFontProbe.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_tables.cpp"
   "${nexora_imgui_SOURCE_DIR}/imgui_widgets.cpp")
+target_compile_features(NexoraDearImGui PRIVATE cxx_std_20)
 target_include_directories(NexoraDearImGui SYSTEM PUBLIC "${nexora_imgui_SOURCE_DIR}")
 # WindowEvent carries Unicode scalar values; keep supplementary characters across InputText.
 # This changes ImWchar-dependent layouts, so every direct consumer needs the same definition.

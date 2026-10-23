@@ -11,6 +11,21 @@
 
 namespace nexora::editor::imgui {
 
+struct EditorFontTestState final {
+  std::vector<std::uint32_t> profile, missing;
+  std::vector<std::string> paths, families;
+  std::vector<int> faces;
+  std::size_t candidates{}, rejected{}, bitmap_only{}, owned_bytes{};
+  std::uint64_t conservative_area{}, probe_microseconds{}, build_microseconds{};
+  std::uint32_t generation{};
+  int width{}, height{};
+  bool fallback{}, admission_rejected{}, profile_rejected{};
+};
+struct EditorFontGlyphTestState final {
+  bool present{};
+  std::array<float, 4> uv{};
+  std::uint64_t ink_pixels{}, raster_hash{};
+};
 // Processed GUI values only. comparison_allowed is the exact file/comparison shortcut gate;
 // it does not assert that routing selected the shortcut or that the owner started a job.
 struct SceneShortcutObservation final {
@@ -105,6 +120,12 @@ struct EditorHierarchyStorageTestState final {
 
 class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
+  // Host-local owning override for deterministic font tests, applied before a new SetDisplay.
+  static void FontSources(EditorImGuiHost &, std::span<const std::string> paths,
+                          bool require_traditional_face = false);
+  [[nodiscard]] static EditorFontTestState FontState(const EditorImGuiHost &);
+  [[nodiscard]] static EditorFontGlyphTestState FontGlyph(const EditorImGuiHost &, std::uint32_t);
+  [[nodiscard]] static std::vector<std::uint16_t> TraditionalFontScalars();
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ExtensionManagerPosition(const EditorImGuiHost &, std::string_view);
   [[nodiscard]] static std::optional<std::array<float, 2>>
