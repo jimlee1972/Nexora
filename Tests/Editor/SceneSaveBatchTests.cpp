@@ -1,3 +1,4 @@
+#include "../../Apps/Editor/StarterSceneStorage.h"
 #include "../../Engine/Editor/src/SceneSaveBatchTestAccess.h"
 #include "Nexora/Editor/SceneSaveBatch.h"
 
@@ -65,6 +66,58 @@ struct ProjectFixture {
             "Rejected batch changed originals or acknowledged document baselines");
   }
 };
+void StarterScene(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root, "Starter scene"), "Starter workspace failed");
+  const auto directory = root / ".nexora/scenes";
+  const auto path = directory / "Main.scene";
+  Require(!std::filesystem::exists(directory), "Starter directory fixture already exists");
+  Require(editor::app::PrepareStarterSceneStorage(workspace) &&
+              editor::app::PrepareStarterSceneStorage(workspace) &&
+              std::filesystem::is_directory(directory) && !std::filesystem::exists(path),
+          "Starter storage must prepare only its directory, idempotently");
+  runtime::World world;
+  const auto id = world.LoadScene("Main");
+  editor::SceneDocument scene(world, id);
+  const auto node = scene.Create("Scene Root");
+  editor::SceneFileSession files(workspace, scene);
+  Require(node && files.BindCurrent(".nexora/scenes/Main.scene") && scene.Dirty(),
+          "Unsaved named starter fixture failed");
+  const std::array sessions{&files};
+  Batch batch(workspace);
+  Write(path.string() + ".save-all-tmp", "foreign staging data");
+  Require(!batch.Prepare(sessions) && scene.Dirty() && !std::filesystem::exists(path) &&
+              Read(path.string() + ".save-all-tmp") == "foreign staging data",
+          "Starter save accepted or replaced occupied staging data");
+  std::filesystem::remove(path.string() + ".save-all-tmp");
+  Require(batch.Prepare(sessions) && batch.Publish().Published() && !scene.Dirty() &&
+              !workspace.HasRecoveryJournal(),
+          "Fresh starter Save All did not publish and acknowledge the first save");
+  runtime::World reopened;
+  editor::SceneDocument loaded(reopened, reopened.LoadScene("Reopened"));
+  Require(loaded.Reload(path) && loaded.Name(node) == "Scene Root",
+          "Starter Save All did not independently reopen");
+  workspace = {};
+  Require(workspace.Open(root, editor::ProjectAccess::ReadOnly) &&
+              !editor::app::PrepareStarterSceneStorage(workspace),
+          "Read-only observer was allowed to prepare starter storage");
+}
+void StarterStorageRejection(const std::filesystem::path &root) {
+  editor::ProjectWorkspace workspace;
+  Require(workspace.Create(root, "Occupied starter"), "Occupied starter workspace failed");
+  const auto directory = root / ".nexora/scenes";
+  Write(directory, "foreign file");
+  Require(!editor::app::PrepareStarterSceneStorage(workspace) && Read(directory) == "foreign file",
+          "Starter storage replaced an occupied ordinary file");
+#if !defined(_WIN32)
+  std::filesystem::remove(directory);
+  const auto outside = root / "outside";
+  std::filesystem::create_directory(outside);
+  std::filesystem::create_directory_symlink(outside, directory);
+  Require(!editor::app::PrepareStarterSceneStorage(workspace) && std::filesystem::is_empty(outside),
+          "Starter storage followed an aliased directory");
+#endif
+}
 void Success(const std::filesystem::path &root) {
   ProjectFixture f(root);
   const auto token_a = f.first_file->Token(), token_b = f.second_file->Token();
@@ -499,6 +552,8 @@ int main() {
                     ("nexora-scene-save-batch-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
   try {
+    StarterScene(root / "starter");
+    StarterStorageRejection(root / "starter-reject");
     Success(root / "success");
     Rejections(root / "reject");
     PortableCaseCollision(root / "case-collision");

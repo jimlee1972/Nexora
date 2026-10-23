@@ -28,6 +28,10 @@ Metal native draw recording。這些仍只是 foundation，因 real-display Linu
 
 ### 已確認實作 checklist
 
+- ✅ 水平滾輪將 Window 向右為正的軸轉換成 ImGui 向左為正的慣例；scrollable-child regression
+  與 Windows 10 家用版實機 Inspector 往返涵蓋兩軸。預設場景依儲存要求準備目錄，首次
+  Save All／Save and Exit 可成功，批次儲存安全檢查不變。其他 DPI／螢幕、重新 dock 與按住
+  輸入切換焦點仍待驗收（[證據](../../Tools/Build/evidence/EditorEDM0-WindowsWheelSaveAll-2026-10-23.md)）。
 - ✅ Win32 system key 在轉送 input 後保留預設處理，Alt+F4 會進入應用程式可取消的關閉流程。
   可見視窗 regression 與 Windows 10 家用版實機觀察涵蓋關閉提示、取消及乾淨退出，另補上
   100% IME caret-follow 證據；其他 target-host gate 仍待完成

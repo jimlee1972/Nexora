@@ -6,6 +6,7 @@
 #include "BuildConsoleIngress.h"
 #include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
+#include "StarterSceneStorage.h"
 #if defined(NEXORA_HAS_2D)
 #include "GameTwoDTextures.h"
 #endif
@@ -1321,6 +1322,17 @@ int RunGraphical(std::optional<ProjectState> project,
     }
     return false;
   };
+  const auto save_all_scenes = [&] {
+    for (const auto &row : scene_documents->Snapshot()) {
+      if (row.owned && row.path == std::filesystem::path(".nexora/scenes/Main.scene") &&
+          !nexora::editor::app::PrepareStarterSceneStorage(project->workspace))
+        return nexora::editor::SceneSaveBatchResult{
+            nexora::editor::SceneSaveBatchStatus::Rejected,
+            "Cannot prepare the default scene directory. Resolve project recovery or access "
+            "conflicts and retry Save All."};
+    }
+    return scene_documents->SaveAll();
+  };
   const auto save_all_and_exit = [&] {
     if (prefab_documents && prefab_documents->Dirty()) {
       ui.OpenPrefabIsolation();
@@ -1358,7 +1370,7 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
     synchronize_all_scenes();
-    const auto saved = scene_documents->SaveAll();
+    const auto saved = save_all_scenes();
     if (saved.Published())
       publish_all_saved_scenes();
     ui.SetSceneSaveResult(saved.message, saved.Published());
@@ -1990,7 +2002,7 @@ int RunGraphical(std::optional<ProjectState> project,
             }
             if (request->save_before_close) {
               synchronize_all_scenes();
-              const auto saved = scene_documents->SaveAll();
+              const auto saved = save_all_scenes();
               if (!saved.Published()) {
                 error = saved.message;
                 break;
@@ -2002,7 +2014,7 @@ int RunGraphical(std::optional<ProjectState> project,
             break;
           case TabAction::SaveAll: {
             synchronize_all_scenes();
-            const auto saved = scene_documents->SaveAll();
+            const auto saved = save_all_scenes();
             applied = saved.Published();
             if (applied)
               publish_all_saved_scenes();
