@@ -323,3 +323,8 @@ target_link_libraries(NexoraGameplayAudioResidencyTests PRIVATE Nexora::Runtime 
 nexora_apply_defaults(NexoraGameplayAudioResidencyTests)
 add_test(NAME runtime.gameplay_audio_residency COMMAND NexoraGameplayAudioResidencyTests)
 set_tests_properties(runtime.gameplay_audio_residency PROPERTIES TIMEOUT 180 LABELS "audio;stress")
+
+add_executable(NexoraGameplayLifecycleTests GameplayLifecycleTests.cpp)
+target_link_libraries(NexoraGameplayLifecycleTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayLifecycleTests)
+add_test(NAME runtime.gameplay_lifecycle COMMAND NexoraGameplayLifecycleTests)

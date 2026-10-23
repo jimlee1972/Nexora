@@ -41,6 +41,7 @@ fn start(p: ?*anyopaque) callconv(.c) i32 {
 fn update(p: ?*anyopaque, _: f64) callconv(.c) i32 {
     const o = owner(p);
     const s = o.display.state() orelse return -3;
+    if (s.pixel_width == 0 or s.pixel_height == 0) return 0;
     const c = nx.display.Camera{ .rotation = 0.3 };
     const pixel = nx.display.worldToPixel(s, c, .{ .x = 2, .y = 1 }) orelse return -3;
     const restored = nx.display.pixelToWorld(s, c, pixel) orelse return -3;

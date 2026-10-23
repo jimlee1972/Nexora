@@ -56,6 +56,10 @@ audio_state = json.loads((root / "Engine/API/abi_baseline_audio_state_v1.json").
 structures.update(audio_state["structures"])
 structures["NexoraGameplayServicesApiV1"] += audio_state["services_suffix"]
 services["zig_names"].update(audio_state["zig_names"])
+lifecycle = json.loads((root / "Engine/API/abi_baseline_lifecycle_v1.json").read_text(encoding="utf-8"))
+structures.update(lifecycle["structures"])
+structures["NexoraGameplayServicesApiV1"] += lifecycle["services_suffix"]
+services["zig_names"].update(lifecycle["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:

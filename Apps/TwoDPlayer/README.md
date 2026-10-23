@@ -226,3 +226,13 @@ Audio V1 and original/SP-01/SP-02/SP-03 services prefixes remain supported. See
 [voice integration and limits](../../Engine/Runtime/GameplayVoice.md). This is per-line/chapter
 PCM admission, not compressed streaming or verified speaker output. Missing declared install
 files still fail startup validation; unmapped dialogue and runtime IO/output failures can use subtitles.
+
+## Optional lifecycle and close confirmation
+
+Projects can negotiate Lifecycle V1 and explicitly enable a close guard from Zig. The Player then
+keeps the native window alive until Zig resolves the current close token; saving and error/retry UI
+remain game policy. Modules that do not enable the guard retain immediate close. Minimized/occluded
+frames still call gameplay to observe transitions and save, without drawing. Observe lifecycle before
+each fixed tick to prevent background combat advancement. XInput rumble expires and is cleared on
+interruption/close/Stop; unsupported devices report capability honestly. See
+[the lifecycle contract and Zig diagnostic](../../Engine/Runtime/GameplayLifecycle.md).

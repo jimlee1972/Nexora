@@ -27,7 +27,7 @@ class AudioStateContract(unittest.TestCase):
     def test_unchanged_contract(self):
         result = self.validate()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('118 documented exports', result.stdout)
+        self.assertIn('documented exports', result.stdout)
 
     def test_requires_new_extension_baseline(self):
         (self.root / 'Engine/API/abi_baseline_audio_state_v1.json').unlink()

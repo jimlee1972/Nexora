@@ -1,8 +1,10 @@
 #include "Nexora/Runtime/GameplayGamepad.h"
+#include "GameplayDevicePresence.h"
 #include "GameplayDirectInputState.h"
 #include "GameplayXInputState.h"
 #include <algorithm>
 #include <cerrno>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
@@ -40,6 +42,11 @@ struct NativeGameplayGamepad::WindowsState {
   std::chrono::steady_clock::time_point nextScan{};
   using Read = DWORD(WINAPI *)(DWORD, XINPUT_STATE *);
   Read read{};
+  using Write = DWORD(WINAPI *)(DWORD, XINPUT_VIBRATION *);
+  Write write{};
+  using Capabilities = DWORD(WINAPI *)(DWORD, DWORD, XINPUT_CAPABILITIES *);
+  Capabilities capabilities{};
+  uint32_t rumbleMask{};
   WindowsState() {
     (void)DirectInput8Create(GetModuleHandleW(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8W,
                              reinterpret_cast<void **>(&direct), nullptr);
@@ -50,9 +57,20 @@ struct NativeGameplayGamepad::WindowsState {
       const auto function = GetProcAddress(library, "XInputGetState");
       static_assert(sizeof(function) == sizeof(read));
       std::memcpy(&read, &function, sizeof(read));
+      const auto writer = GetProcAddress(library, "XInputSetState");
+      static_assert(sizeof(writer) == sizeof(write));
+      std::memcpy(&write, &writer, sizeof(write));
+      const auto query = GetProcAddress(library, "XInputGetCapabilities");
+      static_assert(sizeof(query) == sizeof(capabilities));
+      std::memcpy(&capabilities, &query, sizeof(capabilities));
     }
   }
   ~WindowsState() {
+    if (write) {
+      XINPUT_VIBRATION zero{};
+      for (DWORD id = 0; id < 4; ++id)
+        (void)write(id, &zero);
+    }
     for (auto &joystick : joysticks)
       Release(joystick);
     if (direct)
@@ -156,7 +174,7 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
       if (bytes != sizeof(event)) {
         close(descriptor);
         descriptor = -1;
-        input.Disconnect(3, id);
+        Disconnect(input, id);
         break;
       }
       const auto type = event.type & ~JS_EVENT_INIT;
@@ -167,23 +185,36 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
                      std::clamp(static_cast<float>(event.value) / 32767.0F, -1.0F, 1.0F));
     }
   }
+  connected_ = 0;
+  for (uint32_t id = 0; id < 4; ++id)
+    if (descriptors_[id] >= 0) {
+      connected_ |= 1u << id;
+      (void)detail::SetGamepadPresence(observed_, disconnected_, id, true);
+    }
   return true;
 #elif defined(_WIN32)
   if (!windows_->read && !windows_->direct)
     return false;
+  connected_ = 0;
+  windows_->rumbleMask = 0;
   std::array<XINPUT_STATE, 4> states{};
   for (std::uint32_t id = 0; id < 4; ++id) {
     const bool connected = windows_->read && windows_->read(id, &states[id]) == ERROR_SUCCESS;
     auto &joystick = windows_->joysticks[id];
     if (connected && joystick.device) {
       WindowsState::Release(joystick);
-      if (!input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, id))
+      if (!Disconnect(input, id))
         return false;
     }
     if (windows_->xinputConnected[id] && !connected)
-      if (!input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, id))
+      if (!Disconnect(input, id))
         return false;
     windows_->xinputConnected[id] = connected;
+    XINPUT_CAPABILITIES caps{};
+    if (connected && windows_->write && windows_->capabilities &&
+        windows_->capabilities(id, XINPUT_FLAG_GAMEPAD, &caps) == ERROR_SUCCESS &&
+        (caps.Vibration.wLeftMotorSpeed || caps.Vibration.wRightMotorSpeed))
+      windows_->rumbleMask |= 1u << id;
   }
   const auto now = std::chrono::steady_clock::now();
   if (windows_->direct && now >= windows_->nextScan) {
@@ -197,7 +228,7 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
         auto &joystick = windows_->joysticks[id];
         if (joystick.device && !joystick.seen) {
           WindowsState::Release(joystick);
-          if (!input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, id))
+          if (!Disconnect(input, id))
             return false;
         }
       }
@@ -211,17 +242,19 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
         // Acquisition can expose a zero-initialized cache before the first HID report.
         // Clear old controls now; consume a fresh snapshot on the following input frame.
         (void)joystick.device->Acquire();
-        if (!input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, id))
+        if (!Disconnect(input, id))
           return false;
         continue;
       }
       if (SUCCEEDED(result))
         result = joystick.device->GetDeviceState(sizeof(state), &state);
       if (FAILED(result)) {
-        if (!input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, id))
+        if (!Disconnect(input, id))
           return false;
         continue;
       }
+      connected_ |= 1u << id;
+      (void)detail::SetGamepadPresence(observed_, disconnected_, id, true);
       detail::DirectInputSample sample{};
       sample.axes = {state.lX,  state.lY,  state.lZ,           state.lRx,
                      state.lRy, state.lRz, state.rglSlider[0], state.rglSlider[1]};
@@ -234,6 +267,8 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
     }
     if (!windows_->xinputConnected[id])
       continue;
+    connected_ |= 1u << id;
+    (void)detail::SetGamepadPresence(observed_, disconnected_, id, true);
     const auto &pad = states[id].Gamepad;
     const detail::XInputSample sample{pad.wButtons,
                                       {pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY},
@@ -246,6 +281,35 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
 #else
   (void)input;
   return false;
+#endif
+}
+bool NativeGameplayGamepad::Disconnect(GameplayInput &input, uint32_t device) {
+  (void)detail::SetGamepadPresence(observed_, disconnected_, device, false);
+  return input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, device);
+}
+uint32_t NativeGameplayGamepad::RumbleMask() const noexcept {
+#if defined(_WIN32)
+  return windows_->rumbleMask & connected_;
+#else
+  return 0;
+#endif
+}
+int32_t NativeGameplayGamepad::SetRumble(uint32_t device, float low, float high) {
+  if (owner_ != std::this_thread::get_id())
+    return -3;
+  if (device >= 4 || !std::isfinite(low) || !std::isfinite(high) || low < 0 || high < 0 ||
+      low > 1 || high > 1)
+    return -1;
+#if defined(_WIN32)
+  if (!windows_->write || !windows_->xinputConnected[device] ||
+      ((low || high) && !(windows_->rumbleMask & (1u << device))))
+    return -2;
+  XINPUT_VIBRATION value{static_cast<WORD>(std::lround(low * 65535.F)),
+                         static_cast<WORD>(std::lround(high * 65535.F))};
+  const auto result = windows_->write(device, &value);
+  return result == ERROR_SUCCESS ? 0 : result == ERROR_DEVICE_NOT_CONNECTED ? -2 : -3;
+#else
+  return -2;
 #endif
 }
 } // namespace nexora::runtime

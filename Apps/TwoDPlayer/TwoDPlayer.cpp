@@ -4,6 +4,7 @@
 #include "Nexora/Runtime/GameplayAudio.h"
 #include "Nexora/Runtime/GameplayGamepad.h"
 #include "Nexora/Runtime/GameplayInput.h"
+#include "Nexora/Runtime/GameplayLifecycle.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
 #include "Nexora/Runtime/GameplayServices.h"
 #include "Nexora/Runtime/GameplayStorage.h"
@@ -14,6 +15,7 @@
 #include "Nexora/TwoD/GameplayUi.h"
 #include "Project.h"
 #include "TwoDValidation.h"
+#include "UiInputGate.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -364,6 +366,12 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         hasTiles ? &tiles : nullptr, &pool);
     runtime::GameplayInput input;
     runtime::NativeGameplayGamepad gamepads;
+    runtime::GameplayLifecycle lifecycle(
+        [](void *p, uint32_t d, float l, float h) {
+          return static_cast<runtime::NativeGameplayGamepad *>(p)->SetRumble(d, l, h);
+        },
+        &gamepads);
+    std::array<uint64_t, 4> disconnectSequences{};
     runtime::GameplayAudio audio(
         48000, 64, project ? project->audio_limits : runtime::GameplayAudio::Limits{});
     twod::GameplayUi ui;
@@ -410,6 +418,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     Check(assets.GetApi(&services.assets) == 0, "asset service negotiation");
     services.content = contentApi;
     services.input = input.Api();
+    services.lifecycle = lifecycle.Api();
     services.audio = audio.Api();
     services.audio_state = audio.StateApi();
     const auto bind = [&](uint32_t action, uint32_t device, uint32_t control, float scale = 1.F,
@@ -559,9 +568,11 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     twod::FixedStepper step;
     auto lastTime = std::chrono::steady_clock::now();
     auto nextAudioAttempt = lastTime + std::chrono::seconds(1);
-    bool reloaded{}, focused{true};
+    bool reloaded{}, focused{true}, minimized{}, suspended{};
     double audioFrames{};
     twod::GameplayUiInput uiInput;
+    nexora::player::UiInputGate uiGate;
+    uint32_t previousGamepadMask{};
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
       assets.Tick();
       const auto retiredContent = content.CollectRetiredTextures();
@@ -575,13 +586,22 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
                   Nexora::Presentation::SurfaceStatus::Ready,
               "UI texture retirement");
       Check(input.BeginFrame(), "input frame");
-      if (native)
-        (void)gamepads.Poll(input);
+      if (lifecycle.ExitRequested())
+        break;
+      bool canPresent = true;
+      bool interruptedBatch = false;
+      if (!lifecycle.Tick())
+        std::cerr << "rumble stop pending retry\n";
       uiInput.pointer_pressed = uiInput.pointer_released = false;
       if (native) {
         const auto status = surface.surface->BeginFrame();
-        if (surface.surface->CloseRequested())
-          break;
+        if (surface.surface->CloseRequested()) {
+          interruptedBatch = true;
+          (void)lifecycle.RequestClose();
+          if (lifecycle.ExitRequested() || !surface.surface->CancelCloseRequest())
+            break;
+          canPresent = false; // BeginFrame returned before acquiring; retry next frame.
+        }
         const auto dpi = surface.surface->FrameInfo().dpiScale;
         if (dpi > 0) {
           if (initialDpi == 0)
@@ -590,13 +610,35 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
           maximumDpi = std::max(maximumDpi, dpi);
         }
         for (const auto &event : surface.surface->Events()) {
+          using Event = Nexora::Window::WindowEventType;
+          if (event.type == Event::Minimized || event.type == Event::SuspendRequested ||
+              (event.type == Event::Resized && (!event.width || !event.height))) {
+            interruptedBatch = true;
+            Check(input.SetFocused(false), "interrupted input reset");
+            keys.fill(false);
+            uiInput.pointer_down = uiInput.pointer_pressed = uiInput.pointer_released = false;
+          }
+          if (event.type == Event::Minimized || event.type == Event::Restored) {
+            minimized = event.type == Event::Minimized;
+            (void)lifecycle.Minimize(minimized);
+          }
+          if (event.type == Event::Resized) {
+            minimized = !event.width || !event.height;
+            (void)lifecycle.Minimize(minimized);
+          }
+          if (event.type == Event::SuspendRequested || event.type == Event::Resumed) {
+            suspended = event.type == Event::SuspendRequested;
+            (void)lifecycle.Suspend(suspended);
+          }
           if (event.type == Nexora::Window::WindowEventType::FocusChanged) {
             focused = event.value0 != 0;
             if (focused)
               ++focusGained;
             else
               ++focusLost;
-            Check(input.SetFocused(focused), "input focus");
+            interruptedBatch |= !focused;
+            (void)lifecycle.Focus(focused);
+            Check(input.SetFocused(focused && !minimized && !suspended), "input focus");
             uiInput.focused = focused;
             if (!focused) {
               keys.fill(false);
@@ -604,6 +646,8 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
               uiInput.pointer_pressed = uiInput.pointer_released = false;
             }
           }
+          // Restore routing at the state transition, before any later key in this batch.
+          Check(input.SetFocused(focused && !minimized && !suspended), "event input routing");
           if (event.type == Nexora::Window::WindowEventType::Pointer) {
             uiInput.pointer_x = static_cast<float>(event.value0);
             uiInput.pointer_y = static_cast<float>(event.value1);
@@ -643,12 +687,32 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         if (status == Nexora::Presentation::SurfaceStatus::ZeroExtent ||
             status == Nexora::Presentation::SurfaceStatus::Occluded ||
             status == Nexora::Presentation::SurfaceStatus::OutOfDate) {
-          lastTime = std::chrono::steady_clock::now();
+          canPresent = false;
           std::this_thread::sleep_for(std::chrono::milliseconds(8));
-          --frame;
-          continue;
         }
-        Check(status == Nexora::Presentation::SurfaceStatus::Ready, "surface acquire");
+        Check(!canPresent || status == Nexora::Presentation::SurfaceStatus::Ready,
+              "surface acquire");
+        (void)nexora::player::UiInputGate::PollGamepads(input, focused && !minimized && !suspended,
+                                                        [&] { return gamepads.Poll(input); });
+        const auto connected = gamepads.ConnectedMask();
+        interruptedBatch |= connected != previousGamepadMask; // Reconnect also needs fresh release.
+        previousGamepadMask = connected;
+        (void)lifecycle.Devices(connected, gamepads.RumbleMask());
+        for (uint32_t id = 0; id < 4; ++id) {
+          const auto sequence = gamepads.DisconnectSequences()[id];
+          if (sequence != disconnectSequences[id]) {
+            interruptedBatch = true;
+            (void)lifecycle.Disconnected(id);
+            disconnectSequences[id] = sequence;
+          }
+        }
+        const bool foreground = focused && !minimized && !suspended;
+        Check(
+            nexora::player::UiInputGate::FinishInput(input, uiInput, foreground, interruptedBatch),
+            "lifecycle input routing");
+        if (!foreground)
+          keys.fill(false);
+        // Apply() suppresses UI for this batch; keep fresh post-focus gameplay controls intact.
       }
       if (!native)
         updateDisplay();
@@ -662,9 +726,13 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         return state;
       };
       const auto pressed = [&](uint32_t action) { return actionState(action).pressed != 0; };
+      const bool neutral = !uiInput.pointer_down && !actionState(253).held &&
+                           !actionState(254).held && !actionState(255).held &&
+                           !actionState(256).held;
       uiInput.navigate = pressed(253) ? 1 : pressed(254) ? -1 : 0;
       uiInput.activate = pressed(255);
       uiInput.cancel = pressed(256);
+      uiGate.Apply(uiInput, interruptedBatch, neutral);
       auto logicalInput = uiInput;
       logicalInput.pointer_x /= displayState.dpi_scale;
       logicalInput.pointer_y /= displayState.dpi_scale;
@@ -712,6 +780,12 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
                 "identical cooked reload changed immutable generation");
           ++assetReloads;
         }
+      }
+      if (lifecycle.ExitRequested())
+        break;
+      if (native && !canPresent) {
+        world.EndFrame();
+        continue;
       }
       const auto width = displayState.pixel_width;
       const auto height = displayState.pixel_height;
@@ -824,6 +898,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     if (!interactive && !project)
       Check(std::abs(transform->x - initialX - double(frames) / 60) < 1e-8,
             "Zig Transform control");
+    (void)lifecycle.Stop();
     module.Unload();
     NexoraAssetUsageV1 assetUsage{};
     assetUsage.struct_size = sizeof(assetUsage);

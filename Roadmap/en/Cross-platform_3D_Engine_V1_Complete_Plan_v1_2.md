@@ -18665,6 +18665,10 @@ Rebuild Device State
 
 ### Haptics
 
+✅ SP-06 adds owner-thread bounded XInput motors and optional C/Zig lifecycle/close negotiation.
+DirectInput/DS4, mobile vibration and other native haptics remain outside this delivery.
+See [the contract](../../Engine/Runtime/GameplayLifecycle.md); physical acceptance remains open.
+
 The Device subsystem provides:
 
 ```text

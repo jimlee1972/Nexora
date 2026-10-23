@@ -18720,6 +18720,10 @@ Rebuild Device State
 
 ### Haptics
 
+✅ SP-06 已加入 owner thread 有時限 XInput 馬達與可選 C／Zig 生命週期／關閉協商。
+DirectInput／DS4、手機及其他原生震動不在本輪交付；
+見[契約](../../Engine/Runtime/GameplayLifecycle.md)，實機驗收仍開啟。
+
 Device subsystem 提供：
 
 ```text

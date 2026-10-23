@@ -4,6 +4,7 @@ pub const abi_version: u32 = 3;
 pub const input = @import("input.zig");
 pub const ui = @import("ui.zig");
 pub const dialogue = @import("dialogue.zig");
+pub const lifecycle = @import("lifecycle.zig");
 pub const audio_state = @import("audio_state.zig");
 pub const audio = @import("audio.zig");
 pub const storage = @import("storage.zig");
@@ -26,6 +27,7 @@ pub const GameplayServicesApiV1 = extern struct {
     get_ui_draw_api: ?*const fn (?*anyopaque, *ui_draw.Api) callconv(.c) i32 = null,
     get_assets_api: ?*const fn (?*anyopaque, *assets.Api) callconv(.c) i32 = null,
     get_audio_state_api: ?*const fn (?*anyopaque, *audio_state.Api) callconv(.c) i32 = null,
+    get_lifecycle_api: ?*const fn (?*anyopaque, *lifecycle.Api) callconv(.c) i32 = null,
 };
 pub const services_v1_base_size: u32 = @offsetOf(GameplayServicesApiV1, "get_display_api");
 pub fn getDisplay(services: GameplayServicesApiV1) ?display.Api {
@@ -53,6 +55,13 @@ pub fn getAudioState(services: GameplayServicesApiV1) ?audio_state.Api {
     if (services.struct_size < @offsetOf(GameplayServicesApiV1, "get_audio_state_api") + @sizeOf(@FieldType(GameplayServicesApiV1, "get_audio_state_api"))) return null;
     const get = services.get_audio_state_api orelse return null;
     var api = audio_state.Api{};
+    if (get(services.context, &api) != 0 or !api.valid()) return null;
+    return api;
+}
+pub fn getLifecycle(services: GameplayServicesApiV1) ?lifecycle.Api {
+    if (services.struct_size < @offsetOf(GameplayServicesApiV1, "get_lifecycle_api") + @sizeOf(@FieldType(GameplayServicesApiV1, "get_lifecycle_api"))) return null;
+    const get = services.get_lifecycle_api orelse return null;
+    var api = lifecycle.Api{};
     if (get(services.context, &api) != 0 or !api.valid()) return null;
     return api;
 }
