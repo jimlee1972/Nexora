@@ -18,7 +18,11 @@ Cocoa uses the matching native button numbers. Wheel events remain separate from
 Wheel `value0` is horizontal and `value1` vertical, in signed 120-unit steps (or finer deltas).
 
 Win32 provides per-monitor DPI, keyboard/text/IME, pointer-button and wheel translation, including
-native IME candidate positioning. X11 provides close, configure, focus, physical-key, XIM-backed
+native IME candidate positioning. Win32 forwards system-key press/release events and then preserves
+default system-chord handling.
+Alt+F4 therefore produces `CloseRequested` through `WM_CLOSE`, leaving the native window alive
+for application confirmation; ordinary F4 remains a key event and does not request close.
+X11 provides close, configure, focus, physical-key, XIM-backed
 UTF-8 text, pointer-button and two-axis wheel translation plus EWMH fullscreen; X11 buttons 2 and 3
 map to the shared middle-button index 2 and right-button index 1 respectively. Each committed Unicode
 scalar is a separate `Text` event, while candidate positioning reports `Unsupported`. An X11 input

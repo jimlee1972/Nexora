@@ -395,6 +395,10 @@ private:
     case WM_SYSKEYUP:
       self->Push(h, WindowEventType::Key, static_cast<int>(TranslateKey(w, l)),
                  (m == WM_KEYDOWN || m == WM_SYSKEYDOWN) ? 1 : 0, 0, 0, 1.0F, CurrentModifiers());
+      // Preserve native system chords (including Alt+F4 -> WM_CLOSE) after forwarding input.
+      // WM_CLOSE remains an application-vetoable CloseRequested event, not destruction.
+      if (m == WM_SYSKEYDOWN || m == WM_SYSKEYUP)
+        return DefWindowProcW(h, m, w, l);
       return 0;
     case WM_CHAR:
       self->PushUtf16CodeUnit(h, static_cast<wchar_t>(w));
