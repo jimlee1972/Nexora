@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/GameplayGamepad.h"
+#include "GameplayDevicePresence.h"
 #include "GameplayDirectInputState.h"
 #include "GameplayXInputState.h"
 #include <algorithm>
@@ -186,8 +187,10 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
   }
   connected_ = 0;
   for (uint32_t id = 0; id < 4; ++id)
-    if (descriptors_[id] >= 0)
+    if (descriptors_[id] >= 0) {
       connected_ |= 1u << id;
+      (void)detail::SetGamepadPresence(observed_, disconnected_, id, true);
+    }
   return true;
 #elif defined(_WIN32)
   if (!windows_->read && !windows_->direct)
@@ -251,6 +254,7 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
         continue;
       }
       connected_ |= 1u << id;
+      (void)detail::SetGamepadPresence(observed_, disconnected_, id, true);
       detail::DirectInputSample sample{};
       sample.axes = {state.lX,  state.lY,  state.lZ,           state.lRx,
                      state.lRy, state.lRz, state.rglSlider[0], state.rglSlider[1]};
@@ -264,6 +268,7 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
     if (!windows_->xinputConnected[id])
       continue;
     connected_ |= 1u << id;
+    (void)detail::SetGamepadPresence(observed_, disconnected_, id, true);
     const auto &pad = states[id].Gamepad;
     const detail::XInputSample sample{pad.wButtons,
                                       {pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY},
@@ -279,7 +284,7 @@ bool NativeGameplayGamepad::Poll(GameplayInput &input, std::uint32_t user) {
 #endif
 }
 bool NativeGameplayGamepad::Disconnect(GameplayInput &input, uint32_t device) {
-  ++disconnected_[device];
+  (void)detail::SetGamepadPresence(observed_, disconnected_, device, false);
   return input.Disconnect(NEXORA_INPUT_DEVICE_GAMEPAD, device);
 }
 uint32_t NativeGameplayGamepad::RumbleMask() const noexcept {

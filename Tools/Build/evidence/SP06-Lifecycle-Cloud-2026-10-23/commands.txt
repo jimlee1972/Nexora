@@ -22,7 +22,7 @@ python Tests/TwoD/LifecycleSliceAcceptance.py --shipping --app build/linux-shipp
 
 python Tools/Build/ValidateApiM6.py .
 python Tools/Build/tests/test_api_lifecycle_contract.py
-clang-format --dry-run --Werror [15 touched C++ files]
+clang-format --dry-run --Werror [touched C++ files]
 zig fmt --check Bindings/Zig/lifecycle.zig Bindings/Zig/nexora.zig Gameplay/Zig/src/lifecycle_slice.zig Tests/API/GameplayLifecycleAbi.zig Tests/TwoD/GameplayAssetsLayout.zig
 python -m py_compile Tests/TwoD/LifecycleSliceAcceptance.py Tools/Build/tests/test_api_lifecycle_contract.py Tools/Build/ValidateApiM6.py
 git diff --check
@@ -30,9 +30,14 @@ git diff --check
 Targeted sanitizers (outside ptrace sandbox; no ASAN_OPTIONS override):
 g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include Engine/Runtime/src/GameplayLifecycle.cpp Tests/Runtime/GameplayLifecycleTests.cpp -o /workspace/scratch/nexora-sp06/lifecycle-asan
 /workspace/scratch/nexora-sp06/lifecycle-asan
-g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include -IEngine/TwoD/include -IEngine/Presentation/include -IEngine/Window/include -IEngine/RHI/include Engine/Runtime/src/GameplayLifecycle.cpp Engine/Runtime/src/GameplayStorage.cpp Gameplay/Zig/LifecycleSliceTests.cpp build/linux-development/Gameplay/Zig/zig_lifecycle_slice.o -o /workspace/scratch/nexora-sp06/zig-lifecycle-asan
+g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include -IEngine/TwoD/include -IEngine/Presentation/include -IEngine/Window/include -IEngine/RHI/include Engine/Runtime/src/GameplayLifecycle.cpp Engine/Runtime/src/GameplayInput.cpp Engine/Runtime/src/GameplayStorage.cpp Gameplay/Zig/LifecycleSliceTests.cpp build/linux-development/Gameplay/Zig/zig_lifecycle_slice.o -o /workspace/scratch/nexora-sp06/zig-lifecycle-asan
 /workspace/scratch/nexora-sp06/zig-lifecycle-asan
 
 Windows object cross-compilation only:
 zig c++ -target x86_64-windows-gnu -std=c++20 -c -DNEXORA_WINDOW_EXPORTS -IEngine/Window/include Engine/Window/src/Win32Window.cpp -o /workspace/scratch/nexora-sp06/windows-window.obj
 zig c++ -target x86_64-windows-gnu -std=c++20 -c -DNEXORA_RUNTIME_EXPORTS -IEngine/Runtime/include -IEngine/API/include Engine/Runtime/src/GameplayGamepad.cpp -o /workspace/scratch/nexora-sp06/windows-gamepad.obj
+
+Post-review targeted checks:
+ctest --preset linux-development -R 'gameplay.zig_lifecycle_slice|gameplay.zig_minimized_modules|runtime.gameplay_gamepad_routing' --output-on-failure
+g++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer -pthread -IEngine/Runtime/include -IEngine/API/include Engine/Runtime/src/GameplayGamepad.cpp Engine/Runtime/src/GameplayInput.cpp Tests/Runtime/GameplayGamepadTests.cpp -o /workspace/scratch/nexora-sp06/gamepad-asan
+/workspace/scratch/nexora-sp06/gamepad-asan

@@ -38,6 +38,35 @@ int main() {
   gate.Apply(ui, false, false);
   assert(ui.activate && ui.focused);
 
+  {
+    GameplayInput input;
+    auto api = input.Api();
+    NexoraGameplayInputBindingV1 binding{
+        sizeof(binding), 1, NEXORA_INPUT_DEVICE_GAMEPAD, 0, 0, 1, 0, 0};
+    assert(api.bind(api.context, 0, 255, &binding) == 0);
+    nexora::player::UiInputGate routed;
+    auto frame = [&](bool interrupted, float held) {
+      assert(input.BeginFrame());
+      assert(nexora::player::UiInputGate::PollGamepads(
+          input, true, [&] { return input.Submit(0, NEXORA_INPUT_DEVICE_GAMEPAD, 0, 0, held); }));
+      if (interrupted)
+        assert(input.SetFocused(false));
+      NexoraGameplayActionStateV1 action{};
+      action.struct_size = sizeof(action);
+      action.abi_version = 1;
+      assert(api.read_action(api.context, 0, 255, &action) == 0);
+      nexora::twod::GameplayUiInput in;
+      in.focused = !interrupted;
+      in.activate = action.pressed != 0;
+      routed.Apply(in, interrupted, !action.held);
+      return in.activate;
+    };
+    assert(!frame(true, 1)); // Blur/close batch clears the submitted sample.
+    for (unsigned i = 0; i < 4; ++i)
+      assert(!frame(false, 1)); // Still physically held across recovery.
+    assert(!frame(false, 0));   // Actual complete neutral sample rearms only the next frame.
+    assert(frame(false, 1));    // New physical confirmation is allowed.
+  }
   const auto root = std::filesystem::temp_directory_path() /
                     ("nexora-sp06-" +
                      std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));

@@ -572,6 +572,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
     double audioFrames{};
     twod::GameplayUiInput uiInput;
     nexora::player::UiInputGate uiGate;
+    uint32_t previousGamepadMask{};
     for (unsigned frame = 0; !frames || frame < frames; ++frame) {
       assets.Tick();
       const auto retiredContent = content.CollectRetiredTextures();
@@ -589,18 +590,6 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         break;
       bool canPresent = true;
       bool interruptedBatch = false;
-      if (native) {
-        (void)gamepads.Poll(input);
-        (void)lifecycle.Devices(gamepads.ConnectedMask(), gamepads.RumbleMask());
-        for (uint32_t id = 0; id < 4; ++id) {
-          const auto sequence = gamepads.DisconnectSequences()[id];
-          if (sequence != disconnectSequences[id]) {
-            interruptedBatch = true;
-            (void)lifecycle.Disconnected(id);
-            disconnectSequences[id] = sequence;
-          }
-        }
-      }
       if (!lifecycle.Tick())
         std::cerr << "rumble stop pending retry\n";
       uiInput.pointer_pressed = uiInput.pointer_released = false;
@@ -701,8 +690,22 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
         }
         Check(!canPresent || status == Nexora::Presentation::SurfaceStatus::Ready,
               "surface acquire");
-        Check(input.SetFocused(focused && !minimized && !suspended && !interruptedBatch),
-              "lifecycle input focus");
+        (void)nexora::player::UiInputGate::PollGamepads(input, focused && !minimized && !suspended,
+                                                        [&] { return gamepads.Poll(input); });
+        const auto connected = gamepads.ConnectedMask();
+        interruptedBatch |= connected != previousGamepadMask; // Reconnect also needs fresh release.
+        previousGamepadMask = connected;
+        (void)lifecycle.Devices(connected, gamepads.RumbleMask());
+        for (uint32_t id = 0; id < 4; ++id) {
+          const auto sequence = gamepads.DisconnectSequences()[id];
+          if (sequence != disconnectSequences[id]) {
+            interruptedBatch = true;
+            (void)lifecycle.Disconnected(id);
+            disconnectSequences[id] = sequence;
+          }
+        }
+        if (interruptedBatch)
+          Check(input.SetFocused(false), "interrupted sample reset");
         uiInput.focused = focused && !minimized && !suspended && !interruptedBatch;
         if (!uiInput.focused) {
           keys.fill(false);

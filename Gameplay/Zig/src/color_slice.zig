@@ -60,6 +60,8 @@ fn start(p: ?*anyopaque) callconv(.c) i32 {
 }
 fn update(p: ?*anyopaque, _: f64) callconv(.c) i32 {
     const o = self(p);
+    const state = o.display.state() orelse return -3;
+    if (state.pixel_width == 0 or state.pixel_height == 0) return 0;
     var items: [7]nx.TwoDInstance = undefined;
     if (o.api.read_instances.?(o.api.context, &o.handles, 7, &items) != 0) return -3;
     // First four frames exercise both policies even in a headless smoke. Then keep the chosen state.
@@ -70,7 +72,6 @@ fn update(p: ?*anyopaque, _: f64) callconv(.c) i32 {
     items[1].sprite.color[3] = if (o.reduced) 0 else 1;
     if (items[5].sprite.color[3] != 1 or items[5].sprite.layer != 2) return -3;
     if (o.api.write_instances.?(o.api.context, &o.handles, 7, &items) != 0) return -3;
-    const state = o.display.state() orelse return -3;
     if (o.ui.begin_frame.?(o.ui.context, state.logical_width, state.logical_height) != 0) return -3;
     // Authored sRGB UI swatch uses the same transfer as the imported world texture.
     const area = nx.ui.Rect{ .x = state.viewport_logical.x + 20, .y = state.viewport_logical.y + 20, .width = 120, .height = 48 };

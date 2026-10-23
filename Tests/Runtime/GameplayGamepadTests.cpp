@@ -1,3 +1,4 @@
+#include "../../Engine/Runtime/src/GameplayDevicePresence.h"
 #include "../../Engine/Runtime/src/GameplayDirectInputState.h"
 #include "../../Engine/Runtime/src/GameplayXInputState.h"
 #include "Nexora/Runtime/GameplayGamepad.h"
@@ -8,6 +9,22 @@
 
 using namespace nexora::runtime;
 int main() {
+  uint32_t present{};
+  std::array<uint64_t, 4> disconnected{};
+  using nexora::runtime::detail::SetGamepadPresence;
+  assert(SetGamepadPresence(present, disconnected, 0, true));
+  for (unsigned i = 0; i < 120; ++i)
+    assert(SetGamepadPresence(present, disconnected, 0, false));
+  assert(present == 0 &&
+         disconnected[0] == 1); // Persistent read failures are one outage, not 120 saves.
+  assert(SetGamepadPresence(present, disconnected, 0, true));
+  assert(SetGamepadPresence(present, disconnected, 0, false));
+  assert(disconnected[0] == 2);
+  assert(SetGamepadPresence(present, disconnected, 1, true));
+  assert(SetGamepadPresence(present, disconnected, 0, false));
+  assert(present == 2 && disconnected[0] == 2 && disconnected[1] == 0);
+  assert(!SetGamepadPresence(present, disconnected, 4, true));
+
   GameplayInput input;
   const auto api = input.Api();
   const auto bind = [&](std::uint32_t action, std::uint32_t control, std::uint32_t device = 2) {

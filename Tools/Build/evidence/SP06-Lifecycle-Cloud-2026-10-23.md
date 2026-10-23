@@ -23,10 +23,20 @@ hosted success or physical Windows acceptance. Beads `nexora-4j7` tracks the del
   pending marker retention, explicit three-second preparation and close/save UI. Supplied diagnostic
   font is explicitly registered/removed; no synthetic missing-glyph fallback is claimed.
 
+## Review regressions
+
+The final patch also covers three observed integration hazards. Native continuous read failures
+now create one disconnect edge per outage rather than one per poll, preventing repeated snapshots.
+The Player restores input focus **before** taking a complete gamepad sample; cleared/ignored actions
+cannot masquerade as physical release. The actual GameplayInput plus the shared Player helper test
+holds confirmation across the interruption and several recovery frames, then releases and presses.
+Reconnects rearm through the same neutral gate. Finally, actual SP-01 and SP-04 modules tolerate
+zero dimensions, and a dynamic-module regression repeats minimize/restore and checks restored UI.
+
 ## Local validation
 
-Full `linux-development` configure/build/CTest passed: **291 registered, 275 passed,
-16 native-prerequisite skips, 0 failures; 157.72 seconds**. The skips are the existing Vulkan/
+Full `linux-development` configure/build/CTest passed: **292 registered, 276 passed,
+16 native-prerequisite skips, 0 failures; 156.93 seconds**. The skips are the existing Vulkan/
 Slang/XTEST native prerequisites; none of the new SP-06 tests skipped.
 Full Monolithic Shipping build and independent baseline-CPU ReleaseSafe Zig/Player export passed.
 The independent Player observed 240 completed UI frames with balanced module allocations and

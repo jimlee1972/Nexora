@@ -30,7 +30,7 @@ private:
   std::unique_ptr<WindowsState> windows_;
 #endif
   bool Disconnect(GameplayInput &input, uint32_t device);
-  uint32_t connected_{};
+  uint32_t connected_{}, observed_{};
   std::array<uint64_t, 4> disconnected_{};
   std::thread::id owner_;
 };

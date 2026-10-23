@@ -423,3 +423,13 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
     set_tests_properties(gameplay.zig_lifecycle_player PROPERTIES TIMEOUT 90 LABELS "twod;zig;lifecycle;project")
   endif()
 endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D AND NOT APPLE)
+  add_executable(NexoraZigMinimizedModuleTests MinimizedModulesTests.cpp)
+  target_link_libraries(NexoraZigMinimizedModuleTests PRIVATE Nexora::TwoD)
+  nexora_apply_defaults(NexoraZigMinimizedModuleTests)
+  add_dependencies(NexoraZigMinimizedModuleTests NexoraZigDisplayBuild NexoraZigColorSliceBuild)
+  add_test(NAME gameplay.zig_minimized_modules COMMAND NexoraZigMinimizedModuleTests
+    "${display_library}" "${color_slice_library}")
+  set_tests_properties(gameplay.zig_minimized_modules PROPERTIES TIMEOUT 30 LABELS "zig;display;lifecycle")
+endif()
