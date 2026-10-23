@@ -24,3 +24,5 @@ NativeTests.cpp separately compiled with the compile_commands.json flags for Gam
 substituting its source/output and adding the external X11 include path. No native execution claimed.
 clang-format 19 on touched C++ files; zig fmt on new/touched UI files; git diff --check.
 No Windows physical UI, final art, final script or full-game performance acceptance claimed.
+
+Apple sample-link follow-up: cmake --preset linux-development; cmake --build --preset linux-development; full CTest above repeated after the CMake-only platform repair. 274/258/16/0. linux-shipping configure/build and Shipping consumer above repeated successfully. Apple Clang runtime evidence remains a hosted CI gate.

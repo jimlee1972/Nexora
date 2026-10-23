@@ -264,6 +264,13 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
   set(ui_showcase_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigUiShowcase${CMAKE_SHARED_LIBRARY_SUFFIX}")
   set(ui_showcase_object "${CMAKE_CURRENT_BINARY_DIR}/zig_ui_showcase${twod_object_extension}")
   foreach(kind IN ITEMS library object)
+    if(APPLE AND kind STREQUAL "library")
+      # Match the existing Zig dylib path: Apple Clang resolves the platform SDK/libSystem.
+      add_custom_command(OUTPUT "${ui_showcase_library}"
+        COMMAND "${CMAKE_CXX_COMPILER}" -dynamiclib "${ui_showcase_object}" -o "${ui_showcase_library}"
+        DEPENDS "${ui_showcase_object}" VERBATIM)
+      continue()
+    endif()
     if(kind STREQUAL "library")
       set(ui_showcase_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
     else()

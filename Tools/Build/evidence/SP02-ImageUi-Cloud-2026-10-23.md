@@ -64,3 +64,12 @@ alignment. Replace diagnostic atlas regions with the approved final artwork, dri
 choice and subtitle data from Zig, and repeat with final localized strings. Record physical device
 and rendered evidence. Do not mark `nexora-0v7.1`, SP-01 Windows acceptance or SP-07 performance done
 from the cloud checks in this report.
+
+## Hosted build follow-up
+
+The first hosted macOS Development build found an empty Zig shared-library command: its argument
+list intentionally exists only on non-Apple platforms, because Zig 0.14 cannot resolve libSystem
+with the hosted SDK. The image UI sample now follows the repository's existing Apple path: build
+the PIC Zig object, then link the dylib with Apple Clang. Linux retains its existing build-lib
+path; the full local Development gate and Shipping consumer were rechecked. Actual Apple
+build/execution evidence must come from the corrected-head hosted run.
