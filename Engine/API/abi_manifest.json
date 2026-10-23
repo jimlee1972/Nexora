@@ -851,6 +851,42 @@
       "threading": "host_serialized_owner_thread",
       "errors": "NexoraGameplayResult; outputs preserved on failure",
       "determinism": "copied_frame_state"
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_display_api",
+      "since": 3,
+      "ownership": "host_owned_table_and_context; copied_output",
+      "nullability": "context_and_descriptor_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; rejected_output_unchanged",
+      "determinism": "snapshot_frozen_per_frame; window_IO_host_dependent"
+    },
+    {
+      "name": "NexoraGameplayDisplayApiV1.get_state",
+      "since": 3,
+      "ownership": "host_owned_table_and_context; copied_output",
+      "nullability": "context_and_descriptor_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; rejected_output_unchanged",
+      "determinism": "snapshot_frozen_per_frame; window_IO_host_dependent"
+    },
+    {
+      "name": "NexoraGameplayDisplayApiV1.request_window",
+      "since": 3,
+      "ownership": "host_owned_table_and_context; copied_output",
+      "nullability": "context_and_descriptor_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; rejected_output_unchanged",
+      "determinism": "snapshot_frozen_per_frame; window_IO_host_dependent"
+    },
+    {
+      "name": "NexoraGameplayDisplayApiV1.set_aspect",
+      "since": 3,
+      "ownership": "host_owned_table_and_context; copied_output",
+      "nullability": "context_and_descriptor_nonnull",
+      "threading": "serialized_owner_thread",
+      "errors": "INVALID_ARGUMENT|UNSUPPORTED|LIFECYCLE; rejected_output_unchanged",
+      "determinism": "snapshot_frozen_per_frame; window_IO_host_dependent"
     }
   ]
 }

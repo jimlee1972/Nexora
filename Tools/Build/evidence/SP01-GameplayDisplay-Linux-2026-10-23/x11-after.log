@@ -1,0 +1,1 @@
+PASS: native X11 live metrics, destroyed-before-pump, output preservation and handler restoration

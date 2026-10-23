@@ -126,7 +126,7 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     config = json.loads(descriptor.read_text(encoding='utf-8'), object_pairs_hook=unique_object)
     if not isinstance(config, dict):
         raise ValueError('game descriptor must be an object')
-    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas'}:
+    if set(config) - {'schema', 'id', 'title', 'scene', 'module', 'audio', 'assets', 'tile_atlas', 'display'}:
         raise ValueError('unknown game descriptor field')
     if type(config.get('schema')) is not int or config['schema'] != 1 or not re.fullmatch(r'[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?', config.get('id', '')):
         raise ValueError('invalid game schema or ID')
@@ -138,6 +138,13 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     audio = config.get('audio', 'optional')
     if audio not in ('off', 'optional', 'required'):
         raise ValueError('invalid audio policy')
+    display = config.get('display')
+    if 'display' in config:
+        if (not isinstance(display, dict) or set(display) != {'width', 'height', 'mode', 'resizable'}
+                or any(type(display[k]) is not int or not 1 <= display[k] <= 16384 for k in ('width', 'height'))
+                or display['mode'] not in ('windowed', 'borderless')
+                or type(display['resizable']) is not bool):
+            raise ValueError('invalid display settings')
     assets = config.get('assets', [])
     if not isinstance(assets, list) or len(assets) > 4096:
         raise ValueError('asset count exceeds 4096')
@@ -201,6 +208,8 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
             lines.append(f'{kind} {prefix}{quote("assets/" + target.name)}')
         if sum(path.stat().st_size for path in (staging / 'assets').iterdir()) > 64 * 1024 * 1024:
             raise ValueError('cooked assets exceed 64 MiB')
+        if display is not None:
+            lines.append(f"display {display['width']} {display['height']} {display['mode']} {int(display['resizable'])}")
         (staging / 'game.nx2game').write_text('\n'.join(lines) + '\n', encoding='utf-8')
         if sys.platform == 'win32':
             (staging / 'Run.cmd').write_bytes(('@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\n"' + runtime.name +

@@ -23,6 +23,7 @@ struct WindowDescriptor final {
   std::uint32_t height = 720;
   bool resizable = true;
   bool initiallyVisible = true;
+  bool fitToWorkArea = false; // Opt-in Win32 fitted client sizing; preserve existing hosts.
 };
 
 enum class WindowEventType : std::uint8_t {
@@ -184,6 +185,12 @@ struct WindowResult final {
   }
 };
 
+struct WindowMetrics final {
+  std::uint32_t width{}, height{};
+  float dpiScale{1};
+  bool borderless{};
+};
+
 // The application owns IWindowSystem and every handle it creates. All methods must be called on
 // OwnerThread(). PumpEvents returns a borrowed view valid until the next pump or destruction.
 // Implementations coalesce consecutive pending Resized events for the same window.
@@ -197,6 +204,12 @@ public:
   [[nodiscard]] virtual WindowError Resize(WindowHandle window, std::uint32_t clientWidth,
                                            std::uint32_t clientHeight) = 0;
   [[nodiscard]] virtual WindowError SetFullscreen(WindowHandle window, bool fullscreen) = 0;
+  [[nodiscard]] virtual WindowError SetResizable(WindowHandle, bool) {
+    return WindowError::Unsupported;
+  }
+  [[nodiscard]] virtual WindowError Metrics(WindowHandle, WindowMetrics &) const {
+    return WindowError::Unsupported;
+  }
   [[nodiscard]] virtual std::span<const WindowEvent> PumpEvents() = 0;
   [[nodiscard]] virtual WindowError SetImeCandidatePosition(WindowHandle window, std::int32_t x,
                                                             std::int32_t y) = 0;

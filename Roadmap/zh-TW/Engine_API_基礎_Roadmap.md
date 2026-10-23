@@ -146,3 +146,20 @@ API-M1～M4 是 Zig Showcase 與 Editor 共用前置；API-M5/M6 讓兩者只能
 合成、原生音訊重試、使用者永久槽位與明確可信模組匯出，仍由 embedding 負責。真正 Zig
 Shipping 啟動、獨立模組重啟／損壞檢查及 Linux Editor 原生像素已有驗證；Windows 實體裝置／
 DPI／乾淨電腦驗收另列。[證據](../../Tools/Build/evidence/Zig-Project-Player-Linux-2026-10-16.md)。
+
+## SP-01 獨立 Player 顯示整合（2026-10-23）
+
+✅ 可攜實作與回歸檢查：252 項通過、16 項原生前提不足而跳過、0 失敗；Monolithic Shipping consumer 通過。
+
+獨立 2D Player 已加入可選專案視窗設定、尾端擴充且獨立協商的 C／Zig 顯示 table、
+每幀一致的像素／logical／DPI 快照、原生視窗模式請求、遊戲指定畫框比例、安全畫框
+投影／裁切，以及正確 DPI 的 UI／輸入。舊 services consumer 與專案描述檔保留原有
+前綴／預設值。世界鏡頭跨度、HUD 排版與 UI 縮放仍由遊戲決定；本次未接入 Editor Play。
+
+參見[顯示契約](../../Engine/TwoD/GameplayDisplay.md)、
+[Linux 證據](../../Tools/Build/evidence/SP01-GameplayDisplay-Linux-2026-10-23.md)與
+[Windows 操作程序](../../Tools/TwoD/WindowsDisplayAcceptance.md)。
+Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6／M7 與既有里程碑
+完成數不變，可攜實作檢查不等同於通過上述驗收。
+
+✅ X11 原生關閉回歸：Xvfb 驗證事件處理前已銷毀視窗的查詢與清理；修正前 DSO 在同一探針失敗。

@@ -1,0 +1,1621 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Linux-c++"
+	tests="268"
+	failures="0"
+	disabled="0"
+	skipped="16"
+	hostname="cac64c186372"
+	time="151"
+	timestamp="2026-10-23T07:20:22"
+	>
+	<testcase name="build.module_graph" classname="build.module_graph" time="0.0197758" status="run">
+		<properties/>
+		<system-out>-- Validated 28 modules: no dependency cycles
+</system-out>
+	</testcase>
+	<testcase name="build.editor_target_evidence" classname="build.editor_target_evidence" time="0.680854" status="run">
+		<properties/>
+		<system-out>..............
+----------------------------------------------------------------------
+Ran 14 tests in 0.506s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="build.shader_contract" classname="build.shader_contract" time="0.016312" status="run">
+		<properties/>
+		<system-out>-- Validated canonical triangle shader contract
+-- Validated GPU-driven compute shader contract
+-- Validated PBR, stylized, anime, vegetation, water, post, geometry, Forward+, UI, Unlit, and variant shader contracts
+</system-out>
+	</testcase>
+	<testcase name="build.plugin_manifests" classname="build.plugin_manifests" time="0.0047221" status="run">
+		<properties/>
+		<system-out>-- Validated 2 plugin manifest(s)
+</system-out>
+	</testcase>
+	<testcase name="build.showcase_package" classname="build.showcase_package" time="0.334405" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="build.showcase_package_launch_safety" classname="build.showcase_package_launch_safety" time="0.804488" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="build.v2_migration_scanner" classname="build.v2_migration_scanner" time="0.0526306" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="build.v2_production_toolchain" classname="build.v2_production_toolchain" time="0.464523" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_abi_smoke" classname="gameplay.zig_abi_smoke" time="0.00210618" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_pointer_wire_layout" classname="gameplay.zig_pointer_wire_layout" time="0.00137819" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_twod_static" classname="gameplay.zig_twod_static" time="0.0216504" status="run">
+		<properties/>
+		<system-out>{"status":"PASS","module_abi":3,"project_mode":false,"api":1,"native_frames":0,"movement_frames":60,"entity_x":1.000000,"final_width":640,"final_height":480,"viewport_x":0.000000,"viewport_y":0.000000,"viewport_width":640.000000,"viewport_height":480.000000,"native_ui_draws":0,"native_ui_texture_uploads":0,"resize_generations":0,"surface_backend_requested":"none","render_device_ids_available":false,"render_vendor_id":0,"render_device_id":0,"initial_dpi_scale":0.000000,"minimum_dpi_scale":0.000000,"maximum_dpi_scale":0.000000,"focus_lost_events":0,"focus_gained_events":0,"key_press_events":0,"mouse_press_events":0,"wheel_events":0,"unfocused_movement_frames":0,"sprite_instanced_draws":0,"sprite_gpu_instances":0,"sprite_instance_upload_bytes":0,"visible":34,"reloaded":true,"validation_package":false,"resumed":false,"initial_x":0.000000,"ui_frames":0,"ui_saves":0,"ui_opens":0,"cooked_reloads":0,"audio_submitted_frames":0,"audio_open_attempts":0,"audio_open_successes":0,"audio_pump_failures":0,"save_reopened":fal...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_twod_dynamic" classname="gameplay.zig_twod_dynamic" time="0.0532668" status="run">
+		<properties/>
+		<system-out>{"status":"PASS","module_abi":3,"project_mode":false,"api":1,"native_frames":0,"movement_frames":60,"entity_x":1.000000,"final_width":640,"final_height":480,"viewport_x":0.000000,"viewport_y":0.000000,"viewport_width":640.000000,"viewport_height":480.000000,"native_ui_draws":0,"native_ui_texture_uploads":0,"resize_generations":0,"surface_backend_requested":"none","render_device_ids_available":false,"render_vendor_id":0,"render_device_id":0,"initial_dpi_scale":0.000000,"minimum_dpi_scale":0.000000,"maximum_dpi_scale":0.000000,"focus_lost_events":0,"focus_gained_events":0,"key_press_events":0,"mouse_press_events":0,"wheel_events":0,"unfocused_movement_frames":0,"sprite_instanced_draws":0,"sprite_gpu_instances":0,"sprite_instance_upload_bytes":0,"visible":34,"reloaded":true,"validation_package":false,"resumed":false,"initial_x":0.000000,"ui_frames":0,"ui_saves":0,"ui_opens":0,"cooked_reloads":0,"audio_submitted_frames":0,"audio_open_attempts":0,"audio_open_successes":0,"audio_pump_failures":0,"save_reopened":fal...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_twod_wire_layout" classname="gameplay.zig_twod_wire_layout" time="0.00409125" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_services_consumer" classname="gameplay.zig_services_consumer" time="0.00525653" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_input_wrapper" classname="gameplay.zig_input_wrapper" time="3.29918" status="run">
+		<properties/>
+		<system-out>All 0 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_ui_wrapper" classname="gameplay.zig_ui_wrapper" time="3.43976" status="run">
+		<properties/>
+		<system-out>All 0 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_audio_wrapper" classname="gameplay.zig_audio_wrapper" time="3.65571" status="run">
+		<properties/>
+		<system-out>All 0 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_storage_wrapper" classname="gameplay.zig_storage_wrapper" time="3.13387" status="run">
+		<properties/>
+		<system-out>1/1 storage.test.invalid service preserves outputs and all helpers reject...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_content_wrapper" classname="gameplay.zig_content_wrapper" time="3.83545" status="run">
+		<properties/>
+		<system-out>All 0 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_display_wrapper" classname="gameplay.zig_display_wrapper" time="3.2945" status="run">
+		<properties/>
+		<system-out>1/1 display.test.DPI and rotated camera preserve coordinates; bars reject world input...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="gameplay.zig_display_player" classname="gameplay.zig_display_player" time="0.234733" status="run">
+		<properties>
+			<property name="cmake_labels" value="display;project;twod;zig"/>
+		</properties>
+		<system-out>PASS: Zig display service, independent export, viewport, UI and invalid descriptors
+</system-out>
+	</testcase>
+	<testcase name="showcase.courtyard_asset_generation" classname="showcase.courtyard_asset_generation" time="3.66263" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="showcase.courtyard_hero_generation" classname="showcase.courtyard_hero_generation" time="38.3545" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="showcase.courtyard_environment_generation" classname="showcase.courtyard_environment_generation" time="8.12448" status="run">
+		<properties/>
+		<system-out>{"source": [256, 128], "resources": [{"name": "diffuse", "path": "diffuse.rgba16f", "width": 16, "height": 8, "mip_levels": 1, "bytes": 1024, "sha256": "656eee2adaf52dace8d8555291c9092c13d8ef0aa304386b0d40dfdde8734a18"}, {"name": "specular", "path": "specular.rgba16f", "width": 64, "height": 32, "mip_levels": 7, "bytes": 21848, "sha256": "8818167fa713fc545fbfb6edcd717f476e9e1e38941989385a37e941fe14bea9"}, {"name": "brdf", "path": "brdf.rgba16f", "width": 32, "height": 32, "mip_levels": 1, "bytes": 8192, "sha256": "9db26afc33b15b99cdb4103baef49f018f480cc9a49e3d1c16a77bf7a333ddc2"}]}
+</system-out>
+	</testcase>
+	<testcase name="showcase.courtyard_environment_contracts" classname="showcase.courtyard_environment_contracts" time="6.08698" status="run">
+		<properties/>
+		<system-out>......
+----------------------------------------------------------------------
+Ran 6 tests in 5.979s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="showcase.courtyard_asset_conversion" classname="showcase.courtyard_asset_conversion" time="3.33893" status="run">
+		<properties/>
+		<system-out>PASS: adopted GLB/atlas geometry and bounded conversion rejection
+</system-out>
+	</testcase>
+	<testcase name="showcase.performance_statistics" classname="showcase.performance_statistics" time="0.0411169" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="showcase.benchmark_evidence_policy" classname="showcase.benchmark_evidence_policy" time="0.24395" status="run">
+		<properties/>
+		<system-out>.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.049s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="showcase.benchmark_evidence_policy_optimized" classname="showcase.benchmark_evidence_policy_optimized" time="0.645187" status="run">
+		<properties/>
+		<system-out>.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.032s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="showcase.v1_probe" classname="showcase.v1_probe" time="0.00647764" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="showcase.runtime_rooms" classname="showcase.runtime_rooms" time="4.36419" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="showcase.visual_tour_cli" classname="showcase.visual_tour_cli" time="2.04762" status="run">
+		<properties/>
+		<system-out>PASS: 100-second visual timeline completed, finale activated, automatic stop and lifecycle verified (headless).
+PASS: quality CLI selects actual workload settings and rejects unknown tiers.
+</system-out>
+	</testcase>
+	<testcase name="showcase.guided_tour_cli" classname="showcase.guided_tour_cli" time="0.360861" status="run">
+		<properties/>
+		<system-out>NexoraShowcase build=49e196142ecc --headless --tour=v1 --frames=4 --no-reload
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--tour=v1","--frames=4","--no-reload"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "49e196142ecc",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="showcase.probe_export" classname="showcase.probe_export" time="0.324749" status="run">
+		<properties/>
+		<system-out>NexoraShowcase build=49e196142ecc --headless --probe=v1.M8 --frames=2 --report=/workspace/worktrees/nexora-sp01/build/linux-development/Apps/Showcase/probe-export.json --markdown=/workspace/worktrees/nexora-sp01/build/linux-development/Apps/Showcase/probe-export.md
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--probe=v1.M8","--frames=2","--report=/workspace/worktrees/nexora-sp01/build/linux-development/Apps/Showcase/probe-export.json","--markdown=/workspace/worktrees/nexora-sp01/build/linux-development/Apps/Showcase/probe-export.md"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "49e196142ecc",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEM...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="showcase.zig_headless" classname="showcase.zig_headless" time="0.324553" status="run">
+		<properties/>
+		<system-out>NexoraShowcase build=49e196142ecc --headless --validate-v1 --frames=4
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": true,
+  "startup_arguments": ["--headless","--validate-v1","--frames=4"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "49e196142ecc",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ray/AABB diagnostics"},
+   ...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="showcase.feature_gallery" classname="showcase.feature_gallery" time="0.300818" status="run">
+		<properties/>
+		<system-out>NexoraShowcase build=49e196142ecc --headless --scene=tour --frames=1 --no-reload
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "tour",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--scene=tour","--frames=1","--no-reload"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "49e196142ecc",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "tour",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="showcase.zig_dynamic" classname="showcase.zig_dynamic" time="0.400072" status="run">
+		<properties/>
+		<system-out>NexoraShowcase build=49e196142ecc --headless --frames=4 --gameplay-module=dynamic
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "hub",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--frames=4","--gameplay-module=dynamic"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "49e196142ecc",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "hub",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status": "IMPLEMENTED", "fallback": "CPU transform and ra...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="showcase.capability_fallbacks" classname="showcase.capability_fallbacks" time="0.3079" status="run">
+		<properties/>
+		<system-out>NexoraShowcase build=49e196142ecc --headless --scene=tour --frames=1 --no-reload --capabilities=minimal
+{
+  "schema": "nexora.zig_showcase.v1",
+  "status": "PASS",
+  "mode": "headless",
+  "scene": "tour",
+  "backend": "auto",
+  "validate_v1": false,
+  "startup_arguments": ["--headless","--scene=tour","--frames=1","--no-reload","--capabilities=minimal"],
+  "build": {
+    "engine_version": "0.1.0",
+    "build_id": "49e196142ecc",
+    "abi_version": 1,
+    "configuration": "Development",
+    "link_mode": "Modular"
+  },
+  "capabilities": {
+    "engine_owned_main": "IMPLEMENTED",
+    "zig_static_gameplay": "IMPLEMENTED",
+    "zig_dynamic_gameplay": "IMPLEMENTED",
+    "headless_validation": "IMPLEMENTED",
+    "transactional_reload": "IMPLEMENTED",
+    "windowed_native_backend": "NOT EXECUTED",
+    "camera_input": "IMPLEMENTED",
+    "selection_raycast": "IMPLEMENTED",
+    "capability_overlays": "IMPLEMENTED"
+  },
+  "gallery": {
+    "selected": "tour",
+    "rooms": [
+      {"id": "math", "title": "Math Lab", "status"...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_vulkan_interaction" classname="showcase.linux_vulkan_interaction" time="0.054644" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="showcase;virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb or xdotool is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_animation_handshake" classname="showcase.linux_animation_handshake" time="0.224312" status="run">
+		<properties/>
+		<system-out>....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_animation_handshake_optimized" classname="showcase.linux_animation_handshake_optimized" time="0.616937" status="run">
+		<properties/>
+		<system-out>....
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_vulkan_evidence_policy" classname="showcase.linux_vulkan_evidence_policy" time="0.251192" status="run">
+		<properties/>
+		<system-out>.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.100s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_vulkan_virtual_display" classname="showcase.linux_vulkan_virtual_display" time="0.0452727" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="showcase;virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_vulkan_rendering_room" classname="showcase.linux_vulkan_rendering_room" time="0.0508838" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="showcase;virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="showcase.linux_vulkan_camera_input" classname="showcase.linux_vulkan_camera_input" time="0.0443799" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="showcase;virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="foundation.build_info" classname="foundation.build_info" time="0.0020886" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="foundation.gameplay_abi" classname="foundation.gameplay_abi" time="0.00194521" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="cryptography.ed25519_sha256" classname="cryptography.ed25519_sha256" time="0.417032" status="run">
+		<properties/>
+		<system-out>RFC8032/SHA256/tampering/bounds/provider contracts passed
+</system-out>
+	</testcase>
+	<testcase name="core.runtime" classname="core.runtime" time="0.00762947" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="core.async_log_stream" classname="core.async_log_stream" time="0.141627" status="run">
+		<properties/>
+		<system-out>PASS: bounded Core log ingress, payloads, sequence/cursor, concurrency and lifecycle
+</system-out>
+	</testcase>
+	<testcase name="core.process_memory" classname="core.process_memory" time="0.00877603" status="run">
+		<properties/>
+		<system-out>Native Linux current process RSS bytes: before=1953792 after=18780160 touched=16777216
+</system-out>
+	</testcase>
+	<testcase name="core.v2_m11_remote_diagnostics" classname="core.v2_m11_remote_diagnostics" time="0.00272828" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="ai.v2_m7_navigation_crowd_policy" classname="ai.v2_m7_navigation_crowd_policy" time="0.0135041" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="build.pose_search_profiles" classname="build.pose_search_profiles" time="3.3959" status="run">
+		<properties/>
+		<system-out>development: enabled with Foundation only
+disabled: target and source stripped
+shipping-minimal: target and source stripped
+shipping-full: enabled with Foundation only
+shipping-dedicated: target and source stripped
+headless: target and source stripped
+</system-out>
+	</testcase>
+	<testcase name="animation.v2_m8_pose_search" classname="animation.v2_m8_pose_search" time="0.281696" status="run">
+		<properties/>
+		<system-out>V2-M8 portable pose database/search contracts passed
+</system-out>
+	</testcase>
+	<testcase name="build.animation_profiles" classname="build.animation_profiles" time="3.84992" status="run">
+		<properties/>
+		<system-out>development: enabled with Foundation only
+disabled: target and source stripped
+shipping-minimal: target and source stripped
+shipping-full: enabled with Foundation only
+shipping-dedicated: target and source stripped
+headless: target and source stripped
+</system-out>
+	</testcase>
+	<testcase name="animation.v2_m8_inertial_pose_blend" classname="animation.v2_m8_inertial_pose_blend" time="0.00599059" status="run">
+		<properties/>
+		<system-out>Inertial local TRS blend tests passed
+</system-out>
+	</testcase>
+	<testcase name="animation.v2_m8_synchronized_trs_graph" classname="animation.v2_m8_synchronized_trs_graph" time="0.060894" status="run">
+		<properties/>
+		<system-out>Synchronized compressed TRS graph tests passed
+</system-out>
+	</testcase>
+	<testcase name="animation.v2_m8_marker_sync" classname="animation.v2_m8_marker_sync" time="0.00783294" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="animation.v2_m8_pose_storage_retarget" classname="animation.v2_m8_pose_storage_retarget" time="0.0468514" status="run">
+		<properties/>
+		<system-out>V2 pose storage and retarget contracts passed
+</system-out>
+	</testcase>
+	<testcase name="network.v2_m5_transport" classname="network.v2_m5_transport" time="0.130741" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="network.v2_m6_entity_mapping" classname="network.v2_m6_entity_mapping" time="0.131861" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="network.v2_m6_replication_interest" classname="network.v2_m6_replication_interest" time="0.131459" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="network.v2_m6_dormancy" classname="network.v2_m6_dormancy" time="0.153061" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="network.v2_m6_prediction_replay" classname="network.v2_m6_prediction_replay" time="0.143618" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="network.server_runtime_contract" classname="network.server_runtime_contract" time="0.110643" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="network.v2_m5_headless_dependency" classname="network.v2_m5_headless_dependency" time="0.0426077" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="window_presentation.contracts" classname="window_presentation.contracts" time="0.00423299" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="window_presentation.staged_upload_allocation" classname="window_presentation.staged_upload_allocation" time="0.00296586" status="run">
+		<properties/>
+		<system-out>Staged upload allocation contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_geometry_upload_key" classname="window_presentation.scene_geometry_upload_key" time="0.00231828" status="run">
+		<properties/>
+		<system-out>Exact geometry upload key contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_geometry_residency" classname="window_presentation.scene_geometry_residency" time="0.00704942" status="run">
+		<properties/>
+		<system-out>Canonical mesh residency, budget and lease contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_instance_contract" classname="window_presentation.scene_instance_contract" time="0.012351" status="run">
+		<properties/>
+		<system-out>Scene instance affine contracts passed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.scene_view_admission" classname="window_presentation.scene_view_admission" time="0.00255187" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="window_presentation.vulkan_scene" classname="window_presentation.vulkan_scene" time="0.0503456" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="showcase;virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.vulkan_pbr" classname="window_presentation.vulkan_pbr" time="0.0496736" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="showcase;virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.vulkan_scene_upload_reuse" classname="window_presentation.vulkan_scene_upload_reuse" time="0.0454766" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.vulkan_swapchain" classname="window_presentation.vulkan_swapchain" time="0.0434373" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="virtual-display;vulkan"/>
+		</properties>
+		<system-out>SKIP: Xvfb is not installed; virtual-display acceptance was not executed
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.hlsl_embedding" classname="window_presentation.hlsl_embedding" time="0.107607" status="run">
+		<properties/>
+		<system-out>...
+----------------------------------------------------------------------
+Ran 3 tests in 0.005s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="window_presentation.gpu_timing" classname="window_presentation.gpu_timing" time="0.00273618" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="window.x11_key_repeat_matcher" classname="window.x11_key_repeat_matcher" time="0.00168552" status="run">
+		<properties/>
+		<system-out>X11 repeat pair matcher: 8 positive/negative cases passed
+</system-out>
+	</testcase>
+	<testcase name="window.x11_held_key_native" classname="window.x11_held_key_native" time="0.053733" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-input;virtual-display;x11"/>
+		</properties>
+		<system-out>Native X11 held-key test unavailable: xvfb not installed
+</system-out>
+	</testcase>
+	<testcase name="window.x11_display_metrics_native" classname="window.x11_display_metrics_native" time="0.149084" status="run">
+		<properties>
+			<property name="cmake_labels" value="display;virtual-display;x11"/>
+		</properties>
+		<system-out>PASS: native X11 live metrics, destroyed-before-pump, output preservation and handler restoration
+</system-out>
+	</testcase>
+	<testcase name="api.foundation_math_types" classname="api.foundation_math_types" time="0.0914916" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="api.core_services_handle_and_vfs_contract" classname="api.core_services_handle_and_vfs_contract" time="0.0988302" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="api.m6_c_consumer" classname="api.m6_c_consumer" time="0.00139758" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="api.m6_manifest_compatibility" classname="api.m6_manifest_compatibility" time="0.0502455" status="run">
+		<properties/>
+		<system-out>API-M6 ABI 3 validated: 97 documented exports
+</system-out>
+	</testcase>
+	<testcase name="samples.api_foundation" classname="samples.api_foundation" time="0.0021811" status="run">
+		<properties/>
+		<system-out>-- Math --
+  translation round trip: (1.000, 2.000, 3.000)
+  origin sphere visible in camera frustum: yes
+-- Types --
+  Uuid round trip: 01234567-89ab-cdef-0123-456789abcdef
+  IsValidUtf8: true
+  C ABI owned UTF-8 buffer: ok
+-- VFS --
+  read/stream/map memory-mounted 43 bytes: ok
+-- Services --
+  RandomStream replay match: yes
+  [profiling] sample.services took 10420 ns
+-- Handle (Core) --
+  fresh handle valid and contained: yes
+Nexora API foundation sample: PASS
+</system-out>
+	</testcase>
+	<testcase name="samples.editor_reflected_arrays" classname="samples.editor_reflected_arrays" time="0.0124252" status="run">
+		<properties/>
+		<system-out>Counted reflection: authority, stale observations, append/edit/reorder, Undo/Redo, scoped Save and read-only reopen passed
+</system-out>
+	</testcase>
+	<testcase name="api.gameplay_input_zig_abi" classname="api.gameplay_input_zig_abi" time="3.2542" status="run">
+		<properties/>
+		<system-out>1/2 GameplayInputAbi.test.input wire matches C on the current target...OK
+2/2 GameplayInputAbi.test.missing callbacks and old tables preserve outputs...OK
+All 2 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="renderer.d3d12_adapter_policy" classname="renderer.d3d12_adapter_policy" time="0.00262431" status="run">
+		<properties/>
+		<system-out>D3D12 adapter policy contracts passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.submission_gpu_timing" classname="renderer.submission_gpu_timing" time="0.0027958" status="run">
+		<properties/>
+		<system-out>Native GPU timing unavailable; portable validation-model checks completed
+</system-out>
+	</testcase>
+	<testcase name="renderer.metal_source_contract" classname="renderer.metal_source_contract" time="0.0350969" status="run">
+		<properties/>
+		<system-out>Metal source contracts present: newComputePipelineStateWithFunction, BindStorageBuffer, dispatchThreadgroups, GPUDrivenIndirectCommandStride, drawPrimitives:MTLPrimitiveTypeTriangle, indirectBufferOffset:
+</system-out>
+	</testcase>
+	<testcase name="renderer.indirect_range_source_contract" classname="renderer.indirect_range_source_contract" time="0.0355481" status="run">
+		<properties/>
+		<system-out>indirect-range checks present in ValidationDevice.cpp, VulkanDevice.cpp, D3D12Device.cpp, MetalDevice.mm
+</system-out>
+	</testcase>
+	<testcase name="renderer.dxil_artifact_readiness" classname="renderer.dxil_artifact_readiness" time="0.00257125" status="run">
+		<properties/>
+		<system-out>Portable DXIL metadata: stages, numeric 6.9/6.10 profiles, truncation, invalid ranges, overlap, unordered parts and duplicate rejection passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.contracts" classname="renderer.contracts" time="0.00635027" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="renderer.graph_buffer_dependencies" classname="renderer.graph_buffer_dependencies" time="0.00408536" status="run">
+		<properties/>
+		<system-out>RenderGraph buffer dependency contracts passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.parallel_graph_recording" classname="renderer.parallel_graph_recording" time="0.0164793" status="run">
+		<properties/>
+		<system-out>Parallel graph recording, fallback, order and failure containment passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.graphics_capabilities" classname="renderer.graphics_capabilities" time="0.00364359" status="run">
+		<properties/>
+		<system-out>Graphics capability admission and fallback tests passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.scene_frame_contracts" classname="renderer.scene_frame_contracts" time="0.0024553" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="renderer.material_contracts" classname="renderer.material_contracts" time="0.00266656" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="renderer.golden_image_acceptance" classname="renderer.golden_image_acceptance" time="0.00244238" status="run">
+		<properties/>
+		<system-out>Golden image acceptance contracts passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.v2_gpu_scene" classname="renderer.v2_gpu_scene" time="0.00550158" status="run">
+		<properties/>
+		<system-out>GPUScene tests passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.v2_gpu_driven" classname="renderer.v2_gpu_driven" time="0.00437483" status="run">
+		<properties/>
+		<system-out>GPU-driven pipeline tests passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_texture_recording" classname="renderer.vulkan_texture_recording" time="0.00371048" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: native graphics unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_graphics_resource_reuse" classname="renderer.vulkan_graphics_resource_reuse" time="0.00389842" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: native graphics unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_descriptor_isolation" classname="renderer.vulkan_descriptor_isolation" time="0.00259377" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: Vulkan artifacts/device unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_recording_gpu_timing" classname="renderer.vulkan_recording_gpu_timing" time="0.00344814" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: Vulkan artifacts/device unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_recording_resource_reuse" classname="renderer.vulkan_recording_resource_reuse" time="0.00279979" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: Vulkan artifacts/device unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_recording_benchmark" classname="renderer.vulkan_recording_benchmark" time="0.0419328" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: Vulkan artifacts/device unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.vulkan_recording_benchmark_reuse" classname="renderer.vulkan_recording_benchmark_reuse" time="0.040548" status="notrun">
+		<skipped message="SKIP_RETURN_CODE=77"/>
+		<properties>
+			<property name="cmake_labels" value="native-acceptance;vulkan"/>
+		</properties>
+		<system-out>SKIP: Vulkan artifacts/device unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.enhanced_barrier_projection" classname="renderer.enhanced_barrier_projection" time="0.00289115" status="run">
+		<properties/>
+		<system-out>Portable barrier sync/access/layout projection and explicit native unavailability passed
+</system-out>
+	</testcase>
+	<testcase name="renderer.tessellation" classname="renderer.tessellation" time="0.00252573" status="run">
+		<properties/>
+		<system-out>Portable tessellation contracts passed; native artifacts unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.shading_rate" classname="renderer.shading_rate" time="0.00785842" status="run">
+		<properties/>
+		<system-out>Native VRS/fallback unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.mesh_shader" classname="renderer.mesh_shader" time="0.00293895" status="run">
+		<properties/>
+		<system-out>Native mesh/fallback unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.work_graph" classname="renderer.work_graph" time="0.0027588" status="run">
+		<properties/>
+		<system-out>Native Work Graph/fallback unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.ray_tracing" classname="renderer.ray_tracing" time="0.00365892" status="run">
+		<properties/>
+		<system-out>Synthetic CPU oracle diagnostic failures verified; no native GPU reproduction claimed
+Native ray/reference unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.sampler_feedback" classname="renderer.sampler_feedback" time="0.00375741" status="run">
+		<properties/>
+		<system-out>Native feedback/reference unavailable
+</system-out>
+	</testcase>
+	<testcase name="renderer.shading_rate_image" classname="renderer.shading_rate_image" time="0.0036005" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="renderer.modern_compute_fallback" classname="renderer.modern_compute_fallback" time="0.00268668" status="run">
+		<properties/>
+		<system-out>Native modern equivalent unavailable
+</system-out>
+	</testcase>
+	<testcase name="runtime.shader_artifact_contracts" classname="runtime.shader_artifact_contracts" time="0.00299362" status="run">
+		<properties/>
+		<system-out>Shader runtime artifact contracts passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.v1_m4_m11_contracts" classname="runtime.v1_m4_m11_contracts" time="0.00436003" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="api.game_world_facade" classname="api.game_world_facade" time="0.00287614" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.transform_rotation_scale" classname="runtime.transform_rotation_scale" time="0.00439696" status="run">
+		<properties/>
+		<system-out>Transform rotation/scale contracts passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.entity_parenting" classname="runtime.entity_parenting" time="1.12165" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.scene_world_pose_snapshot" classname="runtime.scene_world_pose_snapshot" time="3.05681" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.render_sync" classname="runtime.render_sync" time="0.966136" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="api.gameplay_host_bridge" classname="api.gameplay_host_bridge" time="0.00357261" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v1_m12_shipping" classname="runtime.v1_m12_shipping" time="0.12621" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v2_m12_hardening_reference_projects" classname="runtime.v2_m12_hardening_reference_projects" time="0.0765234" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.bounded_scene_save" classname="runtime.bounded_scene_save" time="0.772255" status="run">
+		<properties/>
+		<system-out>Bounded World scene save passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.world_identity_exhaustion" classname="runtime.world_identity_exhaustion" time="0.00304783" status="run">
+		<properties/>
+		<system-out>World identity exhaustion and owning clone contracts passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.v1_m7_input_ui_localization" classname="runtime.v1_m7_input_ui_localization" time="0.0225654" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v1_m8_gameplay_simulation" classname="runtime.v1_m8_gameplay_simulation" time="0.0130203" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v2_m7_ai_character_intent_bridge" classname="runtime.v2_m7_ai_character_intent_bridge" time="0.00334149" status="run">
+		<properties/>
+		<system-out>AI CharacterIntent adapter tests passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.v1_m10_large_world" classname="runtime.v1_m10_large_world" time="0.0167457" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v1_m11_platform" classname="runtime.v1_m11_platform" time="0.00397036" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="animation.v2_m8_sync_group_graph" classname="animation.v2_m8_sync_group_graph" time="0.00265583" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v1_m9_presentation" classname="runtime.v1_m9_presentation" time="0.0074938" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v2_m9_timeline_ui_audio_media" classname="runtime.v2_m9_timeline_ui_audio_media" time="0.00276555" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v1_m4_vertical_slice" classname="runtime.v1_m4_vertical_slice" time="0.0762938" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_module_host" classname="runtime.gameplay_module_host" time="0.00347591" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.dynamic_gameplay_module" classname="runtime.dynamic_gameplay_module" time="0.435371" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.v1_m5_asset_pipeline" classname="runtime.v1_m5_asset_pipeline" time="0.0975171" status="run">
+		<properties/>
+		<system-out>V1-M5 baseline: 10000 cached runtime blobs in 89 ms
+</system-out>
+	</testcase>
+	<testcase name="api.bundle_mount" classname="api.bundle_mount" time="0.00304602" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.console_record_admission" classname="runtime.console_record_admission" time="0.185645" status="run">
+		<properties/>
+		<system-out>Runtime Console record admission passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.v1_m6_editor_sdk" classname="runtime.v1_m6_editor_sdk" time="0.00398206" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.plugin_lifecycle" classname="runtime.plugin_lifecycle" time="0.0197002" status="run">
+		<properties/>
+		<system-out>Fourteen actual plugin lifecycle modules and Unicode/revocation contracts passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.plugin_lifecycle_c_abi" classname="runtime.plugin_lifecycle_c_abi" time="0.00154605" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.plugin_service_ownership" classname="runtime.plugin_service_ownership" time="0.00898512" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.cooked_scene_assets" classname="runtime.cooked_scene_assets" time="0.487316" status="run">
+		<properties/>
+		<system-out>Cooked static-scene assets passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.static_project_package" classname="runtime.static_project_package" time="1.20958" status="run">
+		<properties/>
+		<system-out>Static project package contracts passed
+</system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_action_input" classname="runtime.gameplay_action_input" time="0.00286581" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_audio" classname="runtime.gameplay_audio" time="0.0027074" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_alsa_lifetime" classname="runtime.gameplay_alsa_lifetime" time="0.319734" status="run">
+		<properties>
+			<property name="cmake_labels" value="audio;runtime"/>
+		</properties>
+		<system-out>{"null": {"opens": 65, "opened": 65, "peer": false, "audible_acceptance": "NOT VERIFIED"}, "null-peer": {"opens": 65, "opened": 65, "peer": true, "audible_acceptance": "NOT VERIFIED"}, "missing": {"opens": 65, "opened": 0, "peer": false, "audible_acceptance": "NOT VERIFIED"}, "missing-peer": {"opens": 65, "opened": 0, "peer": true, "audible_acceptance": "NOT VERIFIED"}, "malformed": {"opens": 65, "opened": 0, "peer": false, "audible_acceptance": "NOT VERIFIED"}, "malformed-peer": {"opens": 65, "opened": 0, "peer": true, "audible_acceptance": "NOT VERIFIED"}, "absent-file": {"opens": 65, "opened": 0, "peer": false, "audible_acceptance": "NOT VERIFIED"}, "absent-file-peer": {"opens": 65, "opened": 0, "peer": true, "audible_acceptance": "NOT VERIFIED"}, "system": {"opens": 65, "opened": 0, "peer": false, "audible_acceptance": "NOT VERIFIED"}, "system-peer": {"opens": 65, "opened": 0, "peer": true, "audible_acceptance": "NOT VERIFIED"}}
+</system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_persistent_storage" classname="runtime.gameplay_persistent_storage" time="0.00442596" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_gamepad_routing" classname="runtime.gameplay_gamepad_routing" time="0.0108685" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="runtime.gameplay_audio_queue" classname="runtime.gameplay_audio_queue" time="0.00276697" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.runtime_contracts" classname="twod.runtime_contracts" time="0.235175" status="run">
+		<properties/>
+		<system-out>2D runtime contracts passed
+</system-out>
+	</testcase>
+	<testcase name="twod.windows_vm_transport" classname="twod.windows_vm_transport" time="0.576821" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod;vm"/>
+		</properties>
+		<system-out>............
+----------------------------------------------------------------------
+Ran 12 tests in 0.382s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_bridge" classname="twod.gameplay_bridge" time="0.00609441" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.project_play_assets" classname="twod.project_play_assets" time="0.0168069" status="run">
+		<properties/>
+		<system-out>Project 2D Play assets: exact source scope, cooked closure and immutable lifetime passed
+</system-out>
+	</testcase>
+	<testcase name="twod.content_import" classname="twod.content_import" time="1.29725" status="run">
+		<properties/>
+		<system-out>2D typed Content: stable identity, immutable reimport, dependency and budget conservation passed
+</system-out>
+	</testcase>
+	<testcase name="twod.play_assets" classname="twod.play_assets" time="0.242454" status="run">
+		<properties/>
+		<system-out>2D cooked Play assets: generation isolation, closure, budgets and residency passed
+</system-out>
+	</testcase>
+	<testcase name="twod.authoring_contracts" classname="twod.authoring_contracts" time="0.035044" status="run">
+		<properties/>
+		<system-out>2D authoring, tilemap and isolated Play passed
+</system-out>
+	</testcase>
+	<testcase name="twod.play_context" classname="twod.play_context" time="1.62986" status="run">
+		<properties/>
+		<system-out>2D Play context: 32 isolated sessions, frozen assets, callbacks, frames and source history passed
+</system-out>
+	</testcase>
+	<testcase name="twod.asset_tool" classname="twod.asset_tool" time="0.0877277" status="run">
+		<properties/>
+		<system-out>320 bytes written
+320 bytes written
+320 bytes written
+320 bytes written
+84 bytes written
+84 bytes written
+PNG slicing, packing, clips and failed publication passed
+</system-out>
+	</testcase>
+	<testcase name="twod.cpu_stress" classname="twod.cpu_stress" time="1.69268" status="run">
+		<properties/>
+		<system-out>Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+</system-out>
+	</testcase>
+	<testcase name="twod.benchmark_trace" classname="twod.benchmark_trace" time="3.11655" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod"/>
+		</properties>
+		<system-out>Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+Reproducible mixed 2D stress completed. Physical minimum-PC 60 FPS acceptance: NOT RUN.
+All six benchmark cases, warm-up, same-frame partitions and output failures passed
+</system-out>
+	</testcase>
+	<testcase name="twod.integrated_stress" classname="twod.integrated_stress" time="9.34906" status="run">
+		<properties>
+			<property name="cmake_labels" value="tools;twod"/>
+		</properties>
+		<system-out>Integrated 10000-object fixture completed; product minimum-PC acceptance is separate.
+Integrated 5000-object fixture completed; product minimum-PC acceptance is separate.
+Integrated 1000-object fixture completed; product minimum-PC acceptance is separate.
+Integrated 1k/5k/10k updates, independent queries/culling, UI/VFX, reload and trace pass
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_ui" classname="twod.gameplay_ui" time="0.00602456" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_ui_wire_layout" classname="gameplay.zig_ui_wire_layout" time="3.08554" status="run">
+		<properties/>
+		<system-out>1/1 GameplayUiLayout.test.gameplay UI C/Zig layout...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="twod.gameplay_content" classname="twod.gameplay_content" time="0.0140668" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_content_wire_layout" classname="gameplay.zig_content_wire_layout" time="3.11652" status="run">
+		<properties/>
+		<system-out>1/1 GameplayContentLayout.test.gameplay cooked content C/Zig layout...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="twod.audio_device_lifecycle" classname="twod.audio_device_lifecycle" time="0.0616255" status="run">
+		<properties>
+			<property name="cmake_labels" value="audio;twod"/>
+		</properties>
+		<system-out>{"null": {"device_output": "PASS", "sample_rate": 48000, "submitted_frames": 8194, "reopened": true, "audible_acceptance": "NOT VERIFIED"}, "missing": {"device_output": "UNAVAILABLE", "audible_acceptance": "NOT VERIFIED"}, "missing_requires_failure": true, "scope": "ALSA null device lifecycle; physical audio and Windows NOT RUN"}
+</system-out>
+	</testcase>
+	<testcase name="twod.cooked_product_services" classname="twod.cooked_product_services" time="0.345579" status="run">
+		<properties>
+			<property name="cmake_labels" value="twod;zig"/>
+		</properties>
+		<system-out>344 bytes written
+416 bytes written
+88 bytes written
+175 bytes written
+{"first": {"status": "PASS", "module_abi": 3, "project_mode": false, "api": 1, "native_frames": 0, "movement_frames": 60, "entity_x": 1.0, "final_width": 640, "final_height": 480, "viewport_x": 0.0, "viewport_y": 0.0, "viewport_width": 640.0, "viewport_height": 480.0, "native_ui_draws": 0, "native_ui_texture_uploads": 0, "resize_generations": 0, "surface_backend_requested": "none", "render_device_ids_available": false, "render_vendor_id": 0, "render_device_id": 0, "initial_dpi_scale": 0.0, "minimum_dpi_scale": 0.0, "maximum_dpi_scale": 0.0, "focus_lost_events": 0, "focus_gained_events": 0, "key_press_events": 0, "mouse_press_events": 0, "wheel_events": 0, "unfocused_movement_frames": 0, "sprite_instanced_draws": 0, "sprite_gpu_instances": 0, "sprite_instance_upload_bytes": 0, "visible": 34, "reloaded": true, "validation_package": true, "resumed": false, "initial_x": 0.0, "ui_frames": 60, "ui_saves": 0, "ui_opens": 0, "cooked_reloads": 1, "...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="twod.host_fixture" classname="twod.host_fixture" time="0.236158" status="run">
+		<properties>
+			<property name="cmake_labels" value="host;storage;twod;ui"/>
+		</properties>
+		<system-out>Headless host-fixture storage/rebinding/strict font admission contracts pass
+</system-out>
+	</testcase>
+	<testcase name="twod.project_export" classname="twod.project_export" time="0.284658" status="run">
+		<properties>
+			<property name="cmake_labels" value="export;project;twod"/>
+		</properties>
+		<system-out>Project export: independent module, UI-only game, Unicode paths, process restart, immutable package and corruption rejection passed
+</system-out>
+	</testcase>
+	<testcase name="twod.backend_options" classname="twod.backend_options" time="1.32459" status="run">
+		<properties>
+			<property name="cmake_labels" value="cli;presentation;twod"/>
+		</properties>
+		<system-out>Backend admission and headless provenance pass
+</system-out>
+	</testcase>
+	<testcase name="twod.project_manifest" classname="twod.project_manifest" time="0.00568958" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="twod.gameplay_display" classname="twod.gameplay_display" time="0.00474037" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="gameplay.zig_display_wire_layout" classname="gameplay.zig_display_wire_layout" time="3.56655" status="run">
+		<properties/>
+		<system-out>1/1 GameplayDisplayLayout.test.display and extended services C/Zig layout...OK
+All 1 tests passed.
+</system-out>
+	</testcase>
+	<testcase name="editor.content_diagnostics" classname="editor.content_diagnostics" time="0.00737315" status="run">
+		<properties/>
+		<system-out>Content import diagnostic admission and history contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.content_directory_index" classname="editor.content_directory_index" time="33.4011" status="run">
+		<properties/>
+		<system-out>Complete directory queries, ownership, source mutations and bounded fallback passed
+</system-out>
+	</testcase>
+	<testcase name="editor.scene_golden_migrations" classname="editor.scene_golden_migrations" time="0.72005" status="run">
+		<properties/>
+		<system-out>editor1-runtime1.scene: 168 rejected inputs preserve live state
+editor1-runtime2.scene: 197 rejected inputs preserve live state
+editor1-runtime3.scene: 201 rejected inputs preserve live state
+editor2-runtime3.scene: 218 rejected inputs preserve live state
+editor3-runtime3.scene: 261 rejected inputs preserve live state
+editor4-runtime3.scene: 445 rejected inputs preserve live state
+</system-out>
+	</testcase>
+	<testcase name="editor.prefab_instance_source_apply" classname="editor.prefab_instance_source_apply" time="0.314895" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.content_path_sort" classname="editor.content_path_sort" time="34.5207" status="run">
+		<properties/>
+		<system-out>UTF-8 path ordering, full source records, Undo and bounded allocation fallback passed
+</system-out>
+	</testcase>
+	<testcase name="editor.chrome_cpu_trace" classname="editor.chrome_cpu_trace" time="0.370035" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.extension_signature_trust" classname="editor.extension_signature_trust" time="0.0120889" status="run">
+		<properties/>
+		<system-out>Real signature trust/publisher/key rotation/revocation/budgets passed
+</system-out>
+	</testcase>
+	<testcase name="editor.signed_extension_admission" classname="editor.signed_extension_admission" time="0.0947992" status="run">
+		<properties/>
+		<system-out>Canonical signed manifest, fail-closed admission and native image lifecycle passed
+</system-out>
+	</testcase>
+	<testcase name="editor.native_tool_c_abi" classname="editor.native_tool_c_abi" time="0.00192359" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.native_tool_callbacks" classname="editor.native_tool_callbacks" time="0.00951876" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.build_artifact_verification" classname="editor.build_artifact_verification" time="0.0900269" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.plugin_manager" classname="editor.plugin_manager" time="0.0362412" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.prefab_placement_revision_snapshot" classname="editor.prefab_placement_revision_snapshot" time="0.138695" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.prefab_placement_source_rebase" classname="editor.prefab_placement_source_rebase" time="0.11323" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.signed_tool_invocation" classname="editor.signed_tool_invocation" time="0.0150159" status="run">
+		<properties/>
+		<system-out>Actual signed sealed-image material and recursive callbacks verified.
+</system-out>
+	</testcase>
+	<testcase name="editor.scalar_material_native_tool" classname="editor.scalar_material_native_tool" time="0.0102754" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.property_snapshot_hint_preservation" classname="editor.property_snapshot_hint_preservation" time="0.0667414" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.atomic_property_snapshot" classname="editor.atomic_property_snapshot" time="0.0183958" status="run">
+		<properties/>
+		<system-out>Atomic document property snapshots passed
+</system-out>
+	</testcase>
+	<testcase name="editor.prefab_document_isolation" classname="editor.prefab_document_isolation" time="0.0207709" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.prefab_stable_comparison" classname="editor.prefab_stable_comparison" time="0.0397094" status="run">
+		<properties/>
+		<system-out>Stable prefab comparisons passed
+</system-out>
+	</testcase>
+	<testcase name="editor.prefab_nested_materialization" classname="editor.prefab_nested_materialization" time="10.1206" status="run">
+		<properties/>
+		<system-out>Nested prefab materialization passed
+</system-out>
+	</testcase>
+	<testcase name="editor.project_prefab_placement" classname="editor.project_prefab_placement" time="0.0397547" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.prefab_revision_history" classname="editor.prefab_revision_history" time="0.0461059" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.prefab_property_revert_plan" classname="editor.prefab_property_revert_plan" time="0.0325776" status="run">
+		<properties/>
+		<system-out>Prefab property revert plans passed
+</system-out>
+	</testcase>
+	<testcase name="editor.prefab_asset_graph" classname="editor.prefab_asset_graph" time="2.06608" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.atomic_forest_import" classname="editor.atomic_forest_import" time="0.0640238" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.shader_authoring_contracts" classname="editor.shader_authoring_contracts" time="0.0280317" status="run">
+		<properties/>
+		<system-out>Editor shader authoring contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.project_upgrade_evidence" classname="editor.project_upgrade_evidence" time="0.0100204" status="run">
+		<properties/>
+		<system-out>Owning project upgrade previews and retained evidence passed
+</system-out>
+	</testcase>
+	<testcase name="editor.preview_contract" classname="editor.preview_contract" time="0.0488871" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.bounded_build_process" classname="editor.bounded_build_process" time="0.533749" status="run">
+		<properties/>
+		<system-out>Bounded structured build processes passed
+</system-out>
+	</testcase>
+	<testcase name="editor.tool_capability_metadata" classname="editor.tool_capability_metadata" time="0.0406097" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.additive_scene_composition" classname="editor.additive_scene_composition" time="8.03959" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.additive_scene_session" classname="editor.additive_scene_session" time="0.0349321" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.prepared_scene_save" classname="editor.prepared_scene_save" time="0.0116887" status="run">
+		<properties/>
+		<system-out>Prepared scene-save contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.semantic_scene_merge_candidate" classname="editor.semantic_scene_merge_candidate" time="2.54383" status="run">
+		<properties/>
+		<system-out>Owning validated semantic merge candidates passed
+</system-out>
+	</testcase>
+	<testcase name="editor.semantic_scene_merge_candidate_job" classname="editor.semantic_scene_merge_candidate_job" time="0.0355432" status="run">
+		<properties/>
+		<system-out>Owning asynchronous scene candidate passed
+</system-out>
+	</testcase>
+	<testcase name="editor.semantic_scene_comparison" classname="editor.semantic_scene_comparison" time="15.0765" status="run">
+		<properties/>
+		<system-out>Bounded owning semantic scene comparison passed
+</system-out>
+	</testcase>
+	<testcase name="editor.semantic_scene_comparison_job" classname="editor.semantic_scene_comparison_job" time="0.061356" status="run">
+		<properties/>
+		<system-out>Owning scene comparison job passed
+</system-out>
+	</testcase>
+	<testcase name="editor.scene_save_batch" classname="editor.scene_save_batch" time="15.5947" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.additive_scene_contract" classname="editor.additive_scene_contract" time="0.00702701" status="run">
+		<properties/>
+		<system-out>Additive scene dependency contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.process_memory_profile" classname="editor.process_memory_profile" time="0.00805491" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.mesh_memory_profile" classname="editor.mesh_memory_profile" time="0.00753467" status="run">
+		<properties/>
+		<system-out>PASS: retained-mesh memory ownership, scope, clock, gaps, pause/Clear and bounds
+</system-out>
+	</testcase>
+	<testcase name="editor.inspector_atomic_batch" classname="editor.inspector_atomic_batch" time="0.0450827" status="run">
+		<properties/>
+		<system-out>Inspector atomic batch contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.autosave_journal" classname="editor.autosave_journal" time="0.296943" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.workspace_budget" classname="editor.workspace_budget" time="1.71093" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.viewport_math" classname="editor.viewport_math" time="0.00809217" status="run">
+		<properties/>
+		<system-out>Editor viewport math contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.mesh_import" classname="editor.mesh_import" time="0.108247" status="run">
+		<properties/>
+		<system-out>PASS: bounded OBJ geometry, rejection, cancellation and background workspace import
+</system-out>
+	</testcase>
+	<testcase name="editor.asset_source" classname="editor.asset_source" time="0.321201" status="run">
+		<properties/>
+		<system-out>32 MiB source peak RSS growth (KiB): 1212
+PASS: streamed binary/empty/chunk hashes, mid-file cancellation, reimport and index bounds
+</system-out>
+	</testcase>
+	<testcase name="editor.mesh_asset_catalog" classname="editor.mesh_asset_catalog" time="0.0063652" status="run">
+		<properties/>
+		<system-out>Mesh asset catalog contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.mesh_thumbnails" classname="editor.mesh_thumbnails" time="0.0746841" status="run">
+		<properties/>
+		<system-out>Mesh thumbnail pixels, ownership, cancellation, revision/project guards and bounds passed
+</system-out>
+	</testcase>
+	<testcase name="editor.mesh_reimport" classname="editor.mesh_reimport" time="0.0257764" status="run">
+		<properties/>
+		<system-out>Mesh reimport publication contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.parser_robustness" classname="editor.parser_robustness" time="6.07039" status="run">
+		<properties/>
+		<system-out>Parser robustness: trace_event x 2000 started
+Parser robustness: trace_event passed in 0.00228346 seconds
+Parser robustness: metric_sample x 2000 started
+Parser robustness: metric_sample passed in 0.00227262 seconds
+Parser robustness: replay_log x 2000 started
+Parser robustness: replay_log passed in 0.00281866 seconds
+Parser robustness: unknown_components x 2000 started
+Parser robustness: unknown_components passed in 0.00471204 seconds
+Parser robustness: scene_snapshot x 2000 started
+Parser robustness: scene_snapshot passed in 0.00708641 seconds
+Parser robustness: runtime_blob x 2000 started
+Parser robustness: runtime_blob passed in 0.0148133 seconds
+Parser robustness: nxshdr x 2000 started
+Parser robustness: nxshdr passed in 0.00354495 seconds
+Parser robustness: shader_diagnostics x 2000 started
+Parser robustness: shader_diagnostics passed in 5.27163 seconds
+Parser robustness: asset_uuid x 2000 started
+Parser robustness: asset_uuid passed in 0.00226784 seconds
+Parser robustness: autosave x 2000 started
+Parse...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="editor.affine_gizmo_contract" classname="editor.affine_gizmo_contract" time="0.0116747" status="run">
+		<properties/>
+		<system-out>Affine gizmo contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.component_reset_contract" classname="editor.component_reset_contract" time="0.0398089" status="run">
+		<properties/>
+		<system-out>Atomic component reset contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.transform_value_contract" classname="editor.transform_value_contract" time="0.0223852" status="run">
+		<properties/>
+		<system-out>Atomic Transform value contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.builtin_creation_contract" classname="editor.builtin_creation_contract" time="0.0367299" status="run">
+		<properties/>
+		<system-out>Initialized Camera/Light creation contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.scene_file_contract" classname="editor.scene_file_contract" time="0.0235604" status="run">
+		<properties/>
+		<system-out>Scene file document boundaries and failure contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.external_scene_save_contract" classname="editor.external_scene_save_contract" time="0.0922267" status="run">
+		<properties/>
+		<system-out>Exact disk baseline and confirmed scene replacement contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.play_input_settings" classname="editor.play_input_settings" time="0.0104939" status="run">
+		<properties/>
+		<system-out>Project Play input settings contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.scene_runtime_capture" classname="editor.scene_runtime_capture" time="6.25683" status="run">
+		<properties/>
+		<system-out>Owning bounded Runtime scene capture passed
+</system-out>
+	</testcase>
+	<testcase name="editor.static_project_export" classname="editor.static_project_export" time="9.43601" status="run">
+		<properties/>
+		<system-out>Static project producer contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.static_project_export_job" classname="editor.static_project_export_job" time="0.0576201" status="run">
+		<properties/>
+		<system-out>StaticView export worker/publication contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.static_project_export_cli_diagnostics" classname="editor.static_project_export_cli_diagnostics" time="0.231335" status="run">
+		<properties/>
+		<system-out>......
+----------------------------------------------------------------------
+Ran 6 tests in 0.101s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="editor.static_project_export_cli_diagnostics_optimized" classname="editor.static_project_export_cli_diagnostics_optimized" time="0.425955" status="run">
+		<properties/>
+		<system-out>......
+----------------------------------------------------------------------
+Ran 6 tests in 0.074s
+
+OK
+</system-out>
+	</testcase>
+	<testcase name="editor.material_import" classname="editor.material_import" time="0.389614" status="run">
+		<properties/>
+		<system-out>Material import/publication contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.material_catalog" classname="editor.material_catalog" time="0.0314609" status="run">
+		<properties/>
+		<system-out>PASS: material catalog atomicity, generations, snapshot ownership, palette bounds/dedup and unknown references
+</system-out>
+	</testcase>
+	<testcase name="editor.process_memory_capture" classname="editor.process_memory_capture" time="0.0699244" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.process_memory_json_schema" classname="editor.process_memory_json_schema" time="0.211695" status="run">
+		<properties/>
+		<system-out>Process-memory schema-1 interchange passed
+</system-out>
+	</testcase>
+	<testcase name="editor.process_memory_json_schema_optimized" classname="editor.process_memory_json_schema_optimized" time="0.314737" status="run">
+		<properties/>
+		<system-out>Process-memory schema-1 interchange passed
+</system-out>
+	</testcase>
+	<testcase name="editor.mesh_memory_capture" classname="editor.mesh_memory_capture" time="0.170084" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.mesh_memory_json_schema" classname="editor.mesh_memory_json_schema" time="0.20763" status="run">
+		<properties/>
+		<system-out>Mesh-memory schema-1 interchange passed
+</system-out>
+	</testcase>
+	<testcase name="editor.mesh_memory_json_schema_optimized" classname="editor.mesh_memory_json_schema_optimized" time="0.367202" status="run">
+		<properties/>
+		<system-out>Mesh-memory schema-1 interchange passed
+</system-out>
+	</testcase>
+	<testcase name="editor.gpu_profile" classname="editor.gpu_profile" time="0.00543536" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.gpu_timing_capture" classname="editor.gpu_timing_capture" time="0.0953298" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.gpu_timing_json" classname="editor.gpu_timing_json" time="0.168643" status="run">
+		<properties/>
+		<system-out>Native GPU schema-1 interchange passed
+</system-out>
+	</testcase>
+	<testcase name="editor.gpu_timing_json_optimized" classname="editor.gpu_timing_json_optimized" time="0.346803" status="run">
+		<properties/>
+		<system-out>Native GPU schema-1 interchange passed
+</system-out>
+	</testcase>
+	<testcase name="editor.reflected_dynamic_arrays" classname="editor.reflected_dynamic_arrays" time="0.195398" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.reflected_inspector" classname="editor.reflected_inspector" time="0.0156665" status="run">
+		<properties/>
+		<system-out>Reflected metadata/atomic editing/undo/persistence contracts passed
+</system-out>
+	</testcase>
+	<testcase name="editor.material_tool_document" classname="editor.material_tool_document" time="0.0349246" status="run">
+		<properties/>
+		<system-out>Owning material document, exact native outcomes and bounded history verified.
+</system-out>
+	</testcase>
+	<testcase name="editor.material_tool_source_session" classname="editor.material_tool_source_session" time="0.0753321" status="run">
+		<properties/>
+		<system-out>Scoped material source publication/reopen passed
+</system-out>
+	</testcase>
+	<testcase name="editor.managed_tool_invocation" classname="editor.managed_tool_invocation" time="0.065258" status="run">
+		<properties/>
+		<system-out>Actual signed installed/enabled material and scoped managed calls verified.
+</system-out>
+	</testcase>
+	<testcase name="editor.hierarchy_snapshot_index" classname="editor.hierarchy_snapshot_index" time="0.00809348" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.git_porcelain_parser" classname="editor.git_porcelain_parser" time="0.0198464" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.git_status_provider" classname="editor.git_status_provider" time="0.413198" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.git_diff_provider" classname="editor.git_diff_provider" time="0.613875" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="editor.semantic_scene_merge_publication" classname="editor.semantic_scene_merge_publication" time="0.0520842" status="run">
+		<properties/>
+		<system-out>Scene merge file publication passed
+</system-out>
+	</testcase>
+	<testcase name="editor.content_search_keys" classname="editor.content_search_keys" time="1.87461" status="run">
+		<properties/>
+		<system-out>Content search keys: complete legacy semantics, owning copies, transactions and fallback passed
+</system-out>
+	</testcase>
+</testsuite>

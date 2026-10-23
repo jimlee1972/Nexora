@@ -1045,3 +1045,7 @@ RHI independently observes completed user command lists for recording benchmarks
 Presentation timing tests exercise the shared conversion. The two tests that directly compile
 native surface implementations now declare the existing RHI header dependency. No new module or
 external package is introduced.
+
+## Gameplay display integration
+
+RenderSurface exposes window configuration and initialized real framebuffer/DPI observations on supported Window hosts. Its published frame remains stable through rendering; subsequent BeginFrame consumes native changes. The Sprite compositor accepts an optional background color without changing previous callers, allowing black safe-frame bars. The Player performs world viewport offsets and converts owning UI geometry/clips from logical coordinates once before native submission. See [GameplayDisplay](../TwoD/GameplayDisplay.md) for lifetime, errors and platform limits.

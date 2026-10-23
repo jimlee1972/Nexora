@@ -89,3 +89,8 @@ export fn NexoraContentRegister(host: *const nx.GameplayHostV3, kind: u32, bytes
     if (kind == 2) return content.register_clip.?(content.context, bytes, size, high, low);
     return -1;
 }
+
+export fn NexoraServicesHasDisplay(host: *const nx.GameplayHostV3) i32 {
+    const services = nx.getServices(host) orelse return -2;
+    return if (nx.getDisplay(services) != null) 0 else -2;
+}

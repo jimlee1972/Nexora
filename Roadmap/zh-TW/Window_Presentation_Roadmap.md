@@ -223,3 +223,20 @@ Benchmark／runner 現提供明確的 `--objects 5000`，並保留預設 10,000 
 原始六案例保留全部正確性／效能結果，僅所選負載以內案例參與必要效能判定。
 新的 5,000 物件整合驗收為 NOT RUN，M6 維持開放。歷史 10k 失敗與原生提交／呈現追查均保留，
 降低目標不表示尖峰已修復；只有修訂後全部必要檢查取得通過證據，才關閉 M6。
+
+## SP-01 獨立 Player 顯示整合（2026-10-23）
+
+✅ 可攜實作與回歸檢查：252 項通過、16 項原生前提不足而跳過、0 失敗；Monolithic Shipping consumer 通過。
+
+獨立 2D Player 已加入可選專案視窗設定、尾端擴充且獨立協商的 C／Zig 顯示 table、
+每幀一致的像素／logical／DPI 快照、原生視窗模式請求、遊戲指定畫框比例、安全畫框
+投影／裁切，以及正確 DPI 的 UI／輸入。舊 services consumer 與專案描述檔保留原有
+前綴／預設值。世界鏡頭跨度、HUD 排版與 UI 縮放仍由遊戲決定；本次未接入 Editor Play。
+
+參見[顯示契約](../../Engine/TwoD/GameplayDisplay.md)、
+[Linux 證據](../../Tools/Build/evidence/SP01-GameplayDisplay-Linux-2026-10-23.md)與
+[Windows 操作程序](../../Tools/TwoD/WindowsDisplayAcceptance.md)。
+Windows 實機 DPI／點擊／模式驗收維持 NOT RUN／NOT ACCEPTED；2D M6／M7 與既有里程碑
+完成數不變，可攜實作檢查不等同於通過上述驗收。
+
+✅ X11 原生關閉回歸：Xvfb 驗證事件處理前已銷毀視窗的查詢與清理；修正前 DSO 在同一探針失敗。

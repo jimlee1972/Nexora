@@ -12,12 +12,13 @@
 #include <thread>
 extern "C" uint64_t NexoraServicesLayout(uint32_t, uint32_t);
 extern "C" int32_t NexoraServicesProbe(const NexoraGameplayHostV3 *);
+extern "C" int32_t NexoraServicesHasDisplay(const NexoraGameplayHostV3 *);
 extern "C" int32_t NexoraServicesExercise(const NexoraGameplayHostV3 *, uint32_t);
 extern "C" int32_t NexoraContentRegister(const NexoraGameplayHostV3 *, uint32_t, const void *,
                                          uint64_t, uint64_t *, uint64_t *);
 int main() {
   {
-    const std::array<std::size_t, 10> expected{
+    const std::array<std::size_t, 11> expected{
         sizeof(NexoraGameplayServicesApiV1),
         alignof(NexoraGameplayServicesApiV1),
         offsetof(NexoraGameplayServicesApiV1, struct_size),
@@ -27,7 +28,8 @@ int main() {
         offsetof(NexoraGameplayServicesApiV1, get_ui_api),
         offsetof(NexoraGameplayServicesApiV1, get_audio_api),
         offsetof(NexoraGameplayServicesApiV1, get_storage_api),
-        offsetof(NexoraGameplayServicesApiV1, get_content_api)};
+        offsetof(NexoraGameplayServicesApiV1, get_content_api),
+        offsetof(NexoraGameplayServicesApiV1, get_display_api)};
     for (uint32_t j = 0; j < expected.size(); ++j)
       assert(NexoraServicesLayout(0, j) == expected[j]);
   }
@@ -263,6 +265,14 @@ int main() {
   missing.get_services_api = nullptr;
   assert(NexoraServicesProbe(&missing) == -2);
   assert(NexoraServicesProbe(&host) == 0);
+  auto legacy = host;
+  legacy.get_services_api = [](void *p, NexoraGameplayServicesApiV1 *api) {
+    api->struct_size = NEXORA_GAMEPLAY_SERVICES_V1_BASE_SIZE;
+    return static_cast<runtime::GameplayServices *>(p)->GetApi(api);
+  };
+  assert(NexoraServicesProbe(&legacy) == 0);       // Keep the historical services usable.
+  assert(NexoraServicesHasDisplay(&legacy) == -2); // Do not read the absent suffix.
+
   NexoraGameplayServicesApiV1 aggregate{};
   aggregate.struct_size = sizeof(aggregate);
   aggregate.abi_version = 1;

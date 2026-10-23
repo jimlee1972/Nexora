@@ -30,6 +30,7 @@ struct NEXORA_2D_API GameplayUiFrame final {
   std::vector<Nexora::Presentation::UiTextureUpload> uploads;
   std::vector<std::shared_ptr<const GameplayUiFont>> font_owners;
   [[nodiscard]] Nexora::Presentation::UiDrawData DrawData() const noexcept;
+  void ToPixels(float dpi, uint32_t width, uint32_t height);
 };
 class NEXORA_2D_API GameplayUi final {
 public:

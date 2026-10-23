@@ -703,3 +703,21 @@ Local ASan/UBSan/LSan passes all ten cases (650 opens), without suppression; old
 and external-reference failures are retained in the [evidence](../../Engine/Runtime/evidence/ALSA-Lifetime-Linux-2026-10-20/acceptance.md).
 Hosted sanitizer CI retains the same matrix's stdout/stderr. Silent/null output does not add
 physical audibility or device-recovery acceptance. M6/M7 and 9/11 (82%) remain unchanged.
+
+## SP-01 standalone display integration (2026-10-23)
+
+✅ Portable implementation and regression checks: 252 passed, 16 native-prerequisite skips, 0 failed; Monolithic Shipping consumer passed.
+
+The standalone 2D Player now has optional project window settings, an append-only independently
+negotiated C/Zig display table, frame-stable pixel/logical/DPI snapshots, native window mode
+requests, game-selected aspect bounds, safe-frame extraction/scissors and DPI-correct UI/input.
+Historical service consumers and descriptors retain their prefixes/defaults. World camera span,
+HUD layout and UI scale remain game-owned. This does not add Editor Play display wiring.
+
+See [the display contract](../../Engine/TwoD/GameplayDisplay.md),
+[Linux evidence](../../Tools/Build/evidence/SP01-GameplayDisplay-Linux-2026-10-23.md) and
+[Windows procedure](../../Tools/TwoD/WindowsDisplayAcceptance.md).
+Windows physical DPI/click/mode acceptance is NOT RUN / NOT ACCEPTED; 2D M6/M7 and existing
+milestone counts remain unchanged. Portable implementation checks do not close those gates.
+
+✅ Native X11 close-race regression: destroyed-before-pump metrics and cleanup pass on Xvfb; the preserved pre-fix DSO fails the same probe.

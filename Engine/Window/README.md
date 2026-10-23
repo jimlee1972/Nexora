@@ -91,3 +91,9 @@ The independent held-key repair/control evidence is recorded in
 Its focused Xvfb results do not replace physical-display acceptance or establish the cause of
 all earlier Editor workflow stalls. The report separates the historical bc4 integrated pass from
 the latest detectable-repeat boundary repair and its own complete-suite gate.
+
+## Display metrics and fitted Windows windows
+
+`Metrics` returns current client pixels and DPI on supported hosts; `SetResizable` is a serialized optional native operation. Windows queries initial DPI without waiting for WM_DPICHANGED and restores saved style/rectangle after borderless desktop mode. `WindowDescriptor::fitToWorkArea` opts into fitting/centering decorated client windows on creation/resize; its default false preserves existing Editor and other host sizing. The standalone 2D Player opts in through RenderSurface. X11 supplies actual client pixels/scale 1 and EWMH mode requests. Unsupported implementations return Unsupported. Native physical acceptance is documented separately from portable geometry tests.
+
+Native X11 metrics return InvalidHandle for an externally destroyed window even before DestroyNotify is pumped, without modifying output. Expected BadWindow handling is scoped to that window and restores the prior handler; unrelated errors are not silently suppressed. RenderSurface stops native queries/acquisition once close or destruction is known. The isolated Xvfb metrics regression covers both event/cleanup orderings.

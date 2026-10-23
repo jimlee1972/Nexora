@@ -40,6 +40,10 @@ structures.update(pointer_extension["structures"])
 structures["NexoraGameplayHostV3"] = structures["NexoraGameplayHostV3"] + pointer_extension["host_suffix"]
 structures.update(services["structures"])
 structures["NexoraGameplayHostV3"] += services["host_suffix"]
+display = json.loads((root / "Engine/API/abi_baseline_display_v1.json").read_text(encoding="utf-8"))
+structures.update(display["structures"])
+structures["NexoraGameplayServicesApiV1"] = structures["NexoraGameplayServicesApiV1"] + display["services_suffix"]
+services["zig_names"].update(display["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:
