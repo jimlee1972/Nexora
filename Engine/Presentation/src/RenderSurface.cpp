@@ -282,7 +282,7 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
   }
   state->surface = CreateSurface({created.handle, state->frame.width, state->frame.height, 2,
                                   descriptor.presentMode, descriptor.colorSpace, descriptor.backend,
-                                  descriptor.enableGpuTiming},
+                                  descriptor.enableGpuTiming, descriptor.srgbUiOutput},
                                  *state->windows);
   if (!state->surface) {
     static_cast<void>(state->windows->Destroy(created.handle));

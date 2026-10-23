@@ -236,7 +236,7 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
   endif()
   nexora_apply_defaults(NexoraZigServicesTests)
   add_test(NAME gameplay.zig_services_consumer COMMAND NexoraZigServicesTests)
-  foreach(wire input ui audio storage content display ui_draw assets)
+  foreach(wire input ui audio storage content display ui_draw assets color)
     nexora_add_zig_test(gameplay.zig_${wire}_wrapper
         "${PROJECT_SOURCE_DIR}/Bindings/Zig/${wire}.zig"
         --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-test-${wire}"
@@ -328,4 +328,20 @@ if(BUILD_TESTING AND NEXORA_ENABLE_2D)
       --fixture "$<TARGET_FILE:NexoraGameplayAssetsTests>")
     set_tests_properties(gameplay.zig_asset_transitions PROPERTIES TIMEOUT 180 LABELS "twod;zig;assets;project")
   endif()
+endif()
+
+if(BUILD_TESTING AND NEXORA_ENABLE_2D AND NOT APPLE)
+  set(color_slice_library "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}NexoraZigColorSlice${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set(color_slice_args ${NEXORA_ZIG_BUILD_LIB_ARGS})
+  list(TRANSFORM color_slice_args REPLACE "src/game_module.zig" "src/color_slice.zig")
+  list(TRANSFORM color_slice_args REPLACE "-femit-bin=.*" "-femit-bin=${color_slice_library}")
+  add_custom_command(OUTPUT "${color_slice_library}"
+    COMMAND "${NEXORA_ZIG_EXECUTABLE}" ${color_slice_args}
+    DEPENDS src/color_slice.zig ${gameplay_wire_dependencies} VERBATIM)
+  add_custom_target(NexoraZigColorSliceBuild ALL DEPENDS "${color_slice_library}")
+  add_test(NAME gameplay.zig_color_slice COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/TwoD/ColorSliceAcceptance.py"
+    --app "$<TARGET_FILE:NexoraTwoDPlayer>" --module "${color_slice_library}"
+    --compiler "$<TARGET_FILE:NexoraTwoDAssetCompiler>")
+  set_tests_properties(gameplay.zig_color_slice PROPERTIES TIMEOUT 90 LABELS "twod;zig;color;project")
 endif()

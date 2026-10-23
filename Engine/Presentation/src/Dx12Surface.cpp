@@ -44,13 +44,13 @@ struct Dx12MeshAllocation final {
 };
 class Dx12Surface final : public ISurface {
 public:
-  bool SupportsSceneGeometryResidency() const noexcept override { return true; }
-  bool SupportsBoundedSceneViews() const noexcept override { return true; }
+  bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
+  bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
   Dx12Surface(const SurfaceDescriptor &d, Window::IWindowSystem &windows)
       : renderThread_(std::this_thread::get_id()),
         window_(static_cast<HWND>(windows.NativeHandle(d.window))), width_(d.width),
         height_(d.height), frames_(d.framesInFlight), mode_(d.presentMode),
-        gpuTimingEnabled_(d.enableGpuTiming) {
+        gpuTimingEnabled_(d.enableGpuTiming), srgbUiOutput_(d.srgbUiOutput) {
     if (!window_ || frames_ < 2 || frames_ > kMaximumFrames || d.colorSpace != ColorSpace::Srgb)
       return;
     UINT flags = 0;
@@ -391,6 +391,8 @@ public:
   SurfaceStatus DrawScene(const SceneDrawData &drawData) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;
+    if (srgbUiOutput_)
+      return SurfaceStatus::Unsupported;
     if (!acquired_ || compositeDrawn_ || !scenePipeline_ || drawData.vertices.empty() ||
         drawData.indices.empty())
       return SurfaceStatus::InvalidDescriptor;
@@ -1032,6 +1034,66 @@ public:
     return SurfaceStatus::Ready;
   }
 
+#if defined(NEXORA_DX12_UI_TESTING)
+  // Native test-only staging readback; consumes/presents this acquired UI frame.
+  std::vector<std::byte> PresentUiPixelsForTesting() {
+    if (!OnThread() || !acquired_ || !uiDrawn_)
+      return {};
+    const auto sourceDesc = buffers_[frame_]->GetDesc();
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout{};
+    UINT64 size{};
+    device_->GetCopyableFootprints(&sourceDesc, 0, 1, 0, &layout, nullptr, nullptr, &size);
+    D3D12_HEAP_PROPERTIES heap{};
+    heap.Type = D3D12_HEAP_TYPE_READBACK;
+    heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+    D3D12_RESOURCE_DESC desc{};
+    desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    desc.Width = size;
+    desc.Height = 1;
+    desc.DepthOrArraySize = 1;
+    desc.MipLevels = 1;
+    desc.SampleDesc.Count = 1;
+    desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    ComPtr<ID3D12Resource> staging;
+    if (FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
+                                                D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                IID_PPV_ARGS(&staging))))
+      return {};
+    D3D12_RESOURCE_BARRIER barrier{};
+    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    barrier.Transition = {buffers_[frame_].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+                          D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE};
+    commands_->ResourceBarrier(1, &barrier);
+    D3D12_TEXTURE_COPY_LOCATION source{}, target{};
+    source.pResource = buffers_[frame_].Get();
+    source.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    target.pResource = staging.Get();
+    target.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    target.PlacedFootprint = layout;
+    commands_->CopyTextureRegion(&target, 0, 0, 0, &source, nullptr);
+    std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+    commands_->ResourceBarrier(1, &barrier);
+    retired_[frame_].push_back(staging);
+    if (Present() != SurfaceStatus::Ready ||
+        FAILED(fence_->SetEventOnCompletion(fenceValues_[frame_], event_)) ||
+        WaitForSingleObject(event_, INFINITE) != WAIT_OBJECT_0)
+      return {};
+    D3D12_RANGE range{0, SIZE_T(size)};
+    void *mapped{};
+    if (FAILED(staging->Map(0, &range, &mapped)))
+      return {};
+    std::vector<std::byte> pixels(std::size_t(width_) * height_ * 4);
+    for (std::size_t y = 0; y < height_; ++y)
+      std::memcpy(pixels.data() + y * width_ * 4,
+                  static_cast<const std::byte *>(mapped) + layout.Offset +
+                      y * layout.Footprint.RowPitch,
+                  width_ * 4);
+    const D3D12_RANGE written{0, 0};
+    staging->Unmap(0, &written);
+    return pixels;
+  }
+#endif
+
 private:
   void InitializeGpuTiming() {
     if (FAILED(queue_->GetTimestampFrequency(&timestampFrequency_)) || !timestampFrequency_)
@@ -1188,7 +1250,8 @@ private:
     pipeline.InputLayout = {inputs, static_cast<UINT>(std::size(inputs))};
     pipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     pipeline.NumRenderTargets = 1;
-    pipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pipeline.RTVFormats[0] =
+        srgbUiOutput_ ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
     pipeline.SampleDesc.Count = 1;
     if (FAILED(device_->CreateGraphicsPipelineState(&pipeline, IID_PPV_ARGS(&uiPipeline_))))
       return false;
@@ -1877,7 +1940,10 @@ private:
         return false;
       auto r = heap_->GetCPUDescriptorHandleForHeapStart();
       r.ptr += SIZE_T(i) * increment_;
-      device_->CreateRenderTargetView(buffers_[i].Get(), nullptr, r);
+      D3D12_RENDER_TARGET_VIEW_DESC view{};
+      view.Format = srgbUiOutput_ ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+      view.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+      device_->CreateRenderTargetView(buffers_[i].Get(), &view, r);
     }
     return RebuildDepthBuffers();
   }
@@ -1948,6 +2014,7 @@ private:
   UINT frames_{}, frame_{};
   PresentMode mode_{};
   bool gpuTimingEnabled_{};
+  bool srgbUiOutput_{};
   bool allowTearing_{}, valid_{}, destroyed_{}, acquired_{};
   bool sceneDrawn_{}, sceneOffscreen_{}, sceneComposited_{}, uiDrawn_{}, compositeDrawn_{};
   std::atomic<uint32_t> pendingWidth_{}, pendingHeight_{};

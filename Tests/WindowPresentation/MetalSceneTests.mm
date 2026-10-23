@@ -984,6 +984,39 @@ int main(int argc, char **argv) {
       return fail(__LINE__);
     abandoned.reset();
     surface.reset();
+    SurfaceDescriptor colorDescriptor{
+        window.handle, 800, 450, 2, PresentMode::VSync, ColorSpace::Srgb, SurfaceBackend::Metal};
+    colorDescriptor.srgbUiOutput = true;
+    auto colors = std::make_unique<MetalSurface>(colorDescriptor, *windows);
+    const std::array<UiVertex, 4> colorVertices{{{{0, 0}, {0, 0}, 0xff373737},
+                                                 {{800, 0}, {0, 0}, 0xff373737},
+                                                 {{800, 450}, {0, 0}, 0xff373737},
+                                                 {{0, 450}, {0, 0}, 0xff373737}}};
+    const std::array<std::uint16_t, 6> colorIndices{0, 1, 2, 0, 2, 3};
+    const UiDrawCommand colorCommand{0, 0, 800, 450, 1, 6, 0, 0};
+    const std::array<std::byte, 4> colorWhite{std::byte{255}, std::byte{255}, std::byte{255},
+                                              std::byte{255}};
+    const UiTextureUpload colorUpload{1, 1, 1, 4, colorWhite, true, true};
+    if (colors->SupportsSceneGeometryResidency() || colors->SupportsBoundedSceneViews() ||
+        !require(colors->Acquire(), SurfaceStatus::Ready) ||
+        !require(colors->DrawScene({}), SurfaceStatus::Unsupported) ||
+        !require(colors->RenderUi({colorVertices, std::as_bytes(std::span(colorIndices)),
+                                   std::span(&colorCommand, 1), std::span(&colorUpload, 1), false}),
+                 SurfaceStatus::Ready) ||
+        !require(colors->Present(), SurfaceStatus::Ready))
+      return fail(__LINE__);
+    const auto colorPixels = colors->ReadScenePixelsForTesting();
+    if (colorPixels.size() != 800 * 450 * 4)
+      return fail(__LINE__);
+    for (unsigned channel = 0; channel < 3; ++channel)
+      if (std::abs(int(std::to_integer<unsigned>(colorPixels[(225 * 800 + 400) * 4 + channel])) -
+                   128) > 2)
+        return fail(__LINE__);
+    if (!require(colors->DrainAndDestroy(), SurfaceStatus::Ready))
+      return fail(__LINE__);
+    colors.reset();
+    std::cout << "SP-04 Metal native linear55 -> sRGB128 pixels passed\n";
+
     if (windows->Destroy(window.handle) != Window::WindowError::None)
       return fail(__LINE__);
     std::cout << "PASS: Metal native scene/UI/copy, instancing, textures, rejection, resize and "

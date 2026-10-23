@@ -22,6 +22,7 @@ struct RenderSurfaceDescriptor final {
   bool enableGpuTiming = false;
   bool borderless = false;
   bool fitToWorkArea = false;
+  bool srgbUiOutput = false;
 };
 
 struct SurfaceInputSnapshot final {

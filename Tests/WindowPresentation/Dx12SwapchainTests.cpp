@@ -38,6 +38,7 @@ BOOL Close(HANDLE handle) {
 #define CreateEventW Dx12Trace::MakeEvent
 #define WaitForSingleObject Dx12Trace::Wait
 #define CloseHandle Dx12Trace::Close
+#define NEXORA_DX12_UI_TESTING 1
 #include "../../Engine/Presentation/src/Dx12Surface.cpp"
 #undef CreateEventW
 #undef WaitForSingleObject
@@ -122,6 +123,41 @@ int main() {
     Run(PresentMode::VSync, 2);
     Run(PresentMode::VSync, 3);
     Run(PresentMode::Immediate, 2);
+    auto windows = Window::CreateWindowSystem();
+    const auto window = windows->Create({"SP-04 DX12 sRGB UI", 320, 240, true, true});
+    Require(bool(window), "sRGB window");
+    SurfaceDescriptor descriptor{
+        window.handle, 320, 240, 2, PresentMode::Immediate, ColorSpace::Srgb, SurfaceBackend::Dx12};
+    descriptor.srgbUiOutput = true;
+    Dx12Surface colors(descriptor, *windows);
+    Require(!colors.SupportsSceneGeometryResidency() && !colors.SupportsBoundedSceneViews(),
+            "UI-only capabilities");
+    const std::array<UiVertex, 4> vertices{{{{0, 0}, {0, 0}, 0xff373737},
+                                            {{320, 0}, {0, 0}, 0xff373737},
+                                            {{320, 240}, {0, 0}, 0xff373737},
+                                            {{0, 240}, {0, 0}, 0xff373737}}};
+    const std::array<std::uint16_t, 6> indices{0, 1, 2, 0, 2, 3};
+    const UiDrawCommand command{0, 0, 320, 240, 1, 6, 0, 0};
+    const std::array<std::byte, 4> white{std::byte{255}, std::byte{255}, std::byte{255},
+                                         std::byte{255}};
+    const UiTextureUpload whiteUpload{1, 1, 1, 4, white, true, true};
+    Require(colors.Acquire() == SurfaceStatus::Ready &&
+                colors.DrawScene({}) == SurfaceStatus::Unsupported &&
+                colors.RenderUi({vertices, std::as_bytes(std::span(indices)),
+                                 std::span(&command, 1), std::span(&whiteUpload, 1), false}) ==
+                    SurfaceStatus::Ready,
+            "sRGB UI render");
+    const auto pixels = colors.PresentUiPixelsForTesting();
+    Require(pixels.size() == 320 * 240 * 4, "sRGB native readback");
+    for (unsigned channel = 0; channel < 3; ++channel)
+      Require(std::abs(int(std::to_integer<unsigned>(pixels[(120 * 320 + 160) * 4 + channel])) -
+                       128) <= 2,
+              "DX12 must encode linear55 to sRGB128");
+    Require(colors.DrainAndDestroy() == SurfaceStatus::Ready &&
+                windows->Destroy(window.handle) == Window::WindowError::None,
+            "sRGB cleanup");
+    std::cout << "SP-04 DX12 native linear55 -> sRGB128 pixels passed\n";
+
     std::cout << "DX12 VSync admission, frame-slot, resize, wait failure and cleanup passed\n";
     return 0;
   } catch (const std::exception &error) {

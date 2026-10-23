@@ -283,3 +283,12 @@ five cooked 2048-square Atlas/Clip pairs sequentially from a >80 MiB exported pa
 waits for native/snapshot retirement before re-entry. Layout, transition choices and cleanup are
 Zig. This is diagnostic data, not production art/combat/pickup acceptance. See
 [the service contract](../../Engine/TwoD/GameplayAssets.md).
+
+## SP-04 explicit authoring color and fallback
+
+`nx.color` supplies allocation-free sRGB RGB decoding for raw image registration, float Sprite
+tints and packed UI tints; alpha stays linear coverage. Cooked Atlas pixels are already linear
+and must not be decoded twice. See [color/fallback contract](../../Engine/TwoD/ColorAndFallback.md).
+`src/color_slice.zig` is an independent procedural diagnostic using existing 2D services for
+Y-ordered layers, roof fading and baked glow/shadow removal while retaining danger outlines.
+It is neither final game art nor dynamic lighting/bloom acceptance.

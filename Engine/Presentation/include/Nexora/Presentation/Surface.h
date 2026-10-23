@@ -30,6 +30,9 @@ struct SurfaceDescriptor final {
   SurfaceBackend backend = SurfaceBackend::Automatic;
   // Optional native profiling; default consumers allocate/record no timestamp queries.
   bool enableGpuTiming = false;
+  // UI/Sprite-only surface: require hardware sRGB attachment encoding of linear input.
+  // No UNORM fallback; DrawScene is unsupported. Default preserves existing mixed 3D consumers.
+  bool srgbUiOutput = false;
 };
 
 enum class DriverVersionFormat : std::uint8_t { Unavailable, VulkanRaw, DxgiUmd };

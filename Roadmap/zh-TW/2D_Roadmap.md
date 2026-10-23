@@ -662,3 +662,19 @@ RSS／working-set 觀測。獨立 Zig 模組從超過 80 MiB 的封裝啟動，�
 
 正式遊戲素材／全內容、完整拾取／戰鬥轉場及目標實機 RAM／VRAM／幀時間預算尚未驗收。
 音訊串流／壓縮、色彩及既有 M6／M7 門檻保持原判定。
+
+## SP-04 明確美術色彩與 2D fallback（2026-10-23）
+
+✅ PNG 可明確選擇 sRGB 匯入，RGB 只解碼一次為既有 linear RGBA8 圖集；保留 straight alpha、
+歷史預設、Atlas 格式及 services ABI。衝突 profile／ICC 在發布前拒絕，Zig 原始圖像／tint 工具
+共用同一色彩契約。
+✅ 原生 2D Player 明確要求 Vulkan／DX12／Metal 硬體 sRGB UI／Sprite 輸出；保留既有混合
+3D 表面預設，原生像素測試只接受正確編碼灰階，不將 UNORM 當成通過。
+✅ 獨立匯出的 Zig 診斷包含正俯視分層、Y 穿越、前景淡出、烘焙 glow／shadow 關閉及始終保留
+的危險外框。這些是工程素材與一般 alpha 圖層，不是動態局部光、遮擋柔影或選擇性 bloom。
+
+見[色彩／fallback 契約](../../Engine/TwoD/ColorAndFallback.md)及
+[雲端證據](../../Tools/Build/evidence/SP04-ColorFallback-Cloud-2026-10-23.md)。
+正式第一關美術、暗部漸層量化、透明過濾／白邊、可讀性、Windows 目標實機輸出與效能仍待驗收
+（`nexora-ofe.1`）。原生測試須實際執行後才能宣稱像素通過，本機編譯不算。既有 M6／M7 gate
+與其他 SP 缺口維持原判定。
