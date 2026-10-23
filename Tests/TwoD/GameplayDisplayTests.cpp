@@ -8,6 +8,8 @@
 #include <thread>
 using namespace nexora;
 int main() {
+  assert(!Nexora::Window::WindowDescriptor{}.fitToWorkArea);
+  assert(!Nexora::Presentation::RenderSurfaceDescriptor{}.fitToWorkArea);
   int requests{};
   twod::GameplayDisplay display([&](const auto &) {
     ++requests;
@@ -66,11 +68,11 @@ int main() {
           input.pointer_released = phase == 1;
           ui.BeginInput(input);
           assert(u.begin_frame(u.context, s.logical_width, s.logical_height) == 0);
-          uint32_t state{};
+          uint32_t buttonState{};
           assert(u.button(u.context, 1, {10, 20, 100 * scale, 40 * scale}, "A", 1, 1, 16 * scale, 1,
-                          &state) == 0);
-          assert((state & NEXORA_UI_HOVERED) != 0);
-          assert(((state & NEXORA_UI_ACTIVATED) != 0) == (phase == 1));
+                          &buttonState) == 0);
+          assert((buttonState & NEXORA_UI_HOVERED) != 0);
+          assert(((buttonState & NEXORA_UI_ACTIVATED) != 0) == (phase == 1));
           assert(u.end_frame(u.context) == 0);
         }
       }

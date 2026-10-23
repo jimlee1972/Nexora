@@ -23,6 +23,7 @@ struct WindowDescriptor final {
   std::uint32_t height = 720;
   bool resizable = true;
   bool initiallyVisible = true;
+  bool fitToWorkArea = false; // Opt-in Win32 fitted client sizing; preserve existing hosts.
 };
 
 enum class WindowEventType : std::uint8_t {

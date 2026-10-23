@@ -54,12 +54,13 @@ The module chooses aspect policy, camera position/span and UI scale. No game-spe
 policy, 24/28-unit camera or progression rule is built into the host.
 
 `request_window` admits dimensions 1..16384, mode 0 (windowed) or 1 (borderless), and resizable
-0/1. Windows fits the decorated outer rectangle to its monitor work area without enlarging the
+0/1. The standalone Player opts into `fitToWorkArea`; other Window/RenderSurface hosts retain
+their previous sizing by default. On Windows this fits the decorated outer rectangle to its monitor work area without enlarging the
 requested client size, preserves aspect within integer rounding, and centers the fitted window.
 Borderless uses the monitor desktop rectangle, with no exclusive display-mode change. Returning
 to windowed mode restores the saved rectangle/style; that transition prioritizes restoration
 over requested width/height. A later windowed request can resize it. Mode requests can update
-resizability. A minimized window reports zero extent and the Player skips gameplay/presentation
+resizability. A minimized Windows window reports zero extent and the Player skips gameplay/presentation
 until a drawable frame returns. Broader focus/power/save policy remains SP-06.
 
 Windows supplies initial real client extent and DPI, including before the first DPI-change event.

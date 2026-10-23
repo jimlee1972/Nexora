@@ -184,7 +184,7 @@ public:
   WindowResult Create(const WindowDescriptor &d) override {
     if (!OnOwner())
       return {{}, WindowError::WrongThread};
-    if (!available_ || d.width == 0 || d.height == 0 || d.width > 16384 || d.height > 16384)
+    if (!available_ || d.width == 0 || d.height == 0)
       return {{}, WindowError::InvalidDescriptor};
     const auto id = next_++;
     std::wstring title = Utf8ToWide(d.title);
@@ -199,11 +199,15 @@ public:
       return {{}, WindowError::PlatformFailure};
     windows_[id] = hwnd;
     SetPropW(hwnd, L"Nexora.Handle", reinterpret_cast<HANDLE>(static_cast<uintptr_t>(id)));
-    const auto fit = Resize({id}, d.width, d.height);
-    if (fit != WindowError::None) {
-      DestroyWindow(hwnd);
-      windows_.erase(id);
-      return {{}, fit};
+    fitted_[id] = d.fitToWorkArea;
+    if (d.fitToWorkArea) {
+      const auto fit = Resize({id}, d.width, d.height);
+      if (fit != WindowError::None) {
+        DestroyWindow(hwnd);
+        windows_.erase(id);
+        fitted_.erase(id);
+        return {{}, fit};
+      }
     }
     if (d.initiallyVisible)
       ShowWindow(hwnd, SW_SHOW);
@@ -217,6 +221,7 @@ public:
       return WindowError::InvalidHandle;
     DestroyWindow(it->second);
     windows_.erase(it);
+    fitted_.erase(h.value);
     fullscreen_.erase(h.value);
     windowedRects_.erase(h.value);
     windowedStyles_.erase(h.value);
@@ -238,6 +243,16 @@ public:
     auto hwnd = Find(h);
     if (!hwnd || !w || !he)
       return hwnd ? WindowError::InvalidDescriptor : WindowError::InvalidHandle;
+    if (!fitted_[h.value]) {
+      RECT r{0, 0, LONG(w), LONG(he)};
+      const auto style = DWORD(GetWindowLongPtrW(hwnd, GWL_STYLE));
+      if (!AdjustWindowRectExForDpi(&r, style, FALSE, 0, GetDpiForWindow(hwnd)))
+        return WindowError::PlatformFailure;
+      return SetWindowPos(hwnd, nullptr, 0, 0, r.right - r.left, r.bottom - r.top,
+                          SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+                 ? WindowError::None
+                 : WindowError::PlatformFailure;
+    }
     if (w > 16384 || he > 16384)
       return WindowError::InvalidDescriptor;
     MONITORINFO info{sizeof(info)};
@@ -556,6 +571,7 @@ private:
   uint64_t next_ = 1;
   std::unordered_map<uint64_t, HWND> windows_;
   std::unordered_map<uint64_t, bool> fullscreen_;
+  std::unordered_map<uint64_t, bool> fitted_;
   std::unordered_map<uint64_t, RECT> windowedRects_;
   std::unordered_map<uint64_t, LONG_PTR> windowedStyles_;
   std::unordered_map<uint64_t, wchar_t> pendingHighSurrogates_;

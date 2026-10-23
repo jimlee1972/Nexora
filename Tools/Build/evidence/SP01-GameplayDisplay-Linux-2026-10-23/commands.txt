@@ -7,7 +7,7 @@ PATH includes task-local CMake/Ninja/Clang; ZIG_GLOBAL_CACHE_DIR is outside the 
 cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ZIG_EXECUTABLE=/workspace/scratch/nexora-readiness-20261023/toolchain/ziglang/zig -DX11_X11_INCLUDE_PATH=/workspace/scratch/nexora-readiness-20261023/sdk/usr/include -DX11_X11_LIB=/lib/x86_64-linux-gnu/libX11.so.6 -DNEXORA_VULKAN_LIBRARY=/lib/x86_64-linux-gnu/libvulkan.so.1
 cmake --preset linux-development
 cmake --build --preset linux-development
-CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp01/development-delivery-junit.xml
+CTEST_PARALLEL_LEVEL=2 ctest --preset linux-development --output-on-failure --output-junit /workspace/scratch/nexora-sp01/opt-in-junit.xml
 Result: 267 registered, 251 passed, 16 skipped native display/GPU prerequisites, 0 failed.
 Native backends/Vulkan enabled; Slang and graphical Editor shell disabled by defaults. Editor core enabled.
 
@@ -22,3 +22,5 @@ zig c++ -target x86_64-windows-gnu -std=c++20 -c -DNEXORA_WINDOW_EXPORTS=1 -I/wo
 Result: Windows GNU-target COFF object compilation PASS; this is NOT an MSVC build or native Windows execution.
 
 No binary/build artifacts committed. No Windows DPI, hardware, physical click or mode acceptance claimed.
+
+Post-review: work-area fitting is opt-in for existing Window/RenderSurface hosts; the Player enables it. Full Development and Shipping gates above reran after that runtime change. A later test-local rename for MSVC C4456 reran twod.gameplay_display and compiled that test with additional GCC -Wshadow. Cocoa unsupported-mode parameters are explicitly consumed for Clang -Werror. Windows native acceptance remains open.

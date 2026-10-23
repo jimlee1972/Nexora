@@ -451,6 +451,7 @@ int nexora::player::RunTwoDPlayer(int argc, char **argv, NexoraGameModuleLoadV3F
       d.height = project ? project->height : 480;
       d.resizable = project ? project->resizable : true;
       d.borderless = project && project->borderless;
+      d.fitToWorkArea = true;
       d.backend = backend;
       surface = Nexora::Presentation::CreateRenderSurface(d);
       if (!surface)

@@ -21,6 +21,7 @@ struct RenderSurfaceDescriptor final {
   ColorSpace colorSpace = ColorSpace::Srgb;
   bool enableGpuTiming = false;
   bool borderless = false;
+  bool fitToWorkArea = false;
 };
 
 struct SurfaceInputSnapshot final {

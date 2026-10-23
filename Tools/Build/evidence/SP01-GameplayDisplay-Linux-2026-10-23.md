@@ -29,6 +29,7 @@ Early validation attempts exposed the missing host clang++ prerequisite, a missi
 in the new CMake test registration, and shared-library relinking overlapping an initial test run.
 The lookup was fixed and task-local Clang was provisioned. The recorded final full gate ran after
 its build completed, with no overlapping rebuild. Its evidence supersedes those setup attempts.
+Hosted compilation additionally identified macOS unused parameters and an MSVC test-local shadow; both were corrected. The final runtime review made work-area fitting opt-in for existing hosts, with the Player enabling it. The full gate was rerun after that runtime adjustment; the later MSVC test-local rename passed [its isolated rerun](SP01-GameplayDisplay-Linux-2026-10-23/display-post-review-tests.log) and additional GCC shadow diagnostics.
 A final review also made recoverable resize-time presentation failures retry on the next frame
 without falsely incrementing delivered-frame counters; native acceptance of that path stays open.
 

@@ -202,6 +202,8 @@ Window::WindowError RenderSurface::ConfigureWindow(std::uint32_t width, std::uin
     return WindowError::InvalidDescriptor;
 #if defined(__APPLE__)
   // Spaces fullscreen is not the borderless desktop mode promised by this service.
+  (void)borderless;
+  (void)resizable;
   return WindowError::Unsupported;
 #else
   const auto error = state_->windows->SetResizable(state_->window, resizable);
@@ -241,8 +243,9 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
   state->windows = Window::CreateWindowSystem();
   if (!state->windows)
     return {{}, SurfaceStatus::Unsupported, "native window system is unavailable"};
-  const auto created = state->windows->Create(
-      {descriptor.title, descriptor.width, descriptor.height, descriptor.resizable, true});
+  const auto created =
+      state->windows->Create({descriptor.title, descriptor.width, descriptor.height,
+                              descriptor.resizable, true, descriptor.fitToWorkArea});
   if (!created)
     return {{},
             created.error == Window::WindowError::Unsupported ? SurfaceStatus::Unsupported
