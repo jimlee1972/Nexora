@@ -363,10 +363,20 @@ int main(int argc, char **argv) {
         [](XImage *image) {
           const auto corner = XGetPixel(image, 25, 25), center = XGetPixel(image, 70, 60),
                      outside = XGetPixel(image, 21, 21);
-          return Channel(corner, image->blue_mask) > 240 &&
-                 Channel(center, image->red_mask) > 250 && Channel(center, image->blue_mask) < 3 &&
-                 Channel(outside, image->blue_mask) < 100 &&
-                 Channel(outside, image->red_mask) < 100;
+          const std::array<unsigned, 3> background{Channel(outside, image->red_mask),
+                                                   Channel(outside, image->green_mask),
+                                                   Channel(outside, image->blue_mask)};
+          const auto matches = [&](std::array<unsigned, 3> expected) {
+            for (unsigned c = 0; c < 3; ++c)
+              if (std::abs(int(background[c]) - int(expected[c])) > 2)
+                return false;
+            return true;
+          };
+          // RenderUi clears to linear (0.04, 0.08, 0.16); native attachments may encode sRGB.
+          return Channel(corner, image->blue_mask) > 240 && Channel(corner, image->red_mask) < 3 &&
+                 Channel(corner, image->green_mask) < 3 && Channel(center, image->red_mask) > 250 &&
+                 Channel(center, image->green_mask) < 3 && Channel(center, image->blue_mask) < 3 &&
+                 (matches({10, 20, 41}) || matches({56, 80, 111}));
         },
         "native image nine-slice UV or clip mismatch");
     Check(drawApi.remove_image(drawApi.context, imageHandle) == 0, "native image remove");

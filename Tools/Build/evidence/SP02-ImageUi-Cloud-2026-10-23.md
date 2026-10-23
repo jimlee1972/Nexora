@@ -4,6 +4,9 @@
 open.** Based on Nexora main `3a8b6be364dec258abebe8cf5cbd4ae205acaa82`. No M6/M7 count advances.
 Beads `nexora-0v7` tracks this feature; `nexora-0v7.1` retains final-asset/script/physical acceptance.
 
+This report records the local cloud gates. Completed hosted platform/native results and final
+merge status are recorded in [PR #703](https://github.com/jimlee1972/Nexora/pull/703).
+
 ## Scope
 
 The independently negotiated C/Zig UI draw extension adds copied image registration, images,
@@ -27,7 +30,7 @@ close the four-skill/two-companion/three-charm production HUD criterion. The Not
 | Real Zig screens | HUD 4/2/3 slots, choices, loadout, subtitles and settings; UI 100/150%; stop/recreate with the same host and resource-slot recovery |
 | Linux Shipping | Full Monolithic build with 2D/Zig passed |
 | Separate Shipping consumer | ReleaseSafe Zig library exported/relocated/launched by the general Shipping Player at 1920x1080, 1024x768 and odd ultrawide 3441x1081; inventory not a Development copy; balanced module allocations |
-| Native image fixture | Compiled with the Development target's flags and X11 headers; local runtime not registered because Slang/native GPU prerequisites are unavailable. Hosted Vulkan/Xvfb CI must provide actual execution evidence |
+| Native image fixture | Compiled with the Development target's flags and X11 headers; local runtime not registered because Slang/native GPU prerequisites are unavailable. Hosted Vulkan/Xvfb execution evidence is recorded in PR #703 |
 | Portable font tool | Real FreeType raster and strict cmap admission, non-BMP scalar fixture, missing glyph/invalid UTF-8/overwrite rejection and audit-only publication passed |
 | Product acceptance | Final art, final script/font selection, physical Windows DPI/typography/mouse/keyboard/gamepad: **NOT ACCEPTED** |
 
@@ -71,5 +74,9 @@ The first hosted macOS Development build found an empty Zig shared-library comma
 list intentionally exists only on non-Apple platforms, because Zig 0.14 cannot resolve libSystem
 with the hosted SDK. The image UI sample now follows the repository's existing Apple path: build
 the PIC Zig object, then link the dylib with Apple Clang. Linux retains its existing build-lib
-path; the full local Development gate and Shipping consumer were rechecked. Actual Apple
-build/execution evidence must come from the corrected-head hosted run.
+path; the full local Development gate and Shipping consumer were rechecked. The corrected-head hosted run in PR #703 is authoritative for actual Apple build/execution evidence.
+
+The native image oracle checks all RGB channels of its border/center and the actual RenderUi
+clear color. For the clear color it accepts the documented linear UNORM bytes or their sRGB
+attachment encoding within two byte values, matching the existing native alpha test's format
+contract. This is not a change to asset color conversion or SP-04 acceptance.
