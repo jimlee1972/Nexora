@@ -7,6 +7,9 @@
 #include "CoreConsoleIngress.h"
 #include "GameViewPreview.h"
 #include "StarterSceneStorage.h"
+#if defined(_WIN32)
+#include "WindowsProjectPicker.h"
+#endif
 #if defined(NEXORA_HAS_2D)
 #include "GameTwoDTextures.h"
 #endif
@@ -720,6 +723,13 @@ int RunGraphical(std::optional<ProjectState> project,
     return 1;
   }
   nexora::editor::imgui::EditorImGuiHost ui;
+#if defined(_WIN32)
+  ui.SetProjectLocationPicker(
+      [](nexora::editor::imgui::ProjectSelectorAction action, std::string &error) {
+        return nexora::editor::app::PickProjectLocation(
+            action == nexora::editor::imgui::ProjectSelectorAction::Create, error);
+      });
+#endif
   nexora::editor::TelemetryConsent local_diagnostics;
   std::optional<nexora::foundation::Uuid> reflected_project;
   std::filesystem::path reflected_root;

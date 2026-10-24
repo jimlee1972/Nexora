@@ -31,6 +31,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <span>
@@ -49,6 +50,8 @@ enum class RecoveryChoice : std::uint8_t { None, Recover, Discard };
 enum class CloseChoice : std::uint8_t { None, SaveAndExit, DiscardAndExit, Cancel };
 enum class PlayCommand : std::uint8_t { None, Start, Pause, Resume, Step, Stop };
 enum class ProjectSelectorAction : std::uint8_t { Open, Create, Preview };
+using ProjectLocationPicker =
+    std::function<std::optional<std::filesystem::path>(ProjectSelectorAction, std::string &)>;
 enum class SceneFileAction : std::uint8_t { New, Open, SaveAs };
 enum class SceneTabAction : std::uint8_t { Select, Close, New, OpenOwned, OpenReference, SaveAll };
 enum class PrefabIsolationAction : std::uint8_t {
@@ -326,6 +329,7 @@ public:
   // project creation/opening, indexing, lease acquisition, and activation on the authoring thread.
   void DrawProjectSelector(const RecentProjectStore *recent_projects = nullptr,
                            ProjectAccess default_access = ProjectAccess::ReadWrite);
+  void SetProjectLocationPicker(ProjectLocationPicker picker);
   [[nodiscard]] std::optional<ProjectSelectorRequest> TakeProjectSelectorRequest();
   [[nodiscard]] bool TakeProjectSelectorCancel() noexcept;
   void SetProjectSelectorError(std::string error);

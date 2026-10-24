@@ -444,6 +444,13 @@ cancellation, progress, and actionable errors, and must produce deterministic ar
   Project panel exposes canonical root, schema/upgrade, access, and recent-project status. Core,
   graphical-contract, and Linux real-process tests cover writer rejection and read-only coexistence.
 - ✅ The graphical Project Browser emits one-shot create/open requests without owning project state.
+  Windows supplies a native location picker: Open derives the directory from `project.nexora`;
+  Create chooses the exact destination folder and then a display name, without appending the name.
+  Its raw root/name startup fields and standalone preview command are removed. Portable 1x/2x
+  control tests cover cancellation, read-only/busy rejection and actual exact-folder publication;
+  Windows compilation and native launch are recorded separately. The no-adapter browser remains
+  the portable fallback. Native chooser manual interaction and full ED-M0 acceptance are separate.
+  [Scoped evidence](../../Tools/Build/evidence/EditorProjectPicker-Windows-2026-10-24.md).
   The application transactionally activates the candidate workspace/index/content session and
   keeps errors in the selector. Linux Xvfb acceptance drives keyboard-only create and read-only
   reopen from a launch without `--project`, then verifies the descriptor and active access mode.

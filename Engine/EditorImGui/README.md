@@ -1,5 +1,24 @@
 # Editor Dear ImGui host contract
 
+## Project location selection
+
+`SetProjectLocationPicker` installs an application-owned dialog adapter. The host retains an owning
+copy of the callable and invokes it synchronously on the UI/authoring thread for Open or Create.
+The provider returns an owning absolute project directory, or no directory on cancellation;
+an optional owning error is shown in the browser. The application must keep any state borrowed
+by its callable alive until the adapter is replaced or the host is destroyed. Replacement clears
+pending selection, upgrade observation and the creation dialog. No callback is run by a worker.
+
+With an adapter, the browser has Open/Create buttons and a read-only option, without a raw root
+field, startup name field or standalone upgrade-preview button/shortcut. Open emits a one-shot
+request for the chosen directory. Create opens a name confirmation after folder selection and
+uses exactly that folder, without appending the name. Cancelling either step writes no project
+files. Read-only Create and all new chooser requests during a pending import are rejected.
+The selected UTF-8 path retains the existing 1,023-byte UI limit. The adapter performs selection
+only; the owning application still revalidates the workspace, access, import and upgrade operation.
+The Windows application supplies a native file/folder chooser. The no-adapter portable text-path
+fallback and programmatic upgrade observations retain their existing contracts.
+
 ## 2D Studio panel
 
 ✅ The optional DrawTwoDPanel consumes TwoDDocument and caller-owned session state inside the
