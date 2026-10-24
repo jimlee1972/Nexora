@@ -1,5 +1,9 @@
 #include "GameEntry.h"
 #include "TwoDPlayer.h"
+#include <cstdint>
+#if defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 // clang-format off: shellapi requires Windows declarations first.
@@ -57,7 +61,22 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
 }
 #else
 int main(int argc, char **argv) try {
-  return Run(std::filesystem::absolute(argv[0]), {argv, argv + argc});
+#if defined(__linux__)
+  const auto executable = std::filesystem::read_symlink("/proc/self/exe");
+#elif defined(__APPLE__)
+  std::string path(1024, '\0');
+  auto size = static_cast<std::uint32_t>(path.size());
+  if (_NSGetExecutablePath(path.data(), &size) != 0) {
+    path.resize(size);
+    if (_NSGetExecutablePath(path.data(), &size) != 0)
+      throw std::runtime_error("executable path unavailable");
+  }
+  path.resize(std::char_traits<char>::length(path.c_str()));
+  const auto executable = std::filesystem::canonical(path);
+#else
+  const auto executable = std::filesystem::absolute(argv[0]);
+#endif
+  return Run(executable, {argv, argv + argc});
 } catch (const std::exception &error) {
   std::cerr << error.what() << '\n';
   return 2;

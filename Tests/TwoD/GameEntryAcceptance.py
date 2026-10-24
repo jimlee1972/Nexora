@@ -2,6 +2,7 @@
 import argparse
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,6 +37,15 @@ def main():
             assert result.returncode == 0, (result.stdout, result.stderr)
             observed = json.loads(report.read_text())
             assert observed['status'] == 'PASS' and observed['project_mode'] and observed['allocations_balanced']
+        if os.name != 'nt':
+            environment = os.environ.copy()
+            environment['PATH'] = str(package) + os.pathsep + environment.get('PATH', '')
+            report = root / 'path-launch.json'
+            result = subprocess.run([binary.name, '--frames', '60', '--report', str(report),
+                '--save-directory', str(root / 'saves')], cwd=root, env=environment,
+                capture_output=True, timeout=30)
+            assert result.returncode == 0, (result.stdout, result.stderr)
+            assert json.loads(report.read_text())['project_mode']
         assert exporter.checksum(package / 'game.nx2game') == inventory
         (package / 'game.nx2game').rename(package / 'saved.nx2game')
         rejected = root / 'missing-report.json'
