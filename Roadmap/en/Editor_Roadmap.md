@@ -74,6 +74,13 @@ derive milestone progress from the number of implemented prerequisites.
 
 ## 1. Product vision
 
+✅ Editor CLI project creation accepts `--create-project=PATH --project-name=NAME`, with optional
+`--graphical` to create and enter the native shell. It reuses workspace creation/indexing, rejects
+existing projects and invalid combinations, and supports Unicode Windows arguments. Real executable
+tests cover creation, reopen, read-only identity preservation and error paths; the native Xvfb gate
+also creates and reopens a graphical project. See [CLI usage](../../Apps/Editor/README.md).
+This scoped capability does not complete ED-M0/ED-M1 or physical Windows acceptance.
+
 Build a standalone `NexoraEditor` with a Unity/Unreal-like workflow—not a claim of feature parity. Its first production path covers Project Browser, Hierarchy, Scene View, Game View, Inspector, Content Browser, Console, Profiler, gizmos, undo/redo, Play-in-Editor (PIE), and import/cook/build. The Editor consumes Runtime APIs and is never required by a shipped game.
 
 ## 2. Architecture boundaries

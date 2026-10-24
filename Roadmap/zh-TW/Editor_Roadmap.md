@@ -70,6 +70,12 @@ milestone 進度。
 
 ## 1. 產品願景
 
+✅ Editor CLI 可用 `--create-project=PATH --project-name=NAME` 建立專案，選加 `--graphical`
+即可建立後進入原生視窗。沿用 workspace 建立／索引，拒絕既有專案與無效參數組合，支援 Windows
+Unicode 引數。真實執行檔測試涵蓋建立、重開、唯讀 identity 保留及錯誤路徑；原生 Xvfb gate
+另測建立後開啟及重新開啟圖形化專案。見 [CLI 用法](../../Apps/Editor/README.md)。
+此限定能力不代表 ED-M0／ED-M1 或 Windows 實機驗收完成。
+
 建立類似 Unity/Unreal 工作流的獨立 `NexoraEditor`，而不是宣稱複製其全部功能。第一條 production path 包含 Project Browser、Hierarchy、Scene View、Game View、Inspector、Content Browser、Console、Profiler、Gizmo、Undo/Redo、Play-in-Editor（PIE）、import/cook/build。Editor 是 Runtime 的 client，不得成為遊戲執行必要相依。
 
 ## 2. 架構邊界
