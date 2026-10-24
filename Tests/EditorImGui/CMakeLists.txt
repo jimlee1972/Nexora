@@ -42,6 +42,12 @@ target_include_directories(NexoraDiagnosticPrivacyTests PRIVATE "${PROJECT_SOURC
 target_link_libraries(NexoraDiagnosticPrivacyTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraDiagnosticPrivacyTests)
 add_test(NAME editor.diagnostic_privacy COMMAND NexoraDiagnosticPrivacyTests)
+add_executable(NexoraProjectPickerUiTests ProjectPickerTests.cpp)
+target_include_directories(NexoraProjectPickerUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraProjectPickerUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraProjectPickerUiTests)
+add_test(NAME editor.project_picker_ui COMMAND NexoraProjectPickerUiTests)
+
 add_executable(NexoraProjectUpgradeUiTests ProjectUpgradeTests.cpp)
 target_include_directories(NexoraProjectUpgradeUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraProjectUpgradeUiTests PRIVATE Nexora::EditorImGui)

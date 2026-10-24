@@ -460,6 +460,7 @@ public:
   [[nodiscard]] static std::size_t GitDiffRenderedLines(const EditorImGuiHost &) noexcept;
   [[nodiscard]] static std::size_t GitDiffLineCount(const EditorImGuiHost &) noexcept;
   static void FailNextGitDiffDisplay(EditorImGuiHost &) noexcept;
+  [[nodiscard]] static bool ProjectSelectorErrorVisible(const EditorImGuiHost &host) noexcept;
   static void QueueProjectSelection(EditorImGuiHost &host, ProjectSelectorRequest request);
   static void QueueProjectImportCancellation(EditorImGuiHost &host) noexcept;
   static void QueueContentConflictChoice(EditorImGuiHost &host, runtime::AssetUuid asset,

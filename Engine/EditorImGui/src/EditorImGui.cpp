@@ -608,9 +608,12 @@ struct EditorImGuiHost::State final {
   std::array<char, 256> selector_name{};
   std::optional<ProjectSelectorRequest> selector_request;
   std::optional<ProjectUpgradeObservation> selector_upgrade;
-  std::array<std::optional<std::array<float, 2>>, 4> selector_upgrade_positions;
+  std::array<std::optional<std::array<float, 2>>, 7> selector_upgrade_positions;
+  ProjectLocationPicker selector_location_picker;
+  bool selector_create_open{};
   bool selector_cancel_requested = false;
   std::string selector_error;
+  bool selector_error_visible{};
   std::string selector_status;
   bool selector_busy = false;
   bool selector_initialized = false;
@@ -822,6 +825,104 @@ void QueueProjectSelection(StateT &state, ProjectSelectorAction action,
   state.selector_upgrade.reset();
   state.selector_error.clear();
   state.selector_request = {action, root, std::move(name), access};
+}
+
+template <typename StateT> bool PickProjectLocation(StateT &state, ProjectSelectorAction action) {
+  state.selector_request.reset();
+  state.selector_upgrade.reset();
+  state.selector_error.clear();
+  std::optional<std::filesystem::path> selected;
+  try {
+    selected = state.selector_location_picker(action, state.selector_error);
+  } catch (const std::exception &) {
+    state.selector_error = "The project chooser failed.";
+    return false;
+  }
+  if (!selected)
+    return false;
+  const auto label = PathLabel(*selected);
+  if (!state.selector_error.empty() || !selected->is_absolute() ||
+      label.size() >= state.selector_root.size() || !PathFromLabel(label)) {
+    state.selector_error = "Select an absolute project folder within the supported path length.";
+    return false;
+  }
+  state.selector_root.fill(0);
+  std::copy(label.begin(), label.end(), state.selector_root.begin());
+  return true;
+}
+
+template <typename StateT> void DrawPickedProjectControls(StateT &state) {
+  const auto position = [&](std::size_t index) {
+    state.selector_upgrade_positions[index] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+  };
+  state.selector_root_active = false;
+  if (state.selector_focus_root && state.app_focused) {
+    ImGui::SetWindowFocus();
+    state.selector_focus_root = false;
+  }
+  const bool open = ImGui::Button("Open project (Ctrl+O)");
+  position(0);
+  if (!state.selector_busy && !state.selector_create_open &&
+      (open || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O)) &&
+      PickProjectLocation(state, ProjectSelectorAction::Open)) {
+    QueueProjectSelection(
+        state, ProjectSelectorAction::Open, *PathFromLabel(state.selector_root.data()), {},
+        state.selector_read_only ? ProjectAccess::ReadOnly : ProjectAccess::ReadWrite);
+  }
+  ImGui::SameLine();
+  ImGui::BeginDisabled(state.selector_read_only);
+  const bool create = ImGui::Button("Create project (Ctrl+N)");
+  position(1);
+  if (!state.selector_busy && !state.selector_read_only && !state.selector_create_open &&
+      (create || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N)) &&
+      PickProjectLocation(state, ProjectSelectorAction::Create)) {
+    const auto path = PathFromLabel(state.selector_root.data());
+    auto name = PathLabel(path->filename());
+    if (name.empty() || name.size() >= state.selector_name.size())
+      name = "New Project";
+    state.selector_name.fill(0);
+    std::copy(name.begin(), name.end(), state.selector_name.begin());
+    state.selector_create_open = true;
+    ImGui::OpenPopup("Create project###editor.create-project");
+  }
+  ImGui::EndDisabled();
+  ImGui::Checkbox("Open read-only", &state.selector_read_only);
+  position(2);
+
+  if (ImGui::BeginPopupModal("Create project###editor.create-project", &state.selector_create_open,
+                             ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::IsWindowAppearing())
+      ImGui::SetKeyboardFocusHere();
+    ImGui::InputText("Project name", state.selector_name.data(), state.selector_name.size());
+    position(3);
+    ImGui::TextWrapped("Location: %s", state.selector_root.data());
+    ImGui::TextWrapped("The selected folder is the project folder.");
+    ImGui::BeginDisabled(state.selector_busy || state.selector_read_only);
+    if (ImGui::Button("Create")) {
+      const auto path = PathFromLabel(state.selector_root.data());
+      if (path) {
+        QueueProjectSelection(state, ProjectSelectorAction::Create, *path,
+                              state.selector_name.data(), ProjectAccess::ReadWrite);
+        if (state.selector_request) {
+          state.selector_create_open = false;
+          ImGui::CloseCurrentPopup();
+        }
+      }
+    }
+    position(4);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel")) {
+      state.selector_create_open = false;
+      ImGui::CloseCurrentPopup();
+    }
+    position(5);
+    if (!state.selector_error.empty())
+      ImGui::TextWrapped("%s", state.selector_error.c_str());
+    ImGui::EndPopup();
+  }
 }
 
 void BuildInitialDockLayout(ImGuiID dockspace, const ImGuiViewport &viewport) {
@@ -4895,6 +4996,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   Activate(state_->context);
   state_->selector_visible = true;
   state_->selector_upgrade_positions = {};
+  state_->selector_error_visible = false;
   state_->selector_recent_projects =
       recent_projects == nullptr
           ? 0
@@ -4918,101 +5020,106 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::TextUnformatted("Nexora Editor");
   ImGui::SeparatorText("Create or open a project");
   ImGui::BeginDisabled(state_->selector_busy);
-  ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
-  const bool focus_root = state_->selector_focus_root && state_->app_focused;
-  if (focus_root)
-    ImGui::SetWindowFocus();
-  if (ImGui::InputText("Project root", state_->selector_root.data(),
-                       state_->selector_root.size())) {
-    state_->selector_upgrade.reset();
-    state_->selector_request.reset();
-  }
-  if (focus_root) {
-    ImGui::FocusItem();
-    ImGui::ActivateItemByID(ImGui::GetItemID());
-    state_->selector_focus_root = false;
-  }
-  state_->selector_root_active = ImGui::IsItemActive();
-  state_->selector_upgrade_positions[0] =
-      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
-                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
-  ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
-  ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
-  state_->selector_upgrade_positions[3] =
-      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
-                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
-  ImGui::Checkbox("Open read-only", &state_->selector_read_only);
-  state_->selector_upgrade_positions[2] =
-      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
-                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+  if (state_->selector_location_picker) {
+    DrawPickedProjectControls(*state_);
+  } else {
+    ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 720.0F));
+    const bool focus_root = state_->selector_focus_root && state_->app_focused;
+    if (focus_root)
+      ImGui::SetWindowFocus();
+    if (ImGui::InputText("Project root", state_->selector_root.data(),
+                         state_->selector_root.size())) {
+      state_->selector_upgrade.reset();
+      state_->selector_request.reset();
+    }
+    if (focus_root) {
+      ImGui::FocusItem();
+      ImGui::ActivateItemByID(ImGui::GetItemID());
+      state_->selector_focus_root = false;
+    }
+    state_->selector_root_active = ImGui::IsItemActive();
+    state_->selector_upgrade_positions[0] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    ImGui::SetNextItemWidth(std::clamp(viewport->WorkSize.x - 32.0F, 1.0F, 420.0F));
+    ImGui::InputText("Project name", state_->selector_name.data(), state_->selector_name.size());
+    state_->selector_upgrade_positions[3] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    ImGui::Checkbox("Open read-only", &state_->selector_read_only);
+    state_->selector_upgrade_positions[2] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
 
-  const auto typed_root = PathFromLabel(state_->selector_root.data());
-  if (state_->selector_upgrade &&
-      (!typed_root || *typed_root != state_->selector_upgrade->requested_root))
-    state_->selector_upgrade.reset();
-  // BeginDisabled does not suppress key chords, so gate the shortcuts on the same conditions that
-  // disable their buttons: no new request while an import runs, and no Create when read-only.
-  const bool open_requested =
-      ImGui::Button("Open project (Ctrl+O)") ||
-      (!state_->selector_busy && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O));
-  if (open_requested) {
-    if (typed_root)
-      QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
-                            state_->selector_read_only ? ProjectAccess::ReadOnly
-                                                       : ProjectAccess::ReadWrite);
-    else
-      state_->selector_error = "Project root must be non-empty valid UTF-8.";
-  }
-  ImGui::SameLine();
-  ImGui::BeginDisabled(state_->selector_read_only);
-  const bool create_requested = ImGui::Button("Create project (Ctrl+N)") ||
-                                (!state_->selector_busy && !state_->selector_read_only &&
-                                 ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N));
-  if (create_requested) {
-    if (typed_root)
-      QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
-                            state_->selector_name.data(), ProjectAccess::ReadWrite);
-    else
-      state_->selector_error = "Project root must be non-empty valid UTF-8.";
-  }
-  ImGui::EndDisabled();
-  ImGui::SameLine();
-  const bool preview_clicked = ImGui::Button("Preview upgrade (Ctrl+Alt+M)");
-  state_->selector_upgrade_positions[1] =
-      std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
-                 (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
-  const bool preview_requested =
-      preview_clicked || (!state_->selector_busy &&
-                          ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_M));
-  if (preview_requested) {
-    if (typed_root)
-      QueueProjectSelection(*state_, ProjectSelectorAction::Preview, *typed_root, {},
-                            state_->selector_read_only ? ProjectAccess::ReadOnly
-                                                       : ProjectAccess::ReadWrite);
-    else
-      state_->selector_error = "Project root must be non-empty valid UTF-8.";
-  }
-  if (state_->selector_read_only)
-    ImGui::TextDisabled("Creating a project requires read-write access.");
-  if (!state_->selector_error.empty())
-    ImGui::TextWrapped("%s", state_->selector_error.c_str());
-
-  if (const auto &preview = state_->selector_upgrade) {
-    ImGui::SeparatorText("Captured project upgrade preview");
-    ImGui::TextWrapped("%s", preview->name.c_str());
-    ImGui::Text("Schema: %u -> %u (%s)", preview->from, preview->to,
-                preview->required ? "upgrade required" : "current");
-    ImGui::Text("Project UUID: %s", preview->project.ToString().c_str());
-    ImGui::Text("Descriptor: %zu bytes; workspace: %zu documents", preview->source_bytes,
-                preview->documents);
-    ImGui::TextWrapped("Root: %s", PathLabel(preview->canonical_root).c_str());
-    if (preview->required)
+    const auto typed_root = PathFromLabel(state_->selector_root.data());
+    if (state_->selector_upgrade &&
+        (!typed_root || *typed_root != state_->selector_upgrade->requested_root))
+      state_->selector_upgrade.reset();
+    // BeginDisabled does not suppress key chords, so gate the shortcuts on the same conditions that
+    // disable their buttons: no new request while an import runs, and no Create when read-only.
+    const bool open_requested =
+        ImGui::Button("Open project (Ctrl+O)") ||
+        (!state_->selector_busy && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O));
+    if (open_requested) {
+      if (typed_root)
+        QueueProjectSelection(*state_, ProjectSelectorAction::Open, *typed_root, {},
+                              state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                         : ProjectAccess::ReadWrite);
+      else
+        state_->selector_error = "Project root must be non-empty valid UTF-8.";
+    }
+    ImGui::SameLine();
+    ImGui::BeginDisabled(state_->selector_read_only);
+    const bool create_requested = ImGui::Button("Create project (Ctrl+N)") ||
+                                  (!state_->selector_busy && !state_->selector_read_only &&
+                                   ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N));
+    if (create_requested) {
+      if (typed_root)
+        QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
+                              state_->selector_name.data(), ProjectAccess::ReadWrite);
+      else
+        state_->selector_error = "Project root must be non-empty valid UTF-8.";
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    const bool preview_clicked = ImGui::Button("Preview upgrade (Ctrl+Alt+M)");
+    state_->selector_upgrade_positions[1] =
+        std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
+                   (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
+    const bool preview_requested =
+        preview_clicked || (!state_->selector_busy &&
+                            ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_M));
+    if (preview_requested) {
+      if (typed_root)
+        QueueProjectSelection(*state_, ProjectSelectorAction::Preview, *typed_root, {},
+                              state_->selector_read_only ? ProjectAccess::ReadOnly
+                                                         : ProjectAccess::ReadWrite);
+      else
+        state_->selector_error = "Project root must be non-empty valid UTF-8.";
+    }
+    if (state_->selector_read_only)
+      ImGui::TextDisabled("Creating a project requires read-write access.");
+    if (const auto &preview = state_->selector_upgrade) {
+      ImGui::SeparatorText("Captured project upgrade preview");
+      ImGui::TextWrapped("%s", preview->name.c_str());
+      ImGui::Text("Schema: %u -> %u (%s)", preview->from, preview->to,
+                  preview->required ? "upgrade required" : "current");
+      ImGui::Text("Project UUID: %s", preview->project.ToString().c_str());
+      ImGui::Text("Descriptor: %zu bytes; workspace: %zu documents", preview->source_bytes,
+                  preview->documents);
+      ImGui::TextWrapped("Root: %s", PathLabel(preview->canonical_root).c_str());
+      if (preview->required)
+        ImGui::TextWrapped(
+            "Read-write Open retains the exact original at .nexora/project-upgrade.schema1.backup "
+            "and a plan report at .nexora/project-upgrade.schema1.report before upgrading. "
+            "Read-only Open leaves the project unchanged.");
       ImGui::TextWrapped(
-          "Read-write Open retains the exact original at .nexora/project-upgrade.schema1.backup "
-          "and a plan report at .nexora/project-upgrade.schema1.report before upgrading. "
-          "Read-only Open leaves the project unchanged.");
-    ImGui::TextWrapped(
-        "Preview wrote no files. Open checks the current source and writer access again.");
+          "Preview wrote no files. Open checks the current source and writer access again.");
+    }
+  }
+  if (!state_->selector_error.empty()) {
+    ImGui::TextWrapped("%s", state_->selector_error.c_str());
+    state_->selector_error_visible = ImGui::IsItemVisible();
   }
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
@@ -5037,6 +5144,17 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   if (state_->selector_busy && ImGui::Button("Cancel import"))
     state_->selector_cancel_requested = true;
   ImGui::End();
+}
+
+void EditorImGuiHost::SetProjectLocationPicker(ProjectLocationPicker picker) {
+  state_->selector_location_picker = std::move(picker);
+  state_->selector_request.reset();
+  state_->selector_upgrade.reset();
+  state_->selector_root.fill(0);
+  state_->selector_root_active = false;
+  state_->selector_create_open = false;
+  state_->selector_error.clear();
+  state_->selector_focus_root = true;
 }
 
 std::optional<ProjectSelectorRequest> EditorImGuiHost::TakeProjectSelectorRequest() {
@@ -5066,6 +5184,7 @@ void EditorImGuiHost::SetProjectSelectorStatus(std::string status, bool busy) {
   state_->selector_status = std::move(status);
   state_->selector_busy = busy;
   if (busy) {
+    state_->selector_create_open = false;
     state_->selector_upgrade.reset();
     state_->selector_request.reset();
   }
@@ -8950,6 +9069,10 @@ EditorImGuiTestAccess::ProjectUpgradePosition(const EditorImGuiHost &host,
 
 std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHost &host) noexcept {
   return host.state_->selector_root.data();
+}
+
+bool EditorImGuiTestAccess::ProjectSelectorErrorVisible(const EditorImGuiHost &host) noexcept {
+  return host.state_->selector_error_visible;
 }
 
 void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,

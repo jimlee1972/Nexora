@@ -416,6 +416,12 @@ status、dependency 檢視與 reimport；background import 必須提供取消、
   schema／upgrade、access 與 recent-project 狀態。Core、graphical contract 與 Linux real-process
   test 涵蓋第二 writer 拒絕及 read-only 共存。
 - ✅ 圖形化 Project Browser 只發出 one-shot create/open request，不擁有 project state；
+  Windows 現接上原生位置選擇器：Open 由 `project.nexora` 判定專案目錄；Create 選取實際
+  存放目錄後再填顯示名稱，不會將名稱附加到目錄。起始畫面的 root／name 欄位與獨立
+  preview 操作已移除。Portable 1x／2x 控制測試涵蓋取消、唯讀／busy 拒絕與實際選中目錄
+  的建立；Windows 編譯與原生啟動另行記錄。未配置選擇器的 host 保留 portable fallback。
+  原生對話框人工操作與完整 ED-M0 驗收維持獨立。
+  [範圍證據](../../Tools/Build/evidence/EditorProjectPicker-Windows-2026-10-24.md)。
   application 會交易式啟用候選 workspace／index／content session，失敗時錯誤留在 selector。
   Linux Xvfb 驗收會在沒有 `--project` 的情況下，以純鍵盤完成 create 與 read-only reopen，
   再驗證 descriptor 與實際 access mode。

@@ -62,9 +62,17 @@ NexoraEditor --graphical
 
 `--frames=N` supplies a bounded native smoke run for target-host automation. A missing display or
 presentation backend is reported as an error rather than silently falling back to the CLI.
-When `--project` is omitted, the graphical Project Browser accepts a UTF-8 root and name, supports
-create, read-write open, read-only open, and recent-project shortcuts, and keeps actionable
-activation errors visible. Its one-shot request is executed by the application on the authoring
+When `--project` is omitted, the Windows graphical Project Browser shows Open project and Create
+project without a raw Project root field or standalone upgrade-preview action. Open selects an
+existing `project.nexora` using the Windows file chooser; its containing directory is the project
+directory. Create first chooses the actual destination folder, then asks for a display name.
+The name is not appended to the selected folder. Cancellation emits no workspace request; chooser
+errors stay in the browser. Read-only Open and recent-project shortcuts remain available.
+The Windows adapter owns its synchronous COM dialog and releases its result on the authoring
+thread, without changing the process working directory. It does not open or create the workspace.
+Hosts without a location-picker adapter retain the portable text-path browser and inspection UI.
+Existing project validation, writer leases and schema-upgrade backups remain in the owning Core
+workspace operation. The one-shot request is executed by the application on the authoring
 thread; a candidate workspace/index/content session replaces the empty state only after every step
 succeeds.
 The shell loads bounded scalable host fonts, optionally configured by
