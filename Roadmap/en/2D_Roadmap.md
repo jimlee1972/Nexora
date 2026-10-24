@@ -828,3 +828,13 @@ command script or child Player process. Zig V3 gameplay stays external and proje
 Local Windows entry unit/integration tests pass (2/2); full Linux development and Shipping CI
 and clean-host acceptance remain pending. This supporting change does not close M7.
 See [Player build and startup contract](../../Apps/TwoDPlayer/README.md#named-standalone-game-executable).
+
+### Engine-owned Zig script build and ABI adapter (2026-10-24)
+
+✅ The SDK now owns generic Zig compilation, V3 export and host instance allocation. Authored
+projects provide a manifest and typed Game script; build/entry files stay in the SDK and caches
+stay outside the authored project. Command-line CMake and future Editor actions share the same
+entry. Local Windows adapter tests pass 4/4 and game entry/script tests pass 4/4. The external Unicode project build and unchanged-source checks pass. The external game Shipping build/package, two 600-tick replays, 180 DX12 native frames, zero-argument startup and package inventory pass on the Windows developer host. Hosted Linux gates remain pending. Editor UI integration
+and clean-host/product acceptance remain open. See [SDK contract](../../Tools/Zig/README.md).
+
+[Scoped Windows evidence](../../Tools/Build/evidence/Zig-Script-SDK-Windows-2026-10-24.md).

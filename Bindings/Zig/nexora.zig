@@ -1,6 +1,7 @@
 //! Thin Zig declarations for the canonical `nexora/nexora.h` ABI.
 //! Field order is checked against Engine/API/abi_baseline_v3.json in CTest.
 pub const abi_version: u32 = 3;
+pub const game = @import("game.zig");
 pub const input = @import("input.zig");
 pub const ui = @import("ui.zig");
 pub const dialogue = @import("dialogue.zig");

@@ -247,3 +247,17 @@ endif()
 
 add_test(NAME twod.voice_inventory COMMAND "${Python3_EXECUTABLE}"
   "${CMAKE_CURRENT_SOURCE_DIR}/VoiceInventoryTests.py")
+
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(gameplay.zig_game_script_adapter
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-script-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-script-global-cache"
+    --dep nx "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameScriptAdapter.zig"
+    "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig")
+endif()
+if(NEXORA_ZIG_EXECUTABLE)
+  add_test(NAME gameplay.zig_script_project COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/GameScriptProjectTests.py"
+    --cmake "${CMAKE_COMMAND}" --zig "${NEXORA_ZIG_EXECUTABLE}")
+  set_tests_properties(gameplay.zig_script_project PROPERTIES TIMEOUT 300)
+endif()
