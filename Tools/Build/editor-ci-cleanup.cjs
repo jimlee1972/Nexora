@@ -50,6 +50,9 @@ const graphicsSessionBranches = Object.freeze([
   'feat/v2-bounded-ray-instancing',
 ]);
 
+// Only the packaging task's own branch belongs to this cleanup group.
+const editorPackageSessionBranches = Object.freeze(['build/editor-windows-package']);
+
 async function cleanup({github, context, core}) {
   const {owner, repo} = context.repo;
   const repository = `${owner}/${repo}`;
@@ -60,9 +63,10 @@ async function cleanup({github, context, core}) {
   const twoDSession = twoDSessionBranches.includes(branch);
   const graphicsSession = graphicsSessionBranches.includes(branch);
   const thumbnailSession = thumbnailSessionBranches.includes(branch);
-  const ownerSession = currentSession || twoDSession || graphicsSession || thumbnailSession;
+  const editorPackageSession = editorPackageSessionBranches.includes(branch);
+  const ownerSession = currentSession || twoDSession || graphicsSession || thumbnailSession || editorPackageSession;
   if (ownerSession && (!context.actor || context.actor !== owner)) return;
-  const branches = thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
+  const branches = editorPackageSession ? editorPackageSessionBranches : thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
     sessionBranches.includes(branch) ? sessionBranches :
     branch.startsWith('codex/ed-m0-') ? legacyBranches : [];
   for (const candidate of branches) {

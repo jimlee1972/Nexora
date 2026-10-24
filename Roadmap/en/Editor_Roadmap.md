@@ -20,10 +20,13 @@ ED-M0 remains open pending the target-host and workflow gates.
 
 ### Reproducible Windows Editor package
 
-The dedicated Windows Editor package workflow builds an Editor-only Development/DX12 ZIP,
+✅ A dedicated Windows Editor package workflow and portable admission regressions implement an
+Editor-only Development/DX12 ZIP build, including the selected OpenSSL runtime and licenses. The workflow
 records source identity and file hashes, and requires relocated native CLI and presentation
 verification before upload. See [packaging instructions](../../Tools/Editor/README.md#windows-editor-only-download).
-Hosted runner evidence does not complete physical Windows DPI/IME or game acceptance; ED-M0–M7 remain open.
+Camera metadata temporary files preserve native Unicode paths. Native workflow success is required
+for each downloadable artifact; its logs record the tested source. Hosted runner evidence does not
+complete physical Windows DPI/IME or game acceptance; ED-M0–M7 remain open.
 
 ### Local Windows baseline and separate 100k stress tier (2026-10-22)
 

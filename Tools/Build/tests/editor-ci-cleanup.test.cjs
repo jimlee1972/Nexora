@@ -210,3 +210,26 @@ test('thumbnail cleanup rechecks advancement before each cancellation', async ()
     assert.deepEqual(f.cancelled, advanceAfter === 1 ? [] : [1]);
   }
 });
+
+
+const editorPackageBranch = 'build/editor-windows-package';
+test('Editor package cleanup touches only obsolete owner runs on its exact branch', async () => {
+  const f = fixture({current: editorPackageBranch, target: editorPackageBranch, actorRuns: true});
+  await cleanup(f);
+  assert.deepEqual(f.cancelled, [1, 2]);
+  assert(f.calls.every(([, args]) => !args.ref || args.ref === `heads/${editorPackageBranch}`));
+  assert(f.calls.every(([, args]) => !args.branch || args.branch === editorPackageBranch));
+});
+test('Editor package cleanup rejects contributors, forks and similarly named branches', async () => {
+  for (const f of [fixture({current: editorPackageBranch, actor: 'contributor'}),
+    fixture({pull: {head: {ref: editorPackageBranch, repo: {full_name: 'foreign/Nexora'}}}}),
+    fixture({current: `${editorPackageBranch}-other`})]) {
+    await cleanup(f);
+    assert.deepEqual(f.calls, []);
+  }
+});
+test('Editor package cleanup stops when its branch advances', async () => {
+  const f = fixture({current: editorPackageBranch, target: editorPackageBranch, advance: true});
+  await cleanup(f);
+  assert.deepEqual(f.cancelled, []);
+});

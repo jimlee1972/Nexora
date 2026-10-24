@@ -92,7 +92,8 @@ def verify(package, evidence):
             output = (result.stdout + b'\n' + result.stderr).decode('utf-8', errors='replace')
             (evidence / (label + '.log')).write_text(output, encoding='utf-8')
             if result.returncode != expected or (frames and smoke_result(result.returncode, output, frames) != 'pass'):
-                raise RuntimeError(f'{label} failed: exit {result.returncode}; see {evidence}')
+                raise RuntimeError(f'{label} failed: exit {result.returncode}; see {evidence}; '
+                                   f'output tail: {output[-4096:]}')
             return result.stdout.decode('utf-8')
 
         help_text = run('help', ['--help'])
@@ -107,6 +108,9 @@ def verify(package, evidence):
         run('reopen', ['--project=' + str(project), '--read-only'])
         run('reject-existing', ['--create-project=' + str(project), '--project-name=Replacement'], expected=1)
         run('graphical-open', ['--project=' + str(project), '--graphical', '--frames=120'], frames=120)
+        for name in ('Main.overview.camera', 'Main.preview.camera'):
+            if not (project / '.nexora/scenes' / name).is_file():
+                raise RuntimeError(f'Graphical close did not persist {name} under Unicode project path')
         run('graphical-create', ['--create-project=' + str(root / 'graphical 陰陽 project'),
                                 '--project-name=' + name, '--graphical', '--frames=8'], frames=8)
         if (project / 'project.nexora').read_bytes() != original:
