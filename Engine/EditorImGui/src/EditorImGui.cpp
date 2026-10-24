@@ -613,6 +613,7 @@ struct EditorImGuiHost::State final {
   bool selector_create_open{};
   bool selector_cancel_requested = false;
   std::string selector_error;
+  bool selector_error_visible{};
   std::string selector_status;
   bool selector_busy = false;
   bool selector_initialized = false;
@@ -4995,6 +4996,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   Activate(state_->context);
   state_->selector_visible = true;
   state_->selector_upgrade_positions = {};
+  state_->selector_error_visible = false;
   state_->selector_recent_projects =
       recent_projects == nullptr
           ? 0
@@ -5097,9 +5099,6 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
     }
     if (state_->selector_read_only)
       ImGui::TextDisabled("Creating a project requires read-write access.");
-    if (!state_->selector_error.empty())
-      ImGui::TextWrapped("%s", state_->selector_error.c_str());
-
     if (const auto &preview = state_->selector_upgrade) {
       ImGui::SeparatorText("Captured project upgrade preview");
       ImGui::TextWrapped("%s", preview->name.c_str());
@@ -5117,6 +5116,10 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
       ImGui::TextWrapped(
           "Preview wrote no files. Open checks the current source and writer access again.");
     }
+  }
+  if (!state_->selector_error.empty()) {
+    ImGui::TextWrapped("%s", state_->selector_error.c_str());
+    state_->selector_error_visible = ImGui::IsItemVisible();
   }
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
@@ -9066,6 +9069,10 @@ EditorImGuiTestAccess::ProjectUpgradePosition(const EditorImGuiHost &host,
 
 std::string_view EditorImGuiTestAccess::ProjectSelectorRoot(const EditorImGuiHost &host) noexcept {
   return host.state_->selector_root.data();
+}
+
+bool EditorImGuiTestAccess::ProjectSelectorErrorVisible(const EditorImGuiHost &host) noexcept {
+  return host.state_->selector_error_visible;
 }
 
 void EditorImGuiTestAccess::ConfigureSyntheticInput(EditorImGuiHost &host,

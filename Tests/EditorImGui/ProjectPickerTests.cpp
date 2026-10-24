@@ -110,12 +110,13 @@ void Run(float scale) {
           "Startup requires a raw root/name text field");
   f.Click(0);
   Require(f.calls == 1 && f.last == Action::Open && !f.ui.TakeProjectSelectorRequest() &&
-              f.ui.ProjectSelectorError().empty(),
+              f.ui.ProjectSelectorError().empty() && !Access::ProjectSelectorErrorVisible(f.ui),
           "Cancelling the native chooser emitted work or an error");
   f.error = "Selection unavailable";
   f.Tap(Key::O, Mods::Control);
   Require(!f.ui.TakeProjectSelectorRequest() &&
-              f.ui.ProjectSelectorError() == "Selection unavailable",
+              f.ui.ProjectSelectorError() == "Selection unavailable" &&
+              Access::ProjectSelectorErrorVisible(f.ui),
           "Chooser failure was hidden or granted an Open request");
   f.error.clear();
   f.selected = root;
@@ -141,7 +142,8 @@ void Run(float scale) {
   f.Click(2);
   f.selected = "relative-folder";
   f.Click(0);
-  Require(!f.ui.TakeProjectSelectorRequest() && !f.ui.ProjectSelectorError().empty(),
+  Require(!f.ui.TakeProjectSelectorRequest() && !f.ui.ProjectSelectorError().empty() &&
+              Access::ProjectSelectorErrorVisible(f.ui),
           "Invalid callback selection reached the application");
   f.selected = root / "Chosen Folder";
   f.Click(1);
@@ -158,6 +160,10 @@ void Run(float scale) {
   Require(created && created->action == Action::Create && created->root == f.selected &&
               created->name == "Display Name",
           "Create appended the project name to the selected directory");
+  f.ui.SetProjectSelectorError("Project writer access unavailable");
+  f.Draw();
+  Require(!Access::ProjectUpgradePosition(f.ui, 3) && Access::ProjectSelectorErrorVisible(f.ui),
+          "Application failure disappeared after the Create dialog closed");
   {
     editor::ProjectWorkspace workspace;
     std::string error;
