@@ -213,6 +213,11 @@ add_executable(NexoraEditorTests EditorTests.cpp)
 target_link_libraries(NexoraEditorTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraEditorTests)
 add_test(NAME editor.preview_contract COMMAND NexoraEditorTests)
+add_test(NAME editor.project_cli
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ProjectCliTests.py"
+    --editor "$<TARGET_FILE:NexoraEditor>"
+    --graphical-build=$<IF:$<BOOL:${NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL}>,ON,OFF>)
+set_tests_properties(editor.project_cli PROPERTIES TIMEOUT 90)
 add_executable(NexoraBuildProcessFixture BuildProcessFixture.cpp)
 nexora_apply_defaults(NexoraBuildProcessFixture)
 add_executable(NexoraBuildProcessTests BuildProcessTests.cpp)

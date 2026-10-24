@@ -3719,7 +3719,33 @@ int RunGraphical(std::optional<ProjectState> project,
 }
 #endif
 
-int Run(int argc, char **argv) {
+std::filesystem::path ArgumentPath(std::string_view text) {
+  std::u8string utf8;
+  utf8.reserve(text.size());
+  for (const unsigned char byte : text)
+    utf8.push_back(static_cast<char8_t>(byte));
+  return std::filesystem::path(utf8);
+}
+
+std::string JsonString(std::string_view text) {
+  constexpr std::string_view hex = "0123456789abcdef";
+  std::string result = "\"";
+  for (const unsigned char byte : text) {
+    if (byte == '"' || byte == '\\') {
+      result += '\\';
+      result += static_cast<char>(byte);
+    } else if (byte < 32) {
+      result += "\\u00";
+      result += hex[byte >> 4];
+      result += hex[byte & 15];
+    } else {
+      result += static_cast<char>(byte);
+    }
+  }
+  return result + '"';
+}
+
+int Run(int argc, char **argv) try {
   std::filesystem::path project;
   std::filesystem::path report;
   std::filesystem::path recent_projects_path;
@@ -3727,15 +3753,31 @@ int Run(int argc, char **argv) {
   bool read_only = false;
   bool native_scene_preview = false;
   std::optional<std::string> gameplay_library;
+  std::optional<std::string> create_project;
+  std::optional<std::string> project_name;
+  bool has_project = false;
   std::uint32_t frame_limit = 0;
   for (int index = 1; index < argc; ++index) {
     const std::string_view argument(argv[index]);
-    if (argument.starts_with("--project="))
-      project = argument.substr(10);
-    else if (argument.starts_with("--report="))
-      report = argument.substr(9);
+    if (argument.starts_with("--project=")) {
+      has_project = true;
+      project = ArgumentPath(argument.substr(10));
+    } else if (argument.starts_with("--create-project=")) {
+      if (create_project) {
+        std::cerr << "--create-project must be specified only once\n";
+        return 2;
+      }
+      create_project = argument.substr(17);
+    } else if (argument.starts_with("--project-name=")) {
+      if (project_name) {
+        std::cerr << "--project-name must be specified only once\n";
+        return 2;
+      }
+      project_name = argument.substr(15);
+    } else if (argument.starts_with("--report="))
+      report = ArgumentPath(argument.substr(9));
     else if (argument.starts_with("--recent-projects="))
-      recent_projects_path = argument.substr(18);
+      recent_projects_path = ArgumentPath(argument.substr(18));
     else if (argument == "--graphical")
       graphical = true;
     else if (argument == "--read-only")
@@ -3753,7 +3795,8 @@ int Run(int argc, char **argv) {
         return 2;
       }
     } else if (argument == "--help") {
-      std::cout << "NexoraEditor [--project=PATH] [--read-only] [--report=PATH] [--graphical] "
+      std::cout << "NexoraEditor [--project=PATH | --create-project=PATH --project-name=NAME] "
+                   "[--read-only] [--report=PATH] [--graphical] "
                    "[--frames=N] [--recent-projects=PATH] [--native-scene-preview] "
                    "[--gameplay-library=RELATIVE_PATH]\n";
       return 0;
@@ -3762,8 +3805,21 @@ int Run(int argc, char **argv) {
       return 2;
     }
   }
-  if (project.empty() && !graphical) {
-    std::cerr << "--project is required unless --graphical opens the project selector\n";
+  if (create_project) {
+    if (has_project || read_only || create_project->empty() || !project_name ||
+        project_name->empty()) {
+      std::cerr << "--create-project requires a nonempty PATH and --project-name=NAME; "
+                   "it cannot be combined with --project or --read-only\n";
+      return 2;
+    }
+    project = ArgumentPath(*create_project);
+  } else if (project_name) {
+    std::cerr << "--project-name requires --create-project\n";
+    return 2;
+  }
+  if ((has_project && project.empty()) || (project.empty() && !graphical)) {
+    std::cerr << "--project or --create-project is required unless --graphical opens the project "
+                 "selector\n";
     return 2;
   }
   if (gameplay_library && gameplay_library->size() >= 1024) {
@@ -3778,6 +3834,12 @@ int Run(int argc, char **argv) {
     std::cerr << "--native-scene-preview requires --graphical\n";
     return 2;
   }
+#if !defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+  if (graphical) {
+    std::cerr << "graphical shell was not enabled at build time\n";
+    return 2;
+  }
+#endif
   std::string error;
   nexora::editor::RecentProjectStore recent_projects;
   if (recent_projects_path.empty())
@@ -3790,8 +3852,9 @@ int Run(int argc, char **argv) {
     if (!LoadProject(project,
                      read_only ? nexora::editor::ProjectAccess::ReadOnly
                                : nexora::editor::ProjectAccess::ReadWrite,
-                     false, {}, opened, &error)) {
-      std::cerr << "content indexing or project open failed: " << error << '\n';
+                     create_project.has_value(), project_name.value_or(""), opened, &error)) {
+      std::cerr << "content indexing or project " << (create_project ? "creation" : "open")
+                << " failed: " << error << '\n';
       return 1;
     }
     project_state = std::move(opened);
@@ -3807,19 +3870,15 @@ int Run(int argc, char **argv) {
 #else
   static_cast<void>(frame_limit);
   static_cast<void>(native_scene_preview);
-  if (graphical) {
-    std::cerr << "graphical shell was not enabled at build time\n";
-    return 2;
-  }
 #endif
   if (!project_state) {
     std::cerr << "--project is required\n";
     return 2;
   }
   const std::string json =
-      "{\n  \"application\": \"NexoraEditor\",\n  \"project\": \"" +
-      project_state->workspace.Project().name +
-      "\",\n  \"panels\": " + std::to_string(nexora::editor::ProductShell::Panels().size()) +
+      "{\n  \"application\": \"NexoraEditor\",\n  \"project\": " +
+      JsonString(project_state->workspace.Project().name) +
+      ",\n  \"panels\": " + std::to_string(nexora::editor::ProductShell::Panels().size()) +
       ",\n  \"assets\": " + std::to_string(project_state->assets.Entries().size()) +
       ",\n  \"access\": \"" + (project_state->workspace.Writable() ? "read-write" : "read-only") +
       "\",\n  \"schema\": " + std::to_string(project_state->workspace.Project().schema_version) +
@@ -3832,7 +3891,28 @@ int Run(int argc, char **argv) {
       return 1;
   }
   return 0;
+} catch (const std::exception &error) {
+  std::cerr << "Editor command failed: " << error.what() << '\n';
+  return 1;
 }
 } // namespace
 
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) try {
+  std::vector<std::string> strings;
+  std::vector<char *> arguments;
+  strings.reserve(static_cast<std::size_t>(argc));
+  for (int i = 0; i < argc; ++i) {
+    const auto utf8 = std::filesystem::path(argv[i]).u8string();
+    strings.emplace_back(utf8.begin(), utf8.end());
+  }
+  for (auto &text : strings)
+    arguments.push_back(text.data());
+  return Run(argc, arguments.data());
+} catch (const std::exception &error) {
+  std::cerr << "Editor command encoding failed: " << error.what() << '\n';
+  return 2;
+}
+#else
 int main(int argc, char **argv) { return Run(argc, argv); }
+#endif
