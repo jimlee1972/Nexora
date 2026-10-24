@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import ntpath
 import os
 from pathlib import Path
 import re
@@ -59,6 +60,14 @@ def write_json(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
+def relocated_environment(source):
+    # Windows environment names are case-insensitive; plain dict copies are not.
+    environment = {key.upper(): value for key, value in source.items()}
+    windows = environment['SYSTEMROOT']
+    environment['PATH'] = ';'.join((ntpath.join(windows, 'System32'), windows))
+    return environment
+
+
 def verify(package, evidence):
     """Run outside the build tree with a restricted DLL search PATH; preserve all logs."""
     evidence.mkdir(parents=True, exist_ok=False)
@@ -69,9 +78,7 @@ def verify(package, evidence):
         cwd = root / 'empty working directory'
         cwd.mkdir()
         executable = relocated / 'NexoraEditor.exe'
-        environment = dict(os.environ)
-        windows = Path(environment['SystemRoot'])
-        environment['PATH'] = os.pathsep.join((str(windows / 'System32'), str(windows)))
+        environment = relocated_environment(os.environ)
         recent = '--recent-projects=' + str(root / 'recent-projects')
 
         def run(label, arguments, expected=0, frames=None):

@@ -5,10 +5,17 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from PackageWindowsEditor import dependency_closure
+from PackageWindowsEditor import dependency_closure, relocated_environment
 
 
 class Dependencies(unittest.TestCase):
+    def test_windows_environment_case_and_isolated_path(self):
+        for root_key in ('SYSTEMROOT', 'SystemRoot'):
+            with self.subTest(root_key=root_key):
+                environment = relocated_environment({root_key: r'C:\Windows', 'Path': r'D:\build;C:\OpenSSL'})
+                self.assertEqual(environment['PATH'], r'C:\Windows\System32;C:\Windows')
+                self.assertNotIn('Path', environment)
+
     def test_closure_cycles_and_unrelated_tools(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
