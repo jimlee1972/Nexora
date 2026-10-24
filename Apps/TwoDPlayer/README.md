@@ -236,3 +236,28 @@ frames still call gameplay to observe transitions and save, without drawing. Obs
 each fixed tick to prevent background combat advancement. XInput rumble expires and is cleared on
 interruption/close/Stop; unsupported devices report capability honestly. See
 [the lifecycle contract and Zig diagnostic](../../Engine/Runtime/GameplayLifecycle.md).
+
+## Named standalone game executable
+
+Configure `-DNEXORA_2D_GAME_TARGET=ExampleGame` with `NEXORA_ENABLE_2D=ON`, then build
+`ExampleGame`. This opt-in target links `NexoraTwoDPlayerHost` directly into the executable;
+it does not launch the generic Player as a child and contains no project-specific gameplay.
+Gameplay remains in the selected V3 library. For distribution use Monolithic Shipping.
+
+The default descriptor is `game.nx2game` beside the executable. Override its contained ASCII
+filename with `NEXORA_2D_GAME_PROJECT`; absolute paths, traversal and directory components are
+rejected at configure time. Normal Player options remain available. An explicit `--project`
+or `--run-2d-project` overrides the implicit descriptor for diagnostics. Otherwise no arguments
+are needed. Resolution uses the executable location, independently of the working directory.
+Windows uses a GUI `wWinMain` entry and Unicode command-line decoding, so double-clicking the
+executable creates the game window without a command prompt. Startup failure displays a generic
+dialog except for diagnostic runs using `--frames` or `--report`, which retain nonzero exit codes.
+
+Pass this engine-built executable to `ExportGame.py --runtime` just like the generic Player.
+The exporter still validates dependencies, ships the V3 library and records hashes. A generated
+Run.cmd remains an optional developer convenience; a game distributor may omit it and regenerate
+the inventory. Keep the complete exported folder together, not only the executable.
+
+Validation: local Windows entry tests cover implicit/explicit arguments, spaces/Unicode,
+foreign working directories, two process launches and missing-descriptor rejection. Full Linux
+development and Shipping CI and independent clean-host acceptance remain pending for this change.

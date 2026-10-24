@@ -723,3 +723,11 @@ DirectInput／DS4／Linux 震動仍明確不支援。
 本輪不代表 SP-06 正式產品驗收、M6／M7 或其餘 SP 缺口已完成。
 
 前景恢復後的新移動輸入會保留；UI 確認仍等待中立狀態重新啟用。
+
+### 具名遊戲執行檔接入（2026-10-24，驗證中）
+
+選用 `NEXORA_2D_GAME_TARGET` 可由引擎的 2D Player 宿主直接建置具名遊戲執行檔。
+Windows GUI 入口自行解析同資料夾的專案描述檔，不需要 shell、命令稿或子 Player 程序。
+Zig V3 遊戲邏輯仍由遊戲專案擁有並獨立建置。本機 Windows 入口單元／整合測試 2/2 通過；
+完整 Linux development／Shipping CI 與乾淨主機驗收仍待執行，此支援項不關閉 M7。
+詳見 [Player 建置與啟動契約](../../Apps/TwoDPlayer/README.md#named-standalone-game-executable)。
