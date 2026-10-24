@@ -23,6 +23,23 @@ class Dependencies(unittest.TestCase):
             files = dependency_closure(root / 'NexoraEditor.exe', redist, lambda p: graph[p.name])
             self.assertEqual({p.name for p in files}, {'NexoraEditor.exe', 'NexoraCore.dll', 'vcruntime140.dll'})
 
+    def test_explicit_openssl_root_and_its_crt_closure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            editor = root / 'NexoraEditor.exe'
+            editor.touch()
+            openssl = root / 'openssl'
+            (openssl / 'bin').mkdir(parents=True)
+            (openssl / 'bin/libcrypto-3-x64.dll').touch()
+            (root / 'vcruntime140.dll').touch()
+            graph = {'NexoraEditor.exe': ['libcrypto-3-x64.dll'],
+                     'libcrypto-3-x64.dll': ['vcruntime140.dll', 'bcrypt.dll'],
+                     'vcruntime140.dll': []}
+            files = dependency_closure(editor, root, lambda p: graph[p.name], openssl)
+            self.assertIn(openssl / 'bin/libcrypto-3-x64.dll', files)
+            with self.assertRaises(RuntimeError):
+                dependency_closure(editor, root, lambda p: graph[p.name])
+
     def test_unclassified_or_missing_dependency_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

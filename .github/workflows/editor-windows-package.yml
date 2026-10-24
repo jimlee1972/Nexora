@@ -35,6 +35,8 @@ jobs:
           -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_SLANG=OFF
           -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF -DNEXORA_BUILD_SHOWCASE=OFF
           -DNEXORA_BUILD_PROJECT_PLAYER=OFF -DBUILD_TESTING=ON
+          -DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL
+          "-DOPENSSL_ROOT_DIR=C:/Program Files/OpenSSL"
       - name: Build Editor and dependencies
         run: cmake --build build/editor-package --target NexoraEditor --parallel 3
       - name: Package and verify relocated CLI and DX12 presentation
@@ -46,6 +48,7 @@ jobs:
           $redists = @(Get-ChildItem "$env:VCToolsRedistDir/x64" -Directory -Filter 'Microsoft.VC*.CRT')
           if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT redist directory' }
           python Tools/Editor/PackageWindowsEditor.py `
+            --openssl-root "C:/Program Files/OpenSSL" `
             --editor $editors[0].FullName --redist $redists[0].FullName `
             --imgui-license build/editor-package/_deps/nexora_imgui-src/LICENSE.txt `
             --commit $env:GITHUB_SHA --output build/editor-delivery

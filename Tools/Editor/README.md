@@ -97,7 +97,7 @@ Studio, source or Zig toolchain. Separately compiled gameplay modules and their 
 outside this Editor startup package.
 
 `PackageWindowsEditor.py` requires Windows, MSVC `dumpbin`, an explicitly selected x64 CRT redist
-folder, and the fetched Dear ImGui license. It copies the recursive import closure, rejects missing
+folder, the matching OpenSSL installation (including its license), and the fetched Dear ImGui license. It copies the recursive import closure, rejects missing
 or unclassified dependencies, and refuses an existing output directory. Before producing a ZIP,
 it relocates the package to a Unicode path, restricts PATH to Windows system directories, checks
 CLI help/create/reopen/duplicate rejection and runs 120-frame open plus eight-frame creation DX12

@@ -23,7 +23,7 @@ def imports(binary):
                       re.MULTILINE | re.IGNORECASE)
 
 
-def dependency_closure(editor, redist, reader=imports):
+def dependency_closure(editor, redist, reader=imports, openssl_root=None):
     """Resolve engine imports beside the EXE and CRT imports only from explicit redist."""
     engine = {p.name.lower(): p for p in editor.parent.glob('*.dll')}
     crt = {p.name.lower(): p for p in redist.glob('*.dll')}
@@ -36,6 +36,10 @@ def dependency_closure(editor, redist, reader=imports):
                 continue
             if name.startswith('nexora'):
                 source = engine.get(name)
+            elif name == 'libcrypto-3-x64.dll' and openssl_root is not None:
+                source = openssl_root / 'bin' / name
+                if not source.is_file():
+                    source = None
             elif name.startswith(('vcruntime', 'msvcp', 'concrt')):
                 source = crt.get(name)
             else:
@@ -109,6 +113,7 @@ def main():
     parser.add_argument('--editor', type=Path, required=True)
     parser.add_argument('--redist', type=Path, required=True)
     parser.add_argument('--imgui-license', type=Path, required=True)
+    parser.add_argument('--openssl-root', type=Path, required=True)
     parser.add_argument('--commit', required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
@@ -120,12 +125,18 @@ def main():
     try:
         package = args.output / 'NexoraEditor-Windows-x64'
         package.mkdir()
-        for source in dependency_closure(args.editor.resolve(), args.redist.resolve()):
+        for source in dependency_closure(args.editor.resolve(), args.redist.resolve(),
+                                         openssl_root=args.openssl_root.resolve()):
             shutil.copy2(source, package / source.name)
         licenses = package / 'licenses'
         licenses.mkdir()
         shutil.copy2(Path(__file__).resolve().parents[2] / 'LICENSE', licenses / 'Nexora-MIT.txt')
         shutil.copy2(args.imgui_license, licenses / 'DearImGui-MIT.txt')
+        openssl_license = next((args.openssl_root / name for name in ('LICENSE.txt', 'LICENSE', 'LICENSE.md')
+                                if (args.openssl_root / name).is_file()), None)
+        if openssl_license is None:
+            raise RuntimeError('OpenSSL installation license is missing')
+        shutil.copy2(openssl_license, licenses / 'OpenSSL-license.txt')
         (package / 'Run.cmd').write_bytes(b'@echo off\r\n"%~dp0NexoraEditor.exe" --graphical %*\r\n')
         (package / 'README.txt').write_text(
             'Nexora Editor - Windows x64 Development, DX12\n'
