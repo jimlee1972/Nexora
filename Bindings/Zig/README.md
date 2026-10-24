@@ -32,3 +32,7 @@ music/voice handles (`dialogue.Line.pause`) and retain pending cards themselves.
 stop. Map the user's 0..100 setting to gain/100; send zero immediately when disabled. Connected
 DirectInput/DS4 and Linux pads currently lack rumble support, indicated by the copied `rumble_mask`
 and -2 return. See [contract and diagnostic](../../Engine/Runtime/GameplayLifecycle.md).
+
+## Script-only game SDK
+
+The typed lifecycle facade and engine-owned build/entry are documented in [Tools/Zig](../../Tools/Zig/README.md). Authored projects contain gameplay scripts and a manifest; they do not maintain a build.zig or V3 ABI export.

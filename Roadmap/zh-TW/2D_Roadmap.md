@@ -731,3 +731,10 @@ Windows GUI 入口自行解析同資料夾的專案描述檔，不需要 shell�
 Zig V3 遊戲邏輯仍由遊戲專案擁有並獨立建置。本機 Windows 入口單元／整合測試 2/2 通過；
 完整 Linux development／Shipping CI 與乾淨主機驗收仍待執行，此支援項不關閉 M7。
 詳見 [Player 建置與啟動契約](../../Apps/TwoDPlayer/README.md#named-standalone-game-executable)。
+
+### 引擎管理 Zig 腳本建置與 ABI 轉接（2026-10-24）
+
+✅ SDK 統一管理 Zig 編譯、V3 匯出與 host 實例配置；遊戲專案只提供設定及 typed Game 腳本，
+不再維護底層 build／entry，快取位於專案來源外。命令列 CMake 與未來 Editor 共用入口。
+本機 Windows adapter 測試 4/4、遊戲入口及腳本測試 4/4、外部 Unicode 專案建置及來源不變檢查通過；完整封裝啟動與 hosted Linux gate 驗證中。Editor UI 接入、乾淨主機及產品驗收仍未完成。
+詳見 [SDK 契約](../../Tools/Zig/README.md)。

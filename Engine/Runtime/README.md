@@ -1148,3 +1148,7 @@ The generic Player now offers an independently negotiated lifecycle/close/rumble
 See [GameplayLifecycle.md](GameplayLifecycle.md) for owner-thread ownership, retained interruption
 sequences, explicit close opt-in/tokens, bounded XInput output, errors and Zig pause/save policy.
 Native physical Windows acceptance remains separate from the portable contract.
+
+## Typed Zig script lifecycle
+
+The additive [Zig game SDK](../../Tools/Zig/README.md) owns instance allocation and V3 callback wiring. Raw V3 and host lifetime/threading contracts remain unchanged; see the SDK contract for initialization failure cleanup and error mapping.
