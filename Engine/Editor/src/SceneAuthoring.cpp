@@ -308,7 +308,8 @@ bool CameraPersistence::Save(const std::filesystem::path &path, const SceneCamer
     Error(error, "invalid camera state");
     return false;
   }
-  const auto temporary = path.string() + ".tmp";
+  auto temporary = path;
+  temporary += ".tmp";
   std::ofstream output(temporary, std::ios::trunc);
   output << std::setprecision(17) << "NEXORA_SCENE_CAMERA 1\n"
          << camera.transform.x << ' ' << camera.transform.y << ' ' << camera.transform.z << ' '

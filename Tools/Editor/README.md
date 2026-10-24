@@ -73,3 +73,45 @@ Re-record target-host acceptance with the Python recorder. Historical records mu
 `build.editor_target_evidence` runs portable admission regressions without a window or GPU. Passing
 it proves neither actual Windows IME/DPI behavior nor physical Linux rendering. Linux Xvfb tests
 remain separate automation. No target-host acceptance is inferred from cloud execution.
+
+## Windows Editor-only download
+
+The **Windows Editor package** Actions workflow builds the current Development Editor with DX12.
+Download its `NexoraEditor-Windows-x64-<full source SHA>` artifact from a successful run. The artifact
+contains a ZIP, its SHA-256 sidecar and hosted Windows verification logs. Extract the ZIP into a new
+folder; keep the EXE, DLLs and licenses together. This replaces neither an existing package nor a
+project. `build-info.json` records the source commit; `inventory.json` hashes every shipped file
+except itself. Verify the ZIP with PowerShell `Get-FileHash -Algorithm SHA256` against the sidecar.
+
+Double-click `Run.cmd` for the project browser, or use the executable directly:
+
+```powershell
+.\NexoraEditor.exe --help
+.\NexoraEditor.exe --create-project=G:\proj\NewOnmyoji "--project-name=Onmyoji Survivors" --graphical
+.\NexoraEditor.exe --project=G:\proj\OnmyojiSurvivors --graphical
+```
+
+Creation requires a new project descriptor and rejects an existing one. Open an existing Nexora
+project with `--project`; do not recreate it. This package contains no Player, AssetCompiler,
+Studio, source or Zig toolchain. Separately compiled gameplay modules and their requirements are
+outside this Editor startup package.
+
+`PackageWindowsEditor.py` requires Windows, MSVC `dumpbin`, an explicitly selected x64 CRT redist
+folder, the matching OpenSSL installation (including its license), and the fetched Dear ImGui license. It copies the recursive import closure, rejects missing
+or unclassified dependencies, and refuses an existing output directory. Before producing a ZIP,
+it relocates the package to a Unicode path, restricts PATH to Windows system directories, checks
+CLI help/create/reopen/duplicate rejection and runs 120-frame open plus eight-frame creation DX12
+smokes. Logs survive failure; a failed verification does not produce a delivery ZIP. Its portable
+synthetic tests run with `python -m unittest discover -s Tools/Editor/tests -v`.
+
+Hosted Windows rendering checks do not establish physical DPI/IME, game integration or clean
+Windows installation acceptance. Existing Editor milestone acceptance requirements remain open.
+
+The packaging task cleans up superseded `Build` runs only on its exact
+`build/editor-windows-package` branch and only for the repository owner's runs. Both events at the
+current branch head remain required; other branches and actors are excluded.
+
+Windows camera persistence retains native filesystem paths when creating its temporary file,
+so opening and closing an Editor project under a Unicode directory does not narrow its camera
+metadata path through the active ANSI code page. The relocated graphical package check exercises
+this shutdown path as well as initial rendering.

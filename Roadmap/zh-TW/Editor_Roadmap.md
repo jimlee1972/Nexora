@@ -16,6 +16,15 @@ workspace/document core。**待辦：** 其餘 graphical view、authoring workfl
 ✅ Linux 自動化 Vulkan 驗證現會拒絕 exit-zero error，已涵蓋 attachment 同步與 native RHI
 shader feature（[證據](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)）。ED-M0 仍待 target-host 與 workflow gate。
 
+### 可重複建置的 Windows Editor 套件
+
+✅ 獨立 Windows Editor package 工作流程與可攜式回歸測試已實作僅含 Editor 的
+Development／DX12 ZIP 建置，包含選用的 OpenSSL 執行檔與授權。工作流程
+記錄來源版本與檔案雜湊，並於上傳前要求搬移後的原生 CLI 與呈現驗證。
+參閱[套件說明](../../Tools/Editor/README.md#windows-editor-only-download)。
+鏡頭設定暫存檔保留原生 Unicode 路徑。每份可下載套件均須通過原生工作流程，
+日誌記錄受測來源。雲端 Windows 證據不代表實體 DPI／IME 或遊戲驗收完成；ED-M0～M7 維持未完成。
+
 ### 本機 Windows 基本驗收與獨立 100k 壓力層級（2026-10-22）
 
 ✅ 本機分層基本驗收已完成：309 項中 303 passed、6 skipped、零失敗，

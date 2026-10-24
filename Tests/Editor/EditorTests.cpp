@@ -1897,7 +1897,7 @@ int Run() {
   Require(!picking.Accept(current_pick), "stale scene-generation pick was accepted");
 
   const editor::SceneCameraState camera{{1, 2, 3}, 0.25, 0.5, 12.0, true, 42.0};
-  const auto camera_path = root / ".nexora/scene-camera.state";
+  const auto camera_path = root / fs::path(u8".nexora/場景-camera.state");
   Require(editor::CameraPersistence::Save(camera_path, camera, &error) &&
               editor::CameraPersistence::Load(camera_path, &error) == camera,
           "scene camera persistence failed");
