@@ -173,6 +173,19 @@ if(TARGET NexoraTwoDPlayer AND TARGET NexoraTwoDBenchmark)
   set_tests_properties(twod.backend_options PROPERTIES TIMEOUT 60 LABELS "twod;presentation;cli")
 endif()
 if(TARGET NexoraTwoDPlayerHost)
+  add_executable(NexoraTwoDGameEntryTests GameEntryTests.cpp)
+  target_link_libraries(NexoraTwoDGameEntryTests PRIVATE NexoraTwoDPlayerHost)
+  nexora_apply_defaults(NexoraTwoDGameEntryTests)
+  add_test(NAME twod.game_entry COMMAND NexoraTwoDGameEntryTests)
+  # Build the real optional entry on every test-enabled platform, even without a game target.
+  nexora_add_2d_game(NexoraTwoDGameEntryFixture "game.nx2game")
+  if(TARGET NexoraTwoDProjectFixture)
+    add_test(NAME twod.game_entry_acceptance COMMAND "${Python3_EXECUTABLE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/GameEntryAcceptance.py"
+      --app "$<TARGET_FILE:NexoraTwoDGameEntryFixture>"
+      --module "$<TARGET_FILE:NexoraTwoDProjectFixture>")
+    set_tests_properties(twod.game_entry_acceptance PROPERTIES TIMEOUT 90 LABELS "twod;project;export")
+  endif()
   add_executable(NexoraTwoDProjectManifestTests ProjectManifestTests.cpp)
   target_link_libraries(NexoraTwoDProjectManifestTests PRIVATE NexoraTwoDPlayerHost)
   nexora_apply_defaults(NexoraTwoDProjectManifestTests)

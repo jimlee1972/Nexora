@@ -819,3 +819,12 @@ acceptance remain open (`nexora-4j7.1`). Message injection is not actual OS slee
 This does not complete SP-06 product acceptance, M6/M7, or unrelated SP gaps.
 
 Fresh post-foreground movement is retained; UI confirmation still waits for neutral rearming.
+
+### Named game executable integration (2026-10-24, validation in progress)
+
+The opt-in `NEXORA_2D_GAME_TARGET` builds a named executable directly from the engine-owned 2D
+Player host. Windows GUI startup resolves the adjacent project descriptor without a shell,
+command script or child Player process. Zig V3 gameplay stays external and project-owned.
+Local Windows entry unit/integration tests pass (2/2); full Linux development and Shipping CI
+and clean-host acceptance remain pending. This supporting change does not close M7.
+See [Player build and startup contract](../../Apps/TwoDPlayer/README.md#named-standalone-game-executable).
