@@ -18,6 +18,13 @@ corresponding milestone accepted until its host gate passes.
 synchronization and native RHI shader features ([evidence](../../Tools/Build/evidence/EditorEDM0-VulkanValidation-2026-10-06.md)).
 ED-M0 remains open pending the target-host and workflow gates.
 
+### Reproducible Windows Editor package
+
+The dedicated Windows Editor package workflow builds an Editor-only Development/DX12 ZIP,
+records source identity and file hashes, and requires relocated native CLI and presentation
+verification before upload. See [packaging instructions](../../Tools/Editor/README.md#windows-editor-only-download).
+Hosted runner evidence does not complete physical Windows DPI/IME or game acceptance; ED-M0–M7 remain open.
+
 ### Local Windows baseline and separate 100k stress tier (2026-10-22)
 
 ✅ The scoped local Windows baseline completed: 303 passed, 6 skipped, zero failures

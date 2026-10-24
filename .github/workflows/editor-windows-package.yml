@@ -1,0 +1,69 @@
+name: Windows Editor package
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'build/editor-*']
+    paths:
+      - '.github/workflows/editor-windows-package.yml'
+      - 'Tools/Editor/**'
+      - 'Apps/Editor/**'
+      - 'Engine/**'
+      - 'Config/Modules/**'
+      - 'CMake/**'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test dependency admission
+        run: python -m unittest discover -s Tools/Editor/tests -v
+      - name: Configure Editor
+        run: >-
+          cmake --preset windows-development -B build/editor-package
+          -DNEXORA_ENABLE_EDITOR=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
+          -DNEXORA_ENABLE_NATIVE_BACKENDS=ON -DNEXORA_ENABLE_2D=ON
+          -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_SLANG=OFF
+          -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF -DNEXORA_BUILD_SHOWCASE=OFF
+          -DNEXORA_BUILD_PROJECT_PLAYER=OFF -DBUILD_TESTING=ON
+      - name: Build Editor and dependencies
+        run: cmake --build build/editor-package --target NexoraEditor --parallel 3
+      - name: Package and verify relocated CLI and DX12 presentation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $editors = @(Get-ChildItem build/editor-package -Filter NexoraEditor.exe -Recurse)
+          if ($editors.Count -ne 1) { throw 'Expected exactly one Editor binary' }
+          $redists = @(Get-ChildItem "$env:VCToolsRedistDir/x64" -Directory -Filter 'Microsoft.VC*.CRT')
+          if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT redist directory' }
+          python Tools/Editor/PackageWindowsEditor.py `
+            --editor $editors[0].FullName --redist $redists[0].FullName `
+            --imgui-license build/editor-package/_deps/nexora_imgui-src/LICENSE.txt `
+            --commit $env:GITHUB_SHA --output build/editor-delivery
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: NexoraEditor-Windows-x64-${{ github.sha }}
+          path: |
+            build/editor-delivery/*.zip
+            build/editor-delivery/*.sha256
+            build/editor-delivery/verification/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Editor-package-failure-${{ github.run_id }}
+          path: build/editor-delivery/verification/
+          if-no-files-found: ignore
