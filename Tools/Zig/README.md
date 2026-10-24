@@ -9,7 +9,7 @@ Editor build actions must use this same entry; an Editor UI integration is not i
 {"schema": 1, "module_name": "MyGame", "script": "scripts/game.zig"}
 ```
 
-The script exports `pub const Game = struct { ... };`, default-initializable with `.{}`
+The script exports `pub const Game = struct { ... };`, default-initializable with `.{}`.
 It imports `nexora`, uses `nx.game.Context`, and may implement these public methods:
 
 ```zig
@@ -70,3 +70,7 @@ The SDK path is an installation implementation detail, not an authored project f
 Regression coverage: `gameplay.zig_game_script_adapter` validates lifecycle and failure ownership;
 `gameplay.zig_script_project` builds an external script-only project in a Unicode/space path,
 executes both test runners, verifies untouched sources and rejects parent traversal.
+
+On macOS, use the shared CMake entry: it reuses the existing Apple host-linker workaround for Zig 0.14 dynamic modules and test executables. The raw Zig build-file command does not apply that workaround.
+
+Local validation and acceptance boundaries: [Windows evidence](../Build/evidence/Zig-Script-SDK-Windows-2026-10-24.md).

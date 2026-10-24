@@ -37,9 +37,12 @@ def main():
         configure = [args.cmake, "-S", str(source), "-B", str(output), f"-DZIG={Path(args.zig).as_posix()}"]
         run(configure)
         result = run([args.cmake, "--build", str(output), "--target", "game", "--config", "Release"])
-        assert "2/2 tests passed" in result.stdout + result.stderr, result.stdout + result.stderr
+        assert "NEXORA_SCRIPT_TESTS_PASSED" in result.stdout + result.stderr, result.stdout + result.stderr
         assert list((output / "module").rglob("*ScriptFixture*"))
         assert before == {p.name: p.read_bytes() for p in source.iterdir()}, "SDK modified authored project"
+        with (source / "game.zig").open("a", encoding="utf-8") as script:
+            script.write('\ntest "deliberate authored failure" { try std.testing.expect(false); }\n')
+        run([args.cmake, "--build", str(output), "--target", "game", "--config", "Release"], expected_success=False)
         manifest["script"] = "../outside.zig"
         (source / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
         rejected = run(configure, expected_success=False)

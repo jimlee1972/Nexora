@@ -44,11 +44,38 @@ function(nexora_add_game_module target)
   set(environment "${CMAKE_COMMAND}" -E env
     "ZIG_GLOBAL_CACHE_DIR=${CMAKE_BINARY_DIR}/zig-global-cache"
     "ZIG_LOCAL_CACHE_DIR=${CMAKE_BINARY_DIR}/zig-local-cache")
+  if(APPLE)
+    # Reuse the established Zig 0.14 macOS host-linker workaround.
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    find_program(NEXORA_GAME_HOST_CXX NAMES clang++ REQUIRED)
+    file(MAKE_DIRECTORY "${GAME_OUTPUT}/lib")
+    set(module_args --dep nexora --dep game
+      "-Mroot=${sdk_root}/Tools/Zig/game_entry.zig" --dep nexora
+      "-Mgame=${script_path}" "-Mnexora=${sdk_root}/Bindings/Zig/nexora.zig")
+    set(test_runner "${sdk_root}/Tools/Build/RunZigTestWithHostLinker.py")
+    add_custom_target(${target}
+      COMMAND ${environment} "${GAME_ZIG}" build-obj -OReleaseSafe
+        -fPIC -fcompiler-rt -fno-stack-check -mcpu=baseline ${module_args}
+        "-femit-bin=${GAME_OUTPUT}/module.o"
+      COMMAND "${NEXORA_GAME_HOST_CXX}" -dynamiclib "${GAME_OUTPUT}/module.o"
+        -o "${GAME_OUTPUT}/lib/lib${module_name}.dylib"
+      COMMAND ${environment} "${Python3_EXECUTABLE}" "${test_runner}"
+        --zig "${GAME_ZIG}" --cxx "${NEXORA_GAME_HOST_CXX}"
+        --output-dir "${GAME_OUTPUT}/entry-tests" -- ${module_args}
+      COMMAND ${environment} "${Python3_EXECUTABLE}" "${test_runner}"
+        --zig "${GAME_ZIG}" --cxx "${NEXORA_GAME_HOST_CXX}"
+        --output-dir "${GAME_OUTPUT}/script-tests" -- --dep nexora
+        "-Mroot=${script_path}" "-Mnexora=${sdk_root}/Bindings/Zig/nexora.zig"
+      COMMAND "${CMAKE_COMMAND}" -E echo NEXORA_SCRIPT_TESTS_PASSED
+      WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" VERBATIM)
+    return()
+  endif()
   set(arguments --build-file "${sdk_root}/Tools/Zig/build.zig"
     "-Dscript=${script_path}" "-Dname=${module_name}" ${target_args})
   add_custom_target(${target}
     COMMAND ${environment} "${GAME_ZIG}" build ${arguments}
       -Doptimize=ReleaseSafe --prefix "${GAME_OUTPUT}"
     COMMAND ${environment} "${GAME_ZIG}" build test ${arguments} --summary all
+    COMMAND "${CMAKE_COMMAND}" -E echo NEXORA_SCRIPT_TESTS_PASSED
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}" VERBATIM)
 endfunction()

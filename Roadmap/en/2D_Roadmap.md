@@ -834,5 +834,7 @@ See [Player build and startup contract](../../Apps/TwoDPlayer/README.md#named-st
 ✅ The SDK now owns generic Zig compilation, V3 export and host instance allocation. Authored
 projects provide a manifest and typed Game script; build/entry files stay in the SDK and caches
 stay outside the authored project. Command-line CMake and future Editor actions share the same
-entry. Local Windows adapter tests pass 4/4 and game entry/script tests pass 4/4. The external Unicode project build and unchanged-source checks pass. Full game package/startup and hosted Linux gates are being validated. Editor UI integration
+entry. Local Windows adapter tests pass 4/4 and game entry/script tests pass 4/4. The external Unicode project build and unchanged-source checks pass. The external game Shipping build/package, two 600-tick replays, 180 DX12 native frames, zero-argument startup and package inventory pass on the Windows developer host. Hosted Linux gates remain pending. Editor UI integration
 and clean-host/product acceptance remain open. See [SDK contract](../../Tools/Zig/README.md).
+
+[Scoped Windows evidence](../../Tools/Build/evidence/Zig-Script-SDK-Windows-2026-10-24.md).
