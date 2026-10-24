@@ -1,4 +1,7 @@
 add_executable(NexoraEditor main.cpp)
+if(MINGW)
+  target_link_options(NexoraEditor PRIVATE -municode)
+endif()
 if(MSVC)
   target_compile_definitions(NexoraEditor PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()

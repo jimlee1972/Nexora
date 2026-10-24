@@ -9,6 +9,33 @@ private presentation path.
 NexoraEditor --project=/path/to/project --report=editor-report.json
 ```
 
+Create a new project without opening a window, or create it and enter the graphical shell:
+
+```powershell
+.\NexoraEditor.exe "--create-project=G:\proj\OnmyojiSurvivors" "--project-name=Onmyoji Survivors"
+.\NexoraEditor.exe "--create-project=G:\proj\AnotherGame" "--project-name=Another Game" --graphical
+.\NexoraEditor.exe "--project=G:\proj\OnmyojiSurvivors" --graphical
+```
+
+Creation requires both nonempty `--create-project=PATH` and `--project-name=NAME`. It reuses the
+Project Browser's workspace creation and normal content indexing, creating `project.nexora`,
+`Content/` and `.nexora/workspace`. Existing unrelated documentation is retained; an existing
+project descriptor is rejected, never replaced. Use `--project=PATH` to reopen it. Creation does
+not generate gameplay code, select a Zig module or create a complete game.
+`--create-project` cannot be combined with `--project` or `--read-only`; `--project-name` requires
+creation, and duplicate creation/name options are usage errors. Invalid options return 2 before
+project creation. Workspace/create/index failures return 1; success returns 0. `--report` and
+`--recent-projects` also apply to creation. The headless JSON report escapes names correctly.
+Windows arguments use the native UTF-16 entry point; project/report/recent paths and names are
+converted to UTF-8 explicitly, including spaces and CJK characters.
+
+`--graphical` requires a graphical-shell build; unsupported requests fail before creating a
+workspace. Creation/indexing happens before native surface initialization, so a later display
+failure can leave a valid newly created workspace. An indexing failure can also leave the created
+workspace and already admitted sidecars; retain the error, fix the content, and reopen using
+`--project` rather than retrying creation or deleting files. The existing single-writer and atomic
+publication rules remain in effect. No force/overwrite option is provided.
+
 The default open is read-write and owns the project's single writer lease until process shutdown.
 Use `--read-only` for an explicit observer; it validates existing asset identity sidecars and never
 upgrades or writes project-owned files. `--recent-projects=PATH` overrides the user-level recent
