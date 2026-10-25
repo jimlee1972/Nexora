@@ -11,8 +11,8 @@ struct GameBuildToolchain final {
   // Explicit engine distribution inventory; never search the authored project or current CWD.
   std::vector<std::filesystem::path> runtime_files;
 };
-// Read the trusted installed Player's flat runtime inventory. Compiler paths are supplied by
-// the host's tool configuration; authored project files never select build executables.
+// Read the trusted Player inventory: flat installed filenames or absolute build-tree DSOs.
+// Compiler paths come from host configuration; authored projects never select build executables.
 [[nodiscard]] NEXORA_EDITOR_API std::optional<GameBuildToolchain>
 ReadGameBuildToolchain(const std::filesystem::path &profile, const std::filesystem::path &cmake,
                        const std::filesystem::path &ninja, const std::filesystem::path &zig,

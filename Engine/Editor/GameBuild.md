@@ -29,9 +29,11 @@ the dedicated source directory and reports an error otherwise.
 The compiled library must negotiate the same required V3 table as `GameplayModuleHost::Load`.
 Inspection opens the library/executes its loader, but calls no create/start/update/stop/destroy.
 It proves neither actual gameplay initialization nor device/input/audio acceptance. Actual native
-startup/transitions remain integrated runtime gates. Engine target dependencies generate the flat
+startup/transitions remain integrated runtime gates. Engine target dependencies generate the host
 `GameRuntime.profile`; Windows additionally supplies the configured MSVC redistributable DLLs.
 The profile and compiler paths are host configuration, never selected by authored project files.
+Generated development profiles record actual target DSO paths because POSIX libraries can live
+in a sibling lib directory; installed profiles can instead list the flat adjacent filenames.
 
 BuildProcess launches each tool directly with owning UTF-8 argv and an independent one-worker
 process pool; no shell, GUI borrow or outer-pool deadlock. Cancellation is checked between CPU

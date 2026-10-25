@@ -76,3 +76,28 @@ assembled relocation remains separate.
 Pending: full exact-head Linux Development/Shipping/platform/sanitizer gates, graphical build owner, Editor
 Play, Windows pixels and final Editor-only ZIP. No additional phase or full graphical milestone
 is accepted by these CPU/build tests. Existing Runtime/API phase acceptance remains 3/5 overall.
+
+## PR #720 first CI attempt and profile correction
+
+Head `1c23e28464ade63a5bd07cb8fa061df1b611a588`, PR run `40233912218`:
+macOS completed 383 registered tests with one failure, `editor.game_build`. Its Editor CLI could
+not find libNexoraCore.dylib because a generated flat profile searched bin while build-tree DSOs
+are in the sibling lib directory. The correction records actual CMake target DSO paths in a
+development profile; the explicitly trusted profile reader accepts those absolute library paths.
+Installed flat filenames remain supported, with a CRLF/flat-profile integration regression check.
+Authored source alias guards, output inventory and game runtime lookup are unchanged. Original log:
+`build/scene-settings/phase4-ci720-macos-first-failed.log` (job `121291404305`).
+
+The Windows job `121291404221` failed earlier in the unchanged renderer.ray_tracing native WARP
+oracle gate: primitive 2 was expected but the software DXR result reported a miss. No RHI,
+Renderer, shader or renderer-test file differs from parent main in this head. This is not treated
+as accepted or skipped. Original diagnostics: `phase4-ci720-windows-first-failed.log`. GitHub
+refused a targeted rerun while the containing workflow was still running; retry requires that run
+to finish or a newly validated source head. Complete updated-head CI remains required before merge.
+
+The profile correction passed the local 14-test integration gate at stamp
+`phase4-gate-20261026-054205`, zero failures/skips, 114.18 s. This local tree also contains separate
+uncommitted Editor Play integration work; its external-World API and supporting host tests do not
+enter the profile-fix commit. The updated exact-head platform gates remain the merge authority.
+The final absolute-development plus flat-installed/CRLF compatibility regression gate also passed
+14/14, zero failures/skips, 114.78 s at `phase4-gate-20261026-054632`.

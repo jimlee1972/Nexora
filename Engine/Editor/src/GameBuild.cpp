@@ -283,6 +283,14 @@ std::optional<GameBuildToolchain> ReadGameBuildToolchain(const Path &profile, co
     }
     const auto name = line.substr(player ? 7 : 8);
     const Path relative(std::u8string(name.begin(), name.end()));
+    if (!player && relative.is_absolute()) {
+      // The explicitly trusted engine profile may describe a development tree whose DSOs are
+      // in ../lib. This is host configuration, never discovery from an authored project/CWD.
+      if (!Read(relative, kArtifactLimit, error))
+        return {};
+      tools.runtime_files.push_back(relative);
+      continue;
+    }
     if (relative.empty() || relative.has_parent_path() ||
         !ReadGameBuildSource(profile.parent_path(), relative, kArtifactLimit, false, error))
       return {};

@@ -1,6 +1,7 @@
 include_guard(GLOBAL)
 
 # Record the configured target dependency closure instead of every engine/tool DLL.
+# Build-tree libraries may live in ../lib; installed profiles can use flat filenames instead.
 function(nexora_game_runtime_profile player)
   set(pending "${player}")
   set(visited)
@@ -40,7 +41,7 @@ function(nexora_game_runtime_profile player)
   set(profile "NEXORA_GAME_RUNTIME_1\nplayer=$<TARGET_FILE_NAME:${player}>\n")
   set(runtime_files)
   foreach(library IN LISTS libraries)
-    string(APPEND profile "runtime=$<TARGET_FILE_NAME:${library}>\n")
+    string(APPEND profile "runtime=$<TARGET_FILE:${library}>\n")
     list(APPEND runtime_files "$<TARGET_FILE:${library}>")
   endforeach()
   if(MSVC)

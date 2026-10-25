@@ -127,6 +127,18 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   Require(Command(installed, root,
                   {"--verify-native-game-package", Utf8(output / "Game.nxgame")}) == 0U,
           "staged runtime dependency closure is incomplete");
+  std::string flat_profile =
+      "NEXORA_GAME_RUNTIME_1\r\nplayer=" + Utf8(installed.filename()) + "\r\n";
+  for (const auto &library : request.tools.runtime_files)
+    flat_profile += "runtime=" + Utf8(library.filename()) + "\r\n";
+  Write(output / "FlatRuntime.profile", flat_profile);
+  const auto flat_tools =
+      editor::ReadGameBuildToolchain(output / "FlatRuntime.profile", request.tools.cmake,
+                                     request.tools.ninja, request.tools.zig, &error);
+  Require(flat_tools && flat_tools->player == installed &&
+              flat_tools->runtime_files.size() == request.tools.runtime_files.size(),
+          "flat installed/CRLF profile compatibility");
+  std::filesystem::remove(output / "FlatRuntime.profile");
   Require(Command(Path(argv[6]), root,
                   {"--build-game=" + Utf8(root), "--output=" + Utf8(root / "CliGame"),
                    "--runtime-profile=" +
