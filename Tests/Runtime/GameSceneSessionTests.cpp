@@ -102,7 +102,8 @@ void Core() {
   reject = true;
   Require(session.RequestLoad(testscene::kTitle, Mode::Replace, false, request) == Error::None,
           "request replacement");
-  NexoraSceneTransitionV1 status{sizeof(status)};
+  NexoraSceneTransitionV1 status{};
+  status.struct_size = sizeof(status);
   Require(session.Status(old_completed, status) == Error::None && status.state == 2,
           "queued request lost last completed status");
   Require(!session.Process(prepare) && visible == first && resources == 1 &&
@@ -148,7 +149,8 @@ void Core() {
               api.get_scene_info(api.context, session.View().primary, &short_info) == -2 &&
               short_info.flags == 99 && short_info.scene == 98,
           "invalid/short C requests changed output or unloaded the last scene");
-  NexoraSceneInstanceV1 primary_info{sizeof(primary_info)};
+  NexoraSceneInstanceV1 primary_info{};
+  primary_info.struct_size = sizeof(primary_info);
   Require(api.get_scene_info(api.context, session.View().primary, &primary_info) == 0 &&
               primary_info.flags == NEXORA_SCENE_PRIMARY && primary_info.camera &&
               primary_info.asset_high == 1 && primary_info.asset_low == 1,
@@ -197,10 +199,14 @@ void Core() {
   Require(thread_rejected, "wrong-thread scene service");
   runtime::GameplayServices services;
   services.scene = api;
-  NexoraGameplayServicesApiV1 negotiated{sizeof(negotiated), 1};
+  NexoraGameplayServicesApiV1 negotiated{};
+  negotiated.struct_size = sizeof(negotiated);
+  negotiated.abi_version = 1;
   Require(services.GetApi(&negotiated) == 0 && negotiated.get_scene_api,
           "scene service negotiation");
-  NexoraGameplaySceneApiV1 copied{sizeof(copied), 1};
+  NexoraGameplaySceneApiV1 copied{};
+  copied.struct_size = sizeof(copied);
+  copied.abi_version = 1;
   Require(negotiated.get_scene_api(negotiated.context, &copied) == 0 &&
               copied.context == api.context,
           "copied scene table");

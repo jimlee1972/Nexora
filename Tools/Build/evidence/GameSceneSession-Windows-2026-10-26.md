@@ -60,3 +60,15 @@ PR #717 has passed 38/38 exact-head checks and merged as `7968bf62`; those depen
 validate this session implementation. Native rendering must stage all required resources before publication
 and retire GPU owners after outstanding work drains. The common build entry, Editor Play, relocated
 game acceptance and final executable Editor-only ZIP remain open. Overall acceptance is now 2/5, solely from the separate package phase.
+
+
+## PR 718 first CI attempt
+
+Head `de809f460b977e789811eebae8043d1b64a67a72`, PR run `40221050600`,
+failed Linux/macOS compilation in GameSceneSessionTests.cpp: four C POD test values used partial
+aggregate initialization, rejected by the existing `-Werror=missing-field-initializers` policy.
+Linux job `121252610721`, build-contract `121252610686` and macOS `121252610782` retain the
+original diagnostics. The correction value-initializes the complete POD and explicitly assigns
+struct_size/abi_version. No production code, warning flags, assertions or ABI baselines change.
+The PR remains unmerged; complete updated-head gates are still required. Subsequent local
+integration validation is separate from the original 12-test source receipt above.
