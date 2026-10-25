@@ -8,6 +8,9 @@ pub const Context = struct {
     pub fn services(self: *const Context) !nx.GameplayServicesApiV1 {
         return nx.getServices(&self.host) orelse error.Unsupported;
     }
+    pub fn scenes(self: *const Context) !nx.scene.Api {
+        return nx.getScene(try self.services()) orelse error.Unsupported;
+    }
 
     pub fn display(self: *const Context) !nx.display.Api {
         return nx.getDisplay(try self.services()) orelse error.Unsupported;

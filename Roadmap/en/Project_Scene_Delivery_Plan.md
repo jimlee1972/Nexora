@@ -1,6 +1,6 @@
 # Project startup scene, multi-scene build and runtime transitions
 
-Status: authorized implementation goal; **1/5 implementation phases accepted**.
+Status: authorized implementation goal; **2/5 implementation phases accepted**.
 Updated: 2026-10-26. Related milestones: ED-M1, ED-M3 and ED-M6; none is accepted by this plan.
 The durable work/dependency record is Beads, not the phase table below.
 
@@ -13,12 +13,20 @@ the full verbose Linux core gate exercised the alias branch without an unavailab
 Native settings-to-game integration and final delivery remain phase 4/5 work.
 [Evidence and closure](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md).
 
-Phase 2 candidate now captures enabled saved scenes, cooks their exact asset union and verifies a
-separate Runtime catalog with an explicit startup UUID. Shared decoded mesh/material owners span
-scene templates; the Runtime-only CLI consumes it without authoring files. The initial six Windows
-package/producer/legacy compatibility tests pass. Full gates, live transitions, publication/build
-coordination and final delivery remain pending. See the [package contract](../../Engine/Runtime/GameProjectPackage.md)
-and [producer contract](../../Engine/Editor/GameProjectExport.md).
+✅ Phase 2 cooker/package is accepted for its scoped data/producer contract. PR #717 head
+`c66cecd0` passed all 38 exact-head checks and was squash merged as `7968bf62`. Hosted Linux
+Development registered 457 tests, Windows 397 and macOS 376, all zero failures with the existing
+font skip retained. Linux Shipping, sanitizer/TSan, feature-off and native/platform gates passed.
+The first macOS temporary-path fixture failure is retained; resolving the physical fixture root
+fixed it without changing production alias rejection. See the [package evidence](../../Tools/Build/evidence/EditorGameProjectPackage-2026-10-26.md),
+[package contract](../../Engine/Runtime/GameProjectPackage.md) and [producer contract](../../Engine/Editor/GameProjectExport.md).
+
+Phase 3 candidate adds an owner-thread queued Runtime session and optional C/Zig scene service,
+with candidate World/presentation preparation, remapped IDs, persistent retention and retired
+binding cleanup. Twelve Windows scoped tests pass, including the actual SDK-built Zig fixture
+requesting Level01 → Title → Level01. Its complete exact-head gates remain pending and it adds
+no accepted phase. See the [session contract](../../Engine/Runtime/GameSceneSession.md) and
+[scoped evidence](../../Tools/Build/evidence/GameSceneSession-Windows-2026-10-26.md).
 
 ## 1. Product behavior
 
@@ -160,7 +168,7 @@ do not claim this work accepts every 2D/physics/plugin format or the full Editor
 | Phase | Scope | Required result | Acceptance |
 | --- | --- | --- | --- |
 | 1 | Settings/core and graphical Build Settings | Independent startup/build list, migration and guarded persistence | ✅ Scoped settings/UI contract accepted; PR #716 |
-| 2 | Multi-scene cooker/package | Deterministic catalog and union closure; legacy StaticView unchanged | Pending |
+| 2 | Multi-scene cooker/package | Deterministic catalog and union closure; legacy StaticView unchanged | ✅ Scoped cooker/package contract accepted; PR #717 |
 | 3 | Runtime session and C/Zig scene service | Transactional Replace/Additive/unload, identity and lifetime checks | Pending |
 | 4 | Shared build, Editor Play and native Player | Same authored scenes, startup and transitions through all entrypoints | Pending |
 | 5 | Integrated validation and Editor delivery | Evidence, CI, merged source and runnable Windows Editor-only ZIP | Pending |

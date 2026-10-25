@@ -60,6 +60,10 @@ lifecycle = json.loads((root / "Engine/API/abi_baseline_lifecycle_v1.json").read
 structures.update(lifecycle["structures"])
 structures["NexoraGameplayServicesApiV1"] += lifecycle["services_suffix"]
 services["zig_names"].update(lifecycle["zig_names"])
+scene = json.loads((root / "Engine/API/abi_baseline_scene_v1.json").read_text(encoding="utf-8"))
+structures.update(scene["structures"])
+structures["NexoraGameplayServicesApiV1"] += scene["services_suffix"]
+services["zig_names"].update(scene["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:

@@ -51,7 +51,7 @@ for the legacy StaticView encoder; aggregate asset-copy/required-component admis
 before building an oversized or unsupported union. Earlier runs remain preserved; its log remains under the earlier package run.
 This is developer-PC evidence, not clean-host, VM or native multi-scene pixel acceptance.
 
-## Remaining gates
+## Historical candidate gates before exact-head closure
 
 Full Linux Development configure/build/CTest and Shipping, feature-off/ABI/platform CI and native
 scene session/build integration remain pending for this candidate. Phase-1 PR #716 validates a
@@ -68,3 +68,38 @@ writing or reading; production alias admission is unchanged. The verifier test a
 its captured exit/stdout/stderr on failure. The corrected CLI fixture passed on the Windows
 developer PC; macOS and the complete updated-head CI gates remain pending. This is not
 native scene-transition or final Editor ZIP acceptance.
+
+
+## Exact-head CI closure — PR 717
+
+✅ Head `c66cecd09df6861dce4c2103e021633eb088fcd1` passed all 38 checks from
+PR run `40215766422` and its push counterpart `40215770787`. Both runs completed successfully.
+After confirming unchanged head, base `72c82cc7`, mergeability and the authorized repository,
+PR #717 was squash merged as `7968bf629b69db564a3473229950f0af2960809f`.
+No failed or pending check was bypassed.
+
+| Hosted gate | Result |
+| --- | --- |
+| Linux Development configure/build/full verbose CTest | 457 registered, zero failures, existing portable-font skip; 1317.02 s |
+| Windows Development full CTest | 397 registered, zero failures, existing portable-font skip; 1782.44 s |
+| macOS Development full CTest | 376 registered, zero failures, existing portable-font skip; 927.45 s |
+| Corrected CLI fixture | Passed on Linux, Windows and macOS; macOS 0.18 s |
+| Linux Shipping configure/build | Passed in build-contract; separate Linux Shipping package job passed |
+| Feature-off, ASan/UBSan and TSan | Passed; retained existing font skip |
+| Native display and all remaining platform/package gates | Passed |
+
+The required Linux commands ran on hosted Ubuntu, not this Windows developer PC:
+
+```bash
+cmake --preset linux-development -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_ENABLE_SLANG=ON -DNEXORA_ENABLE_D3D12_WORK_GRAPHS=OFF -DNEXORA_ENABLE_VULKAN_BACKEND=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
+cmake --build --preset linux-development
+ctest --preset linux-development -V --output-log build/linux-development/development-tests.log
+cmake --preset linux-shipping -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON
+cmake --build --preset linux-shipping
+```
+
+The receipt `build/scene-settings/phase2-ci717.json` retains exact-head/base/check identities.
+The original macOS failure remains recorded above. Phase 2 is accepted solely for package/cooker
+and source-free CPU consumption; Runtime transitions, native pixels, common executable building,
+Editor Play and final relocated Editor ZIP retain their own gates. Scene-delivery acceptance is
+2/5; complete graphical Editor milestone acceptance remains 0/8.

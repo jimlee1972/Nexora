@@ -160,6 +160,7 @@ public:
   [[nodiscard]] WorldKind Kind() const noexcept { return kind_; }
 
 private:
+  friend class GameSceneSession;
   friend class WorldCommandBuffer;
   friend class SceneEditor;
   friend class PlaySession;

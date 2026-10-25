@@ -18,6 +18,7 @@ public:
   NexoraGameplayAssetsApiV1 assets{};
   NexoraGameplayAudioStateApiV1 audio_state{};
   NexoraGameplayLifecycleApiV1 lifecycle{};
+  NexoraGameplaySceneApiV1 scene{};
 
   [[nodiscard]] int32_t GetApi(NexoraGameplayServicesApiV1 *output) noexcept {
     if (std::this_thread::get_id() != owner_)
@@ -28,6 +29,8 @@ public:
       return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
     const auto bytes =
         output->struct_size >= sizeof(*output) ? sizeof(*output)
+        : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_scene_api)
+            ? offsetof(NexoraGameplayServicesApiV1, get_scene_api)
         : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_lifecycle_api)
             ? offsetof(NexoraGameplayServicesApiV1, get_lifecycle_api)
         : output->struct_size >= offsetof(NexoraGameplayServicesApiV1, get_audio_state_api)
@@ -60,7 +63,8 @@ public:
         },
         [](void *p, NexoraGameplayLifecycleApiV1 *v) {
           return Copy(p, v, &GameplayServices::lifecycle);
-        }};
+        },
+        [](void *p, NexoraGameplaySceneApiV1 *v) { return Copy(p, v, &GameplayServices::scene); }};
     std::memcpy(output, &negotiated_table, bytes);
     return NEXORA_GAMEPLAY_OK;
   }

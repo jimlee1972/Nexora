@@ -1,4 +1,6 @@
 include(NexoraTarget)
+add_test(NAME api.scene_baseline_guard
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/tests/test_api_scene_contract.py")
 add_executable(NexoraApiFoundationTests ApiFoundationTests.cpp)
 target_link_libraries(NexoraApiFoundationTests PRIVATE Nexora::Foundation)
 nexora_apply_defaults(NexoraApiFoundationTests)
@@ -34,6 +36,12 @@ if(TARGET NexoraEditorReflectedArraySample)
 endif()
 
 if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(api.gameplay_scene_zig_abi
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-cache"
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-local-cache"
+    -I "${PROJECT_SOURCE_DIR}/Engine/API/include"
+    --dep scene "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplaySceneAbi.zig"
+    "-Mscene=${PROJECT_SOURCE_DIR}/Bindings/Zig/scene.zig" -lc)
   nexora_add_zig_test(api.gameplay_input_zig_abi
       --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-global-cache"
       --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-local-cache"

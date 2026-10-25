@@ -165,6 +165,27 @@ add_test(NAME runtime.dynamic_gameplay_module
     $<TARGET_FILE:NexoraDynamicGameplayFailing>)
 
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraGameSceneSessionTests GameSceneSessionTests.cpp)
+  target_link_libraries(NexoraGameSceneSessionTests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraGameSceneSessionTests)
+  add_test(NAME runtime.game_scene_session COMMAND NexoraGameSceneSessionTests)
+  set_tests_properties(runtime.game_scene_session PROPERTIES TIMEOUT 120)
+  if(NEXORA_ZIG_EXECUTABLE)
+    include("${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+    nexora_add_game_module(NexoraGameSceneScriptFixture
+      PROJECT "${CMAKE_CURRENT_SOURCE_DIR}/GameSceneScript/project.json"
+      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/game-scene-script"
+      ZIG "${NEXORA_ZIG_EXECUTABLE}")
+    add_dependencies(NexoraGameSceneSessionTests NexoraGameSceneScriptFixture)
+    if(WIN32)
+      set(scene_module_directory bin)
+    else()
+      set(scene_module_directory lib)
+    endif()
+    add_test(NAME runtime.game_scene_zig_module COMMAND NexoraGameSceneSessionTests
+      "${CMAKE_CURRENT_BINARY_DIR}/game-scene-script/${scene_module_directory}/${CMAKE_SHARED_LIBRARY_PREFIX}GameSceneFixture${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set_tests_properties(runtime.game_scene_zig_module PROPERTIES TIMEOUT 120)
+  endif()
   add_executable(NexoraV1M5Tests V1M5Tests.cpp)
   target_link_libraries(NexoraV1M5Tests PRIVATE Nexora::Runtime)
   nexora_apply_defaults(NexoraV1M5Tests)
