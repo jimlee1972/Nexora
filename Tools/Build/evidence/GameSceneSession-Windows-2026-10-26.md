@@ -70,5 +70,21 @@ aggregate initialization, rejected by the existing `-Werror=missing-field-initia
 Linux job `121252610721`, build-contract `121252610686` and macOS `121252610782` retain the
 original diagnostics. The correction value-initializes the complete POD and explicitly assigns
 struct_size/abi_version. No production code, warning flags, assertions or ABI baselines change.
-The PR remains unmerged; complete updated-head gates are still required. Subsequent local
+That first head was not merged; complete updated-head gates were required. Subsequent local
 integration validation is separate from the original 12-test source receipt above.
+
+## Exact-head acceptance and merge
+
+✅ PR #718 head `8726bb7fa2e58cb3c1a928dd9537edabf6a69368` passed all 38 checks
+across PR run `40224199007` and push run `40224195192`. The expected-head guarded squash
+merge produced `b45d880ea48aa6ab239b488f5fda7153ae2b401b` on main. The original failed
+attempt remains retained; no warning policy or production admission was weakened.
+
+Full hosted Linux Development registered 461 tests (1700.75 s), Windows 401 (1115.08 s)
+and macOS 380 (902.13 s), zero failures with the existing font skip. Shipping, sanitizers/TSan,
+feature-off, native display, packaging and platform smoke checks passed. Check receipt and
+full selected job logs are retained at `build/scene-settings/phase3-ci718.json` and
+`phase3-ci718-job-*.log`. These are hosted-platform results, separate from local Windows tests.
+
+This closes only the Runtime session/API phase: scene delivery is 3/5, graphical Editor 0/8.
+Common build, native pixels, Editor Play and final Editor ZIP still require integrated acceptance.

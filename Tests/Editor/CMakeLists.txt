@@ -1,5 +1,22 @@
 add_executable(NexoraProjectBuildSettingsTests ProjectBuildSettingsTests.cpp)
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraGameBuildCaptureTests GameBuildCaptureTests.cpp)
+  target_link_libraries(NexoraGameBuildCaptureTests PRIVATE Nexora::Editor)
+  nexora_apply_defaults(NexoraGameBuildCaptureTests)
+  add_test(NAME editor.game_build_capture COMMAND NexoraGameBuildCaptureTests)
+  if(TARGET NexoraProjectPlayer AND TARGET NexoraEditor AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE AND NEXORA_ZIG_EXECUTABLE)
+    add_executable(NexoraGameBuildTests GameBuildTests.cpp)
+    target_link_libraries(NexoraGameBuildTests PRIVATE Nexora::Editor)
+    nexora_apply_defaults(NexoraGameBuildTests)
+    add_dependencies(NexoraGameBuildTests NexoraProjectPlayer NexoraEditor)
+    get_target_property(game_runtime_files NexoraProjectPlayer NEXORA_GAME_RUNTIME_FILES)
+    add_test(NAME editor.game_build
+      COMMAND NexoraGameBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
+        "${PROJECT_SOURCE_DIR}/Tests/Runtime/GameSceneScript/game.zig"
+        "${CMAKE_COMMAND}" "${CMAKE_MAKE_PROGRAM}" "${NEXORA_ZIG_EXECUTABLE}"
+        "$<TARGET_FILE:NexoraEditor>" ${game_runtime_files})
+    set_tests_properties(editor.game_build PROPERTIES TIMEOUT 600)
+  endif()
   add_executable(NexoraGameProjectExportTests GameProjectExportTests.cpp)
   target_link_libraries(NexoraGameProjectExportTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraGameProjectExportTests)

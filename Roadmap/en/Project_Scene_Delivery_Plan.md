@@ -1,6 +1,6 @@
 # Project startup scene, multi-scene build and runtime transitions
 
-Status: authorized implementation goal; **2/5 implementation phases accepted**.
+Status: authorized implementation goal; **3/5 implementation phases accepted**.
 Updated: 2026-10-26. Related milestones: ED-M1, ED-M3 and ED-M6; none is accepted by this plan.
 The durable work/dependency record is Beads, not the phase table below.
 
@@ -21,12 +21,28 @@ The first macOS temporary-path fixture failure is retained; resolving the physic
 fixed it without changing production alias rejection. See the [package evidence](../../Tools/Build/evidence/EditorGameProjectPackage-2026-10-26.md),
 [package contract](../../Engine/Runtime/GameProjectPackage.md) and [producer contract](../../Engine/Editor/GameProjectExport.md).
 
-Phase 3 candidate adds an owner-thread queued Runtime session and optional C/Zig scene service,
+✅ Phase 3 adds an owner-thread queued Runtime session and optional C/Zig scene service,
 with candidate World/presentation preparation, remapped IDs, persistent retention and retired
 binding cleanup. Twelve Windows scoped tests pass, including the actual SDK-built Zig fixture
-requesting Level01 → Title → Level01. Its complete exact-head gates remain pending and it adds
-no accepted phase. See the [session contract](../../Engine/Runtime/GameSceneSession.md) and
+requesting Level01 → Title → Level01. PR #718 head `8726bb7f` passed all 38 exact-head checks and
+was squash merged as `b45d880e`. Linux Development registered 461 tests, Windows 401 and macOS
+380, with zero failures and the existing font skip retained. Shipping, sanitizer/TSan, feature-off
+and native/platform gates passed. See the [session contract](../../Engine/Runtime/GameSceneSession.md) and
 [scoped evidence](../../Tools/Build/evidence/GameSceneSession-Windows-2026-10-26.md).
+
+Phase 4 native Player candidate now presents the configured non-Main startup and actual SDK
+requests on the Windows desktop. Hardware DX12 passed 120 transitions with stable scene/entity
+and shared-geometry counters, recoverable candidate-camera rejection/retry and empty/default-camera
+startup. This does not accept native pixels: Computer Use app access timed out, and the new Linux
+pixel test is not yet run. Shared build, Editor Play, game relocation and final ZIP remain open.
+See the [native candidate evidence](../../Tools/Build/evidence/NativeGamePlayer-Windows-2026-10-26.md).
+
+The phase-4 shared producer/Editor CLI candidate now freezes exact saved sources, materializes
+embedded canonical SDK glue, builds/tests the gameplay module through the existing CMake/Zig
+adapter and verifies the staged native Player data/ABI. Publication rechecks source/owner/inventory
+and preserves previous output on failure. Local Windows producer/CLI tests pass; final-source,
+complete CI, graphical build coordination, Editor Play and Editor ZIP gates remain open. See the
+[build contract](../../Engine/Editor/GameBuild.md) and [scoped build evidence](../../Tools/Build/evidence/SharedGameBuild-Windows-2026-10-26.md).
 
 ## 1. Product behavior
 
@@ -169,7 +185,7 @@ do not claim this work accepts every 2D/physics/plugin format or the full Editor
 | --- | --- | --- | --- |
 | 1 | Settings/core and graphical Build Settings | Independent startup/build list, migration and guarded persistence | ✅ Scoped settings/UI contract accepted; PR #716 |
 | 2 | Multi-scene cooker/package | Deterministic catalog and union closure; legacy StaticView unchanged | ✅ Scoped cooker/package contract accepted; PR #717 |
-| 3 | Runtime session and C/Zig scene service | Transactional Replace/Additive/unload, identity and lifetime checks | Pending |
+| 3 | Runtime session and C/Zig scene service | Transactional Replace/Additive/unload, identity and lifetime checks | ✅ Scoped session/API contract accepted; PR #718 |
 | 4 | Shared build, Editor Play and native Player | Same authored scenes, startup and transitions through all entrypoints | Pending |
 | 5 | Integrated validation and Editor delivery | Evidence, CI, merged source and runnable Windows Editor-only ZIP | Pending |
 

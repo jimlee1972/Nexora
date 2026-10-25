@@ -10,6 +10,19 @@ These settings are the first phase of [multi-scene game delivery](../../Roadmap/
 the existing Export StaticView command still exports only the current Scene until that integration
 is implemented and accepted.
 
+The Editor executable also provides the shared game's CLI build entry:
+
+```text
+NexoraEditor --build-game=PROJECT --output=OUTPUT --runtime-profile=PROFILE --scene-only
+NexoraEditor --build-game=PROJECT --output=OUTPUT --runtime-profile=PROFILE --script-project=Scripts/project.json --cmake=CMAKE --ninja=NINJA --zig=ZIG
+```
+
+OUTPUT's parent must exist. PROFILE is the trusted installed native Player's `GameRuntime.profile`;
+script manifests for this producer live inside a dedicated project-relative source directory.
+This command captures saved settings/scenes, runs the same engine cooker/SDK adapter and guarded
+publisher, and produces a source-free standalone game. See the [build contract](../../Engine/Editor/GameBuild.md).
+Graphical build coordination, configured-scene Editor Play and final delivery remain pending.
+
 ## Interactive startup and project files
 
 A graphical-shell build starts its Project Browser when launched without arguments. No

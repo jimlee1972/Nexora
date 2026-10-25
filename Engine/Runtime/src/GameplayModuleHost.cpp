@@ -24,6 +24,18 @@ constexpr std::size_t kRequiredHostSize = NEXORA_GAMEPLAY_HOST_V3_BASE_SIZE;
 constexpr std::size_t kRequiredModuleSize = sizeof(NexoraGameModuleV3);
 constexpr auto kLoaderSymbol = "NexoraGameModuleLoad";
 
+bool ReadModuleTable(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV3 &module) {
+  if (!load)
+    return false;
+  module = {};
+  module.struct_size = sizeof(module);
+  module.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
+  return load(NEXORA_GAMEPLAY_ABI_VERSION, &module) == 0 &&
+         module.struct_size >= kRequiredModuleSize &&
+         module.abi_version == NEXORA_GAMEPLAY_ABI_VERSION && module.create && module.on_start &&
+         module.update && module.on_stop && module.destroy;
+}
+
 template <typename Function> Function FunctionCast(void *symbol) noexcept {
   static_assert(sizeof(Function) == sizeof(symbol));
   Function function{};
@@ -83,13 +95,7 @@ bool GameplayModuleHost::Create(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV
       host_.abi_version != NEXORA_GAMEPLAY_ABI_VERSION)
     return false;
 
-  module = {};
-  module.struct_size = sizeof(module);
-  module.abi_version = NEXORA_GAMEPLAY_ABI_VERSION;
-  if (load(NEXORA_GAMEPLAY_ABI_VERSION, &module) != 0 || module.struct_size < kRequiredModuleSize ||
-      module.abi_version != NEXORA_GAMEPLAY_ABI_VERSION || module.create == nullptr ||
-      module.on_start == nullptr || module.update == nullptr || module.on_stop == nullptr ||
-      module.destroy == nullptr)
+  if (!ReadModuleTable(load, module))
     return false;
 
   void *state = nullptr;
@@ -97,6 +103,12 @@ bool GameplayModuleHost::Create(NexoraGameModuleLoadV3Fn load, NexoraGameModuleV
     return false;
   module.module_state = state;
   return true;
+}
+
+bool GameplayModuleHost::Inspect(const std::filesystem::path &path) {
+  auto library = DynamicLibrary::Open(path);
+  NexoraGameModuleV3 module{};
+  return library && ReadModuleTable(library->Loader(), module);
 }
 
 bool GameplayModuleHost::Load(NexoraGameModuleLoadV3Fn load) {

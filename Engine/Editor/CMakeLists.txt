@@ -56,6 +56,8 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/SceneSaveBatch.cpp
   src/StaticProjectExport.cpp
   src/GameProjectExport.cpp
+  src/GameBuildCapture.cpp
+  src/GameBuild.cpp
   src/StaticProjectExportJob.cpp
   src/ViewportMath.cpp)
 add_library(Nexora::Editor ALIAS NexoraEditorCore)
@@ -66,6 +68,7 @@ if(NEXORA_LINK_MODE STREQUAL "Monolithic")
   target_compile_definitions(NexoraEditorCore PUBLIC NEXORA_EDITOR_STATIC=1)
 endif()
 nexora_apply_defaults(NexoraEditorCore)
+include(GameBuildSDK.cmake)
 
 if(NEXORA_ENABLE_2D)
   target_sources(NexoraEditorCore PRIVATE src/TwoDDocument.cpp src/TwoDPlayContext.cpp src/TwoDPlayAssets.cpp src/TwoDAssetImport.cpp src/ProjectTwoDPlayAssets.cpp)

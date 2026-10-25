@@ -12,7 +12,7 @@ if(NEXORA_ENABLE_GAMEPLAY_SIMULATION)
 endif()
 if(NEXORA_ENABLE_ASSET_PIPELINE)
   target_sources(NexoraRuntime PRIVATE src/AssetPipeline.cpp src/BundleMount.cpp
-    src/CookedSceneAssets.cpp src/ProjectPackage.cpp src/GameProjectPackage.cpp src/GameSceneSession.cpp)
+    src/CookedSceneAssets.cpp src/ProjectPackage.cpp src/GameProjectPackage.cpp src/GameSceneSession.cpp src/GameLaunch.cpp)
 endif()
 if(NEXORA_ENABLE_EDITOR_SDK)
   target_sources(NexoraRuntime PRIVATE src/EditorSdk.cpp)

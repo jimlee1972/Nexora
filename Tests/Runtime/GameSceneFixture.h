@@ -15,7 +15,8 @@ inline runtime::RuntimeBlob Cook(runtime::AssetUuid id, std::string_view type,
     throw std::runtime_error("Scene fixture cooking failed");
   return std::move(*blob);
 }
-inline runtime::RuntimeBlob Scene(runtime::AssetUuid id, std::string name, double x, double local) {
+inline runtime::RuntimeBlob Scene(runtime::AssetUuid id, std::string name, double x, double local,
+                                  bool invalid_native_camera = false) {
   runtime::World world;
   const auto scene = world.LoadScene(std::move(name));
   const auto parent = world.CreateEntity(scene).id;
@@ -27,7 +28,10 @@ inline runtime::RuntimeBlob Scene(runtime::AssetUuid id, std::string name, doubl
   edits.SetParent(child, parent, false);
   edits.SetMeshRenderer(child, runtime::MeshComponent{runtime::MeshResourceId(kMesh), {0}});
   edits.SetTransform(camera, {x, 0, 5});
-  edits.SetCamera(camera, runtime::CameraComponent{});
+  runtime::CameraComponent camera_data{};
+  if (invalid_native_camera)
+    camera_data.vertical_field_of_view = 179.9999999999;
+  edits.SetCamera(camera, camera_data);
   if (!edits.Apply(world))
     throw std::runtime_error("Scene fixture edits failed");
   runtime::CookedScene source{
@@ -37,19 +41,22 @@ inline runtime::RuntimeBlob Scene(runtime::AssetUuid id, std::string name, doubl
     throw std::runtime_error("Scene fixture encoding failed");
   return Cook(id, runtime::kCookedSceneType, bytes.Value(), {kMaterial, kMesh});
 }
-inline runtime::GameProjectPackage Package() {
+inline runtime::GameProjectPackage Package(bool invalid_title_camera = false) {
   runtime::CookedMesh mesh;
   mesh.vertices = {{{0, 0, 0}, {0, 0, 1}, {0, 0}, {1, 0, 0, 1}},
                    {{1, 0, 0}, {0, 0, 1}, {1, 0}, {1, 0, 0, 1}},
                    {{0, 1, 0}, {0, 0, 1}, {0, 1}, {1, 0, 0, 1}}};
   mesh.indices = {0, 1, 2};
-  return {
-      {9, 9},
-      kLevel,
-      {{kTitle, "Title.scene"}, {kLevel, "Level01.scene"}},
-      {Scene(kTitle, "Title", 1, 1), Scene(kLevel, "Level01", 10, -1),
-       Cook(kMesh, runtime::kCookedMeshType, runtime::EncodeCookedMesh(mesh).Value()),
-       Cook(kMaterial, runtime::kCookedScalarPbrType, runtime::EncodeCookedScalarPbr({}).Value())}};
+  runtime::CookedScalarPbr material;
+  material.base_color = {1, 0, 0};
+  material.emission = {1, 0, 0};
+  return {{9, 9},
+          kLevel,
+          {{kTitle, "Title.scene"}, {kLevel, "Level01.scene"}},
+          {Scene(kTitle, "Title", 1, 1, invalid_title_camera), Scene(kLevel, "Level01", 10, -1),
+           Cook(kMesh, runtime::kCookedMeshType, runtime::EncodeCookedMesh(mesh).Value()),
+           Cook(kMaterial, runtime::kCookedScalarPbrType,
+                runtime::EncodeCookedScalarPbr(material).Value())}};
 }
 inline std::shared_ptr<const runtime::LoadedGameProject> Project() {
   auto project = runtime::LoadGameProjectPackage(Package());

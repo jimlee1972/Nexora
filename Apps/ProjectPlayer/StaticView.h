@@ -21,6 +21,7 @@ struct StaticView final {
   std::vector<Nexora::Presentation::SceneMeshBatch> batches;
   std::vector<Nexora::Presentation::SceneMaterial> materials{1}; // Explicit neutral slot.
   runtime::Id camera{}, light{};
+  bool allow_default_camera{};
   std::array<float, 3> light_direction{-0.4F, -1, -0.2F};
   std::array<float, 3> light_color{1, 0.95F, 0.85F};
 
@@ -73,7 +74,19 @@ struct StaticView final {
   }
   [[nodiscard]] std::optional<Nexora::Presentation::SceneDrawData>
   DrawData(const runtime::World &world, float aspect) const {
-    const auto view = runtime::CameraView(world, camera, aspect);
+    auto view = runtime::CameraView(world, camera, aspect);
+    if (!camera && allow_default_camera) {
+      // Game fallback never inserts a camera into the authored/live World.
+      runtime::World fallback{runtime::WorldKind::Play};
+      const auto scene = fallback.LoadScene("Host default camera");
+      auto &entity = fallback.CreateEntity(scene);
+      entity.transform = {0, 0, 5};
+      entity.camera = true;
+      const auto id = entity.id;
+      if (!fallback.Activate(scene))
+        return std::nullopt;
+      view = runtime::CameraView(fallback, id, aspect);
+    }
     if (!view)
       return std::nullopt;
     Nexora::Presentation::SceneDrawData draw;
@@ -96,17 +109,18 @@ struct StaticView final {
 // Fail the entire native admission explicitly rather than drawing a truncated subset. Package
 // verification has wider data limits; valid StaticView packages need not fit one native draw.
 [[nodiscard]] inline std::optional<StaticView>
-PrepareStaticView(const runtime::LoadedStaticProject &project, std::string *error = nullptr) {
+PrepareSceneView(std::span<const runtime::StaticRenderItem> items, const runtime::World &world,
+                 runtime::Id scene_id, std::string *error = nullptr, bool game_scene = false) {
   const auto fail = [&](const char *message) -> std::optional<StaticView> {
     if (error)
       *error = message;
     return std::nullopt;
   };
   StaticView result;
-  const auto items = project.RenderItems();
-  if (items.empty() || items.size() > 4096)
+  result.allow_default_camera = game_scene;
+  if ((!game_scene && items.empty()) || items.size() > 4096)
     return fail("Native StaticView requires 1..4096 render instances");
-  const auto *scene = project.WorldView().FindScene(project.SceneId());
+  const auto *scene = world.FindScene(scene_id);
   if (!scene || scene->state != runtime::SceneState::Active)
     return fail("StaticView entry scene is not active");
   for (const auto &entity : scene->entities) {
@@ -115,11 +129,12 @@ PrepareStaticView(const runtime::LoadedStaticProject &project, std::string *erro
     if (entity.light && (!result.light || entity.id < result.light))
       result.light = entity.id;
   }
-  if (!result.camera || !runtime::CameraView(project.WorldView(), result.camera, 1))
+  if ((!game_scene && !result.camera) ||
+      (result.camera && !runtime::CameraView(world, result.camera, 1)))
     return fail("Native StaticView requires a valid authored camera; lowest camera ID is selected");
   if (result.light) {
-    const auto *light = project.WorldView().FindEntity(result.light);
-    const auto pose = project.WorldView().WorldTransform(result.light);
+    const auto *light = world.FindEntity(result.light);
+    const auto pose = world.WorldTransform(result.light);
     if (!light || !pose)
       return fail("Selected light pose is unavailable");
     runtime::Transform orientation;
@@ -222,5 +237,9 @@ PrepareStaticView(const runtime::LoadedStaticProject &project, std::string *erro
   if (error)
     error->clear();
   return result;
+}
+[[nodiscard]] inline std::optional<StaticView>
+PrepareStaticView(const runtime::LoadedStaticProject &project, std::string *error = nullptr) {
+  return PrepareSceneView(project.RenderItems(), project.WorldView(), project.SceneId(), error);
 }
 } // namespace nexora::player

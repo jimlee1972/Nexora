@@ -1,5 +1,14 @@
 # Editor Core contract
 
+## Installed-game build producer
+
+`GameBuildCapture.h` and `GameBuild.h` provide an owning saved-source capture, shared CMake/Zig
+build worker and explicit owner-thread publication. The same producer backs the Editor CLI;
+runtime packages contain no authored sources or SDK/compiler. Publication rechecks exact source
+bytes, cancellation, staged/previous inventories and the embedding host's authoring guard.
+See the [complete build contract](GameBuild.md) for limits, ownership, script-directory policy,
+recoverable directory replacement and the remaining graphical/Play/delivery acceptance gates.
+
 ## Project build-scene settings
 
 `ProjectBuildSettings.h` supplies the owning schema-1 `project.build.json` codec and a project-scoped
