@@ -1,5 +1,8 @@
 """Portable PE import parsing and export admission, including delay-loaded DLLs."""
 import importlib.util
+import os
+import subprocess
+import sys
 from pathlib import Path
 import struct
 import tempfile
@@ -56,6 +59,17 @@ class PeTests(unittest.TestCase):
                     p.write_bytes(b)
                     with self.assertRaises(ValueError):
                         EXPORT.pe_imports(p)
+
+    def test_cli_diagnostics_are_utf8_even_with_legacy_stdio(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            missing = root/'陰陽 missing.json'
+            result = subprocess.run([sys.executable, str(Path(EXPORT.__file__)), str(missing),
+                                     '--runtime', str(root/'Player.exe'), '--output', str(root/'game')],
+                                    env=dict(os.environ, PYTHONIOENCODING='cp1252'), capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('陰陽', result.stderr.decode('utf-8'))
+            self.assertNotIn(b'UnicodeEncodeError', result.stderr)
 
     def test_delay_dependency_policy(self):
         with tempfile.TemporaryDirectory() as temp:

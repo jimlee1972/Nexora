@@ -347,6 +347,8 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
 
 
 def main():
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('descriptor', type=Path)
     parser.add_argument('--runtime', required=True, type=Path)

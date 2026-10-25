@@ -58,9 +58,11 @@ nexora_add_game_module(game_module PROJECT "${CMAKE_SOURCE_DIR}/project.json" OU
         run(sys.executable, sdk/'Tools/TwoD/PrepareAssets.py', source/(kind+'.json'), '--compiler', sdk/'bin/NexoraTwoDAssetCompiler.exe', '--output', source/('asset.nx2'+kind))
     (source/'game.json').write_text(json.dumps(dict(schema=1, id='com.nexora.sdk-fixture', title='SDK TEST FIXTURE', scene='Main', module='module.dll', audio='off',
         assets=[dict(kind=k, path='asset.nx2'+k) for k in ('atlas','clip')])), encoding='utf-8')
-    export = load('game_export', sdk/'Tools/TwoD/ExportGame.py')
     package = output/'relocated game 陰陽'
-    export.export(source/'game.json', sdk/'bin/NexoraGameHost.exe', package, sdk/'bin/NexoraTwoDAssetCompiler.exe', redist=sdk/'bin', executable_name='SdkFixture.exe')
+    run(sys.executable, sdk/'Tools/TwoD/ExportGame.py', source/'game.json',
+        '--runtime', sdk/'bin/NexoraGameHost.exe', '--output', package,
+        '--compiler', sdk/'bin/NexoraTwoDAssetCompiler.exe', '--vc-redist', sdk/'bin',
+        '--executable-name', 'SdkFixture.exe')
     for i in range(2):
         report = output/f'report-{i}.json'
         run(package/'SdkFixture.exe', '--frames', '600', '--report', report, '--save-directory', output/'saves', cwd=output)
