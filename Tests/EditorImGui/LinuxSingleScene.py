@@ -59,7 +59,10 @@ def main():
                     return
                 if process.poll() is not None:
                     break
-            raise RuntimeError(message)
+            driver.retain()
+            metadata = root / '.nexora/scene-session.ini'
+            actual = metadata.read_bytes() if metadata.is_file() else None
+            raise RuntimeError(f'{message}; startup={actual!r}; GUI={driver.observation()}')
 
         wait(primary.is_file, 'Single-scene Save did not publish the starter scene')
         original = primary.read_bytes()
@@ -78,8 +81,8 @@ def main():
         wait(lambda: point() is not None, 'Project tree did not expose the refreshed scene row')
         x, y = point()
         driver.raw('mousemove', '--window', window, str(round(x)), str(round(y)))
-        driver.raw('click', '1', minimum_wait=.05)
-        driver.raw('click', '1')
+        # Send both native clicks in one command, below ImGui's double-click interval.
+        driver.raw('click', '--repeat', '2', '--delay', '100', '1')
         metadata = root / '.nexora/scene-session.ini'
         wait(lambda: metadata.is_file() and metadata.read_bytes().endswith(b'scene=Content/Second.scene\n'),
              'Left double-click did not replace the scene with the selected Project file')

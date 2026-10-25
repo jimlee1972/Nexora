@@ -7,7 +7,8 @@ A graphical-shell build starts its Project Browser when launched without argumen
 `--project`, `--create-project` and `--report` commands retain their headless automation behavior;
 add `--graphical` to those commands when a window is wanted.
 
-The main Editor keeps one current Scene. New Scene and Open replace that Scene; a dirty Scene
+The main Editor keeps one current Scene. Its filename caption and New Scene / Open Scene toolbar
+replace document tabs. New Scene and Open replace that Scene; a dirty Scene
 requires Save, Discard or Cancel first. Failed saves, canceled Save As and stale requests leave
 the current Scene open. Old additive scene-set metadata is preserved but is no longer restored
 by this application; the supporting Core APIs remain available to other hosts.

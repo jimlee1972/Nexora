@@ -7,6 +7,7 @@ lists the whole project as an expandable file tree supplied by a bounded backgro
 left-double-clicking a scene uses the existing token-checked Open continuation. The main host
 keeps one current Scene, with Save/Discard/Cancel before dirty New/Open replacement. Additive
 Core/tab APIs remain supporting capabilities; this host no longer restores their saved scene set.
+The Scene caption and New/Open toolbar replace document tabs; File and Build retain their menu positions.
 Prior native additive-tab evidence below is historical, not the current application workflow.
 Scoped Windows UI and hosted acceptance are recorded in
 [the workflow evidence](../../Tools/Build/evidence/EditorProjectSceneWorkflow-2026-10-25.md).

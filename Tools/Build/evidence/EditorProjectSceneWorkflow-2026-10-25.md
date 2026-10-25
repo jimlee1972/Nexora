@@ -43,10 +43,10 @@ parsed. The final direct-host probe passed 8/8 presented frames, followed by the
 entry with no `--graphical` injection (120/120 frames, exit 0), CLI creation under a Unicode path,
 and project-open smoke (120/120 frames, exit 0, one scene, zero references). Both full native
 smokes reported zero rejected UI textures. The failed candidate remains in the packet's `release/`
-directory; the final deliverable/evidence is under `delivery/`. Native probes use isolated
+directory; the first reviewed deliverable/evidence is under `delivery/`. Native probes use isolated
 recent-project state. The reader counts pending and visited entries against one global budget.
 
-The Editor-only ZIP is 4,102,849 bytes, SHA-256
+The first reviewed Editor-only ZIP is 4,102,849 bytes, SHA-256
 `1fe8598234b3e555e6fe382b430a88e029acb8d949a9dde224c2574725f72b18`. It contains only the
 GUI entry/host, required DLLs and license notices. No Player, Studio, compiler, examples or source.
 Documentation checks passed 16/16; package dependency tests passed 4/4.
@@ -69,3 +69,29 @@ legacy metadata; prior multi-tab application acceptance is historical. Core addi
 No independent clean-host, Windows native chooser manual interaction, physical DPI/IME or full
 Editor milestone acceptance is claimed by these tests. Root README remains reader-facing and
 overall Editor milestone progress remains 0/8.
+
+## Native regression follow-up
+
+Head `7e1c7b1d` compiled on hosted Linux, but its native display job failed eight tests:
+six depended on previous menu/control positions, the proxy free-drag picked a different surface
+following the Scene layout change, and one Project double-click missed its native timing interval.
+The desktop Linux run reproduced the layout failures while its double-click test passed, identifying
+the latter as input timing rather than a consistently rejected Open request. These failed runs are
+retained. No CI checks were bypassed or tests disabled.
+
+File and Build now retain their menu positions; Window follows them. A single Scene caption and
+New/Open toolbar replaces the old document tab/toolbar area, using the existing guarded file
+continuations. Hosts without a project do not render project file controls. An initial local toolbar
+revision reduced the small standalone preview's available canvas and failed `editor.imgui_contract`;
+that failed log is retained as `toolbar-first-tests.log`. The project ownership guard corrects it.
+The native Project test sends both clicks in one X11 command with a 100 ms interval and retains its
+actual startup metadata and GUI observation on failure. Its deadlines and Open/save assertions
+remain unchanged. The following validation is required on the corrected head before merge.
+
+Corrected Windows configure/build passed and the same five selected UI CTests passed 5/5,
+zero failures/skips (58.88 s). Documentation checks passed 16/16 again. The new immutable
+`delivery-reviewed/` packet passed direct-host default startup (8/8), relocated GUI startup
+(120/120, exit 0), Unicode CLI project creation and project-open smoke (120/120, one Scene,
+zero references); no UI texture rejection. Its Editor-only ZIP is 4,103,034 bytes, SHA-256
+`0d525264d87c9fcc865266e45653849a66b66daf36d953059b4df5fd6b8589b8`.
+It supersedes the earlier `delivery/` ZIP; both candidates and their probes are retained.

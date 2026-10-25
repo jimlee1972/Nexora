@@ -5591,11 +5591,6 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
-    if (ImGui::BeginMenu("Window")) {
-      if (ImGui::MenuItem("Project", "Ctrl+Alt+J", false, workspace != nullptr))
-        state_->project_window_requested = true;
-      ImGui::EndMenu();
-    }
     if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
@@ -5650,6 +5645,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
       state_->static_export_positions[0] =
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+    }
+    if (ImGui::BeginMenu("Window")) {
+      if (ImGui::MenuItem("Project", "Ctrl+Alt+J", false, workspace != nullptr))
+        state_->project_window_requested = true;
+      ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Settings")) {
       ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
@@ -5879,11 +5879,24 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
-    if (state_->scene_tabs.empty() && scene)
+    if (state_->scene_tabs.empty() && scene && workspace) {
+      ImGui::AlignTextToFramePadding();
       ImGui::Text("%s%s",
                   state_->scene_file_path ? PathLabel(state_->scene_file_path->filename()).c_str()
                                           : "Untitled Scene",
                   scene->Dirty() ? " *" : "");
+      ImGui::BeginDisabled(!file_context_valid || file_external_block || file_busy ||
+                           game_running || state_->content_rename_target);
+      ImGui::BeginDisabled(!writable);
+      if (ImGui::Button("New Scene"))
+        BeginSceneFile(*state_, *scene, SceneFileAction::New);
+      ImGui::EndDisabled();
+      ImGui::SameLine();
+      if (ImGui::Button("Open Scene..."))
+        BeginSceneFile(*state_, *scene, SceneFileAction::Open);
+      ImGui::EndDisabled();
+      ImGui::Separator();
+    }
     DrawSceneTabs(*state_,
                   tab_context_valid && !file_external_block && !game_running &&
                       state_->scene_file_dialog == State::FileDialog::None &&
