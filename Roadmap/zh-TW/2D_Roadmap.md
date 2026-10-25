@@ -749,3 +749,7 @@ Windows x64 DX12 SDK 封裝通用 Monolithic Shipping 宿主、素材編譯器�
 禁止讀取原生工具鏈檔案後驗證。完整 Build gate 通過後，Release 發佈同一份已測 ZIP。
 參閱 [SDK 契約](../../Tools/SDK/README.md)。此開發流程不代表 M6／M7 或正式遊戲、
 顯示、控制器、音訊的實機驗收完成。
+
+✅ 可攜 PE 一般／延遲載入相依檢查與 Linux Development／Shipping 回歸已驗證；
+見[佐證](../../Tools/Build/evidence/Precompiled-2D-SDK-Linux-2026-10-26.md)。
+Windows 消費端／Release 與實機驗收維持獨立 gate。

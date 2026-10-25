@@ -848,3 +848,7 @@ workflow checks a fresh, source-free worker with native toolchain files denied.
 Release publication promotes identical tested bytes after the full Build gate.
 See [SDK contract](../../Tools/SDK/README.md). This development workflow does not
 complete M6/M7 or any physical game/display/controller/audio acceptance.
+
+✅ Portable PE normal/delay dependency admission and Linux Development/Shipping regression
+are verified; [supporting evidence](../../Tools/Build/evidence/Precompiled-2D-SDK-Linux-2026-10-26.md).
+Windows consumer/release and physical acceptance remain separate gates.

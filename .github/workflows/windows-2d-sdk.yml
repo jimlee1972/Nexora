@@ -9,6 +9,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       actions: write
     steps:
       - name: Cancel superseded runs owned by this SDK task
@@ -126,6 +127,8 @@ jobs:
         with:
           name: SDK-consumer-evidence
           path: |
-            evidence/
+            evidence/acceptance.json
+            evidence/report-*.json
+            evidence/relocated game 陰陽/inventory.json
             ${{ runner.temp }}/sdk-toolchain-isolation.json
           if-no-files-found: warn
