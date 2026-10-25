@@ -3981,6 +3981,19 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
           : static_cast<std::uint32_t>(std::min<std::size_t>(
                 recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
 
+  const auto draw_export_status = [&] {
+    if (!state.static_export.message.empty()) {
+      ImGui::SeparatorText("StaticView export");
+      ImGui::TextWrapped("%s", state.static_export.message.c_str());
+      if (state.static_export.phase == StaticExportPhase::Published) {
+        ImGui::TextWrapped("%s", state.static_export.relative_path.c_str());
+        ImGui::TextWrapped("Verify: %s", state.static_export.verify_command.c_str());
+        ImGui::Text("Bytes: %llu / FNV-1a: %s",
+                    static_cast<unsigned long long>(state.static_export.bytes),
+                    state.static_export.checksum.c_str());
+      }
+    }
+  };
   const auto window = PanelWindowName("nexora.project");
   state.project_file_positions.clear();
   if (!ImGui::Begin(window.c_str())) {
@@ -3995,6 +4008,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     ImGui::TextDisabled("Double-click a scene to open it.");
     if (!state.project_files_error.empty())
       ImGui::TextWrapped("%s", state.project_files_error.c_str());
+    draw_export_status();
     ImGui::PushID(PathLabel(state.project_files_root).c_str());
     ImGui::BeginChild("Project files", {0, 0});
     for (std::size_t index = 0; index < state.project_files.size(); ++index) {
@@ -4010,7 +4024,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
         flags |= ImGuiTreeNodeFlags_Leaf;
       if (state.project_file_selection == item.path)
         flags |= ImGuiTreeNodeFlags_Selected;
-      const bool expanded = ImGui::TreeNodeEx("##entry", flags, "");
+      const bool expanded = ImGui::TreeNodeEx("##entry", flags, "%s", "");
       const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
       if (ImGui::IsItemVisible())
         state.project_file_positions.push_back(
@@ -4057,17 +4071,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
           "This legacy project is open read-only. Reopen it for writing to upgrade safely.");
   }
 
-  if (!state.static_export.message.empty()) {
-    ImGui::SeparatorText("StaticView export");
-    ImGui::TextWrapped("%s", state.static_export.message.c_str());
-    if (state.static_export.phase == StaticExportPhase::Published) {
-      ImGui::TextWrapped("%s", state.static_export.relative_path.c_str());
-      ImGui::TextWrapped("Verify: %s", state.static_export.verify_command.c_str());
-      ImGui::Text("Bytes: %llu / FNV-1a: %s",
-                  static_cast<unsigned long long>(state.static_export.bytes),
-                  state.static_export.checksum.c_str());
-    }
-  }
+  draw_export_status();
   ImGui::SeparatorText("Recent projects");
   if (recent_projects == nullptr || recent_projects->Entries().empty()) {
     ImGui::TextUnformatted("No recent projects.");

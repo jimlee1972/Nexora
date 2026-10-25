@@ -24,7 +24,7 @@ The same scene-tab and scene-file executables passed 2/2 (23.94 s) with normal f
 including actual 1x/2x Project rows, Unicode scene paths, single/double click and dirty Cancel.
 This first result precedes the final Discard, Window shortcut and native-test additions.
 
-Final MSVC configure/build passed. Five selected CTests passed 5/5, zero failures/skips (70.61 s):
+Final MSVC configure/build passed. Five selected CTests passed 5/5, zero failures/skips (62.81 s):
 `editor.imgui_contract`, `editor.project_upgrade_ui`, `editor.project_picker_ui`,
 `editor.scene_tabs`, and `editor.scene_file_input`. The latter includes the Project tree's
 Unicode scene path, single/double click, dirty Cancel/Discard, stale-request rejection at 1x/2x,
@@ -37,13 +37,19 @@ parsed. The final direct-host probe passed 8/8 presented frames, followed by the
 entry with no `--graphical` injection (120/120 frames, exit 0), CLI creation under a Unicode path,
 and project-open smoke (120/120 frames, exit 0, one scene, zero references). Both full native
 smokes reported zero rejected UI textures. The failed candidate remains in the packet's `release/`
-directory; the final deliverable/evidence is under `release-reviewed/`. Native probes use isolated
+directory; the final deliverable/evidence is under `release-final/`. Native probes use isolated
 recent-project state. The reader counts pending and visited entries against one global budget.
 
-The Editor-only ZIP is 4,102,137 bytes, SHA-256
-`dd59c3aa382fff20d177509a241767037552eac2cecc6a09d2bf82429306521f`. It contains only the
+The Editor-only ZIP is 4,102,169 bytes, SHA-256
+`1f13eca3f8d86302d4161ad5e83ba8222b558bd6341dd80b026bf48b65eb95d9`. It contains only the
 GUI entry/host, required DLLs and license notices. No Player, Studio, compiler, examples or source.
 Documentation checks passed 16/16; package dependency tests passed 4/4.
+
+The first hosted head `cd429d56` stopped during Linux compilation: GCC rejected a zero-length
+printf format in the tree node. The call now uses a typed `%s` format without weakening warnings.
+The Project tree also retains the previous export progress/result/verification display through
+the same shared renderer used by the metadata-only fallback. Local and relocated native gates
+above were repeated with both corrections; the earlier failed hosted runs remain visible.
 
 Exact-head hosted Linux Development/Shipping results are recorded in the PR and local CI receipt
 after completion. The native Xvfb gate now
