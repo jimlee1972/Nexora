@@ -36,12 +36,11 @@ def windows_loader_export(root):
                                           scene='Main', module='module.dll', audio='off')))
     before = digest(source)
 
-    def imports(command):
-        return (b'    KERNEL32.dll\r\n    CFGMGR32.dll\r\n' if command[-1] == str(loader)
-                else b'    KERNEL32.dll\r\n    VULKAN-1.dll\r\n')
+    def imports(binary):
+        return ['KERNEL32.dll', 'CFGMGR32.dll'] if binary == loader else ['KERNEL32.dll', 'VULKAN-1.dll']
 
     with mock.patch.object(exporter.sys, 'platform', 'win32'), \
-            mock.patch.object(exporter.subprocess, 'check_output', side_effect=imports) as inspect:
+            mock.patch.object(exporter, 'pe_imports', side_effect=imports) as inspect:
         for index, selected in enumerate([None, source / 'missing' / 'vulkan-1.dll', runtime]):
             output = root / f'loader-rejected-{index}'
             try:
@@ -58,11 +57,10 @@ def windows_loader_export(root):
         inventory = json.loads((package / 'inventory.json').read_text())
         assert inventory['files']['vulkan-1.dll'] == hashlib.sha256(loader.read_bytes()).hexdigest()
         assert not inventory['development_test_copy']
-        assert sum(call.args[0][-1] == str(loader) for call in inspect.call_args_list) == 1
+        assert sum(call.args[0] == loader for call in inspect.call_args_list) == 1
     with mock.patch.object(exporter.sys, 'platform', 'win32'), \
-            mock.patch.object(exporter.subprocess, 'check_output', side_effect=lambda command:
-                b'    unsupported-loader-helper.dll\r\n' if command[-1] == str(loader)
-                else b'    vulkan-1.dll\r\n'):
+            mock.patch.object(exporter, 'pe_imports', side_effect=lambda binary:
+                ['unsupported-loader-helper.dll'] if binary == loader else ['vulkan-1.dll']):
         output = root / 'loader-transitive-rejected'
         try:
             exporter.export(descriptor, runtime, output, vulkan_loader=loader)
@@ -97,21 +95,17 @@ def acceptance(args):
     with tempfile.TemporaryDirectory(prefix='nexora-game-project-') as temporary:
         root = Path(temporary)
         windows_loader_export(root)
-        # MSVC's heading can contain bytes undefined in Python's Windows codepage. Import
-        # names still need strict admission; replacing heading text must not hide unknown DLLs.
-        heading = b'Dump of file C:\\unicode-\x81\x9d\\module.dll\r\n'
+        # Dependency admission is independent of platform command output/codepage.
         with mock.patch.object(exporter.sys, 'platform', 'win32'):
-            with mock.patch.object(exporter.subprocess, 'check_output',
-                                   return_value=heading + b'    KERNEL32.dll\r\n'):
+            with mock.patch.object(exporter, 'pe_imports', return_value=['KERNEL32.dll']):
                 exporter.dependencies(root / 'module.dll', root, False, None)
-            with mock.patch.object(exporter.subprocess, 'check_output',
-                                   return_value=heading + b'    unknown-third-party.dll\r\n'):
+            with mock.patch.object(exporter, 'pe_imports', return_value=['unknown-third-party.dll']):
                 try:
                     exporter.dependencies(root / 'module.dll', root, False, None)
                 except ValueError:
                     pass
                 else:
-                    raise AssertionError('unknown DLL was hidden by heading decoding')
+                    raise AssertionError('unknown DLL was admitted')
         source = root / 'source Unicode 遊戲'
         source.mkdir()
         shutil.copy2(args.module, source / args.module.name)

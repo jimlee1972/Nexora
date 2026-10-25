@@ -8,6 +8,7 @@ from pathlib import Path, PurePosixPath
 import re
 import shutil
 import subprocess
+import struct
 import sys
 import tempfile
 
@@ -56,13 +57,93 @@ def local(root, name):
     return result
 
 
+def pe_imports(binary):
+    """Read bounded PE normal/delay imports without a platform toolchain."""
+    if binary.stat().st_size > 256 * 1024 * 1024:
+        raise ValueError('PE exceeds 256 MiB')
+    data = binary.read_bytes()
+
+    def unpack(fmt, offset):
+        size = struct.calcsize(fmt)
+        if offset < 0 or offset + size > len(data):
+            raise ValueError('truncated PE')
+        return struct.unpack_from(fmt, data, offset)
+
+    if data[:2] != b'MZ':
+        raise ValueError('invalid DOS signature')
+    pe, = unpack('<I', 60)
+    if data[pe:pe+4] != b'PE\0\0':
+        raise ValueError('invalid PE signature')
+    machine, sections, _, _, _, optional_size, _ = unpack('<HHIIIHH', pe+4)
+    opt = pe+24
+    magic, = unpack('<H', opt)
+    if (machine, magic) not in ((0x8664, 0x20b), (0x14c, 0x10b)):
+        raise ValueError('unsupported PE architecture')
+    directory_offset, count_offset = (112, 108) if magic == 0x20b else (96, 92)
+    image_base, = unpack('<Q' if magic == 0x20b else '<I', opt+(24 if magic == 0x20b else 28))
+    count, = unpack('<I', opt+count_offset)
+    if not 1 <= sections <= 96 or optional_size < directory_offset or count > 16:
+        raise ValueError('invalid PE headers')
+    if directory_offset + count*8 > optional_size:
+        raise ValueError('truncated PE directories')
+    headers, = unpack('<I', opt+60)
+    ranges = []
+    for i in range(sections):
+        _, va, size, raw = unpack('<IIII', opt+optional_size+i*40+8)
+        if raw + size > len(data):
+            raise ValueError('truncated PE section')
+        ranges.append((va, size, raw))
+
+    def offset(rva, size):
+        if 0 <= rva < headers and rva + size <= min(headers, len(data)):
+            return rva
+        for va, length, raw in ranges:
+            if va <= rva and rva+size <= va+length:
+                return raw+rva-va
+        raise ValueError('unmapped PE RVA')
+
+    def name_at(rva):
+        name = bytearray()
+        for i in range(261):
+            c = data[offset(rva+i, 1)]
+            if c == 0:
+                value = name.decode('ascii')
+                if not re.fullmatch(r'[A-Za-z0-9_.-]+[.]dll', value, re.IGNORECASE):
+                    raise ValueError('invalid PE dependency name')
+                return value
+            name.append(c)
+        raise ValueError('unterminated PE import name')
+
+    names = set()
+    for index, width in ((1, 20), (13, 32)):
+        if index >= count:
+            continue
+        rva, size = unpack('<II', opt+directory_offset+index*8)
+        if not rva and not size:
+            continue
+        if not rva or size < width or size > width*4096:
+            raise ValueError('invalid PE import directory')
+        ended = False
+        for i in range(size // width):
+            values = unpack('<'+'I'*(width//4), offset(rva+i*width, width))
+            if not any(values):
+                ended = True
+                break
+            name = values[3] if index == 1 else values[1]
+            if index == 13:
+                if values[0] & ~1:
+                    raise ValueError('invalid delay import attributes')
+                if not values[0] & 1:
+                    name -= image_base
+            names.add(name_at(name))
+        if not ended:
+            raise ValueError('unterminated PE import directory')
+    return sorted(names, key=str.lower)
+
+
 def dependencies(binary, destination, allow_development, redist, vulkan_loader=None):
     if sys.platform == 'win32':
-        # Only dependency names are ASCII. The source path in dumpbin's heading can use a
-        # different Windows console encoding from Python's locale (notably CJK directories).
-        output = subprocess.check_output(['dumpbin', '/DEPENDENTS', str(binary)]).decode(
-            'ascii', errors='replace')
-        names = re.findall(r'^\s*(\S+\.dll)\s*$', output, re.MULTILINE | re.IGNORECASE)
+        names = pe_imports(binary)
         for name in names:
             lower = name.lower()
             if 'nexora' in lower:
@@ -115,11 +196,14 @@ def dependencies(binary, destination, allow_development, redist, vulkan_loader=N
 
 
 def export(descriptor, runtime, output, compiler=None, allow_development=False, redist=None,
-           vulkan_loader=None):
+           vulkan_loader=None, executable_name=None):
     descriptor, runtime, output = descriptor.resolve(), runtime.resolve(), output.absolute()
     if output.exists():
         raise ValueError('output must be a fresh directory')
-    if not re.fullmatch(r'[A-Za-z0-9_.-]+', runtime.name):
+    executable_name = runtime.name if executable_name is None else executable_name
+    if (not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', executable_name)
+            or executable_name in ('.', '..')
+            or (sys.platform == 'win32' and not executable_name.lower().endswith('.exe'))):
         raise ValueError('runtime filename must be a portable executable name')
     if descriptor.stat().st_size > 1024 * 1024:
         raise ValueError('descriptor exceeds 1 MiB')
@@ -172,7 +256,7 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     with tempfile.TemporaryDirectory(prefix='nexora-game-export-', dir=output.parent) as temporary:
         staging = Path(temporary) / 'game'
         staging.mkdir()
-        shutil.copy2(runtime, staging / runtime.name)
+        shutil.copy2(runtime, staging / executable_name)
         dependencies(runtime, staging, allow_development, redist, vulkan_loader)
         shutil.copy2(module, staging / ('gameplay' + module.suffix))
         dependencies(module, staging, allow_development, redist, vulkan_loader)
@@ -245,13 +329,13 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
             lines.append(f"display {display['width']} {display['height']} {display['mode']} {int(display['resizable'])}")
         (staging / 'game.nx2game').write_text('\n'.join(lines) + '\n', encoding='utf-8')
         if sys.platform == 'win32':
-            (staging / 'Run.cmd').write_bytes(('@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\n"' + runtime.name +
+            (staging / 'Run.cmd').write_bytes(('@echo off\r\nsetlocal\r\ncd /d "%~dp0"\r\n"' + executable_name +
                 '" --run-2d-project game.nx2game %*\r\nset "nexora_game_exit=%ERRORLEVEL%"\r\n'
                 'if not "%nexora_game_exit%"=="0" pause\r\nexit /b %nexora_game_exit%\r\n').encode('ascii'))
         else:
             launcher = staging / 'run.sh'
             launcher.write_text('#!/bin/sh\ncd -- "$(dirname -- "$0")" || exit 1\nexec "./' +
-                                runtime.name + '" --run-2d-project game.nx2game "$@"\n', encoding='utf-8')
+                                executable_name + '" --run-2d-project game.nx2game "$@"\n', encoding='utf-8')
             launcher.chmod(0o755)
         inventory = {str(path.relative_to(staging)).replace(os.sep, '/'):
                      checksum(path)
@@ -268,13 +352,14 @@ def main():
     parser.add_argument('--runtime', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--compiler', type=Path)
+    parser.add_argument('--executable-name', help='copy the generic host with this portable filename')
     parser.add_argument('--vc-redist', type=Path)
     parser.add_argument('--vulkan-loader', type=Path,
                         help='explicit matching redistributable vulkan-1.dll, required when imported')
     parser.add_argument('--allow-development', action='store_true')
     args = parser.parse_args()
     print(export(args.descriptor, args.runtime, args.output, args.compiler,
-                 args.allow_development, args.vc_redist, args.vulkan_loader))
+                 args.allow_development, args.vc_redist, args.vulkan_loader, args.executable_name))
 
 
 if __name__ == '__main__':

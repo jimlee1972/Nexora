@@ -344,3 +344,7 @@ Zig registers and releases only the needed lines. See [voice integration](../../
 `InspectVoices.py manifest.json --output report.json` measures declared PCM16/float32 recordings,
 subtitle-ID coverage and named concurrent PCM sets. It reports missing entries explicitly and
 validates container metadata only; it does not invent final recordings or concurrency.
+
+The [precompiled Windows SDK](../SDK/README.md) supplies a generic named game host and asset compiler.
+Export uses Python PE normal/delay import inspection without `dumpbin`; optional `--executable-name`
+renames the copied host while retaining the adjacent `game.nx2game` contract.

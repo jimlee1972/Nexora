@@ -261,3 +261,5 @@ if(NEXORA_ZIG_EXECUTABLE)
     --cmake "${CMAKE_COMMAND}" --zig "${NEXORA_ZIG_EXECUTABLE}")
   set_tests_properties(gameplay.zig_script_project PROPERTIES TIMEOUT 300)
 endif()
+add_test(NAME twod.sdk_portable_pe COMMAND "${Python3_EXECUTABLE}"
+  -m unittest discover -s "${PROJECT_SOURCE_DIR}/Tools/SDK/tests" -v)

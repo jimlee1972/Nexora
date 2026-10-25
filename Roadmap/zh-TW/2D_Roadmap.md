@@ -740,3 +740,12 @@ Zig V3 遊戲邏輯仍由遊戲專案擁有並獨立建置。本機 Windows 入�
 詳見 [SDK 契約](../../Tools/Zig/README.md)。
 
 [Windows 範圍證據](../../Tools/Build/evidence/Zig-Script-SDK-Windows-2026-10-24.md)。
+
+### 預編譯 Windows 腳本 SDK
+
+Windows x64 DX12 SDK 封裝通用 Monolithic Shipping 宿主、素材編譯器、Zig bindings／
+建置入口、Python PE 相依檢查與固定版 Ninja。消費端只需 CMake／Python／Zig，
+不依賴引擎來源或 MSVC／Windows SDK。候選工作流程在無引擎來源的新工作機上，
+禁止讀取原生工具鏈檔案後驗證。完整 Build gate 通過後，Release 發佈同一份已測 ZIP。
+參閱 [SDK 契約](../../Tools/SDK/README.md)。此開發流程不代表 M6／M7 或正式遊戲、
+顯示、控制器、音訊的實機驗收完成。

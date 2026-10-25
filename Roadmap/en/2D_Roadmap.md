@@ -838,3 +838,13 @@ entry. Local Windows adapter tests pass 4/4 and game entry/script tests pass 4/4
 and clean-host/product acceptance remain open. See [SDK contract](../../Tools/Zig/README.md).
 
 [Scoped Windows evidence](../../Tools/Build/evidence/Zig-Script-SDK-Windows-2026-10-24.md).
+
+### Precompiled Windows script-only SDK
+
+The Windows x64 DX12 SDK packages a generic Monolithic Shipping host, asset compiler,
+Zig bindings/build entry, portable PE dependency validation and pinned Ninja. Consumer
+builds use CMake/Python/Zig without engine source or MSVC/Windows SDK. The candidate
+workflow checks a fresh, source-free worker with native toolchain files denied.
+Release publication promotes identical tested bytes after the full Build gate.
+See [SDK contract](../../Tools/SDK/README.md). This development workflow does not
+complete M6/M7 or any physical game/display/controller/audio acceptance.
