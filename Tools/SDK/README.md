@@ -26,6 +26,8 @@ directory. No game C++ compilation, child Player or launcher is required. The op
 name leaves existing exporter callers unchanged. PE normal and delay imports are checked in Python;
 Editor/non-system/missing CRT dependencies reject before publication. No new Gameplay ABI is added.
 Keep the entire exported game directory together; players do not need SDK tools or Python.
+Asset preparation keeps compiler arguments ASCII-relative and atomically publishes through Python,
+so Unicode project/output paths do not pass through the legacy compiler's narrow Windows argv.
 
 ## Release and evidence
 
