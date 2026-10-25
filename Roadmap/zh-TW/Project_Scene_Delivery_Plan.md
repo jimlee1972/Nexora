@@ -4,6 +4,12 @@
 更新：2026-10-25。相關里程碑：ED-M1、ED-M3、ED-M6；本計畫不代表任何完整里程碑通過。
 持久任務與相依以 Beads 為準，下列階段表不是另一套任務系統。
 
+階段 1 實作候選已加入有界共用 codec、受保護專案 session 與圖形 Build Settings。
+Windows 核心（含 catalog 改名、實際中文路徑與 recovery）及實際 1x／2x UI 回歸通過。
+Windows 目前主機權限無法建立 symlink fixture；Linux alias 驗證及完整 Linux／原生整合 gate
+仍待完成。目前仍不接受任何實作階段。
+[Windows 候選證據](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md)。
+
 ## 1. 使用者操作
 
 - 在專案 Build Settings 選擇遊戲啟動 Scene 與要打包的 Scene。

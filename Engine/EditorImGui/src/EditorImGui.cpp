@@ -171,6 +171,16 @@ struct EditorImGuiHost::State final {
   std::optional<StaticExportRequest> static_export_request;
   StaticExportSnapshot static_export;
   bool static_export_busy{};
+  bool build_settings_open{}, build_settings_ready{};
+  foundation::Uuid build_settings_project;
+  std::filesystem::path build_settings_root;
+  ProjectBuildSettings build_settings;
+  std::string build_settings_status;
+  std::array<char, ProjectBuildSettings::kMaximumPathBytes + 1> build_settings_path{};
+  std::optional<std::size_t> build_settings_selected;
+  std::optional<ProjectBuildSettingsRequest> build_settings_request;
+  std::array<std::optional<std::array<float, 2>>, 16 + ProjectBuildSettings::kMaximumScenes * 3>
+      build_settings_positions{};
   SceneComparisonSnapshot scene_comparison;
   std::optional<SceneFileToken> scene_comparison_request;
   bool scene_comparison_busy{}, scene_comparison_open{}, scene_comparison_in_overwrite{};
@@ -3970,6 +3980,121 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
 }
 
 template <typename StateT>
+void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
+                              const SceneDocument *scene, bool blocked) {
+  for (std::size_t i = 2; i < state.build_settings_positions.size(); ++i)
+    state.build_settings_positions[i].reset();
+  if (!state.build_settings_open)
+    return;
+  if (!workspace || workspace->Root() != state.build_settings_root ||
+      workspace->Project().id != state.build_settings_project) {
+    state.build_settings_open = false;
+    state.build_settings_request.reset();
+    return;
+  }
+  const auto capture = [&](std::size_t index) {
+    const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+    state.build_settings_positions[index] =
+        std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+  };
+  const auto request = [&](ProjectBuildSettingsAction action, std::string path = {}) {
+    state.build_settings_request = ProjectBuildSettingsRequest{
+        workspace->Project().id, workspace->Root(), action, state.build_settings, std::move(path)};
+  };
+  ImGui::SetNextWindowSize(ImVec2(700, 520), ImGuiCond_FirstUseEver);
+  if (ImGui::Begin("Project Build Settings", &state.build_settings_open)) {
+    ImGui::TextUnformatted("Game startup scene and scenes included in the build");
+    ImGui::TextDisabled("Opening another scene does not change the startup scene.");
+    if (!state.build_settings_status.empty())
+      ImGui::TextWrapped("%s", state.build_settings_status.c_str());
+    const bool editable = workspace->Writable() && state.build_settings_ready && !blocked;
+    ImGui::BeginDisabled(!editable);
+    ImGui::BeginDisabled(!state.scene_file_path || !scene || scene->Dirty());
+    if (ImGui::Button("Add Current Scene"))
+      request(ProjectBuildSettingsAction::AddScene, PathLabel(*state.scene_file_path));
+    capture(2);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::TextDisabled("Save the current scene before adding it.");
+    ImGui::SetNextItemWidth(-1);
+    ImGui::InputText("##BuildScenePath", state.build_settings_path.data(),
+                     state.build_settings_path.size());
+    capture(3);
+    if (ImGui::Button("Add Scene Path"))
+      request(ProjectBuildSettingsAction::AddScene, state.build_settings_path.data());
+    capture(4);
+    ImGui::SameLine();
+    ImGui::TextDisabled("Project-relative .scene path");
+    ImGui::Separator();
+    if (ImGui::BeginChild("BuildSceneList", ImVec2(0, 220), true)) {
+      for (std::size_t i = 0; i < state.build_settings.scenes.size(); ++i) {
+        auto &entry = state.build_settings.scenes[i];
+        ImGui::PushID(static_cast<int>(i));
+        const bool startup = entry.id == state.build_settings.start_scene;
+        ImGui::BeginDisabled(startup);
+        ImGui::Checkbox("##Included", &entry.enabled);
+        capture(16 + i * 3);
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button(startup ? "Startup" : "Set Startup")) {
+          state.build_settings.start_scene = entry.id;
+          entry.enabled = true;
+        }
+        capture(17 + i * 3);
+        ImGui::SameLine();
+        if (ImGui::Selectable("##Scene", state.build_settings_selected == i)) {
+          state.build_settings_selected = i;
+          std::fill(state.build_settings_path.begin(), state.build_settings_path.end(), '\0');
+          std::copy(entry.path.begin(), entry.path.end(), state.build_settings_path.begin());
+        }
+        capture(18 + i * 3);
+        ImGui::GetWindowDrawList()->AddText(ImGui::GetItemRectMin(),
+                                            ImGui::GetColorU32(ImGuiCol_Text), entry.path.c_str());
+        ImGui::PopID();
+      }
+    }
+    ImGui::EndChild();
+    const bool selected = state.build_settings_selected &&
+                          *state.build_settings_selected < state.build_settings.scenes.size();
+    ImGui::BeginDisabled(
+        !selected || (selected && state.build_settings.scenes[*state.build_settings_selected].id ==
+                                      state.build_settings.start_scene));
+    if (ImGui::Button("Remove Selected")) {
+      state.build_settings.scenes.erase(
+          state.build_settings.scenes.begin() +
+          static_cast<std::ptrdiff_t>(*state.build_settings_selected));
+      state.build_settings_selected.reset();
+    }
+    capture(8);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!selected || !state.build_settings_selected);
+    if (ImGui::Button("Update Selected Path") && state.build_settings_selected)
+      state.build_settings.scenes[*state.build_settings_selected].path =
+          state.build_settings_path.data();
+    capture(9);
+    ImGui::EndDisabled();
+    if (ImGui::Button("Save Build Settings"))
+      request(ProjectBuildSettingsAction::Save);
+    capture(5);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(blocked);
+    if (ImGui::Button("Reload Saved Settings"))
+      request(ProjectBuildSettingsAction::Reload);
+    capture(6);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Close"))
+      state.build_settings_open = false;
+    capture(7);
+    ImGui::TextDisabled(
+        "Startup scene must remain enabled. Reload discards unsaved setting edits.");
+  }
+  ImGui::End();
+}
+
+template <typename StateT>
 void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
                       const RecentProjectStore *recent_projects, SceneDocument *scene,
                       bool scene_openable) {
@@ -5561,7 +5686,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->scene_file_token.project == workspace->Project().id &&
       state_->scene_file_token.document_generation == scene->Generation();
   const bool file_external_block = recovery_available || state_->play_apply_open ||
-                                   close_confirmation_open || state_->game_input_binding_open;
+                                   close_confirmation_open || state_->game_input_binding_open ||
+                                   state_->build_settings_open;
   const auto active_tab =
       std::ranges::find(state_->scene_tabs, state_->scene_tab_active, &SceneTabItem::id);
   const bool tab_context_valid = file_context_valid && active_tab != state_->scene_tabs.end() &&
@@ -5640,6 +5766,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (ImGui::MenuItem("Cancel StaticView export", nullptr, false, state_->static_export_busy))
         state_->static_export_request = StaticExportRequest{state_->scene_file_token, true};
       capture_position(2);
+      if (ImGui::MenuItem("Project Build Settings...", nullptr, false, !game_running))
+        state_->build_settings_open = true;
+      {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        state_->build_settings_positions[1] =
+            std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+      }
       ImGui::Separator();
       ImGui::MenuItem("Process console", "Ctrl+Alt+B", &state_->build_console_open);
       ImGui::EndMenu();
@@ -5668,6 +5801,10 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                           scene->Dirty() ? " *" : "");
     ImGui::EndMainMenuBar();
   }
+  state_->build_settings_positions[0] = state_->static_export_positions[0];
+  DrawProjectBuildSettings(*state_, workspace, scene,
+                           recovery_available || game_running || state_->static_export_busy ||
+                               close_confirmation_open || state_->play_apply_open);
   const bool file_shortcuts_allowed =
       file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
       !state_->prefab_override_confirm && !state_->prefab_rebase_confirm &&
@@ -8314,6 +8451,41 @@ void EditorImGuiHost::SetProfileExportStatus(std::string message) {
 std::optional<StaticExportRequest> EditorImGuiHost::TakeStaticExportRequest() {
   return std::exchange(state_->static_export_request, std::nullopt);
 }
+void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
+                                              ProjectBuildSettings settings, bool ready,
+                                              std::string status) {
+  if (settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
+      !foundation::IsValidUtf8(status) ||
+      std::ranges::any_of(settings.scenes, [](const auto &entry) {
+        return entry.path.size() > ProjectBuildSettings::kMaximumPathBytes ||
+               !foundation::IsValidUtf8(entry.path);
+      }))
+    return;
+  if (workspace.Project().id != state_->build_settings_project ||
+      workspace.Root() != state_->build_settings_root) {
+    state_->build_settings_open = false;
+    state_->build_settings_request.reset();
+    state_->build_settings_selected.reset();
+    state_->build_settings_path.fill('\0');
+  }
+  state_->build_settings_project = workspace.Project().id;
+  state_->build_settings_root = workspace.Root();
+  state_->build_settings = std::move(settings);
+  state_->build_settings_ready = ready;
+  state_->build_settings_status = std::move(status);
+}
+std::optional<ProjectBuildSettingsRequest> EditorImGuiHost::TakeProjectBuildSettingsRequest() {
+  return std::exchange(state_->build_settings_request, std::nullopt);
+}
+#if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProjectBuildSettingsPosition(const EditorImGuiHost &host,
+                                                    std::size_t index) {
+  return index < host.state_->build_settings_positions.size()
+             ? host.state_->build_settings_positions[index]
+             : std::nullopt;
+}
+#endif
 void EditorImGuiHost::SetStaticExportStatus(StaticExportSnapshot snapshot, bool busy) {
   if (snapshot.operation &&
       (!state_->scene_file_context || snapshot.source_project != state_->scene_file_token.project ||

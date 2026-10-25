@@ -1,5 +1,26 @@
 # Editor Core contract
 
+## Project build-scene settings
+
+`ProjectBuildSettings.h` supplies the owning schema-1 `project.build.json` codec and a project-scoped
+`ProjectBuildSettingsSession`. Settings select one enabled startup UUID and a bounded list of
+scene UUIDs, canonical project-relative paths and enabled flags. They are independent of the
+project identity descriptor, script manifest and `.nexora/scene-session.ini` Editor restore state.
+The pure codec has no filesystem/UI dependency and is shared by subsequent build producers.
+Limits are 256 KiB, 256 scene records and 1024 UTF-8 path bytes. Unknown/duplicate keys, invalid
+Unicode/surrogate escapes, duplicate IDs/case-alias paths and unsafe portable scene paths reject.
+
+The session borrows one workspace on the authoring thread. Missing settings return an empty
+optional without writes; malformed/unsafe settings block Save. Reload observes exact disk bytes;
+Save checks the baseline before atomic publication and rejects read-only, recovery, stale project,
+unsafe file paths and occupied staging. It reuses Content UUIDs and reconciles catalog renames;
+uncatalogued project-root scenes get an initial project-scoped identity stored in the settings.
+An explicit path repair keeps that stored identity. Missing enabled scenes reject; disabled missing
+entries can be retained while repairing the build list. A startup scene cannot be disabled/removed
+without selecting another one. Missing enabled Content identities and conflicting identities require catalog repair.
+This does not yet change StaticView export or provide a multi-scene runtime consumer; follow the
+[delivery plan](../../Roadmap/en/Project_Scene_Delivery_Plan.md) for integrated acceptance.
+
 ## Main application scene ownership
 
 The main Editor application uses one current SceneDocument/SceneFileSession. It replaces the

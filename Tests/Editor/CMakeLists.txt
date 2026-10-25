@@ -1,3 +1,8 @@
+add_executable(NexoraProjectBuildSettingsTests ProjectBuildSettingsTests.cpp)
+target_link_libraries(NexoraProjectBuildSettingsTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraProjectBuildSettingsTests)
+add_test(NAME editor.project_build_settings COMMAND NexoraProjectBuildSettingsTests)
+
 add_executable(NexoraContentDiagnosticTests ContentDiagnosticTests.cpp)
 target_link_libraries(NexoraContentDiagnosticTests PRIVATE Nexora::Editor)
 nexora_apply_defaults(NexoraContentDiagnosticTests)

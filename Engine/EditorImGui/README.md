@@ -1,5 +1,18 @@
 # Editor Dear ImGui host contract
 
+## Project Build Settings
+
+Build > Project Build Settings edits a separate owning draft of the game's startup scene and
+enabled scene list. Add Current requires a saved clean Scene; Add Scene Path uses a project-relative
+locator. Set Startup enables its scene; the startup checkbox/removal is protected until another
+startup is chosen. Explicit path repair keeps identity. Save and Reload emit one-shot project/root
+scoped requests; the host owns enrollment, bounded file IO, catalog reconciliation and guarded
+publication. `SetProjectBuildSettings` transfers an owning observation, never a workspace borrow.
+Read-only projects expose inspection/Reload but disable writes. Recovery, Play and export block
+mutation. Project changes close the settings window and discard pending requests; while open,
+scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's
+last-scene metadata. Runtime/game build use is a later phase of the scene delivery goal.
+
 ## Project file tree and single-scene application
 
 `SetProjectFiles` transfers an owning, bounded depth-first snapshot of project-relative entries,
