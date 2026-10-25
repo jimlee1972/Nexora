@@ -56,3 +56,15 @@ This is developer-PC evidence, not clean-host, VM or native multi-scene pixel ac
 Full Linux Development configure/build/CTest and Shipping, feature-off/ABI/platform CI and native
 scene session/build integration remain pending for this candidate. Phase-1 PR #716 validates a
 different source head and must not be used as phase-2 acceptance. Keep this package phase pending until its own gates pass; the overall graphical Editor milestone status remains unchanged.
+
+## PR 717 first CI attempt and fixture correction
+
+At head `899668c6c32eb7b532d99fe8ffe3cc36feeb5d59`, PR run `40212398192`
+passed Linux Development and Linux/Windows/macOS Shipping package jobs. The macOS
+Development gate failed `runtime.game_project_player_cli`: Python supplied its `/var`
+symlink temporary path to the deliberately alias-rejecting package reader. No merge was
+performed. The fixture now resolves its temporary root to the physical directory before
+writing or reading; production alias admission is unchanged. The verifier test also prints
+its captured exit/stdout/stderr on failure. The corrected CLI fixture passed on the Windows
+developer PC; macOS and the complete updated-head CI gates remain pending. This is not
+native scene-transition or final Editor ZIP acceptance.

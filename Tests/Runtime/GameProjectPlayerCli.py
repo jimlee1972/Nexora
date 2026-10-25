@@ -8,11 +8,14 @@ import tempfile
 
 fixture, player = (str(Path(path).resolve()) for path in sys.argv[1:])
 with tempfile.TemporaryDirectory(prefix="nexora-game-catalog-") as temporary:
-    root = Path(temporary)
+    # macOS exposes its temporary directory through /var -> /private/var.
+    # Use the physical fixture path; the package reader deliberately rejects aliases.
+    root = Path(temporary).resolve()
     package = root / "Game.nxgame"
     subprocess.run([fixture, "--write", str(package)], check=True, cwd=root)
-    result = subprocess.run([player, "--verify-game-package", str(package)], check=True,
+    result = subprocess.run([player, "--verify-game-package", str(package)],
                             cwd=root, text=True, capture_output=True)
+    assert result.returncode == 0, (result.returncode, result.stdout, result.stderr)
     data = json.loads(result.stdout)
     assert data["status"] == "VERIFIED_GAME_PACKAGE", data
     assert data["scene_count"] == 2 and data["asset_count"] == 4, data
