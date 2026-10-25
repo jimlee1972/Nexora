@@ -204,10 +204,12 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
               Read(output / "Build.sources").find("mode=script-project") != std::string::npos,
           "compiled module missing");
   const auto scripted_inventory = Read(output / "Game.inventory");
+  const auto valid_script = Read(root / "Scripts/game.zig");
   Write(root / "Scripts/game.zig", "invalid Zig source\n");
   Require(!editor::PrepareGameBuild(request, {}, &error) &&
               Read(output / "Game.inventory") == scripted_inventory,
           "failed compile replaced previous game");
+  Write(root / "Scripts/game.zig", valid_script);
   Require(!editor::PrepareGameBuild(request, cancelled.Token()), "pre-cancelled build ran");
   {
     editor::preview::GameBuildCoordinator worker;

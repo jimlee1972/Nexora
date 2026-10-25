@@ -159,3 +159,11 @@ scene, one instance and three entities; four-frame empty/default-camera startup.
 software_rasterizer=false. Exact binary/package hashes, commands/stdout/stderr are retained. This
 revalidates actual execution after sharing the admission retry rule; it does not claim a real GPU
 allocation/device-loss injection or captured Windows pixels.
+
+
+Cancellation regression follow-up restores the known-valid authored script before both the
+pre-cancelled producer and background-worker cancellation checks. Thus syntax failure cannot
+masquerade as cancellation. The actual scene-only/script/CLI worker suite passes the focused
+`editor.game_build` gate at `cancel-worker-20261026-072337`, 172.69 s, zero failures/skips.
+This changes test preconditions only; production sources and package behavior are unchanged.
+The earlier intermediate 14-test run also passed at phase4-gate-20261026-071925 (167.59 s).
