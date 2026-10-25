@@ -3,7 +3,8 @@
 ### 專案場景交付目標（2026-10-25）
 
 已授權啟動場景設定、打包場景清單及 Runtime 套件場景切換，範圍與驗收記於
-[場景交付計畫](Project_Scene_Delivery_Plan.md)。五個實作階段目前皆待完成。
+[場景交付計畫](Project_Scene_Delivery_Plan.md)。✅ 階段 1 設定／UI 已於 PR #716 通過限定 gates；
+其餘四個實作階段仍待完成。
 主 Editor 維持一個編輯中 Scene，上次開啟場景不是遊戲啟動設定。
 既有 StaticView 與完整 ED-M1／M3／M6 驗收分開計算。
 

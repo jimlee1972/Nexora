@@ -1,5 +1,9 @@
 # Static project package contract
 
+The separate [multi-scene catalog](GameProjectPackage.md) uses different magic/capability and
+does not change this schema-1 single-scene/opaque inspection contract. Both formats share the
+bounded file reader and NXAB preflight helpers; Windows file intake also rejects reparse points.
+
 `ProjectPackage.h` is a Runtime-only, allocation-owning consumer of the public cooked scene,
 mesh and scalar PBR schemas. It does not depend on Editor, consult source files, load gameplay or
 plugin code, compile an application, sign a release or certify native rendering. Its only

@@ -55,9 +55,31 @@ are retained at `build/scene-settings-build.log`; earlier successful narrower ru
 `build/scene-settings/`. Initial documentation-test failures in the planning task were environment
 access/dependency failures and are not substituted for implementation validation.
 
-## Open gates
+## Open gates at candidate creation
 
 Full Linux Development configure/build/CTest, Shipping, exact-head CI, feature-off admission,
 native settings-to-game integration, packaged A → B → A, source-free relocation and final
 Editor-only ZIP are not accepted by these four local tests. Preserve every phase as pending until
 its required evidence exists. Subsequent evidence must identify its actual tested source.
+
+## Scoped closure — 2026-10-26
+
+PR #716 head `6877b09d8785c0f00232623b8e42adb1b8850d28` passed all 38 exact-head checks
+(19/19 each for PR run 40208017771 and its push run), no failures/pending checks. Head/base and
+mergeability were rechecked; expected-head squash merge published main
+`72c82cc7049ca43132b30c9632a934e7dac7c526`.
+
+- Hosted Linux Development configure/build/full verbose CTest: 454 registered, zero failures,
+  existing `twod.portable_font_bake` skip, 1678.80s. New core test #225 passed0.02s and actual
+  1x/2x UI #453 passed0.08s. The full verbose core log has no unavailable-alias diagnostic;
+  the checked source prints that diagnostic on the only non-exercised alias-fixture branch.
+- Hosted Windows Development full CTest: 394 registered, zero failures, same font skip,
+  1786.46s. New core #208 passed0.12s and UI #393 passed2.57s.
+- build-contract completed Linux Shipping configure/build/package, feature-off/module contracts,
+  complete sanitizer and TSan configure/build/CTest. Graphical Linux display and all remaining
+  platform jobs also succeeded. These are hosted gates, not developer-PC/clean-host/device claims.
+
+Phase 1 settings/core/UI is accepted within this scope. This closes Beads nexora-3g5.2 only;
+phase 2 package source is a different candidate and requires its own gates. Native game startup,
+A/B transitions, Editor Play, shared complete game build, final Editor ZIP, clean-host and full
+Editor milestone acceptance remain separate/open. No broader completion is inferred.

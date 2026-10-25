@@ -46,11 +46,21 @@ std::optional<runtime::AssetUuid> MaterialReference(const OpaqueComponent &recor
 #endif
 } // namespace
 
-std::optional<runtime::ByteBuffer> CookStaticProject(const StaticProjectExportInput &input,
-                                                     std::string *error) {
+static std::optional<runtime::StaticProjectPackage>
+CookStaticProjectRaw(runtime::AssetUuid project, runtime::AssetUuid scene_asset,
+                     const SceneDocument::RuntimeSceneCapture &capture,
+                     std::span<const StaticMeshAsset> mesh_assets,
+                     std::span<const StaticMaterialAsset> material_assets, std::string *error) {
+  struct View final {
+    runtime::AssetUuid project, scene_asset;
+    const SceneDocument::RuntimeSceneCapture &capture;
+    std::span<const StaticMeshAsset> meshes;
+    std::span<const StaticMaterialAsset> materials;
+  };
+  const View input{project, scene_asset, capture, mesh_assets, material_assets};
   if (error)
     error->clear();
-  const auto reject = [&](const char *message) -> std::optional<runtime::ByteBuffer> {
+  const auto reject = [&](const char *message) -> std::optional<runtime::StaticProjectPackage> {
     if (error)
       *error = message;
     return std::nullopt;
@@ -220,7 +230,36 @@ std::optional<runtime::ByteBuffer> CookStaticProject(const StaticProjectExportIn
   if (!cook(input.scene_asset, runtime::kCookedSceneType, std::move(scene_payload.Value()),
             std::move(dependencies)))
     return reject("Static project export failed scene asset cooking.");
-  return runtime::EncodeStaticProjectPackage(package, error);
+  return package;
+#endif
+}
+std::optional<runtime::StaticProjectPackage>
+CookStaticProjectData(runtime::AssetUuid project, runtime::AssetUuid scene,
+                      const SceneDocument::RuntimeSceneCapture &capture,
+                      std::span<const StaticMeshAsset> meshes,
+                      std::span<const StaticMaterialAsset> materials, std::string *error) {
+  auto package = CookStaticProjectRaw(project, scene, capture, meshes, materials, error);
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  if (package && !runtime::LoadStaticProjectPackage(*package, error))
+    return std::nullopt;
+#endif
+  return package;
+}
+std::optional<runtime::StaticProjectPackage>
+CookStaticProjectData(const StaticProjectExportInput &input, std::string *error) {
+  return CookStaticProjectData(input.project, input.scene_asset, input.capture, input.meshes,
+                               input.materials, error);
+}
+std::optional<runtime::ByteBuffer> CookStaticProject(const StaticProjectExportInput &input,
+                                                     std::string *error) {
+  const auto package = CookStaticProjectRaw(input.project, input.scene_asset, input.capture,
+                                            input.meshes, input.materials, error);
+  if (!package)
+    return std::nullopt;
+#if NEXORA_ASSET_PIPELINE_ENABLED
+  return runtime::EncodeStaticProjectPackage(*package, error);
+#else
+  return std::nullopt;
 #endif
 }
 } // namespace nexora::editor

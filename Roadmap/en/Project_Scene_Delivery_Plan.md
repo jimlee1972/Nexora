@@ -1,15 +1,24 @@
 # Project startup scene, multi-scene build and runtime transitions
 
-Status: authorized implementation goal; **0/5 implementation phases accepted**.
-Updated: 2026-10-25. Related milestones: ED-M1, ED-M3 and ED-M6; none is accepted by this plan.
+Status: authorized implementation goal; **1/5 implementation phases accepted**.
+Updated: 2026-10-26. Related milestones: ED-M1, ED-M3 and ED-M6; none is accepted by this plan.
 The durable work/dependency record is Beads, not the phase table below.
 
-Phase 1 implementation candidate adds the bounded shared codec, guarded project session and
-graphical Build Settings. Windows core (including catalog rename, actual Unicode paths and recovery)
-and real 1x/2x UI regressions pass. Windows cannot create the symlink fixture under the current host
-privileges; Linux alias validation and full Linux/native integration gates are pending.
-No phase is accepted yet.
-[Windows candidate evidence](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md).
+✅ Phase 1 settings/core and graphical Build Settings are accepted for their scoped automated
+contract. PR #716 head `6877b09d` passed all 38 exact-head CI checks and was squash merged as
+`72c82cc7`. Full hosted Linux Development (454 registered, zero failures, existing font skip),
+Shipping, sanitizer/TSan, native display and platform gates passed. Windows local core/1x/2x UI
+and startup smoke passed. Windows symlink creation remained unavailable on this developer PC;
+the full verbose Linux core gate exercised the alias branch without an unavailable diagnostic.
+Native settings-to-game integration and final delivery remain phase 4/5 work.
+[Evidence and closure](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md).
+
+Phase 2 candidate now captures enabled saved scenes, cooks their exact asset union and verifies a
+separate Runtime catalog with an explicit startup UUID. Shared decoded mesh/material owners span
+scene templates; the Runtime-only CLI consumes it without authoring files. The initial six Windows
+package/producer/legacy compatibility tests pass. Full gates, live transitions, publication/build
+coordination and final delivery remain pending. See the [package contract](../../Engine/Runtime/GameProjectPackage.md)
+and [producer contract](../../Engine/Editor/GameProjectExport.md).
 
 ## 1. Product behavior
 
@@ -150,7 +159,7 @@ do not claim this work accepts every 2D/physics/plugin format or the full Editor
 
 | Phase | Scope | Required result | Acceptance |
 | --- | --- | --- | --- |
-| 1 | Settings/core and graphical Build Settings | Independent startup/build list, migration and guarded persistence | Pending |
+| 1 | Settings/core and graphical Build Settings | Independent startup/build list, migration and guarded persistence | ✅ Scoped settings/UI contract accepted; PR #716 |
 | 2 | Multi-scene cooker/package | Deterministic catalog and union closure; legacy StaticView unchanged | Pending |
 | 3 | Runtime session and C/Zig scene service | Transactional Replace/Additive/unload, identity and lifetime checks | Pending |
 | 4 | Shared build, Editor Play and native Player | Same authored scenes, startup and transitions through all entrypoints | Pending |

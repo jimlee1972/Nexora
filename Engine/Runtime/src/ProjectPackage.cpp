@@ -1,4 +1,5 @@
 #include "Nexora/Runtime/ProjectPackage.h"
+#include "ProjectPackageIO.h"
 
 #include <algorithm>
 #include <array>
@@ -22,70 +23,7 @@ constexpr std::array<std::byte, 8> kMagic{std::byte{'N'}, std::byte{'X'}, std::b
                                           std::byte{0},   std::byte{1}};
 constexpr std::uint64_t kMaterialReferenceType = 0x45444d41544c0001ULL;
 constexpr std::string_view kMaterialReferenceName = "editor.material.asset";
-bool Nonzero(AssetUuid id) { return id.high != 0 || id.low != 0; }
-bool Less(AssetUuid left, AssetUuid right) {
-  return left.high < right.high || (left.high == right.high && left.low < right.low);
-}
-template <class T> std::optional<T> Fail(std::string *error, std::string message) {
-  if (error)
-    *error = std::move(message);
-  return std::nullopt;
-}
-std::uint64_t Hash(std::span<const std::byte> bytes) {
-  std::uint64_t value = 1469598103934665603ULL;
-  for (const auto byte : bytes) {
-    value ^= std::to_integer<std::uint8_t>(byte);
-    value *= 1099511628211ULL;
-  }
-  return value;
-}
-void Append(ByteBuffer &bytes, std::uint64_t value, std::size_t width) {
-  for (std::size_t index = 0; index < width; ++index)
-    bytes.push_back(static_cast<std::byte>(value >> (8 * index)));
-}
-struct Reader {
-  std::span<const std::byte> bytes;
-  std::size_t offset{};
-  bool Number(std::uint64_t &value, std::size_t width) {
-    if (width > bytes.size() - offset)
-      return false;
-    value = 0;
-    for (std::size_t index = 0; index < width; ++index)
-      value |= std::uint64_t(std::to_integer<std::uint8_t>(bytes[offset++])) << (8 * index);
-    return true;
-  }
-  bool Skip(std::uint64_t size) {
-    if (size > bytes.size() - offset)
-      return false;
-    offset += static_cast<std::size_t>(size);
-    return true;
-  }
-  bool String(std::size_t maximum) {
-    std::uint64_t size{};
-    return Number(size, 4) && size <= maximum && Skip(size);
-  }
-};
-// NXAB uses native integer layout today. Reject foreign-endian hosts rather than claiming a
-// cross-endian wire; preflight every count/length before the existing deserializer can allocate.
-bool PreflightBlob(std::span<const std::byte> bytes) {
-  if (bytes.size() > kMaximumProjectBlobBytes || bytes.size() < 4 ||
-      std::memcmp(bytes.data(), "NXAB", 4) != 0)
-    return false;
-  Reader reader{bytes, 4};
-  std::uint64_t version{}, ignored{}, dependencies{}, payload{};
-  return reader.Number(version, 4) && version == 1 && reader.Number(ignored, 8) &&
-         reader.Number(ignored, 8) && reader.String(64) && reader.Number(dependencies, 4) &&
-         dependencies <= kMaximumProjectPackageAssets && reader.Skip(dependencies * 16) &&
-         reader.String(16) && reader.Number(payload, 8) && payload == bytes.size() - reader.offset;
-}
-bool ExactDependencies(const RuntimeBlob &blob,
-                       const std::unordered_set<AssetUuid, AssetUuidHash> &expected) {
-  std::unordered_set<AssetUuid, AssetUuidHash> actual;
-  for (const auto id : blob.dependencies)
-    if (!Nonzero(id) || !actual.insert(id).second)
-      return false;
-  return actual == expected;
-}
+using namespace package_detail;
 } // namespace
 
 std::shared_ptr<const CookedMesh> LoadedStaticProject::ResolveMesh(std::uint64_t resource) const {
@@ -341,87 +279,7 @@ std::optional<LoadedStaticProject> DecodeStaticProjectPackage(std::span<const st
 
 std::optional<LoadedStaticProject> ReadStaticProjectPackage(const std::filesystem::path &path,
                                                             std::string *error) {
-  if (error)
-    error->clear();
-  std::error_code ec;
-  const auto absolute = std::filesystem::absolute(path, ec);
-  if (ec || path.empty())
-    return Fail<LoadedStaticProject>(error, "invalid package input path");
-#if defined(__unix__) || defined(__APPLE__)
-  struct FileDescriptor {
-    int value{-1};
-    ~FileDescriptor() {
-      if (value >= 0)
-        close(value);
-    }
-  };
-  FileDescriptor descriptor{open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC)};
-  if (descriptor.value < 0)
-    return Fail<LoadedStaticProject>(error, "package root could not be opened");
-  const auto relative = absolute.relative_path();
-  for (auto part = relative.begin(); part != relative.end(); ++part) {
-    auto next = part;
-    ++next;
-    const bool final = next == relative.end();
-    const auto opened =
-        openat(descriptor.value, part->c_str(),
-               O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK | (final ? 0 : O_DIRECTORY));
-    if (opened < 0)
-      return Fail<LoadedStaticProject>(error,
-                                       "package path contains an alias or unavailable component");
-    close(descriptor.value);
-    descriptor.value = opened;
-  }
-  struct stat status{};
-  if (fstat(descriptor.value, &status) != 0 || !S_ISREG(status.st_mode) || status.st_size < 0 ||
-      static_cast<std::uint64_t>(status.st_size) > kMaximumProjectPackageBytes)
-    return Fail<LoadedStaticProject>(error, "package input is not a bounded regular file");
-  ByteBuffer bytes;
-  std::array<std::byte, 16384> chunk;
-  for (;;) {
-    const auto read_count = read(descriptor.value, chunk.data(), chunk.size());
-    if (read_count == 0)
-      break;
-    if (read_count < 0) {
-      if (errno == EINTR)
-        continue;
-      return Fail<LoadedStaticProject>(error, "package input read failed");
-    }
-    const auto count = static_cast<std::size_t>(read_count);
-    if (count > kMaximumProjectPackageBytes - bytes.size())
-      return Fail<LoadedStaticProject>(error, "package grew past byte budget");
-    bytes.insert(bytes.end(), chunk.begin(), chunk.begin() + static_cast<std::ptrdiff_t>(count));
-  }
-  return DecodeStaticProjectPackage(bytes, error);
-#else
-  std::filesystem::path prefix;
-  for (const auto &part : absolute) {
-    prefix /= part;
-    const auto status = std::filesystem::symlink_status(prefix, ec);
-    if (ec || std::filesystem::is_symlink(status))
-      return Fail<LoadedStaticProject>(error,
-                                       "package path contains an alias or missing component");
-  }
-  if (!std::filesystem::is_regular_file(absolute, ec) || ec)
-    return Fail<LoadedStaticProject>(error, "package input is not a regular file");
-  const auto size = std::filesystem::file_size(absolute, ec);
-  if (ec || size > kMaximumProjectPackageBytes)
-    return Fail<LoadedStaticProject>(error, "package input byte budget exceeded");
-  std::ifstream input(absolute, std::ios::binary);
-  if (!input)
-    return Fail<LoadedStaticProject>(error, "package input could not be opened");
-  ByteBuffer bytes;
-  std::array<char, 16384> chunk;
-  while (input.read(chunk.data(), chunk.size()) || input.gcount() > 0) {
-    const auto count = static_cast<std::size_t>(input.gcount());
-    if (count > kMaximumProjectPackageBytes - bytes.size())
-      return Fail<LoadedStaticProject>(error, "package grew past byte budget");
-    const auto *begin = reinterpret_cast<const std::byte *>(chunk.data());
-    bytes.insert(bytes.end(), begin, begin + count);
-  }
-  if (!input.eof())
-    return Fail<LoadedStaticProject>(error, "package input read failed");
-  return DecodeStaticProjectPackage(bytes, error);
-#endif
+  const auto bytes = package_detail::ReadPackageFile(path, error);
+  return bytes ? DecodeStaticProjectPackage(*bytes, error) : std::nullopt;
 }
 } // namespace nexora::runtime

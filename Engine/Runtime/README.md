@@ -535,7 +535,9 @@ generation only and do not claim Android NDK or iOS SDK linking, packaging, or r
 ## Cooked static-project consumption
 
 The asset-pipeline feature now provides owning [cooked mesh, scalar PBR and scene codecs](CookedSceneAssets.md)
-and the [StaticView project package consumer](ProjectPackage.md). Public schema-1 payloads use explicit
+and the [StaticView project package consumer](ProjectPackage.md). The separate
+[multi-scene package catalog](GameProjectPackage.md) adds explicit startup/catalog identity and
+shared immutable scene templates; it does not yet implement live scene transitions. Public schema-1 payloads use explicit
 little-endian fields; the existing NXAB envelope requires a little-endian host. The loader validates
 bounded framing, hashes, full UUID/dependency closure and mesh resource collisions, then constructs
 an isolated Play World with owning typed resources and exact hierarchy matrices. Unknown component

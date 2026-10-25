@@ -46,6 +46,7 @@ public:
   [[nodiscard]] std::shared_ptr<const CookedMesh> ResolveMesh(std::uint64_t resource) const;
 
 private:
+  friend class GameProjectResolver;
   friend NEXORA_RUNTIME_API std::optional<LoadedStaticProject>
   LoadStaticProjectPackage(const StaticProjectPackage &, std::string *);
   AssetUuid project_, scene_asset_;

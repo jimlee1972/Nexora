@@ -1,14 +1,22 @@
 # 專案啟動場景、多場景建置與執行時切換計畫
 
-狀態：已授權實作目標；**5 個實作階段目前通過 0 個**。
-更新：2026-10-25。相關里程碑：ED-M1、ED-M3、ED-M6；本計畫不代表任何完整里程碑通過。
+狀態：已授權實作目標；**5 個實作階段目前通過 1 個**。
+更新：2026-10-26。相關里程碑：ED-M1、ED-M3、ED-M6；本計畫不代表任何完整里程碑通過。
 持久任務與相依以 Beads 為準，下列階段表不是另一套任務系統。
 
-階段 1 實作候選已加入有界共用 codec、受保護專案 session 與圖形 Build Settings。
-Windows 核心（含 catalog 改名、實際中文路徑與 recovery）及實際 1x／2x UI 回歸通過。
-Windows 目前主機權限無法建立 symlink fixture；Linux alias 驗證及完整 Linux／原生整合 gate
-仍待完成。目前仍不接受任何實作階段。
-[Windows 候選證據](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md)。
+✅ 階段 1 設定／core 與圖形 Build Settings 的限定自動化契約已驗收。PR #716 的
+`6877b09d` 通過全部 38 項 exact-head CI 檢查，並 squash 合併為 `72c82cc7`。
+Hosted Linux Development 完整 gate（登錄 454 項、零失敗、保留既有字型 skip）、Shipping、
+sanitizer／TSan、native display 及各平台 gates 通過。Windows 本機 core／1x／2x UI 與啟動
+smoke 通過；此開發機仍無法建立 Windows symlink fixture，完整 verbose Linux core gate
+已走 alias 分支且沒有 unavailable 診斷。設定至原生遊戲的串接與最終交付仍屬階段 4／5。
+[驗收與結案證據](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md)。
+
+階段 2 候選已可擷取啟用的已儲存場景、cook 精確相依聯集，並驗證具有明確啟動 UUID 的獨立
+Runtime catalog。Scene template 共用解碼後的 mesh／material owner；Runtime-only CLI 不需
+製作來源檔案。初輪六項 Windows 套件／producer／舊格式相容測試通過。完整 gates、實際切換、
+發佈／建置協調及最終交付仍待完成。詳見[套件契約](../../Engine/Runtime/GameProjectPackage.md)
+與 [producer 契約](../../Engine/Editor/GameProjectExport.md)。
 
 ## 1. 使用者操作
 
@@ -135,7 +143,7 @@ request／status helper。不更改 V3 `load_scene` 語意或既有 ABI offset�
 
 | 階段 | 範圍 | 必須交付的結果 | 驗收 |
 | --- | --- | --- | --- |
-| 1 | Settings/core 與圖形 Build Settings | 獨立啟動／打包清單、migration 與受保護持久化 | 待完成 |
+| 1 | Settings/core 與圖形 Build Settings | 獨立啟動／打包清單、migration 與受保護持久化 | ✅ 限定設定／UI 契約已驗收；PR #716 |
 | 2 | 多場景 cooker／package | 可重現 catalog 與相依聯集，既有 StaticView 不變 | 待完成 |
 | 3 | Runtime session 與 C／Zig Scene service | 原子 Replace／Additive／unload、識別與生命週期驗證 | 待完成 |
 | 4 | 共用 build、Editor Play 與原生 Player | 各入口使用同樣的作者場景、啟動設定及切換 | 待完成 |
