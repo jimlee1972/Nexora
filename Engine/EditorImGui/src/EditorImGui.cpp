@@ -4019,7 +4019,8 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     for (std::size_t index = 0; index < state.project_files.size(); ++index) {
       const auto &item = state.project_files[index];
       const auto depth = static_cast<float>(std::distance(item.path.begin(), item.path.end()) - 1);
-      ImGui::Indent(depth * 16.0F);
+      if (depth > 0)
+        ImGui::Indent(depth * 16.0F);
       ImGui::PushOverrideID(ContentIdentity(project_scope, "file", PathLabel(item.path)));
       if (item.path == "Content" || item.path == ".nexora" || item.path == ".nexora/scenes")
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -4047,7 +4048,8 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
                                           ImGui::GetColorU32(ImGuiCol_Text), label.data(),
                                           label.data() + label.size());
       ImGui::PopID();
-      ImGui::Unindent(depth * 16.0F);
+      if (depth > 0)
+        ImGui::Unindent(depth * 16.0F);
       if (item.directory && !expanded) {
         const auto prefix = PathLabel(item.path) + "/";
         while (index + 1 < state.project_files.size() &&
