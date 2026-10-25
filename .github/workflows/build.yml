@@ -216,9 +216,9 @@ jobs:
       - name: Require semantic scene comparison acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.semantic_scene_comparison$' | grep -q 'Total Tests: 1'
-      - name: Require graphical additive-tab acceptance
+      - name: Require graphical single-scene workflow acceptance
         run: |
-          ctest --preset linux-development -N -R '^editor\.(scene_tabs|linux_native_scene_tabs)$' | grep -q 'Total Tests: 2'
+          ctest --preset linux-development -N -R '^editor\.(scene_tabs|scene_file_input|linux_single_scene)$' | grep -q 'Total Tests: 3'
       - name: Require graphical diagnostic privacy acceptance
         run: |
           ctest --preset linux-development -N -R '^editor\.(diagnostic_privacy|linux_diagnostic_privacy)$' | grep -q 'Total Tests: 2'

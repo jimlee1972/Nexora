@@ -53,6 +53,10 @@ printf format in the tree node. The call now uses a typed `%s` format without we
 The Project tree also retains the previous export progress/result/verification display through
 the same shared renderer used by the metadata-only fallback. Local and relocated native gates
 above were repeated with both corrections; the earlier failed hosted runs remain visible.
+The follow-up Linux display build passed compilation and exposed a stale inventory assertion
+requiring the removed native multi-tab name. The workflow now requires three registered tests:
+the retained supporting tab UI contract, scene-file controls and the new native single-scene gate.
+The Core additive/save/composition inventory requirements remain unchanged.
 
 Exact-head hosted Linux Development/Shipping results are recorded in the PR and local CI receipt
 after completion. The native Xvfb gate now
