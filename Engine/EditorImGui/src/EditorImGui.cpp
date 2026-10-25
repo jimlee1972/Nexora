@@ -179,6 +179,12 @@ struct EditorImGuiHost::State final {
   std::array<char, ProjectBuildSettings::kMaximumPathBytes + 1> build_settings_path{};
   std::optional<std::size_t> build_settings_selected;
   std::optional<ProjectBuildSettingsRequest> build_settings_request;
+  bool game_build_busy{}, game_build_script{}, saved_game_decision_pending{};
+  std::string game_build_status;
+  char game_build_output[1025] = "Build/Game";
+  char game_build_manifest[1025] = "Scripts/project.json";
+  std::optional<SavedGameDecision> saved_game_decision;
+  std::array<std::optional<std::array<float, 2>>, 3> saved_game_decision_positions{};
   std::array<std::optional<std::array<float, 2>>, 16 + ProjectBuildSettings::kMaximumScenes * 3>
       build_settings_positions{};
   SceneComparisonSnapshot scene_comparison;
@@ -4001,7 +4007,7 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     state.build_settings_request = ProjectBuildSettingsRequest{
         workspace->Project().id, workspace->Root(), action, state.build_settings, std::move(path)};
   };
-  ImGui::SetNextWindowSize(ImVec2(700, 520), ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowSize(ImVec2(700, 680), ImGuiCond_FirstUseEver);
   if (ImGui::Begin("Project Build Settings", &state.build_settings_open)) {
     ImGui::TextUnformatted("Game startup scene and scenes included in the build");
     ImGui::TextDisabled("Opening another scene does not change the startup scene.");
@@ -4090,6 +4096,36 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     capture(7);
     ImGui::TextDisabled(
         "Startup scene must remain enabled. Reload discards unsaved setting edits.");
+    ImGui::Separator();
+    ImGui::TextUnformatted("Build standalone game");
+    if (!state.game_build_status.empty())
+      ImGui::TextWrapped("%s", state.game_build_status.c_str());
+    ImGui::BeginDisabled(state.game_build_busy || blocked || !workspace->Writable());
+    ImGui::InputText("Output folder (project-relative)", state.game_build_output,
+                     sizeof(state.game_build_output));
+    capture(10);
+    ImGui::Checkbox("Include gameplay script", &state.game_build_script);
+    capture(11);
+    if (state.game_build_script) {
+      ImGui::InputText("Script manifest", state.game_build_manifest,
+                       sizeof(state.game_build_manifest));
+      capture(12);
+    }
+    if (ImGui::Button("Build Game")) {
+      request(state.game_build_script ? ProjectBuildSettingsAction::BuildScript
+                                      : ProjectBuildSettingsAction::BuildSceneOnly,
+              state.game_build_script ? state.game_build_manifest : "");
+      state.build_settings_request->output = state.game_build_output;
+    }
+    capture(13);
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!state.game_build_busy);
+    if (ImGui::Button("Cancel Build"))
+      request(ProjectBuildSettingsAction::CancelBuild);
+    capture(14);
+    ImGui::EndDisabled();
+    ImGui::TextDisabled("Build uses saved settings and scenes; output contains no project source.");
   }
   ImGui::End();
 }
@@ -5636,6 +5672,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->console_clear_sequence = 0;
     state_->console_frozen_records.clear();
   }
+  state_->build_settings_positions[1].reset();
   state_->play_apply_position.reset();
   state_->play_apply_confirm_position.reset();
   if (!game_running) {
@@ -5805,11 +5842,39 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   DrawProjectBuildSettings(*state_, workspace, scene,
                            recovery_available || game_running || state_->static_export_busy ||
                                close_confirmation_open || state_->play_apply_open);
+  if (state_->saved_game_decision_pending && !ImGui::IsPopupOpen("Saved project scenes"))
+    ImGui::OpenPopup("Saved project scenes");
+  if (ImGui::BeginPopupModal("Saved project scenes", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    ImGui::TextUnformatted("The current scene has unsaved changes.");
+    ImGui::TextUnformatted("Save it, or use the saved project scenes and keep your edits open.");
+    const auto decide = [&](SavedGameDecision decision) {
+      state_->saved_game_decision = decision;
+      state_->saved_game_decision_pending = false;
+      ImGui::CloseCurrentPopup();
+    };
+    const auto capture_decision = [&](std::size_t index) {
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state_->saved_game_decision_positions[index] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+    };
+    if (ImGui::Button("Save Scene"))
+      decide(SavedGameDecision::Save);
+    capture_decision(0);
+    ImGui::SameLine();
+    if (ImGui::Button("Use Saved Scenes"))
+      decide(SavedGameDecision::UseSaved);
+    capture_decision(1);
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel"))
+      decide(SavedGameDecision::Cancel);
+    capture_decision(2);
+    ImGui::EndPopup();
+  }
   const bool file_shortcuts_allowed =
-      file_context_valid && state_->app_focused && !file_external_block && !tab_modal &&
-      !state_->prefab_override_confirm && !state_->prefab_rebase_confirm &&
-      state_->scene_file_dialog == State::FileDialog::None && !state_->scene_file_output &&
-      !state_->content_rename_target && !ImGui::GetIO().WantTextInput;
+      !state_->saved_game_decision_pending && file_context_valid && state_->app_focused &&
+      !file_external_block && !tab_modal && !state_->prefab_override_confirm &&
+      !state_->prefab_rebase_confirm && state_->scene_file_dialog == State::FileDialog::None &&
+      !state_->scene_file_output && !state_->content_rename_target && !ImGui::GetIO().WantTextInput;
   const bool comparison_shortcut_allowed = file_shortcuts_allowed && !game_running &&
                                            state_->scene_file_path &&
                                            !state_->scene_comparison_busy;
@@ -6411,8 +6476,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + apply_width;
         if (same_line_end <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x)
           ImGui::SameLine();
-        ImGui::BeginDisabled(scene == nullptr || !writable || interaction_blocked ||
-                             state_->close_prompt_requested);
+        ImGui::BeginDisabled(scene == nullptr || !writable || !play->CanApplyTransforms() ||
+                             interaction_blocked || state_->close_prompt_requested);
         if (ImGui::Button("Apply Changes")) {
           state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
           state_->play_apply_open = true;
@@ -8240,6 +8305,11 @@ void EditorImGuiHost::RequestSceneSaveAs(bool close_after_save,
   state_->scene_file_focus_path = true;
   state_->scene_file_popup_pending = true;
 }
+bool EditorImGuiHost::SceneFileDialogBusy() const noexcept {
+  return state_->scene_file_dialog != State::FileDialog::None ||
+         state_->scene_file_output.has_value();
+}
+
 void EditorImGuiHost::RequestSceneOverwrite(SceneFileRequest request) {
   Activate(state_->context);
   CancelSceneGestures(*state_);
@@ -8467,6 +8537,14 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
     state_->build_settings_request.reset();
     state_->build_settings_selected.reset();
     state_->build_settings_path.fill('\0');
+    state_->game_build_script = false;
+    state_->game_build_status.clear();
+    std::fill(std::begin(state_->game_build_output), std::end(state_->game_build_output), '\0');
+    std::copy_n("Build/Game", 10, std::begin(state_->game_build_output));
+    std::fill(std::begin(state_->game_build_manifest), std::end(state_->game_build_manifest), '\0');
+    std::copy_n("Scripts/project.json", 20, std::begin(state_->game_build_manifest));
+    state_->saved_game_decision_pending = false;
+    state_->saved_game_decision.reset();
   }
   state_->build_settings_project = workspace.Project().id;
   state_->build_settings_root = workspace.Root();
@@ -8477,12 +8555,34 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
 std::optional<ProjectBuildSettingsRequest> EditorImGuiHost::TakeProjectBuildSettingsRequest() {
   return std::exchange(state_->build_settings_request, std::nullopt);
 }
+void EditorImGuiHost::SetGameBuildStatus(bool busy, std::string message) {
+  state_->game_build_busy = busy;
+  if (foundation::IsValidUtf8(message) && message.size() <= 8192)
+    state_->game_build_status = std::move(message);
+}
+void EditorImGuiHost::RequestSavedGameDecision() {
+  state_->saved_game_decision_pending = true;
+  state_->saved_game_decision.reset();
+  state_->game_input_focused = false;
+}
+std::optional<SavedGameDecision> EditorImGuiHost::TakeSavedGameDecision() {
+  return std::exchange(state_->saved_game_decision, std::nullopt);
+}
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+bool EditorImGuiTestAccess::ProjectGameBuildBusy(const EditorImGuiHost &host) {
+  return host.state_->game_build_busy;
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProjectBuildSettingsPosition(const EditorImGuiHost &host,
                                                     std::size_t index) {
   return index < host.state_->build_settings_positions.size()
              ? host.state_->build_settings_positions[index]
+             : std::nullopt;
+}
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::SavedGameDecisionPosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->saved_game_decision_positions.size()
+             ? host.state_->saved_game_decision_positions[index]
              : std::nullopt;
 }
 #endif

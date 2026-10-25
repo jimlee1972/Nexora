@@ -200,14 +200,23 @@ struct StaticExportRequest final {
   bool cancel{};
 };
 
-enum class ProjectBuildSettingsAction { Reload, AddScene, Save };
+enum class ProjectBuildSettingsAction {
+  Reload,
+  AddScene,
+  Save,
+  BuildSceneOnly,
+  BuildScript,
+  CancelBuild
+};
 struct ProjectBuildSettingsRequest final {
   foundation::Uuid project;
   std::filesystem::path root;
   ProjectBuildSettingsAction action{};
   ProjectBuildSettings settings;
   std::string path;
+  std::string output{"Build/Game"};
 };
+enum class SavedGameDecision { Save, UseSaved, Cancel };
 
 enum class ExtensionManagerAction : std::uint8_t {
   SetPublisher,
@@ -445,7 +454,11 @@ public:
   void SetProjectBuildSettings(const ProjectWorkspace &, ProjectBuildSettings, bool ready,
                                std::string status = {});
   [[nodiscard]] std::optional<ProjectBuildSettingsRequest> TakeProjectBuildSettingsRequest();
+  void SetGameBuildStatus(bool busy, std::string message);
+  void RequestSavedGameDecision();
+  [[nodiscard]] std::optional<SavedGameDecision> TakeSavedGameDecision();
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
+  [[nodiscard]] bool SceneFileDialogBusy() const noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   // Owning context only; the application performs all file IO and rechecks token/access.
   // Owns a token/path copy, never a workspace/document borrow. Changing the token cancels

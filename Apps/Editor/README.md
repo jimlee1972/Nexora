@@ -17,11 +17,29 @@ NexoraEditor --build-game=PROJECT --output=OUTPUT --runtime-profile=PROFILE --sc
 NexoraEditor --build-game=PROJECT --output=OUTPUT --runtime-profile=PROFILE --script-project=Scripts/project.json --cmake=CMAKE --ninja=NINJA --zig=ZIG
 ```
 
-OUTPUT's parent must exist. PROFILE is the trusted installed native Player's `GameRuntime.profile`;
+OUTPUT's parent must exist. All profile/tool options may be omitted to use the Editor installation.
+PROFILE is the trusted installed native Player's `GameRuntime.profile`;
 script manifests for this producer live inside a dedicated project-relative source directory.
 This command captures saved settings/scenes, runs the same engine cooker/SDK adapter and guarded
 publisher, and produces a source-free standalone game. See the [build contract](../../Engine/Editor/GameBuild.md).
-Graphical build coordination, configured-scene Editor Play and final delivery remain pending.
+Build > Project Build Settings starts the common producer on an owning worker, with a
+project-relative output directory and an explicit scene-only or gameplay-script choice. Cancel
+is cooperative. Publication runs on the authoring thread and rechecks project identity, saved
+sources, document/content revisions and writable access; obsolete results cannot replace an
+existing build. Runtime profiles and bundled tools resolve relative to the Editor executable;
+configured developer tools provide a development-build fallback.
+
+Projects with `project.build.json` Play the saved enabled scenes from the configured startup
+scene in an isolated game World. A dirty current Scene offers Save, Use Saved Scenes or Cancel.
+The module retains the common Scene V1 service through Stop/Destroy; queued changes prepare
+and draw before commit. Unsupported/invalid candidate admission redraws the retained scene when
+that draw remains valid; device loss follows surface recovery. Authoring documents remain separate; Apply Changes is unavailable.
+Projects without build settings retain clone-based Play. Incomplete Scene tables and combined
+custom-2D bindings reject. `--graphical --project=PROJECT --play` invokes the same Play command
+after graphical startup for automated acceptance. Normal double-click startup needs no arguments.
+
+Windows integration exercised configured startup and A/B/A through the actual Editor. Linux
+native pixel acceptance and final portable Editor delivery remain acceptance gates.
 
 ## Interactive startup and project files
 

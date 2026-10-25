@@ -107,7 +107,8 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
     gameplay.world.EndFrame();
     const auto extent = surface.FrameInfo();
     const auto aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
-    bool drawn{}, native_failed{};
+    bool drawn{};
+    auto candidate_status = SurfaceStatus::Ready;
     const auto processed =
         session.Process([&](const runtime::GameSceneView &view,
                             std::string &error) -> std::unique_ptr<runtime::GameScenePresentation> {
@@ -130,7 +131,7 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
           if (result != SurfaceStatus::Ready) {
             error = "Candidate native draw preparation failed: ";
             error.append(ToString(result));
-            native_failed = true;
+            candidate_status = result;
             return {};
           }
           drawn = true;
@@ -140,7 +141,8 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
       ++rejected;
       std::cerr << "Game scene request failed; live World retained: " << session.ErrorText()
                 << '\n';
-      if (!published || native_failed) {
+      if (!published || (candidate_status != SurfaceStatus::Ready &&
+                         !sceneview::CanRedrawRetainedScene(candidate_status))) {
         failed = true;
         break;
       }

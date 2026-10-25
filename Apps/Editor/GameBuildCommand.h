@@ -1,4 +1,5 @@
 #pragma once
+#include "InstalledGameBuildTools.h"
 #include "Nexora/Editor/GameBuild.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
 #include "Nexora/Editor/MeshAssetCatalog.h"
@@ -38,9 +39,12 @@ inline int RunGameBuildCommand(int argc, char **argv) {
   }
   const bool scripted = options.contains("--script-project");
   if (!options.contains("--build-game") || !options.contains("--output") ||
-      !options.contains("--runtime-profile") || scene_only == scripted ||
-      (scripted && (!options.contains("--cmake") || !options.contains("--ninja") ||
-                    !options.contains("--zig")))) {
+      scene_only == scripted ||
+      (!options.contains("--runtime-profile") &&
+       (options.contains("--cmake") || options.contains("--ninja") || options.contains("--zig"))) ||
+      (scripted && options.contains("--runtime-profile") &&
+       (!options.contains("--cmake") || !options.contains("--ninja") ||
+        !options.contains("--zig")))) {
     std::cerr << "NexoraEditor --build-game=PROJECT --output=DIRECTORY --runtime-profile=PROFILE "
                  "(--scene-only | --script-project=RELATIVE_MANIFEST --cmake=PATH --ninja=PATH "
                  "--zig=PATH)\n";
@@ -57,8 +61,11 @@ inline int RunGameBuildCommand(int argc, char **argv) {
     std::cerr << "Game build failed: " << error << '\n';
     return 1;
   };
-  const auto tools = ReadGameBuildToolchain(absolute("--runtime-profile"), absolute("--cmake"),
-                                            absolute("--ninja"), absolute("--zig"), &error);
+  const auto tools =
+      options.contains("--runtime-profile")
+          ? ReadGameBuildToolchain(absolute("--runtime-profile"), absolute("--cmake"),
+                                   absolute("--ninja"), absolute("--zig"), &error)
+          : InstalledGameBuildTools(&error);
   if (!tools)
     return fail();
   ProjectWorkspace workspace;

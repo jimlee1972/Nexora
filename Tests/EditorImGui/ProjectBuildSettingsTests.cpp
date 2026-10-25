@@ -43,7 +43,7 @@ struct Fixture final {
     settings = {a->id, {*a, *b}};
     Require(session.Save(settings, catalog), "settings save");
     ui.SetProjectBuildSettings(writer, settings, true);
-    ui.SetDisplay(1600, 1000, dpi);
+    ui.SetDisplay(1600, 1600, dpi);
     Access::ConfigureSyntheticInput(ui);
     Nexora::Window::WindowEvent focus;
     focus.type = Nexora::Window::WindowEventType::FocusChanged;
@@ -66,6 +66,9 @@ struct Fixture final {
   }
   void Click(std::size_t control) {
     const auto point = Access::ProjectBuildSettingsPosition(ui, control);
+    ClickPoint(point);
+  }
+  void ClickPoint(std::optional<std::array<float, 2>> point) {
     Require(point.has_value(), "build settings control not rendered");
     Nexora::Window::WindowEvent pointer, button;
     pointer.type = Nexora::Window::WindowEventType::Pointer;
@@ -101,6 +104,34 @@ void Run(float scale) {
           "UI request save failed");
   f.ui.SetProjectBuildSettings(f.writer, *session.Settings(), true, "Saved");
   f.Draw();
+  f.Click(13);
+  auto build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildSceneOnly && build->output == "Build/Game" &&
+              build->project == f.writer.Project().id && !f.ui.TakeProjectBuildSettingsRequest(),
+          "scoped scene-only build action");
+  f.Click(11);
+  f.Click(13);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript && build->path == "Scripts/project.json",
+          "explicit script build action");
+  f.ui.SetGameBuildStatus(true, "Building fixture");
+  f.Draw();
+  f.Click(13);
+  Require(!f.ui.TakeProjectBuildSettingsRequest(), "busy build emitted duplicate request");
+  f.Click(14);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::CancelBuild, "cancel build request");
+  f.ui.SetGameBuildStatus(false, "Cancelled");
+  for (std::size_t choice = 0; choice < 3; ++choice) {
+    f.ui.RequestSavedGameDecision();
+    f.Draw();
+    f.Draw();
+    f.ClickPoint(Access::SavedGameDecisionPosition(f.ui, choice));
+    const auto decision = f.ui.TakeSavedGameDecision();
+    Require(decision && *decision == static_cast<editor::imgui::SavedGameDecision>(choice) &&
+                !f.ui.TakeSavedGameDecision(),
+            "saved scene decision is not one-shot");
+  }
   f.Click(19); // Startup row checkbox is disabled.
   f.Click(5);
   request = f.ui.TakeProjectBuildSettingsRequest();

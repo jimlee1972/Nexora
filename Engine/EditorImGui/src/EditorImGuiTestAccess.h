@@ -122,6 +122,9 @@ class NEXORA_EDITOR_IMGUI_API EditorImGuiTestAccess final {
 public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectBuildSettingsPosition(const EditorImGuiHost &, std::size_t);
+  [[nodiscard]] static bool ProjectGameBuildBusy(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  SavedGameDecisionPosition(const EditorImGuiHost &, std::size_t);
   // Host-local owning override for deterministic font tests, applied before a new SetDisplay.
   static void FontSources(EditorImGuiHost &, std::span<const std::string> paths,
                           bool require_traditional_face = false);

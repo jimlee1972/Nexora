@@ -1,3 +1,4 @@
+#include "GameBuildCoordinator.h"
 #include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/GameBuild.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
@@ -50,6 +51,22 @@ std::uint32_t Command(const std::filesystem::path &executable, const std::filesy
     std::cerr << result.output << '\n';
   Require(result.exit_code.has_value(), "child did not exit normally");
   return *result.exit_code;
+}
+std::optional<editor::PreparedGameBuild> PrepareOnWorker(const editor::GameBuildRequest &request,
+                                                         std::string &error) {
+  editor::preview::GameBuildCoordinator worker;
+  Require(worker.Start(request) && worker.Busy() && !worker.Start(request),
+          "worker duplicated a live build");
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::minutes(3);
+  while (std::chrono::steady_clock::now() < deadline) {
+    if (auto result = worker.Poll()) {
+      Require(!worker.Busy(), "completed worker retained a live future");
+      error = std::move(result->error);
+      return std::move(result->prepared);
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  }
+  throw std::runtime_error("graphical build worker deadline exceeded");
 }
 void Run(const std::filesystem::path &root, int argc, char **argv) {
   Require(argc >= 7, "builder test arguments");
@@ -106,7 +123,7 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   for (int index = 7; index < argc; ++index)
     request.tools.runtime_files.push_back(Path(argv[index]));
   const auto output = root / "BuiltGame";
-  auto prepared = editor::PrepareGameBuild(request, {}, &error);
+  auto prepared = PrepareOnWorker(request, error);
   Require(prepared.has_value(), error.c_str());
   Require(!prepared->Publish(output, {}, [] { return false; }) && !exists(output), "owner guard");
   core::CancellationSource cancelled;
@@ -146,6 +163,11 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
                    "--scene-only"}) == 0U &&
               exists(root / "CliGame/Game.inventory"),
           "Editor CLI did not use the shared build service");
+  Require(Command(Path(argv[6]), root,
+                  {"--build-game=" + Utf8(root), "--output=" + Utf8(root / "InstalledCliGame"),
+                   "--scene-only"}) == 0U &&
+              exists(root / "InstalledCliGame/Game.inventory"),
+          "Editor CLI could not resolve its installed/developer runtime and tool configuration");
   Require(!old_inventory.empty() && exists(output / "Game.launch") &&
               exists(output / "Game.nxgame") && !exists(output / "Title.scene") &&
               !exists(output / "sdk") && !exists(output / "source"),
@@ -168,7 +190,7 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
         R"({"schema":1,"module_name":"BuiltGameFixture","script":"game.zig"})");
   request.mode = editor::GameBuildMode::ScriptProject;
   request.script_manifest = "Scripts/project.json";
-  auto scripted = editor::PrepareGameBuild(request, {}, &error);
+  auto scripted = PrepareOnWorker(request, error);
   Require(scripted.has_value(), error.c_str());
   Require(scripted->Log().find("NEXORA_SCRIPT_TESTS_PASSED") != std::string::npos,
           "SDK tests not run");
@@ -187,6 +209,20 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
               Read(output / "Game.inventory") == scripted_inventory,
           "failed compile replaced previous game");
   Require(!editor::PrepareGameBuild(request, cancelled.Token()), "pre-cancelled build ran");
+  {
+    editor::preview::GameBuildCoordinator worker;
+    Require(worker.Start(request), "cancel worker start");
+    worker.Cancel();
+    std::optional<editor::preview::GameBuildCoordinator::Result> result;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
+    while (!result && std::chrono::steady_clock::now() < deadline) {
+      result = worker.Poll();
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    Require(result && !result->prepared && !worker.Busy() &&
+                Read(output / "Game.inventory") == scripted_inventory,
+            "cancelled graphical worker published or retained a live operation");
+  }
   workspace = editor::ProjectWorkspace{};
 }
 } // namespace

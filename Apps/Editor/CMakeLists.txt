@@ -1,4 +1,7 @@
 add_executable(NexoraEditor main.cpp)
+file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/EditorGameTools.h" CONTENT
+  "#pragma once\n#include <string_view>\nnamespace nexora::editor::preview {\ninline constexpr std::string_view kConfiguredGameCmake = R\"nxtools(${CMAKE_COMMAND})nxtools\";\ninline constexpr std::string_view kConfiguredGameNinja = R\"nxtools(${CMAKE_MAKE_PROGRAM})nxtools\";\ninline constexpr std::string_view kConfiguredGameZig = R\"nxtools(${NEXORA_ZIG_EXECUTABLE})nxtools\";\n}\n")
+target_include_directories(NexoraEditor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
 if(MINGW)
   target_link_options(NexoraEditor PRIVATE -municode)
 endif()

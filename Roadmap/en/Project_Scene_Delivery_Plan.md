@@ -34,7 +34,8 @@ Phase 4 native Player candidate now presents the configured non-Main startup and
 requests on the Windows desktop. Hardware DX12 passed 120 transitions with stable scene/entity
 and shared-geometry counters, recoverable candidate-camera rejection/retry and empty/default-camera
 startup. This does not accept native pixels: Computer Use app access timed out, and the new Linux
-pixel test is not yet run. Shared build, Editor Play, game relocation and final ZIP remain open.
+pixel observation was pending at that candidate point. PR #720 subsequently accepts the shared
+build/native slice and Linux standalone pixel test; Editor Play and final ZIP remain open.
 See the [native candidate evidence](../../Tools/Build/evidence/NativeGamePlayer-Windows-2026-10-26.md).
 
 The phase-4 shared producer/Editor CLI candidate now freezes exact saved sources, materializes
@@ -43,6 +44,33 @@ adapter and verifies the staged native Player data/ABI. Publication rechecks sou
 and preserves previous output on failure. Local Windows producer/CLI tests pass; final-source,
 complete CI, graphical build coordination, Editor Play and Editor ZIP gates remain open. See the
 [build contract](../../Engine/Editor/GameBuild.md) and [scoped build evidence](../../Tools/Build/evidence/SharedGameBuild-Windows-2026-10-26.md).
+
+The next Editor Play slice introduces an explicit borrow of a host-owned isolated Play World;
+packaged/remapped IDs cannot apply transforms back to authoring. It remains an integration
+candidate until configured startup, the shared scene service and native Game view pass together.
+
+The next Editor integration candidate now routes the main Play command through saved configured
+scenes and the common Scene V1 host, with dirty Save/Use Saved/Cancel and scoped Save As
+continuation. A worker owns the graphical Build request and returns to guarded owner-thread
+publication. Windows selected host/UI tests pass (10/10); actual Editor runs present 1,200 frames
+and commit Level01/Title/Level01 with saved sources unchanged. These are native execution/counter
+observations, not captured Windows pixels. The new Linux Xvfb pixel case is not yet run; complete
+updated-source CI, GUI producer integration and final portable ZIP remain pending. See the
+[Editor host evidence](../../Tools/Build/evidence/EditorPackagedPlayHost-Windows-2026-10-26.md).
+
+✅ PR #720's common producer/native-launcher slice is now merged as `be8477d8` after all 41 exact-head
+checks passed. Hosted Linux Development registered 466 tests (zero failures, existing font skip),
+Windows 405 and macOS 384; Shipping, sanitizer/TSan, feature-off and platform gates passed. This
+accepts the shared slice, not all phase 4: the new configured Editor Play/GUI Build/pixel integration
+and final portable Editor ZIP still require their updated-source gates.
+
+The full Linux Development log for PR #720 also records the standalone native SDK pixel test:
+`runtime.linux_native_game_player` passed in 8.13 s, actual red centroids left/right/left
+(78/91/78 samples), plus camera-failure retention, 120 replacements with stable counters and empty
+startup. The separate display job omitted Zig; the new Editor candidate explicitly requires both
+SDK pixel cases there. Native draw admission rejection now retries the retained draw for Unsupported/
+InvalidDescriptor; device/surface loss still goes through host recovery. These next-head changes
+remain candidates until their own complete CI succeeds.
 
 ## 1. Product behavior
 
