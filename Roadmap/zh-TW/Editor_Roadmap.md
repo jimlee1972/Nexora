@@ -1,5 +1,12 @@
 # Nexora 圖形化 Editor Roadmap
 
+### 專案場景交付目標（2026-10-25）
+
+已授權啟動場景設定、打包場景清單及 Runtime 套件場景切換，範圍與驗收記於
+[場景交付計畫](Project_Scene_Delivery_Plan.md)。五個實作階段目前皆待完成。
+主 Editor 維持一個編輯中 Scene，上次開啟場景不是遊戲啟動設定。
+既有 StaticView 與完整 ED-M1／M3／M6 驗收分開計算。
+
 ### 主 Editor 目前操作方式（2026-10-25）
 
 ✅ 圖形版執行檔不需模式參數即開啟 Project Browser。Project 現以可展開的檔案樹列出整個專案，
