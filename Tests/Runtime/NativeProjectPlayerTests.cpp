@@ -237,6 +237,19 @@ void Contracts() {
           "native shared/exact geometry budgets failed");
   Require(!admit({.camera = false}) && !admit({.intensity = 65505}),
           "native missing-camera/light failure hidden");
+  const auto camera_less = LoadStaticProjectPackage(Fixture({.camera = false}));
+  const auto game_view = nexora::player::PrepareSceneView(
+      camera_less->RenderItems(), camera_less->WorldView(), camera_less->SceneId(), nullptr, true);
+  Require(game_view && !game_view->camera && game_view->DrawData(camera_less->WorldView(), 1),
+          "game default camera fallback failed");
+  World empty_world{WorldKind::Play};
+  const auto empty_scene = empty_world.LoadScene("Empty game scene");
+  Require(empty_world.Activate(empty_scene), "empty scene activation");
+  const auto empty_view =
+      nexora::player::PrepareSceneView({}, empty_world, empty_scene, nullptr, true);
+  Require(empty_view && empty_view->instances.empty() && empty_view->DrawData(empty_world, 1) &&
+              !nexora::player::PrepareSceneView({}, empty_world, empty_scene),
+          "game empty/default view changed legacy StaticView admission");
 }
 int Run(const std::filesystem::path &destination = {}) try {
   if (!destination.empty()) {

@@ -32,21 +32,27 @@ struct PlayerGameplay final {
   runtime::Id scene{};
   std::uint64_t updates{}, fixed_updates{};
 
-  bool Initialize(const runtime::LoadedStaticProject &project,
-                  const std::filesystem::path &save_directory) {
+  bool InitializeServices(runtime::AssetUuid project_id,
+                          const std::filesystem::path &save_directory) {
     services.input = actions.Api();
     services.audio = audio.Api();
     std::string audio_error;
     if (!audio.OpenDefaultOutput(audio_error))
       std::cerr << "ProjectPlayer audio output unavailable: " << audio_error << '\n';
     if (!save_directory.empty()) {
-      storage = std::make_unique<runtime::GameplayStorage>(save_directory,
-                                                           project.ProjectId().ToString());
+      storage = std::make_unique<runtime::GameplayStorage>(save_directory, project_id.ToString());
       services.storage.struct_size = sizeof(services.storage);
       services.storage.abi_version = 1;
       if (storage->GetApi(services.storage) != NEXORA_GAMEPLAY_OK)
         return false;
     }
+    return true;
+  }
+
+  bool Initialize(const runtime::LoadedStaticProject &project,
+                  const std::filesystem::path &save_directory) {
+    if (!InitializeServices(project.ProjectId(), save_directory))
+      return false;
     const auto snapshot = project.WorldView().SaveScene(project.SceneId());
     if (!snapshot)
       return false;

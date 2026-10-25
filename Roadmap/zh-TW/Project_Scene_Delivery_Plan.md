@@ -1,6 +1,6 @@
 # 專案啟動場景、多場景建置與執行時切換計畫
 
-狀態：已授權實作目標；**5 個實作階段目前通過 2 個**。
+狀態：已授權實作目標；**5 個實作階段目前通過 3 個**。
 更新：2026-10-26。相關里程碑：ED-M1、ED-M3、ED-M6；本計畫不代表任何完整里程碑通過。
 持久任務與相依以 Beads 為準，下列階段表不是另一套任務系統。
 
@@ -20,12 +20,27 @@ sanitizer／TSan、feature-off 及 native／平台 gates 通過。保留初輪 m
 詳見[套件證據](../../Tools/Build/evidence/EditorGameProjectPackage-2026-10-26.md)、
 [套件契約](../../Engine/Runtime/GameProjectPackage.md)及 [producer 契約](../../Engine/Editor/GameProjectExport.md)。
 
-階段 3 候選新增 owner-thread 排隊式 Runtime session 與可選 C／Zig Scene service，包含候選
+✅ 階段 3 新增 owner-thread 排隊式 Runtime session 與可選 C／Zig Scene service，包含候選
 World／presentation 準備、ID 重映射、persistent 保留與舊場景綁定清理。十二項 Windows
 限定測試通過，包含實際 SDK 建置的 Zig fixture 要求 Level01 → Title → Level01。
-此候選完整 exact-head gates 仍待完成，未增加通過階段數。詳見
+PR #718 的 `8726bb7f` 已通過全部 38 項 exact-head checks，並 squash 合併為 `b45d880e`。
+Linux Development 登錄 461 項、Windows 401 項、macOS 380 項，均零失敗並保留既有字型 skip。
+Shipping、sanitizer／TSan、feature-off 及 native／平台 gates 均通過。詳見
 [session 契約](../../Engine/Runtime/GameSceneSession.md)與
 [限定證據](../../Tools/Build/evidence/GameSceneSession-Windows-2026-10-26.md)。
+
+階段 4 原生 Player 候選已在 Windows 桌面呈現指定的非 Main 啟動場景及實際 SDK 場景要求。
+硬體 DX12 通過 120 次切換，場景／實體與共用幾何計數穩定，並通過候選相機拒絕後保留／重試，
+以及空場景／預設相機啟動。此結果尚未驗收原生像素：Computer Use 應用程式授權逾時，新增的
+Linux 像素測試也尚未執行。共用 build、Editor Play、遊戲搬移及最終 ZIP 仍待完成。
+詳見[原生候選證據](../../Tools/Build/evidence/NativeGamePlayer-Windows-2026-10-26.md)。
+
+階段 4 共用 producer／Editor CLI 候選已凍結精確已儲存來源，展開內嵌的正式 SDK 建置資料，
+透過既有 CMake／Zig adapter 編譯及測試 gameplay module，並驗證 staged 原生 Player 的
+資料／ABI。發布會重查來源／owner／inventory，失敗時保留舊輸出。本機 Windows producer／
+CLI 測試通過；最終來源、完整 CI、圖形 build coordinator、Editor Play 與 Editor ZIP gates
+仍未完成。詳見[build 契約](../../Engine/Editor/GameBuild.md)及
+[限定建置證據](../../Tools/Build/evidence/SharedGameBuild-Windows-2026-10-26.md)。
 
 ## 1. 使用者操作
 
@@ -154,7 +169,7 @@ request／status helper。不更改 V3 `load_scene` 語意或既有 ABI offset�
 | --- | --- | --- | --- |
 | 1 | Settings/core 與圖形 Build Settings | 獨立啟動／打包清單、migration 與受保護持久化 | ✅ 限定設定／UI 契約已驗收；PR #716 |
 | 2 | 多場景 cooker／package | 可重現 catalog 與相依聯集，既有 StaticView 不變 | ✅ 限定 cooker／package 契約已驗收；PR #717 |
-| 3 | Runtime session 與 C／Zig Scene service | 原子 Replace／Additive／unload、識別與生命週期驗證 | 待完成 |
+| 3 | Runtime session 與 C／Zig Scene service | 原子 Replace／Additive／unload、識別與生命週期驗證 | ✅ 限定 session／API 契約通過；PR #718 |
 | 4 | 共用 build、Editor Play 與原生 Player | 各入口使用同樣的作者場景、啟動設定及切換 | 待完成 |
 | 5 | 整合驗證與 Editor 交付 | 證據、CI、已合併原始碼及可執行 Windows Editor-only ZIP | 待完成 |
 

@@ -15,8 +15,9 @@
 #include <unistd.h>
 #endif
 namespace nexora::runtime::package_detail {
-inline std::optional<ByteBuffer> ReadPackageFile(const std::filesystem::path &path,
-                                                 std::string *error) {
+inline std::optional<ByteBuffer>
+ReadPackageFile(const std::filesystem::path &path, std::string *error,
+                std::size_t maximum_bytes = kMaximumProjectPackageBytes) {
   if (error)
     error->clear();
   std::error_code ec;
@@ -49,7 +50,7 @@ inline std::optional<ByteBuffer> ReadPackageFile(const std::filesystem::path &pa
   }
   struct stat status{};
   if (fstat(descriptor.value, &status) != 0 || !S_ISREG(status.st_mode) || status.st_size < 0 ||
-      static_cast<std::uint64_t>(status.st_size) > kMaximumProjectPackageBytes)
+      static_cast<std::uint64_t>(status.st_size) > maximum_bytes)
     return Fail<ByteBuffer>(error, "package input is not a bounded regular file");
   ByteBuffer bytes;
   std::array<std::byte, 16384> chunk;
@@ -63,7 +64,7 @@ inline std::optional<ByteBuffer> ReadPackageFile(const std::filesystem::path &pa
       return Fail<ByteBuffer>(error, "package input read failed");
     }
     const auto count = static_cast<std::size_t>(read_count);
-    if (count > kMaximumProjectPackageBytes - bytes.size())
+    if (count > maximum_bytes - bytes.size())
       return Fail<ByteBuffer>(error, "package grew past byte budget");
     bytes.insert(bytes.end(), chunk.begin(), chunk.begin() + static_cast<std::ptrdiff_t>(count));
   }
@@ -85,7 +86,7 @@ inline std::optional<ByteBuffer> ReadPackageFile(const std::filesystem::path &pa
   if (!std::filesystem::is_regular_file(absolute, ec) || ec)
     return Fail<ByteBuffer>(error, "package input is not a regular file");
   const auto size = std::filesystem::file_size(absolute, ec);
-  if (ec || size > kMaximumProjectPackageBytes)
+  if (ec || size > maximum_bytes)
     return Fail<ByteBuffer>(error, "package input byte budget exceeded");
   std::ifstream input(absolute, std::ios::binary);
   if (!input)
@@ -94,7 +95,7 @@ inline std::optional<ByteBuffer> ReadPackageFile(const std::filesystem::path &pa
   std::array<char, 16384> chunk;
   while (input.read(chunk.data(), chunk.size()) || input.gcount() > 0) {
     const auto count = static_cast<std::size_t>(input.gcount());
-    if (count > kMaximumProjectPackageBytes - bytes.size())
+    if (count > maximum_bytes - bytes.size())
       return Fail<ByteBuffer>(error, "package grew past byte budget");
     const auto *begin = reinterpret_cast<const std::byte *>(chunk.data());
     bytes.insert(bytes.end(), begin, begin + count);

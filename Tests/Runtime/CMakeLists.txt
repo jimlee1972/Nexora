@@ -165,7 +165,17 @@ add_test(NAME runtime.dynamic_gameplay_module
     $<TARGET_FILE:NexoraDynamicGameplayFailing>)
 
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraGameLaunchTests GameLaunchTests.cpp)
+  target_link_libraries(NexoraGameLaunchTests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraGameLaunchTests)
+  if(MINGW)
+    target_link_options(NexoraGameLaunchTests PRIVATE -municode)
+  endif()
+  add_test(NAME runtime.game_launch_descriptor COMMAND NexoraGameLaunchTests)
   add_executable(NexoraGameSceneSessionTests GameSceneSessionTests.cpp)
+  if(MINGW)
+    target_link_options(NexoraGameSceneSessionTests PRIVATE -municode)
+  endif()
   target_link_libraries(NexoraGameSceneSessionTests PRIVATE Nexora::Runtime)
   nexora_apply_defaults(NexoraGameSceneSessionTests)
   add_test(NAME runtime.game_scene_session COMMAND NexoraGameSceneSessionTests)
@@ -177,6 +187,15 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
       OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/game-scene-script"
       ZIG "${NEXORA_ZIG_EXECUTABLE}")
     add_dependencies(NexoraGameSceneSessionTests NexoraGameSceneScriptFixture)
+    if(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
+      foreach(scene_fixture IN ITEMS visual stress)
+        nexora_add_game_module(NexoraGameScene${scene_fixture}Fixture
+          PROJECT "${CMAKE_CURRENT_SOURCE_DIR}/GameSceneScript/project-${scene_fixture}.json"
+          OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/game-scene-${scene_fixture}"
+          ZIG "${NEXORA_ZIG_EXECUTABLE}")
+        add_dependencies(NexoraGameSceneSessionTests NexoraGameScene${scene_fixture}Fixture)
+      endforeach()
+    endif()
     if(WIN32)
       set(scene_module_directory bin)
     else()
@@ -309,6 +328,17 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
             --gameplay-fixture "$<TARGET_FILE:NexoraProjectPlayerGameplayFixture>"
             --xvfb "${NEXORA_PLAYER_XVFB}" --xdotool "${NEXORA_PLAYER_XDOTOOL}")
         set_tests_properties(runtime.linux_native_static_player PROPERTIES TIMEOUT 60 LABELS "vulkan;virtual-display")
+        if(NEXORA_ZIG_EXECUTABLE)
+          add_test(NAME runtime.linux_native_game_player
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/NativeGamePlayerLinux.py"
+              --fixture "$<TARGET_FILE:NexoraGameSceneSessionTests>"
+              --player "$<TARGET_FILE:NexoraProjectPlayer>"
+              --module "${CMAKE_CURRENT_BINARY_DIR}/game-scene-script/lib/${CMAKE_SHARED_LIBRARY_PREFIX}GameSceneFixture${CMAKE_SHARED_LIBRARY_SUFFIX}"
+              --visual-module "${CMAKE_CURRENT_BINARY_DIR}/game-scene-visual/lib/${CMAKE_SHARED_LIBRARY_PREFIX}GameSceneVisualFixture${CMAKE_SHARED_LIBRARY_SUFFIX}"
+              --stress-module "${CMAKE_CURRENT_BINARY_DIR}/game-scene-stress/lib/${CMAKE_SHARED_LIBRARY_PREFIX}GameSceneStressFixture${CMAKE_SHARED_LIBRARY_SUFFIX}"
+              --xvfb "${NEXORA_PLAYER_XVFB}" --xdotool "${NEXORA_PLAYER_XDOTOOL}")
+          set_tests_properties(runtime.linux_native_game_player PROPERTIES TIMEOUT 180 LABELS "vulkan;virtual-display")
+        endif()
       endif()
     endif()
   endif()

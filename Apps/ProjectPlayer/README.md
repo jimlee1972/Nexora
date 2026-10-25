@@ -3,8 +3,45 @@
 `--verify-game-package PATH` verifies the separate bounded multi-scene scene-catalog format,
 reporting the configured startup UUID, scene/asset counts and native_rendering=false /
 gameplay_loaded=false. It needs no authored `.scene` or source tree. This is CPU data verification;
-live transitions and zero-argument built-game launch remain subsequent integration work.
+native execution is a separate mode below; zero-argument built-game launch remains build integration work.
 See [the catalog contract](../../Engine/Runtime/GameProjectPackage.md).
+
+## Native packaged game candidate
+
+With native Player support enabled, `--run-game-package PATH` uses the verified catalog's explicit
+startup UUID and the same native options as `--run-package`. An optional explicit
+`--gameplay-module=PATH` attaches app-scoped trusted code after the first startup frame presents.
+The module may negotiate the scene service and queue Replace/Additive/unload. It stays attached
+across transitions. The first presented frame initializes the game; subsequent presented frames
+run gameplay callbacks, so a bounded N-frame run reports N-1 updates when a module is attached.
+
+The host processes requests after callbacks and GameWorld EndFrame. It captures remapped live
+render items, reuses the StaticView geometry/material admission authority, validates the candidate
+camera and records the candidate native draw before no-throw World/palette publication. CPU upload
+spans are borrowed only for DrawScene; the surface owns copied, fence-protected upload/residency
+resources through retirement/drain. Geometry residency is requested only when supported and its
+copied counters are reported independently from CPU asset ownership. Resource preparation or
+camera admission failure before native submission leaves the previous scene active and rendering;
+the module can inspect Failed and retry. Actual backend/device failure terminates with a diagnostic,
+retaining the old World until teardown rather than claiming recovery from a lost device.
+
+The primary scene owns the lowest-ID authored camera/light. Additive scenes retain that primary.
+A camera-less game scene uses a separate host default camera at (0,0,5), facing -Z with default
+CameraComponent projection; the live/authored World is not modified. Empty game scenes present
+the acquired surface's clear background. Existing StaticView still requires a camera and nonempty
+native mesh data. Legacy opaque-component and CLI behavior remain independently guarded.
+
+`RENDERED_GAME_PACKAGE` reports startup/active UUIDs, camera, actual frames/draws, script updates,
+scene commits/rejections, retained scene/entity counts, geometry residency counters, software-device
+observation and successful drain. Native allocation bytes are backend allocation requirements,
+not a physical VRAM measurement. A successful report requires successful native presentation,
+drain, stdout flush and exit 0. Stop cancels pending transitions before module Stop/Destroy; the
+borrowed session/services remain alive until module teardown finishes.
+
+This is a native integration candidate. Linux real-pixel sequence, full exact-head CI, Editor
+Play/common build, game relocation and final Editor ZIP remain independent acceptance gates in
+the [delivery plan](../../Roadmap/en/Project_Scene_Delivery_Plan.md). Windows GUI capture also
+remains pending when Computer Use app access has not been granted.
 
 Enable `NEXORA_BUILD_PROJECT_PLAYER=ON` together with the asset pipeline to build the Runtime-only
 `NexoraProjectPlayer`. The current executable verifies a **StaticView cooked package**:

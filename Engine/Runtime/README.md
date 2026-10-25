@@ -486,6 +486,11 @@ module structure sizes, ABI version, and required callbacks before initializatio
 and unload operations are serialized; a replacement module is initialized before the active module
 is shut down, and a rejected replacement leaves the active module running.
 
+`GameplayModuleHost::Inspect` opens an authorized candidate and negotiates that same V3 table
+without create/start/update/stop/destroy or a host/World borrow. The platform library initializer
+and loader can execute, so inspection is not a sandbox. It is synchronous table admission only;
+the library is closed before return and actual gameplay/device acceptance remains separate.
+
 The host table exposes size-checked component reads/writes, logging, and an explicitly paired host
 allocator. Every allocation and matching deallocation carries the same `NexoraAllocationOwner`;
 gameplay state uses `NEXORA_ALLOCATION_OWNER_GAMEPLAY_STATE`, while migration scratch storage is

@@ -4,6 +4,7 @@
 #include "Nexora/Runtime/GameplayServices.h"
 
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <new>
 #include <stdexcept>
@@ -323,11 +324,34 @@ void Script(const std::filesystem::path &library) {
                "passed\n";
 }
 } // namespace
-int main(int argc, char **argv) {
+int Dispatch(int argc, const std::filesystem::path &first, const std::filesystem::path &second) {
   try {
+    if (argc == 3 && (first == "--write-game" || first == "--write-game-bad-camera" ||
+                      first == "--write-game-empty")) {
+      auto package = nexora::testscene::Package(first == "--write-game-bad-camera");
+      if (first == "--write-game-empty") {
+        nexora::runtime::World empty;
+        const auto scene = empty.LoadScene("Empty startup");
+        const auto encoded = nexora::runtime::EncodeCookedScene({*empty.SaveScene(scene), {}, {}});
+        Require(encoded.HasValue(), "empty scene encoding failed");
+        package.scenes = {{nexora::testscene::kLevel, "Empty.scene"}};
+        package.assets = {nexora::testscene::Cook(
+            nexora::testscene::kLevel, nexora::runtime::kCookedSceneType, encoded.Value())};
+      }
+      const auto bytes = nexora::runtime::EncodeGameProjectPackage(package);
+      Require(bytes.has_value(), "game fixture encoding failed");
+      std::ofstream output(second, std::ios::binary | std::ios::trunc);
+      output.write(reinterpret_cast<const char *>(bytes->data()),
+                   static_cast<std::streamsize>(bytes->size()));
+      output.close();
+      Require(static_cast<bool>(output), "game fixture writing failed");
+      return 0;
+    }
+    if (argc != 1 && argc != 2)
+      return 2;
     Core();
     if (argc == 2)
-      Script(argv[1]);
+      Script(first);
     std::cout << "Queued scene transitions, 120 A/B cycles, failure conservation, C service and "
                  "prefix passed\n";
     return 0;
@@ -336,3 +360,17 @@ int main(int argc, char **argv) {
     return 1;
   }
 }
+#if defined(_WIN32)
+int wmain(int argc, wchar_t **argv) {
+  return Dispatch(argc, argc > 1 ? argv[1] : L"", argc > 2 ? argv[2] : L"");
+}
+#else
+int main(int argc, char **argv) {
+  const auto path = [](const char *value) {
+    const std::string_view text(value);
+    return std::filesystem::path(std::u8string(text.begin(), text.end()));
+  };
+  return Dispatch(argc, argc > 1 ? path(argv[1]) : std::filesystem::path{},
+                  argc > 2 ? path(argv[2]) : std::filesystem::path{});
+}
+#endif

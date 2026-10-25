@@ -4,6 +4,8 @@
 #include "TwoDPlayer.h"
 #endif
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+#include "InstalledGame.h"
+#include "NativeGamePlayer.h"
 #include "NativePlayer.h"
 #endif
 
@@ -16,6 +18,9 @@ namespace {
 int Usage() {
   std::cerr << "Usage: NexoraProjectPlayer --verify-package PACKAGE\n"
                "       NexoraProjectPlayer --verify-game-package PACKAGE\n"
+               "       NexoraProjectPlayer --verify-native-game-package PACKAGE\n"
+               "       NexoraProjectPlayer --verify-game-module MODULE\n"
+               "       NexoraProjectPlayer --run-game-package PACKAGE [native options]\n"
                "       NexoraProjectPlayer --run-package PACKAGE [--frames=N] "
                "[--backend=automatic|vulkan|dx12|metal] [--gameplay-module=PATH] "
                "[--save-directory=PATH]\n";
@@ -37,6 +42,32 @@ int VerifyGame(const std::filesystem::path &path) {
             << ",\"native_rendering\":false,\"gameplay_loaded\":false}\n";
   return 0;
 }
+#if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+int VerifyNativeGame(const std::filesystem::path &path) {
+  std::string error;
+  const auto project = nexora::runtime::ReadGameProjectPackage(path, &error);
+  if (!project) {
+    std::cerr << "Game data verification failed: " << error << '\n';
+    return 1;
+  }
+  for (const auto &entry : project->Scenes()) {
+    const auto scene = project->ResolveScene(entry.id);
+    auto view = scene ? nexora::player::PrepareSceneView(scene->RenderItems(), scene->WorldView(),
+                                                         scene->SceneId(), &error, true)
+                      : std::nullopt;
+    if (!view || !view->DrawData(scene->WorldView(), 16.0F / 9)) {
+      std::cerr << "Native game data admission failed for " << entry.id.ToString() << ": " << error
+                << '\n';
+      return 1;
+    }
+  }
+  std::cout << "{\"status\":\"VERIFIED_NATIVE_GAME_DATA\",\"scene_count\":"
+            << project->Scenes().size()
+            << ",\"native_rendering\":false,\"gameplay_loaded\":false}\n";
+  std::cout.flush();
+  return std::cout ? 0 : 1;
+}
+#endif
 int Run(const std::filesystem::path &path) {
   std::string error;
   const auto loaded = nexora::runtime::ReadStaticProjectPackage(path, &error);
@@ -106,6 +137,13 @@ template <typename Char> std::filesystem::path ArgumentPath(const Char *argument
         std::u8string(argument, argument + std::char_traits<Char>::length(argument)));
 }
 template <typename Char> int Dispatch(int argc, Char **argv) try {
+#if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+  if (argc == 1) {
+    if (const auto game = nexora::player::TryRunInstalledGame())
+      return *game;
+    return Usage();
+  }
+#endif
   if (argc < 3)
     return Usage();
   const std::basic_string_view<Char> mode(argv[1]);
@@ -117,7 +155,23 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
     return argc == 3 ? Run(ArgumentPath(argv[2])) : Usage();
   if (EqualAscii(mode, "--verify-game-package"))
     return argc == 3 ? VerifyGame(ArgumentPath(argv[2])) : Usage();
-  if (!EqualAscii(mode, "--run-package"))
+#if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+  if (EqualAscii(mode, "--verify-game-module")) {
+    if (argc != 3)
+      return Usage();
+    if (!nexora::runtime::GameplayModuleHost::Inspect(ArgumentPath(argv[2]))) {
+      std::cerr << "Game module V3 admission failed\n";
+      return 1;
+    }
+    std::cout << "{\"status\":\"VERIFIED_GAME_MODULE_ABI\",\"gameplay_started\":false}\n";
+    std::cout.flush();
+    return std::cout ? 0 : 1;
+  }
+  if (EqualAscii(mode, "--verify-native-game-package"))
+    return argc == 3 ? VerifyNativeGame(ArgumentPath(argv[2])) : Usage();
+#endif
+  const bool game_package = EqualAscii(mode, "--run-game-package");
+  if (!EqualAscii(mode, "--run-package") && !game_package)
     return Usage();
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)
   nexora::player::NativeOptions options;
@@ -171,6 +225,15 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
   if (has_save_directory && !has_gameplay)
     return Usage();
   std::string error;
+  if (game_package) {
+    auto project = nexora::runtime::ReadGameProjectPackage(ArgumentPath(argv[2]), &error);
+    if (!project) {
+      std::cerr << "Game project loading failed: " << error << '\n';
+      return 1;
+    }
+    return nexora::player::RunNativeGame(
+        std::make_shared<const nexora::runtime::LoadedGameProject>(std::move(*project)), options);
+  }
   const auto project = nexora::runtime::ReadStaticProjectPackage(ArgumentPath(argv[2]), &error);
   if (!project) {
     std::cerr << "Static project loading failed: " << error << '\n';

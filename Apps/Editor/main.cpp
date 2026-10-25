@@ -1,3 +1,4 @@
+#include "GameBuildCommand.h"
 #include "Nexora/Core/JobSystem.h"
 #include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/EditorWorkspace.h"
@@ -3826,6 +3827,8 @@ std::string JsonString(std::string_view text) {
 }
 
 int Run(int argc, char **argv) try {
+  if (argc > 1 && std::string_view(argv[1]).starts_with("--build-game="))
+    return nexora::editor::preview::RunGameBuildCommand(argc, argv);
   std::filesystem::path project;
   std::filesystem::path report;
   std::filesystem::path recent_projects_path;

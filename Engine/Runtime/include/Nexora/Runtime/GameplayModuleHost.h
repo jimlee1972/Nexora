@@ -49,6 +49,10 @@ public:
   [[nodiscard]] bool Load(NexoraGameModuleLoadV3Fn load);
   [[nodiscard]] bool Reload(NexoraGameModuleLoadV3Fn load);
   [[nodiscard]] bool Load(const std::filesystem::path &library);
+  // Opens a candidate and negotiates its V3 table without create/start/update/stop/destroy.
+  // Synchronous, no host/world borrow. The loader and platform library initializers may execute;
+  // this is admission of an authorized module, not a sandbox or gameplay acceptance test.
+  [[nodiscard]] static bool Inspect(const std::filesystem::path &library);
   [[nodiscard]] bool Reload(const std::filesystem::path &library);
   [[nodiscard]] bool Reload(const std::filesystem::path &library, FileStabilization stabilization);
   [[nodiscard]] static std::filesystem::path Discover(const std::filesystem::path &directory,

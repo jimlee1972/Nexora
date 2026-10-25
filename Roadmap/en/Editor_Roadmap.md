@@ -5,7 +5,8 @@
 Startup-scene settings, enabled build scenes and runtime packaged-scene transitions are authorized
 and specified in the [scene delivery plan](Project_Scene_Delivery_Plan.md). ✅ Phase 1 settings/UI
 passed its scoped gates in PR #716. ✅ Phase 2 cooker/package passed all 38 exact-head checks in
-PR #717; three phases remain pending. The main Editor retains one editable Scene; its last-opened scene is not
+PR #717. ✅ Phase 3 Runtime session/C/Zig service passed all 38 exact-head checks in PR #718;
+shared build/Editor Play and integrated delivery remain pending. The main Editor retains one editable Scene; its last-opened scene is not
 the game startup setting. Legacy StaticView and complete ED-M1/M3/M6 acceptance remain separate.
 
 ### Current main-Editor interaction policy (2026-10-25)
