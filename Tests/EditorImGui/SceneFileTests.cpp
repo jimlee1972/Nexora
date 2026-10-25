@@ -1,5 +1,6 @@
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/Editor/ProjectContent.h"
+#include "ProjectFiles.h"
 #include "SceneFileContinuation.h"
 
 #include <chrono>
@@ -914,6 +915,69 @@ void RunUnicodeContent(float dpi) {
   Require(Access::ContentAssetPosition(f.ui, asset).has_value(),
           "Unicode scene was not submitted to the Content panel");
 }
+void RunProjectTree(float dpi) {
+  Fixture f(dpi);
+  std::ofstream(f.root / "README.txt") << "project document";
+  const auto limited = editor::app::CaptureProjectFiles(f.writer.Root(), 1);
+  Require(!limited.error.empty() && limited.inspected_entries <= 1 && limited.items.size() <= 1,
+          "Project scanner did not bound pending entries before descending");
+  const auto target = std::filesystem::path(u8"Content/第二場景.scene");
+  std::ofstream(f.root / "Content/First###same.scene") << "identity-only fixture";
+  std::ofstream(f.root / "Content/Second###same.scene") << "identity-only fixture";
+  Require(f.scene.Save(f.root / target), "Project tree scene fixture failed");
+  auto snapshot = editor::app::CaptureProjectFiles(f.writer.Root());
+  Require(snapshot.error.empty() &&
+              std::ranges::any_of(snapshot.items,
+                                  [](const auto &item) { return item.path == "README.txt"; }) &&
+              std::ranges::any_of(snapshot.items,
+                                  [](const auto &item) { return item.path == "project.nexora"; }),
+          "Project tree only indexed assets instead of all project files");
+  f.ui.SetProjectFiles(f.writer.Root(), std::move(snapshot.items));
+  f.Draw();
+  Access::FocusProject(f.ui);
+  f.Draw();
+  f.Draw();
+  Require(Access::ProjectFilePosition(f.ui, "Content") &&
+              Access::ProjectFilePosition(f.ui, "README.txt"),
+          "Project file tree was not rendered");
+  const auto first_id = Access::ProjectFileWidgetId(f.ui, "Content/First###same.scene");
+  const auto second_id = Access::ProjectFileWidgetId(f.ui, "Content/Second###same.scene");
+  Require(first_id && second_id && first_id != second_id,
+          "Legal hash characters in project filenames collided as ImGui ID markers");
+  const auto point = Access::ProjectFilePosition(f.ui, target);
+  Require(point.has_value(), "Project scene file was not rendered in its folder");
+  f.ClickAt(*point);
+  Require(!f.ui.TakeSceneFileRequest(), "Single click opened a scene");
+  f.ClickAt(*point);
+  auto opened = f.Take(Action::Open);
+  Require(opened.path == target && f.files->Open(opened.token, opened.path).Applied(),
+          "Double click did not replace the current scene");
+  f.Draw();
+  Require(f.scene.Create("Unsaved node"), "Project tree dirty fixture failed");
+  Access::FocusProject(f.ui);
+  f.Draw();
+  const auto original = Access::ProjectFilePosition(f.ui, "Content/Original.scene");
+  Require(original.has_value(), "Original scene absent from tree");
+  f.ClickAt(*original);
+  f.ClickAt(*original);
+  Require(!f.ui.TakeSceneFileRequest() && Access::SceneFilePosition(f.ui, 6),
+          "Dirty scene double click bypassed Save/Discard/Cancel");
+  f.Click(6);
+  Require(!f.ui.TakeSceneFileRequest() && f.scene.Dirty() && f.files->CurrentPath() == target,
+          "Cancel replaced or discarded the current scene");
+  Access::FocusProject(f.ui);
+  f.Draw();
+  f.ClickAt(*original);
+  f.ClickAt(*original);
+  f.Click(8);
+  opened = f.Take(Action::Open);
+  Require(opened.discard_unsaved && opened.path == "Content/Original.scene" &&
+              f.files->Open(opened.token, opened.path, opened.discard_unsaved).Applied() &&
+              !f.scene.Dirty(),
+          "Discard did not replace the single scene with the double-clicked file");
+  Require(f.files->Open(opened.token, target).status == editor::SceneFileStatus::Rejected,
+          "Stale project-tree request replaced a newer scene");
+}
 } // namespace
 int main() {
   try {
@@ -928,6 +992,7 @@ int main() {
       RunFolderSceneConflict(dpi);
       RunContentPopupObservation(dpi);
       RunContentRename(dpi);
+      RunProjectTree(dpi);
     }
     std::cout << "Scene file menu, shortcuts and modal lifecycle passed\n";
     return 0;

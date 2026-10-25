@@ -83,7 +83,8 @@ folder; keep the EXE, DLLs and licenses together. This replaces neither an exist
 project. `build-info.json` records the source commit; `inventory.json` hashes every shipped file
 except itself. Verify the ZIP with PowerShell `Get-FileHash -Algorithm SHA256` against the sidecar.
 
-Double-click `Run.cmd` for the project browser, or use the executable directly:
+Double-click `NexoraEditor.exe` for the project browser; no arguments are required. `Run.cmd`
+also forwards arguments unchanged. Explicit project/create CLI commands remain available:
 
 ```powershell
 .\NexoraEditor.exe --help

@@ -188,6 +188,12 @@ struct SceneFileRequest final {
   std::optional<SceneOverwriteToken> overwrite_token{};
 };
 
+struct ProjectFileItem final {
+  std::filesystem::path path; // Owning project-relative path, in depth-first order.
+  bool directory{};
+  bool symbolic_link{};
+};
+
 struct StaticExportRequest final {
   SceneFileToken token;
   bool cancel{};
@@ -434,6 +440,9 @@ public:
   void SetSceneFileContext(SceneFileToken token, std::optional<std::filesystem::path> path,
                            bool save_blocked = false);
   [[nodiscard]] std::optional<SceneFileRequest> TakeSceneFileRequest();
+  void SetProjectFiles(std::filesystem::path root, std::vector<ProjectFileItem> items,
+                       std::string error = {});
+  [[nodiscard]] bool TakeProjectFilesRefresh() noexcept;
   // Read-only source inspection: widgets own small scope/report copies and never perform IO.
   // The host repeats scope/Play/modal/project checks and owns exact source inspection.
   void SetPrefabPlacementSourceContext(const std::filesystem::path &, bool read_allowed);

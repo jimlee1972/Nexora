@@ -39,10 +39,12 @@
 #include "PlayGameplayModule.h"
 #include "PlayHostMemoryPresenter.h"
 #include "PlayInputForwarding.h"
+#include "ProjectFiles.h"
 #include "SceneFileContinuation.h"
 #include "SceneMeshPreview.h"
 #include "SceneMovePlanes.h"
 #include "ScenePreviewCandidates.h"
+#include <future>
 #endif
 
 #include "Nexora/Editor/PrefabDocumentSession.h"
@@ -856,6 +858,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::uint64_t prefab_project_scope{};
   std::filesystem::path prefab_project_root;
   nexora::foundation::Uuid prefab_project;
+  // The main shell never installs additive documents; supporting Core paths remain isolated.
   std::unique_ptr<nexora::editor::AdditiveSceneSession> scene_documents;
   std::unique_ptr<nexora::editor::AdditiveSceneComposition> scene_composition;
   bool composition_restore_blocked = false;
@@ -884,23 +887,6 @@ int RunGraphical(std::optional<ProjectState> project,
       return !project->workspace.HasRecoveryJournal();
     const auto id = scene_documents->Active();
     return id && scene_documents->EditableDocument(*id);
-  };
-  const auto initialize_scene_documents = [&] {
-    if (!project || !primary_scene_files || project->workspace.HasRecoveryJournal() ||
-        project->workspace.HasExternalChange())
-      return;
-    auto candidate =
-        std::make_unique<nexora::editor::AdditiveSceneSession>(project->workspace, world);
-    if (candidate->Attach(primary_scene, *primary_scene_files)) {
-      auto composition = std::make_unique<nexora::editor::AdditiveSceneComposition>(*candidate);
-      composition_restore_error.clear();
-      composition_restore_blocked = composition->Restore(&composition_restore_error) ==
-                                    nexora::editor::SceneCompositionStatus::Rejected;
-      scene_documents = std::move(candidate);
-      scene_composition = std::move(composition);
-      if (composition_restore_blocked)
-        std::cerr << "saved scene set could not be restored: " << composition_restore_error << '\n';
-    }
   };
   struct SceneViews final {
     nexora::editor::imgui::SceneOverviewCamera overview;
@@ -1052,18 +1038,11 @@ int RunGraphical(std::optional<ProjectState> project,
     retained_scene_views.clear();
     primary_scene_files =
         std::make_unique<nexora::editor::SceneFileSession>(project->workspace, primary_scene);
-    // Validate the legacy settings even when composition selects the bootstrap. RememberCurrent
-    // requires this observation and must preserve rejected settings rather than overwrite them.
+    // RememberCurrent requires this observation and preserves rejected single-scene settings.
     const auto startup = primary_scene_files->RestoreStartup(primary_scene_files->Token());
-    std::string bootstrap_error;
-    const auto bootstrap = nexora::editor::AdditiveSceneComposition::BootstrapScene(
-        project->workspace, &bootstrap_error);
-    composition_was_persisted = bootstrap.has_value();
-    const auto restored =
-        bootstrap ? active_files()->Open(active_files()->Token(), *bootstrap, true) : startup;
+    const auto restored = startup;
     if (restored.Applied()) {
       scene_load_failed = false;
-      initialize_scene_documents();
       log(nexora::runtime::RuntimeLogSeverity::Info, "Scene", "Restored last scene.");
       load_scene_views();
       return;
@@ -1097,11 +1076,13 @@ int RunGraphical(std::optional<ProjectState> project,
       active_scene().Create("Scene Root");
     log(nexora::runtime::RuntimeLogSeverity::Info, "Scene",
         exists ? "Opened saved scene." : "Created starter scene.");
-    initialize_scene_documents();
     load_scene_views();
   };
   if (project)
     open_scene();
+  std::filesystem::path project_files_root;
+  std::future<nexora::editor::app::ProjectFiles> project_files_job;
+  auto project_files_next = std::chrono::steady_clock::time_point{};
   std::uint32_t frames = 0;
   int result = 0;
   bool exit_requested = false;
@@ -1119,7 +1100,7 @@ int RunGraphical(std::optional<ProjectState> project,
     std::string error;
     if (!project->assets.ImportSavedScene(asset_path, &error)) {
       log(nexora::runtime::RuntimeLogSeverity::Warning, "Scene",
-          "Scene saved; content import failed: " + error);
+          "Scene content import failed: " + error);
       return;
     }
     for (const auto &entry : project->assets.Entries()) {
@@ -1522,8 +1503,36 @@ int RunGraphical(std::optional<ProjectState> project,
       prefab_rebase_scope.reset();
     }
     if (project) {
-      if (!scene_documents)
-        initialize_scene_documents();
+      const auto now = std::chrono::steady_clock::now();
+      if (project_files_job.valid() &&
+          project_files_job.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        try {
+          auto files = project_files_job.get();
+          if (project_files_root == project->workspace.Root())
+            ui.SetProjectFiles(project_files_root, std::move(files.items), std::move(files.error));
+        } catch (const std::exception &) {
+          if (project_files_root == project->workspace.Root())
+            ui.SetProjectFiles(project_files_root, {},
+                               "Project files could not be read. Refresh to retry.");
+        }
+      }
+      const bool refresh_files = ui.TakeProjectFilesRefresh();
+      if (!project_files_job.valid() &&
+          (refresh_files || project_files_root != project->workspace.Root() ||
+           now >= project_files_next)) {
+        if (project_files_root != project->workspace.Root())
+          ui.SetProjectFiles(project->workspace.Root(), {}, "Loading project files...");
+        project_files_root = project->workspace.Root();
+        try {
+          project_files_job = std::async(std::launch::async, [root = project_files_root] {
+            return nexora::editor::app::CaptureProjectFiles(root);
+          });
+        } catch (const std::exception &) {
+          ui.SetProjectFiles(project_files_root, {},
+                             "Project files could not be scheduled. Refresh to retry.");
+        }
+        project_files_next = now + std::chrono::seconds(2);
+      }
       if (reflected_project != project->workspace.Project().id ||
           reflected_root != project->workspace.Root())
         load_reflected_metadata(project->workspace);
@@ -2674,7 +2683,8 @@ int RunGraphical(std::optional<ProjectState> project,
                                     : nexora::runtime::RuntimeLogSeverity::Error,
               "Scene", file_result.message);
           if (file_result.Applied()) {
-            if (request->action == FileAction::SaveAs)
+            if (request->action == FileAction::SaveAs ||
+                (request->action == FileAction::Open && project->workspace.Writable()))
               publish_saved_scene();
             if (request->action != FileAction::New)
               remember_scene();
@@ -3051,6 +3061,11 @@ int RunGraphical(std::optional<ProjectState> project,
                         project ? project->workspace.Root() : std::filesystem::path{},
                         build_allowed);
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
+    if (const char *path = std::getenv("NEXORA_PROJECT_TREE_TEST_PATH")) {
+      if (const auto point =
+              nexora::editor::imgui::EditorImGuiTestAccess::ProjectFilePosition(ui, path))
+        std::cerr << "project tree scene point=" << (*point)[0] << ',' << (*point)[1] << '\n';
+    }
     if (std::getenv("NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY")) {
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       std::ostringstream geometry;
@@ -3708,7 +3723,7 @@ int RunGraphical(std::optional<ProjectState> project,
             << " recents=" << recent_projects.Entries().size()
             << " scene_nodes=" << active_scene().Nodes().size()
             << " scene_selected=" << active_scene().Selection().size()
-            << " scene_documents=" << remaining_documents.size() << " scene_references="
+            << " scene_documents=" << (primary_scene_files ? 1 : 0) << " scene_references="
             << std::ranges::count(remaining_documents, false,
                                   &nexora::editor::AdditiveDocumentView::owned)
             << " pie_ticks=" << play.Stats().fixed_ticks
@@ -3805,6 +3820,11 @@ int Run(int argc, char **argv) try {
       return 2;
     }
   }
+#if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+  // Choose the interactive default only after every explicit CLI option has been parsed.
+  if (!has_project && !create_project && report.empty())
+    graphical = true;
+#endif
   if (create_project) {
     if (has_project || read_only || create_project->empty() || !project_name ||
         project_name->empty()) {

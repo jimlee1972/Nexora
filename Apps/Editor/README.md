@@ -1,5 +1,31 @@
 # Nexora Editor
 
+## Interactive startup and project files
+
+A graphical-shell build starts its Project Browser when launched without arguments. No
+`--graphical` or project-root argument is required for a normal double-click launch. Explicit
+`--project`, `--create-project` and `--report` commands retain their headless automation behavior;
+add `--graphical` to those commands when a window is wanted.
+
+The main Editor keeps one current Scene. Its filename caption and New Scene / Open Scene toolbar
+replace document tabs. New Scene and Open replace that Scene; a dirty Scene
+requires Save, Discard or Cancel first. Failed saves, canceled Save As and stale requests leave
+the current Scene open. Old additive scene-set metadata is preserved but is no longer restored
+by this application; the supporting Core APIs remain available to other hosts.
+
+Project (Window > Project, Ctrl+Alt+J) displays a directory tree rooted at the open project,
+including ordinary files, empty folders and files outside Content. Expand/collapse folders and
+left-double-click a `.scene` file to open it through the same single-Scene decision flow.
+A single click only selects; double-clicking the current Scene does not reload it. The separate
+Content browser retains asset import, rename and dependency tools.
+Opening a newly discovered Content scene in a writable project also publishes its asset identity
+before normal save association. Read-only Open does not generate metadata.
+
+The application supplies owning snapshots from one background reader, refreshing about every two
+seconds or on Refresh. It never follows symbolic links. A 100000-entry, 64-level and 32 MiB path
+budget bounds each snapshot, and errors/partial listings remain visible. Old-project results are
+discarded before UI publication; shutdown joins the outstanding reader. The UI performs no file IO.
+
 `NexoraEditor` is the standalone process boundary for the Editor Preview. The currently portable
 executable opens a versioned project, indexes its `Content` tree, and emits deterministic shell
 evidence. `NexoraEditorCore` supplies stable panel IDs and authoring models without introducing a

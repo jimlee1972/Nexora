@@ -99,6 +99,7 @@ def verify(package, evidence):
         help_text = run('help', ['--help'])
         if '--create-project=' not in help_text or '--project-name=' not in help_text:
             raise RuntimeError('Packaged Editor does not support project CLI')
+        run('default-browser', ['--frames=8'], frames=8)
         project = root / '陰陽 CLI project'
         name = 'Onmyoji 陰陽 Survivors'
         created = json.loads(run('create', ['--create-project=' + str(project), '--project-name=' + name]))
@@ -148,10 +149,11 @@ def main():
         if openssl_license is None:
             raise RuntimeError('OpenSSL installation license is missing')
         shutil.copy2(openssl_license, licenses / 'OpenSSL-license.txt')
-        (package / 'Run.cmd').write_bytes(b'@echo off\r\n"%~dp0NexoraEditor.exe" --graphical %*\r\n')
+        (package / 'Run.cmd').write_bytes(b'@echo off\r\n"%~dp0NexoraEditor.exe" %*\r\n')
         (package / 'README.txt').write_text(
             'Nexora Editor - Windows x64 Development, DX12\n'
-            'Run Run.cmd to open the project browser, or NexoraEditor.exe --help for CLI.\n'
+            'Double-click NexoraEditor.exe to open the project browser; no arguments required.\n'
+            'Use NexoraEditor.exe --help for explicit project/create CLI commands.\n'
             'Keep this entire directory together; do not replace only an old launcher EXE.\n'
             'No Player, asset compiler, source, Zig compiler, or game module is included.\n'
             'Microsoft C++ runtime DLLs are redistributed under Visual Studio runtime terms:\n'
