@@ -47,11 +47,11 @@ if ($evidence.Count -eq 0) { throw 'No installed toolchains found to isolate' }
 # Use only consumer tools and OS paths. Hosted Git/Strawberry ship unrelated
 # coreutils link.exe binaries; a regex blacklist cannot establish tool isolation.
 $env:PATH = ($consumerPaths | Select-Object -Unique) -join ';'
-$evidence | ConvertTo-Json | Set-Content -LiteralPath "$env:RUNNER_TEMP/sdk-toolchain-isolation.json" -Encoding utf8
+$evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath "$env:RUNNER_TEMP/sdk-toolchain-isolation.json" -Encoding utf8
 foreach ($name in @('INCLUDE','LIB','LIBPATH','VCINSTALLDIR','VCToolsInstallDir','WindowsSdkDir','VSINSTALLDIR')) {
     Remove-Item "Env:$name" -ErrorAction SilentlyContinue
 }
 foreach ($tool in @('cl.exe','link.exe','dumpbin.exe','rc.exe','msbuild.exe')) {
     if (Get-Command $tool -ErrorAction SilentlyContinue) { throw "Forbidden tool remains available: $tool ($((Get-Command $tool).Source))" }
 }
-$evidence | ConvertTo-Json | Set-Content -LiteralPath "$env:RUNNER_TEMP/sdk-toolchain-isolation.json" -Encoding utf8
+$evidence | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath "$env:RUNNER_TEMP/sdk-toolchain-isolation.json" -Encoding utf8
