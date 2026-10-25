@@ -1,5 +1,22 @@
 # Editor Dear ImGui host contract
 
+## Project file tree and single-scene application
+
+`SetProjectFiles` transfers an owning, bounded depth-first snapshot of project-relative entries,
+the captured project root and a diagnostic. Calls and UI consumption are serialized on the
+authoring thread. The application reads directories in one background job with no document,
+workspace or UI borrow, rejects old-project results, and joins the job before shutdown.
+The Project panel renders only a matching-root snapshot and preserves path-keyed selection and
+expansion across refreshes. Entries include non-assets and empty directories; symbolic links are
+listed as leaves and never traversed or opened as scenes. Error/limit states stay visible.
+
+Window > Project / Ctrl+Alt+J reveals the panel. A left double-click on another `.scene` emits
+the existing token-scoped Open continuation; single click only selects. Play, recovery, modal,
+focus and pending-request gates apply. Dirty scenes use the existing Save/Discard/Cancel modal.
+The main application no longer installs scene tabs or restores additive compositions; it replaces
+one document through SceneFileSession. Supporting tab/Core APIs and their contract tests remain
+available for other hosts. Scene serialization and the existing save/overwrite rules do not change.
+
 ## Project location selection
 
 `SetProjectLocationPicker` installs an application-owned dialog adapter. The host retains an owning

@@ -613,6 +613,12 @@ struct EditorImGuiHost::State final {
   bool selector_create_open{};
   bool selector_cancel_requested = false;
   std::string selector_error;
+  std::filesystem::path project_files_root, project_file_selection;
+  std::vector<ProjectFileItem> project_files;
+  std::string project_files_error;
+  bool project_files_refresh{};
+  bool project_window_requested{};
+  std::vector<std::pair<std::filesystem::path, std::array<float, 2>>> project_file_positions;
   bool selector_error_visible{};
   std::string selector_status;
   bool selector_busy = false;
@@ -3964,7 +3970,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
 
 template <typename StateT>
 void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
-                      const RecentProjectStore *recent_projects) {
+                      const RecentProjectStore *recent_projects, SceneDocument *scene,
+                      bool scene_openable) {
   state.project_writable = workspace != nullptr && workspace->Writable();
   state.project_upgrade_required =
       workspace != nullptr && workspace->UpgradeState() == ProjectUpgradeState::Required;
@@ -3975,7 +3982,60 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
                 recent_projects->Entries().size(), std::numeric_limits<std::uint32_t>::max()));
 
   const auto window = PanelWindowName("nexora.project");
+  state.project_file_positions.clear();
   if (!ImGui::Begin(window.c_str())) {
+    ImGui::End();
+    return;
+  }
+  if (workspace && state.project_files_root == workspace->Root()) {
+    ImGui::TextUnformatted(workspace->Project().name.c_str());
+    ImGui::SameLine();
+    if (ImGui::Button("Refresh"))
+      state.project_files_refresh = true;
+    ImGui::TextDisabled("Double-click a scene to open it.");
+    if (!state.project_files_error.empty())
+      ImGui::TextWrapped("%s", state.project_files_error.c_str());
+    ImGui::PushID(PathLabel(state.project_files_root).c_str());
+    ImGui::BeginChild("Project files", {0, 0});
+    for (std::size_t index = 0; index < state.project_files.size(); ++index) {
+      const auto &item = state.project_files[index];
+      const auto depth = static_cast<float>(std::distance(item.path.begin(), item.path.end()) - 1);
+      ImGui::Indent(depth * 16.0F);
+      ImGui::PushID(PathLabel(item.path).c_str());
+      if (item.path == "Content" || item.path == ".nexora" || item.path == ".nexora/scenes")
+        ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+      auto flags = ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
+                   ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+      if (!item.directory)
+        flags |= ImGuiTreeNodeFlags_Leaf;
+      if (state.project_file_selection == item.path)
+        flags |= ImGuiTreeNodeFlags_Selected;
+      const bool expanded = ImGui::TreeNodeEx("##entry", flags, "");
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      if (ImGui::IsItemVisible())
+        state.project_file_positions.push_back(
+            {item.path, {(low.x + high.x) * .5F, (low.y + high.y) * .5F}});
+      if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+        state.project_file_selection = item.path;
+      if (scene && scene_openable && !item.directory && !item.symbolic_link &&
+          item.path.extension() == ".scene" && ImGui::IsItemHovered() &&
+          ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && state.scene_file_path != item.path)
+        BeginContentScene(state, *scene, item.path);
+      const auto label = PathLabel(item.path.filename());
+      ImGui::GetWindowDrawList()->AddText({low.x + ImGui::GetTreeNodeToLabelSpacing(), low.y},
+                                          ImGui::GetColorU32(ImGuiCol_Text), label.data(),
+                                          label.data() + label.size());
+      ImGui::PopID();
+      ImGui::Unindent(depth * 16.0F);
+      if (item.directory && !expanded) {
+        const auto prefix = PathLabel(item.path) + "/";
+        while (index + 1 < state.project_files.size() &&
+               PathLabel(state.project_files[index + 1].path).starts_with(prefix))
+          ++index;
+      }
+    }
+    ImGui::EndChild();
+    ImGui::PopID();
     ImGui::End();
     return;
   }
@@ -5520,6 +5580,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   const bool file_busy = state_->scene_file_dialog != State::FileDialog::None ||
                          state_->scene_file_output || tab_modal;
   if (ImGui::BeginMainMenuBar()) {
+    if (ImGui::BeginMenu("Window")) {
+      if (ImGui::MenuItem("Project", "Ctrl+Alt+J", false, workspace != nullptr))
+        state_->project_window_requested = true;
+      ImGui::EndMenu();
+    }
     if (state_->app_focused && !ImGui::GetIO().WantTextInput &&
         ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_P,
                         ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused))
@@ -5667,7 +5732,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     state_->game_input_focused = false;
     CancelSceneGestures(*state_);
   }
-  if (scene_editable && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)) {
+  if (workspace && state_->app_focused && !interaction_blocked && !ImGui::GetIO().WantTextInput &&
+      ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_J, ImGuiInputFlags_RouteGlobal))
+    state_->project_window_requested = true;
+  if (scene_editable &&
+      (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_S, ImGuiInputFlags_RouteGlobal) ||
+       (state_->scene_tabs.empty() &&
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_S, ImGuiInputFlags_RouteGlobal)))) {
     static_cast<void>(shell.RouteCommand("editor.scene.save"));
     state_->scene_save_requested = true;
   }
@@ -5797,6 +5868,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   ImGui::End();
   const auto scene_window = PanelWindowName("nexora.scene");
   if (ImGui::Begin(scene_window.c_str())) {
+    if (state_->scene_tabs.empty() && scene)
+      ImGui::Text("%s%s",
+                  state_->scene_file_path ? PathLabel(state_->scene_file_path->filename()).c_str()
+                                          : "Untitled Scene",
+                  scene->Dirty() ? " *" : "");
     DrawSceneTabs(*state_,
                   tab_context_valid && !file_external_block && !game_running &&
                       state_->scene_file_dialog == State::FileDialog::None &&
@@ -7023,7 +7099,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                        state_->app_focused && !external_modal_open && !rename_open &&
                            (!workspace || workspace->Writable()),
                        state_->app_focused && !interaction_blocked && !state_->game_input_focused);
-  DrawProjectPanel(*state_, workspace, recent_projects);
+  DrawProjectPanel(*state_, workspace, recent_projects, scene,
+                   file_context_valid && state_->app_focused && !game_running &&
+                       !interaction_blocked && !file_busy && !state_->content_rename_target);
+  if (std::exchange(state_->project_window_requested, false) && !interaction_blocked)
+    ImGui::SetWindowFocus(PanelWindowName("nexora.project").c_str());
   if (std::exchange(state_->game_input_binding_pending, false))
     ImGui::OpenPopup("Game input bindings###game.input.binding-dialog");
   ImGui::SetNextWindowSize({620.0F, 440.0F}, ImGuiCond_Always);
@@ -7461,6 +7541,19 @@ void EditorImGuiHost::SetSceneFileContext(SceneFileToken token,
 }
 std::optional<SceneFileRequest> EditorImGuiHost::TakeSceneFileRequest() {
   return std::exchange(state_->scene_file_output, std::nullopt);
+}
+
+void EditorImGuiHost::SetProjectFiles(std::filesystem::path root,
+                                      std::vector<ProjectFileItem> items, std::string error) {
+  if (state_->project_files_root != root)
+    state_->project_file_selection.clear();
+  state_->project_files_root = std::move(root);
+  state_->project_files = std::move(items);
+  state_->project_files_error = std::move(error);
+}
+
+bool EditorImGuiHost::TakeProjectFilesRefresh() noexcept {
+  return std::exchange(state_->project_files_refresh, false);
 }
 void EditorImGuiHost::SetPrefabPlacementSourceContext(const std::filesystem::path &root,
                                                       bool read_allowed) {
@@ -9174,6 +9267,20 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   const auto name = PanelWindowName("nexora.content");
   ImGui::SetWindowFocus(name.c_str());
+}
+
+void EditorImGuiTestAccess::FocusProject(EditorImGuiHost &host) noexcept {
+  Activate(host.state_->context);
+  ImGui::SetWindowFocus(PanelWindowName("nexora.project").c_str());
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::ProjectFilePosition(const EditorImGuiHost &host,
+                                           const std::filesystem::path &path) {
+  const auto found = std::ranges::find_if(host.state_->project_file_positions,
+                                          [&](const auto &item) { return item.first == path; });
+  return found == host.state_->project_file_positions.end() ? std::nullopt
+                                                            : std::optional(found->second);
 }
 std::optional<std::filesystem::path>
 EditorImGuiTestAccess::ContentFocusedFolder(const EditorImGuiHost &host) {

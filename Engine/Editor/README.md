@@ -1,5 +1,13 @@
 # Editor Core contract
 
+## Main application scene ownership
+
+The main Editor application uses one current SceneDocument/SceneFileSession. It replaces the
+document with New/Open only after the existing unsaved-decision continuation succeeds. It restores
+the last single-scene setting; old additive composition metadata is preserved without loading or
+rewriting it. AdditiveSceneSession/Composition remain supporting owner-thread APIs for other hosts,
+with their existing ownership, transaction, restore and save-batch contracts unchanged.
+
 ## 2D authoring document
 
 ✅ TwoDDocument is compiled only with NEXORA_ENABLE_2D and owns an isolated Runtime World,
