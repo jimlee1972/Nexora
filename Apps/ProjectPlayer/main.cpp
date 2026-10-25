@@ -1,3 +1,4 @@
+#include "Nexora/Runtime/GameProjectPackage.h"
 #include "Nexora/Runtime/ProjectPackage.h"
 #if defined(NEXORA_PROJECT_PLAYER_2D)
 #include "TwoDPlayer.h"
@@ -14,12 +15,28 @@
 namespace {
 int Usage() {
   std::cerr << "Usage: NexoraProjectPlayer --verify-package PACKAGE\n"
+               "       NexoraProjectPlayer --verify-game-package PACKAGE\n"
                "       NexoraProjectPlayer --run-package PACKAGE [--frames=N] "
                "[--backend=automatic|vulkan|dx12|metal] [--gameplay-module=PATH] "
                "[--save-directory=PATH]\n";
   return 2;
 }
 
+int VerifyGame(const std::filesystem::path &path) {
+  std::string error;
+  const auto project = nexora::runtime::ReadGameProjectPackage(path, &error);
+  if (!project) {
+    std::cerr << "Game package verification failed: " << error << '\n';
+    return 1;
+  }
+  std::cout << "{\"status\":\"VERIFIED_GAME_PACKAGE\",\"schema_version\":1,\"capability\":2,"
+               "\"start_scene\":\""
+            << project->StartupScene().ToString()
+            << "\",\"scene_count\":" << project->Scenes().size()
+            << ",\"asset_count\":" << project->AssetCount()
+            << ",\"native_rendering\":false,\"gameplay_loaded\":false}\n";
+  return 0;
+}
 int Run(const std::filesystem::path &path) {
   std::string error;
   const auto loaded = nexora::runtime::ReadStaticProjectPackage(path, &error);
@@ -98,6 +115,8 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
 #endif
   if (EqualAscii(mode, "--verify-package"))
     return argc == 3 ? Run(ArgumentPath(argv[2])) : Usage();
+  if (EqualAscii(mode, "--verify-game-package"))
+    return argc == 3 ? VerifyGame(ArgumentPath(argv[2])) : Usage();
   if (!EqualAscii(mode, "--run-package"))
     return Usage();
 #if defined(NEXORA_PROJECT_PLAYER_NATIVE)

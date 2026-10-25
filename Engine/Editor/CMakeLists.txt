@@ -55,6 +55,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/SceneFiles.cpp
   src/SceneSaveBatch.cpp
   src/StaticProjectExport.cpp
+  src/GameProjectExport.cpp
   src/StaticProjectExportJob.cpp
   src/ViewportMath.cpp)
 add_library(Nexora::Editor ALIAS NexoraEditorCore)

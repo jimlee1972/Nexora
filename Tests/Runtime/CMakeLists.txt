@@ -239,6 +239,15 @@ else()
 endif()
 
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraGameProjectPackageTests GameProjectPackageTests.cpp)
+  target_link_libraries(NexoraGameProjectPackageTests PRIVATE Nexora::Runtime)
+  nexora_apply_defaults(NexoraGameProjectPackageTests)
+  add_test(NAME runtime.game_project_package COMMAND NexoraGameProjectPackageTests)
+  if(NEXORA_BUILD_PROJECT_PLAYER)
+    add_test(NAME runtime.game_project_player_cli
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/GameProjectPlayerCli.py"
+        "$<TARGET_FILE:NexoraGameProjectPackageTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
+  endif()
   add_executable(NexoraCookedSceneAssetTests CookedSceneAssetTests.cpp)
   target_link_libraries(NexoraCookedSceneAssetTests PRIVATE Nexora::Runtime)
   nexora_apply_defaults(NexoraCookedSceneAssetTests)

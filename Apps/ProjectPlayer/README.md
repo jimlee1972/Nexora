@@ -1,5 +1,11 @@
 # Nexora Project Player
 
+`--verify-game-package PATH` verifies the separate bounded multi-scene scene-catalog format,
+reporting the configured startup UUID, scene/asset counts and native_rendering=false /
+gameplay_loaded=false. It needs no authored `.scene` or source tree. This is CPU data verification;
+live transitions and zero-argument built-game launch remain subsequent integration work.
+See [the catalog contract](../../Engine/Runtime/GameProjectPackage.md).
+
 Enable `NEXORA_BUILD_PROJECT_PLAYER=ON` together with the asset pipeline to build the Runtime-only
 `NexoraProjectPlayer`. The current executable verifies a **StaticView cooked package**:
 

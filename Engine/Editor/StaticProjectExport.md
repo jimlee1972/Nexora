@@ -1,5 +1,11 @@
 # Owning StaticView project producer
 
+`CookStaticProjectData` is the same validated owning producer before outer StaticView encoding.
+Its span overload borrows captured scene/asset values for one synchronous call, avoiding copies of
+shared supplied geometry while assembling multi-scene builds. The existing `CookStaticProject`
+wraps that authority and preserves StaticView wire bytes. [GameProjectExport](GameProjectExport.md)
+merges the exact closures into the separate Runtime scene-catalog format.
+
 `StaticProjectExport.h` exposes `CookStaticProject(StaticProjectExportInput, error)`. This synchronous
 Editor C++ prerequisite consumes an owning `SceneDocument::RuntimeSceneCapture`, explicit owning
 imported OBJ geometry and scalar PBR materials, and full project/scene asset UUIDs. It returns owning

@@ -3,8 +3,8 @@
 ### Project scene delivery goal (2026-10-25)
 
 Startup-scene settings, enabled build scenes and runtime packaged-scene transitions are authorized
-and specified in the [scene delivery plan](Project_Scene_Delivery_Plan.md). All five implementation
-phases remain pending. The main Editor retains one editable Scene; its last-opened scene is not
+and specified in the [scene delivery plan](Project_Scene_Delivery_Plan.md). ✅ Phase 1 settings/UI
+passed its scoped gates in PR #716; four phases remain pending. The main Editor retains one editable Scene; its last-opened scene is not
 the game startup setting. Legacy StaticView and complete ED-M1/M3/M6 acceptance remain separate.
 
 ### Current main-Editor interaction policy (2026-10-25)
