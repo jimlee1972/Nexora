@@ -27,7 +27,7 @@ jobs:
           -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF
           -DNEXORA_ENABLE_EDITOR=OFF -DNEXORA_BUILD_SHOWCASE=OFF
           -DNEXORA_BUILD_PROJECT_PLAYER=OFF -DNEXORA_ENABLE_SLANG=OFF
-          -DNEXORA_2D_GAME_TARGET=NexoraGameHost -DNEXORA_2D_GAME_PROJECT=game.nx2game
+          -DNEXORA_2D_GAME_TARGET=NexoraGameHost "-DNEXORA_2D_GAME_PROJECT=game.nx2game"
       - run: cmake --build build/sdk-producer --target NexoraGameHost NexoraTwoDAssetCompiler --parallel 3
       - name: Pin Ninja and package candidate
         shell: pwsh
