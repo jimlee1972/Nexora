@@ -95,3 +95,36 @@ zero failures/skips (58.88 s). Documentation checks passed 16/16 again. The new 
 zero references); no UI texture rejection. Its Editor-only ZIP is 4,103,034 bytes, SHA-256
 `0d525264d87c9fcc865266e45653849a66b66daf36d953059b4df5fd6b8589b8`.
 It supersedes the earlier `delivery/` ZIP; both candidates and their probes are retained.
+
+## Large-scene dirty-query correction
+
+Hosted head `1182dc0a` passed every previous native UI regression: reflected inspector/arrays,
+StaticView export, Project double-click (5.77 s), native Scene preview (27.00 s), and prefab
+placement/revert/source-apply. The Editor job instead timed out at the unchanged 300 s deadline
+of `editor.hierarchy_scale_lifecycle`; the retained trace reached the final 100000-node dataset
+with roughly 1900-2000 ms frames. The new filename caption called `SceneDocument::Dirty()`
+in addition to the existing unsaved banner. Dirty builds the complete state signature (and captures opaque records when their cache is
+invalid), so this added a full-scene query to every displayed frame.
+
+The caption now draws only the filename. The existing unsaved-state banner, menu marker and
+Save/Discard/Cancel logic remain authoritative, with no extra dirty query for the caption.
+No benchmark dataset, lifecycle count, assertion, frame budget or CI timeout was changed.
+The corrected Windows run passed all five selected UI regressions, while the added 100000-node
+lifecycle test timed out at its default 600 s (whole invocation: 5/6 passed, 654.88 s). Its completed
+first-cycle datasets measured 5.0-5.8 s median frames; no completed lifecycle assertion failed.
+The original log is retained as `scale-default-timeout-LastTest.log`. For comparison only, the
+preceding head's hosted Windows test completed all eight lifecycles in 419.15 s (2.47-2.62 s
+flat-root medians). This is evidence of the local host's slower execution, not final-head acceptance.
+
+The isolated local cache now uses the project's existing `NEXORA_EDITOR_HIERARCHY_TIMEOUT_SCALE=3`
+option for the aggregate lifecycle deadline only. This option is expressly provided for slower
+local hosts. Its full rerun remains pending; no CI option or repository preset was changed, and
+Linux still must pass the original 300 s deadline on the corrected head before merge.
+Earlier candidates and failed tests remain retained.
+
+The `delivery-final/` candidate passed direct-host default startup (8/8), relocated GUI startup
+(120/120, exit 0), Unicode CLI project creation and project-open smoke (120/120, one Scene,
+zero references), with zero rejected UI textures. ZIP: 4,102,917 bytes, SHA-256
+`463e2a2613533e38a737e3f7a3753861d26b4eea494159fef0f990b85efcd5e1`.
+It supersedes `delivery-reviewed/`. Exact-head final CI and slow-host lifecycle results will be
+retained in the PR, task and local receipt before merge.

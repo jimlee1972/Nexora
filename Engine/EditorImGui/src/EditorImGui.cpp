@@ -5881,10 +5881,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
   if (ImGui::Begin(scene_window.c_str())) {
     if (state_->scene_tabs.empty() && scene && workspace) {
       ImGui::AlignTextToFramePadding();
-      ImGui::Text("%s%s",
-                  state_->scene_file_path ? PathLabel(state_->scene_file_path->filename()).c_str()
-                                          : "Untitled Scene",
-                  scene->Dirty() ? " *" : "");
+      ImGui::TextUnformatted(state_->scene_file_path
+                                 ? PathLabel(state_->scene_file_path->filename()).c_str()
+                                 : "Untitled Scene");
       ImGui::BeginDisabled(!file_context_valid || file_external_block || file_busy ||
                            game_running || state_->content_rename_target);
       ImGui::BeginDisabled(!writable);
