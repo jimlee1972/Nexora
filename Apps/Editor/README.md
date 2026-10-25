@@ -1,5 +1,15 @@
 # Nexora Editor
 
+Build > Project Build Settings edits `project.build.json` beside `project.nexora`. Add saved scenes
+using Add Current Scene or a project-relative Scene path, choose Set Startup, enable/exclude entries
+and Save Build Settings. Reload Saved Settings discards the draft and rereads disk. Existing Content
+scenes use their persistent UUID; an externally added Content file must be imported/opened before
+enrollment. Opening another Scene never changes the game's startup selection. The startup scene
+must remain enabled. Read-only/recovery and external settings changes are protected.
+These settings are the first phase of [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md);
+the existing Export StaticView command still exports only the current Scene until that integration
+is implemented and accepted.
+
 ## Interactive startup and project files
 
 A graphical-shell build starts its Project Browser when launched without arguments. No

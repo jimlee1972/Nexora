@@ -943,6 +943,13 @@ foreach(nexora_authoring_scale RANGE 1 2)
     TIMEOUT 300 RUN_SERIAL TRUE)
 endforeach()
 
+add_executable(NexoraProjectBuildSettingsUiTests ProjectBuildSettingsTests.cpp)
+target_include_directories(NexoraProjectBuildSettingsUiTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraProjectBuildSettingsUiTests PRIVATE Nexora::EditorImGui)
+nexora_apply_defaults(NexoraProjectBuildSettingsUiTests)
+add_test(NAME editor.project_build_settings_ui COMMAND NexoraProjectBuildSettingsUiTests)
+set_tests_properties(editor.project_build_settings_ui PROPERTIES TIMEOUT 120)
+
 add_executable(NexoraFontGlyphTests FontGlyphTests.cpp)
 target_include_directories(NexoraFontGlyphTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
 target_link_libraries(NexoraFontGlyphTests PRIVATE Nexora::EditorImGui NexoraDearImGui)

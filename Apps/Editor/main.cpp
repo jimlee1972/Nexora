@@ -804,6 +804,20 @@ int RunGraphical(std::optional<ProjectState> project,
   bool gameplay_settings_invalid = false;
   std::string loaded_gameplay_library;
   bool input_settings_deferred = false;
+  std::unique_ptr<nexora::editor::ProjectBuildSettingsSession> build_settings;
+  const auto load_build_settings = [&](nexora::editor::ProjectWorkspace &workspace) {
+    build_settings = std::make_unique<nexora::editor::ProjectBuildSettingsSession>(workspace);
+    std::string error;
+    const bool ready = build_settings->Reload(&error);
+    auto settings = build_settings->Settings().value_or(nexora::editor::ProjectBuildSettings{});
+    if (ready && build_settings->Settings() &&
+        !build_settings->Reconcile(settings, content.Browser(), &error))
+      error = "Repair scene identities before building: " + error;
+    ui.SetProjectBuildSettings(workspace, std::move(settings), ready,
+                               error.empty() && !build_settings->Settings()
+                                   ? "No build settings yet. Add a saved scene and save settings."
+                                   : error);
+  };
   const auto load_input_settings = [&](nexora::editor::ProjectWorkspace &workspace) {
     input_settings_deferred = workspace.HasRecoveryJournal();
     std::string error;
@@ -815,6 +829,7 @@ int RunGraphical(std::optional<ProjectState> project,
       std::cerr << "ignored input settings: " << error << '\n';
   };
   const auto load_gameplay_settings = [&](nexora::editor::ProjectWorkspace &workspace) {
+    load_build_settings(workspace);
     std::string error;
     const auto saved = workspace.LoadGameplayLibrary(&error);
     gameplay_settings_invalid = !error.empty();
@@ -1090,8 +1105,8 @@ int RunGraphical(std::optional<ProjectState> project,
   double play_accumulator = 0.0;
   auto recovery_choice = nexora::editor::imgui::RecoveryChoice::None;
   std::string selector_result = project ? "bypassed" : "none";
-  const auto publish_saved_scene = [&] {
-    const auto relative = active_files()->CurrentPath();
+  const auto publish_saved_scene = [&](std::optional<std::filesystem::path> path = std::nullopt) {
+    const auto relative = path ? std::move(path) : active_files()->CurrentPath();
     if (!relative || *relative->begin() != "Content")
       return;
     const auto asset_path = relative->lexically_relative("Content");
@@ -2194,6 +2209,56 @@ int RunGraphical(std::optional<ProjectState> project,
       if (input_settings_deferred && !project->workspace.HasRecoveryJournal())
         load_input_settings(project->workspace);
       refresh_scene_location();
+      if (auto request = ui.TakeProjectBuildSettingsRequest()) {
+        std::string error;
+        auto draft = std::move(request->settings);
+        const bool current =
+            build_settings && request->project == project->workspace.Project().id &&
+            request->root == project->workspace.Root() &&
+            play.State() == nexora::runtime::PlayState::Stopped && !static_export.Busy();
+        bool applied = false;
+        if (!current) {
+          error = "Build settings request belongs to another project or an active operation.";
+          draft = build_settings
+                      ? build_settings->Settings().value_or(nexora::editor::ProjectBuildSettings{})
+                      : nexora::editor::ProjectBuildSettings{};
+        } else if (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::Reload) {
+          applied = build_settings->Reload(&error);
+          draft = build_settings->Settings().value_or(nexora::editor::ProjectBuildSettings{});
+          if (applied && build_settings->Settings())
+            applied = build_settings->Reconcile(draft, content.Browser(), &error);
+        } else if (!project->workspace.Writable() || project->workspace.HasRecoveryJournal()) {
+          error = "Build settings require a writable project with resolved recovery.";
+        } else if (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::AddScene) {
+          if (request->path.starts_with("Content/"))
+            publish_saved_scene(
+                std::filesystem::path(std::u8string(request->path.begin(), request->path.end())));
+          const auto entry = build_settings->Enroll(request->path, content.Browser(), &error);
+          if (entry && draft.scenes.size() < nexora::editor::ProjectBuildSettings::kMaximumScenes &&
+              std::ranges::none_of(draft.scenes, [&](const auto &row) {
+                return row.id == entry->id || row.path == entry->path;
+              })) {
+            if (draft.scenes.empty())
+              draft.start_scene = entry->id;
+            draft.scenes.push_back(*entry);
+            applied = true;
+          } else if (error.empty())
+            error = "Scene is already included or the 256-scene limit is reached.";
+        } else {
+          applied = build_settings->Save(draft, content.Browser(), &error);
+          if (applied)
+            draft = *build_settings->Settings();
+        }
+        ui.SetProjectBuildSettings(
+            project->workspace, std::move(draft), build_settings && build_settings->Ready(),
+            applied ? (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::Save
+                           ? "Build settings saved to project.build.json."
+                           : "Build scene list updated. Save to apply changes.")
+                    : error);
+        log(applied ? nexora::runtime::RuntimeLogSeverity::Info
+                    : nexora::runtime::RuntimeLogSeverity::Warning,
+            "Build Settings", applied ? "Build scene settings updated." : error);
+      }
       if (auto request = ui.TakeGameInputBindingsSaveRequest()) {
         std::string error;
         const bool current = request->project == project->workspace.Project().id &&

@@ -4,6 +4,13 @@ Status: authorized implementation goal; **0/5 implementation phases accepted**.
 Updated: 2026-10-25. Related milestones: ED-M1, ED-M3 and ED-M6; none is accepted by this plan.
 The durable work/dependency record is Beads, not the phase table below.
 
+Phase 1 implementation candidate adds the bounded shared codec, guarded project session and
+graphical Build Settings. Windows core (including catalog rename, actual Unicode paths and recovery)
+and real 1x/2x UI regressions pass. Windows cannot create the symlink fixture under the current host
+privileges; Linux alias validation and full Linux/native integration gates are pending.
+No phase is accepted yet.
+[Windows candidate evidence](../../Tools/Build/evidence/EditorProjectBuildSettings-2026-10-25.md).
+
 ## 1. Product behavior
 
 - Project Build Settings selects the game's startup scene and scenes included in a build.

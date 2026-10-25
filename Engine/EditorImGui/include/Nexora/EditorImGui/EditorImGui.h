@@ -16,6 +16,7 @@
 #include "Nexora/Editor/PrefabPlacementRebase.h"
 #include "Nexora/Editor/PrefabPropertyPlan.h"
 #include "Nexora/Editor/PrefabRebase.h"
+#include "Nexora/Editor/ProjectBuildSettings.h"
 #include "Nexora/Editor/ProjectContent.h"
 #include "Nexora/Editor/SceneComparisonJob.h"
 #include "Nexora/Editor/SceneFiles.h"
@@ -197,6 +198,15 @@ struct ProjectFileItem final {
 struct StaticExportRequest final {
   SceneFileToken token;
   bool cancel{};
+};
+
+enum class ProjectBuildSettingsAction { Reload, AddScene, Save };
+struct ProjectBuildSettingsRequest final {
+  foundation::Uuid project;
+  std::filesystem::path root;
+  ProjectBuildSettingsAction action{};
+  ProjectBuildSettings settings;
+  std::string path;
 };
 
 enum class ExtensionManagerAction : std::uint8_t {
@@ -431,6 +441,10 @@ public:
   [[nodiscard]] std::optional<StaticExportRequest> TakeStaticExportRequest();
   // Owning bounded observations only. Application revalidates requests and owns job publication.
   void SetStaticExportStatus(StaticExportSnapshot snapshot, bool busy);
+  // Owning observations/requests only; settings file IO and project guards belong to the host.
+  void SetProjectBuildSettings(const ProjectWorkspace &, ProjectBuildSettings, bool ready,
+                               std::string status = {});
+  [[nodiscard]] std::optional<ProjectBuildSettingsRequest> TakeProjectBuildSettingsRequest();
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;
   void SetSceneSaveResult(std::string message, bool success);
   // Owning context only; the application performs all file IO and rechecks token/access.
