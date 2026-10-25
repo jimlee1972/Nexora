@@ -30,6 +30,9 @@ Final MSVC configure/build passed. Five selected CTests passed 5/5, zero failure
 Unicode scene path, single/double click, dirty Cancel/Discard, stale-request rejection at 1x/2x,
 and reader entry-budget rejection before further directory enumeration.
 Existing scene-file tests retain failed-save, Save As, overwrite and save-before-switch coverage.
+The Project-tree fixture subsequently uses the workspace's canonical root, matching the UI
+contract even when a platform's temporary directory is an alias. The affected executable was
+rebuilt and `editor.scene_file_input` passed again 1/1 (20.50 s); production binaries are unchanged.
 
 The initial no-mode-argument native package probe reproduced exit 2 because the interactive
 default was incorrectly chosen inside option parsing. It is now selected after all options are

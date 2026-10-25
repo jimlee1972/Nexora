@@ -918,19 +918,19 @@ void RunUnicodeContent(float dpi) {
 void RunProjectTree(float dpi) {
   Fixture f(dpi);
   std::ofstream(f.root / "README.txt") << "project document";
-  const auto limited = editor::app::CaptureProjectFiles(f.root, 1);
+  const auto limited = editor::app::CaptureProjectFiles(f.writer.Root(), 1);
   Require(!limited.error.empty() && limited.inspected_entries <= 1 && limited.items.size() <= 1,
           "Project scanner did not bound pending entries before descending");
   const auto target = std::filesystem::path(u8"Content/第二場景.scene");
   Require(f.scene.Save(f.root / target), "Project tree scene fixture failed");
-  auto snapshot = editor::app::CaptureProjectFiles(f.root);
+  auto snapshot = editor::app::CaptureProjectFiles(f.writer.Root());
   Require(snapshot.error.empty() &&
               std::ranges::any_of(snapshot.items,
                                   [](const auto &item) { return item.path == "README.txt"; }) &&
               std::ranges::any_of(snapshot.items,
                                   [](const auto &item) { return item.path == "project.nexora"; }),
           "Project tree only indexed assets instead of all project files");
-  f.ui.SetProjectFiles(f.root, std::move(snapshot.items));
+  f.ui.SetProjectFiles(f.writer.Root(), std::move(snapshot.items));
   f.Draw();
   Access::FocusProject(f.ui);
   f.Draw();
