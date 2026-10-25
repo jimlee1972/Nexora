@@ -10,6 +10,15 @@ $roots = @("${env:ProgramFiles}\Microsoft Visual Studio", "${env:ProgramFiles(x8
 $evidence = @()
 foreach ($root in $roots) {
     if (-not (Test-Path -LiteralPath $root)) { continue }
+    $probes = @(Get-ChildItem -Path @(
+        "$root\*\*\VC\Tools\MSVC\*\bin\Hostx64\x64\cl.exe",
+        "$root\*\*\VC\Tools\MSVC\*\lib\x64\libcmt.lib",
+        "$root\*\Include\*\um\Windows.h", "$root\*\Lib\*\um\x64\kernel32.lib",
+        "$root\Installer\vswhere.exe") -File -ErrorAction SilentlyContinue)
+    if ($probes.Count -eq 0) {
+        $probes = @(Get-ChildItem -LiteralPath $root -File -Recurse | Select-Object -First 1)
+    }
+    if ($probes.Count -eq 0) { throw "No toolchain files found for an isolation probe: $root" }
     $blocked = "$root.sdk-inaccessible"
     Move-Item -LiteralPath $root -Destination $blocked
     & icacls.exe $blocked /deny "${identity}:(OI)(CI)(RX)" | Out-Host
@@ -17,7 +26,22 @@ foreach ($root in $roots) {
     $readable = $false
     try { Get-ChildItem -LiteralPath $blocked -ErrorAction Stop | Out-Null; $readable = $true } catch {}
     if ($readable -or (Test-Path -LiteralPath $root)) { throw "Toolchain files still accessible: $root" }
-    $evidence += @{ original = $root; relocated = $blocked; readDenied = $true }
+    $fileEvidence = @()
+    foreach ($probe in $probes) {
+        $path = $blocked + $probe.FullName.Substring($root.Length)
+        $stream = $null; $fileReadable = $false
+        try {
+            $stream = [System.IO.File]::OpenRead($path)
+            $null = $stream.ReadByte()
+            $fileReadable = $true
+        } catch {
+            if (-not ($_.Exception -is [UnauthorizedAccessException]) -and
+                -not ($_.Exception.InnerException -is [UnauthorizedAccessException])) { throw }
+        } finally { if ($null -ne $stream) { $stream.Dispose() } }
+        if ($fileReadable) { throw "Toolchain file bytes remain readable: $path" }
+        $fileEvidence += @{ relative = $probe.FullName.Substring($root.Length); readDenied = $true }
+    }
+    $evidence += @{ original = $root; relocated = $blocked; readDenied = $true; fileProbes = $fileEvidence }
 }
 if ($evidence.Count -eq 0) { throw 'No installed toolchains found to isolate' }
 # Use only consumer tools and OS paths. Hosted Git/Strawberry ship unrelated
