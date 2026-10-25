@@ -79,3 +79,5 @@ executes both test runners, verifies untouched sources and rejects parent traver
 On macOS, use the shared CMake entry: it reuses the existing Apple host-linker workaround for Zig 0.14 dynamic modules and test executables. The raw Zig build-file command does not apply that workaround.
 
 Local validation and acceptance boundaries: [Windows evidence](../Build/evidence/Zig-Script-SDK-Windows-2026-10-24.md).
+
+Precompiled Windows consumers can use the [2D SDK](../SDK/README.md) without MSVC or engine source.

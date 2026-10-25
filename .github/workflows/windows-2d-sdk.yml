@@ -1,0 +1,135 @@
+name: Windows 2D SDK candidate
+on:
+  push:
+    branches: [main, 'feat/prebuilt-windows-sdk']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Cancel superseded runs owned by this SDK task
+        if: github.actor == github.repository_owner && (github.head_ref || github.ref_name) == 'feat/prebuilt-windows-sdk'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const branch = 'feat/prebuilt-windows-sdk';
+            const head = (await github.rest.git.getRef({owner, repo, ref: `heads/${branch}`})).data.object.sha;
+            for (const workflow_id of ['build.yml', 'windows-2d-sdk.yml']) {
+              const runs = await github.paginate(github.rest.actions.listWorkflowRuns,
+                {owner, repo, workflow_id, branch, per_page: 100});
+              for (const run of runs) {
+                if (!['queued', 'in_progress'].includes(run.status) || run.head_sha === head ||
+                    run.id === context.runId || run.actor?.login !== owner || run.head_branch !== branch ||
+                    run.head_repository?.full_name !== `${owner}/${repo}`) continue;
+                const current = await github.rest.git.getRef({owner, repo, ref: `heads/${branch}`});
+                if (current.data.object.sha !== head) break;
+                await github.rest.actions.cancelWorkflowRun({owner, repo, run_id: run.id});
+                core.info(`Cancelled superseded task run ${run.id}`);
+              }
+            }
+  producer:
+    needs: cleanup
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lukka/get-cmake@latest
+      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test portable dependency validation
+        run: python -m unittest discover -s Tools/SDK/tests -v
+      - name: Configure and build Shipping SDK
+        run: >-
+          cmake --preset windows-development -B build/sdk-producer
+          -DCMAKE_BUILD_TYPE=Shipping -DNEXORA_LINK_MODE=Monolithic
+          -DNEXORA_SHIPPING_PROFILE=Full -DBUILD_TESTING=OFF
+          -DNEXORA_ENABLE_NATIVE_BACKENDS=ON -DNEXORA_ENABLE_VULKAN_BACKEND=OFF
+          -DNEXORA_ENABLE_2D=ON -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF
+          -DNEXORA_ENABLE_EDITOR=OFF -DNEXORA_BUILD_SHOWCASE=OFF
+          -DNEXORA_BUILD_PROJECT_PLAYER=OFF -DNEXORA_ENABLE_SLANG=OFF
+          -DNEXORA_2D_GAME_TARGET=NexoraGameHost "-DNEXORA_2D_GAME_PROJECT=game.nx2game"
+      - run: cmake --build build/sdk-producer --target NexoraGameHost NexoraTwoDAssetCompiler --parallel 3
+      - name: Pin Ninja and package candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $zip = "$env:RUNNER_TEMP/ninja-win.zip"
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-win.zip -OutFile $zip
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '07fc8261b42b20e71d1720b39068c2e14ffcee6396b76fb7a795fb460b78dc65') { throw 'Ninja digest mismatch' }
+          Expand-Archive $zip "$env:RUNNER_TEMP/sdk-ninja"
+          Invoke-WebRequest https://raw.githubusercontent.com/ninja-build/ninja/v1.13.2/COPYING -OutFile "$env:RUNNER_TEMP/sdk-ninja/COPYING"
+          $redists = @(Get-ChildItem "$env:VCToolsRedistDir/x64" -Directory -Filter 'Microsoft.VC*.CRT')
+          if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT directory' }
+          python Tools/SDK/SDK.py package --build build/sdk-producer --output build/sdk-delivery `
+            --redist $redists[0].FullName --ninja "$env:RUNNER_TEMP/sdk-ninja/ninja.exe" `
+            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --commit $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows-2D-SDK-candidate
+          path: |
+            build/sdk-delivery/*.zip
+            build/sdk-delivery/*.sha256
+            build/sdk-delivery/sdk.json
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SDK-consumer-tools
+          path: |
+            Tools/SDK/IsolateWindows.ps1
+            Tools/SDK/VerifyConsumer.py
+          if-no-files-found: error
+  consumer:
+    needs: producer
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      # Intentionally no Nexora checkout and no producer build/cache restoration.
+      - uses: lukka/get-cmake@latest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
+          use-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: Windows-2D-SDK-candidate
+          path: candidate
+      - uses: actions/download-artifact@v4
+        with:
+          name: SDK-consumer-tools
+          path: tools
+      - name: Deny native toolchain files and test relocated SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . ./tools/IsolateWindows.ps1
+          $zip = Get-Item candidate/*.zip
+          $expected = (Get-Content -LiteralPath "$($zip.FullName).sha256" -Encoding ascii).Split(' ')[0]
+          if ((Get-FileHash $zip.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Candidate digest mismatch' }
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath "$env:RUNNER_TEMP/SDK 陰陽"
+          $env:ZIG_GLOBAL_CACHE_DIR = "$env:RUNNER_TEMP/sdk-consumer-global-fresh"
+          if (Test-Path $env:ZIG_GLOBAL_CACHE_DIR) { throw 'Consumer cache was not fresh' }
+          python tools/VerifyConsumer.py --sdk "$env:RUNNER_TEMP/SDK 陰陽" --output "$env:GITHUB_WORKSPACE/evidence"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: SDK-consumer-evidence
+          path: |
+            evidence/acceptance.json
+            evidence/report-*.json
+            evidence/relocated game 陰陽/inventory.json
+            ${{ runner.temp }}/sdk-toolchain-isolation.json
+          if-no-files-found: warn

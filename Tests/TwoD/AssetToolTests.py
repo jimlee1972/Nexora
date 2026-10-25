@@ -18,12 +18,13 @@ def chunk(kind, data):
 def main():
     compiler = Path(sys.argv[1])
     with tempfile.TemporaryDirectory() as temp:
-        root = Path(temp)
+        root = Path(temp)/"assets 陰陽"
+        root.mkdir()
         raw = b'\x00'+bytes([255,0,0,255,0,255,0,255])+b'\x00'+bytes([0,0,255,255,255,255,255,255])
         png = b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR', struct.pack('>IIBBBBB', 2,2,8,6,0,0,0))+chunk(b'IDAT', zlib.compress(raw))+chunk(b'IEND', b'')
         (root/'sheet.png').write_bytes(png)
         manifest = {'type':'atlas','id':[11,12],'width':8,'nearest':True,'images':[{'path':'sheet.png','grid':[1,1]}]}
-        output = root/'atlas.nx2atlas'
+        output = root/'圖集.nx2atlas'
         assets.compile_manifest(manifest, root, compiler, output)
         first = output.read_bytes()
         assets.compile_manifest(manifest, root, compiler, output)

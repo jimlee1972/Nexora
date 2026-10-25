@@ -1,0 +1,53 @@
+name: Publish tested Windows 2D SDK
+on:
+  push:
+    tags: ['sdk-2d-windows-x64-v*']
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Find successful candidate and full Build at the tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate=$(gh api "repos/$GH_REPO/actions/workflows/windows-2d-sdk.yml/runs?head_sha=$GITHUB_SHA&status=success&event=push" --jq '.workflow_runs[0].id')
+          full=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$GITHUB_SHA&status=success&event=push" --jq '.workflow_runs[0].id')
+          test -n "$candidate" && test "$candidate" != null
+          test -n "$full" && test "$full" != null
+          gh run download "$candidate" --repo "$GH_REPO" --name Windows-2D-SDK-candidate --dir release
+          gh run download "$candidate" --repo "$GH_REPO" --name SDK-consumer-evidence --dir evidence
+          echo "Candidate run: $candidate; full Build run: $full" > release/validation.txt
+      - name: Verify and publish identical tested bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum --check *.sha256
+          python3 - <<'PY'
+          import json, os, zipfile
+          from pathlib import Path
+          manifest = json.loads(Path('sdk.json').read_text())
+          assert manifest['source_commit'] == os.environ['GITHUB_SHA']
+          assert 'sdk-2d-windows-x64-v'+manifest['version'] == os.environ['GITHUB_REF_NAME']
+          with zipfile.ZipFile(next(Path('.').glob('*.zip'))) as archive:
+              assert json.loads(archive.read('sdk.json')) == manifest
+          PY
+          cat > notes.md <<'EOF'
+          Fixed Windows x64 DX12 Monolithic Shipping development SDK, Gameplay ABI 3.
+          Requires Zig 0.14.0, CMake 3.25+ and Python 3.10+; no MSVC, Windows SDK or engine checkout required by consumers.
+          The archive is promoted unchanged from a successful isolated Windows consumer run and full Build at this commit.
+          Includes Ninja 1.13.2, CRT redistributables and licenses. See Tools/SDK/README.md inside the ZIP.
+          Native/physical game, audio, controller and target-machine acceptance remain NOT_RUN.
+          EOF
+          gh release create "$GITHUB_REF_NAME" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Nexora 2D Windows SDK ${GITHUB_REF_NAME##*v}" --notes-file notes.md *.zip *.sha256 sdk.json validation.txt

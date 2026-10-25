@@ -2,6 +2,8 @@
 """Slice bounded RGBA8 PNGs and compile canonical Nexora 2D assets without third-party packages."""
 import argparse
 import json
+import os
+import shutil
 from pathlib import Path
 import struct
 import subprocess
@@ -176,7 +178,17 @@ def compile_manifest(manifest, root, compiler, output):
     with tempfile.TemporaryDirectory(prefix='nexora-2d-') as temp:
         packet = Path(temp)/'source.bin'
         packet.write_bytes(data)
-        subprocess.run([str(compiler), command, str(packet), str(output)], check=True)
+        # The legacy native compiler accepts narrow argv on Windows. Keep its IO
+        # arguments ASCII-relative; Python preserves Unicode project/output paths.
+        compiled = Path(temp)/'compiled.asset'
+        subprocess.run([str(compiler.resolve()), command, packet.name, compiled.name],
+                       cwd=temp, check=True)
+        # Publish on the output filesystem; compiler/copy/replace failures retain
+        # the previous output and temporary files never become the published asset.
+        with tempfile.TemporaryDirectory(prefix='.nx2-publish-', dir=output.parent) as publication:
+            staged = Path(publication)/'asset'
+            shutil.copyfile(compiled, staged)
+            os.replace(staged, output)
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
