@@ -83,7 +83,7 @@ bool GameWorld::DestroyEntity(runtime::Id entity) {
   return true;
 }
 
-void GameWorld::RemoveBindings(runtime::Id entity) {
+void GameWorld::RemoveBindings(runtime::Id entity) noexcept {
   StopAudio(entity);
   entity_audio_.erase(entity);
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED

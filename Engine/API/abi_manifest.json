@@ -1121,6 +1121,69 @@
       "threading": "Serialized host owner thread only, including Stop/Destroy.",
       "errors": "0 success; -1 invalid argument or stale close token; -2 unsupported; -3 wrong thread, unsafe lifecycle state or native failure. Failed queries preserve outputs.",
       "determinism": "State copies do not consume events. Native motor results and wall-clock expiry depend on host; simulation remains Zig policy."
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_scene_api",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplaySceneApiV1.resolve_scene",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplaySceneApiV1.request_load",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplaySceneApiV1.request_unload",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplaySceneApiV1.get_status",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplaySceneApiV1.get_active_scene",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplaySceneApiV1.get_scene_info",
+      "since": "ABI 3 optional Scene V1",
+      "ownership": "Borrowed owner-thread host table/context through module unload; arguments copied for deferred requests; outputs caller-owned.",
+      "nullability": "Required context/input/output pointers non-null; suffix getter requires struct_size admission.",
+      "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
+      "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
+      "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
     }
   ]
 }

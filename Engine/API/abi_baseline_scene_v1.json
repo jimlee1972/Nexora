@@ -1,0 +1,15 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "services_suffix": ["get_scene_api"],
+  "structures": {
+    "NexoraSceneTransitionV1": ["struct_size", "state", "request", "scene", "result", "reserved"],
+    "NexoraSceneInstanceV1": ["struct_size", "flags", "scene", "asset_high", "asset_low", "camera"],
+    "NexoraGameplaySceneApiV1": ["struct_size", "abi_version", "context", "resolve_scene", "request_load", "request_unload", "get_status", "get_active_scene", "get_scene_info"]
+  },
+  "zig_names": {
+    "NexoraSceneTransitionV1": "scene.Transition",
+    "NexoraSceneInstanceV1": "scene.Instance",
+    "NexoraGameplaySceneApiV1": "scene.Api"
+  }
+}

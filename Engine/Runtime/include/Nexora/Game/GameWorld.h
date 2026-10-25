@@ -38,6 +38,9 @@
 #include <unordered_set>
 #include <vector>
 
+namespace nexora::runtime {
+class GameSceneSession;
+}
 namespace nexora::game {
 
 // Already a stable POD identifier (see AssetPipeline.h); re-exported under
@@ -201,7 +204,8 @@ public:
   [[nodiscard]] const runtime::World &InternalWorld() const noexcept { return world_; }
 
 private:
-  void RemoveBindings(runtime::Id entity);
+  friend class runtime::GameSceneSession;
+  void RemoveBindings(runtime::Id entity) noexcept;
 #if NEXORA_GAMEPLAY_SIMULATION_ENABLED
   struct CharacterBinding final {
     explicit CharacterBinding(runtime::CharacterControllerConfig config) : controller(config) {}

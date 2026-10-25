@@ -48,6 +48,11 @@ names are UTF-8 byte slices with checked u32 lengths. Author all Zig files as UT
 
 ## Shared command-line / Editor build entry
 
+Hosts with a packaged game scene session expose `try context.scenes()`. Its `loadPath`, `load`,
+`unload` and `status` methods queue authored-scene changes for a later frame boundary; callers
+must handle an absent optional service and poll completion. This is independent of the legacy
+logical-scene helpers. See the [session contract](../../Engine/Runtime/GameSceneSession.md).
+
 ```cmake
 include("${NEXORA_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
 nexora_add_game_module(game_module

@@ -1153,4 +1153,9 @@ Native physical Windows acceptance remains separate from the portable contract.
 
 ## Typed Zig script lifecycle
 
+The optional [packaged game scene session](GameSceneSession.md) adds queued Replace/Additive/unload
+through an appended C/Zig service. The host prepares a candidate World/presentation and publishes
+after callbacks; failed preparation retains live scene and binding ownership. Native presentation
+and application integration require their own gates.
+
 The additive [Zig game SDK](../../Tools/Zig/README.md) owns instance allocation and V3 callback wiring. Raw V3 and host lifetime/threading contracts remain unchanged; see the SDK contract for initialization failure cleanup and error mapping.
