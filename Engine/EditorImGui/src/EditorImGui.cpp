@@ -619,6 +619,7 @@ struct EditorImGuiHost::State final {
   bool project_files_refresh{};
   bool project_window_requested{};
   std::vector<std::pair<std::filesystem::path, std::array<float, 2>>> project_file_positions;
+  std::vector<std::pair<std::filesystem::path, std::uint32_t>> project_file_ids;
   bool selector_error_visible{};
   std::string selector_status;
   bool selector_busy = false;
@@ -3996,6 +3997,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
   };
   const auto window = PanelWindowName("nexora.project");
   state.project_file_positions.clear();
+  state.project_file_ids.clear();
   if (!ImGui::Begin(window.c_str())) {
     ImGui::End();
     return;
@@ -4009,13 +4011,16 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     if (!state.project_files_error.empty())
       ImGui::TextWrapped("%s", state.project_files_error.c_str());
     draw_export_status();
-    ImGui::PushID(PathLabel(state.project_files_root).c_str());
+    const auto root_label = PathLabel(state.project_files_root);
+    const auto project_scope =
+        ContentIdentity(ImGui::GetID("editor.project.files"), "root", root_label);
+    ImGui::PushOverrideID(project_scope);
     ImGui::BeginChild("Project files", {0, 0});
     for (std::size_t index = 0; index < state.project_files.size(); ++index) {
       const auto &item = state.project_files[index];
       const auto depth = static_cast<float>(std::distance(item.path.begin(), item.path.end()) - 1);
       ImGui::Indent(depth * 16.0F);
-      ImGui::PushID(PathLabel(item.path).c_str());
+      ImGui::PushOverrideID(ContentIdentity(project_scope, "file", PathLabel(item.path)));
       if (item.path == "Content" || item.path == ".nexora" || item.path == ".nexora/scenes")
         ImGui::SetNextItemOpen(true, ImGuiCond_Once);
       auto flags = ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
@@ -4026,9 +4031,11 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
         flags |= ImGuiTreeNodeFlags_Selected;
       const bool expanded = ImGui::TreeNodeEx("##entry", flags, "%s", "");
       const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
-      if (ImGui::IsItemVisible())
+      if (ImGui::IsItemVisible()) {
         state.project_file_positions.push_back(
             {item.path, {(low.x + high.x) * .5F, (low.y + high.y) * .5F}});
+        state.project_file_ids.push_back({item.path, ImGui::GetItemID()});
+      }
       if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
         state.project_file_selection = item.path;
       if (scene && scene_openable && !item.directory && !item.symbolic_link &&
@@ -9276,6 +9283,14 @@ void EditorImGuiTestAccess::FocusContent(EditorImGuiHost &host) noexcept {
 void EditorImGuiTestAccess::FocusProject(EditorImGuiHost &host) noexcept {
   Activate(host.state_->context);
   ImGui::SetWindowFocus(PanelWindowName("nexora.project").c_str());
+}
+
+std::optional<std::uint32_t>
+EditorImGuiTestAccess::ProjectFileWidgetId(const EditorImGuiHost &host,
+                                           const std::filesystem::path &path) {
+  const auto found = std::ranges::find_if(host.state_->project_file_ids,
+                                          [&](const auto &item) { return item.first == path; });
+  return found == host.state_->project_file_ids.end() ? std::nullopt : std::optional(found->second);
 }
 
 std::optional<std::array<float, 2>>

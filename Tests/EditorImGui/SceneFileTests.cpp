@@ -922,6 +922,8 @@ void RunProjectTree(float dpi) {
   Require(!limited.error.empty() && limited.inspected_entries <= 1 && limited.items.size() <= 1,
           "Project scanner did not bound pending entries before descending");
   const auto target = std::filesystem::path(u8"Content/第二場景.scene");
+  std::ofstream(f.root / "Content/First###same.scene") << "identity-only fixture";
+  std::ofstream(f.root / "Content/Second###same.scene") << "identity-only fixture";
   Require(f.scene.Save(f.root / target), "Project tree scene fixture failed");
   auto snapshot = editor::app::CaptureProjectFiles(f.writer.Root());
   Require(snapshot.error.empty() &&
@@ -938,6 +940,10 @@ void RunProjectTree(float dpi) {
   Require(Access::ProjectFilePosition(f.ui, "Content") &&
               Access::ProjectFilePosition(f.ui, "README.txt"),
           "Project file tree was not rendered");
+  const auto first_id = Access::ProjectFileWidgetId(f.ui, "Content/First###same.scene");
+  const auto second_id = Access::ProjectFileWidgetId(f.ui, "Content/Second###same.scene");
+  Require(first_id && second_id && first_id != second_id,
+          "Legal hash characters in project filenames collided as ImGui ID markers");
   const auto point = Access::ProjectFilePosition(f.ui, target);
   Require(point.has_value(), "Project scene file was not rendered in its folder");
   f.ClickAt(*point);

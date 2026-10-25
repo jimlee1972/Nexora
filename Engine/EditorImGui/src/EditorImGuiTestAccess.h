@@ -192,6 +192,8 @@ public:
   static void FocusProject(EditorImGuiHost &host) noexcept;
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectFilePosition(const EditorImGuiHost &host, const std::filesystem::path &path);
+  [[nodiscard]] static std::optional<std::uint32_t>
+  ProjectFileWidgetId(const EditorImGuiHost &host, const std::filesystem::path &path);
   [[nodiscard]] static std::optional<std::filesystem::path>
   ContentFocusedFolder(const EditorImGuiHost &host);
   static std::optional<runtime::AssetUuid> ContentFocusedAsset(const EditorImGuiHost &host);

@@ -33,6 +33,9 @@ Existing scene-file tests retain failed-save, Save As, overwrite and save-before
 The Project-tree fixture subsequently uses the workspace's canonical root, matching the UI
 contract even when a platform's temporary directory is an alias. The affected executable was
 rebuilt and `editor.scene_file_input` passed again 1/1 (20.50 s); production binaries are unchanged.
+Path identities additionally use the existing raw-byte identity helper. Actual rendered IDs for
+`First###same.scene` and `Second###same.scene` are distinct at 1x/2x; the affected executable passed
+again 1/1 (18.43 s). The native direct-host/relocation/project gates were repeated with this DLL.
 
 The initial no-mode-argument native package probe reproduced exit 2 because the interactive
 default was incorrectly chosen inside option parsing. It is now selected after all options are
@@ -40,11 +43,11 @@ parsed. The final direct-host probe passed 8/8 presented frames, followed by the
 entry with no `--graphical` injection (120/120 frames, exit 0), CLI creation under a Unicode path,
 and project-open smoke (120/120 frames, exit 0, one scene, zero references). Both full native
 smokes reported zero rejected UI textures. The failed candidate remains in the packet's `release/`
-directory; the final deliverable/evidence is under `release-final/`. Native probes use isolated
+directory; the final deliverable/evidence is under `delivery/`. Native probes use isolated
 recent-project state. The reader counts pending and visited entries against one global budget.
 
-The Editor-only ZIP is 4,102,169 bytes, SHA-256
-`1f13eca3f8d86302d4161ad5e83ba8222b558bd6341dd80b026bf48b65eb95d9`. It contains only the
+The Editor-only ZIP is 4,102,849 bytes, SHA-256
+`1fe8598234b3e555e6fe382b430a88e029acb8d949a9dde224c2574725f72b18`. It contains only the
 GUI entry/host, required DLLs and license notices. No Player, Studio, compiler, examples or source.
 Documentation checks passed 16/16; package dependency tests passed 4/4.
 

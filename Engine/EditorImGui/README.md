@@ -9,6 +9,10 @@ workspace or UI borrow, rejects old-project results, and joins the job before sh
 The Project panel renders only a matching-root snapshot and preserves path-keyed selection and
 expansion across refreshes. Entries include non-assets and empty directories; symbolic links are
 listed as leaves and never traversed or opened as scenes. Error/limit states stay visible.
+Root and file identities hash raw path bytes rather than ImGui's label-marker syntax, so legal
+`###` filename suffixes do not merge distinct rows into one control identity.
+Root and file identities hash raw path bytes rather than ImGui's label-marker syntax, so legal
+`###` filename suffixes do not merge distinct rows into one control identity.
 
 Window > Project / Ctrl+Alt+J reveals the panel. A left double-click on another `.scene` emits
 the existing token-scoped Open continuation; single click only selects. Play, recovery, modal,
