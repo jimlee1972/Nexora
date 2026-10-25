@@ -9,8 +9,11 @@ workspace or UI borrow, rejects old-project results, and joins the job before sh
 The Project panel renders only a matching-root snapshot and preserves path-keyed selection and
 expansion across refreshes. Entries include non-assets and empty directories; symbolic links are
 listed as leaves and never traversed or opened as scenes. Error/limit states stay visible.
-Root and file identities hash raw path bytes rather than ImGui's label-marker syntax, so legal
-`###` filename suffixes do not merge distinct rows into one control identity.
+Root rows stay at the child-window content origin; each descendant level adds 16 logical pixels.
+The renderer skips `Indent`/`Unindent` at depth zero because ImGui interprets a zero argument as
+its default spacing. The depth-first rows place parents above descendants, and collapsing a
+folder hides only its contiguous descendants. Actual row geometry and collapse/expand behavior
+are covered at 1x/2x alongside scene double-click/save protection.
 Root and file identities hash raw path bytes rather than ImGui's label-marker syntax, so legal
 `###` filename suffixes do not merge distinct rows into one control identity.
 

@@ -61,9 +61,9 @@ struct Fixture final {
     writer = editor::ProjectWorkspace{};
     std::filesystem::remove_all(root);
   }
-  void Draw() {
+  void Draw(float delta_seconds = 1.0F / 60.0F) {
     ui.SetSceneFileContext(files->Token(), files->CurrentPath(), files->SaveBlocked());
-    ui.BeginFrame();
+    ui.BeginFrame(delta_seconds);
     ui.DrawProductShell(shell, &scene, active, content, nullptr, nullptr, nullptr, &play);
     static_cast<void>(ui.EndFrame());
   }
@@ -918,6 +918,8 @@ void RunUnicodeContent(float dpi) {
 void RunProjectTree(float dpi) {
   Fixture f(dpi);
   std::ofstream(f.root / "README.txt") << "project document";
+  std::filesystem::create_directories(f.root / ".nexora/scenes");
+  std::ofstream(f.root / ".nexora/scenes/TreeFixture.txt") << "nested project file";
   const auto limited = editor::app::CaptureProjectFiles(f.writer.Root(), 1);
   Require(!limited.error.empty() && limited.inspected_entries <= 1 && limited.items.size() <= 1,
           "Project scanner did not bound pending entries before descending");
@@ -940,6 +942,28 @@ void RunProjectTree(float dpi) {
   Require(Access::ProjectFilePosition(f.ui, "Content") &&
               Access::ProjectFilePosition(f.ui, "README.txt"),
           "Project file tree was not rendered");
+  const auto parent = Access::ProjectFilePosition(f.ui, ".nexora");
+  const auto folder = Access::ProjectFilePosition(f.ui, ".nexora/scenes");
+  const auto child = Access::ProjectFilePosition(f.ui, ".nexora/scenes/TreeFixture.txt");
+  Require(parent && folder && child, "Project tree hierarchy fixture rows were not rendered");
+  std::cout << "Project tree geometry dpi=" << dpi << " parent=" << (*parent)[0] << ','
+            << (*parent)[1] << " folder=" << (*folder)[0] << ',' << (*folder)[1]
+            << " child=" << (*child)[0] << ',' << (*child)[1] << '\n';
+  Require((*folder)[0] > (*parent)[0] && (*child)[0] > (*folder)[0] &&
+              (*folder)[1] > (*parent)[1] && (*child)[1] > (*folder)[1],
+          "Project tree must place descendants below and to the right of their parents");
+  f.ClickAt(*folder);
+  f.ClickAt(*folder);
+  Require(!Access::ProjectFilePosition(f.ui, ".nexora/scenes/TreeFixture.txt") &&
+              Access::ProjectFilePosition(f.ui, ".nexora") &&
+              Access::ProjectFilePosition(f.ui, "Content") &&
+              Access::ProjectFilePosition(f.ui, "README.txt") && !f.ui.TakeSceneFileRequest(),
+          "Collapsing a Project folder hid its parent/siblings or opened a scene");
+  f.Draw(0.5F); // Separate two double-click gestures instead of sending a four-click sequence.
+  f.ClickAt(*folder);
+  f.ClickAt(*folder);
+  Require(Access::ProjectFilePosition(f.ui, ".nexora/scenes/TreeFixture.txt").has_value(),
+          "Expanding a Project folder did not restore its descendants");
   const auto first_id = Access::ProjectFileWidgetId(f.ui, "Content/First###same.scene");
   const auto second_id = Access::ProjectFileWidgetId(f.ui, "Content/Second###same.scene");
   Require(first_id && second_id && first_id != second_id,

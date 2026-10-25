@@ -7,6 +7,7 @@
 主程式只保留一個目前 Scene，未儲存時 New／Open 必須先選 Save／Discard／Cancel。
 Additive Core／tab API 保留為 supporting capability，但主程式不再還原其已存場景集合。
 Scene 以檔名與 New／Open 工具列取代文件分頁；File 與 Build 保留既有選單位置。
+✅ Project 樹狀清單的根層不額外縮排；子項目顯示於父項目下方，每層增加一級縮排。[回歸證據](../../Tools/Build/evidence/EditorProjectTreeIndent-2026-10-25.md)。
 下方既有 native additive-tab 證據屬歷史實作，不代表目前主程式操作。
 Windows UI 與 hosted 驗證範圍記錄於
 [操作證據](../../Tools/Build/evidence/EditorProjectSceneWorkflow-2026-10-25.md)。
