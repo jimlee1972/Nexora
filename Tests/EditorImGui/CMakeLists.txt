@@ -222,6 +222,21 @@ target_include_directories(NexoraPlayGameplayModuleTests PRIVATE "${PROJECT_SOUR
 target_link_libraries(NexoraPlayGameplayModuleTests PRIVATE Nexora::EditorImGui)
 nexora_apply_defaults(NexoraPlayGameplayModuleTests)
 add_test(NAME editor.play_gameplay_module COMMAND NexoraPlayGameplayModuleTests)
+if(NEXORA_ENABLE_ASSET_PIPELINE AND TARGET NexoraGameSceneScriptFixture)
+  add_executable(NexoraPackagedPlayServicesTests PackagedPlayServicesTests.cpp)
+  target_include_directories(NexoraPackagedPlayServicesTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
+  target_link_libraries(NexoraPackagedPlayServicesTests PRIVATE Nexora::EditorImGui)
+  nexora_apply_defaults(NexoraPackagedPlayServicesTests)
+  add_dependencies(NexoraPackagedPlayServicesTests NexoraGameSceneScriptFixture)
+  if(WIN32)
+    set(packaged_play_module_directory bin)
+  else()
+    set(packaged_play_module_directory lib)
+  endif()
+  add_test(NAME editor.packaged_play_services COMMAND NexoraPackagedPlayServicesTests
+    "${PROJECT_BINARY_DIR}/Tests/Runtime/game-scene-script/${packaged_play_module_directory}/${CMAKE_SHARED_LIBRARY_PREFIX}GameSceneFixture${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  set_tests_properties(editor.packaged_play_services PROPERTIES TIMEOUT 60)
+endif()
 
 add_executable(NexoraPlayDiagnosticsTests PlayDiagnosticsTests.cpp)
 target_include_directories(NexoraPlayDiagnosticsTests PRIVATE "${PROJECT_SOURCE_DIR}/Apps/Editor")
@@ -956,3 +971,17 @@ target_link_libraries(NexoraFontGlyphTests PRIVATE Nexora::EditorImGui NexoraDea
 nexora_apply_defaults(NexoraFontGlyphTests)
 add_test(NAME editor.font_glyphs COMMAND NexoraFontGlyphTests "${CMAKE_CURRENT_SOURCE_DIR}/Fixtures")
 set_tests_properties(editor.font_glyphs PROPERTIES TIMEOUT 60)
+
+if(NEXORA_ENABLE_ASSET_PIPELINE AND TARGET NexoraGameScenevisualFixture AND
+   NEXORA_XVFB_EXECUTABLE AND NEXORA_XDOTOOL_EXECUTABLE)
+  add_dependencies(NexoraEditor NexoraGameScenevisualFixture)
+  add_test(NAME editor.linux_packaged_play
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/LinuxPackagedPlay.py"
+      --editor "$<TARGET_FILE:NexoraEditor>"
+      --module "${PROJECT_BINARY_DIR}/Tests/Runtime/game-scene-visual/lib/${CMAKE_SHARED_LIBRARY_PREFIX}GameSceneVisualFixture${CMAKE_SHARED_LIBRARY_SUFFIX}"
+      --xvfb "${NEXORA_XVFB_EXECUTABLE}" --xdotool "${NEXORA_XDOTOOL_EXECUTABLE}"
+      --script-source "${PROJECT_SOURCE_DIR}/Tests/Runtime/GameSceneScript/game.zig"
+      --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/editor-packaged-play")
+  set_tests_properties(editor.linux_packaged_play PROPERTIES
+    TIMEOUT 300 RUN_SERIAL TRUE LABELS "editor;vulkan;virtual-display")
+endif()

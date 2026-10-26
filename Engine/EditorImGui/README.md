@@ -11,7 +11,14 @@ publication. `SetProjectBuildSettings` transfers an owning observation, never a 
 Read-only projects expose inspection/Reload but disable writes. Recovery, Play and export block
 mutation. Project changes close the settings window and discard pending requests; while open,
 scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's
-last-scene metadata. Runtime/game build use is a later phase of the scene delivery goal.
+last-scene metadata. Build Game emits a one-shot scene-only/script request with a project-relative
+output and manifest; the application owns source capture, tool execution and guarded publication.
+The UI receives only copied busy/status observations, disables duplicate builds and exposes Cancel.
+Project changes clear output/script drafts and saved-scene decisions. Dirty Play/Build decisions
+are one-shot Save/Use Saved/Cancel intents. Scene file dialog pending state is an owner-thread
+observation used to continue Save As only for the still-matching original project/document.
+Packaged Play cannot apply remapped transforms to authoring. Full integrated acceptance remains
+part of the scene delivery goal.
 
 ## Project file tree and single-scene application
 

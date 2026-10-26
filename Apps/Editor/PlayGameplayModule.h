@@ -4,6 +4,7 @@
 #include "Nexora/Foundation/Types.h"
 #include "Nexora/Game/GameplayHostBridge.h"
 #include "Nexora/Runtime/GameplayModuleHost.h"
+#include "Nexora/Runtime/GameplayServices.h"
 #include "PlayDebugLines.h"
 #include "PlayInputState.h"
 #include "PlaySceneServices.h"
@@ -43,7 +44,8 @@ public:
   bool LoadRelative(runtime::World &world, const std::filesystem::path &root,
                     std::string_view relative, std::string &error,
                     std::shared_ptr<const MeshAssetCatalog> assets = {},
-                    const PlayTwoDBinding &two_d = {}) try {
+                    const PlayTwoDBinding &two_d = {},
+                    NexoraGameplaySceneApiV1 packaged_scene = {}) try {
     Unload();
     if (assets && !assets->Generation()) {
       error = "Play mesh snapshot is unavailable.";
@@ -73,6 +75,11 @@ public:
     }
     world_ = &world;
     mesh_assets_ = std::move(assets);
+    if (!BindPackagedScene(packaged_scene, two_d.scene)) {
+      Unload();
+      error = "Packaged scene service is incomplete or conflicts with custom 2D Play.";
+      return false;
+    }
     if (!BindTwoD(world, two_d, true)) {
       Unload();
       error = "Play 2D services require a frozen asset snapshot and an active Play scene.";
@@ -92,8 +99,8 @@ public:
   }
   // Static loader overload is useful for embedding tests; it has the same owning lifetime.
   bool Load(runtime::World &world, NexoraGameModuleLoadV3Fn loader,
-            std::shared_ptr<const MeshAssetCatalog> assets = {},
-            const PlayTwoDBinding &two_d = {}) try {
+            std::shared_ptr<const MeshAssetCatalog> assets = {}, const PlayTwoDBinding &two_d = {},
+            NexoraGameplaySceneApiV1 packaged_scene = {}) try {
     Unload();
     if (assets && !assets->Generation())
       return false;
@@ -101,6 +108,10 @@ public:
       return false;
     world_ = &world;
     mesh_assets_ = std::move(assets);
+    if (!BindPackagedScene(packaged_scene, two_d.scene)) {
+      Unload();
+      return false;
+    }
     if (!BindTwoD(world, two_d)) {
       Unload();
       return false;
@@ -214,6 +225,7 @@ public:
     SetInputFocus(false);
     input_user_ = 0;
     module_.reset();
+    packaged_services_.scene = {};
 #if defined(NEXORA_HAS_2D)
     if (two_d_) {
       try {
@@ -270,6 +282,17 @@ private:
     std::uint64_t owner;
     std::size_t size, alignment;
   };
+  bool BindPackagedScene(NexoraGameplaySceneApiV1 api, runtime::Id two_d_scene) noexcept {
+    if (!api.struct_size)
+      return true;
+    if (two_d_scene || api.struct_size < sizeof(api) || api.abi_version != 1 ||
+        !api.resolve_scene || !api.request_load || !api.request_unload || !api.get_status ||
+        !api.get_active_scene || !api.get_scene_info)
+      return false;
+    api.struct_size = sizeof(api);
+    packaged_services_.scene = api;
+    return true;
+  }
   bool BindTwoD(runtime::World &world, const PlayTwoDBinding &binding, bool native = false) {
 #if defined(NEXORA_HAS_2D)
     if (!binding.scene && !binding.assets)
@@ -308,6 +331,13 @@ private:
       };
     }
 #endif
+    if (packaged_services_.scene.struct_size) {
+      host.capabilities |= NEXORA_GAMEPLAY_CAPABILITY_SERVICES_API;
+      host.get_services_api = [](void *context, NexoraGameplayServicesApiV1 *output) -> int32_t {
+        auto &self = Self(context);
+        return self.RecordResult(self.packaged_services_.GetApi(output));
+      };
+    }
     host.context = this;
     host.log = [](void *context, std::uint32_t level, const char *message, std::uint32_t length) {
       try {
@@ -505,6 +535,9 @@ private:
     return host;
   }
   runtime::World *world_{};
+  // Borrowed through module Stop/Destroy. The packaged owner supplies the canonical session API;
+  // the existing custom 2D service registry stays separate until an explicit adapter is supported.
+  runtime::GameplayServices packaged_services_;
   std::shared_ptr<const MeshAssetCatalog> mesh_assets_;
   LogSink log_;
   LogRejectionSink rejected_log_;

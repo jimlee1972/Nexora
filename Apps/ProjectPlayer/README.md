@@ -3,7 +3,7 @@
 `--verify-game-package PATH` verifies the separate bounded multi-scene scene-catalog format,
 reporting the configured startup UUID, scene/asset counts and native_rendering=false /
 gameplay_loaded=false. It needs no authored `.scene` or source tree. This is CPU data verification;
-native execution is a separate mode below; zero-argument built-game launch remains build integration work.
+native execution is a separate mode below; built games use executable-relative Game.launch metadata.
 See [the catalog contract](../../Engine/Runtime/GameProjectPackage.md).
 
 ## Native packaged game candidate
@@ -22,7 +22,9 @@ spans are borrowed only for DrawScene; the surface owns copied, fence-protected 
 resources through retirement/drain. Geometry residency is requested only when supported and its
 copied counters are reported independently from CPU asset ownership. Resource preparation or
 camera admission failure before native submission leaves the previous scene active and rendering;
-the module can inspect Failed and retry. Actual backend/device failure terminates with a diagnostic,
+the module can inspect Failed and retry. Native Unsupported/InvalidDescriptor admission rejection
+also attempts the retained view in the same frame; it continues only if that draw succeeds. Actual
+backend/device failure terminates with a diagnostic,
 retaining the old World until teardown rather than claiming recovery from a lost device.
 
 The primary scene owns the lowest-ID authored camera/light. Additive scenes retain that primary.

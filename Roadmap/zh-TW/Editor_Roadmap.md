@@ -5,8 +5,8 @@
 已授權啟動場景設定、打包場景清單及 Runtime 套件場景切換，範圍與驗收記於
 [場景交付計畫](Project_Scene_Delivery_Plan.md)。✅ 階段 1 設定／UI 已於 PR #716 通過限定 gates；
 ✅ 階段 2 cooker／package 已於 PR #717 通過全部 38 項 exact-head checks；✅ 階段 3 Runtime
-session／C／Zig service 已於 PR #718 通過全部 38 項 exact-head checks；共用 build／Editor Play
-及整合交付仍待完成。
+session／C／Zig service 已於 PR #718 通過全部 38 項 exact-head checks；✅ 共用 producer／原生啟動器限定範圍已於 PR #720 通過全部 41 項檢查；
+指定場景 Editor Play／GUI Build 及整合交付仍待完成。
 主 Editor 維持一個編輯中 Scene，上次開啟場景不是遊戲啟動設定。
 既有 StaticView 與完整 ED-M1／M3／M6 驗收分開計算。
 

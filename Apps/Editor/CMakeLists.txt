@@ -1,4 +1,18 @@
 add_executable(NexoraEditor main.cpp)
+function(nexora_generate_editor_game_tools)
+  set(nexora_editor_game_runtime_profile "")
+  if(TARGET NexoraProjectPlayer AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
+    # Resolve after all app targets exist; POSIX keeps executables in per-target directories.
+    set(nexora_editor_game_runtime_profile "$<TARGET_FILE_DIR:NexoraProjectPlayer>/GameRuntime.profile")
+  endif()
+  file(GENERATE OUTPUT "$<TARGET_PROPERTY:NexoraEditor,BINARY_DIR>/generated/$<CONFIG>/EditorGameTools.h" CONTENT
+    "#pragma once\n#include <string_view>\nnamespace nexora::editor::preview {\ninline constexpr std::string_view kConfiguredGameCmake = R\"nxtools(${CMAKE_COMMAND})nxtools\";\ninline constexpr std::string_view kConfiguredGameNinja = R\"nxtools(${CMAKE_MAKE_PROGRAM})nxtools\";\ninline constexpr std::string_view kConfiguredGameZig = R\"nxtools(${NEXORA_ZIG_EXECUTABLE})nxtools\";\ninline constexpr std::string_view kConfiguredGameRuntimeProfile = R\"nxtools(${nexora_editor_game_runtime_profile})nxtools\";\n}\n")
+endfunction()
+# Gameplay/Zig discovers its compiler after the Editor target on a clean configure.
+# Read that canonical tool path only once all root subdirectories have completed.
+cmake_language(DEFER DIRECTORY "${PROJECT_SOURCE_DIR}" CALL nexora_generate_editor_game_tools)
+
+target_include_directories(NexoraEditor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/$<CONFIG>")
 if(MINGW)
   target_link_options(NexoraEditor PRIVATE -municode)
 endif()

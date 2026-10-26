@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from PackageWindowsEditor import dependency_closure, relocated_environment
+from PackageWindowsEditor import dependency_closure, relocated_environment, stage_game_build_runtime
 
 
 class Dependencies(unittest.TestCase):
@@ -46,6 +46,34 @@ class Dependencies(unittest.TestCase):
             self.assertIn(openssl / 'bin/libcrypto-3-x64.dll', files)
             with self.assertRaises(RuntimeError):
                 dependency_closure(editor, root, lambda p: graph[p.name])
+
+    def test_private_game_host_and_tools_relocate_without_development_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, package, redist = root / 'source', root / 'package', root / 'redist'
+            for directory in (source, package, redist, source / 'cmake/bin',
+                              source / 'cmake/share/cmake-test/Modules', source / 'cmake/doc/test',
+                              source / 'zig/lib/std'):
+                directory.mkdir(parents=True, exist_ok=True)
+            for relative in ('Player.exe', 'NexoraCore.dll', 'cmake/bin/cmake.exe',
+                             'cmake/share/cmake-test/Modules/resource.cmake',
+                             'cmake/doc/test/Copyright.txt', 'ninja.exe', 'ninja-license.txt',
+                             'zig/zig.exe', 'zig/LICENSE', 'zig/lib/std/resource.zig'):
+                (source / relative).write_text('fixture')
+            (source / 'EngineSource.cpp').write_text('must not be packaged')
+            (source / 'GameRuntime.profile').write_text('NEXORA_GAME_RUNTIME_1\nplayer=Player.exe\nruntime=' +
+                str(source / 'NexoraCore.dll') + '\n')
+            result = stage_game_build_runtime(package, source / 'GameRuntime.profile', redist,
+                source / 'cmake', source / 'ninja.exe', source / 'zig',
+                source / 'ninja-license.txt', lambda _: [])
+            profile = (package / 'Runtime/GameRuntime.profile').read_text()
+            self.assertEqual(profile, 'NEXORA_GAME_RUNTIME_1\nplayer=Player.exe\nruntime=NexoraCore.dll\n')
+            self.assertEqual(result['runtime_files'], 2)
+            self.assertTrue((package / 'Runtime/Player.exe').is_file())
+            self.assertTrue((package / 'Tools/zig/lib/std/resource.zig').is_file())
+            self.assertTrue((package / 'licenses/game-build-tools/Zig-MIT.txt').is_file())
+            self.assertFalse((package / 'EngineSource.cpp').exists())
+            self.assertFalse((package / 'Player.exe').exists())
 
     def test_unclassified_or_missing_dependency_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:

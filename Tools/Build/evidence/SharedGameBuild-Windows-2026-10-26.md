@@ -101,3 +101,22 @@ uncommitted Editor Play integration work; its external-World API and supporting 
 enter the profile-fix commit. The updated exact-head platform gates remain the merge authority.
 The final absolute-development plus flat-installed/CRLF compatibility regression gate also passed
 14/14, zero failures/skips, 114.78 s at `phase4-gate-20261026-054632`.
+
+
+## Accepted shared slice / PR #720
+
+Head 5a4f431c passed all 41 exact-head checks and squash merged as be8477d8. Full hosted Linux
+Development registered 466 tests, zero failures and the existing font skip (1744.77 s); Windows
+405 (1103.38 s) and macOS 384 (989.98 s), zero failures with their existing font skip. Shipping,
+sanitizer/TSan, feature-off and native/platform gates passed. Final check receipt and selected full
+job logs: build/scene-settings/phase4-ci720-final.json and phase4-ci720-fixed-*.log.
+
+The full Linux Development job 121302033262 explicitly ran runtime.linux_native_game_player:
+actual Vulkan red-centroid left/right/left, 78/91/78 samples at X 405.33/624/405.33, passed 8.13 s.
+Camera rejection/retry reports 100 frames/two commits/one rejection and retained one scene/instance/
+three entities. Stress reports 300 frames/121 commits/one geometry upload/299 hits and the same
+bounded state. Empty startup reports four frames/one commit/zero entities/draws. All exit/drain.
+This is software Vulkan under Xvfb, not Windows pixel or independent clean-host acceptance.
+The separate Editor display job omitted Zig; new Editor integration enforces both SDK native pixel
+registrations there. Main configured Editor Play/GUI Build and final ZIP remain separate phase-4/5
+acceptance; this merged slice alone does not increase the accepted 3/5 phase count.

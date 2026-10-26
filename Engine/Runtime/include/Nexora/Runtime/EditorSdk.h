@@ -367,6 +367,10 @@ public:
 
   explicit PlaySession(World &editor_world) noexcept : editor_world_(editor_world) {}
   bool Start(double fixed_delta_seconds, FixedUpdate fixed_update);
+  // Borrow an already isolated host-owned Play World (e.g. a GameSceneSession's GameWorld).
+  // It outlives this active session and all module callbacks. Stop releases the borrow without
+  // destroying that World. Packaged/remapped IDs have no authoring apply-back correspondence.
+  bool StartExternal(World &play_world, double fixed_delta_seconds, FixedUpdate fixed_update);
   bool Pause() noexcept;
   // Report one failed embedding callback: pause, release input, and increment crashes. False
   // without an active clone. Fixed tick failures use this same path.
@@ -380,7 +384,7 @@ public:
   bool PollDebugger(DebuggerAdapter &debugger);
   // Paused/manual-step sessions cannot capture input. Resume requires explicit reacquisition.
   void SetInputFocus(bool focused) noexcept {
-    input_focused_ = focused && play_world_.has_value() && state_ == PlayState::Playing;
+    input_focused_ = focused && PlayWorld() && state_ == PlayState::Playing;
   }
   [[nodiscard]] bool AcceptsInput() const noexcept {
     return input_focused_ && state_ == PlayState::Playing;
@@ -390,13 +394,20 @@ public:
   [[nodiscard]] PlayState State() const noexcept { return state_; }
   [[nodiscard]] PauseReason LastPauseReason() const noexcept { return pause_reason_; }
   [[nodiscard]] ApplyBackStatus LastApplyBackStatus() const noexcept { return apply_status_; }
-  [[nodiscard]] World *PlayWorld() noexcept { return play_world_ ? &*play_world_ : nullptr; }
+  [[nodiscard]] World *PlayWorld() noexcept {
+    return external_play_world_ ? external_play_world_ : (play_world_ ? &*play_world_ : nullptr);
+  }
+  [[nodiscard]] const World *PlayWorld() const noexcept {
+    return external_play_world_ ? external_play_world_ : (play_world_ ? &*play_world_ : nullptr);
+  }
+  [[nodiscard]] bool CanApplyTransforms() const noexcept { return play_world_.has_value(); }
   [[nodiscard]] const PlaySessionStats &Stats() const noexcept { return stats_; }
 
 private:
   bool ExecuteFixedTick(bool manual);
   World &editor_world_;
   std::optional<World> play_world_;
+  World *external_play_world_{};
   FixedUpdate fixed_update_;
   double fixed_delta_seconds_{};
   PlayState state_{PlayState::Stopped};

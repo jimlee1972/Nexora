@@ -900,6 +900,25 @@ bool PlaySession::Start(double fixed_delta_seconds, FixedUpdate fixed_update) {
   return true;
 }
 
+bool PlaySession::StartExternal(World &world, double seconds, FixedUpdate update) {
+  if (state_ != PlayState::Stopped || world.Kind() != WorldKind::Play || &world == &editor_world_ ||
+      !std::isfinite(seconds) || seconds <= 0 || !update)
+    return false;
+  external_play_world_ = &world;
+  fixed_update_ = std::move(update);
+  fixed_delta_seconds_ = seconds;
+  state_ = PlayState::Playing;
+  input_focused_ = false;
+  stats_ = {};
+  source_transforms_.clear();
+  source_parents_.clear();
+  pause_reason_ = PauseReason::None;
+  apply_status_ = ApplyBackStatus::Discarded;
+  if (++generation_ == 0)
+    ++generation_;
+  return true;
+}
+
 bool PlaySession::Pause() noexcept {
   if (state_ != PlayState::Playing)
     return false;
@@ -910,7 +929,7 @@ bool PlaySession::Pause() noexcept {
 }
 
 bool PlaySession::ReportRuntimeFailure() noexcept {
-  if (!play_world_ || state_ == PlayState::Stopped)
+  if (!PlayWorld() || state_ == PlayState::Stopped)
     return false;
   state_ = PlayState::Paused;
   input_focused_ = false;
@@ -928,13 +947,13 @@ bool PlaySession::Resume() noexcept {
 }
 
 bool PlaySession::ExecuteFixedTick(bool manual) {
-  if (!play_world_ || !fixed_update_)
+  if (!PlayWorld() || !fixed_update_)
     return false;
-  if (!fixed_update_(*play_world_, fixed_delta_seconds_)) {
+  if (!fixed_update_(*PlayWorld(), fixed_delta_seconds_)) {
     static_cast<void>(ReportRuntimeFailure());
     return false;
   }
-  play_world_->EndFrame();
+  PlayWorld()->EndFrame();
   ++stats_.fixed_ticks;
   stats_.manual_steps += static_cast<std::uint64_t>(manual);
   if (manual)
@@ -947,12 +966,15 @@ bool PlaySession::Tick() { return state_ == PlayState::Playing && ExecuteFixedTi
 bool PlaySession::Step() { return state_ == PlayState::Paused && ExecuteFixedTick(true); }
 
 bool PlaySession::Stop(ApplyBackPolicy policy) {
-  if (state_ == PlayState::Stopped || !play_world_)
+  if (state_ == PlayState::Stopped || !PlayWorld())
     return false;
   bool applied = true;
   apply_status_ =
       policy == ApplyBackPolicy::Discard ? ApplyBackStatus::Discarded : ApplyBackStatus::Applied;
-  if (policy == ApplyBackPolicy::Transforms) {
+  if (policy == ApplyBackPolicy::Transforms && external_play_world_) {
+    applied = false;
+    apply_status_ = ApplyBackStatus::Failed;
+  } else if (policy == ApplyBackPolicy::Transforms) {
     WorldCommandBuffer commands;
     const auto diffs = PreviewTransformApplyBack();
     if (std::ranges::any_of(diffs, &TransformApplyDiff::conflict)) {
@@ -970,6 +992,7 @@ bool PlaySession::Stop(ApplyBackPolicy policy) {
     }
   }
   play_world_.reset();
+  external_play_world_ = nullptr;
   fixed_update_ = {};
   fixed_delta_seconds_ = 0.0;
   state_ = PlayState::Stopped;
@@ -982,9 +1005,9 @@ bool PlaySession::Stop(ApplyBackPolicy policy) {
 
 std::vector<TransformApplyDiff> PlaySession::PreviewTransformApplyBack() const {
   std::vector<TransformApplyDiff> diffs;
-  if (!play_world_)
+  if (!PlayWorld())
     return diffs;
-  for (const auto &scene : play_world_->scenes_)
+  for (const auto &scene : PlayWorld()->scenes_)
     for (const auto &entity : scene.entities) {
       const auto original = source_transforms_.find(entity.id);
       if (original == source_transforms_.end())
@@ -1009,13 +1032,13 @@ std::vector<TransformApplyDiff> PlaySession::PreviewTransformApplyBack() const {
 
 RuntimeInspectionSnapshot PlaySession::Inspect() const {
   RuntimeInspectionSnapshot snapshot{stats_.fixed_ticks, {}};
-  if (!play_world_)
+  if (!PlayWorld())
     return snapshot;
-  for (const auto &scene : play_world_->scenes_)
+  for (const auto &scene : PlayWorld()->scenes_)
     for (const auto &entity : scene.entities)
       snapshot.entities.push_back(
           {entity.id, scene.id, entity.transform, entity.camera, entity.light, entity.mesh_renderer,
-           play_world_->WorldTransform(entity.id).value_or(entity.transform), entity.parent,
+           PlayWorld()->WorldTransform(entity.id).value_or(entity.transform), entity.parent,
            scene.state, entity.camera ? std::optional{entity.camera_data} : std::nullopt,
            entity.light ? std::optional{entity.light_data} : std::nullopt,
            entity.mesh_renderer ? std::optional{entity.mesh_data} : std::nullopt});

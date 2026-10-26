@@ -98,7 +98,8 @@ Studio, source or Zig toolchain. Separately compiled gameplay modules and their 
 outside this Editor startup package.
 
 `PackageWindowsEditor.py` requires Windows, MSVC `dumpbin`, an explicitly selected x64 CRT redist
-folder, the matching OpenSSL installation (including its license), and the fetched Dear ImGui license. It copies the recursive import closure, rejects missing
+folder and the fetched Dear ImGui license. OpenSSL-linked builds also require the matching explicit
+OpenSSL installation and its license. It copies the recursive import closure, rejects missing
 or unclassified dependencies, and refuses an existing output directory. Before producing a ZIP,
 it relocates the package to a Unicode path, restricts PATH to Windows system directories, checks
 CLI help/create/reopen/duplicate rejection and runs 120-frame open plus eight-frame creation DX12
@@ -116,3 +117,18 @@ Windows camera persistence retains native filesystem paths when creating its tem
 so opening and closing an Editor project under a Unicode directory does not narrow its camera
 metadata path through the active ANSI code page. The relocated graphical package check exercises
 this shutdown path as well as initial rendering.
+
+
+The packaging command optionally accepts `--game-runtime-profile`, `--cmake-root`, `--ninja`,
+`--zig-root` and `--ninja-license` together to include game-building support. This stages the
+native game host and flat dependency profile privately under Runtime, and executable-relative
+CMake/Ninja/Zig under Tools. Compiler standard libraries and CMake modules are required tool data;
+no Nexora or game source checkout, examples, or extra 2D applications are copied. Each distribution's
+licenses remain included. Without these options the existing Editor-only workflow is unchanged.
+The graphical and CLI build paths resolve the same installed profile/tools; a CLI build may omit
+all runtime/tool options to use that installation. This is a packaging candidate until actual
+relocated Editor/script-game verification and the new exact-head CI pass.
+
+A packaged `build-info.json` marker makes game-build dependency lookup installation-only: a missing
+private Runtime/profile or tool cannot silently use a build-PC path. Unmarked development Editors
+may use CMake's actual configured Player profile path, including POSIX per-target output layouts.

@@ -757,7 +757,7 @@ Hierarchy, Scene/Game views, Inspector, Content Browser, gizmos, and Profiler. G
 acceptance is tracked separately in the Editor roadmap; the Runtime tests validate portable
 `SceneEditor`, `PrefabInstance`, and Play contracts.
 
-`PlaySession` is the portable PIE ownership contract. It owns an isolated `WorldKind::Play` clone;
+`PlaySession` is the portable PIE ownership contract. `Start` owns an isolated `WorldKind::Play` clone;
 `Tick` runs only while playing, `Step` runs exactly one fixed update while paused, and input focus
 starts released until explicitly granted by editor policy while Playing. Pause releases focus;
 paused/manual-step sessions reject focus acquisition, and Resume leaves focus released until the
@@ -805,6 +805,14 @@ registration. The Editor now polls owning Core producer records into this ingres
 loss once; full Runtime/build routing and native debugger integration remain separate ED-M3 work. The dedicated `runtime.console_record_admission` gate covers byte/Unicode/severity admission,
 producer reserve compaction, rejected-history preservation, capacity clamping, concurrent owning
 snapshots, exact drops, and production-transaction counter exhaustion.
+
+`StartExternal` instead borrows an already isolated host-owned Play World, allowing the same
+tick/pause/step/focus/inspection policy over a packaged-scene GameWorld without a second clone.
+The host serializes calls and retains that World and its services through module Stop/Destroy,
+then calls PlaySession Stop before destroying the external owner. Stop releases the borrow;
+it never destroys or rolls back the borrowed World. External scene/entity IDs have no authoring
+correspondence: `CanApplyTransforms` is false, review is empty and explicit transform apply-back
+stops with Failed without modifying authoring. Existing owned-clone apply-back is unchanged.
 
 `PlaySession::Inspect` similarly returns an owning, stable-ID-sorted entity/component snapshot with
 both local and world poses rather than pointers into relocatable World storage. It includes copied
