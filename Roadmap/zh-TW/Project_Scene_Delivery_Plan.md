@@ -1,6 +1,6 @@
 # 專案啟動場景、多場景建置與執行時切換計畫
 
-狀態：已授權實作目標；**5 個實作階段目前通過 3 個**。
+狀態：限定實作與交付已驗收；**✅ 5 個實作階段全部通過**。
 更新：2026-10-26。相關里程碑：ED-M1、ED-M3、ED-M6；本計畫不代表任何完整里程碑通過。
 持久任務與相依以 Beads 為準，下列階段表不是另一套任務系統。
 
@@ -29,60 +29,26 @@ Shipping、sanitizer／TSan、feature-off 及 native／平台 gates 均通過。
 [session 契約](../../Engine/Runtime/GameSceneSession.md)與
 [限定證據](../../Tools/Build/evidence/GameSceneSession-Windows-2026-10-26.md)。
 
-階段 4 原生 Player 候選已在 Windows 桌面呈現指定的非 Main 啟動場景及實際 SDK 場景要求。
-硬體 DX12 通過 120 次切換，場景／實體與共用幾何計數穩定，並通過候選相機拒絕後保留／重試，
-以及空場景／預設相機啟動。此結果尚未驗收原生像素：Computer Use 應用程式授權逾時，新增的
-當時 Linux 像素觀察尚待執行。後續 PR #720 已驗收共用建置／原生範圍與 Linux 獨立遊戲
-像素測試；Editor Play 與最終 ZIP 仍待完成。
-詳見[原生候選證據](../../Tools/Build/evidence/NativeGamePlayer-Windows-2026-10-26.md)。
+✅ 本次限定交付的階段 4／5 已驗收。PR #721 的 `f327bd86` 通過全部 41 項 exact-head
+checks，並 squash 合併為 `e0036e73`。Hosted Linux Development 登錄 469 項、Windows 407 項、
+macOS 386 項，均零失敗並保留既有字型 skip。Shipping、feature-off、sanitizer／TSan 及平台
+gates 通過。Linux 實際 Editor 像素、圖形 script Build、獨立原生遊戲像素，以及 Windows
+開發機執行、隱藏來源後無參數遊戲與真正 ZIP 解壓驗證均通過。
 
-階段 4 共用 producer／Editor CLI 候選已凍結精確已儲存來源，展開內嵌的正式 SDK 建置資料，
-透過既有 CMake／Zig adapter 編譯及測試 gameplay module，並驗證 staged 原生 Player 的
-資料／ABI。發布會重查來源／owner／inventory，失敗時保留舊輸出。本機 Windows producer／
-CLI 測試通過；最終來源、完整 CI、圖形 build coordinator、Editor Play 與 Editor ZIP gates
-仍未完成。詳見[build 契約](../../Engine/Editor/GameBuild.md)及
-[限定建置證據](../../Tools/Build/evidence/SharedGameBuild-Windows-2026-10-26.md)。
+Editor Play 使用已儲存的啟用場景與共用 Scene V1 session，遊戲 World 與作者文件分離；
+髒場景提供 Save／Use Saved／Cancel，重映射 ID 不回寫作者資料。圖形 Build 與 CLI 共用
+受保護 producer 及隨附 runtime／工具。首次 configure 編譯器擷取與 POSIX 各 target profile
+位置回歸已修正並覆蓋；原始失敗保留於歷史 host／build 證據。
 
-下一段 Editor Play 串接新增明確借用 host 擁有的隔離 Play World；套件／重映射 ID 無法把
-Transform 回寫至 authoring。在指定啟動場景、共用 Scene service 及原生 Game view 一起通過
-前，仍是串接候選，不增加通過階段數。
+最終 Windows Editor-only ZIP 為 `NexoraEditor-Windows-x64-f327bd86260a.zip`（102,785,740 bytes），
+SHA-256 `a5e97b52f0fd80801ff0310dcd5ba6cca6aa3e499a07b1208902fcbee5bc3cc7`。
+18,501 個 inventory hash 全部吻合；實際中文路徑解壓後，無參數啟動、正常有限幀關閉及
+1,200 幀／三次啟用的 Play 均通過，已儲存來源不變。包含私有 Runtime／Tools 必要資源與
+授權，不含 Nexora／遊戲原始碼 checkout、範例或額外 2D 應用程式。解壓後須保留整個目錄。
 
-下一段 Editor 串接候選已讓主 Play 命令使用已儲存的設定場景及共用 Scene V1 host，提供
-髒場景 Save／Use Saved／Cancel 與限定原專案／文件的 Save As 接續。圖形 Build 由 worker
-持有請求，回到 owner thread 後才受保護發布。Windows 限定 host／UI 測試通過 10/10；實際
-Editor 執行呈現 1,200 frames，提交 Level01／Title／Level01，已儲存來源維持不變。
-這是原生執行／計數證據，尚非 Windows 像素擷取驗收。新增 Linux Xvfb 像素案例尚未執行；
-最新來源完整 CI、GUI producer 整合及最終可攜 ZIP 仍待完成。詳見
-[Editor host 證據](../../Tools/Build/evidence/EditorPackagedPlayHost-Windows-2026-10-26.md)。
-
-✅ PR #720 的共用 producer／原生啟動器範圍已通過全部 41 項 exact-head checks，並合併為
-`be8477d8`。Hosted Linux Development 登錄 466 項（零失敗、保留既有字型 skip），Windows
-405 項、macOS 384 項；Shipping、sanitizer／TSan、feature-off 及平台 gates 通過。
-此結果只驗收共用範圍，尚未完成整個階段 4；新的指定場景 Editor Play／GUI Build／像素
-串接與最終可攜 Editor ZIP 仍須通過最新來源的 gates。
-
-PR #720 的完整 Linux Development 日誌也確認獨立遊戲的 SDK 原生像素測試：
-`runtime.linux_native_game_player` 於 8.13 秒通過，紅色像素中心為左／右／左（78／91／78
-樣本），另通過相機失敗保留、120 次切換穩定計數與空場景啟動。獨立 display job 未安裝
-Zig，新的 Editor 候選會在該 job 明確要求兩個 SDK 像素案例。原生候選受到 Unsupported／
-InvalidDescriptor admission 拒絕時會重畫保留場景；device／surface loss 仍交由 host recovery。
-這些下一個來源版本的變更仍須通過自己的完整 CI 才能驗收。
-
-PR721 串接候選的新預設 CLI 回歸揭露 POSIX 各 target 的 profile 位置差異。修正會讓未標記
-開發版使用 CMake 實際 Player 目錄，正式安裝標記則禁止退回開發機相依。分離目錄／缺件
-安裝的 worker 測試及多 configuration／未建置 Player 的產生驗證已在本機通過；修正版
-完整 CI 與來源相符的新 Editor ZIP 仍待完成，先前 ZIP 僅為候選。
-
-1f0f2ad6 已通過 macOS Development（386 項）及 Linux 指定 Play 左／右／左像素觀察，
-但 display job 121334225141 在隨後的實際圖形 script Build 失敗。原 UI 證據串流沒有
-worker 結果文字；目前補上明確啟用的結果診斷，並將限定 CI gate 提前執行。這仍是尚未
-解決的串接失敗，不代表階段或最終 ZIP 通過。原 artifact 12620680567 保留成功像素與
-失敗專案；Windows 解壓／搬移成功不能免除此項失敗。
-
-78d6207f 的限定診斷確認 Zig 參數為空，隨附 SDK 因 PROJECT／OUTPUT／ZIG 准入失敗。
-首次 configure 已重現 Editor 在 Gameplay/Zig discovery 前擷取空編譯器路徑。延後至
-root configure 結束才產生設定的修正，通過六組本機設定案例（三種 configuration、有／無
-Player）；另補上使用預設工具的 script CLI 回歸。仍須通過修正版完整 gates 才能驗收。
+這只驗收原生 mesh／scalar-PBR 場景交付契約，不涵蓋所有自訂 2D／physics／plugin 格式或
+任何完整 Editor 里程碑；完整圖形里程碑仍為 0/8。不宣稱 Windows 像素擷取及獨立乾淨主機
+驗收。[最終驗收紀錄](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md)保存命令、數量、原始失敗、artifact／exit／hash 證據與界線。
 
 ## 1. 使用者操作
 
@@ -93,8 +59,9 @@ Player）；另補上使用預設工具的 script CLI 回歸。仍須通過修�
 - 主 Editor 維持一次編輯一個 Scene；替換前保留 Save／Discard／Cancel。
 - 專案目錄就是 root，不新增 root 輸入、Scene 分頁或 Preview Project 步驟。
 - Editor 與命令列共用引擎提供的設定、cooker 與建置入口。
-- 最終 Editor ZIP 只含可執行檔、必要 host／DLL 與授權，不含 source、TwoDPlayer、
-  TwoDStudio 或 TwoDAssetCompiler。建置出的遊戲 runtime 是另一份產物。
+- 最終 Editor ZIP 包含可執行檔、必要私有 Runtime／Tools 資源與授權，不含 Nexora／遊戲
+  原始碼 checkout、TwoDPlayer、TwoDStudio 或 TwoDAssetCompiler；編譯器標準函式庫是必要
+  工具資料。建置出的遊戲 runtime 是另一份產物。
 
 ## 2. 已查證基線
 
@@ -212,8 +179,8 @@ request／status helper。不更改 V3 `load_scene` 語意或既有 ABI offset�
 | 1 | Settings/core 與圖形 Build Settings | 獨立啟動／打包清單、migration 與受保護持久化 | ✅ 限定設定／UI 契約已驗收；PR #716 |
 | 2 | 多場景 cooker／package | 可重現 catalog 與相依聯集，既有 StaticView 不變 | ✅ 限定 cooker／package 契約已驗收；PR #717 |
 | 3 | Runtime session 與 C／Zig Scene service | 原子 Replace／Additive／unload、識別與生命週期驗證 | ✅ 限定 session／API 契約通過；PR #718 |
-| 4 | 共用 build、Editor Play 與原生 Player | 各入口使用同樣的作者場景、啟動設定及切換 | 待完成 |
-| 5 | 整合驗證與 Editor 交付 | 證據、CI、已合併原始碼及可執行 Windows Editor-only ZIP | 待完成 |
+| 4 | 共用 build、Editor Play 與原生 Player | 各入口使用同樣的作者場景、啟動設定及切換 | ✅ 已驗收；PR #721 |
+| 5 | 整合驗證與 Editor 交付 | 證據、CI、已合併原始碼及可執行 Windows Editor-only ZIP | ✅ 已驗收；最終驗收紀錄 |
 
 在同一個功能分支依相依順序實作，將階段證據記在相關契約／roadmap 與 Beads。
 規劃 PR 可以先建立契約，不代表任何實作階段通過。保留其他人的 claim，以及歷史 additive-editor／

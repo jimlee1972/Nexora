@@ -126,8 +126,10 @@ CMake/Ninja/Zig under Tools. Compiler standard libraries and CMake modules are r
 no Nexora or game source checkout, examples, or extra 2D applications are copied. Each distribution's
 licenses remain included. Without these options the existing Editor-only workflow is unchanged.
 The graphical and CLI build paths resolve the same installed profile/tools; a CLI build may omit
-all runtime/tool options to use that installation. This is a packaging candidate until actual
-relocated Editor/script-game verification and the new exact-head CI pass.
+all runtime/tool options to use that installation. ✅ Actual relocated Editor/script-game
+verification, ZIP extraction and all 41 source-head CI checks pass in PR #721. See the
+[acceptance record](../Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md);
+this does not claim independent clean-host or complete Editor milestone acceptance.
 
 A packaged `build-info.json` marker makes game-build dependency lookup installation-only: a missing
 private Runtime/profile or tool cannot silently use a build-PC path. Unmarked development Editors

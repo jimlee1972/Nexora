@@ -1,5 +1,9 @@
 # Shared installed-game producer — Windows 2026-10-26
 
+✅ Final scoped acceptance: PR #721 passed all 41 exact-head checks and merged as e0036e73.
+The entries below retain original candidate results/failures and their historical limits;
+current status and final artifact are in the [integrated acceptance record](ProjectSceneDelivery-Acceptance-2026-10-26.md).
+
 Candidate phase-4 scope: exact saved-source capture, common engine-owned producer/publication,
 actual SDK/CMake/Zig compilation and source-free installed-game inventory. Contracts:
 [build](../../../Engine/Editor/GameBuild.md), [Runtime catalog](../../../Engine/Runtime/GameProjectPackage.md),

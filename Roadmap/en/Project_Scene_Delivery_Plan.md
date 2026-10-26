@@ -1,6 +1,6 @@
 # Project startup scene, multi-scene build and runtime transitions
 
-Status: authorized implementation goal; **3/5 implementation phases accepted**.
+Status: scoped implementation and delivery accepted; **✅ 5/5 implementation phases accepted**.
 Updated: 2026-10-26. Related milestones: ED-M1, ED-M3 and ED-M6; none is accepted by this plan.
 The durable work/dependency record is Beads, not the phase table below.
 
@@ -30,66 +30,30 @@ was squash merged as `b45d880e`. Linux Development registered 461 tests, Windows
 and native/platform gates passed. See the [session contract](../../Engine/Runtime/GameSceneSession.md) and
 [scoped evidence](../../Tools/Build/evidence/GameSceneSession-Windows-2026-10-26.md).
 
-Phase 4 native Player candidate now presents the configured non-Main startup and actual SDK
-requests on the Windows desktop. Hardware DX12 passed 120 transitions with stable scene/entity
-and shared-geometry counters, recoverable candidate-camera rejection/retry and empty/default-camera
-startup. This does not accept native pixels: Computer Use app access timed out, and the new Linux
-pixel observation was pending at that candidate point. PR #720 subsequently accepts the shared
-build/native slice and Linux standalone pixel test; Editor Play and final ZIP remain open.
-See the [native candidate evidence](../../Tools/Build/evidence/NativeGamePlayer-Windows-2026-10-26.md).
+✅ Phases 4 and 5 are accepted for this scoped delivery. PR #721 source `f327bd86`
+passed all 41 exact-head checks and squash merged as `e0036e73`. Full hosted Linux Development
+registered 469 tests, Windows 407 and macOS 386, with zero failures and the existing font skip.
+Shipping, feature-off, sanitizers/TSan and platform gates passed. Linux actual Editor pixels,
+graphical script Build and standalone native pixels passed; Windows developer-PC execution,
+source-hidden zero-argument games and actual ZIP extraction also passed.
 
-The phase-4 shared producer/Editor CLI candidate now freezes exact saved sources, materializes
-embedded canonical SDK glue, builds/tests the gameplay module through the existing CMake/Zig
-adapter and verifies the staged native Player data/ABI. Publication rechecks source/owner/inventory
-and preserves previous output on failure. Local Windows producer/CLI tests pass; final-source,
-complete CI, graphical build coordination, Editor Play and Editor ZIP gates remain open. See the
-[build contract](../../Engine/Editor/GameBuild.md) and [scoped build evidence](../../Tools/Build/evidence/SharedGameBuild-Windows-2026-10-26.md).
+Editor Play uses the saved enabled scenes and common Scene V1 session in an isolated game World.
+Dirty authoring offers Save/Use Saved/Cancel; remapped IDs cannot apply back to authoring.
+Graphical Build and CLI share the guarded producer and installed runtime/tools. First-configure
+compiler discovery and POSIX split-target profile regressions are fixed and covered; original
+failed attempts remain in the historical host/build evidence.
 
-The next Editor Play slice introduces an explicit borrow of a host-owned isolated Play World;
-packaged/remapped IDs cannot apply transforms back to authoring. It remains an integration
-candidate until configured startup, the shared scene service and native Game view pass together.
+The final Windows Editor-only ZIP is `NexoraEditor-Windows-x64-f327bd86260a.zip` (102,785,740 bytes),
+SHA-256 `a5e97b52f0fd80801ff0310dcd5ba6cca6aa3e499a07b1208902fcbee5bc3cc7`.
+All 18,501 inventory hashes match. Actual Unicode extraction passes zero-argument startup,
+normal bounded close and 1,200-frame/three-commit Play with saved sources unchanged. Private
+Runtime/Tools resources and licenses are included; no Nexora/game source checkout, examples or
+extra 2D applications are included. Keep the whole extracted directory together.
 
-The next Editor integration candidate now routes the main Play command through saved configured
-scenes and the common Scene V1 host, with dirty Save/Use Saved/Cancel and scoped Save As
-continuation. A worker owns the graphical Build request and returns to guarded owner-thread
-publication. Windows selected host/UI tests pass (10/10); actual Editor runs present 1,200 frames
-and commit Level01/Title/Level01 with saved sources unchanged. These are native execution/counter
-observations, not captured Windows pixels. The new Linux Xvfb pixel case is not yet run; complete
-updated-source CI, GUI producer integration and final portable ZIP remain pending. See the
-[Editor host evidence](../../Tools/Build/evidence/EditorPackagedPlayHost-Windows-2026-10-26.md).
-
-✅ PR #720's common producer/native-launcher slice is now merged as `be8477d8` after all 41 exact-head
-checks passed. Hosted Linux Development registered 466 tests (zero failures, existing font skip),
-Windows 405 and macOS 384; Shipping, sanitizer/TSan, feature-off and platform gates passed. This
-accepts the shared slice, not all phase 4: the new configured Editor Play/GUI Build/pixel integration
-and final portable Editor ZIP still require their updated-source gates.
-
-The full Linux Development log for PR #720 also records the standalone native SDK pixel test:
-`runtime.linux_native_game_player` passed in 8.13 s, actual red centroids left/right/left
-(78/91/78 samples), plus camera-failure retention, 120 replacements with stable counters and empty
-startup. The separate display job omitted Zig; the new Editor candidate explicitly requires both
-SDK pixel cases there. Native draw admission rejection now retries the retained draw for Unsupported/
-InvalidDescriptor; device/surface loss still goes through host recovery. These next-head changes
-remain candidates until their own complete CI succeeds.
-
-The PR721 integration candidate exposed the POSIX per-target profile location in its new default
-CLI regression. The fix uses CMake's actual Player target directory for unmarked development
-builds and forbids developer fallback in marked installations. Split-directory/incomplete-install
-worker tests and per-configuration/no-Player generation pass locally; final revised CI and a
-new source-matched Editor ZIP remain open. Prior ZIPs are candidates only.
-
-Head 1f0f2ad6 passes macOS Development (386 tests) and the Linux configured Play left/right/left
-pixels, but display job 121334225141 fails the subsequent actual graphical script Build. Its
-worker result was absent from the original UI-only evidence stream; opt-in result diagnostics
-and an earlier focused CI gate are being added. This is an open integration failure, not an
-accepted phase or final ZIP. Original artifact 12620680567 retains the successful pixel receipt
-and failed project. Windows extraction/relocation successes do not waive that failure.
-
-The focused diagnostic run at 78d6207f confirms an empty Zig argument: the installed SDK rejects
-PROJECT/OUTPUT/ZIG admission. Fresh configuration reproduced the Editor's early empty compiler
-capture before Gameplay/Zig discovery. Deferred root-completion generation fixes six local
-configuration cases (three configurations with/without Player); a default-tool script CLI
-regression is added. Full updated-source gates remain required before accepting this correction.
+This accepts the native mesh/scalar-PBR scene delivery contract, not all custom 2D/physics/plugin
+formats or any complete Editor milestone. Full graphical milestones remain 0/8. Windows captured
+pixels and independent clean-host acceptance are not claimed. See the [final acceptance record](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md)
+for commands, counts, original failures, artifact/exit/hash evidence and exact boundaries.
 
 ## 1. Product behavior
 
@@ -100,8 +64,9 @@ regression is added. Full updated-source gates remain required before accepting 
 - The main Editor continues to display one editable Scene, with Save/Discard/Cancel before replacement.
 - The project directory supplies its root. No root input, scene tabs or Preview Project step is added.
 - Editor and command-line builds use the same engine-owned settings, cooker and build entrypoint.
-- The final Editor ZIP contains the executable, its required host/DLLs and licenses; it does not
-  include source, TwoDPlayer, TwoDStudio or TwoDAssetCompiler. A built game's runtime is a separate output.
+- The final Editor ZIP contains the executable, required private Runtime/Tools resources and licenses;
+  it does not include a Nexora/game source checkout, TwoDPlayer, TwoDStudio or TwoDAssetCompiler.
+  Compiler standard libraries are required tool data. A built game's runtime is a separate output.
 
 ## 2. Verified baseline
 
@@ -233,8 +198,8 @@ do not claim this work accepts every 2D/physics/plugin format or the full Editor
 | 1 | Settings/core and graphical Build Settings | Independent startup/build list, migration and guarded persistence | ✅ Scoped settings/UI contract accepted; PR #716 |
 | 2 | Multi-scene cooker/package | Deterministic catalog and union closure; legacy StaticView unchanged | ✅ Scoped cooker/package contract accepted; PR #717 |
 | 3 | Runtime session and C/Zig scene service | Transactional Replace/Additive/unload, identity and lifetime checks | ✅ Scoped session/API contract accepted; PR #718 |
-| 4 | Shared build, Editor Play and native Player | Same authored scenes, startup and transitions through all entrypoints | Pending |
-| 5 | Integrated validation and Editor delivery | Evidence, CI, merged source and runnable Windows Editor-only ZIP | Pending |
+| 4 | Shared build, Editor Play and native Player | Same authored scenes, startup and transitions through all entrypoints | ✅ Accepted; PR #721 |
+| 5 | Integrated validation and Editor delivery | Evidence, CI, merged source and runnable Windows Editor-only ZIP | ✅ Accepted; final acceptance record |
 
 Implement in this dependency order on one feature branch; record phase evidence in the relevant
 contracts/roadmaps and Beads. A planning PR can establish the contract without accepting a phase.

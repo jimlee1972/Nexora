@@ -65,6 +65,8 @@ rollback reports and retains the backup path. The two renames are recoverable un
 serialized writers, **not** a power-loss-atomic replacement of a nonempty Windows directory or
 isolation from hostile concurrent filesystem actors. Cancellation linearizes at the last guard.
 
-The Editor executable's `--build-game=...` command uses this same producer/publisher. Graphical
-build coordination, Editor Play, Linux/macOS relocation and final Editor ZIP remain dependent
-acceptance work; the candidate API and Windows CPU tests do not close phase 4/5.
+The Editor executable's `--build-game=...` command and graphical Build worker use this same
+producer/publisher. ✅ Configured Play, native Linux pixels/GUI script Build, full Linux/Windows/
+macOS gates and the relocated Windows Editor/game delivery are accepted in PR #721. See the
+[acceptance record](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md).
+This does not accept every platform's independent installation or complete Editor milestones.
