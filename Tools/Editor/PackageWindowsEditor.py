@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -17,6 +18,26 @@ OS_IMPORTS = set("kernel32 kernelbase ntdll user32 gdi32 imm32 advapi32 shell32 
                  "oleaut32 comdlg32 comctl32 ucrtbase msvcrt ws2_32 winmm winhttp bcrypt "
                  "crypt32 secur32 setupapi cfgmgr32 version dbghelp d3d12 d3d11 dxgi "
                  "d3dcompiler_47 xinput1_4 dinput8".split())
+
+
+def require_gui_subsystem(binary):
+    """Reject the console PE subsystem that creates an extra window on Explorer launch."""
+    with binary.open('rb') as stream:
+        dos = stream.read(64)
+        if len(dos) != 64 or dos[:2] != b'MZ':
+            raise RuntimeError('Invalid Windows Editor DOS header')
+        offset = struct.unpack_from('<I', dos, 60)[0]
+        if not 64 <= offset <= 1024 * 1024:
+            raise RuntimeError('Invalid Windows Editor PE header offset')
+        stream.seek(offset)
+        header = stream.read(24)
+        if len(header) != 24 or header[:4] != b'PE\0\0' or struct.unpack_from('<H', header, 20)[0] < 70:
+            raise RuntimeError('Invalid Windows Editor PE header')
+        optional = stream.read(70)
+        if len(optional) != 70 or struct.unpack_from('<H', optional)[0] not in (0x10b, 0x20b):
+            raise RuntimeError('Invalid Windows Editor optional header')
+        if struct.unpack_from('<H', optional, 68)[0] != 2:
+            raise RuntimeError('Editor must use the Windows GUI subsystem; console builds create an extra window')
 
 
 def imports(binary):
@@ -135,6 +156,7 @@ def relocated_environment(source):
 
 def verify(package, evidence):
     """Run outside the build tree with a restricted DLL search PATH; preserve all logs."""
+    require_gui_subsystem(package / 'NexoraEditor.exe')
     evidence.mkdir(parents=True, exist_ok=False)
     with tempfile.TemporaryDirectory(prefix='Nexora relocated 陰陽 ') as temporary:
         root = Path(temporary)
@@ -144,6 +166,7 @@ def verify(package, evidence):
         cwd.mkdir()
         executable = relocated / 'NexoraEditor.exe'
         environment = relocated_environment(os.environ)
+        environment['NEXORA_EDITOR_STARTUP_EVIDENCE'] = '1'
         recent = '--recent-projects=' + str(root / 'recent-projects')
 
         def run(label, arguments, expected=0, frames=None, use_recents=True, timeout=90):
@@ -156,6 +179,8 @@ def verify(package, evidence):
                 raise RuntimeError(f'{label} timed out; see {evidence}') from error
             output = (result.stdout + b'\n' + result.stderr).decode('utf-8', errors='replace')
             (evidence / (label + '.log')).write_text(output, encoding='utf-8')
+            if 'editor GUI startup: console_attached=0' not in output:
+                raise RuntimeError(f'{label} did not verify a console-free GUI entrypoint; see {evidence}')
             if result.returncode != expected or (frames and smoke_result(result.returncode, output, frames) != 'pass'):
                 raise RuntimeError(f'{label} failed: exit {result.returncode}; see {evidence}; '
                                    f'output tail: {output[-4096:]}')
@@ -227,6 +252,8 @@ def verify(package, evidence):
             write_json(evidence / 'game-build.json', {'status': 'PASS', 'runtime': report,
                        'hashes': hashes, 'scope': 'Installed tools, script build and bounded native run; no physical pixel claim'})
     write_json(evidence / 'result.json', {'status': 'PASS', 'platform': 'Windows native process',
+                                        'editor_subsystem': 'Windows GUI (2)',
+                                        'console_attached': False,
                                         'physical_host_acceptance': 'NOT_RUN'})
 
 
@@ -249,6 +276,7 @@ def main():
     game_tools = (args.game_runtime_profile, args.cmake_root, args.ninja, args.zig_root, args.ninja_license)
     if any(game_tools) and not all(game_tools):
         parser.error('Game builds require the runtime profile and all explicit tool/resource/license paths')
+    require_gui_subsystem(args.editor.resolve())
     if args.output.exists():
         parser.error('Output must be new; existing packages are never overwritten')
     args.output.mkdir(parents=True)

@@ -14,6 +14,7 @@
 #include "StarterSceneStorage.h"
 #if defined(_WIN32)
 #include "WindowsProjectPicker.h"
+#include <shellapi.h>
 #endif
 #if defined(NEXORA_HAS_2D)
 #include "GameTwoDTextures.h"
@@ -4321,6 +4322,19 @@ int wmain(int argc, wchar_t **argv) try {
   std::cerr << "Editor command encoding failed: " << error.what() << '\n';
   return 2;
 }
+#if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+  if (std::getenv("NEXORA_EDITOR_STARTUP_EVIDENCE"))
+    std::cerr << "editor GUI startup: console_attached=" << (GetConsoleWindow() != nullptr) << '\n';
+  int argc{};
+  auto **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (!argv)
+    return 2;
+  const int result = wmain(argc, argv);
+  LocalFree(argv);
+  return result;
+}
+#endif
 #else
 int main(int argc, char **argv) { return Run(argc, argv); }
 #endif

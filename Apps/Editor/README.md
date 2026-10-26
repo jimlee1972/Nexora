@@ -1,5 +1,10 @@
 # Nexora Editor
 
+Windows graphical builds use the GUI subsystem and Unicode wWinMain entrypoint, so opening the
+Editor from Explorer creates no command console. CLI arguments and redirected stdout/stderr still
+use the common command path. Console-only builds retain wmain. The opt-in
+NEXORA_EDITOR_STARTUP_EVIDENCE stream reports only whether this process has an attached console.
+
 Build > Project Build Settings edits `project.build.json` beside `project.nexora`. Add saved scenes
 using Add Current Scene or a project-relative Scene path, choose Set Startup, enable/exclude entries
 and Save Build Settings. Reload Saved Settings discards the draft and rereads disk. Existing Content

@@ -13,6 +13,11 @@ session／C／Zig service 已於 PR #718 通過全部 38 項 exact-head checks�
 
 ### 主 Editor 目前操作方式（2026-10-25）
 
+✅ Windows GUI subsystem／Unicode 入口回歸已通過本機驗證：無主控台的 GUI 父程序使用一般
+程序旗標啟動 Editor，子程序回報沒有附加主控台，呈現八幀並正常退出。CLI 重新導向／SDK
+建置與六項打包准入測試均通過。[限定證據](../../Tools/Build/evidence/EditorWindowsGuiEntry-2026-10-26.md)
+追蹤完整 CI 與替換 ZIP gates；完整圖形里程碑尚未驗收。
+
 ✅ 圖形版執行檔不需模式參數即開啟 Project Browser。Project 現以可展開的檔案樹列出整個專案，
 由有界背景讀取器提供資料；滑鼠左鍵雙擊 scene 會走既有 token 檢查的 Open continuation。
 主程式只保留一個目前 Scene，未儲存時 New／Open 必須先選 Save／Discard／Cancel。
