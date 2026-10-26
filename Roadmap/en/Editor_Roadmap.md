@@ -10,6 +10,10 @@ the row name above the three fields. Existing Enter/Escape, mixed selection, pre
 Euler turns and Undo/Redo behavior remain in place. [Scoped validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md)
 records the full Linux traversal and passing affected-case rerun; this change does not close a graphical milestone or accessibility
 semantic-bridge/target-host acceptance.
+The repaired native fixture subset passes all eight unique X11/Vulkan cases with Slang enabled,
+including reflected arrays, prefab workflows, diagnostic consent and scene-file close/reopen.
+This is software-display evidence, not physical-host acceptance; the expanded 399-case traversal and corrected native-input rerun now cover 399 unique passing
+cases with no skips or unresolved failures.
 
 ### Project scene delivery goal (2026-10-25)
 

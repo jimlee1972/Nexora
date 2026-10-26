@@ -130,6 +130,17 @@ def main():
                         'Scene path field did not receive its committed destination', deadline)
             driver.chord('Return', deadline)
 
+        def close_action(name):
+            value = driver.wait(lambda v: name in v,
+                                'Actual close-modal action unavailable: ' + name)
+            x, y = map(round, map(float, value[name].split(',')))
+            deadline = time.monotonic() + 8
+            driver.pointer_move(x, y, deadline)
+            # A successful Discard closes on button release. Send the complete native
+            # click; process exit/file state below acknowledges the terminal action.
+            driver.pointer_button(1, True, deadline)
+            driver.raw('mouseup', '1', deadline=deadline)
+
         def start(read_only=False):
             nonlocal process, driver, launch_number
             process = launch(args.editor, root, state / "recent", env, read_only=read_only, binary=True)
@@ -219,8 +230,7 @@ def main():
         if renamed.read_bytes() != copied:
             raise RuntimeError("Dirty relocation unexpectedly saved document changes")
         request_window_close(window, env)
-        time.sleep(0.4)
-        send("mousemove", "--window", window, "655", "378", "click", "1")
+        close_action("close_discard")
         _, error = driver.finish(15)
         if process.returncode != 0 or renamed.read_bytes() != copied:
             raise RuntimeError(f"Discard after dirty relocation changed its committed source: {error}")
@@ -269,9 +279,9 @@ def main():
         # Native close on Untitled must retain the Save and Exit intent through a rejected path.
         send("key", "--clearmodifiers", "ctrl+n")
         request_window_close(window, env)
-        time.sleep(0.4)
-        # Fresh 1280x720 window: click the real first close-modal button (Save and Exit).
-        send("mousemove", "--window", window, "545", "378", "click", "1")
+        close_action("close_save")
+        driver.wait(lambda v: v['file_path_ready'] == '1' and v['file_path_active'] == '1',
+                    'Save and Exit did not focus its actual path modal')
         send("key", "--clearmodifiers", "ctrl+a")
         send("type", "--clearmodifiers", "--delay", "2", "../Rejected.scene")
         send("key", "--clearmodifiers", "Return")

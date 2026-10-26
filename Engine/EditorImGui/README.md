@@ -20,6 +20,17 @@ API change. Private Transform bounds report visible enabled fields by value; pri
 centers exclude hidden/clipped controls, including scrollbar space, while retaining visible
 disabled-control observations for permission checks. See [the scoped Linux validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md).
 
+### Private native icon-control observations
+
+Private test access copies close-modal Save/Discard/Cancel centers only when the current item
+is visible, enabled, outside hidden sizing frames and its center lies within the current window
+clip rectangle. Each frame clears old close points. Diagnostic, Scene Select All, reflected
+property/array and prefab review/rebase observations reuse their existing widget geometry and
+admission paths. Test streams serialize these owning numeric points and copied input/state;
+they retain no ImGui/model pointer and neither execute actions nor grant authoring/filesystem
+authority. Native fixtures still send real X11 input and check independent pixels, values, files
+and access rejection. See the [application observer contract](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
+
 ## Project Build Settings
 
 Build > Project Build Settings edits a separate owning draft of the game's startup scene and

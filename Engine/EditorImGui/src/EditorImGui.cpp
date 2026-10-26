@@ -313,6 +313,7 @@ struct EditorImGuiHost::State final {
   std::string play_memory_text;
   std::uint64_t gameplay_project_generation{};
   bool close_prompt_requested = false;
+  std::array<std::optional<std::array<float, 2>>, 3> close_positions{};
   bool recovery_prompt_opened = false;
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
@@ -5280,6 +5281,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_frame_token.reset();
   state_->native_scene_frame_all_request.reset();
   state_->native_scene_frame_all_apply.reset();
+  state_->close_positions = {};
   state_->inspector_transform_field_rects = {};
   state_->inspector_reset_positions = {};
   state_->inspector_clipboard_positions = {};
@@ -7684,17 +7686,28 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                              : state_->scene_tabs.empty()
                                  ? "Save scene changes before closing?"
                                  : "Save all owned scene changes before closing?");
+      const auto capture_close = [&](std::size_t control) {
+        const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+        const ImVec2 center{(low.x + high.x) * 0.5F, (low.y + high.y) * 0.5F};
+        const auto *window = ImGui::GetCurrentWindow();
+        if (ImGui::IsItemVisible() && !window->Hidden && window->ClipRect.Contains(center) &&
+            !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled))
+          state_->close_positions[control] = std::array{center.x, center.y};
+      };
       if (detail::IconButton("Save and Exit", detail::EditorIcon::Save))
         state_->close_choice = CloseChoice::SaveAndExit;
+      capture_close(0);
       ImGui::SameLine();
       if (detail::IconButton("Discard and Exit", detail::EditorIcon::Delete))
         state_->close_choice = CloseChoice::DiscardAndExit;
+      capture_close(1);
       ImGui::SameLine();
       if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
           ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
         state_->close_choice = CloseChoice::Cancel;
         ImGui::CloseCurrentPopup();
       }
+      capture_close(2);
       if (!state_->scene_save_success && !state_->scene_save_message.empty())
         ImGui::TextWrapped("%s", state_->scene_save_message.c_str());
     }
@@ -9645,6 +9658,17 @@ EditorImGuiTestAccess::ReflectedChoicePosition(const EditorImGuiHost &host, std:
     if (name == key)
       return point;
   return {};
+}
+
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::CloseControlPosition(const EditorImGuiHost &host,
+                                            std::size_t control) noexcept {
+  return control < host.state_->close_positions.size() ? host.state_->close_positions[control]
+                                                       : std::nullopt;
+}
+
+std::size_t EditorImGuiTestAccess::PrefabReviewRowCount(const EditorImGuiHost &host) noexcept {
+  return host.state_->prefab_review ? host.state_->prefab_review->rows.size() : 0;
 }
 
 std::optional<std::array<float, 2>>

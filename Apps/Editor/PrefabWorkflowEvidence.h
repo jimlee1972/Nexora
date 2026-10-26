@@ -21,6 +21,14 @@ inline std::string PrefabWorkflowEvidence(const imgui::EditorImGuiHost &ui,
     if (const auto point = Access::PrefabControlPosition(ui, index))
       out << " c" << index << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi << ','
           << input.enabled[index];
+  for (std::size_t row = 0; row < Access::PrefabReviewRowCount(ui); ++row) {
+    if (const auto point = Access::PrefabPropertyPosition(ui, row))
+      out << " p" << row << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
+    for (std::size_t option = 0; option < 3; ++option)
+      if (const auto point = Access::PrefabRebaseChoicePosition(ui, row, option))
+        out << " choice" << row << '_' << option << '=' << (*point)[0] * dpi << ','
+            << (*point)[1] * dpi;
+  }
   if (document) {
     out << " dirty=" << document->Dirty();
     for (const auto &node : document->Nodes()) {

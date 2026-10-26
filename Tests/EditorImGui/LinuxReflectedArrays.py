@@ -9,8 +9,9 @@ import struct
 import subprocess
 import tempfile
 import time
-from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
-from LinuxReflectedInspector import rendered_pixels
+from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
+from LinuxReflectedInspector import rendered_pixels, native_point, wait_native_pixels
+from NativeSceneInput import NativeSceneInput
 
 
 def require(value, message):
@@ -40,7 +41,8 @@ def main():
         parser.add_argument('--' + name, required=True)
     args = parser.parse_args()
     scratch = Path(tempfile.mkdtemp(prefix='nexora-native-arrays-'))
-    process = xvfb = None
+    process = xvfb = driver = None
+    launch_number = 0
     try:
         root = scratch / 'project'
         # Use the production workspace/scene fixture, then seed version-2 opaque authoring data.
@@ -63,12 +65,16 @@ def main():
         require(display is not None, 'Xvfb failed')
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / 'state'),
-                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'))
+                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'),
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1')
 
         def send(*arguments):
             subprocess.run([args.xdotool, *arguments], env=env, check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+            if driver is None:
+                time.sleep(.2)
+            else:
+                driver.drain(.2)
 
         def key(chord):
             parts = chord.split('+')
@@ -136,36 +142,36 @@ def main():
                                ' actual=' + payload(scene).hex())
 
         def open_host(read_only=False):
-            nonlocal process
-            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
+            nonlocal process, driver, launch_number
+            launch_number += 1
+            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only, binary=True)
+            driver = NativeSceneInput(process, args.xdotool, env, '', scratch, launch_number)
             window = wait_for_window(args.xdotool, env)
             geometry = subprocess.run([args.xdotool, 'getwindowgeometry', '--shell', window],
                                       env=env, check=True, capture_output=True, text=True).stdout
             require('WIDTH=1280\n' in geometry and 'HEIGHT=720\n' in geometry,
                     'Native array fixture requires initial 1280x720 layout')
             send('windowfocus', '--sync', window)
-            y = 199 if read_only else 182
-            wait_pixels(window, (518, y - 4, 10, 10), blue, 'Scene select-all control')
-            send('mousemove', '--window', window, '523', str(y))
+            x, y = wait_native_pixels(driver, display, window, 'scene_select_all')
+            send('mousemove', '--window', window, str(x), str(y))
             send('mousedown', '1')
             send('mouseup', '1')
-            # Add/Clear have stable positions above the clipped variable-length property child.
-            wait_pixels(window, (1016, 101, 12, 12),
-                        lambda p: len(set(p)) > 1, 'selected array Add control')
+            # Observe the actual Add artwork above the variable-length property child.
+            wait_native_pixels(driver, display, window, 'array_add', icon=not read_only)
             return window
 
         def close_host(window):
-            nonlocal process
+            nonlocal process, driver
             request_window_close(window, env)
-            _, diagnostics = collect_output(process, 15)
+            _, diagnostics = driver.finish(15)
             require(process.returncode == 0 and 'scene_selected=1' in diagnostics,
                     'Native array close lost source selection or failed')
             require(not re.search(r'Validation Error\b|(?:VUID-|SYNC-HAZARD-)[A-Za-z0-9_-]+',
                                   diagnostics), 'Native array Vulkan validation error')
-            process = None
+            process = driver = None
 
         window = open_host()
-        click(window, 1023, 107)  # Add a typed zero to the current tail.
+        click(window, *native_point(driver, 'array_add'))  # Add a typed zero to the current tail.
         save([1., 2., 0.])
         added = scene.read_bytes()
         key('ctrl+z')
@@ -174,21 +180,21 @@ def main():
         key('ctrl+y')
         save([1., 2., 0.])
         require(scene.read_bytes() == added, 'Native Add Redo changed unrelated bytes')
-        click(window, 1100, 160)  # Remove first common element.
+        click(window, *native_point(driver, 'array_remove_0'))  # Remove first common element.
         save([2., 0.])
         key('ctrl+z')
         save([1., 2., 0.])
         key('ctrl+z')
         save([1., 2.])
-        click(window, 1181, 160)  # Down on row zero.
+        click(window, *native_point(driver, 'array_down_0'))  # Down on row zero.
         save([2., 1.])
-        click(window, 1144, 206)  # Up on row one.
+        click(window, *native_point(driver, 'array_up_1'))  # Up on row one.
         save([1., 2.])
-        click(window, 1042, 160)  # Insert default before row zero.
+        click(window, *native_point(driver, 'array_insert_0'))  # Insert default before row zero.
         save([0., 1., 2.])
-        click(window, 1100, 160)
+        click(window, *native_point(driver, 'array_remove_0'))
         save([1., 2.])
-        click(window, 1066, 107)  # Clear all elements.
+        click(window, *native_point(driver, 'array_clear'))  # Clear all elements.
         save([])
         key('ctrl+z')
         save([1., 2.])
@@ -199,17 +205,21 @@ def main():
         # Actual typed element edit, then restart in a fresh native process.
         # This ImGui InputText version keeps a fixed frame color. Observe its caret rather
         # than treating a hover/background change as evidence of text-input focus.
-        send('mousemove', '--window', window, '1230', '137')
+        x, y = native_point(driver, 'array_value_0')
+        # The reflected InputText is 180 logical pixels wide. Its right side can lie
+        # beneath the child's scrollbar, so click the visible first third of the field.
+        value_left = x - 90
+        send('mousemove', '--window', window, str(value_left + 60), str(y))
         send('mousedown', '1')
         try:
-            wait_pixels(window, (1179, 129, 4, 17), caret, 'numeric input caret focus')
+            wait_pixels(window, (value_left + 8, y - 8, 4, 17), caret, 'numeric input caret focus')
         finally:
             send('mouseup', '1')
         key('ctrl+a')
         send('type', '--clearmodifiers', '--delay', '20', '--', '3.5')
         # The last digit lies beyond the old single digit/caret. Observe actual draft text
         # before Return; no edit is repeated if input/focus delivery fails on a slow frame.
-        wait_pixels(window, (1188, 130, 7, 14),
+        wait_pixels(window, (value_left + 17, y - 7, 7, 14),
                     lambda p: sum(min(pixel) >= 200 for pixel in p) >= 8,
                     'typed numeric draft')
         key('Return')
@@ -217,14 +227,14 @@ def main():
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
-        click(window, 1023, 107, enabled=False)
+        click(window, *native_point(driver, 'array_add'), enabled=False)
         key('ctrl+s')
         close_host(window)
         require(before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Read-only native array reopen changed source/metadata')
         require(payload(scene) == wire([3.5, 2.]), 'Native array reopen lost persisted values')
         window = open_host()
-        click(window, 1066, 107)
+        click(window, *native_point(driver, 'array_clear'))
         save([])
         key('ctrl+z')
         save([3.5, 2.])

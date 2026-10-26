@@ -9,6 +9,10 @@ Inspector local Transform 使用 Position／Rotation／Scale 三行，搭配紅 
 圈數及 Undo／Redo 行為保留。[本次驗證紀錄](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md)
 記錄完整 Linux traversal 與已通過的受影響案例重跑；本次調整不代表圖形 milestone 或無障礙 semantic bridge／target-host
 驗收完成。
+修正後的原生 fixture 子集在 Slang 啟用時通過全部八個不同的 X11／Vulkan 案例，涵蓋
+reflected array、Prefab 流程、diagnostic consent 與 scene-file 關閉／重開。這是軟體顯示證據，
+不是實體主機驗收；擴充的 399 案例 traversal 與原生輸入修正重跑已涵蓋 399 個不重複通過案例，
+無 skip 或未解決失敗。
 
 ### 專案場景交付目標（2026-10-25）
 

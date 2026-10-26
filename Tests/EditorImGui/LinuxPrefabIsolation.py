@@ -126,11 +126,9 @@ def main():
                     wait_ui(lambda value: value['keys'][index] == '0',
                             f'GUI did not observe {name} up', deadline)
 
-        def click(window, x, y):
+        def click(window, x, y, history=None):
             deadline = time.monotonic() + 8
-            # History controls move while a confirmation row is present. Resolve their actual
-            # drawn location and require admission before sending exactly one gesture.
-            history = 8 if (x, y) == (88, 200) else 9 if (x, y) == (140, 200) else None
+            # Input is real X11; copied control geometry only chooses its current target.
             before = None
             if history is not None:
                 value = wait_ui(lambda value: value.get(f'c{history}', '').endswith(',1'),
@@ -151,8 +149,20 @@ def main():
                 require(after == (before[0] + 1, before[1] + 1),
                         f'One history gesture was not applied exactly once: {before} -> {after}')
 
-        def text(window, x, y, value):
+        def control(window, index, enabled=True):
+            value = wait_ui(lambda v: f'c{index}' in v and
+                            v[f'c{index}'].endswith(',1' if enabled else ',0'),
+                            f'Actual prefab control {index} unavailable/admission changed')
+            x, y, _ = map(float, value[f'c{index}'].split(','))
+            click(window, x, y, history=index if index in (8, 9) and enabled else None)
+
+        def observed_click(window, name):
+            value = wait_ui(lambda v: name in v, f'Actual prefab item {name} unavailable')
+            x, y = map(float, value[name].split(','))
             click(window, x, y)
+
+        def text_control(window, index, value, enabled=True):
+            control(window, index, enabled)
             key('ctrl+a')
             send('type', '--clearmodifiers', '--delay', '5', '--', value)
 
@@ -212,43 +222,43 @@ def main():
             process = None
 
         window = open_host()
-        text(window, 180, 113, base_id)
-        click(window, 130, 137)
+        text_control(window, 0, base_id)
+        control(window, 1)
         wait_log(r'prefab action=0 applied=1 .*dirty=1')
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=1 dirty=0')
         first = asset(base)
         require(first[1] == 1 and first[3] == original, 'Initial actual prefab capture changed source')
-        click(window, 140, 227)
-        text(window, 180, 427, 'Isolated source')
+        control(window, 10)
+        text_control(window, 11, 'Isolated source')
         key('Return')
-        text(window, 180, 451, '3.5')
+        text_control(window, 12, '3.5')
         key('Return')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=2 dirty=0', start)
         edited = asset(base)
         require(edited[1] == 2 and edited[2] == first[2] and opaque in edited[3] and
                 b'node ' + node + b' 0 Isolated source\n' in edited[3] and
                 re.search(rb'^' + node + rb' 0 3\.5 ', edited[3], re.M),
                 'Actual prefab fields/save changed stable IDs or unknown data')
-        click(window, 88, 200)
+        control(window, 8)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=3 dirty=0', start)
         undone = asset(base)
         require(re.search(rb'^' + node + rb' 0 0 ', undone[3], re.M) and
                 b'node ' + node + b' 0 Isolated source\n' in undone[3],
                 'Actual field Undo was lost by publication')
-        click(window, 140, 200)
+        control(window, 9)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=4 dirty=0', start)
         restored = asset(base)
         require(restored[3] == edited[3] and restored[2] == first[2], 'Actual field Redo failed')
-        text(window, 180, 131, variant_id)
+        text_control(window, 0, variant_id)
         start = len(captured)
-        click(window, 310, 154)
+        control(window, 3)
         wait_log(r'prefab action=2 applied=1 .*revision=0 dirty=1', start)
         request_window_close(window, env)
         time.sleep(.4)
@@ -256,7 +266,7 @@ def main():
         require(process.poll() is None and not variant.exists() and asset(base)[0] == restored[0],
                 'Actual dirty-prefab window close discarded work or published without consent')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=1 dirty=0', start)
         child_asset = asset(variant)
         (scratch / 'variant-before-revert.nxprefab').write_bytes(child_asset[0])
@@ -267,27 +277,27 @@ def main():
         require(source.read_bytes() == original and asset(base)[0] == restored[0],
                 'Prefab workflow changed its original scene or base')
         before_review = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
-        click(window, 140, 227)
-        text(window, 180, 427, 'Variant override')
+        control(window, 10)
+        text_control(window, 11, 'Variant override')
         key('Return')
-        text(window, 180, 451, '9')
+        text_control(window, 12, '9')
         key('Return')
         wait_ui(lambda value: value.get('node') == node.decode() and
                 value.get('name_hex') == b'Variant override'.hex() and
                 value.get('x') == '9', 'Both variant edits were not committed before Review')
         start = len(captured)
-        click(window, 310, 177)
+        control(window, 15)
         wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
-        click(window, 435, 177)
+        control(window, 16)
         time.sleep(.3)
         start = len(captured)
-        click(window, 165, 216)
+        control(window, 17)
         wait_log(r'prefab action=6 applied=1 .*dirty=0', start)
         require(before_review == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Review/revert published source or changed project files')
-        click(window, 88, 200)
+        control(window, 8)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=2 dirty=0', start)
         undo_revert = asset(variant)
         (scratch / 'variant-after-undo.nxprefab').write_bytes(undo_revert[0])
@@ -295,9 +305,9 @@ def main():
                 re.search(rb'^' + node + rb' 0 9 ', undo_revert[3], re.M) and
                 undo_revert[2] == child_asset[2] and opaque in undo_revert[3],
                 'One native Undo did not restore all reverted properties/identities')
-        click(window, 140, 200)
+        control(window, 9)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=3 dirty=0', start)
         require(asset(variant)[3] == child_asset[3] and asset(variant)[2] == child_asset[2] and
                 source.read_bytes() == original and asset(base)[0] == restored[0],
@@ -307,27 +317,27 @@ def main():
                            if struct.unpack_from('<Q', identity, 16)[0] == int(node))
         fields = {name: struct.unpack('<QQ', identity) for identity, name in root_fields}
         selected_name = fields[b'name'] < fields[b'transform.position']
-        click(window, 140, 227)
-        text(window, 180, 427, 'Selected override')
+        control(window, 10)
+        text_control(window, 11, 'Selected override')
         key('Return')
-        text(window, 180, 451, '7')
+        text_control(window, 12, '7')
         key('Return')
         unchanged_files = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         start = len(captured)
-        click(window, 310, 177)
+        control(window, 15)
         wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
-        click(window, 90, 580)
+        observed_click(window, 'p0')
         start = len(captured)
-        click(window, 565, 177)
+        control(window, 19)
         wait_log(r'prefab action=7 applied=1 .*dirty=1', start)
-        click(window, 435, 177)
+        control(window, 16)
         start = len(captured)
-        click(window, 165, 216)
+        control(window, 17)
         wait_log(r'prefab action=6 applied=1 .*dirty=1', start)
         require(unchanged_files == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Selected review/revert wrote project files before explicit Save')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=4 dirty=0', start)
         partial = asset(variant)
         expected_name = b'Isolated source' if selected_name else b'Selected override'
@@ -340,52 +350,52 @@ def main():
                 f'expected_position={expected_position!r} '
                 f'metadata_match={partial[2] == child_asset[2]} opaque_retained={opaque in partial[3]} '
                 f'actual_prefix={partial[3][:2048]!r}')
-        click(window, 88, 200)
+        control(window, 8)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=5 dirty=0', start)
         selected_undo = asset(variant)
         require(b'node ' + node + b' 0 Selected override\n' in selected_undo[3] and
                 re.search(rb'^' + node + rb' 0 7 ', selected_undo[3], re.M),
                 'One selected native Undo failed to restore both edits')
-        click(window, 140, 200)
+        control(window, 9)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=6 dirty=0', start)
         require(asset(variant)[3] == partial[3] and asset(variant)[2] == partial[2],
                 'One selected native Redo failed to retain unselected properties')
         start = len(captured)
-        click(window, 310, 177)
+        control(window, 15)
         wait_log(r'prefab action=5 applied=1 .*dirty=0', start)
-        click(window, 435, 177)
+        control(window, 16)
         start = len(captured)
-        click(window, 165, 216)
+        control(window, 17)
         wait_log(r'prefab action=6 applied=1 .*dirty=1', start)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=7 dirty=0', start)
         require(asset(variant)[3] == child_asset[3] and asset(variant)[2] == child_asset[2] and
                 source.read_bytes() == original and asset(base)[0] == restored[0],
                 'Full review after selected workflow failed to restore exact source properties')
         # Explicit selected publication advances only the exact current base source.
-        click(window, 140, 227)
-        text(window, 180, 427, 'Source applied')
+        control(window, 10)
+        text_control(window, 11, 'Source applied')
         key('Return')
-        text(window, 180, 451, '11')
+        text_control(window, 12, '11')
         key('Return')
         before_apply = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         start = len(captured)
-        click(window, 310, 177)
+        control(window, 15)
         wait_log(r'prefab action=5 applied=1 .*dirty=1', start)
-        click(window, 90, 580)
+        observed_click(window, 'p0')
         start = len(captured)
-        click(window, 565, 177)
+        control(window, 19)
         wait_log(r'prefab action=7 applied=1 .*dirty=1', start)
-        click(window, 430, 154)
+        control(window, 20)
         require(before_apply == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Source application review/confirmation published before explicit consent')
         start = len(captured)
-        click(window, 140, 247)
+        control(window, 21)
         wait_log(r'prefab action=8 applied=1 .*revision=7 dirty=1', start)
         applied_source = asset(base)
         source_name = b'Source applied' if selected_name else b'Isolated source'
@@ -404,74 +414,73 @@ def main():
         require(changed == {base.relative_to(root), retained_base.relative_to(root)},
                 'Source apply changed unrelated project files')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=8 dirty=0', start)
         after_local_save = asset(variant)
         require(b'node ' + node + b' 0 Source applied\n' in after_local_save[3] and
                 re.search(rb'^' + node + rb' 0 11 ', after_local_save[3], re.M) and
                 struct.unpack_from('<Q', after_local_save[0], 48)[0] == 4,
                 'Source publication acknowledged/rewrote local edits or implicitly rebased the variant')
-        click(window, 88, 200)
+        control(window, 8)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=9 dirty=0', start)
         require(b'node ' + node + b' 0 Source applied\n' in asset(variant)[3] and
                 re.search(rb'^' + node + rb' 0 3\.5 ', asset(variant)[3], re.M),
                 'Source apply occupied/erased local Undo history')
-        click(window, 140, 200)
+        control(window, 9)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=10 dirty=0', start)
         require(asset(variant)[3] == after_local_save[3] and asset(variant)[2] == child_asset[2] and
                 asset(base)[0] == applied_source[0] and source.read_bytes() == original,
                 'Source apply changed local Redo, stable identities or published base after Save')
         # Create two real three-way conflicts against the retained v4 reference.
-        text(window, 180, 131, base_id)
+        text_control(window, 0, base_id)
         start = len(captured)
-        click(window, 230, 154)
+        control(window, 2)
         wait_log(r'prefab action=1 applied=1 .*revision=5 dirty=0', start)
-        click(window, 140, 227)
-        text(window, 180, 427, 'New source')
+        control(window, 10)
+        text_control(window, 11, 'New source')
         key('Return')
-        text(window, 180, 451, '19')
+        text_control(window, 12, '19')
         key('Return')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=6 dirty=0', start)
         rebase_source = asset(base)
-        text(window, 180, 131, variant_id)
+        text_control(window, 0, variant_id)
         start = len(captured)
-        click(window, 230, 154)
+        control(window, 2)
         wait_log(r'prefab action=1 applied=1 .*revision=10 dirty=0', start)
-        click(window, 140, 227)
+        control(window, 10)
         before_rebase_variant = asset(variant)
         rebase_before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         start = len(captured)
-        click(window, 552, 154)
+        control(window, 23)
         wait_log(r'prefab action=9 applied=1 .*revision=10 dirty=0', start)
-        click(window, 614, 154)
+        control(window, 25, enabled=False)
         require(rebase_before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Unresolved native rebase wrote project files')
         # Stable field UUID ordering defines the two actual clipped table rows.
-        name_y = 580 if selected_name else 603
-        position_y = 603 if selected_name else 580
-        click(window, 618, name_y)
-        click(window, 615, name_y + 40)  # Take source name.
-        click(window, 618, position_y)
-        click(window, 615, position_y + 23)  # Keep local complete position group.
+        name_row, position_row = (0, 1) if selected_name else (1, 0)
+        observed_click(window, f'choice{name_row}_2')
+        observed_click(window, f'choice{name_row}_1')  # Take source name.
+        observed_click(window, f'choice{position_row}_2')
+        observed_click(window, f'choice{position_row}_0')  # Keep local complete position group.
         start = len(captured)
-        click(window, 660, 177)
+        control(window, 24)
         wait_log(r'prefab action=10 applied=1 .*revision=10 dirty=0', start)
-        click(window, 614, 154)
+        control(window, 25)
         require(rebase_before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Native rebase preparation/confirmation published without explicit Save')
         start = len(captured)
-        click(window, 122, 216)
+        control(window, 26)
         wait_log(r'prefab action=11 applied=1 .*revision=10 dirty=1', start)
         require(rebase_before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Native rebase wrote sources before explicit Save')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=11 dirty=0', start)
         rebased = asset(variant)
         require(b'node ' + node + b' 0 New source\n' in rebased[3] and
@@ -483,47 +492,47 @@ def main():
         retained_variant = root / '.nexora/prefabs/revisions' / variant_id / '10.nxprefab'
         require(retained_variant.read_bytes() == before_rebase_variant[0],
                 'Native rebase publication lost exact previous variant')
-        click(window, 88, 200)
+        control(window, 8)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=12 dirty=0', start)
         unrebased = asset(variant)
         require(unrebased[3] == after_local_save[3] and unrebased[2] == child_asset[2] and
                 struct.unpack_from('<Q', unrebased[0], 48)[0] == 4,
                 'One native Undo failed to restore properties plus exact retained reference')
-        click(window, 140, 200)
+        control(window, 9)
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=13 dirty=0', start)
         require(asset(variant)[3] == rebased[3] and asset(variant)[2] == rebased[2] and
                 struct.unpack_from('<Q', asset(variant)[0], 48)[0] == 6 and
                 asset(base)[0] == rebase_source[0],
                 'One native Redo failed properties/reference history or mutated the source')
         # Advance source again through actual controls for read-only latest-source review.
-        text(window, 180, 131, base_id)
+        text_control(window, 0, base_id)
         start = len(captured)
-        click(window, 230, 154)
+        control(window, 2)
         wait_log(r'prefab action=1 applied=1 .*revision=6 dirty=0', start)
-        click(window, 140, 227)
-        text(window, 180, 427, 'Readonly newer source')
+        control(window, 10)
+        text_control(window, 11, 'Readonly newer source')
         key('Return')
         start = len(captured)
-        click(window, 110, 177)
+        control(window, 4)
         wait_log(r'prefab action=3 applied=1 .*revision=7 dirty=0', start)
         # Instantiate the exact saved variant into the original active Scene, independently
         # of the isolation document and the subsequently advanced base publication.
-        text(window, 180, 131, variant_id)
+        text_control(window, 0, variant_id)
         start = len(captured)
-        click(window, 230, 154)
+        control(window, 2)
         wait_log(r'prefab action=1 applied=1 .*revision=13 dirty=0', start)
         placement_before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         start = len(captured)
-        click(window, 230, 200)
+        control(window, 28)
         wait_log(r'prefab action=12 applied=1 .*revision=13 dirty=0', start)
         require(placement_before == {p.relative_to(root): p.read_bytes()
                                     for p in root.rglob('*') if p.is_file()},
                 'Native scene instantiation published files before explicit Scene Save')
-        click(window, 700, 70)  # Hide the clean isolation panel without changing its document.
+        key('ctrl+alt+p')  # Hide the clean panel through its actual toggle shortcut.
         click(window, 397, 29)  # Restore original Scene focus for ordinary Save/Undo/Redo.
         scene_shortcut('s')
         placed_scene = wait_scene(lambda value: value.startswith(b'NEXORA_EDITOR_SCENE 4\n'),
@@ -561,28 +570,28 @@ def main():
         close_host(window)
         before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
         window = open_host(True)
-        text(window, 180, 113, variant_id)
-        click(window, 230, 137)
+        text_control(window, 0, variant_id)
+        control(window, 2)
         wait_log(r'prefab action=1 applied=1 .*revision=13 dirty=0')
-        click(window, 230, 200)
+        control(window, 28, enabled=False)
         require(b'prefab action=12' not in captured, 'Read-only prefab enabled scene instantiation')
         start = len(captured)
-        click(window, 310, 177)
+        control(window, 15)
         wait_log(r'prefab action=5 applied=1 .*dirty=0', start)
-        click(window, 435, 177)
+        control(window, 16, enabled=False)
         require(b'prefab action=6' not in captured, 'Read-only review enabled property revert')
         start = len(captured)
-        click(window, 552, 154)
+        control(window, 23)
         wait_log(r'prefab action=9 applied=1 .*revision=13 dirty=0', start)
         start = len(captured)
-        click(window, 660, 177)
+        control(window, 24)
         wait_log(r'prefab action=10 applied=1 .*revision=13 dirty=0', start)
-        click(window, 614, 154)
+        control(window, 25, enabled=False)
         require(b'prefab action=11' not in captured, 'Read-only latest-source review enabled rebase')
-        click(window, 140, 227)
-        text(window, 180, 427, 'Forbidden readonly edit')
+        control(window, 10)
+        text_control(window, 11, 'Forbidden readonly edit', enabled=False)
         key('Return')
-        click(window, 110, 177)
+        control(window, 4, enabled=False)
         close_host(window)
         require(before == {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()},
                 'Read-only reopened prefab controls changed project files')

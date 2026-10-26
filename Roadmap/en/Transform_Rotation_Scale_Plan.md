@@ -159,3 +159,6 @@ actions beside the Transform heading. Rotation remains degrees with Z-X-Y compos
 Euler turns; Enter applies, Escape cancels, and existing mixed-selection, precision, validation
 and Undo/Redo contracts remain. This adds no drag-to-adjust behavior or storage/API change.
 [Scoped validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md) records the passing 1x/2x actual-input/layout checks and Linux regression results; target-host acceptance remains open.
+The related native fixture subset also passes eight unique actual X11/Vulkan cases with Slang
+enabled; this does not establish physical-host acceptance. The expanded 399-case traversal and corrected native-input rerun cover 399 unique passing cases
+with no skips or unresolved failures.

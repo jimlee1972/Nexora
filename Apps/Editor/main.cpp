@@ -3598,6 +3598,27 @@ int RunGraphical(std::optional<ProjectState> project,
         if (point)
           geometry << ' ' << name << '=' << (*point)[0] * dpi << ',' << (*point)[1] * dpi;
       };
+      record("scene_select_all", Access::SceneSelectAllPosition(ui));
+      record("diagnostic_consent", Access::DiagnosticPosition(ui, 0));
+      record("diagnostic_clear", Access::DiagnosticPosition(ui, 1));
+      record("close_save", Access::CloseControlPosition(ui, 0));
+      record("close_discard", Access::CloseControlPosition(ui, 1));
+      record("close_cancel", Access::CloseControlPosition(ui, 2));
+      record("reflected_enabled", Access::ReflectedPropertyPosition(ui, "enabled"));
+      record("reflected_amount", Access::ReflectedPropertyPosition(ui, "nested.amount"));
+      record("array_add", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Add"));
+      record("array_clear", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Clear"));
+      record("array_insert_0",
+             Access::ReflectedArrayControlPosition(ui, 301, "samples", "Insert", 0));
+      record("array_remove_0",
+             Access::ReflectedArrayControlPosition(ui, 301, "samples", "Remove", 0));
+      record("array_down_0", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Down", 0));
+      record("array_up_1", Access::ReflectedArrayControlPosition(ui, 301, "samples", "Up", 1));
+      for (std::size_t index = 0; index < 3; ++index) {
+        const auto name = "array_value_" + std::to_string(index);
+        const auto path = "samples[" + std::to_string(index) + ']';
+        record(name.c_str(), Access::ReflectedPropertyPosition(ui, path));
+      }
       geometry << " rebase_keys=";
       for (const bool key : Access::PrefabRebaseKeys(ui))
         geometry << key;
@@ -3618,6 +3639,7 @@ int RunGraphical(std::optional<ProjectState> project,
       record("override_confirm", Access::PrefabOverridePosition(ui, 2));
       record("override_cancel", Access::PrefabOverridePosition(ui, 3));
       record("override_selected", Access::PrefabOverridePosition(ui, 4));
+      record("override_source_apply", Access::PrefabOverridePosition(ui, 5));
       if (const auto *report = Access::PrefabOverrideReport(ui))
         for (std::size_t row = 0; row < report->rows.size(); ++row) {
           const auto name = "override_row_" + std::to_string(row);

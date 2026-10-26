@@ -64,7 +64,8 @@ All 18 touched C++ sources/headers/includes pass `clang-format --dry-run --Werro
 
 ## Acceptance limits
 
-These are portable actual-widget and authoring-contract tests. Physical display/DPI/IME,
+The initial checks above are portable actual-widget and authoring-contract tests; the native
+follow-up below adds actual X11/OS-window/software-Vulkan coverage. Physical display/DPI/IME,
 Windows/macOS target-host rendering, screen-reader semantics and complete Editor milestones
 remain separate acceptance gates. Hover tooltips do not implement an accessibility bridge.
 
@@ -75,3 +76,68 @@ expressions in the shared icon artwork with MSVC C4244 under warnings-as-errors.
 now use explicit floating-point literals. The Linux preset configure/full build and the same
 29 affected cases passed again after this correction (29/29). Hosted validation is tracked in
 [PR #724](https://github.com/jimlee1972/Nexora/pull/724); no Windows run is claimed from Linux.
+
+## Native X11 fixture follow-up with Slang enabled
+
+The hosted Xvfb traversal exposed eight native failures caused by fixture coordinates tied to
+text-button widths and the earlier Inspector layout. The fixtures now use owning geometry
+from the existing opt-in test streams: Scene Select All, reflected values/array actions,
+prefab controls/property rows/rebase choices, and the actual close-modal icons. Pixel checks,
+serialized values/asset identities/opaque bytes, exact project files, history, process restart,
+read-only rejection and original whole-case deadlines remain required. No fixture invokes an
+authoring API through these observations.
+
+The task-local environment `/tmp/nexora-editor-icons/native.env` selects extracted Xvfb/xdotool,
+software Vulkan ICD/layers and runtime libraries, plus the task-local Slang installation.
+`NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON`, `NEXORA_ENABLE_2D=ON` and `NEXORA_ENABLE_SLANG=ON`
+are set in the Linux development cache. `NEXORA_SLANGC_EXECUTABLE`, Xvfb and xdotool point to
+those extracted tools. This is test-environment setup; no new product dependency, generated
+cache, tool binary or environment file is committed.
+
+```bash
+source /tmp/nexora-editor-icons/native.env
+cmake --preset linux-development -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON -DNEXORA_ENABLE_SLANG=ON
+cmake --build --preset linux-development -j 5
+ctest --preset linux-development -R '^editor\.linux_(prefab_isolation|scene_files|diagnostic_privacy)$' --output-on-failure
+ctest --preset linux-development -R '^editor\.linux_(reflected_inspector|reflected_arrays|prefab_placement_overrides|prefab_placement_selected_revert|prefab_instance_source_apply)$' --output-on-failure
+ctest --preset linux-development -R '^editor\.linux_reflected_arrays$' --output-on-failure
+```
+
+The final targeted result is **8/8 unique native cases passed**:
+
+| Case suffix (`editor.linux_`) | Passed duration |
+| --- | --- |
+| `prefab_isolation` | 140.60 s |
+| `diagnostic_privacy` | 6.05 s |
+| `scene_files` | 57.62 s |
+| `reflected_inspector` | 10.22 s |
+| `reflected_arrays` | 9.71 s |
+| `prefab_placement_overrides` | 15.11 s |
+| `prefab_placement_selected_revert` | 26.02 s |
+| `prefab_instance_source_apply` | 5.35 s |
+
+The first five-case targeted run retained one reflected-array caret-pixel failure; its corrected
+actual-field observation passed the final isolated rerun. The final result combines that rerun
+with the seven passing cases, rather than claiming the first targeted traversal was failure-free.
+Task-local logs are `native-main-tests.log`, `native-array-retest.log` and
+`native-extended-tests.log` under `/tmp/nexora-editor-icons/`.
+
+**Expanded full gate:** the Slang-enabled/Xvfb traversal ran all 399 cases with 398 passes,
+no skips and one native Source Apply input failure. Copied geometry proved the first Inspector
+layout moved the Review control by 13 pixels after the readiness observation. The native fixture
+now acknowledges actual hover and rechecks the named control before sending its single down/up;
+it adjusts hover only while geometry moves, without retrying the action or increasing timeouts.
+The corrected case passed three consecutive runs (8.91 / 8.74 / 8.84 s):
+
+```bash
+ctest --preset linux-development -R '^editor\.linux_prefab_instance_source_apply$' --repeat until-fail:3 --output-on-failure
+```
+
+Final aggregate coverage is **399 unique passing cases, no skips and zero unresolved failures**.
+The initial complete traversal was not failure-free; its result and the focused correction remain
+explicit. Logs are `native-full-tests.log` and `native-source-stable-retest.log` under
+`/tmp/nexora-editor-icons/`. No production UI action or model admission was changed by this
+fixture synchronization. Final changed-document links/bilingual pairs, documentation tests,
+touched C++ formatting and `git diff --check` pass.
+These actual OS-window/X11/software-Vulkan results remain separate from physical display,
+physical DPI/IME, screen-reader and Windows/macOS target-host acceptance.
