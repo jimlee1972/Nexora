@@ -73,6 +73,12 @@ PR721 串接候選的新預設 CLI 回歸揭露 POSIX 各 target 的 profile 位
 安裝的 worker 測試及多 configuration／未建置 Player 的產生驗證已在本機通過；修正版
 完整 CI 與來源相符的新 Editor ZIP 仍待完成，先前 ZIP 僅為候選。
 
+1f0f2ad6 已通過 macOS Development（386 項）及 Linux 指定 Play 左／右／左像素觀察，
+但 display job 121334225141 在隨後的實際圖形 script Build 失敗。原 UI 證據串流沒有
+worker 結果文字；目前補上明確啟用的結果診斷，並將限定 CI gate 提前執行。這仍是尚未
+解決的串接失敗，不代表階段或最終 ZIP 通過。原 artifact 12620680567 保留成功像素與
+失敗專案；Windows 解壓／搬移成功不能免除此項失敗。
+
 ## 1. 使用者操作
 
 - 在專案 Build Settings 選擇遊戲啟動 Scene 與要打包的 Scene。

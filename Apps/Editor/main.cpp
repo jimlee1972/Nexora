@@ -2304,6 +2304,8 @@ int RunGraphical(std::optional<ProjectState> project,
         const bool published = finished->prepared &&
                                finished->prepared->Publish(game_build_output, game_builder.Token(),
                                                            build_owner_current, &error);
+        if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE"))
+          std::cerr << "game build result: " << (published ? "published" : error) << '\n';
         if (published) {
           const auto module = game_build_output / nexora::runtime::kGameModuleFilename;
           const auto relative =

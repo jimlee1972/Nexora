@@ -256,6 +256,8 @@ jobs:
         run: |
           ctest --preset linux-development -N -R '^editor\.linux_packaged_play$' | grep -q 'Total Tests: 1'
           ctest --preset linux-development -N -R '^runtime\.linux_native_game_player$' | grep -q 'Total Tests: 1'
+      - name: Diagnose configured Play and graphical game build first
+        run: ctest --preset linux-development -R '^editor[.]linux_packaged_play$' -V --output-log build/linux-development/editor-packaged-play-first.log
       - name: Editor tests (includes the Xvfb display acceptance)
         # The deep hierarchy test must be present in the graphical configuration.
         # Full Editor execution below retains all existing navigation controls.

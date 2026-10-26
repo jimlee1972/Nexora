@@ -78,6 +78,13 @@ builds and forbids developer fallback in marked installations. Split-directory/i
 worker tests and per-configuration/no-Player generation pass locally; final revised CI and a
 new source-matched Editor ZIP remain open. Prior ZIPs are candidates only.
 
+Head 1f0f2ad6 passes macOS Development (386 tests) and the Linux configured Play left/right/left
+pixels, but display job 121334225141 fails the subsequent actual graphical script Build. Its
+worker result was absent from the original UI-only evidence stream; opt-in result diagnostics
+and an earlier focused CI gate are being added. This is an open integration failure, not an
+accepted phase or final ZIP. Original artifact 12620680567 retains the successful pixel receipt
+and failed project. Windows extraction/relocation successes do not waive that failure.
+
 ## 1. Product behavior
 
 - Project Build Settings selects the game's startup scene and scenes included in a build.

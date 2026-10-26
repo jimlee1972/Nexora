@@ -193,3 +193,36 @@ continued process lifetime (controlled process cleanup, not graceful-exit proof)
 browser run, and default-Scene-mode packaged Play with 1,200 presents/three commits and all saved
 sources unchanged. Captured Windows pixels and clean host remain unclaimed. A new source-matched ZIP
 and complete updated-head CI are required before final delivery.
+
+## PR721 integrated GUI build failure remains open
+
+Head 1f0f2ad6 macOS full Development registered 386 tests with zero failures (960.44 s), retaining
+the existing font skip and passing the corrected default-profile CLI. Linux display job
+121334225141 registered 235 Editor cases with one failure in the graphical
+script Build after actual button input. Its independent Play pixel receipt passed left/right/left
+with 36 samples each (centroids 906.67/1002.67/906.67 in viewport 648,265,604,180), normal close,
+three commits and unchanged saved sources. The worker entered busy and returned, but no output
+inventory appeared. This remains a failed integration gate, not accepted delivery.
+
+Full failed evidence is retained in GitHub artifact 12620680567 and the local ignored
+`build/scene-settings/ci721-1f-display-artifact.zip` (SHA-256
+ce1dcf7f266922d35c79d89c7c18c15a580ad3e695d3ec630720dcd6c8d67fee). The original opt-in UI stream
+copied control coordinates/busy only; it omitted the worker result held in the UI/Console. The
+follow-up copies that actual result to stderr only under NEXORA_PROJECT_GAME_BUILD_EVIDENCE.
+The native case reports a failed result immediately and the display job runs this focused gate
+before the full Editor suite, retaining the full suite as a separate required step. This adds
+diagnostic evidence; it does not yet establish or fix the build failure's cause.
+
+The 1f0f2ad6 ZIP passes all archived hashes, actual Unicode extraction, zero-argument startup,
+a normal eight-frame browser close and 1200-frame/three-commit Play with source hashes unchanged.
+Missing installed profile/CMake reject without developer fallback; files are restored. A fresh
+relocated source-hidden zero-argument Game run passes 100 hardware DX12 presents, three commits,
+drain/exit0 and unchanged hashes. These local successes do not waive the failed Linux GUI Build
+or the final source-matched artifact gate. Receipts remain under `build/scene-settings/`.
+
+Linux full Development job 121334225197 registers 469 tests and fails only the same graphical
+Build case (1869.54 s); the standalone native pixel case passes in 8.08 s. Original font skips
+remain recorded. The diagnostic-only revision compiles and passes the local 10-case gate at
+`packaged-play-20261026-085138` (20.51 s); Python syntax, changed Markdown/link checks and all
+16 documentation-routing tests pass. The first documentation test attempt hit the pre-existing
+Windows python3 App Execution Alias error; rerunning with the existing real Python alias passed.

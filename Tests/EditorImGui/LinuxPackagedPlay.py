@@ -81,6 +81,10 @@ def graphical_build(args, root, evidence, environment):
             while time.monotonic() < deadline:
                 if (output / "Game.inventory").is_file() and observation().get("busy") == "0":
                     break
+                result = re.search(r"^game build result: (.*)$",
+                                   errors.read_text(errors="replace"), re.M)
+                require(not result or result.group(1) == "published",
+                        errors.read_text(errors="replace"))
                 require(editor.poll() is None, errors.read_text(errors="replace"))
                 time.sleep(.1)
             require((output / "Game.inventory").is_file() and (output / "libGame.so").is_file(),
