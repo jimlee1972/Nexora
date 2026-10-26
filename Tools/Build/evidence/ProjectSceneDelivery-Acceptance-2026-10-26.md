@@ -6,6 +6,11 @@ are accepted. [PR #721](https://github.com/jimlee1972/Nexora/pull/721) source
 as `e0036e7347cb2c4f993b61573f8efd7f2e7dd89d`. This completes this scene-delivery scope; full
 graphical Editor milestones remain 0/8 and independent clean-host acceptance is not claimed.
 
+✅ The tested source and squash merge have identical Git trees, verified with
+`git rev-parse f327bd86^{tree}` and `git rev-parse e0036e73^{tree}`. Final publication changes
+Markdown only; the executable/tool/runtime sources remain the accepted production tree.
+The full comparison receipt is retained as `build/scene-settings/merged-source-tree-equivalence.json`.
+
 ## Final Windows Editor artifact
 
 | Field | Verified value |
@@ -19,6 +24,13 @@ graphical Editor milestones remain 0/8 and independent clean-host acceptance is 
 | Root executable | `NexoraEditor.exe` only |
 
 The local artifact and sidecar are retained under `build/scene-settings/editor-delivery-f327bd86260a/`.
+Recipients can compare the following command's result with the SHA-256 above or the .zip.sha256
+sidecar before extraction:
+
+```powershell
+Get-FileHash .\NexoraEditor-Windows-x64-f327bd86260a.zip -Algorithm SHA256
+```
+
 Private Runtime hosts/DLLs and CMake/Ninja/Zig resources/licenses are necessary build dependencies.
 Compiler standard libraries and CMake modules are tool resources; no Nexora/game source checkout,
 examples, TwoDPlayer, TwoDStudio or TwoDAssetCompiler is shipped. This is a source-free Editor/game
