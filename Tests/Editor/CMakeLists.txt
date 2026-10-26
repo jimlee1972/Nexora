@@ -1,4 +1,12 @@
 add_executable(NexoraProjectBuildSettingsTests ProjectBuildSettingsTests.cpp)
+add_test(NAME editor.windows_package_admission
+  COMMAND "${Python3_EXECUTABLE}" -m unittest discover
+    -s "${PROJECT_SOURCE_DIR}/Tools/Editor/tests" -p test_windows_package.py)
+if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+  add_test(NAME editor.windows_gui_entry
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/WindowsGuiEntry.py"
+      "$<TARGET_FILE:NexoraEditor>")
+endif()
 if(NEXORA_ENABLE_ASSET_PIPELINE)
   add_executable(NexoraGameBuildCaptureTests GameBuildCaptureTests.cpp)
   target_link_libraries(NexoraGameBuildCaptureTests PRIVATE Nexora::Editor)

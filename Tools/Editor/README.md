@@ -76,6 +76,10 @@ remain separate automation. No target-host acceptance is inferred from cloud exe
 
 ## Windows Editor-only download
 
+The packager requires a Windows GUI PE subsystem and rejects old console-subsystem Editors.
+Relocated startup/CLI verification explicitly checks console_attached=0 through an opt-in process
+diagnostic while still validating redirected output, exit codes and Unicode project arguments.
+
 The **Windows Editor package** Actions workflow builds the current Development Editor with DX12.
 Download its `NexoraEditor-Windows-x64-<full source SHA>` artifact from a successful run. The artifact
 contains a ZIP, its SHA-256 sidecar and hosted Windows verification logs. Extract the ZIP into a new

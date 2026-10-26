@@ -13,6 +13,12 @@ the game startup setting. Legacy StaticView and complete ED-M1/M3/M6 acceptance 
 
 ### Current main-Editor interaction policy (2026-10-25)
 
+✅ The Windows GUI-subsystem/Unicode-entrypoint regression is locally verified: a console-free
+GUI parent launches the Editor with ordinary process flags, the child reports no attached console,
+and eight frames present with exit 0. Redirected CLI/SDK builds and six packaging admission tests
+pass. [Scoped evidence](../../Tools/Build/evidence/EditorWindowsGuiEntry-2026-10-26.md) tracks the
+required full CI/replacement ZIP gates; complete graphical milestones remain unaccepted.
+
 ✅ The graphical executable defaults to the Project Browser without a mode argument. Project now
 lists the whole project as an expandable file tree supplied by a bounded background reader;
 left-double-clicking a scene uses the existing token-checked Open continuation. The main host

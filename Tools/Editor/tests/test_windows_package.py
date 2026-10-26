@@ -1,14 +1,36 @@
 """Synthetic dependency admission tests; these do not execute Windows binaries."""
 import sys
+import struct
 from pathlib import Path
 import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from PackageWindowsEditor import dependency_closure, relocated_environment, stage_game_build_runtime
+from PackageWindowsEditor import dependency_closure, relocated_environment, stage_game_build_runtime, require_gui_subsystem
 
 
 class Dependencies(unittest.TestCase):
+    def test_editor_requires_gui_pe_subsystem(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            executable = Path(temporary) / 'Editor.exe'
+            for magic in (0x10b, 0x20b):
+                data = bytearray(128 + 24 + 240)
+                data[:2] = b'MZ'
+                struct.pack_into('<I', data, 60, 128)
+                data[128:132] = b'PE\0\0'
+                struct.pack_into('<H', data, 148, 240)
+                struct.pack_into('<H', data, 152, magic)
+                struct.pack_into('<H', data, 220, 2)
+                executable.write_bytes(data)
+                require_gui_subsystem(executable)
+                struct.pack_into('<H', data, 220, 3)
+                executable.write_bytes(data)
+                with self.assertRaisesRegex(RuntimeError, 'Windows GUI subsystem'):
+                    require_gui_subsystem(executable)
+            executable.write_bytes(b'not a PE')
+            with self.assertRaisesRegex(RuntimeError, 'DOS header'):
+                require_gui_subsystem(executable)
+
     def test_windows_environment_case_and_isolated_path(self):
         for root_key in ('SYSTEMROOT', 'SystemRoot'):
             with self.subTest(root_key=root_key):
