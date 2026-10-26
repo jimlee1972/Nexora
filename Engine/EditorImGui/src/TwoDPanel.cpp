@@ -1,4 +1,5 @@
 #include "Nexora/EditorImGui/TwoDPanel.h"
+#include "EditorIcons.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -31,21 +32,21 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
   const bool writable = allowed && !doc.ReadOnly();
   ImGui::TextUnformatted(doc.Dirty() ? "Unsaved changes" : "Saved document");
   ImGui::BeginDisabled(!writable);
-  if (ImGui::Button("Undo"))
+  if (detail::IconButton("Undo", detail::EditorIcon::Undo))
     Result(state, doc.Undo());
   ImGui::SameLine();
-  if (ImGui::Button("Redo"))
+  if (detail::IconButton("Redo", detail::EditorIcon::Redo))
     Result(state, doc.Redo());
   ImGui::SameLine();
-  if (ImGui::Button("Save"))
+  if (detail::IconButton("Save", detail::EditorIcon::Save))
     state.saveRequested = true;
   ImGui::SameLine();
-  if (ImGui::Button("Open"))
+  if (detail::IconButton("Open", detail::EditorIcon::Open))
     state.openRequested = true;
-  if (ImGui::Button("Import atlas"))
+  if (detail::IconButton("Import atlas", detail::EditorIcon::Import))
     state.importAtlasRequested = true;
   ImGui::SameLine();
-  if (ImGui::Button("Import clip"))
+  if (detail::IconButton("Import clip", detail::EditorIcon::Animation))
     state.importClipRequested = true;
   ImGui::EndDisabled();
   if (!state.status.empty())
@@ -61,7 +62,7 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
       if (!state.region && !atlas.regions.empty())
         state.region = atlas.regions.front().id;
       ImGui::BeginDisabled(!writable || !texture || !atlas.Find(state.region));
-      if (ImGui::Button("Add sprite")) {
+      if (detail::IconButton("Add sprite", detail::EditorIcon::Add)) {
         twod::Sprite s;
         s.atlas = atlas.id;
         s.region = state.region;
@@ -116,7 +117,7 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
             collider.kind == twod::ShapeKind::Circle
                 ? ImGui::DragFloat("Radius", &collider.radius, 0.02F, 0, 1000)
                 : ImGui::DragFloat2("Half extent", &collider.halfExtent.x, 0.02F, 0, 1000);
-        if (ImGui::Button("Apply collider") || collisionChanged)
+        if (detail::IconButton("Apply collider", detail::EditorIcon::Apply) || collisionChanged)
           Result(state, doc.SetCollider(state.selected, collider));
         ImGui::EndDisabled();
       }
@@ -202,7 +203,7 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
     if (ImGui::BeginTabItem("Animation", nullptr, flags(TwoDPanelTab::Animation))) {
       auto clip = doc.Clip();
       ImGui::BeginDisabled(!writable || !doc.Atlas().Find(state.region));
-      if (ImGui::Button("Append selected region")) {
+      if (detail::IconButton("Append selected region", detail::EditorIcon::Add)) {
         if (clip.frames.empty()) {
           clip.id = {doc.Atlas().id.high ^ 0x434c4950U, doc.Atlas().id.low};
           clip.atlas = doc.Atlas().id;
@@ -224,12 +225,12 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
           changed = true;
         }
         ImGui::Text("Region %u", f.region);
-        if (i > 0 && ImGui::Button("Move earlier")) {
+        if (i > 0 && detail::IconButton("Move earlier", detail::EditorIcon::Earlier)) {
           std::swap(clip.frames[i], clip.frames[i - 1]);
           changed = true;
         }
         ImGui::SameLine();
-        if (ImGui::Button("Remove")) {
+        if (detail::IconButton("Remove", detail::EditorIcon::Delete)) {
           clip.frames.erase(clip.frames.begin() + std::ptrdiff_t(i));
           changed = true;
           ImGui::PopID();
@@ -269,18 +270,18 @@ void DrawTwoDPanel(TwoDDocument &doc, TwoDPanelState &state, bool allowed, std::
       ImGui::BeginDisabled(!writable || !doc.Atlas().Find(state.region));
       const twod::Tile tile{state.tileX, state.tileY, state.tileLayer, state.region,
                             state.collision};
-      if (ImGui::Button("Paint"))
+      if (detail::IconButton("Paint", detail::EditorIcon::Paint))
         Result(state, doc.Paint(std::span(&tile, 1)));
       ImGui::SameLine();
-      if (ImGui::Button("Erase")) {
+      if (detail::IconButton("Erase", detail::EditorIcon::Erase)) {
         auto erase = tile;
         erase.region = 0;
         Result(state, doc.Paint(std::span(&erase, 1)));
       }
-      if (ImGui::Button("Unload chunk"))
+      if (detail::IconButton("Unload chunk", detail::EditorIcon::Unlink))
         Result(state, doc.SetChunkLoaded(twod::Tilemap::Chunk(state.tileX, state.tileY), false));
       ImGui::SameLine();
-      if (ImGui::Button("Load chunk"))
+      if (detail::IconButton("Load chunk", detail::EditorIcon::Download))
         Result(state, doc.SetChunkLoaded(twod::Tilemap::Chunk(state.tileX, state.tileY), true));
       ImGui::EndDisabled();
       ImGui::Text("%zu painted cells; 16 x 16 chunks", doc.Tiles().Tiles().size());

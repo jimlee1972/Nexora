@@ -138,7 +138,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
       ImGui::InputText("Public key (64 hex digits)", state_->extension_public_key.data(),
                        state_->extension_public_key.size());
       position("public-key");
-      if (ImGui::Button("Trust public key")) {
+      if (detail::IconButton("Trust public key", detail::EditorIcon::Lock)) {
         auto output =
             request(ExtensionManagerAction::SetPublisher, state_->extension_publisher.data());
         const std::string_view text = state_->extension_public_key.data();
@@ -177,7 +177,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
         if (i % 3 != 2)
           ImGui::SameLine();
       }
-      if (ImGui::Button("Apply capabilities")) {
+      if (detail::IconButton("Apply capabilities", detail::EditorIcon::Apply)) {
         auto output = request(ExtensionManagerAction::SetPermissions);
         output.permissions = state_->extension_permission_draft;
         state_->extension_manager_request = std::move(output);
@@ -193,7 +193,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
           const auto &publisher = view.publishers[static_cast<std::size_t>(index)];
           ImGui::PushID(index);
           ImGui::BeginDisabled(!settings_allowed || pending);
-          if (ImGui::SmallButton("Revoke"))
+          if (detail::SmallIconButton("Revoke", detail::EditorIcon::Unlink))
             state_->extension_manager_request =
                 request(ExtensionManagerAction::RevokePublisher, publisher.publisher);
           position(publisher.publisher + "/revoke");
@@ -214,7 +214,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
           view.review)
         state_->extension_manager_request = request(ExtensionManagerAction::CancelReview);
       position("package-path");
-      if (ImGui::Button("Review package")) {
+      if (detail::IconButton("Review package", detail::EditorIcon::Inspect)) {
         auto output = request(ExtensionManagerAction::Review);
         const std::string_view path = state_->extension_package_path.data();
         output.package_path = std::filesystem::path{std::u8string(path.begin(), path.end())};
@@ -222,7 +222,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
       }
       position("review");
       ImGui::SameLine();
-      if (ImGui::Button("Refresh installed"))
+      if (detail::IconButton("Refresh installed", detail::EditorIcon::Refresh))
         state_->extension_manager_request = request(ExtensionManagerAction::Refresh);
       position("refresh");
       ImGui::EndDisabled();
@@ -240,7 +240,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
           ImGui::TreePop();
         }
         ImGui::BeginDisabled(!authoring_allowed || state_->extension_manager_request.has_value());
-        if (ImGui::Button("Install verified copy")) {
+        if (detail::IconButton("Install verified copy", detail::EditorIcon::Download)) {
           auto output = request(ExtensionManagerAction::Install);
           output.configuration = review.configuration;
           state_->extension_manager_request = std::move(output);
@@ -248,7 +248,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
         position("install");
         ImGui::EndDisabled();
         ImGui::SameLine();
-        if (ImGui::Button("Cancel review"))
+        if (detail::IconButton("Cancel review", detail::EditorIcon::Cancel))
           state_->extension_manager_request = request(ExtensionManagerAction::CancelReview);
         position("cancel-review");
       }
@@ -301,7 +301,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
           ImGui::BeginDisabled(!authoring_allowed || pending || view.restart_required ||
                                (entry.state != ManagedExtensionState::Disabled &&
                                 entry.state != ManagedExtensionState::Rejected));
-          if (ImGui::SmallButton("Enable"))
+          if (detail::SmallIconButton("Enable", detail::EditorIcon::Confirm))
             state_->extension_manager_request =
                 request(ExtensionManagerAction::Enable, entry.manifest.id, entry.manifest.version);
           position(identity + "/enable");
@@ -310,7 +310,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
           ImGui::BeginDisabled(!settings_allowed || pending ||
                                (entry.state != ManagedExtensionState::Loaded &&
                                 entry.state != ManagedExtensionState::ShutdownPending));
-          if (ImGui::SmallButton("Disable"))
+          if (detail::SmallIconButton("Disable", detail::EditorIcon::Stop))
             state_->extension_manager_request =
                 request(ExtensionManagerAction::Disable, entry.manifest.id, entry.manifest.version);
           position(identity + "/disable");
@@ -320,7 +320,7 @@ void EditorImGuiHost::DrawExtensionManager(bool settings_allowed, bool authoring
                                entry.state == ManagedExtensionState::Loaded ||
                                entry.state == ManagedExtensionState::ShutdownPending ||
                                entry.state == ManagedExtensionState::RestartRequired);
-          if (ImGui::SmallButton("Remove copy"))
+          if (detail::SmallIconButton("Remove copy", detail::EditorIcon::Delete))
             state_->extension_manager_request =
                 request(ExtensionManagerAction::Remove, entry.manifest.id, entry.manifest.version);
           position(identity + "/remove");

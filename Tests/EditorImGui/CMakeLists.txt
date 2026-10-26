@@ -985,3 +985,18 @@ if(NEXORA_ENABLE_ASSET_PIPELINE AND TARGET NexoraGameScenevisualFixture AND
   set_tests_properties(editor.linux_packaged_play PROPERTIES
     TIMEOUT 300 RUN_SERIAL TRUE LABELS "editor;vulkan;virtual-display")
 endif()
+
+add_executable(NexoraIconButtonTests IconButtonTests.cpp)
+target_include_directories(NexoraIconButtonTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraIconButtonTests PRIVATE NexoraDearImGui)
+nexora_apply_defaults(NexoraIconButtonTests)
+add_executable(NexoraTransformLayoutTests TransformLayoutTests.cpp)
+target_include_directories(NexoraTransformLayoutTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
+target_link_libraries(NexoraTransformLayoutTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
+nexora_apply_defaults(NexoraTransformLayoutTests)
+foreach(nexora_icon_scale RANGE 1 2)
+  add_test(NAME editor.icon_buttons_${nexora_icon_scale}x
+    COMMAND NexoraIconButtonTests ${nexora_icon_scale})
+  add_test(NAME editor.transform_layout_${nexora_icon_scale}x
+    COMMAND NexoraTransformLayoutTests ${nexora_icon_scale})
+endforeach()

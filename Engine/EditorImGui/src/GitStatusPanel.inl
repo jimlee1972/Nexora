@@ -150,7 +150,7 @@ void EditorImGuiHost::DrawGitStatusInternal(GitStatusProvider &provider, GitDiff
   state.git_executable_id = ImGui::GetItemID();
   position(0);
   ImGui::SetItemDefaultFocus();
-  if (ImGui::Button("Refresh local status")) {
+  if (detail::IconButton("Refresh local status", detail::EditorIcon::Refresh)) {
     try {
       const std::string_view text(state.git_executable.data());
       if (!foundation::IsValidUtf8(text))
@@ -168,7 +168,7 @@ void EditorImGuiHost::DrawGitStatusInternal(GitStatusProvider &provider, GitDiff
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!provider.Busy());
-  if (ImGui::Button("Cancel refresh"))
+  if (detail::IconButton("Cancel refresh", detail::EditorIcon::Cancel))
     static_cast<void>(provider.Cancel());
   position(2);
   ImGui::EndDisabled();

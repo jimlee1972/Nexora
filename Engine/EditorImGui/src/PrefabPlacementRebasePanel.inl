@@ -28,7 +28,8 @@ void DrawPrefabPlacementRebase(StateT &state, bool read_allowed, bool editable) 
     state.prefab_rebase_confirm = state.prefab_rebase_popup = false;
   }
   ImGui::BeginDisabled(!readable || state.prefab_rebase_confirm || state.prefab_override_confirm);
-  if (ImGui::Button("Review newer source###editor.prefab.rebase.review"))
+  if (detail::IconButton("Review newer source###editor.prefab.rebase.review",
+                         detail::EditorIcon::Inspect))
     state.prefab_rebase_request = PrefabPlacementRebaseRequest{*state.prefab_source_scope};
   capture(0);
   ImGui::EndDisabled();
@@ -57,7 +58,8 @@ void DrawPrefabPlacementRebase(StateT &state, bool read_allowed, bool editable) 
   const bool writable = readable && editable && state.prefab_override_authoring && !unresolved &&
                         !state.prefab_override_confirm;
   ImGui::BeginDisabled(!writable);
-  if (ImGui::Button("Rebase instance properties###editor.prefab.rebase.apply")) {
+  if (detail::IconButton("Rebase instance properties###editor.prefab.rebase.apply",
+                         detail::EditorIcon::Merge)) {
     state.prefab_rebase_consent = PrefabPlacementRebaseRequest{
         report.scope, PrefabPlacementRebaseAction::Apply, report.review, std::move(choices)};
     state.prefab_rebase_confirm = state.prefab_rebase_popup = true;
@@ -79,7 +81,7 @@ void DrawPrefabPlacementRebase(StateT &state, bool read_allowed, bool editable) 
                          state.prefab_rebase_consent->scope == report.scope &&
                          state.prefab_rebase_consent->review == report.review;
     ImGui::BeginDisabled(!writable || !state.prefab_rebase_confirm || !consent);
-    if (ImGui::Button("Confirm rebase")) {
+    if (detail::IconButton("Confirm rebase", detail::EditorIcon::Confirm)) {
       state.prefab_rebase_request = std::move(state.prefab_rebase_consent);
       state.prefab_rebase_confirm = false;
       ImGui::CloseCurrentPopup();
@@ -87,7 +89,8 @@ void DrawPrefabPlacementRebase(StateT &state, bool read_allowed, bool editable) 
     capture(2);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    const bool cancel = ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+    const bool cancel = detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+                        ImGui::IsKeyPressed(ImGuiKey_Escape, false);
     capture(3);
     if (!writable || !state.prefab_rebase_confirm || !consent || cancel) {
       state.prefab_rebase_confirm = false;

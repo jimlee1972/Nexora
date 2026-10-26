@@ -1,4 +1,5 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
+#include "EditorIcons.h"
 #include "EditorSystemFont.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/PrefabAssets.h"
@@ -455,6 +456,7 @@ struct EditorImGuiHost::State final {
   std::vector<SceneDocument::NodeKey> inspector_transform_selection;
   std::array<std::array<char, 64>, 6> inspector_transform_text{};
   std::array<bool, 6> inspector_transform_active{}, inspector_transform_mixed{};
+  std::array<std::optional<std::array<float, 4>>, 9> inspector_transform_field_rects{};
   std::optional<std::size_t> inspector_transform_focus_request;
   std::uint32_t inspector_draft_generation{};
   template <typename Component> struct InspectorComponentRequest final {
@@ -885,7 +887,7 @@ template <typename StateT> void DrawPickedProjectControls(StateT &state) {
     ImGui::SetWindowFocus();
     state.selector_focus_root = false;
   }
-  const bool open = ImGui::Button("Open project (Ctrl+O)");
+  const bool open = detail::IconButton("Open project (Ctrl+O)", detail::EditorIcon::Open);
   position(0);
   if (!state.selector_busy && !state.selector_create_open &&
       (open || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O)) &&
@@ -896,7 +898,7 @@ template <typename StateT> void DrawPickedProjectControls(StateT &state) {
   }
   ImGui::SameLine();
   ImGui::BeginDisabled(state.selector_read_only);
-  const bool create = ImGui::Button("Create project (Ctrl+N)");
+  const bool create = detail::IconButton("Create project (Ctrl+N)", detail::EditorIcon::Add);
   position(1);
   if (!state.selector_busy && !state.selector_read_only && !state.selector_create_open &&
       (create || ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N)) &&
@@ -923,7 +925,7 @@ template <typename StateT> void DrawPickedProjectControls(StateT &state) {
     ImGui::TextWrapped("Location: %s", state.selector_root.data());
     ImGui::TextWrapped("The selected folder is the project folder.");
     ImGui::BeginDisabled(state.selector_busy || state.selector_read_only);
-    if (ImGui::Button("Create")) {
+    if (detail::IconButton("Create", detail::EditorIcon::Add)) {
       const auto path = PathFromLabel(state.selector_root.data());
       if (path) {
         QueueProjectSelection(state, ProjectSelectorAction::Create, *path,
@@ -937,7 +939,7 @@ template <typename StateT> void DrawPickedProjectControls(StateT &state) {
     position(4);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    if (ImGui::Button("Cancel")) {
+    if (detail::IconButton("Cancel", detail::EditorIcon::Cancel)) {
       state.selector_create_open = false;
       ImGui::CloseCurrentPopup();
     }
@@ -1468,7 +1470,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   }
   ImGui::EndDisabled();
   ImGui::BeginDisabled(!editable);
-  if (ImGui::SmallButton("Create root"))
+  if (detail::SmallIconButton("Create root", detail::EditorIcon::Add))
     state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
         std::string(state.hierarchy_create_name.data()), std::nullopt, state.hierarchy_create_kind,
         scene->Generation()};
@@ -1476,7 +1478,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   ImGui::SameLine();
   const bool one_selected = scene->Selection().size() == 1;
   ImGui::BeginDisabled(!one_selected);
-  if (ImGui::SmallButton("Create child") && one_selected) {
+  if (detail::SmallIconButton("Create child", detail::EditorIcon::AddChild) && one_selected) {
     if (const auto parent = scene->Key(scene->Selection().front()))
       state.hierarchy_create_request = typename StateT::HierarchyCreateRequest{
           std::string(state.hierarchy_create_name.data()), parent, state.hierarchy_create_kind,
@@ -1488,7 +1490,7 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(scene->Selection().empty());
-  if (ImGui::SmallButton("Delete selected")) {
+  if (detail::SmallIconButton("Delete selected", detail::EditorIcon::Delete, false, "Delete")) {
     static_cast<void>(shell.RouteCommand("editor.scene.delete"));
     DeleteHierarchySelection(state, *scene);
   }
@@ -1501,12 +1503,12 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   }
   ImGui::Separator();
   ImGui::BeginDisabled(scene->Selection().empty() || interaction_blocked);
-  if (ImGui::SmallButton("Copy"))
+  if (detail::SmallIconButton("Copy", detail::EditorIcon::Copy, false, "Ctrl+C"))
     CopyHierarchySelection(state, *scene);
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(scene->Selection().empty() || !editable);
-  if (ImGui::SmallButton("Cut")) {
+  if (detail::SmallIconButton("Cut", detail::EditorIcon::Cut, false, "Ctrl+X")) {
     static_cast<void>(shell.RouteCommand("editor.scene.cut"));
     CutHierarchySelection(state, *scene);
   }
@@ -1516,12 +1518,12 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!editable);
-  if (ImGui::SmallButton("Paste"))
+  if (detail::SmallIconButton("Paste", detail::EditorIcon::Paste, false, "Ctrl+V"))
     PasteHierarchySelection(state, *scene);
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(scene->Selection().empty() || !editable);
-  if (ImGui::SmallButton("Duplicate")) {
+  if (detail::SmallIconButton("Duplicate", detail::EditorIcon::Duplicate, false, "Ctrl+D")) {
     static_cast<void>(shell.RouteCommand("editor.scene.duplicate"));
     DuplicateHierarchySelection(state, *scene);
   }
@@ -1677,17 +1679,18 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
       !ImGui::GetIO().WantTextInput && ImGui::Shortcut(ImGuiKey_F2, ImGuiInputFlags_RouteFocused))
     begin_rename(*selected_node);
   ImGui::BeginDisabled(selected_node == nullptr || !editable);
-  if (ImGui::SmallButton("Rename") && selected_node != nullptr)
+  if (detail::SmallIconButton("Rename", detail::EditorIcon::Rename, false, "F2") &&
+      selected_node != nullptr)
     begin_rename(*selected_node);
   ImGui::SameLine();
-  if (ImGui::SmallButton("Move up"))
+  if (detail::SmallIconButton("Move up", detail::EditorIcon::Up))
     static_cast<void>(MoveHierarchySelection(*scene, nodes, -1));
   ImGui::SameLine();
-  if (ImGui::SmallButton("Move down"))
+  if (detail::SmallIconButton("Move down", detail::EditorIcon::Down))
     static_cast<void>(MoveHierarchySelection(*scene, nodes, 1));
   ImGui::EndDisabled();
   ImGui::SameLine();
-  if (ImGui::SmallButton("Clear selection")) {
+  if (detail::SmallIconButton("Clear selection", detail::EditorIcon::Clear)) {
     static_cast<void>(scene->Select(std::span<const runtime::Id>{}));
     state.hierarchy_selection_anchor.reset();
     state.hierarchy_navigation_cursor.reset();
@@ -1819,14 +1822,15 @@ void DrawHierarchy(StateT &state, SceneDocument *scene, ProductShell &shell,
     const bool entered =
         ImGui::InputText("Name", state.hierarchy_rename.data(), state.hierarchy_rename.size(),
                          ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
-    const bool clicked = ImGui::Button("Rename");
+    const bool clicked = detail::IconButton("Rename", detail::EditorIcon::Rename);
     const auto rename_min = ImGui::GetItemRectMin(), rename_max = ImGui::GetItemRectMax();
     state.hierarchy_rename_position =
         std::array{(rename_min.x + rename_max.x) * 0.5F, (rename_min.y + rename_max.y) * 0.5F};
     const bool submit = entered || clicked || ImGui::IsKeyPressed(ImGuiKey_Enter, false);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    const bool cancel = ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+    const bool cancel = detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+                        ImGui::IsKeyPressed(ImGuiKey_Escape, false);
     if (!state.hierarchy_rename_target) {
       // The target went stale (entity or document replaced) while the modal was open.
       state.hierarchy_error.clear();
@@ -2252,18 +2256,21 @@ void DrawSceneOverview(StateT &state, SceneDocument &scene, bool editable,
   ImGui::TextUnformatted("Top-down X/Z | Drag marker: free move | Drag red X/blue Z: axis move | "
                          "Middle: pan | Wheel: zoom");
   ImGui::BeginDisabled(scene.Selection().empty() || state.scene_drag.has_value());
-  const bool frame_selected = ImGui::SmallButton("Frame selected");
+  const bool frame_selected =
+      detail::SmallIconButton("Frame selected", detail::EditorIcon::FrameSelected, false, "F");
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(state.scene_drag.has_value());
-  const bool frame_all = ImGui::SmallButton("Frame all");
+  const bool frame_all =
+      detail::SmallIconButton("Frame all", detail::EditorIcon::FrameAll, false, "Home");
   const auto frame_min = ImGui::GetItemRectMin(), frame_max = ImGui::GetItemRectMax();
   state.scene_frame_all_position =
       std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!navigation_allowed || state.scene_drag.has_value());
-  const bool select_all = ImGui::SmallButton("Select all");
+  const bool select_all =
+      detail::SmallIconButton("Select all", detail::EditorIcon::SelectAll, false, "Ctrl+A");
   const auto select_min = ImGui::GetItemRectMin(), select_max = ImGui::GetItemRectMax();
   state.scene_select_all_position =
       std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
@@ -2662,22 +2669,21 @@ template <typename StateT> void DrawSceneTabs(StateT &state, bool allowed, bool 
     ImGui::EndTabBar();
   }
   ImGui::BeginDisabled(!writable || state.scene_tabs.size() >= 16);
-  if (ImGui::Button("New additive"))
+  if (detail::IconButton("New additive", detail::EditorIcon::Add))
     EmitSceneTab(state, {SceneTabAction::New, state.scene_tab_source});
   CaptureSceneTabControl(state, 0);
   ImGui::EndDisabled();
-  const auto continue_row = [](const char *label) {
+  const auto continue_row = [] {
     const auto &style = ImGui::GetStyle();
     const auto right = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-    if (ImGui::GetItemRectMax().x + style.ItemSpacing.x + ImGui::CalcTextSize(label).x +
-            2 * style.FramePadding.x <=
-        right)
+    if (ImGui::GetItemRectMax().x + style.ItemSpacing.x + detail::IconButtonExtent() <= right)
       ImGui::SameLine();
   };
   for (int reference = 0; reference != 2; ++reference) {
-    continue_row(reference ? "Open reference..." : "Open additive...");
+    continue_row();
     ImGui::BeginDisabled(state.scene_tabs.size() >= 16);
-    if (ImGui::Button(reference ? "Open reference..." : "Open additive...")) {
+    if (detail::IconButton(reference ? "Open reference..." : "Open additive...",
+                           detail::EditorIcon::Open)) {
       CancelSceneGestures(state);
       CancelInspectorDrafts(state);
       state.scene_tab_path = {};
@@ -2688,15 +2694,15 @@ template <typename StateT> void DrawSceneTabs(StateT &state, bool allowed, bool 
     CaptureSceneTabControl(state, static_cast<std::size_t>(reference + 1));
     ImGui::EndDisabled();
   }
-  continue_row("Save All");
+  continue_row();
   ImGui::BeginDisabled(!writable || !named);
-  if (ImGui::Button("Save All"))
+  if (detail::IconButton("Save All", detail::EditorIcon::SaveAll))
     EmitSceneTab(state, {SceneTabAction::SaveAll, state.scene_tab_source});
   CaptureSceneTabControl(state, 3);
   ImGui::EndDisabled();
-  continue_row("Close scene");
+  continue_row();
   ImGui::BeginDisabled(!active->closeable);
-  if (ImGui::Button("Close scene"))
+  if (detail::IconButton("Close scene", detail::EditorIcon::Close))
     begin_close();
   CaptureSceneTabControl(state, 4);
   ImGui::EndDisabled();
@@ -2740,7 +2746,7 @@ template <typename StateT> void DrawSceneTabDialog(StateT &state, bool writable,
     const auto target =
         std::ranges::find(state.scene_tabs, state.scene_tab_close->target, &SceneTabItem::id);
     ImGui::BeginDisabled(!writable || target == state.scene_tabs.end() || !target->owned);
-    if (ImGui::Button("Save all and close")) {
+    if (detail::IconButton("Save all and close", detail::EditorIcon::SaveAll)) {
       auto request = *state.scene_tab_close;
       request.save_before_close = true;
       EmitSceneTab(state, std::move(request));
@@ -2748,7 +2754,7 @@ template <typename StateT> void DrawSceneTabDialog(StateT &state, bool writable,
     CaptureSceneTabControl(state, 8);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    if (ImGui::Button("Discard and close")) {
+    if (detail::IconButton("Discard and close", detail::EditorIcon::Delete)) {
       auto request = *state.scene_tab_close;
       request.discard_dirty = true;
       EmitSceneTab(state, std::move(request));
@@ -2763,7 +2769,7 @@ template <typename StateT> void DrawSceneTabDialog(StateT &state, bool writable,
         ImGui::InputText("Relative .scene path", state.scene_tab_path.data(),
                          state.scene_tab_path.size(), ImGuiInputTextFlags_EnterReturnsTrue);
     CaptureSceneTabControl(state, 5);
-    if (ImGui::Button("Open") || submitted) {
+    if (detail::IconButton("Open", detail::EditorIcon::Open) || submitted) {
       const std::string text(state.scene_tab_path.data());
       if (text.empty() || !foundation::IsValidUtf8(text))
         state.scene_tab_status = "Choose a valid project-relative scene path.";
@@ -2778,7 +2784,8 @@ template <typename StateT> void DrawSceneTabDialog(StateT &state, bool writable,
     CaptureSceneTabControl(state, 6);
   }
   ImGui::SameLine();
-  if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+  if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+      ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
     state.scene_tab_dialog = 0;
     state.scene_tab_close.reset();
     ImGui::CloseCurrentPopup();
@@ -2909,7 +2916,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
   ImGui::TextWrapped("%s", snapshot.message.empty() ? "Preparing scene comparison..."
                                                     : snapshot.message.c_str());
   if (state.scene_comparison_busy) {
-    if (ImGui::Button("Cancel comparison"))
+    if (detail::IconButton("Cancel comparison", detail::EditorIcon::Cancel))
       state.scene_comparison_cancel_requested = true;
     CaptureComparisonControl(state, 2);
   }
@@ -2931,7 +2938,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
   ImGui::PushID(frame_scope.c_str());
   ImGui::BeginDisabled(!editable || !state.scene_merge_interaction_allowed ||
                        state.scene_comparison_busy || state.scene_merge_busy || unresolved);
-  if (ImGui::Button("Validate candidate")) {
+  if (detail::IconButton("Validate candidate", detail::EditorIcon::Confirm)) {
     state.scene_merge_request = CaptureSceneMergeDraft(state);
     state.scene_merge_status = {};
     ClearSceneMergePublication(state);
@@ -2944,7 +2951,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
   ImGui::EndDisabled();
   if (state.scene_merge_busy) {
     ImGui::SameLine();
-    if (ImGui::Button("Cancel candidate"))
+    if (detail::IconButton("Cancel candidate", detail::EditorIcon::Cancel))
       state.scene_merge_cancel = true;
     state.scene_merge_positions[1] = position();
   }
@@ -2954,7 +2961,7 @@ template <typename StateT> void DrawSceneComparisonPanel(StateT &state) {
       !state.scene_merge_publication_writable || !state.scene_merge_interaction_allowed ||
       state.scene_merge_busy || state.scene_comparison_busy || !state.scene_merge_status.result ||
       !state.scene_merge_status.result->bytes || state.scene_merge_publication_preview);
-  if (ImGui::Button("Review file publication")) {
+  if (detail::IconButton("Review file publication", detail::EditorIcon::Inspect)) {
     state.scene_merge_publication_request = CaptureSceneMergeDraft(state);
     state.scene_merge_publication_message.clear();
   }
@@ -3091,7 +3098,7 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
   if (state.scene_file_dialog == StateT::FileDialog::Unsaved) {
     ImGui::TextUnformatted("Save scene changes before continuing?");
     ImGui::BeginDisabled(!writable || state.scene_file_save_blocked);
-    if (ImGui::Button("Save")) {
+    if (detail::IconButton("Save", detail::EditorIcon::Save)) {
       request.save_current = true;
       if (state.scene_file_path) {
         emit = true;
@@ -3105,7 +3112,7 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
     CaptureSceneFileControl(state, 7);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    if (ImGui::Button("Discard changes")) {
+    if (detail::IconButton("Discard changes", detail::EditorIcon::Delete)) {
       request.discard_unsaved = true;
       emit = true;
     }
@@ -3115,18 +3122,18 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
     ImGui::TextWrapped("Replace the existing scene at %s?", PathLabel(path).c_str());
     if (state.scene_comparison_in_overwrite) {
       DrawSceneComparisonPanel(state);
-      if (ImGui::Button("Back to replacement"))
+      if (detail::IconButton("Back to replacement", detail::EditorIcon::Back))
         state.scene_comparison_in_overwrite = false;
       CaptureComparisonControl(state, 3);
     } else {
       ImGui::BeginDisabled(state.scene_comparison_busy || !state.scene_file_path ||
                            path != *state.scene_file_path);
-      if (ImGui::Button("Compare base / local / disk"))
+      if (detail::IconButton("Compare base / local / disk", detail::EditorIcon::Compare))
         BeginSceneComparison(state, true);
       CaptureComparisonControl(state, 1);
       ImGui::EndDisabled();
       ImGui::BeginDisabled(!writable);
-      if (ImGui::Button("Replace")) {
+      if (detail::IconButton("Replace", detail::EditorIcon::Apply)) {
         request.replace_existing = true;
         emit = true;
       }
@@ -3150,7 +3157,9 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
     state.scene_file_path_active = state.scene_file_path_ready && ImGui::IsItemActive();
 #endif
     ImGui::BeginDisabled(!opening && !writable);
-    const bool apply = ImGui::Button(opening ? "Open" : "Save As");
+    const bool apply =
+        detail::IconButton(opening ? "Open" : "Save As",
+                           opening ? detail::EditorIcon::Open : detail::EditorIcon::Save);
     CaptureSceneFileControl(state, 5);
     if (apply || (submit && (opening || writable))) {
       const std::string_view text(state.scene_file_text.data());
@@ -3172,7 +3181,8 @@ void DrawSceneFileDialog(StateT &state, SceneDocument *scene, bool writable, boo
     ImGui::EndDisabled();
   }
   ImGui::SameLine();
-  if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+  if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+      ImGui::IsKeyPressed(ImGuiKey_Escape, false))
     cancel_dialog();
   CaptureSceneFileControl(state, 6);
   // Transfer only after widgets finish using the intent's fields in this frame.
@@ -3206,7 +3216,7 @@ bool DrawInspectorClipboard(StateT &state, SceneDocument &scene,
         std::array{(minimum.x + maximum.x) * 0.5F, (minimum.y + maximum.y) * 0.5F};
   };
   ImGui::BeginDisabled(!can_copy);
-  if (ImGui::SmallButton("Copy values")) {
+  if (detail::SmallIconButton("Copy values", detail::EditorIcon::Copy)) {
     CancelSceneGestures(state);
     CancelInspectorDrafts(state);
     ImGui::ClearActiveID();
@@ -3230,7 +3240,7 @@ bool DrawInspectorClipboard(StateT &state, SceneDocument &scene,
                          state.inspector_component_clipboard->index() == component;
   ImGui::BeginDisabled(!can_paste);
   bool pasted = false;
-  if (ImGui::SmallButton("Paste values")) {
+  if (detail::SmallIconButton("Paste values", detail::EditorIcon::Paste)) {
     CancelSceneGestures(state);
     CancelInspectorDrafts(state);
     ImGui::ClearActiveID();
@@ -3315,6 +3325,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   state.inspector_selection =
       scene == nullptr ? 0U : static_cast<std::uint32_t>(scene->Selection().size());
   state.inspector_transform_visible = false;
+  state.inspector_transform_field_rects = {};
   state.inspector_camera_presence_mixed = state.inspector_light_presence_mixed = false;
   state.inspector_camera_mixed = {};
   state.inspector_light_mixed = false;
@@ -3449,15 +3460,19 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   }
   ImGui::PushID(static_cast<int>(selection_hash));
   ImGui::PushID(static_cast<int>(state.inspector_draft_generation));
-  ImGui::SeparatorText("Transform");
+  ImGui::Separator();
+  ImGui::AlignTextToFramePadding();
+  ImGui::TextUnformatted("Transform");
+  ImGui::SameLine();
   if (DrawInspectorClipboard(state, *scene, keys, 0, editable, copy_allowed))
     for (std::size_t i = 0; i < keys.size(); ++i)
       transforms[i] = *scene->Transform(keys[i].id);
+  ImGui::SameLine();
   ImGui::BeginDisabled(!editable);
-  if (ImGui::SmallButton("Reset Transform") && ResetInspectorComponent(state, *scene, keys, 0))
+  if (detail::SmallIconButton("Reset Transform", detail::EditorIcon::Reset) &&
+      ResetInspectorComponent(state, *scene, keys, 0))
     std::ranges::fill(transforms, runtime::Transform{});
   CaptureInspectorReset(state, 0);
-  ImGui::TextDisabled("Enter applies; Escape cancels.");
   struct Field final {
     const char *label;
     double runtime::Transform::*member;
@@ -3466,7 +3481,32 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       Field{"Position X", &runtime::Transform::x}, Field{"Position Y", &runtime::Transform::y},
       Field{"Position Z", &runtime::Transform::z}, Field{"Scale X", &runtime::Transform::sx},
       Field{"Scale Y", &runtime::Transform::sy},   Field{"Scale Z", &runtime::Transform::sz}};
-  for (std::size_t axis = 0; axis < fields.size(); ++axis) {
+  constexpr std::array hidden_labels{"##Position X", "##Position Y", "##Position Z",
+                                     "##Scale X",    "##Scale Y",    "##Scale Z"};
+  constexpr std::array hidden_rotation_labels{"##Rotation X", "##Rotation Y", "##Rotation Z"};
+  std::vector<EulerDegrees> angles;
+  angles.reserve(keys.size());
+  for (std::size_t i = 0; i < keys.size(); ++i)
+    angles.push_back(InspectorAngles(state, *scene, keys[i], transforms[i]));
+  if (state.inspector_euler_selection != keys) {
+    state.inspector_euler_selection = keys;
+    state.inspector_euler_active = {};
+  }
+  const auto capture_field = [&](std::size_t row, std::size_t axis, const char *description) {
+    if (ImGui::IsItemVisible() && !ImGui::GetCurrentWindow()->Hidden &&
+        !(ImGui::GetItemFlags() & ImGuiItemFlags_Disabled)) {
+      const auto minimum = ImGui::GetItemRectMin(), maximum = ImGui::GetItemRectMax();
+      state.inspector_transform_field_rects[row * 3 + axis] =
+          std::array{minimum.x, minimum.y, maximum.x, maximum.y};
+    }
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+      const auto item = GImGui->LastItemData;
+      ImGui::SetTooltip("%s\nEnter applies; Escape cancels.", description);
+      GImGui->LastItemData = item;
+    }
+  };
+  // Keep the owning draft/request paths while presenting local TRS as three XYZ rows.
+  const auto draw_scalar = [&](std::size_t row, std::size_t axis) {
     const auto &field = fields[axis];
     double value = transforms.front().*(field.member);
     const bool mixed = std::ranges::any_of(
@@ -3487,9 +3527,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       state.inspector_transform_focus_request.reset();
     }
     const bool submit = ImGui::InputTextWithHint(
-        field.label, mixed ? "Mixed" : "Value", text.data(), text.size(),
+        hidden_labels[axis], mixed ? "Mixed" : "Value", text.data(), text.size(),
         ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_EnterReturnsTrue);
     state.inspector_transform_active[axis] = ImGui::IsItemActive();
+    capture_field(row, axis % 3, field.label);
     if (submit) {
       const std::string_view entered{text.data()};
       const auto number = entered.starts_with('+') ? entered.substr(1) : entered;
@@ -3508,19 +3549,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
         state.inspector_error.clear();
       }
     }
-  }
-
-  ImGui::SeparatorText("Local rotation (degrees, Z-X-Y)");
-  std::vector<EulerDegrees> angles;
-  angles.reserve(keys.size());
-  for (std::size_t i = 0; i < keys.size(); ++i)
-    angles.push_back(InspectorAngles(state, *scene, keys[i], transforms[i]));
-  if (state.inspector_euler_selection != keys) {
-    state.inspector_euler_selection = keys;
-    state.inspector_euler_active = {};
-  }
-  constexpr std::array labels{"Rotation X", "Rotation Y", "Rotation Z"};
-  for (std::size_t axis = 0; axis < labels.size(); ++axis) {
+  };
+  const auto draw_rotation = [&](std::size_t axis) {
     double value = angles.front()[axis];
     const bool mixed = std::ranges::any_of(
         angles, [&](const auto &item) { return std::abs(item[axis] - value) > 1e-8; });
@@ -3536,9 +3566,10 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       state.inspector_euler_focus_request.reset();
     }
     const bool submit = ImGui::InputTextWithHint(
-        labels[axis], mixed ? "Mixed" : "Degrees", text.data(), text.size(),
+        hidden_rotation_labels[axis], mixed ? "Mixed" : "Degrees", text.data(), text.size(),
         ImGuiInputTextFlags_CharsScientific | ImGuiInputTextFlags_EnterReturnsTrue);
     state.inspector_euler_active[axis] = ImGui::IsItemActive();
+    capture_field(1, axis, "Local rotation in degrees (Z-X-Y)");
     if (submit) {
       const std::string_view entered{text.data()};
       const auto number = entered.starts_with('+') ? entered.substr(1) : entered;
@@ -3550,6 +3581,43 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
         state.inspector_euler_request.emplace(
             typename StateT::InspectorEulerRequest{keys, axis, value});
     }
+  };
+  constexpr std::array row_labels{"Position", "Rotation", "Scale"};
+  constexpr std::array axis_labels{"X", "Y", "Z"};
+  constexpr std::array axis_colors{ImVec4(0.95F, 0.35F, 0.35F, 1), ImVec4(0.40F, 0.85F, 0.40F, 1),
+                                   ImVec4(0.40F, 0.65F, 1.0F, 1)};
+  const auto &style = ImGui::GetStyle();
+  const float row_width = ImGui::GetContentRegionAvail().x;
+  const float label_width = ImGui::CalcTextSize("Rotation").x + style.ItemSpacing.x;
+  const float axis_label_width = ImGui::CalcTextSize("X").x;
+  const float gap = style.ItemInnerSpacing.x;
+  const float minimum_input_width = ImGui::GetFontSize() * 3.0F;
+  const bool stacked = row_width < label_width +
+                                       3 * (axis_label_width + gap + minimum_input_width) +
+                                       2 * style.ItemSpacing.x;
+  const float fields_width = row_width - (stacked ? 0 : label_width);
+  const float lane_width = std::max(1.0F, (fields_width - 2 * style.ItemSpacing.x) / 3);
+  const float input_width = std::max(1.0F, lane_width - axis_label_width - gap);
+  for (std::size_t row = 0; row < row_labels.size(); ++row) {
+    const float left = ImGui::GetCursorPosX();
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(row_labels[row]);
+    if (!stacked)
+      ImGui::SameLine(left + label_width);
+    ImGui::BeginGroup();
+    for (std::size_t axis = 0; axis < axis_labels.size(); ++axis) {
+      if (axis != 0)
+        ImGui::SameLine(0, style.ItemSpacing.x);
+      ImGui::AlignTextToFramePadding();
+      ImGui::TextColored(axis_colors[axis], "%s", axis_labels[axis]);
+      ImGui::SameLine(0, gap);
+      ImGui::SetNextItemWidth(input_width);
+      if (row == 1)
+        draw_rotation(axis);
+      else
+        draw_scalar(row, (row == 2 ? 3 : 0) + axis);
+    }
+    ImGui::EndGroup();
   }
   ImGui::EndDisabled();
   ImGui::PopID();
@@ -3608,7 +3676,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   ImGui::SameLine();
   ImGui::BeginDisabled(
       std::ranges::none_of(cameras, [](const auto &camera) { return camera.has_value(); }));
-  if (ImGui::SmallButton("Reset Camera") && ResetInspectorComponent(state, *scene, keys, 1))
+  if (detail::SmallIconButton("Reset Camera", detail::EditorIcon::Reset) &&
+      ResetInspectorComponent(state, *scene, keys, 1))
     for (auto &camera : cameras)
       if (camera)
         camera = runtime::CameraComponent{};
@@ -3617,7 +3686,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   if (!camera_presence_mixed && camera_enabled) {
     ImGui::BeginDisabled(keys.size() != 1 || !state.native_scene_preview ||
                          !state.native_scene_preview_available);
-    if (ImGui::SmallButton("Use Scene view pose")) {
+    if (detail::SmallIconButton("Use Scene view pose", detail::EditorIcon::Camera)) {
       CancelSceneGestures(state);
       CancelInspectorDrafts(state);
       const auto &orbit = state.native_scene_orbit;
@@ -3743,7 +3812,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   ImGui::SameLine();
   ImGui::BeginDisabled(
       std::ranges::none_of(lights, [](const auto &light) { return light.has_value(); }));
-  if (ImGui::SmallButton("Reset Light") && ResetInspectorComponent(state, *scene, keys, 2))
+  if (detail::SmallIconButton("Reset Light", detail::EditorIcon::Reset) &&
+      ResetInspectorComponent(state, *scene, keys, 2))
     for (auto &light : lights)
       if (light)
         light = runtime::LightComponent{};
@@ -3863,7 +3933,8 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
     }
     ImGui::EndDisabled();
     ImGui::BeginDisabled(!editable || !any_mesh || content == nullptr || !content->Writable());
-    if (ImGui::Button("Remove Mesh Renderer###editor.inspector.mesh.remove"))
+    if (detail::IconButton("Remove Mesh Renderer###editor.inspector.mesh.remove",
+                           detail::EditorIcon::Delete))
       state.inspector_mesh_request =
           typename StateT::InspectorMeshRequest{keys, std::nullopt, generation};
     const auto remove_min = ImGui::GetItemRectMin();
@@ -4016,7 +4087,7 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     const bool editable = workspace->Writable() && state.build_settings_ready && !blocked;
     ImGui::BeginDisabled(!editable);
     ImGui::BeginDisabled(!state.scene_file_path || !scene || scene->Dirty());
-    if (ImGui::Button("Add Current Scene"))
+    if (detail::IconButton("Add Current Scene", detail::EditorIcon::Add))
       request(ProjectBuildSettingsAction::AddScene, PathLabel(*state.scene_file_path));
     capture(2);
     ImGui::EndDisabled();
@@ -4026,7 +4097,7 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     ImGui::InputText("##BuildScenePath", state.build_settings_path.data(),
                      state.build_settings_path.size());
     capture(3);
-    if (ImGui::Button("Add Scene Path"))
+    if (detail::IconButton("Add Scene Path", detail::EditorIcon::AddChild))
       request(ProjectBuildSettingsAction::AddScene, state.build_settings_path.data());
     capture(4);
     ImGui::SameLine();
@@ -4042,7 +4113,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
         capture(16 + i * 3);
         ImGui::EndDisabled();
         ImGui::SameLine();
-        if (ImGui::Button(startup ? "Startup" : "Set Startup")) {
+        if (detail::IconButton(startup ? "Startup" : "Set Startup", detail::EditorIcon::Startup,
+                               startup)) {
           state.build_settings.start_scene = entry.id;
           entry.enabled = true;
         }
@@ -4065,7 +4137,7 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     ImGui::BeginDisabled(
         !selected || (selected && state.build_settings.scenes[*state.build_settings_selected].id ==
                                       state.build_settings.start_scene));
-    if (ImGui::Button("Remove Selected")) {
+    if (detail::IconButton("Remove Selected", detail::EditorIcon::Delete)) {
       state.build_settings.scenes.erase(
           state.build_settings.scenes.begin() +
           static_cast<std::ptrdiff_t>(*state.build_settings_selected));
@@ -4075,23 +4147,24 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!selected || !state.build_settings_selected);
-    if (ImGui::Button("Update Selected Path") && state.build_settings_selected)
+    if (detail::IconButton("Update Selected Path", detail::EditorIcon::Rename) &&
+        state.build_settings_selected)
       state.build_settings.scenes[*state.build_settings_selected].path =
           state.build_settings_path.data();
     capture(9);
     ImGui::EndDisabled();
-    if (ImGui::Button("Save Build Settings"))
+    if (detail::IconButton("Save Build Settings", detail::EditorIcon::Save))
       request(ProjectBuildSettingsAction::Save);
     capture(5);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(blocked);
-    if (ImGui::Button("Reload Saved Settings"))
+    if (detail::IconButton("Reload Saved Settings", detail::EditorIcon::Reload))
       request(ProjectBuildSettingsAction::Reload);
     capture(6);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    if (ImGui::Button("Close"))
+    if (detail::IconButton("Close", detail::EditorIcon::Close))
       state.build_settings_open = false;
     capture(7);
     ImGui::TextDisabled(
@@ -4111,7 +4184,7 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
                        sizeof(state.game_build_manifest));
       capture(12);
     }
-    if (ImGui::Button("Build Game")) {
+    if (detail::IconButton("Build Game", detail::EditorIcon::Build)) {
       request(state.game_build_script ? ProjectBuildSettingsAction::BuildScript
                                       : ProjectBuildSettingsAction::BuildSceneOnly,
               state.game_build_script ? state.game_build_manifest : "");
@@ -4121,7 +4194,7 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!state.game_build_busy);
-    if (ImGui::Button("Cancel Build"))
+    if (detail::IconButton("Cancel Build", detail::EditorIcon::Cancel))
       request(ProjectBuildSettingsAction::CancelBuild);
     capture(14);
     ImGui::EndDisabled();
@@ -4166,7 +4239,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
   if (workspace && state.project_files_root == workspace->Root()) {
     ImGui::TextUnformatted(workspace->Project().name.c_str());
     ImGui::SameLine();
-    if (ImGui::Button("Refresh"))
+    if (detail::IconButton("Refresh", detail::EditorIcon::Refresh))
       state.project_files_refresh = true;
     ImGui::TextDisabled("Double-click a scene to open it.");
     if (!state.project_files_error.empty())
@@ -4352,7 +4425,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
     browser.SetFilter(state.content_query.data(), state.content_type.data());
   ImGui::SameLine();
   ImGui::BeginDisabled(!commands_allowed || !content.CanUndo());
-  if (ImGui::Button("Undo content"))
+  if (detail::IconButton("Undo content", detail::EditorIcon::Undo))
     static_cast<void>(content.Undo());
   {
     const auto lo = ImGui::GetItemRectMin(), hi = ImGui::GetItemRectMax();
@@ -4493,7 +4566,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       selected_mesh && meshes ? meshes->ResolveAsset(selected_mesh->id, browser.ProjectGeneration())
                               : std::optional<MeshAssetSnapshot>{};
   ImGui::BeginDisabled(!scene || !scene_editable || !content.Writable() || !resolved_mesh);
-  if (ImGui::SmallButton("Add mesh to Scene")) {
+  if (detail::SmallIconButton("Add mesh to Scene", detail::EditorIcon::Mesh)) {
     const bool native_placement =
         state.native_scene_preview && state.native_scene_preview_available;
     const runtime::Transform position{
@@ -4520,7 +4593,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
   const bool selected_scene_file = selected_scene && selected_scene->type == ".scene" &&
                                    selected_scene->path.extension() == ".scene";
   ImGui::BeginDisabled(!scene_openable || !selected_scene_file);
-  if (ImGui::SmallButton("Open scene"))
+  if (detail::SmallIconButton("Open scene", detail::EditorIcon::Open))
     BeginContentScene(state, *scene, selected_scene->path);
   const auto open_min = ImGui::GetItemRectMin(), open_max = ImGui::GetItemRectMax();
   state.content_open_scene_position =
@@ -4712,7 +4785,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         ImGui::InputText("Filename", state.content_rename.data(), state.content_rename.size(),
                          ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_EnterReturnsTrue);
     capture(0);
-    const bool apply = ImGui::Button("Apply");
+    const bool apply = detail::IconButton("Apply", detail::EditorIcon::Apply);
     capture(1);
     if (valid && (apply || submit)) {
       if (content.Rename(*state.content_rename_target, state.content_rename.data())) {
@@ -4724,7 +4797,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       }
     }
     ImGui::SameLine();
-    const bool cancel = ImGui::Button("Cancel");
+    const bool cancel = detail::IconButton("Cancel", detail::EditorIcon::Cancel);
     capture(2);
     if (!valid || cancel || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
       state.content_rename_target.reset();
@@ -4773,7 +4846,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
           ImGui::PushID(uuid.c_str());
           ImGui::BeginDisabled(!target || !selection_commands_allowed ||
                                state.content_rename_target);
-          if (ImGui::SmallButton("Reveal"))
+          if (detail::SmallIconButton("Reveal", detail::EditorIcon::Browse))
             dependency_reveal = dependency;
           const auto button_min = ImGui::GetItemRectMin(), button_max = ImGui::GetItemRectMax();
           state.content_dependency_controls[direction].push_back(
@@ -4863,13 +4936,13 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
         ImGui::TextDisabled("Choose Compare to inspect the editor and disk hashes first.");
       }
 
-      if (ImGui::Button("Reload from disk"))
+      if (detail::IconButton("Reload from disk", detail::EditorIcon::Reload))
         requested_choice = DirtyConflictChoice::Reload;
       ImGui::SameLine();
-      if (ImGui::Button("Keep editor version"))
+      if (detail::IconButton("Keep editor version", detail::EditorIcon::Confirm))
         requested_choice = DirtyConflictChoice::Keep;
       ImGui::SameLine();
-      if (ImGui::Button("Compare"))
+      if (detail::IconButton("Compare", detail::EditorIcon::Compare))
         requested_choice = DirtyConflictChoice::Compare;
 
       if (requested_choice && content.Conflicts().Resolve(conflict.asset, *requested_choice)) {
@@ -4897,7 +4970,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
                                                        static_cast<float>(progress.total);
       ImGui::ProgressBar(std::clamp(fraction, 0.0F, 1.0F));
     }
-    if (content.ReimportBusy() && ImGui::Button("Cancel import"))
+    if (content.ReimportBusy() && detail::IconButton("Cancel import", detail::EditorIcon::Cancel))
       static_cast<void>(content.CancelReimport());
     for (const auto &diagnostic : status->diagnostics)
       ImGui::TextWrapped("[%s] %s", diagnostic.code.c_str(), diagnostic.message.c_str());
@@ -5207,6 +5280,7 @@ void EditorImGuiHost::BeginFrame(float delta_seconds) {
   state_->scene_frame_token.reset();
   state_->native_scene_frame_all_request.reset();
   state_->native_scene_frame_all_apply.reset();
+  state_->inspector_transform_field_rects = {};
   state_->inspector_reset_positions = {};
   state_->inspector_clipboard_positions = {};
   state_->native_game_viewport.reset();
@@ -5292,7 +5366,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
     // BeginDisabled does not suppress key chords, so gate the shortcuts on the same conditions that
     // disable their buttons: no new request while an import runs, and no Create when read-only.
     const bool open_requested =
-        ImGui::Button("Open project (Ctrl+O)") ||
+        detail::IconButton("Open project (Ctrl+O)", detail::EditorIcon::Open) ||
         (!state_->selector_busy && ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O));
     if (open_requested) {
       if (typed_root)
@@ -5304,9 +5378,10 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
     }
     ImGui::SameLine();
     ImGui::BeginDisabled(state_->selector_read_only);
-    const bool create_requested = ImGui::Button("Create project (Ctrl+N)") ||
-                                  (!state_->selector_busy && !state_->selector_read_only &&
-                                   ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N));
+    const bool create_requested =
+        detail::IconButton("Create project (Ctrl+N)", detail::EditorIcon::Add) ||
+        (!state_->selector_busy && !state_->selector_read_only &&
+         ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N));
     if (create_requested) {
       if (typed_root)
         QueueProjectSelection(*state_, ProjectSelectorAction::Create, *typed_root,
@@ -5316,7 +5391,8 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
     }
     ImGui::EndDisabled();
     ImGui::SameLine();
-    const bool preview_clicked = ImGui::Button("Preview upgrade (Ctrl+Alt+M)");
+    const bool preview_clicked =
+        detail::IconButton("Preview upgrade (Ctrl+Alt+M)", detail::EditorIcon::Preview);
     state_->selector_upgrade_positions[1] =
         std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
                    (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
@@ -5361,7 +5437,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   } else {
     for (const auto &recent : recent_projects->Entries()) {
       ImGui::PushID(recent.id.ToString().c_str());
-      if (ImGui::Button("Open"))
+      if (detail::IconButton("Open", detail::EditorIcon::Open))
         QueueProjectSelection(*state_, ProjectSelectorAction::Open, recent.root, {},
                               state_->selector_read_only ? ProjectAccess::ReadOnly
                                                          : ProjectAccess::ReadWrite);
@@ -5375,7 +5451,7 @@ void EditorImGuiHost::DrawProjectSelector(const RecentProjectStore *recent_proje
   ImGui::EndDisabled();
   if (!state_->selector_status.empty())
     ImGui::TextWrapped("%s", state_->selector_status.c_str());
-  if (state_->selector_busy && ImGui::Button("Cancel import"))
+  if (state_->selector_busy && detail::IconButton("Cancel import", detail::EditorIcon::Cancel))
     state_->selector_cancel_requested = true;
   ImGui::End();
 }
@@ -5470,7 +5546,7 @@ void EditorImGuiHost::DrawDiagnosticPrivacy(TelemetryConsent &diagnostics,
         std::array{(ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) * .5F,
                    (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) * .5F};
     ImGui::EndDisabled();
-    if (ImGui::Button("Clear retained events")) {
+    if (detail::IconButton("Clear retained events", detail::EditorIcon::Clear)) {
       diagnostics.Set(false);
       if (enabled && !project.IsNil())
         diagnostics.Set(true);
@@ -5857,15 +5933,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->saved_game_decision_positions[index] =
           std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
     };
-    if (ImGui::Button("Save Scene"))
+    if (detail::IconButton("Save Scene", detail::EditorIcon::Save, false, "Ctrl+S"))
       decide(SavedGameDecision::Save);
     capture_decision(0);
     ImGui::SameLine();
-    if (ImGui::Button("Use Saved Scenes"))
+    if (detail::IconButton("Use Saved Scenes", detail::EditorIcon::Open))
       decide(SavedGameDecision::UseSaved);
     capture_decision(1);
     ImGui::SameLine();
-    if (ImGui::Button("Cancel"))
+    if (detail::IconButton("Cancel", detail::EditorIcon::Cancel))
       decide(SavedGameDecision::Cancel);
     capture_decision(2);
     ImGui::EndPopup();
@@ -6091,11 +6167,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::BeginDisabled(!file_context_valid || file_external_block || file_busy ||
                            game_running || state_->content_rename_target);
       ImGui::BeginDisabled(!writable);
-      if (ImGui::Button("New Scene"))
+      if (detail::IconButton("New Scene", detail::EditorIcon::Add, false, "Ctrl+N"))
         BeginSceneFile(*state_, *scene, SceneFileAction::New);
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Open Scene..."))
+      if (detail::IconButton("Open Scene...", detail::EditorIcon::Open, false, "Ctrl+O"))
         BeginSceneFile(*state_, *scene, SceneFileAction::Open);
       ImGui::EndDisabled();
       ImGui::Separator();
@@ -6108,7 +6184,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     if (workspace && !workspace->Writable())
       ImGui::TextDisabled("Read-only project: scene editing disabled.");
     ImGui::BeginDisabled(scene == nullptr || !scene_editable);
-    if (ImGui::Button("Undo")) {
+    if (detail::IconButton("Undo", detail::EditorIcon::Undo, false, "Ctrl+Z")) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.undo"));
       state_->scene_save_message =
@@ -6117,7 +6193,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->hierarchy_selection_anchor.reset();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Redo")) {
+    if (detail::IconButton("Redo", detail::EditorIcon::Redo, false, "Ctrl+Shift+Z")) {
       CancelSceneGestures(*state_);
       static_cast<void>(shell.RouteCommand("editor.scene.redo"));
       state_->scene_save_message =
@@ -6126,7 +6202,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->hierarchy_selection_anchor.reset();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Save Scene") && scene != nullptr) {
+    if (detail::IconButton("Save Scene", detail::EditorIcon::Save, false, "Ctrl+S") &&
+        scene != nullptr) {
       static_cast<void>(shell.RouteCommand("editor.scene.save"));
       state_->scene_save_requested = true;
     }
@@ -6151,14 +6228,16 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->scene_markers.clear();
         ImGui::BeginDisabled(scene->Selection().empty() ||
                              state_->native_scene_drag_origin.has_value());
-        const bool frame_clicked = ImGui::SmallButton("Frame selected");
+        const bool frame_clicked = detail::SmallIconButton(
+            "Frame selected", detail::EditorIcon::FrameSelected, false, "F");
         const auto frame_min = ImGui::GetItemRectMin(), frame_max = ImGui::GetItemRectMax();
         state_->scene_frame_position =
             std::array{(frame_min.x + frame_max.x) * 0.5F, (frame_min.y + frame_max.y) * 0.5F};
         ImGui::EndDisabled();
         ImGui::SameLine();
         ImGui::BeginDisabled(state_->native_scene_drag_origin.has_value());
-        const bool frame_all_clicked = ImGui::SmallButton("Frame all");
+        const bool frame_all_clicked =
+            detail::SmallIconButton("Frame all", detail::EditorIcon::FrameAll, false, "Home");
         const auto all_min = ImGui::GetItemRectMin(), all_max = ImGui::GetItemRectMax();
         state_->scene_frame_all_position =
             std::array{(all_min.x + all_max.x) * 0.5F, (all_min.y + all_max.y) * 0.5F};
@@ -6167,7 +6246,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::BeginDisabled(!state_->app_focused || interaction_blocked ||
                              !state_->native_scene_preview_available ||
                              state_->native_scene_drag_origin || state_->native_scene_drag);
-        const bool select_all_clicked = ImGui::SmallButton("Select all");
+        const bool select_all_clicked =
+            detail::SmallIconButton("Select all", detail::EditorIcon::SelectAll, false, "Ctrl+A");
         const auto select_min = ImGui::GetItemRectMin(), select_max = ImGui::GetItemRectMax();
         state_->scene_select_all_position =
             std::array{(select_min.x + select_max.x) * 0.5F, (select_min.y + select_max.y) * 0.5F};
@@ -6192,10 +6272,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         constexpr std::array tools{NativeSceneTool::Select, NativeSceneTool::Move,
                                    NativeSceneTool::Rotate, NativeSceneTool::Scale};
         constexpr std::array tool_labels{"Select (Q)", "Move (W)", "Rotate (E)", "Scale (R)"};
+        constexpr std::array tool_icons{detail::EditorIcon::Select, detail::EditorIcon::Move,
+                                        detail::EditorIcon::Rotate, detail::EditorIcon::Scale};
         for (std::size_t index = 0; index < tools.size(); ++index) {
           if (index != 0)
             ImGui::SameLine();
-          if (ImGui::RadioButton(tool_labels[index], state_->native_scene_tool == tools[index])) {
+          if (detail::IconRadioButton(tool_labels[index], tool_icons[index],
+                                      state_->native_scene_tool == tools[index])) {
             state_->native_scene_tool = tools[index];
             if (tools[index] == NativeSceneTool::Scale)
               state_->native_scene_local_axes = true;
@@ -6416,7 +6499,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       const auto state = play->State();
       ImGui::BeginDisabled(state != runtime::PlayState::Stopped || interaction_blocked ||
                            !state_->app_focused);
-      if (ImGui::Button("Input bindings###game.input.bindings")) {
+      if (detail::IconButton("Input bindings###game.input.bindings",
+                             detail::EditorIcon::Settings)) {
         state_->game_input_draft = state_->game_input_bindings;
         state_->game_input_binding_error.clear();
         state_->game_input_binding_open = state_->game_input_binding_pending = true;
@@ -6454,31 +6538,30 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       if (!state_->game_input_binding_status.empty())
         ImGui::TextWrapped("%s", state_->game_input_binding_status.c_str());
       if (state == runtime::PlayState::Stopped) {
-        if (ImGui::Button("Play"))
+        if (detail::IconButton("Play", detail::EditorIcon::Play, false, "F5"))
           state_->play_command = PlayCommand::Start;
       } else {
-        if (ImGui::Button("Stop"))
+        if (detail::IconButton("Stop", detail::EditorIcon::Stop, false, "F5"))
           state_->play_command = PlayCommand::Stop;
         ImGui::SameLine();
         if (state == runtime::PlayState::Playing) {
-          if (ImGui::Button("Pause"))
+          if (detail::IconButton("Pause", detail::EditorIcon::Pause, false, "F6"))
             state_->play_command = PlayCommand::Pause;
         } else {
-          if (ImGui::Button("Resume"))
+          if (detail::IconButton("Resume", detail::EditorIcon::Play, false, "F6"))
             state_->play_command = PlayCommand::Resume;
           ImGui::SameLine();
-          if (ImGui::Button("Step"))
+          if (detail::IconButton("Step", detail::EditorIcon::Step, false, "F10"))
             state_->play_command = PlayCommand::Step;
         }
-        const float apply_width =
-            ImGui::CalcTextSize("Apply Changes").x + ImGui::GetStyle().FramePadding.x * 2;
+        const float apply_width = detail::IconButtonExtent();
         const float same_line_end =
             ImGui::GetItemRectMax().x + ImGui::GetStyle().ItemSpacing.x + apply_width;
         if (same_line_end <= ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x)
           ImGui::SameLine();
         ImGui::BeginDisabled(scene == nullptr || !writable || !play->CanApplyTransforms() ||
                              interaction_blocked || state_->close_prompt_requested);
-        if (ImGui::Button("Apply Changes")) {
+        if (detail::IconButton("Apply Changes", detail::EditorIcon::Apply)) {
           state_->play_apply_review = CapturePlayTransformReview(*scene, *play);
           state_->play_apply_open = true;
           state_->game_input_focused = false;
@@ -6489,8 +6572,12 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         }
         const auto apply_min = ImGui::GetItemRectMin();
         const auto apply_max = ImGui::GetItemRectMax();
-        state_->play_apply_position =
-            std::array{(apply_min.x + apply_max.x) * 0.5F, (apply_min.y + apply_max.y) * 0.5F};
+        const ImVec2 apply_center{(apply_min.x + apply_max.x) * 0.5F,
+                                  (apply_min.y + apply_max.y) * 0.5F};
+        const auto *apply_window = ImGui::GetCurrentWindow();
+        if (ImGui::IsItemVisible() && !apply_window->Hidden &&
+            apply_window->ClipRect.Contains(apply_center))
+          state_->play_apply_position = std::array{apply_center.x, apply_center.y};
         ImGui::EndDisabled();
       }
       ImGui::Text("State: %s", state == runtime::PlayState::Stopped   ? "Stopped"
@@ -6501,7 +6588,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         ImGui::Text("| %s", PauseReasonLabel(play->LastPauseReason()));
       }
       ImGui::SameLine();
-      if (ImGui::SmallButton("Host memory###game.host.memory")) {
+      if (detail::SmallIconButton("Host memory###game.host.memory", detail::EditorIcon::Inspect)) {
         state_->play_memory_open = true;
         state_->game_input_focused = false;
       }
@@ -6733,8 +6820,11 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->console_control_positions[control] =
             std::array{(min.x + max.x) * 0.5F, (min.y + max.y) * 0.5F};
       };
-      if (ImGui::Button(state_->console_display_paused ? "Resume display###editor.console.pause"
-                                                       : "Pause display###editor.console.pause")) {
+      if (detail::IconButton(
+              state_->console_display_paused ? "Resume display###editor.console.pause"
+                                             : "Pause display###editor.console.pause",
+              state_->console_display_paused ? detail::EditorIcon::Play : detail::EditorIcon::Pause,
+              state_->console_display_paused)) {
         state_->console_display_paused = !state_->console_display_paused;
         if (state_->console_display_paused)
           state_->console_frozen_records = std::move(live_records);
@@ -6745,7 +6835,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
       control_position(0);
       ImGui::SameLine();
-      if (ImGui::Button("Clear view###editor.console.clear")) {
+      if (detail::IconButton("Clear view###editor.console.clear", detail::EditorIcon::Clear)) {
         // Capture every record present at the click, including records hidden by filters/pause.
         const auto current = console->Snapshot();
         if (!current.empty())
@@ -6821,7 +6911,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       state_->profile_capture_position = std::array{(capture_min.x + capture_max.x) * 0.5F,
                                                     (capture_min.y + capture_max.y) * 0.5F};
       ImGui::SameLine();
-      if (ImGui::Button("Clear"))
+      if (detail::IconButton("Clear", detail::EditorIcon::Clear))
         profile->Clear();
       const auto memory_clear_min = ImGui::GetItemRectMin(),
                  memory_clear_max = ImGui::GetItemRectMax();
@@ -6834,14 +6924,15 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::SameLine();
       ImGui::BeginDisabled(samples.empty() || !workspace || !workspace->Writable() ||
                            interaction_blocked || state_->close_prompt_requested);
-      if (ImGui::Button("Export CSV"))
+      if (detail::IconButton("Export CSV", detail::EditorIcon::Export))
         state_->profile_export_requested = true;
       const auto export_min = ImGui::GetItemRectMin();
       const auto export_max = ImGui::GetItemRectMax();
       state_->profile_export_position =
           std::array{(export_min.x + export_max.x) * 0.5F, (export_min.y + export_max.y) * 0.5F};
       ImGui::SameLine();
-      if (ImGui::Button("Export JSON###editor.profiler.export-json"))
+      if (detail::IconButton("Export JSON###editor.profiler.export-json",
+                             detail::EditorIcon::Export))
         state_->profile_json_export_requested = true;
       const auto json_min = ImGui::GetItemRectMin();
       const auto json_max = ImGui::GetItemRectMax();
@@ -6849,13 +6940,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::array{(json_min.x + json_max.x) * 0.5F, (json_min.y + json_max.y) * 0.5F};
       ImGui::EndDisabled();
       ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
-      if (ImGui::Button("Import CSV###editor.profiler.import-csv"))
+      if (detail::IconButton("Import CSV###editor.profiler.import-csv", detail::EditorIcon::Import))
         state_->profile_csv_import_requested = true;
       const auto import_min = ImGui::GetItemRectMin(), import_max = ImGui::GetItemRectMax();
       state_->profile_csv_import_position =
           std::array{(import_min.x + import_max.x) * 0.5F, (import_min.y + import_max.y) * 0.5F};
       ImGui::SameLine();
-      if (ImGui::Button("Import JSON###editor.profiler.import-json"))
+      if (detail::IconButton("Import JSON###editor.profiler.import-json",
+                             detail::EditorIcon::Import))
         state_->profile_json_import_requested = true;
       const auto json_import_min = ImGui::GetItemRectMin();
       const auto json_import_max = ImGui::GetItemRectMax();
@@ -6864,7 +6956,8 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                      (json_import_min.y + json_import_max.y) * 0.5F};
       ImGui::SameLine();
       ImGui::BeginDisabled(!state_->imported_profile);
-      if (ImGui::Button("Clear imported###editor.profiler.clear-import"))
+      if (detail::IconButton("Clear imported###editor.profiler.clear-import",
+                             detail::EditorIcon::Clear))
         state_->imported_profile.reset();
       const auto clear_min = ImGui::GetItemRectMin(), clear_max = ImGui::GetItemRectMax();
       state_->profile_import_clear_position =
@@ -6878,18 +6971,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       };
       ImGui::BeginDisabled(!workspace || !workspace->Writable() || interaction_blocked ||
                            state_->close_prompt_requested || profile->MemorySamples().empty());
-      if (ImGui::Button("Export memory"))
+      if (detail::IconButton("Export memory", detail::EditorIcon::Export))
         state_->memory_export_requested = true;
       memory_position(0);
       ImGui::EndDisabled();
       ImGui::SameLine();
       ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
-      if (ImGui::Button("Import memory"))
+      if (detail::IconButton("Import memory", detail::EditorIcon::Import))
         state_->memory_import_requested = true;
       memory_position(1);
       ImGui::SameLine();
       ImGui::BeginDisabled(!state_->imported_memory);
-      if (ImGui::Button("Clear memory import"))
+      if (detail::IconButton("Clear memory import", detail::EditorIcon::Clear))
         state_->imported_memory.reset();
       memory_position(2);
       ImGui::EndDisabled();
@@ -6939,18 +7032,18 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       };
       ImGui::BeginDisabled(!workspace || !workspace->Writable() || interaction_blocked ||
                            state_->close_prompt_requested || profile->GpuSamples().empty());
-      if (ImGui::Button("Export GPU"))
+      if (detail::IconButton("Export GPU", detail::EditorIcon::Export))
         state_->gpu_export_requested = true;
       gpu_position(0);
       ImGui::EndDisabled();
       ImGui::SameLine();
       ImGui::BeginDisabled(!workspace || interaction_blocked || state_->close_prompt_requested);
-      if (ImGui::Button("Import GPU"))
+      if (detail::IconButton("Import GPU", detail::EditorIcon::Import))
         state_->gpu_import_requested = true;
       gpu_position(1);
       ImGui::SameLine();
       ImGui::BeginDisabled(!state_->imported_gpu);
-      if (ImGui::Button("Clear GPU import"))
+      if (detail::IconButton("Clear GPU import", detail::EditorIcon::Clear))
         state_->imported_gpu.reset();
       gpu_position(2);
       ImGui::EndDisabled();
@@ -6966,20 +7059,20 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
             std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
       };
       ImGui::BeginDisabled(!state_->mesh_export_allowed);
-      if (ImGui::Button("Export mesh memory"))
+      if (detail::IconButton("Export mesh memory", detail::EditorIcon::Export))
         state_->mesh_memory_export_request =
             MeshMemoryCaptureRequest{workspace->Project().id, workspace->Root()};
       mesh_position(0);
       ImGui::EndDisabled();
       ImGui::SameLine();
       ImGui::BeginDisabled(!state_->mesh_capture_allowed);
-      if (ImGui::Button("Import mesh memory"))
+      if (detail::IconButton("Import mesh memory", detail::EditorIcon::Import))
         state_->mesh_memory_import_request =
             MeshMemoryCaptureRequest{workspace->Project().id, workspace->Root()};
       mesh_position(1);
       ImGui::SameLine();
       ImGui::BeginDisabled(!state_->imported_mesh_memory);
-      if (ImGui::Button("Clear mesh import"))
+      if (detail::IconButton("Clear mesh import", detail::EditorIcon::Clear))
         state_->imported_mesh_memory.reset();
       mesh_position(2);
       ImGui::EndDisabled();
@@ -7225,7 +7318,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
       ImGui::BeginDisabled(!workspace || interaction_blocked || !state_->app_focused ||
                            state_->close_prompt_requested);
-      if (ImGui::Button("Inspect Chrome trace"))
+      if (detail::IconButton("Inspect Chrome trace", detail::EditorIcon::Inspect))
         OpenChromeTraceImport();
       ImGui::EndDisabled();
     }
@@ -7271,14 +7364,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::BeginDisabled(!valid || !workspace || interaction_blocked || !state_->app_focused ||
                            state_->close_prompt_requested || workspace->HasRecoveryJournal() ||
                            workspace->HasExternalChange());
-      if (ImGui::Button("Import selected events"))
+      if (detail::IconButton("Import selected events", detail::EditorIcon::Import))
         state_->chrome_trace_request = ChromeTraceImportRequest{
             workspace->Project().id, workspace->Root(), std::move(selection)};
       position(3);
       ImGui::EndDisabled();
       ImGui::SameLine();
       ImGui::BeginDisabled(!state_->imported_chrome_trace);
-      if (ImGui::Button("Clear external import"))
+      if (detail::IconButton("Clear external import", detail::EditorIcon::Clear))
         state_->imported_chrome_trace.reset();
       position(4);
       ImGui::EndDisabled();
@@ -7406,7 +7499,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       }
       if (!state_->game_input_binding_error.empty())
         ImGui::TextWrapped("%s", state_->game_input_binding_error.c_str());
-      if (ImGui::Button("Apply")) {
+      if (detail::IconButton("Apply", detail::EditorIcon::Apply)) {
         if (state_->game_input_draft.Valid()) {
           state_->game_input_bindings = state_->game_input_draft;
           state_->game_input_binding_status =
@@ -7420,7 +7513,7 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       capture(19);
       ImGui::SameLine();
       ImGui::BeginDisabled(!workspace || !workspace->Writable() || recovery_available);
-      if (ImGui::Button("Apply and save")) {
+      if (detail::IconButton("Apply and save", detail::EditorIcon::Save)) {
         if (state_->game_input_draft.Valid()) {
           state_->game_input_bindings = state_->game_input_draft;
           state_->game_input_binding_status = "Saving project input bindings...";
@@ -7435,13 +7528,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       capture(22);
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Reset defaults")) {
+      if (detail::IconButton("Reset defaults", detail::EditorIcon::Reset)) {
         state_->game_input_draft = {};
         state_->game_input_binding_error.clear();
       }
       capture(20);
       ImGui::SameLine();
-      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+      if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+          ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
         state_->game_input_binding_open = false;
         ImGui::CloseCurrentPopup();
       }
@@ -7520,18 +7614,23 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
       ImGui::BeginDisabled(conflicts || review.diffs.empty() ||
                            play->State() != runtime::PlayState::Paused || !workspace || !writable ||
                            state_->close_prompt_requested);
-      if (ImGui::Button("Apply and Stop")) {
+      if (detail::IconButton("Apply and Stop", detail::EditorIcon::Apply)) {
         state_->play_apply_requested = state_->play_apply_review;
         state_->play_apply_open = false;
         ImGui::CloseCurrentPopup();
       }
       const auto confirm_min = ImGui::GetItemRectMin();
       const auto confirm_max = ImGui::GetItemRectMax();
-      state_->play_apply_confirm_position = std::array{(confirm_min.x + confirm_max.x) * 0.5F,
-                                                       (confirm_min.y + confirm_max.y) * 0.5F};
+      const ImVec2 confirm_center{(confirm_min.x + confirm_max.x) * 0.5F,
+                                  (confirm_min.y + confirm_max.y) * 0.5F};
+      const auto *confirm_window = ImGui::GetCurrentWindow();
+      if (ImGui::IsItemVisible() && !confirm_window->Hidden &&
+          confirm_window->ClipRect.Contains(confirm_center))
+        state_->play_apply_confirm_position = std::array{confirm_center.x, confirm_center.y};
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+      if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+          ImGui::IsKeyPressed(ImGuiKey_Escape)) {
         state_->play_apply_open = false;
         state_->play_apply_review = {};
         ImGui::CloseCurrentPopup();
@@ -7555,14 +7654,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::TextUnformatted("A recovery journal is available.");
     if (!state_->recovery_error.empty())
       ImGui::TextWrapped("%s", state_->recovery_error.c_str());
-    if (ImGui::Button("Recover") && workspace && recovery_available &&
-        !state_->recovery_activation_quarantined) {
+    if (detail::IconButton("Recover", detail::EditorIcon::Restore) && workspace &&
+        recovery_available && !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Recover))
         ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if (ImGui::Button("Discard recovery data") && workspace && recovery_available &&
-        !state_->recovery_activation_quarantined) {
+    if (detail::IconButton("Discard recovery data", detail::EditorIcon::Delete) && workspace &&
+        recovery_available && !state_->recovery_activation_quarantined) {
       if (ApplyRecoveryChoice(*workspace, RecoveryChoice::Discard))
         ImGui::CloseCurrentPopup();
     }
@@ -7585,13 +7684,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
                              : state_->scene_tabs.empty()
                                  ? "Save scene changes before closing?"
                                  : "Save all owned scene changes before closing?");
-      if (ImGui::Button("Save and Exit"))
+      if (detail::IconButton("Save and Exit", detail::EditorIcon::Save))
         state_->close_choice = CloseChoice::SaveAndExit;
       ImGui::SameLine();
-      if (ImGui::Button("Discard and Exit"))
+      if (detail::IconButton("Discard and Exit", detail::EditorIcon::Delete))
         state_->close_choice = CloseChoice::DiscardAndExit;
       ImGui::SameLine();
-      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
+      if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+          ImGui::IsKeyPressed(ImGuiKey_Escape, false)) {
         state_->close_choice = CloseChoice::Cancel;
         ImGui::CloseCurrentPopup();
       }
@@ -7644,13 +7744,14 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
         return std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
       };
-      if (ImGui::Button("Publish file")) {
+      if (detail::IconButton("Publish file", detail::EditorIcon::Publish)) {
         state_->scene_merge_publication_decision = SceneMergePublicationDecision{preview, true};
         ImGui::CloseCurrentPopup();
       }
       state_->scene_merge_publication_positions[1] = position();
       ImGui::SameLine();
-      if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+      if (detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+          ImGui::IsKeyPressed(ImGuiKey_Escape)) {
         state_->scene_merge_publication_decision = SceneMergePublicationDecision{preview, false};
         ImGui::CloseCurrentPopup();
       }
@@ -10267,6 +10368,13 @@ void EditorImGuiTestAccess::FocusInspector(EditorImGuiHost &host) noexcept {
   const auto name = PanelWindowName("nexora.inspector");
   ImGui::SetWindowFocus(name.c_str());
 }
+std::optional<std::array<float, 4>>
+EditorImGuiTestAccess::InspectorTransformFieldRect(const EditorImGuiHost &host, std::size_t row,
+                                                   std::size_t axis) noexcept {
+  return row < 3 && axis < 3 ? host.state_->inspector_transform_field_rects[row * 3 + axis]
+                             : std::nullopt;
+}
+
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::InspectorResetPosition(const EditorImGuiHost &host,
                                               std::size_t component) noexcept {

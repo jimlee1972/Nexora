@@ -111,7 +111,8 @@ void DrawGitDiff(StateT &state, GitDiffProvider &provider, std::uint64_t scope,
   for (std::size_t index = 0; index < 2; ++index) {
     if (index)
       ImGui::SameLine();
-    if (ImGui::Button(index ? "View staged diff" : "View working-tree diff")) {
+    if (detail::IconButton(index ? "View staged diff" : "View working-tree diff",
+                           detail::EditorIcon::Compare)) {
       try {
         const std::string_view executable(state.git_executable.data());
         if (!foundation::IsValidUtf8(executable))
@@ -142,7 +143,7 @@ void DrawGitDiff(StateT &state, GitDiffProvider &provider, std::uint64_t scope,
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!provider.Busy());
-  if (ImGui::Button("Cancel diff") && provider.Cancel())
+  if (detail::IconButton("Cancel diff", detail::EditorIcon::Cancel) && provider.Cancel())
     state.git_diff_pending_operation = 0;
   const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
   state.git_diff_control_positions[2] = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};

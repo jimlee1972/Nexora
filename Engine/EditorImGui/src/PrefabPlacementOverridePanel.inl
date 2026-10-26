@@ -66,7 +66,8 @@ void DrawPrefabPlacementOverrides(StateT &state, bool read_allowed, bool editabl
     state.prefab_override_consent.reset();
   }
   ImGui::BeginDisabled(!readable);
-  if (ImGui::Button("Review overrides###editor.prefab.instance.review"))
+  if (detail::IconButton("Review overrides###editor.prefab.instance.review",
+                         detail::EditorIcon::Inspect))
     state.prefab_override_request = PrefabPlacementOverrideRequest{*state.prefab_source_scope};
   capture(0);
   ImGui::EndDisabled();
@@ -90,7 +91,8 @@ void DrawPrefabPlacementOverrides(StateT &state, bool read_allowed, bool editabl
   const bool writable = readable && editable && state.prefab_override_authoring && !structural &&
                         !report.rows.empty();
   ImGui::BeginDisabled(!writable);
-  if (ImGui::Button("Revert instance properties###editor.prefab.instance.revert")) {
+  if (detail::IconButton("Revert instance properties###editor.prefab.instance.revert",
+                         detail::EditorIcon::Revert)) {
     state.prefab_override_consent = PrefabPlacementOverrideRequest{
         report.scope, PrefabPlacementOverrideAction::Revert, report.review};
     state.prefab_override_confirm = true;
@@ -103,7 +105,8 @@ void DrawPrefabPlacementOverrides(StateT &state, bool read_allowed, bool editabl
     if (state.prefab_override_selected[i])
       selected.push_back(i);
   ImGui::BeginDisabled(!writable || selected.empty());
-  if (ImGui::Button("Revert selected properties###editor.prefab.instance.selected")) {
+  if (detail::IconButton("Revert selected properties###editor.prefab.instance.selected",
+                         detail::EditorIcon::Revert)) {
     state.prefab_override_consent =
         PrefabPlacementOverrideRequest{report.scope, PrefabPlacementOverrideAction::RevertSelected,
                                        report.review, std::move(selected)};
@@ -113,7 +116,8 @@ void DrawPrefabPlacementOverrides(StateT &state, bool read_allowed, bool editabl
   ImGui::EndDisabled();
   const bool source_allowed = writable && PrefabSourceSelectionAllowed(report, selected);
   ImGui::BeginDisabled(!source_allowed || state.prefab_override_confirm);
-  if (ImGui::Button("Apply selected to source###editor.prefab.instance.apply-source")) {
+  if (detail::IconButton("Apply selected to source###editor.prefab.instance.apply-source",
+                         detail::EditorIcon::Publish)) {
     state.prefab_override_consent = PrefabPlacementOverrideRequest{
         report.scope, PrefabPlacementOverrideAction::ApplySelectedToSource, report.review,
         std::move(selected)};
@@ -165,7 +169,8 @@ void DrawPrefabPlacementOverrides(StateT &state, bool read_allowed, bool editabl
                          (!source_apply || PrefabSourceSelectionAllowed(
                                                report, state.prefab_override_consent->rows));
     ImGui::BeginDisabled(!allowed || !state.prefab_override_confirm);
-    if (ImGui::Button(source_apply ? "Confirm source apply" : "Confirm revert")) {
+    if (detail::IconButton(source_apply ? "Confirm source apply" : "Confirm revert",
+                           detail::EditorIcon::Confirm)) {
       state.prefab_override_request = std::move(state.prefab_override_consent);
       state.prefab_override_confirm = false;
       ImGui::CloseCurrentPopup();
@@ -173,7 +178,8 @@ void DrawPrefabPlacementOverrides(StateT &state, bool read_allowed, bool editabl
     capture(2);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    const bool cancel = ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape, false);
+    const bool cancel = detail::IconButton("Cancel", detail::EditorIcon::Cancel) ||
+                        ImGui::IsKeyPressed(ImGuiKey_Escape, false);
     capture(3);
     if (!allowed || !state.prefab_override_confirm || cancel) {
       state.prefab_override_confirm = false;

@@ -389,6 +389,10 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorMaterialPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
+  // Visible, enabled local TRS input bounds; rows Position/Rotation/Scale, axes X/Y/Z.
+  [[nodiscard]] static std::optional<std::array<float, 4>>
+  InspectorTransformFieldRect(const EditorImGuiHost &host, std::size_t row,
+                              std::size_t axis) noexcept;
   // Transform, Camera, Light (0, 1, 2); reports actual UI widget positions for pointer tests.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorResetPosition(const EditorImGuiHost &host, std::size_t component) noexcept;
