@@ -1429,6 +1429,12 @@ graphical builds. It copies actual drawn prefab control centers/admission, proce
 focus/key/pointer state, history attempt/success counters, and the first root's committed name
 (hex UTF-8) and X position. It runs after EndFrame on the owner thread, retains no pointers,
 and cannot perform an authoring action. Only changed observations are printed.
+The same prefab stream now copies property-review row centers as `p{row}` and rebase
+choice centers as `choice{row}_{option}`: option 2 opens the actual combo, 0 keeps local and 1
+takes source. Iteration uses the current bounded review-row count. These are owning numeric
+geometry observations, alongside existing processed keys and enabled flags; they confer no
+action authority and retain no UI or model pointer. Native prefab input resolves current
+control/field/row points instead of depending on caption widths or fixed panel coordinates.
 `editor.linux_prefab_isolation` acknowledges prefab control pointer/key-chord phases and resolves actual history
 control positions before a single Undo/Redo gesture; both expected edits must be committed
 before the full-property revert. The original exact asset/identity/opaque-byte and read-only
@@ -1444,6 +1450,16 @@ and scene Undo attempt/success counts. Input observations and control geometry a
 after EndFrame; frame numbers are appended outside change deduplication. The observer grants
 no input, authoring or filesystem authority. Counters describe real history calls during this
 host lifetime, including the existing Scene toolbar Undo.
+The stream additionally copies the actual `scene_select_all`, diagnostic consent/clear,
+close Save/Discard/Cancel, reflected-property and reflected-array control/value centers. Close
+points exist only for currently visible, enabled controls whose centers are inside the modal's
+clip rectangle; hidden sizing frames provide no actionable close point. Reflected/array points
+use the existing private property-path/control observations. These task-specific protocol keys
+are test observations, not a public command registry, input injector or permission bypass.
+Native fixtures retain real X11 pointer/key phases and independent rendered-pixel, serialized
+value, exact-file, Undo/Redo, restart and read-only result checks. Terminal close gestures are
+acknowledged by their existing exit/file assertions after release rather than waiting for a
+GUI phase from a process that has exited.
 Native comparison/publication and center/mesh fixtures acknowledge one physical key phase at a
 time using `NativeSceneInput.py`, and retain input/output records on failure. Comparison waits
 start before the gesture so an acknowledged phase cannot consume and hide an already-finished

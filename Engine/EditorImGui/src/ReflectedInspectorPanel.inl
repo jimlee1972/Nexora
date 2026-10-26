@@ -94,7 +94,7 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
   state.reflected_choice_positions.clear();
   state.reflected_mixed.clear();
   state.reflected_array_controls.clear();
-  if (ImGui::SmallButton("Reload property metadata"))
+  if (detail::SmallIconButton("Reload property metadata", detail::EditorIcon::Reload))
     state.reflected_metadata_reload = true;
   if (keys.size() > ReflectedInspector::kMaximumTargets) {
     ImGui::TextDisabled("Reflected properties require at most %zu selected entities.",
@@ -152,7 +152,7 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
       else
         ImGui::TextDisabled("%zu items", *minimum);
       ImGui::BeginDisabled(!editable || *maximum == array.maximum_elements);
-      if (ImGui::Button("Add"))
+      if (detail::IconButton("Add", detail::EditorIcon::Add))
         published = publish_array(
             {ReflectedArrayAction::Append, array_index, 0, 0, InitialReflectedArrayValue(array)});
       control_position(array_index, "Add");
@@ -163,7 +163,7 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
       ImGui::EndDisabled();
       ImGui::SameLine();
       ImGui::BeginDisabled(!editable || !*maximum || published);
-      if (ImGui::Button("Clear"))
+      if (detail::IconButton("Clear", detail::EditorIcon::Clear))
         published = publish_array({ReflectedArrayAction::Clear, array_index});
       control_position(array_index, "Clear");
       ImGui::EndDisabled();
@@ -282,25 +282,25 @@ void DrawReflectedInspector(StateT &state, SceneDocument &scene,
             const auto maximum = *std::max_element(view.counts.begin(), view.counts.end());
             ImGui::BeginDisabled(!editable || changed);
             ImGui::BeginDisabled(maximum == schema.maximum_elements);
-            if (ImGui::Button("Insert"))
+            if (detail::IconButton("Insert", detail::EditorIcon::Add))
               array_edit = ReflectedArrayEdit{ReflectedArrayAction::Insert, array, element, 0,
                                               InitialReflectedArrayValue(schema)};
             control_position(array, "Insert", element);
             ImGui::EndDisabled();
             ImGui::SameLine();
-            if (ImGui::Button("Remove"))
+            if (detail::IconButton("Remove", detail::EditorIcon::Delete))
               array_edit = ReflectedArrayEdit{ReflectedArrayAction::Remove, array, element};
             control_position(array, "Remove", element);
             ImGui::SameLine();
             ImGui::BeginDisabled(element == 0);
-            if (ImGui::Button("Up"))
+            if (detail::IconButton("Up", detail::EditorIcon::Up))
               array_edit =
                   ReflectedArrayEdit{ReflectedArrayAction::Move, array, element, element - 1};
             control_position(array, "Up", element);
             ImGui::EndDisabled();
             ImGui::SameLine();
             ImGui::BeginDisabled(element + 1 >= view.common_elements);
-            if (ImGui::Button("Down"))
+            if (detail::IconButton("Down", detail::EditorIcon::Down))
               array_edit =
                   ReflectedArrayEdit{ReflectedArrayAction::Move, array, element, element + 1};
             control_position(array, "Down", element);

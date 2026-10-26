@@ -36,6 +36,7 @@ def main():
         env["DISPLAY"] = display
         env["XDG_STATE_HOME"] = str(scratch / "state")
         env["MESA_SHADER_CACHE_DIR"] = str(scratch / "shader-cache")
+        env["NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY"] = "1"
         captured = bytearray()
 
         def send(*keys):
@@ -53,12 +54,25 @@ def main():
                     return
             raise RuntimeError(f"Missing privacy diagnostic {pattern}: {captured!r}")
 
+        def wait_ui(name):
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline:
+                require(process.poll() is None, "Editor exited awaiting actual privacy control")
+                if select.select([process.stderr], [], [], .05)[0]:
+                    captured.extend(os.read(process.stderr.fileno(), 65536))
+                records = re.findall(rb'^scene merge ui ([^\n]*)\n', captured, re.M)
+                value = dict(part.split('=', 1) for part in records[-1].decode().split()) if records else {}
+                if name in value:
+                    return tuple(map(float, value[name].split(',')))
+            raise RuntimeError(f"Actual privacy control unavailable: {name}; diagnostics={captured!r}")
+
         process = launch(args.editor, root, scratch / "recent", env, read_only=True)
         window = wait_for_window(args.xdotool, env)
         subprocess.run([args.xdotool, "windowfocus", "--sync", window], env=env, check=True)
         time.sleep(.8)
         wait_log(r"diagnostic privacy: enabled=0 retained=0 storage=none transport=none")
         send("ctrl+alt+t")
+        wait_ui("diagnostic_consent")
         # Tab enters native keyboard navigation at the actual default checkbox.
         send("Tab", "space")
         wait_log(r"diagnostic consent changed enabled=1 retained=0")
@@ -73,8 +87,8 @@ def main():
         request_window_close(window, env)
         # This source-less read-only fixture owns an unsaved bootstrap. Retain the
         # existing close guard and explicitly discard that in-memory bootstrap.
-        time.sleep(.4)
-        subprocess.run([args.xdotool, "mousemove", "--window", window, "655", "378", "click", "1"],
+        x, y = map(round, wait_ui("close_discard"))
+        subprocess.run([args.xdotool, "mousemove", "--window", window, str(x), str(y), "click", "1"],
                        env=env, check=True)
         _, error = collect_output(process, 15)
         prefix = captured.decode("utf-8", errors="replace")

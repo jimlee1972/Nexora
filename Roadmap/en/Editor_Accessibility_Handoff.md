@@ -1,6 +1,6 @@
 # ED-M0 to ED-M7 accessibility handoff
 
-Updated: 2026-10-20. Status: ✅ handoff inventory delivered; semantic bridge and target acceptance open.
+Updated: 2026-10-27. Status: ✅ handoff inventory delivered; semantic bridge and target acceptance open.
 Scope: the shell, Hierarchy, Console and recovery boundary in
 [the ImGui integration plan](Editor_ImGui_Integration_Plan.md). This inventory does not implement
 screen-reader support, certify keyboard access, or authorize a new dependency.
@@ -33,9 +33,12 @@ accessibility provider, or callable command dispatcher. The bridge still needs e
 roles, shortcuts, enabled/busy state, current scope and admitted action handlers from each owner.
 It must not execute arbitrary strings through this prefix check.
 
-Recovery uses host-local popup identity `editor.recovery`, visible text "Recover workspace",
-"A recovery journal is available.", "Recover" and "Discard recovery data". The buttons currently
-have display labels, not published semantic action IDs. Proposed future IDs such as
+Recovery uses host-local popup identity `editor.recovery` and visible title/summary text
+"Recover workspace" / "A recovery journal is available.". Recover and Discard recovery data
+are now icon buttons with those function names in hover tooltips, including disabled controls;
+they retain their existing ImGui identities and admission. These tooltips are not a published
+semantic label/action API or native accessibility bridge. [The icon presentation validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md)
+records Linux validation; screen-reader and target-host acceptance remain open. Proposed future IDs such as
 `editor.recovery.recover` and `editor.recovery.discard` are design suggestions only, not existing
 registered commands. Required roles are modal dialog, summary, button and error/status region;
 destructive semantics, modal ownership and busy/disabled state must be explicit.

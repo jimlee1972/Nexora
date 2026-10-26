@@ -1,3 +1,4 @@
+#include "EditorIcons.h"
 #include "Nexora/EditorImGui/TwoDPanel.h"
 #include <cmath>
 #include <imgui.h>
@@ -43,10 +44,10 @@ void Run() {
   frame(true);
   frame(true);
   const auto &style = ImGui::GetStyle();
+  const float buttonWidth = editor::imgui::detail::IconButtonExtent();
   const float y = ImGui::GetFontSize() + style.FramePadding.y * 2 + style.WindowPadding.y +
-                  ImGui::GetFontSize() + style.ItemSpacing.y + ImGui::GetFrameHeight() / 2;
-  const float undoX =
-      style.WindowPadding.x + ImGui::CalcTextSize("Undo").x / 2 + style.FramePadding.x;
+                  ImGui::GetFontSize() + style.ItemSpacing.y + buttonWidth / 2;
+  const float undoX = style.WindowPadding.x + buttonWidth / 2;
   const auto click = [&](float x, bool allowed) {
     io.AddMousePosEvent(x, y);
     io.AddMouseButtonEvent(0, true);
@@ -56,8 +57,7 @@ void Run() {
   };
   click(undoX, true);
   Check(doc.Save() == initial, "graphical Undo button");
-  const auto undoWidth = ImGui::CalcTextSize("Undo").x + style.FramePadding.x * 2;
-  click(undoX + undoWidth + style.ItemSpacing.x, true);
+  click(undoX + buttonWidth + style.ItemSpacing.x, true);
   Check(doc.Save() == withSprite, "graphical Redo button");
   click(undoX, false);
   Check(doc.Save() == withSprite, "blocked graphical mutation");

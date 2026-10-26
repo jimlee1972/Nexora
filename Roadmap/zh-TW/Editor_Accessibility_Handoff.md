@@ -1,6 +1,6 @@
 # ED-M0 至 ED-M7 無障礙交接
 
-更新：2026-10-20。狀態：✅ 交接盤點已交付；semantic bridge 與 target-host 驗收仍待完成。
+更新：2026-10-27。狀態：✅ 交接盤點已交付；semantic bridge 與 target-host 驗收仍待完成。
 範圍為 [ImGui 整合計畫](Editor_ImGui_Integration_Plan.md) 的 shell、Hierarchy、Console 與 recovery
 邊界。本盤點不實作 screen-reader、不認證鍵盤操作，也不授權新增 dependency。
 
@@ -31,9 +31,12 @@ portable accessibility identity。
 provider 或可執行的 command dispatcher。Bridge 仍須由各 owner 提供明確 label、role、shortcut、
 enabled／busy state、current scope 與具 admission 的 handler，不得憑此 prefix check 執行任意字串。
 
-Recovery 使用 host-local popup identity `editor.recovery`，顯示文字為 "Recover workspace"、
-"A recovery journal is available."、"Recover" 與 "Discard recovery data"。目前 button 只有顯示 label，
-沒有已發布的 semantic action ID。未來如 `editor.recovery.recover`／`editor.recovery.discard`
+Recovery 使用 host-local popup identity `editor.recovery`，標題／摘要保留文字
+"Recover workspace"／"A recovery journal is available."。Recover 與 Discard recovery data
+現為圖示按鈕，hover tooltip 提供原功能名稱，停用控制項也可查看；既有 ImGui identity 與 admission
+保留。Tooltip 不是已發布的 semantic label／action API 或 native accessibility bridge。
+[圖示呈現驗證紀錄](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md) 記錄 Linux 驗證；screen-reader 與 target-host
+驗收仍待完成。未來如 `editor.recovery.recover`／`editor.recovery.discard`
 只是設計提案，不是既有 registered command。必要 role 為 modal dialog、summary、button 與 error／status
 region；破壞性語意、modal ownership、busy／disabled state 都須明列。
 

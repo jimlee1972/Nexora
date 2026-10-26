@@ -191,6 +191,10 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   PlayApplyPosition(const EditorImGuiHost &host, bool confirm) noexcept;
   [[nodiscard]] static bool PlayApplyOpen(const EditorImGuiHost &host) noexcept;
+  // Visible enabled close-modal actions: Save and Exit / Discard and Exit / Cancel.
+  [[nodiscard]] static std::optional<std::array<float, 2>>
+  CloseControlPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
+  [[nodiscard]] static std::size_t PrefabReviewRowCount(const EditorImGuiHost &host) noexcept;
   static std::optional<std::array<float, 2>> ContentWorkflowPosition(const EditorImGuiHost &host,
                                                                      bool reimport) noexcept;
   static void FocusContent(EditorImGuiHost &host) noexcept;
@@ -389,6 +393,10 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorMaterialPosition(const EditorImGuiHost &host, std::size_t control) noexcept;
   static void FocusInspector(EditorImGuiHost &host) noexcept;
+  // Visible, enabled local TRS input bounds; rows Position/Rotation/Scale, axes X/Y/Z.
+  [[nodiscard]] static std::optional<std::array<float, 4>>
+  InspectorTransformFieldRect(const EditorImGuiHost &host, std::size_t row,
+                              std::size_t axis) noexcept;
   // Transform, Camera, Light (0, 1, 2); reports actual UI widget positions for pointer tests.
   [[nodiscard]] static std::optional<std::array<float, 2>>
   InspectorResetPosition(const EditorImGuiHost &host, std::size_t component) noexcept;

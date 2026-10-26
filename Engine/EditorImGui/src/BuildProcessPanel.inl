@@ -108,12 +108,13 @@ void EditorImGuiHost::DrawBuildProcess(BuildProcess &process, std::uint64_t scop
   ImGui::SetItemDefaultFocus();
   ImGui::InputText("Working directory", state.build_cwd.data(), state.build_cwd.size());
   position(1);
-  if (ImGui::Button("Add argument") &&
+  if (detail::IconButton("Add argument", detail::EditorIcon::Add) &&
       state.build_arguments.size() < BuildProcess::kMaximumArguments)
     state.build_arguments.emplace_back();
   position(2);
   ImGui::SameLine();
-  if (ImGui::Button("Remove last argument") && !state.build_arguments.empty())
+  if (detail::IconButton("Remove last argument", detail::EditorIcon::Delete) &&
+      !state.build_arguments.empty())
     state.build_arguments.pop_back();
   position(3);
   ImGui::BeginChild("arguments", {0, 100}, ImGuiChildFlags_Borders);
@@ -132,7 +133,7 @@ void EditorImGuiHost::DrawBuildProcess(BuildProcess &process, std::uint64_t scop
     }
   }
   ImGui::EndChild();
-  const bool run_clicked = ImGui::Button("Run process");
+  const bool run_clicked = detail::IconButton("Run process", detail::EditorIcon::Play);
   const bool command_focused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
   const bool run_key = command_focused && io.KeyCtrl && !io.KeyShift && !io.KeyAlt &&
                        ImGui::IsKeyPressed(ImGuiKey_Enter, false);
@@ -163,7 +164,7 @@ void EditorImGuiHost::DrawBuildProcess(BuildProcess &process, std::uint64_t scop
   ImGui::EndDisabled();
   ImGui::SameLine();
   ImGui::BeginDisabled(!process.Busy());
-  const bool cancel_clicked = ImGui::Button("Cancel process");
+  const bool cancel_clicked = detail::IconButton("Cancel process", detail::EditorIcon::Cancel);
   const bool cancel_key = command_focused && io.KeyCtrl && io.KeyShift && !io.KeyAlt &&
                           ImGui::IsKeyPressed(ImGuiKey_Enter, false);
   if ((cancel_clicked || cancel_key) && process.Busy())

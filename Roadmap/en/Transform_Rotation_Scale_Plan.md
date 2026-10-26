@@ -1,7 +1,7 @@
 # Transform Rotation and Scale Extension — Plan
 
 > Version: v1.2 | Status: **direction approved by the owner (follow Unity/Unreal conventions);
-> ✅ all phases complete; graphical degree editing is implemented; ✅ serialized Euler hints (§9 Q3) are implemented** | Updated: 2026-10-02 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
+> ✅ all phases complete; graphical degree editing is implemented; ✅ serialized Euler hints (§9 Q3) are implemented** | Updated: 2026-10-27 | Relates to: `Editor_Roadmap.md` §ED-M2 (gizmos),
 > `Engine_API_Foundation_Roadmap.md`
 
 ## 1. Purpose and decision needed
@@ -150,3 +150,15 @@ Euler turns across multi-selection as one Undo. The owning numeric clipboard sur
 changes and reload; invalid pose/hint pairs reject atomically, equal values retain Redo, and
 metadata-only/hidden-hint edits keep Runtime and Editor history aligned. Portable and 1x/2x
 real UI tests cover replay, access gates, abandoned drafts and persistence.
+
+### Inspector presentation update (2026-10-27)
+
+✅ Local Transform now presents Position, Rotation and Scale as three XYZ rows, with red/green/blue
+axis labels and a row-name-above-fields layout for narrow panels. Reset / Copy / Paste are icon
+actions beside the Transform heading. Rotation remains degrees with Z-X-Y composition and authored
+Euler turns; Enter applies, Escape cancels, and existing mixed-selection, precision, validation
+and Undo/Redo contracts remain. This adds no drag-to-adjust behavior or storage/API change.
+[Scoped validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md) records the passing 1x/2x actual-input/layout checks and Linux regression results; target-host acceptance remains open.
+The related native fixture subset also passes eight unique actual X11/Vulkan cases with Slang
+enabled; this does not establish physical-host acceptance. The expanded 399-case traversal and corrected native-input rerun cover 399 unique passing cases
+with no skips or unresolved failures.

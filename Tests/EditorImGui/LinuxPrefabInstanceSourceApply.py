@@ -3,16 +3,15 @@
 import argparse
 import os
 from pathlib import Path
-import queue
 import re
 import shutil
 import subprocess
 import tempfile
-import threading
 import time
 
-from LinuxDisplayAcceptance import collect_output, launch, request_window_close, start_xvfb, wait_for_window
-from LinuxNativeScenePreview import scene_pixels, scene_region_pixels
+from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
+from LinuxReflectedInspector import wait_native_pixels
+from NativeSceneInput import NativeSceneInput
 
 
 def require(value, message):
@@ -30,7 +29,7 @@ def main():
         parser.add_argument('--' + name, required=True)
     args = parser.parse_args()
     scratch = Path(tempfile.mkdtemp(prefix='nexora-native-instance-source-'))
-    process = xvfb = None
+    process = xvfb = driver = None
     try:
         root, oracle = scratch / 'project', scratch / 'retained.scene'
         subprocess.run([args.fixture, '--write-native-selected-fixture', str(root), str(oracle)], check=True)
@@ -57,17 +56,32 @@ def main():
         require(display is not None, 'Xvfb failed')
         env = os.environ.copy()
         env.update(DISPLAY=display, XDG_STATE_HOME=str(scratch / 'state'),
-                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'))
+                   MESA_SHADER_CACHE_DIR=str(scratch / 'shader-cache'),
+                   NEXORA_SCENE_MERGE_UI_TEST_GEOMETRY='1')
 
         def send(*arguments):
             subprocess.run([args.xdotool, *arguments], env=env, check=True,
                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-            time.sleep(.2)
+            driver.drain(.2)
 
-        def click(window, x, y):
-            send('mousemove', '--window', window, str(x), str(y))
-            send('mousedown', '1')
-            send('mouseup', '1')
+        def click(name, icon=True):
+            # The first selected frame can reflow the Inspector as its scrollbar appears.
+            # Reconcile copied geometry after an acknowledged real hover, before sending
+            # the single down/up gesture. Only pointer motion is repeated when layout moves.
+            deadline = time.monotonic() + 10
+            for _ in range(3):
+                point = wait_native_pixels(driver, display, window, name, icon=icon)
+                driver.pointer_move(*point, deadline)
+                value = driver.wait(lambda v: name in v and v.get('focused') == '1' and
+                                              v.get('buttons') == '000',
+                                    'Source control was not focused/rendered/released: ' + name,
+                                    deadline)
+                current = tuple(round(float(axis)) for axis in value[name].split(','))
+                if current == point:
+                    driver.pointer_button(1, True, deadline)
+                    driver.pointer_button(1, False, deadline)
+                    return
+            raise RuntimeError('Source control geometry did not settle before one click: ' + name)
 
         def wait(predicate, message):
             deadline = time.monotonic() + 10
@@ -75,88 +89,61 @@ def main():
                 require(process.poll() is None, 'Native host exited: ' + message)
                 if predicate():
                     return
-                time.sleep(.05)
-            print(''.join(diagnostics), flush=True)
+                driver.drain(.05)
+            print(bytes(driver.stderr).decode(errors='replace'), flush=True)
             raise RuntimeError(message)
 
-        def control(x, top, bottom, ordinal, threshold):
-            position = []
+        event_offset = 0
 
-            def presented():
-                groups, run = [], []
-                for chunk in range(top, bottom, 100):
-                    pixels = scene_region_pixels(display, int(window), (x, chunk, 1, min(100, bottom - chunk)))
-                    for index, (red, green, blue) in enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3])):
-                        if blue >= threshold and blue >= red + 20 and blue >= green + 10:
-                            run.append(chunk + index * 3)
-                        elif run:
-                            if len(run) >= 3:
-                                groups.append(run[len(run) // 2])
-                            run = []
-                if run and len(run) >= 3:
-                    groups.append(run[len(run) // 2])
-                if len(groups) > ordinal:
-                    position[:] = [x, groups[ordinal]]
-                    return True
-                return False
-            wait(presented, 'Requested native control was not presented')
-            return position
+        def pending_events():
+            return list(re.finditer(rb'^prefab instance [^\n]*\n', driver.stderr[event_offset:], re.M))
+
+        def take_event():
+            nonlocal event_offset
+            wait(lambda: bool(pending_events()), 'Native action did not emit an owning result')
+            found = pending_events()
+            require(len(found) == 1, 'One native action emitted multiple owning results')
+            event = found[0]
+            event_offset += event.end()
+            return event.group().decode().strip()
 
         for read_only in (False, True):
             before = files(root)
-            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only)
-            diagnostics, events = [], queue.Queue()
-
-            def drain():
-                for line in process.stderr:
-                    diagnostics.append(line)
-                    if line.startswith('prefab instance '):
-                        events.put(line.strip())
-            reader = threading.Thread(target=drain, daemon=True)
-            reader.start()
+            process = launch(args.editor, root, scratch / 'recent', env, read_only=read_only, binary=True)
+            driver = NativeSceneInput(process, args.xdotool, env, '', scratch, int(read_only) + 1)
+            event_offset = 0
             window = wait_for_window(args.xdotool, env)
+            driver.window = str(window)
             send('windowfocus', '--sync', window)
-            y = 199 if read_only else 182
-            wait(lambda: scene_pixels(display, int(window), (518, y, 4, 4))[0], 'Scene selection absent')
-            click(window, 523, y)
-            click(window, 1065, control(1010, 80, 480, 1, 105)[1])
-            wait(lambda: not events.empty(), 'Native review did not emit an owning result')
-            event = events.get_nowait()
+            click('scene_select_all')
+            click('override_review')
+            event = take_event()
             require(re.fullmatch(r'prefab instance reviewed rows=[1-9][0-9]* retained=1 published=[12]', event),
                     'Review did not retain the original binding: ' + event)
             if read_only:
-                click(window, name_position[0], name_position[1] + 17)
-                click(window, apply_position[0], apply_position[1] + 17)
+                click('override_row_' + str(name_row), icon=False)
+                click('override_source_apply', icon=False)
                 send('key', 'Escape')
-                require(events.empty() and files(root) == before,
+                require(not pending_events() and files(root) == before,
                         'Read-only reopen emitted publication or wrote files')
             else:
-                whole_y = control(1010, 80, 480, 2, 105)[1]
-                name_position = control(1018, whole_y + 75, 700, name_row, 45)
-                click(window, *name_position)
+                click('override_row_' + str(name_row), icon=False)
                 require(scene.read_bytes() == original_scene and current.read_bytes() == retained and
                         archive.read_bytes() == retained, 'Review/selection changed authoring files')
                 before_consent = files(root)
-                apply_position = control(1010, 80, 480, 4, 105)
-                click(window, *apply_position)
-                control(392, 300, 450, 0, 105)
+                click('override_source_apply')
+                wait_native_pixels(driver, display, window, 'override_confirm')
                 send('key', 'Escape')
-                require(events.empty() and files(root) == before_consent, 'Source Cancel changed files')
-                click(window, *apply_position)
-                click(window, *control(392, 300, 450, 0, 105))
-                wait(lambda: not events.empty(), 'Native source confirmation did not complete')
-                require(events.get_nowait() == 'prefab instance source applied retained=1 published=2 rows=1',
+                require(not pending_events() and files(root) == before_consent, 'Source Cancel changed files')
+                click('override_source_apply')
+                click('override_confirm')
+                require(take_event() == 'prefab instance source applied retained=1 published=2 rows=1',
                         'Native confirmation did not publish exactly one selected row')
                 wait(lambda: current.read_bytes() == expected, 'Published source lost independent exact-byte oracle')
                 require(archive.read_bytes() == retained and scene.read_bytes() == original_scene,
                         'Source publication changed retained archive or live Scene file')
             request_window_close(window, env)
-            process.wait(timeout=15)
-            reader.join(timeout=5)
-            require(not reader.is_alive(), 'Diagnostic drain did not finish')
-            collect_output(process, 5)
-            captured = ''.join(diagnostics)
-            print(captured, end='', flush=True)
+            _, captured = driver.finish(15)
             require(process.returncode == 0 and 'scene_selected=1' in captured and
                     not re.search(r'Validation Error\b|VUID-|SYNC-HAZARD-', captured),
                     'Native source workflow failed or reported Vulkan errors')
@@ -164,7 +151,7 @@ def main():
                     'Closing native host changed Scene or archived source')
             if read_only:
                 require(files(root) == before, 'Read-only teardown wrote project files')
-            process = None
+            process = driver = None
         print('Native source confirmation/Cancel, exact selected publication, archive/Scene conservation and readonly passed')
     finally:
         if process is not None and process.poll() is None:

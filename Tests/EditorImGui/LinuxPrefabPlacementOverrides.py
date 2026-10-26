@@ -12,7 +12,7 @@ import time
 
 from LinuxDisplayAcceptance import launch, request_window_close, start_xvfb, wait_for_window
 from NativeSceneInput import NativeSceneInput
-from LinuxNativeScenePreview import scene_pixels, scene_region_pixels
+from LinuxReflectedInspector import wait_native_pixels
 
 
 def require(value, message):
@@ -138,58 +138,12 @@ def main():
             return event.group().decode().strip()
 
         def modal_confirm(window):
-            # The fixed-size confirmation is centered in the initial1280x720 viewport.
-            # Observe Confirm's left padding below the title bar; title blue must not count
-            # as button geometry, and underlying Scene gizmos must not count as consent.
-            points = []
-
-            def presented():
-                pixels = scene_region_pixels(display, int(window), (412, 310, 1, 120))
-                ys = [310 + index * 3 for index, (red, green, blue) in
-                      enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3]))
-                      if blue >= 105 and blue >= red + 35 and blue >= green + 10]
-                if len(ys) >= 3:
-                    points[:] = [412, (min(ys) + max(ys)) // 2]
-                    return True
-                return False
-            wait(presented, 'Explicit revert confirmation was not presented')
-            return points
-
-        whole_y = None
-
-        def selected_row_y(window, ordinal):
-            # Observe the first checkbox's dark-blue frame below the action buttons.
-            # Neutral table borders/header text cannot satisfy this color admission.
-            points = []
-
-            def presented():
-                groups, run = [], []
-                for top in range(240, 640, 100):
-                    pixels = scene_region_pixels(display, int(window), (1018, top, 1, 100))
-                    for offset, (red, green, blue) in enumerate(zip(pixels[::3], pixels[1::3], pixels[2::3])):
-                        y = top + offset * 3
-                        if y > whole_y + 45 and blue >= 45 and blue >= red + 20 and blue >= green + 10:
-                            run.append(y)
-                        elif run:
-                            if len(run) >= 3:
-                                groups.append(run[len(run) // 2])
-                            run = []
-                if run and len(run) >= 3:
-                    groups.append(run[len(run) // 2])
-                if len(groups) > ordinal:
-                    points[:] = [groups[ordinal]]
-                    return True
-                return False
-            wait(presented, 'Captured property checkbox was not presented')
-            print(f'Property checkbox{ordinal} presented at y{points[0]}', flush=True)
-            return points[0]
+            return wait_native_pixels(driver, display, window, 'override_confirm')
 
         def select_row(ordinal):
-            nonlocal whole_y
-            value = driver.wait(lambda v: 'override_revert' in v,
-                                'Whole-revert control was not rendered above property rows', deadline())
-            whole_y = float(value['override_revert'].split(',')[1])
-            selected_row_y(window, ordinal)
+            # Geometry identifies the actual retained row; X11 pixels independently prove
+            # its checkbox was presented before one physical pointer gesture.
+            wait_native_pixels(driver, display, window, 'override_row_' + str(ordinal), icon=False)
             click('override_row_' + str(ordinal))
 
         for launch_number, read_only in enumerate((False, True), 1):
@@ -201,9 +155,7 @@ def main():
             window = wait_for_window(args.xdotool, env)
             driver.window = str(window)
             driver.raw('windowfocus', '--sync', window, deadline=deadline())
-            selection_y = 199 if read_only else 182
-            wait(lambda: scene_pixels(display, int(window), (518, selection_y, 4, 4))[0],
-                 'Scene selection control was not ready')
+            wait_native_pixels(driver, display, window, 'scene_select_all')
             # The saved fixture has one entity; source_node names its actual visible marker.
             click('source_node')
             driver.wait(lambda v: v.get('source_selected') == '1' and

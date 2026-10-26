@@ -1,6 +1,6 @@
 # Transform 旋轉與縮放擴充 — 計畫
 
-> 版本：v1.2｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 所有階段皆已完成；圖形化度數編輯已實作；✅ Euler 提示序列化（§9 第 3 題）已實作**｜更新：2026-10-02｜對應：
+> 版本：v1.2｜狀態：**方向已由負責人核准（沿用 Unity／Unreal 慣例）；✅ 所有階段皆已完成；圖形化度數編輯已實作；✅ Euler 提示序列化（§9 第 3 題）已實作**｜更新：2026-10-27｜對應：
 > `Editor_Roadmap.md` §ED-M2（gizmo）、`Engine_API_Foundation_Roadmap.md`
 
 ## 1. 目的與需要的決定
@@ -134,3 +134,14 @@ save／reload。完整圖形化驗收仍待完成。
 Euler 圈數並套用到多選。Owning numeric clipboard 跨來源變更及 reload 保留；無效姿態／
 hint 組合原子拒絕，相同值保留 Redo，metadata-only／隱藏 hint 編輯維持 Runtime 與 Editor
 history 對齊。Portable 及 1x／2x 真正 UI 測試涵蓋 replay、存取 gate、草稿取消及持久化。
+
+### Inspector 呈現更新（2026-10-27）
+
+✅ Local Transform 現以 Position、Rotation、Scale 三行 XYZ 呈現，軸標籤使用紅／綠／藍；
+窄面板將行名稱置於三個欄位上方。Reset／Copy／Paste 以圖示動作放在 Transform 標題旁。
+Rotation 維持度數、Z-X-Y composition 與 authored Euler 圈數；Enter 套用、Escape 取消，
+既有多選 Mixed、精度、驗證及 Undo／Redo contract 保留。沒有新增拖曳調值或儲存／API 變更。
+[本次驗證紀錄](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md) 記錄已通過的 1x／2x 真實輸入／排版檢查及 Linux 回歸結果；target-host 驗收仍待完成。
+相關原生 fixture 子集也在 Slang 啟用時通過八個不同的真實 X11／Vulkan 案例；這不代表
+實體主機驗收完成。擴充的 399 案例 traversal 與原生輸入修正重跑已涵蓋 399 個不重複通過案例，
+無 skip 或未解決失敗。

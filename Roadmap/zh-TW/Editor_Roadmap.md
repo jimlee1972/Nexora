@@ -1,5 +1,19 @@
 # Nexora 圖形化 Editor Roadmap
 
+### 圖示動作與緊湊 Transform（2026-10-27）
+
+✅ Editor shell、次視窗、對話框及可選 2D Studio 的功能按鈕改用 Editor 自繪向量圖示，
+並提供功能 tooltip。主選單、右鍵選單、一般選項、欄位名稱與導航內容保留文字。
+Inspector local Transform 使用 Position／Rotation／Scale 三行，搭配紅 X、綠 Y、藍 Z；
+窄面板將行名稱放在三個欄位上方。既有 Enter／Escape、多選 Mixed、精度、authored Euler
+圈數及 Undo／Redo 行為保留。[本次驗證紀錄](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md)
+記錄完整 Linux traversal 與已通過的受影響案例重跑；本次調整不代表圖形 milestone 或無障礙 semantic bridge／target-host
+驗收完成。
+修正後的原生 fixture 子集在 Slang 啟用時通過全部八個不同的 X11／Vulkan 案例，涵蓋
+reflected array、Prefab 流程、diagnostic consent 與 scene-file 關閉／重開。這是軟體顯示證據，
+不是實體主機驗收；擴充的 399 案例 traversal 與原生輸入修正重跑已涵蓋 399 個不重複通過案例，
+無 skip 或未解決失敗。
+
 ### 專案場景交付目標（2026-10-25）
 
 已授權啟動場景設定、打包場景清單及 Runtime 套件場景切換，範圍與驗收記於

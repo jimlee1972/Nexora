@@ -88,6 +88,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_SLANG AND NEXORA_ENABLE_
 endif()
 if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   add_executable(NexoraTwoDPanelTests PanelTests.cpp)
+  target_include_directories(NexoraTwoDPanelTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/EditorImGui/src")
   target_link_libraries(NexoraTwoDPanelTests PRIVATE Nexora::EditorImGui NexoraDearImGui)
   nexora_apply_defaults(NexoraTwoDPanelTests)
   add_test(NAME twod.graphical_controls COMMAND NexoraTwoDPanelTests)

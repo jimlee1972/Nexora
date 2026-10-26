@@ -254,68 +254,68 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
                             state.prefab_rebase_confirmation;
     ImGui::BeginDisabled(!writable || !target || confirming ||
                          !observation.source.document_generation);
-    if (ImGui::Button("Create from scene"))
+    if (detail::IconButton("Create from scene", detail::EditorIcon::New))
       request(PrefabIsolationAction::Create, parsed.Value());
     capture(1);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!interaction || !target || confirming);
-    if (ImGui::Button("Open"))
+    if (detail::IconButton("Open", detail::EditorIcon::Open))
       request(PrefabIsolationAction::Open, parsed.Value());
     capture(2);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!writable || !target || !observation.open || observation.dirty ||
                          confirming);
-    if (ImGui::Button("Create variant"))
+    if (detail::IconButton("Create variant", detail::EditorIcon::Duplicate))
       request(PrefabIsolationAction::Variant, parsed.Value());
     capture(3);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!writable || !state.prefab_can_apply || confirming);
-    if (ImGui::Button("Apply to source"))
+    if (detail::IconButton("Apply to source", detail::EditorIcon::Publish))
       state.prefab_apply_confirmation = true;
     capture(20);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!interaction || !observation.open || !observation.base || confirming);
-    if (ImGui::Button("Review rebase"))
+    if (detail::IconButton("Review rebase", detail::EditorIcon::Inspect))
       request(PrefabIsolationAction::ReviewRebase);
     capture(23);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!writable || !state.prefab_can_rebase || confirming);
-    if (ImGui::Button("Rebase"))
+    if (detail::IconButton("Rebase", detail::EditorIcon::Merge))
       state.prefab_rebase_confirmation = true;
     capture(25);
     ImGui::EndDisabled();
     ImGui::BeginDisabled(!writable || !observation.open || confirming);
-    if (ImGui::Button("Save prefab"))
+    if (detail::IconButton("Save prefab", detail::EditorIcon::Save))
       request(PrefabIsolationAction::Save);
     capture(4);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!interaction || !observation.open || confirming);
-    if (ImGui::Button("Close prefab"))
+    if (detail::IconButton("Close prefab", detail::EditorIcon::Close))
       request(PrefabIsolationAction::Close);
     capture(5);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!interaction || !observation.open || confirming);
-    if (ImGui::Button("Review changes"))
+    if (detail::IconButton("Review changes", detail::EditorIcon::Compare))
       request(PrefabIsolationAction::Review);
     capture(15);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!writable || !state.prefab_can_revert || confirming);
-    if (ImGui::Button("Revert properties"))
+    if (detail::IconButton("Revert properties", detail::EditorIcon::Revert))
       state.prefab_revert_confirmation = true;
     capture(16);
     ImGui::EndDisabled();
     ImGui::SameLine();
     ImGui::BeginDisabled(!interaction || !state.prefab_review || state.prefab_selected.empty() ||
                          confirming);
-    if (ImGui::Button("Review selected")) {
+    if (detail::IconButton("Review selected", detail::EditorIcon::Inspect)) {
       request(PrefabIsolationAction::SelectReview);
       if (state.prefab_request)
         state.prefab_request->selected = state.prefab_selected;
@@ -325,7 +325,7 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
     ImGui::SameLine();
     ImGui::BeginDisabled(!interaction || !state.prefab_rebase || confirming ||
                          state.prefab_choices.size() != state.prefab_conflicts.size());
-    if (ImGui::Button("Prepare")) {
+    if (detail::IconButton("Prepare", detail::EditorIcon::Build)) {
       request(PrefabIsolationAction::ResolveRebase);
       if (state.prefab_request)
         state.prefab_request->choices = state.prefab_choices;
@@ -336,14 +336,14 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       ImGui::TextWrapped(
           "Apply the reviewed source update? Undo restores your edits and retained base.");
       ImGui::BeginDisabled(!writable || !state.prefab_can_rebase);
-      if (ImGui::Button("Confirm rebase")) {
+      if (detail::IconButton("Confirm rebase", detail::EditorIcon::Confirm)) {
         request(PrefabIsolationAction::Rebase);
         state.prefab_rebase_confirmation = false;
       }
       capture(26);
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Cancel rebase"))
+      if (detail::IconButton("Cancel rebase", detail::EditorIcon::Cancel))
         state.prefab_rebase_confirmation = false;
       capture(27);
     }
@@ -354,14 +354,14 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       ImGui::TextWrapped("The variant keeps its retained base until explicit Rebase. Local "
                          "edits/history stay unchanged.");
       ImGui::BeginDisabled(!writable);
-      if (ImGui::Button("Confirm source apply")) {
+      if (detail::IconButton("Confirm source apply", detail::EditorIcon::Confirm)) {
         request(PrefabIsolationAction::ApplyToSource);
         state.prefab_apply_confirmation = false;
       }
       capture(21);
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Cancel source apply"))
+      if (detail::IconButton("Cancel source apply", detail::EditorIcon::Cancel))
         state.prefab_apply_confirmation = false;
       capture(22);
     }
@@ -370,21 +370,21 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
                                  ? "Restore selected properties? Use Undo to recover your edits."
                                  : "Restore source properties? Use Undo to recover your edits.");
       ImGui::BeginDisabled(!writable);
-      if (ImGui::Button("Confirm property revert")) {
+      if (detail::IconButton("Confirm property revert", detail::EditorIcon::Confirm)) {
         request(PrefabIsolationAction::Revert);
         state.prefab_revert_confirmation = false;
       }
       capture(17);
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Cancel revert"))
+      if (detail::IconButton("Cancel revert", detail::EditorIcon::Cancel))
         state.prefab_revert_confirmation = false;
       capture(18);
     }
     if (state.prefab_confirmation) {
       ImGui::TextUnformatted("Discard this prefab's unsaved changes before continuing?");
       ImGui::BeginDisabled(!interaction);
-      if (ImGui::Button("Discard prefab changes")) {
+      if (detail::IconButton("Discard prefab changes", detail::EditorIcon::Delete)) {
         auto confirmed = *state.prefab_confirmation;
         confirmed.discard_dirty = true;
         state.prefab_request = std::move(confirmed);
@@ -393,13 +393,13 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       capture(6);
       ImGui::EndDisabled();
       ImGui::SameLine();
-      if (ImGui::Button("Keep editing"))
+      if (detail::IconButton("Keep editing", detail::EditorIcon::Back))
         state.prefab_confirmation.reset();
       capture(7);
     }
     if (document && current) {
       ImGui::BeginDisabled(!edit || confirming);
-      if (ImGui::Button("Undo")) {
+      if (detail::IconButton("Undo", detail::EditorIcon::Undo)) {
         const bool applied = editable->Undo();
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
         ++state.prefab_input.undo_attempts;
@@ -410,7 +410,7 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       }
       capture(8);
       ImGui::SameLine();
-      if (ImGui::Button("Redo")) {
+      if (detail::IconButton("Redo", detail::EditorIcon::Redo)) {
         const bool applied = editable->Redo();
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
         ++state.prefab_input.redo_attempts;
@@ -424,7 +424,7 @@ void EditorImGuiHost::DrawPrefabIsolation(const SceneDocument *document, SceneDo
       ImGui::SameLine();
       ImGui::BeginDisabled(!writable || !observation.scene_writable || !observation.revision ||
                            observation.dirty || confirming);
-      if (ImGui::Button("Instantiate in scene"))
+      if (detail::IconButton("Instantiate in scene", detail::EditorIcon::AddChild))
         request(PrefabIsolationAction::Instantiate, observation.asset);
       capture(28);
       ImGui::SetItemTooltip(

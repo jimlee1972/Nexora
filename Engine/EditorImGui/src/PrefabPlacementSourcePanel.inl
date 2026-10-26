@@ -72,7 +72,8 @@ void DrawPrefabPlacementSource(StateT &state, const SceneDocument *scene,
   if (!node->scope.empty())
     ImGui::Text("Nested scope depth: %zu", node->scope.size());
   ImGui::BeginDisabled(!allowed);
-  if (ImGui::Button("Inspect source###editor.prefab.source.inspect"))
+  if (detail::IconButton("Inspect source###editor.prefab.source.inspect",
+                         detail::EditorIcon::Inspect))
     state.prefab_source_request = state.prefab_source_scope;
   const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
   state.prefab_source_position = std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};

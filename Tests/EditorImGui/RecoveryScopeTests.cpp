@@ -1,3 +1,4 @@
+#include "EditorIcons.h"
 #include "EditorImGuiTestAccess.h"
 #include "Nexora/EditorImGui/EditorImGui.h"
 
@@ -109,10 +110,9 @@ struct Fixture {
     Require(window != nullptr, "recovery modal is absent");
     // CursorPosPrevLine is the actual last submitted button's end/top, retained in this
     // window's layout state. Do not assume popup placement, a fixed label width or screen DPI.
-    const auto label_width = ImGui::CalcTextSize("Discard recovery data").x;
-    const auto button_width = label_width + ImGui::GetStyle().FramePadding.x * 2.0F;
+    const auto button_width = nexora::editor::imgui::detail::IconButtonExtent();
     const auto x = window->DC.CursorPosPrevLine.x - button_width * 0.5F;
-    const auto y = window->DC.CursorPosPrevLine.y + ImGui::GetFrameHeight() * 0.5F;
+    const auto y = window->DC.CursorPosPrevLine.y + button_width * 0.5F;
     Send(WindowEventType::Pointer, static_cast<int>(x * dpi), static_cast<int>(y * dpi));
     Frame(&workspace);
   }

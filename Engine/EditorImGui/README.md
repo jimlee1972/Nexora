@@ -1,5 +1,36 @@
 # Editor Dear ImGui host contract
 
+## Icon action buttons and local Transform presentation
+
+The host uses editor-owned vector artwork for action buttons in toolbars, auxiliary panels,
+dialogs and optional 2D Studio. Icons require no external texture or icon-font dependency. Main
+menus and context menus retain text, as do ordinary options, checkboxes, field labels, tabs and
+navigation content. Icon buttons retain the original scoped ImGui IDs, action admission,
+keyboard navigation, disabled/selected state and caller-visible `LastItemData`. Hover tooltips
+expose function names and available shortcuts, including on disabled controls; they preserve
+item geometry/hover observations and do not introduce an accessibility semantic bridge.
+
+Inspector local Transform presents Position, Rotation and Scale as three XYZ rows. Red X,
+green Y and blue Z labels retain letter identification; narrow panels place each row name above
+its three fields. Reset, Copy and Paste are icon actions beside the Transform heading. Rotation
+remains degrees with Z-X-Y composition and authored Euler turns. Existing Enter-to-apply,
+Escape-to-cancel, mixed-selection, finite/nonzero validation, numeric precision and atomic
+Undo/Redo contracts remain; this presentation adds no drag-to-adjust behavior or storage/public
+API change. Private Transform bounds report visible enabled fields by value; private Play Apply
+centers exclude hidden/clipped controls, including scrollbar space, while retaining visible
+disabled-control observations for permission checks. See [the scoped Linux validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md).
+
+### Private native icon-control observations
+
+Private test access copies close-modal Save/Discard/Cancel centers only when the current item
+is visible, enabled, outside hidden sizing frames and its center lies within the current window
+clip rectangle. Each frame clears old close points. Diagnostic, Scene Select All, reflected
+property/array and prefab review/rebase observations reuse their existing widget geometry and
+admission paths. Test streams serialize these owning numeric points and copied input/state;
+they retain no ImGui/model pointer and neither execute actions nor grant authoring/filesystem
+authority. Native fixtures still send real X11 input and check independent pixels, values, files
+and access rejection. See the [application observer contract](../../Apps/Editor/README.md#native-project-and-asset-workflow-acceptance).
+
 ## Project Build Settings
 
 Build > Project Build Settings edits a separate owning draft of the game's startup scene and

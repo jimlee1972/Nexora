@@ -204,6 +204,22 @@ int main() {
     Require(play.Start(0.25, simulate) && play.Tick(), "DPI review fixture failed");
     for (int frame = 0; frame < 4; ++frame)
       draw();
+    // Resizing the existing dock layout leaves a short Game panel. Scroll its actual
+    // controls into view before clicking; the modal must still fit the 640x360 viewport.
+    const auto bindings = imgui::EditorImGuiTestAccess::GameInputBindingPosition(host, 0);
+    Require(bindings.has_value(), "DPI Game toolbar absent");
+    Nexora::Window::WindowEvent hover;
+    hover.type = Nexora::Window::WindowEventType::Pointer;
+    hover.value0 = static_cast<int>((*bindings)[0] * 2);
+    hover.value1 = static_cast<int>((*bindings)[1] * 2);
+    host.ProcessEvents(std::array{hover});
+    draw();
+    Nexora::Window::WindowEvent wheel;
+    wheel.type = Nexora::Window::WindowEventType::Wheel;
+    wheel.value1 = -120;
+    host.ProcessEvents(std::array{wheel});
+    draw();
+    draw();
     click(false);
     Require(host.TakePlayCommand() == imgui::PlayCommand::Pause && play.Pause(),
             "DPI pause failed");

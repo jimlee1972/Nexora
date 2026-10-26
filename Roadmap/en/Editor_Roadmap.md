@@ -1,5 +1,20 @@
 # Nexora Graphical Editor Roadmap
 
+### Icon actions and compact Transform (2026-10-27)
+
+✅ Action buttons across the Editor shell, auxiliary panels, dialogs and optional 2D Studio use
+editor-owned vector icons with function tooltips. Main-menu and context-menu text, ordinary
+options, field labels and navigation content remain readable text. Inspector local Transform
+uses Position / Rotation / Scale rows with red X, green Y and blue Z labels; narrow panels put
+the row name above the three fields. Existing Enter/Escape, mixed selection, precision, authored
+Euler turns and Undo/Redo behavior remain in place. [Scoped validation record](../../Tools/Build/evidence/EditorIconsTransform-Linux-2026-10-27.md)
+records the full Linux traversal and passing affected-case rerun; this change does not close a graphical milestone or accessibility
+semantic-bridge/target-host acceptance.
+The repaired native fixture subset passes all eight unique X11/Vulkan cases with Slang enabled,
+including reflected arrays, prefab workflows, diagnostic consent and scene-file close/reopen.
+This is software-display evidence, not physical-host acceptance; the expanded 399-case traversal and corrected native-input rerun now cover 399 unique passing
+cases with no skips or unresolved failures.
+
 ### Project scene delivery goal (2026-10-25)
 
 Startup-scene settings, enabled build scenes and runtime packaged-scene transitions are authorized
