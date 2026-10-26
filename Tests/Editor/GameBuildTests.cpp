@@ -199,6 +199,13 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   std::filesystem::copy_file(Path(argv[2]), root / "Scripts/game.zig");
   Write(root / "Scripts/project.json",
         R"({"schema":1,"module_name":"BuiltGameFixture","script":"game.zig"})");
+  Require(Command(Path(argv[6]), root,
+                  {"--build-game=" + Utf8(root), "--output=" + Utf8(root / "DefaultScriptGame"),
+                   "--script-project=Scripts/project.json"}) == 0U &&
+              exists(root / "DefaultScriptGame" / runtime::kGameModuleFilename) &&
+              Read(root / "DefaultScriptGame/Build.sources").find("mode=script-project") !=
+                  std::string::npos,
+          "Editor default script build could not resolve its configured compiler");
   request.mode = editor::GameBuildMode::ScriptProject;
   request.script_manifest = "Scripts/project.json";
   auto scripted = PrepareOnWorker(request, error);

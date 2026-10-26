@@ -85,6 +85,12 @@ and an earlier focused CI gate are being added. This is an open integration fail
 accepted phase or final ZIP. Original artifact 12620680567 retains the successful pixel receipt
 and failed project. Windows extraction/relocation successes do not waive that failure.
 
+The focused diagnostic run at 78d6207f confirms an empty Zig argument: the installed SDK rejects
+PROJECT/OUTPUT/ZIG admission. Fresh configuration reproduced the Editor's early empty compiler
+capture before Gameplay/Zig discovery. Deferred root-completion generation fixes six local
+configuration cases (three configurations with/without Player); a default-tool script CLI
+regression is added. Full updated-source gates remain required before accepting this correction.
+
 ## 1. Product behavior
 
 - Project Build Settings selects the game's startup scene and scenes included in a build.

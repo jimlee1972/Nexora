@@ -30,6 +30,8 @@ existing build. Runtime profiles and bundled tools resolve relative to the Edito
 unmarked development builds fall back to the configured Player target's actual profile directory
 and tools. A packaged `build-info.json` marker forbids escaping to developer runtime/tool paths.
 Generated private tool headers are configuration-specific for multi-configuration generators.
+Their generation is deferred until the root configure finishes, so the first configure observes
+the canonical Zig discovery performed after the Editor target; no prior cache entry is required.
 
 Projects with `project.build.json` Play the saved enabled scenes from the configured startup
 scene in an isolated game World. A dirty current Scene offers Save, Use Saved Scenes or Cancel.

@@ -79,6 +79,11 @@ worker 結果文字；目前補上明確啟用的結果診斷，並將限定 CI 
 解決的串接失敗，不代表階段或最終 ZIP 通過。原 artifact 12620680567 保留成功像素與
 失敗專案；Windows 解壓／搬移成功不能免除此項失敗。
 
+78d6207f 的限定診斷確認 Zig 參數為空，隨附 SDK 因 PROJECT／OUTPUT／ZIG 准入失敗。
+首次 configure 已重現 Editor 在 Gameplay/Zig discovery 前擷取空編譯器路徑。延後至
+root configure 結束才產生設定的修正，通過六組本機設定案例（三種 configuration、有／無
+Player）；另補上使用預設工具的 script CLI 回歸。仍須通過修正版完整 gates 才能驗收。
+
 ## 1. 使用者操作
 
 - 在專案 Build Settings 選擇遊戲啟動 Scene 與要打包的 Scene。

@@ -226,3 +226,34 @@ remain recorded. The diagnostic-only revision compiles and passes the local 10-c
 `packaged-play-20261026-085138` (20.51 s); Python syntax, changed Markdown/link checks and all
 16 documentation-routing tests pass. The first documentation test attempt hit the pre-existing
 Windows python3 App Execution Alias error; rerunning with the existing real Python alias passed.
+
+## First-configure compiler discovery correction
+
+Diagnostic head 78d6207f display job 121344641724 fails the focused case in 9.76 s. Its actual
+worker result is a CMake error from sdk/CMake/Modules/NexoraGameProject.cmake:7 requiring PROJECT,
+OUTPUT and ZIG. Artifact 12621397365 (SHA-256
+a863c25728c1834dc1ade10aa3e4dced57e80727140900545d4d6f32e1e44be9) retains that original result.
+
+The root configures Apps/Editor before Gameplay/Zig. On a clean configure, interpolating
+NEXORA_ZIG_EXECUTABLE in file(GENERATE CONTENT) at the earlier call captured an empty path;
+later canonical discovery could not change that already-expanded string. Explicit Windows
+tool configuration and repeated configure caches masked this. A configure-only harness including
+the actual App CMake file reproduces the empty generated compiler even with the late cache entry
+present. Deferred root-completion generation reads canonical discovery after all subdirectories;
+six fresh multi-config/with-and-without-Player cases now retain the correct compiler/profile.
+Receipt: build/scene-settings/late-zig-config-receipt.json and profile-late-zig-{before,after,
+after-no-player} configure logs. This is a CMake configuration proof, not native Linux acceptance.
+
+The worker regression now additionally invokes the actual Editor default script CLI without
+runtime/tool overrides and verifies its compiled module/script inventory. Full current-source
+CI, native GUI Build and the final source-matched Editor ZIP remain required.
+
+The corrected source passes the final Windows 14-case producer/ABI/CLI gate in 209.25 s,
+zero failures/skips, including the actual default-tool script CLI. Its editor.game_build case
+passes in 194.78 s; commands/build/test logs remain under the latest phase4-gate receipt prefix.
+Changed Markdown/link checks also pass with the synchronized plan and App contract updates.
+
+Previous 1f0f2ad6 Windows full Development job 121334225230 passes 407 registered cases with the
+existing font skip, zero failures, 1796.88 s. Its Shipping/feature-off/sanitizer/TSan contract job
+121334225177 passes, retaining nine sanitizer and two TSan skips. These prior-head results are
+retained separately and do not accept the pending compiler-discovery revision.
