@@ -76,5 +76,7 @@ absent scene service and must not assume a request has applied inside the reques
 Portable coverage includes candidate rejection/exception/Stop conservation, hierarchy remapping,
 shared CPU lifetime, persistent retention, binding cleanup, 120 alternating transitions, historical
 services prefixes, C/Zig field layout and an actual SDK-built Zig module requesting Level01 →
-Title → Level01. Native pixels, GPU retirement, Editor Play/build and relocated game/Editor
-delivery remain separate acceptance gates in the [delivery plan](../../Roadmap/en/Project_Scene_Delivery_Plan.md).
+Title → Level01. ✅ The scoped native pixel/lifetime, Editor Play/build and relocated game/Editor
+gates are accepted by the [delivery plan](../../Roadmap/en/Project_Scene_Delivery_Plan.md).
+See the [final record](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md)
+for counters, source/exit conservation and the remaining independent clean-host/full-milestone boundaries.

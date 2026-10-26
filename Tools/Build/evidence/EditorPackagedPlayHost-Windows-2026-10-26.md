@@ -1,5 +1,9 @@
 # Packaged Play host prerequisite — Windows 2026-10-26
 
+✅ Final scoped acceptance: PR #721 passed all 41 exact-head checks and merged as e0036e73.
+The entries below retain original candidate results/failures and their historical limits;
+current status and final artifact are in the [integrated acceptance record](ProjectSceneDelivery-Acceptance-2026-10-26.md).
+
 This is subsequent uncommitted phase-4 integration work, separate from PR #720's common producer.
 The main Editor Play command is now wired to the candidate; native pixels and full phase 4 remain unaccepted.
 

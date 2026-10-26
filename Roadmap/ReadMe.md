@@ -182,7 +182,7 @@ code and tag changes retain full validation; roadmap implementation acceptance r
 | V1 Visual Showcase Long-Term Plan | **Linux/Windows developer, clean-VM and physical-display slices verified; final acceptance pending** | [V1 Visual Showcase Demo Long-Term Plan](en/V1-Visual-Showcase-Long-Term-Plan.md) |
 | V1 Visual Identity Showcase Roadmap | **71.4% milestone acceptance (5/7); ✅ Art direction confirmed; free-asset shortlist recorded; ✅ VIS-M0–M2 / VIS-M4–M5 accepted (5/7); quality/release evidence retained; golden-hour environment/HDR Linux 97/97 + 100s native evidence retained; reference art and physical performance pending** | [V1 Visual Identity Showcase Roadmap](en/V1-Visual-Identity-Roadmap.md) |
 | Editor Roadmap | **0% graphical acceptance** | [Graphical Editor Roadmap](en/Editor_Roadmap.md) |
-| Project Scene Delivery Plan | **Authorized; 3/5 implementation phases accepted** | [Startup scene, multi-scene build and runtime transitions](en/Project_Scene_Delivery_Plan.md) |
+| Project Scene Delivery Plan | **✅ 5/5 scoped implementation phases accepted** | [Startup scene, multi-scene build and runtime transitions](en/Project_Scene_Delivery_Plan.md) |
 | 2D Engine Roadmap | **82% portable/Linux capability acceptance (9/11); PC host gates open** | [2D Engine Roadmap](en/2D_Roadmap.md) |
 | ✅ ADR-0001: Editor UI Framework | **Accepted** | [ADR-0001: Editor UI Framework](en/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui Integration Plan | **In progress; ✅ WP0 baseline, Linux Vulkan validation and native atlas lifetime slices; target-host gates open** | [Editor ED-M0 Dear ImGui Integration Plan](en/Editor_ImGui_Integration_Plan.md) |
@@ -245,7 +245,7 @@ Roadmap 狀態。細部任務完成紀錄與驗證資料保留在相關 Roadmap�
 | V1 可視化展示 Demo 長期規劃 | **Linux／Windows 開發機、乾淨 VM 與實體顯示切片已驗證；最終驗收待完成** | [Nexora V1 可視化展示 Demo 長期規劃](zh-TW/V1-Visual-Showcase-Long-Term-Plan.md) |
 | V1 視覺特色 Showcase Roadmap | **71.4% 里程碑驗收（5/7）；✅ 美術方向已確認；已記錄免費素材候選；✅ VIS-M0–M2／VIS-M4–M5 已驗收（5/7）；品質／交付證據已齊備；實機美術／效能待驗收** | [Nexora V1 視覺特色 Showcase Roadmap](zh-TW/V1-Visual-Identity-Roadmap.md) |
 | Editor Roadmap | **0% 圖形化驗收** | [圖形化 Editor Roadmap](zh-TW/Editor_Roadmap.md) |
-| 專案場景交付計畫 | **已授權；實作階段通過 3/5** | [啟動場景、多場景建置與執行時切換](zh-TW/Project_Scene_Delivery_Plan.md) |
+| 專案場景交付計畫 | **✅ 限定實作階段通過 5/5** | [啟動場景、多場景建置與執行時切換](zh-TW/Project_Scene_Delivery_Plan.md) |
 | 2D 引擎 Roadmap | **82% Portable／Linux 能力驗收（9/11）；PC 主機 gate 待完成** | [2D 引擎 Roadmap](zh-TW/2D_Roadmap.md) |
 | ✅ ADR-0001：Editor UI Framework | **Accepted** | [ADR-0001：Editor UI Framework](zh-TW/ADR-0001-Editor-UI-Framework.md) |
 | Editor ED-M0 Dear ImGui 整合計畫 | **施工中；✅ WP0 baseline、Linux Vulkan validation 與 native atlas lifetime slice，target-host gate 待完成** | [Editor ED-M0 Dear ImGui 整合計畫](zh-TW/Editor_ImGui_Integration_Plan.md) |

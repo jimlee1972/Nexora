@@ -1,5 +1,9 @@
 # Packaged native game candidate — Windows 2026-10-26
 
+✅ Final scoped acceptance: PR #721 passed all 41 exact-head checks and merged as e0036e73.
+The entries below retain original candidate results/failures and their historical limits;
+current status and final artifact are in the [integrated acceptance record](ProjectSceneDelivery-Acceptance-2026-10-26.md).
+
 Scope: the native Player slice of phase 4 in the
 [scene delivery plan](../../../Roadmap/en/Project_Scene_Delivery_Plan.md).
 The code is subsequent work on merged PR #718, not part of that Runtime-only PR's acceptance.

@@ -6,9 +6,8 @@ and Save Build Settings. Reload Saved Settings discards the draft and rereads di
 scenes use their persistent UUID; an externally added Content file must be imported/opened before
 enrollment. Opening another Scene never changes the game's startup selection. The startup scene
 must remain enabled. Read-only/recovery and external settings changes are protected.
-These settings are the first phase of [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md);
-the existing Export StaticView command still exports only the current Scene until that integration
-is implemented and accepted.
+These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
+producer and Play path. Export StaticView remains a separate command for the current Scene.
 
 The Editor executable also provides the shared game's CLI build entry:
 
@@ -42,8 +41,10 @@ Projects without build settings retain clone-based Play. Incomplete Scene tables
 custom-2D bindings reject. `--graphical --project=PROJECT --play` invokes the same Play command
 after graphical startup for automated acceptance. Normal double-click startup needs no arguments.
 
-Windows integration exercised configured startup and A/B/A through the actual Editor. Linux
-native pixel acceptance and final portable Editor delivery remain acceptance gates.
+✅ Configured startup, A/B/A, Linux native Editor pixels/graphical script Build and portable
+Windows Editor delivery passed their scoped gates in PR #721. See the
+[acceptance record](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md);
+full graphical milestones and independent clean-host acceptance remain separate.
 
 ## Interactive startup and project files
 

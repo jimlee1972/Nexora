@@ -6,7 +6,7 @@ gameplay_loaded=false. It needs no authored `.scene` or source tree. This is CPU
 native execution is a separate mode below; built games use executable-relative Game.launch metadata.
 See [the catalog contract](../../Engine/Runtime/GameProjectPackage.md).
 
-## Native packaged game candidate
+## Native packaged games
 
 With native Player support enabled, `--run-game-package PATH` uses the verified catalog's explicit
 startup UUID and the same native options as `--run-package`. An optional explicit
@@ -40,10 +40,11 @@ not a physical VRAM measurement. A successful report requires successful native 
 drain, stdout flush and exit 0. Stop cancels pending transitions before module Stop/Destroy; the
 borrowed session/services remain alive until module teardown finishes.
 
-This is a native integration candidate. Linux real-pixel sequence, full exact-head CI, Editor
-Play/common build, game relocation and final Editor ZIP remain independent acceptance gates in
-the [delivery plan](../../Roadmap/en/Project_Scene_Delivery_Plan.md). Windows GUI capture also
-remains pending when Computer Use app access has not been granted.
+✅ Native Linux pixels, full exact-head CI, Editor Play/common Build, game relocation and the
+Windows Editor ZIP pass the scoped [delivery plan](../../Roadmap/en/Project_Scene_Delivery_Plan.md).
+See the [final evidence](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md).
+Windows native execution is developer-PC evidence; captured Windows pixels and an independent
+clean host are not claimed. This is not complete support for every custom gameplay format.
 
 Enable `NEXORA_BUILD_PROJECT_PLAYER=ON` together with the asset pipeline to build the Runtime-only
 `NexoraProjectPlayer`. The current executable verifies a **StaticView cooked package**:

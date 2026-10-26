@@ -6,8 +6,9 @@ Startup-scene settings, enabled build scenes and runtime packaged-scene transiti
 and specified in the [scene delivery plan](Project_Scene_Delivery_Plan.md). ✅ Phase 1 settings/UI
 passed its scoped gates in PR #716. ✅ Phase 2 cooker/package passed all 38 exact-head checks in
 PR #717. ✅ Phase 3 Runtime session/C/Zig service passed all 38 exact-head checks in PR #718;
-✅ The scoped shared producer/native launcher passed all 41 checks in PR #720; configured
-Editor Play/GUI Build and integrated delivery remain pending. The main Editor retains one editable Scene; its last-opened scene is not
+✅ The scoped shared producer/native launcher passed PR #720. ✅ Configured Editor Play/GUI Build
+and integrated delivery passed all 41 exact-head checks in PR #721; the scene plan is 5/5 accepted.
+[Final evidence](../../Tools/Build/evidence/ProjectSceneDelivery-Acceptance-2026-10-26.md). The main Editor retains one editable Scene; its last-opened scene is not
 the game startup setting. Legacy StaticView and complete ED-M1/M3/M6 acceptance remain separate.
 
 ### Current main-Editor interaction policy (2026-10-25)
