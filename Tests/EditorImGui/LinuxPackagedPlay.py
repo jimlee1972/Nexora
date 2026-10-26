@@ -181,6 +181,9 @@ def main():
                 "scene_draws=" in log, log)
         require(all(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
                     for name, digest in baseline.items()), "Play modified saved project sources")
+        (evidence / "play-pixels.json").write_text(json.dumps({
+            "sequence": observed, "exit": editor.returncode, "sources": baseline,
+            "saved_sources_unchanged": True}, indent=2))
         build = graphical_build(args, root, evidence, environment)
         require(all(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
                     for name, digest in baseline.items()), "GUI Build modified authored sources")

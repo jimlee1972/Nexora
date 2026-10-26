@@ -27,7 +27,9 @@ project-relative output directory and an explicit scene-only or gameplay-script 
 is cooperative. Publication runs on the authoring thread and rechecks project identity, saved
 sources, document/content revisions and writable access; obsolete results cannot replace an
 existing build. Runtime profiles and bundled tools resolve relative to the Editor executable;
-configured developer tools provide a development-build fallback.
+unmarked development builds fall back to the configured Player target's actual profile directory
+and tools. A packaged `build-info.json` marker forbids escaping to developer runtime/tool paths.
+Generated private tool headers are configuration-specific for multi-configuration generators.
 
 Projects with `project.build.json` Play the saved enabled scenes from the configured startup
 scene in an isolated game World. A dirty current Scene offers Save, Use Saved Scenes or Cancel.

@@ -128,3 +128,7 @@ licenses remain included. Without these options the existing Editor-only workflo
 The graphical and CLI build paths resolve the same installed profile/tools; a CLI build may omit
 all runtime/tool options to use that installation. This is a packaging candidate until actual
 relocated Editor/script-game verification and the new exact-head CI pass.
+
+A packaged `build-info.json` marker makes game-build dependency lookup installation-only: a missing
+private Runtime/profile or tool cannot silently use a build-PC path. Unmarked development Editors
+may use CMake's actual configured Player profile path, including POSIX per-target output layouts.

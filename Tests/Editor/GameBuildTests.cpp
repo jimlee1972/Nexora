@@ -122,6 +122,17 @@ void Run(const std::filesystem::path &root, int argc, char **argv) {
   request.maximum_frames = 100;
   for (int index = 7; index < argc; ++index)
     request.tools.runtime_files.push_back(Path(argv[index]));
+  const auto separate_development_directory = root / "UnmarkedDevelopmentEditor";
+  std::filesystem::create_directory(separate_development_directory);
+  const auto development_tools =
+      editor::preview::InstalledGameBuildToolsAt(separate_development_directory, &error);
+  Require(development_tools && development_tools->player == request.tools.player,
+          "per-target development Editor did not resolve the configured Player profile");
+  const auto incomplete_installation = root / "IncompleteEditorInstallation";
+  std::filesystem::create_directory(incomplete_installation);
+  Write(incomplete_installation / "build-info.json", "{}");
+  Require(!editor::preview::InstalledGameBuildToolsAt(incomplete_installation, &error),
+          "an incomplete installed Editor escaped to developer runtime/tool paths");
   const auto output = root / "BuiltGame";
   auto prepared = PrepareOnWorker(request, error);
   Require(prepared.has_value(), error.c_str());

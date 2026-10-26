@@ -72,6 +72,12 @@ SDK pixel cases there. Native draw admission rejection now retries the retained 
 InvalidDescriptor; device/surface loss still goes through host recovery. These next-head changes
 remain candidates until their own complete CI succeeds.
 
+The PR721 integration candidate exposed the POSIX per-target profile location in its new default
+CLI regression. The fix uses CMake's actual Player target directory for unmarked development
+builds and forbids developer fallback in marked installations. Split-directory/incomplete-install
+worker tests and per-configuration/no-Player generation pass locally; final revised CI and a
+new source-matched Editor ZIP remain open. Prior ZIPs are candidates only.
+
 ## 1. Product behavior
 
 - Project Build Settings selects the game's startup scene and scenes included in a build.

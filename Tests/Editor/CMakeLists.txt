@@ -8,7 +8,7 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
     add_executable(NexoraGameBuildTests GameBuildTests.cpp)
     target_link_libraries(NexoraGameBuildTests PRIVATE Nexora::Editor)
     target_include_directories(NexoraGameBuildTests PRIVATE
-      "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_BINARY_DIR}/Apps/Editor/generated")
+      "${PROJECT_SOURCE_DIR}/Apps/Editor" "${PROJECT_BINARY_DIR}/Apps/Editor/generated/$<CONFIG>")
     nexora_apply_defaults(NexoraGameBuildTests)
     add_dependencies(NexoraGameBuildTests NexoraProjectPlayer NexoraEditor)
     get_target_property(game_runtime_files NexoraProjectPlayer NEXORA_GAME_RUNTIME_FILES)

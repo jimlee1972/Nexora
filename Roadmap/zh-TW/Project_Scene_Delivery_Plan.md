@@ -68,6 +68,11 @@ Zig，新的 Editor 候選會在該 job 明確要求兩個 SDK 像素案例。�
 InvalidDescriptor admission 拒絕時會重畫保留場景；device／surface loss 仍交由 host recovery。
 這些下一個來源版本的變更仍須通過自己的完整 CI 才能驗收。
 
+PR721 串接候選的新預設 CLI 回歸揭露 POSIX 各 target 的 profile 位置差異。修正會讓未標記
+開發版使用 CMake 實際 Player 目錄，正式安裝標記則禁止退回開發機相依。分離目錄／缺件
+安裝的 worker 測試及多 configuration／未建置 Player 的產生驗證已在本機通過；修正版
+完整 CI 與來源相符的新 Editor ZIP 仍待完成，先前 ZIP 僅為候選。
+
 ## 1. 使用者操作
 
 - 在專案 Build Settings 選擇遊戲啟動 Scene 與要打包的 Scene。

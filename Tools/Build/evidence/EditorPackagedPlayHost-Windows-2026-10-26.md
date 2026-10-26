@@ -167,3 +167,29 @@ masquerade as cancellation. The actual scene-only/script/CLI worker suite passes
 `editor.game_build` gate at `cancel-worker-20261026-072337`, 172.69 s, zero failures/skips.
 This changes test preconditions only; production sources and package behavior are unchanged.
 The earlier intermediate 14-test run also passed at phase4-gate-20261026-071925 (167.59 s).
+
+
+## PR721 POSIX development-profile correction
+
+Head 60055300 macOS job 121324539926 failed only editor.game_build: the new default-installed-tool
+CLI looked beside Apps/Editor/NexoraEditor, but GameRuntime.profile belongs beside the separate
+Apps/ProjectPlayer executable. Full original log: build/scene-settings/ci721-macos-first-failed.log.
+This is not accepted or skipped. Windows uses a common bin directory and had passed the same case.
+
+The correction generates the actual Player profile path after app targets are defined. Unmarked
+development builds may use it; packaged build-info.json markers force internal Runtime/profile
+and Tools paths, so missing shipped dependencies cannot be masked by a developer checkout. Actual
+worker/CLI tests exercise a separate unmarked development directory and reject an incomplete marked
+installation. Generated private headers are per-configuration; a configure-only harness includes the
+actual Apps/Editor CMake file, validates three Ninja Multi-Config profile paths and no-Player generation.
+Logs: profile-layout-config-{multi,no-player}.*. The finalized Windows 14-test gate passes at
+phase4-gate-20261026-080220, 130.66 s, zero failures/skips. New Linux pixel evidence writes its
+successful Play-stage receipt before graphical Build, retaining independent observations on failure.
+
+The earlier f65acc36 ZIP remains a candidate; it is not the final artifact after this production
+lookup correction. Its actual extraction nevertheless passed strict inventory and Windows startup:
+extracted-editor-acceptance-20261026-074908 records exact zero-argument graphical initialization/
+continued process lifetime (controlled process cleanup, not graceful-exit proof), a normal eight-frame
+browser run, and default-Scene-mode packaged Play with 1,200 presents/three commits and all saved
+sources unchanged. Captured Windows pixels and clean host remain unclaimed. A new source-matched ZIP
+and complete updated-head CI are required before final delivery.
