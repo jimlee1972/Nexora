@@ -67,3 +67,11 @@ All 18 touched C++ sources/headers/includes pass `clang-format --dry-run --Werro
 These are portable actual-widget and authoring-contract tests. Physical display/DPI/IME,
 Windows/macOS target-host rendering, screen-reader semantics and complete Editor milestones
 remain separate acceptance gates. Hover tooltips do not implement an accessibility bridge.
+
+## Compiler compatibility follow-up
+
+The initial hosted Windows desktop builds rejected three conditional integer-coordinate
+expressions in the shared icon artwork with MSVC C4244 under warnings-as-errors. Their branches
+now use explicit floating-point literals. The Linux preset configure/full build and the same
+29 affected cases passed again after this correction (29/29). Hosted validation is tracked in
+[PR #724](https://github.com/jimlee1972/Nexora/pull/724); no Windows run is claimed from Linux.

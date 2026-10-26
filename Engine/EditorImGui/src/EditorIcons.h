@@ -130,8 +130,8 @@ inline void DrawEditorIcon(ImDrawList &draw, EditorIcon icon, ImVec2 origin, flo
     const float top = up ? 4.0F : 20.0F;
     const float end = up ? 19.0F : 5.0F;
     line(12, end, 12, top);
-    line(12, top, 7, up ? 9 : 15);
-    line(12, top, 17, up ? 9 : 15);
+    line(12, top, 7, up ? 9.0F : 15.0F);
+    line(12, top, 17, up ? 9.0F : 15.0F);
   };
   const auto file = [&] {
     line(5, 3, 14, 3);
@@ -420,8 +420,8 @@ inline void DrawEditorIcon(ImDrawList &draw, EditorIcon icon, ImVec2 origin, flo
   case EditorIcon::Lock:
   case EditorIcon::Unlock:
     rect(5, 11, 19, 21);
-    draw.PathArcTo(point(icon == EditorIcon::Lock ? 12 : 16, 10), 5 * unit, 3.14159265F, 6.2831853F,
-                   12);
+    draw.PathArcTo(point(icon == EditorIcon::Lock ? 12.0F : 16.0F, 10), 5 * unit, 3.14159265F,
+                   6.2831853F, 12);
     draw.PathStroke(color, 0, stroke);
     dot(12, 16, 1);
     break;
