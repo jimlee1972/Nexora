@@ -210,7 +210,7 @@ def verify(package, evidence, editor_play=False):
                                    f'output tail: {output[-4096:]}')
             lines=[line for line in output.splitlines() if line.startswith('editor splash:')]
             if frames:
-                required=['opened','stage=0','stage=1','stage=3','main-frame-ready','closed']
+                required=['opened','stage=0','stage=1','owner-handoff','stage=3','main-frame-ready','closed']
                 try: positions=[lines.index('editor splash: '+token) for token in required]
                 except ValueError as error:raise RuntimeError(f'{label} missing splash lifecycle: {lines}') from error
                 if any(a.startswith(('--project=', '--create-project=')) for a in arguments) and 'editor splash: stage=2' not in lines:

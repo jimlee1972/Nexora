@@ -20,14 +20,21 @@ The first admitted successful EndFrame closes and joins the splash. Failure/exce
 exit also closes and joins it, preserving existing diagnostics. No timer or artificial delay is
 used. CLI/help/build paths create no splash; the original GUI subsystem/Unicode entry stays.
 The splash adopts the native host's per-monitor V2 policy before the first HWND and becomes an
-owned non-activating tool window above the initializing main window, without global topmost state.
+owned non-activating tool window above the initializing main window. Before an owner exists it
+is temporarily topmost, protecting the graphics-stage splash when the native host shows its
+empty window before device creation. Owner handoff immediately clears global topmost; ownership
+then preserves above-owner ordering through the first successful frame. No timer/delay is used.
 
 `editor.brand_assets` checks actual RGBA alpha/AA/borders/colors/counter, all seven ICO payloads
 and ZIP hashes with Python stdlib. `editor.windows_startup_splash` checks actual logo pixels,
-DPI, ownership, idempotence, exception cleanup and both window icons. Windows GUI entry checks
+DPI, ownership, idempotence, exception cleanup and both window icons. It also shows/activates a
+larger white host before handoff, checks actual desktop Z-order and composed screen logo pixels,
+and verifies unchanged focus plus topmost only before handoff. Separate pre-owner/handoff BMPs
+are retained; failure cleanup is checked on both sides of handoff. Windows GUI entry checks
 real PE brand resources, redirected Unicode CLI, no console and a real failed project-open cleanup.
-The package repeats exact embedded-resource admission and actual lifecycle-order checks after
-Unicode relocation with a restricted runtime PATH. It never needs a source-relative image path.
+After Unicode relocation with a restricted runtime PATH, the package requires exact embedded
+resource bytes, lifecycle order and actual main-window ownership with topmost cleared before
+scene initialization. Runtime never needs a source-relative image path.
 
 ## Validation
 

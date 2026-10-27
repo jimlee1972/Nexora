@@ -91,7 +91,7 @@ jobs:
             build/editor-delivery/*.zip
             build/editor-delivery/*.sha256
             build/editor-delivery/verification/
-            build/editor-package/Tests/Editor/editor-startup-splash.bmp
+            build/editor-package/Tests/Editor/editor-startup-splash*.bmp
           if-no-files-found: error
           retention-days: 30
       - name: Preserve failure evidence

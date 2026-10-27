@@ -1565,8 +1565,11 @@ adapter's per-monitor V2 policy before its first HWND; the splash also handles W
 Stages are descriptive: no timer, percentage, sleep or minimum display duration is introduced.
 The first successful main EndFrame closes and joins the splash. Every early return or exception
 instead destroys/joins it through RAII, retaining existing error and recovery diagnostics.
-The non-activating tool window becomes owned by the initializing main window, so it remains
-above that window without a second taskbar entry or a globally topmost window.
+The non-activating tool window is temporarily topmost before a main owner exists: the native
+host shows its window before device creation, and must not cover the graphics-stage splash.
+After surface creation, owner handoff immediately clears topmost; normal ownership then keeps
+the splash above only its main window until the first successful frame. Neither phase activates
+the splash or adds a second taskbar entry. Failure scope exit also removes the pre-owner window.
 Its thread borrows no engine/project/device state. PNG stream/bitmap, window and GDI+ lifetimes
 are released before the thread exits. A missing splash resource logs a warning and continues
 ordinary initialization; it does not turn an initialization failure into success.
@@ -1576,7 +1579,9 @@ Help, invalid arguments, ordinary headless create/open/build commands never crea
 Linux/macOS retain their existing startup via a no-op adapter. Opt-in
 `NEXORA_EDITOR_STARTUP_EVIDENCE=1` records actual open/stage/first-frame/close boundaries.
 The Windows native test checks black/cyan/white pixels, DPI awareness, explicit completion,
-exception cleanup, owner ordering and main-window icons, retaining `editor-startup-splash.bmp`
-in CI. The relocated package requires lifecycle order, no CLI splash and exact PE resources.
+exception cleanup, pre-device Z-order/screen pixels/focus, topmost removal at owner handoff and
+main-window icons, retaining `editor-startup-splash*.bmp`
+in CI. The relocated package requires lifecycle order, actual owner/topmost handoff before scene
+initialization, no CLI splash and exact PE resources.
 Hosted results do not establish physical multi-monitor, desktop taskbar or clean-host acceptance.
 See [assets](../../Assets/Brand/README.md) and [evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).

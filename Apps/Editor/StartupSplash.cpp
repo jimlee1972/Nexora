@@ -144,7 +144,9 @@ struct StartupSplash::Native final {
           GetCursorPos(&pointer);
           MONITORINFO monitor{sizeof(MONITORINFO)};
           GetMonitorInfoW(MonitorFromPoint(pointer, MONITOR_DEFAULTTOPRIMARY), &monitor);
-          hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, kClass,
+          // The native host shows its window before creating the device. Keep this
+          // pre-owner splash visible through that interval without activating it.
+          hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST, kClass,
                                  L"Nexora Editor Startup", WS_POPUP, monitor.rcWork.left,
                                  monitor.rcWork.top, 640, 360, nullptr, nullptr, module, this);
           if (hwnd) {
@@ -240,7 +242,12 @@ void StartupSplash::PrepareMainWindow() {
           return TRUE;
         if (const auto splash = reinterpret_cast<HWND>(splash_window)) {
           SetWindowLongPtrW(splash, GWLP_HWNDPARENT, reinterpret_cast<LONG_PTR>(hwnd));
-          SetWindowPos(splash, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+          // Ownership now keeps us above this host; release global topmost immediately.
+          SetWindowPos(splash, HWND_NOTOPMOST, 0, 0, 0, 0,
+                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+          if (GetWindow(splash, GW_OWNER) == hwnd &&
+              (GetWindowLongPtrW(splash, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
+            Evidence("owner-handoff");
         }
         for (const auto type : {ICON_SMALL, ICON_BIG}) {
           const int size = GetSystemMetricsForDpi(type == ICON_SMALL ? SM_CXSMICON : SM_CXICON,
