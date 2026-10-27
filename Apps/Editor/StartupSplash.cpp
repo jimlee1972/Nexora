@@ -33,8 +33,11 @@ const wchar_t *Text(StartupStage stage) {
   }
   return L"Starting Editor";
 }
+bool EvidenceEnabled() noexcept {
+  return GetEnvironmentVariableW(L"NEXORA_EDITOR_STARTUP_EVIDENCE", nullptr, 0) != 0;
+}
 void Evidence(const char *event) {
-  if (std::getenv("NEXORA_EDITOR_STARTUP_EVIDENCE"))
+  if (EvidenceEnabled())
     std::cerr << "editor splash: " << event << '\n';
 }
 } // namespace
@@ -218,7 +221,7 @@ void StartupSplash::Stage(StartupStage stage) {
   if (!native_)
     return;
   SendMessageW(native_->window, kStageMessage, static_cast<WPARAM>(stage), 0);
-  if (std::getenv("NEXORA_EDITOR_STARTUP_EVIDENCE"))
+  if (EvidenceEnabled())
     std::cerr << "editor splash: stage=" << static_cast<unsigned>(stage) << '\n';
 }
 void StartupSplash::Ready() {
