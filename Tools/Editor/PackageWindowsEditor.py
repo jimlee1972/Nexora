@@ -11,11 +11,13 @@ import struct
 import subprocess
 import sys
 import tempfile
+import zipfile
 
 from EditorTargetEvidence import smoke_result
+from EmbeddedBrand import require_embedded_brand
 
 OS_IMPORTS = set("kernel32 kernelbase ntdll user32 gdi32 imm32 advapi32 shell32 shlwapi ole32 "
-                 "oleaut32 comdlg32 comctl32 ucrtbase msvcrt ws2_32 winmm winhttp bcrypt "
+                 "oleaut32 gdiplus comdlg32 comctl32 ucrtbase msvcrt ws2_32 winmm winhttp bcrypt "
                  "crypt32 secur32 setupapi cfgmgr32 version dbghelp d3d12 d3d11 dxgi "
                  "d3dcompiler_47 xinput1_4 dinput8".split())
 
@@ -154,12 +156,34 @@ def relocated_environment(source):
     return environment
 
 
-def verify(package, evidence):
+def require_package_inventory(package):
+    """Admit actual extracted bytes, including the complete private Build/Play installation."""
+    inventory = json.loads((package / 'inventory.json').read_text(encoding='utf-8'))
+    actual = {p.relative_to(package).as_posix(): digest(p)
+              for p in package.rglob('*') if p.is_file() and p != package / 'inventory.json'}
+    if inventory != actual:
+        raise RuntimeError('Extracted package inventory mismatch')
+    if sorted(p.name for p in package.glob('*.exe')) != ['NexoraEditor.exe']:
+        raise RuntimeError('Only the Editor may be a public root executable')
+    if any(p.name.lower() in ('nexoratwodplayer.exe', 'nexoratwodstudio.exe',
+                              'nexoratwodassetcompiler.exe') for p in package.rglob('*.exe')):
+        raise RuntimeError('Unexpected extra 2D application')
+    return inventory
+
+
+def verify(package, evidence, editor_play=False):
     """Run outside the build tree with a restricted DLL search PATH; preserve all logs."""
     require_gui_subsystem(package / 'NexoraEditor.exe')
+    require_embedded_brand(package / 'NexoraEditor.exe')
+    if editor_play and not (package / 'Runtime/GameRuntime.profile').is_file():
+        raise RuntimeError('Extracted Editor Play requires the private game runtime')
     evidence.mkdir(parents=True, exist_ok=False)
     with tempfile.TemporaryDirectory(prefix='Nexora relocated 陰陽 ') as temporary:
-        root = Path(temporary)
+        # Hosted Windows TEMP can contain RUNNER~1. The producer requires a canonical
+        # physical parent; preserve Unicode while expanding that OS-provided alias.
+        root = Path(temporary).resolve(strict=True)
+        write_json(evidence / 'relocation.json', {'temporary_path': temporary,
+            'canonical_root': str(root), 'working_directory': str(root / 'empty working directory')})
         relocated = root / 'Editor package'
         shutil.copytree(package, relocated)
         cwd = root / 'empty working directory'
@@ -184,6 +208,16 @@ def verify(package, evidence):
             if result.returncode != expected or (frames and smoke_result(result.returncode, output, frames) != 'pass'):
                 raise RuntimeError(f'{label} failed: exit {result.returncode}; see {evidence}; '
                                    f'output tail: {output[-4096:]}')
+            lines=[line for line in output.splitlines() if line.startswith('editor splash:')]
+            if frames:
+                required=['opened','stage=0','stage=1','owner-handoff','stage=3','main-frame-ready','closed']
+                try: positions=[lines.index('editor splash: '+token) for token in required]
+                except ValueError as error:raise RuntimeError(f'{label} missing splash lifecycle: {lines}') from error
+                if any(a.startswith(('--project=', '--create-project=')) for a in arguments) and 'editor splash: stage=2' not in lines:
+                    raise RuntimeError(f'{label} missing real project stage: {lines}')
+                if positions!=sorted(positions) or 'editor splash: stage=4' not in lines:
+                    raise RuntimeError(f'{label} invalid splash order: {lines}')
+            elif lines:raise RuntimeError(f'{label} CLI opened a splash: {lines}')
             return result.stdout.decode('utf-8')
 
         help_text = run('help', ['--help'])
@@ -227,6 +261,23 @@ def verify(package, evidence):
             if not all(name in commands for name in ('Tools/cmake/bin/cmake.exe', 'Tools/ninja.exe',
                                                        'Tools/zig/zig.exe')):
                 raise RuntimeError('Game build did not use the shipped tools')
+            if editor_play:
+                shutil.copy2(output / 'Game.dll', authored / 'Game.dll')
+                sources = {p.relative_to(authored).as_posix(): digest(p)
+                           for p in authored.rglob('*') if p.is_file() and
+                           '.nexora' not in p.relative_to(authored).parts}
+                run('extracted-editor-play', ['--project=' + str(authored), '--graphical',
+                    '--native-scene-preview', '--gameplay-library=Game.dll', '--play',
+                    '--frames=1200'], frames=1200, timeout=180)
+                play_log = (evidence / 'extracted-editor-play.log').read_text(encoding='utf-8')
+                draws = re.findall(r'scene_draws=(\d+)', play_log)
+                if (play_log.count('packaged play scene committed:') != 3 or
+                        not draws or int(draws[-1]) < 1200 or
+                        any(digest(authored / name) != value for name, value in sources.items())):
+                    raise RuntimeError('Extracted Editor Play failed scene/draw/source conservation admission')
+                write_json(evidence / 'editor-play.json', {'status': 'PASS', 'frames': 1200,
+                    'scene_commits': 3, 'scene_draws': int(draws[-1]), 'saved_sources': sources,
+                    'scope': 'Extracted Editor same Play command, shipped-tool module, hosted DX12; no physical pixel claim'})
             catalog = subprocess.run([str(output / 'Game.exe'), '--verify-game-package',
                 str(output / 'Game.nxgame')], cwd=cwd, env=environment,
                 capture_output=True, timeout=15)
@@ -254,6 +305,8 @@ def verify(package, evidence):
     write_json(evidence / 'result.json', {'status': 'PASS', 'platform': 'Windows native process',
                                         'editor_subsystem': 'Windows GUI (2)',
                                         'console_attached': False,
+                                        'game_build': (package / 'Runtime/GameRuntime.profile').is_file(),
+                                        'extracted_editor_play': editor_play,
                                         'physical_host_acceptance': 'NOT_RUN'})
 
 
@@ -323,6 +376,20 @@ def main():
             p.relative_to(package).as_posix(): digest(p) for p in sorted(package.rglob('*')) if p.is_file()})
         archive = Path(shutil.make_archive(str(args.output / ('NexoraEditor-Windows-x64-' + args.commit[:12])),
                                          'zip', root_dir=args.output, base_dir=package.name))
+        if tool_info:
+            # Verify the real deliverable, rather than only the pre-archive staging directory.
+            try:
+                with tempfile.TemporaryDirectory(prefix='Nexora ZIP extraction 陰陽 ') as temporary:
+                    with zipfile.ZipFile(archive) as zipped:
+                        zipped.extractall(temporary)
+                    extracted = Path(temporary) / package.name
+                    require_package_inventory(extracted)
+                    if not json.loads((extracted / 'build-info.json').read_text())['game_build_tools']:
+                        raise RuntimeError('Extracted Editor lost private game-build tools')
+                    verify(extracted, args.output / 'verification/extracted', editor_play=True)
+            except Exception:
+                archive.unlink(missing_ok=True)
+                raise
         archive.with_suffix('.zip.sha256').write_text(digest(archive) + '  ' + archive.name + '\n', encoding='ascii')
         print(archive)
     except Exception:

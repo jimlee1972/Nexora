@@ -1,4 +1,4 @@
-add_executable(NexoraEditor main.cpp)
+add_executable(NexoraEditor main.cpp StartupSplash.cpp)
 function(nexora_generate_editor_game_tools)
   set(nexora_editor_game_runtime_profile "")
   if(TARGET NexoraProjectPlayer AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
@@ -23,7 +23,11 @@ target_link_libraries(NexoraEditor PRIVATE Nexora::Editor Nexora::Runtime Nexora
 if(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   if(WIN32)
     set_target_properties(NexoraEditor PROPERTIES WIN32_EXECUTABLE TRUE)
-    target_link_libraries(NexoraEditor PRIVATE ole32 shell32 uuid)
+    configure_file(BrandResources.rc.in "${CMAKE_CURRENT_BINARY_DIR}/BrandResources.rc" @ONLY)
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/BrandResources.rc" PROPERTIES
+      OBJECT_DEPENDS "${PROJECT_SOURCE_DIR}/Assets/Brand/Export/nexora-editor.ico;${PROJECT_SOURCE_DIR}/Assets/Brand/Export/nexora-wordmark.png")
+    target_sources(NexoraEditor PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/BrandResources.rc")
+    target_link_libraries(NexoraEditor PRIVATE ole32 shell32 uuid gdiplus gdi32 user32)
   endif()
   target_link_libraries(NexoraEditor PRIVATE Nexora::EditorImGui Nexora::Presentation)
   if(NEXORA_ENABLE_2D)

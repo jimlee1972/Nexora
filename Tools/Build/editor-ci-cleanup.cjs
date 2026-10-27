@@ -52,6 +52,8 @@ const graphicsSessionBranches = Object.freeze([
 
 // Only the packaging task's own branch belongs to this cleanup group.
 const editorPackageSessionBranches = Object.freeze(['build/editor-windows-package']);
+// Logo delivery owns only this branch, separately from the earlier packaging task.
+const logoPackageSessionBranches = Object.freeze(['build/editor-logo-splash']);
 
 async function cleanup({github, context, core}) {
   const {owner, repo} = context.repo;
@@ -64,9 +66,10 @@ async function cleanup({github, context, core}) {
   const graphicsSession = graphicsSessionBranches.includes(branch);
   const thumbnailSession = thumbnailSessionBranches.includes(branch);
   const editorPackageSession = editorPackageSessionBranches.includes(branch);
-  const ownerSession = currentSession || twoDSession || graphicsSession || thumbnailSession || editorPackageSession;
+  const logoPackageSession = logoPackageSessionBranches.includes(branch);
+  const ownerSession = currentSession || twoDSession || graphicsSession || thumbnailSession || editorPackageSession || logoPackageSession;
   if (ownerSession && (!context.actor || context.actor !== owner)) return;
-  const branches = editorPackageSession ? editorPackageSessionBranches : thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
+  const branches = logoPackageSession ? logoPackageSessionBranches : editorPackageSession ? editorPackageSessionBranches : thumbnailSession ? thumbnailSessionBranches : graphicsSession ? graphicsSessionBranches : twoDSession ? twoDSessionBranches : currentSession ? currentSessionBranches :
     sessionBranches.includes(branch) ? sessionBranches :
     branch.startsWith('codex/ed-m0-') ? legacyBranches : [];
   for (const candidate of branches) {

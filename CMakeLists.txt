@@ -27,6 +27,10 @@ option(NEXORA_ENABLE_EDITOR_SDK
 option(NEXORA_ENABLE_EDITOR "Build the standalone Nexora Editor preview" ON)
 option(NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL
        "Build the Dear ImGui graphical Editor shell" OFF)
+# Resources are shared by the Editor and its native startup regression.
+if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
+  enable_language(RC)
+endif()
 option(NEXORA_ENABLE_GAMEPLAY_SIMULATION
        "Build the V1-M8 physics, character, navigation, and AI foundation" ON)
 option(NEXORA_ENABLE_AI_RUNTIME_BRIDGE
