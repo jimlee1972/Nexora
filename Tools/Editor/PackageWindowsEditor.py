@@ -179,7 +179,11 @@ def verify(package, evidence, editor_play=False):
         raise RuntimeError('Extracted Editor Play requires the private game runtime')
     evidence.mkdir(parents=True, exist_ok=False)
     with tempfile.TemporaryDirectory(prefix='Nexora relocated 陰陽 ') as temporary:
-        root = Path(temporary)
+        # Hosted Windows TEMP can contain RUNNER~1. The producer requires a canonical
+        # physical parent; preserve Unicode while expanding that OS-provided alias.
+        root = Path(temporary).resolve(strict=True)
+        write_json(evidence / 'relocation.json', {'temporary_path': temporary,
+            'canonical_root': str(root), 'working_directory': str(root / 'empty working directory')})
         relocated = root / 'Editor package'
         shutil.copytree(package, relocated)
         cwd = root / 'empty working directory'

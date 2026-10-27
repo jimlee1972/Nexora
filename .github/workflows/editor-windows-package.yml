@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Cancel superseded checks on this packaging branch
-        if: github.ref == 'refs/heads/build/editor-windows-package' && github.actor == github.repository_owner
+        if: (github.ref == 'refs/heads/build/editor-windows-package' || github.ref == 'refs/heads/build/editor-logo-splash') && github.actor == github.repository_owner
         uses: actions/github-script@v7
         with:
           script: |

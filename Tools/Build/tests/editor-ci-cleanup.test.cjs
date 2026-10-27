@@ -213,6 +213,23 @@ test('thumbnail cleanup rechecks advancement before each cancellation', async ()
 
 
 const editorPackageBranch = 'build/editor-windows-package';
+test('Logo delivery cancels only its own obsolete owner runs, preserving both live events', async () => {
+  const logo = 'build/editor-logo-splash';
+  const f = fixture({current: logo, target: logo, actorRuns: true});
+  await cleanup(f);
+  assert.deepEqual(f.cancelled, [1, 2]);
+  assert(f.calls.every(([, args]) => !args.ref || args.ref === `heads/${logo}`));
+  assert(f.calls.every(([, args]) => !args.branch || args.branch === logo));
+  for (const excluded of [fixture({current: logo, actor: 'contributor'}),
+    fixture({current: `${logo}-other`}),
+    fixture({pull: {head: {ref: logo, repo: {full_name: 'foreign/Nexora'}}}})]) {
+    await cleanup(excluded);
+    assert.deepEqual(excluded.calls, []);
+  }
+  const advanced = fixture({current: logo, target: logo, advance: true});
+  await cleanup(advanced);
+  assert.deepEqual(advanced.cancelled, []);
+});
 test('Editor package cleanup touches only obsolete owner runs on its exact branch', async () => {
   const f = fixture({current: editorPackageBranch, target: editorPackageBranch, actorRuns: true});
   await cleanup(f);
