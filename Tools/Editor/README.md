@@ -128,7 +128,9 @@ The packaging command optionally accepts `--game-runtime-profile`, `--cmake-root
 native game host and flat dependency profile privately under Runtime, and executable-relative
 CMake/Ninja/Zig under Tools. Compiler standard libraries and CMake modules are required tool data;
 no Nexora or game source checkout, examples, or extra 2D applications are copied. Each distribution's
-licenses remain included. Without these options the existing Editor-only workflow is unchanged.
+licenses remain included. The Windows delivery workflow supplies all five paths, pins Zig 0.14.0,
+CMake 3.31.6 and Ninja 1.12.1, and builds the native ProjectPlayer. Editor-only mode remains an
+optional packaging utility; it is not the complete Editor delivery contract.
 The graphical and CLI build paths resolve the same installed profile/tools; a CLI build may omit
 all runtime/tool options to use that installation. ✅ Actual relocated Editor/script-game
 verification, ZIP extraction and all 41 source-head CI checks pass in PR #721. See the
@@ -138,3 +140,10 @@ this does not claim independent clean-host or complete Editor milestone acceptan
 A packaged `build-info.json` marker makes game-build dependency lookup installation-only: a missing
 private Runtime/profile or tool cannot silently use a build-PC path. Unmarked development Editors
 may use CMake's actual configured Player profile path, including POSIX per-target output layouts.
+
+Complete delivery additionally extracts the actual ZIP, admits every inventory hash and the single
+public Editor executable, then repeats relocated startup and shipped-tool script Build/native game
+verification. That extracted Editor enters the same Play command with the newly built module for
+1,200 presented frames, three scene commits, native draws and unchanged authored-source hashes.
+Failure removes the archive instead of publishing a partially verified delivery. These hosted DX12
+process receipts do not claim physical input, Windows pixel readback or clean-host acceptance.

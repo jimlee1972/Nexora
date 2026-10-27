@@ -6,6 +6,8 @@
 標準函式庫 gate 已通過 alpha、乾淨邊緣、實際 ICO 內容與 ZIP 雜湊檢查。
 Windows 啟動整合真實初始化階段、內嵌素材與 DPI 尺寸 EXE／視窗圖示，並於 CI
 要求原生生命週期、像素、資源與搬移後套件 gates。
+完整 Windows 交付保留私有 Runtime／Tools 的 Build／Play 依賴，並要求實際 ZIP 解壓、
+包內工具腳本編譯與 1,200-frame Editor Play 驗證。
 [限定證據](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md)。
 實體 DPI／工作列／獨立乾淨主機驗收仍未完成；Editor 里程碑維持 0/8。
 

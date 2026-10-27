@@ -33,6 +33,12 @@ jobs:
             const {cleanup} = require('./Tools/Build/editor-ci-cleanup.cjs');
             await cleanup({github, context, core});
       - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: '3.31.6'
+          ninjaVersion: '1.12.1'
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.0
       - uses: ilammy/msvc-dev-cmd@v1
       - uses: actions/setup-python@v5
         with:
@@ -45,12 +51,13 @@ jobs:
           -DNEXORA_ENABLE_EDITOR=ON -DNEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL=ON
           -DNEXORA_ENABLE_NATIVE_BACKENDS=ON -DNEXORA_ENABLE_2D=ON
           -DNEXORA_ENABLE_VULKAN_BACKEND=OFF -DNEXORA_ENABLE_SLANG=OFF
-          -DNEXORA_ENABLE_ZIG_GAMEPLAY=OFF -DNEXORA_BUILD_SHOWCASE=OFF
-          -DNEXORA_BUILD_PROJECT_PLAYER=OFF -DBUILD_TESTING=ON
+          -DNEXORA_ENABLE_ZIG_GAMEPLAY=ON -DNEXORA_BUILD_SHOWCASE=OFF
+          -DNEXORA_BUILD_PROJECT_PLAYER=ON -DNEXORA_ENABLE_PROJECT_PLAYER_NATIVE=ON
+          -DBUILD_TESTING=ON
           -DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL
           "-DOPENSSL_ROOT_DIR=C:/Program Files/OpenSSL"
       - name: Build Editor and dependencies
-        run: cmake --build build/editor-package --target NexoraEditor NexoraWindowsStartupSplashTests --parallel 3
+        run: cmake --build build/editor-package --target NexoraEditor NexoraProjectPlayer NexoraWindowsStartupSplashTests --parallel 3
       - name: Verify embedded branding and startup lifecycle
         run: ctest --test-dir build/editor-package --output-on-failure -R '^editor\.(brand_assets|windows_startup_splash|windows_gui_entry)$'
       - name: Package and verify relocated CLI and DX12 presentation
@@ -61,10 +68,19 @@ jobs:
           if ($editors.Count -ne 1) { throw 'Expected exactly one Editor binary' }
           $redists = @(Get-ChildItem "$env:VCToolsRedistDir/x64" -Directory -Filter 'Microsoft.VC*.CRT')
           if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT redist directory' }
+          $profiles = @(Get-ChildItem build/editor-package -Filter GameRuntime.profile -Recurse)
+          if ($profiles.Count -ne 1) { throw 'Expected exactly one native game runtime profile' }
+          $cmakeRoot = Split-Path (Split-Path (Get-Command cmake).Source)
+          $zigRoot = Split-Path (Get-Command zig).Source
+          $ninja = (Get-Command ninja).Source
+          $ninjaLicense = Join-Path $env:RUNNER_TEMP 'Ninja-1.12.1-license.txt'
+          Invoke-WebRequest 'https://raw.githubusercontent.com/ninja-build/ninja/v1.12.1/COPYING' -OutFile $ninjaLicense
           python Tools/Editor/PackageWindowsEditor.py `
             --openssl-root "C:/Program Files/OpenSSL" `
             --editor $editors[0].FullName --redist $redists[0].FullName `
             --imgui-license build/editor-package/_deps/nexora_imgui-src/LICENSE.txt `
+            --game-runtime-profile $profiles[0].FullName --cmake-root $cmakeRoot `
+            --ninja $ninja --zig-root $zigRoot --ninja-license $ninjaLicense `
             --commit $env:GITHUB_SHA --output build/editor-delivery
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload verified package

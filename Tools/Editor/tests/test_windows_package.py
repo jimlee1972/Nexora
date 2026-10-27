@@ -4,12 +4,31 @@ import struct
 from pathlib import Path
 import tempfile
 import unittest
+import json
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from PackageWindowsEditor import dependency_closure, relocated_environment, stage_game_build_runtime, require_gui_subsystem
+from PackageWindowsEditor import (dependency_closure, relocated_environment, stage_game_build_runtime,
+                                  require_gui_subsystem, require_package_inventory, digest)
 
 
 class Dependencies(unittest.TestCase):
+    def test_actual_archive_inventory_rejects_tamper_and_extra_public_apps(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            package = Path(temporary)
+            editor = package / 'NexoraEditor.exe'
+            editor.write_bytes(b'editor')
+            inventory = package / 'inventory.json'
+            inventory.write_text(json.dumps({editor.name: digest(editor)}))
+            require_package_inventory(package)
+            editor.write_bytes(b'tampered')
+            with self.assertRaisesRegex(RuntimeError, 'inventory mismatch'):
+                require_package_inventory(package)
+            extra = package / 'Extra.exe'
+            extra.write_bytes(b'extra')
+            inventory.write_text(json.dumps({p.name: digest(p) for p in (editor, extra)}))
+            with self.assertRaisesRegex(RuntimeError, 'public root executable'):
+                require_package_inventory(package)
+
     def test_editor_requires_gui_pe_subsystem(self):
         with tempfile.TemporaryDirectory() as temporary:
             executable = Path(temporary) / 'Editor.exe'

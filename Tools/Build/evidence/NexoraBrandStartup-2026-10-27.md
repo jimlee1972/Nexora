@@ -57,3 +57,18 @@ above. The source implementation and existing UI/scale/soak assertions were reta
 
 Windows verification is provided by the required hosted native/PE/lifecycle/package workflows,
 with their final run/receipt linked in the delivery PR. Linux success alone is not Windows evidence.
+
+### Complete Windows delivery gate
+
+Head `debbe9a7` passed hosted Windows branding/lifecycle/GUI-entry (3/3) and relocated
+CLI/DX12 startup. Its approximately 6.4 MB Editor-only ZIP is historical startup evidence,
+not the final delivery: it omitted the previously accepted private Build/Play dependencies.
+
+The corrected delivery workflow builds native ProjectPlayer with Zig 0.14.0 and stages its generated
+GameRuntime.profile, CMake 3.31.6, Ninja 1.12.1, compiler/module resources and licenses through the
+existing complete-tool packager. Only NexoraEditor.exe is public at the root; Runtime and Tools
+remain private dependencies, without extra 2D apps or a Nexora/game source checkout.
+The actual ZIP is extracted and every inventory hash admitted, then relocated script compilation,
+source-hidden native game execution (100 frames/three commits) and extracted Editor Play
+(1,200 frames/three commits/native draws/source conservation) must pass. Final Windows run links,
+source and ZIP hashes are recorded in PR #725 after that new-head verification succeeds.
