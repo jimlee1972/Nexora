@@ -21,3 +21,10 @@ Content/Showcase/Courtyard/Hero/Source/*.png binary
 
 # Scene migration goldens retain exact parser bytes on every hosted platform.
 Tests/Editor/SceneGolden/*.scene text eol=lf
+
+# Approved branding hashes must remain identical in Windows checkouts and ZIP/PE resources.
+Assets/Brand/Source/*.svg text eol=lf
+Assets/Brand/Export/*.json text eol=lf
+Assets/Brand/**/*.png binary
+Assets/Brand/Export/*.ico binary
+Assets/Brand/Export/*.zip binary

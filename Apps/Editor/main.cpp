@@ -3,6 +3,7 @@
 #include "Nexora/Editor/AssetImport.h"
 #include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Editor/ProjectContent.h"
+#include "StartupSplash.h"
 #if defined(NEXORA_EDITOR_GRAPHICAL_SHELL)
 #include "BuildConsoleIngress.h"
 #include "CoreConsoleIngress.h"
@@ -722,7 +723,9 @@ int RunGraphical(std::optional<ProjectState> project,
                  nexora::editor::RecentProjectStore &recent_projects,
                  nexora::editor::ProjectAccess selector_access, std::uint32_t frame_limit,
                  bool native_scene_preview,
-                 const std::optional<std::string> &initial_gameplay_library, bool start_play) {
+                 const std::optional<std::string> &initial_gameplay_library, bool start_play,
+                 nexora::editor::app::StartupSplash &splash) {
+  splash.Stage(nexora::editor::app::StartupStage::Graphics);
   auto created = Nexora::Presentation::CreateRenderSurface(
       {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic,
        Nexora::Presentation::PresentMode::VSync, Nexora::Presentation::ColorSpace::Srgb, true});
@@ -730,6 +733,8 @@ int RunGraphical(std::optional<ProjectState> project,
     std::cerr << "graphical shell unavailable: " << created.reason << '\n';
     return 1;
   }
+  splash.PrepareMainWindow();
+  splash.Stage(nexora::editor::app::StartupStage::Workspace);
   nexora::editor::imgui::EditorImGuiHost ui;
 #if defined(_WIN32)
   ui.SetProjectLocationPicker(
@@ -865,6 +870,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::uint64_t mesh_content_revision = content.Browser().Revision();
   std::uint64_t mesh_content_generation = content.Browser().ProjectGeneration();
   nexora::editor::ProductShell shell;
+  splash.Stage(nexora::editor::app::StartupStage::Scene);
   nexora::runtime::World world;
   const auto scene_id = world.LoadScene("Main");
   if (!world.Activate(scene_id)) {
@@ -1142,6 +1148,7 @@ int RunGraphical(std::optional<ProjectState> project,
   };
   if (project)
     open_scene();
+  splash.Stage(nexora::editor::app::StartupStage::Workspace);
   std::filesystem::path project_files_root;
   std::future<nexora::editor::app::ProjectFiles> project_files_job;
   auto project_files_next = std::chrono::steady_clock::time_point{};
@@ -3935,6 +3942,7 @@ int RunGraphical(std::optional<ProjectState> project,
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
+    splash.Ready();
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
     if (game_draw_admitted_test_x) {
       // EndFrame admitted this draw to the presentation queue; this does not prove scanout.
@@ -4271,6 +4279,8 @@ int Run(int argc, char **argv) try {
     return 2;
   }
 #endif
+  nexora::editor::app::StartupSplash splash(graphical);
+  splash.Stage(nexora::editor::app::StartupStage::Settings);
   std::string error;
   nexora::editor::RecentProjectStore recent_projects;
   if (recent_projects_path.empty())
@@ -4279,6 +4289,7 @@ int Run(int argc, char **argv) try {
     std::cerr << "recent-project warning: " << error << '\n';
   std::optional<ProjectState> project_state;
   if (!project.empty()) {
+    splash.Stage(nexora::editor::app::StartupStage::Project);
     ProjectState opened;
     if (!LoadProject(project,
                      read_only ? nexora::editor::ProjectAccess::ReadOnly
@@ -4297,7 +4308,7 @@ int Run(int argc, char **argv) try {
     return RunGraphical(std::move(project_state), recent_projects,
                         read_only ? nexora::editor::ProjectAccess::ReadOnly
                                   : nexora::editor::ProjectAccess::ReadWrite,
-                        frame_limit, native_scene_preview, gameplay_library, start_play);
+                        frame_limit, native_scene_preview, gameplay_library, start_play, splash);
 #else
   static_cast<void>(frame_limit);
   static_cast<void>(native_scene_preview);

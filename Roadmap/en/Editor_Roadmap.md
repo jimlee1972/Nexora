@@ -1,5 +1,15 @@
 # Nexora Graphical Editor Roadmap
 
+### Approved branding and native startup (2026-10-27)
+
+✅ The approved reference has path-based SVG wordmark/n sources, transparent PNGs and seven
+validated ICO sizes. Alpha, clean edges, actual ICO payloads and ZIP hashes pass the stdlib gate.
+Windows startup integrates real initialization stages, embedded artwork and DPI-sized EXE/window
+icons, with native lifecycle/pixel/resource/relocated-package gates required in CI.
+[Scoped evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).
+Physical DPI/taskbar/clean-host acceptance remains open; Editor milestones remain 0/8.
+
+
 ### Icon actions and compact Transform (2026-10-27)
 
 ✅ Action buttons across the Editor shell, auxiliary panels, dialogs and optional 2D Studio use

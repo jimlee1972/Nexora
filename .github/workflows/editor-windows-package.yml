@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/editor-windows-package.yml'
       - 'Tools/Editor/**'
+      - 'Tools/Brand/**'
+      - 'Assets/Brand/**'
       - 'Apps/Editor/**'
       - 'Engine/**'
       - 'Config/Modules/**'
@@ -48,7 +50,9 @@ jobs:
           -DNEXORA_CRYPTOGRAPHY_BACKEND=OPENSSL
           "-DOPENSSL_ROOT_DIR=C:/Program Files/OpenSSL"
       - name: Build Editor and dependencies
-        run: cmake --build build/editor-package --target NexoraEditor --parallel 3
+        run: cmake --build build/editor-package --target NexoraEditor NexoraWindowsStartupSplashTests --parallel 3
+      - name: Verify embedded branding and startup lifecycle
+        run: ctest --test-dir build/editor-package --output-on-failure -R '^editor\.(brand_assets|windows_startup_splash|windows_gui_entry)$'
       - name: Package and verify relocated CLI and DX12 presentation
         shell: pwsh
         run: |
@@ -71,6 +75,7 @@ jobs:
             build/editor-delivery/*.zip
             build/editor-delivery/*.sha256
             build/editor-delivery/verification/
+            build/editor-package/Tests/Editor/editor-startup-splash.bmp
           if-no-files-found: error
           retention-days: 30
       - name: Preserve failure evidence

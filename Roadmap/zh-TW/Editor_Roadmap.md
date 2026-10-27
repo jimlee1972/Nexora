@@ -1,5 +1,15 @@
 # Nexora 圖形化 Editor Roadmap
 
+### 核定品牌與原生啟動畫面（2026-10-27）
+
+✅ 核定參考已提供 path SVG 字標／n 來源、透明 PNG 與七種已驗證 ICO 尺寸。
+標準函式庫 gate 已通過 alpha、乾淨邊緣、實際 ICO 內容與 ZIP 雜湊檢查。
+Windows 啟動整合真實初始化階段、內嵌素材與 DPI 尺寸 EXE／視窗圖示，並於 CI
+要求原生生命週期、像素、資源與搬移後套件 gates。
+[限定證據](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md)。
+實體 DPI／工作列／獨立乾淨主機驗收仍未完成；Editor 里程碑維持 0/8。
+
+
 ### 圖示動作與緊湊 Transform（2026-10-27）
 
 ✅ Editor shell、次視窗、對話框及可選 2D Studio 的功能按鈕改用 Editor 自繪向量圖示，

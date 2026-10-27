@@ -1548,3 +1548,35 @@ position-only moves before a single click. Source rebase uses the same bounded p
 actual Review/conflict/Apply/consent controls, plus separate Escape/Y phases preserving its
 original cancel and Ctrl+Y paths. Exact event identities, consent, source files, read-only and
 single history operations remain the result checks. All original result/case limits remain.
+
+## Windows approved branding and startup
+
+The graphical EXE embeds the approved transparent PNG wordmark as RCDATA and the independent
+n as a seven-size icon group. Explorer uses the EXE resource; the application installs DPI-sized
+small and big main-window/taskbar icons. Runtime artwork needs no external file path.
+The GUI subsystem, Unicode wWinMain and redirected CLI diagnostics remain unchanged; no console
+is allocated or attached.
+
+After argument validation, a GUI launch owns an RAII `StartupSplash`. A dedicated Win32/GDI+
+thread paints the black surface while the application owner performs actual settings/recent-store
+IO, optional project open/content indexing, graphics surface/device creation, Scene preparation
+and restoration, and workspace preparation. The process adopts the existing native Window
+adapter's per-monitor V2 policy before its first HWND; the splash also handles WM_DPICHANGED.
+Stages are descriptive: no timer, percentage, sleep or minimum display duration is introduced.
+The first successful main EndFrame closes and joins the splash. Every early return or exception
+instead destroys/joins it through RAII, retaining existing error and recovery diagnostics.
+The non-activating tool window becomes owned by the initializing main window, so it remains
+above that window without a second taskbar entry or a globally topmost window.
+Its thread borrows no engine/project/device state. PNG stream/bitmap, window and GDI+ lifetimes
+are released before the thread exits. A missing splash resource logs a warning and continues
+ordinary initialization; it does not turn an initialization failure into success.
+
+Normal no-mode/no-argument GUI startup and explicit graphical commands share this owner.
+Help, invalid arguments, ordinary headless create/open/build commands never create a splash.
+Linux/macOS retain their existing startup via a no-op adapter. Opt-in
+`NEXORA_EDITOR_STARTUP_EVIDENCE=1` records actual open/stage/first-frame/close boundaries.
+The Windows native test checks black/cyan/white pixels, DPI awareness, explicit completion,
+exception cleanup, owner ordering and main-window icons, retaining `editor-startup-splash.bmp`
+in CI. The relocated package requires lifecycle order, no CLI splash and exact PE resources.
+Hosted results do not establish physical multi-monitor, desktop taskbar or clean-host acceptance.
+See [assets](../../Assets/Brand/README.md) and [evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).

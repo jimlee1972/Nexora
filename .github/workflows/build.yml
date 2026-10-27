@@ -144,6 +144,7 @@ jobs:
             build/${{ matrix.preset }}/artifacts/metal-scene.ppm
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
             build/${{ matrix.preset }}/development-tests.log
+            build/${{ matrix.preset }}/Tests/Editor/editor-startup-splash.bmp
 
   # Runs the graphical Editor against a real X11 server (Xvfb) with Mesa's software Vulkan. It is a
   # separate job to require synchronization-layer diagnostics in addition to desktop parity.

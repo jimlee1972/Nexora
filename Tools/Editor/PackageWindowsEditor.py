@@ -13,9 +13,10 @@ import sys
 import tempfile
 
 from EditorTargetEvidence import smoke_result
+from EmbeddedBrand import require_embedded_brand
 
 OS_IMPORTS = set("kernel32 kernelbase ntdll user32 gdi32 imm32 advapi32 shell32 shlwapi ole32 "
-                 "oleaut32 comdlg32 comctl32 ucrtbase msvcrt ws2_32 winmm winhttp bcrypt "
+                 "oleaut32 gdiplus comdlg32 comctl32 ucrtbase msvcrt ws2_32 winmm winhttp bcrypt "
                  "crypt32 secur32 setupapi cfgmgr32 version dbghelp d3d12 d3d11 dxgi "
                  "d3dcompiler_47 xinput1_4 dinput8".split())
 
@@ -157,6 +158,7 @@ def relocated_environment(source):
 def verify(package, evidence):
     """Run outside the build tree with a restricted DLL search PATH; preserve all logs."""
     require_gui_subsystem(package / 'NexoraEditor.exe')
+    require_embedded_brand(package / 'NexoraEditor.exe')
     evidence.mkdir(parents=True, exist_ok=False)
     with tempfile.TemporaryDirectory(prefix='Nexora relocated 陰陽 ') as temporary:
         root = Path(temporary)
@@ -184,6 +186,16 @@ def verify(package, evidence):
             if result.returncode != expected or (frames and smoke_result(result.returncode, output, frames) != 'pass'):
                 raise RuntimeError(f'{label} failed: exit {result.returncode}; see {evidence}; '
                                    f'output tail: {output[-4096:]}')
+            lines=[line for line in output.splitlines() if line.startswith('editor splash:')]
+            if frames:
+                required=['opened','stage=0','stage=1','stage=3','main-frame-ready','closed']
+                try: positions=[lines.index('editor splash: '+token) for token in required]
+                except ValueError as error:raise RuntimeError(f'{label} missing splash lifecycle: {lines}') from error
+                if any(a.startswith(('--project=', '--create-project=')) for a in arguments) and 'editor splash: stage=2' not in lines:
+                    raise RuntimeError(f'{label} missing real project stage: {lines}')
+                if positions!=sorted(positions) or 'editor splash: stage=4' not in lines:
+                    raise RuntimeError(f'{label} invalid splash order: {lines}')
+            elif lines:raise RuntimeError(f'{label} CLI opened a splash: {lines}')
             return result.stdout.decode('utf-8')
 
         help_text = run('help', ['--help'])
