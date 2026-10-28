@@ -37,13 +37,17 @@ bool EvidenceEnabled() noexcept {
   return GetEnvironmentVariableW(L"NEXORA_EDITOR_STARTUP_EVIDENCE", nullptr, 0) != 0;
 }
 void Evidence(const char *event) {
-  if (EvidenceEnabled())
+  if (EvidenceEnabled()) {
     std::cerr << "editor splash: " << event << '\n';
+    std::cerr << "editor splash-clock: tick=" << static_cast<DWORD>(GetTickCount64())
+              << " event=" << event << '\n';
+  }
 }
 } // namespace
 struct StartupSplash::Native final {
   HWND window{};
   std::thread thread;
+  HANDLE stopped = CreateEventW(nullptr, TRUE, FALSE, nullptr);
   StartupStage stage = StartupStage::Settings;
   std::unique_ptr<Gdiplus::Bitmap> logo;
   IStream *stream{};
@@ -144,9 +148,9 @@ struct StartupSplash::Native final {
           GetCursorPos(&pointer);
           MONITORINFO monitor{sizeof(MONITORINFO)};
           GetMonitorInfoW(MonitorFromPoint(pointer, MONITOR_DEFAULTTOPRIMARY), &monitor);
-          // The native host shows its window before creating the device. Keep this
-          // pre-owner splash visible through that interval without activating it.
-          hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TOPMOST, kClass,
+          // The main host remains hidden through initialization. This window never
+          // owns or is owned by another thread's HWND, and never activates.
+          hwnd = CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, kClass,
                                  L"Nexora Editor Startup", WS_POPUP, monitor.rcWork.left,
                                  monitor.rcWork.top, 640, 360, nullptr, nullptr, module, this);
           if (hwnd) {
@@ -193,8 +197,20 @@ struct StartupSplash::Native final {
   ~Native() {
     if (window)
       PostMessageW(window, kCloseMessage, 0, 0);
-    if (thread.joinable())
+    if (thread.joinable()) {
+      // Win32 teardown/activation can synchronously notify another UI thread.
+      // Service only sent messages while waiting: do not dispatch posted Editor
+      // commands or reenter its initialization/render loop during RAII teardown.
+      const HANDLE handle = stopped;
+      while (MsgWaitForMultipleObjectsEx(1, &handle, INFINITE, QS_SENDMESSAGE,
+                                         MWMO_INPUTAVAILABLE) == WAIT_OBJECT_0 + 1) {
+        MSG message{};
+        PeekMessageW(&message, nullptr, 0, 0, PM_NOREMOVE);
+      }
       thread.join();
+    }
+    if (stopped)
+      CloseHandle(stopped);
     if (window)
       Evidence("closed");
   }
@@ -205,10 +221,16 @@ StartupSplash::StartupSplash(bool enabled) {
   // Match the existing Window adapter before the process creates its first HWND.
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   native_ = std::make_unique<Native>();
+  if (!native_->stopped) {
+    std::cerr << "startup splash event unavailable; continuing with normal Editor diagnostics\n";
+    native_.reset();
+    return;
+  }
   std::promise<HWND> signal;
   auto ready = signal.get_future();
   native_->thread = std::thread([owner = native_.get(), signal = std::move(signal)]() mutable {
     owner->Run(std::move(signal));
+    SetEvent(owner->stopped);
   });
   native_->window = ready.get();
   if (native_->window)
@@ -222,7 +244,7 @@ StartupSplash::~StartupSplash() = default;
 void StartupSplash::Stage(StartupStage stage) {
   if (!native_)
     return;
-  SendMessageW(native_->window, kStageMessage, static_cast<WPARAM>(stage), 0);
+  PostMessageW(native_->window, kStageMessage, static_cast<WPARAM>(stage), 0);
   if (EvidenceEnabled())
     std::cerr << "editor splash: stage=" << static_cast<unsigned>(stage) << '\n';
 }
@@ -235,20 +257,15 @@ void StartupSplash::Ready() {
 void StartupSplash::PrepareMainWindow() {
   EnumThreadWindows(
       GetCurrentThreadId(),
-      [](HWND hwnd, LPARAM splash_window) -> BOOL {
+      [](HWND hwnd, LPARAM) -> BOOL {
         wchar_t title[64]{};
         GetWindowTextW(hwnd, title, 64);
         if (std::wstring_view(title) != L"Nexora Editor")
           return TRUE;
-        if (const auto splash = reinterpret_cast<HWND>(splash_window)) {
-          SetWindowLongPtrW(splash, GWLP_HWNDPARENT, reinterpret_cast<LONG_PTR>(hwnd));
-          // Ownership now keeps us above this host; release global topmost immediately.
-          SetWindowPos(splash, HWND_NOTOPMOST, 0, 0, 0, 0,
-                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-          if (GetWindow(splash, GW_OWNER) == hwnd &&
-              (GetWindowLongPtrW(splash, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0)
-            Evidence("owner-handoff");
-        }
+        // No cross-thread HWND ownership: DestroyWindow must not wait for a
+        // main owner whose Ready()/failure cleanup is waiting for this thread.
+        if (!IsWindowVisible(hwnd))
+          Evidence("main-window-hidden");
         for (const auto type : {ICON_SMALL, ICON_BIG}) {
           const int size = GetSystemMetricsForDpi(type == ICON_SMALL ? SM_CXSMICON : SM_CXICON,
                                                   GetDpiForWindow(hwnd));
@@ -258,7 +275,7 @@ void StartupSplash::PrepareMainWindow() {
         }
         return TRUE;
       },
-      reinterpret_cast<LPARAM>(native_ ? native_->window : nullptr));
+      0);
 }
 } // namespace nexora::editor::app
 #else

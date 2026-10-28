@@ -34,6 +34,12 @@ one owning World pose snapshot per frame. InstancePool instead owns independent 
 instances; it does not copy or cache entities from a World. `ExtractSprites` consumes their
 validated affine matrices through the same extraction and native rendering path.
 
+Source-aware extraction has one implementation in `Scene.cpp`; the source-free overload delegates
+to it. Optional source UUIDs are checked before dereference, and `SpriteGeometry` is defined in
+its declared `detail` namespace. The Sprite asset codec/standalone resolver does not define a
+second extraction implementation. This preserves the scene/pool source-binding and sorting
+contracts when integrating the additive optional-source and pooled-extraction changes.
+
 Each visible Atlas UUID resolves once per extraction, including unavailable results, preventing
 duplicate load requests while retaining per-object unavailable counts. An AtlasResolver supplies a shared immutable Atlas and a nonzero surface-local texture generation
 ID. A frame retains those owners; upload spans borrow their pixels until Draw returns. Never

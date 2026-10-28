@@ -6,11 +6,13 @@
 validated ICO sizes. Alpha, clean edges, actual ICO payloads and ZIP hashes pass the stdlib gate.
 Windows startup integrates real initialization stages, embedded artwork and DPI-sized EXE/window
 icons, with native lifecycle/pixel/resource/relocated-package gates required in CI.
-Pre-owner temporary topmost protects graphics initialization; owner handoff clears it immediately,
-with native screen-pixel/Z-order/focus regression gates.
+The original topmost/owner handoff is superseded by the hidden-main startup repair: no
+cross-thread HWND ownership; sent-message-aware teardown, actual hidden GPU preparation, and
+bounded no-argument real-EXE visibility/input/close regression are required before delivery.
 Complete Windows delivery retains private Runtime/Tools Build/Play dependencies and requires
 actual ZIP extraction, shipped-tool script compilation and 1,200-frame Editor Play admission.
 [Scoped evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).
+[Hidden-startup repair contract](../../Tools/Build/evidence/EditorStartupHandoff-2026-10-28.md).
 Physical DPI/taskbar/clean-host acceptance remains open; Editor milestones remain 0/8.
 
 

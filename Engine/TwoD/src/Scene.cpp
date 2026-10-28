@@ -248,6 +248,11 @@ std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera, const Atla
 }
 std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
                                           const Camera &camera, const AtlasResolver &resolve) {
+  // The legacy overload has no source resolver; reject unresolved source
+  // inputs rather than silently treating them as unavailable Atlas Sprites.
+  if (std::any_of(instances.begin(), instances.end(),
+                  [](const auto &instance) { return instance.sprite.source.has_value(); }))
+    return std::nullopt;
   return ExtractSprites(instances, camera, resolve, {});
 }
 std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
@@ -267,7 +272,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
   std::vector<std::uint64_t> ids;
   ids.reserve(instances.size());
   for (const auto &instance : instances) {
-    if (!instance.id || !ValidateSprite(instance.sprite) || instance.sprite.source)
+    if (!instance.id || !ValidateSprite(instance.sprite))
       return std::nullopt;
     ids.push_back(instance.id);
     if (instance.matrix[3] != 0 || instance.matrix[7] != 0 || instance.matrix[11] != 0 ||
@@ -277,7 +282,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       if (!std::isfinite(value) || std::abs(value) > 1e12)
         return std::nullopt;
     if (instance.localQuad) {
-      if (detail::ValidId(instance.sprite.source))
+      if (instance.sprite.source)
         return std::nullopt;
       const auto &q = *instance.localQuad;
       for (auto value : {q.minimum.x, q.minimum.y, q.maximum.x, q.maximum.y})
@@ -325,8 +330,8 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       sourceCache;
   std::size_t preparedCount = 0;
   for (auto &item : items) {
-    const auto id = item.sprite.source;
-    if (detail::ValidId(id)) {
+    if (item.sprite.source) {
+      const auto id = *item.sprite.source;
       auto cached = sourceCache.find(id);
       if (cached == sourceCache.end()) {
         auto source = sources ? sources(id) : nullptr;

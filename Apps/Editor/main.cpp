@@ -726,9 +726,20 @@ int RunGraphical(std::optional<ProjectState> project,
                  const std::optional<std::string> &initial_gameplay_library, bool start_play,
                  nexora::editor::app::StartupSplash &splash) {
   splash.Stage(nexora::editor::app::StartupStage::Graphics);
-  auto created = Nexora::Presentation::CreateRenderSurface(
-      {"Nexora Editor", 1280, 720, true, Nexora::Presentation::SurfaceBackend::Automatic,
-       Nexora::Presentation::PresentMode::VSync, Nexora::Presentation::ColorSpace::Srgb, true});
+  Nexora::Presentation::RenderSurfaceDescriptor surface_descriptor{
+      "Nexora Editor",
+      1280,
+      720,
+      true,
+      Nexora::Presentation::SurfaceBackend::Automatic,
+      Nexora::Presentation::PresentMode::VSync,
+      Nexora::Presentation::ColorSpace::Srgb,
+      true};
+#if defined(_WIN32)
+  surface_descriptor.initiallyVisible = false;
+#endif
+  bool reveal_main_window = !surface_descriptor.initiallyVisible;
+  auto created = Nexora::Presentation::CreateRenderSurface(surface_descriptor);
   if (!created) {
     std::cerr << "graphical shell unavailable: " << created.reason << '\n';
     return 1;
@@ -3935,14 +3946,30 @@ int RunGraphical(std::optional<ProjectState> project,
       }
     }
     const auto frame_processed = std::chrono::steady_clock::now();
-    if (const auto end_status = created.surface->EndFrame();
-        end_status != Nexora::Presentation::SurfaceStatus::Ready) {
+    const auto end_status = created.surface->EndFrame();
+    // A hidden DX12 swapchain can return OCCLUDED after submitting/completing
+    // its first real draw. Reveal once, instead of waiting for visibility that
+    // only this owner can provide. Other errors retain normal recovery.
+    if (end_status != Nexora::Presentation::SurfaceStatus::Ready &&
+        !(reveal_main_window && end_status == Nexora::Presentation::SurfaceStatus::Occluded)) {
       if (surface_recoverable(end_status))
         continue;
       result = created.surface->CloseRequested() ? 0 : 1;
       break;
     }
     splash.Ready();
+    if (reveal_main_window) {
+      if (created.surface->Show(true) != Nexora::Window::WindowError::None) {
+        std::cerr << "prepared Editor main window could not be shown\n";
+        result = 1;
+        break;
+      }
+      reveal_main_window = false;
+#if defined(_WIN32)
+      if (GetEnvironmentVariableW(L"NEXORA_EDITOR_STARTUP_EVIDENCE", nullptr, 0))
+        std::cerr << "editor splash: main-window-shown\n";
+#endif
+    }
 #if defined(NEXORA_EDITOR_EXTENSION_UI_TEST_ACCESS)
     if (game_draw_admitted_test_x) {
       // EndFrame admitted this draw to the presentation queue; this does not prove scanout.

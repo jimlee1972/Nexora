@@ -210,7 +210,7 @@ def verify(package, evidence, editor_play=False):
                                    f'output tail: {output[-4096:]}')
             lines=[line for line in output.splitlines() if line.startswith('editor splash:')]
             if frames:
-                required=['opened','stage=0','stage=1','owner-handoff','stage=3','main-frame-ready','closed']
+                required=['opened','stage=0','stage=1','main-window-hidden','stage=3','main-frame-ready','closed','main-window-shown']
                 try: positions=[lines.index('editor splash: '+token) for token in required]
                 except ValueError as error:raise RuntimeError(f'{label} missing splash lifecycle: {lines}') from error
                 if any(a.startswith(('--project=', '--create-project=')) for a in arguments) and 'editor splash: stage=2' not in lines:
@@ -223,6 +223,11 @@ def verify(package, evidence, editor_play=False):
         help_text = run('help', ['--help'])
         if '--create-project=' not in help_text or '--project-name=' not in help_text:
             raise RuntimeError('Packaged Editor does not support project CLI')
+        # Exercise the true no-argument persistent GUI with default recents, native
+        # visibility/input and bounded WM_CLOSE, including the actual extracted ZIP.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'Tests/Editor'))
+        from WindowsStartupIntegration import verify_startup
+        verify_startup(executable, evidence / 'no-argument-startup', environment)
         run('default-browser', ['--frames=8'], frames=8)
         project = root / '陰陽 CLI project'
         name = 'Onmyoji 陰陽 Survivors'
@@ -307,6 +312,7 @@ def verify(package, evidence, editor_play=False):
                                         'console_attached': False,
                                         'game_build': (package / 'Runtime/GameRuntime.profile').is_file(),
                                         'extracted_editor_play': editor_play,
+                                        'no_argument_startup': True,
                                         'physical_host_acceptance': 'NOT_RUN'})
 
 
