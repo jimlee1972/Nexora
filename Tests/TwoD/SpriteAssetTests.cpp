@@ -1,3 +1,5 @@
+#include "Nexora/TwoD/GameplayBridge.h"
+#include "Nexora/TwoD/Lifecycle.h"
 #include "Nexora/TwoD/Scene.h"
 
 #include <cmath>
@@ -387,6 +389,166 @@ void Cook() {
             !conflict.Import({atlas.id, "sprite_atlas", "atlas.nx2atlas", EncodeAtlas(atlas)}),
         "failed importer registration publishes nothing");
 }
+void SourceBindings() {
+  auto source = std::make_shared<SpriteAsset>(Source());
+  auto atlas = std::make_shared<Atlas>(AtlasFixture());
+  Sprite style;
+  style.source = source->id;
+  style.sortY = true;
+  Check(ValidateSprite(style), "source-only Sprite does not require obsolete Atlas fields");
+  runtime::World world;
+  const auto sceneId = world.LoadScene("source bindings");
+  const auto entity = world.CreateEntity(sceneId).id;
+  const auto other = world.CreateEntity(sceneId).id;
+  SpriteScene scene(world, sceneId);
+  Sprite legacy;
+  legacy.atlas = atlas->id;
+  legacy.region = 7;
+  Check(scene.Set(entity, legacy) && scene.Set(other, legacy), "legacy scene setup");
+  const auto old = scene.Snapshot();
+  Check(old && (*old)[4] == std::byte{2}, "legacy scene still emits schema 2");
+  Check(scene.Set(entity, style), "persistent source binding");
+  const auto bytes = scene.Snapshot();
+  Check(bytes && (*bytes)[4] == std::byte{3} && *bytes != *old, "source scene emits schema 3");
+  runtime::World isolated;
+  auto loaded = SpriteScene::Load(isolated, *bytes);
+  Check(loaded && loaded->Find(entity)->source == source->id &&
+            loaded->Find(other)->source == AssetId{} && loaded->Snapshot() == bytes,
+        "mixed source/legacy roundtrip in isolated World");
+  for (std::size_t n = 0; n < bytes->size(); ++n)
+    Check(!scene.Restore(std::span(*bytes).first(n)) && scene.Snapshot() == bytes,
+          "truncated source snapshot restores atomically");
+  auto trailing = *bytes;
+  trailing.push_back(std::byte{0});
+  Check(!scene.Restore(trailing) && scene.Snapshot() == bytes, "trailing source scene bytes");
+  auto unknown = *bytes;
+  unknown[4] = std::byte{4};
+  Check(!scene.Restore(unknown) && scene.Snapshot() == bytes, "unsupported scene version");
+  Check(scene.Restore(*old) && scene.Snapshot() == old && scene.Find(entity)->source == AssetId{},
+        "backward reader and source removal on legacy restore");
+  Check(scene.Set(entity, style), "restore source after legacy read");
+
+  std::size_t sourceCalls{}, atlasCalls{};
+  SpriteAssetResolver sources = [&](AssetId id) -> std::shared_ptr<const SpriteAsset> {
+    ++sourceCalls;
+    Check(id == source->id, "source resolver identity");
+    return source;
+  };
+  AtlasResolver atlases = [&](AssetId id) -> std::optional<AtlasBinding> {
+    ++atlasCalls;
+    Check(id == atlas->id, "source selected Atlas identity");
+    return AtlasBinding{atlas, 23};
+  };
+  Camera camera{{}, 20, 0, 200, 200};
+  auto frame = loaded->Extract(camera, atlases, sources);
+  Check(frame && frame->statistics.visible == 2 && sourceCalls == 1 && atlasCalls == 1,
+        "mixed scene source/legacy share one Atlas resolution");
+  Near(frame->vertices[0].position[0], 95);
+  Near(frame->vertices[0].position[1], 100);
+  Near(frame->vertices[2].position[1], 85);
+  auto missing = loaded->Extract(camera, atlases);
+  Check(missing && missing->statistics.visible == 1 && missing->statistics.unavailable == 1,
+        "old overload reports missing source instead of legacy fallback");
+
+  InstancePool pool(2);
+  const twod::Instance value{{}, style};
+  auto handles = pool.Create(std::array{value, value});
+  Check(handles && pool.Size() == 2, "pool accepts source bindings");
+  std::vector<SpriteInstance> inputs;
+  pool.ForEach([&](auto &v) {
+    inputs.push_back({inputs.size() + 1, v.sprite, runtime::ToMatrix(v.transform)});
+  });
+  inputs[1].sprite.flipX = true;
+  inputs[1].matrix[0] = -1;
+  sourceCalls = atlasCalls = 0;
+  auto pooled = ExtractSprites(inputs, camera, atlases, sources);
+  Check(pooled && pooled->statistics.visible == 2 && sourceCalls == 1 && atlasCalls == 1,
+        "pool inputs cache source and Atlas once per extraction");
+  Near(pooled->vertices[4].position[0], 105);
+  Check(pooled->vertices[4].uv[0] > pooled->vertices[5].uv[0], "pooled source flips UVs");
+  auto unavailable = ExtractSprites(inputs, camera, atlases, [&](auto) {
+    ++sourceCalls;
+    return std::shared_ptr<const SpriteAsset>{};
+  });
+  Check(unavailable && unavailable->statistics.unavailable == 2 && sourceCalls == 2,
+        "negative source result cached within one frame");
+  auto unavailableAtlas = ExtractSprites(
+      inputs, camera, [&](auto) -> std::optional<AtlasBinding> { return {}; }, sources);
+  Check(unavailableAtlas && unavailableAtlas->statistics.unavailable == 2,
+        "missing source Atlas is unavailable");
+
+  const auto assertRejected = [&](const std::shared_ptr<SpriteAsset> &bad) {
+    Check(!ExtractSprites(inputs, camera, atlases, [bad](auto) { return bad; }),
+          "invalid source closure rejects entire frame");
+  };
+  auto bad = std::make_shared<SpriteAsset>(*source);
+  bad->id = {999, 999};
+  assertRejected(bad);
+  bad = std::make_shared<SpriteAsset>(*source);
+  bad->pixelsPerUnit = 0;
+  assertRejected(bad);
+  bad = std::make_shared<SpriteAsset>(*source);
+  bad->region = 999;
+  assertRejected(bad);
+  bad = std::make_shared<SpriteAsset>(*source);
+  bad->trimWidth = 31;
+  assertRejected(bad);
+  auto invalidInputs = inputs;
+  invalidInputs[1].id = invalidInputs[0].id;
+  sourceCalls = atlasCalls = 0;
+  Check(!ExtractSprites(invalidInputs, camera, atlases, sources) && !sourceCalls && !atlasCalls,
+        "all draw identities validated before any source resolver");
+  invalidInputs = inputs;
+  invalidInputs[1].localQuad = SpriteLocalQuad{{0, 0}, {1, 1}};
+  Check(!ExtractSprites(invalidInputs, camera, atlases, sources) && !sourceCalls && !atlasCalls,
+        "ambiguous source and explicit quad reject before resolution");
+  inputs[1].sprite.visible = false;
+  inputs[0].sprite.color[3] = 0;
+  auto hidden = ExtractSprites(inputs, camera, atlases, sources);
+  Check(hidden && !hidden->statistics.visible && !sourceCalls && !atlasCalls,
+        "hidden sources perform no asset resolution");
+  inputs[0].sprite.color[3] = 1;
+  inputs[1].sprite.visible = true;
+
+  // Same UUID, new immutable source/Atlas generation: new geometry is not cached across frames.
+  auto retained = frame->retainedAtlases[0].atlas;
+  source = std::make_shared<SpriteAsset>(*source);
+  source->trimX = 8;
+  source->trimY = 8;
+  source->trimWidth = 48;
+  source->trimHeight = 56;
+  atlas = std::make_shared<Atlas>(AtlasFixture(48, 56));
+  auto refreshed = ExtractSprites(inputs, camera, atlases, sources);
+  Check(refreshed && retained != atlas && frame->retainedAtlases[0].atlas == retained &&
+            retained->Find(7)->width == 32,
+        "old extracted frame retains old Atlas after generation replacement");
+  Near(refreshed->vertices[0].position[0], 92.5);
+  Near(refreshed->vertices[2].position[1], 82.5);
+  Check(scene.Find(entity)->source == source->id && !pool.Find((*handles)[0])->sprite.region,
+        "resolution does not mutate scene or pool authoring metadata");
+
+  GameplayBridge bridge(world, scene, {}, nullptr, &pool);
+  NexoraTwoDApiV1 api{};
+  api.struct_size = sizeof(api);
+  Check(bridge.GetApi(&api) == NEXORA_GAMEPLAY_OK, "legacy API setup");
+  NexoraTwoDSprite output{};
+  output.region = 1234;
+  Check(api.get_sprite(api.context, entity, &output) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED &&
+            output.region == 1234,
+        "legacy getter cannot silently discard source identity");
+  Check(api.play_animation(api.context, entity, 1, 2, 1) == NEXORA_GAMEPLAY_ERROR_UNSUPPORTED,
+        "legacy region animation cannot override source-bound geometry");
+  const NexoraTwoDInstanceHandle handle{(*handles)[0].owner, (*handles)[0].index,
+                                        (*handles)[0].generation};
+  NexoraTwoDInstance instanceOutput{};
+  instanceOutput.sprite.region = 5678;
+  Check(api.read_instances(api.context, &handle, 1, &instanceOutput) ==
+                NEXORA_GAMEPLAY_ERROR_UNSUPPORTED &&
+            instanceOutput.sprite.region == 5678,
+        "legacy pool read preserves outputs on unrepresentable source");
+  Check(api.get_sprite(api.context, other, &output) == NEXORA_GAMEPLAY_OK && output.region == 7,
+        "legacy API still reads ordinary Sprites");
+}
 } // namespace
 int main() {
   try {
@@ -395,6 +557,7 @@ int main() {
     SourceScenes();
     SourceExtraction();
     Cook();
+    SourceBindings();
     std::cout << "Sprite source metadata, trim/Pivot/flip extraction and cook passed\n";
     return 0;
   } catch (const std::exception &e) {

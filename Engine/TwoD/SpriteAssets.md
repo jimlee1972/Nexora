@@ -1,4 +1,4 @@
-# Sprite source assets (S01)
+# Sprite source assets (S01 and scene bindings)
 
 This additive source-geometry slice extends the existing TwoD module. Atlas/Clip formats,
 linear straight-alpha color, native Sprite instance records and C/Zig service prefixes remain
@@ -182,7 +182,10 @@ reject. Grid-only settings on a manual rectangle import reject instead of being 
 
 `twod.sprite_source` checks malformed wires, geometric budgets, hand-calculated trim/Pivot/flip
 and negative-scale projection, unchanged sort anchors, region mismatch, repacking identity,
-atomic importer registration and generation-store cooking. `twod.asset_tool` runs the real PNG
+atomic importer registration, generation-store cooking, source/legacy scene roundtrips, malformed
+snapshot rollback, shared resolver caching, generation replacement, source-bound pools and legacy
+ABI rejection. `twod.native_pixels` additionally exercises persisted source trim/Pivot/flips and
+negative-scale geometry through real GPU instancing when its native prerequisites are available. `twod.asset_tool` runs the real PNG
 preparer/compiler, including 4x4/12-frame selection, sparse IDs, padding, deterministic output,
 Sprite metadata cooking and preservation after failed publication. These are portable CPU/tool
 checks; they are not fresh native pixel, minimum-PC or Windows/Mac/mobile acceptance.

@@ -149,6 +149,8 @@ struct GameplayBridge::State {
         const auto *sprite = s.scene.Find(id);
         if (!sprite)
           return Invalid;
+        if (sprite->source != AssetId{})
+          return Unsupported;
         *v = Encode(*sprite);
         return Ok;
       });
@@ -201,7 +203,7 @@ struct GameplayBridge::State {
         if (!s.Live(id) || !s.scene.Find(id) || (!hi && !lo) || !std::isfinite(speed) ||
             speed <= 0 || speed > 1000)
           return Invalid;
-        if (!s.clips)
+        if (s.scene.Find(id)->source != AssetId{} || !s.clips)
           return Unsupported;
         const auto clip = s.clips({hi, lo});
         if (!clip)
@@ -237,6 +239,8 @@ struct GameplayBridge::State {
         if (!result || (!events && capacity) || capacity > 65536 || !s.Live(id) ||
             !s.scene.Find(id) || it == s.animations.end())
           return Invalid;
+        if (s.scene.Find(id)->source != AssetId{})
+          return Unsupported;
         auto candidate = it->second.animator;
         auto update = candidate.Advance(delta);
         if (!update)
@@ -423,6 +427,8 @@ struct GameplayBridge::State {
           const auto *value = s.pool->Find(Decode(v[i]));
           if (!value)
             return Invalid;
+          if (value->sprite.source != AssetId{})
+            return Unsupported;
           copies.push_back(Encode(*value));
         }
         std::copy(copies.begin(), copies.end(), values);

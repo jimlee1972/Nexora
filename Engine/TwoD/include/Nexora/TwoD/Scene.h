@@ -30,6 +30,7 @@ struct AtlasBinding final {
   std::shared_ptr<const Atlas> atlas;
   std::uint64_t texture{};
 };
+using SpriteAssetResolver = std::function<std::shared_ptr<const SpriteAsset>(AssetId)>;
 using AtlasResolver = std::function<std::optional<AtlasBinding>(AssetId)>;
 using SpriteAssetResolver = std::function<std::shared_ptr<const SpriteAsset>(AssetId)>;
 struct FrameStatistics final {
