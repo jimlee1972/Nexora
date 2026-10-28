@@ -69,6 +69,9 @@ then `NexoraTwoDAssetCompiler cook actor.nx2sprite actor.nxcook` in a fresh task
 PR CI found a test-only canonical-path prerequisite on macOS (`/var` aliases `/private/var`).
 The direct padding-fixture helper call now resolves its existing root before invocation, matching
 `compile_manifest` preparation. Production source-path containment checks remain unchanged.
+The new direct Cook fixture also uses an ASCII relative filename inside its Unicode working
+directory, matching the existing Windows narrow-argv compiler adapter without removing Unicode
+directory coverage or changing production CLI behavior.
 
 No Windows, macOS, Android or iOS execution, physical minimum-PC benchmark, fresh GPU pixel
 capture, advanced Sprite material/mask or automatic Editor/Player source-reference binding was

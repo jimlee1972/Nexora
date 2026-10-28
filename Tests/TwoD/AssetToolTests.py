@@ -80,7 +80,7 @@ def main():
         assert len(sprite_bytes)==96 and struct.unpack_from('<7I3f4I',sprite_bytes,40)==(104,64,64,16,16,32,48,32,0,32,0,0,0,0)
         assets.compile_manifest(source,root,compiler,sprite_output)
         assert sprite_output.read_bytes()==sprite_bytes
-        subprocess.run([str(compiler),'cook',str(sprite_output),str(root/'actor.nxcook')],check=True)
+        subprocess.run([str(compiler.resolve()),'cook',sprite_output.name,'actor.nxcook'],cwd=root,check=True)
         for field,value in [('pixels_per_unit',0),('pixels_per_unit',float('nan')),
                             ('trim_rect',[0,0,100,100]),('border',[1,1,1,1]),
                             ('source_size',[64]),('trim_rect',None),('border',[0,0])]:
