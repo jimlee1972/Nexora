@@ -103,7 +103,14 @@ Editor／C／Zig 存取仍不支援，沒有擴張 wire／schema 或功能範圍
 來源修復版本的 hosted Linux Development **476/476** 與完整 Shipping／桌面 CI 矩陣通過；
 這些支援檢查不代表 VM 冷啟動已驗收。
 
-VM 重驗與獨立乾淨實體主機仍是各自待完成的 gate；此支援交付不關閉 M7，
+✅ 原 Windows VM 重驗 **兩輪冷啟動／14 個案例**通過：原生軟體 DX12、真實 Zig DLL／Cooked
+內容、重開／中文路徑／損毀拒絕、面板呈現後正常關窗、配置平衡與零殘留 Player；
+存檔計數跨關機保留 **0→2→4**。
+
+✅ 同一 Host fixture 通過原生鍵盤移動、SAVE／OPEN、launcher 正常退出與獨立程序讀檔；
+23 份既有存檔與兩個快照皆未改變。VM 原始設定與正常關機已核對，未安裝系統 Vulkan loader。
+
+獨立乾淨實體主機是另一個尚待完成的 gate；此支援交付不關閉 M7，
 **9/11（82%）、P0 6/8** 不變。M6 與 SP／SDK 工作不變。
 見[確切命令、封裝／來源雜湊與驗收邊界](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md)。
 

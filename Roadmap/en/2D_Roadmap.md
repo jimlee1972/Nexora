@@ -120,8 +120,16 @@ unsupported. No wire/schema or capability scope is expanded.
 negative-color regression pass. Source-repair head passes hosted Linux Development **476/476**
 and the full Shipping/desktop CI matrix. These supporting checks do not accept a VM cycle.
 
-VM revalidation and the independent clean hardware host remain separate pending gates; this
-supporting delivery does not close M7 or change **9/11 (82%), P0 6/8**. M6 and SP/SDK work are unchanged.
+✅ Original Windows VM revalidation passes **two cold boots / 14 cases**, native software DX12,
+real Zig DLL/Cooked content, restart/Unicode/corruption checks, presented-panel normal close,
+balanced allocations and zero residual Players. Durable visits survive shutdown **0→2→4**.
+
+✅ The same Host fixture passes native keyboard movement, SAVE/OPEN, normal launcher exit and
+independent resume; all 23 old saves and both snapshots are unchanged. Original VM configuration
+and normal poweroff are verified, with no system Vulkan loader installed.
+
+The independent clean hardware host remains a separate pending gate. This supporting delivery does not close M7 or change
+**9/11 (82%), P0 6/8**. M6 and SP/SDK work are unchanged.
 See [exact commands, package/source hashes and target boundaries](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md).
 
 ## 3. Dependencies and implementation order

@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "final_vm_state": "poweroff",
+  "existing_saves_unchanged": 23,
+  "snapshots_unchanged": true,
+  "snapshot_uuids": [
+    "e973ecf7-f2a7-415c-9753-19316d7d7e03",
+    "9d46e380-d1e3-46d5-8847-fe2bd889d4e8"
+  ],
+  "original_configuration_restored": {
+    "memory": "3072",
+    "cpus": "2",
+    "vram": "64",
+    "graphicscontroller": "\"vboxsvga\"",
+    "accelerate3d": "\"off\"",
+    "audio": "\"none\"",
+    "audio_out": "\"off\"",
+    "audio_in": "\"off\""
+  },
+  "system_vulkan_loader_before": false,
+  "system_vulkan_loader_after": false,
+  "physical_clean_host": "NOT RUN",
+  "M7": "PARTIAL / NOT ACCEPTED"
+}

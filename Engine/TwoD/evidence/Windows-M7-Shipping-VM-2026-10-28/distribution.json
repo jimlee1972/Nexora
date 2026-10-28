@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "distribution_zip": "Nexora-M7-Shipping-20261028.zip",
+  "distribution_zip_sha256": "f44bcc4c58569edabec2611f77c300a61bcc765213e62e31454bdcd903cc12c4",
+  "bytes": 3751713,
+  "scope": "Every distributed fixture file equals the individually tested staged fixture bytes; runner transport ZIP is a separate UI/Zig subset",
+  "fixtures": {
+    "UI-Shipping": {
+      "files": 11,
+      "inventory_sha256": "cac184c437f2c56be9e1b0717ce28e277568f5a81aaa4ededec0dcd6163f0164"
+    },
+    "ZigGame-Shipping-Fixture": {
+      "files": 14,
+      "inventory_sha256": "c318726f51977608ea25679dacbc761e23fdb7cfc08d5b1ab0435658790d8d24"
+    },
+    "Host-Shipping": {
+      "files": 14,
+      "inventory_sha256": "84abb4a1cf4b77d80a3a27cdb0ba3e4334c65089c0fe329f97587fdcb3305600"
+    }
+  }
+}

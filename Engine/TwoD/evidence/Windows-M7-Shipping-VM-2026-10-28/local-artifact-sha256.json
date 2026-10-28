@@ -1,0 +1,70 @@
+{
+  "Nexora-M7-Shipping-20261028.zip": {
+    "bytes": 3751713,
+    "sha256": "f44bcc4c58569edabec2611f77c300a61bcc765213e62e31454bdcd903cc12c4"
+  },
+  "stage-03/package.zip": {
+    "bytes": 2580295,
+    "sha256": "adc73b7b6d5c25f5b3bddf57885cac4f09bb0a6d17361f31c795a6ad890116f4"
+  },
+  "vm-two-boot-01/acceptance.json": {
+    "bytes": 575,
+    "sha256": "84aafed1346d2744be8ea346eb9c8e74899cffe46c472294d5a8cf16cb26b6f6"
+  },
+  "vm-two-boot-02/acceptance.json": {
+    "bytes": 25102,
+    "sha256": "101acd0ebd30b41782ce7b1426d2618a9b6c34572798079d2f69f3beee609e6b"
+  },
+  "host-vm-acceptance.json": {
+    "bytes": 9695,
+    "sha256": "8085daa7b8365da9f0a3246218850e79217fa64bb54ba28f59af7717250fdd2a"
+  },
+  "guest-before-ready.json": {
+    "bytes": 4550,
+    "sha256": "287d92c817ed5f1b7e25ad000f883b7f3ad6982afb86efc704e18c330f34b330"
+  },
+  "guest-after.json": {
+    "bytes": 5825,
+    "sha256": "53ac743eb41bdcc3e7ebd3d670cc944d0d0d89c6461e8c3a2a0d448022117784"
+  },
+  "snapshots-before.txt": {
+    "bytes": 688,
+    "sha256": "4e23b11d677fa29597792e5836d1bb50bcf5e239ddbd6e2274e71ef77e5ee3a8"
+  },
+  "snapshots-after.txt": {
+    "bytes": 688,
+    "sha256": "4e23b11d677fa29597792e5836d1bb50bcf5e239ddbd6e2274e71ef77e5ee3a8"
+  },
+  "transport-running-result.json": {
+    "bytes": 534,
+    "sha256": "e7165111c459ab574434226e5ca69cb3bea700ed562d94a260f0ebc8744bf40d"
+  },
+  "Host-VM-Guest.ps1": {
+    "bytes": 8080,
+    "sha256": "e4a84f9c627a65daa60f8a34fe9b51b85f2f9bff9d0d77beca6a8d61900480c0"
+  },
+  "host-vm-1d6fcd51177543679a8e79a1c08a010f/input.stdout": {
+    "bytes": 1338,
+    "sha256": "8823fcc237dd17ee530c4724bb9de992e3c50e8af389a6250a10cd0512bda179"
+  },
+  "host-vm-1d6fcd51177543679a8e79a1c08a010f/input.stderr": {
+    "bytes": 456,
+    "sha256": "ae62916e25df5a805245509ba0cd13353a7d7cefe89fd8a8947f5999c2606558"
+  },
+  "host-vm-1d6fcd51177543679a8e79a1c08a010f/resume.stdout.log": {
+    "bytes": 1324,
+    "sha256": "733adfb9b40849a1c826245bed2768e336b2a2df7093270444af9f6465ac6e6d"
+  },
+  "host-vm-1d6fcd51177543679a8e79a1c08a010f/resume.stderr.log": {
+    "bytes": 455,
+    "sha256": "d24ef3f293f3f2bb7558cf918d8611327fa05266204cbb93926a920899d4ae93"
+  },
+  "probe-before-ready/command-079.stdout": {
+    "bytes": 10611,
+    "sha256": "2bc8e1298d9f5f5de57f4a65b1a87faa00ad36f051a64ce1a780b4806567733b"
+  },
+  "probe-console-encoding.json": {
+    "bytes": 428,
+    "sha256": "979270c974f1b28a3e963efe19553149be9f9aa648780474e2453852c1a77395"
+  }
+}

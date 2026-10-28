@@ -1,0 +1,240 @@
+{
+  "status": "PASS",
+  "vm_uuid": "71571b18-806d-425b-ad19-712c9043663d",
+  "guest_root": "C:\\NexoraM7Input\\run-447493954fc749e187639a31346ac71d",
+  "host_zip_sha256": "841707758e6d8c38a31a4ae4a4ef9a3901f30201b140e50761d57bc24ca4b2b3",
+  "script_sha256": "e4a84f9c627a65daa60f8a34fe9b51b85f2f9bff9d0d77beca6a8d61900480c0",
+  "result": {
+    "inventory_verified": true,
+    "preservation": {
+      "saves": {
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/\u4e2d\u6587\u9032\u5ea6-2/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "old/isolated-saves-06fcaa479603489f9bf57bd91e3236e0/visits.nxsav": {
+          "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+          "length": 65
+        },
+        "vm/run-009adf106277428c9d3a65863e54d053/close-saves-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/close-saves-2/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/close-saves-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "old/isolated-saves-fc0d7e552f7c412fb7ad91e3b3b3d3e0/visits.nxsav": {
+          "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+          "length": 65
+        },
+        "old/isolated-saves-59c27ee934d445d1b8615aa3e6d1f984/visits.nxsav": {
+          "sha256": "98ce42deef51d40269d542f5314bef2c7468d401ad5d85168bfab4c0108f75f7",
+          "length": 65
+        },
+        "vm/run-86439d1fb0a54ec7a9bdbf9f42e96fe0/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/durable-saves/visits.nxsav": {
+          "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b",
+          "length": 65
+        },
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/close-saves-1/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "user/game-com.nexora.acceptance.20261017/saves/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "old/\u4e2d\u6587\u9032\u5ea6/visits.nxsav": {
+          "sha256": "3c7e9dd401e2b11c90b45cca6834cdfd418f4da7fd25c176be1459dd6d104ead",
+          "length": 65
+        },
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/negative-save-2/visits.nxsav": {
+          "sha256": "d7eded4214dcd9be5652cf29ec806a2e21d3c677065f1109fd1040b997e9e831",
+          "length": 50
+        },
+        "vm/run-86439d1fb0a54ec7a9bdbf9f42e96fe0/durable-saves/visits.nxsav": {
+          "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b",
+          "length": 65
+        },
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/negative-save-1/visits.nxsav": {
+          "sha256": "a7c6b5f876c5793b4905b036aab87edb1ce037c30d710736981437723e3b58e9",
+          "length": 50
+        },
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/close-saves-2/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/negative-save-2/visits.nxsav": {
+          "sha256": "e09fc4a6df99ab301a9acf790ed5c55ad0ca6477cdf36c66e35e80c3fb83372c",
+          "length": 65
+        },
+        "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/negative-save-1/visits.nxsav": {
+          "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+          "length": 65
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/negative-save-1/visits.nxsav": {
+          "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+          "length": 65
+        },
+        "vm/run-009adf106277428c9d3a65863e54d053/negative-save-1/visits.nxsav": {
+          "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+          "length": 65
+        },
+        "vm/run-009adf106277428c9d3a65863e54d053/durable-saves/visits.nxsav": {
+          "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b",
+          "length": 65
+        },
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/\u4e2d\u6587\u9032\u5ea6-2/visits.nxsav": {
+          "sha256": "ad828b58532036500568222a93945a75a9fea6c78a3b1ba76511c6d53982a4ea",
+          "length": 50
+        },
+        "vm/run-3380a624b2c74503b92bcfdee2295e71/durable-saves/visits.nxsav": {
+          "sha256": "c2f0b1d2b3dc0c98ad7bbaf9057f763089f9bb7af9040140b893d5fd576d06a0",
+          "length": 50
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/close-saves-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-009adf106277428c9d3a65863e54d053/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-86439d1fb0a54ec7a9bdbf9f42e96fe0/negative-save-1/visits.nxsav": {
+          "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+          "length": 65
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+          "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+          "length": 65
+        },
+        "vm/run-f9ed938ac0244e209527ac095b8abfba/durable-saves/visits.nxsav": {
+          "sha256": "197efe09b51be83759dd895d42c91286091ddb358ed88414396f38b96d183ecf",
+          "length": 65
+        }
+      },
+      "system_vulkan_loader": false
+    },
+    "launcher_exit": 0,
+    "fixture": {
+      "position": 1.812691,
+      "rebound": 0,
+      "saves": 1,
+      "opens": 1,
+      "keyboard_movement_frames": 21,
+      "gamepad_movement_frames": 0,
+      "buttons_seen": 0,
+      "bus_changes": 0,
+      "plays": 0,
+      "pauses": 0,
+      "stops": 0,
+      "cancels": 0,
+      "final_save_ok": true,
+      "axes_min": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "axes_max": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "report": {
+      "status": "PASS",
+      "module_abi": 3,
+      "project_mode": true,
+      "api": 1,
+      "native_frames": 129,
+      "movement_frames": 21,
+      "entity_x": 0.0,
+      "final_width": 640,
+      "final_height": 480,
+      "viewport_x": 0.0,
+      "viewport_y": 0.0,
+      "viewport_width": 640.0,
+      "viewport_height": 480.0,
+      "native_ui_draws": 29799,
+      "native_ui_texture_uploads": 3,
+      "resize_generations": 1,
+      "surface_backend_requested": "auto",
+      "render_device_ids_available": true,
+      "render_vendor_id": 5140,
+      "render_device_id": 140,
+      "initial_dpi_scale": 1.0,
+      "minimum_dpi_scale": 1.0,
+      "maximum_dpi_scale": 1.0,
+      "focus_lost_events": 0,
+      "focus_gained_events": 1,
+      "key_press_events": 1,
+      "mouse_press_events": 2,
+      "wheel_events": 0,
+      "unfocused_movement_frames": 0,
+      "sprite_instanced_draws": 0,
+      "sprite_gpu_instances": 0,
+      "sprite_instance_upload_bytes": 0,
+      "asset_active_bytes": 0,
+      "asset_retired_bytes": 0,
+      "asset_staging_bytes": 0,
+      "asset_peak_content_bytes": 0,
+      "audio_active_bytes": 384000,
+      "audio_retired_bytes": 0,
+      "audio_peak_live_bytes": 384000,
+      "pool_capacity": 1024,
+      "visible": 0,
+      "reloaded": false,
+      "validation_package": false,
+      "resumed": false,
+      "initial_x": 0.0,
+      "ui_frames": 129,
+      "ui_saves": 0,
+      "ui_opens": 0,
+      "cooked_reloads": 0,
+      "audio_submitted_frames": 0,
+      "audio_open_attempts": 13,
+      "audio_open_successes": 0,
+      "audio_pump_failures": 0,
+      "save_reopened": false,
+      "audible_acceptance": "NOT VERIFIED",
+      "allocations_balanced": true,
+      "physical_windows": "NOT RUN"
+    },
+    "residual_players": 0,
+    "scope": "Existing VM, automated native keyboard/mouse; not physical input or audible acceptance",
+    "desktop_session": 1,
+    "resumed": true,
+    "launcher_system_path_only": true,
+    "status": "PASS",
+    "unrelated_unicode_cwd": true
+  },
+  "preservation": {
+    "existing_saves_unchanged": 23,
+    "new_scope_saves": 7,
+    "system_vulkan_loader_after": false
+  },
+  "final_vm_state": "poweroff",
+  "raw_directory": "build/m7-20261028/host-vm-1d6fcd51177543679a8e79a1c08a010f"
+}

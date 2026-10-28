@@ -1,0 +1,100 @@
+{
+  "saves": {
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/durable-saves/visits.nxsav": {
+      "sha256": "197efe09b51be83759dd895d42c91286091ddb358ed88414396f38b96d183ecf",
+      "length": 65
+    },
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/negative-save-2/visits.nxsav": {
+      "sha256": "e09fc4a6df99ab301a9acf790ed5c55ad0ca6477cdf36c66e35e80c3fb83372c",
+      "length": 65
+    },
+    "vm/run-86439d1fb0a54ec7a9bdbf9f42e96fe0/negative-save-1/visits.nxsav": {
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+      "length": 65
+    },
+    "vm/run-009adf106277428c9d3a65863e54d053/close-saves-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-009adf106277428c9d3a65863e54d053/negative-save-1/visits.nxsav": {
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+      "length": 65
+    },
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/\u4e2d\u6587\u9032\u5ea6-2/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/durable-saves/visits.nxsav": {
+      "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b",
+      "length": 65
+    },
+    "vm/run-86439d1fb0a54ec7a9bdbf9f42e96fe0/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/close-saves-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/close-saves-2/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "old/\u4e2d\u6587\u9032\u5ea6/visits.nxsav": {
+      "sha256": "3c7e9dd401e2b11c90b45cca6834cdfd418f4da7fd25c176be1459dd6d104ead",
+      "length": 65
+    },
+    "old/isolated-saves-59c27ee934d445d1b8615aa3e6d1f984/visits.nxsav": {
+      "sha256": "98ce42deef51d40269d542f5314bef2c7468d401ad5d85168bfab4c0108f75f7",
+      "length": 65
+    },
+    "old/isolated-saves-fc0d7e552f7c412fb7ad91e3b3b3d3e0/visits.nxsav": {
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+      "length": 65
+    },
+    "user/game-com.nexora.acceptance.20261017/saves/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/close-saves-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/negative-save-1/visits.nxsav": {
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+      "length": 65
+    },
+    "vm/run-009adf106277428c9d3a65863e54d053/durable-saves/visits.nxsav": {
+      "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b",
+      "length": 65
+    },
+    "old/isolated-saves-06fcaa479603489f9bf57bd91e3236e0/visits.nxsav": {
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+      "length": 65
+    },
+    "vm/run-009adf106277428c9d3a65863e54d053/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-f9ed938ac0244e209527ac095b8abfba/\u4e2d\u6587\u9032\u5ea6-1/visits.nxsav": {
+      "sha256": "c18462268a164e37808aba1a8167b88082afa22b21a03845120c7ddbbf75db1b",
+      "length": 65
+    },
+    "vm/run-86439d1fb0a54ec7a9bdbf9f42e96fe0/durable-saves/visits.nxsav": {
+      "sha256": "054673f2adf6f530526bd0e38efc7b19dbfe27a51e9d4dff2cad6cf3e610632b",
+      "length": 65
+    },
+    "vm/run-4dacf44ce6d340d49d27c68fe5eaff19/negative-save-1/visits.nxsav": {
+      "sha256": "2b7438ab0b4aff9b91fd7e7b692900f1a359cf3c8780355f5f9615ba9f79aac8",
+      "length": 65
+    }
+  },
+  "player_processes": 0,
+  "developer_products": [],
+  "system_vulkan_loader": false,
+  "windows": "10.0.19045.0"
+}

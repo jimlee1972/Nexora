@@ -1,0 +1,10 @@
+{
+  "scope": "Read-only diagnostic console, not package inventory or acceptance report",
+  "original_encoding": "cp950",
+  "lossless_roundtrip": true,
+  "replacement_characters": false,
+  "raw_sha256": "2bc8e1298d9f5f5de57f4a65b1a87faa00ad36f051a64ce1a780b4806567733b",
+  "utf8_sha256": "287d92c817ed5f1b7e25ad000f883b7f3ad6982afb86efc704e18c330f34b330",
+  "existing_save_count": 23,
+  "system_vulkan_loader": false
+}

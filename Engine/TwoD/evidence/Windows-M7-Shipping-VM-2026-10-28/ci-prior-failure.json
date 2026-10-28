@@ -1,0 +1,12 @@
+{
+  "head": "cc6459c3ca4924af856668a10b5ccd68a3a54c30",
+  "run": 40724838319,
+  "job": 122947235483,
+  "job_name": "showcase-posix-shipping-package (ubuntu-latest, linux-showcase-shipping)",
+  "conclusion": "failure",
+  "step": "Verify native isolated-copy package",
+  "error": "Tests/Showcase/LinuxShowcaseInteraction.py timed out after 90 seconds",
+  "artifact_id": 12832677595,
+  "artifact_zip_sha256": "03942382f3fa2b31ad047e4d2aecfe5a848db9f49b0c13bf5569f92f518ffa2b",
+  "verdict": "Retained failure; no timeout increase or gate bypass. Final PR head requires fresh successful checks."
+}

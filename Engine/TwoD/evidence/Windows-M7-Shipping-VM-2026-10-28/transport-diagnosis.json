@@ -1,0 +1,27 @@
+{
+  "status": "COMPLETE",
+  "scope": "Read-only diagnosis on existing boot; no Player acceptance",
+  "commands": [
+    {
+      "mode": "pipeline",
+      "success": true,
+      "seconds": 24.39
+    },
+    {
+      "mode": "console",
+      "success": true,
+      "seconds": 16.7
+    },
+    {
+      "mode": "pipeline-confirm",
+      "success": true,
+      "seconds": 16.38
+    },
+    {
+      "mode": "pipeline-unquoted",
+      "success": true,
+      "seconds": 10.62
+    }
+  ],
+  "final_vm_state": "poweroff"
+}
