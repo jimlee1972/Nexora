@@ -161,6 +161,196 @@ void Geometry() {
         "stable source survives atlas repack");
   Near(refreshed->localQuad->minimum.x, resolved->localQuad->minimum.x);
 }
+void SourceScenes() {
+  auto atlas = std::make_shared<Atlas>(AtlasFixture());
+  auto source = std::make_shared<SpriteAsset>(Source());
+  runtime::World world;
+  const auto sceneId = world.LoadScene("source scene");
+  const auto first = world.CreateEntity(sceneId).id;
+  const auto second = world.CreateEntity(sceneId).id;
+  SpriteScene scene(world, sceneId);
+  Sprite sprite;
+  sprite.source = source->id;
+  sprite.sortY = true;
+  sprite.color = {0.5F, 1, 1, 0.5F};
+  Check(scene.Set(first, sprite), "source-only scene Sprite admission");
+  sprite.flipX = true;
+  sprite.flipY = true;
+  Check(scene.Set(second, sprite), "mirrored source scene Sprite");
+  auto bytes = scene.Snapshot();
+  Check(bytes && (*bytes)[4] == std::byte{3}, "source snapshot schema 3");
+  runtime::World reopened;
+  auto restored = SpriteScene::Load(reopened, *bytes);
+  Check(restored && restored->Find(first)->source == source->id && restored->Find(second)->flipY &&
+            restored->Snapshot() == bytes,
+        "source identity/style canonical scene roundtrip");
+  std::size_t sourceCalls = 0, atlasCalls = 0;
+  const SpriteAssetResolver sources = [&](AssetId id) -> std::shared_ptr<const SpriteAsset> {
+    ++sourceCalls;
+    return id == source->id ? source : nullptr;
+  };
+  const AtlasResolver atlases = [&](AssetId id) -> std::optional<AtlasBinding> {
+    ++atlasCalls;
+    return id == atlas->id ? std::optional(AtlasBinding{atlas, 31}) : std::nullopt;
+  };
+  const Camera camera{{}, 20, 0, 200, 200};
+  auto frame = restored->Extract(camera, atlases, sources);
+  Check(frame && frame->statistics.input == 2 && frame->statistics.visible == 2 &&
+            sourceCalls == 1 && atlasCalls == 1 && frame->vertices[0].color == 0x80FFFF80,
+        "scene auto-resolution, styles and once-per-frame dependency lookup");
+  Near(frame->vertices[0].position[0], 95);
+  Near(frame->vertices[0].position[1], 100);
+  Near(frame->vertices[2].position[1], 85);
+  Near(frame->vertices[6].position[1], 100);
+  Check(frame->vertices[4].uv[0] > frame->vertices[5].uv[0], "source scene flipped UVs");
+  auto missing = restored->Extract(camera, atlases);
+  Check(missing && missing->statistics.input == 2 && missing->statistics.unavailable == 2 &&
+            missing->statistics.visible == 0,
+        "missing source never renders fallback geometry");
+  auto noAtlas =
+      restored->Extract(camera, [](AssetId) -> std::optional<AtlasBinding> { return {}; }, sources);
+  Check(noAtlas && noAtlas->statistics.unavailable == 2, "missing source Atlas");
+  const auto previous = bytes;
+  auto corrupt = *bytes;
+  corrupt.pop_back();
+  Check(!scene.Restore(corrupt) && scene.Snapshot() == previous, "atomic source restore failure");
+  for (std::size_t length = 0; length < bytes->size(); ++length)
+    Check(!scene.Restore(std::span(*bytes).first(length)), "all truncated source scenes reject");
+  corrupt = *bytes;
+  corrupt[4] = std::byte{4};
+  Check(!scene.Restore(corrupt) && scene.Snapshot() == previous, "unknown scene version rollback");
+  corrupt = *bytes;
+  corrupt.push_back(std::byte{0});
+  Check(!scene.Restore(corrupt) && scene.Snapshot() == previous, "trailing scene data rollback");
+  const auto readU32 = [&](std::size_t offset) {
+    std::uint32_t result = 0;
+    for (unsigned i = 0; i < 4; ++i)
+      result |= std::uint32_t(std::to_integer<unsigned char>((*bytes)[offset + i])) << (8 * i);
+    return result;
+  };
+  const auto presenceOffset = 88 + std::size_t(readU32(8));
+  corrupt = *bytes;
+  corrupt[presenceOffset] = std::byte{2};
+  Check(!scene.Restore(corrupt) && scene.Snapshot() == previous, "invalid source presence marker");
+  corrupt = *bytes;
+  std::fill_n(corrupt.begin() + presenceOffset + 4, 16, std::byte{0});
+  Check(!scene.Restore(corrupt) && scene.Snapshot() == previous, "zero serialized source UUID");
+  auto bad = sprite;
+  bad.source = AssetId{};
+  Check(!scene.Set(first, bad) && scene.Snapshot() == previous, "invalid source ID rollback");
+  auto wrong = std::make_shared<SpriteAsset>(*source);
+  wrong->id = {99, 99};
+  Check(!scene.Extract(camera, atlases, [&](AssetId) { return wrong; }), "foreign source rejects");
+  wrong = std::make_shared<SpriteAsset>(*source);
+  wrong->trimWidth = 31;
+  Check(!scene.Extract(camera, atlases, [&](AssetId) { return wrong; }),
+        "resolved Atlas dimension mismatch rejects");
+  auto oldAtlas = std::weak_ptr<const Atlas>(atlas);
+  Image extra{1, 1, 1, Bytes(4, std::byte{128})};
+  Image actor{7, 32, 48, Bytes(32 * 48 * 4, std::byte{255})};
+  atlas = std::make_shared<Atlas>(*PackAtlas(source->atlas, std::array{extra, actor}, 64, 128));
+  auto refreshed = scene.Extract(camera, atlases, sources);
+  Check(refreshed && !oldAtlas.expired() &&
+            refreshed->vertices[0].uv[0] != frame->vertices[0].uv[0] &&
+            scene.Snapshot() == previous,
+        "repack refreshes UVs without editing source references or retained frame");
+  Near(refreshed->vertices[0].position[0], frame->vertices[0].position[0]);
+  frame.reset();
+  Check(oldAtlas.expired(), "old Atlas retires with owning frame");
+  runtime::World playWorld(runtime::WorldKind::Play);
+  auto play = SpriteScene::Load(playWorld, *bytes);
+  Check(play && !play->Restore(*bytes), "Play can load source scene but cannot restore authoring");
+  Check(play->Remove(first) && scene.Find(first), "Play source edits remain isolated");
+  // No-source scenes preserve their historical bytes and can be reopened without a resolver.
+  sprite.source.reset();
+  sprite.atlas = atlas->id;
+  sprite.region = 7;
+  Check(scene.Set(first, sprite), "mixed source/legacy scene");
+  auto mixed = scene.Snapshot();
+  Check(mixed && (*mixed)[4] == std::byte{3} && scene.Restore(*mixed) &&
+            !scene.Find(first)->source && scene.Find(second)->source == source->id &&
+            scene.Extract(camera, atlases, sources)->statistics.visible == 2,
+        "schema 3 preserves absent source markers and legacy extraction");
+  Check(scene.Set(second, sprite), "legacy replacement");
+  auto legacy = scene.Snapshot();
+  Check(legacy && (*legacy)[4] == std::byte{2} && scene.Restore(*legacy) &&
+            !scene.Find(first)->source && scene.Snapshot() == legacy &&
+            scene.Extract(camera, atlases)->statistics.visible == 2,
+        "schema 2 remains canonical after removing sources");
+}
+void SourceExtraction() {
+  auto atlas = std::make_shared<Atlas>(AtlasFixture());
+  auto source = std::make_shared<SpriteAsset>(Source());
+  auto first = Instance();
+  first.sprite.source = source->id;
+  auto second = first;
+  second.id = 38;
+  std::array input{first, second};
+  const Camera camera{{}, 20, 0, 200, 200};
+  const AtlasResolver atlases = [&](AssetId) { return std::optional(AtlasBinding{atlas, 41}); };
+  std::size_t calls = 0;
+  const SpriteAssetResolver sources = [&](AssetId) {
+    ++calls;
+    input[1].matrix[12] = 1000;
+    input[1].sprite.color[0] = 0;
+    return source;
+  };
+  auto frame = ExtractSprites(input, camera, atlases, sources);
+  Check(frame && frame->statistics.visible == 2 && calls == 1 &&
+            frame->vertices[0].color == frame->vertices[4].color,
+        "callbacks cannot mutate validated input snapshot");
+  Near(frame->vertices[0].position[0], frame->vertices[4].position[0]);
+  Check(!ExtractSprites(input, camera, atlases), "legacy extraction rejects unresolved source");
+  input = {first, second};
+  auto secondSource = std::make_shared<SpriteAsset>(*source);
+  secondSource->id = {13, 14};
+  input[1].sprite.source = secondSource->id;
+  std::size_t atlasCalls = 0;
+  frame = ExtractSprites(
+      input, camera,
+      [&](AssetId) {
+        ++atlasCalls;
+        return std::optional(AtlasBinding{atlas, 41});
+      },
+      [&](AssetId id) { return id == source->id ? source : secondSource; });
+  Check(frame && frame->statistics.visible == 2 && atlasCalls == 1,
+        "distinct sources share one immutable Atlas lookup");
+  auto secondAtlas = std::make_shared<Atlas>(*atlas);
+  secondAtlas->id = {15, 16};
+  secondSource->atlas = secondAtlas->id;
+  Check(!ExtractSprites(
+            input, camera,
+            [&](AssetId id) {
+              return std::optional(AtlasBinding{id == atlas->id ? atlas : secondAtlas, 41});
+            },
+            [&](AssetId id) { return id == source->id ? source : secondSource; }),
+        "distinct Atlases cannot alias a native texture identity");
+  input = {first, second};
+  input[1].id = first.id;
+  calls = 0;
+  Check(!ExtractSprites(input, camera, atlases, sources) && calls == 0,
+        "duplicate source IDs reject before callbacks");
+  input = {first, second};
+  input[1].localQuad = SpriteLocalQuad{{0, 0}, {1, 1}};
+  Check(!ExtractSprites(input, camera, atlases, sources) && calls == 0,
+        "ambiguous source/explicit quad rejects before callbacks");
+  input = {first, second};
+  input[1].matrix[0] = std::numeric_limits<float>::infinity();
+  Check(!ExtractSprites(input, camera, atlases, sources) && calls == 0,
+        "invalid source matrix rejects before callbacks");
+  input = {first, second};
+  input[0].sprite.visible = input[1].sprite.visible = false;
+  frame = ExtractSprites(input, camera, atlases, sources);
+  Check(frame && frame->statistics.input == 2 && frame->statistics.visible == 0 && calls == 0,
+        "hidden sources do not invoke resolvers");
+  input = {first, second};
+  auto invalidAtlas = std::make_shared<Atlas>(*atlas);
+  invalidAtlas->id = {55, 55};
+  Check(!ExtractSprites(
+            input, camera, [&](AssetId) { return std::optional(AtlasBinding{invalidAtlas, 41}); },
+            [&](AssetId) { return source; }),
+        "foreign Atlas rejects");
+}
 void Cook() {
   runtime::ImporterRegistry registry;
   Check(RegisterImporters(registry), "Sprite importer registration");
@@ -364,6 +554,8 @@ int main() {
   try {
     Metadata();
     Geometry();
+    SourceScenes();
+    SourceExtraction();
     Cook();
     SourceBindings();
     std::cout << "Sprite source metadata, trim/Pivot/flip extraction and cook passed\n";

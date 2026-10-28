@@ -1,10 +1,11 @@
 # Sprite source assets (S01 and scene bindings)
 
-This additive source-geometry slice extends the existing TwoD module. It does not replace the
-accepted Atlas/Clip formats or legacy scene writer, linear straight-alpha color contract, native Sprite instance
-record, or C/Zig service prefixes. Public C++ consumers rebuild because `SpriteInstance` appends
-an optional local quad and `Sprite` appends a source UUID. The [full 2D roadmap](../../Roadmap/en/2D_Roadmap.md) retains its existing
-platform verdicts; this supporting work does not accept M6/M7 or the complete Sprite expansion.
+This additive source-geometry slice extends the existing TwoD module. Atlas/Clip formats,
+linear straight-alpha color, native Sprite instance records and C/Zig service prefixes remain
+unchanged. Public C++ consumers rebuild for the appended optional `Sprite::source` identity and
+`SpriteInstance` local quad. Source-bearing scenes use the additive NX2S schema 3 below; scenes
+without sources retain byte-for-byte schema-2 encoding. The
+[full 2D roadmap](../../Roadmap/en/2D_Roadmap.md) retains its existing platform verdicts; this supporting work does not accept M6/M7 or the complete Sprite expansion.
 
 ## Identity and wire
 
@@ -70,69 +71,57 @@ Resolve again after changing source geometry, Atlas generation or flip state; no
 resolver/cache is introduced. Atlas validation is preparation work, not a recommended per-Sprite
 per-frame operation. Retained extracted frames keep the existing Atlas ownership rules.
 
-The explicit resolver still returns a transient adapter: it clears `Sprite::source` on its result,
-so that a prepared quad is never resolved twice. Persist the original source-bound `Sprite`, not
-that temporary resolved value.
+The direct resolver remains a transient adapter: it clears `sprite.source` on the returned
+instance so the source-derived quad can enter the historical three-argument `ExtractSprites`.
+Retain source identity in the authored Sprite rather than storing this resolved copy.
 
-## Persistent scene and pool source bindings
+## Source references in scenes and extraction
 
-`Sprite::source` is an optional UUID (zero means historical Atlas/region geometry). A nonzero UUID
-selects source geometry and overrides the Sprite's Atlas, region, size and normalized pivot during
-extraction; the original fields are not mutated or treated as a fallback. Tint, visibility, flips,
-layer/order, world matrix and Y-sort anchor remain instance-owned. Style fields must still be
-finite/bounded even when their size/pivot are overridden. A source-only Sprite can leave Atlas and
-region zero. The field is copied by `SpriteScene::Set/Find`, snapshots and C++ `InstancePool` batches.
-
-The source-aware overloads are:
+`Sprite::source` optionally identifies a `SpriteAsset`. A present UUID must be nonzero; Atlas and
+region may be omitted because the source supplies them. Size/pivot retain their historical finite
+bounds even when overridden; tint, flip, visibility and layer/order/Y-sort stay authored. A source
+never silently falls back to the old Atlas/region fields.
 
 ```cpp
-SpriteAssetResolver sources = [&](AssetId id) -> std::shared_ptr<const SpriteAsset> {
-  return frozenSources.Find(id); // Host-owned immutable catalog; no engine IO is implied.
-};
-Sprite style;
-style.source = actorSourceId;
-scene.Set(entity, style);
-auto frame = scene.Extract(camera, atlases, sources);
-// The same four-argument ExtractSprites overload accepts scene/pool/tile combined inputs.
+Sprite sprite;
+sprite.source = sourceId;
+sprite.sortY = true;
+scene.Set(entity, sprite);
+auto frame = scene.Extract(camera, atlasResolver, spriteAssetResolver);
 ```
 
-`frozenSources` above is illustrative host code, not an additional engine catalog API. The host
-supplies both source and Atlas resolvers from one coherent immutable generation. Serialize their
-publication with extraction and World/pool mutation. All IDs, transforms and style/quad values are
-validated before either resolver is called. Source plus explicit `localQuad` rejects as ambiguous.
-Hidden/zero-alpha inputs cause no resolution. Each needed source UUID and each needed Atlas UUID
-resolves at most once per extraction, including unavailable results. Atlas closure validation is
-shared by source and legacy inputs, not repeated per instance; geometry preparation does no IO.
+`SpriteAssetResolver` returns an immutable `shared_ptr<const SpriteAsset>`. Source-aware
+`SpriteScene::Extract` and the four-argument `ExtractSprites` resolve each visible source and its
+Atlas once per call. Input identities, matrices, styles and explicit quads validate before any
+callback, then a copied snapshot prevents callbacks from changing the caller's geometry/styles.
+Atlas closure validation is cached per UUID; per-source geometry preparation does not rescan all
+Atlas regions per instance. No cache survives the call. The returned frame retains Atlas owners;
+its copied geometry does not require source metadata after extraction. Methods and callbacks
+serialize with asset/World publication; modifying objects exposed as immutable is unsupported.
 
-Unavailable source/resolver/Atlas increments the per-input `unavailable` count and draws nothing.
-There is no stale legacy fallback. A wrong returned UUID, malformed asset, missing region,
-trim-dimension mismatch or invalid Atlas binding rejects the whole frame. Since source geometry
-is needed for culling, visible source inputs resolve their closure before offscreen testing;
-legacy inputs retain cull-before-Atlas behavior. A culled source may retain its resolved Atlas in
-the frame and count toward the existing 64-Atlas limit. Resolvers are synchronous C++ callbacks;
-exceptions propagate to the caller as in existing extraction, with no scene/pool mutation.
+Missing source/Atlas data counts each affected nonhidden instance as `unavailable`. Invalid source
+identity/metadata, a mismatched region size, invalid Atlas/texture, duplicate native texture identity
+or more than 64 resolved Atlases rejects the complete frame. Hidden/zero-alpha sources trigger no
+lookups. Source resolution precedes camera culling, since the correct bounds require source
+geometry. The existing no-source path retains its historical extraction. Three-argument general
+`ExtractSprites` rejects unresolved source instances explicitly; two-argument scene extraction
+uses an empty source resolver and reports them unavailable. A source plus an explicit `localQuad`
+is ambiguous and rejects; `ResolveSpriteAsset` can explicitly replace that quad.
 
-Caches exist only for the current extraction. Replacing a source/Atlas under the same UUID changes
-the next frame's trim/PPU/Pivot/UV without changing stored identity; different texture generations
-must have different resident IDs. Output geometry owns values; frames retain the Atlas pixels and
-need no source pointer after return. There is no persistent negative cache or implicit reload.
+NX2S schema 3 preserves the existing World text, Sprite records and collider records. Each Sprite
+record adds a U32 presence marker (0/1), then two U64 UUID halves only when present. Decoder versions
+2 and 3 use the same existing bounds, membership checks and staging World. Invalid/truncated/trailing
+or unsupported versions never replace the live World or metadata. Writers select version 3 only
+when at least one source exists; after the last source is removed, version 2 is canonical again.
+Old readers explicitly reject version 3 rather than dropping references. No source/Atlas payload is
+embedded or rewritten during scene save; repacking/reloading refreshes geometry and UVs at the
+next extraction while existing frames retain their prior Atlas generation. Isolated Play can load
+these scenes and preserves the existing authoring-only Restore rule.
 
-NX2S scenes containing a source emit schema **3**. Its layout is schema 2 with a 16-byte source UUID
-(two little-endian U64s) appended after **every** Sprite record, including zero UUIDs on legacy
-members of a mixed scene. World text and collider records are unchanged. The reader accepts both
-2 and 3 and validates a staging World before Load/Restore publication. Scenes with no source
-continue emitting byte-identical schema 2; loading a schema-3 scene with only zero source UUIDs
-canonicalizes to 2. Older binaries reject schema 3. Snapshot validation checks references' stored
-values and scene membership; actual source/Atlas closure is validated when supplied for extraction.
-
-This completes the portable scene/pool prerequisite only. Existing Editor document catalogs cannot
-retain `.nx2sprite` closures yet, so `TwoDDocument` Add/Edit/Reopen explicitly reject source-bound
-Sprites atomically. The old C/Zig Sprite and pool records have no source UUID: getters/batch reads
-return `UNSUPPORTED` without changing output buffers for such values, and legacy region animation
-Play/Advance returns `UNSUPPORTED` on a source-bound Sprite. An explicit legacy Sprite setter/pool
-write replaces the whole value and clears the source binding. C++ source-frame animation, new
-C/Zig capabilities, Editor/Player catalog admission, Undo/Redo with source assets and native
-cross-platform acceptance remain follow-ups; no source-aware animation wire is claimed here.
+This completes portable C++ scene/general extraction source binding. Main Editor project indexing,
+Inspector/Play capture and Player catalogs still need explicit source admission; C/Zig descriptors,
+automatic source-asset animation and pool publication remain separate work. Passing only a resolved
+legacy `Sprite` to `SpriteScene::Set` still discards its transient quad; store `source` instead.
 
 ## Manifest and CLI
 
@@ -201,4 +190,5 @@ preparer/compiler, including 4x4/12-frame selection, sparse IDs, padding, determ
 Sprite metadata cooking and preservation after failed publication. These are portable CPU/tool
 checks; they are not fresh native pixel, minimum-PC or Windows/Mac/mobile acceptance.
 
-See the [dated Linux evidence](evidence/SpriteSource-Linux-2026-10-28.md) for executed commands.
+See the [source foundation evidence](evidence/SpriteSource-Linux-2026-10-28.md) and
+[scene binding evidence](evidence/SpriteSourceScenes-Linux-2026-10-28.md) for executed commands.

@@ -115,10 +115,11 @@ steps. It does not replace the Core scheduler or dispatch gameplay callbacks.
 
 ## Scene and Tilemap persistence
 
-NX2S schema 2 wraps the unchanged schema-3 World text plus Sprite/collider metadata.
-Source-bound scenes use schema 3 as specified in [SpriteAssets](SpriteAssets.md); both versions
-are read, while source-free scenes preserve the original writer. Optional source UUIDs resolve
-automatically through the source-aware extraction overload without storing resolved geometry. Parse,
+NX2S schema 2 wraps the unchanged schema-3 World text plus Sprite/collider metadata. Optional
+`Sprite::source` references use additive NX2S schema 3; writers keep schema 2 when no source is
+present, and readers accept both. Source-aware scene/general extraction resolves immutable
+Sprite/Atlas closure per frame and retains the original World/Y-sort anchors. Missing sources
+are unavailable; invalid published closure rejects. See [source contracts](SpriteAssets.md). Parse,
 identity, membership and value validation occur in a staging World before Editor replacement.
 Play Worlds reject Restore; loading into a separate Play World preserves authoring isolation.
 Deleted World entities must have their metadata removed before Save; stale metadata rejects
