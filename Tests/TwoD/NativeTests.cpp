@@ -529,6 +529,60 @@ int main(int argc, char **argv) {
     }
     std::cout << "SP-04 native linear swatch, straight-alpha composite, Y crossing and roof fade "
                  "passed\n";
+    // Persistent source geometry reaches the real compact instanced Vulkan path.
+    runtime::World sourceWorld;
+    const auto sourceSceneId = sourceWorld.LoadScene("persistent source pixels");
+    twod::SpriteScene sourceScene(sourceWorld, sourceSceneId);
+    const auto sourceEntity = sourceWorld.CreateEntity(sourceSceneId).id;
+    const auto sourceAsset = std::make_shared<const twod::SpriteAsset>(
+        twod::SpriteAsset{{99, 1}, red->id, 1, 4, 4, 1, 1, 2, 2, 0, 0, 1, {}});
+    twod::Sprite sourceStyle;
+    sourceStyle.source = sourceAsset->id;
+    Check(sourceScene.Set(sourceEntity, sourceStyle), "source native scene");
+    const auto sourceBytes = sourceScene.Snapshot();
+    Check(sourceBytes && sourceScene.Restore(*sourceBytes), "source native snapshot restore");
+    for (unsigned variant = 0; variant < 5; ++variant) {
+      sourceStyle.flipX = variant == 4 || (variant & 1) != 0;
+      sourceStyle.flipY = variant < 4 && (variant & 2) != 0;
+      Check(sourceScene.Set(sourceEntity, sourceStyle), "source native flip");
+      runtime::Transform transform;
+      transform.sx = variant == 4 ? -1 : 1;
+      runtime::WorldCommandBuffer commands;
+      commands.SetTransform(sourceEntity, transform);
+      Check(commands.Apply(sourceWorld), "source negative scale");
+      auto sourceFrame = sourceScene.Extract(
+          camera,
+          [&](auto) -> std::optional<twod::AtlasBinding> { return twod::AtlasBinding{red, 9901}; },
+          [&](auto) { return sourceAsset; });
+      Check(sourceFrame && sourceFrame->statistics.visible == 1, "source native extraction");
+      const auto sourceUploads = sourceFrame->Uploads();
+      const auto sourcePacket =
+          PrepareSpriteDraws({sourceFrame->vertices, std::as_bytes(std::span(sourceFrame->indices)),
+                              sourceFrame->batches, sourceUploads, true},
+                             {}, 320, 240, true, 0xFF000000);
+      Check(bool(sourcePacket), "source compact instancing packet");
+      for (unsigned repeat = 0; repeat < 3; ++repeat) {
+        static_cast<void>(windows->PumpEvents());
+        Check(surface->Acquire() == SurfaceStatus::Ready &&
+                  surface->RenderUi(sourcePacket->View()) == SurfaceStatus::Ready &&
+                  surface->Present() == SurfaceStatus::Ready,
+              "source native draw");
+      }
+      // Trimmed canvas occupies [1,3] in each source axis; its Pivot remains at world origin.
+      const unsigned x = sourceStyle.flipX && variant != 4 ? 112 : 208;
+      const unsigned y = sourceStyle.flipY ? 168 : 72;
+      WaitPixels(
+          display, native,
+          [&](XImage *image) {
+            const auto inside = XGetPixel(image, x, y);
+            const auto outside = XGetPixel(image, 160, 120);
+            return Channel(inside, image->red_mask) > 250 &&
+                   Channel(inside, image->green_mask) < 3 && Channel(outside, image->red_mask) < 3;
+          },
+          "persistent source trim/Pivot/flip/negative-scale native pixels");
+    }
+    std::cout
+        << "Persistent Sprite source snapshot, trim/Pivot/flips and negative-scale pixels passed\n";
     Check(surface->DrainAndDestroy() == SurfaceStatus::Ready, "shutdown");
     Check(windows->Destroy(created.handle) == Nexora::Window::WindowError::None, "window shutdown");
     XCloseDisplay(display);

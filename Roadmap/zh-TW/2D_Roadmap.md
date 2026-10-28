@@ -767,9 +767,24 @@ Trim 矩形、左下原點的像素 Pivot、PPU 與驗證過的 Border metadata�
 
 這是第一批來源幾何施工，不代表完整 Sprite 擴充完成。公開 C++ consumer 需要重建；
 既有 Atlas／Clip／場景／C/Zig 格式與 straight-alpha 色彩契約不變。
-場景／動畫／pool／Editor／Player 的自動來源引用、SortingGroup、Sliced／Tiled 繪製、
+場景／pool 來源綁定由下方切片擴充。動畫／Editor／Player 來源目錄、
+SortingGroup、Sliced／Tiled 繪製、
 遮罩、進階動畫控制與完整平台驗收仍屬後續工作。保存 Border 不代表完成九宮格繪製。
 M6／M7 與既有 9／11 評估不變。
 
 [來源幾何契約與範例](../../Engine/TwoD/SpriteAssets.md) ·
 [實際 Linux 驗證與限制](../../Engine/TwoD/evidence/SpriteSource-Linux-2026-10-28.md)。
+
+
+## Sprite 來源場景／pool 持久綁定（2026-10-28）
+
+✅ C++ SpriteScene／InstancePool 現在複製來源 UUID，並以可向下讀取舊檔的 NX2S schema 3
+保存；無來源的場景維持 schema 2 bytes。來源感知擷取在每幀中對各來源／Atlas UUID
+共用一次解析，驗證相依並產生 trim／Pivot 幾何，不改作者欄位。下一幀可觀察新的 immutable
+世代，已擷取幀仍持有舊 Atlas 像素。來源缺少時不繪製；損毀相依拒絕整幀。
+舊 C/Zig 讀取與 region 動畫明確拒絕無法表達的來源綁定。
+
+Portable 與原生測試案例涵蓋此切片；實際結果見
+[場景綁定證據](../../Engine/TwoD/evidence/SpriteSceneBindings-Linux-2026-10-28.md)。
+Editor／Player 目錄接納、來源動畫與來源 Undo／Redo 仍未完成，不宣稱完整 Sprite 系統、
+M6／M7 或新增平台驗收。

@@ -38,6 +38,11 @@ void Run() {
   const auto invalidBefore = d.Save();
   sprite.region = 99;
   Check(!d.EditSprite(*id, sprite, {}) && d.Save() == invalidBefore, "bad edit rollback");
+  auto sourceSprite = *d.Scene().Find(*id);
+  sourceSprite.source = {77, 88};
+  Check(!d.AddSprite(sourceSprite) && !d.EditSprite(*id, sourceSprite, {}) &&
+            d.Save() == invalidBefore,
+        "document without source catalog rejects source bindings atomically");
   const std::array tiles{twod::Tile{-1, 0, 0, 1, true}, twod::Tile{0, 0, 1, 1, false},
                          twod::Tile{32, 32, 0, 1, true}};
   Check(d.Paint(tiles), "tile paint");

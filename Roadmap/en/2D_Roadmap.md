@@ -868,9 +868,25 @@ the existing CLI/Importer/Cooker/generation pipeline with an explicit Atlas depe
 
 This is the first source-geometry slice, not completion of the full Sprite expansion. Public C++
 consumers rebuild; historical Atlas/Clip/scene/C/Zig wires and straight-alpha color remain unchanged.
-Automatic scene/animation/pool/Editor/Player source references, SortingGroup, Sliced/Tiled rendering,
+Scene/pool source bindings are extended by the slice below. Animation/Editor/Player source
+catalogs, SortingGroup, Sliced/Tiled rendering,
 masks, advanced animation controls and full platform acceptance remain separate work. Border storage
 does not establish nine-slice rendering. M6/M7 and the existing 9/11 assessment are unchanged.
 
 [Source geometry contract and examples](../../Engine/TwoD/SpriteAssets.md) ·
 [Executed Linux verification and limitations](../../Engine/TwoD/evidence/SpriteSource-Linux-2026-10-28.md).
+
+
+## Persistent Sprite source scene/pool bindings (2026-10-28)
+
+✅ The source UUID is now copied by C++ SpriteScene/InstancePool and persisted with backward-readable
+NX2S schema 3; source-free scenes retain their schema-2 bytes. Source-aware extraction shares one
+source/Atlas resolution per UUID per frame, validates closure and prepares trim/Pivot geometry
+without mutating authored fields. A new immutable generation is observed next frame while retained
+frames keep their previous Atlas pixels. Missing sources draw nothing; corrupt closures reject.
+Legacy C/Zig reads and region animation explicitly reject unrepresentable source bindings.
+
+Portable and native test cases cover this slice; executed results are recorded in the
+[scene binding evidence](../../Engine/TwoD/evidence/SpriteSceneBindings-Linux-2026-10-28.md).
+Editor/Player catalog admission, source-aware animation and source Undo/Redo remain open. No full
+Sprite-system, M6/M7 or additional platform acceptance is claimed.
