@@ -14,6 +14,11 @@ if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
   nexora_apply_defaults(NexoraWindowsStartupSplashTests)
   add_test(NAME editor.windows_startup_splash COMMAND NexoraWindowsStartupSplashTests)
   set_tests_properties(editor.windows_startup_splash PROPERTIES TIMEOUT 30)
+  add_test(NAME editor.windows_startup_integration
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/WindowsStartupIntegration.py"
+      "$<TARGET_FILE:NexoraEditor>" "${CMAKE_CURRENT_BINARY_DIR}/startup-integration")
+  set_tests_properties(editor.windows_startup_integration PROPERTIES TIMEOUT 150)
+
   add_test(NAME editor.windows_gui_entry
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/WindowsGuiEntry.py"
       "$<TARGET_FILE:NexoraEditor>")

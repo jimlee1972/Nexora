@@ -1563,13 +1563,19 @@ IO, optional project open/content indexing, graphics surface/device creation, Sc
 and restoration, and workspace preparation. The process adopts the existing native Window
 adapter's per-monitor V2 policy before its first HWND; the splash also handles WM_DPICHANGED.
 Stages are descriptive: no timer, percentage, sleep or minimum display duration is introduced.
-The first successful main EndFrame closes and joins the splash. Every early return or exception
-instead destroys/joins it through RAII, retaining existing error and recovery diagnostics.
-The non-activating tool window is temporarily topmost before a main owner exists: the native
-host shows its window before device creation, and must not cover the graphics-stage splash.
-After surface creation, owner handoff immediately clears topmost; normal ownership then keeps
-the splash above only its main window until the first successful frame. Neither phase activates
-the splash or adds a second taskbar entry. Failure scope exit also removes the pre-owner window.
+On Windows the RenderSurface forwards the existing Window `initiallyVisible=false` option;
+no main HWND is shown during settings, graphics, Scene or workspace initialization. The first
+hidden frame records the complete UI and submits it. DX12 bypasses compositor-capacity waiting
+only for that first never-shown frame and waits for its actual GPU fence; `Occluded` remains the
+true DXGI result. The application accepts that one hidden completion for reveal, closes the
+splash, then shows the prepared main on its owner thread. Later occlusion retains ordinary recovery.
+Every early return/exception destroys the still-hidden main and splash through RAII, retaining
+existing error/recovery diagnostics. There is no minimum display duration or artificial delay.
+The non-activating splash is an unowned, non-topmost tool window, with no second taskbar entry.
+It never sets cross-thread HWND ownership. Stage updates are posted rather than synchronously
+sent. During close/join the main services only incoming Win32 sent messages, not posted Editor
+commands, so a native destruction/activation notification cannot deadlock against its waiting
+owner or reenter the Editor render loop. All windows are created/destroyed on their own threads.
 Its thread borrows no engine/project/device state. PNG stream/bitmap, window and GDI+ lifetimes
 are released before the thread exits. A missing splash resource logs a warning and continues
 ordinary initialization; it does not turn an initialization failure into success.
@@ -1578,10 +1584,14 @@ Normal no-mode/no-argument GUI startup and explicit graphical commands share thi
 Help, invalid arguments, ordinary headless create/open/build commands never create a splash.
 Linux/macOS retain their existing startup via a no-op adapter. Opt-in
 `NEXORA_EDITOR_STARTUP_EVIDENCE=1` records actual open/stage/first-frame/close boundaries.
-The Windows native test checks black/cyan/white pixels, DPI awareness, explicit completion,
-exception cleanup, pre-device Z-order/screen pixels/focus, topmost removal at owner handoff and
-main-window icons, retaining `editor-startup-splash*.bmp`
-in CI. The relocated package requires lifecycle order, actual owner/topmost handoff before scene
-initialization, no CLI splash and exact PE resources.
+The Windows helper checks black/cyan/white screen pixels, DPI, icons, hidden-main preparation,
+no cross-thread owner/topmost state, exception cleanup and a forced synchronous teardown callback.
+The bounded **real NexoraEditor.exe** integration launches twice with no arguments and an isolated
+normal default recent-project store. Native WinEvent observations reject premature main visibility;
+500 ms WM_NULL probes check splash/main responsiveness, screen captures inspect prepared content,
+foreground/native mouse input is exercised, and WM_CLOSE must exit within ten seconds. Startup
+has a 35-second deadline; failure retains stdout/stderr, event observations and BMPs. CTest has an
+outer timeout. The packager repeats this against staged and actually extracted installations,
+alongside the existing shipped-tools Build/Play, CLI, exact resources and source-preservation gates.
 Hosted results do not establish physical multi-monitor, desktop taskbar or clean-host acceptance.
 See [assets](../../Assets/Brand/README.md) and [evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).

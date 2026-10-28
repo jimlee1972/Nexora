@@ -150,7 +150,9 @@ public:
       return s;
     // Presentation readiness and GPU completion protect different parts of the frame.
     // Admit VSync CPU work before it can accumulate behind queued presents/resource drains.
-    if (frameReady_) {
+    // A never-shown swapchain must be allowed to draw its first frame before
+    // becoming visible. There is no compositor presentation to wait for yet.
+    if (frameReady_ && (diagnostics_.acquiredFrames != 0 || IsWindowVisible(window_))) {
       if (WaitForSingleObject(frameReady_, INFINITE) != WAIT_OBJECT_0)
         return SurfaceStatus::SurfaceLost;
       ++diagnostics_.fenceWaits;
@@ -283,6 +285,17 @@ public:
     fenceValues_[frame_] = ++fenceValue_;
     if (FAILED(queue_->Signal(fence_.Get(), fenceValue_)))
       return SurfaceStatus::DeviceLost;
+    // Finish the initial hidden draw before the application reveals the HWND.
+    // DXGI may report OCCLUDED for a hidden swapchain even though its GPU list
+    // was submitted. Do not retry a hidden VSync Acquire waiting for scanout.
+    if (diagnostics_.acquiredFrames == 1 && !IsWindowVisible(window_) && SUCCEEDED(hr)) {
+      if (fence_->GetCompletedValue() < fenceValue_) {
+        if (FAILED(fence_->SetEventOnCompletion(fenceValue_, event_)) ||
+            WaitForSingleObject(event_, INFINITE) != WAIT_OBJECT_0)
+          return SurfaceStatus::DeviceLost;
+        ++diagnostics_.fenceWaits;
+      }
+    }
     if (hr == DXGI_STATUS_OCCLUDED)
       return SurfaceStatus::Occluded;
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)

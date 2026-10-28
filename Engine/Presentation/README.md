@@ -57,8 +57,18 @@ DX12 surface diagnostics report the selected presentation mode used by `Present`
 sync interval 1; Immediate uses 0 and requests tearing when the DXGI factory supports it.
 This observation does not guarantee a display refresh rate or exclude compositor pacing.
 
+`RenderSurfaceDescriptor::initiallyVisible` defaults true and forwards the existing Window option.
+`RenderSurface::Show(bool)` forwards owner-thread visibility without exposing native handles.
+A Windows Editor can prepare its complete first UI while hidden. For the first never-shown DX12
+frame only, Acquire skips the compositor admission wait (there is no visible presentation yet),
+and Present waits for the actual submitted GPU fence before returning. DXGI `Occluded` is still
+reported as `Occluded`; it is not globally converted to success. The application may reveal after
+that one completed hidden draw; subsequent frames/occlusion use normal admission and recovery.
+Failure leaves the hidden HWND owned by normal RenderSurface teardown. Other callers retain
+initially-visible behavior, and there is no new Window contract, timer or minimum startup time.
+
 DX12 VSync owns one DXGI frame-latency waitable handle per swapchain. `Acquire` waits for
-presentation capacity before admitting CPU frame work, including the first frame; the maximum
+presentation capacity before admitting CPU frame work, including the first visible frame; the maximum
 queued frames are `framesInFlight`, retaining the descriptor's two/three buffers and upload
 slots. The separate GPU fence still protects each slot's allocator, uploads, timestamps and
 retired resources. Immediate keeps its asynchronous admission without this handle or wait.

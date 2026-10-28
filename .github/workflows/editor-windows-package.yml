@@ -59,7 +59,7 @@ jobs:
       - name: Build Editor and dependencies
         run: cmake --build build/editor-package --target NexoraEditor NexoraProjectPlayer NexoraWindowsStartupSplashTests --parallel 3
       - name: Verify embedded branding and startup lifecycle
-        run: ctest --test-dir build/editor-package --output-on-failure -R '^editor\.(brand_assets|windows_startup_splash|windows_gui_entry)$'
+        run: ctest --test-dir build/editor-package --output-on-failure -R '^editor\.(brand_assets|windows_startup_splash|windows_startup_integration|windows_gui_entry)$'
       - name: Package and verify relocated CLI and DX12 presentation
         shell: pwsh
         run: |
@@ -92,6 +92,7 @@ jobs:
             build/editor-delivery/*.sha256
             build/editor-delivery/verification/
             build/editor-package/Tests/Editor/editor-startup-splash*.bmp
+            build/editor-package/Tests/Editor/startup-integration/
           if-no-files-found: error
           retention-days: 30
       - name: Preserve failure evidence
@@ -99,5 +100,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Editor-package-failure-${{ github.run_id }}
-          path: build/editor-delivery/verification/
+          path: |
+            build/editor-delivery/verification/
+            build/editor-package/Tests/Editor/startup-integration/
           if-no-files-found: ignore

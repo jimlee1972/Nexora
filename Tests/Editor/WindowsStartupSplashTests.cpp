@@ -28,14 +28,19 @@ HWND FindSplash() {
       reinterpret_cast<LPARAM>(&found));
   return found;
 }
-bool Above(HWND upper, HWND lower) {
-  for (auto hwnd = GetTopWindow(nullptr); hwnd; hwnd = GetWindow(hwnd, GW_HWNDNEXT)) {
-    if (hwnd == upper)
-      return true;
-    if (hwnd == lower)
-      return false;
+HWND probe_main{};
+bool probe_received{};
+LRESULT CALLBACK ProbeProcedure(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
+  if (message == WM_APP + 101) {
+    probe_received = true;
+    return 0;
   }
-  return false;
+  return DefWindowProcW(hwnd, message, wp, lp);
+}
+LRESULT CALLBACK TeardownProbe(int code, WPARAM wp, LPARAM lp) {
+  if (code >= 0 && reinterpret_cast<CWPSTRUCT *>(lp)->message == WM_DESTROY)
+    SendMessageW(probe_main, WM_APP + 101, 0, 0);
+  return CallNextHookEx(nullptr, code, wp, lp);
 }
 void Capture(HWND hwnd, const char *filename = "editor-startup-splash.bmp") {
   Require(SUCCEEDED(DwmFlush()), "Desktop composition flush failed");
@@ -130,10 +135,10 @@ int main() try {
   const auto foreground = GetForegroundWindow();
   StartupSplash startup(true);
   const auto splash = FindSplash();
-  Require(GetForegroundWindow() == foreground, "Pre-owner splash stole foreground focus");
-  Require((GetWindowLongPtrW(splash, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0,
-          "Pre-device splash is not protected above the visible host");
-  Require(GetWindow(splash, GW_OWNER) == nullptr, "Pre-device splash already has an owner");
+  Require(GetForegroundWindow() == foreground, "Splash stole foreground focus");
+  Require((GetWindowLongPtrW(splash, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0,
+          "Splash must not be globally topmost");
+  Require(GetWindow(splash, GW_OWNER) == nullptr, "Splash has a cross-thread owner");
   startup.Stage(StartupStage::Graphics);
   RECT bounds{};
   GetWindowRect(splash, &bounds);
@@ -141,49 +146,53 @@ int main() try {
       0, L"STATIC", L"Nexora Editor", WS_OVERLAPPEDWINDOW, bounds.left - 100, bounds.top - 100,
       bounds.right - bounds.left + 200, bounds.bottom - bounds.top + 200, nullptr, nullptr,
       GetModuleHandleW(nullptr), nullptr);
-  Require(main_window != nullptr, "Main fixture failed");
-  // Match CreateRenderSurface: the host is shown/activated before device initialization.
-  ShowWindow(main_window, SW_SHOW);
-  UpdateWindow(main_window);
-  const auto dc = GetDC(main_window);
-  RECT client{};
-  GetClientRect(main_window, &client);
-  FillRect(dc, &client, reinterpret_cast<HBRUSH>(GetStockObject(WHITE_BRUSH)));
-  ReleaseDC(main_window, dc);
-  GdiFlush();
-  Require(GetActiveWindow() == main_window && Above(splash, main_window),
-          "Visible pre-device host covered or lost focus to splash");
-  Capture(splash, "editor-startup-splash-pre-owner.bmp");
-  const auto host_foreground = GetForegroundWindow();
+  Require(main_window != nullptr && !IsWindowVisible(main_window), "Hidden main fixture failed");
   startup.PrepareMainWindow();
-  Require(GetWindow(splash, GW_OWNER) == main_window, "Splash not owned above main window");
-  Require((GetWindowLongPtrW(splash, GWL_EXSTYLE) & WS_EX_TOPMOST) == 0,
-          "Owner handoff retained global topmost state");
-  SetWindowPos(main_window, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-  Require(Above(splash, main_window) && GetActiveWindow() == main_window &&
-              GetForegroundWindow() == host_foreground,
-          "Owner handoff lost visibility or stole focus");
-  startup.Stage(StartupStage::Workspace);
-  Capture(splash, "editor-startup-splash-owner-handoff.bmp");
+  Require(!IsWindowVisible(main_window) && GetWindow(splash, GW_OWNER) == nullptr,
+          "Preparation showed the main or installed a cross-thread owner");
+  Require(GetForegroundWindow() == foreground, "Preparation stole foreground");
+  Capture(splash, "editor-startup-splash-hidden-main.bmp");
   Require(SendMessageW(main_window, WM_GETICON, ICON_SMALL, 0) != 0 &&
               SendMessageW(main_window, WM_GETICON, ICON_BIG, 0) != 0,
           "Window/taskbar icons missing");
+  // Force a synchronous notification during splash destruction. An unconditional
+  // main-thread join deadlocks here, even without cross-thread HWND ownership.
+  const auto old_proc = reinterpret_cast<WNDPROC>(
+      SetWindowLongPtrW(main_window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&ProbeProcedure)));
+  probe_main = main_window;
+  probe_received = false;
+  const auto hook = SetWindowsHookExW(WH_CALLWNDPROC, TeardownProbe, nullptr,
+                                      GetWindowThreadProcessId(splash, nullptr));
+  Require(hook != nullptr, "Could not install synchronous teardown probe");
   startup.Ready();
-  Require(!FindSplash(), "Handoff Ready left a splash");
+  UnhookWindowsHookEx(hook);
+  SetWindowLongPtrW(main_window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(old_proc));
+  Require(probe_received && !FindSplash(),
+          "Teardown did not service synchronous main notification");
   failure_ready = false;
+  probe_received = false;
+  const auto failure_old_proc = reinterpret_cast<WNDPROC>(
+      SetWindowLongPtrW(main_window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&ProbeProcedure)));
+  HHOOK failure_hook{};
   try {
-    StartupSplash owned_failure(true);
-    owned_failure.PrepareMainWindow();
-    Require(GetWindow(FindSplash(), GW_OWNER) == main_window &&
-                (GetWindowLongPtrW(FindSplash(), GWL_EXSTYLE) & WS_EX_TOPMOST) == 0,
-            "Failure fixture did not complete owner handoff");
+    StartupSplash failed_after_prepare(true);
+    failed_after_prepare.PrepareMainWindow();
+    Require(!IsWindowVisible(main_window) && GetWindow(FindSplash(), GW_OWNER) == nullptr,
+            "Prepared failure exposed main or installed an owner");
+    failure_hook = SetWindowsHookExW(WH_CALLWNDPROC, TeardownProbe, nullptr,
+                                     GetWindowThreadProcessId(FindSplash(), nullptr));
+    Require(failure_hook != nullptr, "Could not install failure teardown probe");
     failure_ready = true;
-    throw std::runtime_error("expected owned failure");
+    throw std::runtime_error("expected prepared failure");
   } catch (const std::runtime_error &) {
   }
-  Require(failure_ready && !FindSplash(), "Owner-handoff failure left an orphan splash");
+  if (failure_hook)
+    UnhookWindowsHookEx(failure_hook);
+  SetWindowLongPtrW(main_window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(failure_old_proc));
+  Require(failure_ready && probe_received && !FindSplash(),
+          "Prepared failure did not service notification or left an orphan splash");
   DestroyWindow(main_window);
-  std::cout << "Native screen pixels, pre-device stack/focus, topmost handoff, DPI, lifecycle and "
+  std::cout << "Native screen pixels, hidden main, synchronous teardown, DPI, lifecycle and "
                "icons passed\n";
   return 0;
 } catch (const std::exception &error) {

@@ -40,7 +40,7 @@ bool References(const twod::SpriteScene &scene, const twod::Atlas &atlas, const 
                 const twod::Tilemap &tiles) {
   for (const auto &[id, s] : scene.Sprites()) {
     (void)id;
-    if (s.source != twod::AssetId{} || s.atlas != atlas.id || !atlas.Find(s.region))
+    if (s.source.has_value() || s.atlas != atlas.id || !atlas.Find(s.region))
       return false;
   }
   if (!clip.frames.empty()) {
@@ -183,7 +183,7 @@ bool TwoDDocument::ReplaceClip(twod::Clip clip) {
 std::optional<runtime::Id> TwoDDocument::AddSprite(twod::Sprite sprite, runtime::Transform pose) {
   runtime::Id id{};
   const bool ok = Transaction([&] {
-    if (sprite.source != twod::AssetId{} || !runtime::IsValidTransform(pose) ||
+    if (sprite.source.has_value() || !runtime::IsValidTransform(pose) ||
         !twod::ValidateSprite(sprite))
       return false;
     id = world_.CreateEntity(scene_.SceneId()).id;
@@ -195,7 +195,7 @@ std::optional<runtime::Id> TwoDDocument::AddSprite(twod::Sprite sprite, runtime:
 }
 bool TwoDDocument::EditSprite(runtime::Id id, twod::Sprite sprite, runtime::Transform pose) {
   return Transaction([&] {
-    if (sprite.source != twod::AssetId{} || !scene_.Find(id) || !scene_.Set(id, sprite))
+    if (sprite.source.has_value() || !scene_.Find(id) || !scene_.Set(id, sprite))
       return false;
     runtime::WorldCommandBuffer c;
     c.SetTransform(id, pose);
