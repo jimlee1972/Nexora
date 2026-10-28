@@ -99,6 +99,10 @@ Player／工具與獨立 C／Zig fixture 已建置。既有 Sprite source、Runt
 loader，存檔／損毀拒絕／相依契約通過。同一修復保留無 source 的 Editor 准入；有 source 的
 Editor／C／Zig 存取仍不支援，沒有擴張 wire／schema 或功能範圍。
 
+✅ 原生面板探針改為檢查 Player 的 sRGB 輸出；實際 Shipping DX12 取樣與錯色拒絕回歸通過。
+來源修復版本的 hosted Linux Development **476/476** 與完整 Shipping／桌面 CI 矩陣通過；
+這些支援檢查不代表 VM 冷啟動已驗收。
+
 VM 重驗與獨立乾淨實體主機仍是各自待完成的 gate；此支援交付不關閉 M7，
 **9/11（82%）、P0 6/8** 不變。M6 與 SP／SDK 工作不變。
 見[確切命令、封裝／來源雜湊與驗收邊界](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md)。

@@ -59,6 +59,8 @@ Guest Control 本身在 Session 0 執行，因此透過本輪唯一的 Interacti
 預設啟動 GUI 前端；`--frontend headless` 仍必須滿足相同原生桌面條件。
 正常關閉案例先確認獨立 ProjectModule 的藍色面板實際出現在該視窗的兩個像素位置，才送出
 `CloseMainWindow`，並核對退出報告有原生幀。視窗 handle 或固定等待時間不算畫面已呈現。
+面板的 linear RGB `(34,102,221)` 經 Player 的 sRGB surface 編碼後，畫面探針須辨識
+`(102,170,239)`；原始未編碼色、無效像素或不相干背景不算通過。
 
 啟動前須有「VM 設定 RAM + 預留 1024 MiB」的可用主機 RAM。工具不會替使用者改 VM 配置
 或關閉其他應用程式；資源不足時應先正常關機再調整。timeout／RPC 失敗後保留原始診斷，

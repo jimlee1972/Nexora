@@ -43,9 +43,29 @@ No C/Zig ABI, source schema, module dependency or ownership boundary is expanded
   byte preservation and package immutability PASS. The font is baked from the current fixture corpus.
 - clang-format 19.1.5 on touched C++ and `git diff --check`: PASS.
 
-Full hosted Linux Development configure/build/CTest and Shipping validation are required for the
-implementation repair and will be recorded from the delivery PR. They have not run on this Windows
-executor. Initial compiler, test setup and font invocation failures remain in ignored local logs.
+PR #730 source-repair head `e7cf1d6b5d7ff21546c6a70c91b7367c511413fd` passed the full hosted
+Linux Development configure/build/CTest gate (**476/476**, 1821.05 seconds), Linux Shipping,
+Windows/macOS desktop and the complete PR Build matrix (run `40713158154`). The push Build
+matrix (`40713012951`) and Windows SDK candidate workflow (`40713158117`) also passed.
+These are hosted CI results; no Linux gate ran on this Windows executor. Later commits require
+their own exact-head checks. Initial compiler, test setup and font invocation failures remain in
+ignored local logs.
+
+## Presented-panel regression
+
+The current Player encodes the fixture's linear RGBA8 `(34,102,221)` into sRGB `(102,170,239)`.
+The older VM probe compared the displayed pixels to the unencoded values and rejected a correct
+frame. Update only the expected color, retaining the two client-space samples and tolerance 12.
+Developer-hardware DX12 capture confirms both samples before and after: the old probe rejects
+48 native frames; the corrected probe accepts 176 frames. Both runs exit 0 with balanced allocations.
+The guest regression also rejects the old unencoded color, black and invalid pixels. These captures
+verify the probe against actual Shipping output, not VM or independent clean-host acceptance.
+
+Read-only transport diagnosis on the original VM found pipeline, Console and unquoted-argument
+PowerShell commands all successful (10.62–24.39 seconds). It does not establish a Console or quoting
+defect. The first formal two-boot attempt timed out after 300 seconds before producing a cycle
+report; its guest directory contains the staged ZIP and script only. Keep that attempt FAILED.
+The diagnostic boot ended through normal ACPI shutdown. No deadline or exit check was relaxed.
 
 ## Package and distribution
 

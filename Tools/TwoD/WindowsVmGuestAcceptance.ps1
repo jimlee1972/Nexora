@@ -80,6 +80,12 @@ public static class NexoraVmPanel {
     [DllImport("user32.dll")] static extern IntPtr GetDC(IntPtr window);
     [DllImport("user32.dll")] static extern int ReleaseDC(IntPtr window, IntPtr dc);
     [DllImport("gdi32.dll")] static extern uint GetPixel(IntPtr dc, int x, int y);
+    public static bool ExpectedColor(uint pixel) {
+        // Linear RGBA8 (34,102,221) is encoded by the Player's sRGB output surface.
+        return pixel != 0xffffffff && Math.Abs((int)(pixel & 255) - 102) <= 12 &&
+            Math.Abs((int)((pixel >> 8) & 255) - 170) <= 12 &&
+            Math.Abs((int)((pixel >> 16) & 255) - 239) <= 12;
+    }
     public static bool Visible(IntPtr window) {
         if (window == IntPtr.Zero || !IsWindow(window)) return false;
         IntPtr dc = GetDC(IntPtr.Zero);
@@ -90,9 +96,7 @@ public static class NexoraVmPanel {
                 Point p = new Point { X = x, Y = 32 };
                 if (!ClientToScreen(window, ref p)) return false;
                 uint pixel = GetPixel(dc, p.X, p.Y);
-                if (pixel == 0xffffffff || Math.Abs((int)(pixel & 255) - 34) > 12 ||
-                    Math.Abs((int)((pixel >> 8) & 255) - 102) > 12 ||
-                    Math.Abs((int)((pixel >> 16) & 255) - 221) > 12) return false;
+                if (!ExpectedColor(pixel)) return false;
             }
             return true;
         } finally { ReleaseDC(IntPtr.Zero, dc); }

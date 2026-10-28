@@ -116,6 +116,10 @@ exports pass storage/corruption/dependency contracts with an inventoried app-loc
 The same repair preserves source-free Editor admission; source-bound Editor/C/Zig access remains
 unsupported. No wire/schema or capability scope is expanded.
 
+✅ The native panel probe now checks the Player's sRGB output; actual Shipping DX12 samples and
+negative-color regression pass. Source-repair head passes hosted Linux Development **476/476**
+and the full Shipping/desktop CI matrix. These supporting checks do not accept a VM cycle.
+
 VM revalidation and the independent clean hardware host remain separate pending gates; this
 supporting delivery does not close M7 or change **9/11 (82%), P0 6/8**. M6 and SP/SDK work are unchanged.
 See [exact commands, package/source hashes and target boundaries](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md).

@@ -5,6 +5,14 @@ $root = Join-Path ([IO.Path]::GetTempPath()) ('nexora-vm-guest-tests-' + [Guid]:
 [void][IO.Directory]::CreateDirectory($root)
 try {
     if (Test-FixturePanel ([IntPtr]::Zero)) { throw 'invalid window admitted as presented' }
+    # Actual Shipping DX12 capture: both panel samples are sRGB (102,170,239).
+    # The prior unencoded expectation rejected this presented frame.
+    if (![NexoraVmPanel]::ExpectedColor(0x00efaa66) -or
+            [NexoraVmPanel]::ExpectedColor(0x00dd6622) -or
+            [NexoraVmPanel]::ExpectedColor(0) -or
+            [NexoraVmPanel]::ExpectedColor([uint32]::MaxValue)) {
+        throw 'sRGB panel acceptance or unrelated/invalid pixel rejection failed'
+    }
     $zero = Join-Path $root 'zero.json'
     [IO.File]::WriteAllBytes($zero, [byte[]]::new(806))
     $rejected = $false
