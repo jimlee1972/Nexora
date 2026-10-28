@@ -1001,6 +1001,28 @@ widgets；未知 component 保留 raw data，不靜默遺失。
 
 Game View、play/pause/step、fixed tick、input focus、Editor/Play World 隔離、apply changes policy、Console、entity/component inspection、breakpoint adapter boundary。Zig gameplay 由 Engine Host 載入，Editor 不成為 Zig `main`。
 
+- **ED-M3-ZD1 — VS Code 偵錯 Zig（規劃中；尚未實作或驗收）：**
+  交付可重現的本機流程，偵錯 Editor Play 載入的 Zig gameplay 模組。現有通用 Host／Showcase
+  launch 設定與 portable debugger boundary 不代表已完成此項交付。
+  - 共用腳本建置入口增加明確 Debug 選項，保留匹配的原生偵錯符號與原始碼路徑；一般建置
+    維持既有 ReleaseSafe 預設。產物留在 authored project 外；符號缺失或不匹配須有診斷。
+  - 提供 VS Code tasks 與 launch／attach 設定，指定 Editor 執行檔及專案，記錄 Zig／compiler／
+    debugger 版本。Linux／macOS 使用 CodeLLDB；Windows 先依 Zig 產物的實際符號格式驗證，
+    再選定 CodeLLDB 或原生 Windows debugger。本機路徑／process ID 不寫入版本控制設定。
+  - Play 前設定的原始碼行中斷點，須於動態模組載入後綁定。支援 `start`、`update`、
+    `fixedUpdate` 中斷點、繼續、step into／over／out、locals／watch 與 call stack。Stop、
+    rebuild、Play 後重新綁定目前模組；原始碼／符號過期須回報，不能宣稱已綁定。初版驗收
+    涵蓋 scalar／struct 值；進階 Zig visualizer 與 hot reload 另行規劃。
+  - Debugger 中斷可能暫停整個 Editor process，不承諾此時 Editor 按鈕可回應，也不將原始碼
+    單步等同 Game 的 fixed-tick Step。Resume 清除過期 held input、避免補跑 debugger 暫停
+    的牆鐘時間，並要求明確重新取得 Game focus。Detach 後 host 仍可使用；debugger 終止
+    依文件化 stop policy 處理。保留 Play World 隔離與預設 discard，不更動 gameplay C ABI。
+  - Windows、Linux、macOS 分別以真實 VS Code session 驗收：launch 與 attach、載入前
+    中斷點綁定、callback 命中、單步／變數／堆疊檢視、長時間中斷後 resume、detach，以及
+    重複 Stop／rebuild／Play。涵蓋缺符號／原始碼不匹配、缺 debugger、attach denied 診斷；
+    記錄版本、命令與原生證據。自動化 build／symbol／lifecycle 檢查只補充實際 session，
+    僅 Linux 結果不能完成跨平台 gate。此項與其他 exit gate 通過前，ED-M3 維持未完成。
+
 - ✅ Portable `PlaySession` prerequisite 已涵蓋隔離 Play World ownership、fixed tick、
   play/pause/step、input-focus policy、預設丟棄及明確 transform apply-back。
 - ✅ Portable debugging prerequisite 新增 structured bounded Console records、owning runtime
@@ -2005,6 +2027,7 @@ deterministic 且不遺失 unknown data。
 5. Stop 預設 discard；apply-back 顯示 supported-field diff，僅 source revision 相符時 commit 一筆
    transaction，否則進 conflict resolution。
 6. Debugger attach/detach/pause/location/diagnostic 留在 adapter 後方；Editor 不成為 gameplay `main`。
+   Debugger 部分結案前，須交付上述 ED-M3-ZD1 VS Code Zig 流程及各平台原生驗收。
 
 **Exit gate：** 重複 start/pause/step/stop 不洩漏 world/focus，隔離成立，discard/apply conflict 已明確測試。
 
