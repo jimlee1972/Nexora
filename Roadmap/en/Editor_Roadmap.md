@@ -1076,6 +1076,33 @@ creates property widgets; unknown components retain raw data instead of being si
     gameplay callbacks use the selected mapping without changing the C ABI. Expanded devices/users
     and physical-host acceptance remain open.
     [Linux evidence](../../Tools/Build/evidence/EditorEDM3-GameInputBindings-Linux-2026-10-08.md).
+  - **ED-M3-ZD1 — VS Code Zig debugging (planned; not implemented or accepted):**
+    Deliver a reproducible local workflow for debugging the Zig gameplay module loaded by Editor
+    Play. Existing generic Host/Showcase launch configurations and portable debugger boundaries
+    do not satisfy this delivery.
+    - Add an explicit Debug option to the shared script build entry, retain matching native debug
+      symbols and source paths, and keep the existing ReleaseSafe default for normal builds.
+      Keep build products outside authored projects; diagnose missing or mismatched symbols.
+    - Provide VS Code tasks and launch/attach configurations for a selected Editor executable and
+      project, with documented Zig/compiler/debugger versions. Use CodeLLDB on Linux/macOS;
+      validate the Windows adapter against the Zig artifact's actual symbol format before choosing
+      CodeLLDB or the native Windows debugger. Keep local paths/process IDs out of tracked settings.
+    - Bind source-line breakpoints set before Play when the dynamic module loads. Support breakpoints
+      in `start`, `update` and `fixedUpdate`, continue, step into/over/out, locals/watch and call stacks.
+      Rebind against the current module after Stop, rebuild and Play; report stale source/symbols
+      rather than claiming a breakpoint is bound. Scope initial acceptance to scalar/struct values;
+      advanced Zig visualizers and hot reload are separate work.
+    - Debugger stops can suspend the whole Editor process; do not promise responsive Editor controls
+      while stopped or equate source stepping with Game's fixed-tick Step. On resume, clear stale held
+      input, avoid simulation catch-up from debugger wall time, and require explicit Game focus.
+      Detach must leave the host usable; debugger termination must use the documented stop policy.
+      Preserve Play World isolation and default discard without changing the gameplay C ABI.
+    - Accept Windows, Linux and macOS separately using actual VS Code sessions: launch and attach,
+      pre-load breakpoint binding, callback hits, stepping/value/stack inspection, a long breakpoint
+      pause/resume, detach, and repeated Stop/rebuild/Play. Include missing symbols/source mismatch,
+      missing debugger and attach-denied diagnostics; record versions, commands and native evidence.
+      Automated build/symbol/lifecycle checks complement these sessions; Linux-only results do not
+      complete the cross-platform gate. ED-M3 remains open until this and its other exit gates pass.
   - ✅ Portable `PlaySession` prerequisite covers isolated Play World ownership, fixed tick,
     play/pause/step, input-focus policy, discard-by-default, and explicit transform apply-back.
   - ✅ Portable debugging prerequisite adds structured bounded Console records, owning runtime
@@ -2057,7 +2084,8 @@ stable deterministic output and no unknown-data loss.
 5. Default stop to discard. Apply-back presents supported-field diffs and creates one transaction only
    if source revisions still match; otherwise invoke conflict resolution.
 6. Keep debugger attach/detach/pause/location/diagnostics behind an adapter; Editor is never gameplay
-   `main`.
+   `main`. Deliver the ED-M3-ZD1 VS Code Zig workflow above, including its per-platform native
+   acceptance, before closing the debugger portion of WP4.
 
 **Exit gate:** repeated start/pause/step/stop leaks no world or focus state, isolation holds, and discard/
 apply conflict behavior is explicit and tested.
