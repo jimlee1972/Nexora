@@ -41,6 +41,11 @@ use existing Runtime import/Cook services. Publication uses Core VFS atomic writ
 
 ## 2D Studio
 
+The additive [Sprite source metadata workflow](../../Engine/TwoD/SpriteAssets.md) also supports
+`type: "sprite"` manifests and `.nx2sprite` validation/cooking. Atlas grid images accept an
+explicit `cells` list, optional `margin` and `spacing`; region IDs follow original cell indices,
+not selection order. The main Editor/Player do not yet bind Sprite source references automatically.
+
 ```bash
 build/linux-development/Tools/TwoD/NexoraTwoDStudio --workspace work --atlas atlas.nx2atlas --clip clip.nx2clip --document scene.nx2doc
 ```

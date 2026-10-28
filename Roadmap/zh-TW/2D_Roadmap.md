@@ -753,3 +753,23 @@ Windows x64 DX12 SDK 封裝通用 Monolithic Shipping 宿主、素材編譯器�
 ✅ 可攜 PE 一般／延遲載入相依檢查與 Linux Development／Shipping 回歸已驗證；
 見[佐證](../../Tools/Build/evidence/Precompiled-2D-SDK-Linux-2026-10-26.md)。
 Windows 消費端／Release 與實機驗收維持獨立 gate。
+## Sprite 來源幾何基礎（2026-10-28）
+
+✅ 新增獨立版本的 `SpriteAsset` 來源格式，保存穩定 Sprite／Atlas／region 身分、未裁切畫布、
+Trim 矩形、左下原點的像素 Pivot、PPU 與驗證過的 Border metadata。明確的 C++ resolver
+產生 Pivot 相對四邊形並接入既有 extraction，不移動世界／Y 排序錨點。
+來源幾何／Flip 可與負 World scale 組合；重打包只改 UV，不改來源身分。
+既有 instance 保留原本幾何／UV 行為。
+
+✅ PNG 網格匯入可指定原始格索引、邊界與間距。4×4 素材可只保留 12 個有效格；
+稀疏選取保留 `first_id + originalCellIndex`，重排選取清單不改 canonical Atlas bytes。
+`.nx2sprite` 透過既有 CLI／Importer／Cooker／generation 管線驗證與烘製，並明確宣告 Atlas 相依。
+
+這是第一批來源幾何施工，不代表完整 Sprite 擴充完成。公開 C++ consumer 需要重建；
+既有 Atlas／Clip／場景／C/Zig 格式與 straight-alpha 色彩契約不變。
+場景／動畫／pool／Editor／Player 的自動來源引用、SortingGroup、Sliced／Tiled 繪製、
+遮罩、進階動畫控制與完整平台驗收仍屬後續工作。保存 Border 不代表完成九宮格繪製。
+M6／M7 與既有 9／11 評估不變。
+
+[來源幾何契約與範例](../../Engine/TwoD/SpriteAssets.md) ·
+[實際 Linux 驗證與限制](../../Engine/TwoD/evidence/SpriteSource-Linux-2026-10-28.md)。

@@ -2,6 +2,7 @@
 """Slice bounded RGBA8 PNGs and compile canonical Nexora 2D assets without third-party packages."""
 import argparse
 import json
+import math
 import os
 import shutil
 from pathlib import Path
@@ -111,6 +112,11 @@ def integer(v, minimum, maximum):
         raise ValueError('integer outside manifest budget')
     return v
 
+def manifest_array(value, count, name):
+    if not isinstance(value, list) or len(value) != count:
+        raise ValueError(f'{name} requires exactly {count} values')
+    return value
+
 def uuid(value):
     if not isinstance(value, list) or len(value) != 2:
         raise ValueError('UUID requires [high, low]')
@@ -139,11 +145,27 @@ def images(manifest, root):
         if 'grid' in source:
             if regions is not None: raise ValueError('choose rectangles or grid')
             cellw, cellh = (integer(v, 1, 4096) for v in source['grid'])
-            if width % cellw or height % cellh: raise ValueError('grid must divide image')
-            if (width//cellw)*(height//cellh) > 1024: raise ValueError('grid region budget')
+            left, top, right, bottom = (integer(v, 0, 4096) for v in source.get('margin', [0,0,0,0]))
+            spacingx, spacingy = (integer(v, 0, 4096) for v in source.get('spacing', [0,0]))
+            usablew, usableh = width-left-right, height-top-bottom
+            cols, rows = (usablew+spacingx)//(cellw+spacingx), (usableh+spacingy)//(cellh+spacingy)
+            if (cols < 1 or rows < 1 or cols*cellw+(cols-1)*spacingx != usablew
+                    or rows*cellh+(rows-1)*spacingy != usableh):
+                raise ValueError('grid must divide usable image without remainder')
+            count = cols*rows
+            if count > 1024: raise ValueError('grid region budget')
             first = integer(source.get('first_id', 1), 1, 2**32-1)
-            regions = [{'id':first+i, 'rect':[x, y, cellw, cellh]}
-                       for i, (x, y) in enumerate(( (x, y) for y in range(0, height, cellh) for x in range(0, width, cellw)))]
+            cells = source.get('cells', list(range(count)))
+            if not isinstance(cells, list) or not 1 <= len(cells) <= count:
+                raise ValueError('cells must be a nonempty grid index list')
+            cells = [integer(i, 0, count-1) for i in cells]
+            if len(set(cells)) != len(cells): raise ValueError('duplicate grid cell')
+            # Region identity follows the original cell, never its position in the selection.
+            regions = [{'id':integer(first+i, 1, 2**32-1),
+                        'rect':[left+(i%cols)*(cellw+spacingx), top+(i//cols)*(cellh+spacingy), cellw, cellh]}
+                       for i in cells]
+        elif any(key in source for key in ('cells', 'margin', 'spacing', 'first_id')):
+            raise ValueError('grid options require grid')
         if not regions or len(regions) > 1024: raise ValueError('region budget')
         for region in regions:
             rid = integer(region['id'], 1, 2**32-1)
@@ -163,6 +185,19 @@ def compile_manifest(manifest, root, compiler, output):
         if type(nearest) is not bool: raise ValueError('nearest must be bool')
         data = struct.pack('<II', 0x4932444e, 1)+uuid(manifest['id'])+struct.pack('<IIII', integer(manifest.get('width', 1024), 3, 4096), integer(manifest.get('maximum_height', 4096), 3, 4096), int(nearest), len(parts))+b''.join(parts)
         command = 'pack'
+    elif kind == 'sprite':
+        size = [integer(v, 1, 4096) for v in manifest_array(manifest['source_size'],2,'source_size')]
+        trim = [integer(v, 0, 4096) for v in manifest_array(manifest.get('trim_rect', [0,0,*size]),4,'trim_rect')]
+        pivot = manifest.get('pivot_pixels', [size[0]/2, size[1]/2])
+        if not isinstance(pivot, list) or len(pivot) != 2:
+            raise ValueError('pivot_pixels requires x/y')
+        values = [*pivot, manifest.get('pixels_per_unit', 100)]
+        if any(type(v) not in (int,float) or not math.isfinite(v) or abs(v) > 3.402823466e38 for v in values):
+            raise ValueError('Sprite geometry requires finite float32 values')
+        border = [integer(v, 0, 4096) for v in manifest_array(manifest.get('border', [0,0,0,0]),4,'border')]
+        data = (struct.pack('<II', 0x5032444e, 1)+uuid(manifest['id'])+uuid(manifest['atlas'])
+                +struct.pack('<7I3f4I', integer(manifest['region'],1,2**32-1), *size, *trim, *values, *border))
+        command = 'sprite'
     elif kind == 'clip':
         frames = manifest['frames']
         if not 1 <= len(frames) <= 4096: raise ValueError('frame budget')

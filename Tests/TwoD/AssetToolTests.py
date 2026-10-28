@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 import struct
+import subprocess
 import os
 import sys
 import tempfile
@@ -29,6 +30,65 @@ def main():
         first = output.read_bytes()
         assets.compile_manifest(manifest, root, compiler, output)
         assert output.read_bytes() == first
+        # Explicit cell selections retain original grid identity, including sparse selections.
+        pixels = bytes(v for i in range(16) for v in (i*16, 0, 0, 255))
+        sheet = (b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',4,4,8,6,0,0,0))
+                 +chunk(b'IDAT',zlib.compress(b''.join(b'\x00'+pixels[y*16:(y+1)*16] for y in range(4))))
+                 +chunk(b'IEND',b''))
+        (root/'grid.png').write_bytes(sheet)
+        grid = dict(type='atlas',id=[31,32],width=16,nearest=True,
+                    images=[dict(path='grid.png',grid=[1,1],first_id=101,cells=list(range(12)))])
+        selected = root/'selected.nx2atlas'
+        assets.compile_manifest(grid,root,compiler,selected)
+        twelve = selected.read_bytes()
+        assert struct.unpack_from('<I',twelve,40)[0] == 12
+        assert [struct.unpack_from('<I',twelve,44+i*20)[0] for i in range(12)] == list(range(101,113))
+        grid['images'][0]['cells'].reverse()
+        assets.compile_manifest(grid,root,compiler,selected)
+        assert selected.read_bytes() == twelve
+        grid['images'][0]['cells']=[3,7,15]
+        assets.compile_manifest(grid,root,compiler,selected)
+        sparse=selected.read_bytes()
+        assert [struct.unpack_from('<I',sparse,44+i*20)[0] for i in range(3)] == [104,108,116]
+        for invalid in [[],[0,0],[16],[-1],[True],'0,1']:
+            grid['images'][0]['cells']=invalid
+            try: assets.compile_manifest(grid,root,compiler,selected)
+            except ValueError: pass
+            else: raise AssertionError('invalid cell selection admitted')
+            assert selected.read_bytes() == sparse
+        grid['images'][0]['cells']=[15]
+        grid['images'][0]['first_id']=2**32-1
+        try: assets.compile_manifest(grid,root,compiler,selected)
+        except ValueError: pass
+        else: raise AssertionError('overflowing selected region ID admitted')
+        assert selected.read_bytes() == sparse
+        # Margin and spacing apply before index-to-source-coordinate conversion.
+        padded = (b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',7,7,8,6,0,0,0))
+                  +chunk(b'IDAT',zlib.compress(b''.join(b'\x00'+bytes(v for x in range(7)
+                      for v in (x+y*7,0,0,255)) for y in range(7))))+chunk(b'IEND',b''))
+        (root/'padded.png').write_bytes(padded)
+        padded_manifest=dict(type='atlas',id=[41,42],width=8,
+                             images=[dict(path='padded.png',grid=[1,1],margin=[1,1,1,1],
+                                          spacing=[1,1],cells=[8],first_id=101)])
+        packet=assets.images(padded_manifest,root.resolve(strict=True))[0]
+        assert struct.unpack_from('<IIII',packet) == (109,1,1,4) and packet[16:] == bytes([40,0,0,255])
+        source=dict(type='sprite',id=[51,52],atlas=[31,32],region=104,source_size=[64,64],
+                    trim_rect=[16,16,32,48],pivot_pixels=[32,0],pixels_per_unit=32)
+        sprite_output=root/'actor.nx2sprite'
+        assets.compile_manifest(source,root,compiler,sprite_output)
+        sprite_bytes=sprite_output.read_bytes()
+        assert len(sprite_bytes)==96 and struct.unpack_from('<7I3f4I',sprite_bytes,40)==(104,64,64,16,16,32,48,32,0,32,0,0,0,0)
+        assets.compile_manifest(source,root,compiler,sprite_output)
+        assert sprite_output.read_bytes()==sprite_bytes
+        subprocess.run([str(compiler.resolve()),'cook',sprite_output.name,'actor.nxcook'],cwd=root,check=True)
+        for field,value in [('pixels_per_unit',0),('pixels_per_unit',float('nan')),
+                            ('trim_rect',[0,0,100,100]),('border',[1,1,1,1]),
+                            ('source_size',[64]),('trim_rect',None),('border',[0,0])]:
+            bad=dict(source);bad[field]=value
+            try: assets.compile_manifest(bad,root,compiler,sprite_output)
+            except (ValueError,subprocess.CalledProcessError): pass
+            else: raise AssertionError('invalid Sprite source admitted')
+            assert sprite_output.read_bytes()==sprite_bytes
         manifest['images'][0] = {'path':'sheet.png','regions':[{'id':4,'rect':[1,1,1,1]},{'id':3,'rect':[0,1,1,1]},{'id':2,'rect':[1,0,1,1]},{'id':1,'rect':[0,0,1,1]}]}
         assets.compile_manifest(manifest, root, compiler, output)
         assert output.read_bytes() == first

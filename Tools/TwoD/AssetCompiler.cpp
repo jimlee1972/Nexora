@@ -54,7 +54,7 @@ void Write(const std::filesystem::path &path, const Bytes &bytes) {
 int main(int argc, char **argv) {
   try {
     if (argc != 4)
-      throw std::runtime_error("usage: NexoraTwoDAssetCompiler pack|clip|cook input output");
+      throw std::runtime_error("usage: NexoraTwoDAssetCompiler pack|clip|sprite|cook input output");
     const auto bytes = Read(argv[2]);
     Bytes out;
     if (std::string_view(argv[1]) == "pack") {
@@ -85,6 +85,11 @@ int main(int argc, char **argv) {
       if (!clip)
         throw std::runtime_error("invalid animation");
       out = EncodeClip(*clip);
+    } else if (std::string_view(argv[1]) == "sprite") {
+      auto sprite = DecodeSpriteAsset(bytes);
+      if (!sprite)
+        throw std::runtime_error("invalid Sprite source metadata");
+      out = EncodeSpriteAsset(*sprite);
     } else if (std::string_view(argv[1]) == "cook") {
       nexora::runtime::ImporterRegistry registry;
       if (!RegisterImporters(registry))
@@ -97,6 +102,9 @@ int main(int argc, char **argv) {
       } else if (auto clip = DecodeClip(bytes)) {
         id = clip->id;
         type = "sprite_clip";
+      } else if (auto sprite = DecodeSpriteAsset(bytes)) {
+        id = sprite->id;
+        type = "sprite_source";
       } else
         throw std::runtime_error("invalid source asset");
       auto canonical = registry.Import({id, type, argv[2], bytes});

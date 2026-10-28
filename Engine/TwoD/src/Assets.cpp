@@ -217,7 +217,16 @@ bool RegisterImporters(runtime::ImporterRegistry &registry) {
           return std::nullopt;
         return runtime::CanonicalAsset{source.id, "sprite_clip", {clip->atlas}, EncodeClip(*clip)};
       });
-  if (!a || !c)
+  const bool s = candidate.Register(
+      ".nx2sprite",
+      [](const runtime::SourceAsset &source) -> std::optional<runtime::CanonicalAsset> {
+        auto sprite = DecodeSpriteAsset(source.bytes);
+        if (!sprite || sprite->id != source.id)
+          return std::nullopt;
+        return runtime::CanonicalAsset{
+            source.id, "sprite_source", {sprite->atlas}, EncodeSpriteAsset(*sprite)};
+      });
+  if (!a || !c || !s)
     return false;
   registry = std::move(candidate);
   return true;

@@ -1,5 +1,10 @@
 # Nexora 2D contracts
 
+The additive [Sprite source asset contract](SpriteAssets.md) defines separately versioned
+canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references and explicit extraction adapters.
+Existing Atlas/Clip/scene/C/Zig formats and straight-alpha behavior remain unchanged. Editor and
+Player source-reference binding are separate follow-up gates.
+
 The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closures from one
 explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
 validates frame regions, bounds unique payload/count totals and preserves external residency/pins.
