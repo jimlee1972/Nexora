@@ -117,7 +117,8 @@ The same repair preserves source-free Editor admission; source-bound Editor/C/Zi
 unsupported. No wire/schema or capability scope is expanded.
 
 ✅ The native panel probe now checks the Player's sRGB output; actual Shipping DX12 samples and
-negative-color regression pass. Source-repair head passes hosted Linux Development **476/476**
+negative-color regression pass. Source-repair head passes hosted Linux Development
+**475 passed / 1 skipped (476 total)** (`twod.portable_font_bake`, optional tool dependencies)
 and the full Shipping/desktop CI matrix. These supporting checks do not accept a VM cycle.
 
 ✅ Original Windows VM revalidation passes **two cold boots / 14 cases**, native software DX12,

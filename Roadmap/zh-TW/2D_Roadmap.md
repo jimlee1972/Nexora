@@ -100,7 +100,8 @@ loader，存檔／損毀拒絕／相依契約通過。同一修復保留無 sour
 Editor／C／Zig 存取仍不支援，沒有擴張 wire／schema 或功能範圍。
 
 ✅ 原生面板探針改為檢查 Player 的 sRGB 輸出；實際 Shipping DX12 取樣與錯色拒絕回歸通過。
-來源修復版本的 hosted Linux Development **476/476** 與完整 Shipping／桌面 CI 矩陣通過；
+來源修復版本的 hosted Linux Development **475 通過／1 略過（共 476）**與完整 Shipping／桌面 CI
+矩陣通過；略過項目為缺少選用工具相依的 `twod.portable_font_bake`，不視為該測試已驗收。
 這些支援檢查不代表 VM 冷啟動已驗收。
 
 ✅ 原 Windows VM 重驗 **兩輪冷啟動／14 個案例**通過：原生軟體 DX12、真實 Zig DLL／Cooked

@@ -45,12 +45,17 @@ No C/Zig ABI, source schema, module dependency or ownership boundary is expanded
 - clang-format 19.1.5 on touched C++ and `git diff --check`: PASS.
 
 PR #730 source-repair head `e7cf1d6b5d7ff21546c6a70c91b7367c511413fd` passed the full hosted
-Linux Development configure/build/CTest gate (**476/476**, 1821.05 seconds), Linux Shipping,
+Linux Development configure/build/CTest gate (**475 passed, 0 failed, 1 skipped / 476 total**,
+1821.05 seconds), Linux Shipping,
 Windows/macOS desktop and the complete PR Build matrix (run `40713158154`). The push Build
 matrix (`40713012951`) and Windows SDK candidate workflow (`40713158117`) also passed.
 These are hosted CI results; no Linux gate ran on this Windows executor. Later commits require
 their own exact-head checks. Initial compiler, test setup and font invocation failures remain in
 ignored local logs.
+
+The skipped test is `twod.portable_font_bake`: its optional FontTools/Pillow dependency admission
+returns code 77 when unavailable. CI success does not accept that skipped portable FreeType path.
+The Windows GDI font bake and actual Chinese UI validation recorded here are separate executed checks.
 
 At probe-fix head `cc6459c3ca4924af856668a10b5ccd68a3a54c30`, the Linux Shipping isolated-copy
 Showcase interaction exceeded its existing 90-second deadline (run `40724838319`, job
@@ -87,7 +92,10 @@ normal window close. Expected exits are 0 for success and 1 for the two negative
 visit counter survives normal shutdown and cold boot **0→2→4**; corrupt save bytes remain unchanged.
 The Zig scene reports **34 visible Sprites and 120 native frames** per boot. Success cases report
 balanced allocations; both cycle reports have **0 residual Players**, and both boots end `poweroff`.
-Presentation is API 1 / Microsoft software DX12 (vendor 5140, device 140), not physical GPU acceptance.
+On Windows, `Automatic` constructs `Dx12Surface`; Vulkan is selected only for an explicit Vulkan
+request (`Engine/Presentation/src/Dx12Surface.cpp`). Native frames and Microsoft adapter IDs
+(vendor 5140, device 140) verify software DX12, not physical GPU acceptance. The report's `api=1`
+marker is not a backend enum.
 
 ```powershell
 python Tools/TwoD/WindowsVmAcceptance.py --vm 71571b18-806d-425b-ad19-712c9043663d `
