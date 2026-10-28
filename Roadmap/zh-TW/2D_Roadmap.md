@@ -766,10 +766,26 @@ Trim 矩形、左下原點的像素 Pivot、PPU 與驗證過的 Border metadata�
 `.nx2sprite` 透過既有 CLI／Importer／Cooker／generation 管線驗證與烘製，並明確宣告 Atlas 相依。
 
 這是第一批來源幾何施工，不代表完整 Sprite 擴充完成。公開 C++ consumer 需要重建；
-既有 Atlas／Clip／場景／C/Zig 格式與 straight-alpha 色彩契約不變。
-場景／動畫／pool／Editor／Player 的自動來源引用、SortingGroup、Sliced／Tiled 繪製、
+既有 Atlas／Clip／C/Zig 格式與 straight-alpha 色彩契約不變。
+場景來源參照已由下方切片交付；動畫／pool／Editor／Player 的自動來源引用、SortingGroup、Sliced／Tiled 繪製、
 遮罩、進階動畫控制與完整平台驗收仍屬後續工作。保存 Border 不代表完成九宮格繪製。
 M6／M7 與既有 9／11 評估不變。
 
 [來源幾何契約與範例](../../Engine/TwoD/SpriteAssets.md) ·
 [實際 Linux 驗證與限制](../../Engine/TwoD/evidence/SpriteSource-Linux-2026-10-28.md)。
+
+## Sprite 來源場景參照（2026-10-28）
+
+✅ C++ Sprite 現可保存可選來源 UUID，通過場景儲存／重開與隔離 Play。
+NX2S schema 3 新增明確的來源存在標記及身分；不含來源的場景保留原本 schema 2 的標準位元組。
+暫存驗證會拒絕損壞來源，Restore 失敗時保留現有狀態。
+
+✅ 來源感知的場景／一般擷取每次解析不可變來源與 Atlas 相依，套用裁切／Pivot／翻轉幾何，
+保留編輯樣式與 World／Y 排序錨點。共用來源與 Atlas 只解析一次；缺少相依時記為 unavailable，
+相依內容無效則拒絕整個畫面。重新打包更新下一幀 UV，已保留畫面繼續持有先前 Atlas 世代。
+
+[契約](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
+[Linux 驗證](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md)。
+C++ 消費端須重建。主 Editor 的來源索引／Inspector／Play 擷取、Player catalog、C／Zig 來源描述、
+來源動畫／物件池發布及新的原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
+M6／M7，也不改變 9/11（82%）。

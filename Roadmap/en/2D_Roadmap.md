@@ -867,10 +867,28 @@ selection reordering leaves canonical Atlas bytes unchanged. `.nx2sprite` valida
 the existing CLI/Importer/Cooker/generation pipeline with an explicit Atlas dependency.
 
 This is the first source-geometry slice, not completion of the full Sprite expansion. Public C++
-consumers rebuild; historical Atlas/Clip/scene/C/Zig wires and straight-alpha color remain unchanged.
-Automatic scene/animation/pool/Editor/Player source references, SortingGroup, Sliced/Tiled rendering,
+consumers rebuild; historical Atlas/Clip/C/Zig wires and straight-alpha color remain unchanged.
+Scene source references are delivered below; automatic animation/pool/Editor/Player source references,
+SortingGroup, Sliced/Tiled rendering,
 masks, advanced animation controls and full platform acceptance remain separate work. Border storage
 does not establish nine-slice rendering. M6/M7 and the existing 9/11 assessment are unchanged.
 
 [Source geometry contract and examples](../../Engine/TwoD/SpriteAssets.md) ·
 [Executed Linux verification and limitations](../../Engine/TwoD/evidence/SpriteSource-Linux-2026-10-28.md).
+
+## Sprite source scene references (2026-10-28)
+
+✅ C++ Sprites now retain optional source UUIDs through scene save/reopen and isolated Play.
+NX2S schema 3 adds explicit source presence/identity; source-free scenes retain canonical schema-2
+bytes. Staging validation rejects malformed sources and preserves live state after failed Restore.
+
+✅ Source-aware scene/general extraction resolves immutable source/Atlas closure per call, applies
+trim/Pivot/flip geometry and preserves authored styles and World/Y-sort anchors. Shared sources and
+Atlases resolve once; missing dependencies are unavailable and invalid closure rejects the frame.
+Repacking updates the next frame's UVs while retained frames keep their prior Atlas generation.
+
+[Contract](../../Engine/TwoD/SpriteAssets.md#source-references-in-scenes-and-extraction) ·
+[Linux verification](../../Engine/TwoD/evidence/SpriteSourceScenes-Linux-2026-10-28.md).
+Public C++ consumers rebuild. Main Editor source indexing/Inspector/Play capture, Player catalogs,
+C/Zig source descriptors, source animation/pool publication and fresh native/platform acceptance
+remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or change 9/11 (82%).

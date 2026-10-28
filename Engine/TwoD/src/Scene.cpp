@@ -23,7 +23,7 @@ void WriteSprite(detail::Writer &w, const Sprite &s) {
   w.U32(std::bit_cast<std::uint32_t>(s.order));
   w.U32((s.flipX ? 1U : 0U) | (s.flipY ? 2U : 0U) | (s.sortY ? 4U : 0U) | (s.visible ? 8U : 0U));
 }
-std::optional<Sprite> ReadSprite(detail::Reader &r) {
+std::optional<Sprite> ReadSprite(detail::Reader &r, bool sources) {
   Sprite s;
   s.atlas = r.Id();
   s.region = r.U32();
@@ -40,6 +40,13 @@ std::optional<Sprite> ReadSprite(detail::Reader &r) {
   s.flipY = (flags & 2) != 0;
   s.sortY = (flags & 4) != 0;
   s.visible = (flags & 8) != 0;
+  if (sources) {
+    const auto present = r.U32();
+    if (present > 1)
+      return std::nullopt;
+    if (present)
+      s.source = r.Id();
+  }
   return r.Valid() && ValidateSprite(s) ? std::optional(s) : std::nullopt;
 }
 void WriteCollider(detail::Writer &w, const Collider &c) {
@@ -72,7 +79,10 @@ struct DecodedScene {
 };
 std::optional<DecodedScene> DecodeScene(std::span<const std::byte> data) {
   detail::Reader r(data);
-  if (r.U32() != 0x5332444e || r.U32() != 2)
+  if (r.U32() != 0x5332444e)
+    return std::nullopt;
+  const auto version = r.U32();
+  if (version != 2 && version != 3)
     return std::nullopt;
   DecodedScene scene;
   scene.world = r.Text(16 * 1024 * 1024);
@@ -81,7 +91,7 @@ std::optional<DecodedScene> DecodeScene(std::span<const std::byte> data) {
     return std::nullopt;
   for (std::uint32_t i = 0; i < count; ++i) {
     const auto id = r.U64();
-    auto sprite = ReadSprite(r);
+    auto sprite = ReadSprite(r, version == 3);
     if (!id || !sprite || !scene.sprites.emplace(id, *sprite).second)
       return std::nullopt;
   }
@@ -124,10 +134,10 @@ bool CameraValid(const Camera &c) {
 }
 } // namespace
 bool ValidateSprite(const Sprite &s) noexcept {
-  if (!detail::ValidId(s.atlas) || !s.region || !std::isfinite(s.size.x) ||
-      !std::isfinite(s.size.y) || s.size.x <= 0 || s.size.y <= 0 || s.size.x > 1000000 ||
-      s.size.y > 1000000 || !std::isfinite(s.pivot.x) || !std::isfinite(s.pivot.y) ||
-      std::abs(s.pivot.x) > 10 || std::abs(s.pivot.y) > 10)
+  if ((s.source ? !detail::ValidId(*s.source) : (!detail::ValidId(s.atlas) || !s.region)) ||
+      !std::isfinite(s.size.x) || !std::isfinite(s.size.y) || s.size.x <= 0 || s.size.y <= 0 ||
+      s.size.x > 1000000 || s.size.y > 1000000 || !std::isfinite(s.pivot.x) ||
+      !std::isfinite(s.pivot.y) || std::abs(s.pivot.x) > 10 || std::abs(s.pivot.y) > 10)
     return false;
   for (float c : s.color)
     if (!std::isfinite(c) || c < 0 || c > 1)
@@ -214,6 +224,10 @@ const Sprite *SpriteScene::Find(runtime::Id id) const noexcept {
 }
 std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera,
                                                 const AtlasResolver &resolve) const {
+  return Extract(camera, resolve, {});
+}
+std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera, const AtlasResolver &resolve,
+                                                const SpriteAssetResolver &sources) const {
   if (!CameraValid(camera) || !resolve)
     return std::nullopt;
   auto poses = world_->SceneWorldPoses(scene_);
@@ -226,7 +240,7 @@ std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera,
     if (sprite)
       instances.push_back({pose.id, *sprite, pose.matrix});
   }
-  auto frame = ExtractSprites(instances, camera, resolve);
+  auto frame = ExtractSprites(instances, camera, resolve, sources);
   if (frame)
     frame->statistics.input = sprites_.size();
   return frame;
@@ -247,7 +261,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
   std::vector<std::uint64_t> ids;
   ids.reserve(instances.size());
   for (const auto &instance : instances) {
-    if (!instance.id || !ValidateSprite(instance.sprite))
+    if (!instance.id || !ValidateSprite(instance.sprite) || instance.sprite.source)
       return std::nullopt;
     ids.push_back(instance.id);
     if (instance.matrix[3] != 0 || instance.matrix[7] != 0 || instance.matrix[11] != 0 ||
@@ -423,7 +437,10 @@ std::optional<Bytes> SpriteScene::Snapshot() const {
     members.insert(e.id);
   detail::Writer w;
   w.U32(0x5332444e);
-  w.U32(2);
+  const bool sources = std::any_of(sprites_.begin(), sprites_.end(), [](const auto &entry) {
+    return entry.second.source.has_value();
+  });
+  w.U32(sources ? 3 : 2);
   w.Text(*world);
   w.U32(static_cast<std::uint32_t>(sprites_.size()));
   for (const auto &[id, sprite] : sprites_) {
@@ -431,6 +448,11 @@ std::optional<Bytes> SpriteScene::Snapshot() const {
       return std::nullopt;
     w.U64(id);
     WriteSprite(w, sprite);
+    if (sources) {
+      w.U32(sprite.source ? 1 : 0);
+      if (sprite.source)
+        w.Id(*sprite.source);
+    }
   }
   w.U32(static_cast<std::uint32_t>(colliders_.size()));
   for (const auto &[id, collider] : colliders_) {

@@ -16,6 +16,9 @@ struct Sprite final {
   std::array<float, 4> color{1, 1, 1, 1};
   std::int32_t layer{}, order{};
   bool flipX{}, flipY{}, sortY{}, visible{true};
+  // Stable optional source identity. Source geometry overrides Atlas/region/size/pivot
+  // during source-aware extraction; styles and the World/Y-sort anchor remain authored.
+  std::optional<AssetId> source{};
 };
 [[nodiscard]] NEXORA_2D_API bool ValidateSprite(const Sprite &sprite) noexcept;
 struct Camera final {
@@ -28,6 +31,7 @@ struct AtlasBinding final {
   std::uint64_t texture{};
 };
 using AtlasResolver = std::function<std::optional<AtlasBinding>(AssetId)>;
+using SpriteAssetResolver = std::function<std::shared_ptr<const SpriteAsset>(AssetId)>;
 struct FrameStatistics final {
   std::size_t input{}, visible{}, culled{}, unavailable{}, batches{}, vertices{}, indices{};
   double coveredPixels{};
@@ -71,6 +75,11 @@ struct SpriteInstance final {
 ResolveSpriteAsset(const SpriteAsset &, const Atlas &, SpriteInstance instance);
 [[nodiscard]] NEXORA_2D_API std::optional<SpriteFrame>
 ExtractSprites(std::span<const SpriteInstance>, const Camera &, const AtlasResolver &);
+// Resolves each source and Atlas once per call. Missing dependencies count as unavailable;
+// invalid or mismatched published data rejects the frame. No cache survives the call.
+[[nodiscard]] NEXORA_2D_API std::optional<SpriteFrame>
+ExtractSprites(std::span<const SpriteInstance>, const Camera &, const AtlasResolver &,
+               const SpriteAssetResolver &);
 // Sprite state augments an existing World/scene. The World must outlive this owner; methods
 // serialize with World mutations. No duplicate transforms or native backend objects are stored.
 class NEXORA_2D_API SpriteScene final {
@@ -86,6 +95,9 @@ public:
   [[nodiscard]] const std::map<runtime::Id, Sprite> &Sprites() const noexcept { return sprites_; }
   [[nodiscard]] std::optional<SpriteFrame> Extract(const Camera &camera,
                                                    const AtlasResolver &resolve) const;
+  [[nodiscard]] std::optional<SpriteFrame> Extract(const Camera &camera,
+                                                   const AtlasResolver &resolve,
+                                                   const SpriteAssetResolver &sources) const;
   [[nodiscard]] std::optional<Bytes> Snapshot() const;
   // Editor-only atomic replacement; parse/validate in a staging World before publishing.
   bool Restore(std::span<const std::byte> snapshot);
