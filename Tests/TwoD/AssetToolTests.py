@@ -70,7 +70,7 @@ def main():
         padded_manifest=dict(type='atlas',id=[41,42],width=8,
                              images=[dict(path='padded.png',grid=[1,1],margin=[1,1,1,1],
                                           spacing=[1,1],cells=[8],first_id=101)])
-        packet=assets.images(padded_manifest,root)[0]
+        packet=assets.images(padded_manifest,root.resolve(strict=True))[0]
         assert struct.unpack_from('<IIII',packet) == (109,1,1,4) and packet[16:] == bytes([40,0,0,255])
         source=dict(type='sprite',id=[51,52],atlas=[31,32],region=104,source_size=[64,64],
                     trim_rect=[16,16,32,48],pivot_pixels=[32,0],pixels_per_unit=32)
