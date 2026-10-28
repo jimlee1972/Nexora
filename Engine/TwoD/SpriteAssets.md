@@ -82,6 +82,10 @@ region may be omitted because the source supplies them. Size/pivot retain their 
 bounds even when overridden; tint, flip, visibility and layer/order/Y-sort stay authored. A source
 never silently falls back to the old Atlas/region fields.
 
+An absent source is `std::nullopt`, not a present zero UUID. Legacy C/Zig accessors and the
+source-free Editor document path test presence before rejecting source-bound Sprites; they must
+continue to accept ordinary Atlas/region Sprites. A present zero UUID remains invalid.
+
 ```cpp
 Sprite sprite;
 sprite.source = sourceId;

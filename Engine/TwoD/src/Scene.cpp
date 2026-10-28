@@ -1,5 +1,4 @@
 #include "Nexora/TwoD/Scene.h"
-#include "SpriteGeometry.h"
 #include "Wire.h"
 #include <algorithm>
 #include <cmath>
@@ -248,11 +247,6 @@ std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera, const Atla
 }
 std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
                                           const Camera &camera, const AtlasResolver &resolve) {
-  return ExtractSprites(instances, camera, resolve, {});
-}
-std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
-                                          const Camera &camera, const AtlasResolver &resolve,
-                                          const SpriteAssetResolver &sources) {
   if (!CameraValid(camera) || !resolve || instances.size() > 100000)
     return std::nullopt;
   struct Item {
@@ -277,8 +271,6 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       if (!std::isfinite(value) || std::abs(value) > 1e12)
         return std::nullopt;
     if (instance.localQuad) {
-      if (detail::ValidId(instance.sprite.source))
-        return std::nullopt;
       const auto &q = *instance.localQuad;
       for (auto value : {q.minimum.x, q.minimum.y, q.maximum.x, q.maximum.y})
         if (!std::isfinite(value) || std::abs(value) > 1000000)
@@ -321,45 +313,6 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     frame.retainedAtlases.push_back(std::move(*binding));
     return &frame.retainedAtlases.back();
   };
-  std::unordered_map<AssetId, std::shared_ptr<const SpriteAsset>, runtime::AssetUuidHash>
-      sourceCache;
-  std::size_t preparedCount = 0;
-  for (auto &item : items) {
-    const auto id = item.sprite.source;
-    if (detail::ValidId(id)) {
-      auto cached = sourceCache.find(id);
-      if (cached == sourceCache.end()) {
-        auto source = sources ? sources(id) : nullptr;
-        if (source && (source->id != id || !ValidateSpriteAsset(*source)))
-          return std::nullopt;
-        cached = sourceCache.emplace(id, std::move(source)).first;
-      }
-      const auto &source = cached->second;
-      if (!source) {
-        ++frame.statistics.unavailable;
-        continue;
-      }
-      const auto *binding = bind(source->atlas);
-      if (invalidBinding)
-        return std::nullopt;
-      if (!binding) {
-        ++frame.statistics.unavailable;
-        continue;
-      }
-      const auto *region = binding->atlas->Find(source->region);
-      if (!region || region->width != source->trimWidth || region->height != source->trimHeight)
-        return std::nullopt;
-      auto resolved = detail::SpriteGeometry(*source, {item.id, item.sprite, item.matrix});
-      if (!resolved)
-        return std::nullopt;
-      item.sprite = resolved->sprite;
-      item.localQuad = resolved->localQuad;
-    }
-    if (&items[preparedCount] != &item)
-      items[preparedCount] = std::move(item);
-    ++preparedCount;
-  }
-  items.resize(preparedCount);
   // Sort compact references while preserving the pre-resolver matrix/identity snapshot.
   std::vector<const Item *> ordered;
   ordered.reserve(items.size());

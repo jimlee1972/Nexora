@@ -91,6 +91,18 @@ Editor／Zig／Python／MSVC 開發工具的 Windows 主機驗證啟動、相依
 分開保留。此切片不宣稱所有搖桿或未觸發的音訊端點失效／重開皆已驗證。
 目前實機可驗證範圍已完成；乾淨主機 gate 仍開放，M7 NOT ACCEPTED、9/11（82%）、P0 6/8 不變。
 
+## Windows M7 Shipping 準備（2026-10-28）
+
+✅ 修復合併後 optional Sprite source 整合問題，目前 main 的 MSVC 雙後端 Monolithic Shipping
+Player／工具與獨立 C／Zig fixture 已建置。既有 Sprite source、Runtime 與 legacy ABI consumer
+對實際 Shipping libraries 回歸 3/3 通過；全新 Zig／Host 匯出含雜湊清單內的 app-local Vulkan
+loader，存檔／損毀拒絕／相依契約通過。同一修復保留無 source 的 Editor 准入；有 source 的
+Editor／C／Zig 存取仍不支援，沒有擴張 wire／schema 或功能範圍。
+
+VM 重驗與獨立乾淨實體主機仍是各自待完成的 gate；此支援交付不關閉 M7，
+**9/11（82%）、P0 6/8** 不變。M6 與 SP／SDK 工作不變。
+見[確切命令、封裝／來源雜湊與驗收邊界](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md)。
+
 ## 3. 依賴與施工順序
 
 1. 盤點 Runtime、Renderer、資產／Cook、查詢、Editor 與公共 C ABI；新增模組／API 前

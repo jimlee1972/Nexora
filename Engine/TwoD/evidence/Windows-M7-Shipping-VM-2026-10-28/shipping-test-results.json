@@ -1,0 +1,17 @@
+[
+  {
+    "test": "SpriteAssetTests",
+    "exit": 0,
+    "scope": "Actual Shipping static libraries and consumer defines"
+  },
+  {
+    "test": "TwoDTests",
+    "exit": 0,
+    "scope": "Actual Shipping static libraries and consumer defines"
+  },
+  {
+    "test": "GameplayBridgeTests",
+    "exit": 0,
+    "scope": "Actual Shipping static libraries and consumer defines"
+  }
+]

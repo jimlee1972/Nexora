@@ -101,6 +101,7 @@ std::optional<SpriteInstance> ResolveGeometry(const SpriteAsset &a, const Atlas 
     return std::nullopt;
   return detail::SpriteGeometry(a, std::move(instance));
 }
+} // namespace
 
 std::optional<SpriteInstance> detail::SpriteGeometry(const SpriteAsset &a,
                                                      SpriteInstance instance) {
@@ -135,8 +136,6 @@ std::optional<SpriteInstance> detail::SpriteGeometry(const SpriteAsset &a,
   instance.localQuad = quad;
   return instance;
 }
-} // namespace
-
 std::optional<SpriteInstance> ResolveSpriteAsset(const SpriteAsset &a, const Atlas &atlas,
                                                  SpriteInstance instance) {
   if (!ValidateAtlas(atlas))

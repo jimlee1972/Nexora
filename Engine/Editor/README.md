@@ -2747,8 +2747,9 @@ acceptance are tracked independently in EditorImGui and the graphical publicatio
 ### Sprite source binding boundary
 
 `TwoDDocument` currently owns Atlas/Clip/Tilemap data, without a Sprite source catalog. Its
-AddSprite/EditSprite/Reopen boundaries reject nonzero `Sprite::source` atomically rather than
-accepting an asset reference they cannot freeze/restore for Undo or isolated Play. The underlying
+AddSprite/EditSprite/Reopen boundaries reject a present `Sprite::source` atomically rather than
+accepting an asset reference they cannot freeze/restore for Undo or isolated Play. The source-free
+path accepts `std::nullopt`; an empty optional is not a present zero UUID. The underlying
 TwoD scene supports source UUID snapshots and source-aware extraction; see
 [the source contract](../TwoD/SpriteAssets.md#persistent-scene-and-pool-source-bindings).
 Project import, frozen Play capture and Player catalogs still require explicit source admission.

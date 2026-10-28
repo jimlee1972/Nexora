@@ -412,8 +412,8 @@ void SourceBindings() {
   Check(bytes && (*bytes)[4] == std::byte{3} && *bytes != *old, "source scene emits schema 3");
   runtime::World isolated;
   auto loaded = SpriteScene::Load(isolated, *bytes);
-  Check(loaded && loaded->Find(entity)->source == source->id &&
-            loaded->Find(other)->source == AssetId{} && loaded->Snapshot() == bytes,
+  Check(loaded && loaded->Find(entity)->source == source->id && !loaded->Find(other)->source &&
+            loaded->Snapshot() == bytes,
         "mixed source/legacy roundtrip in isolated World");
   for (std::size_t n = 0; n < bytes->size(); ++n)
     Check(!scene.Restore(std::span(*bytes).first(n)) && scene.Snapshot() == bytes,
@@ -424,7 +424,7 @@ void SourceBindings() {
   auto unknown = *bytes;
   unknown[4] = std::byte{4};
   Check(!scene.Restore(unknown) && scene.Snapshot() == bytes, "unsupported scene version");
-  Check(scene.Restore(*old) && scene.Snapshot() == old && scene.Find(entity)->source == AssetId{},
+  Check(scene.Restore(*old) && scene.Snapshot() == old && !scene.Find(entity)->source,
         "backward reader and source removal on legacy restore");
   Check(scene.Set(entity, style), "restore source after legacy read");
 

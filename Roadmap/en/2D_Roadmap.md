@@ -107,6 +107,19 @@ are retained separately. This slice does not establish every controller or untri
 endpoint-loss/reopen behavior. Available current-host acceptance is complete; the clean-host gate
 remains open. M7 NOT ACCEPTED, 9/11 (82%), P0 6/8 are unchanged.
 
+## Windows M7 Shipping preparation (2026-10-28)
+
+✅ Current-main MSVC dual-backend Monolithic Shipping Player/tools and independent C/Zig fixtures
+build after repairing the merged optional-Sprite-source integration. Existing Sprite source,
+runtime and legacy ABI consumers pass 3/3 against the actual Shipping libraries; fresh Zig/Host
+exports pass storage/corruption/dependency contracts with an inventoried app-local Vulkan loader.
+The same repair preserves source-free Editor admission; source-bound Editor/C/Zig access remains
+unsupported. No wire/schema or capability scope is expanded.
+
+VM revalidation and the independent clean hardware host remain separate pending gates; this
+supporting delivery does not close M7 or change **9/11 (82%), P0 6/8**. M6 and SP/SDK work are unchanged.
+See [exact commands, package/source hashes and target boundaries](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md).
+
 ## 3. Dependencies and implementation order
 
 1. Inventory Runtime, Renderer, asset/cook, queries, Editor and public C ABI support. Record reused
