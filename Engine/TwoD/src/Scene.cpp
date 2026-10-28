@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/Scene.h"
+#include "SpriteGeometry.h"
 #include "Wire.h"
 #include <algorithm>
 #include <cmath>
@@ -23,7 +24,7 @@ void WriteSprite(detail::Writer &w, const Sprite &s) {
   w.U32(std::bit_cast<std::uint32_t>(s.order));
   w.U32((s.flipX ? 1U : 0U) | (s.flipY ? 2U : 0U) | (s.sortY ? 4U : 0U) | (s.visible ? 8U : 0U));
 }
-std::optional<Sprite> ReadSprite(detail::Reader &r) {
+std::optional<Sprite> ReadSprite(detail::Reader &r, std::uint32_t version) {
   Sprite s;
   s.atlas = r.Id();
   s.region = r.U32();
@@ -40,6 +41,8 @@ std::optional<Sprite> ReadSprite(detail::Reader &r) {
   s.flipY = (flags & 2) != 0;
   s.sortY = (flags & 4) != 0;
   s.visible = (flags & 8) != 0;
+  if (version == 3)
+    s.source = r.Id();
   return r.Valid() && ValidateSprite(s) ? std::optional(s) : std::nullopt;
 }
 void WriteCollider(detail::Writer &w, const Collider &c) {
@@ -72,7 +75,10 @@ struct DecodedScene {
 };
 std::optional<DecodedScene> DecodeScene(std::span<const std::byte> data) {
   detail::Reader r(data);
-  if (r.U32() != 0x5332444e || r.U32() != 2)
+  if (r.U32() != 0x5332444e)
+    return std::nullopt;
+  const auto version = r.U32();
+  if (version != 2 && version != 3)
     return std::nullopt;
   DecodedScene scene;
   scene.world = r.Text(16 * 1024 * 1024);
@@ -81,7 +87,7 @@ std::optional<DecodedScene> DecodeScene(std::span<const std::byte> data) {
     return std::nullopt;
   for (std::uint32_t i = 0; i < count; ++i) {
     const auto id = r.U64();
-    auto sprite = ReadSprite(r);
+    auto sprite = ReadSprite(r, version);
     if (!id || !sprite || !scene.sprites.emplace(id, *sprite).second)
       return std::nullopt;
   }
@@ -124,10 +130,10 @@ bool CameraValid(const Camera &c) {
 }
 } // namespace
 bool ValidateSprite(const Sprite &s) noexcept {
-  if (!detail::ValidId(s.atlas) || !s.region || !std::isfinite(s.size.x) ||
-      !std::isfinite(s.size.y) || s.size.x <= 0 || s.size.y <= 0 || s.size.x > 1000000 ||
-      s.size.y > 1000000 || !std::isfinite(s.pivot.x) || !std::isfinite(s.pivot.y) ||
-      std::abs(s.pivot.x) > 10 || std::abs(s.pivot.y) > 10)
+  if ((!detail::ValidId(s.source) && (!detail::ValidId(s.atlas) || !s.region)) ||
+      !std::isfinite(s.size.x) || !std::isfinite(s.size.y) || s.size.x <= 0 || s.size.y <= 0 ||
+      s.size.x > 1000000 || s.size.y > 1000000 || !std::isfinite(s.pivot.x) ||
+      !std::isfinite(s.pivot.y) || std::abs(s.pivot.x) > 10 || std::abs(s.pivot.y) > 10)
     return false;
   for (float c : s.color)
     if (!std::isfinite(c) || c < 0 || c > 1)
@@ -214,6 +220,10 @@ const Sprite *SpriteScene::Find(runtime::Id id) const noexcept {
 }
 std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera,
                                                 const AtlasResolver &resolve) const {
+  return Extract(camera, resolve, {});
+}
+std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera, const AtlasResolver &resolve,
+                                                const SpriteAssetResolver &sources) const {
   if (!CameraValid(camera) || !resolve)
     return std::nullopt;
   auto poses = world_->SceneWorldPoses(scene_);
@@ -226,18 +236,23 @@ std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera,
     if (sprite)
       instances.push_back({pose.id, *sprite, pose.matrix});
   }
-  auto frame = ExtractSprites(instances, camera, resolve);
+  auto frame = ExtractSprites(instances, camera, resolve, sources);
   if (frame)
     frame->statistics.input = sprites_.size();
   return frame;
 }
 std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
                                           const Camera &camera, const AtlasResolver &resolve) {
+  return ExtractSprites(instances, camera, resolve, {});
+}
+std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
+                                          const Camera &camera, const AtlasResolver &resolve,
+                                          const SpriteAssetResolver &sources) {
   if (!CameraValid(camera) || !resolve || instances.size() > 100000)
     return std::nullopt;
   struct Item {
     std::uint64_t id;
-    const Sprite *sprite;
+    Sprite sprite;
     runtime::TransformMatrix matrix;
     double y;
     std::optional<SpriteLocalQuad> localQuad;
@@ -257,6 +272,8 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       if (!std::isfinite(value) || std::abs(value) > 1e12)
         return std::nullopt;
     if (instance.localQuad) {
+      if (detail::ValidId(instance.sprite.source))
+        return std::nullopt;
       const auto &q = *instance.localQuad;
       for (auto value : {q.minimum.x, q.minimum.y, q.maximum.x, q.maximum.y})
         if (!std::isfinite(value) || std::abs(value) > 1000000)
@@ -266,35 +283,95 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     }
     const auto &sprite = instance.sprite;
     if (sprite.visible && sprite.color[3] > 0)
-      items.push_back({instance.id, &sprite, instance.matrix,
+      items.push_back({instance.id, sprite, instance.matrix,
                        sprite.sortY ? -instance.matrix[13] : 0, instance.localQuad});
   }
   if (!std::is_sorted(ids.begin(), ids.end()))
     std::sort(ids.begin(), ids.end());
   if (std::adjacent_find(ids.begin(), ids.end()) != ids.end())
     return std::nullopt;
+  SpriteFrame frame;
+  frame.statistics.input = instances.size();
+  std::unordered_map<AssetId, std::size_t, runtime::AssetUuidHash> assets;
+  std::set<std::uint64_t> textureIds;
+  std::unordered_set<AssetId, runtime::AssetUuidHash> unavailable;
+  bool invalidBinding = false;
+  const auto bind = [&](AssetId id) -> const AtlasBinding * {
+    if (unavailable.contains(id))
+      return nullptr;
+    if (const auto cached = assets.find(id); cached != assets.end())
+      return &frame.retainedAtlases[cached->second];
+    auto binding = resolve(id);
+    if (!binding) {
+      unavailable.insert(id);
+      return nullptr;
+    }
+    if (!binding->atlas || binding->atlas->id != id || !ValidateAtlas(*binding->atlas) ||
+        !binding->texture || binding->texture >= UINT64_MAX - 1 ||
+        !textureIds.insert(binding->texture).second || assets.size() >= 64) {
+      invalidBinding = true;
+      return nullptr;
+    }
+    assets.emplace(id, frame.retainedAtlases.size());
+    frame.retainedAtlases.push_back(std::move(*binding));
+    return &frame.retainedAtlases.back();
+  };
+  std::unordered_map<AssetId, std::shared_ptr<const SpriteAsset>, runtime::AssetUuidHash>
+      sourceCache;
+  std::size_t preparedCount = 0;
+  for (auto &item : items) {
+    const auto id = item.sprite.source;
+    if (detail::ValidId(id)) {
+      auto cached = sourceCache.find(id);
+      if (cached == sourceCache.end()) {
+        auto source = sources ? sources(id) : nullptr;
+        if (source && (source->id != id || !ValidateSpriteAsset(*source)))
+          return std::nullopt;
+        cached = sourceCache.emplace(id, std::move(source)).first;
+      }
+      const auto &source = cached->second;
+      if (!source) {
+        ++frame.statistics.unavailable;
+        continue;
+      }
+      const auto *binding = bind(source->atlas);
+      if (invalidBinding)
+        return std::nullopt;
+      if (!binding) {
+        ++frame.statistics.unavailable;
+        continue;
+      }
+      const auto *region = binding->atlas->Find(source->region);
+      if (!region || region->width != source->trimWidth || region->height != source->trimHeight)
+        return std::nullopt;
+      auto resolved = detail::SpriteGeometry(*source, {item.id, item.sprite, item.matrix});
+      if (!resolved)
+        return std::nullopt;
+      item.sprite = resolved->sprite;
+      item.localQuad = resolved->localQuad;
+    }
+    if (&items[preparedCount] != &item)
+      items[preparedCount] = std::move(item);
+    ++preparedCount;
+  }
+  items.resize(preparedCount);
   // Sort compact references while preserving the pre-resolver matrix/identity snapshot.
   std::vector<const Item *> ordered;
   ordered.reserve(items.size());
   for (const auto &item : items)
     ordered.push_back(&item);
   const auto byOrder = [](const Item *a, const Item *b) {
-    return std::tie(a->sprite->layer, a->sprite->order, a->y, a->id) <
-           std::tie(b->sprite->layer, b->sprite->order, b->y, b->id);
+    return std::tie(a->sprite.layer, a->sprite.order, a->y, a->id) <
+           std::tie(b->sprite.layer, b->sprite.order, b->y, b->id);
   };
   if (!std::is_sorted(ordered.begin(), ordered.end(), byOrder))
     std::sort(ordered.begin(), ordered.end(), byOrder);
-  SpriteFrame frame;
-  frame.statistics.input = instances.size();
   frame.vertices.reserve(items.size() * 4);
   frame.indices.reserve(items.size() * 6);
-  std::unordered_map<AssetId, std::size_t, runtime::AssetUuidHash> assets;
-  std::set<std::uint64_t> textureIds;
-  std::unordered_set<AssetId, runtime::AssetUuidHash> unavailable;
   const double scale = double(camera.height) / camera.verticalSize,
                cosine = std::cos(camera.rotationRadians), sine = std::sin(camera.rotationRadians);
   for (const auto *item : ordered) {
-    const auto &s = *item->sprite;
+    const auto &s = item->sprite;
     const auto &matrix = item->matrix;
     std::array<Nexora::Presentation::UiVertex, 4> vertices{};
     double minimumX = INFINITY, minimumY = INFINITY, maximumX = -INFINITY, maximumY = -INFINITY;
@@ -325,29 +402,14 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       ++frame.statistics.culled;
       continue;
     }
-    if (unavailable.contains(s.atlas)) {
+    const auto *resolvedBinding = bind(s.atlas);
+    if (invalidBinding)
+      return std::nullopt;
+    if (!resolvedBinding) {
       ++frame.statistics.unavailable;
       continue;
     }
-    auto cached = assets.find(s.atlas);
-    std::size_t bindingIndex = 0;
-    if (cached == assets.end()) {
-      auto binding = resolve(s.atlas);
-      if (!binding) {
-        unavailable.insert(s.atlas);
-        ++frame.statistics.unavailable;
-        continue;
-      }
-      if (!binding->atlas || binding->atlas->id != s.atlas || !ValidateAtlas(*binding->atlas) ||
-          !binding->texture || binding->texture >= UINT64_MAX - 1 ||
-          !textureIds.insert(binding->texture).second || assets.size() >= 64)
-        return std::nullopt;
-      bindingIndex = frame.retainedAtlases.size();
-      assets.emplace(s.atlas, bindingIndex);
-      frame.retainedAtlases.push_back(std::move(*binding));
-    } else
-      bindingIndex = cached->second;
-    const auto &binding = frame.retainedAtlases[bindingIndex];
+    const auto &binding = *resolvedBinding;
     const auto &atlas = *binding.atlas;
     const auto *region = atlas.Find(s.region);
     if (!region)
@@ -423,7 +485,10 @@ std::optional<Bytes> SpriteScene::Snapshot() const {
     members.insert(e.id);
   detail::Writer w;
   w.U32(0x5332444e);
-  w.U32(2);
+  const bool hasSources = std::any_of(sprites_.begin(), sprites_.end(), [](const auto &entry) {
+    return detail::ValidId(entry.second.source);
+  });
+  w.U32(hasSources ? 3 : 2);
   w.Text(*world);
   w.U32(static_cast<std::uint32_t>(sprites_.size()));
   for (const auto &[id, sprite] : sprites_) {
@@ -431,6 +496,8 @@ std::optional<Bytes> SpriteScene::Snapshot() const {
       return std::nullopt;
     w.U64(id);
     WriteSprite(w, sprite);
+    if (hasSources)
+      w.Id(sprite.source);
   }
   w.U32(static_cast<std::uint32_t>(colliders_.size()));
   for (const auto &[id, collider] : colliders_) {

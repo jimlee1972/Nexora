@@ -1,9 +1,10 @@
 # Nexora 2D contracts
 
 The additive [Sprite source asset contract](SpriteAssets.md) defines separately versioned
-canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references and explicit extraction adapters.
-Existing Atlas/Clip/scene/C/Zig formats and straight-alpha behavior remain unchanged. Editor and
-Player source-reference binding are separate follow-up gates.
+canvas/trim/pixel-Pivot/PPU metadata, stable Atlas-region references, persistent C++ scene/pool
+source UUIDs and source-aware extraction. Source scenes use additive NX2S schema 3 with a schema-2
+backward reader; source-free scenes still emit schema 2. Atlas/Clip/C/Zig wires and straight-alpha
+behavior remain unchanged. Animation and Editor/Player source catalogs are separate follow-up gates.
 
 The optional Editor's `TwoDPlayAssets` freezes validated cooked Atlas/Clip closures from one
 explicit Runtime asset generation without retaining the store. It resolves Clip Atlas dependencies,
@@ -114,7 +115,10 @@ steps. It does not replace the Core scheduler or dispatch gameplay callbacks.
 
 ## Scene and Tilemap persistence
 
-NX2S schema 2 wraps the unchanged schema-3 World text plus Sprite/collider metadata. Parse,
+NX2S schema 2 wraps the unchanged schema-3 World text plus Sprite/collider metadata.
+Source-bound scenes use schema 3 as specified in [SpriteAssets](SpriteAssets.md); both versions
+are read, while source-free scenes preserve the original writer. Optional source UUIDs resolve
+automatically through the source-aware extraction overload without storing resolved geometry. Parse,
 identity, membership and value validation occur in a staging World before Editor replacement.
 Play Worlds reject Restore; loading into a separate Play World preserves authoring isolation.
 Deleted World entities must have their metadata removed before Save; stale metadata rejects
@@ -185,6 +189,9 @@ The module may retain the copied table until destroy. Destroy the bridge before 
 All callbacks execute synchronously on the construction thread. Wrong-thread or bridge reentry
 returns `LIFECYCLE`; resolver exceptions are contained at the C boundary. Never run a module
 callback concurrently with extraction, pool ForEach, World mutation, asset publication or teardown.
+The legacy Sprite/pool wire cannot represent C++ source bindings. Reading those values or
+playing/advancing legacy region animation on them returns `UNSUPPORTED`; outputs and source state
+remain unchanged. Explicit legacy setters replace the complete Sprite value, clearing a source.
 Every descriptor/buffer is borrowed only during its call. Outputs are copied and may be retained.
 The caller must provide correctly aligned, valid, nonaliasing buffers for their advertised capacity.
 No native object, C++ pointer or exception crosses the API; its context is an opaque borrowed token.

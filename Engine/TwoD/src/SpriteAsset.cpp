@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/Scene.h"
+#include "SpriteGeometry.h"
 #include "Wire.h"
 
 #include <algorithm>
@@ -95,6 +96,13 @@ std::optional<SpriteInstance> ResolveSpriteAsset(const SpriteAsset &a, const Atl
   const auto *region = atlas.Find(a.region);
   if (!region || region->width != a.trimWidth || region->height != a.trimHeight)
     return std::nullopt;
+  return detail::SpriteGeometry(a, std::move(instance));
+}
+
+std::optional<SpriteInstance> detail::SpriteGeometry(const SpriteAsset &a,
+                                                     SpriteInstance instance) {
+  if (!ValidateSpriteAsset(a) || !instance.id)
+    return std::nullopt;
   for (auto value : instance.matrix)
     if (!std::isfinite(value) || std::abs(value) > 1e12)
       return std::nullopt;
@@ -102,6 +110,7 @@ std::optional<SpriteInstance> ResolveSpriteAsset(const SpriteAsset &a, const Atl
       instance.matrix[15] != 1)
     return std::nullopt;
   auto &sprite = instance.sprite;
+  sprite.source = {};
   sprite.atlas = a.atlas;
   sprite.region = a.region;
   sprite.size = {float(double(a.trimWidth) / a.pixelsPerUnit),
