@@ -1,0 +1,10 @@
+{
+  "type": "sprite",
+  "id": [505, 506],
+  "atlas": [501, 502],
+  "region": 1,
+  "source_size": [4, 4],
+  "trim_rect": [1, 2, 2, 2],
+  "pivot_pixels": [2, 0],
+  "pixels_per_unit": 2
+}

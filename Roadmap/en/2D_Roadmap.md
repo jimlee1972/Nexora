@@ -852,3 +852,25 @@ complete M6/M7 or any physical game/display/controller/audio acceptance.
 ✅ Portable PE normal/delay dependency admission and Linux Development/Shipping regression
 are verified; [supporting evidence](../../Tools/Build/evidence/Precompiled-2D-SDK-Linux-2026-10-26.md).
 Windows consumer/release and physical acceptance remain separate gates.
+
+## Sprite source geometry foundation (2026-10-28)
+
+✅ The additive `SpriteAsset` source wire preserves stable Sprite/Atlas/region identity,
+untrimmed canvas, trim rectangle, bottom-left pixel Pivot, PPU and validated border metadata.
+The explicit C++ resolver prepares pivot-relative quads for existing extraction without moving
+the world/Y-sort anchor. Source geometry/Flip composes with negative World scale; repacking changes
+UVs rather than source identity. Existing instances retain their historical geometry/UV behavior.
+
+✅ PNG grid import accepts selected original cell indices, margins and spacing. A 4x4 sheet
+can retain only 12 valid cells; sparse selections retain `first_id + originalCellIndex`, and
+selection reordering leaves canonical Atlas bytes unchanged. `.nx2sprite` validates/cooks through
+the existing CLI/Importer/Cooker/generation pipeline with an explicit Atlas dependency.
+
+This is the first source-geometry slice, not completion of the full Sprite expansion. Public C++
+consumers rebuild; historical Atlas/Clip/scene/C/Zig wires and straight-alpha color remain unchanged.
+Automatic scene/animation/pool/Editor/Player source references, SortingGroup, Sliced/Tiled rendering,
+masks, advanced animation controls and full platform acceptance remain separate work. Border storage
+does not establish nine-slice rendering. M6/M7 and the existing 9/11 assessment are unchanged.
+
+[Source geometry contract and examples](../../Engine/TwoD/SpriteAssets.md) ·
+[Executed Linux verification and limitations](../../Engine/TwoD/evidence/SpriteSource-Linux-2026-10-28.md).

@@ -1,6 +1,7 @@
 #pragma once
 #include "Nexora/Runtime/AssetPipeline.h"
 #include "Nexora/TwoD/Api.h"
+#include <array>
 #include <span>
 #include <string>
 #include <vector>
@@ -32,7 +33,22 @@ PackAtlas(AssetId id, std::span<const Image> images, std::uint32_t width = 1024,
 [[nodiscard]] NEXORA_2D_API bool ValidateAtlas(const Atlas &atlas) noexcept;
 [[nodiscard]] NEXORA_2D_API Bytes EncodeAtlas(const Atlas &atlas);
 [[nodiscard]] NEXORA_2D_API std::optional<Atlas> DecodeAtlas(std::span<const std::byte> bytes);
-// Register .nx2atlas and .nx2clip with the existing importer/cook/bundle pipeline.
+// Authoring geometry is independent of packed Atlas coordinates. Trim uses top-left source
+// pixels; Pivot uses bottom-left source pixels. Borders are left/right/top/bottom source pixels.
+// The new metadata wire is separate from historical Atlas/Clip/scene and C/Zig formats.
+struct SpriteAsset final {
+  AssetId id, atlas;
+  std::uint32_t region{}, sourceWidth{}, sourceHeight{};
+  std::uint32_t trimX{}, trimY{}, trimWidth{}, trimHeight{};
+  float pivotX{}, pivotY{}, pixelsPerUnit{100};
+  std::array<std::uint32_t, 4> border{};
+  friend bool operator==(const SpriteAsset &, const SpriteAsset &) = default;
+};
+[[nodiscard]] NEXORA_2D_API bool ValidateSpriteAsset(const SpriteAsset &) noexcept;
+[[nodiscard]] NEXORA_2D_API Bytes EncodeSpriteAsset(const SpriteAsset &);
+[[nodiscard]] NEXORA_2D_API std::optional<SpriteAsset>
+DecodeSpriteAsset(std::span<const std::byte> bytes);
+// Atomically register .nx2atlas/.nx2clip/.nx2sprite with the existing import/cook pipeline.
 NEXORA_2D_API bool RegisterImporters(runtime::ImporterRegistry &registry);
 struct AnimationFrame final {
   std::uint32_t region{};

@@ -52,11 +52,23 @@ struct Collider final {
   std::uint32_t group{1}, mask{UINT32_MAX};
 };
 [[nodiscard]] NEXORA_2D_API bool ValidateCollider(const Collider &) noexcept;
+struct SpriteLocalQuad final {
+  math::Vector2 minimum{}, maximum{};
+};
 struct SpriteInstance final {
   std::uint64_t id{};
   Sprite sprite;
   runtime::TransformMatrix matrix;
+  // Optional pivot-relative geometry. Existing instances keep their historical size/pivot
+  // behavior. World matrix and Y-sort anchor remain unchanged by source trimming.
+  std::optional<SpriteLocalQuad> localQuad{};
 };
+// Copies a styled instance, replaces Atlas/region/size and supplies source-derived geometry.
+// Flip mirrors source geometry around the original Pivot and also uses existing UV flips.
+// No input is retained or changed. Missing/mismatched Atlas regions reject; resolve again
+// after an asset generation changes. Public C++ consumers rebuild; C/Zig wires are unchanged.
+[[nodiscard]] NEXORA_2D_API std::optional<SpriteInstance>
+ResolveSpriteAsset(const SpriteAsset &, const Atlas &, SpriteInstance instance);
 [[nodiscard]] NEXORA_2D_API std::optional<SpriteFrame>
 ExtractSprites(std::span<const SpriteInstance>, const Camera &, const AtlasResolver &);
 // Sprite state augments an existing World/scene. The World must outlive this owner; methods

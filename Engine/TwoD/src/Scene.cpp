@@ -240,6 +240,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     const Sprite *sprite;
     runtime::TransformMatrix matrix;
     double y;
+    std::optional<SpriteLocalQuad> localQuad;
   };
   std::vector<Item> items;
   items.reserve(instances.size());
@@ -255,10 +256,18 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     for (const auto value : instance.matrix)
       if (!std::isfinite(value) || std::abs(value) > 1e12)
         return std::nullopt;
+    if (instance.localQuad) {
+      const auto &q = *instance.localQuad;
+      for (auto value : {q.minimum.x, q.minimum.y, q.maximum.x, q.maximum.y})
+        if (!std::isfinite(value) || std::abs(value) > 1000000)
+          return std::nullopt;
+      if (q.minimum.x >= q.maximum.x || q.minimum.y >= q.maximum.y)
+        return std::nullopt;
+    }
     const auto &sprite = instance.sprite;
     if (sprite.visible && sprite.color[3] > 0)
-      items.push_back(
-          {instance.id, &sprite, instance.matrix, sprite.sortY ? -instance.matrix[13] : 0});
+      items.push_back({instance.id, &sprite, instance.matrix,
+                       sprite.sortY ? -instance.matrix[13] : 0, instance.localQuad});
   }
   if (!std::is_sorted(ids.begin(), ids.end()))
     std::sort(ids.begin(), ids.end());
@@ -290,9 +299,13 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     std::array<Nexora::Presentation::UiVertex, 4> vertices{};
     double minimumX = INFINITY, minimumY = INFINITY, maximumX = -INFINITY, maximumY = -INFINITY;
     for (std::size_t i = 0; i < 4; ++i) {
-      const double x =
-          ((i == 1 || i == 2) ? 1 : 0) * double(s.size.x) - double(s.pivot.x) * s.size.x;
-      const double y = (i >= 2 ? 1 : 0) * double(s.size.y) - double(s.pivot.y) * s.size.y;
+      const bool right = i == 1 || i == 2, top = i >= 2;
+      const double x = item->localQuad
+                           ? (right ? item->localQuad->maximum.x : item->localQuad->minimum.x)
+                           : (right ? 1 : 0) * double(s.size.x) - double(s.pivot.x) * s.size.x;
+      const double y = item->localQuad
+                           ? (top ? item->localQuad->maximum.y : item->localQuad->minimum.y)
+                           : (top ? 1 : 0) * double(s.size.y) - double(s.pivot.y) * s.size.y;
       const double wx = matrix[0] * x + matrix[4] * y + matrix[12] - camera.center.x;
       const double wy = matrix[1] * x + matrix[5] * y + matrix[13] - camera.center.y;
       const double px = (cosine * wx + sine * wy) * scale + double(camera.width) / 2;
