@@ -23,6 +23,7 @@ struct RenderSurfaceDescriptor final {
   bool borderless = false;
   bool fitToWorkArea = false;
   bool srgbUiOutput = false;
+  bool initiallyVisible = true;
 };
 
 struct SurfaceInputSnapshot final {
@@ -78,6 +79,7 @@ public:
   [[nodiscard]] Window::WindowError ConfigureWindow(std::uint32_t width, std::uint32_t height,
                                                     bool borderless, bool resizable);
   [[nodiscard]] bool Borderless() const noexcept;
+  [[nodiscard]] Window::WindowError Show(bool visible);
   [[nodiscard]] Window::WindowError SetImeCandidatePosition(std::int32_t x, std::int32_t y);
   [[nodiscard]] SurfaceDiagnostics Diagnostics() const noexcept;
   // Process-local identity of this owner's native UI texture cache. Stable across resize/move;

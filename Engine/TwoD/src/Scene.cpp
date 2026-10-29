@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/Scene.h"
+#include "SpriteGeometry.h"
 #include "Wire.h"
 #include <algorithm>
 #include <cmath>
@@ -247,6 +248,16 @@ std::optional<SpriteFrame> SpriteScene::Extract(const Camera &camera, const Atla
 }
 std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
                                           const Camera &camera, const AtlasResolver &resolve) {
+  // The legacy overload has no source resolver; reject unresolved source
+  // inputs rather than silently treating them as unavailable Atlas Sprites.
+  if (std::any_of(instances.begin(), instances.end(),
+                  [](const auto &instance) { return instance.sprite.source.has_value(); }))
+    return std::nullopt;
+  return ExtractSprites(instances, camera, resolve, {});
+}
+std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
+                                          const Camera &camera, const AtlasResolver &resolve,
+                                          const SpriteAssetResolver &sources) {
   if (!CameraValid(camera) || !resolve || instances.size() > 100000)
     return std::nullopt;
   struct Item {
@@ -261,7 +272,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
   std::vector<std::uint64_t> ids;
   ids.reserve(instances.size());
   for (const auto &instance : instances) {
-    if (!instance.id || !ValidateSprite(instance.sprite) || instance.sprite.source)
+    if (!instance.id || !ValidateSprite(instance.sprite))
       return std::nullopt;
     ids.push_back(instance.id);
     if (instance.matrix[3] != 0 || instance.matrix[7] != 0 || instance.matrix[11] != 0 ||
@@ -271,6 +282,8 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       if (!std::isfinite(value) || std::abs(value) > 1e12)
         return std::nullopt;
     if (instance.localQuad) {
+      if (instance.sprite.source)
+        return std::nullopt;
       const auto &q = *instance.localQuad;
       for (auto value : {q.minimum.x, q.minimum.y, q.maximum.x, q.maximum.y})
         if (!std::isfinite(value) || std::abs(value) > 1000000)
@@ -313,6 +326,45 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     frame.retainedAtlases.push_back(std::move(*binding));
     return &frame.retainedAtlases.back();
   };
+  std::unordered_map<AssetId, std::shared_ptr<const SpriteAsset>, runtime::AssetUuidHash>
+      sourceCache;
+  std::size_t preparedCount = 0;
+  for (auto &item : items) {
+    if (item.sprite.source) {
+      const auto id = *item.sprite.source;
+      auto cached = sourceCache.find(id);
+      if (cached == sourceCache.end()) {
+        auto source = sources ? sources(id) : nullptr;
+        if (source && (source->id != id || !ValidateSpriteAsset(*source)))
+          return std::nullopt;
+        cached = sourceCache.emplace(id, std::move(source)).first;
+      }
+      const auto &source = cached->second;
+      if (!source) {
+        ++frame.statistics.unavailable;
+        continue;
+      }
+      const auto *binding = bind(source->atlas);
+      if (invalidBinding)
+        return std::nullopt;
+      if (!binding) {
+        ++frame.statistics.unavailable;
+        continue;
+      }
+      const auto *region = binding->atlas->Find(source->region);
+      if (!region || region->width != source->trimWidth || region->height != source->trimHeight)
+        return std::nullopt;
+      auto resolved = detail::SpriteGeometry(*source, {item.id, item.sprite, item.matrix});
+      if (!resolved)
+        return std::nullopt;
+      item.sprite = resolved->sprite;
+      item.localQuad = resolved->localQuad;
+    }
+    if (&items[preparedCount] != &item)
+      items[preparedCount] = std::move(item);
+    ++preparedCount;
+  }
+  items.resize(preparedCount);
   // Sort compact references while preserving the pre-resolver matrix/identity snapshot.
   std::vector<const Item *> ordered;
   ordered.reserve(items.size());

@@ -4,8 +4,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <set>
-#include <unordered_map>
 
 namespace nexora::twod {
 namespace {
@@ -101,6 +99,7 @@ std::optional<SpriteInstance> ResolveGeometry(const SpriteAsset &a, const Atlas 
     return std::nullopt;
   return detail::SpriteGeometry(a, std::move(instance));
 }
+
 } // namespace
 
 std::optional<SpriteInstance> detail::SpriteGeometry(const SpriteAsset &a,
@@ -136,6 +135,7 @@ std::optional<SpriteInstance> detail::SpriteGeometry(const SpriteAsset &a,
   instance.localQuad = quad;
   return instance;
 }
+
 std::optional<SpriteInstance> ResolveSpriteAsset(const SpriteAsset &a, const Atlas &atlas,
                                                  SpriteInstance instance) {
   if (!ValidateAtlas(atlas))
@@ -143,117 +143,4 @@ std::optional<SpriteInstance> ResolveSpriteAsset(const SpriteAsset &a, const Atl
   return ResolveGeometry(a, atlas, std::move(instance));
 }
 
-std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instances,
-                                          const Camera &camera, const AtlasResolver &resolve,
-                                          const SpriteAssetResolver &sources) {
-  // Preserve the legacy extraction hot path and validate every input before callbacks.
-  if (instances.size() > 100000)
-    return std::nullopt;
-  if (std::none_of(instances.begin(), instances.end(),
-                   [](const auto &i) { return i.sprite.source.has_value(); }))
-    return ExtractSprites(instances, camera, resolve);
-  if (!resolve || !ExtractSprites({}, camera, resolve))
-    return std::nullopt;
-  std::vector<std::uint64_t> ids;
-  ids.reserve(instances.size());
-  for (const auto &i : instances) {
-    if (!i.id || !ValidateSprite(i.sprite) || (i.sprite.source && i.localQuad))
-      return std::nullopt;
-    ids.push_back(i.id);
-    for (auto value : i.matrix)
-      if (!std::isfinite(value) || std::abs(value) > 1e12)
-        return std::nullopt;
-    if (i.matrix[3] != 0 || i.matrix[7] != 0 || i.matrix[11] != 0 || i.matrix[15] != 1 ||
-        (i.localQuad && !ValidQuad(*i.localQuad)))
-      return std::nullopt;
-  }
-  std::sort(ids.begin(), ids.end());
-  if (std::adjacent_find(ids.begin(), ids.end()) != ids.end())
-    return std::nullopt;
-  // Callbacks may mutate caller storage; geometry/styles must use the validated snapshot.
-  const std::vector<SpriteInstance> snapshot(instances.begin(), instances.end());
-  instances = snapshot;
-  std::vector<std::shared_ptr<const SpriteAsset>> sourceOwners;
-  std::unordered_map<AssetId, std::optional<AtlasBinding>, runtime::AssetUuidHash> atlasCache;
-  std::unordered_map<AssetId, std::optional<SpriteInstance>, runtime::AssetUuidHash> geometry;
-  std::set<std::uint64_t> textures;
-  bool invalid = false;
-  const AtlasResolver cachedAtlas = [&](AssetId id) -> std::optional<AtlasBinding> {
-    if (auto found = atlasCache.find(id); found != atlasCache.end())
-      return found->second;
-    auto binding = resolve(id);
-    if (binding &&
-        (!binding->atlas || binding->atlas->id != id || !ValidateAtlas(*binding->atlas) ||
-         !binding->texture || binding->texture >= UINT64_MAX - 1 || textures.size() >= 64 ||
-         !textures.insert(binding->texture).second)) {
-      invalid = true;
-      binding.reset();
-    }
-    atlasCache.emplace(id, binding);
-    return binding;
-  };
-  std::vector<SpriteInstance> prepared;
-  prepared.reserve(instances.size());
-  std::size_t unavailable = 0;
-  for (const auto &i : instances) {
-    if (!i.sprite.source) {
-      prepared.push_back(i);
-      continue;
-    }
-    // Hidden sources do not cause IO or inflate unavailable counts.
-    if (!i.sprite.visible || i.sprite.color[3] == 0)
-      continue;
-    const auto id = *i.sprite.source;
-    auto found = geometry.find(id);
-    if (found == geometry.end()) {
-      auto source = sources ? sources(id) : nullptr;
-      sourceOwners.push_back(source);
-      std::optional<SpriteInstance> templateInstance;
-      if (source) {
-        if (source->id != id || !ValidateSpriteAsset(*source))
-          return std::nullopt;
-        auto atlas = cachedAtlas(source->atlas);
-        if (invalid)
-          return std::nullopt;
-        if (atlas) {
-          templateInstance =
-              ResolveGeometry(*source, *atlas->atlas, SpriteInstance{1, {}, runtime::ToMatrix({})});
-          if (!templateInstance)
-            return std::nullopt;
-        }
-      }
-      found = geometry.emplace(id, std::move(templateInstance)).first;
-    }
-    if (!found->second) {
-      ++unavailable;
-      continue;
-    }
-    auto instance = i;
-    const auto &resolved = *found->second;
-    instance.sprite.source.reset();
-    instance.sprite.atlas = resolved.sprite.atlas;
-    instance.sprite.region = resolved.sprite.region;
-    instance.sprite.size = resolved.sprite.size;
-    instance.sprite.pivot = resolved.sprite.pivot;
-    auto quad = *resolved.localQuad;
-    if (instance.sprite.flipX) {
-      const auto minimum = quad.minimum.x;
-      quad.minimum.x = -quad.maximum.x;
-      quad.maximum.x = -minimum;
-    }
-    if (instance.sprite.flipY) {
-      const auto minimum = quad.minimum.y;
-      quad.minimum.y = -quad.maximum.y;
-      quad.maximum.y = -minimum;
-    }
-    instance.localQuad = quad;
-    prepared.push_back(std::move(instance));
-  }
-  auto frame = ExtractSprites(prepared, camera, cachedAtlas);
-  if (invalid || !frame)
-    return std::nullopt;
-  frame->statistics.input = instances.size();
-  frame->statistics.unavailable += unavailable;
-  return frame;
-}
 } // namespace nexora::twod

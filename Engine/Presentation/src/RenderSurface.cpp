@@ -198,6 +198,12 @@ SurfaceStatus RenderSurface::DrainAndDestroy() {
   return SurfaceStatus::Ready;
 }
 
+Window::WindowError RenderSurface::Show(bool visible) {
+  if (!state_ || state_->destroyed || state_->windowDestroyed)
+    return Window::WindowError::InvalidHandle;
+  return state_->windows->Show(state_->window, visible);
+}
+
 bool RenderSurface::Borderless() const noexcept { return state_ && state_->borderless; }
 Window::WindowError RenderSurface::ConfigureWindow(std::uint32_t width, std::uint32_t height,
                                                    bool borderless, bool resizable) {
@@ -249,9 +255,9 @@ RenderSurfaceResult CreateRenderSurface(const RenderSurfaceDescriptor &descripto
   state->windows = Window::CreateWindowSystem();
   if (!state->windows)
     return {{}, SurfaceStatus::Unsupported, "native window system is unavailable"};
-  const auto created =
-      state->windows->Create({descriptor.title, descriptor.width, descriptor.height,
-                              descriptor.resizable, true, descriptor.fitToWorkArea});
+  const auto created = state->windows->Create(
+      {descriptor.title, descriptor.width, descriptor.height, descriptor.resizable,
+       descriptor.initiallyVisible, descriptor.fitToWorkArea});
   if (!created)
     return {{},
             created.error == Window::WindowError::Unsupported ? SurfaceStatus::Unsupported
