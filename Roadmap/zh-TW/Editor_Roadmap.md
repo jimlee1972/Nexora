@@ -1,5 +1,15 @@
 # Nexora 圖形化 Editor Roadmap
 
+### Windows 匯出遊戲入口（2026-10-30）
+
+✅ Windows native Player 與共用 Editor Build 輸出改用 GUI subsystem 2 及 Unicode GUI 入口，
+不靠隱藏主控台或 shell launcher。Verifier-only build 保留原 console 入口；重導向診斷、
+退出碼與既有 DX12／2D dispatch 維持。Windows 交付必須檢查兩份實際 PE、私有 player
+CLI／Unicode，並以一般旗標無參數啟動匯出遊戲，要求單一可回應視窗、無主控台／子程序、
+真實 native frames／gameplay updates 及正常關閉；ZIP 解壓後再驗一次。
+驗證結果記於 PR；hosted 證據與實體乾淨主機驗收分開。完整 Editor 里程碑維持 0/8。
+
+
 ### 核定品牌與原生啟動畫面（2026-10-27）
 
 ✅ 核定參考已提供 path SVG 字標／n 來源、透明 PNG 與七種已驗證 ICO 尺寸。

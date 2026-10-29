@@ -147,3 +147,10 @@ verification. That extracted Editor enters the same Play command with the newly 
 1,200 presented frames, three scene commits, native draws and unchanged authored-source hashes.
 Failure removes the archive instead of publishing a partially verified delivery. These hosted DX12
 process receipts do not claim physical input, Windows pixel readback or clean-host acceptance.
+
+Native Windows game admission additionally rejects console PE subsystem for the private player
+and exported Game.exe, verifies their identical bytes and Unicode/redirected CLI, and launches
+Game.exe directly with no arguments and ordinary flags. It monitors one responsive native window,
+no console or child process, waits for real successful native presents, sends WM_CLOSE, then checks
+actual frames/gameplay updates, drain and exit 0. Staged and extracted installations repeat this
+check alongside the unchanged 100-frame/three-commit game and 1,200-frame Editor Play admissions.

@@ -64,11 +64,22 @@ bindings and opaque records are validated. Invalid arguments exit 2; invalid dat
 Failures do not print a complete success report. Verification explicitly flushes stdout and checks
 its stream state before returning 0; a failed report write returns 1 with a stderr diagnostic.
 Consumers must require both a successful exit and a complete valid report.
-The Windows console entry uses CRT `wmain` and native UTF-16 filesystem paths; POSIX `main`
-interprets path arguments as UTF-8. The test fixture writer uses the same platform path rules.
-MSVC/clang-cl support the wide console entry directly; MinGW uses its `-municode` link option,
-without adding Shell32 or a command-line reparser. Linux path/CLI tests have run; Windows and
-macOS execution have not been performed in this cloud environment.
+Windows native builds use the GUI PE subsystem and Unicode `wWinMain`, decoding the operating
+system command line with `CommandLineToArgvW` into the same dispatcher. The shared Editor Build
+copies that exact player as `Game.exe`; there is no shell, batch file or child launcher. Neither
+entry allocates/attaches/hides/detaches a console. Redirected stdout/stderr, exit codes, Unicode and
+space-containing paths and verification modes remain available. Only absent standard handles get
+NUL sinks for normal GUI shutdown; valid redirected/failing handles are never replaced. A separate
+no-standard-handles game launch must also close with exit 0. Verifier-only Windows builds keep
+CRT `wmain` and the console subsystem; POSIX keeps UTF-8 `main`. MinGW retains `-municode`.
+`NEXORA_PLAYER_STARTUP_EVIDENCE` opts into stderr evidence of `GetConsoleWindow` at entry and two
+actual successful native game presents. It does not change execution or frame limits.
+The Windows package admission checks both shipped private player and Editor-built Game.exe PE
+subsystems, verifies redirected CLI, then directly launches the exported game with **no arguments**
+and ordinary process flags from a different Unicode/space-containing working directory. It requires
+one responsive game window, no console/child processes, actual presents/gameplay updates, normal
+WM_CLOSE/exit and teardown. The same admission runs on the staged and actually extracted Editor.
+Hosted runner evidence does not establish independent clean-host or physical display acceptance.
 
 Unknown opaque records remain present but inactive. Scalar material bindings override StaticView
 appearance explicitly while preserving full legacy shader IDs; an unimplemented nonzero legacy

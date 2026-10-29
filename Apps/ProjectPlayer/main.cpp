@@ -10,9 +10,15 @@
 #endif
 
 #include <algorithm>
+#include <cstdio>
 #include <exception>
 #include <iostream>
 #include <type_traits>
+
+#if defined(_WIN32) && defined(NEXORA_PROJECT_PLAYER_NATIVE)
+#include <shellapi.h>
+#include <windows.h>
+#endif
 
 namespace {
 int Usage() {
@@ -252,6 +258,34 @@ template <typename Char> int Dispatch(int argc, Char **argv) try {
 
 #if defined(_WIN32)
 int wmain(int argc, wchar_t **argv) { return Dispatch(argc, argv); }
+#if defined(NEXORA_PROJECT_PLAYER_NATIVE)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
+  // GUI subsystem prevents console creation at process startup. Never allocate, attach,
+  // hide or detach a console; inherited redirected handles remain the CLI's streams.
+  // Explorer supplies no standard streams. Give only absent handles a NUL sink so
+  // normal close does not become a failed diagnostic write. Real redirected handles,
+  // including read-only/failing sinks, keep their existing error semantics.
+  for (const auto stream : {STD_OUTPUT_HANDLE, STD_ERROR_HANDLE}) {
+    const auto handle = GetStdHandle(stream);
+    if (!handle || handle == INVALID_HANDLE_VALUE) {
+      FILE *sink{};
+      if (_wfreopen_s(&sink, L"NUL", L"w", stream == STD_OUTPUT_HANDLE ? stdout : stderr))
+        return 1;
+    }
+  }
+  if (GetEnvironmentVariableW(L"NEXORA_PLAYER_STARTUP_EVIDENCE", nullptr, 0))
+    std::cerr << "player GUI startup: console_attached=" << (GetConsoleWindow() != nullptr) << '\n';
+  int argc{};
+  auto **argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  if (!argv) {
+    std::cerr << "ProjectPlayer command-line decoding failed\n";
+    return 2;
+  }
+  const int result = Dispatch(argc, argv);
+  LocalFree(argv);
+  return result;
+}
+#endif
 #else
 int main(int argc, char **argv) { return Dispatch(argc, argv); }
 #endif

@@ -312,6 +312,12 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
         "$<TARGET_FILE:NexoraProjectPackageTests>" "$<TARGET_FILE:NexoraProjectPlayer>")
   endif()
   if(NEXORA_ENABLE_PROJECT_PLAYER_NATIVE)
+    if(WIN32)
+      add_test(NAME runtime.windows_game_entry
+        COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Editor/WindowsGameEntry.py"
+          "$<TARGET_FILE:NexoraProjectPlayer>" "${CMAKE_CURRENT_BINARY_DIR}/windows-game-entry")
+      set_tests_properties(runtime.windows_game_entry PROPERTIES TIMEOUT 60)
+    endif()
     add_library(NexoraProjectPlayerGameplayFixture MODULE ProjectPlayerGameplayFixture.cpp)
     target_link_libraries(NexoraProjectPlayerGameplayFixture PRIVATE Nexora::Foundation)
     nexora_apply_defaults(NexoraProjectPlayerGameplayFixture)

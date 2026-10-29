@@ -1,6 +1,12 @@
 #pragma once
 #include "NativePlayer.h"
 #include "Nexora/Runtime/GameSceneSession.h"
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 namespace nexora::player {
 // CPU palette spans are borrowed only by DrawScene. The surface copies uploads into its own
@@ -178,6 +184,10 @@ inline int RunNativeGame(std::shared_ptr<const runtime::LoadedGameProject> proje
     const auto presented = surface.EndFrame();
     if (presented == SurfaceStatus::Ready) {
       ++frames;
+#if defined(_WIN32)
+      if (frames == 2 && GetEnvironmentVariableW(L"NEXORA_PLAYER_STARTUP_EVIDENCE", nullptr, 0))
+        std::cerr << "player native ready: presented_frames=2\n";
+#endif
       deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
       if (!started) {
         started = true;

@@ -246,6 +246,13 @@ def verify(package, evidence, editor_play=False):
         if (project / 'project.nexora').read_bytes() != original:
             raise RuntimeError('Reopen or duplicate creation changed project identity')
         if (relocated / 'Runtime/GameRuntime.profile').is_file():
+            from WindowsGameEntry import verify_player_cli, verify_installed_game
+            profile_lines = (relocated / 'Runtime/GameRuntime.profile').read_text(encoding='utf-8').splitlines()
+            player_names = [line.removeprefix('player=') for line in profile_lines if line.startswith('player=')]
+            if len(player_names) != 1 or Path(player_names[0]).name != player_names[0]:
+                raise RuntimeError('Invalid installed native player record')
+            private_player = relocated / 'Runtime' / player_names[0]
+            verify_player_cli(private_player, evidence / 'private-player-entry', environment)
             repository = Path(__file__).resolve().parents[2]
             sys.path.insert(0, str(repository / 'Tests/EditorImGui'))
             from PackagedPlayProject import write_fixture
@@ -294,6 +301,11 @@ def verify(package, evidence, editor_play=False):
             if not authored.resolve().is_relative_to(root.resolve()) or not hidden.resolve().is_relative_to(root.resolve()):
                 raise RuntimeError('Fixture relocation escaped verification directory')
             authored.rename(hidden)
+            verify_installed_game(output / 'Game.exe', private_player,
+                                  evidence / 'no-argument-game', environment, cwd)
+            verify_installed_game(output / 'Game.exe', private_player,
+                                  evidence / 'no-argument-game-no-streams', environment, cwd,
+                                  missing_handles=True)
             native = subprocess.run([str(output / 'Game.exe'), '--run-game-package',
                 str(output / 'Game.nxgame'), '--backend=dx12',
                 '--gameplay-module=' + str(output / 'Game.dll'), '--frames=100'],
@@ -313,6 +325,7 @@ def verify(package, evidence, editor_play=False):
                                         'game_build': (package / 'Runtime/GameRuntime.profile').is_file(),
                                         'extracted_editor_play': editor_play,
                                         'no_argument_startup': True,
+                                        'no_argument_game': (package / 'Runtime/GameRuntime.profile').is_file(),
                                         'physical_host_acceptance': 'NOT_RUN'})
 
 
