@@ -33,6 +33,13 @@ sources, document/content revisions and writable access; obsolete results cannot
 existing build. Runtime profiles and bundled tools resolve relative to the Editor executable;
 unmarked development builds fall back to the configured Player target's actual profile directory
 and tools. A packaged `build-info.json` marker forbids escaping to developer runtime/tool paths.
+On Windows, the installed native Player and exported `Game.exe` use GUI subsystem 2 and a
+Unicode GUI entrypoint. Game.exe is the player itself, launched directly with no command shell or
+console helper; CLI verification and redirected diagnostics remain available. Complete Windows
+package admission checks both PE files and directly launches the no-argument exported game,
+requires one responsive game window/no console or child process, real frames/updates and normal
+close. Verifier-only builds keep their console contract. See [Player entry contract](../ProjectPlayer/README.md).
+
 Generated private tool headers are configuration-specific for multi-configuration generators.
 Their generation is deferred until the root configure finishes, so the first configure observes
 the canonical Zig discovery performed after the Editor target; no prior cache entry is required.
