@@ -8,6 +8,20 @@ import subprocess
 import tempfile
 
 
+def require_native_vertex_index(words) -> None:
+    builtins = set()
+    offset = 5  # SPIR-V header.
+    while offset < len(words):
+        size, opcode = words[offset] >> 16, words[offset] & 0xffff
+        if not size or offset + size > len(words):
+            raise SystemExit('Invalid generated SPIR-V instruction')
+        if opcode == 71 and size >= 4 and words[offset + 2] == 11:  # OpDecorate BuiltIn.
+            builtins.add(words[offset + 3])
+        offset += size
+    if 42 not in builtins or 4424 in builtins:  # VertexIndex, BaseVertex.
+        raise SystemExit('Quad shader requires native VertexIndex without BaseVertex subtraction')
+
+
 def generate(compiler: str, check: bool) -> None:
     root = Path(__file__).resolve().parents[3]
     shaders = root / 'Engine/Presentation/shaders'
@@ -34,6 +48,8 @@ def generate(compiler: str, check: bool) -> None:
                     if len(data) % 4 or struct.unpack_from('<I', data)[0] != 0x07230203:
                         raise SystemExit('Invalid generated SPIR-V')
                     words = struct.unpack(f'<{len(data)//4}I', data)
+                    if stage == 'instance':
+                        require_native_vertex_index(words)
                     text += f'inline constexpr std::uint32_t {name}[] = {{\n'
                     for start in range(0, len(words), 8):
                         text += '  ' + ', '.join(f'0x{x:08x}' for x in words[start:start+8]) + ',\n'

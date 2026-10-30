@@ -75,7 +75,7 @@ cbuffer transform_0 : register(b0)
     TwoDTransform_0 transform_0;
 }
 
-#line 34
+#line 38
 static const float2  corners_0[int(6)] = { float2(0.0f, 0.0f), float2(1.0f, 0.0f), float2(1.0f, 1.0f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), float2(0.0f, 1.0f) };
 
 #line 10
@@ -91,7 +91,7 @@ struct TwoDVertex_0
 TwoDVertex_0 twoDInstanceMain(float2 origin_0 : POSITION, float2 axisX_0 : TEXCOORD0, float2 axisY_0 : TEXCOORD1, float4 uv_1 : TEXCOORD2, float4 color_1 : COLOR0, uint vertexID_0 : SV_VertexID)
 {
 
-#line 40
+#line 44
     TwoDVertex_0 output_0;
     output_0.position_0 = float4((origin_0 + axisX_0 * corners_0[vertexID_0].x + axisY_0 * corners_0[vertexID_0].y) * transform_0.clip_0.xy + transform_0.clip_0.zw, 0.0f, 1.0f);
     output_0.uv_0 = lerp(uv_1.xy, uv_1.zw, corners_0[vertexID_0]);
@@ -120,7 +120,7 @@ Texture2D<float4 > colorTexture_texture_0 : register(t0);
 SamplerState colorTexture_sampler_0 : register(s0);
 
 
-#line 46 "Engine/Presentation/shaders/twod_linear.slang"
+#line 50 "Engine/Presentation/shaders/twod_linear.slang"
 struct TwoDFragment_0
 {
     float4 scene_0 : SV_Target0;
@@ -137,20 +137,20 @@ struct TwoDVertex_0
 };
 
 
-#line 51
+#line 55
 TwoDFragment_0 twoDFragmentMain(TwoDVertex_0 input_0)
 {
 
-#line 51
+#line 55
     float2 _S1 = input_0.uv_0;
     ;
 
-#line 52
+#line 56
     float4 color_1 = colorTexture_texture_0.Sample(colorTexture_sampler_0, _S1) * input_0.color_0;
     TwoDFragment_0 output_0;
     float _S2 = saturate(color_1.w);
 
-#line 54
+#line 58
     output_0.scene_0 = float4(clamp(color_1.xyz, float3((int3)int(0)), float3((int3)int(65504))), _S2);
 
     output_0.emission_0 = float4(0.0f, 0.0f, 0.0f, _S2);
@@ -195,11 +195,11 @@ struct TwoDVertex_0
 };
 
 
-#line 60
+#line 64
 float4 twoDCompositeMain(TwoDVertex_0 input_0) : SV_TARGET
 {
 
-#line 60
+#line 64
     float2 _S1 = input_0.uv_0;
     ;
 

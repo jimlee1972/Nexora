@@ -1108,8 +1108,9 @@ identical upload; conflicting bytes/metadata within the submitted packet reject.
 Each backend owns scene/emission textures and world upload storage per in-flight slot. Existing
 frame fences or command completion protect reuse; resize drains before releasing old targets.
 Zero extent suspends Acquire. Final drain releases targets and resets accounted bytes.
-Vulkan explicitly negotiates shaderDrawParameters for the generated instanced shader and checks
-FP16 render/blend/filter support. DX12 checks the FP16 format support; Metal reports allocation
+Vulkan uses the explicit native `SV_VulkanVertexID` semantic for generated Quad corners
+(all instance draws start at vertex zero), avoiding an unused BaseVertex/DrawParameters dependency;
+it checks FP16 render/blend/filter support. DX12 checks the FP16 format support; Metal reports allocation
 or pipeline failures explicitly. There are no new module dependencies or exposed native handles.
 
 `twoDLinearFrames` counts successfully recorded world/composite/overlay submissions;

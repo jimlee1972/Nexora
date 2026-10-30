@@ -13,7 +13,6 @@ struct TwoDLinearFrame {
   std::uint32_t width{}, height{};
 };
 std::array<TwoDLinearFrame, 3> twoDLinearFrames_{};
-bool twoDDrawParameters_{};
 VkRenderPass twoDLinearPass_{};
 VkPipeline twoDLinearPipeline_{}, twoDLinearInstancePipeline_{}, twoDLinearCompositePipeline_{};
 bool CreateTwoDLinearProgram(bool instanced, bool composite, VkPipeline &output) {
@@ -256,7 +255,7 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
 
 public:
 bool SupportsTwoDLinear() const noexcept override {
-  if (destroyed_ || !valid_ || !srgbUiOutput_ || !twoDDrawParameters_)
+  if (destroyed_ || !valid_ || !srgbUiOutput_)
     return false;
   VkFormatProperties format{};
   vkGetPhysicalDeviceFormatProperties(physical_, VK_FORMAT_R16G16B16A16_SFLOAT, &format);

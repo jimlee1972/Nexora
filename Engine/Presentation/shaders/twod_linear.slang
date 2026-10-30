@@ -30,7 +30,11 @@ TwoDVertex twoDInstanceMain(
     [[vk::location(2)]] float2 axisY : TEXCOORD1,
     [[vk::location(3)]] float4 uv : TEXCOORD2,
     [[vk::location(4)]] float4 color : COLOR0,
+#ifdef NEXORA_VULKAN
+    uint vertexID : SV_VulkanVertexID) {
+#else
     uint vertexID : SV_VertexID) {
+#endif
     static const float2 corners[6] = {
         float2(0,0), float2(1,0), float2(1,1),
         float2(0,0), float2(1,1), float2(0,1)

@@ -191,17 +191,6 @@ public:
     deviceCreate.pQueueCreateInfos = &queueCreate;
     deviceCreate.enabledExtensionCount = 1;
     deviceCreate.ppEnabledExtensionNames = deviceExtensions;
-    VkPhysicalDeviceShaderDrawParametersFeatures drawParameters{};
-    drawParameters.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
-    if (srgbUiOutput_ && deviceProperties.apiVersion >= VK_API_VERSION_1_1) {
-      VkPhysicalDeviceFeatures2 available{};
-      available.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-      available.pNext = &drawParameters;
-      vkGetPhysicalDeviceFeatures2(physical_, &available);
-      twoDDrawParameters_ = drawParameters.shaderDrawParameters == VK_TRUE;
-      if (twoDDrawParameters_)
-        deviceCreate.pNext = &drawParameters;
-    }
     if (!Initialized(vkCreateDevice(physical_, &deviceCreate, nullptr, &device_), "vkCreateDevice"))
       return;
     vkGetDeviceQueue(device_, queueFamily_, 0, &queue_);
