@@ -1076,3 +1076,47 @@ output-encoded input, not a linear draw. Render-thread, acquire/present, destruc
 and borrowed span rules are unchanged. Native C++ consumers must rebuild for descriptor layout;
 C/Zig gameplay services and Atlas schema remain unchanged. See the
 [2D authoring contract](../TwoD/ColorAndFallback.md) for source conversion and precision limits.
+
+## Optional linear 2D pipeline (HD2D-02)
+
+`RenderSurface::DrawSpritesLinear` prepares the existing Sprite packet and submits
+`TwoDLinearDrawData` through `ISurface::DrawTwoDLinear`. This explicit opt-in leaves
+`DrawSprites`, `RenderUi`, the 44-byte Sprite instance layout and the stable Gameplay ABI
+unchanged. It does not call `DrawScene` or register the Gameplay effects service yet.
+`SupportsTwoDLinear` reports the native baseline capability; unsupported output/FP16 combinations
+return `Unsupported`. A pipeline creation failure is also reported, never replaced with a
+successful legacy draw. Call only on the surface owner thread after Acquire, before Present;
+one linear world submission owns that frame, followed by its optional overlay.
+
+World geometry renders in its original command order into two separate RGBA16F targets.
+Both use straight-alpha coverage blending. The emission target currently receives zero RGB
+with world coverage so ordinary foregrounds can occlude emission added by HD2D-05.
+Scene radiance is clamped to finite half range and mapped by the shared fixed ACES approximation;
+the sRGB backbuffer performs the single output encoding. The overlay uses the existing UI path
+after composition and bypasses world tone mapping. Inputs retain the existing UI texture/tint
+sampling contract; callers supply linear color values. No light, shadow or bloom is advertised
+by this foundation alone.
+
+An all-zero viewport uses the complete framebuffer. Otherwise the rectangle must fit inside it;
+world and composition scissors share that rectangle, outside pixels clear black, and overlay
+scissors remain independent. Invalid geometry, indices, clips, conflicting uploads or missing
+texture IDs reject before rendering. Borrowed geometry and texture spans need remain valid only
+until the call returns; native uploads are copied into the current completion-protected slot.
+Repeated immutable IDs retain their pixel-generation contract. World and overlay may share an
+identical upload; conflicting bytes/metadata within the submitted packet reject.
+
+Each backend owns scene/emission textures and world upload storage per in-flight slot. Existing
+frame fences or command completion protect reuse; resize drains before releasing old targets.
+Zero extent suspends Acquire. Final drain releases targets and resets accounted bytes.
+Vulkan explicitly negotiates shaderDrawParameters for the generated instanced shader and checks
+FP16 render/blend/filter support. DX12 checks the FP16 format support; Metal reports allocation
+or pipeline failures explicitly. There are no new module dependencies or exposed native handles.
+
+`twoDLinearFrames` counts successfully recorded world/composite/overlay submissions;
+`twoDLinearTargetAllocations` counts target-pair allocations, and `twoDLinearTargetBytes` sums
+current native allocation sizes. These are allocation diagnostics, not measured VRAM residency,
+GPU duration or product performance. The engine native fixture compares 42 changing frames
+against an independent CPU tone/alpha/sRGB oracle (maximum two 8-bit channel values error),
+including instanced/indexed Sprite paths, HUD isolation, safe bars, five sizes, resize, zero
+extent/restore, a world-only frame and final teardown. It is not the interactive Zig diagnostic
+or physical product acceptance. See [HD2D plan](../../Roadmap/en/HD2D_Lighting_Plan.md).

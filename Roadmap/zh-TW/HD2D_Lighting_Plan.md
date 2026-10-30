@@ -13,7 +13,7 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ID | Beads | 交付 | 相依 | 狀態／證據 |
 | --- | --- | --- | --- | --- |
 | ✅ HD2D-01 | `nexora-m6m.1` | 公開契約與 Zig bindings | — | 契約／快照已交付；[Linux 證據](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
-| HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | NOT_RUN |
+| HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | IN_PROGRESS — 三個原生實作；Linux 軟體 Vulkan 像素證據，Windows／Metal CI 待驗 |
 | HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | NOT_RUN |
 | HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | NOT_RUN |
 | HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | NOT_RUN |
@@ -44,3 +44,7 @@ Windows／macOS 原生結果由對應 CI 提供，未跑不填 PASS。工程全�
 參考：[2D roadmap](2D_Roadmap.md)、[色彩與既有 fallback](../../Engine/TwoD/ColorAndFallback.md)。
 
 HD2D-01 僅交付可協商契約、Zig 封裝與 owning snapshots；預設原生能力為 0，Player 尚未註冊，不代表光影已可呈現。此 PR 以適用 CI 成功為合併條件。
+
+HD2D-01：[PR #734](https://github.com/jimlee1972/Nexora/pull/734)，squash `3628a62e`，當前提交 41 項檢查全數通過。保留既有 Windows VM 逾時失敗，未修改斷言，重試通過。HD2D-02 在原生後端 gate 通過前不增加已驗收完成度。
+
+HD2D-02: [Linux 證據](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).

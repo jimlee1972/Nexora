@@ -63,6 +63,12 @@ public:
   [[nodiscard]] SurfaceStatus DrawSprites(const UiDrawData &sprites, const UiDrawData &overlay = {},
                                           bool instanceQuads = false,
                                           std::uint32_t background = 0xFF29140A);
+  [[nodiscard]] bool SupportsTwoDLinear() const noexcept;
+  [[nodiscard]] SurfaceStatus DrawSpritesLinear(const UiDrawData &sprites,
+                                                const UiDrawData &overlay = {},
+                                                bool instanceQuads = false,
+                                                std::uint32_t background = 0xFF000000,
+                                                const std::array<std::uint32_t, 4> &viewport = {});
   [[nodiscard]] SurfaceStatus DrawScene(const SceneDrawData &draw_data);
   [[nodiscard]] bool SupportsSceneGeometryResidency() const noexcept;
   [[nodiscard]] bool SupportsBoundedSceneViews() const noexcept;

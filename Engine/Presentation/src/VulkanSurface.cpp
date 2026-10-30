@@ -17,6 +17,7 @@
 #include "SpriteVulkanShaders.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
+#include "TwoDLinearVulkanShaders.h"
 #include "UiVulkanShaders.h"
 #include <vulkan/vulkan.h>
 #define NEXORA_HAS_NATIVE_UI_SHADERS 1
@@ -81,6 +82,7 @@ bool Initialized(VkResult result, const char *operation) {
   return false;
 }
 class VulkanSurface final : public ISurface {
+#include "TwoDLinearVulkan.inl"
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
   bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
@@ -189,6 +191,17 @@ public:
     deviceCreate.pQueueCreateInfos = &queueCreate;
     deviceCreate.enabledExtensionCount = 1;
     deviceCreate.ppEnabledExtensionNames = deviceExtensions;
+    VkPhysicalDeviceShaderDrawParametersFeatures drawParameters{};
+    drawParameters.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES;
+    if (srgbUiOutput_ && deviceProperties.apiVersion >= VK_API_VERSION_1_1) {
+      VkPhysicalDeviceFeatures2 available{};
+      available.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+      available.pNext = &drawParameters;
+      vkGetPhysicalDeviceFeatures2(physical_, &available);
+      twoDDrawParameters_ = drawParameters.shaderDrawParameters == VK_TRUE;
+      if (twoDDrawParameters_)
+        deviceCreate.pNext = &drawParameters;
+    }
     if (!Initialized(vkCreateDevice(physical_, &deviceCreate, nullptr, &device_), "vkCreateDevice"))
       return;
     vkGetDeviceQueue(device_, queueFamily_, 0, &queue_);
@@ -1562,7 +1575,7 @@ private:
     frame.retiredBufferMemory.clear();
     frame.retiredDescriptors.clear();
   }
-  bool EnsureUiUpload(Frame &frame, VkDeviceSize required) {
+  template <class Upload> bool EnsureUiUpload(Upload &frame, VkDeviceSize required) {
     if (frame.uiCapacity >= required)
       return true;
     if (frame.uiUpload)
@@ -2702,6 +2715,7 @@ private:
     return Initialized(toneResult, "vkCreateGraphicsPipelines (tone mapping)");
   }
   void DestroySwapchain(bool preserve_textures = false) {
+    DestroyTwoDLinear();
     for (auto &frame : frames_) {
       CollectGpuTiming(frame); // Caller already drained the device, including resize/teardown.
       if (frame.timestamps)

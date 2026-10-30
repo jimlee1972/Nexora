@@ -924,3 +924,5 @@ remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or
 [Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 1/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
 
 ✅ HD2D-01: public effects contract/Zig and atomic snapshots validated; native effects and SDK remain subsequent work. See the plan and linked evidence above.
+
+HD2D-02 is in progress: the opt-in FP16 world/emission and SDR/HUD path has native backend implementations; acceptance still requires the linked stage evidence and current-head DX12/Metal CI. Engineering remains 1/7.

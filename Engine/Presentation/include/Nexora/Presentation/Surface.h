@@ -8,6 +8,8 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <map>
 #include <memory>
 #include <optional>
 #include <span>
@@ -80,6 +82,7 @@ struct SceneGeometryResidencyDiagnostics final {
 };
 
 struct SurfaceDiagnostics final {
+  std::uint64_t twoDLinearFrames{}, twoDLinearTargetBytes{}, twoDLinearTargetAllocations{};
   SurfaceGpuTiming gpuTiming;
   std::uint64_t acquiredFrames = 0;
   std::uint64_t presentedFrames = 0;
@@ -492,6 +495,14 @@ struct UiDrawData final {
   bool indices32Bit = false;
   std::span<const SpriteGpuInstance> spriteInstances{};
 };
+// Separate 2D-only FP16 path. World is prepared Sprite geometry; overlay is final linear UI.
+// All spans borrow the call. All-zero viewport selects the entire image; otherwise x/y/w/h
+// must be nonempty and wholly contained. The compositor leaves outside pixels black.
+struct TwoDLinearDrawData final {
+  UiDrawData world;
+  UiDrawData overlay;
+  std::array<std::uint32_t, 4> viewport{};
+};
 // Shared bounded validation before any native upload or command recording.
 [[nodiscard]] inline bool ValidateSpriteInstances(const UiDrawData &data) noexcept {
   if (data.spriteInstances.size() > 100000 || data.commands.size() > 100000)
@@ -515,6 +526,92 @@ struct UiDrawData final {
       return false;
   }
   return true;
+}
+
+// Inputs have already passed ValidateTwoDLinearDraws; empty intersections skip the draw.
+[[nodiscard]] inline std::array<std::uint32_t, 4>
+TwoDLinearClip(const UiDrawCommand &command, const std::array<std::uint32_t, 4> &viewport,
+               std::uint32_t width, std::uint32_t height) noexcept {
+  const auto v = viewport == std::array<std::uint32_t, 4>{}
+                     ? std::array<std::uint32_t, 4>{0, 0, width, height}
+                     : viewport;
+  const auto x = std::max(std::uint32_t(command.clipX), v[0]);
+  const auto y = std::max(std::uint32_t(command.clipY), v[1]);
+  const auto right = std::min(std::uint32_t(command.clipX) + command.clipWidth, v[0] + v[2]);
+  const auto bottom = std::min(std::uint32_t(command.clipY) + command.clipHeight, v[1] + v[3]);
+  return {x, y, right > x ? right - x : 0, bottom > y ? bottom - y : 0};
+}
+
+[[nodiscard]] inline bool ValidateTwoDLinearDraws(const TwoDLinearDrawData &data,
+                                                  std::uint32_t width, std::uint32_t height) {
+  if (!width || !height || width > 16384 || height > 16384)
+    return false;
+  const auto &v = data.viewport;
+  if (v != std::array<std::uint32_t, 4>{} && (!v[2] || !v[3] || v[0] > width || v[1] > height ||
+                                              v[2] > width - v[0] || v[3] > height - v[1]))
+    return false;
+  if (data.world.commands.empty() || data.world.vertices.empty() || data.world.indices.empty())
+    return false;
+  std::map<std::uint64_t, UiTextureUpload> textures;
+  for (const auto *packet : {&data.world, &data.overlay}) {
+    if (!ValidateSpriteInstances(*packet) || packet->vertices.size() > 1000000 ||
+        packet->textureUploads.size() > 129)
+      return false;
+    const auto stride = packet->indices32Bit ? 4U : 2U;
+    if (packet->indices.size() % stride || packet->indices.size() / stride > 2000000)
+      return false;
+    for (const auto &vertex : packet->vertices)
+      for (const auto f : {vertex.position[0], vertex.position[1], vertex.uv[0], vertex.uv[1]})
+        if (!std::isfinite(f) || std::abs(f) > 1e12F)
+          return false;
+    for (const auto &command : packet->commands) {
+      if (!command.textureId || command.clipX < 0 || command.clipY < 0 ||
+          std::uint32_t(command.clipX) > width || std::uint32_t(command.clipY) > height ||
+          command.clipWidth > width - std::uint32_t(command.clipX) ||
+          command.clipHeight > height - std::uint32_t(command.clipY))
+        return false;
+      if (command.instanceCount)
+        continue;
+      const auto count = packet->indices.size() / stride;
+      if (!command.elementCount || command.elementCount % 3 || command.indexOffset > count ||
+          command.elementCount > count - command.indexOffset)
+        return false;
+      for (std::size_t i = command.indexOffset; i < command.indexOffset + command.elementCount;
+           ++i) {
+        std::uint32_t index{};
+        if (stride == 4)
+          std::memcpy(&index, packet->indices.data() + i * stride, 4);
+        else {
+          std::uint16_t small{};
+          std::memcpy(&small, packet->indices.data() + i * stride, 2);
+          index = small;
+        }
+        const auto vertex = std::int64_t(index) + command.vertexOffset;
+        if (vertex < 0 || std::uint64_t(vertex) >= packet->vertices.size())
+          return false;
+      }
+    }
+    for (const auto &upload : packet->textureUploads) {
+      if (!upload.textureId || !upload.width || !upload.height || upload.width > 16384 ||
+          upload.height > 16384 || upload.rowPitch != upload.width * 4 ||
+          upload.pixels.size() != std::size_t(upload.rowPitch) * upload.height)
+        return false;
+      if (upload.textureId == UINT64_MAX - 1 &&
+          (upload.width != 1 || upload.height != 1 || !upload.nearest || !upload.immutable ||
+           !std::all_of(upload.pixels.begin(), upload.pixels.end(),
+                        [](std::byte b) { return b == std::byte{255}; })))
+        return false;
+      auto [it, inserted] = textures.emplace(upload.textureId, upload);
+      if (!inserted &&
+          (it->second.width != upload.width || it->second.height != upload.height ||
+           it->second.nearest != upload.nearest || it->second.immutable != upload.immutable ||
+           (it->second.pixels.data() != upload.pixels.data() &&
+            !std::equal(it->second.pixels.begin(), it->second.pixels.end(),
+                        upload.pixels.begin()))))
+        return false;
+    }
+  }
+  return textures.size() <= 128 || (textures.size() == 129 && textures.contains(UINT64_MAX - 1));
 }
 
 // Geometry owns its bytes; texture pixel spans still borrow the input owners until submission.
@@ -567,6 +664,11 @@ public:
   // Records textured indexed UI geometry directly into the acquired presentation image. All spans
   // are borrowed for this call; texture IDs are generation-checked opaque values.
   virtual SurfaceStatus RenderUi(const UiDrawData &) { return SurfaceStatus::Unsupported; }
+  [[nodiscard]] virtual bool SupportsTwoDLinear() const noexcept { return false; }
+  // Explicit opt-in; separate FP16 world/emission, fixed SDR composition, then untouched UI.
+  virtual SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &) {
+    return SurfaceStatus::Unsupported;
+  }
   // Owner thread, between frames; drains submitted work before reclaiming immutable textures.
   virtual SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t>) {
     return SurfaceStatus::Unsupported;
