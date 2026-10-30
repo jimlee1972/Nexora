@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **0/7 (0%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **1/7 (14%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -12,7 +12,7 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 
 | ID | Beads | Delivery | Depends on | Status / evidence |
 | --- | --- | --- | --- | --- |
-| HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | In progress; no acceptance evidence |
+| ✅ HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | Contract/snapshots delivered; [Linux evidence](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
 | HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | NOT_RUN |
 | HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | NOT_RUN |
 | HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | NOT_RUN |
@@ -42,3 +42,5 @@ Windows/macOS native evidence comes from their CI hosts; unexecuted checks are n
 Merge this plan first, then dependent stage PRs. Squash merge only after applicable local and current-head CI passes; update both roadmaps, Beads and evidence each time. Preserve source/commit/PR/test traceability and never publish private hardware identifiers.
 
 References: [2D roadmap](2D_Roadmap.md), [color and existing fallback](../../Engine/TwoD/ColorAndFallback.md).
+
+HD2D-01 delivers negotiation, Zig wrappers and owning snapshots only. Native capability defaults to zero and Player registration is pending; no rendered effect is claimed. Applicable CI success gates this PR merge.

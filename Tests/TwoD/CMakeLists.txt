@@ -268,3 +268,16 @@ if(NEXORA_ZIG_EXECUTABLE)
 endif()
 add_test(NAME twod.sdk_portable_pe COMMAND "${Python3_EXECUTABLE}"
   -m unittest discover -s "${PROJECT_SOURCE_DIR}/Tools/SDK/tests" -v)
+
+add_executable(NexoraGameplayEffectsTests GameplayEffectsTests.cpp)
+target_link_libraries(NexoraGameplayEffectsTests PRIVATE Nexora::TwoD)
+nexora_apply_defaults(NexoraGameplayEffectsTests)
+add_test(NAME twod.gameplay_effects COMMAND NexoraGameplayEffectsTests)
+if(NEXORA_ZIG_EXECUTABLE)
+  nexora_add_zig_test(gameplay.zig_effects_wire_layout
+    --cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-effects-cache"
+    --global-cache-dir "${CMAKE_CURRENT_BINARY_DIR}/zig-effects-global-cache"
+    "-I${PROJECT_SOURCE_DIR}/Engine/API/include" --dep nx
+    "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayEffectsLayout.zig"
+    "-Mnx=${PROJECT_SOURCE_DIR}/Bindings/Zig/nexora.zig" -lc)
+endif()

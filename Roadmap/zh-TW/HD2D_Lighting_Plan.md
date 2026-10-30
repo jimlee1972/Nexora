@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **0/7（0%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **1/7（14%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
@@ -12,7 +12,7 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 
 | ID | Beads | 交付 | 相依 | 狀態／證據 |
 | --- | --- | --- | --- | --- |
-| HD2D-01 | `nexora-m6m.1` | 公開契約與 Zig bindings | — | 施工中；尚無驗收證據 |
+| ✅ HD2D-01 | `nexora-m6m.1` | 公開契約與 Zig bindings | — | 契約／快照已交付；[Linux 證據](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
 | HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | NOT_RUN |
 | HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | NOT_RUN |
 | HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | NOT_RUN |
@@ -42,3 +42,5 @@ Windows／macOS 原生結果由對應 CI 提供，未跑不填 PASS。工程全�
 先合併本計畫，再依相依逐階段 PR。每階段通過適用測試／當前 head CI 後 squash merge，同步雙語 roadmap、Beads 與證據。來源、commit、PR、測試與待驗項目必須可追溯，不提交私人設備識別資訊。
 
 參考：[2D roadmap](2D_Roadmap.md)、[色彩與既有 fallback](../../Engine/TwoD/ColorAndFallback.md)。
+
+HD2D-01 僅交付可協商契約、Zig 封裝與 owning snapshots；預設原生能力為 0，Player 尚未註冊，不代表光影已可呈現。此 PR 以適用 CI 成功為合併條件。

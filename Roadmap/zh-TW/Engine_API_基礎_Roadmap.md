@@ -250,3 +250,7 @@ DirectInput／DS4／Linux 震動仍明確不支援。
 本輪不代表 SP-06 正式產品驗收、M6／M7 或其餘 SP 缺口已完成。
 
 前景恢復後的新移動輸入會保留；UI 確認仍等待中立狀態重新啟用。
+
+## HD2D-01 選用契約擴充
+
+✅ 新增獨立協商 effects table、services 尾端 getter、Zig wrapper 與原子快照，保留原有前綴及 V3。ABI baseline／metadata 與防重排測試已補齊；不宣稱原生效果完成。 [HD2D plan](HD2D_Lighting_Plan.md).

@@ -268,3 +268,9 @@ The optional [asset lifecycle service](GameplayAssets.md) provides bounded catal
 explicit content removal, retained-generation budgets and snapshot-aware native retirement.
 The Player retains legacy preload defaults and adds deferred Atlas/Clip/opaque files plus
 configurable content/pool capacities. Games own transition and event policy in Zig.
+
+## HD2D effects snapshots
+
+The [optional effects service](GameplayEffects.md) validates and owns atomic pending/active
+snapshots on the host thread. This contract-only foundation advertises no native capability by
+default; renderer, diagnostic and SDK acceptance remain separate roadmap stages.

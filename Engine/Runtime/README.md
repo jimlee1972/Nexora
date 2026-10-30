@@ -1172,3 +1172,10 @@ after callbacks; failed preparation retains live scene and binding ownership. Na
 and application integration require their own gates.
 
 The additive [Zig game SDK](../../Tools/Zig/README.md) owns instance allocation and V3 callback wiring. Raw V3 and host lifetime/threading contracts remain unchanged; see the SDK contract for initialization failure cleanup and error mapping.
+
+## Optional 2D effects table
+
+GameplayServices appends an independently negotiated effects getter while preserving complete
+old prefix copies. Runtime owns no effects state or GPU resources and adds no TwoD dependency.
+A missing registration returns UNSUPPORTED without altering the caller's table. See the
+[effects contract](../TwoD/GameplayEffects.md).

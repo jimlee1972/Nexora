@@ -1184,6 +1184,42 @@
       "threading": "Serialized host owner thread only. Requests execute after module callbacks at a host frame boundary.",
       "errors": "0 success; -1 invalid argument; -2 unsupported; -3 lifecycle/stopped/prepare failure; -4 busy; -5 missing or stale; -6 capacity. Failure preserves output arguments.",
       "determinism": "Stable UUID catalog resolution; monotonic instance/request IDs; one pending transition. Rendering and native admission remain host policy."
+    },
+    {
+      "name": "NexoraGameplayServicesApiV1.get_twod_effects_api",
+      "since": "ABI 3 optional TwoD Effects V1",
+      "ownership": "Borrowed host service until module unload; submission arrays copied on success; outputs caller-owned.",
+      "nullability": "Required context/input/output non-null. Zero-length submission arrays may be null. Getter requires services struct_size admission.",
+      "threading": "Serialized host owner thread only. Accepted batches publish at the next host frame boundary.",
+      "errors": "0 success; -1 invalid argument, stale identity/dependency or excess capacity; -2 unsupported version/service/native feature; -3 wrong thread or allocation/lifecycle failure. Failed calls preserve outputs and snapshots.",
+      "determinism": "Complete copied batches and monotonic revisions; no native work or input consumption. Rendering, timing and feature availability remain host-specific."
+    },
+    {
+      "name": "NexoraGameplayTwoDEffectsApiV1.get_capabilities",
+      "since": "ABI 3 optional TwoD Effects V1",
+      "ownership": "Borrowed host service until module unload; submission arrays copied on success; outputs caller-owned.",
+      "nullability": "Required context/input/output non-null. Zero-length submission arrays may be null. Getter requires services struct_size admission.",
+      "threading": "Serialized host owner thread only. Accepted batches publish at the next host frame boundary.",
+      "errors": "0 success; -1 invalid argument, stale identity/dependency or excess capacity; -2 unsupported version/service/native feature; -3 wrong thread or allocation/lifecycle failure. Failed calls preserve outputs and snapshots.",
+      "determinism": "Complete copied batches and monotonic revisions; no native work or input consumption. Rendering, timing and feature availability remain host-specific."
+    },
+    {
+      "name": "NexoraGameplayTwoDEffectsApiV1.get_state",
+      "since": "ABI 3 optional TwoD Effects V1",
+      "ownership": "Borrowed host service until module unload; submission arrays copied on success; outputs caller-owned.",
+      "nullability": "Required context/input/output non-null. Zero-length submission arrays may be null. Getter requires services struct_size admission.",
+      "threading": "Serialized host owner thread only. Accepted batches publish at the next host frame boundary.",
+      "errors": "0 success; -1 invalid argument, stale identity/dependency or excess capacity; -2 unsupported version/service/native feature; -3 wrong thread or allocation/lifecycle failure. Failed calls preserve outputs and snapshots.",
+      "determinism": "Complete copied batches and monotonic revisions; no native work or input consumption. Rendering, timing and feature availability remain host-specific."
+    },
+    {
+      "name": "NexoraGameplayTwoDEffectsApiV1.submit_frame",
+      "since": "ABI 3 optional TwoD Effects V1",
+      "ownership": "Borrowed host service until module unload; submission arrays copied on success; outputs caller-owned.",
+      "nullability": "Required context/input/output non-null. Zero-length submission arrays may be null. Getter requires services struct_size admission.",
+      "threading": "Serialized host owner thread only. Accepted batches publish at the next host frame boundary.",
+      "errors": "0 success; -1 invalid argument, stale identity/dependency or excess capacity; -2 unsupported version/service/native feature; -3 wrong thread or allocation/lifecycle failure. Failed calls preserve outputs and snapshots.",
+      "determinism": "Complete copied batches and monotonic revisions; no native work or input consumption. Rendering, timing and feature availability remain host-specific."
     }
   ]
 }

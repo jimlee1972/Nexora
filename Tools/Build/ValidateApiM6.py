@@ -64,6 +64,10 @@ scene = json.loads((root / "Engine/API/abi_baseline_scene_v1.json").read_text(en
 structures.update(scene["structures"])
 structures["NexoraGameplayServicesApiV1"] += scene["services_suffix"]
 services["zig_names"].update(scene["zig_names"])
+effects = json.loads((root / "Engine/API/abi_baseline_twod_effects_v1.json").read_text(encoding="utf-8"))
+structures.update(effects["structures"])
+structures["NexoraGameplayServicesApiV1"] += effects["services_suffix"]
+services["zig_names"].update(effects["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)
     if match is None:

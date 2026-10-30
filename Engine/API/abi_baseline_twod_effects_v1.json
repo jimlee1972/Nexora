@@ -1,0 +1,104 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "services_suffix": [
+    "get_twod_effects_api"
+  ],
+  "structures": {
+    "NexoraTwoDEffectsPointV1": [
+      "x",
+      "y"
+    ],
+    "NexoraTwoDEffectsLightV1": [
+      "id",
+      "position",
+      "color",
+      "intensity",
+      "radius",
+      "softness",
+      "bias",
+      "groups",
+      "shadow"
+    ],
+    "NexoraTwoDEffectsOccluderV1": [
+      "id",
+      "groups",
+      "vertex_count",
+      "vertices"
+    ],
+    "NexoraTwoDEffectsSpriteV1": [
+      "handle",
+      "kind",
+      "groups",
+      "receive_light",
+      "receive_shadow",
+      "emission_atlas_high",
+      "emission_atlas_low",
+      "emission_region",
+      "reserved",
+      "emission_color",
+      "emission_intensity"
+    ],
+    "NexoraTwoDEffectsBloomV1": [
+      "intensity",
+      "radius",
+      "levels",
+      "reserved"
+    ],
+    "NexoraTwoDEffectsFrameV1": [
+      "struct_size",
+      "abi_version",
+      "enabled",
+      "light_count",
+      "occluder_count",
+      "sprite_count",
+      "ambient",
+      "strength",
+      "bloom",
+      "lights",
+      "occluders",
+      "sprites"
+    ],
+    "NexoraTwoDEffectsCapabilitiesV1": [
+      "struct_size",
+      "abi_version",
+      "features",
+      "max_lights",
+      "max_shadow_lights",
+      "max_occluders",
+      "max_vertices",
+      "max_edges",
+      "max_sprites",
+      "shadow_samples"
+    ],
+    "NexoraTwoDEffectsStateV1": [
+      "struct_size",
+      "abi_version",
+      "accepted_revision",
+      "active_revision",
+      "enabled",
+      "light_count",
+      "occluder_count",
+      "sprite_count"
+    ],
+    "NexoraGameplayTwoDEffectsApiV1": [
+      "struct_size",
+      "abi_version",
+      "context",
+      "get_capabilities",
+      "get_state",
+      "submit_frame"
+    ]
+  },
+  "zig_names": {
+    "NexoraTwoDEffectsPointV1": "twod_effects.Point",
+    "NexoraTwoDEffectsLightV1": "twod_effects.Light",
+    "NexoraTwoDEffectsOccluderV1": "twod_effects.Occluder",
+    "NexoraTwoDEffectsSpriteV1": "twod_effects.Sprite",
+    "NexoraTwoDEffectsBloomV1": "twod_effects.Bloom",
+    "NexoraTwoDEffectsFrameV1": "twod_effects.Frame",
+    "NexoraTwoDEffectsCapabilitiesV1": "twod_effects.Capabilities",
+    "NexoraTwoDEffectsStateV1": "twod_effects.State",
+    "NexoraGameplayTwoDEffectsApiV1": "twod_effects.Api"
+  }
+}
