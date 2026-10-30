@@ -333,3 +333,7 @@ SM6.9/6.10 isolated compute / 隔離 Compute：optional private SDK721/WARP/DXC 
 Modern compute lower-profile equivalents are under construction: explicit LongVectorReference, LinearAlgebraReference and GroupSharedReference variants preserve the accepted fixed-recipe buffer ABI on baseline Slang DXIL6.0/SPIR-V/Metal. The existing preferred/fallback policy remains explicit; these variants do not claim SM6.9/6.10 execution. Linux native parity and lifetime/synchronization validation are recorded in the advanced-graphics plan; hosted platform validation remains required before acceptance.
 
 現代運算的較低 profile 等效路徑施工中：明確的 LongVectorReference、LinearAlgebraReference、GroupSharedReference 以基準 Slang DXIL6.0／SPIR-V／Metal 保留已驗收固定配方的 buffer ABI。沿用明確 preferred／fallback 選擇；不宣稱這些變體執行 SM6.9／6.10。Linux 原生對照及生命週期／同步驗證記錄於進階圖形計畫；驗收前仍須完整託管平台驗證。
+
+## HD-2D extension / HD-2D 擴充
+
+[English plan](en/HD2D_Lighting_Plan.md) / [繁體中文工單](zh-TW/HD2D_Lighting_Plan.md): Beads `nexora-m6m`; engineering / 工程 **0/7 (0%)**, physical / 實機 **NOT_RUN**. Separate extension; existing 2D 9/11 and M6/M7 are unchanged / 獨立擴充，不變更既有 2D 9/11 及 M6/M7。
