@@ -48,6 +48,11 @@ also rereads every exact source baseline and script file inventory. A CLI uses a
 writing only the explicitly requested output. The graphical host must additionally resolve dirty
 authoring decisions and cancellation before invoking this publication step.
 
+The native Windows profile supplies a GUI-subsystem Unicode-entry Player. Its exact bytes become
+`Game.exe`, rather than a generated launcher or shell wrapper. Verification modes continue using
+redirected streams and native UTF-16 paths. The Windows delivery admission checks both copies and
+uses ordinary process flags/no arguments to run the source-free result and close its real window.
+
 Output is flat and source-free: renamed Game executable, `Game.nxgame`, `Game.launch`, optional
 Game module, configured runtime libraries, LICENSE, `Build.sources`, `Build.commands`, `Build.tools`
 and `Game.inventory`. Commands retain the exact directly launched argv/CWD; tool records retain

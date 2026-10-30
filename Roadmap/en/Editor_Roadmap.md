@@ -1,5 +1,17 @@
 # Nexora Graphical Editor Roadmap
 
+### Windows exported game entry (2026-10-30)
+
+✅ Native Windows Player and the shared Editor Build output now use GUI subsystem 2 and Unicode
+GUI entry without a console-hiding workaround or shell launcher. Verifier-only builds preserve
+their console entry. Redirected diagnostics/exit codes and existing DX12/2D dispatch remain intact.
+Windows delivery requires both actual PE checks, private-player CLI/Unicode verification and
+ordinary-flag no-argument exported-game launch, responsive single-window/no-child admission,
+real native frames/gameplay updates and normal close, repeated after ZIP extraction.
+Validation results are recorded in the PR; hosted evidence is separate from physical clean-host
+acceptance. Complete Editor milestones remain 0/8.
+
+
 ### Approved branding and native startup (2026-10-27)
 
 ✅ The approved reference has path-based SVG wordmark/n sources, transparent PNGs and seven
