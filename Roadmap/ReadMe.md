@@ -336,4 +336,4 @@ Modern compute lower-profile equivalents are under construction: explicit LongVe
 
 ## HD-2D extension / HD-2D 擴充
 
-[English plan](en/HD2D_Lighting_Plan.md) / [繁體中文工單](zh-TW/HD2D_Lighting_Plan.md): Beads `nexora-m6m`; engineering / 工程 **1/7 (14%)**, physical / 實機 **NOT_RUN**. Separate extension; existing 2D 9/11 and M6/M7 are unchanged / 獨立擴充，不變更既有 2D 9/11 及 M6/M7。
+[English plan](en/HD2D_Lighting_Plan.md) / [繁體中文工單](zh-TW/HD2D_Lighting_Plan.md): Beads `nexora-m6m`; engineering / 工程 **2/7 (29%)**, physical / 實機 **NOT_RUN**. Separate extension; existing 2D 9/11 and M6/M7 are unchanged / 獨立擴充，不變更既有 2D 9/11 及 M6/M7。

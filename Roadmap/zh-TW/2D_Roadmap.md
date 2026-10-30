@@ -816,10 +816,10 @@ M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
 
-[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 1/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
+[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 2/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
 
 ✅ HD2D-01：公開 effects 契約／Zig 與原子快照已驗證；原生效果與 SDK 仍待後續工單。詳見上述計畫與證據。
 
-HD2D-02 施工中：可選 FP16 世界／emission 與 SDR／HUD 路徑已有原生後端實作；驗收仍須階段證據及當前提交 DX12／Metal CI。工程維持 1/7。
+✅ HD2D-02 已驗收：可選 FP16 世界／emission 與 SDR／HUD 合成通過當前提交 41 項檢查及 DX12／Vulkan／Metal 原生像素。[PR #735](https://github.com/jimlee1972/Nexora/pull/735)，squash `ed0e51e4`；工程 2/7，實機 NOT_RUN。
 
 HD2D-03 施工將平面點光源及即時物件識別樣式接入通用 Player。Vulkan 參考值／相容性測試為本地證據；三後端驗收仍待 gate，工程計分依 Beads。

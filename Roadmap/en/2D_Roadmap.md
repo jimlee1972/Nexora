@@ -921,10 +921,10 @@ remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or
 
 ## HD-2D extension work items
 
-[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 1/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
+[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 2/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
 
 ✅ HD2D-01: public effects contract/Zig and atomic snapshots validated; native effects and SDK remain subsequent work. See the plan and linked evidence above.
 
-HD2D-02 is in progress: the opt-in FP16 world/emission and SDR/HUD path has native backend implementations; acceptance still requires the linked stage evidence and current-head DX12/Metal CI. Engineering remains 1/7.
+✅ HD2D-02 accepted: opt-in FP16 world/emission and SDR/HUD composition passed all 41 current-head checks and native DX12/Vulkan/Metal pixels. [PR #735](https://github.com/jimlee1972/Nexora/pull/735), squash `ed0e51e4`; engineering 2/7, physical NOT_RUN.
 
 HD2D-03 preparation integrates flat point lights and live identity styles into the generic Player. Vulkan oracle/compatibility tests are local evidence; all-backend acceptance remains pending and engineering credit stays with Beads.
