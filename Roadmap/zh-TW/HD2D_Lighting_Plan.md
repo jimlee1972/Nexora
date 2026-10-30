@@ -50,3 +50,5 @@ HD2D-01：[PR #734](https://github.com/jimlee1972/Nexora/pull/734)，squash `362
 HD2D-02: [Linux 證據](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).
 
 HD2D-03: [本地證據](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); IN_PROGRESS.
+
+進度快照：雙語已驗收工程皆為 2/7；柔影部分本地施工不計驗收完成。

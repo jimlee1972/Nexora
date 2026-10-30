@@ -50,3 +50,5 @@ HD2D-01: [PR #734](https://github.com/jimlee1972/Nexora/pull/734), squash `3628a
 HD2D-02: [Linux evidence](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).
 
 HD2D-03: [local evidence](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); IN_PROGRESS.
+
+Progress snapshot: accepted engineering remains 2/7 in both languages; partial local shadow work earns no acceptance credit.
