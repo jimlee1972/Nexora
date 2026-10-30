@@ -816,4 +816,6 @@ M6／M7，也不改變 9/11（82%）。
 
 ## HD-2D 擴充工單
 
-[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 0/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
+[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 1/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。
+
+✅ HD2D-01：公開 effects 契約／Zig 與原子快照已驗證；原生效果與 SDK 仍待後續工單。詳見上述計畫與證據。

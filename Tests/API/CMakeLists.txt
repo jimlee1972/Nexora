@@ -60,3 +60,6 @@ if(NEXORA_ZIG_EXECUTABLE)
     --dep lifecycle "-Mroot=${CMAKE_CURRENT_SOURCE_DIR}/GameplayLifecycleAbi.zig"
     "-Mlifecycle=${PROJECT_SOURCE_DIR}/Bindings/Zig/lifecycle.zig" -lc)
 endif()
+
+add_test(NAME api.twod_effects_baseline_guard
+  COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Build/tests/test_api_twod_effects_contract.py")

@@ -256,3 +256,7 @@ acceptance remain open (`nexora-4j7.1`). Message injection is not actual OS slee
 This does not complete SP-06 product acceptance, M6/M7, or unrelated SP gaps.
 
 Fresh post-foreground movement is retained; UI confirmation still waits for neutral rearming.
+
+## HD2D-01 optional contract extension
+
+✅ Independently negotiated effects table, appended services getter, Zig wrapper and atomic snapshots preserve prior prefixes and V3. ABI baseline/metadata and reorder guards are covered; native effects are not claimed. [HD2D plan](HD2D_Lighting_Plan.md).
