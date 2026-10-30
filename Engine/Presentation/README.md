@@ -1124,7 +1124,7 @@ or physical product acceptance. See [HD2D plan](../../Roadmap/en/HD2D_Lighting_P
 
 HD2D-03 adds an optional copied `TwoDLighting` packet with one style per prepared world command
 (including an unlit background). Its uniform uses only explicit 16-byte float4/uint4 blocks on all
-three backends; point lights occupy 64 bytes and the 32-light frame 2,144 bytes (including shadow mappings). No native pointers
+three backends; point lights occupy 64 bytes and the 32-light frame 2,160 bytes (including shadow mappings and bloom). No native pointers
 or 44-byte Sprite instance fields change. Vulkan owns an additional uniform descriptor per frame
 slot and negotiates its separate push-constant/layout contract; DX12 owns separate linear/nearest
 root signatures with a frame CBV; Metal binds the same constants separately for vertex/fragment
@@ -1156,3 +1156,22 @@ max 32 lights/eight shadow casters, moving contours, group rejection, soft edges
 source contact, HDR values and explicit empty-edge removal. Its independent double-precision
 CPU oracle retains the fixed two-channel-value SDR tolerance. Native Windows/Metal acceptance
 is required separately; [stage evidence](../TwoD/evidence/HD2D-04-Linux-2026-10-31.md).
+
+
+### Explicit emission masks and bloom (HD2D-05)
+
+`TwoDLightingStyle` adds a native mask generation ID, linear RGB/intensity and UV scale/bias;
+the 44-byte Sprite instance and public C/Zig wires stay unchanged. World commands bind a second
+linear-data texture. The same ordered MRT draw writes lit scene plus explicit emission and the
+independent emission target with actual coverage, preserving opaque/translucent foreground
+occlusion. Masks use red with linear filtering; missing or nearest-mask dependencies reject.
+No bright-pixel threshold or HUD emission is involved.
+
+A separate fullscreen fragment pipeline filters ceil-half-resolution emission through at most
+five down/four up levels, then samples scene and bloom for fixed SDR mapping. No 3D path or storage
+image feature is required. Vulkan uses per-target barriers; DX12 uses RTV/SRV transitions; Metal
+uses tracked textures in one command buffer. Every target/descriptor is frame-completion owned.
+Unused targets retire on safe slot reuse; resize/drain release them. Allocation/pass/emission-draw
+counters are separate from timing. The native test's independent double oracle covers selective
+bloom, unchanged nonemitters/HUD, opaque/translucent edges, odd sizes and final zero ownership.
+See [mask/lifetime contract](../TwoD/EmissionAssets.md) and [stage evidence](../TwoD/evidence/HD2D-05-Linux-2026-10-31.md).

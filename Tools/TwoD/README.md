@@ -353,3 +353,35 @@ validates container metadata only; it does not invent final recordings or concur
 The [precompiled Windows SDK](../SDK/README.md) supplies a generic named game host and asset compiler.
 Export uses Python PE normal/delay import inspection without `dumpbin`; optional `--executable-name`
 renames the copied host while retaining the adjacent `game.nx2game` contract.
+
+## Paired emission masks (DEV ONLY assets are not production art)
+
+`python Tools/TwoD/PrepareEmission.py emission.json --compiler <NexoraTwoDAssetCompiler>
+--output generated/emission-catalog.json` inherits the base slicing/trim rectangles, grid margins,
+spacing and selected cell IDs. Example separate manifest:
+
+```json
+{
+  "schema": 1,
+  "id": [701, 702],
+  "base_manifest": "atlas.json",
+  "mask_id": [703, 704],
+  "mask_width": 1024,
+  "images": [{"source": "sheet.png", "mask": "sheet-emission.png"}]
+}
+```
+
+Mask canvases must match their original source before slicing. Red is linear data, alpha is
+ignored, sampling is linear, and base alpha/tint supplies coverage; do not author an sRGB-decoded
+mask. Different packing widths preserve matched region dimensions and extraction maps UVs.
+The tool writes immutable content-addressed `.nx2atlas` and `.nx2emission` files, then atomically
+updates the catalog. Failed compilation preserves the previous published catalog. New orphan
+files after a late publication failure are unreferenced; old referenced generations stay intact.
+
+List the mask as `kind: "atlas"` (optionally `preload: false`) and links as `kind: "blob"` with
+`preload: false` in game.json. ExportGame cooks the ordinary mask Atlas and includes both in its
+hashed inventory; no automatic dependency loading occurs. Zig requests/copies links via existing
+blob IO, parses `nx.twod_effects.EmissionAsset`, loads the mask and applies explicit Sprite effects.
+Source/export UUIDs stay stable; changed native pixel generations get fresh IDs. The native
+compiler's `emission links.source links.nx2emission base.nx2atlas mask.nx2atlas` command verifies
+metadata and matched regions before publication. [Format/lifetime](../../Engine/TwoD/EmissionAssets.md).

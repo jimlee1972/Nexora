@@ -5,6 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
+#include "Nexora/Presentation/TwoDBloom.h"
 #include "PbrMaterialUpload.h"
 #include "SceneGeometryResidency.h"
 #include "SceneGeometryUploadKey.h"

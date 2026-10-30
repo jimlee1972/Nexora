@@ -131,3 +131,58 @@ pub const Api = extern struct {
         try check(self.submit_frame.?(self.context, &frame));
     }
 };
+
+/// Borrowed companion links. Load through the existing blob asset service or @embedFile;
+/// register/load the referenced mask Atlas before submitting styles. No allocator or IO here.
+pub const EmissionAsset = struct {
+    id: [2]u64,
+    base_atlas: [2]u64,
+    mask_atlas: [2]u64,
+    regions: []const u8,
+
+    fn number(comptime T: type, bytes: []const u8) T {
+        return @import("std").mem.readInt(T, bytes[0..@sizeOf(T)], .little);
+    }
+    pub fn parse(bytes: []const u8) Error!EmissionAsset {
+        if (bytes.len < 60 or bytes.len > 60 + 1024 * 8) return error.InvalidArgument;
+        if (number(u32, bytes[0..]) != 0x4532444e or number(u32, bytes[4..]) != 1) return error.InvalidArgument;
+        const count = number(u32, bytes[56..]);
+        if (count == 0 or count > 1024 or bytes.len != 60 + @as(usize, count) * 8) return error.InvalidArgument;
+        const result = EmissionAsset{
+            .id = .{ number(u64, bytes[8..]), number(u64, bytes[16..]) },
+            .base_atlas = .{ number(u64, bytes[24..]), number(u64, bytes[32..]) },
+            .mask_atlas = .{ number(u64, bytes[40..]), number(u64, bytes[48..]) },
+            .regions = bytes[60..],
+        };
+        const std = @import("std");
+        for ([_][2]u64{ result.id, result.base_atlas, result.mask_atlas }) |identity|
+            if (identity[0] == 0 and identity[1] == 0) return error.InvalidArgument;
+        if (std.meta.eql(result.id, result.base_atlas) or std.meta.eql(result.id, result.mask_atlas) or
+            std.meta.eql(result.base_atlas, result.mask_atlas)) return error.InvalidArgument;
+        var i: usize = 0;
+        while (i < result.regions.len) : (i += 8) {
+            const base = number(u32, result.regions[i..]);
+            if (base == 0 or number(u32, result.regions[i + 4 ..]) == 0) return error.InvalidArgument;
+            var j: usize = 0;
+            while (j < i) : (j += 8)
+                if (number(u32, result.regions[j..]) == base) return error.InvalidArgument;
+        }
+        return result;
+    }
+    pub fn maskFor(self: EmissionAsset, base_region: u32) ?u32 {
+        var offset: usize = 0;
+        while (offset < self.regions.len) : (offset += 8)
+            if (number(u32, self.regions[offset..]) == base_region)
+                return number(u32, self.regions[offset + 4 ..]);
+        return null;
+    }
+    pub fn apply(self: EmissionAsset, sprite: Sprite, base_region: u32, color: [3]f32, intensity: f32) Error!Sprite {
+        var result = sprite;
+        result.emission_region = self.maskFor(base_region) orelse return error.InvalidArgument;
+        result.emission_atlas_high = self.mask_atlas[0];
+        result.emission_atlas_low = self.mask_atlas[1];
+        result.emission_color = color;
+        result.emission_intensity = intensity;
+        return result;
+    }
+};

@@ -17,3 +17,5 @@ target_sources(NexoraTwoD PRIVATE src/GameplayAssets.cpp)
 target_sources(NexoraTwoD PRIVATE src/GameplayEffects.cpp)
 
 target_sources(NexoraTwoD PRIVATE src/EffectsRendering.cpp)
+
+target_sources(NexoraTwoD PRIVATE src/EmissionAssets.cpp)

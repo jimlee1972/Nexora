@@ -63,3 +63,10 @@ identity, preserving all fields of the existing pool handle; never truncate a ha
 sorted Sprite index. Tokens are service-local runtime data and must not be saved. The optional
 table tail negotiates independently: old hosts retain original effects operations while pool
 identity lookup reports `error.Unsupported`. Failed requests leave the previous valid snapshot.
+
+
+Emission companion blobs use `twod_effects.EmissionAsset.parse(copied_bytes)`. This borrowed view
+resolves base-region to mask-region and `apply` fills an existing effects Sprite while preserving
+its entity/pool identity. Keep the copied bytes alive, register/load the mask Atlas first, then
+submit normally. Parsing is allocation-free and rejects malformed/truncated/duplicate links;
+original effects table and Sprite layouts do not change. [Contract](../../Engine/TwoD/EmissionAssets.md).

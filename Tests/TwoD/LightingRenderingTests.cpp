@@ -1,4 +1,5 @@
 #include "Nexora/TwoD/EffectsRendering.h"
+#include "Nexora/TwoD/EmissionAssets.h"
 #include <cassert>
 #include <cmath>
 #include <limits>
@@ -121,6 +122,58 @@ int main() {
     v.lighting.groups = 1;
   extracted = ExtractSprites(sprites, camera, resolver);
   assert(extracted && extracted->batches.size() == 1 && extracted->batches[0].elementCount == 18);
+  // A separate mask Atlas may repack differently. Its immutable generation is retained
+  // beside base geometry, and UV scale/bias follows both flips without changing the wire.
+  auto maskPacked = PackAtlas({3, 4}, std::span(&image, 1), 16, 8, false);
+  assert(maskPacked);
+  auto mask = std::make_shared<Atlas>(std::move(*maskPacked));
+  const AtlasResolver paired = [&](AssetId id) -> std::optional<AtlasBinding> {
+    if (id == atlas->id)
+      return AtlasBinding{atlas, 123};
+    if (mask && id == mask->id)
+      return AtlasBinding{mask, 456};
+    return {};
+  };
+  EmissionAsset links{{5, 6}, atlas->id, mask->id, {{1, 1}}};
+  assert(ValidateEmissionDependencies(links, *atlas, *mask));
+  auto wire = EncodeEmissionAsset(links);
+  assert(wire.size() == 68 && DecodeEmissionAsset(wire)->maskAtlas == mask->id);
+  auto trailing = wire;
+  trailing.push_back(std::byte{});
+  assert(!DecodeEmissionAsset(trailing));
+  for (std::size_t n = 0; n < wire.size(); ++n)
+    assert(!DecodeEmissionAsset(std::span(wire).first(n)));
+  links.regions.push_back({1, 1});
+  assert(!ValidateEmissionAsset(links));
+  links.regions.resize(1);
+  auto wrongMask = *mask;
+  wrongMask.nearest = true;
+  assert(!ValidateEmissionDependencies(links, *atlas, wrongMask));
+  wrongMask = *mask;
+  wrongMask.id = {7, 8};
+  assert(!ValidateEmissionDependencies(links, *atlas, wrongMask));
+  for (auto &v : sprites)
+    v.emission = EmissionSource{mask->id, 1, {1, 0.5F, 0}, 4};
+  sprites[0].sprite.flipX = sprites[0].sprite.flipY = true;
+  extracted = ExtractSprites(sprites, camera, paired);
+  assert(extracted && extracted->retainedAtlases.size() == 2 && extracted->batches.size() == 1);
+  const auto style = extracted->lightingStyles[0];
+  assert(style.emissionTexture == 456 && style.emission[3] == 4);
+  const auto *mr = mask->Find(1);
+  for (const auto &vertex : extracted->vertices) {
+    const float u = vertex.uv[0] * style.emissionUv[0] + style.emissionUv[2];
+    const float v = vertex.uv[1] * style.emissionUv[1] + style.emissionUv[3];
+    assert(u >= float(mr->x) / mask->width - 0.000001F &&
+           u <= float(mr->x + mr->width) / mask->width + 0.000001F &&
+           v >= float(mr->y) / mask->height - 0.000001F &&
+           v <= float(mr->y + mr->height) / mask->height + 0.000001F);
+  }
+  mask.reset();
+  assert(extracted->Uploads().size() == 2); // Old frame owns the mask after removal.
+  const auto unavailable = ExtractSprites(sprites, camera, paired);
+  assert(unavailable && unavailable->statistics.unavailable == sprites.size());
+  for (auto &v : sprites)
+    v.emission = {};
   sprites[0].sprite.visible = false;
   sprites[0].lighting.receiveLight = 2;
   assert(!ExtractSprites(sprites, camera, resolver));

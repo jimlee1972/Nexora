@@ -930,3 +930,5 @@ remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or
 HD2D-03 preparation integrates flat point lights and live identity styles into the generic Player. Vulkan oracle/compatibility tests are local evidence; all-backend acceptance remains pending and engineering credit stays with Beads.
 
 HD2D-04 preparation adds native angular shadow compute with a 52-frame independent CPU pixel oracle; full Linux Development/Shipping passed locally. Windows/Metal CI and dependent PR acceptance remain pending. [Evidence](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md).
+
+HD2D-05 preparation adds companion linear masks, ordered emission and <=5-level selective bloom, with asset/export/lifetime tests. Acceptance remains pending; [evidence](../../Engine/TwoD/evidence/HD2D-05-Linux-2026-10-31.md).

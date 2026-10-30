@@ -23,6 +23,7 @@ struct alignas(16) TwoDLightingUniform final {
   std::array<float, 4> ambientStrength{1, 1, 1, 1};
   std::array<std::uint32_t, 4> counts{};
   std::array<std::array<std::uint32_t, 4>, 2> shadowLights{};
+  std::array<float, 4> bloom{}; // Intensity, diffusion in output pixels, reserved, reserved.
   std::array<TwoDPointLight, 32> lights{};
 };
 struct TwoDLightingStyle final {
@@ -30,6 +31,9 @@ struct TwoDLightingStyle final {
   std::uint32_t receiveLight{1};
   std::uint32_t receiveShadow{1};
   std::uint32_t reserved{};
+  std::uint64_t emissionTexture{};
+  std::array<float, 4> emission{};             // Linear RGB and intensity, before frame strength.
+  std::array<float, 4> emissionUv{1, 1, 0, 0}; // Base UV -> mask UV scale/bias.
   friend bool operator==(const TwoDLightingStyle &, const TwoDLightingStyle &) = default;
 };
 struct TwoDLighting final {
@@ -40,16 +44,22 @@ struct TwoDLighting final {
 };
 struct TwoDShaderConstants final {
   std::array<float, 4> clip{};
-  TwoDLightingStyle style{UINT32_MAX, 0, 0, 0};
+  std::array<std::uint32_t, 4> style{UINT32_MAX, 0, 0, 0};
+  std::array<float, 4> emission{}, emissionUv{1, 1, 0, 0};
+  void SetStyle(const TwoDLightingStyle &s) noexcept {
+    style = {s.groups, s.receiveLight, s.receiveShadow, s.reserved};
+    emission = s.emission;
+    emissionUv = s.emissionUv;
+  }
 };
-static_assert(sizeof(TwoDPointLight) == 64 && sizeof(TwoDLightingUniform) == 2144);
-static_assert(sizeof(TwoDLightingStyle) == 16 && sizeof(TwoDShaderConstants) == 32);
+static_assert(sizeof(TwoDPointLight) == 64 && sizeof(TwoDLightingUniform) == 2160);
+static_assert(sizeof(TwoDShaderConstants) == 64);
 [[nodiscard]] inline bool ValidateTwoDLighting(const TwoDLighting *lighting, std::size_t commands) {
   if (!lighting)
     return true;
   const auto &u = lighting->uniforms;
   if (lighting->styles.size() != commands || u.counts[0] > 32 || u.counts[1] > 8 ||
-      u.counts[2] > 2048 || u.counts[2] != lighting->edges.size() || u.counts[3])
+      u.counts[2] > 2048 || u.counts[2] != lighting->edges.size() || u.counts[3] > 5)
     return false;
   for (auto transform : {u.worldX, u.worldY})
     for (float f : transform)
@@ -59,9 +69,21 @@ static_assert(sizeof(TwoDLightingStyle) == 16 && sizeof(TwoDShaderConstants) == 
     if (!std::isfinite(u.ambientStrength[i]) || u.ambientStrength[i] < 0 ||
         u.ambientStrength[i] > (i == 3 ? 1.F : 1000000.F))
       return false;
-  for (const auto &s : lighting->styles)
-    if (s.receiveLight > 1 || s.receiveShadow > 1 || s.reserved)
+  if (!std::isfinite(u.bloom[0]) || u.bloom[0] < 0 || u.bloom[0] > 1000000 ||
+      !std::isfinite(u.bloom[1]) || u.bloom[1] < 0 || u.bloom[1] > 64 || u.bloom[2] || u.bloom[3] ||
+      (u.bloom[0] > 0 && !u.counts[3]))
+    return false;
+  for (const auto &s : lighting->styles) {
+    if (s.receiveLight > 1 || s.receiveShadow > 1 || s.reserved ||
+        (!s.emissionTexture && s.emission[3] != 0))
       return false;
+    for (float f : s.emission)
+      if (!std::isfinite(f) || f < 0 || f > 1000000)
+        return false;
+    for (float f : s.emissionUv)
+      if (!std::isfinite(f) || std::abs(f) > 1000000)
+        return false;
+  }
   unsigned shadowCount{};
   for (unsigned i = 0; i < u.counts[0]; ++i) {
     const auto &l = u.lights[i];

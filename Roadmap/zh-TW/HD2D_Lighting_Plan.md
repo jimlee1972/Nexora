@@ -16,7 +16,7 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ✅ HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | 已驗收 [PR #735](https://github.com/jimlee1972/Nexora/pull/735)，squash `ed0e51e4`；41 項 CI 與三後端原生證據 |
 | ✅ HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | 已驗收 PR #736，squash `40c96072`；目前提交的原生 DX12／Metal 與 Linux gate 通過 |
 | HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | IN_PROGRESS — 相依 GPU／CPU 參考值施工，尚未驗收 |
-| HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | NOT_RUN |
+| HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | IN_PROGRESS — 明示 mask／bloom、工具／回收／原生本地驗證；CI 待驗 |
 | HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | NOT_RUN |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | NOT_RUN |
 | HD2D-PC | `nexora-m6m.8` | Windows 實機驗收 | 07 | NOT_RUN |
@@ -49,10 +49,10 @@ HD2D-01：[PR #734](https://github.com/jimlee1972/Nexora/pull/734)，squash `362
 
 HD2D-02: [Linux 證據](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).
 
-HD2D-03: [本地證據](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md)；已驗收 PR #736，`40c96072`。
+HD2D-03: [本地證據](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); IN_PROGRESS.
 
 HD2D-04 本地施工：GPU 角度陰影圖與獨立 CPU 參考值；[證據](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md)。IN_PROGRESS；相依 PR／原生 CI 通過前不計驗收完成。
 
-HD2D-03 已驗收：[PR #736](https://github.com/jimlee1972/Nexora/pull/736)，squash `40c9607252cff2b856436b7ef23c1db0e44d9d82`。目前提交的 Windows job `124365092041` 通過原生 2D 像素讀回及 425 項測試；macOS job `124365092312` 通過原生 2D 像素讀回及 400 項測試。先前 checkout 網路及雙語文件失敗紀錄保留，未降低斷言；實機驗收仍 NOT_RUN。
+HD2D-05：[本地證據](../../Engine/TwoD/evidence/HD2D-05-Linux-2026-10-31.md)；IN_PROGRESS。
 
-HD2D-04 檢閱快照修正：雙語表格一致顯示 HD2D-03 已驗收及 3/7；未修改執行程式或增加驗收完成度。
+HD2D-03 已驗收：PR #736／`40c96072`；目前提交的 Windows job `124365092041` 與 macOS job `124365092312` 通過實際原生像素及完整桌面 CTest。HD2D-04 PR #737 與本相依階段仍需各自原生 CI。工程 3/7；實機 PC NOT_RUN。

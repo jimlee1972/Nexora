@@ -121,7 +121,8 @@ The inverse rotated orthographic camera includes the safe-frame pixel offset; DP
 not applied again. No normal map, height shadow or emissive-light inference is involved.
 
 The 32-light/8-shadow capacity contract remains. The Player additionally advertises SHADOWS
-when the surface reports native compute support. Nonzero bloom remains Unsupported until HD2D-05. Capacity is not a target
+when the surface reports native compute support. The Player additionally advertises BLOOM only on native surfaces supporting its selective pipeline;
+headless/older hosts retain explicit Unsupported behavior. Capacity is not a target
 60FPS guarantee. GPU frame constants/styles are copied into completed-frame-owned uploads;
 old input arrays and effect snapshots never serve as GPU pointers.
 
@@ -142,3 +143,6 @@ receivers; receive-shadow=false bypasses only shadow visibility, leaving light c
 Environment light is never shadowed. This flat approximation excludes height/roof shadows, colored
 transmission and physically correct area-light penumbra. Frame-owned copied edges/uniforms and
 GPU-completion retirement apply on all native backends. See [evidence](evidence/HD2D-04-Linux-2026-10-31.md).
+
+HD2D-05 connects explicit mask dependencies and bloom to the same frozen Player frame.
+See [companion format, Zig loading and ownership](EmissionAssets.md); submission ABI and Sprite wire remain unchanged.

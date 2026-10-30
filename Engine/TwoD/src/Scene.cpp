@@ -267,6 +267,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     double y;
     std::optional<SpriteLocalQuad> localQuad;
     Nexora::Presentation::TwoDLightingStyle lighting;
+    std::optional<EmissionSource> emission;
   };
   std::vector<Item> items;
   items.reserve(instances.size());
@@ -276,6 +277,15 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     if (!instance.id || !ValidateSprite(instance.sprite) || instance.lighting.receiveLight > 1 ||
         instance.lighting.receiveShadow > 1 || instance.lighting.reserved)
       return std::nullopt;
+    if (instance.emission) {
+      const auto &e = *instance.emission;
+      if ((!e.atlas.high && !e.atlas.low) || !e.region || !std::isfinite(e.intensity) ||
+          e.intensity < 0 || e.intensity > 1000000)
+        return std::nullopt;
+      for (float c : e.color)
+        if (!std::isfinite(c) || c < 0 || c > 1000000)
+          return std::nullopt;
+    }
     ids.push_back(instance.id);
     if (instance.matrix[3] != 0 || instance.matrix[7] != 0 || instance.matrix[11] != 0 ||
         instance.matrix[15] != 1)
@@ -297,7 +307,7 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     if (sprite.visible && sprite.color[3] > 0)
       items.push_back({instance.id, sprite, instance.matrix,
                        sprite.sortY ? -instance.matrix[13] : 0, instance.localQuad,
-                       instance.lighting});
+                       instance.lighting, instance.emission});
   }
   if (!std::is_sorted(ids.begin(), ids.end()))
     std::sort(ids.begin(), ids.end());
@@ -423,10 +433,35 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
       continue;
     }
     const auto &binding = *resolvedBinding;
+    const auto textureId = binding.texture;
     const auto &atlas = *binding.atlas;
     const auto *region = atlas.Find(s.region);
     if (!region)
       return std::nullopt;
+    auto lighting = item->lighting;
+    if (item->emission) {
+      const auto &e = *item->emission;
+      const auto *maskBinding = bind(e.atlas);
+      if (invalidBinding)
+        return std::nullopt;
+      if (!maskBinding) {
+        ++frame.statistics.unavailable;
+        continue;
+      }
+      const auto &mask = *maskBinding->atlas;
+      const auto *maskRegion = mask.Find(e.region);
+      if (!maskRegion || mask.nearest || maskRegion->width != region->width ||
+          maskRegion->height != region->height)
+        return std::nullopt;
+      lighting.emissionTexture = maskBinding->texture;
+      lighting.emission = {e.color[0], e.color[1], e.color[2], e.intensity};
+      const float sx = float(maskRegion->width) * atlas.width / (float(mask.width) * region->width);
+      const float sy =
+          float(maskRegion->height) * atlas.height / (float(mask.height) * region->height);
+      lighting.emissionUv = {
+          sx, sy, float(maskRegion->x) / mask.width - sx * float(region->x) / atlas.width,
+          float(maskRegion->y) / mask.height - sy * float(region->y) / atlas.height};
+    }
     std::uint32_t color = 0;
     for (unsigned i = 0; i < 4; ++i)
       color |= static_cast<std::uint32_t>(std::lround(s.color[i] * 255)) << (8 * i);
@@ -445,14 +480,14 @@ std::optional<SpriteFrame> ExtractSprites(std::span<const SpriteInstance> instan
     frame.vertices.insert(frame.vertices.end(), vertices.begin(), vertices.end());
     for (const auto index : {0U, 1U, 2U, 0U, 2U, 3U})
       frame.indices.push_back(base + index);
-    if (!frame.batches.empty() && frame.batches.back().textureId == binding.texture &&
-        frame.lightingStyles.back() == item->lighting)
+    if (!frame.batches.empty() && frame.batches.back().textureId == textureId &&
+        frame.lightingStyles.back() == lighting)
       frame.batches.back().elementCount += 6;
     else {
       if (frame.batches.size() >= 65536)
         return std::nullopt;
-      frame.batches.push_back({0, 0, camera.width, camera.height, binding.texture, 6, offset, 0});
-      frame.lightingStyles.push_back(item->lighting);
+      frame.batches.push_back({0, 0, camera.width, camera.height, textureId, 6, offset, 0});
+      frame.lightingStyles.push_back(lighting);
     }
     ++frame.statistics.visible;
     frame.statistics.coveredPixels +=

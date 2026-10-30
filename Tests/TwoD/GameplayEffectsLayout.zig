@@ -69,3 +69,33 @@ test "new Zig bindings retain old effects hosts and preserve complete pool handl
     stale.generation -= 1;
     try std.testing.expectError(error.InvalidArgument, current.poolIdentity(stale));
 }
+
+test "companion emission codec validates borrowed links without altering the Sprite ABI" {
+    var bytes = [_]u8{0} ** 68;
+    std.mem.writeInt(u32, bytes[0..4], 0x4532444e, .little);
+    std.mem.writeInt(u32, bytes[4..8], 1, .little);
+    std.mem.writeInt(u64, bytes[8..16], 5, .little);
+    std.mem.writeInt(u64, bytes[16..24], 6, .little);
+    std.mem.writeInt(u64, bytes[24..32], 1, .little);
+    std.mem.writeInt(u64, bytes[32..40], 2, .little);
+    std.mem.writeInt(u64, bytes[40..48], 3, .little);
+    std.mem.writeInt(u64, bytes[48..56], 4, .little);
+    std.mem.writeInt(u32, bytes[56..60], 1, .little);
+    std.mem.writeInt(u32, bytes[60..64], 17, .little);
+    std.mem.writeInt(u32, bytes[64..68], 29, .little);
+    const asset = try nx.twod_effects.EmissionAsset.parse(&bytes);
+    try std.testing.expectEqual(@as(?u32, 29), asset.maskFor(17));
+    try std.testing.expectEqual(@as(?u32, null), asset.maskFor(1));
+    const sprite = try asset.apply(.{ .handle = 77 }, 17, .{ 1, 0.5, 0 }, 4);
+    try std.testing.expectEqual(@as(u64, 77), sprite.handle);
+    try std.testing.expectEqual(@as(u64, 3), sprite.emission_atlas_high);
+    try std.testing.expectEqual(@as(u32, 29), sprite.emission_region);
+    try std.testing.expectError(error.InvalidArgument, asset.apply(.{}, 1, .{ 1, 1, 1 }, 1));
+    for (0..bytes.len) |length|
+        try std.testing.expectError(error.InvalidArgument, nx.twod_effects.EmissionAsset.parse(bytes[0..length]));
+    var trailing = [_]u8{0} ** 69;
+    @memcpy(trailing[0..68], &bytes);
+    try std.testing.expectError(error.InvalidArgument, nx.twod_effects.EmissionAsset.parse(&trailing));
+    bytes[60] = 0;
+    try std.testing.expectError(error.InvalidArgument, nx.twod_effects.EmissionAsset.parse(&bytes));
+}

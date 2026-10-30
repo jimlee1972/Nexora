@@ -66,6 +66,12 @@ struct Collider final {
 struct SpriteLocalQuad final {
   math::Vector2 minimum{}, maximum{};
 };
+struct EmissionSource final {
+  AssetId atlas;
+  std::uint32_t region{};
+  std::array<float, 3> color{1, 1, 1};
+  float intensity{};
+};
 struct SpriteInstance final {
   std::uint64_t id{};
   Sprite sprite;
@@ -75,6 +81,7 @@ struct SpriteInstance final {
   std::optional<SpriteLocalQuad> localQuad{};
   // Associated before sorting; never resolved through the resulting batch/array index.
   Nexora::Presentation::TwoDLightingStyle lighting{};
+  std::optional<EmissionSource> emission{};
 };
 // Copies a styled instance, replaces Atlas/region/size and supplies source-derived geometry.
 // Flip mirrors source geometry around the original Pivot and also uses existing UV flips.

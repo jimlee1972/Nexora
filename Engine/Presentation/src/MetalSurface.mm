@@ -3,6 +3,7 @@
 #endif
 #include "GpuTiming.h"
 #include "Nexora/Presentation/Surface.h"
+#include "Nexora/Presentation/TwoDBloom.h"
 #include "PbrMaterialUpload.h"
 #include "SceneGeometryResidency.h"
 #include "SceneGeometryUploadKey.h"
@@ -714,7 +715,8 @@ public:
       valid_ = false;
       const bool drained = DrainFrames();
       ResetTwoDLinearFrames();
-      twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ = nil;
+      twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ =
+          twoDBloomPipeline_ = nil;
       twoDShadowPipeline_ = nil;
       meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
       for (std::size_t i = 0; i < kFrames; ++i) {
