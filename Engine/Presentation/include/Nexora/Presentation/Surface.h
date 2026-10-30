@@ -582,9 +582,9 @@ TwoDLinearClip(const UiDrawCommand &command, const std::array<std::uint32_t, 4> 
         if (stride == 4)
           std::memcpy(&index, packet->indices.data() + i * stride, 4);
         else {
-          std::uint16_t small{};
-          std::memcpy(&small, packet->indices.data() + i * stride, 2);
-          index = small;
+          std::uint16_t shortIndex{};
+          std::memcpy(&shortIndex, packet->indices.data() + i * stride, 2);
+          index = shortIndex;
         }
         const auto vertex = std::int64_t(index) + command.vertexOffset;
         if (vertex < 0 || std::uint64_t(vertex) >= packet->vertices.size())

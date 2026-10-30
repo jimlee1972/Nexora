@@ -262,7 +262,8 @@ elseif(WIN32 OR APPLE)
   target_include_directories(NexoraTwoDLinearNativeTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/Presentation/include")
   target_compile_definitions(NexoraTwoDLinearNativeTests PRIVATE NEXORA_PRESENTATION_STATIC=1)
   nexora_apply_defaults(NexoraTwoDLinearNativeTests)
-  add_test(NAME window_presentation.twod_linear_native COMMAND NexoraTwoDLinearNativeTests)
+  add_test(NAME window_presentation.twod_linear_native COMMAND NexoraTwoDLinearNativeTests
+    "${CMAKE_BINARY_DIR}/artifacts/twod-linear-native.ppm")
   set_tests_properties(window_presentation.twod_linear_native PROPERTIES
     SKIP_RETURN_CODE 77 TIMEOUT 120 RUN_SERIAL TRUE LABELS "twod;native-display")
 endif()

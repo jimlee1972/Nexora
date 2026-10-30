@@ -1,4 +1,7 @@
+// Windows RPC headers define this token; public headers must tolerate it.
+#define small char
 #include "Nexora/Presentation/Surface.h"
+#undef small
 #include <array>
 #include <cassert>
 #include <limits>

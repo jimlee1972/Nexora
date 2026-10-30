@@ -244,6 +244,9 @@ int main(int argc, char **argv) {
     Require(state.twoDLinearTargetAllocations <= 18, "bounded completed-slot target reuse");
     Require(state.spriteGpuInstances > 0, "native instanced path exercised");
     if (argc == 2) {
+      const auto parent = std::filesystem::path(argv[1]).parent_path();
+      if (!parent.empty())
+        std::filesystem::create_directories(parent);
       std::ofstream image(std::filesystem::path(argv[1]), std::ios::binary);
       image << "P6\n" << finalWidth << " " << finalHeight << "\n255\n";
       for (std::size_t i = 0; i < finalPixels.size(); i += 4)
