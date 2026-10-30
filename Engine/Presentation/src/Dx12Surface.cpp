@@ -167,6 +167,7 @@ public:
       ++diagnostics_.fenceWaits;
     }
     CollectGpuTiming(frame_);
+    twoDLinearRecorded_ = false;
     meshResidency_.BeginFrame();
     retired_[frame_].clear();
     freeUiDescriptors_.insert(freeUiDescriptors_.end(), retiredUiDescriptors_[frame_].begin(),
@@ -316,6 +317,8 @@ public:
       return SurfaceStatus::InvalidDescriptor;
     if (!ValidateSpriteInstances(drawData))
       return SurfaceStatus::InvalidDescriptor;
+    if (!twoDLinearRecorded_)
+      ResetTwoDLinearFrame(twoDLinearFrames_[frame_]);
     for (const auto &upload : drawData.textureUploads) {
       const auto previous = uiTextures_.find(upload.textureId);
       if (previous != uiTextures_.end() && previous->second.immutable &&

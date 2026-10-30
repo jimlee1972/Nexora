@@ -1,5 +1,6 @@
 // Included inside MetalSurface. Targets and upload storage belong to completed frame slots.
 private:
+bool twoDLinearRecorded_{};
 struct TwoDBloomTarget {
   id<MTLTexture> image = nil;
   std::uint32_t width{}, height{};
@@ -21,14 +22,16 @@ id<MTLRenderPipelineState> twoDBloomPipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearPipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearInstancePipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearCompositePipeline_ = nil;
+void ResetTwoDLinearFrame(TwoDLinearFrame &f) {
+  diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
+  for (const auto &target : f.bloom)
+    diagnostics_.twoDBloomTargetBytes -= target.bytes;
+  diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
+  f = {};
+}
 void ResetTwoDLinearFrames() {
-  for (auto &f : twoDLinearFrames_) {
-    diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
-    for (const auto &target : f.bloom)
-      diagnostics_.twoDBloomTargetBytes -= target.bytes;
-    diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
-    f = {};
-  }
+  for (auto &f : twoDLinearFrames_)
+    ResetTwoDLinearFrame(f);
 }
 bool CreateTwoDLinearPipelines() {
   if (twoDLinearPipeline_ && twoDLinearInstancePipeline_ && twoDLinearCompositePipeline_ &&
@@ -198,9 +201,7 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
     return true;
   for (const auto &target : f.bloom)
     diagnostics_.twoDBloomTargetBytes -= target.bytes;
-  diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
-  diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
-  f = {};
+  ResetTwoDLinearFrame(f);
   f.width = width_;
   f.height = height_;
   auto desc = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float
@@ -243,6 +244,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     if (!drawable_ || !commands_ || sceneDrawn_ || uiRendered_ ||
         !ValidateTwoDLinearDraws(data, width_, height_))
       return SurfaceStatus::InvalidDescriptor;
+    twoDLinearRecorded_ = true;
     for (const auto *packet : {&data.world, &data.overlay})
       for (const auto &upload : packet->textureUploads) {
         const auto old = uiTextureMetadata_.find(upload.textureId);

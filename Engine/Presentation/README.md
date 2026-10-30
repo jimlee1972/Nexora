@@ -1175,3 +1175,8 @@ Unused targets retire on safe slot reuse; resize/drain release them. Allocation/
 counters are separate from timing. The native test's independent double oracle covers selective
 bloom, unchanged nonemitters/HUD, opaque/translucent edges, odd sizes and final zero ownership.
 See [mask/lifetime contract](../TwoD/EmissionAssets.md) and [stage evidence](../TwoD/evidence/HD2D-05-Linux-2026-10-31.md).
+
+Effects-off legacy rendering retires the completed slot owners without draining unrelated frames.
+A per-acquisition recording flag protects both inline and subsequently appended HUD from retiring
+the current linear targets. Three legacy acquisitions cover all supported slots; re-enable
+recreates targets. This is tested separately from drawing an unlit opt-in linear frame.

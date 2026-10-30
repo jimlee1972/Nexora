@@ -1,5 +1,6 @@
 // Included inside VulkanSurface; uses only its existing device, frame and texture owners.
 private:
+bool twoDLinearRecorded_{};
 struct TwoDBloomTarget {
   VkImage image{};
   VkDeviceMemory memory{};
@@ -587,6 +588,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   if (!acquired_ || transferTarget_ || sceneRendered_ || sceneOffscreen_ || frame.uiFramebuffer ||
       !ValidateTwoDLinearDraws(data, width_, height_))
     return SurfaceStatus::InvalidDescriptor;
+  twoDLinearRecorded_ = true;
   for (const auto *packet : {&data.world, &data.overlay})
     for (const auto &command : packet->commands) {
       bool known = uiTextures_.contains(command.textureId);

@@ -27,6 +27,11 @@ void Require(bool value, const char *message) {
   if (!value)
     throw std::runtime_error(message);
 }
+unsigned EncodeLinear(double linear) {
+  const double encoded =
+      linear <= 0.0031308 ? 12.92 * linear : 1.055 * std::pow(linear, 1 / 2.4) - 0.055;
+  return unsigned(std::lround(std::clamp(encoded, 0.0, 1.0) * 255));
+}
 unsigned Encode(double linear) {
   const double mapped = std::clamp(
       linear * (2.51 * linear + 0.03) / (linear * (2.43 * linear + 0.59) + 0.14), 0.0, 1.0);
@@ -423,6 +428,34 @@ int main(int argc, char **argv) {
                 state.twoDShadowDispatches == shadowFrames &&
                 state.twoDShadowSamples == shadowSamples && state.twoDShadowBufferBytes > 0,
             "GPU shadow dispatch/capacity/sample/resource accounting");
+    // Actual legacy rendering after opt-out retires each completed effects slot.
+    // An appended UI draw inside the same effects frame must never retire live resources.
+    auto legacy = PrepareSpriteDraws(restored.source, restored.overlay, finalWidth, finalHeight,
+                                     true, 0xff000000);
+    Require(bool(legacy), "legacy fallback preparation");
+    const std::array<unsigned, 3> legacyExpected{EncodeLinear(alpha + (1 - alpha) * base),
+                                                 EncodeLinear((1 - alpha) * base),
+                                                 EncodeLinear((1 - alpha) * base)};
+    for (unsigned slot = 0; slot < 3; ++slot) {
+      Require(surface->Acquire() == SurfaceStatus::Ready, "effects-off acquire");
+      Require(surface->RenderUi(legacy->View()) == SurfaceStatus::Ready,
+              "actual legacy fallback draw");
+      (void)read(finalWidth, finalHeight, legacyExpected, EncodeLinear(base), false, true);
+    }
+    Require(surface->Diagnostics().twoDLinearTargetBytes == 0 &&
+                surface->Diagnostics().twoDBloomTargetBytes == 0 &&
+                surface->Diagnostics().twoDShadowBufferBytes == 0,
+            "effects-off retires all completed slot targets and buffers");
+    Require(surface->Acquire() == SurfaceStatus::Ready, "effects resume acquire");
+    Require(surface->DrawTwoDLinear({restored.prepared.View(), {}, {}}) == SurfaceStatus::Ready,
+            "effects resume creates fresh targets");
+    Require(surface->RenderUi(restored.overlay) == SurfaceStatus::Ready,
+            "appended HUD after linear call retains currently recorded targets");
+    (void)read(finalWidth, finalHeight, restoredExpected, Encode(base), false, true);
+    ++frames;
+    Require(surface->Diagnostics().twoDLinearFrames == frames &&
+                surface->Diagnostics().twoDLinearTargetBytes > 0,
+            "effects resume accounting");
     if (argc == 2) {
       const auto parent = std::filesystem::path(argv[1]).parent_path();
       if (!parent.empty())

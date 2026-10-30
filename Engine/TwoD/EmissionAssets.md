@@ -73,3 +73,11 @@ Zero framebuffer extent suspends drawing. Capability/pipeline/allocation failure
 no 3D bloom entry is called. `twoDBloomPasses`, `twoDBloomTargetBytes` and `twoDEmissionDraws` count
 recorded work/current allocations, not resident VRAM or measured GPU duration. Timing and the real
 Zig interactive diagnostic belong to HD2D-06. [Evidence](evidence/HD2D-05-Linux-2026-10-31.md).
+
+
+When the Player disables the effects pipeline, ordinary legacy drawing releases the effects
+resources belonging to that already completed slot. After each in-flight slot has a legacy frame,
+scene/emission/bloom/shadow/upload owners are gone. No extra global wait is added. A flag persists
+from a linear submission through Present: its HUD, including separately appended UI, cannot
+retire targets referenced by commands recorded in the same frame. Re-enable creates fresh targets;
+bounded compiled pipeline objects remain cached until surface destruction.

@@ -241,6 +241,7 @@ public:
     if (vkWaitForFences(device_, 1, &frame.fence, VK_TRUE, UINT64_MAX) != VK_SUCCESS)
       return SurfaceStatus::DeviceLost;
     CollectGpuTiming(frame);
+    twoDLinearRecorded_ = false;
     meshResidency_.BeginFrame();
     DestroyFrameRetirements(frame);
     ++diagnostics_.fenceWaits;
@@ -1014,6 +1015,8 @@ public:
       return SurfaceStatus::InvalidDescriptor;
     if (!ValidateSpriteInstances(drawData))
       return SurfaceStatus::InvalidDescriptor;
+    if (!twoDLinearRecorded_)
+      DestroyTwoDLinearFrame(twoDLinearFrames_[frame_]);
     auto &frame = frames_[frame_];
     for (const auto &upload : drawData.textureUploads) {
       const auto previous = uiTextures_.find(upload.textureId);

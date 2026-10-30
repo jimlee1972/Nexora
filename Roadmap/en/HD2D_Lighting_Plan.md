@@ -56,3 +56,4 @@ HD2D-04 local preparation: GPU angular shadow maps and independent CPU oracle; [
 HD2D-05: [local evidence](../../Engine/TwoD/evidence/HD2D-05-Linux-2026-10-31.md); IN_PROGRESS.
 
 HD2D-03 accepted: PR #736 / `40c96072`; current-head Windows job `124365092041` and macOS job `124365092312` passed actual native pixels and full desktop CTest. HD2D-04 PR #737 and this dependent stage still require their own native CI. Engineering 3/7; physical PC NOT_RUN.
+HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames release offscreen owners; appended HUD stays protected and re-enable recreates targets. Local/native gate evidence remains linked; no acceptance credit before CI.

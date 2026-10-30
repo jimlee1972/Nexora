@@ -932,3 +932,5 @@ HD2D-03 preparation integrates flat point lights and live identity styles into t
 HD2D-04 preparation adds native angular shadow compute with a 52-frame independent CPU pixel oracle; full Linux Development/Shipping passed locally. Windows/Metal CI and dependent PR acceptance remain pending. [Evidence](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md).
 
 HD2D-05 preparation adds companion linear masks, ordered emission and <=5-level selective bloom, with asset/export/lifetime tests. Acceptance remains pending; [evidence](../../Engine/TwoD/evidence/HD2D-05-Linux-2026-10-31.md).
+
+HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames release offscreen owners; appended HUD stays protected and re-enable recreates targets. Local/native gate evidence remains linked; no acceptance credit before CI.

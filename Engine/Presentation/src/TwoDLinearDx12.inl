@@ -1,5 +1,6 @@
 // Included inside Dx12Surface; each offscreen owner follows the existing swapchain-slot fence.
 private:
+bool twoDLinearRecorded_{};
 struct TwoDBloomTarget {
   ComPtr<ID3D12Resource> image;
   std::uint32_t width{}, height{};
@@ -396,6 +397,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   if (!acquired_ || sceneDrawn_ || uiDrawn_ || compositeDrawn_ ||
       !ValidateTwoDLinearDraws(data, width_, height_))
     return SurfaceStatus::InvalidDescriptor;
+  twoDLinearRecorded_ = true;
   for (const auto *packet : {&data.world, &data.overlay})
     for (const auto &upload : packet->textureUploads) {
       const auto old = uiTextures_.find(upload.textureId);

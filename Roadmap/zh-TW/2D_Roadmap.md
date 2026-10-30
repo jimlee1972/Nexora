@@ -827,3 +827,5 @@ HD2D-03 施工將平面點光源及即時物件識別樣式接入通用 Player�
 HD2D-04 施工新增原生角度陰影 compute 與 52 畫面獨立 CPU 像素參考值；本地完整 Linux Development／Shipping 通過。Windows／Metal CI 及相依 PR 驗收待完成。[證據](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md)。
 
 HD2D-05 施工加入配對線性 mask、有序 emission 與最多五層選擇性 bloom，包含素材／匯出／回收測試。尚未驗收；[證據](../../Engine/TwoD/evidence/HD2D-05-Linux-2026-10-31.md)。
+
+HD2D-05 補上整條管線關閉後的回收：原繪製路徑逐槽釋放已完成的離屏資源，保護後加 HUD，重新啟用可重建。依連結保留本地／原生 gate 證據；CI 前不計驗收完成。
