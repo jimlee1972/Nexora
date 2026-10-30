@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **1/7（14%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **2/7（29%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
