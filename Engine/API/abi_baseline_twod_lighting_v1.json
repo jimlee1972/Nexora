@@ -1,0 +1,7 @@
+{
+  "major": 3,
+  "extension_version": 1,
+  "effects_api_suffix": [
+    "pool_identity"
+  ]
+}

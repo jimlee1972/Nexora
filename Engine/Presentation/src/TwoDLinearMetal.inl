@@ -179,7 +179,9 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
                              {{float(width_), float(height_)}, {1, 1}, 0xffffffff},
                              {{0, float(height_)}, {0, 1}, 0xffffffff}};
     const std::uint32_t indices[] = {0, 1, 2, 0, 2, 3};
-    const auto required = quadOffset + sizeof(quad) + sizeof(indices);
+    const auto uniformOffset =
+        (quadOffset + sizeof(quad) + sizeof(indices) + 255U) & ~std::size_t(255);
+    const auto required = uniformOffset + sizeof(TwoDLightingUniform);
     if (f.capacity < required) {
       f.capacity = 4096;
       while (f.capacity < required)
@@ -196,6 +198,9 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       std::memcpy(bytes + instanceOffset, instances.data(), instances.size());
     std::memcpy(bytes + quadOffset, quad, sizeof(quad));
     std::memcpy(bytes + quadOffset + sizeof(quad), indices, sizeof(indices));
+    const TwoDLightingUniform fallback{};
+    std::memcpy(bytes + uniformOffset, data.lighting ? &data.lighting->uniforms : &fallback,
+                sizeof(fallback));
     auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
     for (unsigned i = 0; i < 2; ++i) {
       pass.colorAttachments[i].texture = f.colors[i];
@@ -206,10 +211,16 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     auto encoder = [commands_ renderCommandEncoderWithDescriptor:pass];
     if (!encoder)
       return SurfaceStatus::DeviceLost;
-    const float transform[] = {2.F / width_, -2.F / height_, -1, 1};
+    TwoDShaderConstants transform{{2.F / width_, -2.F / height_, -1, 1}};
     [encoder setViewport:MTLViewport{0, 0, double(width_), double(height_), 0, 1}];
-    [encoder setVertexBytes:transform length:sizeof(transform) atIndex:0];
+    [encoder setVertexBytes:&transform length:sizeof(transform) atIndex:0];
+    [encoder setFragmentBuffer:f.upload offset:uniformOffset atIndex:1];
+    std::size_t commandIndex{};
     for (const auto &c : data.world.commands) {
+      transform.style = data.lighting ? data.lighting->styles[commandIndex]
+                                      : TwoDLightingStyle{UINT32_MAX, 0, 0, 0};
+      ++commandIndex;
+      [encoder setFragmentBytes:&transform length:sizeof(transform) atIndex:0];
       const auto clipped = TwoDLinearClip(c, data.viewport, width_, height_);
       if (!clipped[2] || !clipped[3])
         continue;
@@ -256,7 +267,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       return SurfaceStatus::DeviceLost;
     [encoder setRenderPipelineState:twoDLinearCompositePipeline_];
     [encoder setViewport:MTLViewport{0, 0, double(width_), double(height_), 0, 1}];
-    [encoder setVertexBytes:transform length:sizeof(transform) atIndex:0];
+    [encoder setVertexBytes:&transform length:sizeof(transform) atIndex:0];
     [encoder setVertexBuffer:f.upload offset:quadOffset atIndex:1];
     [encoder setFragmentTexture:f.colors[0] atIndex:0];
     [encoder setFragmentSamplerState:uiSampler_ atIndex:0];

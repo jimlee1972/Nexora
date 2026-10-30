@@ -1121,3 +1121,12 @@ against an independent CPU tone/alpha/sRGB oracle (maximum two 8-bit channel val
 including instanced/indexed Sprite paths, HUD isolation, safe bars, five sizes, resize, zero
 extent/restore, a world-only frame and final teardown. It is not the interactive Zig diagnostic
 or physical product acceptance. See [HD2D plan](../../Roadmap/en/HD2D_Lighting_Plan.md).
+
+HD2D-03 adds an optional copied `TwoDLighting` packet with one style per prepared world command
+(including an unlit background). Its uniform uses only explicit 16-byte float4/uint4 blocks on all
+three backends; point lights occupy 48 bytes and the 32-light frame 1,600 bytes. No native pointers
+or 44-byte Sprite instance fields change. Vulkan owns an additional uniform descriptor per frame
+slot and negotiates its separate push-constant/layout contract; DX12 owns separate linear/nearest
+root signatures with a frame CBV; Metal binds the same constants separately for vertex/fragment
+stages. Fence/completion protects copied uniforms exactly like geometry. Default null lighting
+keeps HD2D-02 behavior. HUD remains in the original pipeline, outside all lighting and tone mapping.

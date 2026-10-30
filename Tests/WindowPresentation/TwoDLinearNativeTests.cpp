@@ -32,6 +32,26 @@ unsigned Encode(double linear) {
       mapped <= 0.0031308 ? 12.92 * mapped : 1.055 * std::pow(mapped, 1 / 2.4) - 0.055;
   return unsigned(std::lround(srgb * 255));
 }
+std::array<double, 3> LightReference(const TwoDLightingUniform &u, const TwoDLightingStyle &style,
+                                     double x, double y) {
+  if (!style.receiveLight)
+    return {1, 1, 1};
+  const double wx = x * u.worldX[0] + y * u.worldX[1] + u.worldX[2];
+  const double wy = x * u.worldY[0] + y * u.worldY[1] + u.worldY[2];
+  std::array<double, 3> result{u.ambientStrength[0], u.ambientStrength[1], u.ambientStrength[2]};
+  for (unsigned i = 0; i < u.counts[0]; ++i) {
+    const auto &l = u.lights[i];
+    if (!(l.masks[0] & style.groups))
+      continue;
+    const double q =
+        std::hypot(wx - l.positionRadiusIntensity[0], wy - l.positionRadiusIntensity[1]) /
+        l.positionRadiusIntensity[2];
+    const double attenuation = q < 1 ? std::pow(1 - q * q, 2) : 0;
+    for (unsigned c = 0; c < 3; ++c)
+      result[c] += l.color[c] * l.positionRadiusIntensity[3] * attenuation * u.ambientStrength[3];
+  }
+  return result;
+}
 #if !defined(_WIN32) && !defined(__APPLE__)
 unsigned Channel(unsigned long pixel, unsigned long mask) {
   while (!(mask & 1)) {
@@ -173,7 +193,8 @@ int main(int argc, char **argv) {
         {{320, 240}, {321, 239}, {1920, 1080}, {2520, 1080}, {640, 480}}};
     std::vector<std::byte> finalPixels;
     unsigned finalWidth{}, finalHeight{};
-    std::uint64_t frames = 0;
+    std::uint64_t frames = 0, litFrames = 0;
+    std::uint32_t maximumLights{};
     for (const auto &size : sizes) {
       const auto width = size[0], height = size[1];
       Require(windows->Resize(window.handle, width, height) == Window::WindowError::None,
@@ -191,16 +212,55 @@ int main(int argc, char **argv) {
         Require(status == SurfaceStatus::Ready, "acquire after resize");
         const unsigned tint = 255 - frame * 32;
         const double base = (128. / 255) * (double(tint) / 255), alpha = 128. / 255;
-        const std::array<unsigned, 3> expected{Encode(alpha + (1 - alpha) * base),
-                                               Encode((1 - alpha) * base),
-                                               Encode((1 - alpha) * base)};
         Packet packet(width, height, (frame % 2) == 0, tint);
-        TwoDLinearDrawData data{
-            packet.prepared.View(), packet.overlay, {40, 0, width - 80, height}};
+        TwoDLighting lighting;
+        std::array<TwoDLightingStyle, 3> styles{
+            {{UINT32_MAX, 0, 0, 0},
+             {frame == 1 ? 1U : 3U, frame == 6 ? 0U : 1U, 0, 0},
+             {frame == 6 ? 4U : 2U, frame == 2 || frame == 6 ? 1U : 0U, 0, 0}}};
+        lighting.styles = styles;
+        auto &uniform = lighting.uniforms;
+        uniform.worldX = {0.01F, 0, -float(width) * 0.005F, 0};
+        uniform.worldY = {0, -0.01F, float(height) * 0.005F, 0};
+        uniform.ambientStrength = {0.15F, 0.2F, 0.25F,
+                                   frame == 5   ? 0.F
+                                   : frame == 2 ? 0.5F
+                                   : frame == 1 ? 0.75F
+                                                : 1.F};
+        uniform.counts[0] = frame == 2 ? 32 : frame == 4 ? 0 : 2;
+        for (unsigned i = 0; i < uniform.counts[0]; ++i) {
+          auto &light = uniform.lights[i];
+          light.positionRadiusIntensity = {float(std::sin(double(i) + frame * 0.3)) * 0.7F,
+                                           float(std::cos(double(i) + frame * 0.2)) * 0.4F, 1.5F,
+                                           2.F / uniform.counts[0]};
+          light.color = i % 2 ? std::array<float, 4>{0, 0.3F, 0.8F, 0}
+                              : std::array<float, 4>{0.8F, 0.1F, 0, 0};
+          light.masks[0] = i % 2 ? 2 : 1;
+        }
+        const bool lit = frame % 4 != 3;
+        const auto grayLight =
+            lit ? LightReference(uniform, styles[1], width / 2 + 0.5, height / 2 + 0.5)
+                : std::array<double, 3>{1, 1, 1};
+        const auto redLight =
+            lit ? LightReference(uniform, styles[2], width / 2 + 0.5, height / 2 + 0.5)
+                : std::array<double, 3>{1, 1, 1};
+        const std::array<unsigned, 3> expected{
+            Encode(alpha * redLight[0] + (1 - alpha) * base * grayLight[0]),
+            Encode((1 - alpha) * base * grayLight[1]), Encode((1 - alpha) * base * grayLight[2])};
+        TwoDLinearDrawData data{packet.prepared.View(),
+                                packet.overlay,
+                                {40, 0, width - 80, height},
+                                lit ? &lighting : nullptr};
         auto bad = data;
         bad.viewport = {width, 0, 1, height};
         Require(surface->DrawTwoDLinear(bad) == SurfaceStatus::InvalidDescriptor,
                 "invalid frame rejected");
+        auto shortLighting = lighting;
+        shortLighting.styles = std::span(styles).first(2);
+        bad = data;
+        bad.lighting = &shortLighting;
+        Require(surface->DrawTwoDLinear(bad) == SurfaceStatus::InvalidDescriptor,
+                "incomplete style batch rejected before rendering");
         Require(surface->DrawTwoDLinear(data) == SurfaceStatus::Ready,
                 "native FP16 world/composite/HUD");
         auto pixels = read(width, height, expected, Encode(base), true, true);
@@ -214,9 +274,15 @@ int main(int argc, char **argv) {
         Require(channel(2, height / 2, 0) <= 2 && channel(width - 2, height / 2, 0) <= 2,
                 "black safe-frame bars");
         ++frames;
-        finalPixels = std::move(pixels);
-        finalWidth = width;
-        finalHeight = height;
+        if (lit) {
+          ++litFrames;
+          maximumLights = std::max(maximumLights, uniform.counts[0]);
+        }
+        if (frame == 2) {
+          finalPixels = std::move(pixels);
+          finalWidth = width;
+          finalHeight = height;
+        }
       }
     }
     Require(surface->NotifyWindowExtent(0, 0) == SurfaceStatus::ZeroExtent, "zero extent request");
@@ -238,6 +304,7 @@ int main(int argc, char **argv) {
             "world without HUD");
     (void)read(finalWidth, finalHeight, restoredExpected, Encode(base), false, false);
     ++frames;
+    Require(litFrames == 30 && maximumLights == 32, "moving/grouped/32-light native matrix");
     const auto state = surface->Diagnostics();
     Require(state.twoDLinearFrames == frames && state.twoDLinearTargetBytes > 0,
             "native frame/resource accounting");
@@ -261,7 +328,8 @@ int main(int argc, char **argv) {
 #endif
     std::cout << "Linear 2D native CPU oracle/HUD/black bars/instancing/1080p/21:9/odd "
                  "sizes/resize/zero restore/retirement PASS frames="
-              << frames << "\n";
+              << frames << " light_frames=" << litFrames << " maximum_lights=" << maximumLights
+              << "\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << "\n";

@@ -1,5 +1,6 @@
 #include "Nexora/Runtime/GameplayServices.h"
 #include "Nexora/TwoD/GameplayEffects.h"
+#include "Nexora/TwoD/Lifecycle.h"
 #include <array>
 #include <cassert>
 #include <cmath>
@@ -149,4 +150,95 @@ int main() {
              received.context == api.context);
     }
   }
+  // The extended effects table preserves its original three-callback prefix byte-for-byte.
+  NexoraGameplayServicesApiV1 full{};
+  full.struct_size = sizeof(full);
+  full.abi_version = 1;
+  assert(services.GetApi(&full) == 0);
+  constexpr auto effectsPrefix = offsetof(NexoraGameplayTwoDEffectsApiV1, pool_identity);
+  alignas(NexoraGameplayTwoDEffectsApiV1) std::array<unsigned char, sizeof(api) + 16> effectBytes{};
+  for (std::size_t requested = 8; requested <= sizeof(api) + 8; ++requested) {
+    effectBytes.fill(0xa5);
+    auto *out = reinterpret_cast<NexoraGameplayTwoDEffectsApiV1 *>(effectBytes.data());
+    out->struct_size = uint32_t(requested);
+    out->abi_version = 1;
+    assert(full.get_twod_effects_api(full.context, out) == (requested < effectsPrefix ? -2 : 0));
+    const auto written = requested < effectsPrefix ? 8
+                         : requested < sizeof(api) ? effectsPrefix
+                                                   : sizeof(api);
+    for (auto n = written; n < effectBytes.size(); ++n)
+      assert(effectBytes[n] == 0xa5);
+    if (requested >= effectsPrefix)
+      assert(out->struct_size == written);
+  }
+  services.twod_effects.struct_size = effectsPrefix; // Old registered host, new caller.
+  NexoraGameplayTwoDEffectsApiV1 old{};
+  old.struct_size = sizeof(old);
+  old.abi_version = 1;
+  assert(full.get_twod_effects_api(full.context, &old) == 0 && old.struct_size == effectsPrefix &&
+         !old.pool_identity);
+
+  twod::InstancePool instances(1), foreign(1);
+  twod::Instance value;
+  value.sprite.atlas = {1, 2};
+  value.sprite.region = 1;
+  auto handles = instances.Create(std::span(&value, 1));
+  auto otherHandles = foreign.Create(std::span(&value, 1));
+  assert(handles && otherHandles);
+  const auto poolResolver = [&](twod::EffectsPoolIdentity h) {
+    return instances.Find({h.owner, h.index, h.generation}) != nullptr;
+  };
+  twod::GameplayEffects pooled(1, {}, {}, poolResolver);
+  const auto pooledApi = pooled.Api();
+  auto h = handles->front();
+  uint64_t token = 0, repeat = 0;
+  assert(pooledApi.pool_identity(pooledApi.context, h.owner, h.index, h.generation, &token) == 0 &&
+         token);
+  assert(pooledApi.pool_identity(pooledApi.context, h.owner, h.index, h.generation, &repeat) == 0 &&
+         repeat == token);
+  const auto foreignHandle = otherHandles->front();
+  assert(pooledApi.pool_identity(pooledApi.context, foreignHandle.owner, foreignHandle.index,
+                                 foreignHandle.generation, &repeat) == -1 &&
+         repeat == token);
+  assert(pooledApi.pool_identity(pooledApi.context, h.owner, h.index, h.generation, nullptr) == -1);
+  std::thread poolWorker([&] {
+    result = pooledApi.pool_identity(pooledApi.context, h.owner, h.index, h.generation, &repeat);
+  });
+  poolWorker.join();
+  assert(result == -3 && repeat == token);
+  NexoraTwoDEffectsSpriteV1 poolSprite{};
+  poolSprite.kind = NEXORA_TWOD_EFFECTS_POOL;
+  poolSprite.handle = token;
+  NexoraTwoDEffectsFrameV1 poolFrame{};
+  poolFrame.struct_size = sizeof(poolFrame);
+  poolFrame.abi_version = 1;
+  poolFrame.enabled = 1;
+  poolFrame.strength = 1;
+  poolFrame.sprite_count = 1;
+  poolFrame.sprites = &poolSprite;
+  assert(pooledApi.submit_frame(pooledApi.context, &poolFrame) == 0);
+  const auto retained = pooled.BeginFrame();
+  assert(instances.Destroy(*handles));
+  handles = instances.Create(std::span(&value, 1));
+  assert(handles && handles->front().index == h.index &&
+         handles->front().generation != h.generation);
+  assert(pooledApi.submit_frame(pooledApi.context, &poolFrame) == -1);
+  assert(!pooled.ResolvePoolIdentity(token));
+  assert(pooledApi.pool_identity(pooledApi.context, h.owner, h.index, h.generation, &repeat) ==
+             -1 &&
+         repeat == token);
+  h = handles->front();
+  assert(pooledApi.pool_identity(pooledApi.context, h.owner, h.index, h.generation, &repeat) == 0 &&
+         repeat != token);
+  assert(pooled.BeginFrame() == retained && retained->sprites.front().handle == token);
+  twod::GameplayEffects another(1, {}, {}, poolResolver);
+  const auto anotherApi = another.Api();
+  uint64_t anotherToken{};
+  assert(anotherApi.pool_identity(anotherApi.context, h.owner, h.index, h.generation,
+                                  &anotherToken) == 0 &&
+         anotherToken != repeat);
+  poolSprite.handle = repeat;
+  assert(pooledApi.submit_frame(pooledApi.context, &poolFrame) == 0);
+  assert(anotherApi.submit_frame(anotherApi.context, &poolFrame) == -1); // Foreign service token.
+  assert(no.pool_identity(no.context, h.owner, h.index, h.generation, &anotherToken) == -2);
 }

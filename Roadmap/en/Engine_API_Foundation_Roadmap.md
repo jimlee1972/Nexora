@@ -260,3 +260,5 @@ Fresh post-foreground movement is retained; UI confirmation still waits for neut
 ## HD2D-01 optional contract extension
 
 ✅ Independently negotiated effects table, appended services getter, Zig wrapper and atomic snapshots preserve prior prefixes and V3. ABI baseline/metadata and reorder guards are covered; native effects are not claimed. [HD2D plan](HD2D_Lighting_Plan.md).
+
+HD2D-03 preparation appends an independently negotiated pool-identity callback to the effects table, preserving its original prefix and the Sprite wire. Full owner/index/generation validation and C/Zig compatibility gates are in progress; native acceptance is tracked in the HD2D plan.

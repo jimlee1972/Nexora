@@ -261,3 +261,11 @@ the inventory. Keep the complete exported folder together, not only the executab
 Validation: local Windows entry tests cover implicit/explicit arguments, spaces/Unicode,
 foreign working directories, two process launches and missing-descriptor rejection. Full Linux
 development and Shipping CI and independent clean-host acceptance remain pending for this change.
+
+The Player registers the optional [2D effects service](../../Engine/TwoD/GameplayEffects.md).
+Capable native surfaces advertise flat point lighting; headless surfaces advertise zero native
+features. Zig must explicitly enable the pipeline and submit complete configurations. The host
+publishes one immutable effects snapshot before updates, resolves current entity/full pool
+identities after updates and carries copied styles through common Sprite/tile sorting. The same
+frozen camera/safe-frame pixel rectangle prepares both geometry and world-space illumination.
+No game-specific light rules or interactive diagnostic controls are implemented in the C++ host.

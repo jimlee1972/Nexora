@@ -3,6 +3,7 @@
 #include "nexora/nexora.h"
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace nexora::twod {
@@ -19,11 +20,19 @@ struct EffectsSnapshot final {
 };
 // Host-supplied resolvers must check the complete generation-bearing identity. They borrow
 // World/pool/catalog until this service is destroyed and must not mutate/reenter this service.
+struct EffectsPoolIdentity final {
+  std::uint64_t owner{};
+  std::uint32_t index{}, generation{};
+};
 class NEXORA_2D_API GameplayEffects final {
 public:
   using SpriteResolver = std::function<bool(std::uint32_t, std::uint64_t)>;
   using MaskResolver = std::function<bool(std::uint64_t, std::uint64_t, std::uint32_t)>;
-  explicit GameplayEffects(std::uint32_t features = 0, SpriteResolver = {}, MaskResolver = {});
+  using PoolResolver = std::function<bool(EffectsPoolIdentity)>;
+  explicit GameplayEffects(std::uint32_t features = 0, SpriteResolver = {}, MaskResolver = {},
+                           PoolResolver = {});
+  // Copies a currently live, full pool identity; stale/foreign tokens never resolve.
+  [[nodiscard]] std::optional<EffectsPoolIdentity> ResolvePoolIdentity(std::uint64_t) const;
   ~GameplayEffects();
   GameplayEffects(const GameplayEffects &) = delete;
   GameplayEffects &operator=(const GameplayEffects &) = delete;

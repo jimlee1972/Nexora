@@ -88,9 +88,21 @@ pub const Api = extern struct {
     get_capabilities: ?*const fn (?*anyopaque, *Capabilities) callconv(.c) i32 = null,
     get_state: ?*const fn (?*anyopaque, *State) callconv(.c) i32 = null,
     submit_frame: ?*const fn (?*anyopaque, *const Frame) callconv(.c) i32 = null,
+    pool_identity: ?*const fn (?*anyopaque, u64, u32, u32, *u64) callconv(.c) i32 = null,
     pub fn valid(self: Api) bool {
-        return self.struct_size >= @sizeOf(Api) and self.abi_version == 1 and
+        return self.struct_size >= @offsetOf(Api, "pool_identity") and self.abi_version == 1 and
             self.get_capabilities != null and self.get_state != null and self.submit_frame != null;
+    }
+    pub fn poolIdentity(self: Api, handle: anytype) Error!u64 {
+        if (!self.valid() or self.struct_size < @sizeOf(Api)) return error.Unsupported;
+        const resolve = self.pool_identity orelse return error.Unsupported;
+        var identity: u64 = 0;
+        try check(resolve(self.context, handle.owner, handle.index, handle.generation, &identity));
+        if (identity == 0) return error.Lifecycle;
+        return identity;
+    }
+    pub fn poolSprite(self: Api, handle: anytype) Error!Sprite {
+        return .{ .handle = try self.poolIdentity(handle), .kind = 1 };
     }
     pub fn capabilities(self: Api) Error!Capabilities {
         if (!self.valid()) return error.Unsupported;

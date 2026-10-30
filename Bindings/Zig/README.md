@@ -44,3 +44,22 @@ feature flags before enabling effects; HD2D-01 supplies the contract/snapshot ow
 Player has not registered a renderer. Submit copied complete batches with `api.submit(options,
 lights, occluders, sprites)`; success is acceptance for the next frame, not immediate presentation.
 See [ownership, limits and compatibility](../../Engine/TwoD/GameplayEffects.md).
+
+The native 2D Player now negotiates flat local lighting through `context.effects()` when supported.
+Keep gameplay and effect configuration in Zig; the default pipeline remains disabled. For example:
+
+```zig
+const effects = try context.effects();
+const pooled_style = try effects.poolSprite(handles[0]); // Complete owner/index/generation.
+try effects.submit(.{ .enabled = 1, .ambient = .{ 0.2, 0.2, 0.25 } },
+    &.{.{ .id = 1, .position = .{ .x = 1, .y = 2 },
+        .color = .{ 1, 0.4, 0.1 }, .intensity = 2, .radius = 4 }},
+    &.{}, &.{pooled_style});
+```
+
+Check `(try effects.capabilities()).features` first. At this stage LIGHTING is available on capable native
+surfaces; SHADOWS and BLOOM are separate later gates. `poolSprite` resolves an opaque effect
+identity, preserving all fields of the existing pool handle; never truncate a handle or use a
+sorted Sprite index. Tokens are service-local runtime data and must not be saved. The optional
+table tail negotiates independently: old hosts retain original effects operations while pool
+identity lookup reports `error.Unsupported`. Failed requests leave the previous valid snapshot.

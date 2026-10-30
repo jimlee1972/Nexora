@@ -1,6 +1,19 @@
 // Flat 2D linear scene/emission composition; deliberately independent from the 3D scene path.
 import Nexora.Common;
-struct TwoDTransform { float4 clip; };
+struct TwoDTransform { float4 clip; uint4 style; };
+struct TwoDPointLight {
+    float4 positionRadiusIntensity;
+    float4 color;
+    uint4 masks;
+};
+struct TwoDLightingUniform {
+    float4 worldX;
+    float4 worldY;
+    float4 ambientStrength;
+    uint4 counts;
+    TwoDPointLight lights[32];
+};
+[[vk::binding(0, 1)]] ConstantBuffer<TwoDLightingUniform> lighting : register(b1);
 #ifdef NEXORA_VULKAN
 [[vk::push_constant]] ConstantBuffer<TwoDTransform> transform;
 #else
@@ -55,7 +68,28 @@ struct TwoDFragment {
 TwoDFragment twoDFragmentMain(TwoDVertex input) {
     float4 color = colorTexture.Sample(input.uv) * input.color;
     TwoDFragment output;
-    output.scene = float4(clamp(color.rgb, float3(0), float3(65504)), saturate(color.a));
+    float3 illumination = float3(1);
+    if (transform.style.y != 0) {
+        float2 world = float2(dot(input.position.xy, lighting.worldX.xy) + lighting.worldX.z,
+                              dot(input.position.xy, lighting.worldY.xy) + lighting.worldY.z);
+        illumination = lighting.ambientStrength.rgb;
+        for (uint i = 0; i < lighting.counts.x; ++i) {
+            TwoDPointLight light = lighting.lights[i];
+            if ((light.masks.x & transform.style.x) == 0) continue;
+            float distanceToLight = length(world - light.positionRadiusIntensity.xy);
+            float radius = light.positionRadiusIntensity.z;
+            float attenuation = 0;
+            // Exact centers remain valid even on GPUs that flush tiny radii to zero.
+            if (distanceToLight == 0) attenuation = 1;
+            else if (distanceToLight < radius) {
+                float q = distanceToLight / radius;
+                float smooth = 1 - q * q;
+                attenuation = smooth * smooth;
+            }
+            illumination += light.color.rgb * (light.positionRadiusIntensity.w * attenuation * lighting.ambientStrength.w);
+        }
+    }
+    output.scene = float4(clamp(color.rgb * illumination, float3(0), float3(65504)), saturate(color.a));
     // An ordinary Sprite occludes prior emission according to its actual coverage.
     output.emission = float4(0, 0, 0, saturate(color.a));
     return output;

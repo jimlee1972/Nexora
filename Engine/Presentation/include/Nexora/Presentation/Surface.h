@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Nexora/Presentation/Api.h"
+#include "Nexora/Presentation/TwoDLighting.h"
 #include "Nexora/Window/Window.h"
 
 #include <algorithm>
@@ -502,6 +503,7 @@ struct TwoDLinearDrawData final {
   UiDrawData world;
   UiDrawData overlay;
   std::array<std::uint32_t, 4> viewport{};
+  const TwoDLighting *lighting{};
 };
 // Shared bounded validation before any native upload or command recording.
 [[nodiscard]] inline bool ValidateSpriteInstances(const UiDrawData &data) noexcept {
@@ -544,7 +546,8 @@ TwoDLinearClip(const UiDrawCommand &command, const std::array<std::uint32_t, 4> 
 
 [[nodiscard]] inline bool ValidateTwoDLinearDraws(const TwoDLinearDrawData &data,
                                                   std::uint32_t width, std::uint32_t height) {
-  if (!width || !height || width > 16384 || height > 16384)
+  if (!width || !height || width > 16384 || height > 16384 ||
+      !ValidateTwoDLighting(data.lighting, data.world.commands.size()))
     return false;
   const auto &v = data.viewport;
   if (v != std::array<std::uint32_t, 4>{} && (!v[2] || !v[3] || v[0] > width || v[1] > height ||

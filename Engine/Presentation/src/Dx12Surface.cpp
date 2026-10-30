@@ -995,6 +995,8 @@ public:
     ResetTwoDLinearFrames();
     for (auto &pipeline : twoDLinearPipelines_)
       pipeline.Reset();
+    for (auto &root : twoDLinearRoots_)
+      root.Reset();
     meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
     gpuQueries_.Reset();
     gpuReadback_.Reset();

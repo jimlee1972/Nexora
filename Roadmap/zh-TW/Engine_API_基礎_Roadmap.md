@@ -254,3 +254,5 @@ DirectInput／DS4／Linux 震動仍明確不支援。
 ## HD2D-01 選用契約擴充
 
 ✅ 新增獨立協商 effects table、services 尾端 getter、Zig wrapper 與原子快照，保留原有前綴及 V3。ABI baseline／metadata 與防重排測試已補齊；不宣稱原生效果完成。 [HD2D plan](HD2D_Lighting_Plan.md).
+
+HD2D-03 施工在 effects table 尾端加入獨立協商的 pool 識別 callback，保留原有前綴及 Sprite wire。完整 owner／index／generation 檢查及 C／Zig 相容性 gate 施工中；原生驗收依 HD2D 工單追蹤。
