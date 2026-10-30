@@ -129,6 +129,9 @@ SurfaceStatus RenderSurface::DrawSprites(const UiDrawData &sprites, const UiDraw
 bool RenderSurface::SupportsTwoDLinear() const noexcept {
   return state_ && !state_->destroyed && state_->surface && state_->surface->SupportsTwoDLinear();
 }
+bool RenderSurface::SupportsTwoDShadows() const noexcept {
+  return state_ && !state_->destroyed && state_->surface && state_->surface->SupportsTwoDShadows();
+}
 SurfaceStatus RenderSurface::DrawSpritesLinear(const UiDrawData &sprites, const UiDrawData &overlay,
                                                bool instanceQuads, std::uint32_t background,
                                                const std::array<std::uint32_t, 4> &viewport,

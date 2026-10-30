@@ -823,3 +823,5 @@ M6／M7，也不改變 9/11（82%）。
 ✅ HD2D-02 已驗收：可選 FP16 世界／emission 與 SDR／HUD 合成通過當前提交 41 項檢查及 DX12／Vulkan／Metal 原生像素。[PR #735](https://github.com/jimlee1972/Nexora/pull/735)，squash `ed0e51e4`；工程 2/7，實機 NOT_RUN。
 
 HD2D-03 施工將平面點光源及即時物件識別樣式接入通用 Player。Vulkan 參考值／相容性測試為本地證據；三後端驗收仍待 gate，工程計分依 Beads。
+
+HD2D-04 施工新增原生角度陰影 compute 與 52 畫面獨立 CPU 像素參考值；本地完整 Linux Development／Shipping 通過。Windows／Metal CI 及相依 PR 驗收待完成。[證據](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md)。

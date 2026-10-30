@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **2/7 (29%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **3/7 (43%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -14,7 +14,7 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 | --- | --- | --- | --- | --- |
 | ✅ HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | Contract/snapshots delivered; [Linux evidence](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
 | ✅ HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | Accepted [PR #735](https://github.com/jimlee1972/Nexora/pull/735), squash `ed0e51e4`; 41 CI checks and three-backend native evidence |
-| HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | IN_PROGRESS — native points, stable Zig identities and full Linux evidence; native CI pending |
+| ✅ HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | Accepted PR #736, squash `40c96072`; current-head native DX12/Metal and Linux gates passed |
 | HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | IN_PROGRESS — dependent GPU/CPU-reference preparation; not accepted |
 | HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | NOT_RUN |
 | HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | NOT_RUN |
@@ -51,4 +51,6 @@ HD2D-02: [Linux evidence](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md
 
 HD2D-03: [local evidence](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); IN_PROGRESS.
 
-Progress snapshot: accepted engineering remains 2/7 in both languages; partial local shadow work earns no acceptance credit.
+HD2D-04 local preparation: GPU angular shadow maps and independent CPU oracle; [evidence](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md). IN_PROGRESS; no acceptance credit before dependent PR/native CI.
+
+HD2D-03 accepted: [PR #736](https://github.com/jimlee1972/Nexora/pull/736), squash `40c9607252cff2b856436b7ef23c1db0e44d9d82`. Current-head Windows desktop job `124365092041` passed native 2D pixel readback and 425 tests; macOS job `124365092312` passed native 2D pixel readback and 400 tests. Earlier checkout-network and bilingual-documentation failures remain recorded; no assertion was weakened. Physical acceptance remains NOT_RUN.

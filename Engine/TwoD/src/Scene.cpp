@@ -494,8 +494,8 @@ Nexora::Presentation::SurfaceStatus
 SpriteFrame::DrawLinear(Nexora::Presentation::RenderSurface &surface,
                         const Nexora::Presentation::TwoDLightingUniform &uniforms,
                         const Nexora::Presentation::UiDrawData &overlay,
-                        const std::array<std::uint32_t, 4> &viewport,
-                        std::uint32_t background) const {
+                        const std::array<std::uint32_t, 4> &viewport, std::uint32_t background,
+                        std::span<const Nexora::Presentation::TwoDShadowEdge> edges) const {
   using namespace Nexora::Presentation;
   if (!lightingStyles.empty() && lightingStyles.size() != batches.size())
     return SurfaceStatus::InvalidDescriptor;
@@ -503,7 +503,7 @@ SpriteFrame::DrawLinear(Nexora::Presentation::RenderSurface &surface,
   styles[0] = {UINT32_MAX, 0, 0, 0};
   if (!lightingStyles.empty())
     std::copy(lightingStyles.begin(), lightingStyles.end(), styles.begin() + 1);
-  const TwoDLighting lighting{uniforms, styles};
+  const TwoDLighting lighting{uniforms, styles, edges};
   auto uploads = Uploads();
   return surface.DrawSpritesLinear(
       {vertices, std::as_bytes(std::span(indices)), batches, uploads, true}, overlay, true,

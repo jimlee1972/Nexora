@@ -2,23 +2,27 @@
 private:
 struct TwoDLinearFrame {
   std::array<id<MTLTexture>, 2> colors{};
-  id<MTLBuffer> upload = nil;
+  id<MTLBuffer> upload = nil, shadowBuffer = nil;
+  std::uint64_t shadowBytes{};
   std::size_t capacity{};
   std::uint32_t width{}, height{};
   std::uint64_t allocationBytes{};
 };
 std::array<TwoDLinearFrame, 3> twoDLinearFrames_;
+id<MTLComputePipelineState> twoDShadowPipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearPipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearInstancePipeline_ = nil;
 id<MTLRenderPipelineState> twoDLinearCompositePipeline_ = nil;
 void ResetTwoDLinearFrames() {
   for (auto &f : twoDLinearFrames_) {
     diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
+    diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
     f = {};
   }
 }
 bool CreateTwoDLinearPipelines() {
-  if (twoDLinearPipeline_ && twoDLinearInstancePipeline_ && twoDLinearCompositePipeline_)
+  if (twoDLinearPipeline_ && twoDLinearInstancePipeline_ && twoDLinearCompositePipeline_ &&
+      twoDShadowPipeline_)
     return true;
   NSError *error = nil;
   const auto library = [&](const char *source) -> id<MTLLibrary> {
@@ -34,13 +38,17 @@ bool CreateTwoDLinearPipelines() {
   auto instanceLibrary = library(twod_linear_metal_instance);
   auto fragmentLibrary = library(twod_linear_metal_frag);
   auto compositeLibrary = library(twod_linear_metal_composite);
-  if (!vertexLibrary || !instanceLibrary || !fragmentLibrary || !compositeLibrary)
+  auto shadowLibrary = library(twod_linear_metal_shadow);
+  if (!vertexLibrary || !instanceLibrary || !fragmentLibrary || !compositeLibrary || !shadowLibrary)
     return false;
   auto vertex = [vertexLibrary newFunctionWithName:@"twoDVertexMain"];
   auto instance = [instanceLibrary newFunctionWithName:@"twoDInstanceMain"];
   auto fragment = [fragmentLibrary newFunctionWithName:@"twoDFragmentMain"];
   auto composite = [compositeLibrary newFunctionWithName:@"twoDCompositeMain"];
-  if (!vertex || !instance || !fragment || !composite)
+  auto shadow = [shadowLibrary newFunctionWithName:@"twoDShadowMain"];
+  if (shadow)
+    twoDShadowPipeline_ = [device_ newComputePipelineStateWithFunction:shadow error:&error];
+  if (!vertex || !instance || !fragment || !composite || !twoDShadowPipeline_)
     return false;
   for (unsigned mode = 0; mode < 3; ++mode) {
     auto desc = [MTLRenderPipelineDescriptor new];
@@ -102,9 +110,10 @@ bool CreateTwoDLinearPipelines() {
   return true;
 }
 bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
-  if (f.width == width_ && f.height == height_ && f.colors[0] && f.colors[1])
+  if (f.width == width_ && f.height == height_ && f.colors[0] && f.colors[1] && f.shadowBuffer)
     return true;
   diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
+  diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
   f = {};
   f.width = width_;
   f.height = height_;
@@ -122,6 +131,12 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
     f.allocationBytes += bytes;
     diagnostics_.twoDLinearTargetBytes += bytes;
   }
+  f.shadowBuffer = [device_ newBufferWithLength:8 * 1024 * sizeof(float)
+                                        options:MTLResourceStorageModePrivate];
+  if (!f.shadowBuffer)
+    return false;
+  f.shadowBytes = static_cast<std::uint64_t>(f.shadowBuffer.allocatedSize);
+  diagnostics_.twoDShadowBufferBytes += f.shadowBytes;
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -130,6 +145,7 @@ public:
 bool SupportsTwoDLinear() const noexcept override {
   return valid_ && !destroyed_ && srgbUiOutput_ && device_ != nil;
 }
+bool SupportsTwoDShadows() const noexcept override { return SupportsTwoDLinear(); }
 SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   @autoreleasepool {
     if (thread_ != std::this_thread::get_id())
@@ -181,7 +197,12 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     const std::uint32_t indices[] = {0, 1, 2, 0, 2, 3};
     const auto uniformOffset =
         (quadOffset + sizeof(quad) + sizeof(indices) + 255U) & ~std::size_t(255);
-    const auto required = uniformOffset + sizeof(TwoDLightingUniform);
+    const auto edgeOffset =
+        (uniformOffset + sizeof(TwoDLightingUniform) + 255U) & ~std::size_t(255);
+    const auto edgeBytes =
+        std::max<std::size_t>(1, data.lighting ? data.lighting->edges.size() : 0) *
+        sizeof(TwoDShadowEdge);
+    const auto required = edgeOffset + edgeBytes;
     if (f.capacity < required) {
       f.capacity = 4096;
       while (f.capacity < required)
@@ -201,6 +222,24 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     const TwoDLightingUniform fallback{};
     std::memcpy(bytes + uniformOffset, data.lighting ? &data.lighting->uniforms : &fallback,
                 sizeof(fallback));
+    std::memset(bytes + edgeOffset, 0, edgeBytes);
+    if (data.lighting && !data.lighting->edges.empty())
+      std::memcpy(bytes + edgeOffset, data.lighting->edges.data(),
+                  data.lighting->edges.size_bytes());
+    if (data.lighting && data.lighting->uniforms.counts[1]) {
+      auto compute = [commands_ computeCommandEncoder];
+      if (!compute)
+        return SurfaceStatus::DeviceLost;
+      [compute setComputePipelineState:twoDShadowPipeline_];
+      [compute setBuffer:f.upload offset:uniformOffset atIndex:1];
+      [compute setBuffer:f.upload offset:edgeOffset atIndex:5];
+      [compute setBuffer:f.shadowBuffer offset:0 atIndex:7];
+      [compute dispatchThreadgroups:MTLSizeMake(16, data.lighting->uniforms.counts[1], 1)
+              threadsPerThreadgroup:MTLSizeMake(64, 1, 1)];
+      [compute endEncoding];
+      ++diagnostics_.twoDShadowDispatches;
+      diagnostics_.twoDShadowSamples += uint64_t(data.lighting->uniforms.counts[1]) * 1024;
+    }
     auto pass = [MTLRenderPassDescriptor renderPassDescriptor];
     for (unsigned i = 0; i < 2; ++i) {
       pass.colorAttachments[i].texture = f.colors[i];
@@ -215,6 +254,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     [encoder setViewport:MTLViewport{0, 0, double(width_), double(height_), 0, 1}];
     [encoder setVertexBytes:&transform length:sizeof(transform) atIndex:0];
     [encoder setFragmentBuffer:f.upload offset:uniformOffset atIndex:1];
+    [encoder setFragmentBuffer:f.shadowBuffer offset:0 atIndex:6];
     std::size_t commandIndex{};
     for (const auto &c : data.world.commands) {
       transform.style = data.lighting ? data.lighting->styles[commandIndex]

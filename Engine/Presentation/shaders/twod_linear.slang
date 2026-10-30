@@ -5,12 +5,15 @@ struct TwoDPointLight {
     float4 positionRadiusIntensity;
     float4 color;
     uint4 masks;
+    float4 shadow;
 };
+struct TwoDShadowEdge { float4 points; uint4 masks; };
 struct TwoDLightingUniform {
     float4 worldX;
     float4 worldY;
     float4 ambientStrength;
     uint4 counts;
+    uint4 shadowLights[2];
     TwoDPointLight lights[32];
 };
 [[vk::binding(0, 1)]] ConstantBuffer<TwoDLightingUniform> lighting : register(b1);
@@ -20,6 +23,60 @@ struct TwoDLightingUniform {
 [[vk::binding(0, 1)]] ConstantBuffer<TwoDTransform> transform : register(b0);
 #endif
 [[vk::binding(0, 0)]] Sampler2D<float4> colorTexture : register(t0);
+[[vk::binding(1, 1)]] StructuredBuffer<TwoDShadowEdge> shadowEdges : register(t5);
+[[vk::binding(2, 1)]] StructuredBuffer<float> shadowDistances : register(t6);
+[[vk::binding(3, 1)]] RWStructuredBuffer<float> shadowOutput : register(u7);
+
+float twoDCross(float2 a, float2 b) { return a.x * b.y - a.y * b.x; }
+[shader("compute")]
+[numthreads(64, 1, 1)]
+void twoDShadowMain(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= 1024 || id.y >= lighting.counts.y) return;
+    uint lightIndex = lighting.shadowLights[id.y / 4][id.y % 4];
+    TwoDPointLight light = lighting.lights[lightIndex];
+    float angle = (float(id.x) + 0.5) * (6.283185307179586 / 1024.0);
+    float2 direction = float2(cos(angle), sin(angle));
+    float closest = light.positionRadiusIntensity.z;
+    float offset = light.shadow.y;
+    for (uint i = 0; i < lighting.counts.z; ++i) {
+        TwoDShadowEdge edge = shadowEdges[i];
+        if ((edge.masks.x & light.masks.x) == 0) continue;
+        float2 a = edge.points.xy - light.positionRadiusIntensity.xy;
+        float2 e = edge.points.zw - edge.points.xy;
+        float denominator = twoDCross(direction, e);
+        if (abs(denominator) <= 0.0000001 * length(e)) continue;
+        float distance = twoDCross(a, e) / denominator;
+        float segment = twoDCross(a, direction) / denominator;
+        if (distance > offset && distance < closest && segment >= 0 && segment <= 1)
+            closest = distance;
+    }
+    shadowOutput[id.y * 1024 + id.x] = closest;
+}
+
+float twoDVisibility(TwoDPointLight light, float2 relative, float distance) {
+    if (light.masks.y == 0 || transform.style.z == 0 || distance == 0) return 1;
+    float phase = atan2(relative.y, relative.x) / 6.283185307179586;
+    phase -= floor(phase);
+    float position = phase * 1024.0 - 0.5;
+    int center = int(floor(position));
+    float fraction = position - floor(position);
+    float width = 1 + 4 * light.shadow.x;
+    float visible = 0;
+    float total = 0;
+    for (int tap = -4; tap <= 4; ++tap) {
+        float weight = max(0.0, 1 - abs(float(tap)) / width);
+        if (weight == 0) continue;
+        uint sample = uint(center + tap + 2048) & 1023;
+        uint next = (sample + 1) & 1023;
+        uint base = (light.masks.y - 1) * 1024;
+        float first = distance <= shadowDistances[base + sample] + light.shadow.y ? 1.0 : 0.0;
+        float second = distance <= shadowDistances[base + next] + light.shadow.y ? 1.0 : 0.0;
+        visible += weight * lerp(first, second, fraction);
+        total += weight;
+    }
+    return visible / total;
+}
+
 struct TwoDVertex {
     float4 position : SV_Position;
     float2 uv : TEXCOORD0;
@@ -86,6 +143,8 @@ TwoDFragment twoDFragmentMain(TwoDVertex input) {
                 float smooth = 1 - q * q;
                 attenuation = smooth * smooth;
             }
+            if (attenuation > 0)
+                attenuation *= twoDVisibility(light, world - light.positionRadiusIntensity.xy, distanceToLight);
             illumination += light.color.rgb * (light.positionRadiusIntensity.w * attenuation * lighting.ambientStrength.w);
         }
     }

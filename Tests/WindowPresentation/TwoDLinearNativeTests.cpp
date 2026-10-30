@@ -11,6 +11,7 @@
 #include <X11/Xutil.h>
 #undef None
 #endif
+#include "TwoDShadowReference.h"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -33,7 +34,8 @@ unsigned Encode(double linear) {
   return unsigned(std::lround(srgb * 255));
 }
 std::array<double, 3> LightReference(const TwoDLightingUniform &u, const TwoDLightingStyle &style,
-                                     double x, double y) {
+                                     double x, double y,
+                                     const TwoDShadowReference::Frame *shadows = nullptr) {
   if (!style.receiveLight)
     return {1, 1, 1};
   const double wx = x * u.worldX[0] + y * u.worldX[1] + u.worldX[2];
@@ -46,7 +48,9 @@ std::array<double, 3> LightReference(const TwoDLightingUniform &u, const TwoDLig
     const double q =
         std::hypot(wx - l.positionRadiusIntensity[0], wy - l.positionRadiusIntensity[1]) /
         l.positionRadiusIntensity[2];
-    const double attenuation = q < 1 ? std::pow(1 - q * q, 2) : 0;
+    double attenuation = q < 1 ? std::pow(1 - q * q, 2) : 0;
+    if (shadows && style.receiveShadow)
+      attenuation *= shadows->Visibility(l, wx, wy);
     for (unsigned c = 0; c < 3; ++c)
       result[c] += l.color[c] * l.positionRadiusIntensity[3] * attenuation * u.ambientStrength[3];
   }
@@ -134,6 +138,7 @@ int main(int argc, char **argv) {
     const auto handle = reinterpret_cast<::Window>(windows->NativeHandle(window.handle));
 #endif
     Require(bool(surface) && surface->SupportsTwoDLinear(), "native linear FP16 capability");
+    Require(surface->SupportsTwoDShadows(), "native compute shadow capability");
     const auto read = [&](unsigned width, unsigned height, const std::array<unsigned, 3> &expected,
                           unsigned expectedGray, bool bars, bool hasHud) {
       (void)expected;
@@ -194,7 +199,8 @@ int main(int argc, char **argv) {
     std::vector<std::byte> finalPixels;
     unsigned finalWidth{}, finalHeight{};
     std::uint64_t frames = 0, litFrames = 0;
-    std::uint32_t maximumLights{};
+    std::uint32_t maximumLights{}, maximumShadowLights{};
+    std::uint64_t shadowFrames{}, shadowSamples{};
     for (const auto &size : sizes) {
       const auto width = size[0], height = size[1];
       Require(windows->Resize(window.handle, width, height) == Window::WindowError::None,
@@ -202,7 +208,7 @@ int main(int argc, char **argv) {
       (void)windows->PumpEvents();
       Require(surface->NotifyWindowExtent(width, height) == SurfaceStatus::Ready,
               "extent notification");
-      for (unsigned frame = 0; frame < 8; ++frame) {
+      for (unsigned frame = 0; frame < 10; ++frame) {
         auto status = surface->Acquire();
         for (unsigned retry = 0; status == SurfaceStatus::OutOfDate && retry < 20; ++retry) {
           (void)windows->PumpEvents();
@@ -210,14 +216,14 @@ int main(int argc, char **argv) {
           status = surface->Acquire();
         }
         Require(status == SurfaceStatus::Ready, "acquire after resize");
-        const unsigned tint = 255 - frame * 32;
+        const unsigned tint = 255 - (frame % 8) * 32;
         const double base = (128. / 255) * (double(tint) / 255), alpha = 128. / 255;
         Packet packet(width, height, (frame % 2) == 0, tint);
         TwoDLighting lighting;
         std::array<TwoDLightingStyle, 3> styles{
             {{UINT32_MAX, 0, 0, 0},
-             {frame == 1 ? 1U : 3U, frame == 6 ? 0U : 1U, 0, 0},
-             {frame == 6 ? 4U : 2U, frame == 2 || frame == 6 ? 1U : 0U, 0, 0}}};
+             {frame == 1 ? 1U : 3U, frame == 4 ? 0U : 1U, 1, 0},
+             {frame == 6 ? 3U : 2U, frame == 2 || frame == 6 ? 1U : 0U, 1, 0}}};
         lighting.styles = styles;
         auto &uniform = lighting.uniforms;
         uniform.worldX = {0.01F, 0, -float(width) * 0.005F, 0};
@@ -232,21 +238,59 @@ int main(int argc, char **argv) {
           auto &light = uniform.lights[i];
           light.positionRadiusIntensity = {float(std::sin(double(i) + frame * 0.3)) * 0.7F,
                                            float(std::cos(double(i) + frame * 0.2)) * 0.4F, 1.5F,
-                                           2.F / uniform.counts[0]};
+                                           (frame == 1 ? 24.F : 2.F) / uniform.counts[0]};
           light.color = i % 2 ? std::array<float, 4>{0, 0.3F, 0.8F, 0}
                               : std::array<float, 4>{0.8F, 0.1F, 0, 0};
           light.masks[0] = i % 2 ? 2 : 1;
         }
         const bool lit = frame % 4 != 3;
-        const auto grayLight =
-            lit ? LightReference(uniform, styles[1], width / 2 + 0.5, height / 2 + 0.5)
-                : std::array<double, 3>{1, 1, 1};
-        const auto redLight =
-            lit ? LightReference(uniform, styles[2], width / 2 + 0.5, height / 2 + 0.5)
-                : std::array<double, 3>{1, 1, 1};
-        const std::array<unsigned, 3> expected{
-            Encode(alpha * redLight[0] + (1 - alpha) * base * grayLight[0]),
-            Encode((1 - alpha) * base * grayLight[1]), Encode((1 - alpha) * base * grayLight[2])};
+        const bool shadowsEnabled = lit && frame != 4 && frame != 5;
+        std::array<TwoDShadowEdge, 4> edges{};
+        const float left = frame == 6 ? -1.F : -0.2F + 0.1F * float(std::sin(double(frame)));
+        const float right = frame == 6 ? -0.5F : 0.2F + 0.1F * float(std::sin(double(frame)));
+        const float bottom = frame == 6 ? -0.25F : 0.12F, top = frame == 6 ? 0.25F : 0.22F;
+        const std::array<std::array<float, 4>, 4> contour{{{left, bottom, right, bottom},
+                                                           {right, bottom, right, top},
+                                                           {right, top, left, top},
+                                                           {left, top, left, bottom}}};
+        for (unsigned i = 0; i < 4; ++i) {
+          edges[i].points = contour[i];
+          edges[i].masks[0] = frame == 1 ? 4 : frame == 2 ? 2 : frame == 6 ? 3 : 1;
+        }
+        if (frame == 6)
+          uniform.lights[0].positionRadiusIntensity[0] = -1;
+        if (frame == 6)
+          uniform.lights[0].positionRadiusIntensity[1] = 0;
+        if (shadowsEnabled) {
+          uniform.counts[1] = std::min(8U, uniform.counts[0]);
+          lighting.edges = frame == 8 ? std::span<const TwoDShadowEdge>{} : edges;
+          uniform.counts[2] = uint32_t(lighting.edges.size());
+          for (unsigned i = 0; i < uniform.counts[1]; ++i) {
+            uniform.shadowLights[i / 4][i % 4] = i;
+            uniform.lights[i].masks[1] = i + 1;
+            uniform.lights[i].shadow = {frame == 0   ? 0.F
+                                        : frame == 1 ? 0.25F
+                                        : frame == 2 ? 0.75F
+                                                     : 1.F,
+                                        0.002F, 0, 0};
+          }
+        }
+        const TwoDShadowReference::Frame reference(uniform, lighting.edges);
+        const auto expectedAt = [&](unsigned px, unsigned py) {
+          const double x = px + 0.5, y = py + 0.5;
+          const auto grayLight = lit ? LightReference(uniform, styles[1], x, y, &reference)
+                                     : std::array<double, 3>{1, 1, 1};
+          const auto redLight = lit ? LightReference(uniform, styles[2], x, y, &reference)
+                                    : std::array<double, 3>{1, 1, 1};
+          const bool foreground = x > double(width) / 3 && x < double(width) * 2 / 3 &&
+                                  y > double(height) / 3 && y < double(height) * 2 / 3;
+          const double coverage = foreground ? alpha : 0;
+          return std::array<unsigned, 3>{
+              Encode(coverage * redLight[0] + (1 - coverage) * base * grayLight[0]),
+              Encode((1 - coverage) * base * grayLight[1]),
+              Encode((1 - coverage) * base * grayLight[2])};
+        };
+        const auto expected = expectedAt(width / 2, height / 2);
         TwoDLinearDrawData data{packet.prepared.View(),
                                 packet.overlay,
                                 {40, 0, width - 80, height},
@@ -273,7 +317,20 @@ int main(int argc, char **argv) {
         Require(channel(20, 20, 2) >= 253 && channel(20, 20, 0) <= 2, "HUD is not tone mapped");
         Require(channel(2, height / 2, 0) <= 2 && channel(width - 2, height / 2, 0) <= 2,
                 "black safe-frame bars");
+        if (lit) {
+          for (const auto py : {height / 2 - 1, height / 2 + 1, height / 2 - 50, height / 2 + 50}) {
+            const auto probe = expectedAt(width / 2, py);
+            for (unsigned c = 0; c < 3; ++c)
+              Require(std::abs(int(channel(width / 2, py, c)) - int(probe[c])) <= 2,
+                      "CPU shadow/soft-edge/seam/HDR oracle");
+          }
+        }
         ++frames;
+        if (shadowsEnabled && uniform.counts[1]) {
+          ++shadowFrames;
+          shadowSamples += uint64_t(uniform.counts[1]) * 1024;
+          maximumShadowLights = std::max(maximumShadowLights, uniform.counts[1]);
+        }
         if (lit) {
           ++litFrames;
           maximumLights = std::max(maximumLights, uniform.counts[0]);
@@ -304,12 +361,16 @@ int main(int argc, char **argv) {
             "world without HUD");
     (void)read(finalWidth, finalHeight, restoredExpected, Encode(base), false, false);
     ++frames;
-    Require(litFrames == 30 && maximumLights == 32, "moving/grouped/32-light native matrix");
+    Require(litFrames == 40 && maximumLights == 32, "moving/grouped/32-light native matrix");
     const auto state = surface->Diagnostics();
     Require(state.twoDLinearFrames == frames && state.twoDLinearTargetBytes > 0,
             "native frame/resource accounting");
     Require(state.twoDLinearTargetAllocations <= 18, "bounded completed-slot target reuse");
     Require(state.spriteGpuInstances > 0, "native instanced path exercised");
+    Require(maximumShadowLights == 8 && shadowFrames == 30 &&
+                state.twoDShadowDispatches == shadowFrames &&
+                state.twoDShadowSamples == shadowSamples && state.twoDShadowBufferBytes > 0,
+            "GPU shadow dispatch/capacity/sample/resource accounting");
     if (argc == 2) {
       const auto parent = std::filesystem::path(argv[1]).parent_path();
       if (!parent.empty())
@@ -321,7 +382,8 @@ int main(int argc, char **argv) {
       Require(bool(image), "pixel evidence write");
     }
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "native drain");
-    Require(surface->Diagnostics().twoDLinearTargetBytes == 0 && !surface->SupportsTwoDLinear(),
+    Require(surface->Diagnostics().twoDLinearTargetBytes == 0 &&
+                surface->Diagnostics().twoDShadowBufferBytes == 0 && !surface->SupportsTwoDLinear(),
             "target teardown");
 #if !defined(_WIN32) && !defined(__APPLE__)
     XCloseDisplay(display);
@@ -329,7 +391,8 @@ int main(int argc, char **argv) {
     std::cout << "Linear 2D native CPU oracle/HUD/black bars/instancing/1080p/21:9/odd "
                  "sizes/resize/zero restore/retirement PASS frames="
               << frames << " light_frames=" << litFrames << " maximum_lights=" << maximumLights
-              << "\n";
+              << " shadow_frames=" << shadowFrames
+              << " maximum_shadow_lights=" << maximumShadowLights << "\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << "\n";

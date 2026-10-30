@@ -68,6 +68,9 @@ template <class T> bool Version(const T *v) {
   return v && v->struct_size >= sizeof(T) && v->abi_version == 1;
 }
 } // namespace
+bool ValidateEffectsOccluder(const NexoraTwoDEffectsOccluderV1 &value) noexcept {
+  return Polygon(value);
+}
 struct GameplayEffects::State final {
   const std::thread::id owner{std::this_thread::get_id()};
   uint32_t features{};

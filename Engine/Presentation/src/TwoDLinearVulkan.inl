@@ -6,13 +6,17 @@ struct TwoDLinearFrame {
   std::array<VkImageView, 2> views{};
   VkFramebuffer worldFramebuffer{}, compositeFramebuffer{};
   VkDescriptorSet descriptor{}, lightingDescriptor{};
-  VkBuffer uiUpload{};
+  VkBuffer uiUpload{}, shadowBuffer{};
+  VkDeviceMemory shadowMemory{};
+  VkDeviceSize shadowBytes{};
   VkDeviceMemory uiMemory{};
   VkDeviceSize uiCapacity{}, allocationBytes{};
   bool initialized{};
   std::uint32_t width{}, height{};
 };
 std::array<TwoDLinearFrame, 3> twoDLinearFrames_{};
+bool twoDComputeQueue_{};
+VkPipeline twoDShadowPipeline_{};
 VkRenderPass twoDLinearPass_{};
 VkDescriptorSetLayout twoDLightingLayout_{};
 VkDescriptorPool twoDLightingPool_{};
@@ -124,6 +128,11 @@ bool CreateTwoDLinearProgram(bool instanced, bool composite, VkPipeline &output)
   return Initialized(result, "vkCreateGraphicsPipelines (linear 2D)");
 }
 void DestroyTwoDLinearFrame(TwoDLinearFrame &f) {
+  if (f.shadowBuffer)
+    vkDestroyBuffer(device_, f.shadowBuffer, nullptr);
+  if (f.shadowMemory)
+    vkFreeMemory(device_, f.shadowMemory, nullptr);
+  diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
   if (f.compositeFramebuffer)
     vkDestroyFramebuffer(device_, f.compositeFramebuffer, nullptr);
   if (f.worldFramebuffer)
@@ -150,13 +159,14 @@ void DestroyTwoDLinearFrame(TwoDLinearFrame &f) {
 void DestroyTwoDLinear() {
   for (auto &f : twoDLinearFrames_)
     DestroyTwoDLinearFrame(f);
-  for (auto pipeline :
-       {twoDLinearPipeline_, twoDLinearInstancePipeline_, twoDLinearCompositePipeline_})
+  for (auto pipeline : {twoDLinearPipeline_, twoDLinearInstancePipeline_,
+                        twoDLinearCompositePipeline_, twoDShadowPipeline_})
     if (pipeline)
       vkDestroyPipeline(device_, pipeline, nullptr);
   if (twoDLinearPass_)
     vkDestroyRenderPass(device_, twoDLinearPass_, nullptr);
   twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ = VK_NULL_HANDLE;
+  twoDShadowPipeline_ = VK_NULL_HANDLE;
   twoDLinearPass_ = VK_NULL_HANDLE;
   if (twoDLinearLayout_)
     vkDestroyPipelineLayout(device_, twoDLinearLayout_, nullptr);
@@ -171,17 +181,22 @@ void DestroyTwoDLinear() {
 bool CreateTwoDLinearPipelines() {
   if (twoDLinearPipeline_ && twoDLinearInstancePipeline_ && twoDLinearCompositePipeline_)
     return true;
-  const VkDescriptorSetLayoutBinding binding{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                             VK_SHADER_STAGE_FRAGMENT_BIT, nullptr};
+  const VkDescriptorSetLayoutBinding bindings[]{
+      {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+       VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+      {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
+      {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+      {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
   const VkDescriptorSetLayoutCreateInfo setCreate{
-      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 1, &binding};
-  const VkDescriptorPoolSize size{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3};
+      VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0, 4, bindings};
+  const VkDescriptorPoolSize sizes[]{{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3},
+                                     {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 9}};
   const VkDescriptorPoolCreateInfo poolCreate{VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                                               nullptr,
                                               VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
                                               3,
-                                              1,
-                                              &size};
+                                              2,
+                                              sizes};
   const VkDescriptorSetLayout layouts[]{uiDescriptorLayout_, VK_NULL_HANDLE};
   if (vkCreateDescriptorSetLayout(device_, &setCreate, nullptr, &twoDLightingLayout_) !=
           VK_SUCCESS ||
@@ -224,14 +239,39 @@ bool CreateTwoDLinearPipelines() {
   }
   if (CreateTwoDLinearProgram(false, false, twoDLinearPipeline_) &&
       CreateTwoDLinearProgram(true, false, twoDLinearInstancePipeline_) &&
-      CreateTwoDLinearProgram(false, true, twoDLinearCompositePipeline_))
-    return true;
+      CreateTwoDLinearProgram(false, true, twoDLinearCompositePipeline_)) {
+    if (!twoDComputeQueue_)
+      return true;
+    const VkShaderModuleCreateInfo shaderCreate{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                                nullptr, 0, sizeof(twod_linear_spirv_shadow),
+                                                twod_linear_spirv_shadow};
+    VkShaderModule shader{};
+    if (vkCreateShaderModule(device_, &shaderCreate, nullptr, &shader) != VK_SUCCESS) {
+      DestroyTwoDLinear();
+      return false;
+    }
+    VkComputePipelineCreateInfo compute{};
+    compute.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    compute.stage = {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                     nullptr,
+                     0,
+                     VK_SHADER_STAGE_COMPUTE_BIT,
+                     shader,
+                     "main",
+                     nullptr};
+    compute.layout = twoDLinearLayout_;
+    const auto result = vkCreateComputePipelines(device_, VK_NULL_HANDLE, 1, &compute, nullptr,
+                                                 &twoDShadowPipeline_);
+    vkDestroyShaderModule(device_, shader, nullptr);
+    if (result == VK_SUCCESS)
+      return true;
+  }
   DestroyTwoDLinear();
   return false;
 }
 bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
   if (f.width == width_ && f.height == height_ && f.worldFramebuffer && f.descriptor &&
-      f.lightingDescriptor)
+      f.lightingDescriptor && f.shadowBuffer && f.shadowMemory)
     return true;
   DestroyTwoDLinearFrame(f); // protecting slot fence was consumed by Acquire
   f.width = width_;
@@ -298,6 +338,27 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
                                                     &twoDLightingLayout_};
   if (vkAllocateDescriptorSets(device_, &uniformAllocate, &f.lightingDescriptor) != VK_SUCCESS)
     return false;
+  VkBufferCreateInfo shadowCreate{};
+  shadowCreate.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  shadowCreate.size = 8 * 1024 * sizeof(float);
+  shadowCreate.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  shadowCreate.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  if (vkCreateBuffer(device_, &shadowCreate, nullptr, &f.shadowBuffer) != VK_SUCCESS)
+    return false;
+  VkMemoryRequirements shadowRequirements{};
+  vkGetBufferMemoryRequirements(device_, f.shadowBuffer, &shadowRequirements);
+  const auto shadowType =
+      FindMemoryType(shadowRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  if (shadowType == std::numeric_limits<std::uint32_t>::max())
+    return false;
+  const VkMemoryAllocateInfo shadowAllocate{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr,
+                                            shadowRequirements.size, shadowType};
+  if (vkAllocateMemory(device_, &shadowAllocate, nullptr, &f.shadowMemory) != VK_SUCCESS)
+    return false;
+  f.shadowBytes = shadowRequirements.size;
+  diagnostics_.twoDShadowBufferBytes += f.shadowBytes;
+  if (vkBindBufferMemory(device_, f.shadowBuffer, f.shadowMemory, 0) != VK_SUCCESS)
+    return false;
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -313,10 +374,14 @@ bool SupportsTwoDLinear() const noexcept override {
       VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
   return (format.optimalTilingFeatures & need) == need;
 }
+bool SupportsTwoDShadows() const noexcept override {
+  return SupportsTwoDLinear() && twoDComputeQueue_;
+}
 SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   if (!OnThread())
     return SurfaceStatus::WrongThread;
-  if (!SupportsTwoDLinear())
+  if (!SupportsTwoDLinear() ||
+      (data.lighting && data.lighting->uniforms.counts[1] && !SupportsTwoDShadows()))
     return SurfaceStatus::Unsupported;
   auto &frame = frames_[frame_];
   auto &f = twoDLinearFrames_[frame_];
@@ -363,10 +428,15 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   VkPhysicalDeviceProperties properties{};
   vkGetPhysicalDeviceProperties(physical_, &properties);
   const auto alignment =
-      std::max<VkDeviceSize>(16, properties.limits.minUniformBufferOffsetAlignment);
+      std::max<VkDeviceSize>(16, std::max(properties.limits.minUniformBufferOffsetAlignment,
+                                          properties.limits.minStorageBufferOffsetAlignment));
   const auto uniformOffset =
       (quadOffset + sizeof(quad) + sizeof(indices) + alignment - 1) & ~(alignment - 1);
-  const auto required = uniformOffset + sizeof(TwoDLightingUniform);
+  const auto edgeOffset =
+      (uniformOffset + sizeof(TwoDLightingUniform) + alignment - 1) & ~(alignment - 1);
+  const auto edgeBytes = std::max<std::size_t>(1, data.lighting ? data.lighting->edges.size() : 0) *
+                         sizeof(TwoDShadowEdge);
+  const auto required = edgeOffset + edgeBytes;
   if (!EnsureUiUpload(f, required))
     return SurfaceStatus::DeviceLost;
   void *mapped{};
@@ -382,6 +452,9 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   const TwoDLightingUniform fallback{};
   std::memcpy(bytes + uniformOffset, data.lighting ? &data.lighting->uniforms : &fallback,
               sizeof(fallback));
+  std::memset(bytes + edgeOffset, 0, edgeBytes);
+  if (data.lighting && !data.lighting->edges.empty())
+    std::memcpy(bytes + edgeOffset, data.lighting->edges.data(), data.lighting->edges.size_bytes());
   vkUnmapMemory(device_, f.uiMemory);
   const VkDescriptorBufferInfo uniform{f.uiUpload, uniformOffset, sizeof(TwoDLightingUniform)};
   VkWriteDescriptorSet write{};
@@ -390,7 +463,43 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   write.descriptorCount = 1;
   write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   write.pBufferInfo = &uniform;
-  vkUpdateDescriptorSets(device_, 1, &write, 0, nullptr);
+  const VkDescriptorBufferInfo edgeInfo{f.uiUpload, edgeOffset, edgeBytes};
+  const VkDescriptorBufferInfo shadowInfo{f.shadowBuffer, 0, 8 * 1024 * sizeof(float)};
+  std::array<VkWriteDescriptorSet, 4> writes{write, {}, {}, {}};
+  for (unsigned binding = 1; binding < 4; ++binding) {
+    auto &out = writes[binding];
+    out.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    out.dstSet = f.lightingDescriptor;
+    out.dstBinding = binding;
+    out.descriptorCount = 1;
+    out.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    out.pBufferInfo = binding == 1 ? &edgeInfo : &shadowInfo;
+  }
+  vkUpdateDescriptorSets(device_, uint32_t(writes.size()), writes.data(), 0, nullptr);
+  if (data.lighting && data.lighting->uniforms.counts[1]) {
+    VkBufferMemoryBarrier before{};
+    before.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    before.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+    before.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    before.srcQueueFamilyIndex = before.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    before.buffer = f.shadowBuffer;
+    before.size = VK_WHOLE_SIZE;
+    vkCmdPipelineBarrier(
+        frame.commands,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &before, 0, nullptr);
+    vkCmdBindPipeline(frame.commands, VK_PIPELINE_BIND_POINT_COMPUTE, twoDShadowPipeline_);
+    vkCmdBindDescriptorSets(frame.commands, VK_PIPELINE_BIND_POINT_COMPUTE, twoDLinearLayout_, 1, 1,
+                            &f.lightingDescriptor, 0, nullptr);
+    vkCmdDispatch(frame.commands, 16, data.lighting->uniforms.counts[1], 1);
+    before.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    before.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 1, &before, 0,
+                         nullptr);
+    ++diagnostics_.twoDShadowDispatches;
+    diagnostics_.twoDShadowSamples += uint64_t(data.lighting->uniforms.counts[1]) * 1024;
+  }
   std::array<VkImageMemoryBarrier, 2> barriers{};
   for (unsigned i = 0; i < 2; ++i) {
     auto &b = barriers[i];

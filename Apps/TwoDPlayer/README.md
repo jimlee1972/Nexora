@@ -263,7 +263,8 @@ foreign working directories, two process launches and missing-descriptor rejecti
 development and Shipping CI and independent clean-host acceptance remain pending for this change.
 
 The Player registers the optional [2D effects service](../../Engine/TwoD/GameplayEffects.md).
-Capable native surfaces advertise flat point lighting; headless surfaces advertise zero native
+Capable native surfaces advertise flat point lighting and independently supported angular shadows;
+headless surfaces advertise zero native
 features. Zig must explicitly enable the pipeline and submit complete configurations. The host
 publishes one immutable effects snapshot before updates, resolves current entity/full pool
 identities after updates and carries copied styles through common Sprite/tile sorting. The same

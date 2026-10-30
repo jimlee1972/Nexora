@@ -49,6 +49,54 @@ int main() {
   effects.lights.resize(33, light);
   assert(!PrepareLighting(effects, camera));
 
+  // All submitted contours are validated before spatial/group culling. Visible
+  // shadow slots refer to compacted light indices, never the original array index.
+  effects = {};
+  light = {1, {0, 0}, {1, 1, 1}, 1, 2, 0.5F, 0.002F, 1, 1};
+  effects.lights.push_back(light);
+  light.position.x = 100;
+  effects.lights.insert(effects.lights.begin(), light);
+  NexoraTwoDEffectsOccluderV1 polygon{};
+  polygon.id = 1;
+  polygon.groups = 1;
+  polygon.vertex_count = 4;
+  polygon.vertices[0] = {-0.2F, -0.2F};
+  polygon.vertices[1] = {0.2F, -0.2F};
+  polygon.vertices[2] = {0.2F, 0.2F};
+  polygon.vertices[3] = {-0.2F, 0.2F};
+  effects.occluders.push_back(polygon);
+  frame = PrepareLighting(effects, camera);
+  assert(frame && frame->culled == 1 && frame->uniforms.counts[0] == 1 &&
+         frame->uniforms.counts[1] == 1 && frame->uniforms.shadowLights[0][0] == 0 &&
+         frame->uniforms.lights[0].masks[1] == 1 && frame->edges.size() == 4);
+  effects.occluders[0].groups = 2;
+  frame = PrepareLighting(effects, camera);
+  assert(frame && frame->edges.empty() && frame->uniforms.counts[1] == 1);
+  effects.occluders[0].vertices[0].x = std::numeric_limits<float>::quiet_NaN();
+  assert(!PrepareLighting(effects, camera));
+  effects.occluders[0] = polygon;
+  effects.occluders.push_back(polygon);
+  assert(!PrepareLighting(effects, camera)); // Duplicate identity is invalid even off screen.
+  effects.occluders.resize(1);
+  for (auto &v : effects.occluders[0].vertices)
+    v.x += 10;
+  frame = PrepareLighting(effects, camera);
+  assert(frame && frame->edges.empty());
+  effects.lights.assign(8, light);
+  for (auto &v : effects.lights)
+    v.position.x = 0;
+  effects.occluders[0] = polygon;
+  frame = PrepareLighting(effects, camera);
+  assert(frame && frame->uniforms.counts[1] == 8 && frame->edges.size() == 4);
+  for (unsigned slot = 0; slot < 8; ++slot)
+    assert(frame->uniforms.shadowLights[slot / 4][slot % 4] == slot &&
+           frame->uniforms.lights[slot].masks[1] == slot + 1);
+  effects.lights.push_back(light);
+  assert(!PrepareLighting(effects, camera)); // Includes off-screen shadow submissions.
+  effects.lights.resize(1);
+  effects.occluders.assign(257, polygon);
+  assert(!PrepareLighting(effects, camera));
+
   Image image{1, 1, 1, {std::byte{255}, std::byte{255}, std::byte{255}, std::byte{255}}};
   auto packed = PackAtlas({1, 2}, std::span(&image, 1), 8, 8, true);
   assert(packed);
