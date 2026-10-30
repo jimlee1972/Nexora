@@ -813,3 +813,7 @@ NX2S schema 3 新增明確的來源存在標記及身分；不含來源的場景
 C++ 消費端須重建。主 Editor 的來源索引／Inspector／Play 擷取、Player catalog、C／Zig 來源描述、
 來源動畫／物件池發布及新的原生／平台驗收仍屬後續工作。本次可攜場景切片不關閉 Editor M3-08、
 M6／M7，也不改變 9/11（82%）。
+
+## HD-2D 擴充工單
+
+[光源、柔影與選擇性 bloom 計畫](HD2D_Lighting_Plan.md)：Beads `nexora-m6m`，工程 0/7，實機 NOT_RUN；不改變既有 9/11、M6／M7 或 SP 驗收。

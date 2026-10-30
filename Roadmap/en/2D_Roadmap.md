@@ -918,3 +918,7 @@ Repacking updates the next frame's UVs while retained frames keep their prior At
 Public C++ consumers rebuild. Main Editor source indexing/Inspector/Play capture, Player catalogs,
 C/Zig source descriptors, source animation/pool publication and fresh native/platform acceptance
 remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or change 9/11 (82%).
+
+## HD-2D extension work items
+
+[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 0/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
