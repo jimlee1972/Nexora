@@ -17,6 +17,8 @@ def main() -> int:
     target.add_argument("--native-contract")
     target.add_argument("--showcase")
     parser.add_argument("--interactive", action="store_true")
+    parser.add_argument("--screen", default="1280x720x24")
+    parser.add_argument("--timeout", type=int, default=30)
     parser.add_argument("--evidence-dir", type=Path, required=True)
     args = parser.parse_args()
     output = args.evidence_dir.resolve()
@@ -29,7 +31,7 @@ def main() -> int:
     if args.interactive and not shutil.which("xdotool"):
         return unavailable("xdotool is not installed for keyboard acceptance")
     frames = 600 if args.interactive else 12
-    server, display = start_xvfb(xvfb, "1280x720x24")
+    server, display = start_xvfb(xvfb, args.screen)
     try:
         if display is None:
             server.terminate()
@@ -70,7 +72,7 @@ def main() -> int:
                 subprocess.run(["xdotool", "keyup", "d"], env=environment,
                                capture_output=True, timeout=3)
         else:
-            run = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=30)
+            run = subprocess.run(command, env=environment, capture_output=True, text=True, timeout=args.timeout)
         (output / "stdout.log").write_text(run.stdout, encoding="utf-8")
         (output / "stderr.log").write_text(run.stderr, encoding="utf-8")
         launch = {"command": command, "exit_code": run.returncode, "acceptance_passed": False,

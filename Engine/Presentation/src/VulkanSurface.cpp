@@ -17,6 +17,7 @@
 #include "SpriteVulkanShaders.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
+#include "TwoDLinearVulkanShaders.h"
 #include "UiVulkanShaders.h"
 #include <vulkan/vulkan.h>
 #define NEXORA_HAS_NATIVE_UI_SHADERS 1
@@ -81,6 +82,7 @@ bool Initialized(VkResult result, const char *operation) {
   return false;
 }
 class VulkanSurface final : public ISurface {
+#include "TwoDLinearVulkan.inl"
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
   bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
@@ -1562,7 +1564,7 @@ private:
     frame.retiredBufferMemory.clear();
     frame.retiredDescriptors.clear();
   }
-  bool EnsureUiUpload(Frame &frame, VkDeviceSize required) {
+  template <class Upload> bool EnsureUiUpload(Upload &frame, VkDeviceSize required) {
     if (frame.uiCapacity >= required)
       return true;
     if (frame.uiUpload)
@@ -2702,6 +2704,7 @@ private:
     return Initialized(toneResult, "vkCreateGraphicsPipelines (tone mapping)");
   }
   void DestroySwapchain(bool preserve_textures = false) {
+    DestroyTwoDLinear();
     for (auto &frame : frames_) {
       CollectGpuTiming(frame); // Caller already drained the device, including resize/teardown.
       if (frame.timestamps)

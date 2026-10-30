@@ -13,6 +13,7 @@
 #include "SceneViewAdmission.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
+#include "TwoDLinearMetalShaders.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -32,6 +33,7 @@ struct MetalMeshAllocation final {
   explicit operator bool() const noexcept { return buffer != nil; }
 };
 class MetalSurface final : public ISurface {
+#include "TwoDLinearMetal.inl"
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
   bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
@@ -94,6 +96,7 @@ public:
           dirty_ = false;
           if (!DrainFrames())
             return SurfaceStatus::DeviceLost;
+          ResetTwoDLinearFrames();
           for (auto &frame : sceneUploads_)
             for (auto &upload : frame)
               upload.geometry.Clear(diagnostics_.sceneGeometryUploadCache);
@@ -710,6 +713,8 @@ public:
       commands_ = nil;
       valid_ = false;
       const bool drained = DrainFrames();
+      ResetTwoDLinearFrames();
+      twoDLinearPipeline_ = twoDLinearInstancePipeline_ = twoDLinearCompositePipeline_ = nil;
       meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
       for (std::size_t i = 0; i < kFrames; ++i) {
         uiUploads_[i] = nil;

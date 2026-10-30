@@ -16,6 +16,7 @@
 #include "StagedUploadAllocation.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
+#include "TwoDLinearHlslShaders.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -43,6 +44,7 @@ struct Dx12MeshAllocation final {
   explicit operator bool() const noexcept { return buffer.Get() != nullptr; }
 };
 class Dx12Surface final : public ISurface {
+#include "TwoDLinearDx12.inl"
 public:
   bool SupportsSceneGeometryResidency() const noexcept override { return !srgbUiOutput_; }
   bool SupportsBoundedSceneViews() const noexcept override { return !srgbUiOutput_; }
@@ -990,6 +992,9 @@ public:
     }
     for (UINT slot = 0; slot < frames_; ++slot)
       CollectGpuTiming(slot);
+    ResetTwoDLinearFrames();
+    for (auto &pipeline : twoDLinearPipelines_)
+      pipeline.Reset();
     meshResidency_.Clear(diagnostics_.sceneGeometryResidency);
     gpuQueries_.Reset();
     gpuReadback_.Reset();
@@ -1050,7 +1055,7 @@ public:
 #if defined(NEXORA_DX12_UI_TESTING)
   // Native test-only staging readback; consumes/presents this acquired UI frame.
   std::vector<std::byte> PresentUiPixelsForTesting() {
-    if (!OnThread() || !acquired_ || !uiDrawn_)
+    if (!OnThread() || !acquired_ || (!uiDrawn_ && !(sceneDrawn_ && !sceneOffscreen_)))
       return {};
     const auto sourceDesc = buffers_[frame_]->GetDesc();
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout{};
@@ -2003,6 +2008,7 @@ private:
     queue_->Signal(fence_.Get(), ++fenceValue_);
     fence_->SetEventOnCompletion(fenceValue_, event_);
     WaitForSingleObject(event_, INFINITE);
+    ResetTwoDLinearFrames();
     for (UINT slot = 0; slot < frames_; ++slot) {
       CollectGpuTiming(slot);
       ResetSceneTargets(slot);

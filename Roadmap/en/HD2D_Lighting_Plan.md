@@ -13,7 +13,7 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 | ID | Beads | Delivery | Depends on | Status / evidence |
 | --- | --- | --- | --- | --- |
 | ✅ HD2D-01 | `nexora-m6m.1` | Public contract and Zig bindings | — | Contract/snapshots delivered; [Linux evidence](../../Engine/TwoD/evidence/HD2D-01-Linux-2026-10-31.md) |
-| HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | NOT_RUN |
+| HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | IN_PROGRESS — three native implementations; Linux software Vulkan pixel evidence, Windows/Metal CI pending |
 | HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | NOT_RUN |
 | HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | NOT_RUN |
 | HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | NOT_RUN |
@@ -44,3 +44,7 @@ Merge this plan first, then dependent stage PRs. Squash merge only after applica
 References: [2D roadmap](2D_Roadmap.md), [color and existing fallback](../../Engine/TwoD/ColorAndFallback.md).
 
 HD2D-01 delivers negotiation, Zig wrappers and owning snapshots only. Native capability defaults to zero and Player registration is pending; no rendered effect is claimed. Applicable CI success gates this PR merge.
+
+HD2D-01: [PR #734](https://github.com/jimlee1972/Nexora/pull/734), squash `3628a62e`, all 41 current-head checks passed. One existing Windows VM timeout was retained and passed on retry without assertion changes. HD2D-02 does not increase accepted progress until native backend gates pass.
+
+HD2D-02: [Linux evidence](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).

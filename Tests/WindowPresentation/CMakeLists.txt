@@ -226,3 +226,44 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set_tests_properties(window.x11_display_metrics_native PROPERTIES
     LABELS "x11;display;virtual-display" SKIP_RETURN_CODE 77 TIMEOUT 30 RUN_SERIAL TRUE)
 endif()
+
+add_executable(NexoraTwoDLinearPacketTests TwoDLinearPacketTests.cpp)
+target_link_libraries(NexoraTwoDLinearPacketTests PRIVATE Nexora::Presentation)
+nexora_apply_defaults(NexoraTwoDLinearPacketTests)
+add_test(NAME window_presentation.twod_linear_packet COMMAND NexoraTwoDLinearPacketTests)
+if(NEXORA_ENABLE_SLANG)
+  add_test(NAME window_presentation.twod_linear_shader_artifacts
+    COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Engine/Presentation/shaders/GenerateTwoDShaders.py"
+      --compiler "${NEXORA_SLANGC_EXECUTABLE}" --check)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NEXORA_ENABLE_NATIVE_BACKENDS AND NEXORA_ENABLE_VULKAN_BACKEND)
+  add_executable(NexoraTwoDLinearNativeTests TwoDLinearNativeTests.cpp)
+  target_link_libraries(NexoraTwoDLinearNativeTests PRIVATE Nexora::Presentation X11::X11)
+  nexora_apply_defaults(NexoraTwoDLinearNativeTests)
+  add_test(NAME window_presentation.twod_linear_native COMMAND "${Python3_EXECUTABLE}"
+    "${PROJECT_SOURCE_DIR}/Tests/Showcase/LinuxVulkanSceneAcceptance.py"
+    --native-test "$<TARGET_FILE:NexoraTwoDLinearNativeTests>" --screen 3200x1440x24 --timeout 90
+    --evidence-dir "${CMAKE_BINARY_DIR}/artifacts/twod-linear-native")
+  set_tests_properties(window_presentation.twod_linear_native PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 120 LABELS "twod;vulkan;virtual-display")
+elseif(WIN32 OR APPLE)
+  if(APPLE)
+    add_executable(NexoraTwoDLinearNativeTests TwoDLinearNativeTests.mm
+      "${PROJECT_SOURCE_DIR}/Engine/Presentation/src/SpriteDraws.cpp")
+    target_link_libraries(NexoraTwoDLinearNativeTests PRIVATE Nexora::RHI Nexora::Window
+      "-framework Cocoa" "-framework Metal" "-framework QuartzCore")
+    target_compile_options(NexoraTwoDLinearNativeTests PRIVATE $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+  else()
+    add_executable(NexoraTwoDLinearNativeTests TwoDLinearNativeTests.cpp
+      "${PROJECT_SOURCE_DIR}/Engine/Presentation/src/SpriteDraws.cpp")
+    target_link_libraries(NexoraTwoDLinearNativeTests PRIVATE Nexora::RHI Nexora::Window d3d12 d3dcompiler dxgi)
+  endif()
+  target_include_directories(NexoraTwoDLinearNativeTests PRIVATE "${PROJECT_SOURCE_DIR}/Engine/Presentation/include")
+  target_compile_definitions(NexoraTwoDLinearNativeTests PRIVATE NEXORA_PRESENTATION_STATIC=1)
+  nexora_apply_defaults(NexoraTwoDLinearNativeTests)
+  add_test(NAME window_presentation.twod_linear_native COMMAND NexoraTwoDLinearNativeTests
+    "${CMAKE_BINARY_DIR}/artifacts/twod-linear-native.ppm")
+  set_tests_properties(window_presentation.twod_linear_native PROPERTIES
+    SKIP_RETURN_CODE 77 TIMEOUT 120 RUN_SERIAL TRUE LABELS "twod;native-display")
+endif()
