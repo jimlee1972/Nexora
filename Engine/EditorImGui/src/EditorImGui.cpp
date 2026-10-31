@@ -1,6 +1,7 @@
 #include "Nexora/EditorImGui/EditorImGui.h"
 #include "EditorIcons.h"
 #include "EditorSystemFont.h"
+#include "EditorTheme.h"
 #include "Nexora/Editor/InspectorRotation.h"
 #include "Nexora/Editor/PrefabAssets.h"
 #include "Nexora/Editor/ViewportMath.h"
@@ -318,6 +319,10 @@ struct EditorImGuiHost::State final {
   bool close_prompt_requested = false;
   std::array<std::optional<std::array<float, 2>>, 3> close_positions{};
   bool recovery_prompt_opened = false;
+  EditorColorTheme color_theme{EditorColorTheme::Dark};
+  std::optional<EditorColorTheme> color_theme_request;
+  std::string color_theme_status;
+  std::array<std::optional<std::array<float, 2>>, 4> appearance_positions{};
   bool initial_dock_layout_built = false;
   bool focus_initial_content = false;
   bool focus_initial_scene = false;
@@ -781,13 +786,6 @@ template <typename StateT> void CancelInspectorDrafts(StateT &state) {
   state.inspector_camera_request.reset();
   state.inspector_light_request.reset();
   state.inspector_material_request.reset();
-}
-
-void ApplyTheme() {
-  ImGui::StyleColorsDark();
-  auto &style = ImGui::GetStyle();
-  style.WindowRounding = 4.0F;
-  style.FrameRounding = 3.0F;
 }
 
 float DpiBucket(float scale) {
@@ -3588,8 +3586,6 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
   };
   constexpr std::array row_labels{"Position", "Rotation", "Scale"};
   constexpr std::array axis_labels{"X", "Y", "Z"};
-  constexpr std::array axis_colors{ImVec4(0.95F, 0.35F, 0.35F, 1), ImVec4(0.40F, 0.85F, 0.40F, 1),
-                                   ImVec4(0.40F, 0.65F, 1.0F, 1)};
   const auto &style = ImGui::GetStyle();
   const float row_width = ImGui::GetContentRegionAvail().x;
   const float label_width = ImGui::CalcTextSize("Rotation").x + style.ItemSpacing.x;
@@ -3613,7 +3609,7 @@ void DrawInspector(StateT &state, SceneDocument *scene, ProjectContentSession *c
       if (axis != 0)
         ImGui::SameLine(0, style.ItemSpacing.x);
       ImGui::AlignTextToFramePadding();
-      ImGui::TextColored(axis_colors[axis], "%s", axis_labels[axis]);
+      ImGui::TextColored(detail::AxisColor(axis), "%s", axis_labels[axis]);
       ImGui::SameLine(0, gap);
       ImGui::SetNextItemWidth(input_width);
       if (row == 1)
@@ -4234,10 +4230,10 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
         ImGui::BeginChild("Build diagnostics", {0, 100}, ImGuiChildFlags_Borders);
         for (const auto &diagnostic : state.game_build_progress.diagnostics) {
           const auto color = diagnostic.severity == GameBuildDiagnosticSeverity::Error
-                                 ? ImVec4(1, .4F, .4F, 1)
+                                 ? detail::ErrorColor()
                              : diagnostic.severity == GameBuildDiagnosticSeverity::Warning
-                                 ? ImVec4(1, .8F, .35F, 1)
-                                 : ImVec4(.8F, .8F, .8F, 1);
+                                 ? detail::WarningColor()
+                                 : ImGui::GetStyleColorVec4(ImGuiCol_Text);
           if (!diagnostic.file.empty())
             ImGui::TextColored(color, "%s:%u:%u", diagnostic.file.c_str(), diagnostic.line,
                                diagnostic.column);
@@ -4360,8 +4356,7 @@ void DrawProjectPanel(StateT &state, const ProjectWorkspace *workspace,
     ImGui::Text("Root: %s", PathLabel(workspace->Root()).c_str());
     ImGui::Text("Schema: %u / %u", workspace->Project().schema_version,
                 ProjectDescriptor::kSchemaVersion);
-    ImGui::TextColored(workspace->Writable() ? ImVec4(0.45F, 0.85F, 0.45F, 1.0F)
-                                             : ImVec4(1.0F, 0.75F, 0.3F, 1.0F),
+    ImGui::TextColored(workspace->Writable() ? detail::SuccessColor() : detail::WarningColor(),
                        "Access: %s", workspace->Writable() ? "Read-write" : "Read-only");
     if (workspace->UpgradeState() == ProjectUpgradeState::Applied)
       ImGui::TextUnformatted("Project descriptor upgraded during this session.");
@@ -4940,8 +4935,7 @@ void DrawContentBrowser(StateT &state, ProjectContentSession &content, AssetImpo
       std::min<std::size_t>(dependency_cycle.size(), std::numeric_limits<std::uint32_t>::max()));
   if (!dependency_cycle.empty()) {
     ImGui::SeparatorText("Dependency cycle");
-    ImGui::TextColored(ImVec4(1.0F, 0.45F, 0.35F, 1.0F),
-                       "Cyclic dependencies block artifact publication.");
+    ImGui::TextColored(detail::ErrorColor(), "Cyclic dependencies block artifact publication.");
     for (const auto asset : dependency_cycle) {
       const auto *item = browser.Find(asset);
       const auto asset_label = item != nullptr ? PathLabel(item->path) : asset.ToString();
@@ -5132,12 +5126,27 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   ImGui::GetPlatformIO().Platform_SetImeDataFn = &State::SetImeData;
   constexpr std::string_view default_project_name = "New Project";
   std::ranges::copy(default_project_name, state_->selector_name.begin());
-  ApplyTheme();
+  detail::ApplyTheme(state_->color_theme);
 }
 
 EditorImGuiHost::~EditorImGuiHost() = default;
 EditorImGuiHost::EditorImGuiHost(EditorImGuiHost &&) noexcept = default;
 EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = default;
+
+void EditorImGuiHost::SetColorTheme(EditorColorTheme theme, std::string status) {
+  if (theme != EditorColorTheme::Dark && theme != EditorColorTheme::Light)
+    return;
+  Activate(state_->context);
+  state_->color_theme = theme;
+  state_->color_theme_status = std::move(status);
+  detail::ApplyTheme(theme);
+}
+
+EditorColorTheme EditorImGuiHost::GetColorTheme() const noexcept { return state_->color_theme; }
+
+std::optional<EditorColorTheme> EditorImGuiHost::TakeColorThemeRequest() {
+  return std::exchange(state_->color_theme_request, std::nullopt);
+}
 
 void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
   Activate(state_->context);
@@ -5229,7 +5238,7 @@ void EditorImGuiHost::SetDisplay(float width, float height, float dpi_scale) {
     ++state_->font_generation;
   }
   state_->dpi_scale = dpi_scale;
-  ApplyTheme();
+  detail::ApplyTheme(state_->color_theme);
 }
 
 void EditorImGuiHost::ProcessEvents(std::span<const Nexora::Window::WindowEvent> events) {
@@ -5956,7 +5965,28 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
         state_->project_window_requested = true;
       ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Settings")) {
+    const auto observe_appearance = [&](std::size_t index) {
+      const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
+      state_->appearance_positions[index] =
+          std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
+    };
+    state_->appearance_positions = {};
+    const bool settings_open = ImGui::BeginMenu("Settings");
+    observe_appearance(0);
+    if (settings_open) {
+      const bool appearance_open = ImGui::BeginMenu("Appearance");
+      observe_appearance(1);
+      if (appearance_open) {
+        if (ImGui::MenuItem("Dark", nullptr, state_->color_theme == EditorColorTheme::Dark))
+          state_->color_theme_request = EditorColorTheme::Dark;
+        observe_appearance(2);
+        if (ImGui::MenuItem("Light", nullptr, state_->color_theme == EditorColorTheme::Light))
+          state_->color_theme_request = EditorColorTheme::Light;
+        observe_appearance(3);
+        if (!state_->color_theme_status.empty())
+          ImGui::TextWrapped("%s", state_->color_theme_status.c_str());
+        ImGui::EndMenu();
+      }
       ImGui::MenuItem("Prefab isolation", "Ctrl+Alt+P", &state_->prefab_isolation_open);
       ImGui::MenuItem("Privacy diagnostics", "Ctrl+Alt+T", &state_->diagnostic_privacy_open);
       ImGui::MenuItem("Extensions", "Ctrl+Alt+E", &state_->extension_manager_open);
@@ -6267,14 +6297,13 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
     ImGui::EndDisabled();
     if (scene != nullptr) {
       if (scene->Dirty())
-        ImGui::TextColored(ImVec4(1.0F, 0.72F, 0.28F, 1.0F), "Unsaved scene changes");
+        ImGui::TextColored(detail::WarningColor(), "Unsaved scene changes");
       else
         ImGui::TextDisabled("Scene saved");
     }
     if (!state_->scene_save_message.empty()) {
       if (!state_->scene_save_success)
-        ImGui::TextColored(ImVec4(1.0F, 0.4F, 0.4F, 1.0F), "%s",
-                           state_->scene_save_message.c_str());
+        ImGui::TextColored(detail::ErrorColor(), "%s", state_->scene_save_message.c_str());
       else
         ImGui::TextUnformatted(state_->scene_save_message.c_str());
     }
@@ -6940,9 +6969,9 @@ void EditorImGuiHost::DrawProductShell(ProductShell &shell, SceneDocument *scene
           std::replace(row.begin(), row.end(), '\r', ' ');
           ImGui::PushID(static_cast<int>(record.sequence));
           if (record.severity >= runtime::RuntimeLogSeverity::Error)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.45F, 0.45F, 1.0F));
+            ImGui::PushStyleColor(ImGuiCol_Text, detail::ErrorColor());
           else if (record.severity == runtime::RuntimeLogSeverity::Warning)
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0F, 0.75F, 0.35F, 1.0F));
+            ImGui::PushStyleColor(ImGuiCol_Text, detail::WarningColor());
           ImGui::Selectable(row.c_str());
           if (ImGui::IsItemHovered())
             ImGui::SetTooltip("%s", row.c_str());
@@ -9496,6 +9525,11 @@ bool EditorImGuiHost::ApplyRecoveryChoice(ProjectWorkspace &workspace, RecoveryC
 std::string_view EditorImGuiHost::RecoveryError() const noexcept { return state_->recovery_error; }
 
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
+std::optional<std::array<float, 2>>
+EditorImGuiTestAccess::AppearancePosition(const EditorImGuiHost &host, std::size_t index) {
+  return index < host.state_->appearance_positions.size() ? host.state_->appearance_positions[index]
+                                                          : std::nullopt;
+}
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::DiagnosticPosition(const EditorImGuiHost &host, std::size_t control) {
   return control < host.state_->diagnostic_positions.size()

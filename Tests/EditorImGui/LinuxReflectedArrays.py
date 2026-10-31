@@ -103,8 +103,10 @@ def main():
             raise RuntimeError('Native ' + description + ' not presented; colors=' +
                                repr(sorted(set(observed))))
 
-        def blue(observed):
-            return sum(b >= r + 25 and g >= r + 10 for r, g, b in observed) >= 10
+        def neutral_surface(observed, value):
+            # The default Dark button presents neutral .38 hover / .18 held swatches.
+            return sum(max(pixel) - min(pixel) <= 3 and abs(pixel[0] - value) <= 4
+                       for pixel in observed) >= 10
 
         def caret(observed):
             # Four columns immediately after the initial single digit; an active caret has
@@ -117,12 +119,12 @@ def main():
             before = pixels(window, patch)
             send('mousemove', '--window', window, str(x), str(y))
             if enabled:
-                hovered = wait_pixels(window, patch, lambda p: p != before and blue(p),
+                hovered = wait_pixels(window, patch, lambda p: p != before and neutral_surface(p, 97),
                                       'array button hover')
             send('mousedown', '1')
             try:
                 if enabled:
-                    held = wait_pixels(window, patch, lambda p: p != hovered and blue(p),
+                    held = wait_pixels(window, patch, lambda p: p != hovered and neutral_surface(p, 46),
                                        'array button held')
             finally:
                 send('mouseup', '1')

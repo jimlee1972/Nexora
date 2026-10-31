@@ -1620,3 +1620,12 @@ outer timeout. The packager repeats this against staged and actually extracted i
 alongside the existing shipped-tools Build/Play, CLI, exact resources and source-preservation gates.
 Hosted results do not establish physical multi-monitor, desktop taskbar or clean-host acceptance.
 See [assets](../../Assets/Brand/README.md) and [evidence](../../Tools/Build/evidence/NexoraBrandStartup-2026-10-27.md).
+
+## Appearance
+
+Choose **Settings > Appearance > Dark / Light** to switch the whole Editor interface immediately.
+The neutral gray surfaces and blue selection/focus accents are inspired by Unity Editor. Dark is the
+initial default; the user preference survives restart and project changes, including read-only
+projects. Settings are stored in `appearance` beside the user recent-project list, never in scene or
+project files. A save failure leaves the session theme active and displays a warning in Appearance;
+choose the same theme again to retry. Scene/Game output and asset colors are unchanged.

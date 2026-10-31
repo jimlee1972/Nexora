@@ -257,6 +257,13 @@ Wireframe 或孤立的 widget demo 不構成本 milestone 完成。
   （docking/multi-viewport），透過 `Nexora::RHI` 渲染而非另帶一套視窗系統，並點名 ED-M7 仍要展開
   的無障礙缺口。這份 ADR 只確定了 framework 選型，不等於圖形化 docking、theme、DPI、IME、
   accessibility 或 crash UX 已完成。
+- ✅ Settings > Appearance 現可選 Unity 風格的 Dark／Light 中性灰配色與藍色選取效果。
+  Request 於 frame 間套用，保存於使用者層 appearance 紀錄，跨專案／layout 保留，唯讀專案
+  亦可切換。有界讀取拒絕無效紀錄並保留原檔；儲存失敗保留本次主題且顯示可重試警告。
+  配色先解碼再交給原生 sRGB 輸出，圖示、狀態文字與 Transform 軸色保持可讀，DPI 幾何不變。
+  真實 1x／2x 選單測試及 Linux X11／Vulkan 畫面、儲存、重啟、唯讀驗收已涵蓋此功能；
+  physical-host acceptance 與整體里程碑仍維持 open。
+  [Linux 證據](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md)。
 - ✅ Feature-gated Dear ImGui host 已實作
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md) 所述的 portable docking、
   theme／DPI、input／IME、live panel、recovery UX 與 accessibility-direction contract。
