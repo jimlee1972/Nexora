@@ -51,6 +51,14 @@ class Native:
         self.user.SetForegroundWindow.argtypes = [W.HWND]
         self.user.GetForegroundWindow.restype = W.HWND
         self.user.SetFocus.argtypes = [W.HWND]
+        self.user.GetThreadDesktop.argtypes = [W.DWORD]
+        self.user.GetThreadDesktop.restype = W.HANDLE
+        self.user.OpenInputDesktop.argtypes = [W.DWORD, W.BOOL, W.DWORD]
+        self.user.OpenInputDesktop.restype = W.HANDLE
+        self.user.GetUserObjectInformationW.argtypes = [W.HANDLE, C.c_int, W.LPVOID, W.DWORD,
+                                                       C.POINTER(W.DWORD)]
+        self.user.CloseDesktop.argtypes = [W.HANDLE]
+        self.kernel.GetCurrentThreadId.restype = W.DWORD
         self.kernel.CreateToolhelp32Snapshot.argtypes = [W.DWORD, W.DWORD]
         self.kernel.CreateToolhelp32Snapshot.restype = W.HANDLE
         self.kernel.CloseHandle.argtypes = [W.HANDLE]
@@ -63,6 +71,24 @@ class Native:
         self.Entry = Entry
         for name in ("Process32FirstW", "Process32NextW"):
             getattr(self.kernel, name).argtypes = [W.HANDLE, C.POINTER(Entry)]
+
+    def require_interactive_desktop(self):
+        def name(handle):
+            value, size = C.create_unicode_buffer(256), W.DWORD()
+            require(handle and self.user.GetUserObjectInformationW(
+                handle, 2, value, C.sizeof(value), C.byref(size)), "Cannot inspect native GUI desktop")
+            return value.value
+        active = self.user.OpenInputDesktop(0, False, 1)
+        require(active, "Native GUI gate requires an accessible interactive input desktop")
+        try:
+            thread_name = name(self.user.GetThreadDesktop(self.kernel.GetCurrentThreadId()))
+            input_name = name(active)
+            require(thread_name == input_name,
+                    "Native DX12 gate cannot present on an isolated desktop: " + thread_name +
+                    "; input desktop is " + input_name)
+            return {"thread": thread_name, "input": input_name}
+        finally:
+            self.user.CloseDesktop(active)
 
     def windows(self, pid):
         found = []
@@ -233,6 +259,7 @@ def run(args):
     project.mkdir()
     owner = project.parent
     native, editor, passed = Native(), None, False
+    desktop = native.require_interactive_desktop()
     environment = dict(os.environ, LOCALAPPDATA=str(owner / "User Data"),
                        NEXORA_PROJECT_GAME_BUILD_EVIDENCE="1", NEXORA_PLAYER_STARTUP_EVIDENCE="1")
     try:
@@ -267,6 +294,14 @@ def run(args):
         editor.result(before, True)
         output = project / "Build/預覽 Game"
         require((output / "Game.dll").is_file(), "GUI did not build the saved script project")
+        receipt_line = re.search(r"^game build receipt: (.*)$", editor.log(), re.M)
+        require(receipt_line, "GUI build did not expose an independent receipt")
+        records = Path(json.loads(receipt_line.group(1)))
+        require(records.is_dir() and not records.is_relative_to(project) and
+                (records / "Publication.receipt").is_file(), "Build receipt overlaps authored project")
+        require(not any((output / name).exists() for name in
+                        ("Game.inventory", "Build.commands", "Build.sources", "Build.tools")),
+                "Development records leaked into game output")
         require_gui_subsystem(output / "Game.exe")
         require(hashlib.sha256((output / "Game.exe").read_bytes()).digest() ==
                 hashlib.sha256(Path(args.player).read_bytes()).digest(), "Game.exe is not the native Player")
@@ -281,11 +316,12 @@ def run(args):
             own = native.windows(game_pid)
             require(len(own) <= 1 and all(w["class"] != "ConsoleWindowClass" for w in own),
                     "Game created extra windows or console: " + str(own))
-            if len(own) == 1 and native.responsive(own[0]["hwnd"]):
+            if (len(own) == 1 and native.responsive(own[0]["hwnd"]) and
+                    editor.state().get("player_ready") == "1"):
                 game_window = own[0]
                 break
             time.sleep(.05)
-        require(game_window, "Published game did not produce a responsive window")
+        require(game_window, "Published game did not produce a responsive window with two presented frames")
         time.sleep(.7)
         require(not native.descendants(game_pid), "Published game created child processes")
         native.post(game_window["hwnd"], 0x10)
@@ -337,10 +373,12 @@ def run(args):
         editor.close()
         editor = None
         receipt = {"status": "PASS", "scope": "Windows native GUI, current host; not clean-host acceptance",
+                   "desktop": desktop,
                    "saved_configuration": json.loads(saved_settings), "direct_game": game_window,
                    "game_pid": game_pid, "game_console_attached": False, "game_normal_exit": 0,
                    "compile_failure": compiler_error, "stale_source": stale, "cancelled": cancelled,
-                   "stopped_game": stopped_game,
+                   "stopped_game": stopped_game, "runtime_only": True,
+                   "build_receipt": str(records / "Publication.receipt"),
                    "children_at_cancel": cancelling, "rollback_hashes": stable,
                    "authored_sources_unchanged": baseline, "editor_sha256": hashlib.sha256(editor_path.read_bytes()).hexdigest()}
         (evidence / "receipt.json").write_text(json.dumps(receipt, ensure_ascii=False, indent=2), encoding="utf-8")

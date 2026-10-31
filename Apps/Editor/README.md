@@ -34,6 +34,12 @@ NexoraEditor --build-game=PROJECT --output=OUTPUT --runtime-profile=PROFILE --sc
 ```
 
 OUTPUT's parent must exist. All profile/tool options may be omitted to use the Editor installation.
+The exported folder contains runtime files and LICENSE only. Development records/inventory stay
+in engine user data; the CLI returns separate `receipt` and `records` JSON paths. An optional
+`--build-records=PATH` is a trusted host override outside the project/game, useful for isolated build
+agents. Games run without those records, including after relocation; replacing an existing clean
+output requires its unchanged receipt. Verified legacy inventory-bearing outputs migrate safely;
+foreign/changed files reject, and a receipt commit failure rolls back the game directory.
 PROFILE is the trusted installed native Player's `GameRuntime.profile`;
 script manifests for this producer live inside a dedicated project-relative source directory.
 This command captures saved settings/scenes, runs the same engine cooker/SDK adapter and guarded
