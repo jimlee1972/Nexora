@@ -73,3 +73,7 @@ HD2D-06 四尺寸總 watchdog 改為涵蓋四個不變的90s case 與匯出／�
 HD2D-06 保留 macOS job124420121268 的設定失敗：既有 Python 探測區塊排除 Apple，三個診斷測試取得空直譯器。改為在診斷註冊邊界明確要求直譯器。Metal 原生55 畫面 CPU 像素讀回本身通過；三個診斷測試須重跑後才驗收，不放寬斷言或略過。
 
 HD2D-06 直譯器範圍修正通過完整 Linux Development297／289 通過／八項略過／零失敗112.54 秒，包含實際四尺寸 Zig Vulkan 與同步驗證；Shipping 通過。macOS 實際診斷重試仍須通過。
+
+HD2D-06 保留相依 job124428232886 的第二次 macOS 診斷失敗：Python／素材生成已可執行，但 ExportGame 僅支援 Windows／Linux，拒絕 dylib。新增明確限定 Development 的 macOS dyld 圖封裝、繼承 RPATH 解析、複本 import 搬移／ad-hoc 簽署及完整 inventory。六個可攜圖與失敗 fixture 通過；仍須實際 Metal Zig 啟動重試，不宣稱 macOS Shipping 發布或放寬斷言。
+
+HD2D-06 限定 Development 的 macOS 封裝通過完整 Linux298／290 通過／八項略過／零失敗109.56 秒及 Shipping，包含六個可攜 dyld fixture。實際 Mac 二進位搬移／簽署／原生 Zig 重試仍待驗。

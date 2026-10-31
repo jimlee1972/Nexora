@@ -73,3 +73,7 @@ HD2D-06 four-size aggregate watchdog now covers four unchanged90s case bounds pl
 HD2D-06 macOS job124420121268 retained a configuration failure: the three Python diagnostic tests had an empty interpreter because the older discovery block excludes Apple. Explicitly require the interpreter at the diagnostic registration boundary. Metal native55-frame CPU pixel readback itself passed; three diagnostic tests remain unaccepted until retry, with no assertions/skips weakened.
 
 HD2D-06 interpreter-scope repair passed full Linux Development297/289pass/eight skips/zero failures112.54s with actual four-size Zig Vulkan and synchronization validation, plus Shipping. macOS actual diagnostic retry remains required.
+
+HD2D-06 second macOS diagnostic failure retained from dependent job124428232886: Python/asset generation now run, but ExportGame rejects dylib and supports only Windows/Linux. Add explicit Development-only macOS dyld graph staging, inherited RPATH resolution, copied import relocation/ad-hoc signing and complete inventory. Six portable graph/failure fixtures pass; actual Metal Zig startup remains a required retry. No macOS Shipping distribution or weaker assertions claimed.
+
+HD2D-06 Development-only macOS export passed full Linux298/290pass/eight skips/zero failures109.56s and Shipping, including six portable dyld fixtures. Actual Mac binary rewrite/signing/native Zig retry remains pending.

@@ -141,6 +141,73 @@ def pe_imports(binary):
     return sorted(names, key=str.lower)
 
 
+def macos_development_dependencies(roots, destination, executable_directory):
+    """Copy a trusted Development dyld graph and remove build-tree load paths.
+
+    This deliberately does not provide a signed/notarized macOS Shipping distribution.
+    Discover the complete graph before modifying copies; source binaries stay untouched.
+    """
+    owners, edges, visited = {}, {}, set()
+
+    def expand(value, loader):
+        for prefix, base in (('@loader_path', loader), ('@executable_path', executable_directory)):
+            if value == prefix or value.startswith(prefix + '/'):
+                return base / value[len(prefix):].lstrip('/')
+        return Path(value)
+
+    def inspect(source, name, inherited):
+        source = source.resolve()
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', name) or 'editor' in name.lower():
+            raise ValueError('unsupported macOS diagnostic dependency: ' + name)
+        if name in owners and owners[name] != source:
+            raise ValueError('conflicting macOS dependency filename: ' + name)
+        owners[name] = source
+        if (source, name) in visited:
+            return
+        visited.add((source, name))
+        commands = subprocess.check_output(['otool', '-l', str(source)], text=True)
+        paths = [expand(path, source.parent) for path in re.findall(
+            r'\bcmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset \d+\)', commands)] + list(inherited)
+        identity = {line.strip() for line in subprocess.check_output(
+            ['otool', '-D', str(source)], text=True).splitlines()[1:]}
+        imports = subprocess.check_output(['otool', '-L', str(source)], text=True).splitlines()[1:]
+        edges[name] = []
+        for line in imports:
+            imported = line.strip().split(' (compatibility version', 1)[0]
+            if imported in identity or imported.startswith(('/usr/lib/', '/System/Library/')):
+                continue
+            if '.framework/' in imported:
+                raise ValueError('non-system macOS framework distribution is unsupported: ' + imported)
+            if imported.startswith('@rpath/'):
+                candidates = [path / imported[len('@rpath/'):] for path in paths]
+            elif imported.startswith(('@loader_path/', '@executable_path/')):
+                candidates = [expand(imported, source.parent)]
+            elif Path(imported).is_absolute():
+                candidates = [Path(imported)]
+            else:
+                candidates = [source.parent / imported]
+            dependency = next((p for p in candidates if p.is_file()), None)
+            if dependency is None:
+                raise ValueError('unresolved macOS dependency: ' + imported)
+            dependency_name = Path(imported).name
+            edges[name].append((imported, '@loader_path/' + dependency_name))
+            inspect(dependency, dependency_name, paths)
+
+    for source, name in roots:
+        inspect(source, name, ())
+    for name, source in owners.items():
+        shutil.copy2(source, destination / name)
+    for name, replacements in edges.items():
+        if replacements:
+            command = ['install_name_tool']
+            for old, new in replacements:
+                command += ['-change', old, new]
+            subprocess.run(command + [str(destination / name)], check=True)
+    # Mach-O mutations invalidate signatures on Apple Silicon. Sign copied dependencies first.
+    for name in reversed(list(owners)):
+        subprocess.run(['codesign', '--force', '--sign', '-', str(destination / name)], check=True)
+
+
 def dependencies(binary, destination, allow_development, redist, vulkan_loader=None):
     if sys.platform == 'win32':
         names = pe_imports(binary)
@@ -250,16 +317,23 @@ def export(descriptor, runtime, output, compiler=None, allow_development=False, 
     if not isinstance(assets, list) or len(assets) > 4096:
         raise ValueError('asset count exceeds 4096')
     module = local(descriptor.parent, config['module'])
-    if module.suffix.lower() != ('.dll' if sys.platform == 'win32' else '.so'):
+    module_suffix = '.dll' if sys.platform == 'win32' else '.dylib' if sys.platform == 'darwin' else '.so'
+    if module.suffix.lower() != module_suffix:
         raise ValueError('module must match the target host')
+    if sys.platform == 'darwin' and not allow_development:
+        raise ValueError('macOS diagnostic export requires --allow-development; Shipping distribution is not provided')
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='nexora-game-export-', dir=output.parent) as temporary:
         staging = Path(temporary) / 'game'
         staging.mkdir()
         shutil.copy2(runtime, staging / executable_name)
-        dependencies(runtime, staging, allow_development, redist, vulkan_loader)
         shutil.copy2(module, staging / ('gameplay' + module.suffix))
-        dependencies(module, staging, allow_development, redist, vulkan_loader)
+        if sys.platform == 'darwin':
+            macos_development_dependencies([(runtime, executable_name), (module, 'gameplay' + module.suffix)],
+                                          staging, runtime.parent)
+        else:
+            dependencies(runtime, staging, allow_development, redist, vulkan_loader)
+            dependencies(module, staging, allow_development, redist, vulkan_loader)
         (staging / 'assets').mkdir()
         quote = lambda value: '"' + value.replace('\\', '\\\\').replace('"', '\\"') + '"'
         lines = ['NEXORA_2D_GAME 1']
