@@ -921,7 +921,7 @@ remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or
 
 ## HD-2D extension work items
 
-[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 2/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
+[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 3/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
 
 ✅ HD2D-01: public effects contract/Zig and atomic snapshots validated; native effects and SDK remain subsequent work. See the plan and linked evidence above.
 
@@ -936,3 +936,5 @@ HD2D-05 preparation adds companion linear masks, ordered emission and <=5-level 
 HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames release offscreen owners; appended HUD stays protected and re-enable recreates targets. Local/native gate evidence remains linked; no acceptance credit before CI.
 
 ✅ HD2D-04 accepted via PR #737 / `0845c078`: native52-frame DX12/Metal CPU-oracle readbacks and full current-head CI, Linux483 tests. Engineering4/7; HD2D-05 final rebased CI pending, physical PC NOT_RUN.
+
+✅ HD2D-03 accepted via PR #736 / `40c96072`, current-head native DX12/Metal pixels and complete CI passed; engineering 3/7. HD2D-06 local Zig scene, four-size native Player, copied GPU diagnostics and map readbacks passed full Development/Shipping; dependent/native CI still gates acceptance. [Evidence](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md).
