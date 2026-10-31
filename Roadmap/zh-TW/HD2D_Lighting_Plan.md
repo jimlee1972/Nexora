@@ -89,3 +89,5 @@ HD2D-07 施工將明確 mask 工具與具授權 Zig 診斷納入 0.2.0 候選。
 HD2D-07 發布來源補強：獨立 consumer 收據綁定實際候選 ZIP SHA-256、來源提交、原生 DX12 診斷與離線重建。CI 清理只限本交付四個明確自有分支的過期 Build；保留目前提交的 push／PR、main、其他操作者與相近名稱分支。47 項清理防護測試通過。
 
 HD2D-07 [本地準備證據](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md)：最終完整 Linux gate 登錄 297／通過 289／略過八項／零失敗，Shipping 通過。Windows 候選 consumer／發布／遊戲 lock 尚待完成；工程仍 3/7。
+
+HD2D-07 首輪 Windows consumer 在 producer 成功後於 headless 資源 gate 失敗；保留 job `124399279404`／artifact `13024158144`。將常駐 Atlas／Clip 範例與空資源起始的 HD2D 診斷分開，保留資源歸零斷言。重跑／原生／發布仍待完成。

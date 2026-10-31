@@ -106,6 +106,11 @@ test "diagnostic defaults are interactive" {
 """, encoding='utf-8')
     run('cmake', '--build', build, '--target', 'game_module')
     shutil.copy2(build/'module/bin/SdkFixture.dll', source/'module.dll')
+    # The first package deliberately owns eager Atlas/Clip resources. Keep that fixture
+    # intact; the separate HD2D package must start empty to assert its owned assets retire.
+    diagnostic_project = json.loads((source/'game.json').read_text(encoding='utf-8'))
+    diagnostic_project['assets'] = []
+    (source/'game.json').write_text(json.dumps(diagnostic_project), encoding='utf-8')
     hd2d = output/'HD2D relocated 陰陽'
     run(sys.executable, sdk/'Tools/TwoD/ExportGame.py', source/'game.json',
         '--runtime', sdk/'bin/NexoraGameHost.exe', '--output', hd2d,
@@ -134,10 +139,15 @@ test "diagnostic defaults are interactive" {
         if result.returncode: raise ValueError('real SDK Zig diagnostic failed: '+label)
         observed = json.loads(report.read_text(encoding='utf-8'))
         logs = (result.stdout+result.stderr).decode('utf-8', 'replace')
+        print('HD2D consumer '+label+' '+json.dumps({key: observed[key] for key in
+            ('status','allocations_balanced','asset_active_bytes','asset_staging_bytes',
+             'ui_frames','native_frames','effects_completed_frame','effects_timing_mask')}), flush=True)
+        for line in logs.splitlines():
+            if 'HD2D STOP' in line: print(line, flush=True)
         if (observed['status'] != 'PASS' or not observed['allocations_balanced'] or
             observed['asset_active_bytes'] or observed['asset_staging_bytes'] or
             'HD2D STOP PASS phase_mask=4095 reloads=2' not in logs or 'FAIL' in logs):
-            raise ValueError('HD2D lifecycle/fallback regression: '+label)
+            raise ValueError('HD2D lifecycle/fallback regression: '+label+'; diagnostic logs: '+logs[-3000:])
         if native:
             if observed['native_frames'] != 144 or 'features=7' not in logs:
                 raise ValueError('SDK did not execute native HD2D effects')

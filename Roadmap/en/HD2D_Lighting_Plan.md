@@ -89,3 +89,5 @@ HD2D-07 preparation packages explicit-mask tools and licensed reusable Zig diagn
 HD2D-07 release provenance now binds the independent consumer receipt to the actual candidate ZIP SHA-256 and source commit, native DX12 diagnostic and offline rebuild. CI cleanup is scoped to this delivery’s four exact owner branches, only obsolete Build runs; current-head push/PR, main, foreign actor and similarly named branches are preserved. All 47 cleanup guard tests passed.
 
 HD2D-07 [local preparation evidence](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md): final full Linux gate 297 registered / 289 pass / eight skips / zero failures, Shipping passed. Candidate Windows consumer/publication/game lock remain pending; engineering stays 3/7.
+
+HD2D-07 first Windows consumer failed the headless resource gate after producer success. Retain job `124399279404` / artifact `13024158144`. Separate the canonical eager Atlas/Clip fixture from the empty-start HD2D diagnostic; zero-owned-resource assertions stay intact. Retry/native/publication remain pending.
