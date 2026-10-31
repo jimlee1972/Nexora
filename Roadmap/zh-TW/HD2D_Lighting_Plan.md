@@ -93,3 +93,5 @@ HD2D-07 [本地準備證據](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.m
 HD2D-07 首輪 Windows consumer 在 producer 成功後於 headless 資源 gate 失敗；保留 job `124399279404`／artifact `13024158144`。將常駐 Atlas／Clip 範例與空資源起始的 HD2D 診斷分開，保留資源歸零斷言。重跑／原生／發布仍待完成。
 
 HD2D-07 本地配對重現確認：常駐基準素材320 active bytes，獨立 HD2D 為0，兩者皆144次更新／全部階段／正常清理。最新姿態對齊 SDK 的完整 Linux297／通過289／略過八項／零失敗106.49s 與 Shipping 通過。原生 consumer／發布仍待完成。
+
+HD2D-07 候選清理沿用既有 owner-only 機制，只增加本 SDK 明確分支；取消過期同分支 Build／candidate，保留目前 push／PR 與 main。精確 JavaScript／47 防護測試及完整 Linux297／通過289／略過八項／零失敗109.52s 與 Shipping 通過。最終 CI／發布仍待完成。
