@@ -97,3 +97,7 @@ HD2D-07 本地配對重現確認：常駐基準素材320 active bytes，獨立 H
 HD2D-07 候選清理沿用既有 owner-only 機制，只增加本 SDK 明確分支；取消過期同分支 Build／candidate，保留目前 push／PR 與 main。精確 JavaScript／47 防護測試及完整 Linux297／通過289／略過八項／零失敗109.52s 與 Shipping 通過。最終 CI／發布仍待完成。
 
 HD2D-07 發布前 Windows 候選 run41158981348 通過獨立 producer／consumer；原生144幀／features7／timing mask15／兩次重載／active-staging歸零／配置平衡，另通過 headless 及離線重建。尚未發布0.2.0或驗收遊戲／PC；仍需最終 main-push候選／完整CI與相同位元組發布。
+
+HD2D-07 最新59826131 獨立 Windows consumer124420670087 通過實際 DX12144 幀／全部階段／兩次重載／離線 gate，但相依 macOS job124420244953 有三個空直譯器 NOT_RUN 失敗。兩種結果均保留，接入 HD2D-06 明確 Python 探測；發布前仍須完整／原生重試通過。
+
+HD2D-07 接入直譯器修正後通過完整 Linux297／289 通過／八項略過／零失敗108.57 秒、Shipping、SDK5 與 cleanup47。macOS 重試及不可覆寫發布／遊戲 lock 仍待完成，不增加驗收完成度。

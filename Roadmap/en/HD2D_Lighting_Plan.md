@@ -97,3 +97,7 @@ HD2D-07 local paired reproduction confirms eager baseline320 active bytes versus
 HD2D-07 candidate cleanup recognizes only this SDK branch in the existing owner-only mechanism, cancelling obsolete same-branch Build/candidate runs while preserving current push/PR and main. Exact JavaScript/47 guard tests and full Linux297/289pass/eight skips/zero failures109.52s plus Shipping passed. Final CI/publication remain pending.
 
 HD2D-07 pre-release Windows candidate run41158981348 passed isolated producer/consumer; native144frames/features7/timing mask15/two reloads/zero active-staging/balanced allocations, plus headless and offline rebuild. This does not publish0.2.0 or accept game/PC; final main-push candidate/full CI and exact-byte promotion remain required.
+
+HD2D-07 latest59826131 isolated Windows consumer124420670087 passed actual DX12144-frame/all-phase/two-reload/offline gates, but inherited macOS job124420244953 had three empty-interpreter NOT_RUN failures. Retain both outcomes and inherit HD2D-06 explicit Python discovery; full/native retry remains required before release.
+
+HD2D-07 inherited interpreter fix passed full Linux297/289pass/eight skips/zero failures108.57s plus Shipping, SDK5 and cleanup47. macOS retry and immutable publication/game lock remain pending; no acceptance credit.
