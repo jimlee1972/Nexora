@@ -65,3 +65,5 @@ HD2D-06: real reusable Zig scene, native GPU map view, completed-slot per-pass t
 HD2D-03 acceptance receipt: PR #736 / `40c96072`; current-head Windows job `124365092041` (425 CTests) and macOS job `124365092312` (400 CTests) passed actual native pixel readbacks. Physical PC remains NOT_RUN.
 
 HD2D-06 input evidence follow-up replaces fixed-time synthetic click injection with actual Zig-sampled neutral/down acknowledgements. A retained dependent full-gate failure motivated the change; three complete four-size native repetitions passed, with the original exactly-one activation/camera isolation assertions intact. Acceptance still requires final-head CI.
+
+HD2D-06 aligns moving Sprite poses with the last successfully submitted light/caster snapshot, including zero-size restoration; UI reload defers to the next update start. Full Linux297/289pass/eight skips/zero failures111.82s and Shipping passed. No ABI/host semantics change or acceptance credit before CI.

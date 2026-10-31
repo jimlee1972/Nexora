@@ -49,6 +49,8 @@ pub const State = struct {
     timing_seen: u32 = 0,
     reloads: u32 = 0,
     time: f64 = 0,
+    submitted_time: f64 = 0,
+    reload_requested: bool = false,
     enabled: bool = true,
     strength_index: usize = 0,
     outlines: bool = true,
@@ -184,16 +186,23 @@ pub const State = struct {
     }
     pub fn update(self: *State, delta: f64) Error!void {
         if (!self.started or !self.live or !std.math.isFinite(delta) or delta < 0) return error.Lifecycle;
+        if (self.reload_requested) {
+            try self.reload();
+            self.reload_requested = false;
+        }
         if (self.automated) try self.automate();
         if (!self.paused) self.time += @min(delta, 0.1);
         const display = self.display.state() orelse return error.Lifecycle;
         if (display.pixel_width == 0 or display.pixel_height == 0) return;
         const camera = nx.TwoDCamera{ .vertical_size = if (self.wide_camera) 28 else 24, .rotation_radians = if (self.rotate) 0.35 else 0 };
         try check(self.twod.set_camera.?(self.twod.context, &camera));
-        const x: f32 = @floatCast(std.math.sin(self.time * 0.7) * 1.5);
-        const y: f32 = @floatCast(std.math.cos(self.time * 0.9) * 0.5);
-        const lantern_x: f32 = @floatCast(-4 + std.math.sin(self.time) * 2);
-        const lantern_y: f32 = @floatCast(-2 + std.math.cos(self.time * 0.6));
+        // Effects apply at the next frame boundary. Display the last submitted pose,
+        // including after zero-size suspension, while preparing the following light/caster pose.
+        const render_time = if (self.features & 1 != 0) self.submitted_time else self.time;
+        const x: f32 = @floatCast(std.math.sin(render_time * 0.7) * 1.5);
+        const y: f32 = @floatCast(std.math.cos(render_time * 0.9) * 0.5);
+        const lantern_x: f32 = @floatCast(-4 + std.math.sin(render_time) * 2);
+        const lantern_y: f32 = @floatCast(-2 + std.math.cos(render_time * 0.6));
         var instances: [10]nx.TwoDInstance = undefined;
         try check(self.twod.read_instances.?(self.twod.context, &self.handles, self.handles.len, &instances));
         instances[1].transform.position.x = lantern_x;
@@ -212,20 +221,23 @@ pub const State = struct {
         if (instances[5].sprite.color[3] != 1) return error.Lifecycle;
         try check(self.twod.write_instances.?(self.twod.context, &self.handles, self.handles.len, &instances));
         if (self.effects) |api| {
+            const next_x: f32 = @floatCast(std.math.sin(self.time * 0.7) * 1.5);
+            const next_y: f32 = @floatCast(std.math.cos(self.time * 0.9) * 0.5);
             var lights = [_]ex.Light{
-                .{ .id = 1, .position = .{ .x = lantern_x, .y = lantern_y }, .color = .{ 1, 0.35, 0.03 }, .intensity = 4, .radius = 6, .softness = 0.6, .bias = 0.02, .groups = 1 },
+                .{ .id = 1, .position = .{ .x = @floatCast(-4 + std.math.sin(self.time) * 2), .y = @floatCast(-2 + std.math.cos(self.time * 0.6)) }, .color = .{ 1, 0.35, 0.03 }, .intensity = 4, .radius = 6, .softness = 0.6, .bias = 0.02, .groups = 1 },
                 .{ .id = 2, .position = .{ .x = -3, .y = 2 }, .color = .{ 1, 0.05, 0.01 }, .intensity = 3, .radius = 6, .softness = 0.25, .bias = 0.02, .groups = 1 },
                 .{ .id = 3, .position = .{ .x = 3, .y = 1 }, .color = .{ 0.03, 0.25, 1 }, .intensity = 3, .radius = 7, .softness = 0.75, .bias = 0.02, .groups = 2 },
             };
             for (&lights) |*light| light.shadow = @intFromBool(self.features & 2 != 0);
             var occluder = ex.Occluder{ .id = 1, .groups = 3, .vertex_count = 4 };
-            occluder.vertices[0] = .{ .x = x - 1.5, .y = y - 2 };
-            occluder.vertices[1] = .{ .x = x + 1.5, .y = y - 2 };
-            occluder.vertices[2] = .{ .x = x + 1.5, .y = y + 2 };
-            occluder.vertices[3] = .{ .x = x - 1.5, .y = y + 2 };
+            occluder.vertices[0] = .{ .x = next_x - 1.5, .y = next_y - 2 };
+            occluder.vertices[1] = .{ .x = next_x + 1.5, .y = next_y - 2 };
+            occluder.vertices[2] = .{ .x = next_x + 1.5, .y = next_y + 2 };
+            occluder.vertices[3] = .{ .x = next_x - 1.5, .y = next_y + 2 };
             const occluders = [_]ex.Occluder{occluder};
             const strengths = [_]f32{ 1, 0.75, 0.5 };
             try api.submit(.{ .enabled = @intFromBool(self.enabled and self.features & 1 != 0), .ambient = .{ 0.15, 0.15, 0.18 }, .strength = strengths[self.strength_index], .bloom = if (self.features & 4 != 0) .{ .intensity = 0.6, .radius = 16, .levels = 5 } else .{} }, &lights, if (self.features & 2 != 0) &occluders else &.{}, if (self.features & 1 != 0) &self.styles else &.{});
+            self.submitted_time = self.time;
             api.debugView(@intFromBool(self.map and self.enabled and self.features & 2 != 0), 0) catch |err| {
                 if (err != error.Unsupported) return err;
                 self.map = false;
@@ -310,7 +322,7 @@ pub const State = struct {
                     6 => {
                         self.large_ui = !self.large_ui;
                     },
-                    7 => try self.reload(),
+                    7 => self.reload_requested = true,
                     else => unreachable,
                 }
                 var after: nx.TwoDCamera = .{};

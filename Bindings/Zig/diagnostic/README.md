@@ -36,3 +36,8 @@ Linux capture automation waits for two actual Zig-sampled focused neutral update
 pointer location before pressing, and a sampled button-down after UI processing before release.
 This validation-only handshake keeps lifecycle suppression and the exactly-one action/camera
 isolation checks intact; interactive controls do not contain sleeps or synthetic input.
+
+Native moving Sprite poses use the last successfully submitted light/caster time, matching the
+next-boundary effects snapshot, including after zero-size suspension. UI reload requests execute
+at the following update's start rather than replacing instances after their poses were prepared.
+Fallback still uses its current unlit time; this does not change the engine publication contract.
