@@ -91,3 +91,5 @@ HD2D-07 release provenance now binds the independent consumer receipt to the act
 HD2D-07 [local preparation evidence](../../Tools/SDK/evidence/HD2D-07-Linux-2026-10-31.md): final full Linux gate 297 registered / 289 pass / eight skips / zero failures, Shipping passed. Candidate Windows consumer/publication/game lock remain pending; engineering stays 3/7.
 
 HD2D-07 first Windows consumer failed the headless resource gate after producer success. Retain job `124399279404` / artifact `13024158144`. Separate the canonical eager Atlas/Clip fixture from the empty-start HD2D diagnostic; zero-owned-resource assertions stay intact. Retry/native/publication remain pending.
+
+HD2D-07 local paired reproduction confirms eager baseline320 active bytes versus isolated HD2D0, both144 updates/all phases/normal cleanup. Latest pose-aligned SDK full Linux297/289pass/eight skips/zero failures106.49s and Shipping passed. Native consumer/publication remain pending.
