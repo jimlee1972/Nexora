@@ -109,3 +109,5 @@ HD2D-07 接入 Mac Development 匯出後通過完整 Linux298／290 通過／八
 HD2D-06 已驗收 PR #739／`67db45d2`，受測05c563b8 與合併 tree 相同。41 項檢查全部成功，push／PR Build41167913390／41167916242 均成功結束。DX12／Vulkan／Metal 實際四尺寸 Zig Player 與55 畫面 CPU 像素通過；完整 Windows430／Linux488／Metal405 項。DX12／Vulkan timing mask15；此 Metal CI 裝置明確回報計時不可用。保留全部 Mac 直譯器／匯出／fixture 失敗及不改斷言的重試。HD2D-07 接入已驗收相依，仍需不可覆寫0.2.0 發布與遊戲實際 lock／CI。工程6/7；PC NOT_RUN。
 
 HD2D-07 最終已驗收相依施工通過完整 Linux298／290 通過／八項略過／零失敗106.94 秒、Shipping、SDK5／cleanup47。最終提交 Windows 候選／完整 CI、不可覆寫 main-push 發布與遊戲正式 lock 仍待完成；工程6/7。
+
+HD2D-07 發布重試：PR740 已合併93a8dd51，與測試樹一致；41項檢查與同來源 main Build41178167997／candidate41178168044 通過。0.2.0 Tag 固定在93a8dd51。發布41184604229 因 artifact 共同根目錄使唯一 acceptance.json 位於下層而在建立 Release 前停止。修正為遞迴定位唯一收據、拒絕多份，保留所有 ZIP／來源／原生／離線斷言。release/windows-2d-sdk-v<版本> 恢復分支須先取得修正發布器本身的完整 push Build 成功，才能發布既有 Tag；不移動 Tag、不重建候選包、不略過 CI。正式發布與遊戲接入通過前仍為6/7；PC NOT_RUN。

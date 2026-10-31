@@ -2,6 +2,8 @@ name: Publish tested Windows 2D SDK
 on:
   push:
     tags: ['sdk-2d-windows-x64-v*']
+    # Recover publication without moving an existing immutable source tag.
+    branches: ['release/windows-2d-sdk-v*']
 permissions:
   contents: read
 jobs:
@@ -11,6 +13,7 @@ jobs:
       contents: write
       actions: read
     steps:
+      - uses: actions/checkout@v4
       - name: Find successful candidate and full Build at the tagged commit
         env:
           GH_TOKEN: ${{ github.token }}
@@ -18,13 +21,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          candidate=$(gh api "repos/$GH_REPO/actions/workflows/windows-2d-sdk.yml/runs?head_sha=$GITHUB_SHA&status=success&event=push" --jq '.workflow_runs[0].id')
-          full=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$GITHUB_SHA&status=success&event=push" --jq '.workflow_runs[0].id')
+          source="$GITHUB_SHA"
+          release_tag="$GITHUB_REF_NAME"
+          if [[ "$GITHUB_REF_TYPE" == branch ]]; then
+            [[ "$GITHUB_REF_NAME" =~ ^release/windows-2d-sdk-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]
+            release_tag="sdk-2d-windows-x64-v${BASH_REMATCH[1]}"
+            # The corrected publisher itself must have passed the full push Build.
+            publisher=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$GITHUB_SHA&status=success&event=push" --jq '.workflow_runs[0].id')
+            test -n "$publisher" && test "$publisher" != null
+            source=$(gh api "repos/$GH_REPO/commits/$release_tag" --jq '.sha')
+          fi
+          [[ "$source" =~ ^[0-9a-f]{40}$ ]]
+          echo "SDK_SOURCE=$source" >> "$GITHUB_ENV"
+          echo "SDK_TAG=$release_tag" >> "$GITHUB_ENV"
+          candidate=$(gh api "repos/$GH_REPO/actions/workflows/windows-2d-sdk.yml/runs?head_sha=$source&status=success&event=push" --jq '.workflow_runs[0].id')
+          full=$(gh api "repos/$GH_REPO/actions/workflows/build.yml/runs?head_sha=$source&status=success&event=push" --jq '.workflow_runs[0].id')
           test -n "$candidate" && test "$candidate" != null
           test -n "$full" && test "$full" != null
           gh run download "$candidate" --repo "$GH_REPO" --name Windows-2D-SDK-candidate --dir release
           gh run download "$candidate" --repo "$GH_REPO" --name SDK-consumer-evidence --dir evidence
-          echo "Candidate run: $candidate; full Build run: $full" > release/validation.txt
+          echo "Source: $source; tag: $release_tag; publisher: $GITHUB_SHA; candidate run: $candidate; full Build run: $full" > release/validation.txt
       - name: Verify and publish identical tested bytes
         env:
           GH_TOKEN: ${{ github.token }}
@@ -32,24 +48,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python3 Tools/SDK/VerifyPromotion.py --release release --evidence evidence --source "$SDK_SOURCE" --tag "$SDK_TAG"
           cd release
           sha256sum --check *.sha256
-          python3 - <<'PY'
-          import hashlib, json, os, zipfile
-          from pathlib import Path
-          manifest = json.loads(Path('sdk.json').read_text())
-          assert manifest['source_commit'] == os.environ['GITHUB_SHA']
-          assert 'sdk-2d-windows-x64-v'+manifest['version'] == os.environ['GITHUB_REF_NAME']
-          candidate = next(Path('.').glob('*.zip'))
-          receipt = json.loads(Path('../evidence/acceptance.json').read_text())
-          assert receipt['status'] == 'PASS' and receipt['source_commit'] == manifest['source_commit']
-          if manifest['version'] == '0.2.0':
-              assert receipt['archive_sha256'] == hashlib.sha256(candidate.read_bytes()).hexdigest()
-              assert receipt['real_zig_hd2d'] and receipt['offline_rebuild']
-              assert receipt['native_dx12'] == 'PASS'
-          with zipfile.ZipFile(candidate) as archive:
-              assert json.loads(archive.read('sdk.json')) == manifest
-          PY
           cat > notes.md <<'EOF'
           Fixed Windows x64 DX12 Monolithic Shipping development SDK, Gameplay ABI 3.
           Requires Zig 0.14.0, CMake 3.25+ and Python 3.10+; no MSVC, Windows SDK or engine checkout required by consumers.
@@ -58,4 +59,4 @@ jobs:
           The 0.2.0 consumer tests real Zig native DX12 engineering diagnostics.
           Physical display/input, formal game, audio, controller and target-machine acceptance remain NOT_RUN.
           EOF
-          gh release create "$GITHUB_REF_NAME" --repo "$GH_REPO" --target "$GITHUB_SHA" --title "Nexora 2D Windows SDK ${GITHUB_REF_NAME##*v}" --notes-file notes.md *.zip *.sha256 sdk.json validation.txt
+          gh release create "$SDK_TAG" --repo "$GH_REPO" --target "$SDK_SOURCE" --title "Nexora 2D Windows SDK ${SDK_TAG##*v}" --notes-file notes.md *.zip *.sha256 sdk.json validation.txt
