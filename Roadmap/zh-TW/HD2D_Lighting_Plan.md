@@ -95,3 +95,5 @@ HD2D-07 首輪 Windows consumer 在 producer 成功後於 headless 資源 gate �
 HD2D-07 本地配對重現確認：常駐基準素材320 active bytes，獨立 HD2D 為0，兩者皆144次更新／全部階段／正常清理。最新姿態對齊 SDK 的完整 Linux297／通過289／略過八項／零失敗106.49s 與 Shipping 通過。原生 consumer／發布仍待完成。
 
 HD2D-07 候選清理沿用既有 owner-only 機制，只增加本 SDK 明確分支；取消過期同分支 Build／candidate，保留目前 push／PR 與 main。精確 JavaScript／47 防護測試及完整 Linux297／通過289／略過八項／零失敗109.52s 與 Shipping 通過。最終 CI／發布仍待完成。
+
+HD2D-07 發布前 Windows 候選 run41158981348 通過獨立 producer／consumer；原生144幀／features7／timing mask15／兩次重載／active-staging歸零／配置平衡，另通過 headless 及離線重建。尚未發布0.2.0或驗收遊戲／PC；仍需最終 main-push候選／完整CI與相同位元組發布。

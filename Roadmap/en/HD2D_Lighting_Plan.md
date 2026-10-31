@@ -95,3 +95,5 @@ HD2D-07 first Windows consumer failed the headless resource gate after producer 
 HD2D-07 local paired reproduction confirms eager baseline320 active bytes versus isolated HD2D0, both144 updates/all phases/normal cleanup. Latest pose-aligned SDK full Linux297/289pass/eight skips/zero failures106.49s and Shipping passed. Native consumer/publication remain pending.
 
 HD2D-07 candidate cleanup recognizes only this SDK branch in the existing owner-only mechanism, cancelling obsolete same-branch Build/candidate runs while preserving current push/PR and main. Exact JavaScript/47 guard tests and full Linux297/289pass/eight skips/zero failures109.52s plus Shipping passed. Final CI/publication remain pending.
+
+HD2D-07 pre-release Windows candidate run41158981348 passed isolated producer/consumer; native144frames/features7/timing mask15/two reloads/zero active-staging/balanced allocations, plus headless and offline rebuild. This does not publish0.2.0 or accept game/PC; final main-push candidate/full CI and exact-byte promotion remain required.
