@@ -24,6 +24,10 @@ pub const State = struct {
     twod: nx.TwoDApiV1 = undefined,
     display: nx.display.Api = undefined,
     ui: nx.ui.Api = undefined,
+    capture_input: nx.input.Api = .{},
+    neutral_capture_frames: u8 = 0,
+    capture_neutral_announced: bool = false,
+    capture_down_announced: bool = false,
     draw: nx.ui_draw.Api = undefined,
     content: nx.content.Api = undefined,
     assets: nx.assets.Api = undefined,
@@ -59,6 +63,11 @@ pub const State = struct {
         const services = nx.getServices(host) orelse return error.Unsupported;
         var ui = nx.ui.Api{};
         var content = nx.content.Api{};
+        var capture_input = nx.input.Api{};
+        if (options.capture_holds) {
+            const get_input = services.get_input_api orelse return error.Unsupported;
+            try check(get_input(services.context, &capture_input));
+        }
         if (services.get_ui_api == null or services.get_content_api == null) return error.Unsupported;
         try check(services.get_ui_api.?(services.context, &ui));
         try check(services.get_content_api.?(services.context, &content));
@@ -67,6 +76,7 @@ pub const State = struct {
             .twod = nx.getTwoD(host) orelse return error.Unsupported,
             .display = nx.getDisplay(services) orelse return error.Unsupported,
             .ui = ui,
+            .capture_input = capture_input,
             .content = content,
             .draw = nx.getUiDraw(services) orelse return error.Unsupported,
             .assets = nx.getAssets(services) orelse return error.Unsupported,
@@ -241,6 +251,25 @@ pub const State = struct {
             std.Thread.sleep(1500 * std.time.ns_per_ms);
         }
         try self.drawUi(display);
+        if (self.automated and self.capture_holds and self.frame >= 18) {
+            // Acknowledge actual sampled frames, not a wall-clock guess about focus/GPU speed.
+            // Two neutral focused updates rearm the unchanged host UI lifecycle gate.
+            var pointer: nx.input.PointerState = .{};
+            try check(self.capture_input.pointer(0, &pointer));
+            const target_x = @as(f64, @floatFromInt(display.pixel_width)) * 0.625 - 3.5 * display.dpi_scale;
+            const target_y = 111.0 * display.dpi_scale;
+            const targeted = pointer.focused != 0 and @abs(pointer.x - target_x) <= 2 and @abs(pointer.y - target_y) <= 2;
+            if (!self.capture_neutral_announced) {
+                if (targeted and pointer.buttons & 1 == 0) self.neutral_capture_frames +|= 1 else self.neutral_capture_frames = 0;
+                if (self.neutral_capture_frames >= 2) {
+                    self.capture_neutral_announced = true;
+                    self.log("HD2D INPUT NEUTRAL");
+                }
+            } else if (targeted and pointer.buttons & 1 != 0 and !self.capture_down_announced) {
+                self.capture_down_announced = true;
+                self.log("HD2D INPUT DOWN");
+            }
+        }
         self.frame +|= 1;
     }
     fn drawUi(self: *State, display: nx.display.State) Error!void {

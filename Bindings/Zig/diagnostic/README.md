@@ -31,3 +31,8 @@ must use the matching Shipping Player. No Editor, engine source or tools are req
 already exported package. CTest `gameplay.zig_hd2d_native` preserves each attempt, four window
 sizes, reports and Linux native captures/synthetic pointer evidence. It does not establish
 physical keyboard/controller/DPI, formal game art or target-machine performance acceptance.
+
+Linux capture automation waits for two actual Zig-sampled focused neutral updates at the target
+pointer location before pressing, and a sampled button-down after UI processing before release.
+This validation-only handshake keeps lifecycle suppression and the exactly-one action/camera
+isolation checks intact; interactive controls do not contain sleeps or synthetic input.

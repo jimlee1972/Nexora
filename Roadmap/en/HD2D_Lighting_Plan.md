@@ -63,3 +63,5 @@ HD2D-04 accepted: PR #737 / `0845c078`, tested `dd256588`. Windows52 native fram
 HD2D-06: real reusable Zig scene, native GPU map view, completed-slot per-pass timestamps, four-size exported Player runs and explicit unavailable observations. [Local evidence](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md); IN_PROGRESS, no additional acceptance credit.
 
 HD2D-03 acceptance receipt: PR #736 / `40c96072`; current-head Windows job `124365092041` (425 CTests) and macOS job `124365092312` (400 CTests) passed actual native pixel readbacks. Physical PC remains NOT_RUN.
+
+HD2D-06 input evidence follow-up replaces fixed-time synthetic click injection with actual Zig-sampled neutral/down acknowledgements. A retained dependent full-gate failure motivated the change; three complete four-size native repetitions passed, with the original exactly-one activation/camera isolation assertions intact. Acceptance still requires final-head CI.

@@ -40,8 +40,8 @@ The typed lifecycle facade and engine-owned build/entry are documented in [Tools
 ## Optional 2D effects contract
 
 `nx.getTwoDEffects(services)` / `try context.effects()` negotiate the HD2D service. Query native
-feature flags before enabling effects; HD2D-01 supplies the contract/snapshot owner only and the
-Player has not registered a renderer. Submit copied complete batches with `api.submit(options,
+feature flags before enabling effects. HD2D-01 originally supplied only contract/snapshot owners;
+the native Player now advertises supported renderer features. Submit copied complete batches with `api.submit(options,
 lights, occluders, sprites)`; success is acceptance for the next frame, not immediate presentation.
 See [ownership, limits and compatibility](../../Engine/TwoD/GameplayEffects.md).
 

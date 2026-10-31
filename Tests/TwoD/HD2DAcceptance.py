@@ -81,7 +81,7 @@ class NativeWindow:
         self.x.XTranslateCoordinates(self.display, self.window, self.root, 0, 0, C.byref(x), C.byref(y), C.byref(child))
         return width.value, height.value, x.value, y.value
 
-    def click_ui_scale(self, dpi):
+    def focus_ui_scale(self, dpi):
         library = ctypes.util.find_library('Xtst')
         if not library: raise RuntimeError('XTest is required for the synthetic native input case')
         xt = C.CDLL(library)
@@ -91,13 +91,10 @@ class NativeWindow:
         self.x.XSetInputFocus(self.display, self.window, 2, 0)
         assert xt.XTestFakeMotionEvent(self.display, -1, x + round(width * 0.625 - 3.5 * dpi), y + round(111 * dpi), 0)
         self.x.XSync(self.display, 0)
-        # Focus transitions deliberately invalidate input in the Player. Admit a neutral
-        # focused interval before pressing, rather than weakening that lifecycle protection.
-        time.sleep(0.12)
-        assert xt.XTestFakeButtonEvent(self.display, 1, 1, 0)
-        self.x.XSync(self.display, 0)
-        time.sleep(0.08)
-        assert xt.XTestFakeButtonEvent(self.display, 1, 0, 0)
+        self.xt = xt
+
+    def pointer_button(self, down):
+        assert self.xt.XTestFakeButtonEvent(self.display, 1, int(down), 0)
         self.x.XSync(self.display, 0)
 
     def capture(self, path):
@@ -150,7 +147,7 @@ def run_case(package, app, native, directory, capture_display=None):
     def read_errors():
         for line in process.stderr:
             stderr_lines.append(line)
-            if 'HD2D UI READY' in line or 'HD2D CAPTURE ' in line: events.put(line)
+            if any(marker in line for marker in ('HD2D UI READY', 'HD2D CAPTURE ', 'HD2D INPUT ')): events.put(line)
     reader = threading.Thread(target=read_errors); reader.start()
     window = NativeWindow(capture_display) if capture_display else None
     deadline = time.monotonic() + 90
@@ -163,7 +160,11 @@ def run_case(package, app, native, directory, capture_display=None):
             window.find()
             if 'HD2D UI READY' in event:
                 dpi = float(re.search(r'dpi=([0-9.]+)', event).group(1))
-                window.click_ui_scale(dpi)
+                window.focus_ui_scale(dpi)
+            elif 'HD2D INPUT NEUTRAL' in event:
+                window.pointer_button(True)
+            elif 'HD2D INPUT DOWN' in event:
+                window.pointer_button(False)
             else:
                 kind = 'map' if 'CAPTURE map' in event else 'scene'
                 captures[kind] = window.capture(directory/f'{kind}.png')
@@ -192,6 +193,7 @@ def run_case(package, app, native, directory, capture_display=None):
             assert report['native_frames'] == report['effects_timing_source'] == 0 and 'features=0' in stderr
             assert report['effects_world_ms'] is None
         if window:
+            assert stderr.count('HD2D INPUT NEUTRAL') == stderr.count('HD2D INPUT DOWN') == 1, 'sampled focus/press handshake failed'
             assert stderr.count('HD2D UI ACTION 6 camera_unchanged=1') == 1, 'native click or UI-scale camera isolation failed'
             assert set(captures) == {'scene', 'map'}, 'both actual Zig window captures are required'
             assert captures['scene']['warm_pixels'] > 500 and captures['scene']['blue_pixels'] > 500
