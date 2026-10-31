@@ -1,5 +1,10 @@
 # Nexora 2D Engine Roadmap
 
+The approved [Editor workflow delivery plan](Editor_Workflow_Delivery_Plan.md) tracks the remaining
+Sprite source C/Zig/catalog, Editor authoring, animation and pool integration in
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Initial plan acceptance is 0/9;
+it does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
+
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19
 
 > **Progress: 82% capability acceptance** (9/11, rounded; P0 6/8). M0–M5 and M8–M10

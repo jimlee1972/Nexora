@@ -1,5 +1,10 @@
 # Nexora 2D 引擎 Roadmap
 
+核准的 [Editor 工作流程交付計畫](Editor_Workflow_Delivery_Plan.md)以
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741) 追蹤尚待完成的 Sprite 來源
+C／Zig／catalog、Editor 編輯、動畫及 pool 整合。計畫初始驗收為 0/9，不因此提高完整
+Editor、實體 M6／M7 或進階 Sprite 繪製的驗收完成度。
+
 > 版本：v1.7 | 狀態：雲端能力交付已驗收，PC 主機 gate 待完成 | 更新：2026-10-19
 
 > **能力驗收進度：82%**（9/11，四捨五入；P0 6/8）。M0～M5 與 M8～M10 已有
