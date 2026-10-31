@@ -19,6 +19,7 @@ struct EffectsSnapshot final {
   std::vector<NexoraTwoDEffectsOccluderV1> occluders;
   std::vector<NexoraTwoDEffectsSpriteV1> sprites;
   std::uint64_t revision{};
+  std::uint32_t debugMode{}, debugShadowSlot{};
 };
 // Host-supplied resolvers must check the complete generation-bearing identity. They borrow
 // World/pool/catalog until this service is destroyed and must not mutate/reenter this service.
@@ -30,9 +31,10 @@ class NEXORA_2D_API GameplayEffects final {
 public:
   using SpriteResolver = std::function<bool(std::uint32_t, std::uint64_t)>;
   using MaskResolver = std::function<bool(std::uint64_t, std::uint64_t, std::uint32_t)>;
+  using DiagnosticsProvider = std::function<bool(NexoraTwoDEffectsDiagnosticsV1 &)>;
   using PoolResolver = std::function<bool(EffectsPoolIdentity)>;
   explicit GameplayEffects(std::uint32_t features = 0, SpriteResolver = {}, MaskResolver = {},
-                           PoolResolver = {});
+                           PoolResolver = {}, DiagnosticsProvider = {});
   // Copies a currently live, full pool identity; stale/foreign tokens never resolve.
   [[nodiscard]] std::optional<EffectsPoolIdentity> ResolvePoolIdentity(std::uint64_t) const;
   ~GameplayEffects();

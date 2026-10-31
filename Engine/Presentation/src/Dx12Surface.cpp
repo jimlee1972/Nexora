@@ -17,6 +17,7 @@
 #include "StagedUploadAllocation.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
+#include "TwoDEffectsProfiling.h"
 #include "TwoDLinearHlslShaders.h"
 #include <algorithm>
 #include <array>
@@ -167,6 +168,7 @@ public:
       ++diagnostics_.fenceWaits;
     }
     CollectGpuTiming(frame_);
+    CollectTwoDEffects(twoDLinearFrames_[frame_]);
     twoDLinearRecorded_ = false;
     meshResidency_.BeginFrame();
     retired_[frame_].clear();
@@ -957,7 +959,11 @@ public:
     ++diagnostics_.sceneComposites;
     return SurfaceStatus::Ready;
   }
-  SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
+  SurfaceDiagnostics Diagnostics() const noexcept override {
+    auto result = diagnostics_;
+    result.twoDTextureCount = uiTextures_.size();
+    return result;
+  }
   SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
     if (!OnThread())
       return SurfaceStatus::WrongThread;

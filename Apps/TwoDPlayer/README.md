@@ -274,3 +274,19 @@ No game-specific light rules or interactive diagnostic controls are implemented 
 Selective bloom is independently advertised through the effects capability. Explicit linear mask Atlases
 resolve through normal content; effect styles retain them during extraction and complete-frame rendering.
 Load companion links through deferred blobs in Zig; [format and ownership](../../Engine/TwoD/EmissionAssets.md).
+
+
+## DEV ONLY HD2D diagnostic
+
+Build `NexoraZigHD2D_diagnosticBuild` and stage a persistent package with
+`python Tools/TwoD/StageHD2D.py --app <NexoraTwoDPlayer> --module <diagnostic-library> --output <new-directory>`.
+Use `--allow-development` only for an explicitly marked Development test copy. The inventory
+includes licensed diagnostic font notices. Run its `Run.cmd` or Player with the exported project;
+append `--gpu-timing` for real completed-slot per-pass timestamps. Reports retain counters,
+observed owned-memory peaks and null for unavailable intervals. See
+[Zig controls and validation commands](../../Bindings/Zig/diagnostic/README.md).
+
+The interactive module has no capture delays. The separate automated validation module cycles
+144 frames and uses two 1.5-second capture holds. Its wall-clock timing is not a performance test.
+White HUD, synthetic test sprites and Noto font output are explicitly DEV ONLY. Native readbacks
+and synthetic input do not establish physical Windows appearance, input or formal game acceptance.

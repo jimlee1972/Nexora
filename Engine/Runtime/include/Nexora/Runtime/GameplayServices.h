@@ -1,6 +1,9 @@
 #pragma once
 #include "nexora/nexora.h"
+#include <algorithm>
+#include <cstddef>
 #include <cstring>
+#include <initializer_list>
 #include <thread>
 
 namespace nexora::runtime {
@@ -85,10 +88,14 @@ private:
     if (registered.struct_size < prefix || registered.abi_version != 1 ||
         output->struct_size < prefix || output->abi_version != 1)
       return NEXORA_GAMEPLAY_ERROR_UNSUPPORTED;
-    const auto bytes =
-        registered.struct_size >= sizeof(registered) && output->struct_size >= sizeof(registered)
-            ? sizeof(registered)
-            : prefix;
+    const auto limit =
+        std::min(std::size_t(registered.struct_size), std::size_t(output->struct_size));
+    std::size_t bytes = prefix;
+    for (const auto end : {offsetof(NexoraGameplayTwoDEffectsApiV1, get_diagnostics),
+                           offsetof(NexoraGameplayTwoDEffectsApiV1, set_debug_view),
+                           sizeof(NexoraGameplayTwoDEffectsApiV1)})
+      if (end <= limit)
+        bytes = end;
     std::memcpy(output, &registered, bytes);
     output->struct_size = static_cast<uint32_t>(bytes);
     return NEXORA_GAMEPLAY_OK;

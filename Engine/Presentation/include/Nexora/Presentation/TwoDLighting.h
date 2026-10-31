@@ -23,6 +23,7 @@ struct alignas(16) TwoDLightingUniform final {
   std::array<float, 4> ambientStrength{1, 1, 1, 1};
   std::array<std::uint32_t, 4> counts{};
   std::array<std::array<std::uint32_t, 4>, 2> shadowLights{};
+  std::array<std::uint32_t, 4> debug{}; // Mode, shadow slot, reserved, reserved.
   std::array<float, 4> bloom{}; // Intensity, diffusion in output pixels, reserved, reserved.
   std::array<TwoDPointLight, 32> lights{};
 };
@@ -41,18 +42,28 @@ struct TwoDLighting final {
   // One style for every prepared world command, including the unlit background.
   std::span<const TwoDLightingStyle> styles;
   std::span<const TwoDShadowEdge> edges{};
+  std::uint64_t effectsRevision{};
 };
 struct TwoDShaderConstants final {
   std::array<float, 4> clip{};
   std::array<std::uint32_t, 4> style{UINT32_MAX, 0, 0, 0};
   std::array<float, 4> emission{}, emissionUv{1, 1, 0, 0};
+  void SetCompositeViewport(uint32_t width, uint32_t height,
+                            std::array<uint32_t, 4> viewport) noexcept {
+    if (viewport == std::array<uint32_t, 4>{})
+      viewport = {0, 0, width, height};
+    style = {UINT32_MAX, 0, 0, 0};
+    emission = {};
+    emissionUv = {float(width) / viewport[2], float(height) / viewport[3],
+                  -float(viewport[0]) / viewport[2], -float(viewport[1]) / viewport[3]};
+  }
   void SetStyle(const TwoDLightingStyle &s) noexcept {
     style = {s.groups, s.receiveLight, s.receiveShadow, s.reserved};
     emission = s.emission;
     emissionUv = s.emissionUv;
   }
 };
-static_assert(sizeof(TwoDPointLight) == 64 && sizeof(TwoDLightingUniform) == 2160);
+static_assert(sizeof(TwoDPointLight) == 64 && sizeof(TwoDLightingUniform) == 2176);
 static_assert(sizeof(TwoDShaderConstants) == 64);
 [[nodiscard]] inline bool ValidateTwoDLighting(const TwoDLighting *lighting, std::size_t commands) {
   if (!lighting)
@@ -60,6 +71,8 @@ static_assert(sizeof(TwoDShaderConstants) == 64);
   const auto &u = lighting->uniforms;
   if (lighting->styles.size() != commands || u.counts[0] > 32 || u.counts[1] > 8 ||
       u.counts[2] > 2048 || u.counts[2] != lighting->edges.size() || u.counts[3] > 5)
+    return false;
+  if (u.debug[0] > 1 || u.debug[1] >= 8 || (!u.debug[0] && u.debug[1]) || u.debug[2] || u.debug[3])
     return false;
   for (auto transform : {u.worldX, u.worldY})
     for (float f : transform)

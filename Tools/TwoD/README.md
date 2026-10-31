@@ -277,6 +277,13 @@ physical sound/controller checks and DPI/clean-machine acceptance. CI does not m
 
 ## General game export and Windows fonts
 
+HD2D's macOS CI diagnostic accepts native `.dylib` modules with explicit
+`--allow-development` only. Export resolves the actual `otool` dyld graph (including inherited
+RPATHs), copies non-system dylibs, rewrites copied imports to `@loader_path`, and ad-hoc signs
+copies with `codesign` before inventory publication. Missing/conflicting dependencies, Editor
+imports or signing failures reject the fresh output. Source binaries stay unchanged. This is
+an Editor-free Development diagnostic, not signed/notarized macOS Shipping distribution.
+
 The independent [2D Player](../../Apps/TwoDPlayer/README.md) now accepts an explicit game descriptor,
 separately built trusted Zig/V3 module and project-owned cooked Atlas/Clip, WAV and font atlases.
 `ExportGame.py` stages a fresh Monolithic Shipping directory with dependency checks, matching MSVC

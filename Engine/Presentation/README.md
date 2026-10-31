@@ -1180,3 +1180,18 @@ Effects-off legacy rendering retires the completed slot owners without draining 
 A per-acquisition recording flag protects both inline and subsequently appended HUD from retiring
 the current linear targets. Three legacy acquisitions cover all supported slots; re-enable
 recreates targets. This is tested separately from drawing an unlit opt-in linear frame.
+
+
+### Completed-slot 2D timings and angular-map view (HD2D-06)
+
+Optional native profiling records eight timestamps per slot for shadow/world/bloom/composite.
+Collection follows the existing completion fence in Acquire; no extra GPU wait or CPU timer
+substitution. Vulkan uses timestamp queries, DX12 a queue-frequency query heap/readback, Metal
+native timestamp counters with supported encoder-stage or draw/dispatch boundaries. Unsupported
+counters and allocation/read failures are explicit. Resource peaks describe observed engine
+owners, not physical VRAM. [Public measurement contract](../TwoD/GameplayEffects.md).
+
+The copied debug selector displays actual angular-map distances in the safe viewport, without
+tone mapping; inactive slots are magenta. HUD remains separate. Native pixel fixtures compare
+normal, selective-bloom and map views against independent CPU references with unchanged two-channel
+8-bit tolerance, and persist `.bloom.ppm`, `.shadow.ppm` and completed-frame `.timings.csv` evidence.

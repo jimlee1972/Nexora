@@ -143,6 +143,7 @@ jobs:
             build/${{ matrix.preset }}/artifacts/showcase-linux-vulkan*/
             build/${{ matrix.preset }}/artifacts/metal-scene.ppm
             build/${{ matrix.preset }}/artifacts/twod-linear*
+            build/${{ matrix.preset }}/artifacts/hd2d-zig-*/
             build/${{ matrix.preset }}/Testing/Temporary/LastTest.log
             build/${{ matrix.preset }}/development-tests.log
             build/${{ matrix.preset }}/Tests/Editor/editor-startup-splash*.bmp

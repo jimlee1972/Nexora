@@ -1229,6 +1229,24 @@
       "threading": "Serialized host owner thread only; no reentry.",
       "errors": "0 success; -1 invalid/stale/foreign pool handle or capacity; -2 missing negotiated tail or pool resolver; -3 wrong thread, token exhaustion or allocation failure. Failure leaves output unchanged.",
       "determinism": "Same live full handle returns the same service token. Tokens never repeat within the process; stale entries are pruned at frame boundaries/capacity pressure. No rendering or snapshot revision change."
+    },
+    {
+      "name": "NexoraGameplayTwoDEffectsApiV1.get_diagnostics",
+      "since": "ABI 3 optional TwoD Effects Diagnostics V1",
+      "ownership": "Borrowed host service; copied diagnostics outputs. Debug changes copy an owning pending snapshot; no GPU pointer crosses the ABI.",
+      "nullability": "Required context and diagnostics output non-null. Probe each complete optional table suffix with struct_size.",
+      "threading": "Serialized host owner thread only. Debug view publishes at the next frame boundary. Diagnostics query never waits for GPU work.",
+      "errors": "0 success; -1 invalid argument or debug selection; -2 missing prefix/provider/native feature or version; -3 wrong thread, provider or allocation/lifecycle failure. Failure preserves outputs/snapshots.",
+      "determinism": "Debug settings persist through copied frame replacements; unchanged settings do not advance revisions. Timings identify completed native frames and mark unavailable measurements explicitly; allocations are not physical VRAM."
+    },
+    {
+      "name": "NexoraGameplayTwoDEffectsApiV1.set_debug_view",
+      "since": "ABI 3 optional TwoD Effects Diagnostics V1",
+      "ownership": "Borrowed host service; copied diagnostics outputs. Debug changes copy an owning pending snapshot; no GPU pointer crosses the ABI.",
+      "nullability": "Required context and diagnostics output non-null. Probe each complete optional table suffix with struct_size.",
+      "threading": "Serialized host owner thread only. Debug view publishes at the next frame boundary. Diagnostics query never waits for GPU work.",
+      "errors": "0 success; -1 invalid argument or debug selection; -2 missing prefix/provider/native feature or version; -3 wrong thread, provider or allocation/lifecycle failure. Failure preserves outputs/snapshots.",
+      "determinism": "Debug settings persist through copied frame replacements; unchanged settings do not advance revisions. Timings identify completed native frames and mark unavailable measurements explicitly; allocations are not physical VRAM."
     }
   ]
 }

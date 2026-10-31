@@ -82,10 +82,20 @@ struct SceneGeometryResidencyDiagnostics final {
   std::uint64_t uploads{}, hits{}, evictions{}, retainedCpuBytes{}, nativeAllocationBytes{};
 };
 
+struct TwoDEffectsFrameDiagnostics final {
+  std::uint64_t completedFrame{}, effectsRevision{};
+  // Shadow dispatches, world draws, bloom passes, composite draws for this completed frame.
+  std::array<std::uint64_t, 4> work{};
+  std::array<double, 4> milliseconds{};
+  std::uint32_t timingMask{}, timingSource{}, timingStatus{};
+};
 struct SurfaceDiagnostics final {
   std::uint64_t twoDLinearFrames{}, twoDLinearTargetBytes{}, twoDLinearTargetAllocations{};
   std::uint64_t twoDShadowBufferBytes{}, twoDShadowDispatches{}, twoDShadowSamples{};
   std::uint64_t twoDBloomTargetBytes{}, twoDBloomPasses{}, twoDEmissionDraws{};
+  TwoDEffectsFrameDiagnostics twoDEffects;
+  std::uint64_t twoDUploadCapacityBytes{}, twoDEffectsPeakBytes{}, twoDTextureCount{},
+      twoDPeakTextureCount{};
   SurfaceGpuTiming gpuTiming;
   std::uint64_t acquiredFrames = 0;
   std::uint64_t presentedFrames = 0;

@@ -69,6 +69,10 @@ structures.update(effects["structures"])
 structures["NexoraGameplayServicesApiV1"] += effects["services_suffix"]
 lighting = json.loads((root / "Engine/API/abi_baseline_twod_lighting_v1.json").read_text(encoding="utf-8"))
 structures["NexoraGameplayTwoDEffectsApiV1"] += lighting["effects_api_suffix"]
+diagnostics = json.loads((root / "Engine/API/abi_baseline_twod_diagnostics_v1.json").read_text(encoding="utf-8"))
+structures["NexoraGameplayTwoDEffectsApiV1"] += diagnostics["effects_api_suffix"]
+structures.update(diagnostics["structures"])
+services["zig_names"].update(diagnostics["zig_names"])
 services["zig_names"].update(effects["zig_names"])
 for structure, expected_fields in structures.items():
     match = re.search(rf"typedef struct {structure} \{{(.*?)\}} {structure};", header, re.DOTALL)

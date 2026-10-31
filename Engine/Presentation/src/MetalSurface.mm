@@ -14,6 +14,7 @@
 #include "SceneViewAdmission.h"
 #include "ToneParametersUpload.h"
 #include "ToneVertexUpload.h"
+#include "TwoDEffectsProfiling.h"
 #include "TwoDLinearMetalShaders.h"
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
@@ -115,6 +116,7 @@ public:
         [inflight_[frame_] waitUntilCompleted];
         ++diagnostics_.fenceWaits;
         CollectGpuTiming(frame_);
+        CollectTwoDEffects(twoDLinearFrames_[frame_]);
         if (inflight_[frame_].status == MTLCommandBufferStatusError)
           return SurfaceStatus::DeviceLost;
         inflight_[frame_] = nil;
@@ -685,7 +687,11 @@ public:
     return pixels;
   }
 #endif
-  SurfaceDiagnostics Diagnostics() const noexcept override { return diagnostics_; }
+  SurfaceDiagnostics Diagnostics() const noexcept override {
+    auto result = diagnostics_;
+    result.twoDTextureCount = uiTextures_.size();
+    return result;
+  }
   SurfaceStatus ReleaseSpriteTextures(std::span<const std::uint64_t> ids) override {
     if (thread_ != std::this_thread::get_id())
       return SurfaceStatus::WrongThread;

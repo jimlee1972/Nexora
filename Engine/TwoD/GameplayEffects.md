@@ -146,3 +146,38 @@ GPU-completion retirement apply on all native backends. See [evidence](evidence/
 
 HD2D-05 connects explicit mask dependencies and bloom to the same frozen Player frame.
 See [companion format, Zig loading and ownership](EmissionAssets.md); submission ABI and Sprite wire remain unchanged.
+
+
+## Completed-frame observations and debug view (HD2D-06)
+
+The optional table appends `get_diagnostics` (end offset 56 on 64-bit) and `set_debug_view`
+(end offset 64). The old minimum remains 40; pool identity remains available at 48. Copy only
+complete callbacks through the negotiated prefix. C/Zig baseline checks cover every boundary.
+`NexoraTwoDEffectsDiagnosticsV1` is 160 bytes on supported 64-bit targets. It is a copied
+owner-thread query, not a retained pointer. Headless/no provider returns UNSUPPORTED; bad size,
+thread, provider data or nonfinite timing preserves the caller's output. Querying never waits
+for the GPU. Enable Player `--gpu-timing` to request native timestamp resources.
+
+Completed frame/revision identifies one retired GPU slot. Its four counters and intervals are
+shadow dispatches, world draw calls, bloom passes and composite draws, excluding HUD. The
+`timing_mask` bits 1/2/4/8 are valid independently. Source 0 is unavailable, 1 Vulkan timestamps,
+2 DX12 queue timestamps, 3 Metal counter timestamps. Status 0 disabled, 1 pending, 2 available,
+3 unsupported hardware, 4 allocation/read failure. Fields without valid bits are placeholders;
+reports print null/UNAVAILABLE, never infer zero cost. Collection occurs after existing slot
+completion, without an added GPU wait. Native counter allocation/read failures remain visible
+without disabling otherwise supported rendering. These are software-GPU measurements in Linux
+cloud tests, not evidence of target-PC 60FPS.
+
+Resource observations report current scene/emission target, shadow and bloom bytes, upload
+capacity, texture count and observed peaks. Effect-byte peak includes those targets/buffers and
+upload capacity; it excludes driver/private pipeline/query allocations and Atlas texture bytes.
+Texture count includes the surface UI/Atlas cache. These are owned-allocation observations,
+not process RSS or physical VRAM readings. Last completed timing may lag current resource usage.
+
+`set_debug_view(0,0)` restores normal composition; `(1,slot)` selects one of eight native shadow
+maps. A nonexistent active slot is magenta, not a fabricated map. Map grayscale is nearest
+occluder distance / light radius, sampled across the safe viewport, with the existing HUD on
+top. The renderer reads the actual GPU map. The request is copied into the next effects snapshot;
+invalid arguments, missing SHADOWS support or wrong thread leave the previous view/revision.
+Repeated identical requests do not advance revision. `submit_frame` preserves the chosen view.
+The debug pass does not change public Sprite wires or use the 3D renderer.

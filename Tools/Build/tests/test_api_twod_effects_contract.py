@@ -51,6 +51,10 @@ class EffectsContract(unittest.TestCase):
         (self.root / 'Engine/API/abi_baseline_twod_lighting_v1.json').unlink()
         self.assertNotEqual(self.validate().returncode, 0)
 
+    def test_diagnostics_tail_baseline_required(self):
+        (self.root / 'Engine/API/abi_baseline_twod_diagnostics_v1.json').unlink()
+        self.assertNotEqual(self.validate().returncode, 0)
+
     def test_pool_identity_cannot_move_into_original_prefix(self):
         for name in ['Engine/API/include/nexora/gameplay_twod_effects.h',
                      'Bindings/Zig/twod_effects.zig']:
@@ -70,7 +74,7 @@ class EffectsContract(unittest.TestCase):
         original = json.loads(path.read_text(encoding='utf-8'))
         names = ['NexoraGameplayServicesApiV1.get_twod_effects_api'] + [
             'NexoraGameplayTwoDEffectsApiV1.' + name
-            for name in ['get_capabilities', 'get_state', 'submit_frame', 'pool_identity']]
+            for name in ['get_capabilities', 'get_state', 'submit_frame', 'pool_identity', 'get_diagnostics', 'set_debug_view']]
         for name in names:
             with self.subTest(name=name):
                 changed = dict(original, exports=[e for e in original['exports'] if e['name'] != name])

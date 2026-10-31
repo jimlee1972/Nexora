@@ -8,7 +8,60 @@
 #include <limits>
 #include <thread>
 using namespace nexora;
+void DiagnosticContract() {
+  bool invalid{};
+  twod::GameplayEffects effects(7, {}, {}, {}, [&](auto &output) {
+    output.completed_frame = 9;
+    output.effects_revision = 3;
+    output.timing_mask = 2;
+    output.timing_source = 1;
+    output.timing_status = 2;
+    output.world_ms = invalid ? std::numeric_limits<double>::quiet_NaN() : 0.25;
+    output.world_draws = 4;
+    output.bloom_ms =
+        std::numeric_limits<double>::quiet_NaN(); // Absent timing is explicitly cleared.
+    return true;
+  });
+  const auto api = effects.Api();
+  NexoraTwoDEffectsDiagnosticsV1 report{};
+  report.struct_size = sizeof(report);
+  report.abi_version = 1;
+  assert(api.get_diagnostics(api.context, &report) == 0 && report.completed_frame == 9 &&
+         report.world_ms == 0.25 && report.bloom_ms == 0);
+  const auto valid = report;
+  invalid = true;
+  assert(api.get_diagnostics(api.context, &report) == -3 &&
+         std::memcmp(&valid, &report, sizeof(report)) == 0);
+  assert(api.get_diagnostics(api.context, nullptr) == -1);
+  int32_t foreign{};
+  std::thread thread([&] { foreign = api.get_diagnostics(api.context, &report); });
+  thread.join();
+  assert(foreign == -3);
+  assert(api.set_debug_view(api.context, 1, 7) == 0);
+  const auto first = effects.BeginFrame();
+  assert(first->revision == 1 && first->debugMode == 1 && first->debugShadowSlot == 7);
+  NexoraTwoDEffectsFrameV1 frame{};
+  frame.struct_size = sizeof(frame);
+  frame.abi_version = 1;
+  frame.strength = 1;
+  assert(api.submit_frame(api.context, &frame) == 0);
+  assert(api.set_debug_view(api.context, 1, 7) ==
+         0); // Unchanged request does not advance revision.
+  assert(api.set_debug_view(api.context, 2, 0) == -1 &&
+         api.set_debug_view(api.context, 1, 8) == -1);
+  assert(api.set_debug_view(api.context, 0, 1) == -1);
+  const auto second = effects.BeginFrame();
+  assert(second->revision == 2 && second->debugMode == 1 && first->revision == 1);
+  assert(api.set_debug_view(api.context, 0, 0) == 0);
+  assert(effects.BeginFrame()->revision == 3 && effects.BeginFrame()->debugMode == 0);
+  twod::GameplayEffects absent;
+  const auto old = absent.Api();
+  assert(old.get_diagnostics(old.context, &report) == -2 &&
+         std::memcmp(&valid, &report, sizeof(report)) == 0);
+  assert(old.set_debug_view(old.context, 1, 0) == -2 && old.set_debug_view(old.context, 0, 0) == 0);
+}
 int main() {
+  DiagnosticContract();
   twod::GameplayEffects effects(
       7, [](uint32_t, uint64_t id) { return id == 42; },
       [](uint64_t hi, uint64_t lo, uint32_t region) { return hi == 1 && lo == 2 && region == 3; });
@@ -163,9 +216,12 @@ int main() {
     out->struct_size = uint32_t(requested);
     out->abi_version = 1;
     assert(full.get_twod_effects_api(full.context, out) == (requested < effectsPrefix ? -2 : 0));
-    const auto written = requested < effectsPrefix ? 8
-                         : requested < sizeof(api) ? effectsPrefix
-                                                   : sizeof(api);
+    std::size_t written = requested < effectsPrefix ? 8 : effectsPrefix;
+    if (requested >= effectsPrefix)
+      for (const auto end : {offsetof(NexoraGameplayTwoDEffectsApiV1, get_diagnostics),
+                             offsetof(NexoraGameplayTwoDEffectsApiV1, set_debug_view), sizeof(api)})
+        if (end <= requested)
+          written = end;
     for (auto n = written; n < effectBytes.size(); ++n)
       assert(effectBytes[n] == 0xa5);
     if (requested >= effectsPrefix)

@@ -1,6 +1,6 @@
 # HD-2D Lighting, Soft Shadows and Selective Bloom Plan
 
-> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **4/7 (57%)**; physical acceptance **NOT_RUN**.
+> Baseline: Nexora `8c4aa989`; Beads epic `nexora-m6m`. Engineering **5/7 (71%)**; physical acceptance **NOT_RUN**.
 
 ## Goal and boundaries
 
@@ -16,9 +16,9 @@ Beads is the task source of truth; this table is a review snapshot. Engineering 
 | ✅ HD2D-02 | `nexora-m6m.2` | Linear RGBA16F pipeline on three backends | 01 | Accepted [PR #735](https://github.com/jimlee1972/Nexora/pull/735), squash `ed0e51e4`; 41 CI checks and three-backend native evidence |
 | ✅ HD2D-03 | `nexora-m6m.3` | Dynamic local point lights | 02 | Accepted PR #736, squash `40c96072`; current-head native DX12/Metal and Linux gates passed |
 | ✅ HD2D-04 | `nexora-m6m.4` | Dynamic occlusion and soft shadows | 03 | Accepted PR #737 / `0845c078`; final-head native DX12/Metal and full Linux CI passed |
-| HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | IN_PROGRESS — explicit mask/bloom, tool/residency/native local validation; CI pending |
-| HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | NOT_RUN |
-| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | NOT_RUN |
+| ✅ HD2D-05 | `nexora-m6m.5` | Selective emission and bloom | 02 | Accepted PR #738 / `a28f1001`; all34 final-head checks and native53-frame DX12/Vulkan/Metal CPU readbacks passed |
+| HD2D-06 | `nexora-m6m.6` | Zig diagnostic and native validation | 03, 04, 05 | IN_PROGRESS — real Zig four-size native diagnostic, GPU timestamps and map view; full/native CI pending |
+| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 and game integration | 06 | IN_PROGRESS — isolated0.2.0 candidate/consumer and same-game Zig preparation; immutable release/game lock pending |
 | HD2D-PC | `nexora-m6m.8` | Physical Windows acceptance | 07 | NOT_RUN |
 
 ## Implementation contracts
@@ -59,3 +59,27 @@ HD2D-03 accepted: PR #736 / `40c96072`; current-head Windows job `124365092041` 
 HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames release offscreen owners; appended HUD stays protected and re-enable recreates targets. Local/native gate evidence remains linked; no acceptance credit before CI.
 
 HD2D-04 accepted: PR #737 / `0845c078`, tested `dd256588`. Windows52 native frames/425 CTests, Metal52/400, Linux483; all34 final-head checks completed (10 legitimate documentation-push skips). HD2D-05 preliminary head9e2323ce passed41 checks and native53-frame DX12/Metal readbacks. Its dependency-only rebase preserves the runtime tree; final rebased-head CI remains required. Engineering4/7; physical PC NOT_RUN.
+
+HD2D-06: real reusable Zig scene, native GPU map view, completed-slot per-pass timestamps, four-size exported Player runs and explicit unavailable observations. [Local evidence](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md); IN_PROGRESS, no additional acceptance credit.
+
+HD2D-03 acceptance receipt: PR #736 / `40c96072`; current-head Windows job `124365092041` (425 CTests) and macOS job `124365092312` (400 CTests) passed actual native pixel readbacks. Physical PC remains NOT_RUN.
+
+HD2D-06 input evidence follow-up replaces fixed-time synthetic click injection with actual Zig-sampled neutral/down acknowledgements. A retained dependent full-gate failure motivated the change; three complete four-size native repetitions passed, with the original exactly-one activation/camera isolation assertions intact. Acceptance still requires final-head CI.
+
+HD2D-06 aligns moving Sprite poses with the last successfully submitted light/caster snapshot, including zero-size restoration; UI reload defers to the next update start. Full Linux297/289pass/eight skips/zero failures111.82s and Shipping passed. No ABI/host semantics change or acceptance credit before CI.
+
+HD2D-06 four-size aggregate watchdog now covers four unchanged90s case bounds plus export/teardown (420s), justified by a real Windows144-frame consumer taking about53s. Pixel/resource/input assertions and product performance gates are unchanged. Full Linux297/289pass/eight skips/zero failures105.54s and Shipping passed; final-head CI still required.
+
+HD2D-06 macOS job124420121268 retained a configuration failure: the three Python diagnostic tests had an empty interpreter because the older discovery block excludes Apple. Explicitly require the interpreter at the diagnostic registration boundary. Metal native55-frame CPU pixel readback itself passed; three diagnostic tests remain unaccepted until retry, with no assertions/skips weakened.
+
+HD2D-06 interpreter-scope repair passed full Linux Development297/289pass/eight skips/zero failures112.54s with actual four-size Zig Vulkan and synchronization validation, plus Shipping. macOS actual diagnostic retry remains required.
+
+HD2D-06 second macOS diagnostic failure retained from dependent job124428232886: Python/asset generation now run, but ExportGame rejects dylib and supports only Windows/Linux. Add explicit Development-only macOS dyld graph staging, inherited RPATH resolution, copied import relocation/ad-hoc signing and complete inventory. Six portable graph/failure fixtures pass; actual Metal Zig startup remains a required retry. No macOS Shipping distribution or weaker assertions claimed.
+
+HD2D-06 Development-only macOS export passed full Linux298/290pass/eight skips/zero failures109.56s and Shipping, including six portable dyld fixtures. Actual Mac binary rewrite/signing/native Zig retry remains pending.
+
+HD2D-06 retains dependent macOS mimalloc job124435568972 fixture failure: temporary /var resolves to /private/var, but mocked import keys used the unresolved root. A real Linux symlinked TMPDIR reproduced all six KeyErrors; canonicalizing only the fixture root passes all six unchanged tests. Exporter/runtime and assertions are unchanged; actual Mac retry remains required.
+
+HD2D-06 fixture-root canonicalization passed full Linux298/290pass/eight skips/zero failures106.22s and Shipping; actual Mac retry still required.
+
+HD2D-05 accepted PR #738 / `a28f1001`, tested0cd1f27a with identical squash tree: Windows native53/full426 tests, Metal53/401, Linux53/484; all34 final-head checks completed successfully (10 legitimate documentation-push skips). HD2D-06 dependency rebase preserves runtime source; current-head native/full CI and Mac fixture retry still required. Engineering5/7; physical PC NOT_RUN.

@@ -16,6 +16,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -207,6 +208,22 @@ int main(int argc, char **argv) {
     };
     const std::array<std::array<unsigned, 2>, 5> sizes{
         {{320, 240}, {321, 239}, {1920, 1080}, {2520, 1080}, {640, 480}}};
+    std::vector<TwoDEffectsFrameDiagnostics> timings;
+    uint32_t timingSeenMask{};
+    const auto observeTiming = [&] {
+      const auto completed = surface->Diagnostics().twoDEffects;
+      if (!completed.completedFrame ||
+          (!timings.empty() && completed.completedFrame <= timings.back().completedFrame))
+        return;
+      for (unsigned pass = 0; pass < 4; ++pass)
+        if (completed.timingMask & (1U << pass))
+          Require(completed.work[pass] && std::isfinite(completed.milliseconds[pass]) &&
+                      completed.milliseconds[pass] >= 0,
+                  "measured GPU interval identifies completed native work");
+      timingSeenMask |= completed.timingMask;
+      timings.push_back(completed);
+    };
+    std::vector<std::byte> bloomPixels, shadowPixels;
     std::vector<std::byte> finalPixels;
     unsigned finalWidth{}, finalHeight{};
     std::uint64_t frames = 0, litFrames = 0;
@@ -241,6 +258,7 @@ int main(int argc, char **argv) {
           styles[1].emission = {0.1F, 0.7F, 1.F, 4.F};
         }
         lighting.styles = styles;
+        lighting.effectsRevision = frames + 100;
         auto &uniform = lighting.uniforms;
         uniform.worldX = {0.01F, 0, -float(width) * 0.005F, 0};
         uniform.worldY = {0, -0.01F, float(height) * 0.005F, 0};
@@ -382,6 +400,9 @@ int main(int argc, char **argv) {
                       "selective bloom/opaque or transparent foreground edge oracle");
           }
         }
+        observeTiming();
+        if (frame == 9)
+          bloomPixels = pixels;
         if (shadowsEnabled && uniform.counts[1]) {
           ++shadowFrames;
           shadowSamples += uint64_t(uniform.counts[1]) * 1024;
@@ -441,6 +462,7 @@ int main(int argc, char **argv) {
       Require(surface->RenderUi(legacy->View()) == SurfaceStatus::Ready,
               "actual legacy fallback draw");
       (void)read(finalWidth, finalHeight, legacyExpected, EncodeLinear(base), false, true);
+      observeTiming();
     }
     Require(surface->Diagnostics().twoDLinearTargetBytes == 0 &&
                 surface->Diagnostics().twoDBloomTargetBytes == 0 &&
@@ -456,6 +478,69 @@ int main(int argc, char **argv) {
     Require(surface->Diagnostics().twoDLinearFrames == frames &&
                 surface->Diagnostics().twoDLinearTargetBytes > 0,
             "effects resume accounting");
+    // A native diagnostic view samples the GPU-produced map, with safe-frame offset.
+    std::array<TwoDLightingStyle, 3> mapStyles{};
+    for (auto &style : mapStyles)
+      style.receiveLight = style.receiveShadow = 0;
+    const std::array<TwoDShadowEdge, 4> mapEdges{{{{0.5F, -1, 0.6F, -1}, {1, 0, 0, 0}},
+                                                  {{0.6F, -1, 0.6F, 1}, {1, 0, 0, 0}},
+                                                  {{0.6F, 1, 0.5F, 1}, {1, 0, 0, 0}},
+                                                  {{0.5F, 1, 0.5F, -1}, {1, 0, 0, 0}}}};
+    TwoDLighting map;
+    map.styles = mapStyles;
+    map.edges = mapEdges;
+    map.effectsRevision = 999;
+    map.uniforms.counts = {1, 1, 4, 0};
+    map.uniforms.debug = {1, 0, 0, 0};
+    map.uniforms.lights[0].positionRadiusIntensity = {0, 0, 2, 1};
+    map.uniforms.lights[0].color = {1, 1, 1, 0};
+    map.uniforms.lights[0].masks = {1, 1, 0, 0};
+    map.uniforms.lights[0].shadow = {0, 0.002F, 0, 0};
+    const TwoDShadowReference::Frame mapReference(map.uniforms, map.edges);
+    const auto mapExpected = [&](unsigned x) {
+      const auto angle =
+          std::min(1023U, unsigned(std::floor((double(x) + 0.5 - 40) / (finalWidth - 80) * 1024)));
+      const auto value = EncodeLinear(mapReference.Distance(0, angle) / 2);
+      return std::array<unsigned, 3>{value, value, value};
+    };
+    Require(surface->Acquire() == SurfaceStatus::Ready, "shadow map view acquire");
+    Require(surface->DrawTwoDLinear({restored.prepared.View(),
+                                     restored.overlay,
+                                     {40, 0, finalWidth - 80, finalHeight},
+                                     &map}) == SurfaceStatus::Ready,
+            "native shadow map diagnostic draw");
+    shadowPixels = read(finalWidth, finalHeight, mapExpected(finalWidth / 2), 0, true, true);
+    for (const auto x :
+         {50U, finalWidth / 4, finalWidth / 2, finalWidth * 3 / 4, finalWidth - 50}) {
+      const auto expectedMap = mapExpected(x);
+      for (unsigned c = 0; c < 3; ++c)
+        Require(
+            std::abs(int(std::to_integer<unsigned>(
+                         shadowPixels[4 * (std::size_t(finalHeight / 2) * finalWidth + x) + c])) -
+                     int(expectedMap[c])) <= 2,
+            "native angular buffer readback matches independent CPU distance map");
+    }
+    ++frames;
+    observeTiming();
+    map.uniforms.debug[1] = 7;
+    Require(surface->Acquire() == SurfaceStatus::Ready, "inactive map view acquire");
+    Require(surface->DrawTwoDLinear({restored.prepared.View(),
+                                     restored.overlay,
+                                     {40, 0, finalWidth - 80, finalHeight},
+                                     &map}) == SurfaceStatus::Ready,
+            "inactive selected shadow slot diagnostic");
+    (void)read(finalWidth, finalHeight, {255, 0, 255}, 0, true, true);
+    ++frames;
+    observeTiming();
+    Require(!timings.empty() && surface->Diagnostics().twoDEffectsPeakBytes > 0 &&
+                surface->Diagnostics().twoDPeakTextureCount > 0,
+            "completed work/resource peak evidence");
+    const auto latestTiming = surface->Diagnostics().twoDEffects;
+    if (latestTiming.timingSource)
+      Require(timingSeenMask == 15, "all four native effects GPU intervals observed");
+    else
+      Require(latestTiming.timingStatus == 3 || latestTiming.timingStatus == 4,
+              "unavailable native GPU timer is explicit");
     if (argc == 2) {
       const auto parent = std::filesystem::path(argv[1]).parent_path();
       if (!parent.empty())
@@ -465,11 +550,46 @@ int main(int argc, char **argv) {
       for (std::size_t i = 0; i < finalPixels.size(); i += 4)
         image.write(reinterpret_cast<const char *>(finalPixels.data() + i), 3);
       Require(bool(image), "pixel evidence write");
+      const auto writeImage = [&](const char *suffix, const std::vector<std::byte> &pixels) {
+        auto path = std::filesystem::path(argv[1]);
+        path.replace_extension(suffix);
+        std::ofstream file(path, std::ios::binary);
+        file << "P6\n" << finalWidth << " " << finalHeight << "\n255\n";
+        for (std::size_t i = 0; i < pixels.size(); i += 4)
+          file.write(reinterpret_cast<const char *>(pixels.data() + i), 3);
+        Require(bool(file), "additional native pixel evidence write");
+      };
+      writeImage(".bloom.ppm", bloomPixels);
+      writeImage(".shadow.ppm", shadowPixels);
+      auto path = std::filesystem::path(argv[1]);
+      path.replace_extension(".timings.csv");
+      std::ofstream csv(path);
+      csv << "completed_frame,effects_revision,timing_source,timing_status,timing_mask,shadow_"
+             "dispatches,world_draws,bloom_passes,composite_draws,shadow_ms,world_ms,bloom_ms,"
+             "composite_ms\n";
+      csv << std::setprecision(12);
+      for (const auto &sample : timings) {
+        csv << sample.completedFrame << ',' << sample.effectsRevision << ',' << sample.timingSource
+            << ',' << sample.timingStatus << ',' << sample.timingMask;
+        for (auto work : sample.work)
+          csv << ',' << work;
+        for (unsigned pass = 0; pass < 4; ++pass) {
+          csv << ',';
+          if (sample.timingMask & (1U << pass))
+            csv << sample.milliseconds[pass];
+          else
+            csv << "UNAVAILABLE";
+        }
+        csv << '\n';
+      }
+      Require(bool(csv), "native per-pass GPU timing evidence write");
     }
     Require(surface->DrainAndDestroy() == SurfaceStatus::Ready, "native drain");
     Require(surface->Diagnostics().twoDLinearTargetBytes == 0 &&
                 surface->Diagnostics().twoDShadowBufferBytes == 0 &&
-                surface->Diagnostics().twoDBloomTargetBytes == 0 && !surface->SupportsTwoDLinear(),
+                surface->Diagnostics().twoDBloomTargetBytes == 0 &&
+                surface->Diagnostics().twoDUploadCapacityBytes == 0 &&
+                !surface->SupportsTwoDLinear(),
             "target teardown");
 #if !defined(_WIN32) && !defined(__APPLE__)
     XCloseDisplay(display);
@@ -478,7 +598,8 @@ int main(int argc, char **argv) {
                  "sizes/resize/zero restore/retirement PASS frames="
               << frames << " light_frames=" << litFrames << " maximum_lights=" << maximumLights
               << " shadow_frames=" << shadowFrames
-              << " maximum_shadow_lights=" << maximumShadowLights << "\n";
+              << " maximum_shadow_lights=" << maximumShadowLights
+              << " gpu_timing_seen_mask=" << timingSeenMask << "\n";
     return 0;
   } catch (const std::exception &error) {
     std::cerr << error.what() << "\n";

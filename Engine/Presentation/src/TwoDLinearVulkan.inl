@@ -12,6 +12,10 @@ struct TwoDBloomTarget {
   bool initialized{};
 };
 struct TwoDLinearFrame {
+  VkQueryPool effectsQueries{};
+  TwoDEffectsFrameDiagnostics pending;
+  std::chrono::steady_clock::time_point effectsSubmittedAt{};
+  uint32_t profilingStatus{};
   std::array<TwoDBloomTarget, 9> bloom;
   VkDescriptorSet emissionDescriptor{};
   std::array<VkImage, 2> images{};
@@ -145,6 +149,50 @@ bool CreateTwoDLinearProgram(bool instanced, bool composite, VkPipeline &output,
   vkDestroyShaderModule(device_, fragment, nullptr);
   vkDestroyShaderModule(device_, vertex, nullptr);
   return Initialized(result, "vkCreateGraphicsPipelines (linear 2D)");
+}
+void UpdateTwoDResourceStats() noexcept {
+  uint64_t upload{};
+  for (const auto &slot : twoDLinearFrames_)
+    upload += slot.uiCapacity;
+  detail::TrackTwoDResources(diagnostics_, upload, uiTextures_.size());
+}
+void CollectTwoDEffects(TwoDLinearFrame &f) noexcept {
+  if (!f.pending.completedFrame)
+    return;
+  auto completed = f.pending;
+  completed.timingSource = f.effectsQueries ? 1U : 0U;
+  completed.timingStatus = f.profilingStatus;
+  completed.timingMask = 0;
+  if (f.effectsQueries) {
+    std::array<uint64_t, 16> values{};
+    const auto result = vkGetQueryPoolResults(
+        device_, f.effectsQueries, 0, 8, sizeof(values), values.data(), 2 * sizeof(uint64_t),
+        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT);
+    if (result != VK_SUCCESS)
+      completed.timingStatus = 4;
+    if (result == VK_SUCCESS)
+      for (unsigned pass = 0; pass < 4; ++pass) {
+        if (!completed.work[pass] || !values[4 * pass + 1] || !values[4 * pass + 3])
+          continue;
+        const auto measured = detail::TimestampMilliseconds(
+            values[4 * pass], values[4 * pass + 2], timestampBits_, timestampPeriodNs_,
+            detail::CompletionWallMilliseconds(f.effectsSubmittedAt));
+        if (measured) {
+          completed.milliseconds[pass] = *measured;
+          completed.timingMask |= 1U << pass;
+        } else
+          completed.timingStatus = 3;
+      }
+  }
+  detail::PublishTwoDEffects(diagnostics_, completed);
+  f.pending = {};
+}
+void TwoDTime(TwoDLinearFrame &f, VkCommandBuffer commands, unsigned marker) {
+  if (f.effectsQueries)
+    vkCmdWriteTimestamp(commands,
+                        marker % 2 ? VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT
+                                   : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                        f.effectsQueries, marker);
 }
 void DestroyTwoDBloomTarget(TwoDBloomTarget &t) {
   if (t.framebuffer)
@@ -292,19 +340,23 @@ bool DrawTwoDBloom(TwoDLinearFrame &f, VkCommandBuffer commands, const TwoDLinea
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                          &barrier);
     target.initialized = true;
+    ++f.pending.work[2];
     ++diagnostics_.twoDBloomPasses;
     ++diagnostics_.nativeUiDrawCalls;
   }
   // Restore the full-output transform and viewport for final SDR composition.
   const VkViewport viewport{0, 0, float(width_), float(height_), 0, 1};
   vkCmdSetViewport(commands, 0, 1, &viewport);
-  const TwoDShaderConstants constants{{2.F / width_, 2.F / height_, -1, -1}};
+  TwoDShaderConstants constants{{2.F / width_, 2.F / height_, -1, -1}};
+  constants.SetCompositeViewport(width_, height_, data.viewport);
   vkCmdPushConstants(commands, twoDLinearLayout_,
                      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                      sizeof(constants), &constants);
   return true;
 }
 void DestroyTwoDLinearFrame(TwoDLinearFrame &f) {
+  if (f.effectsQueries)
+    vkDestroyQueryPool(device_, f.effectsQueries, nullptr);
   for (auto &target : f.bloom)
     DestroyTwoDBloomTarget(target);
   if (f.emissionDescriptor)
@@ -336,6 +388,7 @@ void DestroyTwoDLinearFrame(TwoDLinearFrame &f) {
     vkFreeMemory(device_, f.uiMemory, nullptr);
   diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
   f = {};
+  UpdateTwoDResourceStats();
 }
 void DestroyTwoDLinear() {
   for (auto &f : twoDLinearFrames_)
@@ -557,6 +610,16 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
   diagnostics_.twoDShadowBufferBytes += f.shadowBytes;
   if (vkBindBufferMemory(device_, f.shadowBuffer, f.shadowMemory, 0) != VK_SUCCESS)
     return false;
+  f.profilingStatus = !gpuTimingEnabled_ ? 0 : 3;
+  if (gpuTimingEnabled_ && timestampBits_ && timestampBits_ <= 64 &&
+      std::isfinite(timestampPeriodNs_) && timestampPeriodNs_ > 0) {
+    VkQueryPoolCreateInfo query{};
+    query.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    query.queryType = VK_QUERY_TYPE_TIMESTAMP;
+    query.queryCount = 8;
+    f.profilingStatus =
+        vkCreateQueryPool(device_, &query, nullptr, &f.effectsQueries) == VK_SUCCESS ? 1 : 4;
+  }
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -581,7 +644,8 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   if (!OnThread())
     return SurfaceStatus::WrongThread;
   if (!SupportsTwoDLinear() ||
-      (data.lighting && data.lighting->uniforms.counts[1] && !SupportsTwoDShadows()))
+      (data.lighting && (data.lighting->uniforms.counts[1] || data.lighting->uniforms.debug[0]) &&
+       !SupportsTwoDShadows()))
     return SurfaceStatus::Unsupported;
   auto &frame = frames_[frame_];
   auto &f = twoDLinearFrames_[frame_];
@@ -620,6 +684,11 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     return SurfaceStatus::Unsupported;
   if (!CreateTwoDLinearTargets(f))
     return SurfaceStatus::DeviceLost;
+  f.pending = {};
+  f.pending.effectsRevision = data.lighting ? data.lighting->effectsRevision : 0;
+  f.effectsSubmittedAt = std::chrono::steady_clock::now();
+  if (f.effectsQueries)
+    vkCmdResetQueryPool(frame.commands, f.effectsQueries, 0, 8);
   for (const auto *packet : {&data.world, &data.overlay})
     for (const auto &upload : packet->textureUploads) {
       const auto old = uiTextures_.find(upload.textureId);
@@ -695,6 +764,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     out.pBufferInfo = binding == 1 ? &edgeInfo : &shadowInfo;
   }
   vkUpdateDescriptorSets(device_, uint32_t(writes.size()), writes.data(), 0, nullptr);
+  TwoDTime(f, frame.commands, 0);
   if (data.lighting && data.lighting->uniforms.counts[1]) {
     VkBufferMemoryBarrier before{};
     before.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -716,9 +786,11 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 1, &before, 0,
                          nullptr);
+    ++f.pending.work[0];
     ++diagnostics_.twoDShadowDispatches;
     diagnostics_.twoDShadowSamples += uint64_t(data.lighting->uniforms.counts[1]) * 1024;
   }
+  TwoDTime(f, frame.commands, 1);
   std::array<VkImageMemoryBarrier, 2> barriers{};
   for (unsigned i = 0; i < 2; ++i) {
     auto &b = barriers[i];
@@ -744,6 +816,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   begin.renderArea.extent = {width_, height_};
   begin.clearValueCount = 2;
   begin.pClearValues = clears;
+  TwoDTime(f, frame.commands, 2);
   vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
   const VkViewport viewport{0, 0, float(width_), float(height_), 0, 1};
   vkCmdSetViewport(frame.commands, 0, 1, &viewport);
@@ -786,6 +859,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       diagnostics_.spriteGpuInstances += c.instanceCount;
     } else
       vkCmdDrawIndexed(frame.commands, c.elementCount, 1, c.indexOffset, c.vertexOffset, 0);
+    ++f.pending.work[1];
     if (transform.emission[3] > 0)
       ++diagnostics_.twoDEmissionDraws;
     ++diagnostics_.nativeUiDrawCalls;
@@ -800,8 +874,11 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   vkCmdPipelineBarrier(frame.commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr,
                        uint32_t(barriers.size()), barriers.data());
+  TwoDTime(f, frame.commands, 3);
+  TwoDTime(f, frame.commands, 4);
   if (!DrawTwoDBloom(f, frame.commands, data, quadOffset))
     return SurfaceStatus::DeviceLost;
+  TwoDTime(f, frame.commands, 5);
   f.initialized = true;
   if (f.compositeFramebuffer)
     vkDestroyFramebuffer(device_, f.compositeFramebuffer, nullptr);
@@ -819,6 +896,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   begin.framebuffer = f.compositeFramebuffer;
   begin.clearValueCount = 0;
   begin.pClearValues = nullptr;
+  TwoDTime(f, frame.commands, 6);
   vkCmdBeginRenderPass(frame.commands, &begin, VK_SUBPASS_CONTENTS_INLINE);
   const VkClearAttachment black{VK_IMAGE_ASPECT_COLOR_BIT, 0, VkClearValue{{{0, 0, 0, 1}}}};
   const VkClearRect full{{{0, 0}, {width_, height_}}, 0, 1};
@@ -842,6 +920,8 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   vkCmdBindIndexBuffer(frame.commands, f.uiUpload, quadOffset + sizeof(quad), VK_INDEX_TYPE_UINT32);
   vkCmdDrawIndexed(frame.commands, 6, 1, 0, 0, 0);
   vkCmdEndRenderPass(frame.commands);
+  TwoDTime(f, frame.commands, 7);
+  f.pending.work[3] = 1;
   sceneRendered_ = true;
   transferTarget_ = false;
   ++diagnostics_.nativeUiDrawCalls;
@@ -857,6 +937,8 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     if (status != SurfaceStatus::Ready)
       return status;
   }
+  f.pending.completedFrame = diagnostics_.twoDLinearFrames + 1;
+  UpdateTwoDResourceStats();
   ++diagnostics_.twoDLinearFrames;
   return SurfaceStatus::Ready;
 }

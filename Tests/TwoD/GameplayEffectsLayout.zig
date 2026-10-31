@@ -14,6 +14,7 @@ test "all effects C and Zig field offsets agree" {
         .{ c.NexoraTwoDEffectsFrameV1, nx.twod_effects.Frame },
         .{ c.NexoraTwoDEffectsCapabilitiesV1, nx.twod_effects.Capabilities },
         .{ c.NexoraTwoDEffectsStateV1, nx.twod_effects.State },
+        .{ c.NexoraTwoDEffectsDiagnosticsV1, nx.twod_effects.Diagnostics },
         .{ c.NexoraGameplayServicesApiV1, nx.GameplayServicesApiV1 },
     }) |pair| {
         try std.testing.expectEqual(@sizeOf(pair[0]), @sizeOf(pair[1]));
@@ -60,7 +61,9 @@ test "new Zig bindings retain old effects hosts and preserve complete pool handl
     const handle = nx.TwoDInstanceHandle{ .owner = 0x1122334455667788, .index = 4, .generation = 19 };
     try std.testing.expectError(error.Unsupported, old.poolIdentity(handle));
     var current = old;
-    current.struct_size = @sizeOf(nx.twod_effects.Api);
+    current.struct_size = @offsetOf(nx.twod_effects.Api, "get_diagnostics");
+    try std.testing.expectError(error.Unsupported, current.diagnostics());
+    try std.testing.expectError(error.Unsupported, current.debugView(0, 0));
     current.pool_identity = OldHost.pool;
     const sprite = try current.poolSprite(handle);
     try std.testing.expectEqual(@as(u64, 42), sprite.handle);

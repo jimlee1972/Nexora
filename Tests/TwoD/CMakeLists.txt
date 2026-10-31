@@ -288,6 +288,9 @@ nexora_apply_defaults(NexoraLightingRenderingTests)
 add_test(NAME twod.lighting_rendering COMMAND NexoraLightingRenderingTests)
 
 set(_nexora_emission_export_args)
+add_test(NAME twod.macos_development_export COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/MacDevelopmentExportTests.py")
+set_tests_properties(twod.macos_development_export PROPERTIES TIMEOUT 30 LABELS "twod;project;export;effects")
 if(TARGET NexoraTwoDPlayer AND TARGET NexoraTwoDProjectFixture)
   set(_nexora_emission_export_args "$<TARGET_FILE:NexoraTwoDPlayer>" "$<TARGET_FILE:NexoraTwoDProjectFixture>")
 endif()

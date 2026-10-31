@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **4/7（57%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **5/7（71%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
@@ -16,9 +16,9 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ✅ HD2D-02 | `nexora-m6m.2` | 三後端線性 RGBA16F 管線 | 01 | 已驗收 [PR #735](https://github.com/jimlee1972/Nexora/pull/735)，squash `ed0e51e4`；41 項 CI 與三後端原生證據 |
 | ✅ HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | 已驗收 PR #736，squash `40c96072`；目前提交的原生 DX12／Metal 與 Linux gate 通過 |
 | ✅ HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | 已驗收 PR #737／`0845c078`；最終提交的原生 DX12／Metal 與完整 Linux CI 通過 |
-| HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | IN_PROGRESS — 明示 mask／bloom、工具／回收／原生本地驗證；CI 待驗 |
-| HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | NOT_RUN |
-| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | NOT_RUN |
+| ✅ HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | 已驗收 PR #738／`a28f1001`；最終34 項檢查及 DX12／Vulkan／Metal53 畫面 CPU 讀回通過 |
+| HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | IN_PROGRESS — 實際 Zig 四尺寸原生診斷、GPU 時間與陰影圖檢視；完整／原生 CI 待驗 |
+| HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | IN_PROGRESS — 獨立0.2.0 候選／consumer 與同遊戲 Zig 施工；不可覆寫發布／遊戲 lock 待完成 |
 | HD2D-PC | `nexora-m6m.8` | Windows 實機驗收 | 07 | NOT_RUN |
 
 ## 實作契約
@@ -59,3 +59,27 @@ HD2D-03 已驗收：PR #736／`40c96072`；目前提交的 Windows job `12436509
 HD2D-05 補上整條管線關閉後的回收：原繪製路徑逐槽釋放已完成的離屏資源，保護後加 HUD，重新啟用可重建。依連結保留本地／原生 gate 證據；CI 前不計驗收完成。
 
 HD2D-04 已驗收：PR #737／`0845c078`，受測 `dd256588`。Windows52 原生畫面／425 CTests、Metal52／400、Linux483；最終34 項檢查完成（10 項為文件 push 正常略過）。HD2D-05 初步提交9e2323ce 的41 項檢查及 DX12／Metal53 畫面讀回通過；僅相依 rebase 保留執行程式內容，仍須最終提交 CI。工程4/7；實機 PC NOT_RUN。
+
+HD2D-06：可重用 Zig 場景、原生 GPU 陰影圖檢視、已完成 slot 的逐 pass 時間、四尺寸匯出 Player 與明確不可用狀態。[本地證據](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md)；IN_PROGRESS，不增加已驗收完成度。
+
+HD2D-03 驗收收據：PR #736／`40c96072`；目前提交的 Windows job `124365092041`（425 項 CTest）與 macOS job `124365092312`（400 項 CTest）通過實際原生像素讀回。實機 PC 仍 NOT_RUN。
+
+HD2D-06 輸入證據補強：合成點擊改等 Zig 實際取樣的中立／按下確認，不再猜固定時間。保留觸發此修正的相依完整 gate 失敗；連續三輪四尺寸原生測試通過，仍要求恰好一次啟動及相機不變。驗收仍需最終提交 CI。
+
+HD2D-06 讓移動 Sprite 使用上次成功提交的光源／遮擋姿態，包含零尺寸恢復；UI 重載延到下一次更新開頭。完整 Linux297／通過289／略過八項／零失敗111.82s 與 Shipping 通過。未改 ABI／宿主語意，CI 前不計驗收完成。
+
+HD2D-06 四尺寸總 watchdog 改為涵蓋四個不變的90s case 與匯出／結束（420s），依據為實際 Windows144幀 consumer 約53s。像素／資源／輸入斷言及產品效能門檻不變。完整 Linux297／通過289／略過八項／零失敗105.54s 與 Shipping 通過；仍需最終提交 CI。
+
+HD2D-06 保留 macOS job124420121268 的設定失敗：既有 Python 探測區塊排除 Apple，三個診斷測試取得空直譯器。改為在診斷註冊邊界明確要求直譯器。Metal 原生55 畫面 CPU 像素讀回本身通過；三個診斷測試須重跑後才驗收，不放寬斷言或略過。
+
+HD2D-06 直譯器範圍修正通過完整 Linux Development297／289 通過／八項略過／零失敗112.54 秒，包含實際四尺寸 Zig Vulkan 與同步驗證；Shipping 通過。macOS 實際診斷重試仍須通過。
+
+HD2D-06 保留相依 job124428232886 的第二次 macOS 診斷失敗：Python／素材生成已可執行，但 ExportGame 僅支援 Windows／Linux，拒絕 dylib。新增明確限定 Development 的 macOS dyld 圖封裝、繼承 RPATH 解析、複本 import 搬移／ad-hoc 簽署及完整 inventory。六個可攜圖與失敗 fixture 通過；仍須實際 Metal Zig 啟動重試，不宣稱 macOS Shipping 發布或放寬斷言。
+
+HD2D-06 限定 Development 的 macOS 封裝通過完整 Linux298／290 通過／八項略過／零失敗109.56 秒及 Shipping，包含六個可攜 dyld fixture。實際 Mac 二進位搬移／簽署／原生 Zig 重試仍待驗。
+
+HD2D-06 保留相依 macOS mimalloc job124435568972 的 fixture 失敗：暫存 /var 解析為 /private/var，mock import 字典卻用未解析路徑。以 Linux 真實符號連結 TMPDIR 重現六個 KeyError；僅將 fixture 根路徑正規化後，六項原測試通過。匯出器／執行程式及斷言不變，仍須實際 Mac 重試。
+
+HD2D-06 fixture 根路徑正規化通過完整 Linux298／290 通過／八項略過／零失敗106.22 秒及 Shipping；仍須實際 Mac 重試。
+
+HD2D-05 已驗收 PR #738／`a28f1001`，受測0cd1f27a 與 squash tree 相同：Windows 原生53／完整426 項、Metal53／401、Linux53／484；最終34 項檢查成功完成（10 項為文件 push 正常略過）。HD2D-06 相依 rebase 保留執行程式內容，仍需最終提交原生／完整 CI 與 Mac fixture 重試。工程5/7；實機 PC NOT_RUN。

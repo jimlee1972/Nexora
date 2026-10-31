@@ -61,6 +61,18 @@ typedef struct NexoraTwoDEffectsStateV1 {
   uint64_t accepted_revision, active_revision;
   uint32_t enabled, light_count, occluder_count, sprite_count;
 } NexoraTwoDEffectsStateV1;
+/* Timings refer to the latest completed effects frame, never CPU wall time.
+   timing_mask bits: shadow=1, world=2, bloom=4, composite=8. Ignore absent values.
+   source: 0 unavailable, 1 Vulkan, 2 DX12, 3 Metal counters.
+   status: 0 disabled, 1 pending, 2 ready, 3 unsupported, 4 allocation failure. */
+typedef struct NexoraTwoDEffectsDiagnosticsV1 {
+  uint32_t struct_size, abi_version, timing_mask, timing_source, timing_status, reserved;
+  uint64_t completed_frame, effects_revision, shadow_dispatches, world_draws, bloom_passes,
+      composite_draws;
+  double shadow_ms, world_ms, bloom_ms, composite_ms;
+  uint64_t scene_target_bytes, shadow_buffer_bytes, bloom_target_bytes, upload_capacity_bytes;
+  uint64_t peak_effect_bytes, texture_count, peak_texture_count;
+} NexoraTwoDEffectsDiagnosticsV1;
 typedef struct NexoraGameplayTwoDEffectsApiV1 {
   uint32_t struct_size, abi_version;
   void *context;
@@ -71,6 +83,11 @@ typedef struct NexoraGameplayTwoDEffectsApiV1 {
      Tokens belong to this service; never pack/truncate or persist pool handles into handle. */
   int32_t (*pool_identity)(void *, uint64_t owner, uint32_t index, uint32_t generation,
                            uint64_t *identity);
+  /* Independent optional suffixes; query struct_size before dereferencing. */
+  int32_t (*get_diagnostics)(void *, NexoraTwoDEffectsDiagnosticsV1 *);
+  /* mode 0: normal (slot must be zero); mode 1: native angular map, slot 0..7.
+     Owner thread, copied/published at next frame boundary. No CPU map substitutes. */
+  int32_t (*set_debug_view)(void *, uint32_t mode, uint32_t shadow_slot);
 } NexoraGameplayTwoDEffectsApiV1;
 #ifdef __cplusplus
 }

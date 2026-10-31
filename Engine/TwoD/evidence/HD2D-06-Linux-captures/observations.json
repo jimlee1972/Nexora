@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "native_frames": 144,
+  "effects_completed_frame": 120,
+  "effects_revision": 136,
+  "effects_timing_mask": 15,
+  "effects_timing_source": 1,
+  "effects_timing_status": 2,
+  "effects_shadow_ms": 0.185168,
+  "effects_world_ms": 29.23689,
+  "effects_bloom_ms": 15.367883,
+  "effects_composite_ms": 9.8422,
+  "effects_scene_bytes": 0,
+  "effects_shadow_bytes": 0,
+  "effects_bloom_bytes": 0,
+  "effects_upload_capacity_bytes": 0,
+  "effects_peak_bytes": 88538112,
+  "effects_peak_textures": 6,
+  "asset_active_bytes": 0,
+  "asset_staging_bytes": 0,
+  "allocations_balanced": true,
+  "physical_pc": "NOT_RUN",
+  "device_class": "cloud software Vulkan",
+  "input": "synthetic XTest",
+  "captures": {
+    "scene": {
+      "width": 1920,
+      "height": 1080,
+      "sha256": "64f2a01b5bc90f38a757207087460e11517016864832b0f9e18e3b7f0fbd33a3",
+      "grayscale_fraction": 0.00654296875,
+      "warm_pixels": 146347,
+      "blue_pixels": 129697,
+      "dynamic_range": 253
+    },
+    "map": {
+      "width": 1920,
+      "height": 1080,
+      "sha256": "7739f0e40efea9c6659a7188351ee75149b943e5d22608a29b27fb36270d18b6",
+      "grayscale_fraction": 1.0,
+      "warm_pixels": 0,
+      "blue_pixels": 0,
+      "dynamic_range": 108
+    }
+  }
+}

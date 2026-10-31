@@ -54,7 +54,8 @@ struct NEXORA_2D_API SpriteFrame final {
       Nexora::Presentation::RenderSurface &, const Nexora::Presentation::TwoDLightingUniform &,
       const Nexora::Presentation::UiDrawData &overlay = {},
       const std::array<std::uint32_t, 4> &viewport = {}, std::uint32_t background = 0xFF000000,
-      std::span<const Nexora::Presentation::TwoDShadowEdge> edges = {}) const;
+      std::span<const Nexora::Presentation::TwoDShadowEdge> edges = {},
+      std::uint64_t effectsRevision = 0) const;
 };
 struct Collider final {
   ShapeKind kind{ShapeKind::Circle};

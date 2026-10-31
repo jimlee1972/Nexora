@@ -8,6 +8,11 @@ struct TwoDBloomTarget {
   D3D12_RESOURCE_STATES state{D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE};
 };
 struct TwoDLinearFrame {
+  ComPtr<ID3D12QueryHeap> effectsQueries;
+  ComPtr<ID3D12Resource> effectsReadback;
+  TwoDEffectsFrameDiagnostics pending;
+  std::chrono::steady_clock::time_point effectsSubmittedAt{};
+  uint32_t profilingStatus{};
   std::array<TwoDBloomTarget, 9> bloom;
 
   std::array<ComPtr<ID3D12Resource>, 2> colors;
@@ -183,6 +188,76 @@ bool CreateTwoDLinearPipelines() {
   return SUCCEEDED(
       device_->CreateComputePipelineState(&compute, IID_PPV_ARGS(&twoDShadowPipeline_)));
 }
+void UpdateTwoDResourceStats() noexcept {
+  uint64_t upload{};
+  for (const auto &slot : twoDLinearFrames_)
+    upload += slot.capacity;
+  detail::TrackTwoDResources(diagnostics_, upload, uiTextures_.size());
+}
+void InitializeTwoDEffectsTiming(TwoDLinearFrame &f) {
+  f.profilingStatus = !gpuTimingEnabled_ ? 0 : 3;
+  if (!gpuTimingEnabled_ || !timestampFrequency_)
+    return;
+  D3D12_QUERY_HEAP_DESC query{};
+  query.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+  query.Count = 8;
+  D3D12_HEAP_PROPERTIES heap{};
+  heap.Type = D3D12_HEAP_TYPE_READBACK;
+  heap.CreationNodeMask = heap.VisibleNodeMask = 1;
+  D3D12_RESOURCE_DESC buffer{};
+  buffer.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  buffer.Width = 8 * sizeof(uint64_t);
+  buffer.Height = 1;
+  buffer.DepthOrArraySize = buffer.MipLevels = 1;
+  buffer.SampleDesc.Count = 1;
+  buffer.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  if (FAILED(device_->CreateQueryHeap(&query, IID_PPV_ARGS(&f.effectsQueries))) ||
+      FAILED(device_->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &buffer,
+                                              D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                              IID_PPV_ARGS(&f.effectsReadback)))) {
+    f.effectsQueries.Reset();
+    f.effectsReadback.Reset();
+    f.profilingStatus = 4;
+  } else
+    f.profilingStatus = 1;
+}
+void CollectTwoDEffects(TwoDLinearFrame &f) noexcept {
+  if (!f.pending.completedFrame)
+    return;
+  auto completed = f.pending;
+  completed.timingSource = f.effectsQueries ? 2U : 0U;
+  completed.timingStatus = f.profilingStatus;
+  completed.timingMask = 0;
+  if (f.effectsQueries && f.effectsReadback) {
+    void *mapped{};
+    const D3D12_RANGE range{0, 8 * sizeof(uint64_t)};
+    if (SUCCEEDED(f.effectsReadback->Map(0, &range, &mapped))) {
+      std::array<uint64_t, 8> values{};
+      std::memcpy(values.data(), mapped, sizeof(values));
+      const D3D12_RANGE written{0, 0};
+      f.effectsReadback->Unmap(0, &written);
+      for (unsigned pass = 0; pass < 4; ++pass) {
+        if (!completed.work[pass])
+          continue;
+        const auto measured = detail::TimestampMilliseconds(
+            values[2 * pass], values[2 * pass + 1], 64, 1000000000.0 / double(timestampFrequency_),
+            detail::CompletionWallMilliseconds(f.effectsSubmittedAt));
+        if (measured) {
+          completed.milliseconds[pass] = *measured;
+          completed.timingMask |= 1U << pass;
+        } else
+          completed.timingStatus = 3;
+      }
+    } else
+      completed.timingStatus = 4;
+  }
+  detail::PublishTwoDEffects(diagnostics_, completed);
+  f.pending = {};
+}
+void TwoDTime(TwoDLinearFrame &f, unsigned marker) {
+  if (f.effectsQueries)
+    commands_->EndQuery(f.effectsQueries.Get(), D3D12_QUERY_TYPE_TIMESTAMP, marker);
+}
 bool EnsureTwoDBloomTarget(TwoDLinearFrame &f, unsigned index, uint32_t width, uint32_t height) {
   auto &t = f.bloom[index];
   if (t.image && t.width == width && t.height == height)
@@ -283,6 +358,7 @@ bool DrawTwoDBloom(TwoDLinearFrame &f, const TwoDLinearDrawData &data, std::size
     barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     commands_->ResourceBarrier(1, &barrier);
     target.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    ++f.pending.work[2];
     ++diagnostics_.twoDBloomPasses;
     ++diagnostics_.nativeUiDrawCalls;
   }
@@ -295,6 +371,7 @@ void ResetTwoDLinearFrame(TwoDLinearFrame &f) {
   diagnostics_.twoDShadowBufferBytes -= f.shadowBytes;
   diagnostics_.twoDLinearTargetBytes -= f.allocationBytes;
   f = {};
+  UpdateTwoDResourceStats();
 }
 void ResetTwoDLinearFrames() {
   for (auto &f : twoDLinearFrames_)
@@ -370,6 +447,7 @@ bool CreateTwoDLinearTargets(TwoDLinearFrame &f) {
     return false;
   f.shadowBytes = shadowAllocation.SizeInBytes;
   diagnostics_.twoDShadowBufferBytes += f.shadowBytes;
+  InitializeTwoDEffectsTiming(f);
   ++diagnostics_.twoDLinearTargetAllocations;
   return true;
 }
@@ -438,6 +516,9 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   auto &f = twoDLinearFrames_[frame_];
   if (!CreateTwoDLinearTargets(f))
     return SurfaceStatus::DeviceLost;
+  f.pending = {};
+  f.pending.effectsRevision = data.lighting ? data.lighting->effectsRevision : 0;
+  f.effectsSubmittedAt = std::chrono::steady_clock::now();
   for (const auto *packet : {&data.world, &data.overlay})
     for (const auto &upload : packet->textureUploads)
       if (!UploadUiTexture(upload))
@@ -481,6 +562,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   if (data.lighting && !data.lighting->edges.empty())
     std::memcpy(bytes + edgeOffset, data.lighting->edges.data(), data.lighting->edges.size_bytes());
   f.upload->Unmap(0, nullptr);
+  TwoDTime(f, 0);
   if (data.lighting && data.lighting->uniforms.counts[1]) {
     D3D12_RESOURCE_BARRIER shadowBarrier{};
     shadowBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -498,9 +580,12 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     shadowBarrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
     commands_->ResourceBarrier(1, &shadowBarrier);
     f.shadowState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    ++f.pending.work[0];
     ++diagnostics_.twoDShadowDispatches;
     diagnostics_.twoDShadowSamples += uint64_t(data.lighting->uniforms.counts[1]) * 1024;
   }
+  TwoDTime(f, 1);
+  TwoDTime(f, 2);
   D3D12_RESOURCE_BARRIER barrier{};
   barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
   barrier.Transition = {f.colors[0].Get(), D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, f.colorState,
@@ -569,6 +654,7 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
       diagnostics_.spriteGpuInstances += c.instanceCount;
     } else
       commands_->DrawIndexedInstanced(c.elementCount, 1, c.indexOffset, c.vertexOffset, 0);
+    ++f.pending.work[1];
     if (transform.emission[3] > 0)
       ++diagnostics_.twoDEmissionDraws;
     ++diagnostics_.nativeUiDrawCalls;
@@ -579,8 +665,12 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     barrier.Transition.pResource = color.Get();
     commands_->ResourceBarrier(1, &barrier);
   }
+  TwoDTime(f, 3);
+  TwoDTime(f, 4);
   if (!DrawTwoDBloom(f, data, quadOffset))
     return SurfaceStatus::DeviceLost;
+  TwoDTime(f, 5);
+  TwoDTime(f, 6);
   f.colorState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
   target = heap_->GetCPUDescriptorHandleForHeapStart();
   target.ptr += SIZE_T(frame_) * increment_;
@@ -590,8 +680,10 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   commands_->SetDescriptorHeaps(1, heaps);
   commands_->SetGraphicsRootSignature(twoDLinearRoots_[0].Get());
   commands_->SetPipelineState(twoDLinearPipelines_[4].Get());
+  transform.SetCompositeViewport(width_, height_, data.viewport);
   commands_->SetGraphicsRoot32BitConstants(0, sizeof(transform) / 4, &transform, 0);
   commands_->SetGraphicsRootConstantBufferView(2, f.upload->GetGPUVirtualAddress() + uniformOffset);
+  commands_->SetGraphicsRootShaderResourceView(4, f.shadowBuffer->GetGPUVirtualAddress());
   commands_->SetGraphicsRootDescriptorTable(1, f.srvs->GetGPUDescriptorHandleForHeapStart());
   const auto bloomPlan =
       PrepareTwoDBloom(width_, height_, data.lighting ? &data.lighting->uniforms : nullptr);
@@ -615,6 +707,10 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
   commands_->IASetVertexBuffers(0, 1, &quadView);
   commands_->IASetIndexBuffer(&quadIndices);
   commands_->DrawIndexedInstanced(6, 1, 0, 0, 0);
+  TwoDTime(f, 7);
+  if (f.effectsQueries)
+    commands_->ResolveQueryData(f.effectsQueries.Get(), D3D12_QUERY_TYPE_TIMESTAMP, 0, 8,
+                                f.effectsReadback.Get(), 0);
   sceneDrawn_ = true;
   ++diagnostics_.nativeUiDrawCalls;
   diagnostics_.spriteInstanceUploadBytes += instances.size();
@@ -623,6 +719,9 @@ SurfaceStatus DrawTwoDLinear(const TwoDLinearDrawData &data) override {
     if (result != SurfaceStatus::Ready)
       return result;
   }
+  f.pending.work[3] = 1;
+  f.pending.completedFrame = diagnostics_.twoDLinearFrames + 1;
+  UpdateTwoDResourceStats();
   ++diagnostics_.twoDLinearFrames;
   return SurfaceStatus::Ready;
 }
