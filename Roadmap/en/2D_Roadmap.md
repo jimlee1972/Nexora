@@ -921,7 +921,7 @@ remain separate. This portable scene slice does not close Editor M3-08, M6/M7 or
 
 ## HD-2D extension work items
 
-[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 5/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
+[Lighting, soft-shadow and selective bloom plan](HD2D_Lighting_Plan.md): Beads `nexora-m6m`, engineering 6/7, physical NOT_RUN. Existing 9/11, M6/M7 and SP acceptance remain unchanged.
 
 ✅ HD2D-01: public effects contract/Zig and atomic snapshots validated; native effects and SDK remain subsequent work. See the plan and linked evidence above.
 
@@ -940,3 +940,5 @@ HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames re
 ✅ HD2D-03 accepted via PR #736 / `40c96072`, current-head native DX12/Metal pixels and complete CI passed; engineering 3/7. HD2D-06 local Zig scene, four-size native Player, copied GPU diagnostics and map readbacks passed full Development/Shipping; dependent/native CI still gates acceptance. [Evidence](../../Engine/TwoD/evidence/HD2D-06-Linux-2026-10-31.md).
 
 ✅ HD2D-05 accepted via PR #738 / `a28f1001`, actual53-frame three-backend CPU pixels and complete final-head CI; engineering5/7. HD2D-06 real Zig/native profiling/debug and Development-only Mac export await final-head CI. Physical PC NOT_RUN.
+
+✅ HD2D-06 accepted via PR #739 / `67db45d2`: all41 checks, real four-size Zig on DX12/Vulkan/Metal and55-frame CPU pixels; full Windows430/Linux488/Metal405 tests. Engineering6/7; SDK publication/game integration and physical PC remain separate gates.

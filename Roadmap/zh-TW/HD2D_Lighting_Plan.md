@@ -1,6 +1,6 @@
 # HD-2D 光源、柔影與選擇性 Bloom 施工計畫
 
-> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **5/7（71%）**；實機 **NOT_RUN**。
+> 基準：Nexora `8c4aa989`；Beads 主工單 `nexora-m6m`。工程 **6/7（86%）**；實機 **NOT_RUN**。
 
 ## 目標與界線
 
@@ -17,7 +17,7 @@ Beads 是任務狀態來源；本表為審閱用快照。工程以已驗收子�
 | ✅ HD2D-03 | `nexora-m6m.3` | 動態局部點光源 | 02 | 已驗收 PR #736，squash `40c96072`；目前提交的原生 DX12／Metal 與 Linux gate 通過 |
 | ✅ HD2D-04 | `nexora-m6m.4` | 動態遮擋與柔影 | 03 | 已驗收 PR #737／`0845c078`；最終提交的原生 DX12／Metal 與完整 Linux CI 通過 |
 | ✅ HD2D-05 | `nexora-m6m.5` | 選擇性發光與 bloom | 02 | 已驗收 PR #738／`a28f1001`；最終34 項檢查及 DX12／Vulkan／Metal53 畫面 CPU 讀回通過 |
-| HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | IN_PROGRESS — 實際 Zig 四尺寸原生診斷、GPU 時間與陰影圖檢視；完整／原生 CI 待驗 |
+| ✅ HD2D-06 | `nexora-m6m.6` | Zig 診斷與原生驗證 | 03, 04, 05 | 已驗收 PR #739／`67db45d2`；最終41 項 CI、實際四尺寸 Zig 與三後端55 畫面 CPU 像素通過 |
 | HD2D-07 | `nexora-m6m.7` | SDK 0.2.0 與遊戲接入 | 06 | IN_PROGRESS — 獨立0.2.0 候選／consumer 與同遊戲 Zig 施工；不可覆寫發布／遊戲 lock 待完成 |
 | HD2D-PC | `nexora-m6m.8` | Windows 實機驗收 | 07 | NOT_RUN |
 
@@ -105,3 +105,7 @@ HD2D-07 接入直譯器修正後通過完整 Linux297／289 通過／八項略�
 HD2D-07 接入限定 Development 的 macOS 診斷匯出修正，保留 job124428232886 在實際 Zig 啟動前的失敗。Python／素材已通過；真正 dyld 搬移／簽署／原生執行仍須重試，Windows 候選收據仍保留。
 
 HD2D-07 接入 Mac Development 匯出後通過完整 Linux298／290 通過／八項略過／零失敗110.97 秒、Shipping（環境重連後續建完成）、SDK5／cleanup47。真正 Mac 原生重試及不可覆寫發布／遊戲 lock 仍待完成。
+
+HD2D-06 已驗收 PR #739／`67db45d2`，受測05c563b8 與合併 tree 相同。41 項檢查全部成功，push／PR Build41167913390／41167916242 均成功結束。DX12／Vulkan／Metal 實際四尺寸 Zig Player 與55 畫面 CPU 像素通過；完整 Windows430／Linux488／Metal405 項。DX12／Vulkan timing mask15；此 Metal CI 裝置明確回報計時不可用。保留全部 Mac 直譯器／匯出／fixture 失敗及不改斷言的重試。HD2D-07 接入已驗收相依，仍需不可覆寫0.2.0 發布與遊戲實際 lock／CI。工程6/7；PC NOT_RUN。
+
+HD2D-07 最終已驗收相依施工通過完整 Linux298／290 通過／八項略過／零失敗106.94 秒、Shipping、SDK5／cleanup47。最終提交 Windows 候選／完整 CI、不可覆寫 main-push 發布與遊戲正式 lock 仍待完成；工程6/7。

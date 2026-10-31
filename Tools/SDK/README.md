@@ -37,10 +37,11 @@ caches and has no engine source checkout. The producer and consumer are separate
 release promotes the tested ZIP bytes; `release` publication never rebuilds or overwrites an SDK.
 The full Build workflow remains required before merging the implementation.
 
-Consumer evidence includes an asset-bearing script-only fixture, portable PE checks and two
-independent finite headless host runs. Native graphics, controller, audio, DPI and physical game
-acceptance remain `NOT_RUN` unless separately observed. They do not block this development SDK.
-See the workflow artifacts and the game integration evidence for real NX-00 deterministic runs.
+The original0.1.0 consumer evidence covers an asset-bearing script-only fixture, portable PE
+checks and two independent finite headless host runs. Its historical native/physical scope is
+unchanged. The0.2.0 native DX12/offline requirements below gate promotion; physical controller,
+audio, DPI, formal assets and target-PC acceptance remain separate. See workflow artifacts and
+game integration evidence for actual diagnostic/NX-00 observations.
 
 
 ## 0.2.0 HD2D delivery
