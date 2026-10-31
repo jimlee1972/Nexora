@@ -1,6 +1,6 @@
 # Windows script-only 2D SDK
 
-The fixed `sdk-2d-windows-x64-v0.1.0` release provides a Monolithic Shipping DX12 generic
+The immutable `sdk-2d-windows-x64-v0.2.0` release provides a Monolithic Shipping DX12 generic
 host, asset compiler, Zig bindings/build entry, export tools, Ninja 1.13.2 and redistributable CRT.
 Game developers install Zig 0.14.0, CMake 3.25+ and Python 3.10+; MSVC, Windows SDK and engine
 source are not consumer requirements. The SDK is for development, not the complete game.
@@ -41,3 +41,20 @@ Consumer evidence includes an asset-bearing script-only fixture, portable PE che
 independent finite headless host runs. Native graphics, controller, audio, DPI and physical game
 acceptance remain `NOT_RUN` unless separately observed. They do not block this development SDK.
 See the workflow artifacts and the game integration evidence for real NX-00 deterministic runs.
+
+
+## 0.2.0 HD2D delivery
+
+0.1.0 remains available and immutable. 0.2.0 adds flat point lights, bounded planar soft shadows,
+explicit linear emission masks/selective bloom, independently optional diagnostics/debug-map
+suffixes and the reusable Zig DEV ONLY scene. Original services/Sprite prefixes remain compatible.
+The archive includes paired-mask preparation and diagnostic staging tools plus Noto OFL/NOTICE
+under `licenses/`; retain those notices when embedding the diagnostic raster font in a game.
+No normal maps, 3D height shadows, HDR display output or Editor light-authoring tools are included.
+
+The source-free independent Windows consumer builds the actual reusable Zig scene using only the
+candidate ZIP, executes its 144-frame headless fallback and native DX12 path, validates complete
+inventories, then reuses the same SDK offline. Consumer validation is diagnostic engineering
+acceptance; physical display/input, formal assets and target-PC FPS remain NOT_RUN. Tagged release
+promotion requires the successful main push candidate and full Build at the same source SHA;
+no release rebuild or overwrite is permitted. The game lock pins the resulting archive SHA-256.

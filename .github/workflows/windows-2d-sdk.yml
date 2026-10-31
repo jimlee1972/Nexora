@@ -70,7 +70,7 @@ jobs:
           if ($redists.Count -ne 1) { throw 'Expected exactly one x64 CRT directory' }
           python Tools/SDK/SDK.py package --build build/sdk-producer --output build/sdk-delivery `
             --redist $redists[0].FullName --ninja "$env:RUNNER_TEMP/sdk-ninja/ninja.exe" `
-            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --commit $env:GITHUB_SHA
+            --ninja-license "$env:RUNNER_TEMP/sdk-ninja/COPYING" --version 0.2.0 --commit $env:GITHUB_SHA
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
@@ -130,6 +130,9 @@ jobs:
           path: |
             evidence/acceptance.json
             evidence/report-*.json
+            evidence/hd2d-*.json
+            evidence/hd2d-*.log
+            evidence/HD2D relocated 陰陽/inventory.json
             evidence/relocated game 陰陽/inventory.json
             ${{ runner.temp }}/sdk-toolchain-isolation.json
           if-no-files-found: warn

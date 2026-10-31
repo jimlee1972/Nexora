@@ -83,3 +83,5 @@ HD2D-06 retains dependent macOS mimalloc job124435568972 fixture failure: tempor
 HD2D-06 fixture-root canonicalization passed full Linux298/290pass/eight skips/zero failures106.22s and Shipping; actual Mac retry still required.
 
 HD2D-05 accepted PR #738 / `a28f1001`, tested0cd1f27a with identical squash tree: Windows native53/full426 tests, Metal53/401, Linux53/484; all34 final-head checks completed successfully (10 legitimate documentation-push skips). HD2D-06 dependency rebase preserves runtime source; current-head native/full CI and Mac fixture retry still required. Engineering5/7; physical PC NOT_RUN.
+
+HD2D-07 preparation packages explicit-mask tools and licensed reusable Zig diagnostics into a versioned 0.2.0 candidate. The independent source-free consumer builds/runs real headless/native DX12 diagnostics and offline rebuilds. Game default NX00 hash is unchanged; local same-product Vulkan two-cycle F9 evidence passed. Native candidate CI, dependency acceptance, actual release hash and final game lock remain required; no acceptance credit or publication claimed.
