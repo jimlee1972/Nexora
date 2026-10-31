@@ -77,3 +77,7 @@ HD2D-06 直譯器範圍修正通過完整 Linux Development297／289 通過／�
 HD2D-06 保留相依 job124428232886 的第二次 macOS 診斷失敗：Python／素材生成已可執行，但 ExportGame 僅支援 Windows／Linux，拒絕 dylib。新增明確限定 Development 的 macOS dyld 圖封裝、繼承 RPATH 解析、複本 import 搬移／ad-hoc 簽署及完整 inventory。六個可攜圖與失敗 fixture 通過；仍須實際 Metal Zig 啟動重試，不宣稱 macOS Shipping 發布或放寬斷言。
 
 HD2D-06 限定 Development 的 macOS 封裝通過完整 Linux298／290 通過／八項略過／零失敗109.56 秒及 Shipping，包含六個可攜 dyld fixture。實際 Mac 二進位搬移／簽署／原生 Zig 重試仍待驗。
+
+HD2D-06 保留相依 macOS mimalloc job124435568972 的 fixture 失敗：暫存 /var 解析為 /private/var，mock import 字典卻用未解析路徑。以 Linux 真實符號連結 TMPDIR 重現六個 KeyError；僅將 fixture 根路徑正規化後，六項原測試通過。匯出器／執行程式及斷言不變，仍須實際 Mac 重試。
+
+HD2D-06 fixture 根路徑正規化通過完整 Linux298／290 通過／八項略過／零失敗106.22 秒及 Shipping；仍須實際 Mac 重試。

@@ -17,7 +17,7 @@ class MacExportTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.bin = self.root/'bin'; self.bin.mkdir()
         self.libs = self.root/'libs'; self.libs.mkdir()
         self.app = self.bin/'Player'

@@ -77,3 +77,7 @@ HD2D-06 interpreter-scope repair passed full Linux Development297/289pass/eight 
 HD2D-06 second macOS diagnostic failure retained from dependent job124428232886: Python/asset generation now run, but ExportGame rejects dylib and supports only Windows/Linux. Add explicit Development-only macOS dyld graph staging, inherited RPATH resolution, copied import relocation/ad-hoc signing and complete inventory. Six portable graph/failure fixtures pass; actual Metal Zig startup remains a required retry. No macOS Shipping distribution or weaker assertions claimed.
 
 HD2D-06 Development-only macOS export passed full Linux298/290pass/eight skips/zero failures109.56s and Shipping, including six portable dyld fixtures. Actual Mac binary rewrite/signing/native Zig retry remains pending.
+
+HD2D-06 retains dependent macOS mimalloc job124435568972 fixture failure: temporary /var resolves to /private/var, but mocked import keys used the unresolved root. A real Linux symlinked TMPDIR reproduced all six KeyErrors; canonicalizing only the fixture root passes all six unchanged tests. Exporter/runtime and assertions are unchanged; actual Mac retry remains required.
+
+HD2D-06 fixture-root canonicalization passed full Linux298/290pass/eight skips/zero failures106.22s and Shipping; actual Mac retry still required.
