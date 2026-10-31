@@ -60,3 +60,7 @@ inventories, then reuses the same SDK offline. Consumer validation is diagnostic
 acceptance; physical display/input, formal assets and target-PC FPS remain NOT_RUN. Tagged release
 promotion requires the successful main push candidate and full Build at the same source SHA;
 no release rebuild or overwrite is permitted. The game lock pins the resulting archive SHA-256.
+
+## Retrying immutable publication
+
+The tag identifies the tested SDK source, not the publisher implementation. If publication fails before creating a release, retain the tag and failure logs. The workflow accepts a `release/windows-2d-sdk-v<version>` recovery branch at an already validated publisher commit. It requires a successful full push Build at that publisher commit, resolves the existing immutable version tag, and separately requires successful candidate and full push Build at the tagged source. It downloads those original artifacts and validates the unique consumer receipt recursively, because Windows workspace and runner-temp files can give upload-artifact a common drive root. Missing or multiple receipts fail. Source, ZIP SHA, embedded manifest, native DX12 and offline-rebuild checks remain mandatory. This does not rebuild or overwrite any release; `gh release create` still rejects an existing version.

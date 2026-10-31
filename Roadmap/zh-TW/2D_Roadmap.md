@@ -842,3 +842,5 @@ HD2D-05 補上整條管線關閉後的回收：原繪製路徑逐槽釋放已完
 ✅ HD2D-05 經 PR #738／`a28f1001` 驗收，實際三後端53 畫面 CPU 像素與最終提交完整 CI 通過；工程5/7。HD2D-06 實際 Zig／原生計時／檢視及限定 Development 的 Mac 匯出仍需最終提交 CI。實機 PC NOT_RUN。
 
 ✅ HD2D-06 經 PR #739／`67db45d2` 驗收：41 項檢查、DX12／Vulkan／Metal 實際四尺寸 Zig 與55 畫面 CPU 像素、完整 Windows430／Linux488／Metal405 項通過。工程6/7；SDK 發布／遊戲接入與實機 PC 仍為獨立 gate。
+
+HD2D-07 SDK 發布保留不可移動來源93a8dd51與 main Build／候選包通過證據。首輪僅在巢狀 artifact 收據定位失敗；恢復路徑保留同位元組／原生／離線／完整 CI 門檻，完成度仍6/7。詳見雙語 HD2D 計畫。

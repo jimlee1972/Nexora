@@ -947,3 +947,5 @@ HD2D-05 follow-up fixes pipeline-off retirement: completed-slot legacy frames re
 ✅ HD2D-05 accepted via PR #738 / `a28f1001`, actual53-frame three-backend CPU pixels and complete final-head CI; engineering5/7. HD2D-06 real Zig/native profiling/debug and Development-only Mac export await final-head CI. Physical PC NOT_RUN.
 
 ✅ HD2D-06 accepted via PR #739 / `67db45d2`: all41 checks, real four-size Zig on DX12/Vulkan/Metal and55-frame CPU pixels; full Windows430/Linux488/Metal405 tests. Engineering6/7; SDK publication/game integration and physical PC remain separate gates.
+
+HD2D-07 SDK promotion retains immutable source93a8dd51 and successful main Build/candidate evidence. First publication failed only at nested artifact receipt discovery; the recovery path keeps exact-byte/native/offline/full-CI gates and progress6/7. See the paired HD2D plan.
