@@ -1,6 +1,6 @@
 {
   ".gitattributes": "7a7347b4d5b26356f0cad6137a782f1cbc8967d9c33d6045e124098a7fe4e81e",
-  "acceptance.md": "ff0a09f20be80e21f06c4e5be7c89b6f3f5225d88c51497991aad27907ade0cd",
+  "acceptance.md": "f76c96922f216eab5d3f1a307b4b2727a89d9352fa580b20b9a77ff68c26c5ae",
   "build.log": "4cd220610e2695683b6387fc190770fcf35e03537ffd35fe6812e9e0233d66d1",
   "configure.log": "772c0a8e589867d044252bc1e4a979d2784d5abbf669ce57294d1d11f9b6a833",
   "developer-native-color.json": "b48d57d85badee8352df3d826da3e81f6f2123ee03577287001d089f76cdfe80",
@@ -108,7 +108,7 @@
   "shipping-test-results.json": "12334a04032858c442eaa5eb0a1cb114d10917e8d76caf27347ff3623ed68056",
   "shipping-tests.log": "99e3a0eb1cab88481afdcda1941fe9e8ff1e1e712bb4641a6a21e9ce2b9dd34f",
   "source-manifest-before-com.json": "c5d076358e723ccecde8399788eaefd69d5e91ac05a5c537d50381812aa814bc",
-  "source-manifest.json": "85592ff000d38144192b84382ca0584493404322e9d6c38bbead6fffeff6ca95",
+  "source-manifest.json": "834687494ce878472fe5ad436fa144961d4fe9648906ea04fc65f86218db0d0e",
   "stage.log": "422b1d97a2931fdfd0edf786a6d20a2742111443c7013e4d3bfedb28cdfe335d",
   "UI-Shipping-inventory.json": "7457c467faa74ba797ddd915014ab7499af36667a8171bb0cbb0b5937cc04b5c",
   "ZigGame-Shipping-Fixture-inventory.json": "a56ba956e416b925d45e652f7e915ad325cecc91e23b462d8ad03af15f2b8e90"

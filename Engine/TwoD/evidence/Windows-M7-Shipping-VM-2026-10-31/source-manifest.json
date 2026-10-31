@@ -1,7 +1,7 @@
 {
   "runtime_source": "67db45d23e631b0e05b42c23716245a34ae996d5",
   "harness_baseline_commit": "66e41f12bd5e4c63ce621207d0ef36f4f8abe096",
-  "harness_revision": "COM scheduler change included in this delivery; exact file content is bound below",
+  "harness_revision": "064e376e7dc2af9347556b4650398e449dcccfd0",
   "source_normalization": "Windows checkout CRLF bytes and canonical Git LF bytes are recorded separately; normalization was verified against each Git blob ID",
   "harness_files": {
     "Tools/TwoD/WindowsVmAcceptance.py": {

@@ -143,8 +143,9 @@ registered settings and real task results are retained. Only stopped owned tasks
   rejected with both parent/task exit **1**, `PT4M`, logon type **3**, run level **0**;
   separate native query confirms the completed owned task was removed. This is a scheduler
   regression check, not VM or game acceptance.
-- Hosted full Linux Development/Shipping and cross-platform CI: pending for PR #752.
-  No Linux validation is claimed from this Windows executor.
+- At receipt creation, final-head hosted Linux Development/Shipping and cross-platform CI
+  was pending. The final exact-head results are recorded in [PR #752](https://github.com/jimlee1972/Nexora/pull/752)
+  and Beads `nexora-j4q.7.15`. No Linux validation is claimed from this Windows executor.
 
 Existing PS4 USB, audio and supported 100/150/175% DPI evidence is retained with its existing
 scope. This refresh adds no physical device, default audio endpoint recovery, hardware VM,
