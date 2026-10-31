@@ -101,3 +101,7 @@ HD2D-07 發布前 Windows 候選 run41158981348 通過獨立 producer／consumer
 HD2D-07 最新59826131 獨立 Windows consumer124420670087 通過實際 DX12144 幀／全部階段／兩次重載／離線 gate，但相依 macOS job124420244953 有三個空直譯器 NOT_RUN 失敗。兩種結果均保留，接入 HD2D-06 明確 Python 探測；發布前仍須完整／原生重試通過。
 
 HD2D-07 接入直譯器修正後通過完整 Linux297／289 通過／八項略過／零失敗108.57 秒、Shipping、SDK5 與 cleanup47。macOS 重試及不可覆寫發布／遊戲 lock 仍待完成，不增加驗收完成度。
+
+HD2D-07 接入限定 Development 的 macOS 診斷匯出修正，保留 job124428232886 在實際 Zig 啟動前的失敗。Python／素材已通過；真正 dyld 搬移／簽署／原生執行仍須重試，Windows 候選收據仍保留。
+
+HD2D-07 接入 Mac Development 匯出後通過完整 Linux298／290 通過／八項略過／零失敗110.97 秒、Shipping（環境重連後續建完成）、SDK5／cleanup47。真正 Mac 原生重試及不可覆寫發布／遊戲 lock 仍待完成。

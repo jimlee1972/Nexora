@@ -101,3 +101,7 @@ HD2D-07 pre-release Windows candidate run41158981348 passed isolated producer/co
 HD2D-07 latest59826131 isolated Windows consumer124420670087 passed actual DX12144-frame/all-phase/two-reload/offline gates, but inherited macOS job124420244953 had three empty-interpreter NOT_RUN failures. Retain both outcomes and inherit HD2D-06 explicit Python discovery; full/native retry remains required before release.
 
 HD2D-07 inherited interpreter fix passed full Linux297/289pass/eight skips/zero failures108.57s plus Shipping, SDK5 and cleanup47. macOS retry and immutable publication/game lock remain pending; no acceptance credit.
+
+HD2D-07 inherits the Development-only macOS diagnostic export repair after job124428232886 failed before real Zig startup. Python/assets pass; actual dyld relocation/signing/native execution remains a retry gate, while Windows candidate receipts remain retained.
+
+HD2D-07 Mac Development export inheritance passed full Linux298/290pass/eight skips/zero failures110.97s, Shipping (resumed after environment reconnection), SDK5/cleanup47. Actual Mac native retry and immutable publication/game lock remain pending.
