@@ -15,7 +15,22 @@ struct State final {
 
 State state;
 
-int32_t Create(void **output, const NexoraGameplayHostV3 *) {
+#if defined(NEXORA_TEST_HOST_FINALIZER)
+const NexoraGameplayHostV3 *retained_host{};
+struct Finalizer final {
+  ~Finalizer() {
+    if (retained_host && retained_host->log) {
+      constexpr char message[] = "candidate finalizer";
+      retained_host->log(retained_host->context, 1, message, sizeof(message) - 1);
+    }
+  }
+} finalizer;
+#endif
+
+int32_t Create(void **output, [[maybe_unused]] const NexoraGameplayHostV3 *host) {
+#if defined(NEXORA_TEST_HOST_FINALIZER)
+  retained_host = host;
+#endif
   state = {};
   *output = &state;
   return NEXORA_GAMEPLAY_OK;
@@ -70,5 +85,8 @@ extern "C" NEXORA_TEST_MODULE_EXPORT int32_t NexoraGameModuleLoad(uint32_t reque
              &Destroy,
              &Save,
              &Restore};
+#if defined(NEXORA_TEST_BAD_ABI)
+  ++module->abi_version;
+#endif
   return NEXORA_GAMEPLAY_OK;
 }

@@ -8,8 +8,12 @@
 
 namespace nexora::editor::imgui::detail {
 
-// RenderUi consumes linear vertex colors and the native attachment encodes sRGB. Decode our
-// display-referred palette once, so native pixels match the intended Unity-inspired swatches.
+struct ThemeOutput final {
+  bool targetEncodesSrgb{true};
+};
+
+// The Editor's mixed scene/UI surface may use an sRGB or legacy UNORM attachment. Decode
+// the display-referred palette only when the actual native target performs the output encode.
 inline ImVec4 LinearColor(ImVec4 color) {
   const auto decode = [](float v) {
     return v <= .04045F ? v / 12.92F : std::pow((v + .055F) / 1.055F, 2.4F);
@@ -17,20 +21,25 @@ inline ImVec4 LinearColor(ImVec4 color) {
   return {decode(color.x), decode(color.y), decode(color.z), color.w};
 }
 
+inline ImVec4 PaletteColor(ImVec4 color) {
+  const auto *output = static_cast<const ThemeOutput *>(ImGui::GetIO().UserData);
+  return !output || output->targetEncodesSrgb ? LinearColor(color) : color;
+}
+
 inline bool LightTheme() { return ImGui::GetStyleColorVec4(ImGuiCol_WindowBg).x > 0.3F; }
 inline ImVec4 ErrorColor() {
-  return LinearColor(LightTheme() ? ImVec4(.66F, .08F, .08F, 1) : ImVec4(1, .45F, .45F, 1));
+  return PaletteColor(LightTheme() ? ImVec4(.66F, .08F, .08F, 1) : ImVec4(1, .45F, .45F, 1));
 }
 inline ImVec4 WarningColor() {
-  return LinearColor(LightTheme() ? ImVec4(.48F, .28F, .02F, 1) : ImVec4(1, .75F, .35F, 1));
+  return PaletteColor(LightTheme() ? ImVec4(.48F, .28F, .02F, 1) : ImVec4(1, .75F, .35F, 1));
 }
 inline ImVec4 SuccessColor() {
-  return LinearColor(LightTheme() ? ImVec4(.08F, .38F, .12F, 1) : ImVec4(.45F, .85F, .45F, 1));
+  return PaletteColor(LightTheme() ? ImVec4(.08F, .38F, .12F, 1) : ImVec4(.45F, .85F, .45F, 1));
 }
 inline ImVec4 AxisColor(std::size_t axis) {
   const ImVec4 dark[] = {{.95F, .35F, .35F, 1}, {.4F, .85F, .4F, 1}, {.4F, .65F, 1, 1}};
   const ImVec4 light[] = {{.65F, .08F, .08F, 1}, {.08F, .38F, .12F, 1}, {.08F, .29F, .65F, 1}};
-  return LinearColor(LightTheme() ? light[axis] : dark[axis]);
+  return PaletteColor(LightTheme() ? light[axis] : dark[axis]);
 }
 
 // Editor-owned neutral palettes inspired by Unity's Light/Professional surfaces. Start from a
@@ -50,7 +59,8 @@ inline void ApplyTheme(EditorColorTheme theme) {
     c[slot] = gray(light ? bright : dark);
   };
   pair(ImGuiCol_Text, .87F, .10F);
-  pair(ImGuiCol_TextDisabled, .58F, .40F);
+  // Secondary paths/hints are meaningful text, including the initial Project Browser.
+  pair(ImGuiCol_TextDisabled, .70F, .30F);
   pair(ImGuiCol_WindowBg, .22F, .76F);
   c[ImGuiCol_ChildBg] = gray(0, 0);
   pair(ImGuiCol_PopupBg, .18F, .88F);
@@ -99,6 +109,6 @@ inline void ApplyTheme(EditorColorTheme theme) {
   c[ImGuiCol_TextSelectedBg] = ImVec4(accent.x, accent.y, accent.z, .45F);
   c[ImGuiCol_ModalWindowDimBg] = gray(0, .40F);
   for (auto &color : c)
-    color = LinearColor(color);
+    color = PaletteColor(color);
 }
 } // namespace nexora::editor::imgui::detail

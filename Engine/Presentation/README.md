@@ -1077,6 +1077,13 @@ and borrowed span rules are unchanged. Native C++ consumers must rebuild for des
 C/Zig gameplay services and Atlas schema remain unchanged. See the
 [2D authoring contract](../TwoD/ColorAndFallback.md) for source conversion and precision limits.
 
+`SurfaceDiagnostics::uiTargetEncodesSrgb` reports the actual RenderUi attachment transfer,
+independently of requested presentation color space. DX12/Metal report their configured view;
+Vulkan reports the selected format, refreshed on swapchain recreation. Read on the surface owner
+thread after successful creation/BeginFrame. This adds an observation, not a rendering-mode
+change: existing mixed Scene/UI draws, UI-only restrictions, shaders, asset colors and descriptors
+are unchanged. C++ clients rebuild for the appended diagnostics field; C/Zig wires are unchanged.
+
 ## Optional linear 2D pipeline (HD2D-02)
 
 `RenderSurface::DrawSpritesLinear` prepares the existing Sprite packet and submits

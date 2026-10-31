@@ -37,6 +37,12 @@ and -2 return. See [contract and diagnostic](../../Engine/Runtime/GameplayLifecy
 
 The typed lifecycle facade and engine-owned build/entry are documented in [Tools/Zig](../../Tools/Zig/README.md). Authored projects contain gameplay scripts and a manifest; they do not maintain a build.zig or V3 ABI export.
 
+Optional paired `saveState`/`loadState` hooks use `game.StateWriter`/`StateReader` and a nonzero game
+`state_version`. They encode explicit bounded/versioned values through the existing V3 migration
+slots, without serializing Game memory or host/service pointers. See the SDK contract above for
+query/write determinism, borrowed byte lifetimes and initialization order. Complete Runtime/Editor
+transactional reload remains separately gated in ED-WF-04/05.
+
 ## Optional 2D effects contract
 
 `nx.getTwoDEffects(services)` / `try context.effects()` negotiate the HD2D service. Query native

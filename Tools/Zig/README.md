@@ -3,7 +3,7 @@
 The engine owns `build.zig`, `game_entry.zig`, the V3 export and host allocation.
 Authored projects contain a `project.json` and gameplay scripts, never copies of these files.
 Build products and caches belong in the caller's binary directory, outside the authored project.
-Editor build actions must use this same entry; an Editor UI integration is not implemented here.
+Editor Build and Build & Run use this same entry; see the [shared producer contract](../../Engine/Editor/GameBuild.md).
 
 ```json
 {"schema": 1, "module_name": "MyGame", "script": "scripts/game.zig"}
@@ -22,9 +22,46 @@ pub fn deinit(self: *Game, context: *const nx.game.Context) void
 ```
 
 Omitted callbacks are no-ops. Only a script implementing `fixedUpdate` advertises the fixed-update
-capability. The adapter does not impose simulation policy or a tick rate. State migration callbacks
-are not exposed by this initial facade; `save_state`/`load_state` stay null. Existing raw V3 modules
-remain compatible and need not migrate.
+capability. The adapter does not impose simulation policy or a tick rate. Existing raw V3 modules
+remain compatible. The optional typed state hooks below use the existing V3 slots; scripts without
+both hooks keep those slots null and do not advertise migration.
+
+## Typed reload state
+
+Provide both hooks and a nonzero `pub const state_version: u32`. A missing partner is a compile error.
+The SDK advertises the existing STATE_MIGRATION capability only for the pair:
+
+```zig
+pub const state_version: u32 = 1;
+pub fn saveState(self: *const Game, writer: *nx.game.StateWriter) !void {
+    try writer.int(u64, self.score);
+    try writer.int(u64, self.entity);
+}
+pub fn loadState(self: *Game, reader: *nx.game.StateReader) !void {
+    const score = try reader.int(u64);
+    const entity = try reader.int(u64);
+    if (entity == 0) return error.InvalidArgument;
+    try reader.finish();
+    self.score = score;
+    self.entity = entity;
+}
+```
+
+Encode explicit values, including complete stable engine IDs/handles when needed. Never dump Game,
+Context, service tables, native pointers, slices or allocator state. Integers use explicit 8/16/32/64-bit
+little-endian encoding; finite `float` values use f64, `boolean` rejects noncanonical bytes, and `bytes`
+uses a checked u32 length. Copy loaded byte slices into game-owned storage before returning.
+
+The NXGS frame contains codec version 1, the game schema version and exact payload length. The
+whole frame is limited to 1 MiB. Unknown versions, short buffers, truncation, trailing data, invalid
+values and hook errors reject restoration. No native Game padding or host pointer is serialized.
+`saveState` receives a const Game and may run twice (size query, then write); keep it deterministic,
+without IO or side effects. `loadState` restores candidate game fields before `start`, so `start`
+can reuse existing scene/entity handles. Initialization must still unwind failures as described below.
+
+These hooks supply a data codec, not World/resource isolation or a job barrier. The embedding
+Runtime transaction owns those boundaries. ED-WF-04's complete transactional/native/Cloud acceptance
+remains pending until recorded in its evidence; a codec unit test does not accept seamless Editor reload.
 
 ## Ownership and errors
 

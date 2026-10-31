@@ -5,7 +5,7 @@
 The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) track nine dependent work orders for
 script Build UI, clean game output, stateful reload and source-aware Editor/Player/Zig integration.
-Acceptance is 2/9 (22.2%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751). ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754). ED-WF-03 is in progress; existing supporting capabilities are not counted as complete workflows.
+Acceptance is 3/9 (33.3%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 ✅ [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 ✅ [PR #756](https://github.com/jimlee1972/Nexora/pull/756). ED-WF-04 is in progress; existing supporting capabilities are not counted as complete workflows.
 The full Editor milestone count remains 0/8. Existing CLI and `.bat` development remains available.
 
 ### Windows exported game entry (2026-10-30)
@@ -281,6 +281,9 @@ satisfy this milestone.
   pixels/save/reopen/read-only acceptance cover the feature; physical-host acceptance and the
   overall milestone remain open.
   [Linux evidence](../../Tools/Build/evidence/EditorAppearance-Linux-2026-10-31.md).
+  ED-WF-04 integration exposed an over-dark Windows UNORM palette; actual-attachment encoding
+  and secondary-text contrast repair are under verification in the
+  [work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
 - ✅ The feature-gated Dear ImGui host implements the portable docking, theme/DPI, input/IME,
   live-panel, recovery UX, and accessibility-direction contracts described by
   [Editor_ImGui_Integration_Plan.md](Editor_ImGui_Integration_Plan.md).

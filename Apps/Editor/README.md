@@ -1628,4 +1628,7 @@ The neutral gray surfaces and blue selection/focus accents are inspired by Unity
 initial default; the user preference survives restart and project changes, including read-only
 projects. Settings are stored in `appearance` beside the user recent-project list, never in scene or
 project files. A save failure leaves the session theme active and displays a warning in Appearance;
-choose the same theme again to retry. Scene/Game output and asset colors are unchanged.
+choose the same theme again to retry. Before the first frame and after surface recreation, the
+application supplies the actual UI attachment encoding from `SurfaceDiagnostics` to the ImGui
+host. This keeps Windows/Metal UNORM and Vulkan sRGB targets at the same intended palette gray
+levels without changing the mixed Scene/Game surface or asset colors.

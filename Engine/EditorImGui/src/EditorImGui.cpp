@@ -102,6 +102,7 @@ struct EditorImGuiHost::State final {
     ImGui::SetCurrentContext(context);
     surface = nullptr;
     ImGui::GetIO().BackendPlatformUserData = nullptr;
+    ImGui::GetIO().UserData = nullptr;
     ImGui::DestroyContext(context);
     if (previous != context)
       ImGui::SetCurrentContext(previous);
@@ -320,6 +321,7 @@ struct EditorImGuiHost::State final {
   std::array<std::optional<std::array<float, 2>>, 3> close_positions{};
   bool recovery_prompt_opened = false;
   EditorColorTheme color_theme{EditorColorTheme::Dark};
+  detail::ThemeOutput theme_output;
   std::optional<EditorColorTheme> color_theme_request;
   std::string color_theme_status;
   std::array<std::optional<std::array<float, 2>>, 4> appearance_positions{};
@@ -5122,6 +5124,7 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
   io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
   io.IniFilename = nullptr;
   io.BackendPlatformUserData = state_.get();
+  io.UserData = &state_->theme_output;
   io.Fonts->SetTexID(static_cast<ImTextureID>(TextureId(0, 1)));
   ImGui::GetPlatformIO().Platform_SetImeDataFn = &State::SetImeData;
   constexpr std::string_view default_project_name = "New Project";
@@ -5132,6 +5135,14 @@ EditorImGuiHost::EditorImGuiHost() : state_(std::make_unique<State>()) {
 EditorImGuiHost::~EditorImGuiHost() = default;
 EditorImGuiHost::EditorImGuiHost(EditorImGuiHost &&) noexcept = default;
 EditorImGuiHost &EditorImGuiHost::operator=(EditorImGuiHost &&) noexcept = default;
+
+void EditorImGuiHost::SetUiOutputSrgb(bool target_encodes_srgb) {
+  if (state_->theme_output.targetEncodesSrgb == target_encodes_srgb)
+    return;
+  Activate(state_->context);
+  state_->theme_output.targetEncodesSrgb = target_encodes_srgb;
+  detail::ApplyTheme(state_->color_theme);
+}
 
 void EditorImGuiHost::SetColorTheme(EditorColorTheme theme, std::string status) {
   if (theme != EditorColorTheme::Dark && theme != EditorColorTheme::Light)

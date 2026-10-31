@@ -2,17 +2,19 @@
 
 [繁體中文](../zh-TW/Editor_Workflow_Delivery_Plan.md) · [Epic #741](https://github.com/jimlee1972/Nexora/issues/741)
 
-Updated: 2026-10-31. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
-Documentation publication base: current main `67db45d23e631b0e05b42c23716245a34ae996d5`.
-Acceptance snapshot: **2/9 work orders (22.2%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754).
+Updated: 2026-11-01. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
+Initial documentation publication base: `67db45d23e631b0e05b42c23716245a34ae996d5`.
+ED-WF-04 integration base: main `a21c1ca2293e4200de8dcaa4b892ffef34687c9c`, including the appearance update.
+Acceptance snapshot: **3/9 work orders (33.3%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751), ED-WF-02 in [PR #754](https://github.com/jimlee1972/Nexora/pull/754), ED-WF-03 in [PR #756](https://github.com/jimlee1972/Nexora/pull/756).
 The Epic records subsequent accepted work and its merged PR/evidence. Complete graphical Editor
 acceptance remains **0/8**; this plan does not accept physical-device or clean-host gates.
 
 ## Existing foundations and remaining work
 
 The Editor already exposes a script checkbox/manifest, Build and Cancel through the shared
-producer. Runtime already owns V3 module generations and optional save/load callbacks. The typed
-Zig game adapter does not yet publish migration callbacks. Sprite sources already have immutable
+producer. Runtime already owns V3 module generations and optional save/load callbacks. At the plan
+baseline, the typed Zig game adapter did not publish migration callbacks. ED-WF-04's bounded typed
+codec now has a scoped unit pass; the complete reload transaction is still in progress. Sprite sources already have immutable
 metadata, source-aware C++ extraction and NX2S schema 3 scene persistence. These are foundations,
 not evidence of the complete workflow below. Existing CLI and `.bat` development remains usable.
 
@@ -26,8 +28,8 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 | --- | --- | --- | --- | --- |
 | ED-WF-01 | [#742](https://github.com/jimlee1972/Nexora/issues/742) | None | Bilingual plan, capability baseline, issue graph and validation/evidence mapping published | ✅ PR #751 |
 | ED-WF-02 | [#743](https://github.com/jimlee1972/Nexora/issues/743) | 01 | Persistent script Build settings, real GUI Build/Build & Run, cancellation/progress/diagnostics | ✅ PR #754 |
-| ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | In progress; acceptance pending |
-| ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | Pending |
+| ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | ✅ PR #756 |
+| ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | In progress; acceptance pending |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | Pending |
 | ED-WF-06 | [#747](https://github.com/jimlee1972/Nexora/issues/747) | 01 | Compatible C/Zig source APIs and cooked Player dependency closure | Pending |
 | ED-WF-07 | [#748](https://github.com/jimlee1972/Nexora/issues/748) | 06 | Source indexing/Inspector/Undo/save/reopen/Play/Build/reimport in the real Editor | Pending |
@@ -38,8 +40,11 @@ Each work order records exact commands/results and limitations in
 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md`. The existing
 [ED-WF-01 baseline](../../Tools/Build/evidence/EditorWorkflow/ED-WF-01.md) distinguishes planning,
 implementation and accepted delivery. Later evidence links are added only when those files exist.
-The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. ED-WF-03 is in progress, not accepted. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
-The [ED-WF-03 working evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md) records native passes and remaining exact-head Cloud/CI gates; it does not accept the work order.
+The [ED-WF-02 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) and [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02-Cloud.json) record accepted PR #754: 42 successful CI checks, 490/490 Cloud tests and Shipping build, with initial environment/local-capture failures retained. Beads synchronization recovered by adopting existing history; Epic `nexora-whr` and children `.1` through `.9` map to the linked GitHub work orders.
+The accepted [ED-WF-03 evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03.md), [Cloud receipt](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-Cloud.json) and [CI inventory](../../Tools/Build/evidence/EditorWorkflow/ED-WF-03-CI.json) record PR #756: native GUI/core passes, 490/490 Cloud tests and Shipping, all 42 CI checks and unchanged merged tree. ED-WF-04 is in progress, not accepted.
+The [ED-WF-04 implementation evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md) records
+scoped native codec/Runtime passes, including 32 real Zig DLL replacements. Complete Cloud/CI and
+integration acceptance remain pending; the work order is not marked complete from those passes.
 Accepted count is the number of children with acceptance evidence and a merged delivery PR,
 divided by nine. Accepted rows use `✅`; pending or blocked work stays unmarked.
 

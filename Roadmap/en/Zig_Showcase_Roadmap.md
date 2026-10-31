@@ -14,6 +14,13 @@ set; allocation tags, negative descriptor/callback coverage, and Linux sanitizer
 ZS-M0. Runtime dynamic discovery and generation lifecycle are implemented; the Showcase builds and
 selects a Zig Development shared library, while Shipping retains the same statically linked ABI.
 
+**Editor workflow extension (2026-11-01, acceptance pending):** ED-WF-04 adds paired typed
+Zig save/load data, an actual registered-work barrier and strict embedding-owned World/resource
+transactions. A scoped Windows fixture passed 32 real Zig library replacements and 224 rejected
+candidates; complete Cloud/CI/Editor integration is still pending. This extends the historical
+module-state contract above without accepting Editor background reload or animation/pool workflows.
+See [the work-order evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-04.md).
+
 **Local implementation status (2026-09-23):** Deterministic headless/static and
 Development-dynamic ZS-M1 verification is now available as `NexoraShowcase.exe`. C++ owns `main`, engine lifecycle, a small
 `GameWorld`, fixed/update scheduling, offscreen scene rendering, reload, and shutdown; the Zig

@@ -151,7 +151,13 @@ target_include_directories(NexoraGameplayModuleHostTests PRIVATE "${PROJECT_SOUR
 nexora_apply_defaults(NexoraGameplayModuleHostTests)
 add_test(NAME runtime.gameplay_module_host COMMAND NexoraGameplayModuleHostTests)
 
-foreach(generation IN ITEMS First Second Failing)
+add_executable(NexoraGameplayReloadTransactionTests GameplayReloadTransactionTests.cpp)
+target_link_libraries(NexoraGameplayReloadTransactionTests PRIVATE Nexora::Runtime)
+nexora_apply_defaults(NexoraGameplayReloadTransactionTests)
+add_test(NAME runtime.gameplay_reload_transaction COMMAND NexoraGameplayReloadTransactionTests)
+set_tests_properties(runtime.gameplay_reload_transaction PROPERTIES TIMEOUT 60)
+
+foreach(generation IN ITEMS First Second Failing BadAbi)
   add_library(NexoraDynamicGameplay${generation} MODULE DynamicGameplayModule.cpp)
   target_link_libraries(NexoraDynamicGameplay${generation} PRIVATE Nexora::Foundation)
   nexora_apply_defaults(NexoraDynamicGameplay${generation})
@@ -159,9 +165,12 @@ endforeach()
 target_compile_definitions(NexoraDynamicGameplayFirst PRIVATE NEXORA_TEST_GENERATION=1)
 target_compile_definitions(NexoraDynamicGameplaySecond PRIVATE NEXORA_TEST_GENERATION=2)
 target_compile_definitions(NexoraDynamicGameplayFailing PRIVATE
-  NEXORA_TEST_GENERATION=3 NEXORA_TEST_FAIL_RESTORE=1)
+  NEXORA_TEST_GENERATION=3 NEXORA_TEST_FAIL_RESTORE=1 NEXORA_TEST_HOST_FINALIZER=1)
+target_compile_definitions(NexoraDynamicGameplayBadAbi PRIVATE NEXORA_TEST_BAD_ABI=1)
 
 add_executable(NexoraDynamicGameplayModuleTests DynamicGameplayModuleTests.cpp)
+add_dependencies(NexoraDynamicGameplayModuleTests
+  NexoraDynamicGameplayFirst NexoraDynamicGameplaySecond NexoraDynamicGameplayFailing)
 target_link_libraries(NexoraDynamicGameplayModuleTests PRIVATE Nexora::Runtime)
 nexora_apply_defaults(NexoraDynamicGameplayModuleTests)
 add_test(NAME runtime.dynamic_gameplay_module
@@ -169,6 +178,37 @@ add_test(NAME runtime.dynamic_gameplay_module
     $<TARGET_FILE:NexoraDynamicGameplayFirst>
     $<TARGET_FILE:NexoraDynamicGameplaySecond>
     $<TARGET_FILE:NexoraDynamicGameplayFailing>)
+
+if(NEXORA_ENABLE_ZIG_GAMEPLAY)
+  include("${PROJECT_SOURCE_DIR}/CMake/Modules/NexoraGameProject.cmake")
+  if(WIN32)
+    set(reload_module_directory bin)
+  else()
+    set(reload_module_directory lib)
+  endif()
+  set(reload_script_targets)
+  set(reload_script_modules)
+  foreach(variant IN ITEMS normal restore init start schema no-migration)
+    set(manifest "${CMAKE_CURRENT_SOURCE_DIR}/GameReloadScript/project-${variant}.json")
+    set(output "${CMAKE_CURRENT_BINARY_DIR}/reload-script-${variant}")
+    nexora_add_game_module(NexoraReloadScript_${variant}
+      PROJECT "${manifest}" OUTPUT "${output}" ZIG "${NEXORA_ZIG_EXECUTABLE}")
+    file(READ "${manifest}" project)
+    string(JSON module_name GET "${project}" module_name)
+    list(APPEND reload_script_targets NexoraReloadScript_${variant})
+    list(APPEND reload_script_modules
+      "${output}/${reload_module_directory}/${CMAKE_SHARED_LIBRARY_PREFIX}${module_name}${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  endforeach()
+  add_executable(NexoraZigReloadTransactionTests ZigReloadTransactionTests.cpp)
+  target_link_libraries(NexoraZigReloadTransactionTests PRIVATE Nexora::Runtime ${CMAKE_DL_LIBS})
+  add_dependencies(NexoraZigReloadTransactionTests ${reload_script_targets}
+    NexoraDynamicGameplayBadAbi NexoraDynamicGameplayFailing)
+  nexora_apply_defaults(NexoraZigReloadTransactionTests)
+  add_test(NAME runtime.zig_reload_transaction COMMAND NexoraZigReloadTransactionTests
+    ${reload_script_modules} $<TARGET_FILE:NexoraDynamicGameplayBadAbi>
+    $<TARGET_FILE:NexoraDynamicGameplayFailing>)
+  set_tests_properties(runtime.zig_reload_transaction PROPERTIES TIMEOUT 120)
+endif()
 
 if(NEXORA_ENABLE_ASSET_PIPELINE)
   add_executable(NexoraGameLaunchTests GameLaunchTests.cpp)

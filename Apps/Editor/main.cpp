@@ -748,6 +748,7 @@ int RunGraphical(std::optional<ProjectState> project,
   splash.PrepareMainWindow();
   splash.Stage(nexora::editor::app::StartupStage::Workspace);
   nexora::editor::imgui::EditorImGuiHost ui;
+  ui.SetUiOutputSrgb(created.surface->Diagnostics().uiTargetEncodesSrgb);
   const auto appearance_path =
       recent_projects.Path().empty()
           ? nexora::editor::RecentProjectStore::DefaultPath().replace_filename("appearance")
@@ -1558,6 +1559,7 @@ int RunGraphical(std::optional<ProjectState> project,
       ui.SetGameTwoDAvailable(false);
     ui.SetGameTwoDAvailable(bool(gameplay.TwoDAssets()));
 #endif
+    ui.SetUiOutputSrgb(created.surface->Diagnostics().uiTargetEncodesSrgb);
     ui.BeginFrame();
     if (!project && pending_project) {
       if (const auto snapshot = imports.Snapshot(pending_project->import)) {

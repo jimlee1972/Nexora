@@ -58,6 +58,7 @@ public:
       layer_ = [CAMetalLayer layer];
       layer_.device = device_;
       layer_.pixelFormat = srgbUiOutput_ ? MTLPixelFormatBGRA8Unorm_sRGB : MTLPixelFormatBGRA8Unorm;
+      diagnostics_.uiTargetEncodesSrgb = srgbUiOutput_;
       // CompositeScene blits into the drawable, so framebuffer-only storage is insufficient.
       layer_.framebufferOnly = NO;
       layer_.maximumDrawableCount = frames_;

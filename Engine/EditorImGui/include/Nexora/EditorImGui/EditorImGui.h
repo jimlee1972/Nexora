@@ -352,6 +352,9 @@ public:
   // Owner applies a theme between frames and persists the owning menu request outside the UI.
   // Appearance is user-local and never loaded from a project layout.
   void SetColorTheme(EditorColorTheme theme, std::string status = {});
+  // Owner thread, before BeginFrame. Matches palette encoding to the actual UI attachment;
+  // does not change Scene/Game colors or request the UI-only native surface mode.
+  void SetUiOutputSrgb(bool target_encodes_srgb);
   [[nodiscard]] EditorColorTheme GetColorTheme() const noexcept;
   [[nodiscard]] std::optional<EditorColorTheme> TakeColorThemeRequest();
   // Pointer events use native client pixels. SetDisplay supplies logical dimensions/frame DPI

@@ -40,6 +40,30 @@ def main():
         assert "NEXORA_SCRIPT_TESTS_PASSED" in result.stdout + result.stderr, result.stdout + result.stderr
         assert list((output / "module").rglob("*ScriptFixture*"))
         assert before == {p.name: p.read_bytes() for p in source.iterdir()}, "SDK modified authored project"
+        script_path = source / "game.zig"
+        original_script = script_path.read_bytes()
+        migrations = [
+            ('const nx = @import("nexora");\npub const Game = struct {\n'
+             'pub fn saveState(_: *const @This(), _: *nx.game.StateWriter) !void {}\n};\n',
+             "both saveState and loadState"),
+            ('const nx = @import("nexora");\npub const Game = struct {\n'
+             'pub const state_version: u32 = 0;\n'
+             'pub fn saveState(_: *const @This(), _: *nx.game.StateWriter) !void {}\n'
+             'pub fn loadState(_: *@This(), _: *nx.game.StateReader) !void {}\n};\n',
+             "nonzero u32 state_version"),
+            ('const nx = @import("nexora");\npub const Game = struct {\n'
+             'pub const state_version: u32 = 1;\n'
+             'pub fn saveState(_: *const @This(), w: *nx.game.StateWriter) !void {\n'
+             'try w.int(*const u8, undefined);\n}\n'
+             'pub fn loadState(_: *@This(), _: *nx.game.StateReader) !void {}\n};\n',
+             "never native pointers"),
+        ]
+        for invalid_script, reason in migrations:
+            script_path.write_text(invalid_script, encoding="utf-8")
+            rejected = run([args.cmake, "--build", str(output), "--target", "game", "--config", "Release"],
+                           expected_success=False)
+            assert reason in rejected.stdout + rejected.stderr, rejected.stdout + rejected.stderr
+        script_path.write_bytes(original_script)
         with (source / "game.zig").open("a", encoding="utf-8") as script:
             script.write('\ntest "deliberate authored failure" { try std.testing.expect(false); }\n')
         run([args.cmake, "--build", str(output), "--target", "game", "--config", "Release"], expected_success=False)
@@ -47,7 +71,8 @@ def main():
         (source / "project.json").write_text(json.dumps(manifest), encoding="utf-8")
         rejected = run(configure, expected_success=False)
         assert "project-relative" in rejected.stdout + rejected.stderr
-    print("Script-only project: Unicode path, SDK build, entry/script tests, unchanged sources and traversal rejection passed")
+    print("Script-only project: Unicode path, SDK build, entry/script tests, unchanged sources, "
+          "paired/versioned migration and pointer-encoding rejection, traversal rejection passed")
 
 
 if __name__ == "__main__":
