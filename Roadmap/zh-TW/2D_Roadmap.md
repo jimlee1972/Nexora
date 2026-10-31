@@ -115,6 +115,13 @@ Editor／C／Zig 存取仍不支援，沒有擴張 wire／schema 或功能範圍
 **9/11（82%）、P0 6/8** 不變。M6 與 SP／SDK 工作不變。
 見[確切命令、封裝／來源雜湊與驗收邊界](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md)。
 
+**2026-10-31 更新：** ✅ Shipping 建置版本 `67db45d2`、完整 app-local 相依 inventory、
+三個實際 Shipping consumer 測試與開發機原生 DX12 面板檢查通過。
+新封裝**尚未通過** VM 兩輪冷啟動；保留的 Hypervisor／Guest Control 失敗與部分 worker
+日誌不能替代完整案例退出碼。上述 2026-10-28 VM 通過只適用當時的舊封裝。
+乾淨 Windows 實機仍為 **NOT RUN**；M7 與 **9/11（82%）、P0 6/8** 不變。
+見[新封裝與保留失敗證據](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-31/acceptance.md)。
+
 ## 3. 依賴與施工順序
 
 1. 盤點 Runtime、Renderer、資產／Cook、查詢、Editor 與公共 C ABI；新增模組／API 前

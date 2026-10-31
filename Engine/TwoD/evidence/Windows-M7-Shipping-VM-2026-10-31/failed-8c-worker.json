@@ -1,0 +1,5 @@
+{
+    "status":  "FAILED",
+    "cycle":  1,
+    "error":  "interactive task exit: 267014\r\n位於 線路:224 字元:17\r\n+ ...              throw (\u0027interactive task exit: \u0027 + $info.LastTaskResult)\r\n+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : OperationStopped: (interactive task exit: 267014:String) [], RuntimeException\r\n    + FullyQualifiedErrorId : interactive task exit: 267014\r\n \r\n"
+}

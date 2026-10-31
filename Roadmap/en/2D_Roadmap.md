@@ -133,6 +133,13 @@ The independent clean hardware host remains a separate pending gate. This suppor
 **9/11 (82%), P0 6/8**. M6 and SP/SDK work are unchanged.
 See [exact commands, package/source hashes and target boundaries](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-28/acceptance.md).
 
+**2026-10-31 refresh:** ✅ Shipping build cut `67db45d2`, complete app-local dependency
+inventories, three actual Shipping consumer tests and developer native DX12 panel checks pass.
+The newer package has **not passed** two VM cold boots: retained Hypervisor/Guest Control
+failures and partial worker logs do not replace full case exits. The 2026-10-28 VM passes above
+apply only to that earlier artifact. Clean physical Windows remains **NOT RUN**; M7 and
+**9/11 (82%), P0 6/8** are unchanged. See the [fresh artifact and retained failures](../../Engine/TwoD/evidence/Windows-M7-Shipping-VM-2026-10-31/acceptance.md).
+
 ## 3. Dependencies and implementation order
 
 1. Inventory Runtime, Renderer, asset/cook, queries, Editor and public C ABI support. Record reused

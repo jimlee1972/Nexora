@@ -1,0 +1,5 @@
+{
+  "status": "COLLECTED",
+  "scope": "Read-only failed-run inspection; no acceptance cases",
+  "final_vm_state": "poweroff"
+}

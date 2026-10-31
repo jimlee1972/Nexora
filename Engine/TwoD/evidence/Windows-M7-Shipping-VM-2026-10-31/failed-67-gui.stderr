@@ -1,0 +1,2 @@
+VBoxManage.exe: error: Reading from guest process "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" (PID 5824) failed: VERR_TIMEOUT.
+VBoxManage.exe: error: Reading from guest process "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" (PID 5824) failed: VERR_TIMEOUT.

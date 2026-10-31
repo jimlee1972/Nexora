@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "files": {
+    "assets/0000.nxcook": "133dbf15c0875f4d136a8076576c1574d08e257229e99e2e39199b186fb83fd6",
+    "assets/0001.nxcook": "b18e6db7d5081f09118d2336fae33b38204d7d0d962064e39c01694f3fb090b0",
+    "assets/0002.wav": "3f6f2960283fd796aed2c4dcfd324ee17891c29d42f81eddadafc8b77baa4aaf",
+    "game.nx2game": "5f0ccd306f94c9c579b717cfd148025b20798d087662abc7b5531e08e9ea4bbe",
+    "gameplay.dll": "a6d01be8b7c206e7a64e0e59b55fbb40766fa7c20d23a67f90bbacf6d919df4d",
+    "MSVCP140.dll": "0f885b509a685d2bbfa652fed26b5fb31d88fbdab0a978c641d1c7b8aa460aa9",
+    "NexoraTwoDPlayer.exe": "09055710e6cf4e0e3c1d30079cade0555b9228712070b05e6101ef1d179e0b50",
+    "Run.cmd": "8060190f08b823f1211a4635139039913e137a4173d4692b7b7235094d85b3d1",
+    "VCRUNTIME140.dll": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "VCRUNTIME140_1.dll": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+    "vulkan-1.dll": "843de97fad335ceaf2f22c689aa5f68f01050e765b2de230b0be9bcff3c339ce",
+    "licenses/Vulkan-Loader-LICENSE.txt": "43c0a37e6a0fa7ff3c843b3ec5a4fac84b712558ddac103fbd4c1649662a9ece",
+    "licenses/Vulkan-Loader-SOURCE.txt": "5871c8e82b132dddd3e87a9c969101f102c69aebbd27e0f3057f70e2462260ae"
+  },
+  "development_test_copy": false
+}

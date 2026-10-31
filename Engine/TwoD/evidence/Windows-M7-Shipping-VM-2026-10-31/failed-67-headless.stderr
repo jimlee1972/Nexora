@@ -1,0 +1,2 @@
+VBoxManage.exe: error: Call to WHvSetupPartition failed: ERROR_NO_SYSTEM_RESOURCES/0x800705aa (Last=0xc000009a/1450) (VERR_NEM_VM_CREATE_FAILED)
+VBoxManage.exe: error: Details: code E_FAIL (0x80004005), component ConsoleWrap, interface IConsole
