@@ -49,8 +49,10 @@ HD2D-01: [PR #734](https://github.com/jimlee1972/Nexora/pull/734), squash `3628a
 
 HD2D-02: [Linux evidence](../../Engine/TwoD/evidence/HD2D-02-Linux-2026-10-31.md).
 
-HD2D-03: [local evidence](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); IN_PROGRESS.
+HD2D-03: [local evidence](../../Engine/TwoD/evidence/HD2D-03-Linux-2026-10-31.md); accepted via PR #736, `40c96072`.
 
 HD2D-04 local preparation: GPU angular shadow maps and independent CPU oracle; [evidence](../../Engine/TwoD/evidence/HD2D-04-Linux-2026-10-31.md). IN_PROGRESS; no acceptance credit before dependent PR/native CI.
 
 HD2D-03 accepted: [PR #736](https://github.com/jimlee1972/Nexora/pull/736), squash `40c9607252cff2b856436b7ef23c1db0e44d9d82`. Current-head Windows desktop job `124365092041` passed native 2D pixel readback and 425 tests; macOS job `124365092312` passed native 2D pixel readback and 400 tests. Earlier checkout-network and bilingual-documentation failures remain recorded; no assertion was weakened. Physical acceptance remains NOT_RUN.
+
+HD2D-04 review snapshot correction: both language tables now consistently show accepted HD2D-03 / 3 of 7; no runtime change or new acceptance credit.
