@@ -20,12 +20,15 @@ enum class BuildProcessPhase : std::uint8_t {
   Stale,
   Unsupported
 };
+enum class BuildProcessPresentation : std::uint8_t { BackgroundTool, Application };
 struct BuildProcessRequest final {
   std::uint64_t scope{};
   std::filesystem::path executable;
   std::filesystem::path working_directory;
   std::vector<std::string> arguments;
   std::size_t output_capacity{64 * 1024};
+  // Application uses ordinary GUI process flags on Windows; tools suppress a console window.
+  BuildProcessPresentation presentation{BuildProcessPresentation::BackgroundTool};
 };
 struct BuildProcessSnapshot final {
   std::uint64_t operation{}, scope{};

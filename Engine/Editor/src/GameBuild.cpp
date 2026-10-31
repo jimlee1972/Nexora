@@ -156,7 +156,8 @@ std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &direc
 }
 [[maybe_unused]] bool Run(core::JobSystem &jobs, const Path &executable, const Path &cwd,
                           std::vector<std::string> arguments, const core::CancellationToken &cancel,
-                          std::string &log, std::string *error, std::string *commands) {
+                          std::string &log, std::string *error, std::string *commands,
+                          const GameBuildProgressSink &observe, GameBuildStage stage) {
   if (cancel.IsCancellationRequested())
     return Fail(error, "Game build cancelled.");
   const auto quote = [](std::string_view text) {
@@ -177,11 +178,42 @@ std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &direc
   for (const auto &argument : arguments)
     *commands += "," + quote(argument);
   *commands += "]}\n";
+  const auto report = [&](std::string_view output = {}) {
+    if (!observe)
+      return;
+    auto progress = ObserveGameBuildProgress(stage, output);
+    const auto source_root = (cwd / "source").lexically_normal();
+    for (auto &diagnostic : progress.diagnostics) {
+      if (diagnostic.file.empty())
+        continue;
+      const Path file(std::u8string(diagnostic.file.begin(), diagnostic.file.end()));
+      for (const auto &base : {cwd, cwd / "compile"}) {
+        const auto candidate = (file.is_absolute() ? file : base / file).lexically_normal();
+        const auto relative = candidate.lexically_relative(source_root);
+        if (!relative.empty() && !relative.is_absolute() && *relative.begin() != "..") {
+          diagnostic.file = detail::PathUtf8(relative);
+          break;
+        }
+      }
+    }
+    observe(std::move(progress));
+  };
+  report();
   BuildProcess process(jobs);
   if (!process.Start({1, executable, cwd, std::move(arguments), BuildProcess::kMaximumOutputBytes},
                      error))
     return false;
+  auto next_observation = std::chrono::steady_clock::now();
+  std::string last_output;
   for (;;) {
+    if (observe && std::chrono::steady_clock::now() >= next_observation) {
+      const auto snapshot = process.Snapshot();
+      if (snapshot.output != last_output) {
+        report(snapshot.output);
+        last_output = snapshot.output;
+      }
+      next_observation = std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    }
     if (cancel.IsCancellationRequested())
       static_cast<void>(process.Cancel());
     process.Poll(1);
@@ -190,6 +222,7 @@ std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &direc
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
   const auto result = process.Snapshot();
+  report(result.output);
   log += result.output;
   if (log.size() > 1024 * 1024)
     log.erase(0, log.size() - 1024 * 1024);
@@ -197,7 +230,7 @@ std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &direc
     return Fail(error, "Game build cancelled; managed child processes drained.");
   if (result.phase == BuildProcessPhase::Exited && result.exit_code == 0U)
     return true;
-  auto diagnostic = result.output;
+  auto diagnostic = ObserveGameBuildProgress(stage, result.output).output;
   if (!foundation::IsValidUtf8(diagnostic))
     diagnostic = "Tool output contains invalid UTF-8; inspect the tool directly.";
   if (diagnostic.size() > 4096) {
@@ -365,6 +398,8 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
   const auto &operation = state->operation.path;
   state->package = operation / "package";
   std::filesystem::create_directory(state->package);
+  if (request.progress)
+    request.progress(ObserveGameBuildProgress(GameBuildStage::Cooking));
   const auto package = CookGameProject(request.capture.project, error);
   if (!package || cancel.IsCancellationRequested() ||
       !Write(state->package / runtime::kGamePackageFilename, *package, error))
@@ -377,6 +412,8 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
     Fail(error, "Game runtime inventory exceeds its library limit.");
     return {};
   }
+  if (request.progress)
+    request.progress(ObserveGameBuildProgress(GameBuildStage::RuntimeFiles));
   std::size_t artifact_bytes = package->size() + launch->size();
   std::set<std::string> filenames{
       "game.nxgame", "game.launch", "game.inventory", "build.sources", "build.commands",
@@ -419,9 +456,11 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
   // native device or authored module callback is entered during this verification.
   if (!Run(processes, request.tools.player, operation,
            {"--verify-native-game-package", detail::PathUtf8(state->package / "Game.nxgame")},
-           cancel, state->log, error, &state->commands))
+           cancel, state->log, error, &state->commands, request.progress, GameBuildStage::Verify))
     return {};
   if (request.mode == GameBuildMode::ScriptProject) {
+    if (request.progress)
+      request.progress(ObserveGameBuildProgress(GameBuildStage::ScriptSnapshot));
     state->script_directory = request.script_manifest.parent_path();
     const auto files = ScriptFiles(state->root, state->script_directory, error);
     if (!files)
@@ -447,7 +486,7 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
       return {};
     const auto sdk = operation / "sdk";
     for (const auto &file : detail::kGameSDKFiles)
-      if (!Write(sdk / file.path, Bytes(file.bytes), error))
+      if (!Write(sdk / file.path, Bytes(file.Bytes()), error))
         return {};
     constexpr std::string_view cmake = R"cmake(cmake_minimum_required(VERSION 3.24)
 project(NexoraInstalledGameBuild LANGUAGES NONE)
@@ -472,10 +511,11 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
               "-DNEXORA_GAME_MANIFEST=" +
                   detail::PathUtf8(operation / "source" / request.script_manifest),
               "-DNEXORA_GAME_ZIG=" + detail::PathUtf8(request.tools.zig)},
-             cancel, state->log, error, &state->commands) ||
+             cancel, state->log, error, &state->commands, request.progress,
+             GameBuildStage::Configure) ||
         !Run(processes, request.tools.cmake, operation,
              {"--build", detail::PathUtf8(operation / "compile"), "--target", "GameModule"}, cancel,
-             state->log, error, &state->commands))
+             state->log, error, &state->commands, request.progress, GameBuildStage::CompileAndTest))
       return {};
     const auto module_name = Read(operation / "compile/module-file.txt", 256, error);
     if (!module_name)
@@ -491,7 +531,7 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
     if (!Run(processes, request.tools.player, operation,
              {"--verify-game-module",
               detail::PathUtf8(state->package / runtime::kGameModuleFilename)},
-             cancel, state->log, error, &state->commands))
+             cancel, state->log, error, &state->commands, request.progress, GameBuildStage::Verify))
       return {};
     // Zig entry tests run in the established adapter; actual module lifetime/rendering is an
     // integrated runtime acceptance gate, not inferred from compilation or this inventory.
@@ -501,16 +541,16 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
   }
   if (!Run(processes, state->package / player_name, operation,
            {"--verify-native-game-package", detail::PathUtf8(state->package / "Game.nxgame")},
-           cancel, state->log, error, &state->commands))
+           cancel, state->log, error, &state->commands, request.progress, GameBuildStage::Verify))
     return {};
   if (request.mode == GameBuildMode::ScriptProject &&
       !Run(
           processes, state->package / player_name, operation,
           {"--verify-game-module", detail::PathUtf8(state->package / runtime::kGameModuleFilename)},
-          cancel, state->log, error, &state->commands))
+          cancel, state->log, error, &state->commands, request.progress, GameBuildStage::Verify))
     return {};
   for (const auto &file : detail::kGameSDKFiles)
-    if (file.path == "LICENSE" && !Write(state->package / "LICENSE", Bytes(file.bytes), error))
+    if (file.path == "LICENSE" && !Write(state->package / "LICENSE", Bytes(file.Bytes()), error))
       return {};
   std::string sources =
       "NEXORA_GAME_SOURCES_1\nproject=" + state->project +
@@ -534,9 +574,11 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
       tools += detail::PathUtf8(executable.filename()) + "\t" + std::to_string(data->size()) +
                "\t" + Fingerprint(*data) + "\n";
     }
-    for (const auto &file : detail::kGameSDKFiles)
-      tools += std::string(file.path) + "\t" + std::to_string(file.bytes.size()) + "\t" +
-               Fingerprint(Bytes(file.bytes)) + "\n";
+    for (const auto &file : detail::kGameSDKFiles) {
+      const auto bytes = file.Bytes();
+      tools += std::string(file.path) + "\t" + std::to_string(bytes.size()) + "\t" +
+               Fingerprint(Bytes(bytes)) + "\n";
+    }
   }
   if (!Write(state->package / "Build.commands", Bytes(state->commands), error) ||
       !Write(state->package / "Build.tools", Bytes(tools), error))
@@ -548,6 +590,8 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
   if (!inventory || !Write(state->package / "Game.inventory", Bytes(*inventory), error))
     return {};
   state->inventory = *inventory;
+  if (request.progress)
+    request.progress(ObserveGameBuildProgress(GameBuildStage::ReadyToPublish));
   return PreparedGameBuild(std::move(state));
 #endif
 }

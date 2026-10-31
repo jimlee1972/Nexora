@@ -59,7 +59,15 @@ fixture attempts failed on the Store executable alias (2 errors), then an invali
 excludes override (16 errors); these were test-environment failures, not passing runs. No test
 assertion, workload or source implementation was changed to obtain the final 16/16 result.
 
-PR and merged acceptance remain pending.
+✅ Accepted after [PR #751](https://github.com/jimlee1972/Nexora/pull/751) merged as
+`60f42e90868b06cabc9509d85a4e3ee6d5b6c1cd`. The reviewed head was
+`1c2e2fd7ebe241c964f15947ed96398769ab4e3f`, tree `2bedbb3449ec924be6c58cbd9f18ecca9299b900`.
+All 35 check-runs completed: 25 success and 10 intentional documentation-route skips, none failed
+or pending. Push Build [41177030339](https://github.com/jimlee1972/Nexora/actions/runs/41177030339)
+also completed successfully: Linux Development 487 passed/1 conditional skip, Windows Development
+429 passed/1 conditional skip, macOS 404 passed/1 conditional skip, Linux Editor display and
+build-contract. These hosted platform results do not accept physical/clean-host gates.
+The Epic and both workflow roadmaps now record 1/9 accepted; ED-WF-02 remains pending acceptance.
 
 ## External services and Beads
 

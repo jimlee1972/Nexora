@@ -2,10 +2,10 @@
 
 #include "Nexora/Core/Cancellation.h"
 #include "Nexora/Editor/GameBuildCapture.h"
+#include "Nexora/Editor/GameBuildProgress.h"
 #include <functional>
 
 namespace nexora::editor {
-enum class GameBuildMode : std::uint8_t { SceneOnly, ScriptProject };
 struct GameBuildToolchain final {
   std::filesystem::path player, cmake, ninja, zig;
   // Explicit engine distribution inventory; never search the authored project or current CWD.
@@ -25,6 +25,7 @@ struct GameBuildRequest final {
   std::filesystem::path script_manifest;
   GameBuildToolchain tools;
   std::uint32_t maximum_frames{};
+  GameBuildProgressSink progress{};
 };
 // Owns a private operation directory. Preparation is synchronous worker work with no authoring
 // borrows. Publication is an explicit owner-thread step; an Editor guard checks its current

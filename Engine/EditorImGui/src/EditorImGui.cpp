@@ -180,7 +180,10 @@ struct EditorImGuiHost::State final {
   std::array<char, ProjectBuildSettings::kMaximumPathBytes + 1> build_settings_path{};
   std::optional<std::size_t> build_settings_selected;
   std::optional<ProjectBuildSettingsRequest> build_settings_request;
-  bool game_build_busy{}, game_build_script{}, saved_game_decision_pending{};
+  bool game_build_busy{}, game_build_script{}, saved_game_decision_pending{}, game_run_busy{};
+  std::string game_run_status;
+  GameBuildProgress game_build_progress;
+  bool game_build_progress_available{};
   std::string game_build_status;
   char game_build_output[1025] = "Build/Game";
   char game_build_manifest[1025] = "Scripts/project.json";
@@ -4071,6 +4074,8 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
     return;
   }
   const auto capture = [&](std::size_t index) {
+    if (!ImGui::IsItemVisible())
+      return;
     const auto low = ImGui::GetItemRectMin(), high = ImGui::GetItemRectMax();
     state.build_settings_positions[index] =
         std::array{(low.x + high.x) * .5F, (low.y + high.y) * .5F};
@@ -4172,17 +4177,28 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
         "Startup scene must remain enabled. Reload discards unsaved setting edits.");
     ImGui::Separator();
     ImGui::TextUnformatted("Build standalone game");
-    if (!state.game_build_status.empty())
-      ImGui::TextWrapped("%s", state.game_build_status.c_str());
-    ImGui::BeginDisabled(state.game_build_busy || blocked || !workspace->Writable());
-    ImGui::InputText("Output folder (project-relative)", state.game_build_output,
-                     sizeof(state.game_build_output));
+    if (!state.game_build_status.empty() || !state.game_run_status.empty()) {
+      ImGui::BeginChild("Game build status", {0, 64}, ImGuiChildFlags_Borders);
+      if (!state.game_build_status.empty())
+        ImGui::TextWrapped("%s", state.game_build_status.c_str());
+      if (!state.game_run_status.empty())
+        ImGui::TextWrapped("%s", state.game_run_status.c_str());
+      ImGui::EndChild();
+    }
+    ImGui::BeginDisabled(state.game_build_busy || state.game_run_busy || blocked ||
+                         !workspace->Writable());
+    if (ImGui::InputText("Output folder (project-relative)", state.game_build_output,
+                         sizeof(state.game_build_output)))
+      state.build_settings.build.output = state.game_build_output;
     capture(10);
-    ImGui::Checkbox("Include gameplay script", &state.game_build_script);
+    if (ImGui::Checkbox("Include gameplay script", &state.game_build_script))
+      state.build_settings.build.mode =
+          state.game_build_script ? GameBuildMode::ScriptProject : GameBuildMode::SceneOnly;
     capture(11);
     if (state.game_build_script) {
-      ImGui::InputText("Script manifest", state.game_build_manifest,
-                       sizeof(state.game_build_manifest));
+      if (ImGui::InputText("Script manifest", state.game_build_manifest,
+                           sizeof(state.game_build_manifest)))
+        state.build_settings.build.script_manifest = state.game_build_manifest;
       capture(12);
     }
     if (detail::IconButton("Build Game", detail::EditorIcon::Build)) {
@@ -4192,14 +4208,53 @@ void DrawProjectBuildSettings(StateT &state, const ProjectWorkspace *workspace,
       state.build_settings_request->output = state.game_build_output;
     }
     capture(13);
+    ImGui::SameLine();
+    if (detail::IconButton("Build & Run", detail::EditorIcon::Play)) {
+      request(state.game_build_script ? ProjectBuildSettingsAction::BuildScript
+                                      : ProjectBuildSettingsAction::BuildSceneOnly,
+              state.game_build_script ? state.game_build_manifest : "");
+      state.build_settings_request->output = state.game_build_output;
+      state.build_settings_request->run_after_build = true;
+    }
+    capture(15);
     ImGui::EndDisabled();
     ImGui::SameLine();
-    ImGui::BeginDisabled(!state.game_build_busy);
-    if (detail::IconButton("Cancel Build", detail::EditorIcon::Cancel))
-      request(ProjectBuildSettingsAction::CancelBuild);
+    ImGui::BeginDisabled(!state.game_build_busy && !state.game_run_busy);
+    if (detail::IconButton(state.game_run_busy ? "Stop Game" : "Cancel Build",
+                           detail::EditorIcon::Cancel))
+      request(state.game_run_busy ? ProjectBuildSettingsAction::StopGame
+                                  : ProjectBuildSettingsAction::CancelBuild);
     capture(14);
     ImGui::EndDisabled();
     ImGui::TextDisabled("Build uses saved settings and scenes; output contains no project source.");
+    if (state.game_build_progress_available) {
+      const auto label = GameBuildStageLabel(state.game_build_progress.stage);
+      ImGui::Text("Phase: %.*s", static_cast<int>(label.size()), label.data());
+      if (!state.game_build_progress.diagnostics.empty()) {
+        ImGui::BeginChild("Build diagnostics", {0, 100}, ImGuiChildFlags_Borders);
+        for (const auto &diagnostic : state.game_build_progress.diagnostics) {
+          const auto color = diagnostic.severity == GameBuildDiagnosticSeverity::Error
+                                 ? ImVec4(1, .4F, .4F, 1)
+                             : diagnostic.severity == GameBuildDiagnosticSeverity::Warning
+                                 ? ImVec4(1, .8F, .35F, 1)
+                                 : ImVec4(.8F, .8F, .8F, 1);
+          if (!diagnostic.file.empty())
+            ImGui::TextColored(color, "%s:%u:%u", diagnostic.file.c_str(), diagnostic.line,
+                               diagnostic.column);
+          ImGui::TextWrapped("%s", diagnostic.message.c_str());
+        }
+        if (state.game_build_progress.diagnostics_truncated)
+          ImGui::TextDisabled("Additional diagnostics omitted.");
+        ImGui::EndChild();
+      }
+      if (!state.game_build_progress.output.empty() && ImGui::CollapsingHeader("Build output")) {
+        ImGui::BeginChild("Build output text", {0, 120}, ImGuiChildFlags_Borders);
+        ImGui::TextUnformatted(state.game_build_progress.output.c_str());
+        if (state.game_build_progress.output_truncated)
+          ImGui::TextDisabled("Showing the most recent output.");
+        ImGui::EndChild();
+      }
+    }
   }
   ImGui::End();
 }
@@ -8638,7 +8693,11 @@ std::optional<StaticExportRequest> EditorImGuiHost::TakeStaticExportRequest() {
 void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
                                               ProjectBuildSettings settings, bool ready,
                                               std::string status) {
-  if (settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
+  if (settings.build.output.size() > ProjectBuildSettings::kMaximumPathBytes ||
+      settings.build.script_manifest.size() > ProjectBuildSettings::kMaximumPathBytes ||
+      !foundation::IsValidUtf8(settings.build.output) ||
+      !foundation::IsValidUtf8(settings.build.script_manifest) ||
+      settings.scenes.size() > ProjectBuildSettings::kMaximumScenes || status.size() > 4096 ||
       !foundation::IsValidUtf8(status) ||
       std::ranges::any_of(settings.scenes, [](const auto &entry) {
         return entry.path.size() > ProjectBuildSettings::kMaximumPathBytes ||
@@ -8651,17 +8710,22 @@ void EditorImGuiHost::SetProjectBuildSettings(const ProjectWorkspace &workspace,
     state_->build_settings_request.reset();
     state_->build_settings_selected.reset();
     state_->build_settings_path.fill('\0');
-    state_->game_build_script = false;
     state_->game_build_status.clear();
-    std::fill(std::begin(state_->game_build_output), std::end(state_->game_build_output), '\0');
-    std::copy_n("Build/Game", 10, std::begin(state_->game_build_output));
-    std::fill(std::begin(state_->game_build_manifest), std::end(state_->game_build_manifest), '\0');
-    std::copy_n("Scripts/project.json", 20, std::begin(state_->game_build_manifest));
+    state_->game_run_status.clear();
+    state_->game_build_progress = {};
+    state_->game_build_progress_available = false;
     state_->saved_game_decision_pending = false;
     state_->saved_game_decision.reset();
   }
   state_->build_settings_project = workspace.Project().id;
   state_->build_settings_root = workspace.Root();
+  state_->game_build_script = settings.build.mode == GameBuildMode::ScriptProject;
+  std::fill(std::begin(state_->game_build_output), std::end(state_->game_build_output), '\0');
+  std::copy(settings.build.output.begin(), settings.build.output.end(),
+            std::begin(state_->game_build_output));
+  std::fill(std::begin(state_->game_build_manifest), std::end(state_->game_build_manifest), '\0');
+  std::copy(settings.build.script_manifest.begin(), settings.build.script_manifest.end(),
+            std::begin(state_->game_build_manifest));
   state_->build_settings = std::move(settings);
   state_->build_settings_ready = ready;
   state_->build_settings_status = std::move(status);
@@ -8674,6 +8738,28 @@ void EditorImGuiHost::SetGameBuildStatus(bool busy, std::string message) {
   if (foundation::IsValidUtf8(message) && message.size() <= 8192)
     state_->game_build_status = std::move(message);
 }
+void EditorImGuiHost::SetGameBuildProgress(GameBuildProgress progress) {
+  const auto valid = [](const std::string &value, std::size_t maximum) {
+    return value.size() <= maximum && foundation::IsValidUtf8(value) &&
+           value.find('\0') == value.npos && value.find('\x1b') == value.npos;
+  };
+  if (progress.stage > GameBuildStage::Cancelled ||
+      !valid(progress.output, GameBuildProgress::kMaximumOutputBytes) ||
+      progress.diagnostics.size() > GameBuildProgress::kMaximumDiagnostics ||
+      std::ranges::any_of(progress.diagnostics, [&](const auto &value) {
+        return value.severity > GameBuildDiagnosticSeverity::Error ||
+               !valid(value.file, GameBuildProgress::kMaximumDiagnosticBytes) ||
+               !valid(value.message, GameBuildProgress::kMaximumDiagnosticBytes);
+      }))
+    return;
+  state_->game_build_progress = std::move(progress);
+  state_->game_build_progress_available = true;
+}
+void EditorImGuiHost::SetGameRunStatus(bool running, std::string message) {
+  state_->game_run_busy = running;
+  if (foundation::IsValidUtf8(message) && message.size() <= 8192)
+    state_->game_run_status = std::move(message);
+}
 void EditorImGuiHost::RequestSavedGameDecision() {
   state_->saved_game_decision_pending = true;
   state_->saved_game_decision.reset();
@@ -8685,6 +8771,18 @@ std::optional<SavedGameDecision> EditorImGuiHost::TakeSavedGameDecision() {
 #if defined(NEXORA_EDITOR_IMGUI_TEST_ACCESS)
 bool EditorImGuiTestAccess::ProjectGameBuildBusy(const EditorImGuiHost &host) {
   return host.state_->game_build_busy;
+}
+bool EditorImGuiTestAccess::ProjectGameRunBusy(const EditorImGuiHost &host) {
+  return host.state_->game_run_busy;
+}
+std::optional<GameBuildStage>
+EditorImGuiTestAccess::ProjectGameBuildStage(const EditorImGuiHost &host) {
+  return host.state_->game_build_progress_available
+             ? std::optional{host.state_->game_build_progress.stage}
+             : std::nullopt;
+}
+std::size_t EditorImGuiTestAccess::ProjectGameBuildDiagnosticCount(const EditorImGuiHost &host) {
+  return host.state_->game_build_progress.diagnostics.size();
 }
 std::optional<std::array<float, 2>>
 EditorImGuiTestAccess::ProjectBuildSettingsPosition(const EditorImGuiHost &host,

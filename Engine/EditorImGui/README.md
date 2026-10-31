@@ -44,8 +44,15 @@ mutation. Project changes close the settings window and discard pending requests
 scene/play shortcuts are blocked. Settings do not change the single editable Scene or the Editor's
 last-scene metadata. Build Game emits a one-shot scene-only/script request with a project-relative
 output and manifest; the application owns source capture, tool execution and guarded publication.
-The UI receives only copied busy/status observations, disables duplicate builds and exposes Cancel.
-Project changes clear output/script drafts and saved-scene decisions. Dirty Play/Build decisions
+The UI receives copied busy/status and bounded stage/diagnostic observations. Build mode, output
+and manifest belong to the draft, are included in Save requests and are restored from the incoming
+project settings. Legacy settings provide the default scene-only choice. Build & Run adds an
+owning continuation flag; Stop Game is a one-shot intent. The UI neither launches nor owns processes.
+The application disables replacement builds while its published game is running, owns the process
+group and drains it on Stop/project change/shutdown. Diagnostics retain severity, project-relative
+script file and line/column where available, plus a bounded sanitized output view. Old-project
+observations must be discarded by the application before calling the UI setters.
+Project changes replace output/script drafts from saved settings, clear progress and saved-scene decisions. Dirty Play/Build decisions
 are one-shot Save/Use Saved/Cancel intents. Scene file dialog pending state is an owner-thread
 observation used to continue Save As only for the still-matching original project/document.
 Packaged Play cannot apply remapped transforms to authoring. Full integrated acceptance remains
