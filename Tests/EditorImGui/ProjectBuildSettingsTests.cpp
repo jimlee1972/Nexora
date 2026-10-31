@@ -114,6 +114,39 @@ void Run(float scale) {
   build = f.ui.TakeProjectBuildSettingsRequest();
   Require(build && build->action == Action::BuildScript && build->path == "Scripts/project.json",
           "explicit script build action");
+  f.Click(5);
+  request = f.ui.TakeProjectBuildSettingsRequest();
+  Require(request && request->action == Action::Save &&
+              request->settings.build.mode == editor::GameBuildMode::ScriptProject &&
+              request->settings.build.script_manifest == "Scripts/project.json" &&
+              session.Save(request->settings, f.catalog),
+          "UI script choice was not saved with project settings");
+  f.ui.SetProjectBuildSettings(f.writer, *session.Settings(), true);
+  f.Draw();
+  f.Click(6);
+  request = f.ui.TakeProjectBuildSettingsRequest();
+  Require(request && request->action == Action::Reload && session.Reload(),
+          "script configuration reload request failed");
+  f.ui.SetProjectBuildSettings(f.writer, *session.Settings(), true);
+  f.Draw();
+  f.Click(13);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript && build->settings == *session.Settings() &&
+              build->output == session.Settings()->build.output,
+          "reloaded UI forgot saved script build configuration");
+  f.Click(15);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript && build->run_after_build,
+          "Build & Run lost its scoped continuation");
+  f.ui.SetGameRunStatus(true, "Running fixture");
+  f.Draw();
+  f.Click(13);
+  f.Click(15);
+  Require(!f.ui.TakeProjectBuildSettingsRequest(), "running game allowed output replacement");
+  f.Click(14);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::StopGame, "Stop Game did not request managed shutdown");
+  f.ui.SetGameRunStatus(false, "Stopped fixture");
   f.ui.SetGameBuildStatus(true, "Building fixture");
   f.Draw();
   f.Click(13);
@@ -121,6 +154,14 @@ void Run(float scale) {
   f.Click(14);
   build = f.ui.TakeProjectBuildSettingsRequest();
   Require(build && build->action == Action::CancelBuild, "cancel build request");
+  f.ui.SetGameBuildStatus(false, std::string(4096, 'x'));
+  f.ui.SetGameBuildProgress(editor::ObserveGameBuildProgress(
+      editor::GameBuildStage::Failed, "Scripts/game.zig:12:3: error: compilation failed"));
+  f.Draw();
+  f.Click(13);
+  build = f.ui.TakeProjectBuildSettingsRequest();
+  Require(build && build->action == Action::BuildScript,
+          "long compiler output pushed the Build action outside its visible window");
   f.ui.SetGameBuildStatus(false, "Cancelled");
   for (std::size_t choice = 0; choice < 3; ++choice) {
     f.ui.RequestSavedGameDecision();

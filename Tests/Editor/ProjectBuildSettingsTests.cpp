@@ -32,6 +32,57 @@ void Codec() {
   Require(editor::SerializeProjectBuildSettings(*editor::ParseProjectBuildSettings(*bytes)) ==
               bytes,
           "canonical encoding unstable");
+  Require(bytes->find("\"schema\": 1") != bytes->npos &&
+              editor::ParseProjectBuildSettings(*bytes)->build == editor::GameBuildSettings{},
+          "legacy settings no longer default to scene-only");
+  auto scripted = settings;
+  scripted.build = {editor::GameBuildMode::ScriptProject, "Scripts/game project.json",
+                    "Build/My Game"};
+  const auto script_bytes = editor::SerializeProjectBuildSettings(scripted);
+  Require(script_bytes && script_bytes->find("\"schema\": 2") != script_bytes->npos &&
+              editor::ParseProjectBuildSettings(*script_bytes) == scripted,
+          "versioned script configuration lost on roundtrip");
+  for (const auto &[before, after] : std::array<std::pair<std::string_view, std::string_view>, 5>{
+           {{"\"mode\": \"script-project\"", "\"mode\": \"unknown\""},
+            {"\"schema\": 2", "\"schema\": 3"},
+            {"\"output\": \"Build/My Game\"",
+             "\"output\": \"Build/My Game\", \"output\": \"Other\""},
+            {"\"script_manifest\"", "\"unknown\""},
+            {"\"schema\": 2", "\"schema\": 1"}}}) {
+    auto malformed = *script_bytes;
+    malformed.replace(malformed.find(before), before.size(), after);
+    Require(!editor::ParseProjectBuildSettings(malformed),
+            "malformed build configuration accepted");
+  }
+  for (const auto *path : {"../Game", "/Game", "Build//Game", ".git/Game", ".nexora/scenes/Game",
+                           "Build/CON", "Build/Game/", "Build/Bad\\Name"}) {
+    auto bad = scripted;
+    bad.build.output = path;
+    Require(!editor::SerializeProjectBuildSettings(bad), "unsafe configured output accepted");
+  }
+  for (const auto *path : {"project.json", "../Scripts/project.json", "Scripts/game.zig",
+                           ".nexora/scenes/project.json", "Scripts/NUL.json"}) {
+    auto bad = scripted;
+    bad.build.script_manifest = path;
+    Require(!editor::SerializeProjectBuildSettings(bad), "unsafe manifest accepted");
+  }
+  scripted.build.output = "Build/\xe9\x81\x8a\xe6\x88\xb2";
+  scripted.build.script_manifest = "Scripts/\xe8\x85\xb3\xe6\x9c\xac/project.json";
+  Require(editor::ParseProjectBuildSettings(*editor::SerializeProjectBuildSettings(scripted)) ==
+              scripted,
+          "Unicode script configuration roundtrip failed");
+  scripted.build.mode = editor::GameBuildMode::SceneOnly;
+  Require(editor::ParseProjectBuildSettings(*editor::SerializeProjectBuildSettings(scripted)) ==
+              scripted,
+          "scene-only choice discarded remembered manifest/output");
+  auto invalid_config = scripted;
+  invalid_config.build.script_manifest = "Scripts/\xff.json";
+  Require(!editor::SerializeProjectBuildSettings(invalid_config),
+          "invalid UTF-8 manifest accepted");
+  invalid_config = scripted;
+  invalid_config.build.output = std::string(1025, 'a');
+  Require(!editor::SerializeProjectBuildSettings(invalid_config),
+          "oversized build output accepted");
   auto invalid = settings;
   invalid.scenes[1].enabled = false;
   Require(!editor::SerializeProjectBuildSettings(invalid), "disabled startup accepted");
@@ -95,6 +146,8 @@ void Session(const std::filesystem::path &root) {
   const auto b = session.Enroll("Scenes/Level01.scene", catalog);
   Require(a && b && a->id != b->id, "root scene enrollment");
   editor::ProjectBuildSettings settings{b->id, {*a, *b}};
+  settings.build = {editor::GameBuildMode::ScriptProject, "Scripts/project.json",
+                    "Build/Native Game"};
   if (!session.Save(settings, catalog, &error))
     throw std::runtime_error(error);
   auto saved = Read(root / "project.build.json");

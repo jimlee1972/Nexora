@@ -42,6 +42,22 @@ itself is synchronous and cannot be interrupted internally. Logs are bounded; fa
 include up to 4096 valid UTF-8 output bytes. Ordinary allocation/filesystem exceptions propagate to
 the embedding host. Private-directory cleanup is best effort and refuses aliases.
 
+An optional owning `GameBuildProgressSink` receives actual cooking/runtime/source/configure/
+compile-and-test/verification/readiness phases on that worker. It must not borrow UI, workspace
+or document state; exceptions unwind the managed child and operation before reaching the host.
+The pure progress observer bounds displayed output to the latest 16 KiB, removes terminal controls,
+rejects invalid UTF-8 display bytes and extracts at most 32 diagnostics with 1024-byte fields.
+Script locations under the frozen source directory are displayed project-relative. Raw log bytes
+remain separate. The Editor coordinator transfers owning snapshots through a mutex mailbox,
+retaining bounded diagnostics; only the authoring thread updates widgets and publishes output.
+The CLI supplies no sink and preserves its existing JSON stdout and explicit mode flags.
+
+SDK data is embedded in bounded byte chunks, avoiding MSVC literal-size limits and preserving
+canonical file bytes, including non-ASCII and line endings. No SDK strings allocate at module
+startup; workers assemble owning bytes on demand. The Editor's Ninja discovery is independent of
+the generator used to compile the Editor, including Visual Studio/MSBuild. Installed tools and
+the native runtime profile still resolve from the trusted Editor installation, not project files.
+
 `PreparedGameBuild` owns the staged artifact and private operation; it is move-only. The owner
 thread calls Publish with its current workspace/lease/recovery/document/content guard. Publication
 also rereads every exact source baseline and script file inventory. A CLI uses a read-only workspace,

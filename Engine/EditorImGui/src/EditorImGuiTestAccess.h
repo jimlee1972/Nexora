@@ -123,6 +123,9 @@ public:
   [[nodiscard]] static std::optional<std::array<float, 2>>
   ProjectBuildSettingsPosition(const EditorImGuiHost &, std::size_t);
   [[nodiscard]] static bool ProjectGameBuildBusy(const EditorImGuiHost &);
+  [[nodiscard]] static bool ProjectGameRunBusy(const EditorImGuiHost &);
+  [[nodiscard]] static std::optional<GameBuildStage> ProjectGameBuildStage(const EditorImGuiHost &);
+  [[nodiscard]] static std::size_t ProjectGameBuildDiagnosticCount(const EditorImGuiHost &);
   [[nodiscard]] static std::optional<std::array<float, 2>>
   SavedGameDecisionPosition(const EditorImGuiHost &, std::size_t);
   // Host-local owning override for deterministic font tests, applied before a new SetDisplay.

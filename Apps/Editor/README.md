@@ -11,6 +11,18 @@ and Save Build Settings. Reload Saved Settings discards the draft and rereads di
 scenes use their persistent UUID; an externally added Content file must be imported/opened before
 enrollment. Opening another Scene never changes the game's startup selection. The startup scene
 must remain enabled. Read-only/recovery and external settings changes are protected.
+Build mode, project-relative manifest and output folder are saved by Save Build Settings and
+restored on Reload/project reopen. Legacy scene-only settings remain compatible; a custom build
+configuration uses schema 2. Save or Reload the draft before building. Build & Run continues the
+same saved-scene decision and build transaction, then launches the published Game directly with
+no arguments and its output directory as working directory. Stop Game, project replacement and
+Editor shutdown stop/drain the owned game process group. Rebuilding that output is disabled while
+the owned game is running. Build failures/cancellation/stale sources preserve the prior output.
+Actual worker phases and bounded compiler locations/messages appear in the settings window;
+Build output expands a bounded sanitized tail. No percentage or gameplay success is inferred
+from a running compiler or a completed build. See the [workflow delivery plan](../../Roadmap/en/Editor_Workflow_Delivery_Plan.md)
+for the remaining integration and platform acceptance.
+
 These settings feed the accepted [multi-scene game delivery](../../Roadmap/en/Project_Scene_Delivery_Plan.md)
 producer and Play path. Export StaticView remains a separate command for the current Scene.
 

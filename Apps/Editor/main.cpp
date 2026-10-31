@@ -8,6 +8,7 @@
 #include "BuildConsoleIngress.h"
 #include "CoreConsoleIngress.h"
 #include "GameBuildCoordinator.h"
+#include "GameRunCoordinator.h"
 #include "GameViewPreview.h"
 #if NEXORA_ASSET_PIPELINE_ENABLED
 #include "PackagedPlayContext.h"
@@ -1005,6 +1006,7 @@ int RunGraphical(std::optional<ProjectState> project,
   } play_lifetime{stop_play};
 #if NEXORA_ASSET_PIPELINE_ENABLED
   nexora::editor::preview::GameBuildCoordinator game_builder;
+  nexora::editor::preview::GameRunCoordinator game_runner;
   std::optional<nexora::editor::imgui::ProjectBuildSettingsRequest> saved_build_request;
   bool saved_play_request{}, execute_saved_play{}, execute_saved_build{}, allow_saved_play{},
       allow_saved_build{}, awaiting_game_save{};
@@ -1012,7 +1014,7 @@ int RunGraphical(std::optional<ProjectState> project,
   std::filesystem::path decision_root, game_build_root, game_build_output;
   std::optional<nexora::editor::SceneDocument::PreparedSave> decision_document, game_build_document;
   std::uint64_t game_build_generation{}, game_build_revision{};
-  bool game_build_script{};
+  bool game_build_script{}, game_build_run_after{};
   const auto build_owner_current = [&] {
     return project && project->workspace.Project().id == game_build_project &&
            project->workspace.Root() == game_build_root && project->workspace.Writable() &&
@@ -1470,6 +1472,35 @@ int RunGraphical(std::optional<ProjectState> project,
 #if NEXORA_ASSET_PIPELINE_ENABLED
     if (game_builder.Busy() && !build_owner_current())
       game_builder.Cancel();
+    if (auto observation = game_builder.PollProgress();
+        observation && project && project->workspace.Project().id == game_build_project &&
+        project->workspace.Root() == game_build_root)
+      ui.SetGameBuildProgress(std::move(*observation));
+    if (game_runner.Busy() && (!project || !game_runner.Current(project->workspace.Project().id,
+                                                                project->workspace.Root())))
+      game_runner.Stop();
+    if (auto finished = game_runner.Poll()) {
+      if (std::getenv("NEXORA_PROJECT_GAME_BUILD_EVIDENCE")) {
+        std::cerr << "game run output begin\n" << finished->output << "\ngame run output end\n";
+        std::cerr << "game run result: exit="
+                  << (finished->exit_code ? std::to_string(*finished->exit_code) : "none")
+                  << " phase=" << static_cast<unsigned>(finished->phase) << '\n';
+      }
+      const bool current = project && game_runner.Current(project->workspace.Project().id,
+                                                          project->workspace.Root());
+      const bool success = finished->phase == nexora::editor::BuildProcessPhase::Exited;
+      const bool stopped = finished->phase == nexora::editor::BuildProcessPhase::Cancelled;
+      const auto message = success               ? std::string("Game closed normally.")
+                           : stopped             ? std::string("Game stopped.")
+                           : finished->exit_code ? "Game exited with code " +
+                                                       std::to_string(*finished->exit_code) + "."
+                                                 : "Game could not start: " + finished->message;
+      ui.SetGameRunStatus(false, current ? message : "");
+      if (current)
+        log(success || stopped ? nexora::runtime::RuntimeLogSeverity::Info
+                               : nexora::runtime::RuntimeLogSeverity::Warning,
+            "Game Run", message);
+    }
 #endif
     const auto dpi = std::isfinite(frame.dpiScale) ? std::max(frame.dpiScale, 0.25F) : 1.0F;
     ui.SetDisplay(static_cast<float>(frame.width) / dpi, static_cast<float>(frame.height) / dpi,
@@ -2320,6 +2351,8 @@ int RunGraphical(std::optional<ProjectState> project,
       }
       if (auto finished = game_builder.Poll()) {
         std::string error = std::move(finished->error);
+        auto progress = game_builder.Progress();
+        progress.stage = nexora::editor::GameBuildStage::Publishing;
         const bool published = finished->prepared &&
                                finished->prepared->Publish(game_build_output, game_builder.Token(),
                                                            build_owner_current, &error);
@@ -2332,8 +2365,22 @@ int RunGraphical(std::optional<ProjectState> project,
           ui.SetGameplayLibrary(game_build_script ? std::string(relative.begin(), relative.end())
                                                   : "");
         }
-        ui.SetGameBuildStatus(
-            false, published ? "Game built successfully. Run Game in the output folder." : error);
+        if (published && game_build_run_after) {
+          const bool running =
+              game_runner.Start(game_build_project, game_build_root, game_build_output, &error);
+          ui.SetGameRunStatus(running, running ? "Running the published game."
+                                               : "Game built; launch failed: " + error);
+        }
+        if (project && project->workspace.Project().id == game_build_project &&
+            project->workspace.Root() == game_build_root) {
+          progress.stage = published ? nexora::editor::GameBuildStage::Published
+                           : game_builder.Token().IsCancellationRequested()
+                               ? nexora::editor::GameBuildStage::Cancelled
+                               : nexora::editor::GameBuildStage::Failed;
+          ui.SetGameBuildProgress(std::move(progress));
+          ui.SetGameBuildStatus(false, published ? "Game built successfully." : error);
+        } else
+          ui.SetGameBuildStatus(false, "");
         log(published ? nexora::runtime::RuntimeLogSeverity::Info
                       : nexora::runtime::RuntimeLogSeverity::Warning,
             "Game Build", published ? "Standalone game published." : error);
@@ -2343,16 +2390,21 @@ int RunGraphical(std::optional<ProjectState> project,
         const bool game_action =
             request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildSceneOnly ||
             request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildScript ||
-            request->action == nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild;
+            request->action == nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild ||
+            request->action == nexora::editor::imgui::ProjectBuildSettingsAction::StopGame;
         if (game_action) {
 #if NEXORA_ASSET_PIPELINE_ENABLED
-          if (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild) {
+          if (request->action == nexora::editor::imgui::ProjectBuildSettingsAction::StopGame) {
+            game_runner.Stop();
+            ui.SetGameRunStatus(game_runner.Busy(), "Stopping the published game.");
+          } else if (request->action ==
+                     nexora::editor::imgui::ProjectBuildSettingsAction::CancelBuild) {
             game_builder.Cancel();
             ui.SetGameBuildStatus(game_builder.Busy(),
                                   "Cancelling; waiting for build tools to stop.");
           } else if (request->project != project->workspace.Project().id ||
                      request->root != project->workspace.Root() || game_builder.Busy() ||
-                     play.State() != nexora::runtime::PlayState::Stopped ||
+                     game_runner.Busy() || play.State() != nexora::runtime::PlayState::Stopped ||
                      !project->workspace.Writable() || project->workspace.HasRecoveryJournal()) {
             ui.SetGameBuildStatus(game_builder.Busy(), "Game build scope is unavailable or busy.");
           } else if (active_scene().Dirty() && !allow_saved_build) {
@@ -2392,6 +2444,7 @@ int RunGraphical(std::optional<ProjectState> project,
               game_build_revision = content.Browser().Revision();
               game_build_script =
                   request->action == nexora::editor::imgui::ProjectBuildSettingsAction::BuildScript;
+              game_build_run_after = request->run_after_build;
               nexora::editor::GameBuildRequest operation;
               operation.project_root = game_build_root;
               operation.temporary_parent =
@@ -2404,6 +2457,9 @@ int RunGraphical(std::optional<ProjectState> project,
                   std::filesystem::path(std::u8string(request->path.begin(), request->path.end()));
               const bool started =
                   !output_error && game_build_document && game_builder.Start(std::move(operation));
+              if (started)
+                ui.SetGameBuildProgress(nexora::editor::ObserveGameBuildProgress(
+                    nexora::editor::GameBuildStage::Cooking));
               ui.SetGameBuildStatus(started, started
                                                  ? "Building saved project scenes in background..."
                                                  : "Could not start game build.");
@@ -3697,8 +3753,12 @@ int RunGraphical(std::optional<ProjectState> project,
       using Access = nexora::editor::imgui::EditorImGuiTestAccess;
       static std::string previous_build_observation;
       std::ostringstream observation;
-      observation << "game build ui busy=" << Access::ProjectGameBuildBusy(ui);
-      for (std::size_t index = 0; index < 15; ++index)
+      observation << "game build ui busy=" << Access::ProjectGameBuildBusy(ui)
+                  << " running=" << Access::ProjectGameRunBusy(ui)
+                  << " diagnostics=" << Access::ProjectGameBuildDiagnosticCount(ui);
+      if (const auto stage = Access::ProjectGameBuildStage(ui))
+        observation << " phase=" << static_cast<unsigned>(*stage);
+      for (std::size_t index = 0; index < 16; ++index)
         if (const auto position = Access::ProjectBuildSettingsPosition(ui, index))
           observation << " p" << index << '=' << (*position)[0] * dpi << ','
                       << (*position)[1] * dpi;
@@ -4074,6 +4134,7 @@ int RunGraphical(std::optional<ProjectState> project,
   scene_merge_candidate.Shutdown();
 #if NEXORA_ASSET_PIPELINE_ENABLED
   game_builder.Shutdown();
+  game_runner.Shutdown();
 #endif
   static_export.Shutdown();
   build_process.Shutdown();

@@ -55,13 +55,33 @@ std::uint32_t Command(const std::filesystem::path &executable, const std::filesy
 std::optional<editor::PreparedGameBuild> PrepareOnWorker(const editor::GameBuildRequest &request,
                                                          std::string &error) {
   editor::preview::GameBuildCoordinator worker;
-  Require(worker.Start(request) && worker.Busy() && !worker.Start(request),
+  auto stages = std::make_shared<std::vector<editor::GameBuildStage>>();
+  auto operation = request;
+  operation.progress = [stages](editor::GameBuildProgress progress) {
+    stages->push_back(progress.stage);
+  };
+  Require(worker.Start(std::move(operation)) && worker.Busy() && !worker.Start(request),
           "worker duplicated a live build");
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::minutes(3);
   while (std::chrono::steady_clock::now() < deadline) {
     if (auto result = worker.Poll()) {
       Require(!worker.Busy(), "completed worker retained a live future");
       error = std::move(result->error);
+      if (result->prepared) {
+        const auto seen = [&](editor::GameBuildStage stage) {
+          return std::ranges::find(*stages, stage) != stages->end();
+        };
+        Require(seen(editor::GameBuildStage::Cooking) &&
+                    seen(editor::GameBuildStage::RuntimeFiles) &&
+                    seen(editor::GameBuildStage::Verify) &&
+                    worker.Progress().stage == editor::GameBuildStage::ReadyToPublish,
+                "actual build did not report its completed producer phases");
+        if (request.mode == editor::GameBuildMode::ScriptProject)
+          Require(seen(editor::GameBuildStage::ScriptSnapshot) &&
+                      seen(editor::GameBuildStage::Configure) &&
+                      seen(editor::GameBuildStage::CompileAndTest),
+                  "actual script build did not report configure/compile/test phases");
+      }
       return std::move(result->prepared);
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(5));

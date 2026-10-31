@@ -85,6 +85,11 @@ palette 是不可變資料。這些是前置能力，不是完整場景交付驗
 保留既有身分 descriptor 與 Zig script manifest 的可讀性，不把模組建置／ABI 接線複製到
 作者專案。這份設定納入版本控制，Editor／CLI 共用；Editor session metadata 仍分開儲存。
 
+下列 schema 1 場景表仍相容；另行追蹤的[腳本工作流程](Editor_Workflow_Delivery_Plan.md)
+以 schema 2 保存明確的 mode／manifest／output 設定，舊版及預設設定維持 SceneOnly 與 schema 1。
+這項擴充不改變啟動場景身分或自動選擇場景，其目前驗證／驗收狀態記於
+[ED-WF-02 證據](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md)。
+
 預定 schema 1：
 
 ```json

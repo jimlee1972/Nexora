@@ -1,6 +1,10 @@
 add_test(NAME editor.brand_assets
   COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/Tools/Brand/VerifyBrand.py")
 add_executable(NexoraProjectBuildSettingsTests ProjectBuildSettingsTests.cpp)
+add_executable(NexoraGameBuildProgressTests GameBuildProgressTests.cpp)
+target_link_libraries(NexoraGameBuildProgressTests PRIVATE Nexora::Editor)
+nexora_apply_defaults(NexoraGameBuildProgressTests)
+add_test(NAME editor.game_build_progress COMMAND NexoraGameBuildProgressTests)
 add_test(NAME editor.windows_package_admission
   COMMAND "${Python3_EXECUTABLE}" -m unittest discover
     -s "${PROJECT_SOURCE_DIR}/Tools/Editor/tests" -p test_windows_package.py)
@@ -19,11 +23,25 @@ if(WIN32 AND NEXORA_ENABLE_EDITOR_GRAPHICAL_SHELL)
       "$<TARGET_FILE:NexoraEditor>" "${CMAKE_CURRENT_BINARY_DIR}/startup-integration")
   set_tests_properties(editor.windows_startup_integration PROPERTIES TIMEOUT 150)
 
+  if(TARGET NexoraProjectPlayer AND NEXORA_ENABLE_PROJECT_PLAYER_NATIVE AND NEXORA_ZIG_EXECUTABLE)
+    add_test(NAME editor.windows_build_workflow
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/WindowsBuildWorkflow.py"
+        --editor "$<TARGET_FILE:NexoraEditor>" --player "$<TARGET_FILE:NexoraProjectPlayer>"
+        --script-source "${PROJECT_SOURCE_DIR}/Tests/Runtime/GameSceneScript/game.zig"
+        --evidence-dir "${CMAKE_CURRENT_BINARY_DIR}/windows-build-workflow")
+    set_tests_properties(editor.windows_build_workflow PROPERTIES TIMEOUT 360 RUN_SERIAL TRUE)
+  endif()
+
   add_test(NAME editor.windows_gui_entry
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/WindowsGuiEntry.py"
       "$<TARGET_FILE:NexoraEditor>")
 endif()
 if(NEXORA_ENABLE_ASSET_PIPELINE)
+  add_executable(NexoraGameBuildSDKTests GameBuildSDKTests.cpp)
+  target_include_directories(NexoraGameBuildSDKTests PRIVATE "${PROJECT_BINARY_DIR}/Engine/Editor/generated")
+  nexora_apply_defaults(NexoraGameBuildSDKTests)
+  add_test(NAME editor.game_build_sdk_bytes
+    COMMAND NexoraGameBuildSDKTests "${PROJECT_SOURCE_DIR}")
   add_executable(NexoraGameBuildCaptureTests GameBuildCaptureTests.cpp)
   target_link_libraries(NexoraGameBuildCaptureTests PRIVATE Nexora::Editor)
   nexora_apply_defaults(NexoraGameBuildCaptureTests)
@@ -39,7 +57,7 @@ if(NEXORA_ENABLE_ASSET_PIPELINE)
     add_test(NAME editor.game_build
       COMMAND NexoraGameBuildTests "$<TARGET_FILE:NexoraProjectPlayer>"
         "${PROJECT_SOURCE_DIR}/Tests/Runtime/GameSceneScript/game.zig"
-        "${CMAKE_COMMAND}" "${CMAKE_MAKE_PROGRAM}" "${NEXORA_ZIG_EXECUTABLE}"
+        "${CMAKE_COMMAND}" "${NEXORA_EDITOR_GAME_NINJA_EXECUTABLE}" "${NEXORA_ZIG_EXECUTABLE}"
         "$<TARGET_FILE:NexoraEditor>" ${game_runtime_files})
     set_tests_properties(editor.game_build PROPERTIES TIMEOUT 600)
   endif()

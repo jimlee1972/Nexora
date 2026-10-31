@@ -22,13 +22,13 @@ std::string Fold(std::string_view text) {
       c = static_cast<char>(c + ('a' - 'A'));
   return result;
 }
-bool SafePath(std::string_view text) {
+bool SafePath(std::string_view text, bool scene = true) {
   if (text.empty() || text.size() > ProjectBuildSettings::kMaximumPathBytes ||
       !foundation::IsValidUtf8(text) || text.find_first_of("\\:<>\"|?*") != text.npos ||
       std::ranges::any_of(text, [](unsigned char c) { return c < 32 || c == 127; }))
     return false;
   const auto path = std::filesystem::path(std::u8string(text.begin(), text.end()));
-  if (path.has_root_path() || path.extension() != ".scene")
+  if (path.has_root_path() || (scene && path.extension() != ".scene"))
     return false;
   // Portable spellings also reject Windows device aliases and case-only duplicate paths.
   std::size_t start = 0;
@@ -43,7 +43,7 @@ bool SafePath(std::string_view text) {
         (stem.size() == 4 && (stem.starts_with("com") || stem.starts_with("lpt")) &&
          stem[3] >= '1' && stem[3] <= '9'))
       return false;
-    if (start == 0 && lower == ".nexora" && !text.starts_with(".nexora/scenes/"))
+    if (start == 0 && lower == ".nexora" && (!scene || !text.starts_with(".nexora/scenes/")))
       return false;
     if (end == text.npos)
       break;
@@ -119,7 +119,8 @@ public:
     }
     return {};
   }
-  template <typename Read> bool Object(const std::array<std::string_view, 3> &keys, Read read) {
+  template <std::size_t N, typename Read>
+  bool Object(const std::array<std::string_view, N> &keys, Read read) {
     if (!Take("{"))
       return false;
     unsigned seen = 0;
@@ -139,43 +140,65 @@ public:
     }
     return Take("}");
   }
-  std::optional<ProjectBuildSettings> Read() {
+  std::optional<ProjectBuildSettings> Read(unsigned schema) {
     ProjectBuildSettings settings;
-    if (!Object({"schema", "start_scene", "scenes"}, [&](unsigned key) {
-          if (key == 0)
-            return Take("1");
-          if (key == 1)
-            return Uuid(settings.start_scene);
-          if (!Take("["))
+    const auto read_field = [&](unsigned key) {
+      if (key == 0)
+        return Take(schema == 1 ? "1" : "2");
+      if (key == 1)
+        return Uuid(settings.start_scene);
+      if (key == 3)
+        return Object<3>({"mode", "script_manifest", "output"}, [&](unsigned build_key) {
+          const auto value = String();
+          if (!value)
             return false;
-          if (Take("]"))
-            return true;
-          do {
-            if (settings.scenes.size() == ProjectBuildSettings::kMaximumScenes)
+          if (build_key == 0) {
+            if (*value == "scene-only")
+              settings.build.mode = GameBuildMode::SceneOnly;
+            else if (*value == "script-project")
+              settings.build.mode = GameBuildMode::ScriptProject;
+            else
               return false;
-            BuildScene scene;
-            if (!Object({"id", "path", "enabled"}, [&](unsigned field) {
-                  if (field == 0)
-                    return Uuid(scene.id);
-                  if (field == 1) {
-                    const auto path = String();
-                    if (!path)
-                      return false;
-                    scene.path = *path;
-                    return true;
-                  }
-                  if (Take("true")) {
-                    scene.enabled = true;
-                    return true;
-                  }
-                  scene.enabled = false;
-                  return Take("false");
-                }))
-              return false;
-            settings.scenes.push_back(std::move(scene));
-          } while (Take(","));
-          return Take("]");
-        }))
+          } else if (build_key == 1)
+            settings.build.script_manifest = *value;
+          else
+            settings.build.output = *value;
+          return true;
+        });
+      if (!Take("["))
+        return false;
+      if (Take("]"))
+        return true;
+      do {
+        if (settings.scenes.size() == ProjectBuildSettings::kMaximumScenes)
+          return false;
+        BuildScene scene;
+        if (!Object<3>({"id", "path", "enabled"}, [&](unsigned field) {
+              if (field == 0)
+                return Uuid(scene.id);
+              if (field == 1) {
+                const auto path = String();
+                if (!path)
+                  return false;
+                scene.path = *path;
+                return true;
+              }
+              if (Take("true")) {
+                scene.enabled = true;
+                return true;
+              }
+              scene.enabled = false;
+              return Take("false");
+            }))
+          return false;
+        settings.scenes.push_back(std::move(scene));
+      } while (Take(","));
+      return Take("]");
+    };
+    const bool complete = schema == 1
+                              ? Object<3>({"schema", "start_scene", "scenes"}, read_field)
+                              : Object<4>({"schema", "start_scene", "scenes", "build"}, read_field);
+    if (!complete)
       return {};
     Space();
     return rest_.empty() ? std::optional{std::move(settings)} : std::nullopt;
@@ -246,6 +269,15 @@ bool ValidateProjectBuildSettings(const ProjectBuildSettings &settings, std::str
   if (settings.scenes.empty() || settings.scenes.size() > ProjectBuildSettings::kMaximumScenes ||
       settings.start_scene == runtime::AssetUuid{})
     return Fail(error, "Select an enabled startup scene and at most 256 build scenes.");
+  const auto &build = settings.build;
+  if ((build.mode != GameBuildMode::SceneOnly && build.mode != GameBuildMode::ScriptProject) ||
+      !SafePath(build.output, false) || !SafePath(build.script_manifest, false))
+    return Fail(error, "Build configuration requires safe portable project-relative paths.");
+  const auto manifest = std::filesystem::path(
+      std::u8string(build.script_manifest.begin(), build.script_manifest.end()));
+  if (!manifest.has_parent_path() || manifest.extension() != ".json")
+    return Fail(error, "Build configuration requires a safe output folder and a .json manifest in "
+                       "a dedicated source directory.");
   std::unordered_set<runtime::AssetUuid, runtime::AssetUuidHash> ids;
   std::unordered_set<std::string> paths;
   bool startup = false;
@@ -262,7 +294,9 @@ std::optional<ProjectBuildSettings> ParseProjectBuildSettings(std::string_view b
   if (error)
     error->clear();
   if (bytes.size() <= ProjectBuildSettings::kMaximumBytes && foundation::IsValidUtf8(bytes)) {
-    auto result = Reader(bytes).Read();
+    auto result = Reader(bytes).Read(1);
+    if (!result)
+      result = Reader(bytes).Read(2);
     if (result && ValidateProjectBuildSettings(*result, error))
       return result;
   }
@@ -273,8 +307,10 @@ std::optional<std::string> SerializeProjectBuildSettings(const ProjectBuildSetti
                                                          std::string *error) {
   if (!ValidateProjectBuildSettings(settings, error))
     return {};
-  std::string text = "{\n  \"schema\": 1,\n  \"start_scene\": \"" +
-                     settings.start_scene.ToString() + "\",\n  \"scenes\": [\n";
+  const bool extended = settings.build != GameBuildSettings{};
+  std::string text = "{\n  \"schema\": " + std::string(extended ? "2" : "1") +
+                     ",\n  \"start_scene\": \"" + settings.start_scene.ToString() +
+                     "\",\n  \"scenes\": [\n";
   for (std::size_t i = 0; i < settings.scenes.size(); ++i) {
     const auto &scene = settings.scenes[i];
     // SafePath has excluded JSON control, quote and backslash bytes.
@@ -286,7 +322,19 @@ std::optional<std::string> SerializeProjectBuildSettings(const ProjectBuildSetti
       return {};
     }
   }
-  text += "  ]\n}\n";
+  text += "  ]";
+  if (extended) {
+    text += ",\n  \"build\": {\"mode\": \"" +
+            std::string(settings.build.mode == GameBuildMode::ScriptProject ? "script-project"
+                                                                            : "scene-only") +
+            "\", \"script_manifest\": \"" + settings.build.script_manifest + "\", \"output\": \"" +
+            settings.build.output + "\"}";
+  }
+  text += "\n}\n";
+  if (text.size() > ProjectBuildSettings::kMaximumBytes) {
+    Fail(error, "Build settings exceed 256 KiB.");
+    return {};
+  }
   return text;
 }
 

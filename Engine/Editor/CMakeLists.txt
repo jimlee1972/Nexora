@@ -4,6 +4,7 @@ add_library(NexoraEditorCore ${NEXORA_MODULE_LIBRARY_TYPE}
   src/AdditiveSceneComposition.cpp
   src/AssetImport.cpp
   src/BuildProcess.cpp
+  src/GameBuildProgress.cpp
   src/GitStatusProvider.cpp
   src/GitDiffProvider.cpp
   src/ChromeTrace.cpp

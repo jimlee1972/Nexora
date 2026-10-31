@@ -4,7 +4,7 @@ Editor script workflow / 腳本工作流程：
 [English delivery plan](en/Editor_Workflow_Delivery_Plan.md) ·
 [繁體中文交付計畫](zh-TW/Editor_Workflow_Delivery_Plan.md) ·
 [GitHub Epic #741](https://github.com/jimlee1972/Nexora/issues/741).
-Initial acceptance / 初始驗收：0/9 work orders / 工單；full graphical milestone acceptance remains
+Acceptance / 驗收：1/9 work orders / 工單（11.1%）；ED-WF-01 ✅ PR #751；full graphical milestone acceptance remains
 separate / 完整圖形化里程碑另行驗收。
 
 ## Progress snapshot / 進度紀錄

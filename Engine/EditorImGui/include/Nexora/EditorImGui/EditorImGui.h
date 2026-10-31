@@ -4,6 +4,7 @@
 #include "Nexora/Editor/BuildProcess.h"
 #include "Nexora/Editor/EditorProduction.h"
 #include "Nexora/Editor/EditorWorkspace.h"
+#include "Nexora/Editor/GameBuildProgress.h"
 #include "Nexora/Editor/GitDiffProvider.h"
 #include "Nexora/Editor/GitStatusProvider.h"
 #include "Nexora/Editor/MaterialAssetCatalog.h"
@@ -206,7 +207,8 @@ enum class ProjectBuildSettingsAction {
   Save,
   BuildSceneOnly,
   BuildScript,
-  CancelBuild
+  CancelBuild,
+  StopGame
 };
 struct ProjectBuildSettingsRequest final {
   foundation::Uuid project;
@@ -215,6 +217,7 @@ struct ProjectBuildSettingsRequest final {
   ProjectBuildSettings settings;
   std::string path;
   std::string output{"Build/Game"};
+  bool run_after_build{};
 };
 enum class SavedGameDecision { Save, UseSaved, Cancel };
 
@@ -455,6 +458,8 @@ public:
                                std::string status = {});
   [[nodiscard]] std::optional<ProjectBuildSettingsRequest> TakeProjectBuildSettingsRequest();
   void SetGameBuildStatus(bool busy, std::string message);
+  void SetGameBuildProgress(GameBuildProgress progress);
+  void SetGameRunStatus(bool running, std::string message);
   void RequestSavedGameDecision();
   [[nodiscard]] std::optional<SavedGameDecision> TakeSavedGameDecision();
   [[nodiscard]] bool TakeSceneSaveRequest() noexcept;

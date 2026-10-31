@@ -4,7 +4,7 @@
 
 Updated: 2026-10-31. Baseline: `8c4aa989ee7443cc0b2129d54f0f0f77c73d2b49`.
 Documentation publication base: current main `67db45d23e631b0e05b42c23716245a34ae996d5`.
-Acceptance snapshot: **0/9 work orders (0%)**; creating issues is not implementation acceptance.
+Acceptance snapshot: **1/9 work orders (11.1%)**; ED-WF-01 merged in [PR #751](https://github.com/jimlee1972/Nexora/pull/751).
 The Epic records subsequent accepted work and its merged PR/evidence. Complete graphical Editor
 acceptance remains **0/8**; this plan does not accept physical-device or clean-host gates.
 
@@ -24,8 +24,8 @@ SortingGroup, nine-slice/Tiled rendering, masks and advanced animation state mac
 
 | ID | GitHub | Depends on | Required acceptance | State |
 | --- | --- | --- | --- | --- |
-| ED-WF-01 | [#742](https://github.com/jimlee1972/Nexora/issues/742) | None | Bilingual plan, capability baseline, issue graph and validation/evidence mapping published | Pending merge/acceptance |
-| ED-WF-02 | [#743](https://github.com/jimlee1972/Nexora/issues/743) | 01 | Persistent script Build settings, real GUI Build/Build & Run, cancellation/progress/diagnostics | Pending |
+| ED-WF-01 | [#742](https://github.com/jimlee1972/Nexora/issues/742) | None | Bilingual plan, capability baseline, issue graph and validation/evidence mapping published | ✅ PR #751 |
+| ED-WF-02 | [#743](https://github.com/jimlee1972/Nexora/issues/743) | 01 | Persistent script Build settings, real GUI Build/Build & Run, cancellation/progress/diagnostics | In progress; acceptance pending |
 | ED-WF-03 | [#744](https://github.com/jimlee1972/Nexora/issues/744) | 01 | Source-free runtime output; development receipts and publication inventory kept outside it | Pending |
 | ED-WF-04 | [#745](https://github.com/jimlee1972/Nexora/issues/745) | 01 | Transactional Runtime/Zig migration; failed replacement retains the old module and World | Pending |
 | ED-WF-05 | [#746](https://github.com/jimlee1972/Nexora/issues/746) | 02, 04 | Background source compilation and stateful Play reload without Stop/Play | Pending |
@@ -38,6 +38,7 @@ Each work order records exact commands/results and limitations in
 `Tools/Build/evidence/EditorWorkflow/ED-WF-XX.md`. The existing
 [ED-WF-01 baseline](../../Tools/Build/evidence/EditorWorkflow/ED-WF-01.md) distinguishes planning,
 implementation and accepted delivery. Later evidence links are added only when those files exist.
+The [ED-WF-02 Windows evidence](../../Tools/Build/evidence/EditorWorkflow/ED-WF-02.md) records scoped native passes, retained failures and pending cloud/CI gates; it is not work-order acceptance.
 Accepted count is the number of children with acceptance evidence and a merged delivery PR,
 divided by nine. Accepted rows use `✅`; pending or blocked work stays unmarked.
 

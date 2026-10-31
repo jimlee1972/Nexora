@@ -5,7 +5,7 @@
 The approved [delivery plan](Editor_Workflow_Delivery_Plan.md) and
 [Epic #741](https://github.com/jimlee1972/Nexora/issues/741) track nine dependent work orders for
 script Build UI, clean game output, stateful reload and source-aware Editor/Player/Zig integration.
-Initial acceptance is 0/9; existing supporting capabilities are not counted as complete workflows.
+Acceptance is 1/9 (11.1%): ED-WF-01 ✅ [PR #751](https://github.com/jimlee1972/Nexora/pull/751). ED-WF-02 is in progress; existing supporting capabilities are not counted as complete workflows.
 The full Editor milestone count remains 0/8. Existing CLI and `.bat` development remains available.
 
 ### Windows exported game entry (2026-10-30)
