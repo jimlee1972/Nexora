@@ -2,7 +2,7 @@
 
 The approved [Editor workflow delivery plan](Editor_Workflow_Delivery_Plan.md) tracks the remaining
 Sprite source C/Zig/catalog, Editor authoring, animation and pool integration in
-[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is 1/9 (11.1%): ED-WF-01 ✅ PR #751;
+[Epic #741](https://github.com/jimlee1972/Nexora/issues/741). Plan acceptance is 2/9 (22.2%): ED-WF-01 ✅ PR #751, ED-WF-02 ✅ PR #754;
 it does not promote full Editor, physical M6/M7 or advanced Sprite rendering acceptance.
 
 > Version: v1.7 | Status: cloud delivery accepted; PC host gates open | Updated: 2026-10-19

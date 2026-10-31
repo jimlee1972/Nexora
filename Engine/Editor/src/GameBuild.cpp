@@ -2,6 +2,7 @@
 #include "AtomicFile.h"
 #include "GameBuildSDKFiles.h"
 #include "Nexora/Editor/BuildProcess.h"
+#include "Nexora/Editor/EditorWorkspace.h"
 #include "Nexora/Runtime/GameLaunch.h"
 #include <algorithm>
 #include <chrono>
@@ -241,7 +242,7 @@ std::optional<std::vector<Path>> ScriptFiles(const Path &root, const Path &direc
   return Fail(error, "Game build tool failed: " + result.message + "\n" + diagnostic);
 }
 std::optional<std::string> Inventory(const Path &directory, std::string_view project,
-                                     std::string *error) {
+                                     std::string *error, std::string_view excluded = {}) {
   if (!Physical(directory))
     return {};
   std::vector<Path> files;
@@ -252,7 +253,7 @@ std::optional<std::string> Inventory(const Path &directory, std::string_view pro
       Fail(error, "A game output contains a directory, alias or excess files.");
       return {};
     }
-    if (it->path().filename() != "Game.inventory")
+    if (excluded.empty() || it->path().filename() != Path(excluded))
       files.push_back(it->path().filename());
   }
   if (ec)
@@ -271,12 +272,95 @@ std::optional<std::string> Inventory(const Path &directory, std::string_view pro
   }
   return result;
 }
-bool OwnedOutput(const Path &output, std::string_view project, std::string *error) {
-  const auto inventory = Inventory(output, project, error);
+bool LegacyOwnedOutput(const Path &output, std::string_view project, std::string *error) {
+  const auto inventory = Inventory(output, project, error, "Game.inventory");
   const auto expected = Read(output / "Game.inventory", 64 * 1024, error);
   return (inventory && expected && *inventory == Text(*expected)) ||
          Fail(error, "Existing game output is not an unchanged engine build for this project.");
 }
+bool CreatePhysicalDirectory(const Path &path, std::string *error) {
+  if (!path.is_absolute() || !path.has_relative_path() || path.lexically_normal() != path)
+    return Fail(error, "Build records require a normalized absolute user-data directory.");
+  auto current = path.root_path();
+  for (const auto &part : path.relative_path()) {
+    current /= part;
+    std::error_code ec;
+    if (Missing(current))
+      std::filesystem::create_directory(current, ec);
+    if (ec || !Ordinary(current, true))
+      return Fail(error, "Build record storage contains an alias or an unavailable directory.");
+  }
+  return Physical(path) || Fail(error, "Build record storage is not a physical directory.");
+}
+std::string PublicationReceipt(const Path &output, std::string_view project,
+                               std::string_view inventory) {
+  // Compare complete bytes, never parse an unescaped authored path as record fields.
+  return "NEXORA_GAME_BUILD_RECEIPT_1\nproject=" + std::string(project) +
+         "\noutput=" + detail::PathUtf8(output) + "\ninventory=" + Fingerprint(Bytes(inventory)) +
+         "\n";
+}
+bool OwnedRecords(const Path &records, const Path &output, std::string_view project,
+                  std::string *error) {
+  const auto inventory = Inventory(records, project, error, "Records.inventory");
+  const auto expected = Read(records / "Records.inventory", 64 * 1024, error);
+  const auto game = Read(records / "Game.inventory", 64 * 1024, error);
+  const auto receipt = Read(records / "Publication.receipt", 64 * 1024, error);
+  return (inventory && expected && game && receipt && *inventory == Text(*expected) &&
+          Text(*receipt) == PublicationReceipt(output, project, Text(*game))) ||
+         Fail(error, "Build records changed, are unrecognized, or belong to another output.");
+}
+bool RecordedOutput(const Path &output, const Path &records, std::string_view project,
+                    std::string *error) {
+  const auto inventory = Inventory(output, project, error);
+  const auto expected = Read(records / "Game.inventory", 64 * 1024, error);
+  return (inventory && expected && *inventory == Text(*expected)) ||
+         Fail(error, "Existing game output contains changed or foreign files.");
+}
+bool CopyFlat(const Path &source, const Path &destination, std::string *error) {
+  std::error_code ec;
+  for (std::filesystem::directory_iterator it(source, ec), end; it != end && !ec;
+       it.increment(ec)) {
+    if (!Ordinary(it->path(), false))
+      return Fail(error, "Game publication staging contains an alias or directory.");
+    std::filesystem::copy_file(it->path(), destination / it->path().filename(), ec);
+    if (ec)
+      break;
+  }
+  return !ec || Fail(error, "Cannot stage game publication files.");
+}
+struct PublicationRollback final {
+  const Path &output, &records;
+  DirectoryOwner &candidate, &backup, &candidate_records, &backup_records;
+  bool old_game{}, new_game{}, old_records{}, new_records{}, active{true};
+  static bool Rename(const Path &from, const Path &to) noexcept {
+    try {
+      std::error_code ec;
+      std::filesystem::rename(from, to, ec);
+      return !ec;
+    } catch (...) {
+      return false;
+    }
+  }
+  unsigned Restore() noexcept {
+    if (!active)
+      return 0;
+    active = false;
+    unsigned failures{};
+    const bool records_returned = !new_records || Rename(records, candidate_records.path);
+    if (!records_returned || (old_records && !Rename(backup_records.path, records))) {
+      failures |= 2;
+      // Failed recovery must never turn the old receipt into destructor-cleaned staging.
+      backup_records.path.clear();
+    }
+    const bool game_returned = !new_game || Rename(output, candidate.path);
+    if (!game_returned || (old_game && !Rename(backup.path, output))) {
+      failures |= 1;
+      backup.path.clear();
+    }
+    return failures;
+  }
+  ~PublicationRollback() { static_cast<void>(Restore()); }
+};
 } // namespace
 
 std::optional<GameBuildToolchain> ReadGameBuildToolchain(const Path &profile, const Path &cmake,
@@ -345,10 +429,11 @@ std::optional<GameBuildToolchain> ReadGameBuildToolchain(const Path &profile, co
 
 struct PreparedGameBuild::Implementation final {
   DirectoryOwner operation;
-  Path package, root, script_directory;
+  Path package, records, records_parent, root, script_directory;
   std::vector<Path> script_files;
   std::vector<GameBuildSource> sources;
-  std::string project, log, inventory, commands;
+  std::string project, log, inventory, records_inventory, commands;
+  std::optional<GameBuildReceipt> receipt;
   bool published{};
   bool Current(std::string *error) const {
     if (!GameBuildSourcesCurrent(root, sources, error))
@@ -368,6 +453,9 @@ PreparedGameBuild::PreparedGameBuild(PreparedGameBuild &&) noexcept = default;
 PreparedGameBuild &PreparedGameBuild::operator=(PreparedGameBuild &&) noexcept = default;
 const Path &PreparedGameBuild::Directory() const noexcept { return implementation_->package; }
 const std::string &PreparedGameBuild::Log() const noexcept { return implementation_->log; }
+const std::optional<GameBuildReceipt> &PreparedGameBuild::Receipt() const noexcept {
+  return implementation_->receipt;
+}
 
 std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
                                                   const core::CancellationToken &cancel,
@@ -384,6 +472,14 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
   state->root = request.project_root;
   state->project = request.capture.project.project.ToString();
   state->sources = std::move(request.capture.sources);
+  if (request.records_parent.empty()) {
+    const auto recent = RecentProjectStore::DefaultPath();
+    const auto parent = recent.filename() == "nexora-editor-recent-projects"
+                            ? recent.parent_path() / "nexora-editor"
+                            : recent.parent_path();
+    state->records_parent = parent / "build-records";
+  } else
+    state->records_parent = std::move(request.records_parent);
   if ((request.mode != GameBuildMode::SceneOnly && request.mode != GameBuildMode::ScriptProject) ||
       request.capture.project.project == runtime::AssetUuid{} || state->sources.empty() ||
       !state->Current(error) || cancel.IsCancellationRequested()) {
@@ -397,7 +493,9 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
   }
   const auto &operation = state->operation.path;
   state->package = operation / "package";
+  state->records = operation / "records";
   std::filesystem::create_directory(state->package);
+  std::filesystem::create_directory(state->records);
   if (request.progress)
     request.progress(ObserveGameBuildProgress(GameBuildStage::Cooking));
   const auto package = CookGameProject(request.capture.project, error);
@@ -415,9 +513,10 @@ std::optional<PreparedGameBuild> PrepareGameBuild(GameBuildRequest request,
   if (request.progress)
     request.progress(ObserveGameBuildProgress(GameBuildStage::RuntimeFiles));
   std::size_t artifact_bytes = package->size() + launch->size();
-  std::set<std::string> filenames{
-      "game.nxgame", "game.launch", "game.inventory", "build.sources", "build.commands",
-      "build.tools", "license",     "game.dll",       "libgame.so",    "libgame.dylib"};
+  std::set<std::string> filenames{"game.nxgame",   "game.launch",       "game.inventory",
+                                  "build.sources", "build.commands",    "build.tools",
+                                  "license",       "game.dll",          "libgame.so",
+                                  "libgame.dylib", "records.inventory", "publication.receipt"};
   const auto copy = [&](const Path &from, const Path &name) {
     auto key = detail::PathUtf8(name);
     for (auto &c : key)
@@ -580,16 +679,20 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/module-file.txt" "${module_file}")
                Fingerprint(Bytes(bytes)) + "\n";
     }
   }
-  if (!Write(state->package / "Build.commands", Bytes(state->commands), error) ||
-      !Write(state->package / "Build.tools", Bytes(tools), error))
+  if (!Write(state->records / "Build.commands", Bytes(state->commands), error) ||
+      !Write(state->records / "Build.tools", Bytes(tools), error))
     return {};
-  if (!Write(state->package / "Build.sources", Bytes(sources), error) || !state->Current(error) ||
+  if (!Write(state->records / "Build.sources", Bytes(sources), error) || !state->Current(error) ||
       cancel.IsCancellationRequested())
     return {};
   const auto inventory = Inventory(state->package, state->project, error);
-  if (!inventory || !Write(state->package / "Game.inventory", Bytes(*inventory), error))
+  if (!inventory || !Write(state->records / "Game.inventory", Bytes(*inventory), error))
     return {};
   state->inventory = *inventory;
+  const auto records_inventory = Inventory(state->records, state->project, error);
+  if (!records_inventory)
+    return {};
+  state->records_inventory = *records_inventory;
   if (request.progress)
     request.progress(ObserveGameBuildProgress(GameBuildStage::ReadyToPublish));
   return PreparedGameBuild(std::move(state));
@@ -623,52 +726,142 @@ bool PreparedGameBuild::Publish(const Path &output, const core::CancellationToke
                            true, error))
     return Fail(error, "Game output overlaps private build/script sources or uses an unsafe name.");
   const auto inventory = Inventory(state.package, state.project, error);
-  const auto manifest = Read(state.package / "Game.inventory", 64 * 1024, error);
-  if (!inventory || !manifest || *inventory != state.inventory ||
-      Text(*manifest) != state.inventory)
-    return Fail(error, "Prepared game artifacts changed before publication.");
-  const bool previous = !Missing(output);
-  if (previous && !OwnedOutput(output, state.project, error))
+  const auto records_inventory = Inventory(state.records, state.project, error);
+  if (!inventory || !records_inventory || *inventory != state.inventory ||
+      *records_inventory != state.records_inventory)
+    return Fail(error, "Prepared game artifacts or build records changed before publication.");
+  const auto &records_parent = state.records_parent;
+  if (inside(records_parent, state.root) || inside(state.root, records_parent) ||
+      inside(records_parent, state.operation.path) || inside(records_parent, output) ||
+      inside(output, records_parent) || detail::PathUtf8(output).size() > 32 * 1024)
+    return Fail(error, "Build records must be separate from authored projects and game output.");
+  if (!CreatePhysicalDirectory(records_parent, error))
+    return false;
+  const auto records =
+      records_parent / (state.project + "-" + Fingerprint(Bytes(detail::PathUtf8(output))));
+  GameBuildReceipt receipt{records, records / "Publication.receipt"};
+  const bool previous = !Missing(output), previous_records = !Missing(records);
+  const bool legacy = previous && !previous_records;
+  if (previous_records && !OwnedRecords(records, output, state.project, error))
+    return false;
+  const auto previous_records_bytes = previous_records
+                                          ? Read(records / "Records.inventory", 64 * 1024, error)
+                                          : std::optional<runtime::ByteBuffer>{};
+  if (previous_records && !previous_records_bytes)
+    return false;
+  const auto old_output_valid = [&] {
+    return !previous ? Missing(output)
+           : legacy  ? LegacyOwnedOutput(output, state.project, error)
+                     : RecordedOutput(output, records, state.project, error);
+  };
+  if (!old_output_valid())
+    return false;
+  const auto previous_inventory =
+      previous ? Inventory(output, state.project, error, legacy ? "Game.inventory" : "")
+               : std::optional<std::string>{};
+  if (previous && !previous_inventory)
     return false;
   DirectoryOwner candidate{UniqueDirectory(output.parent_path(), ".nexora-game-publish-")};
   DirectoryOwner backup{UniqueDirectory(output.parent_path(), ".nexora-game-previous-")};
-  if (candidate.path.empty() || backup.path.empty())
-    return Fail(error, "Cannot reserve game publication directories.");
-  std::error_code ec;
-  for (const auto &file : std::filesystem::directory_iterator(state.package)) {
-    std::filesystem::copy_file(file.path(), candidate.path / file.path().filename(), ec);
-    if (ec)
-      return Fail(error, "Cannot stage game output on its destination filesystem.");
+  DirectoryOwner candidate_records{UniqueDirectory(records_parent, ".nexora-record-stage-")};
+  DirectoryOwner backup_records{UniqueDirectory(records_parent, ".nexora-record-history-")};
+  if (candidate.path.empty() || backup.path.empty() || candidate_records.path.empty() ||
+      backup_records.path.empty())
+    return Fail(error, "Cannot reserve game/record publication directories.");
+  if (!CopyFlat(state.package, candidate.path, error) ||
+      !CopyFlat(state.records, candidate_records.path, error))
+    return false;
+  if (legacy) {
+    // Retain the verified old producer metadata during the first clean-output migration.
+    for (const auto *name : {"Game.inventory", "Build.commands", "Build.sources", "Build.tools"}) {
+      if (Missing(output / name))
+        continue;
+      const auto bytes = Read(output / name, kArtifactLimit, error);
+      if (!bytes || !Write(candidate_records.path / (std::string("Legacy.") + name), *bytes, error))
+        return false;
+    }
   }
-  if (!OwnedOutput(candidate.path, state.project, error) || !allowed() ||
-      (previous ? !OwnedOutput(output, state.project, error) : !Missing(output)))
-    return Fail(error, "Game publication became stale before the directory commit.");
-  // Cancellation linearizes at the guard above. Cooperative writers must serialize publication.
-  // The two renames are recoverable, not a power-loss-atomic replacement of a nonempty directory.
+  const auto receipt_bytes = PublicationReceipt(output, state.project, state.inventory);
+  if (!Write(candidate_records.path / "Publication.receipt", Bytes(receipt_bytes), error))
+    return false;
+  const auto staged_records_inventory = Inventory(candidate_records.path, state.project, error);
+  if (!staged_records_inventory ||
+      !Write(candidate_records.path / "Records.inventory", Bytes(*staged_records_inventory), error))
+    return false;
+  std::error_code ec;
   std::filesystem::remove(backup.path, ec);
   if (ec)
     return Fail(error, "Cannot reserve the previous game output path.");
+  std::filesystem::remove(backup_records.path, ec);
+  if (ec)
+    return Fail(error, "Cannot reserve previous build records.");
+  const auto records_current = [&] {
+    if (!Physical(records_parent))
+      return false;
+    if (!previous_records)
+      return Missing(records);
+    const auto bytes = Read(records / "Records.inventory", 64 * 1024, error);
+    return bytes && *bytes == *previous_records_bytes &&
+           OwnedRecords(records, output, state.project, error);
+  };
+  const auto old_inventory_current = [&] {
+    if (!previous)
+      return Missing(output);
+    const auto current = Inventory(output, state.project, error, legacy ? "Game.inventory" : "");
+    return current && *current == *previous_inventory && old_output_valid();
+  };
+  const auto candidate_inventory = Inventory(candidate.path, state.project, error);
+  const auto candidate_records_inventory =
+      Inventory(candidate_records.path, state.project, error, "Records.inventory");
+  if (!candidate_inventory || *candidate_inventory != state.inventory ||
+      !candidate_records_inventory || *candidate_records_inventory != *staged_records_inventory ||
+      !OwnedRecords(candidate_records.path, output, state.project, error) ||
+      !old_inventory_current() || !records_current() || !allowed())
+    return Fail(error, "Game publication became stale before the directory commit.");
+  // This is a recoverable multi-directory transaction for serialized cooperative writers,
+  // not power-loss atomicity or isolation from hostile concurrent filesystem replacement.
+  // Cancellation linearizes at the final owner/source guard above.
+  const auto retained_game = detail::PathUtf8(backup.path);
+  const auto retained_records = detail::PathUtf8(backup_records.path);
+  PublicationRollback rollback{output, records,           candidate,
+                               backup, candidate_records, backup_records};
+  const auto fail_transaction = [&](std::string message) {
+    const auto failed = rollback.Restore();
+    if (failed & 1)
+      message += " Game recovery failed; retained output/backup: " + detail::PathUtf8(output) +
+                 " / " + retained_game;
+    if (failed & 2)
+      message += " Record recovery failed; retained receipt/backup: " + detail::PathUtf8(records) +
+                 " / " + retained_records;
+    return Fail(error, std::move(message));
+  };
   if (previous) {
     std::filesystem::rename(output, backup.path, ec);
     if (ec)
-      return Fail(error, "Cannot move the previous game output; it may still be running.");
+      return fail_transaction("Cannot move previous game output; it may still be running.");
+    rollback.old_game = true;
   }
   std::filesystem::rename(candidate.path, output, ec);
-  if (ec) {
-    if (previous) {
-      std::error_code rollback;
-      std::filesystem::rename(backup.path, output, rollback);
-      if (rollback) {
-        const auto retained = detail::PathUtf8(backup.path);
-        backup.path.clear();
-        return Fail(error,
-                    "Game publication rollback failed; previous game retained at " + retained);
-      }
-    }
-    return Fail(error, "Cannot commit staged game output; previous output restored.");
+  if (ec)
+    return fail_transaction("Cannot commit staged game output; transaction rolled back.");
+  rollback.new_game = true;
+  if (previous_records) {
+    std::filesystem::rename(records, backup_records.path, ec);
+    if (ec)
+      return fail_transaction("Cannot stage previous build records; transaction rolled back.");
+    rollback.old_records = true;
   }
-  candidate.path.clear();
+  std::filesystem::rename(candidate_records.path, records, ec);
+  if (ec)
+    return fail_transaction("Cannot commit build receipt; transaction rolled back.");
+  rollback.new_records = true;
+  state.receipt = std::move(receipt);
   state.published = true;
+  rollback.active = false;
+  candidate.path.clear();
+  candidate_records.path.clear();
+  // Preserve earlier receipts/logs as engine-user-data history; no old runtime binaries remain.
+  backup_records.path.clear();
   return true;
 }
 } // namespace nexora::editor

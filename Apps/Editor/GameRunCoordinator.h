@@ -10,6 +10,7 @@ public:
   GameRunCoordinator() { jobs_.Start(); }
   ~GameRunCoordinator() { Shutdown(); }
   bool Busy() const noexcept { return active_; }
+  BuildProcessSnapshot Snapshot() const { return process_.Snapshot(); }
   bool Current(foundation::Uuid project, const std::filesystem::path &root) const {
     return project_ == project && root_ == root;
   }
